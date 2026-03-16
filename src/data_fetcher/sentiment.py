@@ -1,3 +1,8 @@
+"""
+Data Fetcher Module:
+Responsible for all external communication with Binance APIs.
+Focuses on both technical price data (K-lines) and psychological sentiment data (OI, LS Ratio).
+"""
 import logging
 from typing import Dict, Any, List
 from binance.um_futures import UMFutures

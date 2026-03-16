@@ -57,30 +57,31 @@ class TraderAgent:
         )
 
         try:
-            # We must use file API for GenAI since images can be large
+            # Multi-modal Input: Gemini allows combining images and text in the same 'contents' list.
+            # We use the File API because high-res charts can be large.
             logger.info(f"Uploading chart image to Gemini API: {chart_image_path}")
             
-            # Using the direct path approach or upload file
-            # If upload fails, fallback to passing image directly if path is valid
             try:
                 uploaded_file = self.client.files.upload(file=chart_image_path)
                 contents = [uploaded_file, formatted_prompt]
             except Exception as e:
                 logger.warning(f"File upload failed, attempting to pass raw path... {e}")
-                # Sometimes local SDKs allow direct path if file API upload is blocked
+                # Fallback: passing image metadata if upload fails
                 contents = [
-                    {"mime_type": "image/png", "file_uri": chart_image_path}, # Placeholder if direct path fails
+                    {"mime_type": "image/png", "file_uri": chart_image_path}, 
                     formatted_prompt
                 ]
             
             logger.info(f"Invoking Gemini Model ({self.model_name})...")
-            # We strictly request JSON format via response_mime_type
+            
+            # response_mime_type="application/json" forces the model to return a valid JSON block,
+            # which is much easier for our code to parse than free-form text.
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.2 # low temperature for analytical reasoning
+                    temperature=0.2 # Lower temperature = more consistent, deterministic reasoning.
                 )
             )
             

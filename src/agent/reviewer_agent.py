@@ -52,12 +52,14 @@ class ReviewerAgent:
         try:
             logger.info(f"Invoking Reviewer Agent Model ({self.model_name})...")
             
+            # Agent B evaluates Agent A's past prediction vs Actual market outcome.
+            # Its goal is to find 'Logical Flaws' and generate 'Config Patches' or Prompt updates.
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=formatted_prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.3 # slightly higher to allow creative logic patches
+                    temperature=0.3 # Slightly higher temperature to allow for more 'insightful' improvement tips.
                 )
             )
             

@@ -11,6 +11,9 @@ class BinanceDataFetcher:
     """
     A unified wrapper for fetching high-integrity Market Data from Binance Futures.
     No API Key is required because we only fetch public market data endpoints.
+    
+    This class is the 'Technical Source' for Agent A, providing raw price 
+    action and order book liquidity data.
     """
     def __init__(self):
         # We target the Binance USD-M Futures api to align with Long/Short ratios.

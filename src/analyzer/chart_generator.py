@@ -54,13 +54,15 @@ class ChartGenerator:
 
         try:
             logger.info(f"Generating chart for {symbol} to {filepath}")
+            # mpf.plot is a powerful wrapper for matplotlib.
+            # It handles the OHLC candlesticks and the volume bars automatically.
             mpf.plot(
                 plot_df, 
                 type='candle', 
                 volume=True, 
                 style=s, 
                 title=f"{symbol} - {filename_suffix} (POC: {poc:.2f})",
-                hlines=hlines,
+                hlines=hlines, # Overlaying our Volume Profile levels (POC, VAH, VAL)
                 savefig=dict(fname=filepath, dpi=150, bbox_inches='tight'),
                 warn_too_much_data=1000
             )
