@@ -45,7 +45,7 @@ class ChartGenerator:
         # Colors: POC = Red (important), VAH/VAL = Blue/Cyan
         hlines = dict(
             hlines=[poc, vah, val], 
-            colors=['#ff0000', '#FFEB3B', '#FFEB3B'], # POC: Red, VAH/VAL: Material Yellow
+            colors=['#ff0000', '#DAA520', '#DAA520'], # POC: Red, VAH/VAL: Dark Yellow (Goldenrod)
             linestyle=['-', '-', '-'],    # All lines are now solid
             linewidths=[2, 1.5, 1.5]
         )

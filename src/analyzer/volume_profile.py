@@ -42,6 +42,18 @@ class VolumeProfileAnalyzer:
         - POC (Point of Control): The price level with the highest traded volume.
         - VAH (Value Area High): The upper boundary of the price range where 70% (default) of volume occurred.
         - VAL (Value Area Low): The lower boundary of the price range where 70% (default) of volume occurred.
+
+        Returns:
+            {
+                "poc": 74060.80,       # Point of Control：成交量最大的那个价格
+                "vah": 75200.00,       # Value Area High：价值区上限
+                "val": 73100.00,       # Value Area Low：价值区下限
+                "profile_data": [      # 这是一个列表，包含了所有 50 个格子的分布数据，用于绘图
+                    {"price": 72500.0, "volume": 120.5},
+                    {"price": 72600.0, "volume": 340.2},
+                    ... # 总共 50 条记录
+                ]
+            }
         """
         if df.empty:
             return {}
