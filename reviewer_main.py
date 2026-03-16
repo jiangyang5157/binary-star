@@ -29,6 +29,16 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
 def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, Any]:
     """
     Analyzes kline data to determine the actual market outcome.
+    
+    Metrics Explained:
+    - start_price: 预测发出时的开盘价。
+    - max_price_reached: 预测周期内的最高价（用于观察是否达到止盈逻辑）。
+    - min_price_reached: 预测周期内的最低价（用于观察是否触发止损或遇到强支撑）。
+    - final_close_price: 周期结束时的价格。
+    - price_change_pct: 最终的累计涨跌幅百分比。
+    - max_drawup_pct: 期间最大的浮盈比例（贪婪程度测试）。
+    - max_drawdown_pct: 期间最大的回撤比例（风险承受测试）。
+    - outcome_period_bars: 实际统计的K线柱数。
     """
     if not klines:
         return {}
@@ -161,6 +171,11 @@ def run_reviewer_pipeline():
             # 4. Save review
             try:
                 parsed_review = json.loads(review_content)
+                
+                # Final structure of the review:
+                # - evaluation_score: 给 Agent A 的判断打分 (0-100)。
+                # - flaw_analysis: AI 分析该单盈亏的底层逻辑缺陷或成功要素。
+                # - prompt_patch_suggestion: 核心产出：建议写入 TraderAgent 提示词的逻辑补丁。
                 final_record = {
                     "prediction_source": filename,
                     "review_timestamp": datetime.now(timezone.utc).isoformat() + "Z",
