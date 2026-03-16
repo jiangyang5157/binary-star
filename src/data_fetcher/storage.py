@@ -23,6 +23,9 @@ class DataStorage:
             
     @staticmethod
     def load_json(filepath: str) -> Any:
+        """
+        Loads data from a JSON file. Returns None if file not found or corrupted.
+        """
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 return json.load(f)

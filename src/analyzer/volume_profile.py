@@ -37,40 +37,46 @@ class VolumeProfileAnalyzer:
     def calculate_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
         Calculates the Volume Profile over the provided DataFrame.
+        
+        Concept:
+        - POC (Point of Control): The price level with the highest traded volume.
+        - VAH (Value Area High): The upper boundary of the price range where 70% (default) of volume occurred.
+        - VAL (Value Area Low): The lower boundary of the price range where 70% (default) of volume occurred.
         """
         if df.empty:
             return {}
 
+        # 1. Determine the global price range for the current window
         min_price = df['low'].min()
         max_price = df['high'].max()
         
-        # Create price bins
+        # 2. Divide this range into 'bins' (horizontal buckets)
         price_bins = np.linspace(min_price, max_price, self.bins + 1)
         
-        # We will distribute the volume of each candle across the bins it spans.
-        # For simplicity in this iteration, we assign the volume to the bin containing the 'typical price'
-        # Typical price = (High + Low + Close) / 3
+        # 3. Associate each K-line's volume with its price location.
+        # For simplicity, we use 'typical price' (H+L+C)/3 to represent the center of gravity of the candle.
         df['typical_price'] = (df['high'] + df['low'] + df['close']) / 3
         
-        # Digitize the typical prices into our bins
+        # 4. Sorting candles into their respective horizontal buckets
         df['bin'] = np.digitize(df['typical_price'], price_bins)
         
-        # Summarize volume per bin
+        # 5. Summarize volume per bin (Summing up the total volume traded at each price level)
         profile = df.groupby('bin')['volume'].sum().reset_index()
         
-        # Map bin indices back to price ranges
+        # 6. Map bin indices back to human-readable price values
         profile['price'] = profile['bin'].apply(lambda x: price_bins[x-1] if x > 0 else price_bins[0])
         
-        # Find Point of Control (POC)
+        # 7. Identify the Point of Control (POC) - The 'busiest' price level
         poc_idx = profile['volume'].idxmax()
         poc_price = profile.loc[poc_idx, 'price']
-        poc_volume = profile.loc[poc_idx, 'volume']
         
-        # Calculate Value Area
+        # 8. Calculate the Value Area (VA)
+        # This identifies where the majority of trading ('fair value') took place.
         total_volume = profile['volume'].sum()
         value_area_volume = total_volume * self.value_area_pct
         
-        # Sort bins by volume descending to build the value area
+        # We find the value area by sorting bins by volume descending 
+        # and accumulating until we reach the target volume percentage (currenlty 70%).
         sorted_profile = profile.sort_values(by='volume', ascending=False)
         
         cumulative_volume = 0
@@ -81,6 +87,7 @@ class VolumeProfileAnalyzer:
             if cumulative_volume >= value_area_volume:
                 break
                 
+        # The VAH and VAL are the boundaries of these most active bins
         vah = max(value_area_bins)
         val = min(value_area_bins)
         
@@ -88,5 +95,5 @@ class VolumeProfileAnalyzer:
             "poc": poc_price,
             "vah": vah,
             "val": val,
-            "profile_data": profile[['price', 'volume']].to_dict('records')
+            "profile_data": profile[['price', 'volume']].to_dict('records') # Full data for charting
         }
