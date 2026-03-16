@@ -1,0 +1,23 @@
+# Crypto Dual-Agent Trading System Configuration
+
+trading:
+  symbol: "BTCUSDT"
+  strategy: "swing" # 1 - 14 days holding period
+
+data:
+  # Macro timeframe for trend and Volume Profile calculation
+  macro_timeframe:
+    interval: "4h"
+    limit: 180       # 180 bars * 4H = 30 days
+  # Micro timeframe for precise entry points
+  micro_timeframe:
+    interval: "1h"
+    limit: 120       # 120 bars * 1H = 5 days
+
+paths:
+  raw_data_dir: "data/raw"
+  images_dir: "data/images"
+  prompts_dir: "src/agent/prompts"
+
+agent:
+  model_name: "gemini-2.5-flash" # The recommended model for multimodal 

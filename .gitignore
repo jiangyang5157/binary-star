@@ -1,0 +1,24 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Data and Logs
+data/raw/
+data/images/
+*.log
+
+# Environment and Keys
+.env
+.gems/
+.gemini/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Project specific
+tmp/
