@@ -13,6 +13,9 @@ data:
   micro_timeframe:
     interval: "1h"
     limit: 120       # 120 bars * 1H = 5 days
+  
+  # Value Area Percentage (e.g., 0.70 for 70%)
+  value_area_pct: 0.70
 
 paths:
   raw_data_dir: "data/raw"

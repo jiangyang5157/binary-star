@@ -67,7 +67,8 @@ def run_agent_a():
     
     # 2. Analysis & Visualization
     logger.info("Step 3: Calculating Volume Profile & Charting")
-    vpa = VolumeProfileAnalyzer()
+    va_pct = config['data'].get('value_area_pct', 0.70)
+    vpa = VolumeProfileAnalyzer(value_area_pct=va_pct)
     df = vpa.process_klines(klines)
     profile_data = vpa.calculate_profile(df)
     
