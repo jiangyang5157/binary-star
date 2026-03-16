@@ -19,7 +19,7 @@ class BinanceDataFetcher:
         # We target the Binance USD-M Futures api to align with Long/Short ratios.
         self.client = UMFutures()
 
-    def fetch_historical_klines(self, symbol: str, interval: str, limit: int) -> List[List[Any]]:
+    def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs) -> List[List[Any]]:
         """
         Fetches historical kline (candlestick) data for a given symbol.
         Volume is incredibly important for Profile so we ensure the limits are solid.
@@ -28,29 +28,14 @@ class BinanceDataFetcher:
             symbol (str): The trading symbol.
             interval (str): The kline interval (e.g., '1m', '15m', '1h', '1d', '1w').
             limit (int): The number of klines to fetch.
+            **kwargs: Additional arguments like startTime, endTime.
 
         Returns:
-            List: A list of kline data.
-            [
-                [
-                    1499040000000,      # Open time (in milliseconds since Unix epoch)
-                    "0.01634790",       # Open
-                    "0.80000000",       # High
-                    "0.01575800",       # Low
-                    "0.01577100",       # Close
-                    "148976.11427815",  # This represents the total quantity of the base asset traded within that specific kline (candlestick) timeframe
-                    1499644799999,      # Close time (in milliseconds since Unix epoch)
-                    "2434.19055334",    # This represents the total quantity of the quote asset traded within the kline's timeframe
-                    308,                # The total number of trades that occurred during the kline interval.
-                    "1756.87402397",    # This is the volume of the base asset traded by buyers who "took" liquidity from the order book.
-                    "28.46694368",      # This is the volume of the quote asset traded by buyers who "took" liquidity
-                    "17928899.62484339" # Can be ignored
-                ]
-            ]
+            List: A list of kline data as defined in the Binance API.
         """
         try:
             logger.info(f"Fetching {limit} klines for {symbol} at {interval} interval")
-            response = self.client.klines(symbol=symbol, interval=interval, limit=limit)
+            response = self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
             return response
         except ClientError as error:
             logger.error(f"Failed to fetch klines for {symbol}: {error.error_message}")
