@@ -37,4 +37,4 @@ notifications:
   smtp_port: 587
 
 agent:
-  model_name: "gemini-3.1-pro-preview" # gemini-flash-latest gemini-2.5-flash
+  model_name: "gemini-3.1-pro-preview" # gemini-flash-latest
