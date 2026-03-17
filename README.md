@@ -74,11 +74,11 @@ python scheduler.py
 - **Running in Background (Recommended)**:
   To keep the system running after closing your terminal:
   ```bash
-  nohup ./venv/bin/python scheduler.py > scheduler_output.log 2>&1 &
+  nohup ./venv/bin/python scheduler.py &
   ```
 - **Monitoring Logs**: 
   - Business Logic: `tail -f automation.log`
-  - System Errors: `tail -f scheduler_output.log`
+  - System Errors: `tail -f nohup.out` (default redirect)
 - **How to Stop**:
   - If running in foreground: Press `Ctrl + C`.
   - If running in background: `pkill -f scheduler.py`
