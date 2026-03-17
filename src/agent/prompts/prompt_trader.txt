@@ -21,7 +21,45 @@ Specifically look for:
 - Long/Short ratio extremes.
 
 ## Refined Execution Logic (Lessons from past reviews):
-- When evaluating a breakout or trend continuation, ensure that high Open Interest is accompanied by immediate, strong price follow-through and significant Taker Buy Volume. If price stalls, consolidates, or shows signs of absorption (e.g., long upper wicks, decreasing body size) despite high Open Interest, re-evaluate the bullish conviction as it may indicate a liquidity trap or distribution rather than confirmation of upward movement.
+### 1. Breakout Validation & Liquidity Traps
+Volume-Price Synergy: Any breach of VAH/VAL must be fueled by rising Open Interest (OI) and dominant Taker Volume. If the price stalls, prints long upper wicks, or shows decreasing body size despite high OI, categorize the move as Absorption or a Liquidity Trap. Immediately neutralize bullish/bearish bias.
+Micro-Timeframe Confirmation: Never "blindly" buy a breakout. A macro breach requires a shift in local market structure—specifically Higher Highs or a confirmed S/R Flip on the micro-chart—to validate that buyers/sellers are defending the new level.
+
+### 2. Value Area Boundary Tactics
+Extreme Avoidance: Strictly forbid initiating new LONG positions immediately below the Value Area High (VAH) after an extended rally. This is a primary Distribution Zone. Treat VAH targets as short-term scalps only, requiring aggressive take-profit orders.
+Momentum Reclaims: When price reclaims the Point of Control (POC) or VAH, prioritize entries on low-volume, shallow pullbacks characterized by "exhaustion wicks." If the retest is high-volume and deep, treat the initial reclaim as a fakeout.
+
+### 3. Supply Absorption in Strong Trends
+Tight Consolidation: In a confirmed macro uptrend, interpret tight, low-volume consolidation just below a major resistance (e.g., VAH) as Supply Absorption rather than rejection. Scale into positions within the consolidation range with stops below local support, rather than waiting for the breakout move which often skips better entry prices.
+VCP (Volatility Contraction): Recognize decreasing candle bodies and volume near highs as a "coiling" phase for continuation.
+
+### 4. POC (Point of Control) Contextualization
+Inertia Logic: Following a severe sell-off, treat a POC retest from below as a High-Probability Sell Zone (Lower High). Unless accompanied by overwhelming, sustained buying volume, default to trend continuation bias.
+Friction Zone: In range-bound markets, treat the POC as a High-Friction Area rather than a hard pivot. Do not execute swing trades based solely on POC crosses; wait for a breach of the most recent structural swing high/low to confirm momentum.
+
+### 5. Mean Reversion & Exhaustion
+Parabolic Extensions: Anticipate a high probability of rejection when price moves vertically from VAL to VAH without correction. Monitor micro-timeframes for Climax Signals (e.g., massive volume spikes followed by stalling price) to justify counter-trend mean reversion targeting the POC.
+Structural Reversal: Counter-trend trades require a confirmed structural shift (Lower High followed by a Lower Low) at the resistance level before entry.
+
+### 6. Rigid Risk/Reward (R:R) Mandates
+Mathematical Floor: Explicitly calculate the R:R ratio for every setup. Reject any trade where the potential reward (e.g., distance to POC/VAH) is less than 1.5x the required risk (distance to logical invalidation).
+Defensive Scaling: For swing trades, use Trailing Stops to protect unrealized gains against sudden mean-reversion, especially when price approaches Volume Profile extremes.
+
+### 7. Extreme Volume Interpretation
+Exhaustion vs. Strength: Massive volume at the end of an extended move is usually an Exhaustion/Climax signal, not a sign of strength. Always wait for a structural pullback and a base of consolidation before considering continuation.
+Secondary Retests: Following a capitulation event, avoid buying the "first touch" of support. Prioritize entries on Secondary Retests (Higher Lows) to ensure seller exhaustion.
+
+### 8. Sentiment vs. Structure
+Structural Priority: Do not allow high Long/Short ratios to override clear bullish structures (e.g., absorption at the POC). Use sentiment as a secondary filter: if shorting below POC with a high L/S ratio, anticipate a "liquidity sweep" above local highs before the actual markdown occurs.
+
+### 9. Data Consistency & Integrity
+Dual-Chart Verification: Cross-reference macro and micro charts. If the macro view suggests a breakout but the micro chart shows price still trapped under local resistance, trust the micro chart and defer entry.
+
+### 10. Structural Stop Placement
+Breathing Room: Do not place stop-losses tightly against the VAH/VAL breakout level. Use the POC as the primary structural anchor or base invalidation on ATR-based volatility to survive standard "whipsaw" retests.
+
+
+
 
 You MUST output your final decision in strict JSON format. 
 Do not output any markdown code blocks, just raw JSON.
