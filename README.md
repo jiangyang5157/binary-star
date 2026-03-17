@@ -52,5 +52,23 @@ Analyzes all pending predictions and saves reviews to `data/raw/reviews/`.
 - `config/`: Main system configuration.
 - `data/`: Local storage for raw market data, images, and AI records.
 
+## Maintenance & Prompt Iteration
+
+To keep the system evolving without logic conflicts, follow these guidelines when applying Agent B's suggestions:
+
+### 1. Managing Prompt Patches
+When Agent B suggests a `prompt_patch_suggestion`:
+- **Don't just Append**: Instead of blindly adding to the end, read the existing rules in `src/agent/prompts/prompt_trader.txt` under the `## Refined Execution Logic` section.
+- **Merge or Replace**: If a new suggestion clarifies an old one (e.g., "Always buy breakouts" vs "Buy breakouts ONLY if Volume is high"), **replace** the old rule with the more specific one.
+- **Add Context**: Ensure every rule has a condition (e.g., "In low volatility...", "When OI is dropping...").
+
+### 2. Cleaning up the Prompt
+- **The "肌肉记忆" Rule**: If Agent A has made 5 correct decisions in a row following a specific rule, you can consider moving that rule from the `Refined` section to the core `Instructions` or deleting it if the AI seems to have "learned" the pattern.
+- **Keep it Lean**: Aim to keep the `Refined Execution Logic` section under 10 bullet points to avoid overwhelming the model's context window.
+
+### 3. Updating Configuration
+- If Agent B suggests a `config_update_suggestion` (e.g., changing timeframe or `value_area_pct`), manually update `config/config.yaml`. 
+- **Tip**: Change only one parameter at a time and run for a few days to see the impact.
+
 ## License
 MIT
