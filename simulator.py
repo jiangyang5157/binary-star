@@ -16,9 +16,10 @@ class MarketSimulator:
     Backtesting simulator that identifies market regimes and runs 
     the Trader/Reviewer agents through historical snapshots.
     """
-    def __init__(self, symbol: str = "BTCUSDT", sampling_count: int = 20):
+    def __init__(self, symbol: str = "BTCUSDT", sampling_count: int = 20, sampling_mode: str = "regime"):
         self.symbol = symbol
         self.sampling_count = sampling_count
+        self.sampling_mode = sampling_mode
         self.config = load_config()
         self.fetcher = BinanceDataFetcher()
 
@@ -83,20 +84,30 @@ class MarketSimulator:
             logger.warning("No data found in the specified time range.")
             return
 
-        # Sample dates from each regime to ensure diversity
-        regimes = df['regime'].unique()
-        samples_per_regime = max(1, self.sampling_count // len(regimes))
-        
+        # Determine sampling strategy
+        sampling_mode = getattr(self, 'sampling_mode', 'regime')
         target_dates = []
-        for r in regimes:
-            if r == "unknown": continue
-            regime_df = df[df['regime'] == r]
-            if not regime_df.empty:
-                # Take a random sample or spaced sample
-                subset = regime_df.sample(min(len(regime_df), samples_per_regime))
-                target_dates.extend(subset['timestamp'].tolist())
 
-        logger.info(f"Selected {len(target_dates)} historical points for simulation.")
+        if sampling_mode == 'spaced':
+            # Option A: Spaced Sampling (Equal intervals)
+            if len(df) <= self.sampling_count:
+                target_dates = df['timestamp'].tolist()
+            else:
+                indices = np.linspace(0, len(df) - 1, self.sampling_count, dtype=int)
+                target_dates = df.iloc[indices]['timestamp'].tolist()
+            logger.info(f"Using Spaced Sampling: Picked {len(target_dates)} points evenly across the range.")
+        else:
+            # Option B: Regime-based Stratified Sampling (Current default)
+            regimes = df['regime'].unique()
+            samples_per_regime = max(1, self.sampling_count // len(regimes))
+            
+            for r in regimes:
+                if r == "unknown": continue
+                regime_df = df[df['regime'] == r]
+                if not regime_df.empty:
+                    subset = regime_df.sample(min(len(regime_df), samples_per_regime))
+                    target_dates.extend(subset['timestamp'].tolist())
+            logger.info(f"Using Regime-based Sampling: Selected {len(target_dates)} historical points.")
 
         for dt in sorted(target_dates):
             logger.info(f"\n--- SIMULATING SNAPSHOT: {dt} ---")
@@ -128,6 +139,7 @@ if __name__ == "__main__":
     parser.add_argument("--sampling", type=int, default=20, help="Total number of points to sample (default 20)")
     parser.add_argument("--start", type=str, help="Start date (YYYY-MM-DD), overrides --days")
     parser.add_argument("--end", type=str, help="End date (YYYY-MM-DD), defaults to now")
+    parser.add_argument("--mode", type=str, choices=["regime", "spaced"], default="regime", help="Sampling mode: regime (stratified random) or spaced (even intervals)")
     
     args = parser.parse_args()
     
@@ -138,6 +150,12 @@ if __name__ == "__main__":
     end_dt = None
     if args.end:
         end_dt = datetime.strptime(args.end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    
+    # 30-day sentiment warning
+    if start_dt:
+        days_ago = (datetime.now(timezone.utc) - start_dt).days
+        if days_ago > 30:
+            logger.warning("!!! WARNING: Backtest starts > 30 days ago. Sentiment data (OI/LS) will be N/A due to Binance API limits.")
 
-    sim = MarketSimulator(symbol=args.symbol, sampling_count=args.sampling)
+    sim = MarketSimulator(symbol=args.symbol, sampling_count=args.sampling, sampling_mode=args.mode)
     sim.run_simulation(days_back=args.days, start_date=start_dt, end_date=end_dt)

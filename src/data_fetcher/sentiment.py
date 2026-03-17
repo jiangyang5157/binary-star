@@ -4,6 +4,7 @@ Responsible for all external communication with Binance APIs.
 Focuses on both technical price data (K-lines) and psychological sentiment data (OI, LS Ratio).
 """
 import logging
+from datetime import datetime, timezone
 from typing import Dict, Any, List
 from binance.um_futures import UMFutures
 from binance.error import ClientError
@@ -17,46 +18,52 @@ class SentimentFetcher:
     def __init__(self):
         self.client = UMFutures()
 
-    def fetch_open_interest(self, symbol: str) -> Dict[str, Any]:
+    def fetch_open_interest(self, symbol: str, **kwargs) -> Dict[str, Any]:
         """
-        Fetches the current open interest. A rising OI usually confirms the validity
-        of a current breakout or trend.
-
-        Returns:
-            Dict[str, Any]:
-            {
-                "symbol": "BTCUSDT",
-                "openInterest": "89184.862",
-                "time": 1773695251702
-            }
+        Fetches the open interest. If endTime is in kwargs, fetches historical data.
+        Note: Binance only provides the last 30 days of historical data.
         """
         try:
-            logger.info(f"Fetching Open Interest for {symbol}")
+            if 'endTime' in kwargs:
+                end_ts = kwargs['endTime']
+                now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+                # 30 days in milliseconds: 30 * 24 * 60 * 60 * 1000 = 2,592,000,000
+                if now_ts - end_ts > 2592000000:
+                    logger.info(f"Skipping historical OI for {symbol}: Date is > 30 days ago.")
+                    return {}
+
+                logger.info(f"Fetching Historical Open Interest for {symbol}")
+                response = self.client.open_interest_hist(symbol=symbol, period="1h", limit=1, **kwargs)
+                if response:
+                    return {
+                        "symbol": symbol,
+                        "openInterest": response[-1].get('sumOpenInterest', 'N/A'),
+                        "time": response[-1].get('timestamp', 0)
+                    }
+                return {}
+            
+            logger.info(f"Fetching Current Open Interest for {symbol}")
             response = self.client.open_interest(symbol=symbol)
             return response
         except ClientError as error:
             logger.error(f"Failed to fetch open interest for {symbol}: {error.error_message}")
             return {}
 
-    def fetch_long_short_ratio(self, symbol: str, period: str = "4h", limit: int = 30) -> List[Dict[str, Any]]:
+    def fetch_long_short_ratio(self, symbol: str, period: str = "4h", limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
         """
-        Fetches the Global Long/Short Ratio over a specified period.
-
-        Returns:
-            List[Dict[str, Any]]:
-            [
-                {
-                    "symbol": "BTCUSDT",
-                    "longAccount": "0.4613",
-                    "longShortRatio": "0.8563",
-                    "shortAccount": "0.5387",
-                    "timestamp": 1773691200000
-                }
-            ]
+        Fetches the Long/Short Ratio. Supports startTime/endTime in kwargs.
+        Note: Binance only provides the last 30 days of historical data.
         """
         try:
+            if 'endTime' in kwargs:
+                end_ts = kwargs['endTime']
+                now_ts = int(datetime.now(timezone.utc).timestamp() * 1000)
+                if now_ts - end_ts > 2592000000:
+                    logger.info(f"Skipping historical L/S ratio for {symbol}: Date is > 30 days ago.")
+                    return []
+
             logger.info(f"Fetching Long/Short ratio for {symbol} - Period: {period}")
-            response = self.client.long_short_account_ratio(symbol=symbol, period=period, limit=limit)
+            response = self.client.long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
             return response
         except ClientError as error:
             logger.error(f"Failed to fetch long/short ratio for {symbol}: {error.error_message}")

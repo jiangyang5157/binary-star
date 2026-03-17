@@ -128,10 +128,11 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             review_days = config.get('trading', {}).get('review_window_days', 7)
             dt_now = override_now if override_now else datetime.now(timezone.utc)
             dt_end = dt_start + timedelta(days=review_days)
-            
             if dt_end > dt_now:
                 dt_end = dt_now
                 logger.info(f"Prediction {filename} is recent. Reviewing up to present time.")
+
+            end_ts_ms = int(dt_end.timestamp() * 1000)
 
             # Minimum aging protection: Only review if a certain amount of time has passed
             min_delay_hours = config.get('automation', {}).get('reviewer_interval_hours', 24.0)
@@ -140,7 +141,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                 continue
 
             symbol = config['trading']['symbol']
-            logger.info(f"Fetching outcome data for {symbol} starting from {dt_start}")
+            logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
             
             # Fetch klines from the prediction time until now/end of window
             # Use 1m for very recent reviews to ensure we get data, else 4h
@@ -151,7 +152,8 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                 symbol=symbol, 
                 interval=fetch_interval, 
                 limit=500, # Increased limit for 1m data
-                startTime=start_ts_ms
+                startTime=start_ts_ms,
+                endTime=end_ts_ms
             )
 
             if not klines:

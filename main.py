@@ -78,8 +78,8 @@ def run_agent_a(override_timestamp: datetime = None):
     )
     
     logger.info("Step 2: Fetching Sentiment Data")
-    oi = sf.fetch_open_interest(symbol=symbol)
-    ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=macro_config['interval'], limit=1)
+    oi = sf.fetch_open_interest(symbol=symbol, **fetch_kwargs)
+    ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=macro_config['interval'], limit=1, **fetch_kwargs)
     
     # Bundle Context for Gemini
     context_data = {
@@ -116,6 +116,9 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["vah"] = profile_data.get('vah', 0)
     context_data["val"] = profile_data.get('val', 0)
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
+    context_data["macro_interval"] = macro_config['interval']
+    context_data["micro_interval"] = micro_config['interval']
+    context_data["review_window_days"] = config.get('trading', {}).get('review_window_days', 7)
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
     
