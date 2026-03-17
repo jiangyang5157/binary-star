@@ -41,7 +41,6 @@ def test_aging_protection_logic():
     
     # Override config logic for the test
     # Note: run_reviewer_pipeline loads config from file. 
-    # For this test, we'll assume the default 24h in config is active.
     
     print(f"[1] Running normal pipeline (should skip)...")
     # We need to point the pipeline to our temp data dir. 
@@ -54,7 +53,7 @@ def test_aging_protection_logic():
         "paths": {"raw_data_dir": data_dir, "images_dir": "data/images", "prompts_dir": "src/agent/prompts"},
         "trading": {"symbol": "BTCUSDT"},
         "agent": {"model_name": "gemini-flash-latest"},
-        "automation": {"reviewer_interval_hours": 24.0}
+        "automation": {"reviewer_interval_hours": 16.0}
     }
     
     try:

@@ -53,7 +53,7 @@ def start_scheduler():
 
     automation = config.get('automation', {})
     pred_hours = automation.get('prediction_interval_hours', 1.0)
-    rev_hours = automation.get('reviewer_interval_hours', 24.0)
+    rev_hours = automation.get('reviewer_interval_hours', 16.0)
 
     logger.info("=== Crypto Dual-Agent Scheduler Started ===")
     logger.info(f"Trader Interval: {pred_hours} hours")

@@ -135,7 +135,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             end_ts_ms = int(dt_end.timestamp() * 1000)
 
             # Minimum aging protection: Only review if a certain amount of time has passed
-            min_delay_hours = config.get('automation', {}).get('reviewer_interval_hours', 24.0)
+            min_delay_hours = config.get('automation', {}).get('reviewer_interval_hours', 16.0)
             if not force and (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
                 logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                 continue

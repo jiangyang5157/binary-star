@@ -47,8 +47,8 @@ python main.py
 python reviewer_main.py
 ```
 - **Behavior**: Scans all predictions that haven't been reviewed yet. Fetches the *actual* market movement and evaluates performance.
-- **Review Aging**: By default, it skips predictions less than 24 hours old (`reviewer_interval_hours` in config) to ensure the trade has played out.
-- **Manual Force**: To bypass the 24-hour protection and test immediately:
+- **Review Aging**: By default, it skips predictions less than 16 hours old (`reviewer_interval_hours` in config) to ensure the trade has played out.
+- **Manual Force**: To bypass the 16-hour protection and test immediately:
   ```bash
   python reviewer_main.py --force
   ```
@@ -69,7 +69,7 @@ python simulator.py [options]
 ```bash
 python scheduler.py
 ```
-- **Behavior**: Runs in an infinite loop. Triggers `main.py` every 1 hour and `reviewer_main.py` every 24 hours (configurable in `config/config.yaml`).
+- **Behavior**: Runs in an infinite loop. Triggers `main.py` every 1 hour and `reviewer_main.py` every 16 hours (configurable in `config/config.yaml`).
 - **Startup**: It **immediately** runs both scripts once upon startup to ensure your data is fresh.
 - **Running in Background (Recommended)**:
   To keep the system running after closing your terminal:
