@@ -37,6 +37,6 @@ You MUST output your final decision in strict JSON format.
   "flaw_analysis": "Agent A interpreted rising Open Interest as bullish despite price consolidating below POC, leading to a fake breakout trap.",
   "prompt_patch_suggestion": "If price is consolidating strictly beneath POC and Open Interest is rising rapidly, assume a build-up of shorts unless aggressive Taker Buy Volume breaks Resistance.",
   "config_update_suggestion": {{
-      "macro_timeframe": {{"interval": "4h", "limit": 200}}
+      "macro_timeframe": {{"interval": "4h", "limit": 168}}
   }}
 }}

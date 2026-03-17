@@ -29,8 +29,8 @@ def test_reviewer_agent_mock():
     current_config = {
         "trading": {"symbol": "BTCUSDT", "strategy": "swing"},
         "data": {
-            "macro_timeframe": {"interval": "4h", "limit": 180},
-            "micro_timeframe": {"interval": "1h", "limit": 120}
+            "macro_timeframe": {"interval": "4h", "limit": 168},
+            "micro_timeframe": {"interval": "1h", "limit": 168}
         }
     }
     
