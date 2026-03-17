@@ -15,6 +15,7 @@ The system operates in a feedback loop:
 - **Multimodal AI**: High-resolution dual-chart analysis using Gemini Flash.
 - **Automated Alerts**: Email notifications for high-confidence signal (>85%).
 - **Centralized Scheduler**: Orchestrates periodic prediction and review runs.
+- **Historical Backtesting**: Sampling-based simulator that identifies market regimes and runs backtests without hitting API quotas.
 - **Prompt Versioning**: Tracks "Logic Drift" by hashing prompt state in results.
 
 ## Installation
@@ -45,10 +46,21 @@ python main.py
 ```bash
 python reviewer_main.py
 ```
-- **Behavior**: Scans all predictions that haven't been reviewed yet. Fetches the *actual* market movement that happened *after* each prediction and asks the Reviewer Agent to evaluate success/failure.
-- **Output**: JSON review reports in `data/raw/reviews/`.
+- **Behavior**: Scans all predictions that haven't been reviewed yet. Fetches the *actual* market movement and evaluates performance.
+- **Review Aging**: By default, it skips predictions less than 24 hours old (`reviewer_interval_hours` in config) to ensure the trade has played out.
+- **Manual Force**: To bypass the 24-hour protection and test immediately:
+  ```bash
+  python reviewer_main.py --force
+  ```
 
-### 3. Automated Scheduler (Orchestrator)
+### 3. Historical Backtesting (Simulator)
+```bash
+python simulator.py
+```
+- **Behavior**: Identified Bull/Bear/Sideways regimes from the last year. Samples 10-20 points and runs the Trader -> Reviewer loop with "fast-forwarded" timestamps.
+- **Goal**: Rapidly iterate on prompts and configuration without waiting for live market days.
+
+### 4. Automated Scheduler (Orchestrator)
 ```bash
 python scheduler.py
 ```
