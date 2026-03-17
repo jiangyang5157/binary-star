@@ -55,10 +55,15 @@ python reviewer_main.py
 
 ### 3. Historical Backtesting (Simulator)
 ```bash
-python simulator.py
+python simulator.py [options]
 ```
-- **Behavior**: Identified Bull/Bear/Sideways regimes from the last year. Samples 10-20 points and runs the Trader -> Reviewer loop with "fast-forwarded" timestamps.
-- **Goal**: Rapidly iterate on prompts and configuration without waiting for live market days.
+- **Goal**: Rapidly iterate on prompts and configuration by sampling past market regimes.
+- **Parameters**:
+    - `--days <int>`: Lookback window in days (default: 365).
+    - `--sampling <int>`: Number of distinct points to test (default: 20).
+    - `--start <YYYY-MM-DD>`: Explicit start date (overrides --days).
+    - `--end <YYYY-MM-DD>`: Explicit end date (defaults to now).
+- **Example**: `python simulator.py --start 2024-01-01 --sampling 10`
 
 ### 4. Automated Scheduler (Orchestrator)
 ```bash

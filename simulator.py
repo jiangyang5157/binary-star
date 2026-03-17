@@ -22,15 +22,15 @@ class MarketSimulator:
         self.config = load_config()
         self.fetcher = BinanceDataFetcher()
 
-    def identify_regimes(self, days_back: int = 365) -> pd.DataFrame:
+    def identify_regimes(self, days_limit: int = 365) -> pd.DataFrame:
         """
         Fetches daily data and classifies periods into Bull/Bear/Sideways.
         """
-        logger.info(f"Analyzing past {days_back} days for market regimes...")
+        logger.info(f"Analyzing past {days_limit} days for market regimes...")
         klines = self.fetcher.fetch_historical_klines(
             symbol=self.symbol,
             interval="1d",
-            limit=days_back
+            limit=min(days_limit, 1000) # Binance limit usually 500-1000
         )
         
         if not klines:
@@ -57,12 +57,30 @@ class MarketSimulator:
         df['regime'] = df.apply(classify, axis=1)
         return df
 
-    def run_simulation(self):
+    def run_simulation(self, days_back: int = 365, start_date: datetime = None, end_date: datetime = None):
         """
         Main simulation loop.
         """
-        df = self.identify_regimes()
+        # Determine how many daily bars to fetch for regime analysis
+        if start_date:
+            now = datetime.now(timezone.utc)
+            delta = now - start_date
+            days_limit = delta.days + 30 # Extra buffer for MA calculation
+        else:
+            days_limit = days_back + 30
+
+        df = self.identify_regimes(days_limit=days_limit)
         if df.empty: return
+
+        # Filter by start/end if provided
+        if start_date:
+            df = df[df['timestamp'] >= start_date]
+        if end_date:
+            df = df[df['timestamp'] <= end_date]
+            
+        if df.empty:
+            logger.warning("No data found in the specified time range.")
+            return
 
         # Sample dates from each regime to ensure diversity
         regimes = df['regime'].unique()
@@ -83,8 +101,6 @@ class MarketSimulator:
             logger.info(f"\n--- SIMULATING SNAPSHOT: {dt} ---")
             
             # 1. Run Trader Agent
-            # Note: run_agent_a saves the file. We need to capture the filename it produces.
-            # Filename format: BTCUSDT_prediction_YYYYMMDD_HHMMSS.json
             timestamp_str = dt.strftime("%Y%m%d_%H%M%S")
             pred_filename = f"{self.symbol}_prediction_{timestamp_str}.json"
             
@@ -95,7 +111,7 @@ class MarketSimulator:
                 future_dt = dt + timedelta(days=14)
                 logger.info(f"Fast-forwarding to {future_dt} for review...")
                 
-                run_reviewer_pipeline(target_files=[pred_filename], override_now=future_dt)
+                run_reviewer_pipeline(target_files=[pred_filename], override_now=future_dt, force=True)
                 
             except Exception as e:
                 logger.error(f"Simulation step failed for {dt}: {e}")
@@ -103,5 +119,23 @@ class MarketSimulator:
         logger.info("\n=== Simulation Complete ===")
 
 if __name__ == "__main__":
-    sim = MarketSimulator(sampling_count=10) # Start small for testing
-    sim.run_simulation()
+    import argparse
+    parser = argparse.ArgumentParser(description="Crypto Market Regime Backtesting Simulator")
+    parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Symbol to test")
+    parser.add_argument("--days", type=int, default=365, help="Number of days to look back (default 365)")
+    parser.add_argument("--sampling", type=int, default=20, help="Total number of points to sample (default 20)")
+    parser.add_argument("--start", type=str, help="Start date (YYYY-MM-DD), overrides --days")
+    parser.add_argument("--end", type=str, help="End date (YYYY-MM-DD), defaults to now")
+    
+    args = parser.parse_args()
+    
+    start_dt = None
+    if args.start:
+        start_dt = datetime.strptime(args.start, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        
+    end_dt = None
+    if args.end:
+        end_dt = datetime.strptime(args.end, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+
+    sim = MarketSimulator(symbol=args.symbol, sampling_count=args.sampling)
+    sim.run_simulation(days_back=args.days, start_date=start_dt, end_date=end_dt)
