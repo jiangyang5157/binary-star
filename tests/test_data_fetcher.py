@@ -8,7 +8,7 @@ from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.sentiment import SentimentFetcher
 from src.data_fetcher.storage import DataStorage
 
-def run_tests():
+def test_data_fetcher_components():
     print("--- Testing Crypto Dual-Agent Data Layer ---")
     
     symbol = "BTCUSDT"
@@ -53,5 +53,4 @@ def run_tests():
         os.remove(test_filepath)
         print(f"    Cleaned up test file: {test_filepath}")
 
-if __name__ == "__main__":
-    run_tests()
+# Removed manual execution block

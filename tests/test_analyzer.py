@@ -7,7 +7,7 @@ from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.analyzer.volume_profile import VolumeProfileAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
 
-def run_tests():
+def test_analysis_pipeline():
     print("--- Testing Crypto Dual-Agent Analysis Layer ---")
     
     symbol = "BTCUSDT"
@@ -47,5 +47,4 @@ def run_tests():
     else:
         print("    Failed to generate one or more charts.")
 
-if __name__ == "__main__":
-    run_tests()
+# Removed manual execution block for pytest

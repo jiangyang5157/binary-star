@@ -5,7 +5,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.agent.reviewer_agent import ReviewerAgent
 
-def run_tests():
+def test_reviewer_agent_mock():
     print("--- Testing Crypto Dual-Agent Reviewer Layer ---")
     
     # Mock data for Agent A's past prediction
@@ -63,5 +63,4 @@ def run_tests():
         
     print(f"\n    Agent B Output:\n{agent_output}")
 
-if __name__ == "__main__":
-    run_tests()
+# Removed manual execution block
