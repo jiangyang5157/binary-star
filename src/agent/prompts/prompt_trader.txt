@@ -43,6 +43,7 @@ Specifically look for:
 ### 6. Sentiment Constraints
 - Retail sentiment (Long/Short ratio over-extensions) is a secondary filter. Do NOT allow contrarian sentiment indicators (like a high L/S ratio) to override a clear, bullish structural recovery (like forming higher lows above a reclaimed POC).
 - When trading against skewed sentiment, anticipate a "liquidity sweep" in the opposite direction before the true markdown/markup occurs, and size positions/stops accordingly.
+- **Data Fallback**: If Open Interest or Long/Short ratio data is missing or marked as 'N/A' (e.g., due to API limits on historical runs), completely ignore sentiment analysis and base your decision purely on Volume Profile and price action structure.
 
 ### 7. Rigid Risk/Reward (R:R) Mandates
 - Explicitly calculate R:R on every trade. The potential reward (distance to target) MUST be at least 1.5x the required risk (distance to structural invalidation). Reject setups that don't meet this.

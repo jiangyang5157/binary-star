@@ -145,13 +145,26 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             
             # Fetch klines from the prediction time until now/end of window
             # Use 1m for very recent reviews to ensure we get data, else 4h
-            fetch_interval = "1m" if (dt_end - dt_start).total_seconds() < 12 * 3600 else "4h"
-            logger.info(f"Fetching outcome data for {symbol} using {fetch_interval} interval")
+            duration_seconds = (dt_end - dt_start).total_seconds()
+            
+            if duration_seconds < 12 * 3600:
+                fetch_interval = "1m"
+                # Calculate exactly how many minutes we need
+                required_limit = int(duration_seconds / 60) + 1
+            else:
+                fetch_interval = "4h"
+                # Calculate exactly how many 4h blocks we need
+                required_limit = int(duration_seconds / (4 * 3600)) + 1
+                
+            # Cap at Binance maximum per request (usually 1000-1500)
+            target_limit = min(required_limit, 1500)
+            
+            logger.info(f"Fetching outcome data for {symbol} using {fetch_interval} interval (limit={target_limit})")
             
             klines = bf.fetch_historical_klines(
                 symbol=symbol, 
                 interval=fetch_interval, 
-                limit=500, # Increased limit for 1m data
+                limit=target_limit,
                 startTime=start_ts_ms,
                 endTime=end_ts_ms
             )
