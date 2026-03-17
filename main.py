@@ -47,24 +47,36 @@ def run_agent_a():
         return
 
     symbol = config['trading']['symbol']
-    interval = config['data']['macro_timeframe']['interval']
-    limit = config['data']['macro_timeframe']['limit']
+    macro_config = config['data']['macro_timeframe']
+    micro_config = config['data']['micro_timeframe']
     
     # 1. Fetching Data
     bf = BinanceDataFetcher()
     sf = SentimentFetcher()
 
     logger.info(f"Step 1: Fetching Market Data for {symbol}")
-    klines = bf.fetch_historical_klines(symbol=symbol, interval=interval, limit=limit)
+    # Macro data for Volume Profile structure
+    klines_macro = bf.fetch_historical_klines(
+        symbol=symbol, 
+        interval=macro_config['interval'], 
+        limit=macro_config['limit']
+    )
+    # Micro data for entry precision
+    klines_micro = bf.fetch_historical_klines(
+        symbol=symbol, 
+        interval=micro_config['interval'], 
+        limit=micro_config['limit']
+    )
     
     logger.info("Step 2: Fetching Sentiment Data")
     oi = sf.fetch_open_interest(symbol=symbol)
-    ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=interval, limit=1)
+    ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=macro_config['interval'], limit=1)
     
     # Bundle Context for Gemini
     context_data = {
         "symbol": symbol,
-        "interval": interval,
+        "macro_interval": macro_config['interval'],
+        "micro_interval": micro_config['interval'],
         "current_open_interest": oi.get('openInterest', 'N/A'),
         "long_short_ratio_latest": ls_ratio[0].get('longShortRatio', 'N/A') if ls_ratio else 'N/A'
     }
@@ -73,8 +85,13 @@ def run_agent_a():
     logger.info("Step 3: Calculating Volume Profile & Charting")
     va_pct = config['data'].get('value_area_pct', 0.70)
     vpa = VolumeProfileAnalyzer(value_area_pct=va_pct)
-    df = vpa.process_klines(klines)
-    profile_data = vpa.calculate_profile(df)
+    
+    # Process both kline sets
+    df_macro = vpa.process_klines(klines_macro)
+    df_micro = vpa.process_klines(klines_micro)
+    
+    # Calculate Profile based on MACRO data (the big picture structure)
+    profile_data = vpa.calculate_profile(df_macro)
     
     # Create a consistent timestamp for chart naming and data record
     now = datetime.utcnow()
@@ -89,13 +106,18 @@ def run_agent_a():
     context_data["poc_price"] = profile_data.get('poc', 0)
     context_data["vah"] = profile_data.get('vah', 0)
     context_data["val"] = profile_data.get('val', 0)
-    context_data["last_close_price"] = df['close'].iloc[-1] if not df.empty else 0
+    context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
-    chart_path = cg.generate_chart(symbol=symbol, df=df, profile_data=profile_data, filename_suffix=interval)
     
-    if not chart_path:
-        logger.error("Failed to generate chart. Cannot proceed with multimodal agent.")
+    # Generate TWO charts: Macro and Micro, overlaid with the SAME Volume Profile levels
+    macro_chart_path = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, filename_suffix=macro_config['interval'])
+    micro_chart_path = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, filename_suffix=micro_config['interval'])
+    
+    chart_paths = [p for p in [macro_chart_path, micro_chart_path] if p]
+    
+    if not chart_paths:
+        logger.error("Failed to generate any charts. Cannot proceed with multimodal agent.")
         return
         
     # 3. Agent A execution
@@ -115,7 +137,7 @@ def run_agent_a():
             "reasoning": "API Key missing. This is a mocked output."
         }, indent=2)
     else:
-        agent_output = trader.analyze(symbol=symbol, chart_image_path=chart_path, context_data=context_data)
+        agent_output = trader.analyze(symbol=symbol, chart_image_paths=chart_paths, context_data=context_data)
         
     logger.info(f"Agent A Output:\n{agent_output}")
     

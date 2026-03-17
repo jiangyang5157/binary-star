@@ -34,9 +34,10 @@ class TraderAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def analyze(self, symbol: str, chart_image_path: str, context_data: Dict[str, Any]) -> str:
+    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any]) -> str:
         """
         Executes the multimodal Gemini API call to determine the trading action.
+        Supports multiple images (e.g., Macro + Micro charts).
         """
         if not self.client:
             return '{"error": "GenAI API Client is not initialized. Is GEMINI_API_KEY set?"}'
@@ -46,7 +47,6 @@ class TraderAgent:
             return '{"error": "Agent prompt template missing."}'
 
         # Prepare context data
-        # We don't want to send the massive order book, just summaries
         context_summary = copy.deepcopy(context_data)
         
         # Format the specific text prompt with our dynamic data
@@ -58,20 +58,26 @@ class TraderAgent:
         )
 
         try:
-            # Multi-modal Input: Gemini allows combining images and text in the same 'contents' list.
-            # We use the File API because high-res charts can be large.
-            logger.info(f"Uploading chart image to Gemini API: {chart_image_path}")
+            # Multi-modal Input
+            contents = []
             
-            try:
-                uploaded_file = self.client.files.upload(file=chart_image_path)
-                contents = [uploaded_file, formatted_prompt]
-            except Exception as e:
-                logger.warning(f"File upload failed, attempting to pass raw path... {e}")
-                # Fallback: passing image metadata if upload fails
-                contents = [
-                    {"mime_type": "image/png", "file_uri": chart_image_path}, 
-                    formatted_prompt
-                ]
+            # Upload all charts
+            for path in chart_image_paths:
+                if not os.path.exists(path):
+                    logger.warning(f"Chart image not found: {path}. Skipping.")
+                    continue
+                
+                try:
+                    logger.info(f"Uploading chart image to Gemini API: {path}")
+                    uploaded_file = self.client.files.upload(file=path)
+                    contents.append(uploaded_file)
+                except Exception as e:
+                    logger.warning(f"File upload failed for {path}: {e}")
+                    # Minimal fallback
+                    contents.append({"mime_type": "image/png", "file_uri": path})
+            
+            # Append text prompt at the end
+            contents.append(formatted_prompt)
             
             logger.info(f"Invoking Gemini Model ({self.model_name})...")
             

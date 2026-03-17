@@ -12,16 +12,17 @@ The user prefers a Swing Trading style with a holding period of 1 to 14 days.
 Below is the recent raw data context:
 {context_data}
 
-You will also be provided with a generated K-line chart overlaid with the Volume Profile (POC, VAH, VAL).
-Analyze the visual chart along with the text data provided.
+You will also be provided with two K-line charts:
+1.  **Macro Chart ({macro_interval})**: Use this for the "Big Picture". Identify the Volume Profile structure (POC, VAH, VAL) and the primary trend.
+2.  **Micro Chart ({micro_interval})**: Use this for entry precision. Look for candlestick reversals, volume spikes, or retests of the Macro levels (VAH/VAL/POC) on this tighter timeframe.
 
 Specifically look for:
-- Price interaction with POC: Is it acting as support or resistance? Breakout or rejection?
-- Open Interest trends: Does rising OI confirm the current price movement?
+- Price interaction with POC/VAH/VAL: Is the Micro timeframe showing a rejection or a successful breakout/retest of these levels?
+- Open Interest trends: Does rising OI confirm the current price movement on both timeframes?
 - Long/Short ratio extremes.
 
 ## Refined Execution Logic (Lessons from past reviews):
-- For swing trades initiated after a strong breakout, prioritize entries that confirm sustained momentum or a successful retest of the breakout level, rather than solely relying on the initial decisive break, to maximize potential for larger moves.
+- For swing trades initiated after a strong breakout, prioritize entries that confirm sustained momentum or a successful retest of the breakout level (visible on the Micro chart), rather than solely relying on the initial decisive break.
 
 You MUST output your final decision in strict JSON format. 
 Do not output any markdown code blocks, just raw JSON.
