@@ -22,3 +22,5 @@ data/images/
 
 # Project specific
 tmp/
+.coverage
+htmlcov/
