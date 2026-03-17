@@ -71,7 +71,7 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, 
         "outcome_period_bars": len(klines)
     }
 
-def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime = None):
+def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime = None, force: bool = False):
     """
     Main logic for Agent B (The Reviewer):
     1. Scan for past predictions.
@@ -135,8 +135,8 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
 
             # Minimum aging protection: Only review if a certain amount of time has passed
             min_delay_hours = config.get('automation', {}).get('reviewer_interval_hours', 24.0)
-            if (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
-                logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours).")
+            if not force and (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
+                logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                 continue
 
             symbol = config['trading']['symbol']
@@ -219,4 +219,9 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             logger.error(f"Error processing {filename}: {e}")
 
 if __name__ == "__main__":
-    run_reviewer_pipeline()
+    import argparse
+    parser = argparse.ArgumentParser(description="Run the Crypto Reviewer Agent B.")
+    parser.add_argument("--force", action="store_true", help="Bypass the aging protection and review all predictions.")
+    args = parser.parse_args()
+    
+    run_reviewer_pipeline(force=args.force)

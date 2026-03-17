@@ -26,7 +26,7 @@ paths:
 
 automation:
   prediction_interval_hours: 1.0  # Run Trader Agent every hour
-  reviewer_interval_hours: 24.0    # Frequency of review runs AND minimum age for a trade to be eligible for review
+  reviewer_interval_hours: 24.0    # Frequency of review runs AND minimum age for a trade to be eligible for review. 0.01 is about 36 seconds.
   
 notifications:
   email_enabled: true
