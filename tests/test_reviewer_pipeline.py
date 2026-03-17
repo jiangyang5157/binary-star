@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from src.data_fetcher.storage import DataStorage
 
-def run_pipeline_test():
+def test_reviewer_pipeline_orchestration():
     print("--- Testing Crypto Reviewer Batch Pipeline ---")
     
     # 1. Setup Temporary Test Directories
@@ -93,4 +93,4 @@ def run_pipeline_test():
         sys.exit(1)
 
 if __name__ == "__main__":
-    run_pipeline_test()
+    test_reviewer_pipeline_orchestration()

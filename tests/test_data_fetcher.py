@@ -53,4 +53,5 @@ def test_data_fetcher_components():
         os.remove(test_filepath)
         print(f"    Cleaned up test file: {test_filepath}")
 
-# Removed manual execution block
+if __name__ == "__main__":
+    test_data_fetcher_components()

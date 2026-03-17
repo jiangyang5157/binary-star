@@ -47,4 +47,5 @@ def test_analysis_pipeline():
     else:
         print("    Failed to generate one or more charts.")
 
-# Removed manual execution block for pytest
+if __name__ == "__main__":
+    test_analysis_pipeline()

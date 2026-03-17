@@ -63,4 +63,5 @@ def test_reviewer_agent_mock():
         
     print(f"\n    Agent B Output:\n{agent_output}")
 
-# Removed manual execution block
+if __name__ == "__main__":
+    test_reviewer_agent_mock()
