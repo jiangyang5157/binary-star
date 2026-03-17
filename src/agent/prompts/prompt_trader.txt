@@ -20,6 +20,9 @@ Specifically look for:
 - Open Interest trends: Does rising OI confirm the current price movement?
 - Long/Short ratio extremes.
 
+## Refined Execution Logic (Lessons from past reviews):
+- For swing trades initiated after a strong breakout, prioritize entries that confirm sustained momentum or a successful retest of the breakout level, rather than solely relying on the initial decisive break, to maximize potential for larger moves.
+
 You MUST output your final decision in strict JSON format. 
 Do not output any markdown code blocks, just raw JSON.
 The JSON must have the following structure:
