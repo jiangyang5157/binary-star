@@ -26,7 +26,7 @@ And here is the **Current Configuration** (`config.yaml`) used by Agent A:
 
 Your tasks:
 1. Compare Agent A's reasoning with the provided **Chart Image**. Did Agent A misinterpret any visual cues (e.g., hidden exhaustion shadows, volume divergence)?
-2. Did Agent A make a profitable, sound decision? 
+2. Did Agent A make a profitable, sound decision? **CRITICAL EVALUATION METRIC**: Base your `evaluation_score` on the actionable extremes (`max_price_reached`, `max_drawup_pct`, `min_price_reached`, `max_drawdown_pct`) during the period, NOT just the `final_close_price`. A trade that went up 10% (max_drawup) but closed at 0% is still a brilliant entry that required better take-profit management, deserving a high score. Conversely, a trade that went down -10% (max_drawdown) before closing in profit is a terrible, high-risk entry and deserves a low score.
 3. If the decision was incorrect (e.g., BUY before a dump, SELL before a pump), what was the likely flaw in Agent A's logic? Did it ignore Volume Profile anomalies? Did it misread Sentiment indicators?
 4. Suggest a "Logic Patch" (a sentence or principle) to append to Agent A's prompt to avoid this mistake in the future. **CRITICAL: Check the current 'Refined Execution Logic' in Agent A's prompt (if visible in Config) or provided history. Ensure the new patch does not contradict healthy existing principles, or specify the specific context (e.g., "In high-volatility scenarios...") where the new logic applies.**
 5. Suggest any parameter changes to `config.yaml` (e.g., changing the time window or threshold). If you believe the current configuration is optimal and only the prompt logic needs fixing, you MUST set "config_update_suggestion" to null.
