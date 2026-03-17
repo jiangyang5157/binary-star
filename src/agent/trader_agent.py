@@ -91,20 +91,79 @@ class TraderAgent:
             # Append text prompt at the end
             contents.append(formatted_prompt)
             
-            logger.info(f"Invoking Gemini Model ({self.model_name})...")
+            logger.info(f"Invoking Gemini Model ({self.model_name}) with Multi-Pass Reasoning...")
             
-            # response_mime_type="application/json" forces the model to return a valid JSON block,
-            # which is much easier for our code to parse than free-form text.
-            response = self.client.models.generate_content(
+            # --- PASS 1: Initial Prediction ---
+            initial_response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.2 # Lower temperature = more consistent, deterministic reasoning.
+                    temperature=0.4 # Higher temp for diverse initial thoughts
+                )
+            )
+            initial_prediction = initial_response.text or "No initial prediction generated."
+            logger.info("Pass 1 (Initial Prediction) complete.")
+
+            # --- PASS 2: Red Team Critique (The 'Premortem') ---
+            # We ask the model to assume the trade failed and find out why.
+            review_window = context_data.get("review_window_days", 7)
+            critique_prompt = f"""
+            CRITICAL EVALUATION (RED TEAM):
+            Assume you just executed the following prediction:
+            {initial_prediction}
+
+            Now, imagine that {review_window} DAYS have passed and this trade resulted in a MASSIVE LOSS / STOP-OUT.
+            Look at the Macro and Micro charts again. What did you MISS? 
+            Specifically search for:
+            1. Hidden absorption or exhaustion wicks you ignored.
+            2. Sentiment divergence (OI/LS) you downplayed.
+            3. Order Flow Delta signs that contradicted your entry.
+            4. Level-hunting or Liquidity Sweeps that you got trapped in.
+
+            Provide a HARSH technical critique. Do NOT be defensive.
+            """
+            
+            # We reuse the same images (contents[:-1]) but add the new critique prompt
+            critique_contents = copy.deepcopy(contents[:-1])
+            critique_contents.append(critique_prompt)
+            
+            critique_response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=critique_contents,
+                config=types.GenerateContentConfig(
+                    temperature=0.7 # High temp for creative fault-finding
+                )
+            )
+            critique_text = critique_response.text or "No critique generated."
+            logger.info("Pass 2 (Red Team Critique) complete.")
+
+            # --- PASS 3: Final Refined Decision ---
+            final_prompt = f"""
+            FINAL RESOLUTION:
+            You have your Initial Plan and a harsh Red Team Critique.
+            Initial Plan: {initial_prediction}
+            Critique: {critique_text}
+
+            Re-evaluate the data one last time. If the critique revealed a fatal flaw or high risk of a trap, switch to HOLD or reverse bias. 
+            If the initial plan is still robust despite the critique, refine the entry/exit points for better R:R.
+
+            Output your final decision in strict JSON format as requested in the original instructions.
+            """
+            final_contents = copy.deepcopy(contents[:-1])
+            final_contents.append(final_prompt)
+            
+            final_response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=final_contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1 # Very low temp for stable final decision
                 )
             )
             
-            return response.text
+            # We return the final JSON
+            return final_response.text
             
         except Exception as e:
             logger.error(f"Failed to get response from GenAI API: {e}")

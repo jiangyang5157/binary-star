@@ -30,16 +30,29 @@ def test_data_fetcher_components():
     order_book = bf.fetch_order_book(symbol=symbol, limit=10)
     print(f"    Received bids: {len(order_book.get('bids', []))}, asks: {len(order_book.get('asks', []))}")
     
-    # 3. Test Sentiment
-    print(f"\n[3] Fetching Sentiment Data for {symbol}...")
+    # 3. Test Sentiment & Liquidations
+    print(f"\n[3] Fetching Sentiment & Liquidity Data for {symbol}...")
     open_interest = sf.fetch_open_interest(symbol=symbol)
     print(f"    Current Open Interest: {open_interest.get('openInterest')}")
     
+    # Test Liquidations (Phase 2 feature)
+    liquidations = bf.fetch_liquidations(symbol=symbol, limit=5)
+    print(f"    Received Liquidations: {len(liquidations)}")
+    if liquidations:
+        print(f"    Latest Liq Price: {liquidations[0].get('p')}")
+
     ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period="4h", limit=1)
     if ls_ratio:
         print(f"    Long/Short Ratio: {ls_ratio[0].get('longShortRatio')}")
     else:
         print("    No L/S Ratio received.")
+        
+    # NEW: Test API Key presence in Binance Fetcher
+    print(f"\n[4] Verifying API Key Initialization...")
+    if bf.api_key:
+        print(f"    Binance Fetcher initialized with API KEY (ending in ...{bf.api_key[-4:]})")
+    else:
+        print("    Binance Fetcher initialized in PUBLIC mode (No API Key).")
         
     # 4. Storage utility test
     test_filepath = os.path.join(os.path.dirname(__file__), "..", "data", "raw", f"{symbol}_test.json")

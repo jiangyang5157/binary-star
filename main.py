@@ -77,17 +77,46 @@ def run_agent_a(override_timestamp: datetime = None):
         **fetch_kwargs
     )
     
-    logger.info("Step 2: Fetching Sentiment Data")
+    logger.info("Step 2: Fetching Sentiment & Liquidity Data")
     oi = sf.fetch_open_interest(symbol=symbol, **fetch_kwargs)
     ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=macro_config['interval'], limit=1, **fetch_kwargs)
     
+    # Some endpoints might not support endTime correctly in the library
+    sentiment_kwargs = {}
+    if not override_timestamp:
+        sentiment_kwargs = fetch_kwargs
+    
+    top_ls_ratio = bf.fetch_top_long_short_accounts(symbol=symbol, period=macro_config['interval'], limit=1, **sentiment_kwargs)
+    liquidations = bf.fetch_liquidations(symbol=symbol, limit=20) # Get recent 20 liquidations
+    
+    # Calculate Order Flow Delta from MICRO (1h) klines
+    # Delta = (Taker Buy Base Volume) - (Total Volume - Taker Buy Base Volume)
+    # This shows aggressive buying vs aggressive selling.
+    total_delta = 0
+    if klines_micro:
+        try:
+            # Last few bars (e.g., last 4 hours)
+            recent_micro = klines_micro[-4:] 
+            for k in recent_micro:
+                vol = float(k[5])
+                taker_buy = float(k[9])
+                total_delta += (taker_buy - (vol - taker_buy))
+        except (IndexError, ValueError):
+            pass
+
     # Bundle Context for Gemini
     context_data = {
         "symbol": symbol,
         "macro_interval": macro_config['interval'],
         "micro_interval": micro_config['interval'],
         "current_open_interest": oi.get('openInterest', 'N/A'),
-        "long_short_ratio_latest": ls_ratio[0].get('longShortRatio', 'N/A') if ls_ratio else 'N/A',
+        "long_short_ratio_latest": ls_ratio[0].get('longShortRatio', 'N/A') if (isinstance(ls_ratio, list) and ls_ratio) else 'N/A',
+        "top_traders_ls_ratio": top_ls_ratio[0].get('longShortRatio', 'N/A') if (isinstance(top_ls_ratio, list) and top_ls_ratio) else 'N/A',
+        "recent_liquidations": [
+            {"price": l.get('p'), "side": l.get('S'), "amount": l.get('q')} 
+            for l in liquidations[:5] # Just top 5 for context density
+        ],
+        "order_flow_delta_recent": f"{total_delta:.4f} {symbol[:-4]}",
         "current_time": override_timestamp.isoformat() if override_timestamp else datetime.now(timezone.utc).isoformat()
     }
     
@@ -123,8 +152,8 @@ def run_agent_a(override_timestamp: datetime = None):
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
     
     # Generate TWO charts: Macro and Micro, overlaid with the SAME Volume Profile levels
-    macro_chart_path = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, filename_suffix=macro_config['interval'])
-    micro_chart_path = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, filename_suffix=micro_config['interval'])
+    macro_chart_path = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, liquidations=liquidations, filename_suffix=macro_config['interval'])
+    micro_chart_path = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, liquidations=liquidations, filename_suffix=micro_config['interval'])
     
     chart_paths = [p for p in [macro_chart_path, micro_chart_path] if p]
     
@@ -171,6 +200,12 @@ def run_agent_a(override_timestamp: datetime = None):
     # 4. Parse output and add metadata
     try:
         agent_output = json.loads(agent_output_raw)
+        
+        # New: Handle list format from Agent A (unwrapping if single item)
+        if isinstance(agent_output, list) and len(agent_output) > 0:
+            logger.info("Agent output is a list, unwrapping first prediction.")
+            agent_output = agent_output[0]
+            
     except Exception:
         logger.warning("Agent output was not valid JSON. Saving as raw string.")
         agent_output = agent_output_raw
@@ -203,7 +238,7 @@ def run_agent_a(override_timestamp: datetime = None):
     output_file = os.path.join(output_dir, f"{symbol}_prediction_{timestamp_str}.json")
     
     try:
-        if isinstance(agent_output, dict):
+        if isinstance(agent_output, (dict, list)):
             DataStorage.save_json(agent_output, output_file)
         else:
             with open(output_file, 'w', encoding='utf-8') as f:

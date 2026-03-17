@@ -33,13 +33,19 @@ def test_analysis_pipeline():
     profile_data = vpa.calculate_profile(df_macro)
     print(f"    POC: {profile_data.get('poc'):.2f}, VAH: {profile_data.get('vah'):.2f}, VAL: {profile_data.get('val'):.2f}")
     
-    # 3. Generate Charts
-    print("\n[3] Generating Visual Charts (Dual)...")
-    output_dir = os.path.join(os.path.dirname(__file__), "..", "data", "images")
+    # 3. Generate Charts (Enhanced with Visual AR)
+    print("\n[3] Generating Visual Charts (Enhanced with Visual AR)...")
+    output_dir = os.path.join(os.path.dirname(__file__), "..", "data", "images", "test")
     cg = ChartGenerator(output_dir=output_dir)
     
-    p4 = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, filename_suffix="4h")
-    p1 = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, filename_suffix="1h")
+    # Mock Liquidation Data for Visual AR testing
+    mock_liquidations = [
+        {"p": profile_data.get('vah'), "S": "SELL", "q": "1.0"}, # Resistance band
+        {"p": profile_data.get('val'), "S": "BUY", "q": "2.5"}   # Support band
+    ]
+    
+    p4 = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, liquidations=mock_liquidations, filename_suffix="4h_ar")
+    p1 = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, liquidations=mock_liquidations, filename_suffix="1h_ar")
     
     if p4 and p1:
         print(f"    Successfully generated Macro chart: {p4}")

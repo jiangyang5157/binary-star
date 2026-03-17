@@ -11,6 +11,12 @@ The user prefers a Swing Trading style with a holding period of 1 to {review_win
 
 Below is the recent raw data context:
 {context_data}
+
+Additional Sentiment & Liquidity Data:
+- **Top Traders Long/Short Ratio**: {top_traders_ls_ratio}
+- **Recent Liquidations**: {recent_liquidations}
+- **Order Flow Delta (Recent 4h)**: {order_flow_delta_recent}
+
 You will also be provided with two K-line charts:
 1.  **Macro Chart ({macro_interval})**: Use this for the "Big Picture". Identify the Volume Profile structure (POC, VAH, VAL) and the primary trend.
 2.  **Micro Chart ({micro_interval})**: Use this for entry precision. Look for candlestick reversals, volume spikes, or retests of the Macro levels (VAH/VAL/POC) on this tighter timeframe.
@@ -40,9 +46,10 @@ Specifically look for:
 ### 5. Secondary Retests Over First Touches
 - Following a violent impulse or capitulation event, do not aggressively buy/sell the "first touch" of support/resistance. Prioritize entries on Secondary Retests (e.g., forming a higher low after a crash) to confirm the opposing pressure is exhausted.
 
-### 6. Sentiment Constraints
-- Retail sentiment (Long/Short ratio over-extensions) is a secondary filter. Do NOT allow contrarian sentiment indicators (like a high L/S ratio) to override a clear, bullish structural recovery (like forming higher lows above a reclaimed POC).
-- When trading against skewed sentiment, anticipate a "liquidity sweep" in the opposite direction before the true markdown/markup occurs, and size positions/stops accordingly.
+### 6. Sentiment & Liquidity Alignment
+- **L/S Ratio & Divergence**: If **Global L/S Ratio** is high (>2.0) but **Top Traders L/S Ratio** is lower, the "retail" crowd is long while "smart money" is potentially short. Prefer the Short side in this context.
+- **Liquidation Sweeps**: If a cluster of **Recent Liquidations** just occurred (e.g., intense Short Liquidations), the market has just "swept" liquidity and may be ready for a reversal. Look for exhaustion wicks on the micro chart to confirm.
+- **Order Flow Delta**: Use the **Order Flow Delta** to verify breakouts. A positive/rising delta confirms a bullish breakout, while a negative/dropping delta during a price pump suggests a "Bull Trap".
 - **Data Fallback**: If Open Interest or Long/Short ratio data is missing or marked as 'N/A' (e.g., due to API limits on historical runs), completely ignore sentiment analysis and base your decision purely on Volume Profile and price action structure.
 
 ### 7. Rigid Risk/Reward (R:R) Mandates

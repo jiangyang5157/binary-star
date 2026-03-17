@@ -1,4 +1,6 @@
 import logging
+import requests
+import os
 from typing import Dict, List, Any
 from binance.um_futures import UMFutures
 from binance.error import ClientError
@@ -17,7 +19,15 @@ class BinanceDataFetcher:
     """
     def __init__(self):
         # We target the Binance USD-M Futures api to align with Long/Short ratios.
-        self.client = UMFutures()
+        self.api_key = os.environ.get("BINANCE_API_KEY")
+        self.api_secret = os.environ.get("BINANCE_API_SECRET")
+        
+        if self.api_key and self.api_secret:
+            logger.info("Initializing Binance client with API Keys")
+            self.client = UMFutures(key=self.api_key, secret=self.api_secret)
+        else:
+            logger.info("Initializing Binance client in Public mode")
+            self.client = UMFutures()
 
     def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs) -> List[List[Any]]:
         """
@@ -77,3 +87,44 @@ class BinanceDataFetcher:
         except ClientError as error:
             logger.error(f"Failed to fetch order book for {symbol}: {error.error_message}")
             return {}
+
+    def fetch_liquidations(self, symbol: str, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Fetches recent liquidation orders (forced orders).
+        Tries SDK (signed) first for stability, falls back to public API if needed.
+        """
+        # Try SDK first
+        try:
+            logger.info(f"Fetching Liquidations for {symbol} via SDK")
+            response = self.client.force_orders(symbol=symbol, limit=limit)
+            return response
+        except ClientError as error:
+            logger.warning(f"SDK liquidation fetch failed ({error.error_message}), falling back to public API...")
+        except Exception as e:
+            logger.warning(f"SDK liquidation fetch failed ({e}), falling back to public API...")
+
+        # Fallback to Public API
+        try:
+            url = f"https://fapi.binance.com/fapi/v1/allForceOrders?symbol={symbol}&limit={limit}"
+            response = requests.get(url, timeout=10)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Fallback liquidation fetch failed: {response.status_code} - {response.text}")
+                return []
+        except Exception as e:
+            logger.error(f"Error fetching liquidations via fallback: {e}")
+            return []
+
+    def fetch_top_long_short_accounts(self, symbol: str, period: str = "4h", limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
+        """
+        Fetches the Top Traders Long/Short Ratio (Accounts).
+        More professional than the general account ratio.
+        """
+        try:
+            logger.info(f"Fetching Top Traders L/S Ratio for {symbol} - Period: {period}")
+            response = self.client.top_long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+            return response
+        except ClientError as error:
+            logger.error(f"Failed to fetch top traders L/S ratio for {symbol}: {error.error_message}")
+            return []
