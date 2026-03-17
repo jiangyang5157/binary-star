@@ -44,14 +44,14 @@ class MarketSimulator:
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
         df['close'] = df['close'].astype(float)
         
-        # Trend detection: Price vs 21-day Exponential Moving Average (EMA)
-        # EMA responds faster to price changes than SMA, better for Crypto.
-        df['ema21'] = df['close'].ewm(span=21, adjust=False).mean()
-        df['volatility'] = df['close'].pct_change().rolling(window=21).std()
+        # Trend detection: Price vs 14-day Exponential Moving Average (EMA)
+        # For a 7-day strategy, EMA14 provides a good two-week balance.
+        df['ema14'] = df['close'].ewm(span=14, adjust=False).mean()
+        df['volatility'] = df['close'].pct_change().rolling(window=14).std()
         
         def classify(row):
-            if pd.isna(row['ema21']): return "unknown"
-            trend = "Bull" if row['close'] > row['ema21'] else "Bear"
+            if pd.isna(row['ema14']): return "unknown"
+            trend = "Bull" if row['close'] > row['ema14'] else "Bear"
             vol = "HighVol" if row['volatility'] > df['volatility'].median() else "LowVol"
             return f"{trend}_{vol}"
             

@@ -20,7 +20,7 @@ def test_reviewer_agent_mock():
     actual_outcome = {
         "max_price_reached": 68000,
         "min_price_reached": 62000,
-        "close_price_after_14_days": 63000,
+        "close_price_after_7_days": 63000,
         "result": "Loss",
         "notes": "Price instantly reversed after breaking POC, dropping 7% within 48 hours."
     }

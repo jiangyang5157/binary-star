@@ -2,21 +2,21 @@
 
 trading:
   symbol: "BTCUSDT"
-  strategy: "swing" # 1 - 14 days holding period
-  review_window_days: 14 # Timeframe used by Agent B to evaluate outcomes
+  strategy: "swing"
+  review_window_days: 7 # Timeframe used by Agent B to evaluate outcomes
 
 data:
   # Macro timeframe for trend and Volume Profile calculation
   macro_timeframe:
     interval: "4h"
-    limit: 180       # 180 bars * 4H = 30 days
+    limit: 168
   # Micro timeframe for precise entry points
   micro_timeframe:
     interval: "1h"
-    limit: 120       # 120 bars * 1H = 5 days
+    limit: 168
   
-  # Value Area Percentage (e.g., 0.70 for 70%)
-  value_area_pct: 0.70
+  # Value Area Percentage
+  value_area_pct: 0.84
 
 paths:
   raw_data_dir: "data/raw"
