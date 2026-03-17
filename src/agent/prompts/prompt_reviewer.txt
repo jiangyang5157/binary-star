@@ -29,7 +29,7 @@ Your tasks:
 2. Did Agent A make a profitable, sound decision? 
 3. If the decision was incorrect (e.g., BUY before a dump, SELL before a pump), what was the likely flaw in Agent A's logic? Did it ignore Volume Profile anomalies? Did it misread Sentiment indicators?
 4. Suggest a "Logic Patch" (a sentence or principle) to append to Agent A's prompt to avoid this mistake in the future. **CRITICAL: Check the current 'Refined Execution Logic' in Agent A's prompt (if visible in Config) or provided history. Ensure the new patch does not contradict healthy existing principles, or specify the specific context (e.g., "In high-volatility scenarios...") where the new logic applies.**
-5. Suggest any parameter changes to `config.yaml` (e.g., changing the time window or threshold).
+5. Suggest any parameter changes to `config.yaml` (e.g., changing the time window or threshold). If you believe the current configuration is optimal and only the prompt logic needs fixing, you MUST set "config_update_suggestion" to null.
 
 You MUST output your final decision in strict JSON format.
 {{
@@ -37,6 +37,8 @@ You MUST output your final decision in strict JSON format.
   "flaw_analysis": "Agent A interpreted rising Open Interest as bullish despite price consolidating below POC, leading to a fake breakout trap.",
   "prompt_patch_suggestion": "If price is consolidating strictly beneath POC and Open Interest is rising rapidly, assume a build-up of shorts unless aggressive Taker Buy Volume breaks Resistance.",
   "config_update_suggestion": {{
+      // If no configuration changes are needed, you MUST output null for this field.
+      // Do NOT copy the current configuration. Only provide a JSON object if a parameter needs to be changed.
       "macro_timeframe": {{"interval": "4h", "limit": 168}}
   }}
 }}

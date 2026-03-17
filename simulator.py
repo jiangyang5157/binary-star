@@ -135,8 +135,8 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Crypto Market Regime Backtesting Simulator")
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Symbol to test")
-    parser.add_argument("--days", type=int, default=365, help="Number of days to look back (default 365)")
-    parser.add_argument("--sampling", type=int, default=20, help="Total number of points to sample (default 20)")
+    parser.add_argument("--days", type=int, default=30, help="Number of days to look back (default 30)")
+    parser.add_argument("--sampling", type=int, default=15, help="Total number of points to sample (default 15)")
     parser.add_argument("--start", type=str, help="Start date (YYYY-MM-DD), overrides --days")
     parser.add_argument("--end", type=str, help="End date (YYYY-MM-DD), defaults to now")
     parser.add_argument("--mode", type=str, choices=["regime", "spaced"], default="regime", help="Sampling mode: regime (stratified random) or spaced (even intervals)")

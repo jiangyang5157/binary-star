@@ -74,6 +74,26 @@ python scheduler.py
 - **How to Stop**: Press `Ctrl + C` in the terminal to terminate the scheduler.
 - **Logs**: View `automation.log` for execution history.
 
+### 5. Running After Machine Restart
+
+When you restart your machine or open a new terminal, you do **not** need to run `pip install` again. Your dependencies remain safely inside the `venv/` folder.
+
+You have two ways to run the scripts:
+
+**Method A: Manual Activation (Best for interactive testing)**
+```bash
+source venv/bin/activate
+python main.py
+```
+
+**Method B: Direct Execution (Best for background jobs & Scheduler)**
+You can bypass activation by calling the virtual environment's Python executable directly. This is the recommended way to run the scheduler or backtesting:
+```bash
+./venv/bin/python scheduler.py
+./venv/bin/python simulator.py --days 30
+```
+>*Tip: If setting up system-level cron jobs, use the full absolute path: `/Users/yangjiang/Documents/workspace/crypto/venv/bin/python`*
+
 ## Project Structure
 
 - `src/agent/`: AI Agent implementations and prompts.
