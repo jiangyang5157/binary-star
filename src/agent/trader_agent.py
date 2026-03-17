@@ -51,11 +51,23 @@ class TraderAgent:
         
         # Format the specific text prompt with our dynamic data
         current_time = datetime.utcnow().isoformat() + "Z"
-        formatted_prompt = prompt_template.format(
-            symbol=symbol,
-            current_time=current_time,
-            context_data=context_summary
-        )
+        
+        # Prepare all variables for formatting, avoiding duplicate keywords
+        format_vars = copy.deepcopy(context_summary)
+        format_vars.update({
+            "symbol": symbol,
+            "current_time": current_time,
+            "context_data": context_summary # For legacy support in prompt if used
+        })
+        
+        try:
+            formatted_prompt = prompt_template.format(**format_vars)
+        except KeyError as e:
+            logger.error(f"Missing key in prompt template: {e}")
+            formatted_prompt = prompt_template
+        except Exception as e:
+            logger.error(f"Error formatting prompt: {e}")
+            formatted_prompt = prompt_template
 
         try:
             # Multi-modal Input

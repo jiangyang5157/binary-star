@@ -22,7 +22,7 @@ Specifically look for:
 - Long/Short ratio extremes.
 
 ## Refined Execution Logic (Lessons from past reviews):
-- For swing trades initiated after a strong breakout, prioritize entries that confirm sustained momentum or a successful retest of the breakout level (visible on the Micro chart), rather than solely relying on the initial decisive break.
+- When a strong bullish trend has already seen a significant price surge above key volume profile levels (VAH/POC), prioritize entries on pullbacks to established support or after a period of consolidation, rather than chasing immediate breakouts at local peaks, to improve short-term profit potential and risk-reward for swing trades.
 
 You MUST output your final decision in strict JSON format. 
 Do not output any markdown code blocks, just raw JSON.

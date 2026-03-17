@@ -12,7 +12,11 @@ Your job is to analyze the historical performance of Agent A (The Trader) and su
 Below is the **Historical Prediction** made by Agent A:
 {historical_prediction}
 
-Below is the **Chart Image** that Agent A saw at the time of prediction. Analyze the candlesticks, Volume Profile lines (POC in Red, VAH/VAL in Gold), and volume bars.
+Below are the **Chart Images** that Agent A saw at the time of prediction:
+1. **Macro Chart (4h)**: Showcases the overall market structure and Volume Profile (POC in Red, VAH/VAL in Gold).
+2. **Micro Chart (1h)**: Showcases the local price action and entry precision at the time of prediction.
+
+Analyze the candlesticks and volume bars on both timeframes.
 
 Below is the **Actual Market Outcome** during the holding period {target_duration} days after the prediction:
 {actual_outcome}

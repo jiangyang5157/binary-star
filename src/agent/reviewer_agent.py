@@ -32,10 +32,10 @@ class ReviewerAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def review(self, historical_prediction: Dict[str, Any], actual_outcome: Dict[str, Any], current_config: Dict[str, Any], chart_image_path: str = None) -> str:
+    def review(self, historical_prediction: Dict[str, Any], actual_outcome: Dict[str, Any], current_config: Dict[str, Any], chart_image_paths: list[str] = None) -> str:
         """
         Executes a multimodal Gemini API call to review Agent A's performance.
-        Now supports analyzing the historical chart Agent A saw.
+        Supports analyzing multiple historical charts (e.g., Macro + Micro).
         """
         if not self.client:
             return '{"error": "GenAI API Client is not initialized."}'
@@ -51,19 +51,24 @@ class ReviewerAgent:
             target_duration=14
         )
 
-        contents = [formatted_prompt]
+        contents = []
         
-        # If a historical chart is provided, upload it to Gemini for visual review
-        if chart_image_path and os.path.exists(chart_image_path):
-            try:
-                logger.info(f"Uploading historical chart image to Gemini API: {chart_image_path}")
-                uploaded_file = self.client.files.upload(file=chart_image_path)
-                contents.insert(0, uploaded_file) # Place image before text for better context
-            except Exception as e:
-                logger.warning(f"File upload failed for Reviewer: {e}")
-                # Fallback to text-only if image upload fails
-        else:
-            logger.info("No historical chart found for this review. Proceeding with text data only.")
+        # Upload all provided charts
+        if chart_image_paths:
+            for path in chart_image_paths:
+                if os.path.exists(path):
+                    try:
+                        logger.info(f"Uploading historical chart image to Gemini API: {path}")
+                        uploaded_file = self.client.files.upload(file=path)
+                        contents.append(uploaded_file)
+                    except Exception as e:
+                        logger.warning(f"File upload failed for Reviewer at {path}: {e}")
+        
+        # Append text prompt
+        contents.append(formatted_prompt)
+        
+        if not any(isinstance(c, types.File) for c in contents):
+            logger.info("No valid historical charts found for this review. Proceeding with text data only.")
 
         try:
             logger.info(f"Invoking Reviewer Agent Model ({self.model_name})...")
