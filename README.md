@@ -71,8 +71,17 @@ python scheduler.py
 ```
 - **Behavior**: Runs in an infinite loop. Triggers `main.py` every 1 hour and `reviewer_main.py` every 24 hours (configurable in `config/config.yaml`).
 - **Startup**: It **immediately** runs both scripts once upon startup to ensure your data is fresh.
-- **How to Stop**: Press `Ctrl + C` in the terminal to terminate the scheduler.
-- **Logs**: View `automation.log` for execution history.
+- **Running in Background (Recommended)**:
+  To keep the system running after closing your terminal:
+  ```bash
+  nohup ./venv/bin/python scheduler.py > scheduler_output.log 2>&1 &
+  ```
+- **Monitoring Logs**: 
+  - Business Logic: `tail -f automation.log`
+  - System Errors: `tail -f scheduler_output.log`
+- **How to Stop**:
+  - If running in foreground: Press `Ctrl + C`.
+  - If running in background: `pkill -f scheduler.py`
 
 ### 5. Running After Machine Restart
 
