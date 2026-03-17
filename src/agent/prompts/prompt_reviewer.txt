@@ -12,6 +12,8 @@ Your job is to analyze the historical performance of Agent A (The Trader) and su
 Below is the **Historical Prediction** made by Agent A:
 {historical_prediction}
 
+Below is the **Chart Image** that Agent A saw at the time of prediction. Analyze the candlesticks, Volume Profile lines (POC in Red, VAH/VAL in Gold), and volume bars.
+
 Below is the **Actual Market Outcome** during the holding period {target_duration} days after the prediction:
 {actual_outcome}
 
@@ -19,10 +21,11 @@ And here is the **Current Configuration** (`config.yaml`) used by Agent A:
 {current_config}
 
 Your tasks:
-1. Did Agent A make a profitable, sound decision? 
-2. If the decision was incorrect (e.g., BUY before a dump, SELL before a pump), what was the likely flaw in Agent A's logic? Did it ignore Volume Profile anomalies? Did it misread Sentiment indicators?
-3. Suggest a "Logic Patch" (a sentence or principle) to append to Agent A's prompt to avoid this mistake in the future.
-4. Suggest any parameter changes to `config.yaml` (e.g., changing the time window or threshold).
+1. Compare Agent A's reasoning with the provided **Chart Image**. Did Agent A misinterpret any visual cues (e.g., hidden exhaustion shadows, volume divergence)?
+2. Did Agent A make a profitable, sound decision? 
+3. If the decision was incorrect (e.g., BUY before a dump, SELL before a pump), what was the likely flaw in Agent A's logic? Did it ignore Volume Profile anomalies? Did it misread Sentiment indicators?
+4. Suggest a "Logic Patch" (a sentence or principle) to append to Agent A's prompt to avoid this mistake in the future.
+5. Suggest any parameter changes to `config.yaml` (e.g., changing the time window or threshold).
 
 You MUST output your final decision in strict JSON format.
 {{

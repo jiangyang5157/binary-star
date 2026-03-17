@@ -32,9 +32,10 @@ class ReviewerAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def review(self, historical_prediction: Dict[str, Any], actual_outcome: Dict[str, Any], current_config: Dict[str, Any]) -> str:
+    def review(self, historical_prediction: Dict[str, Any], actual_outcome: Dict[str, Any], current_config: Dict[str, Any], chart_image_path: str = None) -> str:
         """
-        Executes a text-only Gemini API call to review Agent A's performance.
+        Executes a multimodal Gemini API call to review Agent A's performance.
+        Now supports analyzing the historical chart Agent A saw.
         """
         if not self.client:
             return '{"error": "GenAI API Client is not initialized."}'
@@ -47,20 +48,32 @@ class ReviewerAgent:
             historical_prediction=json.dumps(historical_prediction, indent=2),
             actual_outcome=json.dumps(actual_outcome, indent=2),
             current_config=json.dumps(current_config, indent=2),
-            target_duration=14  # Can be parameterized based on user preference
+            target_duration=14
         )
+
+        contents = [formatted_prompt]
+        
+        # If a historical chart is provided, upload it to Gemini for visual review
+        if chart_image_path and os.path.exists(chart_image_path):
+            try:
+                logger.info(f"Uploading historical chart image to Gemini API: {chart_image_path}")
+                uploaded_file = self.client.files.upload(file=chart_image_path)
+                contents.insert(0, uploaded_file) # Place image before text for better context
+            except Exception as e:
+                logger.warning(f"File upload failed for Reviewer: {e}")
+                # Fallback to text-only if image upload fails
+        else:
+            logger.info("No historical chart found for this review. Proceeding with text data only.")
 
         try:
             logger.info(f"Invoking Reviewer Agent Model ({self.model_name})...")
             
-            # Agent B evaluates Agent A's past prediction vs Actual market outcome.
-            # Its goal is to find 'Logical Flaws' and generate 'Config Patches' or Prompt updates.
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=formatted_prompt,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.3 # Slightly higher temperature to allow for more 'insightful' improvement tips.
+                    temperature=0.3
                 )
             )
             
