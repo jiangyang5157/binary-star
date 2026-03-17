@@ -44,6 +44,11 @@ def run_tests():
     DataStorage.save_json(order_book, test_filepath)
     loaded_data = DataStorage.load_json(test_filepath)
     print(f"    Save/Load verified? {type(loaded_data) is dict}")
+    
+    # NEW: Cleanup test file
+    if os.path.exists(test_filepath):
+        os.remove(test_filepath)
+        print(f"    Cleaned up test file: {test_filepath}")
 
 if __name__ == "__main__":
     run_tests()
