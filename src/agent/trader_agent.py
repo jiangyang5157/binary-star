@@ -2,7 +2,7 @@ import os
 import copy
 import logging
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from google import genai
 from google.genai import types
 
@@ -50,7 +50,7 @@ class TraderAgent:
         context_summary = copy.deepcopy(context_data)
         
         # Format the specific text prompt with our dynamic data
-        current_time = datetime.utcnow().isoformat() + "Z"
+        current_time = datetime.now(timezone.utc).isoformat() + "Z"
         
         # Prepare all variables for formatting, avoiding duplicate keywords
         format_vars = copy.deepcopy(context_summary)

@@ -13,8 +13,9 @@ The system operates in a feedback loop:
 - **Volume Profile Analysis**: Automatic calculation of POC (Point of Control), VAH (High), and VAL (Low).
 - **Dual-Timeframe Analysis**: Simultaneous analysis of **4h (Macro)** for structure and **1h (Micro)** for entry precision.
 - **Multimodal AI**: High-resolution dual-chart analysis using Gemini Flash.
-- **Sentiment Integration**: Fetches Open Interest, Long/Short ratios, and Funding Rates.
-- **Self-Optimization**: Agent B provides actionable feedback and multimodal coaching to improve Agent A's logic over time.
+- **Automated Alerts**: Email notifications for high-confidence signal (>85%).
+- **Centralized Scheduler**: Orchestrates periodic prediction and review runs.
+- **Prompt Versioning**: Tracks "Logic Drift" by hashing prompt state in results.
 
 ## Installation
 

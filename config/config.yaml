@@ -20,7 +20,20 @@ data:
 paths:
   raw_data_dir: "data/raw"
   images_dir: "data/images"
+  results_dir: "data/raw/predictions"
+  reviews_dir: "data/raw/reviews"
   prompts_dir: "src/agent/prompts"
 
+automation:
+  prediction_interval_hours: 1.0  # Run Trader Agent every hour
+  reviewer_interval_hours: 24.0  # Run Reviewer Agent once a day
+  
+notifications:
+  email_enabled: true
+  recipient_email: "jiangyang5157@gmail.com"
+  min_confidence_threshold: 85
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+
 agent:
-  model_name: "gemini-2.5-flash" # The recommended model for multimodal 
+  model_name: "gemini-2.5-flash" # The recommended model for multimodal

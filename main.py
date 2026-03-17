@@ -3,7 +3,7 @@ import sys
 import yaml
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables from .env if it exists
@@ -93,11 +93,10 @@ def run_agent_a():
     # Calculate Profile based on MACRO data (the big picture structure)
     profile_data = vpa.calculate_profile(df_macro)
     
-    # Create a consistent timestamp for chart naming and data record
-    now = datetime.utcnow()
-    prediction_timestamp = now.isoformat() + "Z"
-    # For file naming (same format as predictions for easy matching)
-    timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+    # Calculate current timestamp for filenames
+    dt_now = datetime.now(timezone.utc)
+    timestamp_str = dt_now.strftime("%Y%m%d_%H%M%S")
+    prediction_timestamp = dt_now.isoformat() + "Z"
     
     # Attach to profile_data so ChartGenerator can pick it up
     profile_data["timestamp"] = prediction_timestamp
@@ -120,42 +119,81 @@ def run_agent_a():
         logger.error("Failed to generate any charts. Cannot proceed with multimodal agent.")
         return
         
-    # 3. Agent A execution
+    # Step 4: Invoking Agent A (Gemini)
     logger.info("Step 4: Invoking Agent A (Gemini)")
     logger.info("Note: Ensure GEMINI_API_KEY environment variable is set.")
     
-    prompts_dir = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'])
-    trader = TraderAgent(model_name=config['agent']['model_name'], prompts_dir=prompts_dir)
+    # Calculate Prompt Version (Hash) to track data drift
+    prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
+    prompt_version = "unknown"
+    try:
+        with open(prompt_path, 'r', encoding='utf-8') as f:
+            import hashlib
+            prompt_content = f.read()
+            prompt_version = hashlib.md5(prompt_content.encode('utf-8')).hexdigest()[:8]
+            logger.info(f"Using Trader Prompt Version: {prompt_version}")
+    except Exception as e:
+        logger.warning(f"Could not calculate prompt version: {e}")
+
+    # Set up Agent A
+    trader = TraderAgent(
+        model_name=config['agent']['model_name'],
+        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'])
+    )
     
-    # Try calling the API
+    # Execute Model
     if not os.environ.get("GEMINI_API_KEY"):
-        logger.warning("GEMINI_API_KEY not found in environment. Mocking Agent A output for testing...")
-        agent_output = json.dumps({
+        logger.warning("GEMINI_API_KEY not found in environment. Mocking Agent A output.")
+        agent_output_raw = json.dumps({
             "timestamp": prediction_timestamp,
             "action": "mock_HOLD",
             "confidence": 0,
             "reasoning": "API Key missing. This is a mocked output."
         }, indent=2)
     else:
-        agent_output = trader.analyze(symbol=symbol, chart_image_paths=chart_paths, context_data=context_data)
+        agent_output_raw = trader.analyze(symbol=symbol, chart_image_paths=chart_paths, context_data=context_data)
         
-    logger.info(f"Agent A Output:\n{agent_output}")
+    logger.info(f"Agent A Raw Output Received.")
+
+    # 4. Parse output and add metadata
+    try:
+        agent_output = json.loads(agent_output_raw)
+    except Exception:
+        logger.warning("Agent output was not valid JSON. Saving as raw string.")
+        agent_output = agent_output_raw
+
+    # Enrich with metadata if it's a dictionary
+    if isinstance(agent_output, dict):
+        # Force system timestamp to avoid AI hallucinations
+        agent_output['timestamp'] = prediction_timestamp
+        agent_output['metadata'] = {
+            "prompt_version": prompt_version,
+            "config_snapshot": config['trading']
+        }
     
-    # 4. Save the result
+    # 5. Send Notification if confidence is high
+    notif_config = config.get('notifications', {})
+    if notif_config.get('email_enabled') and isinstance(agent_output, dict):
+        threshold = notif_config.get('min_confidence_threshold', 85)
+        if agent_output.get('confidence', 0) >= threshold:
+            try:
+                from src.utils.notifier import EmailNotifier
+                notifier = EmailNotifier(config)
+                notifier.send_prediction_alert(symbol, agent_output)
+            except Exception as e:
+                logger.error(f"Failed to send notification: {e}")
+
+    # 6. Save the result
     logger.info("Step 5: Saving results")
     output_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "predictions")
     os.makedirs(output_dir, exist_ok=True)
-    
     output_file = os.path.join(output_dir, f"{symbol}_prediction_{timestamp_str}.json")
     
     try:
-        # We try to parse the JSON string returned by Gemini to ensure formatting,
-        # but if it fails, we save the raw string.
-        try:
-            parsed_json = json.loads(agent_output)
-            DataStorage.save_json(parsed_json, output_file)
-        except json.JSONDecodeError:
-            with open(output_file, 'w') as f:
+        if isinstance(agent_output, dict):
+            DataStorage.save_json(agent_output, output_file)
+        else:
+            with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(agent_output)
         logger.info(f"Prediction saved to {output_file}")
     except Exception as e:
