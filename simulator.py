@@ -16,7 +16,7 @@ class MarketSimulator:
     Backtesting simulator that identifies market regimes and runs 
     the Trader/Reviewer agents through historical snapshots.
     """
-    def __init__(self, symbol: str = "BTCUSDT", sampling_count: int = 15):
+    def __init__(self, symbol: str = "BTCUSDT", sampling_count: int = 20):
         self.symbol = symbol
         self.sampling_count = sampling_count
         self.config = load_config()
@@ -44,13 +44,13 @@ class MarketSimulator:
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
         df['close'] = df['close'].astype(float)
         
-        # Simple trend detection: Price vs 20-day Moving Average
-        df['ma20'] = df['close'].rolling(window=20).mean()
-        df['volatility'] = df['close'].pct_change().rolling(window=20).std()
+        # Simple trend detection: Price vs 21-day Moving Average (Fibonacci)
+        df['ma21'] = df['close'].rolling(window=21).mean()
+        df['volatility'] = df['close'].pct_change().rolling(window=21).std()
         
         def classify(row):
-            if pd.isna(row['ma20']): return "unknown"
-            trend = "Bull" if row['close'] > row['ma20'] else "Bear"
+            if pd.isna(row['ma21']): return "unknown"
+            trend = "Bull" if row['close'] > row['ma21'] else "Bear"
             vol = "HighVol" if row['volatility'] > df['volatility'].median() else "LowVol"
             return f"{trend}_{vol}"
             
