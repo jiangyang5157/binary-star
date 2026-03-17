@@ -53,6 +53,18 @@ Analyzes all pending predictions and saves reviews to `data/raw/reviews/`.
 - `config/`: Main system configuration.
 - `data/`: Local storage for raw market data, images, and AI records.
 
+## How to Interpret Decisions
+
+Agent A outputs a `confidence` score (0-100) representing the alignment of multiple signals.
+
+### Confidence Thresholds
+- **85% - 100% (High Conviction)**: 🔥 **High Trade Quality.** Major confluences reached: 4h structure alignment, 1h entry confirmation (retests/wicks), and sentiment backing (OI/LS Ratio).
+- **75% - 84% (Moderate)**: ⚖️ **Wait for better entry.** Trend is likely correct, but micro-timing or sentiment may be slightly misaligned. Consider limit orders at key VAH/VAL/POC levels.
+- **Below 75% (Low)**: 🧊 **Noise/Consolidation.** Mixed signals or price is churning inside the Value Area without a clear edge.
+
+> [!TIP]
+> **The Golden Setup**: Look for `confidence > 88%` where the price is within **0.5%** of a major Volume Profile level (VAH/VAL/POC). This offers the highest Risk/Reward ratio.
+
 ## Maintenance & Prompt Iteration
 
 To keep the system evolving without logic conflicts, follow these guidelines when applying Agent B's suggestions:
