@@ -50,7 +50,15 @@ class ChartGenerator:
             linewidths=[2, 1.5, 1.5]
         )
 
-        filepath = os.path.join(self.output_dir, f"{symbol}_{filename_suffix}_chart.png")
+        # Filename: {symbol}_{filename_suffix}_{timestamp}_chart.png
+        # If timestamp is provided, use it, otherwise fallback to simple naming
+        if "timestamp" in profile_data:
+            ts_readable = profile_data["timestamp"].replace(":", "").replace("-", "").split(".")[0]
+            filename = f"{symbol}_{filename_suffix}_{ts_readable}_chart.png"
+        else:
+            filename = f"{symbol}_{filename_suffix}_chart.png"
+            
+        filepath = os.path.join(self.output_dir, filename)
 
         try:
             logger.info(f"Generating chart for {symbol} to {filepath}")

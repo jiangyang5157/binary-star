@@ -76,6 +76,15 @@ def run_agent_a():
     df = vpa.process_klines(klines)
     profile_data = vpa.calculate_profile(df)
     
+    # Create a consistent timestamp for chart naming and data record
+    now = datetime.utcnow()
+    prediction_timestamp = now.isoformat() + "Z"
+    # For file naming (same format as predictions for easy matching)
+    timestamp_str = now.strftime("%Y%m%d_%H%M%S")
+    
+    # Attach to profile_data so ChartGenerator can pick it up
+    profile_data["timestamp"] = prediction_timestamp
+    
     # Add POC data to the text context as well
     context_data["poc_price"] = profile_data.get('poc', 0)
     context_data["vah"] = profile_data.get('vah', 0)
@@ -100,7 +109,7 @@ def run_agent_a():
     if not os.environ.get("GEMINI_API_KEY"):
         logger.warning("GEMINI_API_KEY not found in environment. Mocking Agent A output for testing...")
         agent_output = json.dumps({
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": prediction_timestamp,
             "action": "mock_HOLD",
             "confidence": 0,
             "reasoning": "API Key missing. This is a mocked output."
@@ -115,7 +124,6 @@ def run_agent_a():
     output_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "predictions")
     os.makedirs(output_dir, exist_ok=True)
     
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_file = os.path.join(output_dir, f"{symbol}_prediction_{timestamp_str}.json")
     
     try:
