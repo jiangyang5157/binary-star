@@ -5,6 +5,10 @@ import logging
 import yaml
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List
+from dotenv import load_dotenv
+
+# Load environment variables from .env if it exists
+load_dotenv()
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -128,19 +132,23 @@ def run_reviewer_pipeline():
                 dt_end = dt_now
                 logger.info(f"Prediction {filename} is recent. Reviewing up to present time.")
 
-            # Minimum 1 hour for a meaningful outcome check (lowered for testing)
-            if (dt_end - dt_start).total_seconds() < 1 * 3600:
-                logger.info(f"Skipping {filename}, too recent to review (< 1 hour).")
+            # Minimum 60 seconds for a meaningful outcome check (lowered for immediate testing)
+            if (dt_end - dt_start).total_seconds() < 60:
+                logger.info(f"Skipping {filename}, too recent to review (< 1 minute).")
                 continue
 
             symbol = config['trading']['symbol']
             logger.info(f"Fetching outcome data for {symbol} starting from {dt_start}")
             
             # Fetch klines from the prediction time until now/end of window
+            # Use 1m for very recent reviews to ensure we get data, else 4h
+            fetch_interval = "1m" if (dt_end - dt_start).total_seconds() < 12 * 3600 else "4h"
+            logger.info(f"Fetching outcome data for {symbol} using {fetch_interval} interval")
+            
             klines = bf.fetch_historical_klines(
                 symbol=symbol, 
-                interval="4h", 
-                limit=100, 
+                interval=fetch_interval, 
+                limit=500, # Increased limit for 1m data
                 startTime=start_ts_ms
             )
 

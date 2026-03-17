@@ -17,9 +17,10 @@ class TraderAgent:
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         
-        # Initialize the GenAI client. It will automatically pick up GEMINI_API_KEY from the environment
+        # Initialize the GenAI client.
         try:
-            self.client = genai.Client()
+            api_key = os.environ.get("GEMINI_API_KEY")
+            self.client = genai.Client(api_key=api_key)
         except Exception as e:
             logger.error(f"Failed to initialize GenAI client: {e}")
             self.client = None

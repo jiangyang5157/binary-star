@@ -4,6 +4,10 @@ import yaml
 import json
 import logging
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env if it exists
+load_dotenv()
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
