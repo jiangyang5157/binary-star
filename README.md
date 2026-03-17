@@ -76,12 +76,20 @@ python scheduler.py
   ```bash
   nohup ./venv/bin/python scheduler.py &
   ```
+- **Monitoring Status**: 
+  To check if the background process is still running:
+  ```bash
+  ps -ef | grep scheduler.py
+  ```
 - **Monitoring Logs**: 
   - Business Logic: `tail -f automation.log`
   - System Errors: `tail -f nohup.out` (default redirect)
 - **How to Stop**:
   - If running in foreground: Press `Ctrl + C`.
-  - If running in background: `pkill -f scheduler.py`
+  - If running in background:
+    ```bash
+    pkill -f scheduler.py
+    ```
 
 ### 5. Running After Machine Restart
 
