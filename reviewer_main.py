@@ -71,7 +71,7 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, 
         "outcome_period_bars": len(klines)
     }
 
-def run_reviewer_pipeline():
+def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime = None):
     """
     Main logic for Agent B (The Reviewer):
     1. Scan for past predictions.
@@ -88,11 +88,12 @@ def run_reviewer_pipeline():
     reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "reviews")
     os.makedirs(reviews_dir, exist_ok=True)
 
-    if not os.path.exists(predictions_dir):
-        logger.warning(f"No predictions directory found at {predictions_dir}")
-        return
-
-    files = [f for f in os.listdir(predictions_dir) if f.endswith(".json")]
+    # Use target_files if provided, otherwise scan directory
+    if target_files:
+        files = target_files
+    else:
+        files = [f for f in os.listdir(predictions_dir) if f.endswith(".json")]
+    
     if not files:
         logger.info("No prediction files found to review.")
         return
@@ -125,16 +126,17 @@ def run_reviewer_pipeline():
             
             # Review outcome window
             review_days = 14 
-            dt_now = datetime.now(timezone.utc)
+            dt_now = override_now if override_now else datetime.now(timezone.utc)
             dt_end = dt_start + timedelta(days=review_days)
             
             if dt_end > dt_now:
                 dt_end = dt_now
                 logger.info(f"Prediction {filename} is recent. Reviewing up to present time.")
 
-            # Minimum 60 seconds for a meaningful outcome check (lowered for immediate testing)
-            if (dt_end - dt_start).total_seconds() < 60:
-                logger.info(f"Skipping {filename}, too recent to review (< 1 minute).")
+            # Minimum aging protection: Only review if a certain amount of time has passed
+            min_delay_hours = config.get('automation', {}).get('reviewer_interval_hours', 24.0)
+            if (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
+                logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours).")
                 continue
 
             symbol = config['trading']['symbol']

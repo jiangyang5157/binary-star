@@ -32,7 +32,7 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         logger.error(f"Failed to load config: {e}")
         return {}
 
-def run_agent_a():
+def run_agent_a(override_timestamp: datetime = None):
     """
     Executes the full pipeline for Agent A:
     1. Read Config
@@ -41,7 +41,10 @@ def run_agent_a():
     4. Pass to Gemini API
     5. Save output
     """
-    logger.info("=== Starting Crypto Dual-Agent Pipeline (Agent A) ===")
+    if override_timestamp:
+        logger.info(f"=== Starting BACKTEST Pipeline at {override_timestamp} ===")
+    else:
+        logger.info("=== Starting Crypto Dual-Agent Pipeline (Agent A) ===")
     config = load_config()
     if not config:
         return
@@ -55,17 +58,23 @@ def run_agent_a():
     sf = SentimentFetcher()
 
     logger.info(f"Step 1: Fetching Market Data for {symbol}")
+    fetch_kwargs = {}
+    if override_timestamp:
+        fetch_kwargs['endTime'] = int(override_timestamp.timestamp() * 1000)
+
     # Macro data for Volume Profile structure
     klines_macro = bf.fetch_historical_klines(
         symbol=symbol, 
         interval=macro_config['interval'], 
-        limit=macro_config['limit']
+        limit=macro_config['limit'],
+        **fetch_kwargs
     )
     # Micro data for entry precision
     klines_micro = bf.fetch_historical_klines(
         symbol=symbol, 
         interval=micro_config['interval'], 
-        limit=micro_config['limit']
+        limit=micro_config['limit'],
+        **fetch_kwargs
     )
     
     logger.info("Step 2: Fetching Sentiment Data")
@@ -78,7 +87,8 @@ def run_agent_a():
         "macro_interval": macro_config['interval'],
         "micro_interval": micro_config['interval'],
         "current_open_interest": oi.get('openInterest', 'N/A'),
-        "long_short_ratio_latest": ls_ratio[0].get('longShortRatio', 'N/A') if ls_ratio else 'N/A'
+        "long_short_ratio_latest": ls_ratio[0].get('longShortRatio', 'N/A') if ls_ratio else 'N/A',
+        "current_time": override_timestamp.isoformat() if override_timestamp else datetime.now(timezone.utc).isoformat()
     }
     
     # 2. Analysis & Visualization
@@ -94,9 +104,9 @@ def run_agent_a():
     profile_data = vpa.calculate_profile(df_macro)
     
     # Calculate current timestamp for filenames
-    dt_now = datetime.now(timezone.utc)
+    dt_now = override_timestamp if override_timestamp else datetime.now(timezone.utc)
     timestamp_str = dt_now.strftime("%Y%m%d_%H%M%S")
-    prediction_timestamp = dt_now.isoformat() + "Z"
+    prediction_timestamp = dt_now.isoformat() + ("Z" if not override_timestamp else "")
     
     # Attach to profile_data so ChartGenerator can pick it up
     profile_data["timestamp"] = prediction_timestamp
