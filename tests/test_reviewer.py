@@ -49,10 +49,16 @@ def run_tests():
             "config_update_suggestion": {}
         }, indent=2)
     else:
+        # For testing, we can pass dummy paths or valid ones if they exist
+        dummy_chart_paths = [
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_4h_chart.png'),
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_1h_chart.png')
+        ]
         agent_output = reviewer.review(
             historical_prediction=historical_prediction, 
             actual_outcome=actual_outcome, 
-            current_config=current_config
+            current_config=current_config,
+            chart_image_paths=dummy_chart_paths
         )
         
     print(f"\n    Agent B Output:\n{agent_output}")

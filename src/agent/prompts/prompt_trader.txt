@@ -22,7 +22,7 @@ Specifically look for:
 - Long/Short ratio extremes.
 
 ## Refined Execution Logic (Lessons from past reviews):
-- When a strong bullish trend has already seen a significant price surge above key volume profile levels (VAH/POC), prioritize entries on pullbacks to established support or after a period of consolidation, rather than chasing immediate breakouts at local peaks, to improve short-term profit potential and risk-reward for swing trades.
+- When evaluating a breakout or trend continuation, ensure that high Open Interest is accompanied by immediate, strong price follow-through and significant Taker Buy Volume. If price stalls, consolidates, or shows signs of absorption (e.g., long upper wicks, decreasing body size) despite high Open Interest, re-evaluate the bullish conviction as it may indicate a liquidity trap or distribution rather than confirmation of upward movement.
 
 You MUST output your final decision in strict JSON format. 
 Do not output any markdown code blocks, just raw JSON.

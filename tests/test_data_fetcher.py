@@ -18,9 +18,12 @@ def run_tests():
     sf = SentimentFetcher()
     
     # 1. Test Klines
-    print(f"\n[1] Fetching 1H Klines for {symbol}...")
+    print(f"\n[1] Fetching Dual-Timeframe Klines for {symbol}...")
+    klines_4h = bf.fetch_historical_klines(symbol=symbol, interval="4h", limit=5)
+    print(f"    Macro (4h): Received {len(klines_4h)} K-lines.")
+    
     klines_1h = bf.fetch_historical_klines(symbol=symbol, interval="1h", limit=5)
-    print(f"    Received {len(klines_1h)} K-lines.")
+    print(f"    Micro (1h): Received {len(klines_1h)} K-lines.")
     
     # 2. Test Order Book
     print(f"\n[2] Fetching Order Book for {symbol}...")
