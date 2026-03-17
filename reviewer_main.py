@@ -159,6 +159,23 @@ def run_reviewer_pipeline():
             entry_price = float(klines[0][1])
             outcome = calculate_outcome(klines, entry_price)
 
+            # 3. Locate matching historical chart
+            # We use the same formatting logic as main.py to find the .png
+            # prediction['timestamp'] is ISO format: 2026-03-17T00:51:30.355512Z
+            ts_iso = prediction.get('timestamp', '')
+            chart_path = None
+            if ts_iso:
+                # Use same logic as ChartGenerator: 20260317_135130
+                ts_readable = ts_iso.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
+                chart_filename = f"{symbol}_4h_{ts_readable}_chart.png"
+                chart_path = os.path.join(PROJECT_ROOT, config['paths']['images_dir'], chart_filename)
+                
+                if not os.path.exists(chart_path):
+                    logger.warning(f"Matching chart not found: {chart_path}. Reviewer will proceed with text-only.")
+                    chart_path = None
+                else:
+                    logger.info(f"Found matching historical chart: {chart_path}")
+
             # 3. Invoke Agent B
             logger.info(f"Invoking Reviewer Agent for {filename}...")
             if not os.environ.get("GEMINI_API_KEY"):
@@ -173,7 +190,8 @@ def run_reviewer_pipeline():
                 review_content = reviewer.review(
                     historical_prediction=prediction,
                     actual_outcome=outcome,
-                    current_config=config
+                    current_config=config,
+                    chart_image_path=chart_path
                 )
 
             # 4. Save review

@@ -53,7 +53,8 @@ class ChartGenerator:
         # Filename: {symbol}_{filename_suffix}_{timestamp}_chart.png
         # If timestamp is provided, use it, otherwise fallback to simple naming
         if "timestamp" in profile_data:
-            ts_readable = profile_data["timestamp"].replace(":", "").replace("-", "").split(".")[0]
+            # Convert ISO T-format to underscored format for consistency: 20260317_135130
+            ts_readable = profile_data["timestamp"].replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
             filename = f"{symbol}_{filename_suffix}_{ts_readable}_chart.png"
         else:
             filename = f"{symbol}_{filename_suffix}_chart.png"
