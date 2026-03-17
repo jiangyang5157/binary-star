@@ -48,7 +48,7 @@ class ReviewerAgent:
             historical_prediction=json.dumps(historical_prediction, indent=2),
             actual_outcome=json.dumps(actual_outcome, indent=2),
             current_config=json.dumps(current_config, indent=2),
-            review_window_days=current_config.get('trading', {}).get('review_window_days', 14)
+            review_window_days=current_config.get('trading', {}).get('review_window_days', 7)
         )
 
         contents = []

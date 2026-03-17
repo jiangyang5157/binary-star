@@ -44,14 +44,14 @@ class MarketSimulator:
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
         df['close'] = df['close'].astype(float)
         
-        # Trend detection: Price vs 14-day Exponential Moving Average (EMA)
-        # For a 7-day strategy, EMA14 provides a good two-week balance.
-        df['ema14'] = df['close'].ewm(span=14, adjust=False).mean()
-        df['volatility'] = df['close'].pct_change().rolling(window=14).std()
+        # Trend detection: Price vs 21-day Exponential Moving Average (EMA)
+        # EMA21 is a widely used Fibonacci-based benchmark for trend health.
+        df['ema21'] = df['close'].ewm(span=21, adjust=False).mean()
+        df['volatility'] = df['close'].pct_change().rolling(window=21).std()
         
         def classify(row):
-            if pd.isna(row['ema14']): return "unknown"
-            trend = "Bull" if row['close'] > row['ema14'] else "Bear"
+            if pd.isna(row['ema21']): return "unknown"
+            trend = "Bull" if row['close'] > row['ema21'] else "Bear"
             vol = "HighVol" if row['volatility'] > df['volatility'].median() else "LowVol"
             return f"{trend}_{vol}"
             
@@ -109,7 +109,7 @@ class MarketSimulator:
                 run_agent_a(override_timestamp=dt)
                 
                 # 2. Run Reviewer (Simulate N days in the future)
-                review_days = self.config.get('trading', {}).get('review_window_days', 14)
+                review_days = self.config.get('trading', {}).get('review_window_days', 7)
                 future_dt = dt + timedelta(days=review_days)
                 logger.info(f"Fast-forwarding to {future_dt} for review...")
                 

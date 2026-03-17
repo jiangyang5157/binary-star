@@ -125,7 +125,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             start_ts_ms = int(dt_start.timestamp() * 1000)
             
             # Review outcome window
-            review_days = config.get('trading', {}).get('review_window_days', 14)
+            review_days = config.get('trading', {}).get('review_window_days', 7)
             dt_now = override_now if override_now else datetime.now(timezone.utc)
             dt_end = dt_start + timedelta(days=review_days)
             
