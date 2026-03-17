@@ -18,7 +18,7 @@ Below are the **Chart Images** that Agent A saw at the time of prediction:
 
 Analyze the candlesticks and volume bars on both timeframes.
 
-Below is the **Actual Market Outcome** during the holding period {target_duration} days after the prediction:
+Below is the **Actual Market Outcome** during the holding period {review_window_days} days after the prediction:
 {actual_outcome}
 
 And here is the **Current Configuration** (`config.yaml`) used by Agent A:

@@ -116,6 +116,9 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["vah"] = profile_data.get('vah', 0)
     context_data["val"] = profile_data.get('val', 0)
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
+    context_data["macro_interval"] = macro_config['interval']
+    context_data["micro_interval"] = micro_config['interval']
+    context_data["review_window_days"] = config.get('trading', {}).get('review_window_days', 14)
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
     

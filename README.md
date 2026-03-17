@@ -5,7 +5,7 @@ A sophisticated crypto trading analysis system using a Two-Agent architecture (T
 ## Overview
 
 The system operates in a feedback loop:
-1.  **Agent A (The Trader)**: Analyzes real-time market data and Volume Profile charts to make 1-14 day swing trading predictions.
+1.  **Agent A (The Trader)**: Analyzes real-time market data and Volume Profile charts to make periodic swing trading predictions (window configurable in `config/config.yaml`).
 2.  **Agent B (The Reviewer)**: Periodically reviews past predictions against actual market outcomes, identifying logical flaws and suggesting "Logic Patches" or configuration tweaks.
 
 ## Features

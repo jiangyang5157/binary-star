@@ -3,6 +3,7 @@
 trading:
   symbol: "BTCUSDT"
   strategy: "swing" # 1 - 14 days holding period
+  review_window_days: 14 # Timeframe used by Agent B to evaluate outcomes
 
 data:
   # Macro timeframe for trend and Volume Profile calculation

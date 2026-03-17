@@ -109,7 +109,8 @@ class MarketSimulator:
                 run_agent_a(override_timestamp=dt)
                 
                 # 2. Run Reviewer (Simulate N days in the future)
-                future_dt = dt + timedelta(days=14)
+                review_days = self.config.get('trading', {}).get('review_window_days', 14)
+                future_dt = dt + timedelta(days=review_days)
                 logger.info(f"Fast-forwarding to {future_dt} for review...")
                 
                 run_reviewer_pipeline(target_files=[pred_filename], override_now=future_dt, force=True)
