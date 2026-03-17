@@ -44,13 +44,14 @@ class MarketSimulator:
         df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
         df['close'] = df['close'].astype(float)
         
-        # Simple trend detection: Price vs 21-day Moving Average (Fibonacci)
-        df['ma21'] = df['close'].rolling(window=21).mean()
+        # Trend detection: Price vs 21-day Exponential Moving Average (EMA)
+        # EMA responds faster to price changes than SMA, better for Crypto.
+        df['ema21'] = df['close'].ewm(span=21, adjust=False).mean()
         df['volatility'] = df['close'].pct_change().rolling(window=21).std()
         
         def classify(row):
-            if pd.isna(row['ma21']): return "unknown"
-            trend = "Bull" if row['close'] > row['ma21'] else "Bear"
+            if pd.isna(row['ema21']): return "unknown"
+            trend = "Bull" if row['close'] > row['ema21'] else "Bear"
             vol = "HighVol" if row['volatility'] > df['volatility'].median() else "LowVol"
             return f"{trend}_{vol}"
             
