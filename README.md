@@ -38,13 +38,24 @@ The system operates in a feedback loop:
 ```bash
 python main.py
 ```
-Outputs are saved to `data/raw/predictions/` and charts to `data/images/`.
+- **Behavior**: Fetches real-time data, generates Volume Profile charts, and invokes the Gemini model.
+- **Output**: JSON prediction in `data/raw/predictions/` and charts in `data/images/`.
 
 ### 2. Review Past Performance (Agent B)
 ```bash
 python reviewer_main.py
 ```
-Analyzes all pending predictions and saves reviews to `data/raw/reviews/`.
+- **Behavior**: Scans all predictions that haven't been reviewed yet. Fetches the *actual* market movement that happened *after* each prediction and asks the Reviewer Agent to evaluate success/failure.
+- **Output**: JSON review reports in `data/raw/reviews/`.
+
+### 3. Automated Scheduler (Orchestrator)
+```bash
+python scheduler.py
+```
+- **Behavior**: Runs in an infinite loop. Triggers `main.py` every 1 hour and `reviewer_main.py` every 24 hours (configurable in `config/config.yaml`).
+- **Startup**: It **immediately** runs both scripts once upon startup to ensure your data is fresh.
+- **How to Stop**: Press `Ctrl + C` in the terminal to terminate the scheduler.
+- **Logs**: View `automation.log` for execution history.
 
 ## Project Structure
 

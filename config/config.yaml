@@ -36,4 +36,4 @@ notifications:
   smtp_port: 587
 
 agent:
-  model_name: "gemini-2.5-flash" # The recommended model for multimodal
+  model_name: "gemini-flash-latest" # gemini-2.5-flash
