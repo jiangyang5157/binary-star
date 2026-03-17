@@ -16,7 +16,7 @@ data:
     limit: 168
   
   # Value Area Percentage
-  value_area_pct: 0.84
+  value_area_pct: 0.8
 
 paths:
   raw_data_dir: "data/raw"
@@ -37,4 +37,4 @@ notifications:
   smtp_port: 587
 
 agent:
-  model_name: "gemini-flash-latest" # gemini-2.5-flash
+  model_name: "gemini-3.1-pro-preview" # gemini-flash-latest gemini-2.5-flash
