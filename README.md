@@ -41,6 +41,10 @@ pip install -r requirements.txt
     GEMINI_API_KEY=your_google_key
     BINANCE_API_KEY=your_binance_key
     BINANCE_API_SECRET=your_binance_secret
+
+    # Notifications (Required for email alerts)
+    SENDER_EMAIL=your_gmail_address
+    SENDER_APP_PASSWORD=your_gmail_app_password
     ```
 2.  **Strategy**: Centralized configuration is in `config/config.yaml`. This controls symbols, timeframes, and model selections.
 
@@ -61,7 +65,8 @@ To evaluate past trades and generate logic patches:
 ```bash
 python reviewer_main.py
 ```
-*   **Force Flag**: By default, it skips recent trades. Use `--force` to review everything immediately:
+*   **Aging Protection**: By default, the system follows `minimum_review_age_hours` in `config.yaml` (defaulting to 168 hours/7 days). This ensures trades have time to "play out" before they are judged.
+*   **Force Flag**: To bypass this protection and review all predictions immediately (e.g., for testing):
   ```bash
   python reviewer_main.py --force
   ```
@@ -77,12 +82,17 @@ python scheduler.py
 ### 4. Backtesting & History (The Simulator)
 Test your prompts against historical market regimes without waiting weeks:
 ```bash
-python simulator.py --days 30 --sampling 10
+python simulator.py --days 30 --sampling 15 --mode regime
 ```
-*   **Options**:
-    *   `--start YYYY-MM-DD`: Start from a specific date.
-    *   `--sampling`: Number of historical snapshots to pick.
-    *   `--mode`: `regime` (random sample from bull/bear/sideways) or `spaced` (even intervals).
+*   **Arguments**:
+    *   `--symbol`: The asset to test (e.g., `BTCUSDT`). Defaults to config setting.
+    *   `--days`: Number of days to look back (default: 30).
+    *   `--start YYYY-MM-DD`: Start date for backtest (overrides `--days`).
+    *   `--end YYYY-MM-DD`: End date for backtest (defaults to now).
+    *   `--sampling`: Total number of historical snapshots to pick (default: 15).
+    *   `--mode`: Sampling strategy.
+        *   `regime` (default): Picks snapshots randomly across different market phases (Bull/Bear/Sideways).
+        *   `spaced`: Picks snapshots at even intervals across the time range.
 
 ---
 
