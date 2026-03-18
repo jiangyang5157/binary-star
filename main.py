@@ -233,7 +233,7 @@ def run_agent_a(override_timestamp: datetime = None):
             notif_config = config.get('notifications', {})
             threshold = notif_config.get('min_confidence_threshold', 50)
             if agent_output.get('confidence', 0) >= threshold:
-                notifier.send_prediction_alert(symbol, agent_output)
+                notifier.send_prediction_alert(symbol, agent_output, chart_paths=chart_paths)
     except Exception as e:
         logger.error(f"Failed to handle notification: {e}")
 

@@ -24,7 +24,7 @@ class EmailNotifier:
         # Auto-enable if both credentials are provided
         self.enabled = bool(self.recipient and self.recipient_app_password)
 
-    def send_prediction_alert(self, symbol, prediction):
+    def send_prediction_alert(self, symbol, prediction, chart_paths=None):
         """
         Send an email alert for a high-confidence prediction.
         """
@@ -33,6 +33,7 @@ class EmailNotifier:
             return False
 
         import json
+        from email.mime.image import MIMEImage
         
         confidence = prediction.get('confidence', 0)
         action = prediction.get('action', 'HOLD')
@@ -46,6 +47,16 @@ class EmailNotifier:
         formatted_json = json.dumps(prediction_copy, indent=4)
         
         subject = f"Crypto Alert: {action} {symbol} (Confidence: {confidence}%)"
+        
+        # Prepare HTML body with image placeholders
+        img_html = ""
+        if chart_paths:
+            img_html = "<div style='margin-top: 20px;'>"
+            for i, path in enumerate(chart_paths):
+                if os.path.exists(path):
+                    cid = f"image_{i}"
+                    img_html += f"<div style='margin-bottom: 20px;'><h4 style='color: #2c3e50;'>Chart {i+1} ({os.path.basename(path)}):</h4><img src='cid:{cid}' style='max-width: 100%; border: 1px solid #ddd; border-radius: 5px;'></div>"
+            img_html += "</div>"
         
         body = f"""
         <html>
@@ -61,6 +72,8 @@ class EmailNotifier:
                     {reasoning_zh}
                 </div>
                 
+                {img_html}
+                
                 <p style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 0.9em; color: #7f8c8d;">
                     This is an automated notification from your Crypto Agent System.
                 </p>
@@ -75,12 +88,23 @@ class EmailNotifier:
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
 
+        # Attach images with CID for embedding
+        if chart_paths:
+            for i, path in enumerate(chart_paths):
+                if os.path.exists(path):
+                    with open(path, 'rb') as f:
+                        img_data = f.read()
+                        image = MIMEImage(img_data)
+                        image.add_header('Content-ID', f'<image_{i}>')
+                        image.add_header('Content-Disposition', 'inline', filename=os.path.basename(path))
+                        msg.attach(image)
+
         try:
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls()
                 server.login(self.recipient, self.recipient_app_password)
                 server.send_message(msg)
-            logger.info(f"Email alert sent to {self.recipient} for {symbol}")
+            logger.info(f"Email alert sent to {self.recipient} for {symbol} with attachments")
             return True
         except Exception as e:
             logger.error(f"Failed to send email: {e}")
