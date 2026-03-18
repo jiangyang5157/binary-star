@@ -22,15 +22,20 @@ def test_reviewer_agent_mock():
         "min_price_reached": 62000,
         "close_price_after_7_days": 63000,
         "result": "Loss",
-        "notes": "Price instantly reversed after breaking POC, dropping 7% within 48 hours."
+        "notes": "Price instantly reversed after breaking POC, dropping 7% within 168 hours."
     }
     
     # Mock current config
     current_config = {
-        "trading": {"symbol": "BTCUSDT", "strategy": "swing"},
-        "data": {
-            "macro_timeframe": {"interval": "4h", "limit": 168},
-            "micro_timeframe": {"interval": "1h", "limit": 168}
+        "trading": {
+            "symbol": "BTCUSDT", 
+            "strategy": "swing",
+            "macro_timeframe": {"interval": "1d", "limit": 100},
+            "micro_timeframe": {"interval": "4h", "limit": 168},
+        },
+        "agent": {
+            "trader_model": "gemini-flash-latest",
+            "reviewer_model": "gemini-flash-latest"
         }
     }
     
@@ -38,21 +43,24 @@ def test_reviewer_agent_mock():
     print("Note: Ensure GEMINI_API_KEY environment variable is set.")
     
     # Agent B execution
-    reviewer = ReviewerAgent(prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'))
+    reviewer = ReviewerAgent(
+        model_name=current_config['agent']['reviewer_model'],
+        prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts')
+    )
     
     if not os.environ.get("GEMINI_API_KEY"):
         print("    GEMINI_API_KEY not found in environment. Mocking Agent B output for testing...")
         agent_output = json.dumps({
             "evaluation_score": 10,
             "flaw_analysis": "Agent A was trapped in a fakeout. It ignored micro-level rejection wicks.",
-            "prompt_patch_suggestion": "Wait for a 4H candle close above POC before confirming a breakout.",
+            "prompt_patch_suggestion": "Wait for a 1D candle close above POC before confirming a breakout.",
             "config_update_suggestion": {}
         }, indent=2)
     else:
         # For testing, we can pass dummy paths or valid ones if they exist
         dummy_chart_paths = [
-            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_4h_chart.png'),
-            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_1h_chart.png')
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_1d_chart.png'),
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_4h_chart.png')
         ]
         agent_output = reviewer.review(
             historical_prediction=historical_prediction, 

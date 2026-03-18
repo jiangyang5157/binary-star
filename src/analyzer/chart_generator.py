@@ -49,7 +49,7 @@ class ChartGenerator:
             return []
 
     def generate_chart(self, symbol: str, df: pd.DataFrame, profile_data: Dict[str, Any], 
-                       liquidations: List[Dict[str, Any]] = None, filename_suffix: str = "4h") -> str:
+                       liquidations: List[Dict[str, Any]] = None, filename_suffix: str = "") -> str:
         """
         Plots the OHLCV chart with POC levels, Liquidation Zones, and Trendlines.
         """

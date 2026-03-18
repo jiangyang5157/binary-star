@@ -1,153 +1,108 @@
 # Crypto Dual-Agent Trading System
 
-A sophisticated crypto trading analysis system using a Two-Agent architecture (Trader & Reviewer) powered by Gemini's Multimodal AI and Volume Profile analysis.
+A cutting-edge crypto trading analysis framework utilizing a **Two-Agent Architecture** (Trader & Reviewer) and **Multimodal AI** to translate complex market data into actionable swing trading logic.
 
-## Overview
+---
 
-The system operates in a feedback loop:
-1.  **Agent A (The Trader)**: Analyzes real-time market data and Volume Profile charts to make periodic swing trading predictions (window configurable in `config/config.yaml`).
-2.  **Agent B (The Reviewer)**: Periodically reviews past predictions against actual market outcomes, identifying logical flaws and suggesting "Logic Patches" or configuration tweaks.
+## 🧠 How it Works
 
-## Features
+The system replicates a professional trading desk with two distinct roles:
 
-- **Volume Profile Analysis**: Automatic calculation of POC (Point of Control), VAH (High), and VAL (Low).
-- **Dual-Timeframe Analysis**: Simultaneous analysis of **4h (Macro)** for structure and **1h (Micro)** for entry precision.
-- **Multimodal AI**: High-resolution dual-chart analysis using Gemini Flash.
-- **Automated Alerts**: Email notifications for high-confidence signal (>85%).
-- **Centralized Scheduler**: Orchestrates periodic prediction and review runs.
-- **Historical Backtesting**: Sampling-based simulator that identifies market regimes and runs backtests without hitting API quotas.
-- **Prompt Versioning**: Tracks "Logic Drift" by hashing prompt state in results.
+1.  **Agent A (The Trader)**: 
+    *   **Data Enrichment**: Combines live price action with Volume Profile (POC/VAH/VAL), Liquidations, and Sentiment (OI/LS Ratio).
+    *   **Visual Logic**: Generates "enhanced" charts where technical indicators are overlaid as visual cues for the AI.
+    *   **Decision**: Outputs high-probability trade setups with detailed reasoning.
 
-## Installation
+2.  **Agent B (The Reviewer)**:
+    *   **Outcome Evaluation**: Scans past predictions once the trade window has closed.
+    *   **Gap Analysis**: Compares what the Trader *thought* would happen against what *actually* happened.
+    *   **Logic Patching**: Suggests specific "patches" (new prompt rules) or configuration tweaks to fix recurring mistakes.
 
-1.  **Clone the repository**.
-2.  **Create a virtual environment**:
-    ```bash
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
-    ```
-3.  **Setup Environment Variables**:
-    Create a `.env` file in the root directory:
+---
+
+## 🛠 Setup & Installation
+
+### 1. Environment Requirements
+*   Python 3.8+
+*   Binance Account (API Keys required for full functionality)
+*   Gemini API Key (Google AI Studio)
+
+### 2. Installation
+```bash
+# Clone the repo and enter the directory
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 3. Configuration
+1.  **API Keys**: Create a `.env` file in the root:
     ```env
-    GEMINI_API_KEY=your_api_key_here
+    GEMINI_API_KEY=your_google_key
+    BINANCE_API_KEY=your_binance_key
+    BINANCE_API_SECRET=your_binance_secret
     ```
+2.  **Strategy**: Centralized configuration is in `config/config.yaml`. This controls symbols, timeframes, and model selections.
 
-## Usage
+---
 
-### 1. Generate a Prediction (Agent A)
+## 🚀 Execution Guide
+
+### 1. Run a Single Analysis (Agent A)
+To generate a prediction for the current market state:
 ```bash
 python main.py
 ```
-- **Behavior**: Fetches real-time data, generates Volume Profile charts, and invokes the Gemini model.
-- **Output**: JSON prediction in `data/raw/predictions/` and charts in `data/images/`.
+*   **Input**: Real-time market data.
+*   **Output**: JSON prediction in `data/raw/predictions/` and technical charts in `data/images/`.
 
-### 2. Review Past Performance (Agent B)
+### 2. Run Performance Review (Agent B)
+To evaluate past trades and generate logic patches:
 ```bash
 python reviewer_main.py
 ```
-- **Behavior**: Scans all predictions that haven't been reviewed yet. Fetches the *actual* market movement and evaluates performance.
-- **Review Aging**: By default, it skips predictions less than 16 hours old (`reviewer_interval_hours` in config) to ensure the trade has played out.
-- **Manual Force**: To bypass the 16-hour protection and test immediately:
+*   **Force Flag**: By default, it skips recent trades. Use `--force` to review everything immediately:
   ```bash
   python reviewer_main.py --force
   ```
 
-### 3. Historical Backtesting (Simulator)
-```bash
-python simulator.py [options]
-```
-- **Goal**: Rapidly iterate on prompts and configuration by sampling past market regimes.
-- **Parameters**:
-    - `--days <int>`: Lookback window in days (default: 365).
-    - `--sampling <int>`: Number of distinct points to test (default: 20).
-    - `--start <YYYY-MM-DD>`: Explicit start date (overrides --days).
-    - `--end <YYYY-MM-DD>`: Explicit end date (defaults to now).
-- **Example**: `python simulator.py --start 2024-01-01 --sampling 10`
-
-### 4. Automated Scheduler (Orchestrator)
+### 3. Automated Operation (The Scheduler)
+To run the analysis and review cycle automatically in the background:
 ```bash
 python scheduler.py
 ```
-- **Behavior**: Runs in an infinite loop. Triggers `main.py` every 1 hour and `reviewer_main.py` every 16 hours (configurable in `config/config.yaml`).
-- **Startup**: It **immediately** runs both scripts once upon startup to ensure your data is fresh.
-- **Running in Background (Recommended)**:
-  To keep the system running after closing your terminal:
-  ```bash
-  nohup ./venv/bin/python scheduler.py &
-  ```
-- **Monitoring Status**: 
-  To check if the background process is still running:
-  ```bash
-  ps -ef | grep scheduler.py
-  ```
-- **Monitoring Logs**: 
-  - Business Logic: `tail -f automation.log`
-  - System Errors: `tail -f nohup.out` (default redirect)
-- **How to Stop**:
-  - If running in foreground: Press `Ctrl + C`.
-  - If running in background:
-    ```bash
-    pkill -f scheduler.py
-    ```
+*   **Cycle**: Triggers Trader analyses and Reviewer passes based on intervals set in `config.yaml`.
+*   **How to stop**: Simply press **`Ctrl + C`** in your terminal.
 
-### 5. Running After Machine Restart
-
-When you restart your machine or open a new terminal, you do **not** need to run `pip install` again. Your dependencies remain safely inside the `venv/` folder.
-
-You have two ways to run the scripts:
-
-**Method A: Manual Activation (Best for interactive testing)**
+### 4. Backtesting & History (The Simulator)
+Test your prompts against historical market regimes without waiting weeks:
 ```bash
-source venv/bin/activate
-python main.py
+python simulator.py --days 30 --sampling 10
 ```
+*   **Options**:
+    *   `--start YYYY-MM-DD`: Start from a specific date.
+    *   `--sampling`: Number of historical snapshots to pick.
+    *   `--mode`: `regime` (random sample from bull/bear/sideways) or `spaced` (even intervals).
 
-**Method B: Direct Execution (Best for background jobs & Scheduler)**
-You can bypass activation by calling the virtual environment's Python executable directly. This is the recommended way to run the scheduler or backtesting:
-```bash
-./venv/bin/python scheduler.py
-./venv/bin/python simulator.py --days 30
-```
->*Tip: If setting up system-level cron jobs, use the full absolute path: `/Users/yangjiang/Documents/workspace/crypto/venv/bin/python`*
+---
 
-## Project Structure
+## 📊 Interpreting Results
 
-- `src/agent/`: AI Agent implementations and prompts.
-- `src/analyzer/`: Technical indicators (Volume Profile) and chart generation.
-- `src/data_fetcher/`: Binance API integration and data storage.
-- `config/`: Main system configuration.
-- `data/`: Local storage for raw market data, images, and AI records.
+The system assigns a **Confidence Score** (0-100) to each trade:
 
-## How to Interpret Decisions
+*   **85% - 100% (High Conviction)**: 🔥 **Strategic Alignment.** Macro structure (1d), Micro entry (4h), and Sentiment (OI) are all in agreement.
+*   **75% - 84% (Moderate)**: ⚖️ **Monitor Closely.** Good direction, but timing or volume profile support might be sub-optimal.
+*   **Below 75% (Low)**: 🧊 **Neutral/Avoid.** Market is likely in churn or consolidation within the Value Area.
 
-Agent A outputs a `confidence` score (0-100) representing the alignment of multiple signals.
+---
 
-### Confidence Thresholds
-- **85% - 100% (High Conviction)**: 🔥 **High Trade Quality.** Major confluences reached: 4h structure alignment, 1h entry confirmation (retests/wicks), and sentiment backing (OI/LS Ratio).
-- **75% - 84% (Moderate)**: ⚖️ **Wait for better entry.** Trend is likely correct, but micro-timing or sentiment may be slightly misaligned. Consider limit orders at key VAH/VAL/POC levels.
-- **Below 75% (Low)**: 🧊 **Noise/Consolidation.** Mixed signals or price is churning inside the Value Area without a clear edge.
+## 📂 Project Roadmap
+- [x] **Phase 1**: Core Two-Agent Cycle & Volume Profile.
+- [x] **Phase 2**: Visual AR (Augmented Reality) Charts & Liquidation zones.
+- [ ] **Phase 3**: Expert Gallery (Few-shot learning for AI).
+- [ ] **Phase 4**: Multi-Model "Council of Judges" consensus.
 
-> [!TIP]
-> **The Golden Setup**: Look for `confidence > 88%` where the price is within **0.5%** of a major Volume Profile level (VAH/VAL/POC). This offers the highest Risk/Reward ratio.
-
-## Maintenance & Prompt Iteration
-
-To keep the system evolving without logic conflicts, follow these guidelines when applying Agent B's suggestions:
-
-### 1. Managing Prompt Patches
-When Agent B suggests a `prompt_patch_suggestion`:
-- **Don't just Append**: Instead of blindly adding to the end, read the existing rules in `src/agent/prompts/prompt_trader.txt` under the `## Refined Execution Logic` section.
-- **Merge or Replace**: If a new suggestion clarifies an old one (e.g., "Always buy breakouts" vs "Buy breakouts ONLY if Volume is high"), **replace** the old rule with the more specific one.
-- **Add Context**: Ensure every rule has a condition (e.g., "In low volatility...", "When OI is dropping...").
-
-### 2. Cleaning up the Prompt
-- **The "肌肉记忆" Rule**: If Agent A has made 5 correct decisions in a row following a specific rule, you can consider moving that rule from the `Refined` section to the core `Instructions` or deleting it if the AI seems to have "learned" the pattern.
-- **Keep it Lean**: Aim to keep the `Refined Execution Logic` section under 10 bullet points to avoid overwhelming the model's context window.
-
-### 3. Updating Configuration
-- If Agent B suggests a `config_update_suggestion` (e.g., changing timeframe or `value_area_pct`), manually update `config/config.yaml`. 
-- **Tip**: Change only one parameter at a time and run for a few days to see the impact.
-
+---
 ## License
 MIT
+

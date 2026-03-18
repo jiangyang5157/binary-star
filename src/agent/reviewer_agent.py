@@ -13,7 +13,7 @@ class ReviewerAgent:
     Evaluates past predictions made by Agent A against actual market outcomes.
     Suggests config parameter tweaks and prompt updates.
     """
-    def __init__(self, model_name: str = "gemini-2.5-flash", prompts_dir: str = "src/agent/prompts"):
+    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts"):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         try:
@@ -45,10 +45,12 @@ class ReviewerAgent:
             return '{"error": "Agent B prompt template missing."}'
 
         formatted_prompt = prompt_template.format(
-            historical_prediction=json.dumps(historical_prediction, indent=2),
-            actual_outcome=json.dumps(actual_outcome, indent=2),
-            current_config=json.dumps(current_config, indent=2),
-            review_window_days=current_config.get('trading', {}).get('review_window_days', 7)
+            historical_prediction=json.dumps(historical_prediction, indent=2, ensure_ascii=False),
+            actual_outcome=json.dumps(actual_outcome, indent=2, ensure_ascii=False),
+            current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
+            review_window_days=current_config.get('trading', {}).get('review_window_days', 7),
+            macro_interval=current_config.get('trading', {}).get('macro_timeframe', {}).get('interval', 'N/A'),
+            micro_interval=current_config.get('trading', {}).get('micro_timeframe', {}).get('interval', 'N/A')
         )
 
         contents = []

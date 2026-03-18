@@ -50,8 +50,8 @@ def run_agent_a(override_timestamp: datetime = None):
         return
 
     symbol = config['trading']['symbol']
-    macro_config = config['data']['macro_timeframe']
-    micro_config = config['data']['micro_timeframe']
+    macro_config = config['trading']['macro_timeframe']
+    micro_config = config['trading']['micro_timeframe']
     
     # 1. Fetching Data
     bf = BinanceDataFetcher()
@@ -78,7 +78,7 @@ def run_agent_a(override_timestamp: datetime = None):
     )
     
     logger.info("Step 2: Fetching Sentiment & Liquidity Data")
-    oi = sf.fetch_open_interest(symbol=symbol, **fetch_kwargs)
+    oi = sf.fetch_open_interest(symbol=symbol, period=micro_config['interval'], **fetch_kwargs)
     ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=macro_config['interval'], limit=1, **fetch_kwargs)
     
     # Some endpoints might not support endTime correctly in the library
@@ -89,14 +89,15 @@ def run_agent_a(override_timestamp: datetime = None):
     top_ls_ratio = bf.fetch_top_long_short_accounts(symbol=symbol, period=macro_config['interval'], limit=1, **sentiment_kwargs)
     liquidations = bf.fetch_liquidations(symbol=symbol, limit=20) # Get recent 20 liquidations
     
-    # Calculate Order Flow Delta from MICRO (1h) klines
+    # Calculate Order Flow Delta from MICRO klines
     # Delta = (Taker Buy Base Volume) - (Total Volume - Taker Buy Base Volume)
     # This shows aggressive buying vs aggressive selling.
     total_delta = 0
+    lookback_bars = config['trading'].get('order_flow_lookback_bars', 4)
     if klines_micro:
         try:
-            # Last few bars (e.g., last 4 hours)
-            recent_micro = klines_micro[-4:] 
+            # Last few bars from config
+            recent_micro = klines_micro[-lookback_bars:] 
             for k in recent_micro:
                 vol = float(k[5])
                 taker_buy = float(k[9])
@@ -122,7 +123,7 @@ def run_agent_a(override_timestamp: datetime = None):
     
     # 2. Analysis & Visualization
     logger.info("Step 3: Calculating Volume Profile & Charting")
-    va_pct = config['data'].get('value_area_pct', 0.70)
+    va_pct = config['trading'].get('value_area_pct', 0.70)
     vpa = VolumeProfileAnalyzer(value_area_pct=va_pct)
     
     # Process both kline sets
@@ -148,6 +149,7 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["macro_interval"] = macro_config['interval']
     context_data["micro_interval"] = micro_config['interval']
     context_data["review_window_days"] = config.get('trading', {}).get('review_window_days', 7)
+    context_data["lookback_bars"] = lookback_bars
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
     
@@ -179,7 +181,7 @@ def run_agent_a(override_timestamp: datetime = None):
 
     # Set up Agent A
     trader = TraderAgent(
-        model_name=config['agent']['model_name'],
+        model_name=config['agent']['trader_model'],
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'])
     )
     
@@ -191,7 +193,7 @@ def run_agent_a(override_timestamp: datetime = None):
             "action": "mock_HOLD",
             "confidence": 0,
             "reasoning": "API Key missing. This is a mocked output."
-        }, indent=2)
+        }, indent=2, ensure_ascii=False)
     else:
         agent_output_raw = trader.analyze(symbol=symbol, chart_image_paths=chart_paths, context_data=context_data)
         

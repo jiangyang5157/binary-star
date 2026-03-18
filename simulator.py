@@ -16,11 +16,11 @@ class MarketSimulator:
     Backtesting simulator that identifies market regimes and runs 
     the Trader/Reviewer agents through historical snapshots.
     """
-    def __init__(self, symbol: str = "BTCUSDT", sampling_count: int = 20, sampling_mode: str = "regime"):
-        self.symbol = symbol
+    def __init__(self, symbol: str = None, sampling_count: int = 20, sampling_mode: str = "regime"):
+        self.config = load_config()
+        self.symbol = symbol if symbol else self.config['trading']['symbol']
         self.sampling_count = sampling_count
         self.sampling_mode = sampling_mode
-        self.config = load_config()
         self.fetcher = BinanceDataFetcher()
 
     def identify_regimes(self, days_limit: int = 365) -> pd.DataFrame:

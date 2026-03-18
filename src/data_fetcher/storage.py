@@ -14,7 +14,7 @@ class DataStorage:
         try:
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=4)
+                json.dump(data, f, indent=4, ensure_ascii=False)
             logger.info(f"Successfully saved data to {filepath}")
             return True
         except Exception as e:

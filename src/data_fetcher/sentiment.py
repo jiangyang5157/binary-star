@@ -18,7 +18,7 @@ class SentimentFetcher:
     def __init__(self):
         self.client = UMFutures()
 
-    def fetch_open_interest(self, symbol: str, **kwargs) -> Dict[str, Any]:
+    def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs) -> Dict[str, Any]:
         """
         Fetches the open interest. If endTime is in kwargs, fetches historical data.
         Note: Binance only provides the last 30 days of historical data.
@@ -32,8 +32,8 @@ class SentimentFetcher:
                     logger.info(f"Skipping historical OI for {symbol}: Date is > 30 days ago.")
                     return {}
 
-                logger.info(f"Fetching Historical Open Interest for {symbol}")
-                response = self.client.open_interest_hist(symbol=symbol, period="1h", limit=1, **kwargs)
+                logger.info(f"Fetching Historical Open Interest for {symbol} (Period: {period})")
+                response = self.client.open_interest_hist(symbol=symbol, period=period, limit=1, **kwargs)
                 if response:
                     return {
                         "symbol": symbol,
@@ -49,7 +49,7 @@ class SentimentFetcher:
             logger.error(f"Failed to fetch open interest for {symbol}: {error.error_message}")
             return {}
 
-    def fetch_long_short_ratio(self, symbol: str, period: str = "4h", limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
+    def fetch_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
         """
         Fetches the Long/Short Ratio. Supports startTime/endTime in kwargs.
         Note: Binance only provides the last 30 days of historical data.

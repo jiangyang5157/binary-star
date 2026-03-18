@@ -1,40 +1,61 @@
+# =============================================================================
 # Crypto Dual-Agent Trading System Configuration
+# =============================================================================
+# This file is the "Single Source of Truth" (SSoT) for the entire system.
+# All technical parameters, timeframes, and model selections are defined here.
 
 trading:
-  symbol: "BTCUSDT"
-  strategy: "swing"
-  review_window_days: 7 # Timeframe used by Agent B to evaluate outcomes
-
-data:
-  # Macro timeframe for trend and Volume Profile calculation
-  macro_timeframe:
-    interval: "4h"
-    limit: 168
-  # Micro timeframe for precise entry points
-  micro_timeframe:
-    interval: "1h"
-    limit: 168
+  symbol: "BTCUSDT"          # The trading pair to analyze (Binance Futures format)
+  strategy: "swing"           # Strategy label (currently used for categorization)
   
-  # Value Area Percentage
-  value_area_pct: 0.8
+  # Volume Profile Settings
+  value_area_pct: 0.8         # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
+  
+  # Order Flow Analysis
+  order_flow_lookback_bars: 4 # Number of micro-timeframe bars used to calculate Delta (Buying vs Selling pressure)
+
+  # Macro Timeframe: Used for high-level trend detection and Volume Profile (VAP) structure.
+  macro_timeframe:
+    interval: "1d"            # K-line interval for macro analysis (e.g., 4h, 1d)
+    limit: 100                # Number of historical bars to fetch for the macro view
+    
+  # Micro Timeframe: Used for precise entry/exit analysis and local order flow observation.
+  micro_timeframe:
+    interval: "4h"            # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
+    limit: 168                # Number of micro bars to fetch (168 * 1h = 1 week of data)
+    
+  # Reviewer Evaluation Accuracy
+  # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
+  # Using '1h' ensures we don't miss "wicks" or sharp reversals that a '4h' or '1d' check might overlook.
+  review_evaluation_interval: "1h"
+
+  review_window_days: 7       # The duration (in days) that Agent B waits before evaluating a trade's success
 
 paths:
-  raw_data_dir: "data/raw"
-  images_dir: "data/images"
-  results_dir: "data/raw/predictions"
-  reviews_dir: "data/raw/reviews"
-  prompts_dir: "src/agent/prompts"
+  raw_data_dir: "data/raw"             # Directory for temporary market data cache
+  images_dir: "data/images"             # Directory where generated technical charts (.png) are stored
+  results_dir: "data/raw/predictions"   # Storage for Trader Agent output (JSON)
+  reviews_dir: "data/raw/reviews"       # Storage for Reviewer Agent feedback (JSON)
+  prompts_dir: "src/agent/prompts"      # Location of AI prompt templates (.txt)
 
 automation:
-  prediction_interval_hours: 1.0  # Run Trader Agent every hour
-  reviewer_interval_hours: 16.0    # Frequency of review runs AND minimum age for a trade to be eligible for review.
+  # Scheduler settings for 'scheduler.py'
+  prediction_interval_hours: 4.0      # How often to run the Trader Agent (Agent A)
+  reviewer_cron_hours: 12.0           # How often to trigger the Reviewer pipeline (Agent B)
   
+  # Safety lag: Ensures trades have enough time to "play out" before they are judged.
+  # Usually matches (review_window_days * 24).
+  minimum_review_age_hours: 168.0
+
 notifications:
-  email_enabled: true
+  email_enabled: true                 # Set to 'false' to disable SMTP alerts
   recipient_email: "jiangyang5157@gmail.com"
-  min_confidence_threshold: 85
+  min_confidence_threshold: 50        # Only send emails if AI confidence is >= this value
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
 
 agent:
-  model_name: "gemini-3.1-pro-preview" # gemini-flash-latest
+  # AI Model Selections (supported: gemini-flash-latest, gemini-1.5-pro-latest)
+  trader_model: "gemini-flash-latest"   # Optimized for speed and cost
+  reviewer_model: "gemini-flash-latest" # Set to 'pro' if deep logical flaw analysis is required
+  # gemini-3.1-pro-preview

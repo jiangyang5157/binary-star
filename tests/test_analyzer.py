@@ -6,16 +6,26 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.analyzer.volume_profile import VolumeProfileAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
+from main import load_config
 
 def test_analysis_pipeline():
     print("--- Testing Crypto Dual-Agent Analysis Layer ---")
     
-    symbol = "BTCUSDT"
+    # 0. Load Config
+    config = load_config()
+    symbol = config['trading']['symbol']
+    macro_config = config['trading']['macro_timeframe']
+    micro_config = config['trading']['micro_timeframe']
+    macro_tf = macro_config['interval']
+    micro_tf = micro_config['interval']
+    macro_limit = macro_config.get('limit', 100)
+    micro_limit = micro_config.get('limit', 168)
+    
     # 1. Fetch Klines (Macro and Micro)
     bf = BinanceDataFetcher()
-    print(f"\n[1] Fetching Macro (180 @ 4h) and Micro (120 @ 1h) Klines...")
-    klines_macro = bf.fetch_historical_klines(symbol=symbol, interval="4h", limit=180)
-    klines_micro = bf.fetch_historical_klines(symbol=symbol, interval="1h", limit=120)
+    print(f"\n[1] Fetching Macro ({macro_tf}) and Micro ({micro_tf}) Klines...")
+    klines_macro = bf.fetch_historical_klines(symbol=symbol, interval=macro_tf, limit=macro_limit)
+    klines_micro = bf.fetch_historical_klines(symbol=symbol, interval=micro_tf, limit=micro_limit)
     
     if not klines_macro or not klines_micro:
         print("    Failed to fetch Klines. Exiting.")
@@ -44,8 +54,8 @@ def test_analysis_pipeline():
         {"p": profile_data.get('val'), "S": "BUY", "q": "2.5"}   # Support band
     ]
     
-    p4 = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, liquidations=mock_liquidations, filename_suffix="4h_ar")
-    p1 = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, liquidations=mock_liquidations, filename_suffix="1h_ar")
+    p4 = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, liquidations=mock_liquidations, filename_suffix=f"{macro_tf}")
+    p1 = cg.generate_chart(symbol=symbol, df=df_micro, profile_data=profile_data, liquidations=mock_liquidations, filename_suffix=f"{micro_tf}")
     
     if p4 and p1:
         print(f"    Successfully generated Macro chart: {p4}")

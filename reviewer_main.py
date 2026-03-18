@@ -100,7 +100,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
 
     bf = BinanceDataFetcher()
     reviewer = ReviewerAgent(
-        model_name=config['agent']['model_name'], 
+        model_name=config['agent']['reviewer_model'], 
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'])
     )
 
@@ -135,7 +135,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             end_ts_ms = int(dt_end.timestamp() * 1000)
 
             # Minimum aging protection: Only review if a certain amount of time has passed
-            min_delay_hours = config.get('automation', {}).get('reviewer_interval_hours', 16.0)
+            min_delay_hours = config.get('automation', {}).get('minimum_review_age_hours', 168.0)
             if not force and (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
                 logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                 continue
@@ -144,17 +144,17 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
             
             # Fetch klines from the prediction time until now/end of window
-            # Use 1m for very recent reviews to ensure we get data, else 4h
+            # Use interval from config (higher resolution reduces "missed" drawdowns)
+            fetch_interval = config['trading'].get('review_evaluation_interval', '1h')
             duration_seconds = (dt_end - dt_start).total_seconds()
             
-            if duration_seconds < 12 * 3600:
-                fetch_interval = "1m"
-                # Calculate exactly how many minutes we need
-                required_limit = int(duration_seconds / 60) + 1
-            else:
-                fetch_interval = "4h"
-                # Calculate exactly how many 4h blocks we need
-                required_limit = int(duration_seconds / (4 * 3600)) + 1
+            # Map interval string to seconds for limit calculation
+            interval_map = {
+                "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
+                "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400
+            }
+            interval_seconds = interval_map.get(fetch_interval, 3600)
+            required_limit = int(duration_seconds / interval_seconds) + 1
                 
             # Cap at Binance maximum per request (usually 1000-1500)
             target_limit = min(required_limit, 1500)
@@ -183,8 +183,11 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                 # Use same logic as ChartGenerator: 20260317_135130
                 ts_readable = ts_iso.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
                 
-                # Check for both Macro (4h) and Micro (1h)
-                for suffix in ["4h", "1h"]:
+                # Check for intervals defined in config
+                macro_tf = config['trading']['macro_timeframe']['interval']
+                micro_tf = config['trading']['micro_timeframe']['interval']
+                
+                for suffix in [macro_tf, micro_tf]:
                     chart_filename = f"{symbol}_{suffix}_{ts_readable}_chart.png"
                     path = os.path.join(PROJECT_ROOT, config['paths']['images_dir'], chart_filename)
                     if os.path.exists(path):
@@ -220,10 +223,13 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                 # - flaw_analysis: AI 分析该单盈亏的底层逻辑缺陷或成功要素。
                 # - prompt_patch_suggestion: 核心产出：建议写入 TraderAgent 提示词的逻辑补丁。
                 final_record = {
-                    "prediction_source": filename,
+                    "prediction": {
+                        "source": filename,
+                        "content": prediction
+                    },
                     "review_timestamp": datetime.now(timezone.utc).isoformat() + "Z",
                     "actual_market_outcome": outcome,
-                    "agent_b_analysis": parsed_review
+                    "analysis": parsed_review
                 }
                 DataStorage.save_json(final_record, review_path)
                 logger.info(f"Successfully saved review to {review_path}")

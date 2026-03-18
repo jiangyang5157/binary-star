@@ -31,31 +31,41 @@ class EmailNotifier:
             logger.warning("Email notification skipped: Disabled or credentials missing in .env")
             return False
 
+        import json
+        
         confidence = prediction.get('confidence', 0)
         action = prediction.get('action', 'HOLD')
-        reasoning = prediction.get('reasoning', 'No reasoning provided.')
-        metadata = prediction.get('metadata', {})
-        prompt_version = metadata.get('prompt_version', 'N/A')
-        config_snapshot = metadata.get('config_snapshot', {})
-
+        
+        # Format the full prediction JSON nicely
+        # Remove reasoning_zh from the displayed JSON to keep it clean if preferred, 
+        # or just show everything. The user asked for "basically just all prediction json".
+        prediction_copy = prediction.copy()
+        reasoning_zh = prediction_copy.pop('reasoning_zh', 'N/A')
+        
+        formatted_json = json.dumps(prediction_copy, indent=4)
+        
         subject = f"Crypto Alert: {action} {symbol} (Confidence: {confidence}%)"
         
         body = f"""
-        <h3>Trade Signal Detected</h3>
-        <p><b>Symbol:</b> {symbol}</p>
-        <p><b>Action:</b> {action}</p>
-        <p><b>Confidence:</b> {confidence}%</p>
-        <hr>
-        <p><b>Reasoning:</b></p>
-        <p style="white-space: pre-wrap;">{reasoning}</p>
-        <hr>
-        <p><b>Metadata:</b></p>
-        <ul>
-            <li><b>Prompt Version:</b> {prompt_version}</li>
-            <li><b>Config Snapshot:</b> {config_snapshot}</li>
-        </ul>
-        <hr>
-        <p><small>This is an automated notification from your Crypto Dual-Agent System.</small></p>
+        <html>
+        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+            <div style="background-color: #f4f4f4; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">🚀 Trade Signal Detected: {action} {symbol}</h2>
+                <div style="background-color: #fff; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
+                    <pre style="background: #272822; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>{formatted_json}</code></pre>
+                </div>
+                
+                <h3 style="color: #2c3e50; margin-top: 25px;">🇨🇳 中文解析 (Mandarin Translation):</h3>
+                <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; border-left: 5px solid #3498db; font-size: 1.1em;">
+                    {reasoning_zh}
+                </div>
+                
+                <p style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 0.9em; color: #7f8c8d;">
+                    This is an automated notification from your Crypto Agent System.
+                </p>
+            </div>
+        </body>
+        </html>
         """
 
         msg = MIMEMultipart()

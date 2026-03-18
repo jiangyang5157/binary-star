@@ -15,7 +15,7 @@ Below is the recent raw data context:
 Additional Sentiment & Liquidity Data:
 - **Top Traders Long/Short Ratio**: {top_traders_ls_ratio}
 - **Recent Liquidations**: {recent_liquidations}
-- **Order Flow Delta (Recent 4h)**: {order_flow_delta_recent}
+- **Order Flow Delta (Recent {lookback_bars} bars of {micro_interval})**: {order_flow_delta_recent}
 
 You will also be provided with two K-line charts:
 1.  **Macro Chart ({macro_interval})**: Use this for the "Big Picture". Identify the Volume Profile structure (POC, VAH, VAL) and the primary trend.
@@ -29,7 +29,7 @@ Specifically look for:
 ## Refined Execution Logic (Lessons from past reviews):
 ### 1. Breakout & Continuation Validation
 - Do not blindly trade breakouts. A legitimate macro breakout (e.g., above VAH or below VAL) MUST be fueled by high Taker Volume and confirming Open Interest (OI).
-- Require Micro-Timeframe (1h) confirmation: Wait for a structural shift (Higher Highs for longs, Lower Lows for shorts) or a successful retest with exhaustion wicks before entering. If a breakout immediately stalls with small bodies or long rejection wicks, treat it as a Liquidity Trap/Fakeout.
+- Require Micro-Timeframe ({micro_interval}) confirmation: Wait for a structural shift (Higher Highs for longs, Lower Lows for shorts) or a successful retest with exhaustion wicks before entering. If a breakout immediately stalls with small bodies or long rejection wicks, treat it as a Liquidity Trap/Fakeout.
 
 ### 2. Supply/Demand Absorption (Consolidation near Resistance)
 - In a strong, confirmed macro trend, if price consolidates tightly (small bodies, low/decreasing volume, higher lows) directly below a major resistance (like VAH or POC) or above support, interpret this as Probability of Absorption (coiling for continuation), not immediate rejection.
@@ -37,10 +37,10 @@ Specifically look for:
 
 ### 3. Exhaustion & Mean Reversion (Overextended Markets)
 - Never enter in the direction of a steep, parabolic, vertical extension without a pullback. Massive volume spikes at the end of an extended run are Exhaustion/Climax signals.
-- If price moves entirely from VAL to VAH (or vice versa) without correction, anticipate a high probability of rejection at the extreme. Counter-trend trades require a confirmed structural reversal on the 1h chart before targeting the POC.
+- If price moves entirely from VAL to VAH (or vice versa) without correction, anticipate a high probability of rejection at the extreme. Counter-trend trades require a confirmed structural reversal on the {micro_interval} chart before targeting the POC.
 
 ### 4. Value Area Interaction & Context
-- **POC Dynamics**: The POC is a high-friction zone, not an automatic pivot. Following a severe sell-off, treat a bounce to the POC as a Lower-High (Sell Zone) unless bullish volume is overwhelming. A "reclaim" of the POC requires momentum confirmation, but shallow 1h pullbacks (higher lows) are acceptable entries to catch trend continuation.
+- **POC Dynamics**: The POC is a high-friction zone, not an automatic pivot. Following a severe sell-off, treat a bounce to the POC as a Lower-High (Sell Zone) unless bullish volume is overwhelming. A "reclaim" of the POC requires momentum confirmation, but shallow {micro_interval} pullbacks (higher lows) are acceptable entries to catch trend continuation.
 - **VAH/VAL Extremes**: Avoid buying immediately below VAH after a rally (Distribution Zone), and avoid shorting exactly at VAL when selling volume dries up.
 
 ### 5. Secondary Retests Over First Touches
@@ -65,5 +65,6 @@ The JSON must have the following structure:
   "timestamp": "{current_time}",
   "action": "BUY", // Must be one of: BUY, SELL, HOLD
   "confidence": 85, // Integer from 0 to 100
-  "reasoning": "Detailed technical and sentiment explanation for why this action was chosen..."
+  "reasoning": "Detailed technical and sentiment explanation for why this action was chosen...",
+  "reasoning_zh": "上述理由的中文翻译..."
 }}

@@ -13,8 +13,8 @@ Below is the **Historical Prediction** made by Agent A:
 {historical_prediction}
 
 Below are the **Chart Images** that Agent A saw at the time of prediction:
-1. **Macro Chart (4h)**: Showcases the overall market structure and Volume Profile (POC in Red, VAH/VAL in Gold).
-2. **Micro Chart (1h)**: Showcases the local price action and entry precision at the time of prediction.
+1. **Macro Chart ({macro_interval})**: Showcases the overall market structure and Volume Profile (POC in Red, VAH/VAL in Gold).
+2. **Micro Chart ({micro_interval})**: Showcases the local price action and entry precision at the time of prediction.
 
 Analyze the candlesticks and volume bars on both timeframes.
 
@@ -39,6 +39,6 @@ You MUST output your final decision in strict JSON format.
   "config_update_suggestion": {{
       // If no configuration changes are needed, you MUST output null for this field.
       // Do NOT copy the current configuration. Only provide a JSON object if a parameter needs to be changed.
-      "macro_timeframe": {{"interval": "4h", "limit": 168}}
+      "macro_timeframe": {{"interval": "1d", "limit": 90}}
   }}
 }}

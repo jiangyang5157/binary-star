@@ -51,9 +51,16 @@ def test_aging_protection_logic():
     original_load = reviewer_main.load_config
     reviewer_main.load_config = lambda: {
         "paths": {"raw_data_dir": data_dir, "images_dir": "data/images", "prompts_dir": "src/agent/prompts"},
-        "trading": {"symbol": "BTCUSDT"},
-        "agent": {"model_name": "gemini-flash-latest"},
-        "automation": {"reviewer_interval_hours": 16.0}
+        "trading": {
+            "symbol": "BTCUSDT",
+            "macro_timeframe": {"interval": "1d", "limit": 100},
+            "micro_timeframe": {"interval": "4h", "limit": 168}
+        },
+        "agent": {
+            "trader_model": "gemini-flash-latest",
+            "reviewer_model": "gemini-flash-latest"
+        },
+        "automation": {"minimum_review_age_hours": 168.0}
     }
     
     try:

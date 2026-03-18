@@ -29,9 +29,9 @@ class TestTraderAgentLogic(unittest.TestCase):
         
         # Define mock responses for each pass
         mock_responses = [
-            MagicMock(text="PASS 1: I suggest BUYING because the trend is up."),
+            MagicMock(text='{"action": "BUY", "confidence": 70, "reasoning": "Initial thought", "reasoning_zh": "初始想法"}'),
             MagicMock(text="PASS 2 (RED TEAM): Risky because of hidden resistance at 70k."),
-            MagicMock(text='[{"action": "HOLD", "confidence": 90, "reasoning": "Pivoting to HOLD after red team highlighted resistance."}]')
+            MagicMock(text='{"action": "HOLD", "confidence": 90, "reasoning": "Pivoting to HOLD after red team highlighted resistance.", "reasoning_zh": "改位HOLD"}')
         ]
         mock_models.generate_content.side_effect = mock_responses
 
@@ -60,9 +60,10 @@ class TestTraderAgentLogic(unittest.TestCase):
         # Verify the final output structure (parse JSON string)
         import json
         result = json.loads(result_str)
-        self.assertIsInstance(result, list)
-        self.assertEqual(result[0]['action'], "HOLD")
-        print(f"    Agent effectively pivoted to {result[0]['action']} based on Red Team feedback.")
+        self.assertIsInstance(result, dict)
+        self.assertEqual(result['action'], "HOLD")
+        self.assertIn('reasoning_zh', result)
+        print(f"    Agent effectively pivoted to {result['action']} based on Red Team feedback.")
 
 if __name__ == "__main__":
     unittest.main()

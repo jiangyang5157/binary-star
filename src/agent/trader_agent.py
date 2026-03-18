@@ -13,7 +13,7 @@ class TraderAgent:
     Agent A: The Trader / Analyst.
     Uses the new google-genai SDK to analyze both text data (Market context) and image data (Volume Profile charts).
     """
-    def __init__(self, model_name: str = "gemini-2.5-flash", prompts_dir: str = "src/agent/prompts"):
+    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts"):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         
@@ -116,10 +116,10 @@ class TraderAgent:
             Now, imagine that {review_window} DAYS have passed and this trade resulted in a MASSIVE LOSS / STOP-OUT.
             Look at the Macro and Micro charts again. What did you MISS? 
             Specifically search for:
-            1. Hidden absorption or exhaustion wicks you ignored.
-            2. Sentiment divergence (OI/LS) you downplayed.
-            3. Order Flow Delta signs that contradicted your entry.
-            4. Level-hunting or Liquidity Sweeps that you got trapped in.
+            1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL? 
+            2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your trade direction?
+            3. **Breakout Failure**: Was the 'breakout' you entered actually a low-volume 'fakeout' with declining Open Interest (OI)?
+            4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up (suggesting retail is long and being trapped)?
 
             Provide a HARSH technical critique. Do NOT be defensive.
             """
@@ -145,10 +145,17 @@ class TraderAgent:
             Initial Plan: {initial_prediction}
             Critique: {critique_text}
 
-            Re-evaluate the data one last time. If the critique revealed a fatal flaw or high risk of a trap, switch to HOLD or reverse bias. 
-            If the initial plan is still robust despite the critique, refine the entry/exit points for better R:R.
+            Re-evaluate the data. If the critique revealed a fatal flaw or high risk of a trap, switch to HOLD or reverse bias. 
+            If the initial plan is still robust, refine the entry/exit points for better R:R.
 
-            Output your final decision in strict JSON format as requested in the original instructions.
+            IMPORTANT: You MUST output the final result in the EXACT JSON format below, including the Mandarin translation field:
+            {{
+              "timestamp": "{current_time}",
+              "action": "BUY/SELL/HOLD",
+              "confidence": 0-100,
+              "reasoning": "...",
+              "reasoning_zh": "中文解析内容..."
+            }}
             """
             final_contents = copy.deepcopy(contents[:-1])
             final_contents.append(final_prompt)

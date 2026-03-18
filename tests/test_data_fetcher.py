@@ -7,6 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.sentiment import SentimentFetcher
 from src.data_fetcher.storage import DataStorage
+from main import load_config
 
 def test_data_fetcher_components():
     print("--- Testing Crypto Dual-Agent Data Layer ---")
@@ -17,13 +18,18 @@ def test_data_fetcher_components():
     bf = BinanceDataFetcher()
     sf = SentimentFetcher()
     
+    # 0. Load Config for dynamic testing
+    config = load_config()
+    macro_tf = config['trading']['macro_timeframe']['interval']
+    micro_tf = config['trading']['micro_timeframe']['interval']
+    
     # 1. Test Klines
     print(f"\n[1] Fetching Dual-Timeframe Klines for {symbol}...")
-    klines_4h = bf.fetch_historical_klines(symbol=symbol, interval="4h", limit=5)
-    print(f"    Macro (4h): Received {len(klines_4h)} K-lines.")
+    klines_macro = bf.fetch_historical_klines(symbol=symbol, interval=macro_tf, limit=5)
+    print(f"    Macro ({macro_tf}): Received {len(klines_macro)} K-lines.")
     
-    klines_1h = bf.fetch_historical_klines(symbol=symbol, interval="1h", limit=5)
-    print(f"    Micro (1h): Received {len(klines_1h)} K-lines.")
+    klines_micro = bf.fetch_historical_klines(symbol=symbol, interval=micro_tf, limit=5)
+    print(f"    Micro ({micro_tf}): Received {len(klines_micro)} K-lines.")
     
     # 2. Test Order Book
     print(f"\n[2] Fetching Order Book for {symbol}...")
@@ -41,7 +47,7 @@ def test_data_fetcher_components():
     if liquidations:
         print(f"    Latest Liq Price: {liquidations[0].get('p')}")
 
-    ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period="4h", limit=1)
+    ls_ratio = sf.fetch_long_short_ratio(symbol=symbol, period=macro_tf, limit=1)
     if ls_ratio:
         print(f"    Long/Short Ratio: {ls_ratio[0].get('longShortRatio')}")
     else:
