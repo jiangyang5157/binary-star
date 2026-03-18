@@ -156,6 +156,9 @@ class TraderAgent:
             {{
               "timestamp": "{current_time}",
               "action": "BUY/SELL/HOLD",
+              "current_price": 70000.5,
+              "take_profit": 75000.0,
+              "stop_loss": 68000.0,
               "confidence": 0-100,
               "reasoning": "...",
               "reasoning_zh": "中文解析内容..."
