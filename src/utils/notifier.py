@@ -3,6 +3,8 @@ import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,22 @@ class EmailNotifier:
         
         formatted_json = json.dumps(prediction_copy, indent=4)
         
+        # New Zealand Time Conversion
+        nz_time_str = "N/A"
+        try:
+            timestamp_str = prediction.get('timestamp')
+            if timestamp_str:
+                # Handle Z suffix if present
+                if timestamp_str.endswith('Z'):
+                    timestamp_str = timestamp_str[:-1]
+                
+                # Parse the ISO timestamp (assuming UTC)
+                utc_dt = datetime.fromisoformat(timestamp_str).replace(tzinfo=ZoneInfo("UTC"))
+                nz_dt = utc_dt.astimezone(ZoneInfo("Pacific/Auckland"))
+                nz_time_str = nz_dt.strftime("%Y-%m-%d %H:%M:%S NZDT/NZST")
+        except Exception as e:
+            logger.warning(f"Failed to convert timestamp to NZ time: {e}")
+        
         subject = f"Crypto Alert: {action} {symbol} (Confidence: {confidence}%)"
         
         # Prepare HTML body with image placeholders
@@ -65,6 +83,10 @@ class EmailNotifier:
                 <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">🚀 Trade Signal Detected: {action} {symbol}</h2>
                 <div style="background-color: #fff; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
                     <pre style="background: #272822; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>{formatted_json}</code></pre>
+                </div>
+                
+                <div style="margin-top: 15px; font-weight: bold; color: #34495e;">
+                    🇳🇿 New Zealand Time: <span style="color: #e67e22;">{nz_time_str}</span>
                 </div>
                 
                 <h3 style="color: #2c3e50; margin-top: 25px;">🇨🇳 中文解析 (Mandarin Translation):</h3>

@@ -48,7 +48,7 @@ automation:
   minimum_review_age_hours: 168.0
 
 notifications:
-  min_confidence_threshold: 75        # Only send emails if AI confidence is >= this value
+  min_confidence_threshold: 70        # Only send emails if AI confidence is >= this value
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
 
