@@ -10,9 +10,14 @@ from src.agent.trader_agent import TraderAgent
 
 class TestTraderAgentLogic(unittest.TestCase):
     def setUp(self):
-        # We need to set a dummy API key for the client to initialize
+        # Prevent actual API calls during tests by patching where necessary
         os.environ["GEMINI_API_KEY"] = "mock-key"
-        self.agent = TraderAgent(model_name="mock-model")
+        self.agent = TraderAgent(
+            model_name="mock-model",
+            temp_pass1=1.0,
+            temp_pass2=1.0,
+            temp_pass3=0.7
+        )
 
     @patch('google.genai.Client')
     def test_multi_pass_reasoning(self, mock_client_class):

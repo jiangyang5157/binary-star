@@ -13,9 +13,13 @@ class TraderAgent:
     Agent A: The Trader / Analyst.
     Uses the new google-genai SDK to analyze both text data (Market context) and image data (Volume Profile charts).
     """
-    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts"):
+    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", 
+                 temp_pass1: float = 1.0, temp_pass2: float = 1.0, temp_pass3: float = 0.7):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
+        self.temp_pass1 = temp_pass1
+        self.temp_pass2 = temp_pass2
+        self.temp_pass3 = temp_pass3
         
         # Initialize the GenAI client.
         try:
@@ -99,7 +103,7 @@ class TraderAgent:
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.4 # Higher temp for diverse initial thoughts
+                    temperature=self.temp_pass1
                 )
             )
             initial_prediction = initial_response.text or "No initial prediction generated."
@@ -132,7 +136,7 @@ class TraderAgent:
                 model=self.model_name,
                 contents=critique_contents,
                 config=types.GenerateContentConfig(
-                    temperature=0.7 # High temp for creative fault-finding
+                    temperature=self.temp_pass2
                 )
             )
             critique_text = critique_response.text or "No critique generated."
@@ -165,7 +169,7 @@ class TraderAgent:
                 contents=final_contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.1 # Very low temp for stable final decision
+                    temperature=self.temp_pass3
                 )
             )
             

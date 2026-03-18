@@ -182,7 +182,10 @@ def run_agent_a(override_timestamp: datetime = None):
     # Set up Agent A
     trader = TraderAgent(
         model_name=config['agent']['trader_model'],
-        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'])
+        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
+        temp_pass1=config['agent'].get('trader_pass1_temperature', 1.0),
+        temp_pass2=config['agent'].get('trader_pass2_temperature', 1.0),
+        temp_pass3=config['agent'].get('trader_pass3_temperature', 0.7)
     )
     
     # Execute Model

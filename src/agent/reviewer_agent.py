@@ -13,9 +13,10 @@ class ReviewerAgent:
     Evaluates past predictions made by Agent A against actual market outcomes.
     Suggests config parameter tweaks and prompt updates.
     """
-    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts"):
+    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", temperature: float = 1.0):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
+        self.temperature = temperature
         try:
             api_key = os.environ.get("GEMINI_API_KEY")
             self.client = genai.Client(api_key=api_key)
@@ -80,7 +81,7 @@ class ReviewerAgent:
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.3
+                    temperature=self.temperature
                 )
             )
             

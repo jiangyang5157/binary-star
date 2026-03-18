@@ -101,7 +101,8 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
     bf = BinanceDataFetcher()
     reviewer = ReviewerAgent(
         model_name=config['agent']['reviewer_model'], 
-        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'])
+        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
+        temperature=config['agent'].get('reviewer_temperature', 1.0)
     )
 
     for filename in files:
