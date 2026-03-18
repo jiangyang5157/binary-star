@@ -32,11 +32,10 @@ class TestTraderAgentLogic(unittest.TestCase):
         mock_models = MagicMock()
         mock_client_instance.models = mock_models
         
-        # Define mock responses for each pass
         mock_responses = [
-            MagicMock(text='{"action": "BUY", "confidence": 70, "reasoning": "Initial thought", "reasoning_zh": "初始想法"}'),
+            MagicMock(text='{"action": "BUY", "confidence": 70, "current_price": 65000, "take_profit": 70000, "stop_loss": 63000, "reasoning": "Initial thought", "reasoning_zh": "初始想法"}'),
             MagicMock(text="PASS 2 (RED TEAM): Risky because of hidden resistance at 70k."),
-            MagicMock(text='{"action": "HOLD", "confidence": 90, "reasoning": "Pivoting to HOLD after red team highlighted resistance.", "reasoning_zh": "改位HOLD"}')
+            MagicMock(text='{"action": "HOLD", "confidence": 90, "current_price": null, "take_profit": null, "stop_loss": null, "reasoning": "Pivoting to HOLD after red team highlighted resistance.", "reasoning_zh": "改位HOLD"}')
         ]
         mock_models.generate_content.side_effect = mock_responses
 

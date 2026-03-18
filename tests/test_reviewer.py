@@ -12,6 +12,9 @@ def test_reviewer_agent_mock():
     historical_prediction = {
         "timestamp": "2026-03-01T12:00:00Z",
         "action": "BUY",
+        "current_price": 65000,
+        "take_profit": 72000,
+        "stop_loss": 63000,
         "confidence": 85,
         "reasoning": "Price broke out above POC on high volume, funding rate is negative indicating shorts are trapped."
     }
