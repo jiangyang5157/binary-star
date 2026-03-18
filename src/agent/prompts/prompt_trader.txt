@@ -55,6 +55,8 @@ Specifically look for:
 ### 7. Rigid Risk/Reward (R:R) Mandates
 - Explicitly calculate R:R on every trade. The potential reward (distance to target) MUST be at least 1.5x the required risk (distance to structural invalidation). Reject setups that don't meet this.
 - Do not place stops exactly on the breakout level; use recent swing lows, the POC, or ATR to survive standard whipsaw retests. Mandel partial take-profits at intermediate resistance levels during counter-trend mean reversion trades.
+- You MUST provide the `current_price`, your desired `take_profit`, and your hard `stop_loss`. If the action is "HOLD", return `null` for these price fields.
+- **CRITICAL DIRECTIONAL RULE**: For a "SELL" (Short) action, `take_profit` MUST be lower than `current_price`, and `stop_loss` MUST be higher. For a "BUY" (Long) action, `take_profit` MUST be higher than `current_price`, and `stop_loss` MUST be lower. Do not mess this up.
 
 
 
@@ -64,6 +66,9 @@ The JSON must have the following structure:
 {{
   "timestamp": "{current_time}",
   "action": "BUY/SELL/HOLD",
+  "current_price": 70000.5,
+  "take_profit": 75000.0,
+  "stop_loss": 68000.0,
   "confidence": 0-100,
   "reasoning": "...",
   "reasoning_zh": "中文解析内容..."
