@@ -20,14 +20,13 @@ class EmailNotifier:
         
         # Load credentials from .env
         load_dotenv()
-        self.sender_email = os.environ.get("SENDER_EMAIL")
-        self.sender_app_password = os.environ.get("SENDER_APP_PASSWORD")
+        self.recipient_app_password = os.environ.get("RECIPIENT_APP_PASSWORD")
 
     def send_prediction_alert(self, symbol, prediction):
         """
         Send an email alert for a high-confidence prediction.
         """
-        if not self.enabled or not self.sender_email or not self.sender_app_password:
+        if not self.enabled or not self.recipient or not self.recipient_app_password:
             logger.warning("Email notification skipped: Disabled or credentials missing in .env")
             return False
 
@@ -69,7 +68,7 @@ class EmailNotifier:
         """
 
         msg = MIMEMultipart()
-        msg['From'] = self.sender_email
+        msg['From'] = self.recipient
         msg['To'] = self.recipient
         msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html'))
@@ -77,7 +76,7 @@ class EmailNotifier:
         try:
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls()
-                server.login(self.sender_email, self.sender_app_password)
+                server.login(self.recipient, self.recipient_app_password)
                 server.send_message(msg)
             logger.info(f"Email alert sent to {self.recipient} for {symbol}")
             return True

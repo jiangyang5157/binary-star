@@ -57,7 +57,7 @@ notifications:
 agent:
   # AI Model Selections (supported: gemini-flash-latest, gemini-1.5-pro-latest)
   trader_model: "gemini-flash-latest"   # Optimized for speed and cost
-  reviewer_model: "gemini-3.1-pro-preview" # Set to 'pro' if deep logical flaw analysis is required
+  reviewer_model: "gemini-flash-latest" # Set to 'pro' if deep logical flaw analysis is required
   # gemini-3.1-pro-preview
 
   # Reasoning Parameters
