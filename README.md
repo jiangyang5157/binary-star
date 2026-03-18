@@ -46,10 +46,11 @@ GEMINI_API_KEY=你的_Google_Gemini_Key
 BINANCE_API_KEY=你的_币安_API_Key
 BINANCE_API_SECRET=你的_币安_Secret
 
-# [可选] 邮件通知配置 (仅在 config.yaml 中开启 email_enabled 时需要)
+# [可选] 邮件通知配置 (填入以下两项后将自动开启邮件提醒)
+RECIPIENT_EMAIL=接收信号的邮箱地址
 RECIPIENT_APP_PASSWORD=你的_Gmail_应用专用密码
 ```
-*注：系统会使用 `config/config.yaml` 中的 `recipient_email` 作为通知的接收方和发送方地址。*
+*注：系统会自动将 `RECIPIENT_EMAIL` 同时作为发送方和接收方。*
 
 ---
 

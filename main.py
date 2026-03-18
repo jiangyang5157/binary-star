@@ -225,16 +225,17 @@ def run_agent_a(override_timestamp: datetime = None):
         }
     
     # 5. Send Notification if confidence is high
-    notif_config = config.get('notifications', {})
-    if notif_config.get('email_enabled') and isinstance(agent_output, dict):
-        threshold = notif_config.get('min_confidence_threshold', 85)
-        if agent_output.get('confidence', 0) >= threshold:
-            try:
-                from src.utils.notifier import EmailNotifier
-                notifier = EmailNotifier(config)
+    try:
+        from src.utils.notifier import EmailNotifier
+        notifier = EmailNotifier(config)
+        
+        if notifier.enabled and isinstance(agent_output, dict):
+            notif_config = config.get('notifications', {})
+            threshold = notif_config.get('min_confidence_threshold', 50)
+            if agent_output.get('confidence', 0) >= threshold:
                 notifier.send_prediction_alert(symbol, agent_output)
-            except Exception as e:
-                logger.error(f"Failed to send notification: {e}")
+    except Exception as e:
+        logger.error(f"Failed to handle notification: {e}")
 
     # 6. Save the result
     logger.info("Step 5: Saving results")

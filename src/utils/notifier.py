@@ -13,14 +13,16 @@ class EmailNotifier:
         Initialize with config dictionary from config.yaml
         """
         self.config = config.get('notifications', {})
-        self.enabled = self.config.get('email_enabled', False)
-        self.recipient = self.config.get('recipient_email')
         self.smtp_server = self.config.get('smtp_server', 'smtp.gmail.com')
         self.smtp_port = self.config.get('smtp_port', 587)
-        
+
         # Load credentials from .env
         load_dotenv()
+        self.recipient = os.environ.get("RECIPIENT_EMAIL")
         self.recipient_app_password = os.environ.get("RECIPIENT_APP_PASSWORD")
+        
+        # Auto-enable if both credentials are provided
+        self.enabled = bool(self.recipient and self.recipient_app_password)
 
     def send_prediction_alert(self, symbol, prediction):
         """

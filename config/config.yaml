@@ -5,14 +5,18 @@
 # All technical parameters, timeframes, and model selections are defined here.
 
 trading:
-  symbol: "BTCUSDT"          # The trading pair to analyze (Binance Futures format)
+  symbol: "BTCUSDT"           # The trading pair to analyze (Binance Futures format)
   strategy: "swing"           # Strategy label (currently used for categorization)
   
   # Volume Profile Settings
-  value_area_pct: 0.8         # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
+  value_area_pct: 0.82        # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
   
-  # Order Flow Analysis
-  order_flow_lookback_bars: 4 # Number of micro-timeframe bars used to calculate Delta (Buying vs Selling pressure)
+  review_window_days: 7       # The duration (in days) that Agent B waits before evaluating a trade's success
+    
+  # Reviewer Evaluation Accuracy
+  # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
+  # Using '1h' ensures we don't miss "wicks" or sharp reversals that a '4h' or '1d' check might overlook.
+  review_evaluation_interval: "1h"
 
   # Macro Timeframe: Used for high-level trend detection and Volume Profile (VAP) structure.
   macro_timeframe:
@@ -23,13 +27,9 @@ trading:
   micro_timeframe:
     interval: "4h"            # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
     limit: 168                # Number of micro bars to fetch (168 * 1h = 1 week of data)
-    
-  # Reviewer Evaluation Accuracy
-  # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
-  # Using '1h' ensures we don't miss "wicks" or sharp reversals that a '4h' or '1d' check might overlook.
-  review_evaluation_interval: "1h"
 
-  review_window_days: 7       # The duration (in days) that Agent B waits before evaluating a trade's success
+  # Order Flow Analysis
+  order_flow_lookback_bars: 4 # Works with micro_timeframe. Number of micro-timeframe bars used to calculate Delta (Buying vs Selling pressure)
 
 paths:
   raw_data_dir: "data/raw"             # Directory for temporary market data cache
@@ -48,8 +48,6 @@ automation:
   minimum_review_age_hours: 168.0
 
 notifications:
-  email_enabled: true                 # Set to 'false' to disable SMTP alerts
-  recipient_email: "jiangyang5157@gmail.com"
   min_confidence_threshold: 50        # Only send emails if AI confidence is >= this value
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
