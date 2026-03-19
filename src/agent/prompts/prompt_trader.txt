@@ -77,5 +77,5 @@ The JSON must have the following structure:
   "stop_loss": 68000.0,
   "confidence": 0-100,
   "reasoning": "Technical, logical analysis justifying the action. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
-  "reasoning_zh": "中文解析：结合图表支撑/压力位、成交量和市场情绪出的核心分析。要求逻辑清晰、对用户友好且包含关键技术位点。"
+  "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心分析。要求逻辑清晰、对用户友好且包含关键技术位点。"
 }}

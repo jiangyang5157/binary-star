@@ -34,5 +34,5 @@ You MUST output your final decision in strict JSON format.
 {{
   "evaluation_score": 0-100,
   "trade_post_mortem": "A detailed, technical analysis of this specific trade's performance. Focus on whether the Trader followed the 'Refined Execution Logic' and how the market mechanics (POC, Volume, Wicks) played out against the prediction.",
-  "trade_post_mortem_zh": "中文复盘：对本次交易执行的深度技术诊断。重点分析 Trader 是否遵守了“核心执行逻辑”，以及市场机制（POC、成交量、影线）是如何影响最终结果的。要求语言专业且逻辑严密。"
+  "trade_post_mortem_zh": "对本次交易执行的深度技术诊断。重点分析 Trader 是否遵守了“核心执行逻辑”，以及市场机制（POC、成交量、影线）是如何影响最终结果的。要求语言专业且逻辑严密。"
 }}
