@@ -14,7 +14,7 @@ Below are the **Chart Images** Agent A saw:
 1. **Macro Chart ({macro_interval})**: Market structure & Volume Profile (POC/VAH/VAL).
 2. **Micro Chart ({micro_interval})**: Local price action & entry timing.
 
-Below is the **Actual Market Outcome** ({review_window_days} days holding window):
+Below is the **Actual Market Outcome** ({trade_horizon_days} days holding window):
 {actual_outcome}
 
 And the **Current Configuration** (`config.yaml`):

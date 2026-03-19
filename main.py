@@ -50,8 +50,8 @@ def run_agent_a(override_timestamp: datetime = None):
         return
 
     symbol = config['trading']['symbol']
-    macro_config = config['trading']['macro_timeframe']
-    micro_config = config['trading']['micro_timeframe']
+    macro_config = config['prediction']['macro_timeframe']
+    micro_config = config['prediction']['micro_timeframe']
     
     # 1. Fetching Data
     bf = BinanceDataFetcher()
@@ -93,7 +93,7 @@ def run_agent_a(override_timestamp: datetime = None):
     # Delta = (Taker Buy Base Volume) - (Total Volume - Taker Buy Base Volume)
     # This shows aggressive buying vs aggressive selling.
     total_delta = 0
-    lookback_bars = config['trading'].get('order_flow_lookback_bars', 4)
+    lookback_bars = config['trading']['order_flow_lookback_bars']
     if klines_micro:
         try:
             # Last few bars from config
@@ -123,7 +123,7 @@ def run_agent_a(override_timestamp: datetime = None):
     
     # 2. Analysis & Visualization
     logger.info("Step 3: Calculating Volume Profile & Charting")
-    va_pct = config['trading'].get('value_area_pct', 0.70)
+    va_pct = config['trading']['value_area_pct']
     vpa = VolumeProfileAnalyzer(value_area_pct=va_pct)
     
     # Process both kline sets
@@ -148,7 +148,7 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
     context_data["macro_interval"] = macro_config['interval']
     context_data["micro_interval"] = micro_config['interval']
-    context_data["review_window_days"] = config.get('trading', {}).get('review_window_days', 7)
+    context_data["trade_horizon_days"] = config.get('prediction', {}).get('trade_horizon_days', 7)
     context_data["lookback_bars"] = lookback_bars
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
@@ -183,9 +183,9 @@ def run_agent_a(override_timestamp: datetime = None):
     trader = TraderAgent(
         model_name=config['agent']['trader_model'],
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        temp_pass1=config['agent'].get('trader_pass1_temperature', 1.0),
-        temp_pass2=config['agent'].get('trader_pass2_temperature', 1.0),
-        temp_pass3=config['agent'].get('trader_pass3_temperature', 0.7)
+        temp_pass1=config['agent']['trader_pass1_temperature'],
+        temp_pass2=config['agent']['trader_pass2_temperature'],
+        temp_pass3=config['agent']['trader_pass3_temperature']
     )
     
     # Execute Model

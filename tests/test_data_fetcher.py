@@ -20,8 +20,8 @@ def test_data_fetcher_components():
     
     # 0. Load Config for dynamic testing
     config = load_config()
-    macro_tf = config['trading']['macro_timeframe']['interval']
-    micro_tf = config['trading']['micro_timeframe']['interval']
+    macro_tf = config['prediction']['macro_timeframe']['interval']
+    micro_tf = config['prediction']['micro_timeframe']['interval']
     
     # 1. Test Klines
     print(f"\n[1] Fetching Dual-Timeframe Klines for {symbol}...")

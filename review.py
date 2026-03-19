@@ -17,11 +17,10 @@ sys.path.insert(0, PROJECT_ROOT)
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.storage import DataStorage
 from src.agent.reviewer_agent import ReviewerAgent
-from src.agent.coach_agent import CoachAgent
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("ReviewerPipeline")
+logger = logging.getLogger("ReviewPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
     try:
@@ -34,16 +33,6 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
 def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, Any]:
     """
     Analyzes kline data to determine the actual market outcome.
-    
-    Metrics Explained:
-    - start_price: 预测发出时的开盘价。
-    - max_price_reached: 预测周期内的最高价（用于观察是否达到止盈逻辑）。
-    - min_price_reached: 预测周期内的最低价（用于观察是否触发止损或遇到强支撑）。
-    - final_close_price: 周期结束时的价格。
-    - price_change_pct: 最终的累计涨跌幅百分比。
-    - max_drawup_pct: 期间最大的浮盈比例（贪婪程度测试）。
-    - max_drawdown_pct: 期间最大的回撤比例（风险承受测试）。
-    - outcome_period_bars: 实际统计的K线柱数。
     """
     if not klines:
         return {}
@@ -72,7 +61,7 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, 
         "outcome_period_bars": len(klines)
     }
 
-def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime = None, force: bool = False):
+def main_review(target_files: List[str] = None, override_now: datetime = None, force: bool = False):
     """
     Main logic for Agent B (The Reviewer):
     1. Scan for past predictions.
@@ -80,7 +69,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
     3. Ask Gemini to analyze the gap.
     4. Save the "review" result.
     """
-    logger.info("=== Starting Crypto Reviewer Pipeline (Agent B) ===")
+    logger.info("=== Starting Crypto Review Pipeline (Agent B) ===")
     config = load_config()
     if not config:
         return
@@ -103,7 +92,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
     reviewer = ReviewerAgent(
         model_name=config['agent']['reviewer_model'], 
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        temperature=config['agent'].get('reviewer_temperature', 1.0)
+        temperature=config['agent']['review_temperature']
     )
 
     for filename in files:
@@ -127,7 +116,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             start_ts_ms = int(dt_start.timestamp() * 1000)
             
             # Review outcome window
-            review_days = config.get('trading', {}).get('review_window_days', 7)
+            review_days = config.get('prediction', {}).get('trade_horizon_days', 7)
             dt_now = override_now if override_now else datetime.now(timezone.utc)
             dt_end = dt_start + timedelta(days=review_days)
             if dt_end > dt_now:
@@ -137,7 +126,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             end_ts_ms = int(dt_end.timestamp() * 1000)
 
             # Minimum aging protection: Only review if a certain amount of time has passed
-            min_delay_hours = config.get('automation', {}).get('minimum_review_age_hours', 168.0)
+            min_delay_hours = config.get('review', {}).get('minimum_review_age_hours', 168.0)
             if not force and (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
                 logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                 continue
@@ -146,8 +135,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
             
             # Fetch klines from the prediction time until now/end of window
-            # Use interval from config (higher resolution reduces "missed" drawdowns)
-            fetch_interval = config['trading'].get('review_evaluation_interval', '1h')
+            fetch_interval = config['review']['review_kline_interval']
             duration_seconds = (dt_end - dt_start).total_seconds()
             
             # Map interval string to seconds for limit calculation
@@ -157,11 +145,7 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             }
             interval_seconds = interval_map.get(fetch_interval, 3600)
             required_limit = int(duration_seconds / interval_seconds) + 1
-                
-            # Cap at Binance maximum per request (usually 1000-1500)
             target_limit = min(required_limit, 1500)
-            
-            logger.info(f"Fetching outcome data for {symbol} using {fetch_interval} interval (limit={target_limit})")
             
             klines = bf.fetch_historical_klines(
                 symbol=symbol, 
@@ -178,48 +162,36 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
             entry_price = float(klines[0][1])
             outcome = calculate_outcome(klines, entry_price)
 
-            # 3. Locate matching historical charts (Macro and Micro)
+            # Locate matching historical charts (Macro and Micro)
             ts_iso = prediction.get('timestamp', '')
             chart_paths = []
             if ts_iso:
-                # Use same logic as ChartGenerator: 20260317_135130
                 ts_readable = ts_iso.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
-                
-                # Check for intervals defined in config
-                macro_tf = config['trading']['macro_timeframe']['interval']
-                micro_tf = config['trading']['micro_timeframe']['interval']
+                macro_tf = config['prediction']['macro_timeframe']['interval']
+                micro_tf = config['prediction']['micro_timeframe']['interval']
                 
                 for suffix in [macro_tf, micro_tf]:
                     chart_filename = f"{symbol}_{suffix}_{ts_readable}_chart.png"
                     path = os.path.join(PROJECT_ROOT, config['paths']['images_dir'], chart_filename)
                     if os.path.exists(path):
                         chart_paths.append(path)
-                        logger.info(f"Found matching historical {suffix} chart: {path}")
-                    else:
-                        logger.warning(f"Matching {suffix} chart not found: {path}")
-
-            # 3. Invoke Agent B
+            
+            # Invoke Agent B
             logger.info(f"Invoking Reviewer Agent for {filename}...")
             if not os.environ.get("GEMINI_API_KEY"):
-                logger.warning("GEMINI_API_KEY missing. Using mock AI output for verification.")
+                logger.warning("GEMINI_API_KEY missing. Using mock AI output.")
                 review_content = json.dumps({
                     "evaluation_score": 50,
-                    "flaw_analysis": "MOCK: Market outcome calculated, but AI analysis requires GEMINI_API_KEY.",
-                    "prompt_patch_suggestion": "N/A (Mock Mode)",
-                    "config_update_suggestion": {}
+                    "trade_post_mortem": "MOCK: Market outcome calculated, but AI analysis requires API key.",
+                    "trade_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
                 })
             else:
-                # Load base prompt for rule adherence check
                 prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
                 base_prompt = ""
                 if os.path.exists(prompt_path):
-                    try:
-                        with open(prompt_path, 'r', encoding='utf-8') as f:
-                            base_prompt = f.read()
-                    except Exception as e:
-                        logger.warning(f"Failed to load base prompt for review: {e}")
+                    with open(prompt_path, 'r', encoding='utf-8') as f:
+                        base_prompt = f.read()
 
-                # Run review
                 review_content = reviewer.review(
                     historical_prediction=prediction,
                     actual_outcome=outcome,
@@ -228,11 +200,9 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                     base_prompt=base_prompt
                 )
 
-            # 4. Save review
+            # Save review
             try:
                 parsed_review = json.loads(review_content)
-                
-                # Final structure of the review:
                 final_record = {
                     "prediction": {
                         "source": filename,
@@ -250,104 +220,10 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
         except Exception as e:
             logger.error(f"Error processing {filename}: {e}")
 
-def run_coach_pipeline(n: int):
-    """
-    Main logic for Agent C (The Coach):
-    1. Scan for recent reviews of the same symbol.
-    2. Load the latest N reviews.
-    3. Ask Gemini for strategic patterns.
-    4. Save the "coach_report".
-    """
-    logger.info(f"=== Starting Crypto Coach Pipeline (Agent C) - Batch Size: {n} ===")
-    config = load_config()
-    if not config:
-        return
-
-    symbol = config['trading']['symbol']
-    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "reviews")
-    coach_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "coach")
-    os.makedirs(coach_dir, exist_ok=True)
-
-    # 1. Filter and find latest N review reports for this symbol
-    all_reviews_data = []
-    if os.path.exists(reviews_dir):
-        # We look for review files for this symbol
-        # Files are named like review_BTCUSDT_prediction_...
-        prefix = f"review_{symbol}"
-        for f in sorted(os.listdir(reviews_dir), reverse=True):
-            if f.endswith(".json") and f.startswith(prefix):
-                path = os.path.join(reviews_dir, f)
-                review = DataStorage.load_json(path)
-                if review:
-                    all_reviews_data.append({"filename": f, "content": review})
-                    if n > 0 and len(all_reviews_data) >= n:
-                         break
-
-    if not all_reviews_data:
-        logger.warning(f"No review reports found for {symbol} in {reviews_dir}")
-        return
-
-    # N logic
-    available_count = len(all_reviews_data)
-    if n > available_count:
-        logger.info(f"Requested {n} reviews, but only {available_count} available. Using all.")
-        target_items = all_reviews_data
-    else:
-        logger.info(f"Using latest {n} reviews for {symbol}.")
-        target_items = all_reviews_data[:n]
-
-    # 2. Invoke Coach Agent
-    coach = CoachAgent(
-        model_name=config['agent']['reviewer_model'],
-        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        temperature=config['agent'].get('reviewer_temperature', 1.0)
-    )
-
-    logger.info("Invoking Coach Agent strategic analysis...")
-    # Load base prompt for context
-    base_prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
-    base_prompt = ""
-    if os.path.exists(base_prompt_path):
-        with open(base_prompt_path, 'r', encoding='utf-8') as f:
-            base_prompt = f.read()
-
-    # Extract only the content for the agent
-    coach_content = coach.coaching_session(
-        [item["content"] for item in target_items], 
-        config,
-        base_prompt
-    )
-
-    # 3. Save report
-    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    report_path = os.path.join(coach_dir, f"coach_{symbol}_{timestamp_str}.json")
-    
-    try:
-        parsed_coach = json.loads(coach_content)
-        final_record = {
-            "symbol": symbol,
-            "sources": [item["filename"] for item in target_items],
-            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
-            "analysis": parsed_coach
-        }
-        DataStorage.save_json(final_record, report_path)
-        logger.info(f"Successfully saved Coach Report to {report_path}")
-    except json.JSONDecodeError:
-        logger.error("Coach Agent returned invalid JSON. Saving raw output as fallback.")
-        with open(report_path.replace(".json", ".txt"), 'w', encoding='utf-8') as f:
-            f.write(coach_content)
-
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run the Crypto Reviewer Agent B or Coach Agent C.")
-    parser.add_argument("--force", action="store_true", help="Bypass the aging protection and review all predictions.")
-    parser.add_argument("--batch", type=int, nargs='?', const=-1, help="Run a strategic coaching session for the latest N reviews. Usage: --batch 10")
+    parser = argparse.ArgumentParser(description="Run the Crypto Review Agent B.")
+    parser.add_argument("--force", action="store_true", help="Bypass aging protection.")
     args = parser.parse_args()
     
-    if args.batch is not None:
-        if args.batch == -1:
-            print("Error: Please provide a batch size N. Usage: --batch 10")
-            sys.exit(1)
-        run_coach_pipeline(n=args.batch)
-    else:
-        run_reviewer_pipeline(force=args.force)
+    main_review(force=args.force)

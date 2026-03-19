@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from src.agent.trader_agent import TraderAgent
 
-class TestTraderAgentLogic(unittest.TestCase):
+class TestTraderAgent(unittest.TestCase):
     def setUp(self):
         # Prevent actual API calls during tests by patching where necessary
         os.environ["GEMINI_API_KEY"] = "mock-key"
@@ -43,7 +43,7 @@ class TestTraderAgentLogic(unittest.TestCase):
         context = {
             "symbol": "BTCUSDT",
             "price": 65000,
-            "review_window_days": 7
+            "trade_horizon_days": 7
         }
         
         # Run analysis

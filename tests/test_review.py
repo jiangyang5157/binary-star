@@ -57,7 +57,7 @@ def test_reviewer_pipeline_orchestration():
     
     print(f"Mocked 3 predictions. P1 and P2 are new. P3 has an existing review.")
 
-    # 3. Simulate the logic from reviewer_main.py (Folder Scanning)
+    # 3. Simulate the logic from review.py (Folder Scanning)
     print("\n[Verification] Scanning folders...")
     all_files = [f for f in os.listdir(pred_dir) if f.endswith(".json")]
     to_review = []

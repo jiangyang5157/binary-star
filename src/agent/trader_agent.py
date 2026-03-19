@@ -111,13 +111,13 @@ class TraderAgent:
 
             # --- PASS 2: Red Team Critique (The 'Premortem') ---
             # We ask the model to assume the trade failed and find out why.
-            review_window = context_data.get("review_window_days", 7)
+            trade_horizon = context_data.get("trade_horizon_days", 7)
             critique_prompt = f"""
             CRITICAL EVALUATION (RED TEAM):
             Assume you just executed the following prediction:
             {initial_prediction}
-
-            Now, imagine that {review_window} DAYS have passed and this trade resulted in a MASSIVE LOSS / STOP-OUT.
+            
+            Now, imagine that {trade_horizon} DAYS have passed and this trade resulted in a MASSIVE LOSS / STOP-OUT.
             Look at the Macro and Micro charts again. What did you MISS? 
             Specifically search for:
             1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL? 

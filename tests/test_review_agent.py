@@ -5,7 +5,7 @@ import json
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.agent.reviewer_agent import ReviewerAgent
 
-def test_reviewer_agent_mock():
+def test_review_agent_mock():
     print("--- Testing Crypto Dual-Agent Reviewer Layer ---")
     
     # Mock data for Agent A's past prediction
@@ -33,12 +33,17 @@ def test_reviewer_agent_mock():
         "trading": {
             "symbol": "BTCUSDT", 
             "strategy": "swing",
+        },
+        "prediction": {
+            "trade_horizon_days": 7,
             "macro_timeframe": {"interval": "1d", "limit": 100},
             "micro_timeframe": {"interval": "4h", "limit": 168},
         },
         "agent": {
             "trader_model": "gemini-flash-latest",
-            "reviewer_model": "gemini-flash-latest"
+            "reviewer_model": "gemini-flash-latest",
+            "review_temperature": 1.0,
+            "coach_temperature": 1.0
         }
     }
     
@@ -68,11 +73,11 @@ def test_reviewer_agent_mock():
         agent_output = reviewer.review(
             historical_prediction=historical_prediction, 
             actual_outcome=actual_outcome, 
-            current_config=current_config,
+            config=current_config,
             chart_image_paths=dummy_chart_paths
         )
         
     print(f"\n    Agent B Output:\n{agent_output}")
 
 if __name__ == "__main__":
-    test_reviewer_agent_mock()
+    test_review_agent_mock()

@@ -8,7 +8,7 @@ from datetime import datetime, timezone, timedelta
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, PROJECT_ROOT)
 
-from reviewer_main import run_reviewer_pipeline
+from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.storage import DataStorage
 
 def test_aging_protection_logic():
@@ -47,12 +47,15 @@ def test_aging_protection_logic():
     # Since run_reviewer_pipeline reads config.yaml, it might be hard to redirect without mocking.
     # However, we can mock 'load_config' inside reviewer_main.
     
-    import reviewer_main
+    import review as reviewer_main
     original_load = reviewer_main.load_config
     reviewer_main.load_config = lambda: {
         "paths": {"raw_data_dir": data_dir, "images_dir": "data/images", "prompts_dir": "src/agent/prompts"},
         "trading": {
-            "symbol": "BTCUSDT",
+            "symbol": "BTCUSDT"
+        },
+        "prediction": {
+            "trade_horizon_days": 7,
             "macro_timeframe": {"interval": "1d", "limit": 100},
             "micro_timeframe": {"interval": "4h", "limit": 168}
         },
@@ -60,7 +63,8 @@ def test_aging_protection_logic():
             "trader_model": "gemini-flash-latest",
             "reviewer_model": "gemini-flash-latest"
         },
-        "automation": {"minimum_review_age_hours": 168.0}
+        "review": {"minimum_review_age_hours": 168.0, "review_kline_interval": "15m"},
+        "automation": {}
     }
     
     try:

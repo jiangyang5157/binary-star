@@ -14,8 +14,8 @@ def test_analysis_pipeline():
     # 0. Load Config
     config = load_config()
     symbol = config['trading']['symbol']
-    macro_config = config['trading']['macro_timeframe']
-    micro_config = config['trading']['micro_timeframe']
+    macro_config = config['prediction']['macro_timeframe']
+    micro_config = config['prediction']['micro_timeframe']
     macro_tf = macro_config['interval']
     micro_tf = micro_config['interval']
     macro_limit = macro_config.get('limit', 100)

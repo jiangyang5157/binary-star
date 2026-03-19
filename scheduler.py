@@ -39,7 +39,7 @@ def job_trader():
     run_script("main.py")
 
 def job_reviewer():
-    run_script("reviewer_main.py")
+    run_script("review.py")
 
 def start_scheduler():
     # Load config to get intervals
@@ -53,7 +53,7 @@ def start_scheduler():
 
     automation = config.get('automation', {})
     pred_hours = automation.get('prediction_interval_hours', 4.0)
-    rev_hours = automation.get('reviewer_cron_hours', 12.0)
+    rev_hours = automation.get('review_interval_hours', 12.0)
 
     logger.info("=== Crypto Dual-Agent Scheduler Started ===")
     logger.info(f"Trader Interval: {pred_hours} hours")
