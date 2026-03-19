@@ -42,25 +42,30 @@ crypto/
 
 ## 🏗 系统架构
 
-```mermaid
-graph TD
-    A["👤 Agent A: Trader"] -->|"生成预测 (JSON)"| B["💾 Data Storage"]
-    B -->|"触发审计"| C["👤 Agent B: Reviewer"]
-    C -->|"盈亏实测"| D["📂 Review Reports"]
-    D -->|"批量模式分析"| E["👤 Agent C: Coach"]
-    E -->|"自进化补丁 (ADD/REPLACE)"| F["🧩 Prompt Manager"]
-    F -->|"动态规则注入"| A
-    style F fill:#f9f,stroke:#333,stroke-width:4px
-```
+本系统采用 **Triple-Agent (三方代理) 闭环自进化架构**。不同于传统单向脚本，它通过“生产-审计-复盘-注入”形成持续迭代的交易大脑。
 
-### Agent A (Trader) — 交易员
-分析实时市场数据（K线图、成交量分布、持仓量），通过三轮推演（初始预判 → 红队质疑 → 最终结论）生成交易信号。
+### 技术生命周期 (Technical Lifecycle)
 
-### Agent B (Reviewer) — 审计员
-在预测过期后（由 `minimum_review_age_hours` 控制），拉取实际市场数据，对比"止盈"和"止损"哪个先被触碰，判断预测是否成功。
+| 阶段 | 核心组件 | 输入数据 | 输出产物 | 核心目标 |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. 预测 (Trade)** | **Agent A: Trader** | 4h/1h K线 + 情绪/清算数据 | `prediction.json` | 生成三轮推演交易信号 |
+| **2. 审计 (Review)** | **Agent B: Reviewer** | 历史预测 + 真实市场数据 | `review.json` | 判定 TP/SL 触碰与逻辑偏差 |
+| **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `prompt_patch` | 识别系统性弱点与交易偏见 |
+| **4. 进化 (Evolve)** | **Prompt Manager** | Base Prompt + Coach 补丁 | **动态补丁指令** | 将新规则实时注入下一次交易 |
 
-### Agent C (Coach) — 战略导师
-批量分析多份 Review 报告，找到 Trader 的系统性弱点（例如：总是在高位做多），生成结构化的策略补丁，下次 Trader 运行时会自动加载。
+---
+
+### 👤 Agent A (Trader) — 执行大脑
+*   **核心逻辑**：基于双周期（4h/1h）Volume Profile 和订单流（Delta）进行分析。
+*   **三轮推演**：`初始分析` -> `红队质疑 (Red Team)` -> `最终决策`。有效降低 AI 幻觉和冲动交易。
+
+### ⚖️ Agent B (Reviewer) — 铁面审计
+*   **核心逻辑**：在预设持仓周期结束后，拉取真实 15m K线进行“毫秒级”盈亏判定。
+*   **职责**：对比 AI 预测的止盈/止损与市场真实的高低点，生成包含“经验教训”的技术性 post-mortem。
+
+### 🧠 Agent C (Coach) — 战略策略师
+*   **核心逻辑**：扫描最近 N 场交易的审计报告。
+*   **职责**：发现 Agent A 的行为模式（如“仓位管理过于保守”或“对 POC 回测反应过度”），生成 `ADD/REPLACE` 指令，通过 Prompt Manager 实现“策略自进化”。
 
 ---
 
