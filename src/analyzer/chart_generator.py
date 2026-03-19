@@ -33,15 +33,17 @@ class ChartGenerator:
             valley_indices = np.where(lows)[0]
             
             trendlines = []
-            if len(peak_indices) >= 2:
-                # Last two peaks
-                p1, p2 = peak_indices[-2], peak_indices[-1]
-                trendlines.append({'x': [p1, p2], 'y': [df['High'].iloc[p1], df['High'].iloc[p2]], 'color': 'red'})
+            if len(peak_indices) >= 3:
+                # Plot last 2 segments (3 peaks)
+                for i in range(1, 3):
+                    p1, p2 = peak_indices[-(i+1)], peak_indices[-i]
+                    trendlines.append({'x': [p1, p2], 'y': [df['High'].iloc[p1], df['High'].iloc[p2]], 'color': '#ff3366'})
                 
-            if len(valley_indices) >= 2:
-                # Last two valleys
-                v1, v2 = valley_indices[-2], valley_indices[-1]
-                trendlines.append({'x': [v1, v2], 'y': [df['Low'].iloc[v1], df['Low'].iloc[v2]], 'color': 'green'})
+            if len(valley_indices) >= 3:
+                # Plot last 2 segments (3 valleys)
+                for i in range(1, 3):
+                    v1, v2 = valley_indices[-(i+1)], valley_indices[-i]
+                    trendlines.append({'x': [v1, v2], 'y': [df['Low'].iloc[v1], df['Low'].iloc[v2]], 'color': '#00ff88'})
             
             return trendlines
         except Exception as e:
@@ -49,7 +51,7 @@ class ChartGenerator:
             return []
 
     def generate_chart(self, symbol: str, df: pd.DataFrame, profile_data: Dict[str, Any], 
-                       liquidations: List[Dict[str, Any]] = None, filename_suffix: str = "") -> str:
+                       liquidations: Optional[List[Dict[str, Any]]] = None, filename_suffix: str = "") -> str:
         """
         Plots the OHLCV chart with POC levels, Liquidation Zones, and Trendlines.
         """
@@ -65,14 +67,18 @@ class ChartGenerator:
         vah = profile_data.get("vah", 0)
         val = profile_data.get("val", 0)
 
-        mc = mpf.make_marketcolors(up='g', down='r', edge='inherit', wick='inherit', volume='in')
-        s  = mpf.make_mpf_style(marketcolors=mc, gridstyle=':', y_on_right=True)
+        # 1. Professional & High-Contrast Colors (AI Optimized)
+        # Up: Teal (#26a69a), Down: Coral (#ef5350) - Distinct for computer vision.
+        mc = mpf.make_marketcolors(up='#26a69a', down='#ef5350', edge='inherit', wick='inherit', volume='in')
+        s  = mpf.make_mpf_style(marketcolors=mc, gridstyle='--', gridcolor='#333333', y_on_right=True, facecolor='#131722') # Dark Theme
 
+        # 2. Key Levels (POC, VAH, VAL)
+        # POC is Bright Orange for peak visibility; VAH/VAL are Gold.
         hlines = dict(
             hlines=[poc, vah, val], 
-            colors=['#ff0000', '#DAA520', '#DAA520'], 
-            linestyle=['-', '-', '-'], 
-            linewidths=[2, 1.5, 1.5]
+            colors=['#ff9800', '#fbc02d', '#fbc02d'], 
+            linestyle=['-', '--', '--'], 
+            linewidths=[2.5, 1.5, 1.5]
         )
 
         if "timestamp" in profile_data:
@@ -94,33 +100,47 @@ class ChartGenerator:
                 style=s, 
                 title=f"{symbol} - {filename_suffix} (POC: {poc:.2f})",
                 hlines=hlines,
-                savefig=dict(fname=filepath, dpi=150, bbox_inches='tight'),
+                savefig=dict(fname=filepath, dpi=180, bbox_inches='tight'), # Higher DPI for AI
                 warn_too_much_data=1000,
                 returnfig=True
             )
             
-            # The main OHLC ax is usually axlist[0]
-            ax = axlist[0]
+            ax = axlist[0] # Main Candle Axis
+            vol_ax = axlist[2] # Volume Axis
             
-            # 1. Plot Liquidation Zones as translucent bands
+            # 3. Plot Volume Profile (VAP) Histogram on the left side
+            # This helps Agent A see where the most volume was traded at specific prices.
+            if "profile_data" in profile_data:
+                profile = profile_data["profile_data"]
+                min_p, max_p = plot_df['Low'].min(), plot_df['High'].max()
+                
+                p_vals = [p['price'] for p in profile if min_p <= p['price'] <= max_p]
+                v_vals = [p['volume'] for p in profile if min_p <= p['price'] <= max_p]
+                
+                if v_vals:
+                    max_v = max(v_vals)
+                    # Use a slightly more distinct color for VAP (Silverish) with better alpha for AI
+                    norm_v = [(v / max_v) * (len(plot_df) * 0.18) for v in v_vals]
+                    bin_height = (max_p - min_p) / 50 * 0.8
+                    ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.5, zorder=1, align='center')
+
+            # 4. Plot Liquidation Zones as translucent bands
             if liquidations:
                 # Filter liquidations within price range of the chart
                 min_p, max_p = plot_df['Low'].min(), plot_df['High'].max()
                 price_range = max_p - min_p
-                # Band thickness is 1% of total chart range for visibility
                 band_height = price_range * 0.015
                 
                 for liq in liquidations:
                     try:
                         price = float(liq.get('p', 0))
-                        # BUY means a short was liquidated (Support effect), SELL means a long was liquidated (Resistance effect)
                         side = liq.get('S', 'BUY') 
                         
                         if min_p <= price <= max_p:
-                            color = '#00ff00' if side == 'BUY' else '#ff0000' # Bright Green/Red
-                            # Alpha varies between 0.05 and 0.3 based on quantity
+                            # AI-friendly Neon high-contrast colors
+                            color = '#00ff88' if side == 'BUY' else '#ff3366' 
                             q = float(liq.get('q', 1))
-                            calculated_alpha = min(max(q / 5, 0.08), 0.3)
+                            calculated_alpha = min(max(q / 5, 0.12), 0.45)
                             
                             rect = patches.Rectangle(
                                 (0, price - (band_height / 2)), 
@@ -133,14 +153,16 @@ class ChartGenerator:
                             ax.add_patch(rect)
                     except: continue
 
-            # 2. Plot detected Trendlines
+            # 5. Plot detected Trendlines (Fixed Style & More Structure)
+            # We use '--' (dashed) instead of ':' (dotted) to avoid the "dots" look.
+            # We plot the last 2 segments to show a bit more structure.
             lines = self._get_trendlines(plot_df)
             for line in lines:
-                ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.7)
+                ax.plot(line['x'], line['y'], color='#2a9d8f', linestyle='--', linewidth=1.5, alpha=0.9) # Professional Teal
 
             # Re-save the modified figure
-            fig.savefig(filepath, dpi=150, bbox_inches='tight')
-            plt.close(fig) # Prevent memory leaks
+            fig.savefig(filepath, dpi=180, bbox_inches='tight')
+            plt.close(fig)
             
             return filepath
         except Exception as e:
