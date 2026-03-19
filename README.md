@@ -106,11 +106,11 @@ RECIPIENT_APP_PASSWORD=your_gmail_app_password
 ### 第三步：检查配置
 核心配置文件是 `config/config.yaml`，所有运行参数都在这里定义：
 ```yaml
-timezone: "Pacific/Auckland"     # 你的时区
-trading:
-  symbol: "BTCUSDT"              # 交易对
+symbol: "BTCUSDT"                 # 交易对
+prediction:
+  trade_horizon_days: 7           # 预测持仓周期
 review:
-  minimum_review_age_hours: 24   # 预测多久后才能复盘
+  minimum_review_age_hours: 24    # 预测多久后才能复盘
 ```
 
 ### 第四步：开始使用

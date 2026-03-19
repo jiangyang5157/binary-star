@@ -50,14 +50,12 @@ def test_aging_protection_logic():
     import review as reviewer_main
     original_load = reviewer_main.load_config
     reviewer_main.load_config = lambda: {
-        "timezone": "UTC",
+        "symbol": "BTCUSDT",
         "paths": {
-            "raw_data_dir": data_dir, 
+            "predictions_dir": pred_dir, 
+            "reviews_dir": rev_dir,
             "images_dir": "data/images", 
             "prompts_dir": "src/agent/prompts"
-        },
-        "trading": {
-            "symbol": "BTCUSDT"
         },
         "prediction": {
             "trade_horizon_days": 7,

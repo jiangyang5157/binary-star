@@ -19,7 +19,7 @@ class MarketSimulator:
     """
     def __init__(self, sampling_count: int = 20, sampling_mode: str = "regime"):
         self.config = load_config()
-        self.symbol = self.config['trading']['symbol']
+        self.symbol = self.config['symbol']
         self.sampling_count = sampling_count
         self.sampling_mode = sampling_mode
         self.fetcher = BinanceDataFetcher()

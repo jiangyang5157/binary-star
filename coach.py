@@ -27,15 +27,13 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
             config = yaml.safe_load(f)
             
         # Pre-flight check for ALL required keys to enforce Strict Config
-        # Global
-        _ = config['timezone']
-        
         # Paths
-        _ = config['paths']['raw_data_dir']
+        _ = config['paths']['reviews_dir']
+        _ = config['paths']['coach_dir']
         _ = config['paths']['prompts_dir']
         
-        # Trading
-        _ = config['trading']['symbol']
+        # Symbol
+        _ = config['symbol']
         
         # Agent
         _ = config['agent']['coach_model']
@@ -66,9 +64,9 @@ def run_coach_pipeline(n: int):
     if not config:
         return
 
-    symbol = config['trading']['symbol']
-    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "reviews")
-    coach_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "coach")
+    symbol = config['symbol']
+    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['reviews_dir'])
+    coach_dir = os.path.join(PROJECT_ROOT, config['paths']['coach_dir'])
     os.makedirs(coach_dir, exist_ok=True)
 
     # 1. Filter and find latest N review reports for this symbol

@@ -95,15 +95,13 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
-        # Global
-        _ = config['timezone']
-        
         # Paths
-        _ = config['paths']['raw_data_dir']
+        _ = config['paths']['predictions_dir']
+        _ = config['paths']['reviews_dir']
         _ = config['paths']['prompts_dir']
         
-        # Trading
-        _ = config['trading']['symbol']
+        # Symbol
+        _ = config['symbol']
         
         # Prediction (used to show horizon in reviews)
         _ = config['prediction']['trade_horizon_days']
@@ -123,8 +121,8 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         logger.error(f"Config is missing required key: {e}. Please check your config.yaml.")
         return
 
-    predictions_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "predictions")
-    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "reviews")
+    predictions_dir = os.path.join(PROJECT_ROOT, config['paths']['predictions_dir'])
+    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['reviews_dir'])
     os.makedirs(reviews_dir, exist_ok=True)
 
     # Use target_files if provided, otherwise scan directory
@@ -181,7 +179,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                     continue
 
-                symbol = config['trading']['symbol']
+                symbol = config['symbol']
                 logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
                 
                 fetch_interval = config['review']['review_kline_interval']

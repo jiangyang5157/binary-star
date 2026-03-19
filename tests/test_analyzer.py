@@ -13,7 +13,7 @@ def test_analysis_pipeline():
     
     # 0. Load Config
     config = load_config()
-    symbol = config['trading']['symbol']
+    symbol = config['symbol']
     macro_config = config['prediction']['macro_timeframe']
     micro_config = config['prediction']['micro_timeframe']
     macro_tf = macro_config['interval']

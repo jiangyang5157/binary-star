@@ -2,31 +2,27 @@
 # Crypto Triple-Agent Trading System Configuration (SSoT)
 # =============================================================================
 # All technical parameters, timeframes, and model selections are defined here.
-timezone: "Pacific/Auckland" # Support for localized email timestamps (e.g. Pacific/Auckland, UTC)
-
-trading:
-  symbol: "BTCUSDT"           # The trading pair to analyze (Binance Futures format)
-  strategy: "swing"           # Strategy label (currently used for categorization)
-  value_area_pct: 0.82        # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
-  order_flow_lookback_bars: 4 # Number of micro-timeframe bars used to calculate Delta
+symbol: "BTCUSDT"               # The trading pair to analyze (Binance Futures format)
 
 prediction:
-  trade_horizon_days: 7       # Expected holding period for Agent A and review window for Agent B
+  trade_horizon_days: 7         # Expected holding period for Agent A and review window for Agent B
+  value_area_pct: 0.82          # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
+  order_flow_lookback_bars: 4   # Number of micro-timeframe bars used to calculate Delta
   
   # Macro Timeframe: Used for high-level trend detection and Volume Profile (VAP) structure.
   macro_timeframe:
-    interval: "4h"            # K-line interval for macro analysis (e.g., 4h, 1d)
-    limit: 500                # Number of historical bars to fetch (~83 days)
+    interval: "4h"              # K-line interval for macro analysis (e.g., 4h, 1d)
+    limit: 500                  # Number of historical bars to fetch (~83 days)
     
   # Micro Timeframe: Used for precise entry/exit analysis and local order flow observation.
   micro_timeframe:
-    interval: "1h"            # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
-    limit: 240                # Number of micro bars to fetch (~10 days of 1h data)
+    interval: "1h"              # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
+    limit: 240                  # Number of micro bars to fetch (~10 days of 1h data)
 
 review:
   # Reviewer Evaluation Accuracy
   # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
-  review_kline_interval: "15m" # Ensures we don't miss "wicks" or sharp reversals
+  review_kline_interval: "15m"  # Ensures we don't miss "wicks" or sharp reversals
   
   # Safety lag: Ensures trades have enough time to "play out" before they are judged.
   minimum_review_age_hours: 24
@@ -36,14 +32,17 @@ automation:
   review_interval_hours: 4.0          # How often to trigger the Reviewer pipeline (Agent B)
   
 paths:
-  raw_data_dir: "data/raw"              # Directory for temporary market data cache
-  images_dir: "data/images"             # Directory where generated technical charts (.png) are stored
-  prompts_dir: "src/agent/prompts"      # Location of AI prompt templates (.txt)
+  predictions_dir: "data/raw/predictions"   # Agent A prediction output
+  reviews_dir: "data/raw/reviews"           # Agent B review output
+  coach_dir: "data/raw/coach"               # Agent C coach reports
+  images_dir: "data/images"                 # Generated technical charts (.png)
+  prompts_dir: "src/agent/prompts"          # AI prompt templates (.txt)
 
 notifications:
-  min_confidence_threshold: 70        # Only send emails if AI confidence is >= this value
+  min_confidence_threshold: 70          # Only send emails if AI confidence is >= this value
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
+  timezone: "Pacific/Auckland"          # Localized email timestamps (e.g. Pacific/Auckland, UTC)
 
 agent:
   # gemini-flash-latest, gemini-3.1-pro-preview 
@@ -52,8 +51,8 @@ agent:
   coach_model: "gemini-flash-latest"    # Senior Strategist: Patterns & Rules
 
   # Reasoning Parameters
-  trader_pass1_temperature: 1.0         # Pass 1: Initial analysis
-  trader_pass2_temperature: 1.0         # Pass 2: Red Team Critique
-  trader_pass3_temperature: 0.6         # Pass 3: Final JSON Decision
+  trader_temp_initial: 1.0              # Pass 1: Initial analysis
+  trader_temp_critique: 1.0             # Pass 2: Red Team Critique
+  trader_temp_final: 0.6                # Pass 3: Final JSON Decision
   review_temperature: 1.0               # Agent B: Single-trade diagnostics
   coach_temperature: 1.0                # Agent C: Strategic pattern analysis (batch)

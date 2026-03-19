@@ -62,7 +62,7 @@ class TestReviewerAgent(unittest.TestCase):
         }
 
         current_config = {
-            "trading": {"symbol": "BTCUSDT"},
+            "symbol": "BTCUSDT",
             "prediction": {
                 "trade_horizon_days": 7,
                 "macro_timeframe": {"interval": "4h", "limit": 500},

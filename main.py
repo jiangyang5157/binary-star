@@ -3,7 +3,6 @@ import sys
 import yaml
 import json
 import logging
-import hashlib
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -52,18 +51,15 @@ def run_agent_a(override_timestamp: datetime = None):
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
-        # Global
-        _ = config['timezone']
-        
         # Paths
-        _ = config['paths']['raw_data_dir']
+        _ = config['paths']['predictions_dir']
         _ = config['paths']['images_dir']
         _ = config['paths']['prompts_dir']
         
-        # Trading & Prediction
-        _ = config['trading']['symbol']
-        _ = config['trading']['value_area_pct']
-        _ = config['trading']['order_flow_lookback_bars']
+        # Symbol & Prediction
+        _ = config['symbol']
+        _ = config['prediction']['value_area_pct']
+        _ = config['prediction']['order_flow_lookback_bars']
         _ = config['prediction']['trade_horizon_days']
         _ = config['prediction']['macro_timeframe']['interval']
         _ = config['prediction']['macro_timeframe']['limit']
@@ -72,9 +68,9 @@ def run_agent_a(override_timestamp: datetime = None):
         
         # Agent
         _ = config['agent']['trader_model']
-        _ = config['agent']['trader_pass1_temperature']
-        _ = config['agent']['trader_pass2_temperature']
-        _ = config['agent']['trader_pass3_temperature']
+        _ = config['agent']['trader_temp_initial']
+        _ = config['agent']['trader_temp_critique']
+        _ = config['agent']['trader_temp_final']
         
         # Notifications
         _ = config['notifications']['min_confidence_threshold']
@@ -89,7 +85,7 @@ def run_agent_a(override_timestamp: datetime = None):
         logger.error(f"Config is missing required key: {e}. Please check your config.yaml.")
         return
 
-    symbol = config['trading']['symbol']
+    symbol = config['symbol']
     macro_config = config['prediction']['macro_timeframe']
     micro_config = config['prediction']['micro_timeframe']
     
@@ -133,7 +129,7 @@ def run_agent_a(override_timestamp: datetime = None):
     # Delta = (Taker Buy Base Volume) - (Total Volume - Taker Buy Base Volume)
     # This shows aggressive buying vs aggressive selling.
     total_delta = 0
-    lookback_bars = config['trading']['order_flow_lookback_bars']
+    lookback_bars = config['prediction']['order_flow_lookback_bars']
     if klines_micro:
         try:
             # Last few bars from config
@@ -163,7 +159,7 @@ def run_agent_a(override_timestamp: datetime = None):
     
     # 2. Analysis & Visualization
     logger.info("Step 3: Calculating Volume Profile & Charting")
-    va_pct = config['trading']['value_area_pct']
+    va_pct = config['prediction']['value_area_pct']
     vpa = VolumeProfileAnalyzer(value_area_pct=va_pct)
     
     # Process both kline sets
@@ -205,25 +201,14 @@ def run_agent_a(override_timestamp: datetime = None):
     # Step 4: Invoking Agent A (Gemini)
     logger.info("Step 4: Invoking Agent A (Gemini)")
     logger.info("Note: Ensure GEMINI_API_KEY environment variable is set.")
-    
-    # Calculate Prompt Version (Hash) to track data drift
-    prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
-    prompt_version = "unknown"
-    try:
-        with open(prompt_path, 'r', encoding='utf-8') as f:
-            prompt_content = f.read()
-            prompt_version = hashlib.md5(prompt_content.encode('utf-8')).hexdigest()[:8]
-            logger.info(f"Using Trader Prompt Version: {prompt_version}")
-    except Exception as e:
-        logger.warning(f"Could not calculate prompt version: {e}")
 
     # Set up Agent A
     trader = TraderAgent(
         model_name=config['agent']['trader_model'],
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        temp_pass1=config['agent']['trader_pass1_temperature'],
-        temp_pass2=config['agent']['trader_pass2_temperature'],
-        temp_pass3=config['agent']['trader_pass3_temperature']
+        temp_pass1=config['agent']['trader_temp_initial'],
+        temp_pass2=config['agent']['trader_temp_critique'],
+        temp_pass3=config['agent']['trader_temp_final']
     )
     
     # Execute Model
@@ -236,7 +221,7 @@ def run_agent_a(override_timestamp: datetime = None):
             "reasoning": "API Key missing. This is a mocked output."
         }, indent=2, ensure_ascii=False)
     else:
-        coach_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "coach")
+        coach_dir = os.path.join(PROJECT_ROOT, config['paths']['coach_dir'])
         agent_output_raw = trader.analyze(
             symbol=symbol, 
             chart_image_paths=chart_paths, 
@@ -264,8 +249,9 @@ def run_agent_a(override_timestamp: datetime = None):
         # Force system timestamp to avoid AI hallucinations
         agent_output['timestamp'] = prediction_timestamp
         agent_output['metadata'] = {
-            "prompt_version": prompt_version,
-            "config_snapshot": config['trading']
+            "symbol": config['symbol'],
+            "trade_horizon_days": config['prediction']['trade_horizon_days'],
+            "model": config['agent']['trader_model']
         }
     
     # 5. Send Notification if confidence is high
@@ -285,7 +271,7 @@ def run_agent_a(override_timestamp: datetime = None):
 
     # 6. Save the result
     logger.info("Step 5: Saving results")
-    output_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "predictions")
+    output_dir = os.path.join(PROJECT_ROOT, config['paths']['predictions_dir'])
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"{symbol}_prediction_{timestamp_str}.json")
     
