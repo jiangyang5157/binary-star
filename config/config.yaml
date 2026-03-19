@@ -17,6 +17,9 @@ trading:
   # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
   # Using '1h' ensures we don't miss "wicks" or sharp reversals that a '4h' or '1d' check might overlook.
   review_evaluation_interval: "1h"
+  
+  # Order Flow Analysis
+  order_flow_lookback_bars: 4 # Works with micro_timeframe. Number of micro-timeframe bars used to calculate Delta (Buying vs Selling pressure)
 
   # Macro Timeframe: Used for high-level trend detection and Volume Profile (VAP) structure.
   macro_timeframe:
@@ -27,9 +30,6 @@ trading:
   micro_timeframe:
     interval: "4h"            # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
     limit: 168                # Number of micro bars to fetch (168 * 1h = 1 week of data)
-
-  # Order Flow Analysis
-  order_flow_lookback_bars: 4 # Works with micro_timeframe. Number of micro-timeframe bars used to calculate Delta (Buying vs Selling pressure)
 
 paths:
   raw_data_dir: "data/raw"             # Directory for temporary market data cache
