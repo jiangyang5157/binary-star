@@ -16,9 +16,9 @@ class MarketSimulator:
     Backtesting simulator that identifies market regimes and runs 
     the Trader/Reviewer agents through historical snapshots.
     """
-    def __init__(self, symbol: str = None, sampling_count: int = 20, sampling_mode: str = "regime"):
+    def __init__(self, sampling_count: int = 20, sampling_mode: str = "regime"):
         self.config = load_config()
-        self.symbol = symbol if symbol else self.config['trading']['symbol']
+        self.symbol = self.config['trading']['symbol']
         self.sampling_count = sampling_count
         self.sampling_mode = sampling_mode
         self.fetcher = BinanceDataFetcher()
@@ -134,7 +134,6 @@ class MarketSimulator:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Crypto Market Regime Backtesting Simulator")
-    parser.add_argument("--symbol", type=str, help="Symbol to test (default: from config.yaml)")
     parser.add_argument("--days", type=int, default=30, help="Number of days to look back (default 30)")
     parser.add_argument("--sampling", type=int, default=15, help="Total number of points to sample (default 15)")
     parser.add_argument("--start", type=str, help="Start date (YYYY-MM-DD), overrides --days")
@@ -157,5 +156,5 @@ if __name__ == "__main__":
         if days_ago > 30:
             logger.warning("!!! WARNING: Backtest starts > 30 days ago. Sentiment data (OI/LS) will be N/A due to Binance API limits.")
 
-    sim = MarketSimulator(symbol=args.symbol, sampling_count=args.sampling, sampling_mode=args.mode)
+    sim = MarketSimulator(sampling_count=args.sampling, sampling_mode=args.mode)
     sim.run_simulation(days_back=args.days, start_date=start_dt, end_date=end_dt)

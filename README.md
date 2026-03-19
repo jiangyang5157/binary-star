@@ -111,7 +111,6 @@ python scheduler.py
 python simulator.py --days 30 --sampling 15 --mode regime
 ```
 *   **核心选项**:
-    - `--symbol`: 模拟的资产 (可选，默认取 `config.yaml` 中的设置)。
     - `--days`: 回测的历史深度。
     - `--start YYYY-MM-DD`: 起始日期（覆盖 `--days` 参数）。
     - `--sampling`: 期间采样的快照数量（建议 15-20）。
