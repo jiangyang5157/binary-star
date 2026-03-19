@@ -26,12 +26,23 @@ def run_script(script_name):
     
     try:
         result = subprocess.run([venv_python, script_name], capture_output=True, text=True)
+        
+        # Log stdout if present
+        if result.stdout:
+            for line in result.stdout.strip().split('\n'):
+                if line.strip():
+                    logger.info(f"[{script_name}] {line}")
+        
+        # Log stderr if present (usually errors or warnings)
+        if result.stderr:
+            for line in result.stderr.strip().split('\n'):
+                if line.strip():
+                    logger.warning(f"[{script_name} ERR] {line}")
+
         if result.returncode == 0:
             logger.info(f"Successfully finished {script_name}")
-            # Optionally log output for debugging
-            # logger.debug(result.stdout)
         else:
-            logger.error(f"Error running {script_name}:\n{result.stderr}")
+            logger.error(f"Error running {script_name} (Exit Code: {result.returncode})")
     except Exception as e:
         logger.error(f"Failed to trigger {script_name}: {e}")
 
