@@ -141,7 +141,6 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 continue
 
             try:
-                # ... [Rest of the loop logic]
                 ts_str = prediction['timestamp']
                 dt_start = datetime.fromisoformat(ts_str)
                 if dt_start.tzinfo is None:
@@ -196,7 +195,9 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 ts_iso = prediction.get('timestamp', '')
                 chart_paths = []
                 if ts_iso:
-                    ts_readable = ts_iso.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
+                    # Strip timezone info (Z or +00:00) to match the file naming convention from main.py
+                    clean_ts = ts_iso.replace('Z', '').replace('+00:00', '')
+                    ts_readable = clean_ts.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
                     macro_tf = config['prediction']['macro_timeframe']['interval']
                     micro_tf = config['prediction']['micro_timeframe']['interval']
                     
@@ -238,7 +239,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                             "source": filename,
                             "content": prediction
                         },
-                        "review_timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                        "review_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                         "actual_market_outcome": outcome,
                         "analysis": parsed_review
                     }

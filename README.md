@@ -1,92 +1,186 @@
-# 🚀 Crypto Triple-Agent Trading Analysis System (V2.0-Audit)
+# 🚀 Crypto Triple-Agent Trading Analysis System
 
-> **基于 Google Gemini 多模态 AI 的闭环自进化交易系统**
+> **基于 Google Gemini 多模态 AI 的闭环自进化交易分析系统**
 
-本项目是一个模拟对冲基金决策链的 **三智能体 (Triple-Agent)** 系统。通过 **Trader (交易)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从“实时决策”到“历史复盘”再到“策略自动进化”的全闭环。
+本项目是一个模拟对冲基金决策链的 **三智能体 (Triple-Agent)** 系统。通过 **Trader (交易)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从"实时决策"到"历史复盘"再到"策略自动进化"的全闭环。
 
 ---
 
-## 🏗 系统架构 (The Triple-Agent Loop)
+## 📂 项目结构
 
-系统由三个核心 AI 代理构成，旨在消除交易中的系统性偏差：
+```
+crypto/
+├── main.py              # 入口：运行 Trader (Agent A) 预测
+├── review.py             # 入口：运行 Reviewer (Agent B) 复盘
+├── coach.py              # 入口：运行 Coach (Agent C) 策略进化
+├── scheduler.py          # 自动化调度器（定时运行 A 和 B）
+├── simulator.py          # 历史回测器
+├── config/
+│   └── config.yaml       # 🧠 核心配置（唯一参数来源）
+├── src/
+│   ├── agent/            # AI 代理模块
+│   │   ├── trader_agent.py       # Agent A：多模态分析
+│   │   ├── reviewer_agent.py     # Agent B：复盘审计
+│   │   ├── coach_agent.py        # Agent C：战略导师
+│   │   ├── prompt_manager.py     # 动态提示词补丁引擎
+│   │   └── prompts/              # AI 提示词模板
+│   ├── data_fetcher/     # 数据获取
+│   │   ├── binance_client.py     # Binance API 客户端
+│   │   ├── sentiment.py          # 情绪数据（OI、多空比）
+│   │   └── storage.py            # JSON 存储工具
+│   ├── analyzer/          # 分析引擎
+│   │   ├── volume_profile.py     # 成交量分布分析
+│   │   └── chart_generator.py    # 图表生成器
+│   └── utils/
+│       └── notifier.py           # 邮件通知
+├── tests/                # 测试套件（11 个测试）
+├── data/                 # 运行时数据（预测、图表等）
+└── .env                  # 环境变量（API Key 等，不入 git）
+```
+
+---
+
+## 🏗 系统架构
 
 ```mermaid
 graph TD
     A["👤 Agent A: Trader"] -->|"生成预测 (JSON)"| B["💾 Data Storage"]
-    B -->|"异步触发审计"| C["👤 Agent B: Reviewer"]
-    C -->|"盈亏实测分析"| D["📂 Review Reports"]
-    D -->|"模式识别与学习"| E["👤 Agent C: Coach"]
+    B -->|"触发审计"| C["👤 Agent B: Reviewer"]
+    C -->|"盈亏实测"| D["📂 Review Reports"]
+    D -->|"批量模式分析"| E["👤 Agent C: Coach"]
     E -->|"自进化补丁 (ADD/REPLACE)"| F["🧩 Prompt Manager"]
     F -->|"动态规则注入"| A
     style F fill:#f9f,stroke:#333,stroke-width:4px
 ```
 
-### 1. **Agent A (Trader) - 前线指战员**
-*   **职责**: 实时市场扫描、视觉图表分析、Red Team 自我博弈。
-*   **自进化引擎**: 集成 **PromptManager**，在运行时自动从 Agent C 的报告中提取并应用 `ADD/REPLACE/REMOVE` 逻辑补丁。
-*   **核心能力**: 1500根 K 线、双周期 Volume Profile、持仓量 (OI)、多空比、清算地图。
+### Agent A (Trader) — 交易员
+分析实时市场数据（K线图、成交量分布、持仓量），通过三轮推演（初始预判 → 红队质疑 → 最终结论）生成交易信号。
 
-### 2. **Agent B (Reviewer) - 后方审计师**
-*   **职责**: 严格结算。通过 Binance 历史数据判断预测的“触碰顺序”（止盈 vs 止损）。
-*   **逻辑**: 根据配置的 `minimum_review_age_hours` 自动识别已到期订单进行盈亏诊断。
-*   **核心价值**: 消除幸存者偏差，识别 Trader 在解析复杂结构时的系统性误判。
+### Agent B (Reviewer) — 审计员
+在预测过期后（由 `minimum_review_age_hours` 控制），拉取实际市场数据，对比"止盈"和"止损"哪个先被触碰，判断预测是否成功。
 
-### 3. **Agent C (Coach) - 战略导师**
-*   **职责**: **宏观调控**。横向扫描批量 Review 报告，识别 Agent A 的盈亏规律。
-*   **产出**: 生成结构化的 `master_prompt_patch` 指令。这是一种“软更新”，无需重启系统即可优化 Trader 的思考维度。
+### Agent C (Coach) — 战略导师
+批量分析多份 Review 报告，找到 Trader 的系统性弱点（例如：总是在高位做多），生成结构化的策略补丁，下次 Trader 运行时会自动加载。
 
 ---
 
-## 🌟 审计与稳定性特性 (Audit Highlights)
+## 🛠 快速开始（从零到运行）
 
-1.  **SSoT (唯一真实数据源) 与零默认值**: 
-    - 废除代码中所有“偷偷使用”的硬编码默认值。
-    - 强制执行 **Pre-flight Config Check**，任何配置缺失将在启动时被拦截，确保系统行为 100% 可预测。
-2.  **资源与内存安全审计**: 
-    - **Resource Management**: 所有 API 客户端（Binance/Sentiment）均实现了 `finally` 资源回收机制。
-    - **Memory Guard**: 绘图引擎（Matplotlib）强制执行 `plt.close()` 保护，防止长期运行导致的内存泄漏。
-3.  **统一时区与原子性**: 
-    - 对齐全局 `timezone` 配置，通知、日志、复盘逻辑在同一时间维度运行。
-    - 引入 `PromptManager` 确保逻辑注入的原子性（ADD/REPLACE/REMOVE）。
+### 前置要求
+- **Python 3.11+**（因为用到了 `datetime.fromisoformat()` 的新特性 和 `zoneinfo`）
+- **Binance 账号**（免费，用于 API Key 获取更多数据权限，非必须）
+- **Google AI API Key**（[在此申请](https://aistudio.google.com/app/apikey)）
 
----
-
-## 🛠 快速开始
-
-### 1. 环境准备
+### 第一步：克隆 & 安装
 ```bash
-# 获取源码后安装依赖
+git clone <your-repo-url>
+cd crypto
+
+# 创建虚拟环境
+python3 -m venv venv
+source venv/bin/activate      # macOS / Linux
+# .\venv\Scripts\activate     # Windows
+
+# 安装依赖
 pip install -r requirements.txt
 ```
 
-### 2. 核心配置 (`config/config.yaml`)
-```yaml
-timezone: "Pacific/Auckland" # 全局时区对齐
-review:
-  minimum_review_age_hours: 12.0 # 复盘等待时间（由用户定义）
-automation:
-  prediction_interval_hours: 4.0
-  review_interval_hours: 12.0
+### 第二步：配置环境变量
+在项目根目录创建 `.env` 文件：
+```env
+# 必须：Google Gemini API Key
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# 可选：Binance API（没有也能跑，但部分数据不可用）
+BINANCE_API_KEY=your_binance_api_key
+BINANCE_API_SECRET=your_binance_api_secret
+
+# 可选：邮件通知（不填则不发邮件）
+RECIPIENT_EMAIL=your_email@gmail.com
+RECIPIENT_APP_PASSWORD=your_gmail_app_password
 ```
 
-### 3. 三步走工作流
-| 步骤 | 指令 | 说明 |
-| :--- | :--- | :--- |
-| **1. 预测 (Trader)** | `python main.py` | 执行分析并发送信号 |
-| **2. 审计 (Reviewer)** | `python review.py` | 对符合时间的订单进行对账复盘 |
-| **3. 策略进化 (Coach)** | `python coach.py --batch 10` | 模式识别并生成策略补丁 |
-
 > [!TIP]
-> 复盘与进化的频率完全由 `config.yaml` 或手动调用的时机决定，系统具有极高的灵活性。
+> Gmail 的 App Password 需要在 Google 账号安全设置中生成，不能用 Gmail 登录密码。
+
+### 第三步：检查配置
+核心配置文件是 `config/config.yaml`，所有运行参数都在这里定义：
+```yaml
+timezone: "Pacific/Auckland"     # 你的时区
+trading:
+  symbol: "BTCUSDT"              # 交易对
+review:
+  minimum_review_age_hours: 24   # 预测多久后才能复盘
+```
+
+### 第四步：开始使用
+```bash
+# 1. 生成预测（Trader）
+python main.py
+
+# 2. 复盘（Reviewer）— 等预测到期后运行
+python review.py
+
+# 3. 策略进化（Coach）— 有多份复盘后运行
+python coach.py --batch 10
+
+# 可选：强制复盘（跳过时间保护）
+python review.py --force
+```
 
 ---
 
-## 🧪 自动化测试
-运行完整且经过审计的测试套件（目前 11/11 通过）：
+## 📊 术语速查
+
+| 术语 | 全称 | 说明 |
+|------|------|------|
+| **POC** | Point of Control | 成交量最集中的价格区域，相当于"市场共识价" |
+| **VAH** | Value Area High | 成交量密集区的上边界，通常是阻力位 |
+| **VAL** | Value Area Low | 成交量密集区的下边界，通常是支撑位 |
+| **OI** | Open Interest | 持仓量，反映市场参与者的持仓总量 |
+| **L/S Ratio** | Long/Short Ratio | 多空比，大于 1 表示市场偏多 |
+| **Red Team** | — | 模拟"对手方"来自我质疑，防止盲目自信 |
+
+---
+
+## 🧪 测试
+
+运行完整测试套件（11 个测试，全部 mock，不调用真实 API）：
 ```bash
+# 使用虚拟环境运行
+./venv/bin/pytest tests/
+
+# 或在激活 venv 后
 pytest tests/
 ```
 
+> [!NOTE]
+> `test_data_fetcher.py` 和 `test_analyzer.py` 是集成测试，会调用真实的 Binance API。其余测试完全使用 mock 数据，可离线运行。
+
 ---
+
+## ⚙️ 自动化
+
+使用 `scheduler.py` 定时运行 Trader 和 Reviewer：
+```bash
+python scheduler.py
+```
+调度间隔由 `config.yaml` 中的 `automation` 配置控制。Coach 需要手动运行。
+
+---
+
+## 🔄 回测
+
+使用 `simulator.py` 对历史数据进行回测：
+```bash
+# 过去 30 天的 15 个采样点
+python simulator.py --days 30 --sampling 15
+
+# 指定日期范围
+python simulator.py --start 2026-01-01 --end 2026-03-01 --mode spaced
+```
+
+---
+
 ## 许可证
 MIT © 2026 Crypto Triple-Agent Team

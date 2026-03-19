@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, timezone
 from main import run_agent_a, load_config
-from reviewer_main import run_reviewer_pipeline
+from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.binance_client import BinanceDataFetcher
 
 # Setup logging

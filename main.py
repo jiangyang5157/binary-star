@@ -213,7 +213,6 @@ def run_agent_a(override_timestamp: datetime = None):
     prompt_version = "unknown"
     try:
         with open(prompt_path, 'r', encoding='utf-8') as f:
-            import hashlib
             prompt_content = f.read()
             prompt_version = hashlib.md5(prompt_content.encode('utf-8')).hexdigest()[:8]
             logger.info(f"Using Trader Prompt Version: {prompt_version}")
@@ -299,12 +298,12 @@ def run_agent_a(override_timestamp: datetime = None):
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(agent_output)
         logger.info(f"Prediction saved to {output_file}")
+    except Exception as e:
+        logger.error(f"Failed to save prediction: {e}")
     finally:
-        # Step 6: Cleanup resources
-        if 'bf' in locals():
-            bf.close()
-        if 'sf' in locals():
-            sf.close()
+        # Cleanup resources
+        bf.close()
+        sf.close()
         logger.info("=== Pipeline Complete ===")
 
 if __name__ == "__main__":

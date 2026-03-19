@@ -1,83 +1,98 @@
 import sys
 import os
 import json
+import unittest
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from src.agent.reviewer_agent import ReviewerAgent
 
-def test_review_agent_mock():
-    print("--- Testing Crypto Dual-Agent Reviewer Layer ---")
-    
-    # Mock data for Agent A's past prediction
-    historical_prediction = {
-        "timestamp": "2026-03-01T12:00:00Z",
-        "action": "BUY",
-        "current_price": 65000,
-        "take_profit": 72000,
-        "stop_loss": 63000,
-        "confidence": 85,
-        "reasoning": "Price broke out above POC on high volume, funding rate is negative indicating shorts are trapped."
-    }
-    
-    # Mock data for what actually happened (e.g., a fakeout trap)
-    actual_outcome = {
-        "max_price_reached": 68000,
-        "min_price_reached": 62000,
-        "close_price_after_7_days": 63000,
-        "result": "Loss",
-        "notes": "Price instantly reversed after breaking POC, dropping 7% within 168 hours."
-    }
-    
-    # Mock current config
-    current_config = {
-        "trading": {
-            "symbol": "BTCUSDT", 
-            "strategy": "swing",
-        },
-        "prediction": {
-            "trade_horizon_days": 7,
-            "macro_timeframe": {"interval": "1d", "limit": 100},
-            "micro_timeframe": {"interval": "4h", "limit": 168},
-        },
-        "agent": {
-            "trader_model": "gemini-flash-latest",
-            "reviewer_model": "gemini-flash-latest",
-            "review_temperature": 1.0,
-            "coach_temperature": 1.0
-        }
-    }
-    
-    print("\n[1] Invoking Agent B (Reviewer)...")
-    print("Note: Ensure GEMINI_API_KEY environment variable is set.")
-    
-    # Agent B execution
-    reviewer = ReviewerAgent(
-        model_name=current_config['agent']['reviewer_model'],
-        prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts')
-    )
-    
-    if not os.environ.get("GEMINI_API_KEY"):
-        print("    GEMINI_API_KEY not found in environment. Mocking Agent B output for testing...")
-        agent_output = json.dumps({
-            "evaluation_score": 10,
-            "flaw_analysis": "Agent A was trapped in a fakeout. It ignored micro-level rejection wicks.",
-            "prompt_patch_suggestion": "Wait for a 1D candle close above POC before confirming a breakout.",
-            "config_update_suggestion": {}
-        }, indent=2)
-    else:
-        # For testing, we can pass dummy paths or valid ones if they exist
-        dummy_chart_paths = [
-            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_1d_chart.png'),
-            os.path.join(os.path.dirname(__file__), '..', 'data', 'images', 'BTCUSDT_4h_chart.png')
-        ]
-        agent_output = reviewer.review(
-            historical_prediction=historical_prediction, 
-            actual_outcome=actual_outcome, 
-            config=current_config,
-            chart_image_paths=dummy_chart_paths
+
+class TestReviewerAgent(unittest.TestCase):
+    def setUp(self):
+        os.environ["GEMINI_API_KEY"] = "mock-key"
+        self.reviewer = ReviewerAgent(
+            model_name="mock-model",
+            prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts')
         )
-        
-    print(f"\n    Agent B Output:\n{agent_output}")
+
+    @patch('google.genai.Client')
+    def test_review_with_mock(self, mock_client_class):
+        """
+        Tests the Reviewer Agent's review method with fully mocked Gemini API.
+        """
+        mock_client_instance = MagicMock()
+        mock_client_class.return_value = mock_client_instance
+
+        mock_models = MagicMock()
+        mock_client_instance.models = mock_models
+
+        mock_response = MagicMock(text=json.dumps({
+            "evaluation_score": 35,
+            "trade_post_mortem": "Agent A was trapped in a fakeout breakout above POC.",
+            "trade_post_mortem_zh": "Agent A 被假突破困住了。",
+            "flaw_analysis": "Ignored micro-level rejection wicks at VAH.",
+            "prompt_patch_suggestion": "Wait for 1D candle close above POC before confirming."
+        }))
+        mock_models.generate_content.return_value = mock_response
+
+        # Manually set the mocked client
+        self.reviewer.client = mock_client_instance
+
+        historical_prediction = {
+            "timestamp": "2026-03-01T12:00:00Z",
+            "action": "BUY",
+            "current_price": 65000,
+            "take_profit": 72000,
+            "stop_loss": 63000,
+            "confidence": 85,
+            "reasoning": "Price broke out above POC on high volume.",
+            "reasoning_zh": "价格在高成交量下突破了POC。"
+        }
+
+        actual_outcome = {
+            "start_price": 65000,
+            "max_price_reached": 68000,
+            "min_price_reached": 62000,
+            "final_close_price": 63000,
+            "price_change_pct": -3.08,
+            "max_drawup_pct": 4.62,
+            "max_drawdown_pct": -4.62,
+            "outcome_period_bars": 672
+        }
+
+        current_config = {
+            "trading": {"symbol": "BTCUSDT"},
+            "prediction": {
+                "trade_horizon_days": 7,
+                "macro_timeframe": {"interval": "4h", "limit": 500},
+                "micro_timeframe": {"interval": "1h", "limit": 240},
+            },
+            "agent": {
+                "reviewer_model": "mock-model",
+                "review_temperature": 1.0
+            }
+        }
+
+        result_str = self.reviewer.review(
+            historical_prediction=historical_prediction,
+            actual_outcome=actual_outcome,
+            config=current_config,
+            chart_image_paths=[],
+            base_prompt="Mock base prompt for testing."
+        )
+
+        # Verify the API was called exactly once
+        self.assertEqual(mock_models.generate_content.call_count, 1)
+
+        # Verify the output is valid JSON
+        result = json.loads(result_str)
+        self.assertIsInstance(result, dict)
+        self.assertIn("evaluation_score", result)
+        self.assertEqual(result["evaluation_score"], 35)
+        self.assertIn("trade_post_mortem_zh", result)
+
 
 if __name__ == "__main__":
-    test_review_agent_mock()
+    unittest.main()

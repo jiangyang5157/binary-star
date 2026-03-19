@@ -18,8 +18,8 @@ def test_analysis_pipeline():
     micro_config = config['prediction']['micro_timeframe']
     macro_tf = macro_config['interval']
     micro_tf = micro_config['interval']
-    macro_limit = macro_config.get('limit', 100)
-    micro_limit = micro_config.get('limit', 168)
+    macro_limit = macro_config['limit']
+    micro_limit = micro_config['limit']
     
     # 1. Fetch Klines (Macro and Micro)
     bf = BinanceDataFetcher()
