@@ -47,8 +47,8 @@ notifications:
 agent:
   # gemini-flash-latest, gemini-3.1-pro-preview 
   trader_model: "gemini-flash-latest"   # Optimized for speed and cost
-  reviewer_model: "gemini-flash-latest" # Set to 'pro' for deep logical flaw analysis
-  coach_model: "gemini-flash-latest"    # Senior Strategist: Patterns & Rules
+  reviewer_model: "gemini-3.1-pro-preview" # Set to 'pro' for deep logical flaw analysis
+  coach_model: "gemini-3.1-pro-preview"    # Senior Strategist: Patterns & Rules
 
   # Reasoning Parameters
   trader_temp_initial: 1.0              # Pass 1: Initial analysis
