@@ -110,8 +110,8 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
         pred_path = os.path.join(predictions_dir, filename)
         review_path = os.path.join(reviews_dir, f"review_{filename}")
 
-        # Skip if already reviewed
-        if os.path.exists(review_path):
+        # Skip if already reviewed, unless forced
+        if os.path.exists(review_path) and not force:
             logger.info(f"Skipping {filename}, already reviewed.")
             continue
 
@@ -295,8 +295,19 @@ def run_coach_pipeline(n: int):
     )
 
     logger.info("Invoking Coach Agent strategic analysis...")
+    # Load base prompt for context
+    base_prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
+    base_prompt = ""
+    if os.path.exists(base_prompt_path):
+        with open(base_prompt_path, 'r', encoding='utf-8') as f:
+            base_prompt = f.read()
+
     # Extract only the content for the agent
-    coach_content = coach.coaching_session([item["content"] for item in target_items], config)
+    coach_content = coach.coaching_session(
+        [item["content"] for item in target_items], 
+        config,
+        base_prompt
+    )
 
     # 3. Save report
     timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")

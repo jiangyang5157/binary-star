@@ -36,7 +36,7 @@ class CoachAgent:
             logger.error(f"Failed to load coach prompt template: {e}")
             return ""
 
-    def coaching_session(self, review_reports: List[Dict[str, Any]], current_config: Dict[str, Any]) -> str:
+    def coaching_session(self, review_reports: List[Dict[str, Any]], current_config: Dict[str, Any], base_prompt: str) -> str:
         """
         Executes a Gemini API call to perform a batch review (coaching session).
         """
@@ -55,7 +55,7 @@ class CoachAgent:
                 "timestamp": report.get('prediction', {}).get('content', {}).get('timestamp', 'N/A'),
                 "action": report.get('prediction', {}).get('content', {}).get('action', 'N/A'),
                 "evaluation_score": report.get('analysis', {}).get('evaluation_score', 0),
-                "flaw_analysis": report.get('analysis', {}).get('flaw_analysis', 'N/A'),
+                "detailed_analysis": report.get('analysis', {}).get('trade_post_mortem') or report.get('analysis', {}).get('flaw_analysis', 'N/A'),
                 "outcome_price_change_pct": report.get('actual_market_outcome', {}).get('price_change_pct', 0)
             }
             batch_summary.append(summary)
@@ -63,7 +63,8 @@ class CoachAgent:
         formatted_prompt = prompt_template.format(
             batch_data=json.dumps(batch_summary, indent=2, ensure_ascii=False),
             current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
-            batch_count=len(batch_summary)
+            batch_count=len(batch_summary),
+            base_prompt=base_prompt
         )
 
         try:
