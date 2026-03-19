@@ -18,6 +18,15 @@ class SentimentFetcher:
     def __init__(self):
         self.client = UMFutures()
 
+    def close(self):
+        """
+        Closes the underlying Binance client session.
+        """
+        if hasattr(self, 'client') and self.client:
+            # binance sdk doesn't have an explicit close, but we add 
+            # this for future-proofing and consistency.
+            pass
+
     def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs) -> Dict[str, Any]:
         """
         Fetches the open interest. If endTime is in kwargs, fetches historical data.

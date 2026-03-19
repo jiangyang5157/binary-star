@@ -3,6 +3,7 @@ import sys
 import yaml
 import json
 import logging
+import hashlib
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -47,6 +48,45 @@ def run_agent_a(override_timestamp: datetime = None):
         logger.info("=== Starting Crypto Dual-Agent Pipeline (Agent A) ===")
     config = load_config()
     if not config:
+        return
+
+    # Pre-flight check for ALL required keys to enforce Strict Config
+    try:
+        # Global
+        _ = config['timezone']
+        
+        # Paths
+        _ = config['paths']['raw_data_dir']
+        _ = config['paths']['images_dir']
+        _ = config['paths']['prompts_dir']
+        
+        # Trading & Prediction
+        _ = config['trading']['symbol']
+        _ = config['trading']['value_area_pct']
+        _ = config['trading']['order_flow_lookback_bars']
+        _ = config['prediction']['trade_horizon_days']
+        _ = config['prediction']['macro_timeframe']['interval']
+        _ = config['prediction']['macro_timeframe']['limit']
+        _ = config['prediction']['micro_timeframe']['interval']
+        _ = config['prediction']['micro_timeframe']['limit']
+        
+        # Agent
+        _ = config['agent']['trader_model']
+        _ = config['agent']['trader_pass1_temperature']
+        _ = config['agent']['trader_pass2_temperature']
+        _ = config['agent']['trader_pass3_temperature']
+        
+        # Notifications
+        _ = config['notifications']['min_confidence_threshold']
+        _ = config['notifications']['smtp_server']
+        _ = config['notifications']['smtp_port']
+        
+        # Automation & Intervals
+        _ = config['automation']['prediction_interval_hours']
+        _ = config['automation']['review_interval_hours']
+
+    except KeyError as e:
+        logger.error(f"Config is missing required key: {e}. Please check your config.yaml.")
         return
 
     symbol = config['trading']['symbol']
@@ -136,7 +176,8 @@ def run_agent_a(override_timestamp: datetime = None):
     # Calculate current timestamp for filenames
     dt_now = override_timestamp if override_timestamp else datetime.now(timezone.utc)
     timestamp_str = dt_now.strftime("%Y%m%d_%H%M%S")
-    prediction_timestamp = dt_now.isoformat() + ("Z" if not override_timestamp else "")
+    # Unified ISO format (using Z instead of +00:00)
+    prediction_timestamp = dt_now.isoformat().replace("+00:00", "Z")
     
     # Attach to profile_data so ChartGenerator can pick it up
     profile_data["timestamp"] = prediction_timestamp
@@ -148,7 +189,7 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
     context_data["macro_interval"] = macro_config['interval']
     context_data["micro_interval"] = micro_config['interval']
-    context_data["trade_horizon_days"] = config.get('prediction', {}).get('trade_horizon_days', 7)
+    context_data["trade_horizon_days"] = config['prediction']['trade_horizon_days']
     context_data["lookback_bars"] = lookback_bars
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
@@ -198,7 +239,13 @@ def run_agent_a(override_timestamp: datetime = None):
             "reasoning": "API Key missing. This is a mocked output."
         }, indent=2, ensure_ascii=False)
     else:
-        agent_output_raw = trader.analyze(symbol=symbol, chart_image_paths=chart_paths, context_data=context_data)
+        coach_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "coach")
+        agent_output_raw = trader.analyze(
+            symbol=symbol, 
+            chart_image_paths=chart_paths, 
+            context_data=context_data,
+            coach_dir=coach_dir
+        )
         
     logger.info(f"Agent A Raw Output Received.")
 
@@ -230,9 +277,11 @@ def run_agent_a(override_timestamp: datetime = None):
         notifier = EmailNotifier(config)
         
         if notifier.enabled and isinstance(agent_output, dict):
-            notif_config = config.get('notifications', {})
-            threshold = notif_config.get('min_confidence_threshold', 50)
-            if agent_output.get('confidence', 0) >= threshold:
+            # Strict access to required notification keys
+            notif_config = config['notifications']
+            min_confidence = notif_config['min_confidence_threshold']
+            
+            if agent_output.get('confidence', 0) >= min_confidence:
                 notifier.send_prediction_alert(symbol, agent_output, chart_paths=chart_paths)
     except Exception as e:
         logger.error(f"Failed to handle notification: {e}")
@@ -250,10 +299,13 @@ def run_agent_a(override_timestamp: datetime = None):
             with open(output_file, 'w', encoding='utf-8') as f:
                 f.write(agent_output)
         logger.info(f"Prediction saved to {output_file}")
-    except Exception as e:
-        logger.error(f"Could not save prediction: {e}")
-        
-    logger.info("=== Pipeline Complete ===")
+    finally:
+        # Step 6: Cleanup resources
+        if 'bf' in locals():
+            bf.close()
+        if 'sf' in locals():
+            sf.close()
+        logger.info("=== Pipeline Complete ===")
 
 if __name__ == "__main__":
     run_agent_a()

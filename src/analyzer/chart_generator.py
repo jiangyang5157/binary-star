@@ -105,64 +105,52 @@ class ChartGenerator:
                 returnfig=True
             )
             
-            ax = axlist[0] # Main Candle Axis
-            vol_ax = axlist[2] # Volume Axis
-            
-            # 3. Plot Volume Profile (VAP) Histogram on the left side
-            # This helps Agent A see where the most volume was traded at specific prices.
-            if "profile_data" in profile_data:
-                profile = profile_data["profile_data"]
-                min_p, max_p = plot_df['Low'].min(), plot_df['High'].max()
+            try:
+                ax = axlist[0] # Main Candle Axis
+                vol_ax = axlist[2] # Volume Axis
                 
-                p_vals = [p['price'] for p in profile if min_p <= p['price'] <= max_p]
-                v_vals = [p['volume'] for p in profile if min_p <= p['price'] <= max_p]
-                
-                if v_vals:
-                    max_v = max(v_vals)
-                    # Use a slightly more distinct color for VAP (Silverish) with better alpha for AI
-                    norm_v = [(v / max_v) * (len(plot_df) * 0.18) for v in v_vals]
-                    bin_height = (max_p - min_p) / 50 * 0.8
-                    ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.5, zorder=1, align='center')
+                # ... [Rest of the plotting logic remains same but inside try]
+                # 3. Plot Volume Profile (VAP) Histogram on the left side
+                if "profile_data" in profile_data:
+                    profile = profile_data["profile_data"]
+                    min_p, max_p = plot_df['Low'].min(), plot_df['High'].max()
+                    
+                    p_vals = [p['price'] for p in profile if min_p <= p['price'] <= max_p]
+                    v_vals = [p['volume'] for p in profile if min_p <= p['price'] <= max_p]
+                    
+                    if v_vals:
+                        max_v = max(v_vals)
+                        norm_v = [(v / max_v) * (len(plot_df) * 0.18) for v in v_vals]
+                        bin_height = (max_p - min_p) / 50 * 0.8
+                        ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.5, zorder=1, align='center')
 
-            # 4. Plot Liquidation Zones as translucent bands
-            if liquidations:
-                # Filter liquidations within price range of the chart
-                min_p, max_p = plot_df['Low'].min(), plot_df['High'].max()
-                price_range = max_p - min_p
-                band_height = price_range * 0.015
-                
-                for liq in liquidations:
-                    try:
-                        price = float(liq.get('p', 0))
-                        side = liq.get('S', 'BUY') 
-                        
-                        if min_p <= price <= max_p:
-                            # AI-friendly Neon high-contrast colors
-                            color = '#00ff88' if side == 'BUY' else '#ff3366' 
-                            q = float(liq.get('q', 1))
-                            calculated_alpha = min(max(q / 5, 0.12), 0.45)
-                            
-                            rect = patches.Rectangle(
-                                (0, price - (band_height / 2)), 
-                                len(plot_df), 
-                                band_height, 
-                                color=color, 
-                                alpha=calculated_alpha, 
-                                zorder=0
-                            )
-                            ax.add_patch(rect)
-                    except: continue
+                # 4. Plot Liquidation Zones
+                if liquidations:
+                    min_p, max_p = plot_df['Low'].min(), plot_df['High'].max()
+                    price_range = max_p - min_p
+                    band_height = price_range * 0.015
+                    
+                    for liq in liquidations:
+                        try:
+                            price = float(liq.get('p', 0))
+                            side = liq.get('S', 'BUY') 
+                            if min_p <= price <= max_p:
+                                color = '#00ff88' if side == 'BUY' else '#ff3366' 
+                                q = float(liq.get('q', 1))
+                                calculated_alpha = min(max(q / 5, 0.12), 0.45)
+                                rect = patches.Rectangle((0, price - (band_height / 2)), len(plot_df), band_height, color=color, alpha=calculated_alpha, zorder=0)
+                                ax.add_patch(rect)
+                        except: continue
 
-            # 5. Plot detected Trendlines (Fixed Style & More Structure)
-            # We use '--' (dashed) instead of ':' (dotted) to avoid the "dots" look.
-            # We plot the last 2 segments to show a bit more structure.
-            lines = self._get_trendlines(plot_df)
-            for line in lines:
-                ax.plot(line['x'], line['y'], color='#2a9d8f', linestyle='--', linewidth=1.5, alpha=0.9) # Professional Teal
+                # 5. Plot detected Trendlines
+                lines = self._get_trendlines(plot_df)
+                for line in lines:
+                    ax.plot(line['x'], line['y'], color='#2a9d8f', linestyle='--', linewidth=1.5, alpha=0.9)
 
-            # Re-save the modified figure
-            fig.savefig(filepath, dpi=180, bbox_inches='tight')
-            plt.close(fig)
+                # Re-save the modified figure
+                fig.savefig(filepath, dpi=180, bbox_inches='tight')
+            finally:
+                plt.close(fig)
             
             return filepath
         except Exception as e:

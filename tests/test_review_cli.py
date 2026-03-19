@@ -30,7 +30,7 @@ def test_aging_protection_logic():
     
     # Create a RECENT prediction (10 minutes ago)
     now = datetime.now(timezone.utc)
-    recent_ts = (now - timedelta(minutes=10)).isoformat() + "Z"
+    recent_ts = (now - timedelta(minutes=10)).isoformat().replace("+00:00", "Z")
     filename = "BTCUSDT_prediction_recent.json"
     pred_data = {
         "timestamp": recent_ts,
@@ -50,7 +50,12 @@ def test_aging_protection_logic():
     import review as reviewer_main
     original_load = reviewer_main.load_config
     reviewer_main.load_config = lambda: {
-        "paths": {"raw_data_dir": data_dir, "images_dir": "data/images", "prompts_dir": "src/agent/prompts"},
+        "timezone": "UTC",
+        "paths": {
+            "raw_data_dir": data_dir, 
+            "images_dir": "data/images", 
+            "prompts_dir": "src/agent/prompts"
+        },
         "trading": {
             "symbol": "BTCUSDT"
         },
@@ -61,10 +66,16 @@ def test_aging_protection_logic():
         },
         "agent": {
             "trader_model": "gemini-flash-latest",
-            "reviewer_model": "gemini-flash-latest"
+            "reviewer_model": "gemini-flash-latest",
+            "review_temperature": 1.0
         },
-        "review": {"minimum_review_age_hours": 168.0, "review_kline_interval": "15m"},
-        "automation": {}
+        "review": {
+            "minimum_review_age_hours": 168.0, 
+            "review_kline_interval": "15m"
+        },
+        "automation": {
+            "review_interval_hours": 12.0
+        }
     }
     
     try:

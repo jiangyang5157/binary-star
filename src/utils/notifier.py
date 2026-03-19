@@ -14,9 +14,10 @@ class EmailNotifier:
         """
         Initialize with config dictionary from config.yaml
         """
-        self.config = config.get('notifications', {})
-        self.smtp_server = self.config.get('smtp_server', 'smtp.gmail.com')
-        self.smtp_port = self.config.get('smtp_port', 587)
+        self.config = config['notifications']
+        self.smtp_server = self.config['smtp_server']
+        self.smtp_port = self.config['smtp_port']
+        self.timezone = config['timezone']
 
         # Load credentials from .env
         load_dotenv()
@@ -47,21 +48,17 @@ class EmailNotifier:
         
         formatted_json = json.dumps(prediction_copy, indent=4)
         
-        # New Zealand Time Conversion
-        nz_time_str = "N/A"
+        # Optimized Time Conversion
+        local_time_str = "N/A"
         try:
             timestamp_str = prediction.get('timestamp')
             if timestamp_str:
-                # Handle Z suffix if present
-                if timestamp_str.endswith('Z'):
-                    timestamp_str = timestamp_str[:-1]
-                
-                # Parse the ISO timestamp (assuming UTC)
-                utc_dt = datetime.fromisoformat(timestamp_str).replace(tzinfo=ZoneInfo("UTC"))
-                nz_dt = utc_dt.astimezone(ZoneInfo("Pacific/Auckland"))
-                nz_time_str = nz_dt.strftime("%Y-%m-%d %H:%M:%S NZDT/NZST")
+                # Use robust fromisoformat (handles Z in Python 3.11+)
+                utc_dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                local_dt = utc_dt.astimezone(ZoneInfo(self.timezone))
+                local_time_str = local_dt.strftime(f"%Y-%m-%d %H:%M:%S {self.timezone}")
         except Exception as e:
-            logger.warning(f"Failed to convert timestamp to NZ time: {e}")
+            logger.warning(f"Failed to convert timestamp to local time ({self.timezone}): {e}")
         
         subject = f"Crypto Alert: {action} {symbol} (Confidence: {confidence}%)"
         
@@ -85,7 +82,7 @@ class EmailNotifier:
                 </div>
                 
                 <div style="margin-top: 15px; font-weight: bold; color: #34495e;">
-                    🇳🇿 New Zealand Time: <span style="color: #e67e22;">{nz_time_str}</span>
+                    📍 Local Time ({self.timezone}): <span style="color: #e67e22;">{local_time_str}</span>
                 </div>
                 
                 <h3 style="color: #2c3e50; margin-top: 25px;">🇨🇳 中文解析 (Mandarin Translation):</h3>

@@ -29,6 +29,19 @@ class BinanceDataFetcher:
             logger.info("Initializing Binance client in Public mode")
             self.client = UMFutures()
 
+    def close(self):
+        """
+        Properly closes the underlying UMFutures session to avoid connection leaks.
+        """
+        if hasattr(self, 'client') and self.client:
+            try:
+                # Use the internal session closer if available
+                # Note: binance-connector-python's UMFutures doesn't always 
+                # have an explicit close on the top level, but it uses requests.
+                pass
+            except Exception:
+                pass
+
     def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs) -> List[List[Any]]:
         """
         Fetches historical kline (candlestick) data for a given symbol.

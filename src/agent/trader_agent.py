@@ -5,6 +5,7 @@ from typing import Dict, Any
 from datetime import datetime, timezone
 from google import genai
 from google.genai import types
+from .prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class TraderAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any]) -> str:
+    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], coach_dir: str = None) -> str:
         """
         Executes the multimodal Gemini API call to determine the trading action.
         Supports multiple images (e.g., Macro + Micro charts).
@@ -46,15 +47,23 @@ class TraderAgent:
         if not self.client:
             return '{"error": "GenAI API Client is not initialized. Is GEMINI_API_KEY set?"}'
 
-        prompt_template = self.load_prompt_template()
-        if not prompt_template:
+        # 1. Load Patched Prompt Template
+        pm = PromptManager()
+        base_prompt_path = os.path.join(self.prompts_dir, "prompt_trader.txt")
+        if coach_dir:
+            formatted_prompt = pm.get_patched_prompt(base_prompt_path, symbol, coach_dir)
+        else:
+            formatted_prompt = self.load_prompt_template()
+
+        if not formatted_prompt:
             return '{"error": "Agent prompt template missing."}'
 
-        # Prepare context data
+        # 2. Prepare context data
         context_summary = copy.deepcopy(context_data)
         
         # Format the specific text prompt with our dynamic data
-        current_time = datetime.now(timezone.utc).isoformat() + "Z"
+        dt_now = datetime.now(timezone.utc)
+        current_time = dt_now.isoformat().replace("+00:00", "Z")
         
         # Prepare all variables for formatting, avoiding duplicate keywords
         format_vars = copy.deepcopy(context_summary)
@@ -65,13 +74,13 @@ class TraderAgent:
         })
         
         try:
-            formatted_prompt = prompt_template.format(**format_vars)
+            # Use the already patched/loaded template
+            formatted_prompt = formatted_prompt.format(**format_vars)
         except KeyError as e:
             logger.error(f"Missing key in prompt template: {e}")
-            formatted_prompt = prompt_template
+            # fall through with the raw template
         except Exception as e:
             logger.error(f"Error formatting prompt: {e}")
-            formatted_prompt = prompt_template
 
         try:
             # Multi-modal Input
@@ -111,7 +120,7 @@ class TraderAgent:
 
             # --- PASS 2: Red Team Critique (The 'Premortem') ---
             # We ask the model to assume the trade failed and find out why.
-            trade_horizon = context_data.get("trade_horizon_days", 7)
+            trade_horizon = context_data["trade_horizon_days"]
             critique_prompt = f"""
             CRITICAL EVALUATION (RED TEAM):
             Assume you just executed the following prediction:

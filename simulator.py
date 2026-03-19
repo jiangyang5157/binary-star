@@ -120,7 +120,7 @@ class MarketSimulator:
                 run_agent_a(override_timestamp=dt)
                 
                 # 2. Run Reviewer (Simulate N days in the future)
-                review_days = self.config.get('trading', {}).get('review_window_days', 7)
+                review_days = self.config['prediction']['trade_horizon_days']
                 future_dt = dt + timedelta(days=review_days)
                 logger.info(f"Fast-forwarding to {future_dt} for review...")
                 

@@ -51,9 +51,15 @@ def start_scheduler():
         logger.error(f"Could not load config: {e}")
         return
 
-    automation = config.get('automation', {})
-    pred_hours = automation.get('prediction_interval_hours', 4.0)
-    rev_hours = automation.get('review_interval_hours', 12.0)
+    automation = config['automation']
+    
+    # Pre-flight check for scheduler
+    try:
+        pred_hours = automation['prediction_interval_hours']
+        rev_hours = automation['review_interval_hours']
+    except KeyError as e:
+        logger.error(f"Config is missing required automation key: {e}")
+        return
 
     logger.info("=== Crypto Dual-Agent Scheduler Started ===")
     logger.info(f"Trader Interval: {pred_hours} hours")

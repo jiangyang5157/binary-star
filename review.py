@@ -74,6 +74,36 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
     if not config:
         return
 
+    # Pre-flight check for ALL required keys to enforce Strict Config
+    try:
+        # Global
+        _ = config['timezone']
+        
+        # Paths
+        _ = config['paths']['raw_data_dir']
+        _ = config['paths']['prompts_dir']
+        
+        # Trading
+        _ = config['trading']['symbol']
+        
+        # Prediction (used to show horizon in reviews)
+        _ = config['prediction']['trade_horizon_days']
+        
+        # Agent
+        _ = config['agent']['reviewer_model']
+        _ = config['agent']['review_temperature']
+        
+        # Review Specific
+        _ = config['review']['review_kline_interval']
+        _ = config['review']['minimum_review_age_hours']
+
+        # Automation & Intervals
+        _ = config['automation']['review_interval_hours']
+
+    except KeyError as e:
+        logger.error(f"Config is missing required key: {e}. Please check your config.yaml.")
+        return
+
     predictions_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "predictions")
     reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "reviews")
     os.makedirs(reviews_dir, exist_ok=True)
@@ -89,136 +119,139 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         return
 
     bf = BinanceDataFetcher()
-    reviewer = ReviewerAgent(
-        model_name=config['agent']['reviewer_model'], 
-        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        temperature=config['agent']['review_temperature']
-    )
+    try:
+        reviewer = ReviewerAgent(
+            model_name=config['agent']['reviewer_model'], 
+            prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
+            temperature=config['agent']['review_temperature']
+        )
 
-    for filename in files:
-        pred_path = os.path.join(predictions_dir, filename)
-        review_path = os.path.join(reviews_dir, f"review_{filename}")
+        for filename in files:
+            pred_path = os.path.join(predictions_dir, filename)
+            review_path = os.path.join(reviews_dir, f"review_{filename}")
 
-        # Skip if already reviewed, unless forced
-        if os.path.exists(review_path) and not force:
-            logger.info(f"Skipping {filename}, already reviewed.")
-            continue
-
-        prediction = DataStorage.load_json(pred_path)
-        if not prediction or 'timestamp' not in prediction:
-            logger.warning(f"Invalid prediction format in {filename}")
-            continue
-
-        try:
-            # Parse timestamp and ensure it is UTC aware
-            ts_str = prediction['timestamp'].replace('Z', '')
-            dt_start = datetime.fromisoformat(ts_str).replace(tzinfo=timezone.utc)
-            start_ts_ms = int(dt_start.timestamp() * 1000)
-            
-            # Review outcome window
-            review_days = config.get('prediction', {}).get('trade_horizon_days', 7)
-            dt_now = override_now if override_now else datetime.now(timezone.utc)
-            dt_end = dt_start + timedelta(days=review_days)
-            if dt_end > dt_now:
-                dt_end = dt_now
-                logger.info(f"Prediction {filename} is recent. Reviewing up to present time.")
-
-            end_ts_ms = int(dt_end.timestamp() * 1000)
-
-            # Minimum aging protection: Only review if a certain amount of time has passed
-            min_delay_hours = config.get('review', {}).get('minimum_review_age_hours', 168.0)
-            if not force and (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
-                logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
+            # Skip if already reviewed, unless forced
+            if os.path.exists(review_path) and not force:
+                logger.info(f"Skipping {filename}, already reviewed.")
                 continue
 
-            symbol = config['trading']['symbol']
-            logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
-            
-            # Fetch klines from the prediction time until now/end of window
-            fetch_interval = config['review']['review_kline_interval']
-            duration_seconds = (dt_end - dt_start).total_seconds()
-            
-            # Map interval string to seconds for limit calculation
-            interval_map = {
-                "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
-                "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400
-            }
-            interval_seconds = interval_map.get(fetch_interval, 3600)
-            required_limit = int(duration_seconds / interval_seconds) + 1
-            target_limit = min(required_limit, 1500)
-            
-            klines = bf.fetch_historical_klines(
-                symbol=symbol, 
-                interval=fetch_interval, 
-                limit=target_limit,
-                startTime=start_ts_ms,
-                endTime=end_ts_ms
-            )
-
-            if not klines:
-                logger.warning(f"Could not fetch historical outcome for {filename}")
+            prediction = DataStorage.load_json(pred_path)
+            if not prediction or 'timestamp' not in prediction:
+                logger.warning(f"Invalid prediction format in {filename}")
                 continue
 
-            entry_price = float(klines[0][1])
-            outcome = calculate_outcome(klines, entry_price)
-
-            # Locate matching historical charts (Macro and Micro)
-            ts_iso = prediction.get('timestamp', '')
-            chart_paths = []
-            if ts_iso:
-                ts_readable = ts_iso.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
-                macro_tf = config['prediction']['macro_timeframe']['interval']
-                micro_tf = config['prediction']['micro_timeframe']['interval']
+            try:
+                # ... [Rest of the loop logic]
+                ts_str = prediction['timestamp']
+                dt_start = datetime.fromisoformat(ts_str)
+                if dt_start.tzinfo is None:
+                    dt_start = dt_start.replace(tzinfo=timezone.utc)
+                start_ts_ms = int(dt_start.timestamp() * 1000)
                 
-                for suffix in [macro_tf, micro_tf]:
-                    chart_filename = f"{symbol}_{suffix}_{ts_readable}_chart.png"
-                    path = os.path.join(PROJECT_ROOT, config['paths']['images_dir'], chart_filename)
-                    if os.path.exists(path):
-                        chart_paths.append(path)
-            
-            # Invoke Agent B
-            logger.info(f"Invoking Reviewer Agent for {filename}...")
-            if not os.environ.get("GEMINI_API_KEY"):
-                logger.warning("GEMINI_API_KEY missing. Using mock AI output.")
-                review_content = json.dumps({
-                    "evaluation_score": 50,
-                    "trade_post_mortem": "MOCK: Market outcome calculated, but AI analysis requires API key.",
-                    "trade_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
-                })
-            else:
-                prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
-                base_prompt = ""
-                if os.path.exists(prompt_path):
-                    with open(prompt_path, 'r', encoding='utf-8') as f:
-                        base_prompt = f.read()
+                # Review outcome window
+                review_days = config['prediction']['trade_horizon_days']
+                dt_now = override_now if override_now else datetime.now(timezone.utc)
+                dt_end = dt_start + timedelta(days=review_days)
+                if dt_end > dt_now:
+                    dt_end = dt_now
+                    logger.info(f"Prediction {filename} is recent. Reviewing up to present time.")
 
-                review_content = reviewer.review(
-                    historical_prediction=prediction,
-                    actual_outcome=outcome,
-                    config=config,
-                    chart_image_paths=chart_paths,
-                    base_prompt=base_prompt
+                end_ts_ms = int(dt_end.timestamp() * 1000)
+
+                min_delay_hours = config['review']['minimum_review_age_hours']
+                if not force and (dt_now - dt_start).total_seconds() < min_delay_hours * 3600:
+                    logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
+                    continue
+
+                symbol = config['trading']['symbol']
+                logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
+                
+                fetch_interval = config['review']['review_kline_interval']
+                duration_seconds = (dt_end - dt_start).total_seconds()
+                
+                interval_map = {
+                    "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
+                    "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400
+                }
+                interval_seconds = interval_map.get(fetch_interval, 3600)
+                required_limit = int(duration_seconds / interval_seconds) + 1
+                target_limit = min(required_limit, 1500)
+                
+                klines = bf.fetch_historical_klines(
+                    symbol=symbol, 
+                    interval=fetch_interval, 
+                    limit=target_limit,
+                    startTime=start_ts_ms,
+                    endTime=end_ts_ms
                 )
 
-            # Save review
-            try:
-                parsed_review = json.loads(review_content)
-                final_record = {
-                    "prediction": {
-                        "source": filename,
-                        "content": prediction
-                    },
-                    "review_timestamp": datetime.now(timezone.utc).isoformat() + "Z",
-                    "actual_market_outcome": outcome,
-                    "analysis": parsed_review
-                }
-                DataStorage.save_json(final_record, review_path)
-                logger.info(f"Successfully saved review to {review_path}")
-            except (json.JSONDecodeError, TypeError):
-                logger.error(f"Agent B returned invalid JSON content for {filename}")
+                if not klines:
+                    logger.warning(f"Could not fetch historical outcome for {filename}")
+                    continue
 
-        except Exception as e:
-            logger.error(f"Error processing {filename}: {e}")
+                entry_price = float(klines[0][1])
+                outcome = calculate_outcome(klines, entry_price)
+
+                # Locate matching historical charts (Macro and Micro)
+                ts_iso = prediction.get('timestamp', '')
+                chart_paths = []
+                if ts_iso:
+                    ts_readable = ts_iso.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
+                    macro_tf = config['prediction']['macro_timeframe']['interval']
+                    micro_tf = config['prediction']['micro_timeframe']['interval']
+                    
+                    for suffix in [macro_tf, micro_tf]:
+                        chart_filename = f"{symbol}_{suffix}_{ts_readable}_chart.png"
+                        path = os.path.join(PROJECT_ROOT, config['paths']['images_dir'], chart_filename)
+                        if os.path.exists(path):
+                            chart_paths.append(path)
+                
+                # Invoke Agent B
+                logger.info(f"Invoking Reviewer Agent for {filename}...")
+                if not os.environ.get("GEMINI_API_KEY"):
+                    logger.warning("GEMINI_API_KEY missing. Using mock AI output.")
+                    review_content = json.dumps({
+                        "evaluation_score": 50,
+                        "trade_post_mortem": "MOCK: Market outcome calculated, but AI analysis requires API key.",
+                        "trade_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
+                    })
+                else:
+                    prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
+                    base_prompt = ""
+                    if os.path.exists(prompt_path):
+                        with open(prompt_path, 'r', encoding='utf-8') as f:
+                            base_prompt = f.read()
+
+                    review_content = reviewer.review(
+                        historical_prediction=prediction,
+                        actual_outcome=outcome,
+                        config=config,
+                        chart_image_paths=chart_paths,
+                        base_prompt=base_prompt
+                    )
+
+                # Save review
+                try:
+                    parsed_review = json.loads(review_content)
+                    final_record = {
+                        "prediction": {
+                            "source": filename,
+                            "content": prediction
+                        },
+                        "review_timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+                        "actual_market_outcome": outcome,
+                        "analysis": parsed_review
+                    }
+                    DataStorage.save_json(final_record, review_path)
+                    logger.info(f"Successfully saved review to {review_path}")
+                except (json.JSONDecodeError, TypeError):
+                    logger.error(f"Agent B returned invalid JSON content for {filename}")
+
+            except Exception as e:
+                logger.error(f"Error processing {filename}: {e}")
+    finally:
+        bf.close()
+        logger.info("=== Review Pipeline Complete ===")
 
 if __name__ == "__main__":
     import argparse

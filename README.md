@@ -1,134 +1,92 @@
-# 加密货币三智能体交易分析系统 (Crypto Triple-Agent Trading System)
+# 🚀 Crypto Triple-Agent Trading Analysis System (V2.0-Audit)
 
-这是一个利用**三智能体架构**（交易员 Trader、审查员 Reviewer & 教练 Coach）和**多模态 AI**（Gemini）构建的加密货币交易分析框架。它能够将复杂的市场数据、图表和历史复盘转化为可执行的长期交易战略。
+> **基于 Google Gemini 多模态 AI 的闭环自进化交易系统**
 
----
-
-## 🧠 核心原理
-
-该系统模拟了专业交易室的工作流程，设置了两个互补的角色：
-
-1.  **Agent A (交易员 Trader)**: 
-    *   **数据富化**: 结合实时K线图、成交量分布 (Volume Profile: POC/VAH/VAL)、清算数据 (Liquidations) 以及情绪指标 (OI/LS Ratio)。
-    *   **视觉逻辑分析**: 生成“增强型”图表，由 AI 直接读取图表中的视觉信号进行逻辑推演。
-    *   **多轮推理**: 采用 3-Pass 推理流程（初步预测、红队审计、最终决议），通过自我博弈优化判断。
-    *   **优先级逻辑 (Priority Rule)**: 强制优先执行 Agent C 添加的“执行教训”，确保系统具备自我修正能力。
-    *   **双语决策**: 提供包含信心值、深度技术理由（英文）以及用户友好总结（中文）的建议。
-
-2.  **Agent B (审查员 Reviewer)**:
-    *   **规则审计 (Rule Adherence Audit)**: 不仅对比盈亏，还会读取 Trader 的原始提示词，审计其是否严格执行了 Coach 之前添加的具体逻辑补丁。
-    *   **事后复盘**: 定期扫描历史预测，当交易窗口关闭（通常 7 天后）时进行评估。
-    *   **深度诊断 (Post-Mortem)**: 解析亏损的底层技术原因（POC 跌破、假突破等）或盈利的偶然性。
-
-3.  **Agent C (教练 Coach)**:
-    *   **模式识别 (Pattern Recognition)**: 横向对比多份报告，识别系统性的逻辑缺陷、偏见（如：止损过窄、过早止盈）。
-    *   **双语战略总结**: 提供内容详尽的中英文战略简报 (`strategic_summary`)，解释系统的演进方向。
-    *   **结构化补丁 (Master Patch)**: 生成具备即效性的“规则更新”（ADD/REPLACE/REMOVE），利用 `REPLACE` 自动合并冗余规则。
-    *   **配置推荐**: 根据历史胜率表现，自动推荐 `config.yaml` 中参数的调整方向。
+本项目是一个模拟对冲基金决策链的 **三智能体 (Triple-Agent)** 系统。通过 **Trader (交易)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从“实时决策”到“历史复盘”再到“策略自动进化”的全闭环。
 
 ---
 
-## 🛠 安装与配置
+## 🏗 系统架构 (The Triple-Agent Loop)
 
-### 1. 环境要求
-*   Python 3.8+
-*   Binance API Key (从币安官网申请，用于获取行情)
-*   Gemini API Key (从 Google AI Studio 获取，用于 AI 逻辑分析)
+系统由三个核心 AI 代理构成，旨在消除交易中的系统性偏差：
 
-### 2. 安装步骤
+```mermaid
+graph TD
+    A["👤 Agent A: Trader"] -->|"生成预测 (JSON)"| B["💾 Data Storage"]
+    B -->|"异步触发审计"| C["👤 Agent B: Reviewer"]
+    C -->|"盈亏实测分析"| D["📂 Review Reports"]
+    D -->|"模式识别与学习"| E["👤 Agent C: Coach"]
+    E -->|"自进化补丁 (ADD/REPLACE)"| F["🧩 Prompt Manager"]
+    F -->|"动态规则注入"| A
+    style F fill:#f9f,stroke:#333,stroke-width:4px
+```
+
+### 1. **Agent A (Trader) - 前线指战员**
+*   **职责**: 实时市场扫描、视觉图表分析、Red Team 自我博弈。
+*   **自进化引擎**: 集成 **PromptManager**，在运行时自动从 Agent C 的报告中提取并应用 `ADD/REPLACE/REMOVE` 逻辑补丁。
+*   **核心能力**: 1500根 K 线、双周期 Volume Profile、持仓量 (OI)、多空比、清算地图。
+
+### 2. **Agent B (Reviewer) - 后方审计师**
+*   **职责**: 严格结算。通过 Binance 历史数据判断预测的“触碰顺序”（止盈 vs 止损）。
+*   **逻辑**: 根据配置的 `minimum_review_age_hours` 自动识别已到期订单进行盈亏诊断。
+*   **核心价值**: 消除幸存者偏差，识别 Trader 在解析复杂结构时的系统性误判。
+
+### 3. **Agent C (Coach) - 战略导师**
+*   **职责**: **宏观调控**。横向扫描批量 Review 报告，识别 Agent A 的盈亏规律。
+*   **产出**: 生成结构化的 `master_prompt_patch` 指令。这是一种“软更新”，无需重启系统即可优化 Trader 的思考维度。
+
+---
+
+## 🌟 审计与稳定性特性 (Audit Highlights)
+
+1.  **SSoT (唯一真实数据源) 与零默认值**: 
+    - 废除代码中所有“偷偷使用”的硬编码默认值。
+    - 强制执行 **Pre-flight Config Check**，任何配置缺失将在启动时被拦截，确保系统行为 100% 可预测。
+2.  **资源与内存安全审计**: 
+    - **Resource Management**: 所有 API 客户端（Binance/Sentiment）均实现了 `finally` 资源回收机制。
+    - **Memory Guard**: 绘图引擎（Matplotlib）强制执行 `plt.close()` 保护，防止长期运行导致的内存泄漏。
+3.  **统一时区与原子性**: 
+    - 对齐全局 `timezone` 配置，通知、日志、复盘逻辑在同一时间维度运行。
+    - 引入 `PromptManager` 确保逻辑注入的原子性（ADD/REPLACE/REMOVE）。
+
+---
+
+## 🛠 快速开始
+
+### 1. 环境准备
 ```bash
-# 进入项目目录并创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
+# 获取源码后安装依赖
 pip install -r requirements.txt
 ```
 
-### 3. 环境配置
-在项目根目录创建 `.env` 文件，填入以下内容：
-```env
-# [必填] AI 逻辑分析核心 (Agent A & B 运行必须)
-GEMINI_API_KEY=你的_Google_Gemini_Key
-
-# [建议] 币安行情服务 (可选，填写后可获得更高频的 API 访问限额)
-BINANCE_API_KEY=你的_币安_API_Key
-BINANCE_API_SECRET=你的_币安_Secret
-
-# [可选] 邮件通知配置 (填入以下两项后将自动开启邮件提醒)
-RECIPIENT_EMAIL=接收信号的邮箱地址
-RECIPIENT_APP_PASSWORD=你的_Gmail_应用专用密码
-# 信号推送将自动包含 UTC 和 NZ (新西兰) 两个时区的时间戳，方便多时区跟踪。
+### 2. 核心配置 (`config/config.yaml`)
+```yaml
+timezone: "Pacific/Auckland" # 全局时区对齐
+review:
+  minimum_review_age_hours: 12.0 # 复盘等待时间（由用户定义）
+automation:
+  prediction_interval_hours: 4.0
+  review_interval_hours: 12.0
 ```
-*注：系统会自动将 `RECIPIENT_EMAIL` 同时作为发送方和接收方。*
 
-### 4. 核心策略配置 (`config/config.yaml`)
-这是系统的“唯一真实数据源 (SSoT)”。您可以根据自己的交易风格（如偏好高频还是稳健长线）来调整核心参数：
+### 3. 三步走工作流
+| 步骤 | 指令 | 说明 |
+| :--- | :--- | :--- |
+| **1. 预测 (Trader)** | `python main.py` | 执行分析并发送信号 |
+| **2. 审计 (Reviewer)** | `python review.py` | 对符合时间的订单进行对账复盘 |
+| **3. 策略进化 (Coach)** | `python coach.py --batch 10` | 模式识别并生成策略补丁 |
 
-*   `value_area_pct` (默认: 0.82): **价值区域宽容度**。数值越大（如 0.85），系统对震荡的容忍度越高，过滤假突破能力越强，但信号较少。数值越小（如 0.70），信号越多但胜率可能降低。
-*   `review_window_days` (默认: 7): **审计窗口期**。Agent B 等待多少天才对一笔预测进行结算复盘。建议与您的实际平均持仓时间相匹配。
-*   `reviewer_model` (推荐: `gemini-3.1-pro-preview`): **审计模型**。使用更高参数量的模型进行复盘和教练分析，能获得更深刻的逻辑洞察和更精准的补丁建议。
-*   `order_flow_lookback_bars` (默认: 4): **资金流确认周期**。结合微观时间级别（如 4h），决定系统向前看多少根 K 线来确认真实的买卖净压差（Delta）。
-*   `review_evaluation_interval` (默认: "1h"): **复盘采样精度**。决定复盘时识别最大利润/回撤的颗粒度。通常 1h 能完美平衡计算效率与插针捕捉。
+> [!TIP]
+> 复盘与进化的频率完全由 `config.yaml` 或手动调用的时机决定，系统具有极高的灵活性。
 
 ---
 
-## 🚀 执行指南
-
-### 1. 单次市场分析 (Agent A)
-执行以下命令，系统将抓取当前市场数据并生成一份预测报告：
+## 🧪 自动化测试
+运行完整且经过审计的测试套件（目前 11/11 通过）：
 ```bash
-python main.py
+pytest tests/
 ```
-*   **输入**: 实时行情与情绪数据。
-*   **输出**: 预测 JSON 文件 (在 `data/raw/predictions/`) 以及标注后的技术图表 (在 `data/images/`)。
-
-### 2. 运行交易复盘 (Agent B)
-执行此命令对已结束的历史预测进行评分和缺陷分析：
-```bash
-python reviewer_main.py
-```
-*   **老化保护 (Aging Protection)**: 默认情况下，系统遵循 `config.yaml` 中的 `minimum_review_age_hours`（通常为 168 小时/7 天）。
-*   **强制回顾 (--force)**: 如果需要立即复盘最近的预测，请加上 `--force` 标志。
-
-### 3. 开启战略教练复盘 (Agent C)
-不再需要逐一查看每份报告，通过 Coach 实现批量战略升级：
-```bash
-python reviewer_main.py --batch 10
-```
-*   **功能**: 自动筛选当前 Symbol 的最新 10 份 review 报告。
-*   **输出**: 在 `data/raw/coach/` 生成 `coach_SYMBOL_TIMESTAMP.json`，其中包含结构化的 `master_prompt_patch`（大师补丁）。
-
-### 3. 自动化调度器 (The Scheduler)
-这是系统的“运维大脑”，能够全自动维持上述两套循环：
-```bash
-python scheduler.py
-```
-*   **自动化原理**: 
-    - 启动后，调度器会周期性地检查并触发 Agent A 的分析任务。
-    - 它同时会根据设定的回溯窗口，自动寻找符合复盘条件的旧预测，调用 `reviewer_main.py` 进行审计。
-    - **休眠机制**: 每次执行任务后，它会自动进入静默期，防止 API 过频访问并节省 Token 成本。
-*   **停止**: 使用 **`Ctrl + C`** 退出即可。
-
-### 4. 历史回测模拟器 (The Simulator)
-在不等待数周的情况下，测试您的提示词在不同市场环境下的表现：
-```bash
-python simulator.py --days 30 --sampling 15 --mode regime
-```
-*   **核心选项**:
-    - `--days`: 回测的历史深度。
-    - `--start YYYY-MM-DD`: 起始日期（覆盖 `--days` 参数）。
-    - `--sampling`: 期间采样的快照数量（建议 15-20）。
-    - `--mode`: 采样策略。`regime` (按牛/熊/震荡分层随机采样) 或 `spaced` (等间隔采样)。
-
----
-
-## 📊 结果解读
-
-系统会为每笔交易分配一个 **信心分数 (Confidence Score)**：
-
-*   **85% - 100% (高确信度)**: 🔥 **策略共振。** 宏观结构 (1d)、微观入口 (4h) 和情绪 (OI) 达成一致。
-*   **75% - 84% (中等)**: ⚖️ **密切关注。** 方向正确，但时机或筹码分布支撑可能并非最优。
-*   **75% 以下 (低信心值)**: 🧊 **保持观望/中立。** 市场可能处于震荡区域。
 
 ---
 ## 许可证
-MIT
+MIT © 2026 Crypto Triple-Agent Team

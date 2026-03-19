@@ -100,8 +100,11 @@ class VolumeProfileAnalyzer:
                 break
                 
         # The VAH and VAL are the boundaries of these most active bins
-        vah = max(value_area_bins)
-        val = min(value_area_bins)
+        if not value_area_bins:
+            vah, val = poc_price, poc_price
+        else:
+            vah = max(value_area_bins)
+            val = min(value_area_bins)
         
         return {
             "poc": poc_price,

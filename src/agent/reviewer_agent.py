@@ -51,9 +51,9 @@ class ReviewerAgent:
                 historical_prediction=json.dumps(historical_prediction, indent=2, ensure_ascii=False),
                 actual_outcome=json.dumps(actual_outcome, indent=2, ensure_ascii=False),
                 current_config=json.dumps(config, indent=2, ensure_ascii=False),
-                trade_horizon_days=config.get('prediction', {}).get('trade_horizon_days', 7),
-                macro_interval=config.get('prediction', {}).get('macro_timeframe', {}).get('interval', '1d'),
-                micro_interval=config.get('prediction', {}).get('micro_timeframe', {}).get('interval', '4h'),
+                trade_horizon_days=config['prediction']['trade_horizon_days'],
+                macro_interval=config['prediction']['macro_timeframe']['interval'],
+                micro_interval=config['prediction']['micro_timeframe']['interval'],
                 base_prompt=base_prompt
             )
         except Exception as e:

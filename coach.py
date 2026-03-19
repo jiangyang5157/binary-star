@@ -24,9 +24,29 @@ logger = logging.getLogger("CoachPipeline")
 def load_config(config_path: str = "config/config.yaml") -> dict:
     try:
         with open(os.path.join(PROJECT_ROOT, config_path), 'r') as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+            
+        # Pre-flight check for ALL required keys to enforce Strict Config
+        # Global
+        _ = config['timezone']
+        
+        # Paths
+        _ = config['paths']['raw_data_dir']
+        _ = config['paths']['prompts_dir']
+        
+        # Trading
+        _ = config['trading']['symbol']
+        
+        # Agent
+        _ = config['agent']['coach_model']
+        _ = config['agent']['coach_temperature']
+        
+        # Automation & Intervals
+        _ = config['automation']['review_interval_hours']
+        
+        return config
     except Exception as e:
-        logger.error(f"Failed to load config: {e}")
+        logger.error(f"Failed to load config or missing required key: {e}")
         return {}
 
 def run_coach_pipeline(n: int):
@@ -80,12 +100,6 @@ def run_coach_pipeline(n: int):
             base_prompt = f.read()
 
     # Extract only the content for the agent
-    coach_content = coach.coaching_session(
-        [item["content"] for item in target_items if "target_items" in locals() else [item["content"] for item in all_reviews_data[:n if n > 0 else len(all_reviews_data)]]], 
-        config,
-        base_prompt
-    )
-    # Correcting the variable error above
     target_reviews = all_reviews_data[:n] if n > 0 else all_reviews_data
     coach_content = coach.coaching_session(
         [item["content"] for item in target_reviews], 

@@ -2,6 +2,7 @@
 # Crypto Dual-Agent Trading System Configuration (SSoT)
 # =============================================================================
 # All technical parameters, timeframes, and model selections are defined here.
+timezone: "Pacific/Auckland" # Support for localized email timestamps (e.g. Pacific/Auckland, UTC)
 
 trading:
   symbol: "BTCUSDT"           # The trading pair to analyze (Binance Futures format)
@@ -28,8 +29,7 @@ review:
   review_kline_interval: "15m" # Ensures we don't miss "wicks" or sharp reversals
   
   # Safety lag: Ensures trades have enough time to "play out" before they are judged.
-  # Usually matches (trade_horizon_days * 24).
-  minimum_review_age_hours: 168.0
+  minimum_review_age_hours: 24
 
 automation:
   prediction_interval_hours: 4.0      # How often to run the Trader Agent (Agent A)
