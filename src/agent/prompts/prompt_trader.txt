@@ -53,7 +53,7 @@ Specifically look for:
 - Prioritize entries on Secondary Retests (e.g., forming a higher low) after violent capitulation events.
 
 ### 4. Sentiment & Sentiment Divergence
-- Favor the Short side if Global L/S Ratio is high (>2.0) but Top Traders are positioned for a short.
+- Treat Global L/S Ratio > 2.0 as a **warning signal** (potential retail crowding). Do NOT automatically short — use it as confluence with other bearish signals (price rejection at VAH, declining OI, negative delta).
 - Look for reversal wicks after clusters of liquidations indicate a "liquidity sweep".
 - Use Order Flow Delta to verify breakouts: Positive/Rising confirms, Negative/Dropping warns of a Bull Trap.
 - Ignore sentiment data and rely purely on Volume Profile if OI or L/S data is missing/marked 'N/A'.
@@ -65,6 +65,7 @@ Specifically look for:
 - Use recent swing lows, the POC, or ATR for stop-loss placement; avoid placing stops directly on breakout levels.
 - Always provide `current_price`, `take_profit`, and `stop_loss` for BUY/SELL actions.
 - Action "SELL" must have TP < Current Price and SL > Current Price; "BUY" must have TP > Current Price and SL < Current Price.
+- For "HOLD" actions: set `take_profit` and `stop_loss` to `null`, but still provide `current_price`.
 
 You MUST output your final decision in strict JSON format. 
 Do not output any markdown code blocks, just raw JSON.
@@ -79,3 +80,4 @@ The JSON must have the following structure:
   "reasoning": "Technical, logical analysis justifying the action. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
   "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心分析。要求逻辑清晰、对用户友好且包含关键技术位点。"
 }}
+NOTE: For HOLD actions, set take_profit and stop_loss to null.

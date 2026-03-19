@@ -30,10 +30,9 @@ class TestReviewerAgent(unittest.TestCase):
 
         mock_response = MagicMock(text=json.dumps({
             "evaluation_score": 35,
-            "trade_post_mortem": "Agent A was trapped in a fakeout breakout above POC.",
-            "trade_post_mortem_zh": "Agent A 被假突破困住了。",
-            "flaw_analysis": "Ignored micro-level rejection wicks at VAH.",
-            "prompt_patch_suggestion": "Wait for 1D candle close above POC before confirming."
+            "tp_sl_result": "SL_HIT",
+            "trade_post_mortem": "Agent A was trapped in a fakeout breakout above POC. Key lesson: always wait for volume confirmation.",
+            "trade_post_mortem_zh": "Agent A 被假突破困住了。核心教训：必须等待成交量确认。"
         }))
         mock_models.generate_content.return_value = mock_response
 

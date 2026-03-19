@@ -61,7 +61,7 @@ def start_scheduler():
         logger.error(f"Config is missing required automation key: {e}")
         return
 
-    logger.info("=== Crypto Dual-Agent Scheduler Started ===")
+    logger.info("=== Crypto Triple-Agent Scheduler Started ===")
     logger.info(f"Trader Interval: {pred_hours} hours")
     logger.info(f"Reviewer Interval: {rev_hours} hours")
 

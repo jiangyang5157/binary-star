@@ -30,9 +30,10 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         logger.error(f"Failed to load config: {e}")
         return {}
 
-def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, Any]:
+def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Analyzes kline data to determine the actual market outcome.
+    Optionally pre-computes TP/SL hit hints if prediction data is provided.
     """
     if not klines:
         return {}
@@ -50,7 +51,7 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, 
     max_drawup = ((max_price - entry_price) / entry_price) * 100
     max_drawdown = ((min_price - entry_price) / entry_price) * 100
     
-    return {
+    result = {
         "start_price": entry_price,
         "max_price_reached": max_price,
         "min_price_reached": min_price,
@@ -60,6 +61,24 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float) -> Dict[str, 
         "max_drawdown_pct": round(max_drawdown, 2),
         "outcome_period_bars": len(klines)
     }
+    
+    # Pre-compute TP/SL hit hints for the Reviewer
+    if prediction:
+        action = prediction.get('action', '').upper()
+        tp = prediction.get('take_profit')
+        sl = prediction.get('stop_loss')
+        
+        if action in ('BUY', 'SELL') and tp is not None and sl is not None:
+            tp, sl = float(tp), float(sl)
+            tp_reached = max_price >= tp if action == 'BUY' else min_price <= tp
+            sl_reached = min_price <= sl if action == 'BUY' else max_price >= sl
+            result["tp_reached"] = tp_reached
+            result["sl_reached"] = sl_reached
+        elif action == 'HOLD':
+            result["tp_reached"] = False
+            result["sl_reached"] = False
+    
+    return result
 
 def main_review(target_files: List[str] = None, override_now: datetime = None, force: bool = False):
     """
@@ -189,7 +208,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     continue
 
                 entry_price = float(klines[0][1])
-                outcome = calculate_outcome(klines, entry_price)
+                outcome = calculate_outcome(klines, entry_price, prediction=prediction)
 
                 # Locate matching historical charts (Macro and Micro)
                 ts_iso = prediction.get('timestamp', '')
@@ -213,6 +232,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     logger.warning("GEMINI_API_KEY missing. Using mock AI output.")
                     review_content = json.dumps({
                         "evaluation_score": 50,
+                        "tp_sl_result": "NEITHER",
                         "trade_post_mortem": "MOCK: Market outcome calculated, but AI analysis requires API key.",
                         "trade_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
                     })

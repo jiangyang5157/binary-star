@@ -140,7 +140,9 @@ class ChartGenerator:
                                 calculated_alpha = min(max(q / 5, 0.12), 0.45)
                                 rect = patches.Rectangle((0, price - (band_height / 2)), len(plot_df), band_height, color=color, alpha=calculated_alpha, zorder=0)
                                 ax.add_patch(rect)
-                        except: continue
+                        except Exception as e:
+                            logger.debug(f"Skipping invalid liquidation entry: {e}")
+                            continue
 
                 # 5. Plot detected Trendlines
                 lines = self._get_trendlines(plot_df)

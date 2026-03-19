@@ -31,16 +31,11 @@ class BinanceDataFetcher:
 
     def close(self):
         """
-        Properly closes the underlying UMFutures session to avoid connection leaks.
+        Placeholder for resource cleanup. The binance-connector-python SDK
+        manages its own HTTP session lifecycle internally, so no explicit
+        teardown is needed. Kept for API consistency with other fetchers.
         """
-        if hasattr(self, 'client') and self.client:
-            try:
-                # Use the internal session closer if available
-                # Note: binance-connector-python's UMFutures doesn't always 
-                # have an explicit close on the top level, but it uses requests.
-                pass
-            except Exception:
-                pass
+        pass
 
     def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs) -> List[List[Any]]:
         """

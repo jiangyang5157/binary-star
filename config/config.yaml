@@ -1,5 +1,5 @@
 # =============================================================================
-# Crypto Dual-Agent Trading System Configuration (SSoT)
+# Crypto Triple-Agent Trading System Configuration (SSoT)
 # =============================================================================
 # All technical parameters, timeframes, and model selections are defined here.
 timezone: "Pacific/Auckland" # Support for localized email timestamps (e.g. Pacific/Auckland, UTC)
@@ -38,8 +38,6 @@ automation:
 paths:
   raw_data_dir: "data/raw"              # Directory for temporary market data cache
   images_dir: "data/images"             # Directory where generated technical charts (.png) are stored
-  results_dir: "data/raw/predictions"   # Storage for Trader Agent output (JSON)
-  reviews_dir: "data/raw/reviews"       # Storage for Reviewer Agent feedback (JSON)
   prompts_dir: "src/agent/prompts"      # Location of AI prompt templates (.txt)
 
 notifications:

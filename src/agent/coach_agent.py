@@ -58,12 +58,16 @@ class CoachAgent:
             }
             batch_summary.append(summary)
 
-        formatted_prompt = prompt_template.format(
-            batch_data=json.dumps(batch_summary, indent=2, ensure_ascii=False),
-            current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
-            batch_count=len(batch_summary),
-            base_prompt=base_prompt
-        )
+        try:
+            formatted_prompt = prompt_template.format(
+                batch_data=json.dumps(batch_summary, indent=2, ensure_ascii=False),
+                current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
+                batch_count=len(batch_summary),
+                base_prompt=base_prompt
+            )
+        except Exception as e:
+            logger.error(f"Failed to format Coach prompt: {e}")
+            return json.dumps({"error": f"Formatting error: {str(e)}"})
 
         try:
             logger.info(f"Invoking Coach Agent Model ({self.model_name}) for {len(batch_summary)} reviews...")

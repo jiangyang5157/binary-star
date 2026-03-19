@@ -33,7 +33,7 @@ crypto/
 │   │   └── chart_generator.py    # 图表生成器
 │   └── utils/
 │       └── notifier.py           # 邮件通知
-├── tests/                # 测试套件（11 个测试）
+├── tests/                # 测试套件（20 个测试）
 ├── data/                 # 运行时数据（预测、图表等）
 └── .env                  # 环境变量（API Key 等，不入 git）
 ```
@@ -121,7 +121,7 @@ python main.py
 # 2. 复盘（Reviewer）— 等预测到期后运行
 python review.py
 
-# 3. 策略进化（Coach）— 有多份复盘后运行
+# 3. 策略进化（Coach）— 有多份复盘后运行，必须指定 batch
 python coach.py --batch 10
 
 # 可选：强制复盘（跳过时间保护）
@@ -145,7 +145,7 @@ python review.py --force
 
 ## 🧪 测试
 
-运行完整测试套件（11 个测试，全部 mock，不调用真实 API）：
+运行完整测试套件（20 个测试，大部分使用 mock 数据）：
 ```bash
 # 使用虚拟环境运行
 ./venv/bin/pytest tests/

@@ -97,9 +97,7 @@ class TraderAgent:
                     uploaded_file = self.client.files.upload(file=path)
                     contents.append(uploaded_file)
                 except Exception as e:
-                    logger.warning(f"File upload failed for {path}: {e}")
-                    # Minimal fallback
-                    contents.append({"mime_type": "image/png", "file_uri": path})
+                    logger.warning(f"File upload failed for {path}, skipping: {e}")
             
             # Append text prompt at the end
             contents.append(formatted_prompt)
@@ -172,6 +170,7 @@ class TraderAgent:
               "reasoning": "Technical, logical analysis justifying the action. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
               "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心分析。要求逻辑清晰、对用户友好且包含关键技术位点。"
             }}
+            NOTE: For HOLD actions, set take_profit and stop_loss to null but still provide current_price.
             """
             final_contents = copy.deepcopy(contents[:-1])
             final_contents.append(final_prompt)

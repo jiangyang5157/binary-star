@@ -28,16 +28,16 @@ Below is the **Current Base Trader Prompt** (`prompt_trader.txt`) used by Agent 
 2.  **Cross-Reference Qualitative & Quantitative**: 
     - Compare the `analysis.trade_post_mortem` with the raw numbers in `actual_market_outcome`. Does the Reviewer's analysis match the math? 
 3.  **Identify Systemic Biases**: Across these {batch_count} trades, what is the most recurring logical or execution flaw?
-4.  **Generate a "Master Prompt Patch"**: Provide a **structured list of modification instructions** for the `prompt_trader.txt` file.
+4.  **Generate Optimization Directives**: Based on your findings, provide:
+    - A **structured list of modification instructions** (`master_prompt_patch`) for the `prompt_trader.txt` file.
     - **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.
-5.  **Recommend Master Config Updates**: If a parameter in `config.yaml` needs a systemic adjustment, provide the NEW value.
+    - If a parameter in `config.yaml` needs a systemic adjustment, provide the NEW value in `master_config_update`.
 
 ### Output Requirements:
 You MUST output your final decision in strict JSON format. 
 {{
-  "strategic_summary": "Based on recent... I've observed a systemic bias in... Recommend optimizing via...",
-  "strategic_summary_zh": "由于最近...的表现，我观察到系统存在...的偏差。建议通过...来优化。",
-  "batch_analysis": "Summary of systemic and numerical findings across {batch_count} trades.",
+  "batch_analysis": "Systemic biases identified, numerical TP/SL accuracy analysis, recurring logical flaws, and recommended optimizations across {batch_count} trades.",
+  "batch_analysis_zh": "系统性偏差、止盈/止损精度审计、反复出现的逻辑缺陷、以及优化建议。",
   "master_prompt_patch": [
     {{
       "action": "ADD",
@@ -60,6 +60,7 @@ You MUST output your final decision in strict JSON format.
 }}
 
 **CRITICAL GUIDELINES**: 
-- **Strategic Summaries**: Provide a comprehensive high-level summary. There is no length restriction; be as detailed as necessary to explain the systemic shift.
+- **Batch Analysis**: `batch_analysis` is the SINGLE comprehensive report. Be as detailed as necessary — cover both the high-level strategic summary and the granular numerical findings. No length restriction.
+- **Chinese Version**: `batch_analysis_zh` must be a full, standalone Chinese translation of `batch_analysis`, not a summary.
 - **Section Targeting**: For `ADD`, use the EXACT header from `base_prompt`.
 - **Numerical Edge**: If stops are consistently too tight, explicitly REPLACE the SL placement rules.

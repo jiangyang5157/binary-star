@@ -96,7 +96,7 @@ def test_aging_protection_logic():
         # We'll mock the internal components enough to avoid network calls.
         
         original_agent_review = reviewer_main.ReviewerAgent.review
-        reviewer_main.ReviewerAgent.review = lambda *args, **kwargs: json.dumps({"evaluation_score": 100})
+        reviewer_main.ReviewerAgent.review = lambda *args, **kwargs: json.dumps({"evaluation_score": 100, "tp_sl_result": "TP_HIT", "trade_post_mortem": "Mock post-mortem.", "trade_post_mortem_zh": "模拟复盘。"})
         
         original_fetch = reviewer_main.BinanceDataFetcher.fetch_historical_klines
         reviewer_main.BinanceDataFetcher.fetch_historical_klines = lambda *args, **kwargs: [

@@ -24,7 +24,7 @@ class TestCoachAgent(unittest.TestCase):
         mock_models = MagicMock()
         mock_client_instance.models = mock_models
         
-        mock_response = MagicMock(text='{"strategic_summary": "Test Summary", "prompt_patch": "Test Patch"}')
+        mock_response = MagicMock(text='{"batch_analysis": "Test Analysis", "master_prompt_patch": []}')
         mock_models.generate_content.return_value = mock_response
 
         # Mock review reports
@@ -42,7 +42,7 @@ class TestCoachAgent(unittest.TestCase):
             base_prompt="Old Prompt"
         )
 
-        self.assertIn("Test Summary", result_str)
+        self.assertIn("Test Analysis", result_str)
         self.assertEqual(mock_models.generate_content.call_count, 1)
 
 if __name__ == "__main__":

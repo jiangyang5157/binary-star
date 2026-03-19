@@ -3,6 +3,7 @@ import logging
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, timezone
+from typing import List, Optional
 from main import run_agent_a, load_config
 from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.binance_client import BinanceDataFetcher
@@ -59,7 +60,7 @@ class MarketSimulator:
         df['regime'] = df.apply(classify, axis=1)
         return df
 
-    def run_simulation(self, days_back: int = 365, start_date: datetime = None, end_date: datetime = None):
+    def run_simulation(self, days_back: int = 365, start_date: Optional[datetime] = None, end_date: Optional[datetime] = None):
         """
         Main simulation loop.
         """

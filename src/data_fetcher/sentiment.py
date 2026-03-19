@@ -20,12 +20,10 @@ class SentimentFetcher:
 
     def close(self):
         """
-        Closes the underlying Binance client session.
+        Placeholder for resource cleanup. The binance SDK manages its own
+        session lifecycle internally. Kept for API consistency.
         """
-        if hasattr(self, 'client') and self.client:
-            # binance sdk doesn't have an explicit close, but we add 
-            # this for future-proofing and consistency.
-            pass
+        pass
 
     def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs) -> Dict[str, Any]:
         """

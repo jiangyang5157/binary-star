@@ -9,7 +9,7 @@ from src.analyzer.chart_generator import ChartGenerator
 from main import load_config
 
 def test_analysis_pipeline():
-    print("--- Testing Crypto Dual-Agent Analysis Layer ---")
+    print("--- Testing Crypto Analysis Layer ---")
     
     # 0. Load Config
     config = load_config()

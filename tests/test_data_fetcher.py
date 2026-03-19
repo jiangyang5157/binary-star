@@ -10,7 +10,7 @@ from src.data_fetcher.storage import DataStorage
 from main import load_config
 
 def test_data_fetcher_components():
-    print("--- Testing Crypto Dual-Agent Data Layer ---")
+    print("--- Testing Crypto Data Layer ---")
     
     symbol = "BTCUSDT"
     
@@ -24,7 +24,7 @@ def test_data_fetcher_components():
     micro_tf = config['prediction']['micro_timeframe']['interval']
     
     # 1. Test Klines
-    print(f"\n[1] Fetching Dual-Timeframe Klines for {symbol}...")
+    print(f"\n[1] Fetching Timeframe Klines for {symbol}...")
     klines_macro = bf.fetch_historical_klines(symbol=symbol, interval=macro_tf, limit=5)
     print(f"    Macro ({macro_tf}): Received {len(klines_macro)} K-lines.")
     

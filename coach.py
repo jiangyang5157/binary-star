@@ -81,7 +81,7 @@ def run_coach_pipeline(n: int):
                 review = DataStorage.load_json(path)
                 if review:
                     all_reviews_data.append({"filename": f, "content": review})
-                    if n > 0 and len(all_reviews_data) >= n:
+                    if len(all_reviews_data) >= n:
                          break
 
     if not all_reviews_data:
@@ -120,7 +120,7 @@ def run_coach_pipeline(n: int):
         final_record = {
             "symbol": symbol,
             "sources": [item["filename"] for item in target_reviews],
-            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "analysis": parsed_coach
         }
         DataStorage.save_json(final_record, report_path)

@@ -24,15 +24,28 @@ Below is the **Current Base Trader Prompt** (`prompt_trader.txt`) including "Ref
 {base_prompt}
 
 ### Your Audit Tasks:
-1.  **Rules Adherence Check**: Specifically look at the "Refined Execution Logic (Post-Review Rules)" in the Base Trader Prompt. Did Agent A follow these specific rules? (e.g., If a rule says "Never short into consolidation", and Agent A shorted into a tight range, flag this as a critical failure).
-2.  **Price Action vs. Vision**: Contrast Agent A's stated reasoning with the visual evidence in the charts. Did it miss an exhaustion wick? Did it buy into a distribution zone?
-3.  **R:R & Execution Audit**: Was the stop-loss technically sound (below POC/Swing Low)? Was the TP realistic given the current trend? 
-4.  **Diagnostic Synthesis**: Create a "Trade Post-Mortem". This should be a detailed paragraph describing the **exact technical mechanic** that caused the outcome and whether a specific rule was violated or validated.
+1.  **TP/SL Hit Determination**: This is TOP PRIORITY. Using `actual_market_outcome`:
+    - Compare Agent A's `take_profit` with `max_price_reached` (for BUY) or `min_price_reached` (for SELL).
+    - Compare Agent A's `stop_loss` with `min_price_reached` (for BUY) or `max_price_reached` (for SELL).
+    - Determine which was hit FIRST based on the price extremes and the `tp_reached`/`sl_reached` hints. Report as `tp_hit`, `sl_hit`, or `neither`.
+2.  **Rules Adherence Check**: Specifically look at the "Refined Execution Logic (Post-Review Rules)" in the Base Trader Prompt. Did Agent A follow these specific rules? (e.g., If a rule says "Never short into consolidation", and Agent A shorted into a tight range, flag this as a critical failure).
+3.  **Price Action vs. Vision**: Contrast Agent A's stated reasoning with the visual evidence in the charts. Did it miss an exhaustion wick? Did it buy into a distribution zone?
+4.  **R:R & Execution Audit**: Was the stop-loss technically sound (below POC/Swing Low)? Was the TP realistic given the current trend? 
+5.  **Diagnostic Synthesis**: Create a "Trade Post-Mortem". This should be a detailed paragraph describing the **exact technical mechanic** that caused the outcome, whether a specific rule was violated or validated, and the **single most important lesson** from this trade.
+
+### Evaluation Score Guide:
+Use the following anchors, but apply your own judgment for nuance:
+- **90-100**: Direction correct, TP hit, rules fully followed, excellent R:R execution.
+- **70-89**: Direction correct, trade was profitable or near-breakeven, minor execution issues.
+- **50-69**: Direction correct but execution poor (SL too tight, TP too greedy, entered too late).
+- **30-49**: Direction wrong, but rules were followed and risk was managed (reasonable loss).
+- **0-29**: Direction wrong AND rules were violated (e.g., shorted into consolidation, ignored POC, no volume confirmation).
 
 ### Output Requirements:
 You MUST output your final decision in strict JSON format.
 {{
   "evaluation_score": 0-100,
-  "trade_post_mortem": "A detailed, technical analysis of this specific trade's performance. Focus on whether the Trader followed the 'Refined Execution Logic' and how the market mechanics (POC, Volume, Wicks) played out against the prediction.",
-  "trade_post_mortem_zh": "对本次交易执行的深度技术诊断。重点分析 Trader 是否遵守了“核心执行逻辑”，以及市场机制（POC、成交量、影线）是如何影响最终结果的。要求语言专业且逻辑严密。"
+  "tp_sl_result": "TP_HIT / SL_HIT / NEITHER / HOLD_NA",
+  "trade_post_mortem": "A detailed, technical analysis of this specific trade's performance. Cover: (1) which was hit first — TP or SL, (2) whether the Trader followed the 'Refined Execution Logic', (3) how market mechanics (POC, Volume, Wicks) played out, and (4) the single most important lesson from this trade.",
+  "trade_post_mortem_zh": "对本次交易执行的深度技术诊断。须包含：(1) 止盈还是止损先被触碰，(2) Trader 是否遵守了核心执行逻辑，(3) 市场机制（POC、成交量、影线）如何影响结果，(4) 本次交易最重要的一条教训。"
 }}

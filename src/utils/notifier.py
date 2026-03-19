@@ -101,6 +101,7 @@ class EmailNotifier:
         """
 
         msg = MIMEMultipart()
+        # Note: From == To is intentional for Gmail App Password self-notification setup
         msg['From'] = self.recipient
         msg['To'] = self.recipient
         msg['Subject'] = subject

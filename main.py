@@ -45,7 +45,7 @@ def run_agent_a(override_timestamp: datetime = None):
     if override_timestamp:
         logger.info(f"=== Starting BACKTEST Pipeline at {override_timestamp} ===")
     else:
-        logger.info("=== Starting Crypto Dual-Agent Pipeline (Agent A) ===")
+        logger.info("=== Starting Crypto Triple-Agent Pipeline (Agent A) ===")
     config = load_config()
     if not config:
         return
@@ -187,8 +187,6 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["vah"] = profile_data.get('vah', 0)
     context_data["val"] = profile_data.get('val', 0)
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
-    context_data["macro_interval"] = macro_config['interval']
-    context_data["micro_interval"] = micro_config['interval']
     context_data["trade_horizon_days"] = config['prediction']['trade_horizon_days']
     context_data["lookback_bars"] = lookback_bars
     
@@ -257,8 +255,8 @@ def run_agent_a(override_timestamp: datetime = None):
             logger.info("Agent output is a list, unwrapping first prediction.")
             agent_output = agent_output[0]
             
-    except Exception:
-        logger.warning("Agent output was not valid JSON. Saving as raw string.")
+    except json.JSONDecodeError as e:
+        logger.warning(f"Agent output was not valid JSON ({e}). Saving as raw string.")
         agent_output = agent_output_raw
 
     # Enrich with metadata if it's a dictionary
