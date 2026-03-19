@@ -17,6 +17,7 @@ sys.path.insert(0, PROJECT_ROOT)
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.storage import DataStorage
 from src.agent.reviewer_agent import ReviewerAgent
+from src.agent.coach_agent import CoachAgent
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -240,10 +241,93 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
         except Exception as e:
             logger.error(f"Error processing {filename}: {e}")
 
+def run_coach_pipeline(n: int):
+    """
+    Main logic for Agent C (The Coach):
+    1. Scan for recent reviews of the same symbol.
+    2. Load the latest N reviews.
+    3. Ask Gemini for strategic patterns.
+    4. Save the "coach_report".
+    """
+    logger.info(f"=== Starting Crypto Coach Pipeline (Agent C) - Batch Size: {n} ===")
+    config = load_config()
+    if not config:
+        return
+
+    symbol = config['trading']['symbol']
+    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "reviews")
+    coach_dir = os.path.join(PROJECT_ROOT, config['paths']['raw_data_dir'], "coach")
+    os.makedirs(coach_dir, exist_ok=True)
+
+    # 1. Filter and find latest N review reports for this symbol
+    all_reviews_data = []
+    if os.path.exists(reviews_dir):
+        # We look for review files for this symbol
+        # Files are named like review_BTCUSDT_prediction_...
+        prefix = f"review_{symbol}"
+        for f in sorted(os.listdir(reviews_dir), reverse=True):
+            if f.endswith(".json") and f.startswith(prefix):
+                path = os.path.join(reviews_dir, f)
+                review = DataStorage.load_json(path)
+                if review:
+                    all_reviews_data.append({"filename": f, "content": review})
+                    if n > 0 and len(all_reviews_data) >= n:
+                         break
+
+    if not all_reviews_data:
+        logger.warning(f"No review reports found for {symbol} in {reviews_dir}")
+        return
+
+    # N logic
+    available_count = len(all_reviews_data)
+    if n > available_count:
+        logger.info(f"Requested {n} reviews, but only {available_count} available. Using all.")
+        target_items = all_reviews_data
+    else:
+        logger.info(f"Using latest {n} reviews for {symbol}.")
+        target_items = all_reviews_data[:n]
+
+    # 2. Invoke Coach Agent
+    coach = CoachAgent(
+        model_name=config['agent']['reviewer_model'],
+        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
+        temperature=config['agent'].get('reviewer_temperature', 1.0)
+    )
+
+    logger.info("Invoking Coach Agent strategic analysis...")
+    # Extract only the content for the agent
+    coach_content = coach.coaching_session([item["content"] for item in target_items], config)
+
+    # 3. Save report
+    timestamp_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    report_path = os.path.join(coach_dir, f"coach_{symbol}_{timestamp_str}.json")
+    
+    try:
+        parsed_coach = json.loads(coach_content)
+        final_record = {
+            "symbol": symbol,
+            "sources": [item["filename"] for item in target_items],
+            "timestamp": datetime.now(timezone.utc).isoformat() + "Z",
+            "analysis": parsed_coach
+        }
+        DataStorage.save_json(final_record, report_path)
+        logger.info(f"Successfully saved Coach Report to {report_path}")
+    except json.JSONDecodeError:
+        logger.error("Coach Agent returned invalid JSON. Saving raw output as fallback.")
+        with open(report_path.replace(".json", ".txt"), 'w', encoding='utf-8') as f:
+            f.write(coach_content)
+
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run the Crypto Reviewer Agent B.")
+    parser = argparse.ArgumentParser(description="Run the Crypto Reviewer Agent B or Coach Agent C.")
     parser.add_argument("--force", action="store_true", help="Bypass the aging protection and review all predictions.")
+    parser.add_argument("--batch", type=int, nargs='?', const=-1, help="Run a strategic coaching session for the latest N reviews. Usage: --batch 10")
     args = parser.parse_args()
     
-    run_reviewer_pipeline(force=args.force)
+    if args.batch is not None:
+        if args.batch == -1:
+            print("Error: Please provide a batch size N. Usage: --batch 10")
+            sys.exit(1)
+        run_coach_pipeline(n=args.batch)
+    else:
+        run_reviewer_pipeline(force=args.force)

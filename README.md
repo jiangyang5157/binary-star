@@ -1,6 +1,6 @@
-# 加密货币双智能体交易分析系统 (Crypto Dual-Agent Trading System)
+# 加密货币三智能体交易分析系统 (Crypto Triple-Agent Trading System)
 
-这是一个利用**双智能体架构**（交易员 Trader & 审查员 Reviewer）和**多模态 AI**（Gemini）构建的加密货币交易分析框架。它能够将复杂的市场数据和图表转化为可执行的波段交易逻辑。
+这是一个利用**三智能体架构**（交易员 Trader、审查员 Reviewer & 教练 Coach）和**多模态 AI**（Gemini）构建的加密货币交易分析框架。它能够将复杂的市场数据、图表和历史复盘转化为可执行的长期交易战略。
 
 ---
 
@@ -17,7 +17,12 @@
 2.  **Agent B (审查员 Reviewer)**:
     *   **事后审计**: 定期扫描历史预测，当交易窗口关闭（通常 7 天后）时进行评估。
     *   **盈亏复盘**: 对比 Trader 的预测逻辑与市场的实际走势，量化回撤和收益。
-    *   **逻辑补丁**: 针对持续性的错误，生成具体的“提示词补丁”或配置调整建议，实现 Agent A 的逻辑自我进化。
+    *   **单个分析**: 生成单次交易的“逻辑补丁” (Prompt Patch) 以供参考。
+
+3.  **Agent C (教练 Coach)**:
+    *   **模式识别 (Pattern Recognition)**: 横向对比多份 Review 报告，识别系统性的逻辑缺陷、偏见或风险偏好不当。
+    *   **战略优化 (Master Patch)**: 生成具备即效性的“大师级补丁”（支持 ADD/REPLACE/REMOVE 指令），用于统一优化 Trader 的核心提示词。
+    *   **配置推荐**: 根据历史胜率表现，自动推荐 `config.yaml` 中参数的调整方向。
 
 ---
 
@@ -49,6 +54,7 @@ BINANCE_API_SECRET=你的_币安_Secret
 # [可选] 邮件通知配置 (填入以下两项后将自动开启邮件提醒)
 RECIPIENT_EMAIL=接收信号的邮箱地址
 RECIPIENT_APP_PASSWORD=你的_Gmail_应用专用密码
+# 信号推送将自动包含 UTC 和 NZ (新西兰) 两个时区的时间戳，方便多时区跟踪。
 ```
 *注：系统会自动将 `RECIPIENT_EMAIL` 同时作为发送方和接收方。*
 
@@ -77,8 +83,16 @@ python main.py
 ```bash
 python reviewer_main.py
 ```
-*   **老化保护 (Aging Protection)**: 默认情况下，系统遵循 `config.yaml` 中的 `minimum_review_age_hours`（通常为 168 小时/7 天）。这是为了给交易留出足够的“平仓”或“趋势发展”时间。
-*   **强制回顾 (--force)**: 如果需要立即复盘最近的预测（如环境测试），请加上 `--force` 标志。
+*   **老化保护 (Aging Protection)**: 默认情况下，系统遵循 `config.yaml` 中的 `minimum_review_age_hours`（通常为 168 小时/7 天）。
+*   **强制回顾 (--force)**: 如果需要立即复盘最近的预测，请加上 `--force` 标志。
+
+### 3. 开启战略教练复盘 (Agent C)
+不再需要逐一查看每份报告，通过 Coach 实现批量战略升级：
+```bash
+python reviewer_main.py --batch 10
+```
+*   **功能**: 自动筛选当前 Symbol 的最新 10 份 review 报告。
+*   **输出**: 在 `data/raw/coach/` 生成 `coach_SYMBOL_TIMESTAMP.json`，其中包含结构化的 `master_prompt_patch`（大师补丁）。
 
 ### 3. 自动化调度器 (The Scheduler)
 这是系统的“运维大脑”，能够全自动维持上述两套循环：
