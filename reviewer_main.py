@@ -209,11 +209,23 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                     "config_update_suggestion": {}
                 })
             else:
+                # Load base prompt for rule adherence check
+                prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
+                base_prompt = ""
+                if os.path.exists(prompt_path):
+                    try:
+                        with open(prompt_path, 'r', encoding='utf-8') as f:
+                            base_prompt = f.read()
+                    except Exception as e:
+                        logger.warning(f"Failed to load base prompt for review: {e}")
+
+                # Run review
                 review_content = reviewer.review(
                     historical_prediction=prediction,
                     actual_outcome=outcome,
-                    current_config=config,
-                    chart_image_paths=chart_paths
+                    config=config,
+                    chart_image_paths=chart_paths,
+                    base_prompt=base_prompt
                 )
 
             # 4. Save review
@@ -221,9 +233,6 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                 parsed_review = json.loads(review_content)
                 
                 # Final structure of the review:
-                # - evaluation_score: 给 Agent A 的判断打分 (0-100)。
-                # - flaw_analysis: AI 分析该单盈亏的底层逻辑缺陷或成功要素。
-                # - prompt_patch_suggestion: 核心产出：建议写入 TraderAgent 提示词的逻辑补丁。
                 final_record = {
                     "prediction": {
                         "source": filename,
@@ -235,8 +244,8 @@ def run_reviewer_pipeline(target_files: List[str] = None, override_now: datetime
                 }
                 DataStorage.save_json(final_record, review_path)
                 logger.info(f"Successfully saved review to {review_path}")
-            except json.JSONDecodeError:
-                logger.error(f"Agent B returned invalid JSON for {filename}")
+            except (json.JSONDecodeError, TypeError):
+                logger.error(f"Agent B returned invalid JSON content for {filename}")
 
         except Exception as e:
             logger.error(f"Error processing {filename}: {e}")

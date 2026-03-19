@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
 
@@ -11,7 +11,7 @@ class ReviewerAgent:
     """
     Agent B: The Reviewer / Optimizer.
     Evaluates past predictions made by Agent A against actual market outcomes.
-    Suggests config parameter tweaks and prompt updates.
+    Specifically audits adherence to the Trader's logic and rules.
     """
     def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", temperature: float = 1.0):
         self.model_name = model_name
@@ -33,26 +33,32 @@ class ReviewerAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def review(self, historical_prediction: Dict[str, Any], actual_outcome: Dict[str, Any], current_config: Dict[str, Any], chart_image_paths: list[str] = None) -> str:
+    def review(self, historical_prediction: Dict[str, Any], actual_outcome: Dict[str, Any], config: Dict[str, Any], 
+               chart_image_paths: Optional[List[str]] = None, base_prompt: str = "") -> str:
         """
         Executes a multimodal Gemini API call to review Agent A's performance.
-        Supports analyzing multiple historical charts (e.g., Macro + Micro).
+        Includes base_prompt to allow auditing of rule adherence.
         """
         if not self.client:
-            return '{"error": "GenAI API Client is not initialized."}'
+            return json.dumps({"error": "GenAI API Client is not initialized."})
 
         prompt_template = self.load_prompt_template()
         if not prompt_template:
-            return '{"error": "Agent B prompt template missing."}'
+            return json.dumps({"error": "Agent B prompt template missing."})
 
-        formatted_prompt = prompt_template.format(
-            historical_prediction=json.dumps(historical_prediction, indent=2, ensure_ascii=False),
-            actual_outcome=json.dumps(actual_outcome, indent=2, ensure_ascii=False),
-            current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
-            review_window_days=current_config.get('trading', {}).get('review_window_days', 7),
-            macro_interval=current_config.get('trading', {}).get('macro_timeframe', {}).get('interval', 'N/A'),
-            micro_interval=current_config.get('trading', {}).get('micro_timeframe', {}).get('interval', 'N/A')
-        )
+        try:
+            formatted_prompt = prompt_template.format(
+                historical_prediction=json.dumps(historical_prediction, indent=2, ensure_ascii=False),
+                actual_outcome=json.dumps(actual_outcome, indent=2, ensure_ascii=False),
+                current_config=json.dumps(config, indent=2, ensure_ascii=False),
+                review_window_days=config.get('review_window_days', 7),
+                macro_interval=config.get('macro_timeframe', {}).get('interval', '1d'),
+                micro_interval=config.get('micro_timeframe', {}).get('interval', '4h'),
+                base_prompt=base_prompt
+            )
+        except Exception as e:
+            logger.error(f"Failed to format Reviewer prompt: {e}")
+            return json.dumps({"error": f"Formatting error: {str(e)}"})
 
         contents = []
         
@@ -70,9 +76,6 @@ class ReviewerAgent:
         # Append text prompt
         contents.append(formatted_prompt)
         
-        if not any(isinstance(c, types.File) for c in contents):
-            logger.info("No valid historical charts found for this review. Proceeding with text data only.")
-
         try:
             logger.info(f"Invoking Reviewer Agent Model ({self.model_name})...")
             
@@ -89,4 +92,4 @@ class ReviewerAgent:
             
         except Exception as e:
             logger.error(f"Failed to get response from GenAI API: {e}")
-            return f'{{"error": "{str(e)}"}}'
+            return json.dumps({"error": str(e)})

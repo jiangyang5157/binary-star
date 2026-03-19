@@ -1,6 +1,6 @@
 # --- AGENT B: REVIEWER PROMPT ---
 # Role: Senior Trade Auditor / Quantitative Analyst
-# Input: Historical Prediction, Actual Outcome, Current Config
+# Input: Historical Prediction, Actual Outcome, Current Config, Base Trader Prompt
 # Output: Structured JSON with Deep Trade Post-Mortem
 # ------------------------------
 
@@ -20,15 +20,18 @@ Below is the **Actual Market Outcome** ({review_window_days} days holding window
 And the **Current Configuration** (`config.yaml`):
 {current_config}
 
+Below is the **Current Base Trader Prompt** (`prompt_trader.txt`) including "Refined Execution Logic":
+{base_prompt}
+
 ### Your Audit Tasks:
-1.  **Price Action vs. Vision**: Contrast Agent A's stated reasoning with the visual evidence in the charts. Did it miss an exhaustion wick? Did it buy into a distribution zone?
-2.  **R:R & Execution Audit**: Was the stop-loss technically sound (below POC/Swing Low)? Was the TP realistic given the current trend? 
-3.  **The "Ground Truth" Result**: Compare the prediction prices against the `max_price_reached` and `min_price_reached`. Determine if the SL or TP was hit first. 
-4.  **Diagnostic Synthesis**: Create a "Trade Post-Mortem". This should be a detailed paragraph describing the **exact technical mechanic** that caused the outcome (e.g., "Price was magnetic to the POC which Agent A ignored, resulting in a mean-reversion move that hit the SL before the trend continued").
+1.  **Rules Adherence Check**: Specifically look at the "Refined Execution Logic (Post-Review Rules)" in the Base Trader Prompt. Did Agent A follow these specific rules? (e.g., If a rule says "Never short into consolidation", and Agent A shorted into a tight range, flag this as a critical failure).
+2.  **Price Action vs. Vision**: Contrast Agent A's stated reasoning with the visual evidence in the charts. Did it miss an exhaustion wick? Did it buy into a distribution zone?
+3.  **R:R & Execution Audit**: Was the stop-loss technically sound (below POC/Swing Low)? Was the TP realistic given the current trend? 
+4.  **Diagnostic Synthesis**: Create a "Trade Post-Mortem". This should be a detailed paragraph describing the **exact technical mechanic** that caused the outcome and whether a specific rule was violated or validated.
 
 ### Output Requirements:
 You MUST output your final decision in strict JSON format.
 {{
   "evaluation_score": 0-100,
-  "trade_post_mortem": "A detailed, technical analysis of this specific trade's performance, logic, and visible errors. Be precise about price levels and volume behavior."
+  "trade_post_mortem": "A detailed, technical analysis of this specific trade's performance. Focus on whether the Trader followed the 'Refined Execution Logic' and how the market mechanics (POC, Volume, Wicks) played out against the prediction."
 }}

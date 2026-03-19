@@ -52,11 +52,9 @@ class CoachAgent:
         for i, report in enumerate(review_reports):
             summary = {
                 "id": i + 1,
-                "timestamp": report.get('prediction', {}).get('content', {}).get('timestamp', 'N/A'),
-                "action": report.get('prediction', {}).get('content', {}).get('action', 'N/A'),
-                "evaluation_score": report.get('analysis', {}).get('evaluation_score', 0),
-                "detailed_analysis": report.get('analysis', {}).get('trade_post_mortem') or report.get('analysis', {}).get('flaw_analysis', 'N/A'),
-                "outcome_price_change_pct": report.get('actual_market_outcome', {}).get('price_change_pct', 0)
+                "prediction": report.get('prediction', {}).get('content', {}),
+                "actual_market_outcome": report.get('actual_market_outcome', {}),
+                "analysis": report.get('analysis', {})
             }
             batch_summary.append(summary)
 
