@@ -63,5 +63,5 @@ agent:
   trader_pass1_temperature: 1.0         # Pass 1: Initial analysis (High = diverse thought)
   trader_pass2_temperature: 1.0         # Pass 2: Red Team Critique (High = creative fault-finding)
   trader_pass3_temperature: 0.7         # Pass 3: Final JSON Decision (Lower = stable JSON structure)
-  # Agent B (Reviewer) 1-Pass Reasoning:
-  reviewer_temperature: 1.0             # Reviewer: Analysis of past trades (High = deep logic discovery)
+  # Agent B (Reviewer) & Agent C (Coach) Reasoning:
+  reviewer_temperature: 1.0             # Reviewer/Coach: Deep logic discovery & systemic pattern analysis
