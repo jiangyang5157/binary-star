@@ -36,11 +36,11 @@ Specifically look for:
 - Do not blindly trade breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- Only enter SELL on pattern breakdowns (Wedges/Flags) AFTER a close below pattern support on {micro_interval}. Never short into tight local consolidation or stabilization zones; require a confirmed downward momentum breakdown.
+- PREDICTIVE ANTICIPATION IS FORBIDDEN: Do not front-run breakdowns. Only enter SELL on pattern breakdowns (Wedges/Flags) AFTER a confirmed candle close below pattern support on {micro_interval}. Never short into higher-low structures or local stabilization zones above the POC.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
-- Never project TP targets through a major POC unless there is a confirmed volume-backed breakdown.
+- Never project TP targets through a major POC. The POC acts as a massive liquidity magnet and structural floor; you MUST place your primary Take Profit slightly BEFORE or exactly AT the POC in mean-reversion setups, never below it.
 - Do not enter a SELL position if price is holding ABOVE the POC with higher-lows or tight consolidation.
 - Only SELL if price definitively closes below the POC or is rejecting it from below after a failed reclaim.
 - Interpret tight consolidation below resistance (VAH/POC) as potential absorption (bullish) rather than rejection.
