@@ -57,6 +57,10 @@ def run_coach_pipeline(n: int):
     3. Ask Gemini for strategic patterns.
     4. Save the "coach_report".
     """
+    if n <= 0:
+        logger.warning(f"Invalid batch size: {n}. Must be a positive integer. Aborting.")
+        return
+
     logger.info(f"=== Starting Crypto Coach Pipeline (Agent C) - Batch Size: {n} ===")
     config = load_config()
     if not config:
@@ -129,7 +133,7 @@ def run_coach_pipeline(n: int):
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run the Crypto Coach Agent C.")
-    parser.add_argument("--batch", type=int, default=10, help="Number of recent reviews to analyze.")
+    parser.add_argument("--batch", type=int, required=True, help="Number of recent reviews to analyze (must be > 0).")
     args = parser.parse_args()
     
     run_coach_pipeline(n=args.batch)
