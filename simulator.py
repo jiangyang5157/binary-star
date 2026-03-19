@@ -134,7 +134,7 @@ class MarketSimulator:
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Crypto Market Regime Backtesting Simulator")
-    parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Symbol to test")
+    parser.add_argument("--symbol", type=str, help="Symbol to test (default: from config.yaml)")
     parser.add_argument("--days", type=int, default=30, help="Number of days to look back (default 30)")
     parser.add_argument("--sampling", type=int, default=15, help="Total number of points to sample (default 15)")
     parser.add_argument("--start", type=str, help="Start date (YYYY-MM-DD), overrides --days")
