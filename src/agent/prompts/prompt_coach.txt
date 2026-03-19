@@ -60,6 +60,6 @@ You MUST output your final decision in strict JSON format.
 }}
 
 **CRITICAL GUIDELINES**: 
-- **Strategic Summaries**: Provide a comprehensive high-level summary. Ensure `strategic_summary` is in English and `strategic_summary_zh` is in Chinese. There is no length restriction; be as detailed as necessary to explain the systemic shift.
+- **Strategic Summaries**: Provide a comprehensive high-level summary. There is no length restriction; be as detailed as necessary to explain the systemic shift.
 - **Section Targeting**: For `ADD`, use the EXACT header from `base_prompt`.
 - **Numerical Edge**: If stops are consistently too tight, explicitly REPLACE the SL placement rules.

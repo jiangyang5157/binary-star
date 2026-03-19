@@ -11,26 +11,26 @@ trading:
   # Volume Profile Settings
   value_area_pct: 0.80        # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
   
-  review_window_days: 7       # The duration (in days) that Agent B waits before evaluating a trade's success
-    
-  # Reviewer Evaluation Accuracy
-  # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
-  # Using '1h' ensures we don't miss "wicks" or sharp reversals that a '4h' or '1d' check might overlook.
-  review_evaluation_interval: "1h"
+  review_window_days: 3       # The duration (in days) that Agent B waits before evaluating a trade's success
   
   # Order Flow Analysis
   order_flow_lookback_bars: 4 # Works with micro_timeframe. Number of micro-timeframe bars used to calculate Delta (Buying vs Selling pressure)
 
   # Macro Timeframe: Used for high-level trend detection and Volume Profile (VAP) structure.
   macro_timeframe:
-    interval: "1d"            # K-line interval for macro analysis (e.g., 4h, 1d)
-    limit: 100                # Number of historical bars to fetch for the macro view
+    interval: "4h"            # K-line interval for macro analysis (e.g., 4h, 1d)
+    limit: 500                # Number of historical bars to fetch for the macro view (~83 days)
     
   # Micro Timeframe: Used for precise entry/exit analysis and local order flow observation.
   micro_timeframe:
-    interval: "4h"            # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
-    limit: 168                # Number of micro bars to fetch (168 * 1h = 1 week of data)
-
+    interval: "1h"            # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
+    limit: 240                # Number of micro bars to fetch (~10 days of 1h data)
+  
+  # Reviewer Evaluation Accuracy
+  # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
+  # Using '1h' ensures we don't miss "wicks" or sharp reversals that a '4h' or '1d' check might overlook.
+  review_evaluation_interval: "15m"
+  
 paths:
   raw_data_dir: "data/raw"             # Directory for temporary market data cache
   images_dir: "data/images"             # Directory where generated technical charts (.png) are stored
@@ -41,11 +41,11 @@ paths:
 automation:
   # Scheduler settings for 'scheduler.py'
   prediction_interval_hours: 4.0      # How often to run the Trader Agent (Agent A)
-  reviewer_cron_hours: 12.0           # How often to trigger the Reviewer pipeline (Agent B)
+  reviewer_cron_hours: 4.0           # How often to trigger the Reviewer pipeline (Agent B)
   
   # Safety lag: Ensures trades have enough time to "play out" before they are judged.
   # Usually matches (review_window_days * 24).
-  minimum_review_age_hours: 168.0
+  minimum_review_age_hours: 72.0
 
 notifications:
   min_confidence_threshold: 70        # Only send emails if AI confidence is >= this value

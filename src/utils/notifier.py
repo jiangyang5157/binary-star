@@ -41,8 +41,7 @@ class EmailNotifier:
         action = prediction.get('action', 'HOLD')
         
         # Format the full prediction JSON nicely
-        # Remove reasoning_zh from the displayed JSON to keep it clean if preferred, 
-        # or just show everything. The user asked for "basically just all prediction json".
+        # Remove reasoning_zh from the displayed JSON, and adding it back as a separate section
         prediction_copy = prediction.copy()
         reasoning_zh = prediction_copy.pop('reasoning_zh', 'N/A')
         
