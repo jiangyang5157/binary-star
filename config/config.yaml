@@ -7,7 +7,7 @@ symbol: "BTCUSDT"               # The trading pair to analyze (Binance Futures f
 prediction:
   trade_horizon_days: 1         # Target for Intraday Trading
   value_area_pct: 0.7           # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
-  order_flow_lookback_bars: 4   # Number of micro-timeframe bars used to calculate Delta
+  order_flow_lookback_bars: 8   # Increased from 4 to 8 for more stable 2h Delta context
   
   macro_timeframe:
     interval: "1h"              # K-line interval for macro analysis (1h for intraday)
@@ -38,7 +38,7 @@ paths:
   prompts_dir: "src/agent/prompts"          # AI prompt templates (.txt)
 
 notifications:
-  min_confidence_threshold: 70          # Only send emails if AI confidence is >= this value
+  min_confidence_threshold: 70          # Increased from 70: Only alert on 'Elite' setups
   smtp_server: "smtp.gmail.com"
   smtp_port: 587
   timezone: "Pacific/Auckland"          # Localized email timestamps (e.g. Pacific/Auckland, UTC)
@@ -46,12 +46,12 @@ notifications:
 agent:
   # gemini-flash-latest, gemini-3.1-pro-preview 
   trader_model: "gemini-flash-latest"   # Optimized for speed and cost
-  reviewer_model: "gemini-flash-latest" # Set to 'pro' for deep logical flaw analysis
+  reviewer_model: "gemini-3.1-pro-preview" # Set to 'pro' for deep logical flaw analysis
   coach_model: "gemini-3.1-pro-preview" # Senior Strategist: Patterns & Rules
 
   # Reasoning Parameters
   trader_temp_initial: 1.0              # Pass 1: Initial analysis
   trader_temp_critique: 1.0             # Pass 2: Red Team Critique
-  trader_temp_final: 0.5                # Pass 3: Final JSON Decision
+  trader_temp_final: 0.1                # Pass 3: Finalize refined decision
   review_temperature: 1.0               # Agent B: Single-trade diagnostics
   coach_temperature: 1.0                # Agent C: Strategic pattern analysis (batch)

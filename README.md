@@ -48,7 +48,7 @@ crypto/
 
 | 阶段 | 核心组件 | 输入数据 | 输出产物 | 核心目标 |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. 预测 (Trade)** | **Agent A: Trader** | 4h/1h K线 + 情绪/清算数据 | `prediction.json` | 生成三轮推演交易信号 |
+| **1. 预测 (Trade)** | **Agent A: Trader** | 多周期（Macro/Micro）K线 + 情绪数据 | `prediction.json` | 生成三轮推演交易信号 |
 | **2. 审计 (Review)** | **Agent B: Reviewer** | 历史预测 + 真实市场数据 | `review.json` | 判定 TP/SL 触碰与逻辑偏差 |
 | **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `prompt_patch` | 识别系统性弱点与交易偏见 |
 | **4. 进化 (Evolve)** | **Prompt Manager** | Base Prompt + Coach 补丁 | **动态补丁指令** | 将新规则实时注入下一次交易 |
@@ -56,11 +56,11 @@ crypto/
 ---
 
 ### 👤 Agent A (Trader) — 执行大脑
-*   **核心逻辑**：基于双周期（4h/1h）Volume Profile 和订单流（Delta）进行分析。
+*   **核心逻辑**：基于双周期（Macro/Micro）Volume Profile 和订单流（Delta）进行分析。
 *   **三轮推演**：`初始分析` -> `红队质疑 (Red Team)` -> `最终决策`。有效降低 AI 幻觉和冲动交易。
 
 ### ⚖️ Agent B (Reviewer) — 铁面审计
-*   **核心逻辑**：在预设持仓周期结束后，拉取真实 15m K线进行“毫秒级”盈亏判定。
+*   **核心逻辑**：在预设持仓周期结束后，根据 `review_kline_interval` 定义的高精度 K 线进行盈亏判定。
 *   **职责**：对比 AI 预测的止盈/止损与市场真实的高低点，生成包含“经验教训”的技术性 post-mortem。
 
 ### 🧠 Agent C (Coach) — 战略策略师
@@ -113,9 +113,9 @@ RECIPIENT_APP_PASSWORD=your_gmail_app_password
 ```yaml
 symbol: "BTCUSDT"                 # 交易对
 prediction:
-  trade_horizon_days: 7           # 预测持仓周期
+  trade_horizon_days: <N>         # 预期持仓周期（见 config.yaml）
 review:
-  minimum_review_age_hours: 24    # 预测多久后才能复盘
+  minimum_review_age_hours: <N>   # 最小复盘等待时间（见 config.yaml）
 ```
 
 ### 第四步：开始使用
