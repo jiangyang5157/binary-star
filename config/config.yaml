@@ -5,30 +5,29 @@
 symbol: "BTCUSDT"               # The trading pair to analyze (Binance Futures format)
 
 prediction:
-  trade_horizon_days: 7         # Expected holding period for Agent A and review window for Agent B
-  value_area_pct: 0.82          # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
+  trade_horizon_days: 1         # Target for Intraday Trading
+  value_area_pct: 0.7           # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
   order_flow_lookback_bars: 4   # Number of micro-timeframe bars used to calculate Delta
   
-  # Macro Timeframe: Used for high-level trend detection and Volume Profile (VAP) structure.
   macro_timeframe:
-    interval: "4h"              # K-line interval for macro analysis (e.g., 4h, 1d)
-    limit: 500                  # Number of historical bars to fetch (~83 days)
+    interval: "1h"              # K-line interval for macro analysis (1h for intraday)
+    limit: 336                  # 14 days of history (336 * 1h)
     
   # Micro Timeframe: Used for precise entry/exit analysis and local order flow observation.
   micro_timeframe:
-    interval: "1h"              # K-line interval for micro analysis (e.g., 15m, 1h, 4h)
-    limit: 240                  # Number of micro bars to fetch (~10 days of 1h data)
+    interval: "15m"             # 15m for entry precision
+    limit: 192                  # 2 days of history (192 * 15m)
 
 review:
   # Reviewer Evaluation Accuracy
   # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
-  review_kline_interval: "15m"  # Ensures we don't miss "wicks" or sharp reversals
+  review_kline_interval: "1m"   # 1m precision for intraday review
   
   # Safety lag: Ensures trades have enough time to "play out" before they are judged.
-  minimum_review_age_hours: 24
+  minimum_review_age_hours: 4
 
 automation:
-  prediction_interval_hours: 4.0      # How often to run the Trader Agent (Agent A)
+  prediction_interval_hours: 1.0      # Hourly updates for intraday
   review_interval_hours: 4.0          # How often to trigger the Reviewer pipeline (Agent B)
   
 paths:
@@ -47,12 +46,12 @@ notifications:
 agent:
   # gemini-flash-latest, gemini-3.1-pro-preview 
   trader_model: "gemini-flash-latest"   # Optimized for speed and cost
-  reviewer_model: "gemini-3.1-pro-preview" # Set to 'pro' for deep logical flaw analysis
-  coach_model: "gemini-3.1-pro-preview"    # Senior Strategist: Patterns & Rules
+  reviewer_model: "gemini-flash-latest" # Set to 'pro' for deep logical flaw analysis
+  coach_model: "gemini-3.1-pro-preview" # Senior Strategist: Patterns & Rules
 
   # Reasoning Parameters
   trader_temp_initial: 1.0              # Pass 1: Initial analysis
   trader_temp_critique: 1.0             # Pass 2: Red Team Critique
-  trader_temp_final: 0.6                # Pass 3: Final JSON Decision
+  trader_temp_final: 0.5                # Pass 3: Final JSON Decision
   review_temperature: 1.0               # Agent B: Single-trade diagnostics
   coach_temperature: 1.0                # Agent C: Strategic pattern analysis (batch)
