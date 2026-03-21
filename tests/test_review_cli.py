@@ -21,7 +21,7 @@ def test_aging_protection_logic():
     
     # Setup mock env
     test_base = os.path.join(PROJECT_ROOT, "tests/tmp_cli_test")
-    data_dir = os.path.join(test_base, "data/raw")
+    data_dir = os.path.join(test_base, "data")
     pred_dir = os.path.join(data_dir, "predictions")
     rev_dir = os.path.join(data_dir, "reviews")
     

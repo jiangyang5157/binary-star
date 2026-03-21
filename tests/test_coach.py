@@ -15,7 +15,7 @@ def test_coach_pipeline_scanning():
     
     # Setup mock env
     test_base = os.path.join(PROJECT_ROOT, "tests/tmp_coach_test")
-    rev_dir = os.path.join(test_base, "data/raw/reviews")
+    rev_dir = os.path.join(test_base, "data/reviews")
     if os.path.exists(test_base):
         shutil.rmtree(test_base)
     os.makedirs(rev_dir, exist_ok=True)

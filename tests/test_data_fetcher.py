@@ -61,7 +61,7 @@ def test_data_fetcher_components():
         print("    Binance Fetcher initialized in PUBLIC mode (No API Key).")
         
     # 4. Storage utility test
-    test_filepath = os.path.join(os.path.dirname(__file__), "..", "data", "raw", f"{symbol}_test.json")
+    test_filepath = os.path.join(os.path.dirname(__file__), "..", "data", f"{symbol}_test.json")
     print(f"\n[4] Testing JSON Storage utility ({test_filepath})...")
     DataStorage.save_json(order_book, test_filepath)
     loaded_data = DataStorage.load_json(test_filepath)
