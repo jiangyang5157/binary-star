@@ -76,6 +76,8 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         _ = config['prediction']['macro_timeframe']['limit']
         _ = config['prediction']['micro_timeframe']['interval']
         _ = config['prediction']['micro_timeframe']['limit']
+        _ = config['prediction']['liquidation_fetch_limit']
+        _ = config['prediction']['liquidation_context_limit']
         
         # Agent
         _ = config['agent']['predictor_model']
@@ -135,7 +137,8 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         sentiment_kwargs = fetch_kwargs
     
     top_ls_ratio = bf.fetch_top_long_short_accounts(symbol=symbol, period=macro_config['interval'], limit=1, **sentiment_kwargs)
-    liquidations = bf.fetch_liquidations(symbol=symbol, limit=20) # Get recent 20 liquidations
+    liq_fetch_limit = config['prediction']['liquidation_fetch_limit']
+    liquidations = bf.fetch_liquidations(symbol=symbol, limit=liq_fetch_limit)
     
     # Calculate Order Flow Delta from MICRO klines
     # Delta = (Taker Buy Base Volume) - (Total Volume - Taker Buy Base Volume)
@@ -163,7 +166,7 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         "top_traders_ls_ratio": top_ls_ratio[0].get('longShortRatio', 'N/A') if (isinstance(top_ls_ratio, list) and top_ls_ratio) else 'N/A',
         "recent_liquidations": [
             {"price": l.get('p'), "side": l.get('S'), "amount": l.get('q')} 
-            for l in liquidations[:5] # Just top 5 for context density
+            for l in liquidations[:config['prediction']['liquidation_context_limit']]
         ],
         "order_flow_delta_recent": f"{total_delta:.4f} {symbol[:-4]}",
         "current_time": override_timestamp.isoformat() if override_timestamp else datetime.now(timezone.utc).isoformat()
