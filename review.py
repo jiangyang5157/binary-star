@@ -162,6 +162,9 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
 
             try:
                 ts_str = prediction['timestamp']
+                # Standardize UTC format for older Python fromisoformat versions
+                if ts_str.endswith('Z'):
+                    ts_str = ts_str.replace('Z', '+00:00')
                 dt_start = datetime.fromisoformat(ts_str)
                 if dt_start.tzinfo is None:
                     dt_start = dt_start.replace(tzinfo=timezone.utc)
