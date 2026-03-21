@@ -68,7 +68,7 @@ def start_scheduler():
     pred_hours = automation['prediction_interval_hours']
     rev_hours = automation['review_interval_hours']
 
-    logger.info("=== Crypto Triple-Agent Scheduler Started ===")
+    logger.info("=== Crypto Agent Scheduler Started ===")
     logger.info(f"Trader Interval: {pred_hours} hours")
     logger.info(f"Reviewer Interval: {rev_hours} hours")
 

@@ -1,5 +1,5 @@
 # =============================================================================
-# Crypto Triple-Agent Trading System Configuration (SSoT)
+# Crypto Trading System Configuration (SSoT)
 # =============================================================================
 # All technical parameters, timeframes, and model selections are defined here.
 symbol: "BTCUSDT"               # The trading pair to analyze (Binance Futures format)

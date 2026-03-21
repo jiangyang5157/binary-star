@@ -1,8 +1,8 @@
-# 🚀 Crypto Triple-Agent Trading Analysis System
+# 🚀 Crypto Trading Analysis System
 
 > **基于 Google Gemini 多模态 AI 的闭环自进化交易分析系统**
 
-本项目是一个模拟对冲基金决策链的 **三智能体 (Triple-Agent)** 系统。通过 **Trader (交易)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从"实时决策"到"历史复盘"再到"策略自动进化"的全闭环。
+本项目是一个模拟对冲基金决策链的 **多智能体 ** 系统。通过 **Trader (交易)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从"实时决策"到"历史复盘"再到"策略自动进化"的全闭环。
 
 ---
 
@@ -41,7 +41,7 @@ crypto/
 
 ## 🏗 系统架构
 
-本系统采用 **Triple-Agent (三方代理) 闭环自进化架构**。不同于传统单向脚本，它通过“生产-审计-复盘-注入”形成持续迭代的交易大脑。
+本系统采用 **闭环自进化架构**。不同于传统单向脚本，它通过“生产-审计-复盘-注入”形成持续迭代的交易大脑。
 
 ### 技术生命周期 (Technical Lifecycle)
 
@@ -191,4 +191,4 @@ python simulator.py --start 2026-01-01 --end 2026-03-01 --mode spaced
 ---
 
 ## 许可证
-MIT © 2026 Crypto Triple-Agent Team
+MIT

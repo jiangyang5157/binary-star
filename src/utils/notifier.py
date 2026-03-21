@@ -44,9 +44,9 @@ class EmailNotifier:
         # Format the full prediction JSON nicely
         # Remove reasoning_zh from the displayed JSON, and adding it back as a separate section
         prediction_copy = prediction.copy()
+        formatted_json = json.dumps(prediction_copy, indent=4)
         reasoning_zh = prediction_copy.pop('reasoning_zh', 'N/A')
         
-        formatted_json = json.dumps(prediction_copy, indent=4)
         
         # Optimized Time Conversion
         local_time_str = "N/A"
@@ -85,6 +85,21 @@ class EmailNotifier:
         tp = prediction.get('take_profit', 'N/A')
         sl = prediction.get('stop_loss', 'N/A')
 
+        # Calculate TP/SL Ratio
+        tpsl_ratio = "N/A"
+        try:
+            cp_f = float(current_price)
+            tp_f = float(tp)
+            sl_f = float(sl)
+            if action == "BUY":
+                if cp_f > sl_f:
+                    tpsl_ratio = f"{(tp_f - cp_f) / (cp_f - sl_f):.2f}"
+            elif action == "SELL":
+                if sl_f > cp_f:
+                    tpsl_ratio = f"{(cp_f - tp_f) / (sl_f - cp_f):.2f}"
+        except Exception:
+            pass
+
         body = f"""
         <html>
         <body style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #2c3e50; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
@@ -92,27 +107,27 @@ class EmailNotifier:
                 
                 <!-- Header Section -->
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: {action_color}; margin: 0; font-size: 28px; letter-spacing: 1px;">🚀 {action} {symbol}</h1>
+                    <h1 style="color: {action_color}; margin: 0; font-size: 28px; letter-spacing: 1px;">🚀 {action} {symbol} <span style="font-size: 20px; opacity: 0.8;">({confidence}%)</span></h1>
                     <p style="color: #7f8c8d; margin-top: 5px; font-size: 14px;">Signal Detected at: <span style="color: #34495e; font-weight: 600;">{local_time_str}</span></p>
                 </div>
 
                 <!-- Core Details Grid -->
                 <div style="background-color: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 10px; padding: 20px; margin-bottom: 30px; display: flex; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px; padding: 10px;">
-                        <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">Confidence</span>
-                        <span style="font-size: 24px; font-weight: bold; color: {action_color};">{confidence}%</span>
-                    </div>
-                    <div style="flex: 1; min-width: 200px; padding: 10px;">
+                    <div style="flex: 1; min-width: 140px; padding: 10px; border-right: 1px solid #eee;">
                         <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">Current Price</span>
-                        <span style="font-size: 20px; font-weight: 600;">{current_price}</span>
+                        <span style="font-size: 18px; font-weight: 600;">{current_price}</span>
                     </div>
-                    <div style="flex: 1; min-width: 200px; padding: 10px;">
-                        <span style="display: block; font-size: 12px; color: #27ae60; text-transform: uppercase;">Take Profit</span>
-                        <span style="font-size: 20px; font-weight: 600; color: #27ae60;">{tp}</span>
-                    </div>
-                    <div style="flex: 1; min-width: 200px; padding: 10px;">
+                    <div style="flex: 1; min-width: 140px; padding: 10px; border-right: 1px solid #eee;">
                         <span style="display: block; font-size: 12px; color: #e74c3c; text-transform: uppercase;">Stop Loss</span>
-                        <span style="font-size: 20px; font-weight: 600; color: #e74c3c;">{sl}</span>
+                        <span style="font-size: 18px; font-weight: 600; color: #e74c3c;">{sl}</span>
+                    </div>
+                    <div style="flex: 1; min-width: 140px; padding: 10px; border-right: 1px solid #eee;">
+                        <span style="display: block; font-size: 12px; color: #27ae60; text-transform: uppercase;">Take Profit</span>
+                        <span style="font-size: 18px; font-weight: 600; color: #27ae60;">{tp}</span>
+                    </div>
+                    <div style="flex: 1; min-width: 140px; padding: 10px;">
+                        <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">TP/SL</span>
+                        <span style="font-size: 18px; font-weight: 600; color: #3498db;">{tpsl_ratio}</span>
                     </div>
                 </div>
 
@@ -120,11 +135,6 @@ class EmailNotifier:
                 <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; border-left: 6px solid #3498db; margin-bottom: 30px;">
                     <h3 style="margin-top: 0; color: #2980b9; font-size: 18px;">💡 Reasoning</h3>
                     <p style="font-size: 16px; margin-bottom: 0; color: #34495e;">{reasoning_zh}</p>
-                </div>
-
-                <!-- Metadata -->
-                <div style="font-size: 12px; color: #bdc3c7; background: #fafafa; padding: 10px; border-radius: 5px; margin-bottom: 30px;">
-                    <strong>System Metadata:</strong> Symbol: {metadata.get('symbol')} | Horizon: {metadata.get('trade_horizon_days')}d | Model: {metadata.get('model')}
                 </div>
 
                 <!-- Visual Charts -->
