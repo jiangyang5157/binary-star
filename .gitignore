@@ -9,7 +9,7 @@ __pycache__/
 data/predictions/
 data/reviews/
 data/coach/
-data/image/
+data/images/
 *.log
 nohup.out
 

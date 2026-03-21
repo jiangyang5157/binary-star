@@ -55,6 +55,7 @@ def test_aging_protection_logic():
     reviewer_main.load_config = lambda: {
         "symbol": "BTCUSDT",
         "paths": {
+            "base_dir": "data",
             "predictions_dir": pred_dir, 
             "reviews_dir": rev_dir,
             "images_dir": "data/images", 
@@ -81,6 +82,9 @@ def test_aging_protection_logic():
         }
     }
     
+    original_agent_review = reviewer_main.ReviewerAgent.review
+    original_fetch = reviewer_main.BinanceDataFetcher.fetch_historical_klines
+
     try:
         # Run WITHOUT force
         run_reviewer_pipeline()
@@ -98,10 +102,8 @@ def test_aging_protection_logic():
         # but we want to see it REAACH the fetching stage.
         # We'll mock the internal components enough to avoid network calls.
         
-        original_agent_review = reviewer_main.ReviewerAgent.review
         reviewer_main.ReviewerAgent.review = lambda *args, **kwargs: json.dumps({"evaluation_score": 100, "tp_sl_result": "TP_HIT", "prediction_post_mortem": "Mock post-mortem.", "prediction_post_mortem_zh": "模拟复盘。"})
         
-        original_fetch = reviewer_main.BinanceDataFetcher.fetch_historical_klines
         reviewer_main.BinanceDataFetcher.fetch_historical_klines = lambda *args, **kwargs: [
             [0, "100", "110", "90", "105", 0, 0] # Mock kline
         ]
