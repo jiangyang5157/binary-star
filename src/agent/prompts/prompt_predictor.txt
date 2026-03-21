@@ -40,7 +40,7 @@ Specifically look for:
 - Do not blindly entry breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- STRICT BAN ON FRONT-RUNNING: PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN. You MUST explicitly verify current_price vs structural levels (POC/VAH/VAL). If you are BEARISH and targeting a breakdown, current_price MUST ALREADY BE MATHEMATICALLY BELOW the support level. If current_price >= support, YOU CANNOT SHORT. Do not short directly into a POC or VAL expecting it to break due to a 'volume vacuum'. Assume support holds until broken.
+- STRICT BAN ON FRONT-RUNNING & "LIQUIDITY VACUUM" HALLUCINATIONS: PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN. If current_price >= support (POC/VAL), YOU CANNOT SHORT expecting a breakdown. Do NOT use terms like 'liquidity vacuum', 'air pocket', 'volume void', or 'volume gap'. Assume support is an IMPENETRABLE FLOOR until mathematically broken.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
@@ -67,7 +67,7 @@ Specifically look for:
 - Mathematical R:R Check (STRICT): You MUST calculate the Reward-to-Risk ratio. Condition A: (TP distance / SL distance) MUST be >= 1.5. Condition B: TP distance MUST be <= 3.5%. If Condition A requires a TP distance > 3.5% because your structural SL is wide, YOU MUST RETURN 'NEUTRAL'. NEVER stretch a TP beyond 3.5% just to fix the math. A forced trade is a bad trade. Returning NEUTRAL is the highly preferred, correct behavior when math constraints conflict.
 - **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of **at least 1.5%** from the `current_price`. Ignore setups with smaller expected gains.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL).
-- Target Greed Constraint (HARD LIMIT): Intraday TPs MUST NOT exceed a 3.5% distance from the entry price under any circumstances. If your theoretical target is >3.5% away, YOU MUST ABORT AND OUTPUT 'NEUTRAL', OR scale down to the immediate local hurdle <=3.5%. Furthermore, you MUST front-run major targets (POC/VAL/VAH) by at least 0.5% to account for premature liquidity absorption. Never place TPs exactly at or beyond macro levels.
+- Target Greed Constraint (HARD LIMIT): Intraday TPs MUST NOT exceed a 3.5% distance from the entry price. If your target requires >3.5% travel, you MUST manually truncate TP to <=3.5% or output 'NEUTRAL'. Furthermore, you MUST front-run major structural targets (POC/VAL/VAH) by at least 0.3% (e.g., place TP slightly above support, never exactly on it) to guarantee fills.
 - Stop-Loss Placement & ATR: Use recent swing highs/lows, the POC, or ATR for SL placement. NEVER place stops too tightly (<1.5% away) in volatile regimes without allowing ATR 'breathing room' to avoid wick stop-hunts. For BEARISH opinions, SL MUST be placed mathematically BEYOND the structural resistance (e.g., above the POC/VAH), never inside the void ahead of it.
 - **Market Opinion**: Based on your technical analysis, provide a Market Opinion:
     - `BULLISH`: Expecting an upward move.
@@ -86,7 +86,7 @@ The JSON must have the following structure:
   "current_price": 70000.5,
   "take_profit": 75000.0,
   "stop_loss": 68000.0,
-  "reasoning": "Technical, logical analysis justifying the opinion. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
+  "reasoning": "MANDATORY CHECKLIST: 1) TP Dist % (Must be <= 3.5%). 2) SL Dist %. 3) R:R (Must be >= 1.5). 4) Price vs POC (If price >= support, NO SHORT). 5) Technical justification. NO banned terms ('liquidity vacuum', 'air pocket', 'volume gap').",
   "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心研判。要求逻辑清晰、对用户友好且包含关键技术位点。"
 }}
 NOTE: For NEUTRAL opinions, set take_profit and stop_loss to null.
