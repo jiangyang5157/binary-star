@@ -60,7 +60,7 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         logger.error(f"Failed to load config or missing required key: {e}")
         raise
 
-def run_coach_pipeline(n: int):
+def run_coach_pipeline(n: int, base_dir: str = None):
     """
     Main logic for Agent C (The Coach):
     1. Scan for recent reviews of the same symbol.
@@ -76,6 +76,12 @@ def run_coach_pipeline(n: int):
     config = load_config()
     if not config:
         return
+
+    if base_dir:
+        config['paths']['predictions_dir'] = os.path.join(base_dir, "predictions")
+        config['paths']['reviews_dir'] = os.path.join(base_dir, "reviews")
+        config['paths']['images_dir'] = os.path.join(base_dir, "images")
+        config['paths']['coach_dir'] = os.path.join(base_dir, "coach")
 
     symbol = config['symbol']
     reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['reviews_dir'])
@@ -147,6 +153,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run the Crypto Coach Agent C.")
     parser.add_argument("--batch", type=int, required=True, help="Number of recent reviews to analyze (must be > 0).")
+    parser.add_argument("--base-dir", type=str, default=None, help="Base directory override (e.g., 'samples').")
     args = parser.parse_args()
     
-    run_coach_pipeline(n=args.batch)
+    run_coach_pipeline(n=args.batch, base_dir=args.base_dir)

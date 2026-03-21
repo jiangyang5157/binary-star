@@ -39,7 +39,7 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         logger.error(f"Failed to load config: {e}")
         raise
 
-def run_predictor(override_timestamp: datetime = None, current_position: dict = None):
+def run_predictor(override_timestamp: datetime = None, current_position: dict = None, base_dir: str = None):
     """
     Executes the full pipeline for Predictor:
     1. Read Config
@@ -54,6 +54,12 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         logger.info("=== Starting Crypto Predictor ===")
     
     config = load_config()
+    
+    if base_dir:
+        config['paths']['predictions_dir'] = os.path.join(base_dir, "predictions")
+        config['paths']['reviews_dir'] = os.path.join(base_dir, "reviews")
+        config['paths']['images_dir'] = os.path.join(base_dir, "images")
+        config['paths']['coach_dir'] = os.path.join(base_dir, "coach")
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
@@ -350,6 +356,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Crypto Predictor CLI")
     parser.add_argument("--position", type=str, choices=["LONG", "SHORT", "NONE"], default="NONE", help="Current position type (LONG, SHORT, NONE)")
     parser.add_argument("--entry", type=float, default=0.0, help="Entry price of the current position")
+    parser.add_argument("--base-dir", type=str, default=None, help="Base directory override")
     
     args = parser.parse_args()
     
@@ -360,4 +367,4 @@ if __name__ == "__main__":
             "entry_price": args.entry if args.entry != 0.0 else None
         }
     
-    run_predictor(current_position=current_position)
+    run_predictor(current_position=current_position, base_dir=args.base_dir)

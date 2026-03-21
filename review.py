@@ -86,7 +86,7 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: D
     
     return result
 
-def main_review(target_files: List[str] = None, override_now: datetime = None, force: bool = False):
+def main_review(target_files: List[str] = None, override_now: datetime = None, force: bool = False, base_dir: str = None):
     """
     Main logic for Agent B (The Reviewer):
     1. Scan for past predictions.
@@ -96,6 +96,12 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
     """
     logger.info("=== Starting Crypto Review Pipeline (Agent B) ===")
     config = load_config()
+    
+    if base_dir:
+        config['paths']['predictions_dir'] = os.path.join(base_dir, "predictions")
+        config['paths']['reviews_dir'] = os.path.join(base_dir, "reviews")
+        config['paths']['images_dir'] = os.path.join(base_dir, "images")
+        config['paths']['coach_dir'] = os.path.join(base_dir, "coach")
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
@@ -300,6 +306,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run the Crypto Review Agent B.")
     parser.add_argument("--force", action="store_true", help="Bypass aging protection.")
+    parser.add_argument("--base-dir", type=str, default=None, help="Base directory override")
     args = parser.parse_args()
     
-    main_review(force=args.force)
+    main_review(force=args.force, base_dir=args.base_dir)
