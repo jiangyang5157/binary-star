@@ -65,12 +65,8 @@ def start_scheduler():
     automation = config['automation']
     
     # Pre-flight check for scheduler
-    try:
-        pred_hours = automation['prediction_interval_hours']
-        rev_hours = automation['review_interval_hours']
-    except KeyError as e:
-        logger.error(f"Config is missing required automation key: {e}")
-        return
+    pred_hours = automation['prediction_interval_hours']
+    rev_hours = automation['review_interval_hours']
 
     logger.info("=== Crypto Triple-Agent Scheduler Started ===")
     logger.info(f"Trader Interval: {pred_hours} hours")

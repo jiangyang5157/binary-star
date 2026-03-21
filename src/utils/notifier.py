@@ -84,7 +84,6 @@ class EmailNotifier:
         current_price = prediction.get('current_price', 'N/A')
         tp = prediction.get('take_profit', 'N/A')
         sl = prediction.get('stop_loss', 'N/A')
-        reasoning = prediction.get('reasoning', 'N/A')
 
         body = f"""
         <html>
