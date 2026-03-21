@@ -62,38 +62,83 @@ class EmailNotifier:
         
         subject = f"Crypto Alert: {action} {symbol} (Confidence: {confidence}%)"
         
-        # Prepare HTML body with image placeholders
+        # Prepare HTML body with premium styling
         img_html = ""
         if chart_paths:
             img_html = "<div style='margin-top: 20px;'>"
             for i, path in enumerate(chart_paths):
                 if os.path.exists(path):
                     cid = f"image_{i}"
-                    img_html += f"<div style='margin-bottom: 20px;'><h4 style='color: #2c3e50;'>Chart {i+1} ({os.path.basename(path)}):</h4><img src='cid:{cid}' style='max-width: 100%; border: 1px solid #ddd; border-radius: 5px;'></div>"
+                    desc = "Macro Chart" if i == 0 else "Micro Chart"
+                    img_html += f"""
+                    <div style='margin-bottom: 25px;'>
+                        <h4 style='color: #34495e; margin-bottom: 10px;'>📊 {desc} ({os.path.basename(path)}):</h4>
+                        <img src='cid:{cid}' style='max-width: 100%; border: 2px solid #ecf0f1; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>
+                    </div>"""
             img_html += "</div>"
         
+        # Determine Color based on action
+        action_color = "#27ae60" if action == "BUY" else "#e74c3c" if action == "SELL" else "#f39c12"
+        
+        metadata = prediction.get('metadata', {})
+        current_price = prediction.get('current_price', 'N/A')
+        tp = prediction.get('take_profit', 'N/A')
+        sl = prediction.get('stop_loss', 'N/A')
+        reasoning = prediction.get('reasoning', 'N/A')
+
         body = f"""
         <html>
-        <body style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
-            <div style="background-color: #f4f4f4; padding: 20px; border-radius: 10px;">
-                <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">🚀 Trade Signal Detected: {action} {symbol}</h2>
-                <div style="background-color: #fff; padding: 15px; border-radius: 5px; border: 1px solid #ddd;">
-                    <pre style="background: #272822; color: #f8f8f2; padding: 15px; border-radius: 5px; overflow-x: auto;"><code>{formatted_json}</code></pre>
-                </div>
+        <body style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #2c3e50; line-height: 1.6; background-color: #f9f9f9; padding: 20px;">
+            <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #eee;">
                 
-                <div style="margin-top: 15px; font-weight: bold; color: #34495e;">
-                    📍 Local Time ({self.timezone}): <span style="color: #e67e22;">{local_time_str}</span>
+                <!-- Header Section -->
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: {action_color}; margin: 0; font-size: 28px; letter-spacing: 1px;">🚀 {action} {symbol}</h1>
+                    <p style="color: #7f8c8d; margin-top: 5px; font-size: 14px;">Signal Detected at: <span style="color: #34495e; font-weight: 600;">{local_time_str}</span></p>
                 </div>
-                
-                <h3 style="color: #2c3e50; margin-top: 25px;">🇨🇳 中文解析 (Mandarin Translation):</h3>
-                <div style="background-color: #e8f4fd; padding: 15px; border-radius: 5px; border-left: 5px solid #3498db; font-size: 1.1em;">
-                    {reasoning_zh}
+
+                <!-- Core Details Grid -->
+                <div style="background-color: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 10px; padding: 20px; margin-bottom: 30px; display: flex; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px; padding: 10px;">
+                        <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">Confidence</span>
+                        <span style="font-size: 24px; font-weight: bold; color: {action_color};">{confidence}%</span>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; padding: 10px;">
+                        <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">Current Price</span>
+                        <span style="font-size: 20px; font-weight: 600;">{current_price}</span>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; padding: 10px;">
+                        <span style="display: block; font-size: 12px; color: #27ae60; text-transform: uppercase;">Take Profit</span>
+                        <span style="font-size: 20px; font-weight: 600; color: #27ae60;">{tp}</span>
+                    </div>
+                    <div style="flex: 1; min-width: 200px; padding: 10px;">
+                        <span style="display: block; font-size: 12px; color: #e74c3c; text-transform: uppercase;">Stop Loss</span>
+                        <span style="font-size: 20px; font-weight: 600; color: #e74c3c;">{sl}</span>
+                    </div>
                 </div>
-                
+
+                <!-- Reasoning Section (Mandarin) -->
+                <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; border-left: 6px solid #3498db; margin-bottom: 30px;">
+                    <h3 style="margin-top: 0; color: #2980b9; font-size: 18px;">💡 Reasoning</h3>
+                    <p style="font-size: 16px; margin-bottom: 0; color: #34495e;">{reasoning_zh}</p>
+                </div>
+
+                <!-- Metadata -->
+                <div style="font-size: 12px; color: #bdc3c7; background: #fafafa; padding: 10px; border-radius: 5px; margin-bottom: 30px;">
+                    <strong>System Metadata:</strong> Symbol: {metadata.get('symbol')} | Horizon: {metadata.get('trade_horizon_days')}d | Model: {metadata.get('model')}
+                </div>
+
+                <!-- Visual Charts -->
                 {img_html}
-                
-                <p style="margin-top: 30px; border-top: 1px solid #ddd; padding-top: 10px; font-size: 0.9em; color: #7f8c8d;">
-                    This is an automated notification from your Crypto Agent System.
+
+                <!-- Technical Log (Accordion-style implied) -->
+                <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 15px;">
+                    <p style="font-size: 12px; color: #95a5a6; text-transform: uppercase;">Full Technical Payload:</p>
+                    <pre style="background: #272822; color: #c5c8c6; padding: 15px; border-radius: 5px; font-size: 11px; overflow-x: auto; line-height: 1.4;"><code>{formatted_json}</code></pre>
+                </div>
+
+                <p style="text-align: center; color: #bdc3c7; font-size: 11px; margin-top: 30px;">
+                    This is an automated notification from your <strong>Crypto Triple-Agent System</strong>.
                 </p>
             </div>
         </body>
