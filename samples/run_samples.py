@@ -8,8 +8,8 @@ import re
 # Append root to path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from src.pipeline.predictor import run_from_simulator as run_predictor
-from src.pipeline.review import review_historical_predictions as run_reviewer_pipeline
+from predictor import run_predictor
+from review import main_review as run_reviewer_pipeline
 from src.utils.logger import setup_logging
 
 setup_logging(log_file="samples/samples.log", level=logging.INFO, force=True)
