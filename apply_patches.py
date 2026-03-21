@@ -164,7 +164,7 @@ def main():
         # Strict existence check for required keys
         paths_config = config['paths']
         prompts_dir = paths_config['prompts_dir']
-        trader_prompt_file = paths_config['prompt_trader_filename']
+        trader_prompt_file = paths_config['prompt_predictor_filename']
         # Path to the patch file (e.g. data/raw/coach/report.json)
         report_path = args.patch_filename
         

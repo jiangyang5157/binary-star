@@ -35,9 +35,9 @@ def test_aging_protection_logic():
     pred_data = {
         "timestamp": recent_ts,
         "action": "BUY",
-        "metadata": {
+        "config_context": {
             "symbol": "BTCUSDT",
-            "trade_horizon_days": 7
+            "prediction_horizon_days": 7
         }
     }
     DataStorage.save_json(pred_data, os.path.join(pred_dir, filename))
@@ -59,16 +59,16 @@ def test_aging_protection_logic():
             "reviews_dir": rev_dir,
             "images_dir": "data/images", 
             "prompts_dir": "src/agent/prompts",
-            "prompt_trader_filename": "prompt_trader.txt",
+            "prompt_predictor_filename": "prompt_predictor.txt",
             "prompt_reviewer_filename": "prompt_reviewer.txt"
         },
         "prediction": {
-            "trade_horizon_days": 7,
+            "prediction_horizon_days": 7,
             "macro_timeframe": {"interval": "1d", "limit": 100},
             "micro_timeframe": {"interval": "4h", "limit": 168}
         },
         "agent": {
-            "trader_model": "gemini-flash-latest",
+            "predictor_model": "gemini-flash-latest",
             "reviewer_model": "gemini-flash-latest",
             "review_temperature": 1.0
         },
@@ -99,7 +99,7 @@ def test_aging_protection_logic():
         # We'll mock the internal components enough to avoid network calls.
         
         original_agent_review = reviewer_main.ReviewerAgent.review
-        reviewer_main.ReviewerAgent.review = lambda *args, **kwargs: json.dumps({"evaluation_score": 100, "tp_sl_result": "TP_HIT", "trade_post_mortem": "Mock post-mortem.", "trade_post_mortem_zh": "模拟复盘。"})
+        reviewer_main.ReviewerAgent.review = lambda *args, **kwargs: json.dumps({"evaluation_score": 100, "tp_sl_result": "TP_HIT", "prediction_post_mortem": "Mock post-mortem.", "prediction_post_mortem_zh": "模拟复盘。"})
         
         original_fetch = reviewer_main.BinanceDataFetcher.fetch_historical_klines
         reviewer_main.BinanceDataFetcher.fetch_historical_klines = lambda *args, **kwargs: [

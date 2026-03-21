@@ -1,6 +1,6 @@
 symbol: BTCUSDT
 prediction:
-  trade_horizon_days: 1
+  prediction_horizon_days: 1
   value_area_pct: 0.7
   order_flow_lookback_bars: 8
   macro_timeframe:
@@ -21,7 +21,7 @@ paths:
   coach_dir: data/raw/coach
   images_dir: data/images
   prompts_dir: src/agent/prompts
-  prompt_trader_filename: prompt_trader.txt
+  prompt_predictor_filename: prompt_predictor.txt
   prompt_reviewer_filename: prompt_reviewer.txt
   prompt_coach_filename: prompt_coach.txt
 notifications:
@@ -30,11 +30,11 @@ notifications:
   smtp_port: 587
   timezone: Pacific/Auckland
 agent:
-  trader_model: gemini-flash-latest
+  predictor_model: gemini-flash-latest
   reviewer_model: gemini-3.1-pro-preview
   coach_model: gemini-3.1-pro-preview
-  trader_temp_initial: 0.7
-  trader_temp_critique: 0.7
-  trader_temp_final: 0.1
+  predictor_temp_initial: 0.7
+  predictor_temp_critique: 0.7
+  predictor_temp_final: 0.1
   review_temperature: 1.0
   coach_temperature: 1.0

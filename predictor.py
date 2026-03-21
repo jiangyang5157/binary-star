@@ -18,11 +18,11 @@ from src.data_fetcher.sentiment import SentimentFetcher
 from src.data_fetcher.storage import DataStorage
 from src.analyzer.volume_profile import VolumeProfileAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
-from src.agent.trader_agent import TraderAgent
+from src.agent.predictor_agent import PredictorAgent
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("MainPipeline")
+logger = logging.getLogger("PredictionPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
     try:
@@ -32,19 +32,19 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         logger.error(f"Failed to load config: {e}")
         return {}
 
-def run_agent_a(override_timestamp: datetime = None):
+def run_predictor(override_timestamp: datetime = None, current_position: dict = None):
     """
-    Executes the full pipeline for Agent A:
+    Executes the full pipeline for Predictor:
     1. Read Config
     2. Fetch Market Data & Sentiment
     3. Calculate Volume Profile & Generate Chart
     4. Pass to Gemini API
-    5. Save output
+    5. Save output with Dispatcher logic
     """
     if override_timestamp:
         logger.info(f"=== Starting BACKTEST Pipeline at {override_timestamp} ===")
     else:
-        logger.info("=== Starting Crypto Pipeline (Agent A) ===")
+        logger.info("=== Starting Crypto Predictor ===")
     config = load_config()
     if not config:
         return
@@ -55,23 +55,23 @@ def run_agent_a(override_timestamp: datetime = None):
         _ = config['paths']['predictions_dir']
         _ = config['paths']['images_dir']
         _ = config['paths']['prompts_dir']
-        _ = config['paths']['prompt_trader_filename']
+        _ = config['paths']['prompt_predictor_filename']
         
         # Symbol & Prediction
         _ = config['symbol']
         _ = config['prediction']['value_area_pct']
         _ = config['prediction']['order_flow_lookback_bars']
-        _ = config['prediction']['trade_horizon_days']
+        _ = config['prediction']['prediction_horizon_days']
         _ = config['prediction']['macro_timeframe']['interval']
         _ = config['prediction']['macro_timeframe']['limit']
         _ = config['prediction']['micro_timeframe']['interval']
         _ = config['prediction']['micro_timeframe']['limit']
         
         # Agent
-        _ = config['agent']['trader_model']
-        _ = config['agent']['trader_temp_initial']
-        _ = config['agent']['trader_temp_critique']
-        _ = config['agent']['trader_temp_final']
+        _ = config['agent']['predictor_model']
+        _ = config['agent']['predictor_temp_initial']
+        _ = config['agent']['predictor_temp_critique']
+        _ = config['agent']['predictor_temp_final']
         
         # Notifications
         _ = config['notifications']['min_confidence_threshold']
@@ -158,6 +158,12 @@ def run_agent_a(override_timestamp: datetime = None):
         "current_time": override_timestamp.isoformat() if override_timestamp else datetime.now(timezone.utc).isoformat()
     }
     
+    # 1.5 Position Context
+    if not current_position:
+        current_position = {"position_type": "NONE", "entry_price": 0.0}
+    
+    current_position_str = json.dumps(current_position, indent=2)
+    
     # 2. Analysis & Visualization
     logger.info("Step 3: Calculating Volume Profile & Charting")
     va_pct = config['prediction']['value_area_pct']
@@ -184,7 +190,7 @@ def run_agent_a(override_timestamp: datetime = None):
     context_data["vah"] = profile_data.get('vah', 0)
     context_data["val"] = profile_data.get('val', 0)
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
-    context_data["trade_horizon_days"] = config['prediction']['trade_horizon_days']
+    context_data["prediction_horizon_days"] = config['prediction']['prediction_horizon_days']
     context_data["lookback_bars"] = lookback_bars
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
@@ -203,30 +209,31 @@ def run_agent_a(override_timestamp: datetime = None):
     logger.info("Step 4: Invoking Agent A (Gemini)")
     logger.info("Note: Ensure GEMINI_API_KEY environment variable is set.")
 
-    # Set up Agent A
-    trader = TraderAgent(
-        model_name=config['agent']['trader_model'],
+    # Set up PredictorAgent
+    predictor_agent = PredictorAgent(
+        model_name=config['agent']['predictor_model'],
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        prompt_filename=config['paths']['prompt_trader_filename'],
-        temp_pass1=config['agent']['trader_temp_initial'],
-        temp_pass2=config['agent']['trader_temp_critique'],
-        temp_pass3=config['agent']['trader_temp_final']
+        prompt_filename=config['paths']['prompt_predictor_filename'],
+        temp_pass1=config['agent']['predictor_temp_initial'],
+        temp_pass2=config['agent']['predictor_temp_critique'],
+        temp_pass3=config['agent']['predictor_temp_final']
     )
     
     # Execute Model
     if not os.environ.get("GEMINI_API_KEY"):
-        logger.warning("GEMINI_API_KEY not found in environment. Mocking Agent A output.")
+        logger.warning("GEMINI_API_KEY not found in environment. Mocking AI output.")
         agent_output_raw = json.dumps({
             "timestamp": prediction_timestamp,
-            "action": "mock_HOLD",
+            "opinion": "mock_NEUTRAL",
             "confidence": 0,
             "reasoning": "API Key missing. This is a mocked output."
         }, indent=2, ensure_ascii=False)
     else:
-        agent_output_raw = trader.analyze(
+        agent_output_raw = predictor_agent.analyze(
             symbol=symbol, 
             chart_image_paths=chart_paths, 
-            context_data=context_data
+            context_data=context_data,
+            current_position=current_position_str
         )
         
     logger.info(f"Agent A Raw Output Received.")
@@ -244,15 +251,57 @@ def run_agent_a(override_timestamp: datetime = None):
         logger.warning(f"Agent output was not valid JSON ({e}). Saving as raw string.")
         agent_output = agent_output_raw
 
-    # Enrich with metadata if it's a dictionary
+    # 4.5 The Dispatcher (Local Action Resolution)
     if isinstance(agent_output, dict):
-        # Force system timestamp to avoid AI hallucinations
+        # Force system timestamp
         agent_output['timestamp'] = prediction_timestamp
-        agent_output['metadata'] = {
-            "symbol": config['symbol'],
-            "trade_horizon_days": config['prediction']['trade_horizon_days'],
-            "model": config['agent']['trader_model']
+        
+        # Resolve Opinion vs Action
+        opinion = str(agent_output.get("opinion", "NEUTRAL")).upper()
+        pos_type = str(current_position.get("position_type", "NONE")).upper()
+        
+        final_action = "WAIT"
+        
+        if "BULLISH" in opinion:
+            if pos_type == "NONE": final_action = "LONG"
+            elif pos_type == "SHORT": final_action = "LONG" # Flip
+            elif pos_type == "LONG": final_action = "HOLD"  # Already in
+        elif "BEARISH" in opinion:
+            if pos_type == "NONE": final_action = "SHORT"
+            elif pos_type == "LONG": final_action = "SHORT" # Flip
+            elif pos_type == "SHORT": final_action = "HOLD" # Already in
+        else: # NEUTRAL
+            if pos_type == "NONE": final_action = "WAIT"
+            else: final_action = "CLOSE" # Exit
+            
+        logger.info(f"Dispatcher: Opinion({opinion}) + Position({pos_type}) -> Final Action({final_action})")
+        
+        # Final Result
+        final_report = {}
+        final_report["timestamp"] = prediction_timestamp
+        final_report["confidence"] = agent_output.get("confidence", 0)
+        final_report["opinion"] = opinion
+        final_report["action"] = final_action
+        final_report["current_price"] = agent_output.get("current_price", 0.0)
+        final_report["take_profit"] = agent_output.get("take_profit", 0.0)
+        final_report["stop_loss"] = agent_output.get("stop_loss", 0.0)
+        final_report["reasoning"] = agent_output.get("reasoning", "")
+        final_report["reasoning_zh"] = agent_output.get("reasoning_zh", "")
+        
+        final_report['position_context'] = {
+            "position_type": pos_type,
+            "entry_price": current_position.get("entry_price", 0.0)
         }
+        
+        final_report['config_context'] = {
+            "symbol": config['symbol'],
+            "prediction_horizon_days": config['prediction']['prediction_horizon_days'],
+            "model": config['agent']['predictor_model']
+        }
+        agent_output = final_report
+        # Cleanup old field if AI returned 'action' instead of 'opinion'
+        if "action" in agent_output and agent_output["action"] == opinion:
+             agent_output["opinion"] = opinion
     
     # 5. Send Notification if confidence is high
     try:
@@ -291,4 +340,4 @@ def run_agent_a(override_timestamp: datetime = None):
         logger.info("=== Pipeline Complete ===")
 
 if __name__ == "__main__":
-    run_agent_a()
+    run_predictor()

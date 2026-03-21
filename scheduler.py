@@ -46,8 +46,10 @@ def run_script(script_name):
     except Exception as e:
         logger.error(f"Failed to trigger {script_name}: {e}")
 
-def job_trader():
-    run_script("main.py")
+def job_predictor():
+    """Predictor task"""
+    logger.info("Executing Predictor job...")
+    run_script("predictor.py")
 
 def job_reviewer():
     run_script("review.py")
@@ -69,16 +71,16 @@ def start_scheduler():
     rev_hours = automation['review_interval_hours']
 
     logger.info("=== Crypto Agent Scheduler Started ===")
-    logger.info(f"Trader Interval: {pred_hours} hours")
+    logger.info(f"Predictor Interval: {pred_hours} hours")
     logger.info(f"Reviewer Interval: {rev_hours} hours")
 
     # Schedule tasks
-    schedule.every(pred_hours).hours.do(job_trader)
+    schedule.every(pred_hours).hours.do(job_predictor)
     schedule.every(rev_hours).hours.do(job_reviewer)
 
     # Run once immediately on start
     logger.info("Performing initial startup run...")
-    job_trader()
+    job_predictor()
     job_reviewer()
 
     while True:

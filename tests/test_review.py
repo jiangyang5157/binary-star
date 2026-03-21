@@ -29,9 +29,9 @@ def test_reviewer_pipeline_orchestration():
     p1_data = {
         "timestamp": "2026-01-01T00:00:00Z",
         "action": "BUY",
-        "metadata": {
+        "config_context": {
             "symbol": "BTCUSDT",
-            "trade_horizon_days": 7
+            "prediction_horizon_days": 7
         }
     }
     
@@ -40,9 +40,9 @@ def test_reviewer_pipeline_orchestration():
     p2_data = {
         "timestamp": "2026-01-01T01:00:00Z",
         "action": "SELL",
-        "metadata": {
+        "config_context": {
             "symbol": "BTCUSDT",
-            "trade_horizon_days": 7
+            "prediction_horizon_days": 7
         }
     }
 
@@ -51,9 +51,9 @@ def test_reviewer_pipeline_orchestration():
     p3_data = {
         "timestamp": "2026-01-01T02:00:00Z",
         "action": "HOLD",
-        "metadata": {
+        "config_context": {
             "symbol": "BTCUSDT",
-            "trade_horizon_days": 7
+            "prediction_horizon_days": 7
         }
     }
 

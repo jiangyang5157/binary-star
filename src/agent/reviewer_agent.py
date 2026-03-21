@@ -11,7 +11,7 @@ class ReviewerAgent:
     """
     Agent B: The Reviewer / Optimizer.
     Evaluates past predictions made by Agent A against actual market outcomes.
-    Specifically audits adherence to the Trader's logic and rules.
+    Specifically audits adherence to the Predictor's logic and rules.
     """
     def __init__(self, model_name: str, prompts_dir: str, 
                  prompt_filename: str, temperature: float = 1.0):
@@ -53,7 +53,7 @@ class ReviewerAgent:
                 historical_prediction=json.dumps(historical_prediction, indent=2, ensure_ascii=False),
                 actual_outcome=json.dumps(actual_outcome, indent=2, ensure_ascii=False),
                 current_config=json.dumps(config, indent=2, ensure_ascii=False),
-                trade_horizon_days=config['prediction']['trade_horizon_days'],
+                prediction_horizon_days=config['prediction']['prediction_horizon_days'],
                 macro_interval=config['prediction']['macro_timeframe']['interval'],
                 micro_interval=config['prediction']['micro_timeframe']['interval'],
                 base_prompt=base_prompt

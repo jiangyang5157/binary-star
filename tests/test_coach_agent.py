@@ -31,7 +31,7 @@ class TestCoachAgent(unittest.TestCase):
 
         # Mock review reports
         reports = [{
-            "prediction": {"content": {"action": "BUY"}},
+            "prediction": {"content": {"opinion": "BULLISH"}},
             "actual_market_outcome": {"price_change_pct": 5.0},
             "analysis": {"evaluation_score": 80}
         }]

@@ -2,7 +2,7 @@
 
 > **基于 Google Gemini 多模态 AI 的闭环自进化交易分析系统**
 
-本项目是一个模拟对冲基金决策链的 **多智能体 (Multi-Agent)** 系统。通过 **Trader (交易)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从"实时决策"到"历史复盘"再到"策略自动进化"的全闭环。
+本项目是一个模拟对冲基金决策链的 **多智能体 (Multi-Agent)** 系统。通过 **Predictor (预测)**、**Reviewer (审计)**、**Coach (战略调整)** 的协同工作，实现了从"实时决策"到"历史复盘"再到"策略自动进化"的全闭环。
 
 ---
 
@@ -10,7 +10,7 @@
 
 ```
 crypto/
-├── main.py               # 入口：运行 Trader (Agent A) 预测
+├── predictor.py          # 入口：运行 Trader (Agent A) 预测
 ├── review.py             # 入口：运行 Reviewer (Agent B) 复盘
 ├── coach.py              # 入口：运行 Coach (Agent C) 策略进化
 ├── apply_patches.py      # 补丁工具：自动应用 Coach 产生的优化建议
@@ -21,10 +21,10 @@ crypto/
 │   └── config.yaml       # 🧠 核心配置（唯一参数来源）
 ├── src/
 │   ├── agent/            # AI 代理模块
-│   │   ├── trader_agent.py       # Agent A：多模态分析 & 三轮推演
+│   │   ├── predictor_agent.py       # Agent A：多模态分析 & 三轮推演
 │   │   ├── reviewer_agent.py     # Agent B：基于高频 K 线的盈亏审计
 │   │   ├── coach_agent.py        # Agent C：系统性偏差识别与战略导师
-│   │   └── prompts/              # AI 提示词模板 (Trader, Reviewer, Coach)
+│   │   └── prompts/              # AI 提示词模板 (Predictor, Reviewer, Coach)
 │   ├── data_fetcher/     # 数据获取模块 (Binance API & 情绪数据)
 │   ├── analyzer/         # 分析引擎 (Volume Profile, Chart Generator)
 │   └── utils/            # 通用工具 (邮件通知等)
@@ -45,25 +45,24 @@ crypto/
 
 | 阶段 | 核心组件 | 输入数据 | 输出产物 | 核心目标 |
 | :--- | :--- | :--- | :--- | :--- |
-| **1. 预测 (Trade)** | **Agent A: Trader** | 多周期 K线 + 情绪 + 图表 | `prediction.json` | 生成包含 Red Team 质疑的交易信号 |
+| **1. 预测 (Predict)** | **Agent A: Predictor** | 多周期 K线 + 情绪 + 图表 | `prediction.json` | 生成包含 Red Team 质疑的交易信号 |
 | **2. 审计 (Review)** | **Agent B: Reviewer** | 历史预测 + 1m 真实市场数据 | `review.json` | 严谨判定 TP/SL 触碰情况与逻辑偏差 |
 | **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `coach.json` | 识别行为模式并生成 Master Patch |
 | **4. 进化 (Evolve)** | **apply_patches.py** | Coach 报告 + 源码 | **Prompt/Config 更新** | 自动化将战略建议注入系统，实现进化 |
 
 ---
 
-### 👤 Agent A (Trader) — 执行大脑
+### 👤 Agent A (Predictor) — 执行大脑
 *   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio）。
 *   **三轮推演**：执行 `初步分析` -> `红队质疑 (Red Team Critique)` -> `最终决策`。这种架构能有效识别陷阱，降低伪突破的诱惑。
 
-### ⚖️ Agent B (Reviewer) — 铁面审计
-*   **事实驱动**：不看 Agent A 的主观判断，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
-*   **精准过滤**：自动识别预测文件中的 `metadata` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
+*   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
+*   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
 *   **深度复盘**：分析为什么预测失败（如："未能识别 POC 下方的成交量真空区"），为 Coach 提供高质量的底层数据。
 
 ### 🧠 Agent C (Coach) — 战略导师
 *   **模式识别**：跳出单场胜负，观察全局。例如：如果最近 10 场失败中有 7 场是因为“右侧入场太晚”，Coach 会识别出这一系统性偏差。
-*   **输出补丁**：产出具体的调整建议，包括对 `prompt_trader.txt` 内的 `ADD/REPLACE/REMOVE` 和 `config.yaml` 中的参数。
+*   **输出补丁**：产出具体的调整建议，包括对 `prompt_predictor.txt` 内的 `ADD/REPLACE/REMOVE` 和 `config.yaml` 中的参数。
 
 ---
 
@@ -104,7 +103,7 @@ RECIPIENT_APP_PASSWORD=your_gmail_app_password
 
 #### 1. 单次预测
 ```bash
-python main.py
+python predictor.py
 ```
 
 #### 2. 定时自动化 (7x24h)
@@ -139,18 +138,18 @@ python apply_patches.py data/raw/coach/coach_report_xxx.json
 
 系统内置了强大的模拟器，支持在历史任意时间点触发 Agent A 的逻辑：
 ```bash
-# 采样过去 30 天的 30 个随机时间点进行模拟
-python simulator.py --days 30 --sampling 30 --mode regime
+# 采样过去 30 天的 32 个随机时间点进行模拟
+python simulator.py --days 30 --sampling 32 --mode regime
 
 # 指定模式：spaced 表示等间隔采样，regime 表示按行情分层采样（推荐用于调优）
-python simulator.py --days 30 --sampling 30 --mode spaced
+python simulator.py --days 30 --sampling 32 --mode spaced
 ```
 
 ---
 
 ## 💎 核心开发流：Prompt 质量提升 (Standard Workflow)
 
-当你发现交易员的准确率（尤其是止盈止损）不理想时，请按照以下标准流程进行一轮“进化”：
+当你发现预测的准确率（尤其是止盈止损）不理想时，请按照以下标准流程进行一轮“进化”：
 
 1.  **数据收集**：运行 30 天 32 个样本的制度化回测。
     ```bash

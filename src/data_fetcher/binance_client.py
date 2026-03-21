@@ -126,13 +126,13 @@ class BinanceDataFetcher:
 
     def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
         """
-        Fetches the Top Traders Long/Short Ratio (Accounts).
+        Fetches the Top Long/Short Ratio (Accounts).
         More professional than the general account ratio.
         """
         try:
-            logger.info(f"Fetching Top Traders L/S Ratio for {symbol} - Period: {period}")
+            logger.info(f"Fetching Top L/S Ratio for {symbol} - Period: {period}")
             response = self.client.top_long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
             return response
         except ClientError as error:
-            logger.error(f"Failed to fetch top traders L/S ratio for {symbol}: {error.error_message}")
+            logger.error(f"Failed to fetch top L/S ratio for {symbol}: {error.error_message}")
             return []

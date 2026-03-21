@@ -8,10 +8,10 @@ from google.genai import types
 
 logger = logging.getLogger(__name__)
 
-class TraderAgent:
+class PredictorAgent:
     """
-    Agent A: The Trader / Analyst.
-    Uses the new google-genai SDK to analyze both text data (Market context) and image data (Volume Profile charts).
+    Agent A: The Predictor / Analyst.
+    Uses the multimodal Gemini API to analyze market context and charts.
     """
     def __init__(self, model_name: str, prompts_dir: str, 
                  prompt_filename: str,
@@ -40,7 +40,7 @@ class TraderAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any]) -> str:
+    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:
         """
         Executes the multimodal Gemini API call to determine the trading action.
         Supports multiple images (e.g., Macro + Micro charts).
@@ -66,7 +66,8 @@ class TraderAgent:
         format_vars.update({
             "symbol": symbol,
             "current_time": current_time,
-            "context_data": context_summary # For legacy support in prompt if used
+            "context_data": context_summary, # For legacy support in prompt if used
+            "current_position": current_position
         })
         
         try:
@@ -113,19 +114,19 @@ class TraderAgent:
             logger.info("Pass 1 (Initial Prediction) complete.")
 
             # --- PASS 2: Red Team Critique (The 'Premortem') ---
-            # We ask the model to assume the trade failed and find out why.
-            trade_horizon = context_data["trade_horizon_days"]
+            # We ask the model to assume the prediction failed and find out why.
+            prediction_horizon = context_data.get("prediction_horizon_days", 1)
             critique_prompt = f"""
             CRITICAL EVALUATION (RED TEAM):
-            Assume you just executed the following prediction:
-            {initial_prediction}
+            Assume you just generated the following prediction:
+            {{initial_prediction}}
             
-            Now, imagine that {trade_horizon} DAYS have passed and this trade resulted in a MASSIVE LOSS / STOP-OUT.
+            Now, imagine that {{prediction_horizon}} DAYS have passed and this prediction resulted in a MASSIVE ERROR / STOP-OUT.
             Look at the Macro and Micro charts again. What did you MISS? 
             Specifically search for:
             1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL? 
-            2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your trade direction?
-            3. **Breakout Failure**: Was the 'breakout' you entered actually a low-volume 'fakeout' with declining Open Interest (OI)?
+            2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your prediction direction?
+            3. **Breakout Failure**: Was the 'breakout' you saw actually a low-volume 'fakeout' with declining Open Interest (OI)?
             4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up (suggesting retail is long and being trapped)?
 
             Provide a HARSH technical critique. Do NOT be defensive.
@@ -152,21 +153,21 @@ class TraderAgent:
             Initial Plan: {initial_prediction}
             Critique: {critique_text}
 
-            Re-evaluate the data. If the critique revealed a fatal flaw or high risk of a trap, switch to HOLD or reverse bias. 
+            Re-evaluate the data. If the critique revealed a fatal flaw or high risk of a trap, switch to NEUTRAL or reverse bias. 
             If the initial plan is still robust, refine the entry/exit points for better R:R.
 
             IMPORTANT: You MUST output the final result in the EXACT JSON format below, including the Mandarin translation field:
             {{
               "timestamp": "{current_time}",
-              "action": "BUY/SELL/HOLD",
+              "confidence": 0-100,
+              "opinion": "BULLISH/BEARISH/NEUTRAL",
               "current_price": 70000.5,
               "take_profit": 75000.0,
               "stop_loss": 68000.0,
-              "confidence": 0-100,
-              "reasoning": "Technical, logical analysis justifying the action. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
-              "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心分析。要求逻辑清晰、对用户友好且包含关键技术位点。"
+              "reasoning": "Technical, logical analysis justifying the opinion. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
+              "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心研判。要求逻辑清晰、对用户友好且包含关键技术位点。"
             }}
-            NOTE: For HOLD actions, set take_profit and stop_loss to null but still provide current_price.
+            NOTE: For NEUTRAL actions, set take_profit and stop_loss to null but still provide current_price.
             """
             final_contents = copy.deepcopy(contents[:-1])
             final_contents.append(final_prompt)

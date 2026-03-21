@@ -32,8 +32,8 @@ class TestReviewerAgent(unittest.TestCase):
         mock_response = MagicMock(text=json.dumps({
             "evaluation_score": 35,
             "tp_sl_result": "SL_HIT",
-            "trade_post_mortem": "Agent A was trapped in a fakeout breakout above POC. Key lesson: always wait for volume confirmation.",
-            "trade_post_mortem_zh": "Agent A 被假突破困住了。核心教训：必须等待成交量确认。"
+            "prediction_post_mortem": "Agent A was trapped in a fakeout breakout above POC. Key lesson: always wait for volume confirmation.",
+            "prediction_post_mortem_zh": "Agent A 被假突破困住了。核心教训：必须等待成交量确认。"
         }))
         mock_models.generate_content.return_value = mock_response
 
@@ -42,7 +42,7 @@ class TestReviewerAgent(unittest.TestCase):
 
         historical_prediction = {
             "timestamp": "2026-03-01T12:00:00Z",
-            "action": "BUY",
+            "opinion": "BULLISH",
             "current_price": 65000,
             "take_profit": 72000,
             "stop_loss": 63000,
@@ -65,7 +65,7 @@ class TestReviewerAgent(unittest.TestCase):
         current_config = {
             "symbol": "BTCUSDT",
             "prediction": {
-                "trade_horizon_days": 7,
+                "prediction_horizon_days": 7,
                 "macro_timeframe": {"interval": "4h", "limit": 500},
                 "micro_timeframe": {"interval": "1h", "limit": 240},
             },
@@ -91,7 +91,7 @@ class TestReviewerAgent(unittest.TestCase):
         self.assertIsInstance(result, dict)
         self.assertIn("evaluation_score", result)
         self.assertEqual(result["evaluation_score"], 35)
-        self.assertIn("trade_post_mortem_zh", result)
+        self.assertIn("prediction_post_mortem_zh", result)
 
 
 if __name__ == "__main__":

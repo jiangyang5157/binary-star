@@ -64,17 +64,17 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: D
     
     # Pre-compute TP/SL hit hints for the Reviewer
     if prediction:
-        action = prediction.get('action', '').upper()
+        opinion = prediction.get('opinion', '').upper()
         tp = prediction.get('take_profit')
         sl = prediction.get('stop_loss')
         
-        if action in ('BUY', 'SELL') and tp is not None and sl is not None:
+        if opinion in ('BULLISH', 'BEARISH') and tp is not None and sl is not None:
             tp, sl = float(tp), float(sl)
-            tp_reached = max_price >= tp if action == 'BUY' else min_price <= tp
-            sl_reached = min_price <= sl if action == 'BUY' else max_price >= sl
+            tp_reached = max_price >= tp if opinion == 'BULLISH' else min_price <= tp
+            sl_reached = min_price <= sl if opinion == 'BULLISH' else max_price >= sl
             result["tp_reached"] = tp_reached
             result["sl_reached"] = sl_reached
-        elif action == 'HOLD':
+        elif opinion == 'NEUTRAL':
             result["tp_reached"] = False
             result["sl_reached"] = False
     
@@ -99,14 +99,14 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         _ = config['paths']['predictions_dir']
         _ = config['paths']['reviews_dir']
         _ = config['paths']['prompts_dir']
-        _ = config['paths']['prompt_trader_filename']
+        _ = config['paths']['prompt_predictor_filename']
         _ = config['paths']['prompt_reviewer_filename']
         
         # Symbol
         _ = config['symbol']
         
         # Prediction (used to show horizon in reviews)
-        _ = config['prediction']['trade_horizon_days']
+        _ = config['prediction']['prediction_horizon_days']
         
         # Agent
         _ = config['agent']['reviewer_model']
@@ -171,7 +171,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 start_ts_ms = int(dt_start.timestamp() * 1000)
                 
                 # Review outcome window
-                review_days = config['prediction']['trade_horizon_days']
+                review_days = config['prediction']['prediction_horizon_days']
                 dt_now = override_now if override_now else datetime.now(timezone.utc)
                 dt_end = dt_start + timedelta(days=review_days)
                 if dt_end > dt_now:
@@ -185,10 +185,10 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                     continue
 
-                # Extract symbol from prediction metadata; skip if missing
-                symbol = prediction.get('metadata', {}).get('symbol')
+                # Extract symbol from prediction config_context; skip if missing
+                symbol = prediction.get('config_context', {}).get('symbol')
                 if not symbol:
-                    logger.warning(f"Skipping {filename}: No symbol found in metadata.")
+                    logger.warning(f"Skipping {filename}: No symbol found in config_context.")
                     continue
                 
                 # Filter: Only review the symbol specified in the current config
@@ -249,12 +249,12 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     review_content = json.dumps({
                         "evaluation_score": 50,
                         "tp_sl_result": "NEITHER",
-                        "trade_post_mortem": "MOCK: Market outcome calculated, but AI analysis requires API key.",
-                        "trade_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
+                        "prediction_post_mortem": "MOCK: Market outcome calculated, but AI analysis requires API key.",
+                        "prediction_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
                     })
                 else:
                     paths_config = config['paths']
-                    prompt_path = os.path.join(PROJECT_ROOT, paths_config['prompts_dir'], paths_config['prompt_trader_filename'])
+                    prompt_path = os.path.join(PROJECT_ROOT, paths_config['prompts_dir'], paths_config['prompt_predictor_filename'])
                     base_prompt = ""
                     if os.path.exists(prompt_path):
                         with open(prompt_path, 'r', encoding='utf-8') as f:

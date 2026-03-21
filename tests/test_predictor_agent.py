@@ -6,16 +6,16 @@ from unittest.mock import MagicMock, patch
 # Add the 'src' directory to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.agent.trader_agent import TraderAgent
+from src.agent.predictor_agent import PredictorAgent
 
-class TestTraderAgent(unittest.TestCase):
+class TestPredictorAgent(unittest.TestCase):
     def setUp(self):
         # Prevent actual API calls during tests by patching where necessary
         os.environ["GEMINI_API_KEY"] = "mock-key"
-        self.agent = TraderAgent(
+        self.agent = PredictorAgent(
             model_name="mock-model",
             prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'),
-            prompt_filename="prompt_trader.txt",
+            prompt_filename="prompt_predictor.txt",
             temp_pass1=1.0,
             temp_pass2=1.0,
             temp_pass3=0.7
@@ -35,9 +35,9 @@ class TestTraderAgent(unittest.TestCase):
         mock_client_instance.models = mock_models
         
         mock_responses = [
-            MagicMock(text='{"action": "BUY", "confidence": 70, "current_price": 65000, "take_profit": 70000, "stop_loss": 63000, "reasoning": "Initial thought", "reasoning_zh": "初始想法"}'),
+            MagicMock(text='{"opinion": "BULLISH", "confidence": 70, "current_price": 65000, "take_profit": 70000, "stop_loss": 63000, "reasoning": "Initial thought", "reasoning_zh": "初始想法"}'),
             MagicMock(text="PASS 2 (RED TEAM): Risky because of hidden resistance at 70k."),
-            MagicMock(text='{"action": "HOLD", "confidence": 90, "current_price": null, "take_profit": null, "stop_loss": null, "reasoning": "Pivoting to HOLD after red team highlighted resistance.", "reasoning_zh": "改位HOLD"}')
+            MagicMock(text='{"opinion": "NEUTRAL", "confidence": 90, "current_price": null, "take_profit": null, "stop_loss": null, "reasoning": "Pivoting to NEUTRAL after red team highlighted resistance.", "reasoning_zh": "改位NEUTRAL"}')
         ]
         mock_models.generate_content.side_effect = mock_responses
 
@@ -45,15 +45,14 @@ class TestTraderAgent(unittest.TestCase):
         context = {
             "symbol": "BTCUSDT",
             "price": 65000,
-            "trade_horizon_days": 7
+            "prediction_horizon_days": 7
         }
         
         # Run analysis
         print("    Running Multi-Pass Analysis (Mocked Client)...")
-        # We need to manually set the client since TraderAgent initializes it in __init__
+        # We need to manually set the client since PredictorAgent initializes it in __init__
         self.agent.client = mock_client_instance
         
-        # Correct arguments for TraderAgent.analyze
         result_str = self.agent.analyze(
             symbol=context["symbol"],
             chart_image_paths=["mock_chart.png"],
@@ -67,9 +66,9 @@ class TestTraderAgent(unittest.TestCase):
         import json
         result = json.loads(result_str)
         self.assertIsInstance(result, dict)
-        self.assertEqual(result['action'], "HOLD")
+        self.assertEqual(result['opinion'], "NEUTRAL")
         self.assertIn('reasoning_zh', result)
-        print(f"    Agent effectively pivoted to {result['action']} based on Red Team feedback.")
+        print(f"    Agent effectively pivoted to {result['opinion']} based on Red Team feedback.")
 
 if __name__ == "__main__":
     unittest.main()

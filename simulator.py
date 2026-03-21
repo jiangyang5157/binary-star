@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from main import run_agent_a, load_config
+from predictor import run_predictor, load_config
 from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.binance_client import BinanceDataFetcher
 
@@ -15,7 +15,7 @@ logger = logging.getLogger("Simulator")
 class MarketSimulator:
     """
     Backtesting simulator that identifies market regimes and runs 
-    the Trader/Reviewer agents through historical snapshots.
+    the Predictor/Reviewer agents through historical snapshots.
     """
     def __init__(self, sampling_count: int = 20, sampling_mode: str = "regime"):
         self.config = load_config()
@@ -113,15 +113,15 @@ class MarketSimulator:
         for dt in sorted(target_dates):
             logger.info(f"\n--- SIMULATING SNAPSHOT: {dt} ---")
             
-            # 1. Run Trader Agent
+            # 1. Run Predictor Agent
             timestamp_str = dt.strftime("%Y%m%d_%H%M%S")
             pred_filename = f"{self.symbol}_prediction_{timestamp_str}.json"
             
             try:
-                run_agent_a(override_timestamp=dt)
+                run_predictor(override_timestamp=dt)
                 
                 # 2. Run Reviewer (Simulate N days in the future)
-                review_days = self.config['prediction']['trade_horizon_days']
+                review_days = self.config['prediction']['prediction_horizon_days']
                 future_dt = dt + timedelta(days=review_days)
                 logger.info(f"Fast-forwarding to {future_dt} for review...")
                 
