@@ -98,14 +98,12 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
     config = load_config()
     
     if base_dir:
-        config['paths']['predictions_dir'] = os.path.join(base_dir, "predictions")
-        config['paths']['reviews_dir'] = os.path.join(base_dir, "reviews")
-        config['paths']['images_dir'] = os.path.join(base_dir, "images")
-        config['paths']['coach_dir'] = os.path.join(base_dir, "coach")
+        config['paths']['base_dir'] = base_dir
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
         # Paths
+        _ = config['paths']['base_dir']
         _ = config['paths']['predictions_dir']
         _ = config['paths']['reviews_dir']
         _ = config['paths']['prompts_dir']
@@ -134,8 +132,8 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         logger.error(error_msg)
         raise RuntimeError(error_msg) from e
 
-    predictions_dir = os.path.join(PROJECT_ROOT, config['paths']['predictions_dir'])
-    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['reviews_dir'])
+    predictions_dir = os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['predictions_dir'])
+    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['reviews_dir'])
     os.makedirs(reviews_dir, exist_ok=True)
 
     # Use target_files if provided, otherwise scan directory
@@ -249,7 +247,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     
                     for suffix in [macro_tf, micro_tf]:
                         chart_filename = f"{symbol}_{suffix}_{ts_readable}_chart.png"
-                        path = os.path.join(PROJECT_ROOT, config['paths']['images_dir'], chart_filename)
+                        path = os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['images_dir'], chart_filename)
                         if os.path.exists(path):
                             chart_paths.append(path)
                 

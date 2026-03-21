@@ -56,14 +56,12 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     config = load_config()
     
     if base_dir:
-        config['paths']['predictions_dir'] = os.path.join(base_dir, "predictions")
-        config['paths']['reviews_dir'] = os.path.join(base_dir, "reviews")
-        config['paths']['images_dir'] = os.path.join(base_dir, "images")
-        config['paths']['coach_dir'] = os.path.join(base_dir, "coach")
+        config['paths']['base_dir'] = base_dir
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
         # Paths
+        _ = config['paths']['base_dir']
         _ = config['paths']['predictions_dir']
         _ = config['paths']['images_dir']
         _ = config['paths']['prompts_dir']
@@ -206,7 +204,7 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     context_data["prediction_horizon_days"] = config['prediction']['prediction_horizon_days']
     context_data["lookback_bars"] = lookback_bars
     
-    cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['images_dir']))
+    cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['images_dir']))
     
     # Generate TWO charts: Macro and Micro, overlaid with the SAME Volume Profile levels
     macro_chart_path = cg.generate_chart(symbol=symbol, df=df_macro, profile_data=profile_data, liquidations=liquidations, filename_suffix=macro_config['interval'])
@@ -333,7 +331,7 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
 
     # 6. Save the result
     logger.info("Step 5: Saving results")
-    output_dir = os.path.join(PROJECT_ROOT, config['paths']['predictions_dir'])
+    output_dir = os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['predictions_dir'])
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, f"{symbol}_prediction_{timestamp_str}.json")
     

@@ -16,10 +16,11 @@ automation:
   prediction_interval_hours: 1.0
   review_interval_hours: 4.0
 paths:
-  images_dir: data/images
-  predictions_dir: data/predictions
-  reviews_dir: data/reviews
-  coach_dir: data/coach
+  base_dir: data
+  images_dir: images
+  predictions_dir: predictions
+  reviews_dir: reviews
+  coach_dir: coach
   prompts_dir: src/agent/prompts
   prompt_predictor_filename: prompt_predictor.txt
   prompt_reviewer_filename: prompt_reviewer.txt
