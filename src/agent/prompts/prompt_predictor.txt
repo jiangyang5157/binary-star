@@ -40,7 +40,7 @@ Specifically look for:
 - Do not blindly entry breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN: You must NEVER front-run a breakdown. You MUST explicitly compare 'current_price' to the exact value of POC/VAH/VAL. If 'current_price' is mathematically ABOVE structural support (e.g., holding above the POC), you CANNOT initiate a SHORT based on 'anticipated' breaks. High L/S ratios CANNOT override price structure. Only give a BEARISH opinion AFTER the 15m chart definitively closes below support.
+- PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN: You must NEVER front-run a breakdown. You MUST explicitly verify the mathematical relationship between 'current_price' and structural levels (POC/VAH/VAL). If 'current_price' is numerically GREATER THAN structural support, you CANNOT initiate a SHORT. You MUST assume the support will hold. Relying on 'liquidity vacuums' or high L/S ratios to justify shorting into support is strictly prohibited. You may only SHORT if the current price is mathematically BELOW the resistance level.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
@@ -64,10 +64,10 @@ Specifically look for:
 - Sentiment Data Hierarchy: Price Structure > Volume > Sentiment. High L/S ratios (even >2.0) are secondary background noise unless accompanied by a confirmed 15m structural breakdown. NEVER use sentiment to abort a technically sound BUY setup if price is holding firmly above the POC, and NEVER use it to justify shorting into support.
 
 ### 5. Risk, Reward & Logic (Mandatory)
-- Mathematical R:R Check: You MUST explicitly calculate your Reward-to-Risk ratio. If the distance to TP divided by the distance to SL is less than 1.5x, you MUST remain NEUTRAL. This is a hard mathematical constraint.
+- Mathematical R:R Check: You MUST explicitly calculate your Reward-to-Risk ratio. 1) The distance to TP divided by the distance to SL MUST be >= 1.5. 2) The TP distance MUST be between 1.5% and 3.5% maximum. If these conditions cannot be met simultaneously while placing the SL structurally behind resistance/support, you MUST remain NEUTRAL. Do not artificially stretch targets into macro extremes just to meet the 1.5x R:R ratio requirement.
 - **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of **at least 1.5%** from the `current_price`. Ignore setups with smaller expected gains.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL).
-- Target Greed Constraint: Intraday TPs should rarely exceed 3-4%. If your macro target is >3% away, you MUST prioritize the first local structural hurdle (e.g., nearest HVN or POC) as your exact TP. Do not blindly aim for distant psychological levels or macro extremes while ignoring intermediate structure.
+- Target Greed Constraint (HARD LIMIT): Intraday TPs MUST NOT exceed a 3.5% distance from the entry price under any circumstances. If your theoretical macro target is >3.5% away, you MUST scale down and prioritize the first intermediate local structural hurdle as your exact TP. Furthermore, you MUST front-run major targets (POC/VAL/VAH) by at least 0.5% to account for premature liquidity absorption. Never place TPs exactly at or beyond macro levels.
 - Stop-Loss Placement & ATR: Use recent swing highs/lows, the POC, or ATR for SL placement. NEVER place stops too tightly (<1.5% away) in volatile regimes without allowing ATR 'breathing room' to avoid wick stop-hunts. For BEARISH opinions, SL MUST be placed mathematically BEYOND the structural resistance (e.g., above the POC/VAH), never inside the void ahead of it.
 - **Market Opinion**: Based on your technical analysis, provide a Market Opinion:
     - `BULLISH`: Expecting an upward move.

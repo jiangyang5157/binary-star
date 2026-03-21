@@ -4,20 +4,23 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from predictor import run_predictor, load_config
-from review import main_review as run_reviewer_pipeline
-from src.data_fetcher.binance_client import BinanceDataFetcher
 
-# Configure logging
+# Setup logging BEFORE imports to ensure it is configured correctly
 logging.basicConfig(
     level=logging.INFO, 
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler("simulator.log"),
         logging.StreamHandler()
-    ]
+    ],
+    force=True  # Force configuration even if handlers already exist
 )
 logger = logging.getLogger("Simulator")
+
+# Now safe to import internal modules
+from predictor import run_predictor, load_config
+from review import main_review as run_reviewer_pipeline
+from src.data_fetcher.binance_client import BinanceDataFetcher
 
 class MarketSimulator:
     """
@@ -96,6 +99,7 @@ class MarketSimulator:
         sampling_mode = getattr(self, 'sampling_mode', 'regime')
         target_dates = []
 
+        logger.info(f"Requested sampling count: {self.sampling_count}")
         if sampling_mode == 'spaced':
             # Option A: Spaced Sampling (Equal intervals)
             if len(df) <= self.sampling_count:
@@ -115,10 +119,12 @@ class MarketSimulator:
                 if not regime_df.empty:
                     subset = regime_df.sample(min(len(regime_df), samples_per_regime))
                     target_dates.extend(subset['timestamp'].tolist())
-            logger.info(f"Using Regime-based Sampling: Selected {len(target_dates)} historical points.")
+            logger.info(f"Using Regime-based Sampling: Selected {len(target_dates)} historical points from {len(regimes)} regimes.")
 
-        for dt in sorted(target_dates):
-            logger.info(f"\n--- SIMULATING SNAPSHOT: {dt} ---")
+        logger.info(f"Total samples finalized: {len(target_dates)}")
+        
+        for i, dt in enumerate(sorted(target_dates), 1):
+            logger.info(f"\n--- SIMULATING SNAPSHOT {i}/{len(target_dates)}: {dt} ---")
             
             # 1. Run Predictor Agent
             timestamp_str = dt.strftime("%Y%m%d_%H%M%S")
@@ -126,6 +132,7 @@ class MarketSimulator:
             
             try:
                 run_predictor(override_timestamp=dt)
+                logger.info(f"Successfully finished prediction: {pred_filename}")
                 
                 # 2. Run Reviewer (Simulate N days in the future)
                 review_days = self.config['prediction']['prediction_horizon_days']
@@ -133,6 +140,7 @@ class MarketSimulator:
                 logger.info(f"Fast-forwarding to {future_dt} for review...")
                 
                 run_reviewer_pipeline(target_files=[pred_filename], override_now=future_dt, force=True)
+                logger.info(f"Successfully finished review for: {pred_filename}")
                 
             except Exception as e:
                 logger.error(f"Simulation step failed for {dt}: {e}")
