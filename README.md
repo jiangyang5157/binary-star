@@ -139,12 +139,40 @@ python apply_patches.py data/raw/coach/coach_report_xxx.json
 
 系统内置了强大的模拟器，支持在历史任意时间点触发 Agent A 的逻辑：
 ```bash
-# 采样过去 30 天的 15 个随机时间点进行模拟
-python simulator.py --days 30 --sampling 15
+# 采样过去 30 天的 30 个随机时间点进行模拟
+python simulator.py --days 30 --sampling 30 --mode regime
 
-# 指定模式：spaced 表示等间隔采样，random 表示随机采样
-python simulator.py --days 60 --sampling 20 --mode spaced
+# 指定模式：spaced 表示等间隔采样，regime 表示按行情分层采样（推荐用于调优）
+python simulator.py --days 30 --sampling 30 --mode spaced
 ```
+
+---
+
+## 💎 核心开发流：Prompt 质量提升 (Standard Workflow)
+
+当你发现交易员的准确率（尤其是止盈止损）不理想时，请按照以下标准流程进行一轮“进化”：
+
+1.  **数据收集**：运行 30 天 32 个样本的制度化回测。
+    ```bash
+    python simulator.py --days 30 --sampling 32 --mode regime
+    ```
+    *注：`regime` 模式能确保在牛/熊/高低波动下都有足够样本。*
+
+2.  **战略分析**：运行 Coach 处理这 32 个复盘报告。
+    ```bash
+    python coach.py --batch 32
+    ```
+
+3.  **自动注入**：应用生成的最新补丁。
+    ```bash
+    # 找到最新的 coach_report JSON 文件
+    python apply_patches.py data/raw/coach/coach_BTCUSDT_2026xxxx.json
+    ```
+
+4.  **验证闭环**：使用新 Prompt 运行一个小规模（10个样本）的回测，对比胜率。
+    ```bash
+    python simulator.py --days 14 --sampling 10 --mode spaced
+    ```
 
 ---
 
