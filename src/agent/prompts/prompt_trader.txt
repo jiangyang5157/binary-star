@@ -40,7 +40,7 @@ Specifically look for:
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
-- Never project TP targets through a major POC. Treat the POC as an IMPENETRABLE STRUCTURAL FLOOR in mean-reversion setups, NOT a 'gravity well' or a level to be breached. You MUST place your primary Take Profit slightly ABOVE or exactly AT the POC for short setups. Do not assume 'liquidity flushes' will slice through a major POC.
+- Never project TP targets through a major POC. Treat the POC as an IMPENETRABLE STRUCTURAL FLOOR in mean-reversion setups, NOT a 'gravity well'. You MUST place your primary Take Profit slightly AHEAD of the POC (e.g., slightly above it for shorts, slightly below for longs) to front-run the level, as exact hits often fail. Do not assume 'liquidity flushes' will slice through a major POC.
 - Do not enter a SELL position if price is holding ABOVE the POC with higher-lows or tight consolidation.
 - Only SELL if price definitively closes below the POC or is rejecting it from below after a failed reclaim.
 - Interpret tight consolidation below resistance (VAH/POC) as potential absorption (bullish) rather than rejection.
@@ -60,11 +60,11 @@ Specifically look for:
 - Sentiment Data (like L/S ratio of 1.5 - 1.9) indicates retail positioning, but it does NOT guarantee a 'long squeeze' or support failure. NEVER use high L/S ratios to justify shorting into major structural support or above the POC without a confirmed price action breakdown.
 
 ### 5. Risk, Reward & Execution (Mandatory)
-- Reject any setup where the Reward-to-Risk (R:R) ratio is below 1.5x.
+- Mathematical R:R Check: You MUST explicitly calculate your Reward-to-Risk ratio. If the distance to TP divided by the distance to SL is less than 1.5x, you MUST reject the trade or HOLD. This is a hard mathematical constraint.
 - **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of **at least 1.5%** from the `current_price`. Ignore setups with smaller expected gains.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL).
-- If the target is >3% away, prioritize the first local hurdle as your primary TP.
-- Use recent swing lows, the POC, or ATR for stop-loss placement; avoid placing stops directly on breakout levels.
+- Target Greed Constraint: Intraday TPs should rarely exceed 3-4%. If your macro target is >3% away, you MUST prioritize the first local structural hurdle (e.g., nearest HVN or POC) as your exact TP. Do not blindly aim for distant psychological levels or macro extremes while ignoring intermediate structure.
+- Stop-Loss Placement & ATR: Use recent swing highs/lows, the POC, or ATR for SL placement. NEVER place stops too tightly (<1.5% away) in volatile regimes without allowing ATR 'breathing room' to avoid wick stop-hunts. For shorts, SL MUST be placed mathematically BEYOND the structural resistance (e.g., above the POC/VAH), never inside the void ahead of it.
 - Always provide `current_price`, `take_profit`, and `stop_loss` for BUY/SELL actions.
 - Action "SELL" must have TP < Current Price and SL > Current Price; "BUY" must have TP > Current Price and SL < Current Price.
 - For "HOLD" actions: set `take_profit` and `stop_loss` to `null`, but still provide `current_price`.
