@@ -14,18 +14,24 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
     with open(config_path, 'r') as f:
         return yaml.safe_load(f)
 
-def cleanup_samples(score_threshold: int = 75):
+def cleanup_samples():
     """
     Removes "solved" samples from the samples/ directory.
     A sample is solved if the latest review shows TP_HIT or a high evaluation score.
     """
     config = load_config()
-    paths = config.get('paths', {})
-    
     samples_dir = Path("samples")
-    preds_dir = samples_dir / paths.get('predictions_dir', 'predictions')
-    revs_dir = samples_dir / paths.get('reviews_dir', 'reviews')
-    imgs_dir = samples_dir / paths.get('images_dir', 'images')
+    
+    # Strictly enforce configuration paths
+    try:
+        paths = config['paths']
+        preds_dir = samples_dir / paths['predictions_dir']
+        revs_dir = samples_dir / paths['reviews_dir']
+        imgs_dir = samples_dir / paths['images_dir']
+    except KeyError as e:
+        error_msg = f"Config is missing required path key: {e}. Please check your config.yaml."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
 
     if not revs_dir.exists():
         logger.warning(f"Reviews directory not found: {revs_dir}")
@@ -50,36 +56,43 @@ def cleanup_samples(score_threshold: int = 75):
         score = analysis.get('evaluation_score', 0)
         
         # Logic: Remove if TP_HIT or high score
-        if result == 'TP_HIT' or score > score_threshold:
+        if result == 'TP_HIT' or score > 75:
             logger.info(f"Sample solved: {review_file.name} (Result: {result}, Score: {score})")
             
             # Identify associated prediction and images
-            # review_BTCUSDT_prediction_20260321_000000.json -> BTCUSDT_prediction_20260321_000000.json
             pred_filename = review_file.name.replace("review_", "")
             pred_path = preds_dir / pred_filename
             
             # Extract symbol and timestamp for image search
-            # BTCUSDT_prediction_20260321_000000.json
             parts = pred_filename.replace(".json", "").split("_prediction_")
             if len(parts) == 2:
                 symbol = parts[0]
-                timestamp = parts[1] # e.g. 20260321_000000
+                timestamp = parts[1]
                 
                 # Image format: {symbol}_{tf}_{timestamp}Z_chart.png
                 for tf in ['15m', '1h']:
                     img_filename = f"{symbol}_{tf}_{timestamp}Z_chart.png"
                     img_path = imgs_dir / img_filename
                     if img_path.exists():
-                        os.remove(img_path)
-                        logger.info(f"  Removed image: {img_filename}")
+                        try:
+                            img_path.unlink()
+                            logger.info(f"  Removed image: {img_filename}")
+                        except Exception as e:
+                            logger.error(f"  Failed to remove image {img_filename}: {e}")
 
             # Remove prediction and review
             if pred_path.exists():
-                os.remove(pred_path)
-                logger.info(f"  Removed prediction: {pred_filename}")
+                try:
+                    pred_path.unlink()
+                    logger.info(f"  Removed prediction: {pred_filename}")
+                except Exception as e:
+                    logger.error(f"  Failed to remove prediction {pred_filename}: {e}")
             
-            os.remove(review_file)
-            logger.info(f"  Removed review: {review_file.name}")
+            try:
+                review_file.unlink()
+                logger.info(f"  Removed review: {review_file.name}")
+            except Exception as e:
+                logger.error(f"  Failed to remove review {review_file.name}: {e}")
             
             removed_count += 1
 
@@ -89,9 +102,4 @@ def cleanup_samples(score_threshold: int = 75):
         logger.info("=== Cleanup Complete: No solved samples found ===")
 
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Cleanup solved samples from the training set.")
-    parser.add_argument("--score", type=int, default=75, help="Score threshold for removal (default 75)")
-    args = parser.parse_args()
-    
-    cleanup_samples(score_threshold=args.score)
+    cleanup_samples()
