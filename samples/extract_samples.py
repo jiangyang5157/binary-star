@@ -58,6 +58,13 @@ class SampleExtractor:
                     pred_path = source_pred_dir / source_pred_file
                     
                     if timestamp and pred_path.exists():
+                        target_rev = self.rev_dir / review_file.name
+                        target_pred = self.pred_dir / source_pred_file
+                        
+                        # Deduplication: Skip if prediction already exists in samples/
+                        if target_pred.exists():
+                            continue
+
                         try:
                             dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
                             for tf in ['15m', '1h']:
@@ -66,17 +73,14 @@ class SampleExtractor:
                                 target_img_path = self.img_dir / img_filename
                                 
                                 if source_img_path.exists() and source_img_path != target_img_path:
-                                    shutil.move(str(source_img_path), str(target_img_path))
+                                    shutil.copy(str(source_img_path), str(target_img_path))
                         except ValueError:
                             pass
 
-                        target_rev = self.rev_dir / review_file.name
-                        target_pred = self.pred_dir / source_pred_file
-                        
                         if review_file != target_rev:
-                            shutil.move(str(review_file), str(target_rev))
+                            shutil.copy(str(review_file), str(target_rev))
                         if pred_path != target_pred:
-                            shutil.move(str(pred_path), str(target_pred))
+                            shutil.copy(str(pred_path), str(target_pred))
                         count += 1
 
         print(f"Extraction complete. Moved {count} sample(s) to {self.target_dir}/")
