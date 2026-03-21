@@ -110,6 +110,7 @@ def apply_to_config(report_data: Dict[str, Any], config_path: str):
     config_update = analysis.get("master_config_update", {})
     
     if not config_update:
+        logger.info("No master_config_update found in the report. Skipping config update.")
         return
 
     if not os.path.exists(config_path):
