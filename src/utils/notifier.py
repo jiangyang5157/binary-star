@@ -116,24 +116,25 @@ class EmailNotifier:
         # Calculate TP/SL Ratio
         tpsl_ratio = "N/A"
         try:
-            cp_f = float(current_price)
+            # Use entry_price as base if it exists, otherwise use current_price
+            base_price = float(entry_price) if entry_price is not None else float(current_price)
             tp_f = float(tp)
             sl_f = float(sl)
             
-            # Logic for LONG/BULLISH: (TP - CP) / (CP - SL)
-            # Logic for SHORT/BEARISH: (CP - TP) / (SL - CP)
+            # Logic for LONG/BULLISH: (TP - Base) / (Base - SL)
+            # Logic for SHORT/BEARISH: (Base - TP) / (SL - Base)
             
             is_long = action == "LONG" or opinion == "BULLISH"
             is_short = action == "SHORT" or opinion == "BEARISH"
             
             if is_long:
-                if cp_f > sl_f:
-                    tpsl_ratio = f"{(tp_f - cp_f) / (cp_f - sl_f):.2f}"
+                if base_price > sl_f:
+                    tpsl_ratio = f"{(tp_f - base_price) / (base_price - sl_f):.2f}"
             elif is_short:
-                if sl_f > cp_f:
-                    tpsl_ratio = f"{(cp_f - tp_f) / (sl_f - cp_f):.2f}"
+                if sl_f > base_price:
+                    tpsl_ratio = f"{(base_price - tp_f) / (sl_f - base_price):.2f}"
             
-        except Exception:
+        except (Exception, ValueError, TypeError):
             pass
 
         body = f"""
@@ -177,7 +178,7 @@ class EmailNotifier:
                          <span style="font-size: 18px; font-weight: 700; color: #27ae60;">{tp}</span>
                     </div>
                     <div style="flex: 1; padding: 15px; text-align: center; background-color: #f8fbff;">
-                         <span style="display: block; font-size: 11px; color: #3498db; text-transform: uppercase; margin-bottom: 2px;">Risk/Reward</span>
+                         <span style="display: block; font-size: 11px; color: #3498db; text-transform: uppercase; margin-bottom: 2px;">TP/SL</span>
                          <span style="font-size: 18px; font-weight: 700; color: #3498db;">{tpsl_ratio}</span>
                     </div>
                 </div>
