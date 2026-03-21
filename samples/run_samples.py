@@ -1,25 +1,28 @@
 import sys
 import logging
-from pathlib import Path
-from datetime import datetime, timedelta, timezone
 import yaml
 import re
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
-# Append root to path
-sys.path.append(str(Path(__file__).parent.parent))
-
-from predictor import run_predictor
-from review import main_review as run_reviewer_pipeline
-
-# Configure logging
+# Configure logging FIRST before any other imports that might set up logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler("samples/samples.log"),
         logging.StreamHandler(sys.stdout)
-    ]
+    ],
+    force=True  # Important: Force clear any existing config from other modules
 )
+
+# Append root to path
+sys.path.append(str(Path(__file__).parent.parent))
+
+from predictor import run_predictor
+from review import main_review as run_reviewer_pipeline
+from coach import run_coach_pipeline
+
 logger = logging.getLogger(__name__)
 
 def get_timestamps_from_predictions(pred_dir):
@@ -81,6 +84,11 @@ def run_samples():
             logger.error(f"Sample testing failed for {dt}: {e}")
 
     logger.info("\n=== Sample Testing Complete ===")
+    
+    # 3. Automatic Coaching
+    logger.info("\n--- AUTOMATIC COACHING ON SAMPLES ---")
+    run_coach_pipeline(n=len(timestamps), base_dir="samples")
+    logger.info("=== All Pipelines Finished ===")
 
 if __name__ == "__main__":
     run_samples()
