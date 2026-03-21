@@ -55,6 +55,7 @@ crypto/
 ### 👤 Agent A (Predictor) — 执行大脑
 *   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio）。
 *   **三轮推演**：执行 `初步分析` -> `红队质疑 (Red Team Critique)` -> `最终决策`。这种架构能有效识别陷阱，降低伪突破的诱惑。
+*   **数学约束**：严格遵守 **3.5% 止盈上限** 和 **1.5x 盈亏比**。若二者冲突，Agent 将强制输出 `NEUTRAL`。
 
 *   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
 *   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
@@ -117,8 +118,8 @@ python scheduler.py
 # 运行 Coach 分析并生成补丁
 python coach.py --batch 10
 
-# 应用补丁 (将建议自动注入 Prompt 和 Config)
-python apply_patches.py data/raw/coach/coach_report_xxx.json
+# 应用补丁 (全自动注入：支持处理 Prompt 替换以及 Config 参数调优)
+python apply_patches.py data/raw/coach/coach_BTCUSDT_2026xxxx.json
 ```
 
 ---
@@ -138,11 +139,14 @@ python apply_patches.py data/raw/coach/coach_report_xxx.json
 
 系统内置了强大的模拟器，支持在历史任意时间点触发 Agent A 的逻辑：
 ```bash
-# 采样过去 30 天的 32 个随机时间点进行模拟
-python simulator.py --days 30 --sampling 32 --mode regime
+# 采样过去 14 天的 8-10 个随机时间点进行模拟
+python simulator.py --days 14 --sampling 10 --mode regime
 
 # 指定模式：spaced 表示等间隔采样，regime 表示按行情分层采样（推荐用于调优）
-python simulator.py --days 30 --sampling 32 --mode spaced
+python simulator.py --days 14 --sampling 10 --mode spaced
+
+> [!TIP]
+> **监控运行**：你可以通过 `tail -f simulator.log` 实时查看模拟进度，系统会输出每个样本的采样原因（市场状态判断）以及预测/审计的完成情况。
 ```
 
 ---
@@ -151,27 +155,26 @@ python simulator.py --days 30 --sampling 32 --mode spaced
 
 当你发现预测的准确率（尤其是止盈止损）不理想时，请按照以下标准流程进行一轮“进化”：
 
-1.  **数据收集**：运行 30 天 32 个样本的制度化回测。
+1.  **第一阶段：全局博弈录制 (Training)**
+    运行大样本回测以收集系统性错误：
     ```bash
-    python simulator.py --days 30 --sampling 32 --mode regime
+    python simulator.py --days 30 --sampling 20 --mode regime
     ```
     *注：`regime` 模式能确保在牛/熊/高低波动下都有足够样本。*
 
-2.  **战略分析**：运行 Coach 处理这 32 个复盘报告。
+2.  **第二阶段：战略分析与注入 (Coach & Patch)**
+    运行 Coach 处理这 20 个复盘报告并应用补丁：
     ```bash
-    python coach.py --batch 32
-    ```
-
-3.  **自动注入**：应用生成的最新补丁。
-    ```bash
-    # 找到最新的 coach_report JSON 文件
+    python coach.py --batch 20
     python apply_patches.py data/raw/coach/coach_BTCUSDT_2026xxxx.json
     ```
 
-4.  **验证闭环**：使用新 Prompt 运行一个小规模（10个样本）的回测，对比胜率。
+3.  **第三阶段：独立验证 (Testing/Validation)**
+    使用从未见过的最新数据验证优化效果：
     ```bash
-    python simulator.py --days 14 --sampling 10 --mode spaced
+    python simulator.py --days 10 --sampling 10 --mode regime
     ```
+    *目标：对比 V1 (Baseline) 与 V2 (Optimized) 在这 10 个测试样本上的评分提升。*
 
 ---
 
