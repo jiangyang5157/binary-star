@@ -36,6 +36,9 @@ paths:
   coach_dir: "data/raw/coach"               # Agent C coach reports
   images_dir: "data/images"                 # Generated technical charts (.png)
   prompts_dir: "src/agent/prompts"          # AI prompt templates (.txt)
+  prompt_trader_filename: "prompt_trader.txt"
+  prompt_reviewer_filename: "prompt_reviewer.txt"
+  prompt_coach_filename: "prompt_coach.txt"
 
 notifications:
   min_confidence_threshold: 70          # Increased from 70: Only alert on 'Elite' setups

@@ -99,6 +99,8 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         _ = config['paths']['predictions_dir']
         _ = config['paths']['reviews_dir']
         _ = config['paths']['prompts_dir']
+        _ = config['paths']['prompt_trader_filename']
+        _ = config['paths']['prompt_reviewer_filename']
         
         # Symbol
         _ = config['symbol']
@@ -140,6 +142,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         reviewer = ReviewerAgent(
             model_name=config['agent']['reviewer_model'], 
             prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
+            prompt_filename=config['paths']['prompt_reviewer_filename'],
             temperature=config['agent']['review_temperature']
         )
 
@@ -235,7 +238,8 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                         "trade_post_mortem_zh": "由于缺少 API KEY，仅计算了市场结果。"
                     })
                 else:
-                    prompt_path = os.path.join(PROJECT_ROOT, config['paths']['prompts_dir'], "prompt_trader.txt")
+                    paths_config = config['paths']
+                    prompt_path = os.path.join(PROJECT_ROOT, paths_config['prompts_dir'], paths_config['prompt_trader_filename'])
                     base_prompt = ""
                     if os.path.exists(prompt_path):
                         with open(prompt_path, 'r', encoding='utf-8') as f:

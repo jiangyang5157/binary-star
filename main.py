@@ -55,6 +55,7 @@ def run_agent_a(override_timestamp: datetime = None):
         _ = config['paths']['predictions_dir']
         _ = config['paths']['images_dir']
         _ = config['paths']['prompts_dir']
+        _ = config['paths']['prompt_trader_filename']
         
         # Symbol & Prediction
         _ = config['symbol']
@@ -206,6 +207,7 @@ def run_agent_a(override_timestamp: datetime = None):
     trader = TraderAgent(
         model_name=config['agent']['trader_model'],
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
+        prompt_filename=config['paths']['prompt_trader_filename'],
         temp_pass1=config['agent']['trader_temp_initial'],
         temp_pass2=config['agent']['trader_temp_critique'],
         temp_pass3=config['agent']['trader_temp_final']

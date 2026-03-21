@@ -115,8 +115,12 @@ def main():
         with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         
-        # Resolve Coach Report Path
-        coach_dir = config.get("paths", {}).get("coach_dir", "data/raw/coach")
+        # Strict existence check for required keys
+        paths_config = config['paths']
+        coach_dir = paths_config['coach_dir']
+        prompts_dir = paths_config['prompts_dir']
+        trader_prompt_file = paths_config['prompt_trader_filename']
+        
         input_report = args.report_filename
         
         # If it's just a filename, prepend coach_dir
@@ -125,10 +129,12 @@ def main():
         else:
             report_path = input_report
 
-        # Resolve Prompt Path
-        prompts_dir = config.get("paths", {}).get("prompts_dir", "src/agent/prompts")
-        prompt_path = os.path.join(project_root, prompts_dir, "prompt_trader.txt")
+        # Resolve Prompt Path using config filename
+        prompt_path = os.path.join(project_root, prompts_dir, trader_prompt_file)
         
+    except KeyError as e:
+        logger.error(f"Config is missing required key: {e}. Please update config.yaml.")
+        return
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
         return

@@ -14,9 +14,11 @@ class TraderAgent:
     Uses the new google-genai SDK to analyze both text data (Market context) and image data (Volume Profile charts).
     """
     def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", 
+                 prompt_filename: str = "prompt_trader.txt",
                  temp_pass1: float = 1.0, temp_pass2: float = 1.0, temp_pass3: float = 0.7):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
+        self.prompt_filename = prompt_filename
         self.temp_pass1 = temp_pass1
         self.temp_pass2 = temp_pass2
         self.temp_pass3 = temp_pass3
@@ -30,7 +32,7 @@ class TraderAgent:
             self.client = None
 
     def load_prompt_template(self) -> str:
-        prompt_path = os.path.join(self.prompts_dir, "prompt_trader.txt")
+        prompt_path = os.path.join(self.prompts_dir, self.prompt_filename)
         try:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 return f.read()

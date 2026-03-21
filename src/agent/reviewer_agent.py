@@ -13,9 +13,11 @@ class ReviewerAgent:
     Evaluates past predictions made by Agent A against actual market outcomes.
     Specifically audits adherence to the Trader's logic and rules.
     """
-    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", temperature: float = 1.0):
+    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", 
+                 prompt_filename: str = "prompt_reviewer.txt", temperature: float = 1.0):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
+        self.prompt_filename = prompt_filename
         self.temperature = temperature
         try:
             api_key = os.environ.get("GEMINI_API_KEY")
@@ -25,7 +27,7 @@ class ReviewerAgent:
             self.client = None
 
     def load_prompt_template(self) -> str:
-        prompt_path = os.path.join(self.prompts_dir, "prompt_reviewer.txt")
+        prompt_path = os.path.join(self.prompts_dir, self.prompt_filename)
         try:
             with open(prompt_path, 'r', encoding='utf-8') as f:
                 return f.read()
