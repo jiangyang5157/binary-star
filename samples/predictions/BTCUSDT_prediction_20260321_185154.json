@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-21T18:51:54.175200Z",
+    "confidence": 70,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 70385.1,
+    "take_profit": 68000.0,
+    "stop_loss": 71500.0,
+    "reasoning": "Following the technical critique, the current position at the POC (69949.67) is identified as a high-liquidity 'fair value' magnet rather than a support floor. The 15m 'bull flag' breakout is characterized by declining volume, signaling a lack of institutional follow-through and a high probability of a retail trap. Macro structure on the 1h chart shows a series of lower highs, suggesting the path of least resistance is a move toward the Value Area Low (VAL) near 67,000 to flush out over-leveraged longs. TP is set at 68,000 to capture this mean-reversion, with SL at 71,500 to invalidate the fakeout scenario.",
+    "reasoning_zh": "根据技术评估，当前 POC (69949.67) 位点应被视为高流动性的“公允价值”磁铁而非支撑地板。15分钟图的“牛旗”突破伴随成交量萎缩，显示缺乏机构资金跟进，极有可能是诱多陷阱。1小时宏观结构呈现一系列较低的高点，暗示阻力最小的方向是向 67,000 附近的价值区低点 (VAL) 回落，以清洗过度杠杆的做多头寸。止盈设在 68,000 以捕捉均值回归行情，止损设在 71,500 以证伪假突破情景。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
