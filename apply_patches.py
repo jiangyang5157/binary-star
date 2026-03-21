@@ -144,7 +144,7 @@ def apply_to_config(report_data: Dict[str, Any], config_path: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Apply a Coach Report patch to the trading system.")
-    parser.add_argument("patch_filename", help="Filename of the coach report in the coach_dir (e.g. BTC_report.json)")
+    parser.add_argument("patch_filename", metavar="PATH", help="Path to the coach report")
     
     args = parser.parse_args()
 
@@ -163,18 +163,11 @@ def main():
         
         # Strict existence check for required keys
         paths_config = config['paths']
-        coach_dir = paths_config['coach_dir']
         prompts_dir = paths_config['prompts_dir']
         trader_prompt_file = paths_config['prompt_trader_filename']
+        # Path to the patch file (e.g. data/raw/coach/report.json)
+        report_path = args.patch_filename
         
-        input_report = args.patch_filename
-        
-        # If it's just a filename, prepend coach_dir
-        if not os.path.dirname(input_report):
-            report_path = os.path.join(project_root, coach_dir, input_report)
-        else:
-            report_path = input_report
-
         # Resolve Prompt Path using config filename
         prompt_path = os.path.join(project_root, prompts_dir, trader_prompt_file)
         

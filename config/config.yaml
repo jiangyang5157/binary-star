@@ -1,60 +1,40 @@
-# =============================================================================
-# Crypto Trading System Configuration (SSoT)
-# =============================================================================
-# All technical parameters, timeframes, and model selections are defined here.
-symbol: "BTCUSDT"               # The trading pair to analyze (Binance Futures format)
-
+symbol: BTCUSDT
 prediction:
-  trade_horizon_days: 1         # Target for Intraday Trading
-  value_area_pct: 0.7           # Percentage of total volume used to define Value Area High (VAH) and Low (VAL)
-  order_flow_lookback_bars: 8   # Increased from 4 to 8 for more stable 2h Delta context
-  
+  trade_horizon_days: 1
+  value_area_pct: 0.7
+  order_flow_lookback_bars: 8
   macro_timeframe:
-    interval: "1h"              # K-line interval for macro analysis (1h for intraday)
-    limit: 336                  # 14 days of history (336 * 1h)
-    
-  # Micro Timeframe: Used for precise entry/exit analysis and local order flow observation.
+    interval: 1h
+    limit: 336
   micro_timeframe:
-    interval: "15m"             # 15m for entry precision
-    limit: 192                  # 2 days of history (192 * 15m)
-
+    interval: 15m
+    limit: 192
 review:
-  # Reviewer Evaluation Accuracy
-  # This interval defines the resolution of the "Outcome Data" Agent B uses to find Max Drawdown/Profit.
-  review_kline_interval: "1m"   # 1m precision for intraday review
-  
-  # Safety lag: Ensures trades have enough time to "play out" before they are judged.
+  review_kline_interval: 1m
   minimum_review_age_hours: 4
-
 automation:
-  prediction_interval_hours: 1.0      # Hourly updates for intraday
-  review_interval_hours: 4.0          # How often to trigger the Reviewer pipeline (Agent B)
-  
+  prediction_interval_hours: 1.0
+  review_interval_hours: 4.0
 paths:
-  predictions_dir: "data/raw/predictions"   # Agent A prediction output
-  reviews_dir: "data/raw/reviews"           # Agent B review output
-  coach_dir: "data/raw/coach"               # Agent C coach reports
-  images_dir: "data/images"                 # Generated technical charts (.png)
-  prompts_dir: "src/agent/prompts"          # AI prompt templates (.txt)
-  prompt_trader_filename: "prompt_trader.txt"
-  prompt_reviewer_filename: "prompt_reviewer.txt"
-  prompt_coach_filename: "prompt_coach.txt"
-
+  predictions_dir: data/raw/predictions
+  reviews_dir: data/raw/reviews
+  coach_dir: data/raw/coach
+  images_dir: data/images
+  prompts_dir: src/agent/prompts
+  prompt_trader_filename: prompt_trader.txt
+  prompt_reviewer_filename: prompt_reviewer.txt
+  prompt_coach_filename: prompt_coach.txt
 notifications:
-  min_confidence_threshold: 70          # Increased from 70: Only alert on 'Elite' setups
-  smtp_server: "smtp.gmail.com"
+  min_confidence_threshold: 70
+  smtp_server: smtp.gmail.com
   smtp_port: 587
-  timezone: "Pacific/Auckland"          # Localized email timestamps (e.g. Pacific/Auckland, UTC)
-
+  timezone: Pacific/Auckland
 agent:
-  # gemini-flash-latest, gemini-3.1-pro-preview 
-  trader_model: "gemini-flash-latest"   # Optimized for speed and cost
-  reviewer_model: "gemini-3.1-pro-preview" # Set to 'pro' for deep logical flaw analysis
-  coach_model: "gemini-3.1-pro-preview" # Senior Strategist: Patterns & Rules
-
-  # Reasoning Parameters
-  trader_temp_initial: 1.0              # Pass 1: Initial analysis
-  trader_temp_critique: 1.0             # Pass 2: Red Team Critique
-  trader_temp_final: 0.1                # Pass 3: Finalize refined decision
-  review_temperature: 1.0               # Agent B: Single-trade diagnostics
-  coach_temperature: 1.0                # Agent C: Strategic pattern analysis (batch)
+  trader_model: gemini-flash-latest
+  reviewer_model: gemini-3.1-pro-preview
+  coach_model: gemini-3.1-pro-preview
+  trader_temp_initial: 1.0
+  trader_temp_critique: 1.0
+  trader_temp_final: 0.1
+  review_temperature: 1.0
+  coach_temperature: 1.0

@@ -130,11 +130,11 @@ python review.py
 python coach.py --batch 10
 
 # 4. 自动注入补丁 (Apply Patches)
-当 Coach 产出合理的 Patch 后，运行：
+当 Coach 产出合理的 Patch 后，运行（建议使用 Tab 补全路径）：
 ```bash
-python apply_patches.py <report_filename>
+python apply_patches.py data/raw/coach/<patch_filename>
 ```
-该脚本会自动更新 `prompt_trader.txt` 和 `config.yaml`。
+该脚本会严格按照路径读取并更新 `prompt_trader.txt` 和 `config.yaml`。
 
 # 可选：强制复盘（跳过时间保护）
 python review.py --force
