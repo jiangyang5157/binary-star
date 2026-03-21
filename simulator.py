@@ -9,7 +9,14 @@ from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.binance_client import BinanceDataFetcher
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("simulator.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger("Simulator")
 
 class MarketSimulator:
