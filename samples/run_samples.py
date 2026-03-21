@@ -58,7 +58,7 @@ def run_samples():
         
         try:
             # 1. Predictor
-            # Ensure images go to normal data/images
+            # Predictor will save images and predictions into samples/ due to base_dir
             run_predictor(override_timestamp=dt, base_dir="samples")
             logger.info(f"Successfully finished prediction: {pred_filename}")
             

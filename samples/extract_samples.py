@@ -14,14 +14,11 @@ class SampleExtractor:
         with open("config/config.yaml", 'r') as f:
             config = yaml.safe_load(f)
             
-        paths = config.get('paths', {})
+        self.paths = config.get('paths', {})
         
-        self.pred_dir = self.target_dir / paths.get('predictions_dir', 'predictions')
-        self.rev_dir = self.target_dir / paths.get('reviews_dir', 'reviews')
-        self.img_dir = self.target_dir / paths.get('images_dir', 'images')
-        
-        # Source images come from the main live data directory
-        self.image_source_dir = Path(paths.get('base_dir', 'data')) / paths.get('images_dir', 'images')
+        self.pred_dir = self.target_dir / self.paths['predictions_dir']
+        self.rev_dir = self.target_dir / self.paths['reviews_dir']
+        self.img_dir = self.target_dir / self.paths['images_dir']
         
         for d in [self.pred_dir, self.rev_dir, self.img_dir]:
             d.mkdir(parents=True, exist_ok=True)
@@ -30,10 +27,16 @@ class SampleExtractor:
         count = 0
         for folder in self.source_folders:
             folder_path = Path(folder)
-            if not folder_path.exists():
+            
+            # Subdirectories for this source folder based on config
+            source_rev_dir = folder_path / self.paths['reviews_dir']
+            source_pred_dir = folder_path / self.paths['predictions_dir']
+            source_img_dir = folder_path / self.paths['images_dir']
+            
+            if not source_rev_dir.exists():
                 continue
                 
-            for review_file in folder_path.glob("review_*.json"):
+            for review_file in source_rev_dir.glob("review_*.json"):
                 with open(review_file, 'r') as f:
                     try:
                         data = json.load(f)
@@ -52,17 +55,17 @@ class SampleExtractor:
                 
                 if result == 'SL_HIT' or score <= 25:
                     source_pred_file = data.get('prediction', {}).get('source', '')
-                    pred_path = folder_path / source_pred_file
+                    pred_path = source_pred_dir / source_pred_file
                     
                     if timestamp and pred_path.exists():
                         try:
                             dt = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%SZ")
                             for tf in ['15m', '1h']:
                                 img_filename = f"{symbol}_{tf}_{dt.strftime('%Y%m%d_%H%M%S')}Z_chart.png"
-                                source_img_path = self.image_source_dir / img_filename
+                                source_img_path = source_img_dir / img_filename
                                 target_img_path = self.img_dir / img_filename
                                 
-                                if source_img_path.exists():
+                                if source_img_path.exists() and source_img_path != target_img_path:
                                     shutil.move(str(source_img_path), str(target_img_path))
                         except ValueError:
                             pass
@@ -70,13 +73,15 @@ class SampleExtractor:
                         target_rev = self.rev_dir / review_file.name
                         target_pred = self.pred_dir / source_pred_file
                         
-                        shutil.move(str(review_file), str(target_rev))
-                        shutil.move(str(pred_path), str(target_pred))
+                        if review_file != target_rev:
+                            shutil.move(str(review_file), str(target_rev))
+                        if pred_path != target_pred:
+                            shutil.move(str(pred_path), str(target_pred))
                         count += 1
 
         print(f"Extraction complete. Moved {count} sample(s) to {self.target_dir}/")
 
 if __name__ == "__main__":
-    sources = ['data/archive_training_v1', 'data/archive_training_v1.1'] # Add paths here
+    sources = ['data'] 
     extractor = SampleExtractor(sources)
     extractor.extract()
