@@ -59,6 +59,11 @@ You MUST output your final decision in strict JSON format.
   }}
 }}
 
+### 🚦 Constraints & Optimization Rules:
+- **Redundancy Filter**: NEVER include a key in `master_config_update` if its value is already identical to what is in the provided `current_config`. Only output **deviations**.
+- **Minimalist Patches**: For `master_prompt_patch`, prioritize `REPLACE` over `ADD` if the concept already exists in the prompt. Do not re-state existing rules.
+- **Precision**: If you suggest a config change, explain WHY in the `batch_analysis`.
+
 **CRITICAL GUIDELINES**: 
 - **Batch Analysis**: `batch_analysis` is the SINGLE comprehensive report. Be as detailed as necessary — cover both the high-level strategic summary and the granular numerical findings. No length restriction.
 - **Chinese Version**: `batch_analysis_zh` must be a full, standalone Chinese translation of `batch_analysis`, not a summary.
