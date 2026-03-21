@@ -39,7 +39,11 @@ class EmailNotifier:
         from email.mime.image import MIMEImage
         
         confidence = prediction.get('confidence', 0)
-        action = prediction.get('action', 'HOLD')
+        action = str(prediction.get('action', 'WAIT')).upper()
+        opinion = str(prediction.get('opinion', 'NEUTRAL')).upper()
+        pos_context = prediction.get('position_context', {"position_type": "NONE", "entry_price": None})
+        pos_type = str(pos_context.get('position_type', 'NONE')).upper()
+        entry_price = pos_context.get('entry_price')
         
         # Format the full prediction JSON nicely
         # Remove reasoning_zh from the displayed JSON, and adding it back as a separate section
@@ -60,7 +64,8 @@ class EmailNotifier:
         except Exception as e:
             logger.warning(f"Failed to convert timestamp to local time ({self.timezone}): {e}")
         
-        subject = f"Crypto Alert: {action} {symbol} (Confidence: {confidence}%)"
+        # Subject: Crypto: [ACTION] SYMBOL | OPINION (CONFIDENCE%)
+        subject = f"Crypto: {action} {symbol} | {opinion} ({confidence}%)"
         
         # Prepare HTML body with premium styling
         img_html = ""
@@ -78,7 +83,30 @@ class EmailNotifier:
             img_html += "</div>"
         
         # Determine Color based on action
-        action_color = "#27ae60" if action == "BUY" else "#e74c3c" if action == "SELL" else "#f39c12"
+        # Determine Color and Icons
+        action_colors = {
+            "LONG": "#27ae60",
+            "SHORT": "#e74c3c",
+            "HOLD": "#3498db",
+            "WAIT": "#95a5a6",
+            "CLOSE": "#e67e22"
+        }
+        opinion_colors = {
+            "BULLISH": "#27ae60",
+            "BEARISH": "#e74c3c",
+            "NEUTRAL": "#95a5a6"
+        }
+        action_icons = {
+            "LONG": "🚀", "SHORT": "🐻", "HOLD": "💎", "WAIT": "⏳", "CLOSE": "🚪"
+        }
+        opinion_icons = {
+            "BULLISH": "📈", "BEARISH": "📉", "NEUTRAL": "↔️"
+        }
+        
+        action_color = action_colors.get(action, "#f39c12")
+        opinion_color = opinion_colors.get(opinion, "#f39c12")
+        action_icon = action_icons.get(action, "🔔")
+        opinion_icon = opinion_icons.get(opinion, "💡")
         
         metadata = prediction.get('metadata', {})
         current_price = prediction.get('current_price', 'N/A')
@@ -91,12 +119,20 @@ class EmailNotifier:
             cp_f = float(current_price)
             tp_f = float(tp)
             sl_f = float(sl)
-            if action == "BUY":
+            
+            # Logic for LONG/BULLISH: (TP - CP) / (CP - SL)
+            # Logic for SHORT/BEARISH: (CP - TP) / (SL - CP)
+            
+            is_long = action == "LONG" or opinion == "BULLISH"
+            is_short = action == "SHORT" or opinion == "BEARISH"
+            
+            if is_long:
                 if cp_f > sl_f:
                     tpsl_ratio = f"{(tp_f - cp_f) / (cp_f - sl_f):.2f}"
-            elif action == "SELL":
+            elif is_short:
                 if sl_f > cp_f:
                     tpsl_ratio = f"{(cp_f - tp_f) / (sl_f - cp_f):.2f}"
+            
         except Exception:
             pass
 
@@ -107,27 +143,42 @@ class EmailNotifier:
                 
                 <!-- Header Section -->
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: {action_color}; margin: 0; font-size: 28px; letter-spacing: 1px;">🚀 {action} {symbol} <span style="font-size: 20px; opacity: 0.8;">({confidence}%)</span></h1>
-                    <p style="color: #7f8c8d; margin-top: 5px; font-size: 14px;">Signal Detected at: <span style="color: #34495e; font-weight: 600;">{local_time_str}</span></p>
+                    <div style="display: inline-block; padding: 8px 16px; border-radius: 50px; background-color: {opinion_color}15; color: {opinion_color}; font-weight: bold; font-size: 14px; margin-bottom: 10px; border: 1px solid {opinion_color}30;">
+                        {opinion_icon} Market {opinion}
+                    </div>
+                    <h1 style="color: {action_color}; margin: 0; font-size: 32px; letter-spacing: 1px;">{action_icon} {action} {symbol}</h1>
+                    <p style="color: #7f8c8d; margin-top: 8px; font-size: 14px;">Signal Confidence: <span style="color: {action_color}; font-weight: 700;">{confidence}%</span> | Detected at: <span style="color: #34495e; font-weight: 600;">{local_time_str}</span></p>
                 </div>
 
-                <!-- Core Details Grid -->
-                <div style="background-color: #fcfcfc; border: 1px solid #f0f0f0; border-radius: 10px; padding: 20px; margin-bottom: 30px; display: flex; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 140px; padding: 10px; border-right: 1px solid #eee;">
-                        <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">Current Price</span>
-                        <span style="font-size: 18px; font-weight: 600;">{current_price}</span>
+                <!-- Position & Price Summary -->
+                <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+                    <!-- Current Position Card -->
+                    <div style="flex: 1; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; text-align: center;">
+                        <span style="display: block; font-size: 11px; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px;">Current Position</span>
+                        <span style="font-size: 16px; font-weight: 700; color: #2c3e50;">{pos_type}</span>
+                        {f'<span style="display: block; font-size: 12px; color: #7f8c8d;">@ {entry_price}</span>' if entry_price else ''}
                     </div>
-                    <div style="flex: 1; min-width: 140px; padding: 10px; border-right: 1px solid #eee;">
-                        <span style="display: block; font-size: 12px; color: #e74c3c; text-transform: uppercase;">Stop Loss</span>
-                        <span style="font-size: 18px; font-weight: 600; color: #e74c3c;">{sl}</span>
+                    <!-- Market Price Card -->
+                    <div style="flex: 1; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; text-align: center;">
+                        <span style="display: block; font-size: 11px; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px;">Market Price</span>
+                        <span style="font-size: 16px; font-weight: 700; color: #2c3e50;">{current_price}</span>
+                        <span style="display: block; font-size: 12px; color: #7f8c8d;">{symbol}</span>
                     </div>
-                    <div style="flex: 1; min-width: 140px; padding: 10px; border-right: 1px solid #eee;">
-                        <span style="display: block; font-size: 12px; color: #27ae60; text-transform: uppercase;">Take Profit</span>
-                        <span style="font-size: 18px; font-weight: 600; color: #27ae60;">{tp}</span>
+                </div>
+
+                <!-- Trade Targets -->
+                <div style="background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 10px; padding: 0; margin-bottom: 30px; display: flex; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="flex: 1; padding: 15px; text-align: center; border-right: 1px solid #f0f0f0;">
+                         <span style="display: block; font-size: 11px; color: #e74c3c; text-transform: uppercase; margin-bottom: 2px;">Stop Loss</span>
+                         <span style="font-size: 18px; font-weight: 700; color: #e74c3c;">{sl}</span>
                     </div>
-                    <div style="flex: 1; min-width: 140px; padding: 10px;">
-                        <span style="display: block; font-size: 12px; color: #95a5a6; text-transform: uppercase;">TP/SL</span>
-                        <span style="font-size: 18px; font-weight: 600; color: #3498db;">{tpsl_ratio}</span>
+                    <div style="flex: 1; padding: 15px; text-align: center; border-right: 1px solid #f0f0f0;">
+                         <span style="display: block; font-size: 11px; color: #27ae60; text-transform: uppercase; margin-bottom: 2px;">Take Profit</span>
+                         <span style="font-size: 18px; font-weight: 700; color: #27ae60;">{tp}</span>
+                    </div>
+                    <div style="flex: 1; padding: 15px; text-align: center; background-color: #f8fbff;">
+                         <span style="display: block; font-size: 11px; color: #3498db; text-transform: uppercase; margin-bottom: 2px;">Risk/Reward</span>
+                         <span style="font-size: 18px; font-weight: 700; color: #3498db;">{tpsl_ratio}</span>
                     </div>
                 </div>
 
