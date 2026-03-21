@@ -112,6 +112,7 @@ class EmailNotifier:
         current_price = prediction.get('current_price', 'N/A')
         tp = prediction.get('take_profit', 'N/A')
         sl = prediction.get('stop_loss', 'N/A')
+        horizon = prediction.get('config_context', {}).get('prediction_horizon_days', 'N/A')
 
         # Calculate TP/SL Ratio
         tpsl_ratio = "N/A"
@@ -178,6 +179,12 @@ class EmailNotifier:
                             <span style="display: block; font-size: 10px; color: #3498db; text-transform: uppercase;">TP/SL</span>
                             <span style="font-size: 15px; font-weight: 700; color: #3498db;">{tpsl_ratio}</span>
                         </div>
+                    </div>
+
+                    <!-- Tier 3: Prediction Outlook -->
+                    <div style="margin-top: 15px; background-color: #fcfaff; border: 1px solid #efe5ff; border-radius: 8px; padding: 10px; text-align: center;">
+                        <span style="display: block; font-size: 10px; color: #8e44ad; text-transform: uppercase; letter-spacing: 1px;">Prediction Outlook (Horizon)</span>
+                        <span style="font-size: 16px; font-weight: 700; color: #8e44ad;">{horizon} DAYS</span>
                     </div>
                 </div>
 
