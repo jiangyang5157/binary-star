@@ -72,9 +72,9 @@ Specifically look for:
 - Sentiment Data Hierarchy: Price Structure > Volume > Sentiment. High L/S ratios (even >2.0) are secondary background noise unless accompanied by a confirmed 15m structural breakdown. NEVER use sentiment to abort a technically sound BUY setup if price is holding firmly above the POC, and NEVER use it to justify shorting into support.
 
 ### 5. Risk, Reward & Logic (Mandatory)
-- Mathematical R:R Check (STRICT): You MUST calculate the Reward-to-Risk ratio. Condition A: (TP distance / SL distance) MUST be >= **MIN_RR** (1.5). Condition B: TP distance MUST be within [**MIN_TP_ATR_MULT** * ATR, **MAX_TP_ATR_MULT** * ATR].
-- **Adaptive Greed Constraint**: For the current {prediction_horizon_days}-day horizon, your TP distance SHOULD NOT exceed **3.0x Macro ATR** ({atr_macro}). If technical structure (POC/VAH) requires a move larger than 3.0x ATR, you MUST either truncate your TP or output 'NEUTRAL'.
-- **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of at least **1.5x Macro ATR** ({atr_macro}) from the `current_price`.
+- Mathematical R:R Check (STRICT): You MUST calculate the Reward-to-Risk ratio. Condition A: (TP distance / SL distance) MUST be >= **MIN_RR** ({MIN_RR}). Condition B: TP distance MUST be within [**MIN_TP_ATR_MULT** * Macro ATR, **MAX_TP_ATR_MULT** * Macro ATR].
+- **Adaptive Greed Constraint**: For the current {prediction_horizon_days}-day horizon, your TP distance SHOULD NOT exceed **MAX_TP_ATR_MULT**x Macro ATR ({atr_macro}). If technical structure (POC/VAH) requires a move larger than the max multiplier, you MUST either truncate your TP or output 'NEUTRAL'.
+- **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of at least **MIN_TP_ATR_MULT**x Macro ATR ({atr_macro}) from the `current_price`.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL), but always validate against the ATR limits above.
 - Furthermore, you MUST front-run major structural targets by at least 0.3% to guarantee fills.
 - Stop-Loss Placement & ATR: Use ATR-based stops or structural levels. NEVER place stops tighter than **1.0x Macro ATR** to avoid being "wicked out" by normal volatility. For BEARISH opinions, SL MUST be placed mathematically BEYOND the structural resistance.

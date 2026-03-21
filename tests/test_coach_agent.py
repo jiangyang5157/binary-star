@@ -40,7 +40,7 @@ class TestCoachAgent(unittest.TestCase):
         self.coach.client = mock_client_instance
         result_str = self.coach.coaching_session(
             review_reports=reports,
-            current_config={},
+            current_config={'prediction': {'prediction_horizon_days': 1}},
             base_prompt="Old Prompt"
         )
 
