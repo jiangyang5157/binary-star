@@ -167,7 +167,7 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     
     # 1.5 Position Context
     if not current_position:
-        current_position = {"position_type": "NONE", "entry_price": 0.0}
+        current_position = {"position_type": "NONE", "entry_price": None}
     
     current_position_str = json.dumps(current_position, indent=2)
     
@@ -354,10 +354,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     current_position = None
-    if args.position != "NONE" and args.entry != 0.0:
+    if args.position.upper() != "NONE":
         current_position = {
             "position_type": args.position.upper(),
-            "entry_price": args.entry
+            "entry_price": args.entry if args.entry != 0.0 else None
         }
     
     run_predictor(current_position=current_position)
