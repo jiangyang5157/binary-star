@@ -16,7 +16,9 @@ class ChartGenerator:
     - Liquidation Zones (Heatmap bands)
     - Trendlines (Automated structure detection)
     """
-    def __init__(self, output_dir: str = "data/images"):
+    def __init__(self, output_dir: str):
+        if not output_dir:
+            raise ValueError("output_dir must be provided")
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
 

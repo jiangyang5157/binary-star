@@ -3,15 +3,25 @@ import json
 from pathlib import Path
 import shutil
 from datetime import datetime
+import yaml
 
 class SampleExtractor:
     def __init__(self, source_folders, target_dir="samples"):
         self.source_folders = source_folders
         self.target_dir = Path(target_dir)
-        self.pred_dir = self.target_dir / "predictions"
-        self.rev_dir = self.target_dir / "reviews"
-        self.img_dir = self.target_dir / "images"
-        self.image_source_dir = Path("data/images")
+        
+        # Read from config.yaml directly to avoid magic strings
+        with open("config/config.yaml", 'r') as f:
+            config = yaml.safe_load(f)
+            
+        paths = config.get('paths', {})
+        
+        self.pred_dir = self.target_dir / paths.get('predictions_dir', 'predictions')
+        self.rev_dir = self.target_dir / paths.get('reviews_dir', 'reviews')
+        self.img_dir = self.target_dir / paths.get('images_dir', 'images')
+        
+        # Source images come from the main live data directory
+        self.image_source_dir = Path(paths.get('base_dir', 'data')) / paths.get('images_dir', 'images')
         
         for d in [self.pred_dir, self.rev_dir, self.img_dir]:
             d.mkdir(parents=True, exist_ok=True)
