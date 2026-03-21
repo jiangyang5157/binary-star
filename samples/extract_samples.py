@@ -18,8 +18,6 @@ class SampleExtractor:
         
         self.pred_dir = self.target_dir / self.paths['predictions_dir']
         self.rev_dir = self.target_dir / self.paths['reviews_dir']
-        self.pred_dir = self.target_dir / self.paths['predictions_dir']
-        self.rev_dir = self.target_dir / self.paths['reviews_dir']
         
         for d in [self.pred_dir, self.rev_dir]:
             d.mkdir(parents=True, exist_ok=True)
