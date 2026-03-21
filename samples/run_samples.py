@@ -33,7 +33,6 @@ def get_timestamps_from_predictions(pred_dir):
         return timestamps
         
     for pred_file in path.glob("*_prediction_*.json"):
-        # Format: BTCUSDT_prediction_20260312_000000.json
         match = re.search(r'([A-Z]+)_prediction_(\d{8}_\d{6})\.json', pred_file.name)
         if match:
             sym = match.group(1)
