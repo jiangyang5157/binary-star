@@ -69,15 +69,21 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         
         # Symbol & Prediction
         _ = config['symbol']
-        _ = config['prediction']['value_area_pct']
-        _ = config['prediction']['order_flow_lookback_bars']
         _ = config['prediction']['prediction_horizon_days']
         _ = config['prediction']['macro_timeframe']['interval']
         _ = config['prediction']['macro_timeframe']['limit']
         _ = config['prediction']['micro_timeframe']['interval']
         _ = config['prediction']['micro_timeframe']['limit']
-        _ = config['prediction']['liquidation_fetch_limit']
-        _ = config['prediction']['liquidation_context_limit']
+        
+        # Strategy Parameters
+        _ = config['strategy']['value_area_pct']
+        _ = config['strategy']['order_flow_lookback_bars']
+        _ = config['strategy']['liquidation_fetch_limit']
+        _ = config['strategy']['liquidation_context_limit']
+        _ = config['strategy']['max_tp_atr_mult']
+        _ = config['strategy']['min_tp_atr_mult']
+        _ = config['strategy']['min_sl_atr_mult']
+        _ = config['strategy']['min_tp_sl_ratio']
         
         # Agent
         _ = config['agent']['predictor_model']
@@ -137,14 +143,14 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         sentiment_kwargs = fetch_kwargs
     
     top_ls_ratio = bf.fetch_top_long_short_accounts(symbol=symbol, period=macro_config['interval'], limit=1, **sentiment_kwargs)
-    liq_fetch_limit = config['prediction']['liquidation_fetch_limit']
+    liq_fetch_limit = config['strategy']['liquidation_fetch_limit']
     liquidations = bf.fetch_liquidations(symbol=symbol, limit=liq_fetch_limit)
     
     # Calculate Order Flow Delta from MICRO klines
     # Delta = (Taker Buy Base Volume) - (Total Volume - Taker Buy Base Volume)
     # This shows aggressive buying vs aggressive selling.
     total_delta = 0
-    lookback_bars = config['prediction']['order_flow_lookback_bars']
+    lookback_bars = config['strategy']['order_flow_lookback_bars']
     if klines_micro:
         try:
             # Last few bars from config
@@ -166,7 +172,7 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         "top_traders_ls_ratio": top_ls_ratio[0].get('longShortRatio', 'N/A') if (isinstance(top_ls_ratio, list) and top_ls_ratio) else 'N/A',
         "recent_liquidations": [
             {"price": l.get('p'), "side": l.get('S'), "amount": l.get('q')} 
-            for l in liquidations[:config['prediction']['liquidation_context_limit']]
+            for l in liquidations[:config['strategy']['liquidation_context_limit']]
         ],
         "order_flow_delta_recent": f"{total_delta:.4f} {symbol[:-4]}",
         "current_time": override_timestamp.isoformat() if override_timestamp else datetime.now(timezone.utc).isoformat()
@@ -183,9 +189,9 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     # Fetch K-line data for Volume Profile (Macro)
     # We use a larger window to identify the high-level VAH/VAL/POC
     vpa = VolumeProfileAnalyzer(
-        value_area_pct=config['prediction']['value_area_pct'],
-        vol_profile_bins=config['prediction']['vol_profile_bins'],
-        atr_window=config['prediction']['atr_window']
+        value_area_pct=config['strategy']['value_area_pct'],
+        vol_profile_bins=config['strategy']['vol_profile_bins'],
+        atr_window=config['strategy']['atr_window']
     )
     
     # Process both kline sets
@@ -213,6 +219,9 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     context_data["atr_micro"] = df_micro['atr'].iloc[-1] if not df_micro.empty else 0
     context_data["prediction_horizon_days"] = config['prediction']['prediction_horizon_days']
     context_data["lookback_bars"] = lookback_bars
+    
+    # Inject strategy parameters for prompt template rendering
+    context_data.update(config.get('strategy', {}))
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['images_dir']))
     

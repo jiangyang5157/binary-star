@@ -29,9 +29,9 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) used by 
     - Compare the `analysis.prediction_post_mortem` with the raw numbers in `actual_market_outcome`. Does the Reviewer's analysis match the math? 
 3.  **Identify Systemic Biases**: Across these {batch_count} predictions, what is the most recurring logical or execution flaw?
 4.  **Generate Optimization Directives**: Based on your findings, provide:
-    - A **structured list of modification instructions** (`master_prompt_patch`) for the `prompt_predictor.txt` file.
-    - **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.
-    - If a parameter in `config.yaml` needs a systemic adjustment, provide the NEW value in `master_config_update`.
+    - A **structured list of modification instructions** (`master_prompt_patch`) for the `prompt_predictor.txt` file. Use this exclusively for qualitative, English-language narrative rules (e.g. "Do not short if volume shows absorption").
+    - **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new qualitative findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.
+    - If a mathematical parameter (like an ATR multiplier) needs systemic adjustment, REPLACE the old value by providing the updated key-value pair in `master_config_update` under the `strategy` dictionary.
 
 ### Output Requirements:
 You MUST output your final decision in strict JSON format. 
@@ -68,5 +68,5 @@ You MUST output your final decision in strict JSON format.
 - **Batch Analysis**: `batch_analysis` is the SINGLE comprehensive report. Be as detailed as necessary — cover both the high-level strategic summary and the granular numerical findings. No length restriction.
 - **Chinese Version**: `batch_analysis_zh` must be a full, standalone Chinese translation of `batch_analysis`, not a summary.
 - **Section Targeting**: For `ADD`, use the EXACT header from `base_prompt`.
-- **Numerical Edge**: If stops are consistently too tight or TPs are too greedy, prioritize using **REPLACE** on the constants (e.g., `MAX_TP_ATR_MULT`, `MIN_TP_ATR_MULT`) found in the `### [TRADING_CONSTANTS]` section of the predictor prompt.
+- **Numerical Edge**: If stops are consistently too tight or TPs are too greedy, DO NOT use `master_prompt_patch`. You MUST tune the relevant variables (e.g., `max_tp_atr_mult`, `min_tp_atr_mult`, `min_sl_atr_mult`) via `master_config_update`.
 - **Horizon Alignment**: Ensure any suggested numerical limits for TP/SL are mathematically sound for the `{prediction_horizon_days}` day window found in `current_config`.
