@@ -147,7 +147,7 @@ class EmailNotifier:
                 </div>
 
                 <p style="text-align: center; color: #bdc3c7; font-size: 11px; margin-top: 30px;">
-                    This is an automated notification from your <strong>Crypto Triple-Agent System</strong>.
+                    This is an automated notification from your <strong>Crypto System</strong>.
                 </p>
             </div>
         </body>

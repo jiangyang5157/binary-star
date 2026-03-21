@@ -44,7 +44,7 @@ def run_agent_a(override_timestamp: datetime = None):
     if override_timestamp:
         logger.info(f"=== Starting BACKTEST Pipeline at {override_timestamp} ===")
     else:
-        logger.info("=== Starting Crypto Triple-Agent Pipeline (Agent A) ===")
+        logger.info("=== Starting Crypto Pipeline (Agent A) ===")
     config = load_config()
     if not config:
         return
