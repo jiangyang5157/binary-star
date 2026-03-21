@@ -10,6 +10,7 @@ data/images/
 data/predictions/
 data/reviews/
 data/coach/
+samples/images/
 samples/reviews/
 samples/coach/
 *.log
