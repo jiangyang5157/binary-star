@@ -28,24 +28,33 @@ def test_reviewer_pipeline_orchestration():
     p1_name = "BTCUSDT_prediction_20260101_000000.json"
     p1_data = {
         "timestamp": "2026-01-01T00:00:00Z",
-        "symbol": "BTCUSDT",
-        "action": "BUY"
+        "action": "BUY",
+        "metadata": {
+            "symbol": "BTCUSDT",
+            "trade_horizon_days": 7
+        }
     }
     
     # Prediction 2: Needs review
     p2_name = "BTCUSDT_prediction_20260101_010000.json"
     p2_data = {
         "timestamp": "2026-01-01T01:00:00Z",
-        "symbol": "BTCUSDT",
-        "action": "SELL"
+        "action": "SELL",
+        "metadata": {
+            "symbol": "BTCUSDT",
+            "trade_horizon_days": 7
+        }
     }
 
     # Prediction 3: Already reviewed (should be skipped)
     p3_name = "BTCUSDT_prediction_20260101_020000.json"
     p3_data = {
         "timestamp": "2026-01-01T02:00:00Z",
-        "symbol": "BTCUSDT",
-        "action": "HOLD"
+        "action": "HOLD",
+        "metadata": {
+            "symbol": "BTCUSDT",
+            "trade_horizon_days": 7
+        }
     }
 
     DataStorage.save_json(p1_data, os.path.join(pred_dir, p1_name))

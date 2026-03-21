@@ -58,6 +58,7 @@ crypto/
 
 ### ⚖️ Agent B (Reviewer) — 铁面审计
 *   **事实驱动**：不看 Agent A 的主观判断，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
+*   **精准过滤**：自动识别预测文件中的 `metadata` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
 *   **深度复盘**：分析为什么预测失败（如："未能识别 POC 下方的成交量真空区"），为 Coach 提供高质量的底层数据。
 
 ### 🧠 Agent C (Coach) — 战略导师

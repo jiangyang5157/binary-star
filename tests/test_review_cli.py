@@ -34,8 +34,11 @@ def test_aging_protection_logic():
     filename = "BTCUSDT_prediction_recent.json"
     pred_data = {
         "timestamp": recent_ts,
-        "symbol": "BTCUSDT",
-        "action": "BUY"
+        "action": "BUY",
+        "metadata": {
+            "symbol": "BTCUSDT",
+            "trade_horizon_days": 7
+        }
     }
     DataStorage.save_json(pred_data, os.path.join(pred_dir, filename))
     
