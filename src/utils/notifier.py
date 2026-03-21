@@ -44,7 +44,7 @@ class EmailNotifier:
         # Format the full prediction JSON nicely
         # Remove reasoning_zh from the displayed JSON, and adding it back as a separate section
         prediction_copy = prediction.copy()
-        formatted_json = json.dumps(prediction_copy, indent=4)
+        formatted_json = json.dumps(prediction_copy, indent=4, ensure_ascii=False)
         reasoning_zh = prediction_copy.pop('reasoning_zh', 'N/A')
         
         
@@ -159,7 +159,7 @@ class EmailNotifier:
         msg['From'] = self.recipient
         msg['To'] = self.recipient
         msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'html'))
+        msg.attach(MIMEText(body, 'html', 'utf-8'))
 
         # Attach images with CID for embedding
         if chart_paths:
