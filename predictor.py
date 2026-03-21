@@ -3,6 +3,7 @@ import sys
 import yaml
 import json
 import logging
+import argparse
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -346,4 +347,17 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         logger.info("=== Pipeline Complete ===")
 
 if __name__ == "__main__":
-    run_predictor()
+    parser = argparse.ArgumentParser(description="Crypto Predictor CLI")
+    parser.add_argument("--position", type=str, choices=["LONG", "SHORT", "NONE"], default="NONE", help="Current position type (LONG, SHORT, NONE)")
+    parser.add_argument("--entry", type=float, default=0.0, help="Entry price of the current position")
+    
+    args = parser.parse_args()
+    
+    current_position = None
+    if args.position != "NONE" and args.entry != 0.0:
+        current_position = {
+            "position_type": args.position.upper(),
+            "entry_price": args.entry
+        }
+    
+    run_predictor(current_position=current_position)
