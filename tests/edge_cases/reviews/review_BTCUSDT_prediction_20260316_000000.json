@@ -1,0 +1,44 @@
+{
+    "prediction": {
+        "source": "BTCUSDT_prediction_20260316_000000.json",
+        "content": {
+            "timestamp": "2026-03-16T00:00:00Z",
+            "confidence": 78,
+            "opinion": "BEARISH",
+            "action": "SHORT",
+            "current_price": 72497.4,
+            "take_profit": 71226.6,
+            "stop_loss": 73300.0,
+            "reasoning": "The price has encountered significant resistance at the Macro Value Area High (VAH) near 72,636. The 15m chart displays a clear exhaustion wick above 73,000, suggesting a liquidity sweep of late breakout buyers. With the price overextended from the Point of Control (POC) at 71,226.63 and forming a narrowing ascending channel (rising wedge), a mean-reversion move toward the POC is highly probable. Declining volume on the latest push and peaking Open Interest suggest a 'long squeeze' scenario is imminent as the market seeks liquidity at the high-volume node (POC).",
+            "reasoning_zh": "价格在突破73,000后形成衰竭影线，并在宏观VAH（72,636）处受阻，显示出明显的流动性扫荡特征。15分钟图上的上升楔形伴随成交量萎缩，预示动能衰竭。基于成交量分布原理，价格极大概率向POC（71,226.63）进行均值回归。结合持仓量（OI）处于高位及散户多头情绪过热，市场存在‘多头挤压’风险，回踩价值区中心POC是目前最高概率的走势。",
+            "position_context": {
+                "position_type": "NONE",
+                "entry_price": null
+            },
+            "config_context": {
+                "symbol": "BTCUSDT",
+                "prediction_horizon_days": 1,
+                "model": "gemini-flash-latest"
+            }
+        }
+    },
+    "review_timestamp": "2026-03-21T12:54:03.626592Z",
+    "actual_market_outcome": {
+        "start_price": 72778.8,
+        "max_price_reached": 74880.0,
+        "min_price_reached": 72235.6,
+        "final_close_price": 74630.0,
+        "price_change_pct": 2.54,
+        "max_drawup_pct": 2.89,
+        "max_drawdown_pct": -0.75,
+        "outcome_period_bars": 1441,
+        "tp_reached": false,
+        "sl_reached": true
+    },
+    "analysis": {
+        "evaluation_score": 25,
+        "tp_sl_result": "SL_HIT",
+        "prediction_post_mortem": "The prediction resulted in an SL_HIT as the market rallied aggressively to 74,880. The Predictor failed to adhere to the core rule: 'Interpret tight consolidation below resistance (VAH/POC) as potential absorption (bullish) rather than rejection.' By misinterpreting a higher-low structure near the Macro VAH as an imminent 'long squeeze' and an 'exhaustion' top, the agent traded against a strong underlying bullish trend. Furthermore, the stop-loss was placed too tight (~1.1% away at 73,300), offering no ATR breathing room for intraday volatility, although the massive breakout would have stopped out even a wider SL. The most important lesson is to never short strong momentum consolidating just under a major resistance level; such price action usually signifies supply absorption preparing for a breakout, not an exhaustion reversal.",
+        "prediction_post_mortem_zh": "本次预测触发了止损（SL_HIT），市场随后强势拉升至74,880。Predictor 违反了核心规则：‘将阻力位（VAH/POC）下方的紧密盘整视为潜在的吸收（看涨）而非受阻’。系统将宏观 VAH 附近的‘不断抬高的低点’结构误判为即将到来的‘多头挤压’和‘衰竭’顶部，逆着强劲的潜在趋势进行做空。此外，止损设置过紧（距离入场价约1.1%，设在73,300），没有给日内波动留出足够的 ATR 缓冲空间（尽管随后的巨大突破也会扫掉更宽的止损）。本次预测最重要的教训是：永远不要做空在主要阻力位下方强势盘整的市场；这种价格行为通常意味着多头在吸收抛压并酝酿突破，而不是动能衰竭的反转。"
+    }
+}

@@ -166,7 +166,7 @@ python simulator.py --days 14 --sampling 10 --mode spaced
     运行 Coach 处理这 20 个复盘报告并应用补丁：
     ```bash
     python coach.py --batch 20
-    python apply_patches.py data/raw/coach/coach_BTCUSDT_2026xxxx.json
+    python apply_patches.py data/coach/coach_BTCUSDT_2026xxxx.json
     ```
 
 3.  **第三阶段：独立验证 (Testing/Validation)**

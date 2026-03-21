@@ -6,7 +6,10 @@ __pycache__/
 .pytest_cache/
 
 # Data and Logs
-data/
+data/predictions/
+data/reviews/
+data/coach/
+data/image/
 *.log
 nohup.out
 

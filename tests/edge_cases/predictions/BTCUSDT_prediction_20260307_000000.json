@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-07T00:00:00Z",
+    "confidence": 85,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 67991.2,
+    "take_profit": 63500.0,
+    "stop_loss": 69800.0,
+    "reasoning": "The initial bullish thesis at the Point of Control (POC) is invalidated by the formation of a clear bear flag/descending triangle on the 15m chart. While the POC at 67991.20 is a high-volume node, the lack of buy-side volume follow-through and the series of lower highs suggest this is a distribution phase rather than a bottom. A significant 'air pocket' (Low Volume Node) exists between the POC and the Value Area Low (VAL) near 63.5k. Given the high Long/Short ratio of 1.82, a long squeeze is highly probable to clear out retail stops clustered just below 67k. The massive bearish engulfing momentum from the 74k peak remains the dominant force.",
+    "reasoning_zh": "由于 15 分钟图表上形成了明显的看跌旗形/下降三角形，最初在成交量控制点 (POC) 的看涨逻辑已失效。虽然 67991.20 的 POC 是高成交量节点，但买盘成交量跟进不足以及一系列降低的高点表明，这是一个派发阶段而非底部。在 POC 和 63.5k 附近的价值区低点 (VAL) 之间存在显著的‘真空区’（低成交量节点）。鉴于 1.82 的高多空比，极有可能发生多头挤压，以清理聚集在 67k 下方的散户止损盘。从 74k 峰值开始的巨大看跌吞没动能仍是市场的主导力量。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

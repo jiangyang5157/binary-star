@@ -1,0 +1,102 @@
+{
+    "total": 12,
+    "description": "A collection of extreme failure cases (SL_HIT or low score) for mini-batch testing.",
+    "samples": [
+        {
+            "timestamp": "2026-03-15T00:00:00Z",
+            "score": 10,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260315_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260315_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-03-10T00:00:00Z",
+            "score": 10,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260310_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260310_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-03-21T00:00:00Z",
+            "score": 10,
+            "result": "NEITHER",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260321_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260321_000000.json",
+            "reason": "Low Score"
+        },
+        {
+            "timestamp": "2026-03-13T00:00:00Z",
+            "score": 10,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260313_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260313_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-03-10T00:00:00Z",
+            "score": 10,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1.1/review_BTCUSDT_prediction_20260310_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260310_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-02-25T00:00:00Z",
+            "score": 15,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260225_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260225_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-03-14T00:00:00Z",
+            "score": 15,
+            "result": "NEITHER",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260314_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260314_000000.json",
+            "reason": "Low Score"
+        },
+        {
+            "timestamp": "2026-03-02T00:00:00Z",
+            "score": 15,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260302_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260302_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-03-11T00:00:00Z",
+            "score": 15,
+            "result": "NEITHER",
+            "source_review": "data/archive_training_v1.1/review_BTCUSDT_prediction_20260311_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260311_000000.json",
+            "reason": "Low Score"
+        },
+        {
+            "timestamp": "2026-03-07T00:00:00Z",
+            "score": 15,
+            "result": "NEITHER",
+            "source_review": "data/archive_training_v1.1/review_BTCUSDT_prediction_20260307_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260307_000000.json",
+            "reason": "Low Score"
+        },
+        {
+            "timestamp": "2026-02-20T00:00:00Z",
+            "score": 25,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1/review_BTCUSDT_prediction_20260220_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260220_000000.json",
+            "reason": "SL_HIT"
+        },
+        {
+            "timestamp": "2026-03-16T00:00:00Z",
+            "score": 25,
+            "result": "SL_HIT",
+            "source_review": "data/archive_training_v1.1/review_BTCUSDT_prediction_20260316_000000.json",
+            "source_prediction": "BTCUSDT_prediction_20260316_000000.json",
+            "reason": "SL_HIT"
+        }
+    ]
+}

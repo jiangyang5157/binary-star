@@ -1,0 +1,44 @@
+{
+    "prediction": {
+        "source": "BTCUSDT_prediction_20260321_000000.json",
+        "content": {
+            "timestamp": "2026-03-21T00:00:00Z",
+            "confidence": 75,
+            "opinion": "BEARISH",
+            "action": "SHORT",
+            "current_price": 70643.9,
+            "take_profit": 67000.0,
+            "stop_loss": 72100.0,
+            "reasoning": "The 1h chart exhibits a clear bearish market structure characterized by a series of lower highs following the rejection at $76,000. The current price action around the Point of Control (POC) at $69,949.67 shows signs of exhaustion; the 15m ascending channel (teal dashed lines) is climbing on diminishing volume, a classic 'bear flag' pattern. With the POC acting as a pivot, a failure to sustain levels above $71,000 likely triggers a move toward the Value Area Low (VAL) at $67,000. There is a significant liquidity gap below $67,000, increasing the probability of a sharp decline if structural support breaks.",
+            "reasoning_zh": "1小时图显示自76,000美元见顶以来，市场呈现清晰的‘低点更低’看跌结构。目前价格在筹码密集区（POC）69,949.67美元附近的反弹缺乏成交量支撑，15分钟图上的上升通道（青色虚线）表现为典型的缩量上涨，具有‘熊旗’特征。POC在此处更倾向于作为阻力位而非支撑位。若价格无法有效突破71,000美元，大概率将回测价值区低点（VAL）67,000美元。考虑到67,000美元下方存在流动性真空区，一旦跌破POC，可能会引发快速下行。",
+            "position_context": {
+                "position_type": "NONE",
+                "entry_price": null
+            },
+            "config_context": {
+                "symbol": "BTCUSDT",
+                "prediction_horizon_days": 1,
+                "model": "gemini-flash-latest"
+            }
+        }
+    },
+    "review_timestamp": "2026-03-21T12:36:24.242217Z",
+    "actual_market_outcome": {
+        "start_price": 70472.6,
+        "max_price_reached": 70849.2,
+        "min_price_reached": 70403.2,
+        "final_close_price": 70680.2,
+        "price_change_pct": 0.29,
+        "max_drawup_pct": 0.53,
+        "max_drawdown_pct": -0.1,
+        "outcome_period_bars": 756,
+        "tp_reached": false,
+        "sl_reached": false
+    },
+    "analysis": {
+        "evaluation_score": 10,
+        "tp_sl_result": "NEITHER",
+        "prediction_post_mortem": "Neither the Take Profit nor the Stop Loss was hit, as the market entered a tight consolidation phase (max drawup +0.53%, max drawdown -0.1%). The Predictor's execution was critically flawed due to two severe rule violations. First, it blatantly violated the 'STRICT BAN ON FRONT-RUNNING' rule by issuing a SHORT opinion at $70,643.9 while acknowledging the Point of Control (support) was lower, at $69,949.67. The rules explicitly state: 'If current_price >= support, YOU CANNOT SHORT. Do not short directly into a POC... expecting it to break.' Second, it violated the 'Target Greed Constraint (HARD LIMIT)' by setting a TP at $67,000, representing a 5.16% drop, which drastically exceeds the strict 3.5% maximum allowable limit. The market mechanics played out exactly as the rules anticipate: the area above the POC acted as a consolidation floor rather than breaking. The single most important lesson is that mathematical and structural hard limits are absolute; predicting a breakdown through support before it happens is purely speculative, and any TP requirement over 3.5% must trigger a mandatory NEUTRAL output.",
+        "prediction_post_mortem_zh": "本次预测止盈和止损均未触及，市场陷入了极度窄幅的震荡区间（最高上涨0.53%，最大回撤-0.1%）。Predictor 的执行存在致命缺陷，严重违反了两项核心规则。首先，它公然违背了‘严禁抢跑（STRICT BAN ON FRONT-RUNNING）’规则：在价格为 70,643.9 美元时开空，却明知筹码密集区（POC，即支撑位）在下方的 69,949.67 美元。规则明确指出：‘如果当前价格大于等于支撑位，绝不能做空；不要直接在POC上方做空并期待它跌破’。其次，它违反了‘目标贪婪限制（硬性限制）’，将止盈设在 67,000 美元（预期跌幅达 5.16%），远超 3.5% 的最大允许阈值。市场机制的实际运行完全符合规则的防范初衷：POC 上方区域发挥了盘整底部的支撑作用，并未发生崩溃。最重要的教训是：数学和结构性的硬性限制是绝对的；在支撑位被跌破前预测其崩溃纯属臆测，且任何超过 3.5% 的止盈目标都必须强制输出 NEUTRAL（中立）。"
+    }
+}

@@ -15,8 +15,8 @@ def test_reviewer_pipeline_orchestration():
     
     # 1. Setup Temporary Test Directories
     test_base = os.path.abspath(os.path.join(os.path.dirname(__file__), "tmp_reviewer_test"))
-    pred_dir = os.path.join(test_base, "data/raw/predictions")
-    rev_dir = os.path.join(test_base, "data/raw/reviews")
+    pred_dir = os.path.join(test_base, "data/predictions")
+    rev_dir = os.path.join(test_base, "data/reviews")
     
     os.makedirs(pred_dir, exist_ok=True)
     os.makedirs(rev_dir, exist_ok=True)

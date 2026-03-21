@@ -166,7 +166,7 @@ def main():
         paths_config = config['paths']
         prompts_dir = paths_config['prompts_dir']
         trader_prompt_file = paths_config['prompt_predictor_filename']
-        # Path to the patch file (e.g. data/raw/coach/report.json)
+        # Path to the patch file (e.g. data/coach/report.json)
         report_path = args.patch_filename
         
         # Resolve Prompt Path using config filename

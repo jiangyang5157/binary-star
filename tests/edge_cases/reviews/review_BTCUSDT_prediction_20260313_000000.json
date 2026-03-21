@@ -1,0 +1,44 @@
+{
+    "prediction": {
+        "source": "BTCUSDT_prediction_20260313_000000.json",
+        "content": {
+            "timestamp": "2026-03-13T00:00:00Z",
+            "confidence": 70,
+            "opinion": "BEARISH",
+            "action": "SHORT",
+            "current_price": 70850.0,
+            "take_profit": 66000.0,
+            "stop_loss": 72200.0,
+            "reasoning": "The price is currently testing the upper boundary of a consolidation wedge near the 1h Value Area High (VAH) of 71,200. The 15m chart reveals a breakout attempt characterized by diminishing volume, a classic sign of a 'bull trap' or liquidity hunt. The Point of Control (POC) at 70,062.38 is acting as a magnet rather than firm support, and a failure to hold this level exposes a significant 'volume vacuum' (Low Volume Node) down to the Value Area Low (VAL) at 66,000. Given the macro rejection at the range highs and the lack of impulsive volume on the current move, a mean-reversion trade toward the VAL offers a superior risk-to-reward profile of approximately 3.5.",
+            "reasoning_zh": "价格目前正在测试 1 小时价值区高点 (VAH) 71,200 附近的整理楔形上轨。15 分钟图显示突破尝试伴随着成交量萎缩，这是典型的“多头陷阱”或流动性猎取信号。POC (70,062.38) 目前更多表现为磁吸位而非坚实支撑，一旦失守，下方直至价值区低点 (VAL) 66,000 之间存在巨大的成交量真空区（低成交量节点）。鉴于价格在区间高位遭到宏观拒绝且当前波动缺乏放量配合，向 VAL 回归的均值回归交易具有更高的盈亏比（约 3.5）。",
+            "position_context": {
+                "position_type": "NONE",
+                "entry_price": null
+            },
+            "config_context": {
+                "symbol": "BTCUSDT",
+                "prediction_horizon_days": 1,
+                "model": "gemini-flash-latest"
+            }
+        }
+    },
+    "review_timestamp": "2026-03-21T12:31:57.729944Z",
+    "actual_market_outcome": {
+        "start_price": 70480.1,
+        "max_price_reached": 73870.0,
+        "min_price_reached": 70342.7,
+        "final_close_price": 70816.7,
+        "price_change_pct": 0.48,
+        "max_drawup_pct": 4.81,
+        "max_drawdown_pct": -0.19,
+        "outcome_period_bars": 1441,
+        "tp_reached": false,
+        "sl_reached": true
+    },
+    "analysis": {
+        "evaluation_score": 10,
+        "tp_sl_result": "SL_HIT",
+        "prediction_post_mortem": "The Stop-Loss (72,200) was decisively hit as the price rallied to a maximum of 73,870. The Predictor egregiously violated several critical rules. First, it violated the STRICT BAN ON FRONT-RUNNING by shorting at 70,850 while anticipating a breakdown of the POC (70,062) based on a 'volume vacuum', ignoring the instruction to assume support holds until mathematically broken. Second, the TP of 66,000 completely projected through the major POC, explicitly violating the rule to treat the POC as an impenetrable structural floor. Third, the TP distance (6.84%) blatantly ignored the 3.5% hard limit. Market mechanics played out exactly as the rules dictate: price found buyers before even reaching the POC (minimum price 70,342.7) and violently reversed upwards, blowing out the short position. The single most important lesson is: NEVER short above major structural support (POC) anticipating a breakdown, and never project profit targets through it.",
+        "prediction_post_mortem_zh": "止损（72,200）被果断触发，价格最高反弹至 73,870。Predictor 严重违反了多项核心规则。首先，它在 70,850 的位置做空，主观预测 POC (70,062) 会因为“成交量真空”而被跌破，完全无视了“默认支撑位有效直至跌破”的严令，构成了严重的抢跑违规。其次，66,000 的止盈位直接穿透了主要 POC 区域，明确违反了将 POC 视为不可逾越的结构性底部的规则。第三，约 6.84% 的止盈距离公然无视了 3.5% 的硬性限制。市场机制恰好印证了规则的正确性：价格甚至没有触及 POC 就找到了买盘（最低价 70,342.7），随后暴力向上反转，打爆了空头仓位。最重要的一条教训是：永远不要在主要结构性支撑（POC）上方做空并主观预判其会跌破，更绝对禁止将止盈目标定在 POC 之下。"
+    }
+}
