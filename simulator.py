@@ -8,7 +8,7 @@ from predictor import run_predictor, load_config
 from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.binance_client import BinanceDataFetcher
 
-# Setup logging
+# Configure logging
 logging.basicConfig(
     level=logging.INFO, 
     format="%(asctime)s - %(levelname)s - %(message)s",
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     if start_dt:
         days_ago = (datetime.now(timezone.utc) - start_dt).days
         if days_ago > 30:
-            logger.warning("!!! WARNING: Backtest starts > 30 days ago. Sentiment data (OI/LS) will be N/A due to Binance API limits.")
+            logger.warning("WARNING: Backtest starts > 30 days ago. Sentiment data (OI/LS) will be N/A due to Binance API limits.")
 
     sim = MarketSimulator(sampling_count=args.sampling, sampling_mode=args.mode)
     sim.run_simulation(days_back=args.days, start_date=start_dt, end_date=end_dt)
