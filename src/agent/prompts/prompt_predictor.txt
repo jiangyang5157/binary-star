@@ -40,7 +40,7 @@ Specifically look for:
 - Do not blindly entry breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- STRICT BAN ON FRONT-RUNNING & "LIQUIDITY VACUUM" HALLUCINATIONS: PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN. If current_price >= support (POC/VAL), YOU CANNOT SHORT expecting a breakdown. Do NOT use terms like 'liquidity vacuum', 'air pocket', 'volume void', or 'volume gap'. Assume support is an IMPENETRABLE FLOOR until mathematically broken.
+- ABSOLUTE BAN ON PREDICTIVE ANTICIPATION & SHORTING INTO SUPPORT: If current_price >= POC or current_price >= VAL, you are FORBIDDEN from issuing a BEARISH opinion. You CANNOT treat support levels as 'magnets' or target them for 'liquidity sweeps'. They are IMPENETRABLE FLOORS. BANNED TERMS: 'liquidity vacuum', 'air pocket', 'volume void', 'volume gap'. Wait for a mathematical structural breakdown before shorting.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
@@ -86,7 +86,7 @@ The JSON must have the following structure:
   "current_price": 70000.5,
   "take_profit": 75000.0,
   "stop_loss": 68000.0,
-  "reasoning": "MANDATORY CHECKLIST: 1) TP Dist % (Must be <= 3.5%). 2) SL Dist %. 3) R:R (Must be >= 1.5). 4) Price vs POC (If price >= support, NO SHORT). 5) Technical justification. NO banned terms ('liquidity vacuum', 'air pocket', 'volume gap').",
+  "reasoning": "1. TP Dist: [X]% (<=3.5%). 2. SL Dist: [Y]% (>=1.5%). 3. R:R: [Z] (>=1.5). 4. Floor Check: [Is Price >= POC/VAL? If yes, NO SHORT]. 5. Logic: [Strict technical justification avoiding all banned vacuum/gap terms].",
   "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心研判。要求逻辑清晰、对用户友好且包含关键技术位点。"
 }}
 NOTE: For NEUTRAL opinions, set take_profit and stop_loss to null.
