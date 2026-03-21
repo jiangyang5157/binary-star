@@ -1,13 +1,13 @@
 symbol: BTCUSDT
 prediction:
   prediction_horizon_days: 1
-  order_flow_lookback_bars: 8
   macro_timeframe:
     interval: 1h
     limit: 336
   micro_timeframe:
     interval: 15m
     limit: 192
+  order_flow_lookback_bars: 8
   value_area_pct: 0.7
   vol_profile_bins: 50
   atr_window: 21
