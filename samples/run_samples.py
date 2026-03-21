@@ -1,7 +1,7 @@
 import sys
 import logging
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import yaml
 import re
 
@@ -10,9 +10,16 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from predictor import run_predictor
 from review import main_review as run_reviewer_pipeline
-from src.utils.logger import setup_logging
 
-setup_logging(log_file="samples/samples.log", level=logging.INFO, force=True)
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("samples/samples.log"),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
 logger = logging.getLogger(__name__)
 
 def get_timestamps_from_predictions(pred_dir):
@@ -29,7 +36,7 @@ def get_timestamps_from_predictions(pred_dir):
             sym = match.group(1)
             time_str = match.group(2)
             try:
-                dt = datetime.strptime(time_str, "%Y%m%d_%H%M%S")
+                dt = datetime.strptime(time_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
                 timestamps.append((dt, sym))
             except ValueError:
                 pass

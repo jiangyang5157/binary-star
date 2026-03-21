@@ -182,6 +182,9 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 # Review outcome window
                 prediction_horizon = config['prediction']['prediction_horizon_days']
                 dt_now = override_now if override_now else datetime.now(timezone.utc)
+                if dt_now.tzinfo is None and dt_start.tzinfo is not None:
+                    dt_now = dt_now.replace(tzinfo=timezone.utc)
+                
                 dt_end = dt_start + timedelta(days=prediction_horizon)
                 if dt_end > dt_now:
                     dt_end = dt_now
