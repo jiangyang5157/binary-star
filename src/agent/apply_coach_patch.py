@@ -80,20 +80,67 @@ def apply_to_prompt(report_data: Dict[str, Any], prompt_path: str):
     
     logger.info(f"Successfully applied {len(patch_list)} patches to {prompt_path}")
 
+def recursive_update(base: Dict[str, Any], update: Dict[str, Any]) -> Dict[str, Any]:
+    """Recursively updates a dictionary."""
+    for key, value in update.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            recursive_update(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+def find_and_update_flat_key(base: Dict[str, Any], key: str, value: Any) -> bool:
+    """Best-effort attempt to update a key that might be nested if not found at top level."""
+    if key in base:
+        base[key] = value
+        return True
+    for k, v in base.items():
+        if isinstance(v, dict):
+            if find_and_update_flat_key(v, key, value):
+                return True
+    return False
+
 def apply_to_config(report_data: Dict[str, Any], config_path: str):
     """
-    (Placeholder/Extension) Applies config-related patches if present. 
-    Currently focuses on the prompt, but can be extended if Coach starts 
-    recommending specific YAML changes in a structured way.
+    Applies master_config_update from report to the specified config YAML file.
+    Supports both nested and flat key updates.
     """
     analysis = report_data.get("analysis", {})
-    config_patch = analysis.get("config_patch", {}) # Future proofing
+    # Note: Coach prompt uses master_config_update
+    config_update = analysis.get("master_config_update", {})
     
-    if not config_patch:
+    if not config_update:
         return
 
-    logger.info(f"Found config_patch in report. Note: Automatic config patching is not yet fully implemented.")
-    # Implementation for YAML patching would go here
+    if not os.path.exists(config_path):
+        logger.error(f"Config file not found: {config_path}")
+        return
+
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            current_config = yaml.safe_load(f) or {}
+
+        logger.info(f"Applying {len(config_update)} config updates...")
+        
+        for key, value in config_update.items():
+            if isinstance(value, dict):
+                # If it's a dict, use recursive update (assuming it follows structure)
+                if key not in current_config:
+                    current_config[key] = {}
+                recursive_update(current_config[key], value)
+            else:
+                # If it's a flat value, try to find where it belongs
+                if not find_and_update_flat_key(current_config, key, value):
+                    logger.warning(f"Config key '{key}' not found in current structure. Adding as top-level.")
+                    current_config[key] = value
+
+        with open(config_path, 'w', encoding='utf-8') as f:
+            yaml.dump(current_config, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
+        
+        logger.info(f"Successfully updated config at {config_path}")
+
+    except Exception as e:
+        logger.error(f"Failed to apply config patch: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Manually apply a Coach Report patch to the trading system.")
