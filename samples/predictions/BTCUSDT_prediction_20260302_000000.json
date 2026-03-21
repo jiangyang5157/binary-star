@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-02T00:00:00Z",
-    "confidence": 78,
+    "confidence": 70,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 66472.5,
-    "take_profit": 63850.0,
-    "stop_loss": 68150.0,
-    "reasoning": "Following the rejection at the Point of Control (POC) of 67,643.96, the market has entered a distribution phase. The 15m chart reveals a bear flag formation characterized by declining volume during the 'recovery' phase, suggesting a lack of buying pressure. Price is currently situated in a liquidity vacuum between the POC and the Value Area Low (VAL) at approximately 63,800. Given the failed sweep of the 69k highs and the subsequent structural shift to lower highs on the 1h timeframe, the highest probability move is a continuation downward to test the VAL support. The trade offers a Reward-to-Risk ratio of approximately 1.6, targeting the major structural support level.",
-    "reasoning_zh": "在POC（67,643.96）遭到剧烈拒绝后，市场进入派发阶段。15分钟图显示出明显的“熊旗”形态，且反弹期间成交量萎缩，表明买盘动能不足。目前价格处于POC与价值区低点（VAL，约63,800）之间的流动性真空地带。鉴于69,000美元上方的高点扫损失败，且1小时级别结构已转为下降趋势（Lower Highs），预计价格将继续下探以测试VAL支撑位。该交易计划以主要结构支撑为目标，盈亏比约为1.6。",
+    "current_price": 65800.0,
+    "take_profit": 64000.0,
+    "stop_loss": 67000.0,
+    "reasoning": "The 1h chart exhibits a clear bearish structure with a sequence of lower highs since the 70k peak. The POC at 67643.96 has transitioned into a significant resistance level that price has failed to reclaim. The 15m chart shows a failed breakout of the descending channel on declining volume, confirming a bull trap. Market liquidity is concentrated near the Value Area Low (VAL) at ~63800, making it the primary downside target for a liquidity sweep. The R:R is optimized by placing the stop above the recent 15m consolidation high.",
+    "reasoning_zh": "1小时图呈现清晰的看跌结构，高点不断降低。POC（67643.96）已转化为强压力位，价格多次尝试收复未果。15分钟图显示下降通道的向上突破因成交量不足而失败，确认了诱多陷阱。市场流动性集中在价值区低点（VAL ~63800）附近，预计价格将向下回测该区域以清理多头止损。将止损设在15分钟近期高点上方，可获得约1.5倍的盈亏比。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

@@ -3,11 +3,11 @@
     "confidence": 70,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 69950.0,
-    "take_profit": 67200.0,
-    "stop_loss": 71800.0,
-    "reasoning": "The 1h chart reveals a massive rejection at $74,000, signaling a distribution phase and a liquidity grab. The 15m chart shows a bearish pennant formation with volume divergence, indicating that the recent bounce lacks conviction and is likely a bull trap. Given the price is significantly extended above the high-volume Point of Control (POC: $67,184.96), a mean reversion move is highly probable. We target the POC for profit-taking, as it represents the strongest historical support in this range. The stop loss is positioned above the $71,500 resistance zone to mitigate risk from a potential fakeout.",
-    "reasoning_zh": "1小时图显示在 74,000 美元处出现巨量抛压，标志着派发阶段的开始和流动性掠夺。15 分钟图呈现出带有成交量背离的看跌旗形，表明近期的反弹缺乏持续动能，极有可能是多头陷阱。鉴于价格明显偏离高成交量控制点 (POC: 67,184.96)，发生均值回归的可能性极高。我们将止盈目标定在 POC 附近，因为它是该区间内最强的历史支撑位。止损位设在 71,500 美元阻力区上方，以规避潜在假突破带来的风险。",
+    "current_price": 70000.0,
+    "take_profit": 67500.0,
+    "stop_loss": 71650.0,
+    "reasoning": "Following a critical re-evaluation, the bias has shifted to BEARISH. The market is significantly overextended from the Point of Control (POC) at 67,184.96, which acts as a powerful price magnet. The 15m chart reveals a distribution phase with a clear sequence of lower highs, suggesting that the 'bull flag' was a misidentified descending triangle. Furthermore, the 1h chart shows heavy institutional rejection wicks at 74,000. A 'volume gap' exists between 70,000 and 68,000, meaning a break of local support will likely lead to a rapid flush toward the POC to hunt liquidity and rebalance the thin volume profile.",
+    "reasoning_zh": "经过深度评估，研判转为看跌。市场目前相对于 67,184.96 的控制点 (POC) 严重超买，POC 具有极强的均值回归引力。15分钟图表显示出明显的派发特征，高点不断降低，表明之前的‘牛旗’实际上是派发阶段的下降三角形。此外，1小时图在 74,000 附近出现明显的机构抛售影线。由于 70,000 至 68,000 之间存在成交量真空区，一旦局部支撑位失守，价格极可能快速下挫至 POC 区域以清理多头止损并回补流动性。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

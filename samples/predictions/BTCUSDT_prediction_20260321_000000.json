@@ -4,10 +4,10 @@
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 70643.9,
-    "take_profit": 67000.0,
-    "stop_loss": 72100.0,
-    "reasoning": "The 1h chart exhibits a clear bearish market structure characterized by a series of lower highs following the rejection at $76,000. The current price action around the Point of Control (POC) at $69,949.67 shows signs of exhaustion; the 15m ascending channel (teal dashed lines) is climbing on diminishing volume, a classic 'bear flag' pattern. With the POC acting as a pivot, a failure to sustain levels above $71,000 likely triggers a move toward the Value Area Low (VAL) at $67,000. There is a significant liquidity gap below $67,000, increasing the probability of a sharp decline if structural support breaks.",
-    "reasoning_zh": "1小时图显示自76,000美元见顶以来，市场呈现清晰的‘低点更低’看跌结构。目前价格在筹码密集区（POC）69,949.67美元附近的反弹缺乏成交量支撑，15分钟图上的上升通道（青色虚线）表现为典型的缩量上涨，具有‘熊旗’特征。POC在此处更倾向于作为阻力位而非支撑位。若价格无法有效突破71,000美元，大概率将回测价值区低点（VAL）67,000美元。考虑到67,000美元下方存在流动性真空区，一旦跌破POC，可能会引发快速下行。",
+    "take_profit": 68250.0,
+    "stop_loss": 72150.0,
+    "reasoning": "Following the Red Team critique, the bias has been reversed to BEARISH. The 15m chart exhibits a rising wedge with clear bearish volume divergence, signaling buyer exhaustion. On the 1h timeframe, the price is struggling to maintain momentum at the POC (69949.67) after a sharp rejection from the VAH (74k) area, suggesting this is a bearish retest of a breakdown level. The lack of buying delta at this high-volume node indicates distribution. We anticipate a liquidity sweep targeting the equal lows and the VAL near 67k-68k. TP is set at 68250 (3.39% move) with an R:R of 1.59.",
+    "reasoning_zh": "根据红队评估，研判转向看跌。15分钟图显示上升楔形伴随明显的成交量背离，暗示多头动能枯竭。1小时图确认价格在从VAH（74k）区域大幅回落后，目前在POC（69949.67）附近的震荡属于弱势回测。高位成交密集区缺乏主动买盘支撑，显示派发迹象。预计市场将向下扫荡68.5k下方的等低点流动性并回踩VAL（67k）附近。止盈设在68250（预期跌幅3.39%），盈亏比为1.59。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

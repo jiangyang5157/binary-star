@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-15T00:00:00Z",
-    "confidence": 80,
+    "confidence": 70,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 71100.0,
-    "take_profit": 66500.0,
-    "stop_loss": 72650.0,
-    "reasoning": "Following the Red Team critique, the market structure reveals a high-probability 'Liquidity Trap.' The 15m chart shows a 'Low-Volume Grind' where price is making marginal higher highs on diminishing volume, a classic sign of buyer exhaustion. The 1h chart confirms heavy supply absorption at the Value Area High (VAH ~72,420) evidenced by multiple long upper wicks. With the Point of Control (POC) at 70,070.88 acting as a magnet and a significant 'Volume Gap' existing between 70k and 68k, a break below the POC is expected to trigger a liquidation cascade toward the Value Area Low (VAL) at 66,350. This short entry offers a superior 3:1 Risk-to-Reward ratio compared to chasing the low-conviction bullish momentum.",
-    "reasoning_zh": "根据红队审查，市场结构显示出高概率的‘流动性陷阱’。15分钟图表呈现典型的‘缩量阴涨’，价格在成交量萎缩的情况下勉强创新高，是多头动能枯竭的典型信号。1小时图在价值区高沿（VAH ~72,420）附近出现多次长上影线，证实上方供应压力沉重。鉴于POC（70,070.88）的磁吸效应以及70k至68k之间的成交量真空区，一旦POC支撑失守，极易引发多头踩踏并迅速下探至价值区低沿（VAL 66,350）。当前价位建立空头头寸可获得约3:1的盈亏比，优于在低动能反弹中追涨。",
+    "current_price": 71150.0,
+    "take_profit": 68975.0,
+    "stop_loss": 72600.0,
+    "reasoning": "Following the Red Team Critique, the current price action near the Value Area High (VAH) at 72,500 shows signs of exhaustion and a potential 'Swing Failure Pattern' (SFP). Volume is declining on the 15m chart as price grinds higher, indicating a lack of conviction for a breakout. The POC at 70,070.88 acts as a strong gravitational magnet for mean reversion. Entering a short position here targets the lower liquidity zones within the value area, with a stop loss placed just above the VAH to protect against a genuine breakout. This setup provides a 1.5 R:R ratio while respecting the 1.5% minimum stop-loss distance.",
+    "reasoning_zh": "基于红方评估，目前价格在价值区高点 (VAH) 72,500 附近表现出明显的动能衰竭和潜在的‘摆动失败形态’ (SFP)。15分钟图显示价格虽在缓慢推升但成交量持续萎缩，暗示突破动能不足。宏观 POC (70,070.88) 具有强大的均值回归引力。在此处建立空头头寸，目标指向价值区内的低位流动性区间，止损设在 VAH 上方以对冲真正的放量突破风险。该设置提供了 1.5 的盈亏比，同时满足了 1.5% 的最小止损空间要求。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

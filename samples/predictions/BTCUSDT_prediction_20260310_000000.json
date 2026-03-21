@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-10T00:00:00Z",
-    "confidence": 75,
+    "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 68450.0,
-    "take_profit": 63500.0,
-    "stop_loss": 70100.0,
-    "reasoning": "The technical structure has shifted from expansion to distribution following the $74k peak. The 1h chart shows a consolidation pennant with significant volume-price divergence; price is rising toward the apex on declining volume, indicating buyer exhaustion. The Point of Control (POC) at 67,991.20 is currently acting as a distribution pivot rather than firm support. On the 15m chart, multiple rejections above $69k suggest a liquidity trap for late longs. A breakdown below the POC targets the Value Area Low (VAL) at approximately 63,500, where a major liquidity gap exists. The trade offers a 3.0 Reward-to-Risk ratio.",
-    "reasoning_zh": "技术结构在 7.4 万美元见顶后已从扩张转向派发。1 小时图显示三角旗形整理伴随明显的量价背离：价格向顶点移动但成交量持续萎缩，显示买盘枯竭。控制点 (POC) 67,991.20 目前更像是派发中轴而非坚实支撑。15 分钟图在 6.9 万美元上方的多次受阻暗示了针对多头的流动性陷阱。一旦放量跌破 POC，价格将下探至价值区低点 (VAL) 约 63,500 美元附近的流动性真空区。该交易方案提供了 3.0 的盈亏比。",
+    "current_price": 68550.0,
+    "take_profit": 64000.0,
+    "stop_loss": 69650.0,
+    "reasoning": "The 15m chart shows a bearish pennant/distribution phase forming immediately above the high-volume Point of Control (POC) at 67991. Volume is steadily declining during this consolidation, suggesting a lack of aggressive buying interest. On the 1h macro scale, the price has established a clear lower-high structure after the rejection from the 73k-74k zone. A breakdown below the POC is expected to trigger a 'long squeeze' into the 'Volume Vacuum' visible in the profile between 67k and 64k, where liquidity is thin. This setup targets the Value Area Low (VAL) near 63500, offering a high risk-to-reward ratio of over 4:1.",
+    "reasoning_zh": "15分钟图在POC（67991）上方形成了明显的看跌旗形/派发区间，成交量持续萎缩显示买盘动能枯竭。1小时大级别图表在73k-74k受阻后呈现清晰的高点降低（Lower High）空头结构。一旦价格跌破POC支撑，由于67000-64000区间存在明显的‘成交量真空区’，极易引发多头踩踏并快速下探至价值区低点（VAL）63500附近。当前价位入场空单，止损设在15分钟局部高点上方，盈亏比超过4倍，极具交易价值。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

@@ -4,10 +4,10 @@
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 64188.9,
-    "take_profit": 61500.0,
-    "stop_loss": 65200.0,
-    "reasoning": "The technical structure has shifted decisively bearish following the breakdown of the Value Area Low (VAL) at 64,200. The 15m chart confirms a 'support-turned-resistance' flip, where the recent bounce failed to reclaim the value area on declining volume, indicating a lack of buyer conviction. A high Long/Short ratio of 2.13 suggests a crowded retail long trade that is vulnerable to a liquidation flush. Furthermore, the 1h volume profile shows a significant 'air gap' or Low Volume Node (LVN) below 63,500, implying that once the current local support fails, price discovery will likely accelerate downward toward the 61k-62k liquidity zone. Negative Order Flow Delta reinforces the presence of aggressive sellers hitting the bid.",
-    "reasoning_zh": "技术结构在跌破 64,200 的价值区低点 (VAL) 后已明确转为看跌。15分钟图确认了“支撑变阻力”的转换，近期的反弹未能放量收回价值区，显示买盘动能枯竭。目前 2.13 的高多空比意味着散户多头头寸过度拥挤，极易引发清算连锁反应。此外，1小时成交量分布显示在 63,500 下方存在明显的“真空区”（低成交量节点），这意味着一旦局部支撑失守，价格将加速下行至 61k-62k 的流动性区域。持续为负的订单流 Delta 进一步证实了主动卖盘的压制。",
+    "take_profit": 62500.0,
+    "stop_loss": 65100.0,
+    "reasoning": "The market has shifted into an impulsive bearish regime. Price is currently losing the Value Area Low (VAL) support at 64109.06. The 15m chart reveals a 'Dead Cat' distribution pattern where minor bounces are met with declining volume and immediate rejection wicks, indicating a lack of institutional demand. Most critically, the high Long/Short ratio (2.13) suggests a crowded retail long trade; a break below the $64,000 psychological level is likely to trigger a massive liquidation cascade as retail stop-losses are hit. The POC at 67353 is now stale overhead resistance. Target is the liquidity pool near the 62500 swing low.",
+    "reasoning_zh": "市场已转入脉冲式看跌格局。价格目前正失守 64109.06 的价值区低点 (VAL) 支撑。15 分钟图显示典型的“死猫跳”派发特征，微弱的反弹伴随着成交量萎缩和明显的上影线，显示机构买盘匮乏。最关键的是，2.13 的高多空比意味着散户多头头寸过度拥挤，一旦跌破 64,000 美元心理关口，极易触发多头止损引发的连锁清算（Liquidation Cascade）。POC 位 (67353) 已转为沉重的上方阻力。目标位看向 62500 附近的流动性密集区。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
