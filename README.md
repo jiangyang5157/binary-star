@@ -10,7 +10,7 @@
 
 ```
 crypto/
-├── main.py              # 入口：运行 Trader (Agent A) 预测
+├── main.py               # 入口：运行 Trader (Agent A) 预测
 ├── review.py             # 入口：运行 Reviewer (Agent B) 复盘
 ├── coach.py              # 入口：运行 Coach (Agent C) 策略进化
 ├── apply_patches.py      # 补丁工具：自动应用 Coach 产生的优化建议
@@ -26,8 +26,8 @@ crypto/
 │   │   ├── coach_agent.py        # Agent C：系统性偏差识别与战略导师
 │   │   └── prompts/              # AI 提示词模板 (Trader, Reviewer, Coach)
 │   ├── data_fetcher/     # 数据获取模块 (Binance API & 情绪数据)
-│   ├── analyzer/          # 分析引擎 (Volume Profile, Chart Generator)
-│   └── utils/             # 通用工具 (邮件通知等)
+│   ├── analyzer/         # 分析引擎 (Volume Profile, Chart Generator)
+│   └── utils/            # 通用工具 (邮件通知等)
 ├── tests/                # 测试套件 (Unit & Integration Tests)
 ├── data/                 # 运行时数据 (持久化存储)
 │   ├── raw/              # 原始 JSON 数据 (predictions, reviews, coach reports)
@@ -47,7 +47,7 @@ crypto/
 | :--- | :--- | :--- | :--- | :--- |
 | **1. 预测 (Trade)** | **Agent A: Trader** | 多周期 K线 + 情绪 + 图表 | `prediction.json` | 生成包含 Red Team 质疑的交易信号 |
 | **2. 审计 (Review)** | **Agent B: Reviewer** | 历史预测 + 1m 真实市场数据 | `review.json` | 严谨判定 TP/SL 触碰情况与逻辑偏差 |
-| **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `report.json` | 识别行为模式并生成 Master Patch |
+| **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `coach.json` | 识别行为模式并生成 Master Patch |
 | **4. 进化 (Evolve)** | **apply_patches.py** | Coach 报告 + 源码 | **Prompt/Config 更新** | 自动化将战略建议注入系统，实现进化 |
 
 ---
@@ -57,12 +57,12 @@ crypto/
 *   **三轮推演**：执行 `初步分析` -> `红队质疑 (Red Team Critique)` -> `最终决策`。这种架构能有效识别陷阱，降低伪突破的诱惑。
 
 ### ⚖️ Agent B (Reviewer) — 铁面审计
-*   **事实驱动**：不看 Agent A 的主观判断，仅根据 `review_kline_interval` (默认 1m) 的真实成交价来验证止损或止盈是否被触发。
+*   **事实驱动**：不看 Agent A 的主观判断，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
 *   **深度复盘**：分析为什么预测失败（如："未能识别 POC 下方的成交量真空区"），为 Coach 提供高质量的底层数据。
 
 ### 🧠 Agent C (Coach) — 战略导师
-*   **模式识别**：跳出单场胜负，观察全局。如果最近 10 场失败中有 7 场是因为“右侧入场太晚”，Coach 会识别出这一系统性偏差。
-*   **输出补丁**：产出具体的 `ADD/REPLACE/REMOVE` 指令，直接针对 `prompt_trader.txt` 进行逻辑微调。
+*   **模式识别**：跳出单场胜负，观察全局。例如：如果最近 10 场失败中有 7 场是因为“右侧入场太晚”，Coach 会识别出这一系统性偏差。
+*   **输出补丁**：产出具体的调整建议，包括对 `prompt_trader.txt` 内的 `ADD/REPLACE/REMOVE` 和 `config.yaml` 中的参数。
 
 ---
 
@@ -128,7 +128,7 @@ python apply_patches.py data/raw/coach/coach_report_xxx.json
 | 术语 | 全称 | 说明 |
 |------|------|------|
 | **POC** | Point of Control | 成交量最集中的价格区域，通常具有强大的吸引力/支撑力 |
-| **VAH/VAL** | Value Area H/L | 价值区域上下界，70% 的成交量在此区间完成 |
+| **VAH/VAL** | Value Area H/L | 价值区域上下界，主要的成交量在此区间完成 |
 | **OI** | Open Interest | 未平仓合约，增加通常意味着趋势的持续或增强 |
 | **Red Team** | 红队 | 专门负责寻找预测漏洞的逻辑环节，防止 AI 产生"证实偏差" |
 
