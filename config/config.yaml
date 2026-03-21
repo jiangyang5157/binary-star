@@ -1,7 +1,6 @@
 symbol: BTCUSDT
 prediction:
   prediction_horizon_days: 1
-  value_area_pct: 0.7
   order_flow_lookback_bars: 8
   macro_timeframe:
     interval: 1h
@@ -9,6 +8,9 @@ prediction:
   micro_timeframe:
     interval: 15m
     limit: 192
+  value_area_pct: 0.7
+  vol_profile_bins: 50
+  atr_window: 21
 review:
   review_kline_interval: 1m
   minimum_review_age_hours: 4

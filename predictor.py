@@ -177,8 +177,13 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     
     # 2. Analysis & Visualization
     logger.info("Step 3: Calculating Volume Profile & Charting")
-    va_pct = config['prediction']['value_area_pct']
-    vpa = VolumeProfileAnalyzer(value_area_pct=va_pct)
+    # Fetch K-line data for Volume Profile (Macro)
+    # We use a larger window to identify the high-level VAH/VAL/POC
+    vpa = VolumeProfileAnalyzer(
+        value_area_pct=config['prediction']['value_area_pct'],
+        vol_profile_bins=config['prediction']['vol_profile_bins'],
+        atr_window=config['prediction']['atr_window']
+    )
     
     # Process both kline sets
     df_macro = vpa.process_klines(klines_macro)
@@ -201,6 +206,8 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     context_data["vah"] = profile_data.get('vah', 0)
     context_data["val"] = profile_data.get('val', 0)
     context_data["last_close_price"] = df_macro['close'].iloc[-1] if not df_macro.empty else 0
+    context_data["atr_macro"] = df_macro['atr'].iloc[-1] if not df_macro.empty else 0
+    context_data["atr_micro"] = df_micro['atr'].iloc[-1] if not df_micro.empty else 0
     context_data["prediction_horizon_days"] = config['prediction']['prediction_horizon_days']
     context_data["lookback_bars"] = lookback_bars
     

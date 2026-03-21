@@ -14,7 +14,7 @@ class ReviewerAgent:
     Specifically audits adherence to the Predictor's logic and rules.
     """
     def __init__(self, model_name: str, prompts_dir: str, 
-                 prompt_filename: str, temperature: float = 1.0):
+                 prompt_filename: str, temperature: float):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         self.prompt_filename = prompt_filename

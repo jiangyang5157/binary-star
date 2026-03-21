@@ -15,7 +15,7 @@ class PredictorAgent:
     """
     def __init__(self, model_name: str, prompts_dir: str, 
                  prompt_filename: str,
-                 temp_pass1: float = 1.0, temp_pass2: float = 1.0, temp_pass3: float = 0.7):
+                 temp_pass1: float, temp_pass2: float, temp_pass3: float):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         self.prompt_filename = prompt_filename

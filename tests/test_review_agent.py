@@ -15,7 +15,8 @@ class TestReviewerAgent(unittest.TestCase):
         self.reviewer = ReviewerAgent(
             model_name="mock-model",
             prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'),
-            prompt_filename="prompt_reviewer.txt"
+            prompt_filename="prompt_reviewer.txt",
+            temperature=1.0
         )
 
     @patch('google.genai.Client')

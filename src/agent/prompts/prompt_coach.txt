@@ -41,8 +41,8 @@ You MUST output your final decision in strict JSON format.
   "master_prompt_patch": [
     {{
       "action": "ADD",
-      "target_section": "### 5. Risk, Reward & Logic (Mandatory)", 
-      "content": "- [New rule text]"
+      "target_section": "### [TRADING_CONSTANTS]", 
+      "content": "- [New constant or adjustment]"
     }},
     {{
       "action": "REPLACE",
@@ -68,5 +68,5 @@ You MUST output your final decision in strict JSON format.
 - **Batch Analysis**: `batch_analysis` is the SINGLE comprehensive report. Be as detailed as necessary — cover both the high-level strategic summary and the granular numerical findings. No length restriction.
 - **Chinese Version**: `batch_analysis_zh` must be a full, standalone Chinese translation of `batch_analysis`, not a summary.
 - **Section Targeting**: For `ADD`, use the EXACT header from `base_prompt`.
-- **Numerical Edge**: If stops are consistently too tight, explicitly REPLACE the SL placement rules.
+- **Numerical Edge**: If stops are consistently too tight or TPs are too greedy, prioritize using **REPLACE** on the constants (e.g., `MAX_TP_ATR_MULT`, `MIN_TP_ATR_MULT`) found in the `### [TRADING_CONSTANTS]` section of the predictor prompt.
 - **Horizon Alignment**: Ensure any suggested numerical limits for TP/SL are mathematically sound for the `{prediction_horizon_days}` day window found in `current_config`.

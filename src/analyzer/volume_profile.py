@@ -7,9 +7,10 @@ class VolumeProfileAnalyzer:
     Analyzes K-line data to calculate the Volume Profile.
     Essential for identifying Point of Control (POC), Value Area High (VAH), and Value Area Low (VAL).
     """
-    def __init__(self, value_area_pct: float = 0.70, bins: int = 50):
+    def __init__(self, value_area_pct: float, vol_profile_bins: int, atr_window: int):
         self.value_area_pct = value_area_pct
-        self.bins = bins
+        self.bins = vol_profile_bins
+        self.atr_window = atr_window
 
     def process_klines(self, klines_data: List[List[Any]]) -> pd.DataFrame:
         """
@@ -31,6 +32,14 @@ class VolumeProfileAnalyzer:
         # Convert timestamps
         df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
         df.set_index("open_time", inplace=True)
+        
+        # Calculate ATR (14-period)
+        high_low = df['high'] - df['low']
+        high_cp = np.abs(df['high'] - df['close'].shift())
+        low_cp = np.abs(df['low'] - df['close'].shift())
+        
+        df['tr'] = np.maximum(high_low, np.maximum(high_cp, low_cp))
+        df['atr'] = df['tr'].rolling(window=self.atr_window).mean()
         
         return df
 
