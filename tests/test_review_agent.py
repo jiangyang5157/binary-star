@@ -14,7 +14,8 @@ class TestReviewerAgent(unittest.TestCase):
         os.environ["GEMINI_API_KEY"] = "mock-key"
         self.reviewer = ReviewerAgent(
             model_name="mock-model",
-            prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts')
+            prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'),
+            prompt_filename="prompt_reviewer.txt"
         )
 
     @patch('google.genai.Client')

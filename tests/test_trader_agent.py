@@ -14,6 +14,8 @@ class TestTraderAgent(unittest.TestCase):
         os.environ["GEMINI_API_KEY"] = "mock-key"
         self.agent = TraderAgent(
             model_name="mock-model",
+            prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'),
+            prompt_filename="prompt_trader.txt",
             temp_pass1=1.0,
             temp_pass2=1.0,
             temp_pass3=0.7

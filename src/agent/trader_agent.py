@@ -13,8 +13,8 @@ class TraderAgent:
     Agent A: The Trader / Analyst.
     Uses the new google-genai SDK to analyze both text data (Market context) and image data (Volume Profile charts).
     """
-    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", 
-                 prompt_filename: str = "prompt_trader.txt",
+    def __init__(self, model_name: str, prompts_dir: str, 
+                 prompt_filename: str,
                  temp_pass1: float = 1.0, temp_pass2: float = 1.0, temp_pass3: float = 0.7):
         self.model_name = model_name
         self.prompts_dir = prompts_dir

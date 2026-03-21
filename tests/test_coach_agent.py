@@ -13,6 +13,8 @@ class TestCoachAgent(unittest.TestCase):
         os.environ["GEMINI_API_KEY"] = "mock-key"
         self.coach = CoachAgent(
             model_name="mock-model",
+            prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'),
+            prompt_filename="prompt_coach.txt",
             temperature=1.0
         )
 

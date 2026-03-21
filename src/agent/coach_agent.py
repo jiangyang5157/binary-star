@@ -13,8 +13,8 @@ class CoachAgent:
     Reviews batches of historical review reports to identify systemic patterns.
     Suggests high-level prompt patches and configuration adjustments.
     """
-    def __init__(self, model_name: str, prompts_dir: str = "src/agent/prompts", 
-                 prompt_filename: str = "prompt_coach.txt", temperature: float = 1.0):
+    def __init__(self, model_name: str, prompts_dir: str, 
+                 prompt_filename: str, temperature: float = 1.0):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         self.prompt_filename = prompt_filename

@@ -17,7 +17,7 @@ class EmailNotifier:
         self.config = config['notifications']
         self.smtp_server = self.config['smtp_server']
         self.smtp_port = self.config['smtp_port']
-        self.timezone = config.get('notifications', {}).get('timezone', 'UTC')
+        self.timezone = self.config['timezone']
 
         # Load credentials from .env
         load_dotenv()
