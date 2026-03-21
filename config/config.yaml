@@ -33,7 +33,7 @@ agent:
   predictor_model: gemini-flash-latest
   reviewer_model: gemini-3.1-pro-preview
   coach_model: gemini-3.1-pro-preview
-  predictor_temp_initial: 0.7
+  predictor_temp_initial: 0.4
   predictor_temp_critique: 0.7
   predictor_temp_final: 0.1
   review_temperature: 1.0

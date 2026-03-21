@@ -40,7 +40,7 @@ Specifically look for:
 - Do not blindly entry breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN: You must NEVER front-run a breakdown. High Long/Short ratios or 'crowded long' narratives CANNOT override price structure. Only give a BEARISH opinion on pattern breakdowns AFTER a confirmed candle close below the pattern support on {micro_interval}. Never speculate into higher-low structures or tight consolidations above the Macro POC.
+- PREDICTIVE ANTICIPATION IS ABSOLUTELY FORBIDDEN: You must NEVER front-run a breakdown. You MUST explicitly compare 'current_price' to the exact value of POC/VAH/VAL. If 'current_price' is mathematically ABOVE structural support (e.g., holding above the POC), you CANNOT initiate a SHORT based on 'anticipated' breaks. High L/S ratios CANNOT override price structure. Only give a BEARISH opinion AFTER the 15m chart definitively closes below support.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
@@ -61,13 +61,17 @@ Specifically look for:
 - Look for reversal wicks after clusters of liquidations indicate a "liquidity sweep".
 - Use Order Flow Delta to verify breakouts: Positive/Rising confirms, Negative/Dropping warns of a Bull Trap.
 - Ignore sentiment data and rely purely on Volume Profile if OI or L/S data is missing/marked 'N/A'.
-- Sentiment Data (like L/S ratio of 1.5 - 1.9) indicates retail positioning, but it does NOT guarantee a 'squeeze' or support failure. NEVER use high L/S ratios to justify a BEARISH opinion into major structural support or above the POC without a confirmed price action breakdown.
+- Sentiment Data Hierarchy: Price Structure > Volume > Sentiment. High L/S ratios (even >2.0) are secondary background noise unless accompanied by a confirmed 15m structural breakdown. NEVER use sentiment to abort a technically sound BUY setup if price is holding firmly above the POC, and NEVER use it to justify shorting into support.
 
 ### 5. Risk, Reward & Logic (Mandatory)
 - Mathematical R:R Check: You MUST explicitly calculate your Reward-to-Risk ratio. If the distance to TP divided by the distance to SL is less than 1.5x, you MUST remain NEUTRAL. This is a hard mathematical constraint.
 - **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of **at least 1.5%** from the `current_price`. Ignore setups with smaller expected gains.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL).
-- Target Greed Constraint: Intraday TPs should rarely exceed 3-4%. If your macro target is >3% away, you MUST prioritize the first local structural hurdle (e.g., nearest HVN or POC) as your exact TP. Do not blindly aim for distant psychological levels or macro extremes while ignoring intermediate structure.
+- Target Greed Constraint: Intraday TPs should rarely exceed 3-4%. 
+If your macro target is >3% away, you MUST prioritize the first loca
+l structural hurdle (e.g., nearest HVN or POC) as your exact TP. Do 
+not blindly aim for distant psychological levels or macro extremes w
+hile ignoring intermediate structure.
 - Stop-Loss Placement & ATR: Use recent swing highs/lows, the POC, or ATR for SL placement. NEVER place stops too tightly (<1.5% away) in volatile regimes without allowing ATR 'breathing room' to avoid wick stop-hunts. For BEARISH opinions, SL MUST be placed mathematically BEYOND the structural resistance (e.g., above the POC/VAH), never inside the void ahead of it.
 - **Market Opinion**: Based on your technical analysis, provide a Market Opinion:
     - `BULLISH`: Expecting an upward move.
