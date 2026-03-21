@@ -1,30 +1,29 @@
 symbol: BTCUSDT
 prediction:
-  prediction_horizon_days: 1
   macro_timeframe:
     interval: 1h
     limit: 336
   micro_timeframe:
     interval: 15m
     limit: 192
-
-strategy:
-  value_area_pct: 0.7
-  vol_profile_bins: 50
-  atr_window: 21
-  order_flow_lookback_bars: 8
-  liquidation_fetch_limit: 21
-  liquidation_context_limit: 7
-  min_tp_sl_ratio: 1.5
-  max_tp_atr_mult: 3.0
-  min_tp_atr_mult: 1.5
-  min_sl_atr_mult: 1.0
+  prediction_horizon_days: 1
 review:
   review_kline_interval: 1m
   minimum_review_age_hours: 4
 automation:
   prediction_interval_hours: 1.0
   review_interval_hours: 4.0
+strategy:
+  value_area_pct: 0.7
+  vol_profile_bins: 50
+  order_flow_lookback_bars: 8
+  liquidation_fetch_limit: 21
+  liquidation_context_limit: 7
+  atr_window: 21
+  min_sl_atr_mult: 1.0
+  max_tp_atr_mult: 3.0
+  min_tp_atr_mult: 1.5
+  min_tp_sl_ratio: 1.5
 paths:
   base_dir: data
   images_dir: images
