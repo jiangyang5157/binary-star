@@ -29,7 +29,7 @@ def test_buy_tp_hit():
     klines = [
         [0, "100", "110", "95", "108", "1000", 0],
     ]
-    prediction = {"action": "BUY", "take_profit": 108.0, "stop_loss": 92.0}
+    prediction = {"opinion": "BULLISH", "take_profit": 108.0, "stop_loss": 92.0}
     result = calculate_outcome(klines, 100.0, prediction=prediction)
     assert result["tp_reached"] is True
     assert result["sl_reached"] is False
@@ -40,7 +40,7 @@ def test_buy_sl_hit():
     klines = [
         [0, "100", "105", "88", "90", "1000", 0],
     ]
-    prediction = {"action": "BUY", "take_profit": 115.0, "stop_loss": 92.0}
+    prediction = {"opinion": "BULLISH", "take_profit": 115.0, "stop_loss": 92.0}
     result = calculate_outcome(klines, 100.0, prediction=prediction)
     assert result["tp_reached"] is False
     assert result["sl_reached"] is True
@@ -51,7 +51,7 @@ def test_sell_tp_hit():
     klines = [
         [0, "100", "102", "88", "90", "1000", 0],
     ]
-    prediction = {"action": "SELL", "take_profit": 90.0, "stop_loss": 105.0}
+    prediction = {"opinion": "BEARISH", "take_profit": 90.0, "stop_loss": 105.0}
     result = calculate_outcome(klines, 100.0, prediction=prediction)
     assert result["tp_reached"] is True
     assert result["sl_reached"] is False
@@ -62,7 +62,7 @@ def test_hold_no_tp_sl():
     klines = [
         [0, "100", "110", "90", "105", "1000", 0],
     ]
-    prediction = {"action": "HOLD", "take_profit": None, "stop_loss": None}
+    prediction = {"opinion": "NEUTRAL", "take_profit": None, "stop_loss": None}
     result = calculate_outcome(klines, 100.0, prediction=prediction)
     assert result["tp_reached"] is False
     assert result["sl_reached"] is False
