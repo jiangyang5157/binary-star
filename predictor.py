@@ -76,13 +76,15 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         _ = config['prediction']['micro_timeframe']['limit']
         
         # Strategy Parameters
-        _ = config['strategy']['value_area_pct']
+        _ = config['strategy']['vp_value_area_pct']
+        _ = config['strategy']['vp_bins']
+        _ = config['strategy']['atr_window']
         _ = config['strategy']['order_flow_lookback_bars']
         _ = config['strategy']['liquidation_fetch_limit']
         _ = config['strategy']['liquidation_context_limit']
+        _ = config['strategy']['min_sl_atr_mult']
         _ = config['strategy']['max_tp_atr_mult']
         _ = config['strategy']['min_tp_atr_mult']
-        _ = config['strategy']['min_sl_atr_mult']
         _ = config['strategy']['min_tp_sl_ratio']
         
         # Agent
@@ -189,8 +191,8 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     # Fetch K-line data for Volume Profile (Macro)
     # We use a larger window to identify the high-level VAH/VAL/POC
     vpa = VolumeProfileAnalyzer(
-        value_area_pct=config['strategy']['value_area_pct'],
-        vol_profile_bins=config['strategy']['vol_profile_bins'],
+        value_area_pct=config['strategy']['vp_value_area_pct'],
+        vol_profile_bins=config['strategy']['vp_bins'],
         atr_window=config['strategy']['atr_window']
     )
     

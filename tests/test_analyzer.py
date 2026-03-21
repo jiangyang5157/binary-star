@@ -34,8 +34,8 @@ def test_analysis_pipeline():
     # 2. Process & Analyze Volume Profile (Based on Macro)
     print("\n[2] Processing Volume Profile (Macro-based)...")
     vpa = VolumeProfileAnalyzer(
-        value_area_pct=config['strategy']['value_area_pct'],
-        vol_profile_bins=config['strategy']['vol_profile_bins'],
+        value_area_pct=config['strategy']['vp_value_area_pct'],
+        vol_profile_bins=config['strategy']['vp_bins'],
         atr_window=config['strategy']['atr_window']
     )
     

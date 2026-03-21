@@ -14,8 +14,8 @@ automation:
   prediction_interval_hours: 1.0
   review_interval_hours: 4.0
 strategy:
-  value_area_pct: 0.7
-  vol_profile_bins: 50
+  vp_value_area_pct: 0.7
+  vp_bins: 50
   order_flow_lookback_bars: 8
   liquidation_fetch_limit: 21
   liquidation_context_limit: 7
