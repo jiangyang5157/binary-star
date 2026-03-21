@@ -182,7 +182,19 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     logger.info(f"Skipping {filename}, too recent to review (needs {min_delay_hours} hours). Use --force to override.")
                     continue
 
-                symbol = config['symbol']
+                # Extract symbol from prediction metadata; skip if missing
+                symbol = prediction.get('metadata', {}).get('symbol')
+                if not symbol:
+                    logger.warning(f"Skipping {filename}: No symbol found in metadata.")
+                    continue
+                
+                # Filter: Only review the symbol specified in the current config
+                target_symbol = config['symbol']
+                if symbol != target_symbol:
+                    logger.info(f"Skipping {filename}: Symbol '{symbol}' does not match current config target '{target_symbol}'.")
+                    continue
+                
+                logger.info(f"Processing review for {symbol} (from {filename})")
                 logger.info(f"Fetching outcome data for {symbol} starting from {dt_start} to {dt_end}")
                 
                 fetch_interval = config['review']['review_kline_interval']
@@ -228,7 +240,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                             chart_paths.append(path)
                 
                 # Invoke Agent B
-                logger.info(f"Invoking Reviewer Agent for {filename}...")
+                logger.info(f"Invoking Reviewer Agent for {filename} ({symbol})...")
                 if not os.environ.get("GEMINI_API_KEY"):
                     logger.warning("GEMINI_API_KEY missing. Using mock AI output.")
                     review_content = json.dumps({
