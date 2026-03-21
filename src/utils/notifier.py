@@ -150,36 +150,34 @@ class EmailNotifier:
                     <h1 style="color: {action_color}; margin: 0; font-size: 32px; letter-spacing: 1px;">{action_icon} {action} {symbol}</h1>
                     <p style="color: #7f8c8d; margin-top: 8px; font-size: 14px;">Signal Confidence: <span style="color: {action_color}; font-weight: 700;">{confidence}%</span> | Detected at: <span style="color: #34495e; font-weight: 600;">{local_time_str}</span></p>
                 </div>
+                <!-- Position & Trade Summary -->
+                <div style="margin-bottom: 25px;">
+                    <!-- Tier 1: Current Status -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 15px; width: 100%;">
+                        <div style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; text-align: center;">
+                            <span style="display: block; font-size: 10px; color: #95a5a6; text-transform: uppercase;">Market Price</span>
+                            <span style="font-size: 15px; font-weight: 700; color: #2c3e50;">{current_price}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 0; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 12px; text-align: center;">
+                            <span style="display: block; font-size: 10px; color: #95a5a6; text-transform: uppercase;">Current Position</span>
+                            <span style="font-size: 15px; font-weight: 700; color: #2c3e50;">{f"{pos_type} @ {entry_price}" if pos_type != "NONE" else "NONE"}</span>
+                        </div>
+                    </div>
 
-                <!-- Position & Price Summary -->
-                <div style="display: flex; gap: 15px; margin-bottom: 25px;">
-                    <!-- Current Position Card -->
-                    <div style="flex: 1; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; text-align: center;">
-                        <span style="display: block; font-size: 11px; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px;">Current Position</span>
-                        <span style="font-size: 16px; font-weight: 700; color: #2c3e50;">{pos_type}</span>
-                        {f'<span style="display: block; font-size: 12px; color: #7f8c8d;">@ {entry_price}</span>' if entry_price else ''}
-                    </div>
-                    <!-- Market Price Card -->
-                    <div style="flex: 1; background-color: #f8f9fa; border: 1px solid #e9ecef; border-radius: 10px; padding: 15px; text-align: center;">
-                        <span style="display: block; font-size: 11px; color: #95a5a6; text-transform: uppercase; margin-bottom: 5px;">Market Price</span>
-                        <span style="font-size: 16px; font-weight: 700; color: #2c3e50;">{current_price}</span>
-                        <span style="display: block; font-size: 12px; color: #7f8c8d;">{symbol}</span>
-                    </div>
-                </div>
-
-                <!-- Trade Targets -->
-                <div style="background-color: #ffffff; border: 1px solid #f0f0f0; border-radius: 10px; padding: 0; margin-bottom: 30px; display: flex; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                    <div style="flex: 1; padding: 15px; text-align: center; border-right: 1px solid #f0f0f0;">
-                         <span style="display: block; font-size: 11px; color: #e74c3c; text-transform: uppercase; margin-bottom: 2px;">Stop Loss</span>
-                         <span style="font-size: 18px; font-weight: 700; color: #e74c3c;">{sl}</span>
-                    </div>
-                    <div style="flex: 1; padding: 15px; text-align: center; border-right: 1px solid #f0f0f0;">
-                         <span style="display: block; font-size: 11px; color: #27ae60; text-transform: uppercase; margin-bottom: 2px;">Take Profit</span>
-                         <span style="font-size: 18px; font-weight: 700; color: #27ae60;">{tp}</span>
-                    </div>
-                    <div style="flex: 1; padding: 15px; text-align: center; background-color: #f8fbff;">
-                         <span style="display: block; font-size: 11px; color: #3498db; text-transform: uppercase; margin-bottom: 2px;">TP/SL</span>
-                         <span style="font-size: 18px; font-weight: 700; color: #3498db;">{tpsl_ratio}</span>
+                    <!-- Tier 2: Trade Targets -->
+                    <div style="display: flex; gap: 15px; width: 100%;">
+                        <div style="flex: 1; min-width: 0; background-color: #fff5f5; border: 1px solid #ffe3e3; border-radius: 8px; padding: 12px; text-align: center;">
+                            <span style="display: block; font-size: 10px; color: #e74c3c; text-transform: uppercase;">SL</span>
+                            <span style="font-size: 15px; font-weight: 700; color: #e74c3c;">{sl}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 0; background-color: #f2fdf5; border: 1px solid #dcfce7; border-radius: 8px; padding: 12px; text-align: center;">
+                            <span style="display: block; font-size: 10px; color: #27ae60; text-transform: uppercase;">TP</span>
+                            <span style="font-size: 15px; font-weight: 700; color: #27ae60;">{tp}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 0; background-color: #f0f7ff; border: 1px solid #e0efff; border-radius: 8px; padding: 12px; text-align: center;">
+                            <span style="display: block; font-size: 10px; color: #3498db; text-transform: uppercase;">TP/SL</span>
+                            <span style="font-size: 15px; font-weight: 700; color: #3498db;">{tpsl_ratio}</span>
+                        </div>
                     </div>
                 </div>
 
