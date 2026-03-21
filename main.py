@@ -221,12 +221,10 @@ def run_agent_a(override_timestamp: datetime = None):
             "reasoning": "API Key missing. This is a mocked output."
         }, indent=2, ensure_ascii=False)
     else:
-        coach_dir = os.path.join(PROJECT_ROOT, config['paths']['coach_dir'])
         agent_output_raw = trader.analyze(
             symbol=symbol, 
             chart_image_paths=chart_paths, 
-            context_data=context_data,
-            coach_dir=coach_dir
+            context_data=context_data
         )
         
     logger.info(f"Agent A Raw Output Received.")

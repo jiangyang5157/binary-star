@@ -22,7 +22,6 @@ crypto/
 │   │   ├── trader_agent.py       # Agent A：多模态分析
 │   │   ├── reviewer_agent.py     # Agent B：复盘审计
 │   │   ├── coach_agent.py        # Agent C：战略导师
-│   │   ├── prompt_manager.py     # 动态提示词补丁引擎
 │   │   └── prompts/              # AI 提示词模板
 │   ├── data_fetcher/     # 数据获取
 │   │   ├── binance_client.py     # Binance API 客户端
@@ -50,8 +49,8 @@ crypto/
 | :--- | :--- | :--- | :--- | :--- |
 | **1. 预测 (Trade)** | **Agent A: Trader** | 多周期（Macro/Micro）K线 + 情绪数据 | `prediction.json` | 生成三轮推演交易信号 |
 | **2. 审计 (Review)** | **Agent B: Reviewer** | 历史预测 + 真实市场数据 | `review.json` | 判定 TP/SL 触碰与逻辑偏差 |
-| **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `prompt_patch` | 识别系统性弱点与交易偏见 |
-| **4. 进化 (Evolve)** | **Prompt Manager** | Base Prompt + Coach 补丁 | **动态补丁指令** | 将新规则实时注入下一次交易 |
+| **3. 指导 (Coach)** | **Agent C: Coach** | 批量 Review 报告 (Batch) | `patch_report.json` | 识别系统性弱点并生成优化建议 |
+| **4. 进化 (Evolve)** | **Manual Apply** | Coach 报告 + 原始提示词 | **持久化 Prompt 更新** | 手动将建议注入代码与提示词中 |
 
 ---
 
@@ -65,7 +64,8 @@ crypto/
 
 ### 🧠 Agent C (Coach) — 战略策略师
 *   **核心逻辑**：扫描最近 N 场交易的审计报告。
-*   **职责**：发现 Agent A 的行为模式（如“仓位管理过于保守”或“对 POC 回测反应过度”），生成 `ADD/REPLACE` 指令，通过 Prompt Manager 实现“策略自进化”。
+*   **职责**：发现 Agent A 的行为模式（如“仓位管理过于保守”或“对 POC 回测反应过度”），生成 `master_prompt_patch` 建议。
+*   **进化方式**：由用户通过 `apply_coach_patch.py` 手动审核并应用补丁，实现策略的“可控进化”。
 
 ---
 
@@ -126,8 +126,11 @@ python main.py
 # 2. 复盘（Reviewer）— 等预测到期后运行
 python review.py
 
-# 3. 策略进化（Coach）— 有多份复盘后运行，必须指定 batch
+# 3. 策略进化（Coach）— 分析最近的表现
 python coach.py --batch 10
+
+# 4. 应用补丁（Apply Patch）— 手动将 Coach 建议应用到系统中
+python src/agent/apply_coach_patch.py data/raw/coach/coach_BTCUSDT_latest.json
 
 # 可选：强制复盘（跳过时间保护）
 python review.py --force

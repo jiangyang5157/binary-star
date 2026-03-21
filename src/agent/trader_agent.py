@@ -5,7 +5,6 @@ from typing import Dict, Any
 from datetime import datetime, timezone
 from google import genai
 from google.genai import types
-from .prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +38,7 @@ class TraderAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
-    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], coach_dir: str = None) -> str:
+    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any]) -> str:
         """
         Executes the multimodal Gemini API call to determine the trading action.
         Supports multiple images (e.g., Macro + Micro charts).
@@ -47,13 +46,8 @@ class TraderAgent:
         if not self.client:
             return '{"error": "GenAI API Client is not initialized. Is GEMINI_API_KEY set?"}'
 
-        # 1. Load Patched Prompt Template
-        pm = PromptManager()
-        base_prompt_path = os.path.join(self.prompts_dir, "prompt_trader.txt")
-        if coach_dir:
-            formatted_prompt = pm.get_patched_prompt(base_prompt_path, symbol, coach_dir)
-        else:
-            formatted_prompt = self.load_prompt_template()
+        # 1. Load Base Prompt Template
+        formatted_prompt = self.load_prompt_template()
 
         if not formatted_prompt:
             return '{"error": "Agent prompt template missing."}'
