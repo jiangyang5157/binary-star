@@ -13,26 +13,23 @@ crypto/
 ├── predictor.py          # 入口：运行 Trader (Agent A) 预测
 ├── review.py             # 入口：运行 Reviewer (Agent B) 复盘
 ├── coach.py              # 入口：运行 Coach (Agent C) 策略进化
-├── apply_patches.py      # 补丁工具：自动应用 Coach 产生的优化建议
+├── apply_patches.py      # 补丁工具：自动应用补丁
 ├── scheduler.py          # 自动化调度器（定时运行 A 和 B）
-├── simulator.py          # 历史回测器 (模拟不同时间点的决策)
-├── requirements.txt      # 项目依赖
+├── simulator.py          # 历史回测采样器 (多市场环境采样)
+├── samples/              # 🧪 磨刀石工作室 (Samples Workbench)
+│   ├── extract_samples.py # 提取工具：将 data/ 中的真实案例提取到 samples/
+│   ├── run_samples.py     # 运行入口：执行全自动 A->B->C 闭环测试
+│   └── samples.log        #  workbench 运行日志
 ├── config/
-│   └── config.yaml       # 🧠 核心配置（唯一参数来源）
+│   └── config.yaml       # 🧠 核心配置（统一路径管理：base_dir）
 ├── src/
-│   ├── agent/            # AI 代理模块
-│   │   ├── predictor_agent.py       # Agent A：多模态分析 & 三轮推演
-│   │   ├── reviewer_agent.py     # Agent B：基于高频 K 线的盈亏审计
-│   │   ├── coach_agent.py        # Agent C：系统性偏差识别与战略导师
-│   │   └── prompts/              # AI 提示词模板 (Predictor, Reviewer, Coach)
+│   ├── agent/            # AI 代理模块 (Predictor, Reviewer, Coach)
 │   ├── data_fetcher/     # 数据获取模块 (Binance API & 情绪数据)
 │   ├── analyzer/         # 分析引擎 (Volume Profile, Chart Generator)
-│   └── utils/            # 通用工具 (邮件通知等)
+│   └── utils/            # 通用工具
 ├── tests/                # 测试套件 (Unit & Integration Tests)
-├── data/                 # 运行时数据 (持久化存储)
-│   ├── raw/              # 原始 JSON 数据 (predictions, reviews, coach reports)
-│   └── images/           # 生成的分析图表
-└── .env                  # 环境变量 (API Key 等，不入 git)
+├── data/                 # 生产数据 (base_dir='data')
+└── .env                  # 环境变量 (API Key)
 ```
 
 ---
@@ -118,9 +115,31 @@ python scheduler.py
 # 运行 Coach 分析并生成补丁
 python coach.py --batch 10
 
-# 应用补丁 (全自动注入：支持处理 Prompt 替换以及 Config 参数调优)
-python apply_patches.py data/raw/coach/coach_BTCUSDT_2026xxxx.json
+# 应用补丁 (支持 Prompt 替换以及 Config 参数调优)
+python apply_patches.py data/coach/coach_BTCUSDT_2026xxxx.json
 ```
+
+---
+
+## 🧪 磨刀石工作室 (Samples Workbench)
+
+为了在不干扰生产环境的情况下快速迭代 Prompt，系统提供了隔离的 `samples/` 环境。
+
+### 1. 案例提取 (Extract)
+从生产环境 `data/` 中提取感兴趣的样本到 `samples/`（支持自动扫描子目录）：
+```bash
+# 在 extract_samples.py 中配置 sources=['data']
+python samples/extract_samples.py
+```
+
+### 2. 全自动闭环测试 (Continuous Optimization)
+在 `samples/` 目录下执行“预测 -> 审计 -> 指导”全自动化流程：
+```bash
+python samples/run_samples.py
+```
+*   **隔离性**：所有的图片 (`samples/images`) 和报告均保存在 `samples/` 目录下。
+*   **全日志**：执行过程详尽记录在 `samples/samples.log`。
+*   **自动 Coach**：流程结束后会自动触发 Coach 代理对本次 Workbench 的所有样本进行总结，生成优化补丁。
 
 ---
 
