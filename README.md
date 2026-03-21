@@ -129,8 +129,12 @@ python review.py
 # 3. 策略进化（Coach）— 分析最近的表现
 python coach.py --batch 10
 
-# 4. 应用补丁（Apply Patch）— 手动将 Coach 建议应用到系统中
-python src/agent/apply_coach_patch.py data/raw/coach/coach_BTCUSDT_latest.json
+# 4. 自动注入补丁 (Apply Patches)
+当 Coach 产出合理的 Patch 后，运行：
+```bash
+python apply_patches.py <report_filename>
+```
+该脚本会自动更新 `prompt_trader.txt` 和 `config.yaml`。
 
 # 可选：强制复盘（跳过时间保护）
 python review.py --force

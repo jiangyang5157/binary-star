@@ -1,5 +1,5 @@
 import pytest
-from src.agent.apply_coach_patch import apply_patches
+from apply_patches import apply_patches
 
 def test_apply_patches_basic():
     base = "Section 1\nSome content here.\nSection 2\nOld content."
@@ -35,14 +35,14 @@ def test_apply_patches_add_fallback():
     assert "Hello\n\nWorld" in result
 
 def test_recursive_update():
-    from src.agent.apply_coach_patch import recursive_update
+    from apply_patches import recursive_update
     base = {"a": 1, "b": {"c": 2}}
     update = {"b": {"c": 3}, "d": 4}
     result = recursive_update(base, update)
     assert result == {"a": 1, "b": {"c": 3}, "d": 4}
 
 def test_find_and_update_flat_key():
-    from src.agent.apply_coach_patch import find_and_update_flat_key
+    from apply_patches import find_and_update_flat_key
     base = {"prediction": {"value_area_pct": 0.7}, "other": 1}
     find_and_update_flat_key(base, "value_area_pct", 0.85)
     assert base["prediction"]["value_area_pct"] == 0.85

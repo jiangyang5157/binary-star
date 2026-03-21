@@ -143,15 +143,14 @@ def apply_to_config(report_data: Dict[str, Any], config_path: str):
         logger.error(f"Failed to apply config patch: {e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Manually apply a Coach Report patch to the trading system.")
-    parser.add_argument("report_filename", help="Filename of the coach report (or full path).")
+    parser = argparse.ArgumentParser(description="Apply a Coach Report patch to the trading system.")
+    parser.add_argument("report_filename", help="Filename of the coach report in the coach_dir (e.g. BTC_report.json)")
     
     args = parser.parse_args()
 
-    # Determine project root relative to this script (src/agent/apply_coach_patch.py)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(script_dir))
-    config_path = os.path.join(project_root, "config", "config.yaml")
+    # Determine project root
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    config_path = "config/config.yaml"
 
     # 1. Load Config early to resolve directories
     try:
