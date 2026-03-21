@@ -115,7 +115,7 @@ class PredictorAgent:
 
             # --- PASS 2: Red Team Critique (The 'Premortem') ---
             # We ask the model to assume the prediction failed and find out why.
-            prediction_horizon = context_data.get("prediction_horizon_days", 1)
+            prediction_horizon = context_data["prediction_horizon_days"]
             critique_prompt = f"""
             CRITICAL EVALUATION (RED TEAM):
             Assume you just generated the following prediction:

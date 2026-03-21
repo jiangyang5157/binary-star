@@ -23,12 +23,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("ReviewPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
+    abs_config_path = os.path.join(PROJECT_ROOT, config_path)
+    if not os.path.exists(abs_config_path):
+        raise FileNotFoundError(f"Config file not found at: {abs_config_path}")
     try:
-        with open(os.path.join(PROJECT_ROOT, config_path), 'r') as f:
-            return yaml.safe_load(f)
+        with open(abs_config_path, 'r') as f:
+            config = yaml.safe_load(f)
+            if config is None:
+                raise ValueError(f"Config file is empty: {abs_config_path}")
+            return config
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
-        return {}
+        raise
 
 def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: Dict[str, Any] = None) -> Dict[str, Any]:
     """
@@ -90,8 +96,6 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
     """
     logger.info("=== Starting Crypto Review Pipeline (Agent B) ===")
     config = load_config()
-    if not config:
-        return
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
@@ -120,8 +124,9 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
         _ = config['automation']['review_interval_hours']
 
     except KeyError as e:
-        logger.error(f"Config is missing required key: {e}. Please check your config.yaml.")
-        return
+        error_msg = f"Config is missing required key: {e}. Please check your config.yaml."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from e
 
     predictions_dir = os.path.join(PROJECT_ROOT, config['paths']['predictions_dir'])
     reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['reviews_dir'])
@@ -171,9 +176,9 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 start_ts_ms = int(dt_start.timestamp() * 1000)
                 
                 # Review outcome window
-                review_days = config['prediction']['prediction_horizon_days']
+                prediction_horizon = config['prediction']['prediction_horizon_days']
                 dt_now = override_now if override_now else datetime.now(timezone.utc)
-                dt_end = dt_start + timedelta(days=review_days)
+                dt_end = dt_start + timedelta(days=prediction_horizon)
                 if dt_end > dt_now:
                     dt_end = dt_now
                     logger.info(f"Prediction {filename} is recent. Reviewing up to present time.")
@@ -207,7 +212,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
                     "1h": 3600, "2h": 7200, "4h": 14400, "6h": 21600, "8h": 28800, "12h": 43200, "1d": 86400
                 }
-                interval_seconds = interval_map.get(fetch_interval, 3600)
+                interval_seconds = interval_map[fetch_interval]
                 required_limit = int(duration_seconds / interval_seconds) + 1
                 target_limit = min(required_limit, 1500)
                 

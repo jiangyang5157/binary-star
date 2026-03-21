@@ -60,15 +60,21 @@ def start_scheduler():
     try:
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
+            if not config:
+                 raise ValueError("Config file is empty")
     except Exception as e:
         logger.error(f"Could not load config: {e}")
-        return
+        raise RuntimeError(f"Scheduler failed to start: Config error: {e}") from e
 
-    automation = config['automation']
-    
-    # Pre-flight check for scheduler
-    pred_hours = automation['prediction_interval_hours']
-    rev_hours = automation['review_interval_hours']
+    try:
+        automation = config['automation']
+        # Pre-flight check for scheduler
+        pred_hours = automation['prediction_interval_hours']
+        rev_hours = automation['review_interval_hours']
+    except KeyError as e:
+        error_msg = f"Config is missing required automation key: {e}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from e
 
     logger.info("=== Crypto Agent Scheduler Started ===")
     logger.info(f"Predictor Interval: {pred_hours} hours")

@@ -25,12 +25,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger("PredictionPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
+    abs_config_path = os.path.join(PROJECT_ROOT, config_path)
+    if not os.path.exists(abs_config_path):
+        raise FileNotFoundError(f"Config file not found at: {abs_config_path}")
     try:
-        with open(os.path.join(PROJECT_ROOT, config_path), 'r') as f:
-            return yaml.safe_load(f)
+        with open(abs_config_path, 'r') as f:
+            config = yaml.safe_load(f)
+            if config is None:
+                raise ValueError(f"Config file is empty: {abs_config_path}")
+            return config
     except Exception as e:
         logger.error(f"Failed to load config: {e}")
-        return {}
+        raise
 
 def run_predictor(override_timestamp: datetime = None, current_position: dict = None):
     """
@@ -45,9 +51,8 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         logger.info(f"=== Starting BACKTEST Pipeline at {override_timestamp} ===")
     else:
         logger.info("=== Starting Crypto Predictor ===")
+    
     config = load_config()
-    if not config:
-        return
 
     # Pre-flight check for ALL required keys to enforce Strict Config
     try:
@@ -83,8 +88,9 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         _ = config['automation']['review_interval_hours']
 
     except KeyError as e:
-        logger.error(f"Config is missing required key: {e}. Please check your config.yaml.")
-        return
+        error_msg = f"Config is missing required key: {e}. Please check your config.yaml."
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from e
 
     symbol = config['symbol']
     macro_config = config['prediction']['macro_timeframe']

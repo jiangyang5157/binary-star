@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.sentiment import SentimentFetcher
 from src.data_fetcher.storage import DataStorage
-from main import load_config
+from predictor import load_config
 
 def test_data_fetcher_components():
     print("--- Testing Crypto Data Layer ---")

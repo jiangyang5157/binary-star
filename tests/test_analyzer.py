@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.analyzer.volume_profile import VolumeProfileAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
-from main import load_config
+from predictor import load_config
 
 def test_analysis_pipeline():
     print("--- Testing Crypto Analysis Layer ---")
