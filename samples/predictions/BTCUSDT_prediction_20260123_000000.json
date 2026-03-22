@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-01-23T00:00:00Z",
+    "confidence": 75,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 89484.6,
+    "take_profit": 87000.0,
+    "stop_loss": 90800.0,
+    "reasoning": "1. TP Dist: 2484.6. 2. SL Dist: 1315.4 (Base 1.8x + 0.2x offset). 3. TP/SL Ratio: 1.89. 4. Regime: TRENDING/BEARISH. 5. Logic: Following the Red Team critique, the market structure is clearly bearish after breaking below the Value Area Low (VAL) at 89,500. The consolidation identified in the 1h chart is a Bear Flag, not a reversal pattern. Low volume on the 'bounces' and price acceptance below the VAL suggest a continuation of the downward expansion. We target the liquidity vacuum below the recent 88k wick, with a stop placed above the VAL and the recent 15m micro-highs to invalidate the bearish thesis.",
+    "reasoning_zh": "1. 止盈距离: 2484.6。2. 止损距离: 1315.4 (基准 1.8x + 0.2x 偏移)。3. 盈亏比: 1.89。4. 市场环境: 趋势/看跌。5. 逻辑：根据红队审查，市场在跌破 89,500 的价值区域低点 (VAL) 后结构明显转为看跌。1小时图中的整理区间是看跌旗形而非反转形态。反弹时的低成交量以及价格在 VAL 下方的企稳表明下跌趋势将延续。我们的目标是近期 88k 影线以下的流动性真空区，止损设在 VAL 和 15 分钟微观高点上方，以防看跌逻辑失效。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

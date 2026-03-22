@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-15T00:00:00Z",
+    "confidence": 70,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 71150.0,
+    "take_profit": 70617.3,
+    "stop_loss": 71682.7,
+    "reasoning": "1. TP Dist: 532.7 (2.0x ATR). 2. SL Dist: 532.7 (Base 1.8x + 0.2x Squeeze Offset). 3. TP/SL Ratio: 1.0. 4. Regime: SQUEEZE/RANGING. 5. Logic: Re-evaluating based on the Red Team critique, the current price action above the POC (70070) shows signs of distribution rather than accumulation. The 15m recovery to 71k occurred on declining volume, suggesting a 'Dead Cat Bounce' or liquidity trap. With a high Squeeze factor (0.9161) and a major rejection at the 1h VAH (74k), the probability favors a downward expansion to retest the POC and the volume gap below it.",
+    "reasoning_zh": "1. 止盈距离: 532.7 (2.0倍 ATR)。2. 止损距离: 532.7 (基础 1.8倍 + 0.2倍 挤压偏移)。3. 盈亏比: 1.0。4. 市场环境: 挤压/震荡 (SQUEEZE/RANGING)。5. 逻辑: 基于红队审查的深度分析，POC（70070）上方的价格行为更倾向于派发而非吸筹。15分钟图的反弹伴随成交量萎缩，暗示这是一个流动性陷阱。结合0.9161的高挤压因子以及1小时图VAH（74k）处的强力拒绝，市场更有可能向下突破，回测POC及下方的成交量真空区。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

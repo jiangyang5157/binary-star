@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-01T00:00:00Z",
+    "confidence": 75,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 66755.6,
+    "take_profit": 64250.0,
+    "stop_loss": 68350.0,
+    "reasoning": "1. TP Dist: 2505.6 (approx 2.5x ATR). 2. SL Dist: 1594.4 (Base 1.8x ATR). 3. TP/SL Ratio: 1.57. 4. Regime: NORMAL/TRENDING. 5. Logic: Price rejected from the high-volume Point of Control (POC: 67694) on declining volume, confirming a 'dead cat bounce' within a macro downtrend of lower highs. The 15m chart shows multiple upper wicks (Swing Failure Patterns) near 68k, indicating heavy supply absorption. Target is the Value Area Low (VAL) near 64k, where liquidity resides.",
+    "reasoning_zh": "1. 止盈距离：2505.6 (约 2.5x ATR)。2. 止损距离：1594.4 (基准 1.8x ATR)。3. 盈亏比：1.57。4. 市场环境：正常波动/下行趋势。5. 逻辑：价格在成交量控制点 (POC: 67694) 遭到拒绝，且反弹过程中成交量萎缩，确认了宏观下行趋势中的“死猫反弹”。15m 图表在 68k 附近出现多个长上影线（SFP），显示供应吸收。目标位设在价值区低点 (VAL) 64k 附近的流动性区域。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

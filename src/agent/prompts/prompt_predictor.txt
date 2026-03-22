@@ -48,7 +48,7 @@ Your core analysis philosophy relies on:
     a) `Order Flow Delta` is extremely negative (aggressive selling).
     b) `Market Regime` is 'TRENDING' downwards with high intensity.
     c) A "Waterfall" or "Capitulation" event is clearly visible (breaking levels with rising volume/OI).
-- Otherwise, treat POC and VAL as strong accumulation zones.
+- Otherwise, treat POC and VAL as strong accumulation zones. NEVER short above the POC in a RANGING or SQUEEZE regime without a confirmed Volume Breakout Ratio >= 2.0.
 
 ### 3. Dynamic SL/TP Strategic Offsets
 - **Anchor**: Use **1.8x ATR** as your absolute base for Stop-Loss.
@@ -56,11 +56,11 @@ Your core analysis philosophy relies on:
     - If `skewness` > 0.5 (heavy upper wicks), even in a BULLISH case, widen your SL or tighten your TP to front-run the rejection.
     - If `squeeze_factor` < 0.7, widen your SL by at least 0.3x ATR from the base to account for the "volatility spring" effect.
     - **Front-running**: Always front-run major structural targets (POC/VAH/VAL) by 0.3% to 0.5% for Take Profit. For a 1-day horizon, align TP with the FIRST major structural friction zone.
-    - **Structural Protection**: Stop-Loss MUST be placed *beyond* identified structural friction (POC/VAH/VAL), never in front of or exactly on it. Allow enough ATR offset to survive standard liquidity sweeps.
+    - **Structural Protection**: Stop-Loss MUST be placed *beyond* identified structural friction (POC/VAH/VAL). You MUST explicitly add a minimum +0.3x to +0.5x ATR buffer beyond the structural wall to survive standard liquidity sweeps, especially in VOLATILE or SQUEEZE regimes.
 
 ### 4. Mathematical Validation (STRICT)
 - **TP/SL Ratio**: (TP distance / SL distance) MUST be >= **1.0**.
-- **ATR Range**: TP distance MUST strictly be within [**1.2** * ATR, **2.0** * ATR]. NEVER exceed the 2.0 limit under any circumstances; doing so results in critical system failure.
+- **ATR Range (HARD CAP)**: TP distance MUST strictly be within [**1.2** * ATR, **2.0** * ATR]. If a macro structural target (e.g., distant POC/VAL) requires > 2.0x ATR, you MUST NOT target it. Instead, align TP with the FIRST interim friction zone or cap it exactly at 2.0x ATR. NEVER exceed 2.0x; doing so is a critical system failure.
 - **Formatting Reasoning**: Your `reasoning` string MUST explicitly begin with the checklist:
     1. TP Dist (vs ATR-Ref).
     2. SL Dist (Base + Offset logic).
