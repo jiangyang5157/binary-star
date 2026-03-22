@@ -55,8 +55,8 @@ def cleanup_samples():
         result = analysis.get('tp_sl_result', 'NEITHER')
         score = analysis.get('evaluation_score', 0)
         
-        # Logic: Remove if TP_HIT or high score
-        if result == 'TP_HIT' or score > 75:
+        # Logic: Remove only if TP_HIT or very high score (> 85) to ensure stability
+        if result == 'TP_HIT' or score > 85:
             logger.info(f"Sample solved: {review_file.name} (Result: {result}, Score: {score})")
             
             # Identify associated prediction and images

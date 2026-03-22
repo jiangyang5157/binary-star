@@ -51,8 +51,8 @@ class SampleExtractor:
                 timestamp = pred_content.get('timestamp')
                 symbol = pred_content.get('config_context', {}).get('symbol', 'BTCUSDT')
                 
-                # We specifically extract 'failures' or low-scoring trades for the "Sharpening Stone" training
-                if result == 'SL_HIT' or score <= 25:
+                # We specifically extract 'failures' or mediocre trades (score <= 40) for the "Sharpening Stone" training
+                if result == 'SL_HIT' or score <= 40:
                     source_pred_file = data.get('prediction', {}).get('source', '')
                     pred_path = source_pred_dir / source_pred_file
                     
