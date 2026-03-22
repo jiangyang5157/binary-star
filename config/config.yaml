@@ -43,7 +43,7 @@ notifications:
   timezone: Pacific/Auckland
 agent:
   predictor_model: gemini-flash-latest
-  reviewer_model: gemini-flash-latest
+  reviewer_model: gemini-3.1-pro-preview
   coach_model: gemini-3.1-pro-preview
   predictor_temp_initial: 0.3
   predictor_temp_critique: 0.5
