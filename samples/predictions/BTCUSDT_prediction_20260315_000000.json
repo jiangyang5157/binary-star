@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-15T00:00:00Z",
-    "confidence": 68,
+    "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 71150.0,
     "take_profit": 66500.0,
-    "stop_loss": 73500.0,
-    "reasoning": "1. TP Dist: 4650 (7.1x ATR). 2. SL Dist: 2350 (3.6x ATR). 3. TP/SL Ratio: 1.98. 4. Regime: SQUEEZE/DISTRIBUTION. 5. Logic: Price is exhibiting 'Thin Air' breakout characteristics on the 15m chart with declining volume into the VAH (72.4k). The 1h chart shows significant upper wicks (distribution) near 73k. Following the Red Team critique, the POC (70070) is likely to act as a magnet rather than support, leading to a liquidity hunt of retail stops clustered below 70k. A mean-reversion trade toward the VAL (66.3k) offers a superior R:R compared to chasing a low-volume breakout.",
-    "reasoning_zh": "1. 止盈距离: 4650 (7.1x ATR)。2. 止损距离: 2350 (3.6x ATR)。3. 盈亏比: 1.98。4. 市场环境: 挤压/派发。5. 逻辑: 15分钟图显示价格在接近价值区高沿（VAH 72.4k）时成交量持续萎缩，呈现典型的“空气突破”特征。1小时图在73k附近留下多根长上影线，暗示大户正在派发。结合红队审查，POC（70070）目前更像是一个引力场而非支撑位，市场极有可能向下扫荡聚集在70k下方的散户止损盘。向价值区低沿（VAL 66.3k）的均值回归交易提供了更佳的风险回报比。",
+    "stop_loss": 72850.0,
+    "reasoning": "1. TP Dist: [4650]. 2. SL Dist: [Base 1.8x + Offset 0.5x]. 3. TP/SL Ratio: [2.73]. 4. Regime: [SQUEEZE/RANGING]. 5. Logic: Price exhibits a 'Look Above and Fail' pattern after rejecting 74k. The 15m chart shows a bear flag forming on declining volume, suggesting exhaustion. The POC (70070) is a primary magnet, and a failure there targets the VAL (66300). Shorting the upper value area distribution provides a high-probability mean-reversion setup.",
+    "reasoning_zh": "1. TP距离：[4650]。2. SL距离：[基础1.8x + 偏移0.5x]。3. 盈亏比：[2.73]。4. 市场环境：[挤压/震荡]。5. 逻辑：价格在74k附近出现典型的“假突破后回落”形态。15分钟图显示在成交量萎缩的情况下形成熊旗，暗示买盘枯竭。POC（70070）具有强磁吸作用，一旦跌破将下探价值区间下沿（VAL 66300）。在价值区间上部做空是高盈亏比的均值回归策略。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

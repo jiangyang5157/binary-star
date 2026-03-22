@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-20T00:00:00Z",
-    "confidence": 78,
+    "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 67150.0,
-    "take_profit": 65000.0,
-    "stop_loss": 68250.0,
-    "reasoning": "1. TP Dist: 2150.0. 2. SL Dist: 1100.0 (Base 1.8x + 0.2x Squeeze Offset). 3. TP/SL Ratio: 1.95. 4. Regime: SQUEEZE/BEARISH. 5. Logic: Following the Red Team critique, the 15m 'wedge' is re-identified as a bearish pennant forming below the 68940 POC resistance. The 1h chart shows a clear sequence of lower highs, indicating a dominant downtrend. Price is currently positioned above a liquidity void (LVN) between 66.5k and 65k; a breakdown is likely to accelerate toward the 65k Value Area Low (VAL) to find support.",
-    "reasoning_zh": "1. 止盈距离：2150.0。2. 止损距离：1100.0 (基准 1.8x + 0.2x 挤压补偿)。3. 盈亏比：1.95。4. 市场环境：SQUEEZE/BEARISH。5. 逻辑：根据红队审查，15分钟图的“楔形”被重新识别为在 POC (68940) 阻力位下方形成的看跌旗形。1小时图显示明显的高点降低趋势。目前价格处于 66.5k 至 65k 的成交量真空区（LVN）上方，一旦跌破旗形，预计将加速下探至 65k 的价值区低点（VAL）以寻求流动性支撑。",
+    "current_price": 67190.1,
+    "take_profit": 66186.2,
+    "stop_loss": 68194.0,
+    "reasoning": "1. TP Dist: 1003.9 (2.0x ATR macro limit). 2. SL Dist: 1003.9 (Base 1.8x + 0.2x Squeeze Offset). 3. TP/SL Ratio: 1.0. 4. Regime: SQUEEZE/RANGING. 5. Logic: Following the Red Team critique, the bias is shifted to bearish. Price is currently trading below the POC (68940), which acts as a significant overhead resistance. The 15m triangle consolidation shows declining volume, indicating a lack of buying conviction and a high probability of a bull trap. The macro 1h structure shows a series of lower highs, suggesting the path of least resistance is toward the Value Area Low (VAL) near 64800. SL is placed above the POC to protect against volatility spikes.",
+    "reasoning_zh": "1. 止盈距离：1003.9（2.0x ATR 宏观限制）。2. 止损距离：1003.9（基准 1.8x + 0.2x 挤压偏移）。3. 盈亏比：1.0。4. 市场环境：挤压/震荡。5. 逻辑：根据红队审查意见，观点转为看跌。价格目前处于 POC (68940) 下方，该位置已成为显著的上方阻力。15分钟图的三角形整理伴随成交量萎缩，显示买盘信心不足，极易形成多头陷阱。1小时宏观结构呈现高点降低的态势，暗示阻力最小的方向是向价值区低点 (VAL) 64800 附近回落。止损位设在 POC 之上，以应对波动率激增。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

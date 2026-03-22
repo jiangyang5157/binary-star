@@ -44,11 +44,16 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem" summarizing the exact technical mechanic of the outcome.
 
 ### Adversarial Evaluation Score Guide:
-- **90-100**: Direction/TP correct, rules followed, MAE was minimal (< 20% of SL).
+- **90-100**: Direction/TP correct, rules followed, MAE was minimal (**MAE < 20% of SL height**). -> **Bonus: +10 logic precision.**
 - **70-89**: Direction correct, TP hit, but encountered moderate stress (MAE 20-50% of SL).
-- **50-69**: Direction correct but logic was flawed (MAE > 80% of SL, hit TP by luck) OR entered too late. **MAX 60 if MAE > 80% of SL.**
-- **30-49**: Direction wrong, but risk was managed and Shadow Evidence was subtle.
+- **50-69**: Direction correct but logic was flawed (MAE 50-80% of SL).
+- **0-40**: **LOGIC DEATH PENALTY**: If **MAE > 80% of SL distance**, the prediction is a FAILURE in risk management. **You MUST force the score to <= 40 (Recommend 35)** to trigger COACH extraction, even if TP was eventually hit.
 - **0-29**: Direction wrong AND rules violated OR extreme Hallucination detected.
+
+
+> [!WARNING]
+> **AVOID THE ADVERSARIAL TRAP**: Do not list frivolous or noise-based indicators (e.g., minor RSI divergence in a strong trend) as Shadow Evidence. You MUST focus on **Structural Failures**: Volume-Profile gravity (POC/VAH/VAL), aggressive Order-Flow Delta reversals, and Liquidity zones. If no strong counter-evidence exists, acknowledge the Predictor's robustness.
+
 
 ### Output Requirements:
 You MUST output your final decision in strict JSON format.

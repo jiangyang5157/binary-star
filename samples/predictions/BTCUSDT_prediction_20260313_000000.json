@@ -3,11 +3,11 @@
     "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 71125.0,
-    "take_profit": 66500.0,
-    "stop_loss": 72800.0,
-    "reasoning": "1. TP Dist: 4625.0. 2. SL Dist: 1675.0 (Base 1.8x ATR + Offset). 3. TP/SL Ratio: 2.76. 4. Regime: DISTRIBUTION/RANGING. 5. Logic: Price is currently testing the Value Area High (VAH) near 71,500. The 15m chart shows a 'breakout' of the teal triangle on declining volume, a classic sign of exhaustion and a potential 'Bull Trap'. Following the Red Team's critique, the POC (70,062) is acting as a magnet, and a failure to hold above it will likely lead to a full rotation back to the Value Area Low (VAL) near 65,800. SL is placed above the VAH and recent swing highs to invalidate the bearish mean-reversion thesis.",
-    "reasoning_zh": "1. 止盈距离: 4625.0。2. 止损距离: 1675.0 (基于 1.8x ATR + 偏移)。3. 盈亏比: 2.76。4. 市场环境: 派发/震荡。5. 逻辑: 价格目前正在测试 71,500 附近的价值区高点 (VAH)。15 分钟图显示，在成交量下降的情况下出现了‘突破’，这是典型的动能衰竭和‘多头陷阱’信号。根据红队审查，POC (70,062) 具有磁吸效应，若无法维持在其上方，价格很可能完全回撤至 65,800 附近的价值区低点 (VAL)。止损设在 VAH 和近期高点上方，以应对可能的真实突破。",
+    "current_price": 70850.0,
+    "take_profit": 65800.0,
+    "stop_loss": 72600.0,
+    "reasoning": "1. TP Dist: 5050. 2. SL Dist: 1750 (Base 1.8x ATR + Offset 0.5x). 3. TP/SL Ratio: 2.88. 4. Regime: RANGING/DISTRIBUTION. 5. Logic: Following the rejection at the Value Area High (VAH) near 72k, price is currently hovering at the Point of Control (POC) of 70,062. The 1h volume profile reveals a significant 'Low Volume Node' (LVN) below the POC, suggesting that a failure to hold this level will result in a fast move toward the Value Area Low (VAL) at 65,800. The 15m triangle is interpreted as a distribution pattern under the macro lower-high structure, likely serving as a liquidity trap for retail longs before a mean-reversion move to the VAL.",
+    "reasoning_zh": "1. 止盈距离：5050。2. 止损距离：1750 (基准 1.8x ATR + 0.5x 偏移)。3. 盈亏比：2.88。4. 市场环境：震荡/派发。5. 逻辑：在 72k 附近的价值区高点 (VAH) 遭到拒绝后，价格目前在 70,062 的控制点 (POC) 附近徘徊。1小时成交量分布显示 POC 下方存在明显的低成交量节点 (LVN)，这意味着一旦无法守住该水平，价格将迅速跌向 65,800 的价值区低点 (VAL)。15分钟图上的三角形在宏观“更低的高点”结构下被视为派发形态，极有可能是针对散户多头的流动性陷阱，随后将发生向 VAL 的均值回归。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

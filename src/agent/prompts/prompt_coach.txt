@@ -25,9 +25,11 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) used by 
 1.  **Analyze Numerical Biases**: 
     - Contrast `prediction.take_profit` vs `actual_market_outcome.max_price_reached`. Is the Predictor consistently too "greedy"?
     - Contrast `prediction.stop_loss` vs `actual_market_outcome.min_price_reached`. Is the SL being hit before the predicted move occurs?
-2.  **Cross-Reference Qualitative & Quantitative**: 
-    - Compare the `analysis.prediction_post_mortem` with the raw numbers in `actual_market_outcome`. Does the Reviewer's analysis match the math? 
-3.  **Identify Systemic Biases**: Across these {batch_count} predictions, what is the most recurring logical or execution flaw?
+2.  **Cross-Reference Adversarial Insights (V3 Audit)**: 
+    - Analyze `analysis.adversarial_audit.shadow_evidence`: What technical indicators or structural levels is the Predictor consistently ignoring? Use this to build "Counter-Thesis" rules in the prompt.
+    - Analyze `analysis.adversarial_audit.mae_stress_level`: If MAE is consistently high (> 50%), the Predictor's entries are suboptimal or it's "praying" for a reversal. Suggest tighter entry requirements or wider SL buffers.
+    - Check `analysis.adversarial_audit.hallucination_detected`: If true, identify which specific data points (Volume/Delta) the Predictor is misreporting and add verification steps to the prompt.
+3.  **Identify Systemic Biases**: Across these {batch_count} predictions, what is the most recurring logical or execution flaw? (e.g., "Always bullish into VAH resistance" or "Ignores declining delta on breakouts").
 4.  **Generate Optimization Directives**: Based on your findings, provide:
     - A **structured list of modification instructions** (`master_prompt_patch`) for the `prompt_predictor.txt` file. Use this exclusively for qualitative, English-language narrative rules (e.g. "Do not short if volume shows absorption").
     - **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new qualitative findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.

@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-01T00:00:00Z",
-    "confidence": 78,
+    "confidence": 68,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 67100.0,
-    "take_profit": 65000.0,
-    "stop_loss": 68200.0,
-    "reasoning": "1. TP Dist: 2100.0. 2. SL Dist: 1100.0 [Base 1.8x + Offset 0.2x]. 3. TP/SL Ratio: 1.91. 4. Regime: VOLATILE/DISTRIBUTION. 5. Logic: Price rejected at the Point of Control (POC: 67694) on declining volume, confirming it as a supply wall rather than a breakout trigger. The 1h macro structure shows a clear sequence of lower highs, indicating a primary downtrend. The recent vertical move from 64k lacks volume support and likely represents a short-squeeze exhaustion, leaving a liquidity vacuum below that price is now gravitating toward.",
-    "reasoning_zh": "1. 止盈距离：2100.0。2. 止损距离：1100.0 [基准 1.8x + 偏移 0.2x]。3. 盈亏比：1.91。4. 市场环境：高波动/派发区间。5. 逻辑：价格在成交量控制点 (POC: 67694) 处受阻且成交量萎缩，确认该位为强阻力而非突破口。1小时大周期呈现明显的“高点降低”结构，暗示主趋势向下。近期从 64k 开始的垂直上涨缺乏成交量支撑，更像是空头挤压后的动能枯竭，下方存在流动性真空，价格大概率回撤填补。",
+    "current_price": 67694.52,
+    "take_profit": 64250.0,
+    "stop_loss": 69650.0,
+    "reasoning": "1. TP Dist: 3.44x ATR. 2. SL Dist: [Base 1.8x + Offset 0.15x]. 3. TP/SL Ratio: 1.76. 4. Regime: [NORMAL/RANGE-BOUND]. 5. Logic: Price is currently at the Point of Control (POC), the highest-volume node of the range, which acts as a magnet and a resistance level when approached from below on declining volume. The 15m chart shows clear volume-price divergence and exhaustion wicks at this level. Following the 'Range Rotation' principle, the high-probability move is a mean reversion back toward the Value Area Low (VAL) near 64,000. The SL is placed above the Value Area High (VAH) to protect against an outlier breakout.",
+    "reasoning_zh": "1. TP距离：3.44x ATR。2. SL距离：[1.8x基准 + 0.15x偏移]。3. 盈亏比：1.76。4. 市场环境：[正常波动/区间震荡]。5. 逻辑：价格目前处于控制点（POC）67,694，这是区间内成交量最集中的“公平价值”区，在成交量萎缩的情况下从下方触及该位通常表现为强阻力。15分钟图显示明显的量价背离和受阻影线。基于“区间轮动”原理，高概率走势是向价值区低点（VAL）64,000附近进行均值回归。止损位设在价值区高点（VAH）上方，以防范超预期的区间突破。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

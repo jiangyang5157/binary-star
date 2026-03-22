@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-11T00:00:00Z",
-    "confidence": 72,
-    "opinion": "BEARISH",
-    "action": "SHORT",
-    "current_price": 69800.0,
-    "take_profit": 67185.0,
-    "stop_loss": 72000.0,
-    "reasoning": "1. TP Dist: 2615.0 (Targeting POC). 2. SL Dist: 2200.0 (Above recent 15m swing high). 3. TP/SL Ratio: 1.18. 4. Regime: Volatile/Distribution. 5. Logic: Following the Red Team critique, the 15m chart confirms a failed breakout (bull trap) from the teal pennant. Price is showing exhaustion at the Value Area High (VAH) with declining volume on upward pushes. The POC at 67184.96 acts as a primary downside magnet for mean reversion in this distribution phase.",
-    "reasoning_zh": "1. TP 距离: 2615.0 (目标 POC)。 2. SL 距离: 2200.0 (位于 15m 近期高点上方)。 3. TP/SL 比率: 1.18。 4. 市场环境: 高波动/派发。 5. 逻辑: 结合红队审查，15分钟图表确认了青色旗形的突破失败（多头陷阱）。价格在价值区高点 (VAH) 表现出疲态，且向上推进时成交量萎缩。67184.96 的 POC 在此派发阶段充当了主要的下行引力位，预计将发生均值回归。",
+    "confidence": 90,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 69998.1,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "1. TP Dist: N/A (Structural target for long exceeds 2.0x ATR cap). 2. SL Dist: N/A (Must be > 4.2x ATR to clear POC gravity well at 67184.96). 3. TP/SL Ratio: N/A (Calculated RR < 0.5). 4. Regime: NORMAL/RANGING. 5. Logic: Market structure presents a direct conflict between volatility constraints and structural protection. Following the rejection from the Value Area High (~72.8k), price is currently in a 'liquidity vacuum' above the Point of Control (67184.96). The 15m chart confirms the previous consolidation was a distribution phase, not a bull flag. A long entry is mathematically prohibited as the required SL (below POC) creates an invalid RR. Shorting into the POC in a ranging regime lacks the necessary volume breakout confirmation. Capital preservation dictates a neutral stance until price either tests the POC for a bounce or breaks the VAH with volume.",
+    "reasoning_zh": "1. 止盈距离：不适用（多头结构目标超过 2.0x ATR 上限）。2. 止损距离：不适用（必须 > 4.2x ATR 才能避开 67184.96 的 POC 引力区）。3. 盈亏比：不适用（计算出的 RR < 0.5）。4. 市场环境：正常/震荡。5. 逻辑：市场结构在波动率限制与结构性保护之间存在直接冲突。在价值区高点（~72.8k）遭到拒绝后，价格目前处于控制点（POC 67184.96）上方的“流动性真空”区。15分钟图确认之前的盘整是派发阶段而非牛旗。由于合规止损（需置于 POC 下方）会导致盈亏比低于 0.5，多单入场在数学上被禁止。而在震荡行情中，在没有成交量突破确认的情况下直接向 POC 做空风险较高。基于资本保护原则，在价格测试 POC 支撑或放量突破 VAH 之前保持中立。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
