@@ -198,7 +198,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     continue
 
                 # Extract symbol from prediction config_context; skip if missing
-                symbol = prediction.get('config_context', {}).get('symbol')
+                symbol = prediction['config_context']['symbol']
                 if not symbol:
                     logger.warning(f"Skipping {filename}: No symbol found in config_context.")
                     continue
@@ -239,7 +239,7 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 outcome = calculate_outcome(klines, entry_price, prediction=prediction)
 
                 # Locate matching historical charts (Macro and Micro)
-                ts_iso = prediction.get('timestamp', '')
+                ts_iso = prediction['timestamp']
                 chart_paths = []
                 if ts_iso:
                     # Strip timezone info (Z or +00:00) to match the file naming convention from main.py

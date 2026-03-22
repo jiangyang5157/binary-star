@@ -46,7 +46,7 @@ class PredictorAgent:
         Extracts a specific section from the prompt template.
         Sections are defined by ### [SECTION_NAME] headers.
         """
-        pattern = rf"### \[{section_name}\](.*?)(?=\n## |^## |\n### \[|\Z)"
+        pattern = rf"\[\[\[{section_name}\]\]\](.*?)(?=\[\[\[/{section_name}\]\]\]|\Z)"
         match = re.search(pattern, template, re.DOTALL)
         if match:
             return match.group(1).strip()
@@ -54,15 +54,14 @@ class PredictorAgent:
 
     def get_common_context(self, template: str) -> str:
         """Extracts the common principles and market context parts of the prompt."""
-        # Typically everything before [ROLE_SPECIFIC_INSTRUCTIONS]
-        if "## [ROLE_SPECIFIC_INSTRUCTIONS]" in template:
-            return template.split("## [ROLE_SPECIFIC_INSTRUCTIONS]")[0].strip()
+        if "[[[ROLE_SPECIFIC_INSTRUCTIONS]]]" in template:
+            return template.split("[[[ROLE_SPECIFIC_INSTRUCTIONS]]]")[0].strip()
         return template
 
     def get_footer(self, template: str) -> str:
         """Extracts the final output protocol and format enforcement footer."""
-        if "## 4. FINAL OUTPUT PROTOCOL" in template:
-            return "## 4. FINAL OUTPUT PROTOCOL\n" + template.split("## 4. FINAL OUTPUT PROTOCOL")[-1].strip()
+        if "[[[FINAL_OUTPUT_PROTOCOL]]]" in template:
+            return template.split("[[[FINAL_OUTPUT_PROTOCOL]]]")[-1].strip()
         return ""
 
     def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:
@@ -89,7 +88,7 @@ class PredictorAgent:
             "symbol": symbol,
             "current_time": current_time,
             "current_position": current_position,
-            "prediction_horizon": context_data.get("prediction_horizon_days", 1)
+            "prediction_horizon": context_data["prediction_horizon_days"]
         })
 
         # Multi-modal Input preparation (upload charts)

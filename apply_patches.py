@@ -24,13 +24,16 @@ def apply_patches(base_text: str, patch_list: List[Dict[str, Any]]) -> str:
         
         try:
             if action == "ADD":
-                # For ADD, we append content to a specific section header
                 target_section = patch.get("target_section", "")
                 content = patch.get("content", "")
                 if target_section in patched_text:
-                    # Find the next section or end of file
                     logger.info(f"Applying ADD patch to section: {target_section}")
-                    patched_text = patched_text.replace(target_section, f"{target_section}\n{content}")
+                    # If it's a bracketed section, we can insert before the closing tag for better structure
+                    closing_tag = target_section.replace("[[[", "[[[/")
+                    if closing_tag in patched_text:
+                         patched_text = patched_text.replace(closing_tag, f"{content}\n{closing_tag}")
+                    else:
+                         patched_text = patched_text.replace(target_section, f"{target_section}\n{content}")
                 else:
                     logger.warning(f"Target section '{target_section}' not found for ADD action. Appending to end.")
                     patched_text += f"\n\n{content}"

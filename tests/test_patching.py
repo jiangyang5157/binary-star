@@ -2,20 +2,20 @@ import pytest
 from apply_patches import apply_patches
 
 def test_apply_patches_basic():
-    base = "Section 1\nSome content here.\nSection 2\nOld content."
+    base = "[[[Section 1]]]\nSome content here.\n[[[/Section 1]]]\n[[[Section 2]]]\nOld content.\n[[[/Section 2]]]"
     
     patches = [
-        {"action": "ADD", "target_section": "Section 1", "content": "- Added rule"},
+        {"action": "ADD", "target_section": "[[[Section 1]]]", "content": "- Added rule"},
         {"action": "REPLACE", "target": "Old content.", "replacement": "New and improved content."},
         {"action": "REMOVE", "target": "Some content here.\n"}
     ]
     
     result = apply_patches(base, patches)
     
-    assert "Section 1\n- Added rule" in result
+    assert "- Added rule\n[[[/Section 1]]]" in result
     assert "New and improved content." in result
     assert "Some content here." not in result
-    assert "Section 2" in result
+    assert "[[[Section 2]]]" in result
 
 def test_apply_patches_no_match():
     base = "Hello World"

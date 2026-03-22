@@ -20,6 +20,8 @@ crypto/
 │   ├── extract_samples.py # 提取工具：将 data/ 中的真实案例提取到 samples/
 │   ├── run_samples.py     # 运行入口：执行全自动 A->B->C 闭环测试
 ├── samples.log            #  workbench 运行日志 (根目录)
+├── scheduler.log          #  自动化调度器运行日志
+├── simulator.log          #  回测演化运行日志
 ├── config/
 │   └── config.yaml       # 🧠 核心配置（统一路径管理：base_dir）
 ├── src/
@@ -51,12 +53,23 @@ crypto/
 
 ### 👤 Agent A (Predictor) — 执行大脑
 *   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio, Squeeze Factor）。
-*   **极致手册化 (Handbook factorization)**：核心决策逻辑已从硬性代码检查转变为“手册化”指令。Agent 像职业分析师一样阅读 `prompt_predictor.txt` 中的风险红线（如：Stop-Loss >= 1.8x ATR），并在多步推演中自我对齐，实现了“代码驱动数据，手册驱动规则”的解耦。
-*   **三轮推演**：执行 `初步分析 (temp_initial)` -> `红队质疑 (temp_critique)` -> `最终决策 (temp_final)`。这种架构能有效识别陷阱，降低伪突破的诱惑。
-*   **动力引擎**：引入了 **TTM Squeeze (Volatility Compression)** 检测和 **Volume Breakout** 确权逻辑。系统仅在能量完成蓄积且有成交量配比的情况下才允许冲击远端目标。
+*   **三轮推演 (Multi-Pass Reasoning)**：执行 `初步分析 (Pass 1)` -> `红队质疑 (Pass 2)` -> `最终决策 (Pass 3)`。这种架构能有效识别陷阱，降低伪突破的诱惑。
+*   **Prompt 手册化标准**：所有规则均在 `prompt_predictor.txt` 中以自然语言定义，逻辑与代码完全解耦。
+
+#### 📝 Prompt 结构规范 (Robust Block Delimiters)
+为确保 Agent C (Coach) 能精准补丁以及模型稳定解析，本项目不再依赖 Markdown 标题进行抽取，而是使用显式的 **Block Delimiters**：
+- **H1-H2**: 用于人类阅读、逻辑分层。
+- **Block Start**: `[[[SECTION_NAME]]]` (如 `[[[PASS_1_INITIAL_ANALYSIS]]]`)。
+- **Block End**: `[[[/SECTION_NAME]]]`。
+- **缩进 (Indentation)**: If/Then 逻辑必须使用标准 Markdown 列表缩进，确保上下文关联度。
+
+#### ⚓ Visual Anchor Protocol (视觉锚点协议)
+模型在进行逻辑推理前，必须执行数据对齐步骤：
+`[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_close_price}`
 
 ### 🛡️ Agent B (Reviewer) — 审计法官
 *   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
+*   **严格配置 (Strict Config)**：系统取消了所有配置项的默认值。如果 `config.yaml` 缺少必要参数，系统将立即报错，确保"真理来源"唯一化。
 *   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
 *   **深度复盘**：分析为什么预测失败（如："未能识别 POC 下方的成交量真空区"），为 Coach 提供高质量的底层数据。
 
@@ -155,6 +168,8 @@ python samples/run_samples.py
 | **Squeeze** | BB vs KC Squeeze | 波动率挤压，当布林带进入肯特纳通道，预示着巨大的单边动能即将爆发 |
 | **Volume Breakout** | 成交量确权 | 系统核心逻辑：突破时成交量必须 > 21日均值的 2 倍，否则视为低流动性陷阱 |
 | **Trend Intensity** | 趋势强度 | 0.4 阈值判断：帮助 Agent 区分当前是在处理“均值回归”还是“顺势突破” |
+| **ATR Skewness** | ATR 偏度 | 衡量 K 线影线的分布。正偏代表上方抛压重，负偏代表下方托盘强 |
+| **Order Flow Delta** | 订单流增量 | 衡量主动买盘 vs 主动卖盘的差值。配合价格确认趋势真实性 |
 | **prediction_horizon_days** | 预测周期 | 系统预期持仓/预测的有效天数，直接影响 ATR 计算的宏观参考 |
 
 ---
