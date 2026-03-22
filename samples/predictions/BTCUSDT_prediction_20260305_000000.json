@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-05T00:00:00Z",
+    "confidence": 65,
+    "opinion": "BULLISH",
+    "action": "LONG",
+    "current_price": 72725.0,
+    "take_profit": 74800.0,
+    "stop_loss": 71800.0,
+    "reasoning": "1. TP Dist: 2075.0. 2. SL Dist: 925.0 (>=1.0x ATR). 3. TP/SL Ratio: 2.24. 4. Floor Check: Price (72725) is significantly above the POC (66826.72) and VAH (68922.79). We are NOT shorting because the asset is in a clear price discovery phase above the macro value area; shorting into such momentum is high-risk. While the 15m chart shows declining volume (exhaustion), the price is forming a high-level base. A tight stop below the 71.8k local support allows for a high R:R trade targeting a breakout toward the 75k psychological level.",
+    "reasoning_zh": "1. 获利距离: 2075.0。2. 止损距离: 925.0 (>=1.0x ATR)。3. 盈亏比: 2.24。4. 支撑位检查: 价格 (72725) 远高于 POC (66826.72) 和 VAH (68922.79)。由于资产处于宏观价值区之上的价格发现阶段，我们不选择做空，因为逆势做空风险极大。虽然 15 分钟图显示成交量下降（疲态），但价格正在形成高位平台。在 71.8k 局部支撑位下方设置紧凑止损，可以实现高盈亏比交易，目标是突破 7.5 万心理关口。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
