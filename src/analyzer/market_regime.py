@@ -87,7 +87,7 @@ class MarketRegimeAnalyzer:
             # Avoid division by zero
             skewness = (upper_wicks - lower_wicks) / (upper_wicks + lower_wicks + 1e-9)
 
-        # 6. Volume Breakout Ratio (V3)
+        # 6. Volume Breakout Ratio
         current_vol_ratio = 1.0
         if 'volume' in df.columns:
             df['vol_ma'] = df['volume'].rolling(window=self.vol_ma_window).mean()

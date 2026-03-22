@@ -23,7 +23,7 @@ And the **Current Configuration** (`config.yaml`):
 Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) including "Refined Execution Logic":
 {base_prompt}
 
-### Your Adversarial Audit Tasks (V3):
+### Your Adversarial Audit Tasks:
 1.  **TP/SL Hit Determination (TOP PRIORITY)**: Using `actual_market_outcome`:
     - Compare Agent A's `take_profit` vs `max_price_reached` (BULL) / `min_price_reached` (BEAR).
     - Compare Agent A's `stop_loss` vs `min_price_reached` (BULL) / `max_price_reached` (BEAR).

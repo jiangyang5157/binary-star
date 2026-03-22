@@ -112,7 +112,6 @@ def run_coach_pipeline(n: int, base_dir: str = None):
     )
 
     logger.info("Invoking Coach Agent strategic analysis...")
-    # Load base prompt for context
     paths_config = config['paths']
     base_prompt_path = os.path.join(PROJECT_ROOT, paths_config['prompts_dir'], paths_config['prompt_predictor_filename'])
     base_prompt = ""

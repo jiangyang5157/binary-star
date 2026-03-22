@@ -41,163 +41,123 @@ class PredictorAgent:
             logger.error(f"Failed to load prompt template: {e}")
             return ""
 
+    def extract_section(self, template: str, section_name: str) -> str:
+        """
+        Extracts a specific section from the prompt template.
+        Sections are defined by ### [SECTION_NAME] headers.
+        """
+        pattern = rf"### \[{section_name}\](.*?)(?=### \[|\Z)"
+        match = re.search(pattern, template, re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        return ""
+
+    def get_common_context(self, template: str) -> str:
+        """Extracts the common principles and market context parts of the prompt."""
+        # Typically everything before [ROLE_SPECIFIC_INSTRUCTIONS]
+        if "## [ROLE_SPECIFIC_INSTRUCTIONS]" in template:
+            return template.split("## [ROLE_SPECIFIC_INSTRUCTIONS]")[0].strip()
+        return template
+
+    def get_footer(self, template: str) -> str:
+        """Extracts the format enforcement footer."""
+        if "## Format Enforcement" in template:
+            return "## Format Enforcement\n" + template.split("## Format Enforcement")[-1].strip()
+        return ""
+
     def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:
         """
         Executes the multimodal Gemini API call to determine the trading action.
-        Supports multiple images (e.g., Macro + Micro charts).
         """
         if not self.client:
             return '{"error": "GenAI API Client is not initialized. Is GEMINI_API_KEY set?"}'
 
-        # 1. Load Base Prompt Template
-        formatted_prompt = self.load_prompt_template()
-
-        if not formatted_prompt:
+        # 1. Load Master Prompt Template
+        master_template = self.load_prompt_template()
+        if not master_template:
             return '{"error": "Agent prompt template missing."}'
 
-        # 2. Prepare context data
-        context_summary = copy.deepcopy(context_data)
-        market_regime = context_summary.get("market_regime", "RANGING").upper()
-
+        # 2. Extract Components
+        common_context = self.get_common_context(master_template)
+        footer = self.get_footer(master_template)
+        
         # 3. Dynamic Instruction Pruning (Context-Aware Slashing)
+        market_regime = context_data.get("market_regime", "RANGING").upper()
         if "TRENDING" in market_regime:
-            # Remove Ranging blocks
-            formatted_prompt = re.sub(r"\[\[REGIME_RANGING_ONLY_START\]\].*?\[\[REGIME_RANGING_ONLY_END\]\]", "", formatted_prompt, flags=re.DOTALL)
-            # Strip Trending markers but keep content
-            formatted_prompt = formatted_prompt.replace("[[REGIME_TRENDING_ONLY_START]]", "").replace("[[REGIME_TRENDING_ONLY_END]]", "")
+            common_context = re.sub(r"\[\[REGIME_RANGING_ONLY_START\]\].*?\[\[REGIME_RANGING_ONLY_END\]\]", "", common_context, flags=re.DOTALL)
+            common_context = common_context.replace("[[REGIME_TRENDING_ONLY_START]]", "").replace("[[REGIME_TRENDING_ONLY_END]]", "")
         else:
-            # Remove Trending blocks
-            formatted_prompt = re.sub(r"\[\[REGIME_TRENDING_ONLY_START\]\].*?\[\[REGIME_TRENDING_ONLY_END\]\]", "", formatted_prompt, flags=re.DOTALL)
-            # Strip Ranging markers but keep content
-            formatted_prompt = formatted_prompt.replace("[[REGIME_RANGING_ONLY_START]]", "").replace("[[REGIME_RANGING_ONLY_END]]", "")
+            common_context = re.sub(r"\[\[REGIME_TRENDING_ONLY_START\]\].*?\[\[REGIME_TRENDING_ONLY_END\]\]", "", common_context, flags=re.DOTALL)
+            common_context = common_context.replace("[[REGIME_RANGING_ONLY_START]]", "").replace("[[REGIME_RANGING_ONLY_END]]", "")
 
-        # 4. Prepare for output formatting
+        # 4. Global Variables
         dt_now = datetime.now(timezone.utc)
         current_time = dt_now.isoformat().replace("+00:00", "Z")
-        
-        # Prepare all variables for formatting, avoiding duplicate keywords
-        format_vars = copy.deepcopy(context_summary)
+        format_vars = copy.deepcopy(context_data)
         format_vars.update({
             "symbol": symbol,
             "current_time": current_time,
-            "context_data": context_summary, # For legacy support in prompt if used
-            "current_position": current_position
+            "current_position": current_position,
+            "prediction_horizon": context_data.get("prediction_horizon_days", 1)
         })
-        
-        try:
-            # Use the already patched/loaded template
-            formatted_prompt = formatted_prompt.format(**format_vars)
-        except KeyError as e:
-            logger.error(f"Missing key in prompt template: {e}")
-            # fall through with the raw template
-        except Exception as e:
-            logger.error(f"Error formatting prompt: {e}")
+
+        # Multi-modal Input preparation (upload charts)
+        contents_base = []
+        for path in chart_image_paths:
+            if os.path.exists(path):
+                try:
+                    uploaded_file = self.client.files.upload(file=path)
+                    contents_base.append(uploaded_file)
+                except Exception as e:
+                    logger.warning(f"File upload failed for {path}: {e}")
 
         try:
-            # Multi-modal Input
-            contents = []
-            
-            # Upload all charts
-            for path in chart_image_paths:
-                if not os.path.exists(path):
-                    logger.warning(f"Chart image not found: {path}. Skipping.")
-                    continue
-                
-                try:
-                    logger.info(f"Uploading chart image to Gemini API: {path}")
-                    uploaded_file = self.client.files.upload(file=path)
-                    contents.append(uploaded_file)
-                except Exception as e:
-                    logger.warning(f"File upload failed for {path}, skipping: {e}")
-            
-            # Append text prompt at the end
-            contents.append(formatted_prompt)
-            
-            logger.info(f"Invoking Gemini Model ({self.model_name}) with Multi-Pass Reasoning...")
-            
             # --- PASS 1: Initial Prediction ---
+            pass1_instr = self.extract_section(master_template, "PASS_1_INITIAL_ANALYSIS")
+            pass1_prompt = f"{common_context}\n\n{pass1_instr}\n\n{footer}".format(**format_vars)
+            
+            pass1_contents = copy.deepcopy(contents_base)
+            pass1_contents.append(pass1_prompt)
+            
+            logger.info("Pass 1 (Initial Prediction) starting...")
             initial_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=self.temp_initial
-                )
+                model=self.model_name, contents=pass1_contents,
+                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=self.temp_initial)
             )
             initial_prediction = initial_response.text or "No initial prediction generated."
-            logger.info("Pass 1 (Initial Prediction) complete.")
+            logger.info("Pass 1 complete.")
 
-            # --- PASS 2: Red Team Critique (The 'Premortem') ---
-            # We ask the model to assume the prediction failed and find out why.
-            prediction_horizon = context_data["prediction_horizon_days"]
-            critique_prompt = f"""
-            CRITICAL EVALUATION (RED TEAM):
-            Assume you just generated the following prediction:
-            {{initial_prediction}}
+            # --- PASS 2: Red Team Critique ---
+            pass2_instr = self.extract_section(master_template, "PASS_2_RED_TEAM_CRITIQUE")
+            format_vars["initial_prediction"] = initial_prediction
+            pass2_prompt = f"{common_context}\n\n{pass2_instr}".format(**format_vars)
             
-            Now, imagine that {{prediction_horizon}} DAYS have passed and this prediction resulted in a MASSIVE ERROR / STOP-OUT.
-            Look at the Macro and Micro charts again. What did you MISS? 
-            Specifically search for:
-            1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL? 
-            2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your prediction direction?
-            3. **Breakout Failure**: Was the 'breakout' you saw actually a low-volume 'fakeout' with declining Open Interest (OI)?
-            4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up (suggesting retail is long and being trapped)?
-
-            Provide a HARSH technical critique. Do NOT be defensive.
-            """
+            pass2_contents = copy.deepcopy(contents_base)
+            pass2_contents.append(pass2_prompt)
             
-            # We reuse the same images (contents[:-1]) but add the new critique prompt
-            critique_contents = copy.deepcopy(contents[:-1])
-            critique_contents.append(critique_prompt)
-            
+            logger.info("Pass 2 (Red Team Critique) starting...")
             critique_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=critique_contents,
-                config=types.GenerateContentConfig(
-                    temperature=self.temp_critique
-                )
+                model=self.model_name, contents=pass2_contents,
+                config=types.GenerateContentConfig(temperature=self.temp_critique)
             )
             critique_text = critique_response.text or "No critique generated."
-            logger.info("Pass 2 (Red Team Critique) complete.")
+            logger.info("Pass 2 complete.")
 
-            # --- PASS 3: Final Refined Decision ---
-            final_prompt = f"""
-            FINAL RESOLUTION:
-            You have your Initial Plan and a harsh Red Team Critique.
-            Initial Plan: {initial_prediction}
-            Critique: {critique_text}
-
-            Re-evaluate the data using the V2 instructions (Regime-Aware & Dynamic Offsets). 
-            Refine the entry/exit points for optimal R:R based on current market context.
+            # --- PASS 3: Final Resolution ---
+            pass3_instr = self.extract_section(master_template, "PASS_3_FINAL_RESOLUTION")
+            format_vars["critique_text"] = critique_text
+            pass3_prompt = f"{common_context}\n\n{pass3_instr}\n\n{footer}".format(**format_vars)
             
-            IMPORTANT: You MUST output the final result in the EXACT JSON format below:
-            {{
-              "timestamp": "{current_time}",
-              "confidence": 0-100,
-              "opinion": "BULLISH/BEARISH/NEUTRAL",
-              "current_price": 70000.5,
-              "take_profit": 75000.0,
-              "stop_loss": 68000.0,
-              "reasoning": "1. TP Dist: [X]. 2. SL Dist: [Base 1.8x + Offset Yx]. 3. TP/SL Ratio: [Z]. 4. Regime: [{{volatility_regime}}/{{market_regime}}]. 5. Logic: [Refined justification].",
-              "reasoning_zh": "在 V2 框架下结合挤压因子、环境识别和红队审查后的最终结论，要求逻辑清晰且对用户友好。"
-            }}
-            NOTE: For NEUTRAL actions, set take_profit and stop_loss to null but still provide current_price.
-            """
-            final_contents = copy.deepcopy(contents[:-1])
-            final_contents.append(final_prompt)
+            pass3_contents = copy.deepcopy(contents_base)
+            pass3_contents.append(pass3_prompt)
             
+            logger.info("Pass 3 (Final Resolution) starting...")
             final_response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=final_contents,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=self.temp_final
-                )
+                model=self.model_name, contents=pass3_contents,
+                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=self.temp_final)
             )
-            
-            # We return the final JSON
             return final_response.text
             
         except Exception as e:
-            logger.error(f"Failed to get response from GenAI API: {e}")
+            logger.error(f"Multi-pass execution failed: {e}")
             return f'{{"error": "{str(e)}"}}'
