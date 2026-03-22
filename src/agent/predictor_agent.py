@@ -15,13 +15,13 @@ class PredictorAgent:
     """
     def __init__(self, model_name: str, prompts_dir: str, 
                  prompt_filename: str,
-                 temp_pass1: float, temp_pass2: float, temp_pass3: float):
+                 temp_initial: float, temp_critique: float, temp_final: float):
         self.model_name = model_name
         self.prompts_dir = prompts_dir
         self.prompt_filename = prompt_filename
-        self.temp_pass1 = temp_pass1
-        self.temp_pass2 = temp_pass2
-        self.temp_pass3 = temp_pass3
+        self.temp_initial = temp_initial
+        self.temp_critique = temp_critique
+        self.temp_final = temp_final
         
         # Initialize the GenAI client.
         try:
@@ -107,7 +107,7 @@ class PredictorAgent:
                 contents=contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=self.temp_pass1
+                    temperature=self.temp_initial
                 )
             )
             initial_prediction = initial_response.text or "No initial prediction generated."
@@ -140,7 +140,7 @@ class PredictorAgent:
                 model=self.model_name,
                 contents=critique_contents,
                 config=types.GenerateContentConfig(
-                    temperature=self.temp_pass2
+                    temperature=self.temp_critique
                 )
             )
             critique_text = critique_response.text or "No critique generated."
@@ -153,10 +153,9 @@ class PredictorAgent:
             Initial Plan: {initial_prediction}
             Critique: {critique_text}
 
-            Re-evaluate the data. 
-            HARD CONSTRAINT: If current_price >= {context_data.get('poc_price')} (POC) or current_price >= {context_data.get('val')} (VAL), you MUST NOT issue a BEARISH opinion. Switch to NEUTRAL or BULLISH if the R:R allows. 
-            If the initial plan is still robust, refine the entry/exit points for better R:R.
-
+            Re-evaluate the data using the V2 instructions (Regime-Aware & Dynamic Offsets). 
+            Refine the entry/exit points for optimal R:R based on current market context.
+            
             IMPORTANT: You MUST output the final result in the EXACT JSON format below:
             {{
               "timestamp": "{current_time}",
@@ -165,8 +164,8 @@ class PredictorAgent:
               "current_price": 70000.5,
               "take_profit": 75000.0,
               "stop_loss": 68000.0,
-              "reasoning": "1. TP Dist, 2. SL Dist, 3. TP/SL Ratio, 4. Floor Check. Followed by technical justification. NOTE: If Price >= POC/VAL, 'reasoning' MUST explain why you are NOT shorting.",
-              "reasoning_zh": "由于价格处于支支撑位 (POC/VAL) 之上，核心研判必须包含 1-4 点自检，并解释为何不适合做空。"
+              "reasoning": "1. TP Dist: [X]. 2. SL Dist: [Base {{min_sl_atr_mult}}x + Offset Yx]. 3. TP/SL Ratio: [Z]. 4. Regime: [{{volatility_regime}}/{{market_regime}}]. 5. Logic: [Refined justification].",
+              "reasoning_zh": "在 V2 框架下结合挤压因子、环境识别和红队审查后的最终结论，要求逻辑清晰且对用户友好。"
             }}
             NOTE: For NEUTRAL actions, set take_profit and stop_loss to null but still provide current_price.
             """
@@ -178,7 +177,7 @@ class PredictorAgent:
                 contents=final_contents,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=self.temp_pass3
+                    temperature=self.temp_final
                 )
             )
             

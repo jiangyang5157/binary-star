@@ -18,6 +18,7 @@ from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.sentiment import SentimentFetcher
 from src.data_fetcher.storage import DataStorage
 from src.analyzer.volume_profile import VolumeProfileAnalyzer
+from src.analyzer.market_regime import MarketRegimeAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
 from src.agent.predictor_agent import PredictorAgent
 
@@ -86,6 +87,12 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         _ = config['strategy']['max_tp_atr_mult']
         _ = config['strategy']['min_tp_atr_mult']
         _ = config['strategy']['min_tp_sl_ratio']
+        _ = config['strategy']['bb_window']
+        _ = config['strategy']['bb_std']
+        _ = config['strategy']['kc_window']
+        _ = config['strategy']['kc_mult']
+        _ = config['strategy']['vol_ma_window']
+        _ = config['strategy']['trend_intensity_threshold']
         
         # Agent
         _ = config['agent']['predictor_model']
@@ -200,6 +207,17 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     df_macro = vpa.process_klines(klines_macro)
     df_micro = vpa.process_klines(klines_micro)
     
+    # 2.5 Market Regime Analysis (using MACRO data for high-level regime)
+    mra = MarketRegimeAnalyzer(
+        bb_window=config['strategy']['bb_window'],
+        bb_std=config['strategy']['bb_std'],
+        kc_window=config['strategy']['kc_window'],
+        kc_mult=config['strategy']['kc_mult'],
+        vol_ma_window=config['strategy']['vol_ma_window'],
+        trend_intensity_threshold=config['strategy']['trend_intensity_threshold']
+    )
+    regime_metrics = mra.analyze(df_macro)
+    
     # Calculate Profile based on MACRO data (the big picture structure)
     profile_data = vpa.calculate_profile(df_macro)
     
@@ -221,6 +239,9 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     context_data["atr_micro"] = df_micro['atr'].iloc[-1] if not df_micro.empty else 0
     context_data["prediction_horizon_days"] = config['prediction']['prediction_horizon_days']
     context_data["lookback_bars"] = lookback_bars
+    
+    # Inject Regime Metrics
+    context_data.update(regime_metrics)
     
     # Inject strategy parameters for prompt template rendering
     context_data.update(config.get('strategy', {}))
@@ -246,9 +267,9 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
         model_name=config['agent']['predictor_model'],
         prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
         prompt_filename=config['paths']['prompt_predictor_filename'],
-        temp_pass1=config['agent']['predictor_temp_initial'],
-        temp_pass2=config['agent']['predictor_temp_critique'],
-        temp_pass3=config['agent']['predictor_temp_final']
+        temp_initial=config['agent']['predictor_temp_initial'],
+        temp_critique=config['agent']['predictor_temp_critique'],
+        temp_final=config['agent']['predictor_temp_final']
     )
     
     # Execute Model

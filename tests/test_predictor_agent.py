@@ -16,9 +16,9 @@ class TestPredictorAgent(unittest.TestCase):
             model_name="mock-model",
             prompts_dir=os.path.join(os.path.dirname(__file__), '..', 'src', 'agent', 'prompts'),
             prompt_filename="prompt_predictor.txt",
-            temp_pass1=1.0,
-            temp_pass2=1.0,
-            temp_pass3=0.7
+            temp_initial=1.0,
+            temp_critique=1.0,
+            temp_final=0.7
         )
 
     @patch('google.genai.Client')
