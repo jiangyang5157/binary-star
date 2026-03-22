@@ -50,9 +50,10 @@ crypto/
 ---
 
 ### 👤 Agent A (Predictor) — 执行大脑
-*   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio）。
-*   **三轮推演**：执行 `初步分析` -> `红队质疑 (Red Team Critique)` -> `最终决策`。这种架构能有效识别陷阱，降低伪突破的诱惑。
-*   **数学约束**：严格遵守配置的 **盈亏比门槛** (`min_tp_sl_ratio`) 和 **基于 ATR 的动态止盈空间** (`max_tp_atr_mult`)。若当前市场波动不满足这些约束，Agent 将强制输出 `NEUTRAL`，保持绝对的风险偏好一致性。
+*   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio, Squeeze Factor）。
+*   **极致手册化 (Handbook factorization)**：核心决策逻辑已从硬性代码检查转变为“手册化”指令。Agent 像职业分析师一样阅读 `prompt_predictor.txt` 中的风险红线（如：Stop-Loss >= 1.8x ATR），并在多步推演中自我对齐，实现了“代码驱动数据，手册驱动规则”的解耦。
+*   **三轮推演**：执行 `初步分析 (temp_initial)` -> `红队质疑 (temp_critique)` -> `最终决策 (temp_final)`。这种架构能有效识别陷阱，降低伪突破的诱惑。
+*   **V3 动力引擎**：引入了 **TTM Squeeze (Volatility Compression)** 检测和 **Volume Breakout** 确权逻辑。系统仅在能量完成蓄积且有成交量配比的情况下才允许冲击远端目标。
 
 ### 🛡️ Agent B (Reviewer) — 审计法官
 *   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
@@ -151,11 +152,9 @@ python samples/run_samples.py
 |------|------|------|
 | **POC** | Point of Control | 成交量最集中的价格区域，通常具有强大的吸引力/支撑力 |
 | **VAH/VAL** | Value Area H/L | 价值区域上下界，主要的成交量在此区间完成 |
-| **OI** | Open Interest | 未平仓合约，增加通常意味着趋势的持续或增强 |
-| **Red Team** | 红队 | 专门负责寻找预测漏洞的逻辑环节，防止 AI 产生"证实偏差" |
-| **min_tp_sl_ratio** | 盈亏比门槛 | 核心风控参数，(止盈/止损) 必须大于此值才会下单 |
-| **max_tp_atr_mult** | 止盈 ATR 乘数 | 基于 ATR 计算的动态止盈上限，防止 AI 陷入不切实际的“贪婪” |
-| **min_sl_atr_mult** | 止损 ATR 乘数 | 止损位至少需要具备的 ATR 缓冲，防止被正常的波动“扫描”扫损 |
+| **Squeeze** | BB vs KC Squeeze | 波动率挤压，当布林带进入肯特纳通道，预示着巨大的单边动能即将爆发 |
+| **Volume Breakout** | 成交量确权 | 系统 V3 核心逻辑：突破时成交量必须 > 21日均值的 2 倍，否则视为低流动性陷阱 |
+| **Trend Intensity** | 趋势强度 | 0.4 阈值判断：帮助 Agent 区分当前是在处理“均值回归”还是“顺势突破” |
 | **prediction_horizon_days** | 预测周期 | 系统预期持仓/预测的有效天数，直接影响 ATR 计算的宏观参考 |
 
 ---
