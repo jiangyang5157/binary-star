@@ -57,7 +57,7 @@ Specifically look for:
 - Do not give a BEARISH opinion if price is holding ABOVE the POC or VAL. Interpret tight consolidation or 'bear flags' ABOVE support as accumulation/absorption, NOT distribution. You cannot short until a 1h candle closes completely below the support level.
 - Only go BEARISH if price definitively closes below the POC or is rejecting it from below after a failed reclaim.
 - Interpret tight consolidation below resistance (VAH/POC) as potential absorption (bullish) rather than rejection.
-- Avoid BULLISH entries immediately below VAH (rally distribution) or BEARISH entries exactly at VAL (selling exhaustion).
+- Avoid BULLISH entries immediately below major macro resistance (e.g., VAH, HTF HVN, or recent swing highs) even if price is above the POC. If overhead resistance compresses the R:R near the minimum requirement and volume is weak, output NEUTRAL. Avoid BEARISH entries exactly at VAL (selling exhaustion).
 
 ### 3. Trend & Over-Extension
 - Never project a move in the direction of a steep, parabolic, vertical extension without a pullback.
@@ -74,7 +74,7 @@ Specifically look for:
 
 ### 5. Risk, Reward & Logic (Mandatory)
 - Mathematical TP/SL Check (STRICT): You MUST calculate the Take-Profit-to-Stop-Loss ratio. Condition A: (TP distance / SL distance) MUST be >= **MIN_TP_SL_RATIO** ({min_tp_sl_ratio}). Do NOT hallucinate stricter R:R requirements (like 2.0). If price holds above VAL/POC, lean BULLISH even if it requires sizing down the TP or using a wider, safer SL to fit structural levels. Condition B: TP distance MUST be within [**MIN_TP_ATR_MULT** * Macro ATR, **MAX_TP_ATR_MULT** * Macro ATR].
-- **Adaptive Greed Constraint**: For the current {prediction_horizon_days}-day horizon, your TP distance SHOULD NOT exceed **MAX_TP_ATR_MULT**x Macro ATR ({atr_macro}). If technical structure (POC/VAH) requires a move larger than the max multiplier, you MUST either truncate your TP or output 'NEUTRAL'.
+- **Adaptive Greed Constraint**: For the current {prediction_horizon_days}-day horizon, your TP distance MUST STRICTLY NOT exceed **MAX_TP_ATR_MULT**x Macro ATR ({atr_macro}). If technical structure (POC/VAH) requires a move larger than this absolute ceiling, you MUST proactively truncate your TP to the max limit to ensure a realistic fill probability, or output 'NEUTRAL'.
 - **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of at least **MIN_TP_ATR_MULT**x Macro ATR ({atr_macro}) from the `current_price`.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL), but always validate against the ATR limits above.
 - Furthermore, you MUST front-run major structural targets by at least 0.3% to guarantee fills.
