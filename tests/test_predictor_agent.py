@@ -41,11 +41,27 @@ class TestPredictorAgent(unittest.TestCase):
         ]
         mock_models.generate_content.side_effect = mock_responses
 
-        # Context data
+        # Context data with all required template variables
         context = {
             "symbol": "BTCUSDT",
             "price": 65000,
-            "prediction_horizon_days": 7
+            "prediction_horizon_days": 7,
+            "poc_price": 64500,
+            "vah": 66000,
+            "val": 63000,
+            "last_close_price": 65000,
+            "macro_interval": "4h",
+            "atr_macro": 1200,
+            "volatility_regime": "SQUEEZE",
+            "squeeze_factor": 0.8,
+            "market_regime": "RANGING",
+            "trend_intensity": 0.3,
+            "trend_intensity_threshold": 0.5,
+            "lookback_bars": 24,
+            "order_flow_delta_recent": -50,
+            "skewness": 0.1,
+            "volume_breakout_ratio": 1.2,
+            "context_data": "Additional dynamic context here."
         }
         
         # Run analysis
