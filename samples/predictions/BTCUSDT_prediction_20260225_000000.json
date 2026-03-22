@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-25T00:00:00Z",
-    "confidence": 72,
+    "confidence": 75,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 64188.9,
-    "take_profit": 63200.0,
-    "stop_loss": 64800.0,
-    "reasoning": "1. TP Dist: 988.9 (vs ATR-Ref: 536.038). 2. SL Dist: 611.1 (>=1.0x ATR). 3. TP/SL Ratio: 1.61 (>=1.5). 4. Ceiling Check: Price 64188.9 is testing the Value Area Low (VAL) at 64109.06 as resistance. 5. Logic: Following the sharp breakdown from the 67k-70k distribution range, the current move back to the VAL is a textbook bearish retest on declining volume. The 15m chart shows clear rejection wicks at this level, indicating that previous support has flipped to resistance. The 'volume gap' above 64k acts as a vacuum that lacks structural support, making a continuation lower to hunt liquidity below the recent 62.5k swing low the high-probability outcome.",
-    "reasoning_zh": "1. 止盈距离: 988.9 (ATR参考值: 536.038)。2. 止损距离: 611.1 (>=1.0x ATR)。3. 盈亏比: 1.61 (>=1.5)。4. 阻力检查: 当前价格 64188.9 正在将价值区低点 (VAL) 64109.06 作为阻力位进行测试。5. 逻辑: 在 67k-70k 分派区间放量跌破后，目前回升至 VAL 的走势是典型的缩量回抽确认（Bearish Retest）。15分钟图表在该水平出现明显的上影线拒绝信号，表明之前的支撑已转为阻力。64k 上方的“成交量真空区”缺乏结构性支撑，因此价格大概率将受阻回落，去扫除前期低点 62.5k 下方的流动性。",
+    "take_profit": 62500.0,
+    "stop_loss": 65100.0,
+    "reasoning": "1. TP Dist: 1688.9 (vs ATR-Ref: 536.038). 2. SL Dist: 911.1 (>=1.0x ATR). 3. TP/SL Ratio: 1.85 (>=1.5). 4. Floor Check: Price 64188.9 is hovering at the Macro VAL (64109.06); a sustained failure to reclaim this level confirms the breakdown. 5. Logic: Following the critique's analysis, the current price action is a classic Bear Flag/Dead Cat Bounce. The high-volume sell-off from 68k has not been met with a high-volume reversal, but rather anemic consolidation. The 'vacuum' in the volume profile below 64k suggests that once the VAL support fails, the price will likely slide rapidly toward the 62.5k-62k liquidity zone. The 15m EMAs are providing dynamic resistance, capping any recovery attempts and confirming the transition into a Markdown Phase.",
+    "reasoning_zh": "1. TP Dist: 1688.9 (vs ATR-Ref: 536.038)。 2. SL Dist: 911.1 (>=1.0x ATR)。 3. TP/SL Ratio: 1.85 (>=1.5)。 4. Floor Check: 价格 64188.9 正在宏观 VAL (64109.06) 边缘徘徊；未能持续收复该位将确认破位。 5. Logic: 采纳红队评估，当前走势为典型的熊旗/死猫跳。从 68k 开始的高成交量抛售并未触发放量反转，而是进入了缩量横盘。成交量分布图显示 64k 下方存在“真空区”，一旦 VAL 支撑失效，价格极可能迅速滑向 62.5k-62k 的流动性区域。15 分钟图的 EMA 均线形成动态阻力，压制了反弹尝试，确认市场已进入派发后的减价阶段 (Markdown Phase)。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

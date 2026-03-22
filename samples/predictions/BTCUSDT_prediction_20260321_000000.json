@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-21T00:00:00Z",
-    "confidence": 80,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 85,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 70643.9,
-    "take_profit": 67000.0,
-    "stop_loss": 72200.0,
-    "reasoning": "The impulsive drop from the 76k peak to the POC (69949.67) followed by a low-volume ascending channel on the 15m chart indicates a classic 'Bear Flag' or distribution pattern. The price is struggling to sustain momentum above 71k, suggesting that the POC is acting as a distribution hub rather than support. A breakdown from the current 15m channel is likely to target the Value Area Low (VAL) at 67k, where significant liquidity resides. The lack of volume expansion on the recent move up confirms a 'bull trap' scenario, making a short position toward the structural floor more probable.",
-    "reasoning_zh": "从 76k 峰值跌至 POC (69949.67) 的脉冲式下跌，随后在 15 分钟图上形成的低成交量上升通道，构成了典型的‘看跌旗形’或派发形态。价格难以维持在 71k 上方的动能，表明 POC 更多是作为派发中心而非支撑位。当前 15 分钟通道的破位很可能指向 67k 的价值区低点 (VAL)，那里存在大量流动性。近期反弹缺乏成交量配合，证实了‘多头陷阱’的可能，因此看跌至结构性底部更为合理。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "1. TP Dist: null, 2. SL Dist: null, 3. TP/SL Ratio: null, 4. Floor Check: Price (70643.9) is above Macro POC (69949.67), prohibiting bearish bias. Technical Analysis: The critique correctly identifies a 'Long Squeeze' setup. The 15m ascending channel is forming on low volume, suggesting a bear flag rather than a trend reversal. Below the POC, a significant volume gap exists down to $67,500, meaning a breakdown would likely be violent and fast. While the system's floor check prevents a bearish trade, the structural weakness and lack of buy-side momentum make a long position extremely risky. Neutrality is the only logical choice to avoid the liquidity trap at the POC.",
+    "reasoning_zh": "核心研判：1. 止盈距离: null，2. 止损距离: null，3. 盈亏比: null，4. 地板检查: 当前价格 (70643.9) 高于宏观 POC (69949.67)，严禁看空。逻辑详述：红队评估准确指出了‘多头挤压’的风险。15 分钟级别的上升通道伴随成交量萎缩，呈现典型的熊旗形态。POC 下方存在巨大的成交量真空区（Volume Gap）直至 67,500 美元，这意味着一旦跌破 POC，价格将失去结构性支撑。虽然‘地板检查’规则禁止在 POC 之上做空，但当前的结构性弱势和买盘动能不足使得做多风险极大。选择中立（NEUTRAL）是为了规避 POC 附近的流动性陷阱，等待市场确认支撑或完成结构性调整。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

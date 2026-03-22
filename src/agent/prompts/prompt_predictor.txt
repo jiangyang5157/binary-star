@@ -49,7 +49,7 @@ Specifically look for:
 - Do not blindly entry breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- ABSOLUTE BAN ON PREDICTIVE ANTICIPATION & SHORTING INTO SUPPORT: If current_price >= POC or current_price >= VAL, you are FORBIDDEN from issuing a BEARISH opinion. Micro-timeframe (15m) patterns like 'wedges' or 'exhaustion wicks' CANNOT override this Macro rule. You CANNOT treat support levels as 'magnets' or target them for 'liquidity sweeps'. They are IMPENETRABLE FLOORS. BANNED TERMS: 'liquidity vacuum', 'air pocket', 'volume void', 'volume gap'. Wait for a definitive 1h candle close below the level before shorting.
+- ABSOLUTE BAN ON PREDICTIVE ANTICIPATION & SHORTING INTO SUPPORT: If current_price >= POC or current_price >= VAL, you are STRICTLY FORBIDDEN from issuing a BEARISH opinion. This is a hard macro constraint. Micro-timeframe (15m) patterns (e.g., 'wedges', 'exhaustion wicks', 'dead cat bounces') CANNOT override this Macro rule under ANY circumstances. You CANNOT treat support levels as 'magnets' or target them for 'liquidity sweeps'. They are IMPENETRABLE FLOORS. BANNED CONCEPTS: 'liquidity vacuum', 'air pocket', 'volume void', 'volume gap'. Wait for a definitive 1h candle close below the level before shorting. If price holds above POC, favor a BULLISH stance if the minimum R/R can be satisfied.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
@@ -97,7 +97,7 @@ The JSON must have the following structure:
   "current_price": 70000.5,
   "take_profit": 75000.0,
   "stop_loss": 68000.0,
-  "reasoning": "1. TP Dist: [X] (vs ATR-Ref: {atr_macro}). 2. SL Dist: [Y] (>={min_sl_atr_mult}x ATR). 3. TP/SL Ratio: [Z] (>={min_tp_sl_ratio}). 4. Floor Check: [Is Price >= POC/VAL? If yes, NO SHORT]. 5. Logic: [Strict technical justification].",
+  "reasoning": "1. TP Dist: [X] (vs ATR-Ref: {atr_macro}). 2. SL Dist: [Y] (>={min_sl_atr_mult}x ATR). 3. TP/SL Ratio: [Z] (>={min_tp_sl_ratio}). 4. Floor Check: [Is Price >= POC/VAL? If yes, MUST be BULLISH or NEUTRAL]. 5. Logic: [Strict technical justification].",
   "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心研判。要求逻辑清晰、对用户友好且包含关键技术位点。"
 }}
 NOTE: For NEUTRAL opinions, set take_profit and stop_loss to null.

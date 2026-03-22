@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-11T00:00:00Z",
-    "confidence": 72,
+    "confidence": 65,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70000.0,
-    "take_profit": 67185.0,
-    "stop_loss": 71500.0,
-    "reasoning": "1. TP Dist: 2815.0. 2. SL Dist: 1500.0. 3. TP/SL Ratio: 1.87. 4. Floor Check: Price 70000.0 is significantly above POC 67184.96. 5. Logic: The 15m teal wedge is a Bear Flag following a sharp rejection from the 74k ATH. Declining volume on the bounce indicates a lack of aggressive buying. The POC at 67,184.96 acts as a mean-reversion magnet. A breakdown of the wedge is expected to trigger a liquidation flush towards the high-volume support zone.",
-    "reasoning_zh": "1. TP 距离: 2815.0。2. SL 距离: 1500.0。3. 盈亏比: 1.87。4. 地板检查: 价格 70000.0 显著高于 POC 67184.96，存在回归需求。5. 逻辑: 15 分钟图上的青色楔形被识别为看跌旗形，是在 74k 历史高点受阻回落后的弱势整理。反弹期间成交量持续萎缩，暗示买盘枯竭。POC (67,184.96) 具有强大的磁吸效应，预计价格将跌破旗形并回测该高成交量支撑区。",
+    "current_price": 69800.0,
+    "take_profit": 68300.0,
+    "stop_loss": 70800.0,
+    "reasoning": "1. TP Dist: 1500 (2.1x ATR-Ref 712.457). 2. SL Dist: 1000 (1.4x ATR). 3. TP/SL Ratio: 1.5. 4. Floor Check: Price is currently above the POC (67184.96), providing a clear target for mean reversion after a failed breakout. 5. Logic: Following the Red Team critique, the market has shown clear signs of distribution at the $72.5k VAH (Value Area High). The 15m chart shows a breakdown of the local ascending support with declining volume on the previous upward move, indicating exhaustion. The 'pennant' on the 1h chart is now interpreted as a bull trap. Expecting price to gravitate back toward the high-volume POC as momentum stalls.",
+    "reasoning_zh": "核心研判：1. 止盈距离：1500（约2.1倍ATR）。2. 止损距离：1000（约1.4倍ATR）。3. 盈亏比：1.5。4. 地板检查：价格目前位于POC（67184.96）上方，在突破失败后为均值回归提供了明确的目标空间。逻辑详述：参考红队评估，市场在72500美元的VAH（价值区高点）表现出明显的派发迹象。15分钟图显示局部上升支撑位已破，且此前的上涨过程中成交量持续萎缩，显示买盘动能枯竭。1小时图上的“牛旗”已被证伪为多头陷阱。随着动能停滞，预计价格将向高成交量密集区（POC）进行均值回归。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

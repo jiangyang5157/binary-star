@@ -153,10 +153,11 @@ class PredictorAgent:
             Initial Plan: {initial_prediction}
             Critique: {critique_text}
 
-            Re-evaluate the data. If the critique revealed a fatal flaw or high risk of a trap, switch to NEUTRAL or reverse bias. 
+            Re-evaluate the data. 
+            HARD CONSTRAINT: If current_price >= {context_data.get('poc_price')} (POC) or current_price >= {context_data.get('val')} (VAL), you MUST NOT issue a BEARISH opinion. Switch to NEUTRAL or BULLISH if the R:R allows. 
             If the initial plan is still robust, refine the entry/exit points for better R:R.
 
-            IMPORTANT: You MUST output the final result in the EXACT JSON format below, including the Mandarin translation field:
+            IMPORTANT: You MUST output the final result in the EXACT JSON format below:
             {{
               "timestamp": "{current_time}",
               "confidence": 0-100,
@@ -164,8 +165,8 @@ class PredictorAgent:
               "current_price": 70000.5,
               "take_profit": 75000.0,
               "stop_loss": 68000.0,
-              "reasoning": "1. TP Dist, 2. SL Dist, 3. TP/SL Ratio, 4. Floor Check. Followed by detailed technical/logical justification as defined in your system instructions.",
-              "reasoning_zh": "核心研判：必须包含 1-4 点机械化自检（TP/SL/盈亏比/地板检查），随后是逻辑详述。"
+              "reasoning": "1. TP Dist, 2. SL Dist, 3. TP/SL Ratio, 4. Floor Check. Followed by technical justification. NOTE: If Price >= POC/VAL, 'reasoning' MUST explain why you are NOT shorting.",
+              "reasoning_zh": "由于价格处于支支撑位 (POC/VAL) 之上，核心研判必须包含 1-4 点自检，并解释为何不适合做空。"
             }}
             NOTE: For NEUTRAL actions, set take_profit and stop_loss to null but still provide current_price.
             """

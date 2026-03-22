@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-15T00:00:00Z",
-    "confidence": 75,
-    "opinion": "NEUTRAL",
-    "action": "WAIT",
-    "current_price": 71120.0,
-    "take_profit": null,
-    "stop_loss": null,
-    "reasoning": "1. TP Dist: N/A. 2. SL Dist: N/A. 3. TP/SL Ratio: N/A. 4. Floor Check: Price (71,120.0) is above POC (70,070.88), prohibiting BEARISH opinions. 5. Logic: Despite the price being above the POC, the 15m chart reveals a low-volume 'ascending wedge' structure, which often precedes a correction. The Red Team critique correctly identifies that the POC is being 'hugged' rather than defended, suggesting it may act as a neutral pivot rather than solid support. A long entry at current levels would require a stop-loss below 70,000 (approx. 4x ATR), making a 1.5 R/R target (72,695+) unrealistic given the overhead resistance at the VAH (72,500). The risk of a 'long squeeze' into the liquidity void below 70,000 is high, necessitating a neutral stance until a high-volume impulse occurs.",
-    "reasoning_zh": "1. 价格 (71,120.0) 高于 POC (70,070.88)，根据规则严禁看跌。2. 15分钟图显示典型的低成交量“上升楔形”或熊旗结构，暗示当前反弹缺乏机构买盘支撑。3. 红队评估指出 POC 正在失去支撑效力，频繁的触碰可能正在消耗买盘流动性，下方 68,000-70,000 区间存在流动性空洞。4. 盈亏比检查：若在当前位置做多，止损需设在 POC 下方（约 4x ATR 距离），止盈目标将超出 VAH 压力位，不符合 1.5 盈亏比要求。5. 结论：目前处于分歧区，且存在多头挤压风险，维持中性观望，等待结构进一步清晰。",
+    "confidence": 70,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 71200.0,
+    "take_profit": 70100.0,
+    "stop_loss": 71900.0,
+    "reasoning": "1. TP Dist: 1100.0 (1.83x ATR vs Ref: 600). 2. SL Dist: 700.0 (1.16x ATR). 3. TP/SL Ratio: 1.57 (>=1.5). 4. Floor Check: Price is currently above the POC (70070.88), but the lack of volume support makes this level unstable. 5. Logic: Reversing bias to BEARISH following the Red Team critique. The 15m chart exhibits a classic 'hollow' move where price grinds higher on consistently declining volume, indicating a lack of aggressive demand and a potential liquidity trap. On the 1h timeframe, the failed breakout at 74k followed by a weak, low-volume recovery is characteristic of Wyckoff distribution (LPSY). A mean reversion to the high-volume POC node is the high-probability outcome.",
+    "reasoning_zh": "1. 止盈距离: 1100.0 (约 1.83x ATR)。 2. 止损距离: 700.0 (约 1.16x ATR)。 3. 盈亏比: 1.57。 4. 地板检查: 价格虽在 POC (70070.88) 之上，但量价背离预示该支撑位将被回测。 5. 逻辑: 根据红队评估修正为看跌偏见。15分钟图显示典型的“空心上涨”，即价格上涨伴随成交量萎缩，显示买盘枯竭，极易形成诱多陷阱。1小时图在 74k 突破失败后呈现明显的派发形态（LPSY）。预计价格将向高成交量节点 (POC) 进行均值回归，止损设在近期局部高点上方以对冲风险。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

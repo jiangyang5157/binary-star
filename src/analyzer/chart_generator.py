@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import mplfinance as mpf
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import numpy as np
