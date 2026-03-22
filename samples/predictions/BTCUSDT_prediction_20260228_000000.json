@@ -4,10 +4,10 @@
     "opinion": "BULLISH",
     "action": "LONG",
     "current_price": 65906.3,
-    "take_profit": 67450.0,
-    "stop_loss": 64700.0,
-    "reasoning": "1. TP Dist: 1543.7 (vs ATR-Ref: 531.06). 2. SL Dist: 1206.3 (2.27x ATR). 3. TP/SL Ratio: 1.28. 4. Floor Check: Price is above VAL (64962.74), prohibiting a bearish stance. Technical Justification: We are not shorting because the price is currently holding above the Value Area Low (VAL), which serves as a primary structural support. While the critique correctly identifies low volume on the bounce (potential 'dead cat'), a short here would be 'selling the bottom' of the current range without a confirmed breakdown. The strategy targets a mean-reversion to the POC (67.6k), front-running it at 67.45k. The stop loss is placed below the VAL to protect against the 'air pocket' identified in the volume profile, ensuring we exit before a high-velocity drop occurs.",
-    "reasoning_zh": "1. 止盈距离: 1543.7 (ATR参考: 531.06)。2. 止损距离: 1206.3 (2.27倍ATR)。3. 盈亏比: 1.28。4. 底部检查: 价格位于VAL (64962.74) 之上，严禁看空。技术理由：不选择做空是因为价格目前企稳于价值区低点 (VAL) 之上，这是关键的结构性支撑位。虽然红队批评指出反弹量能不足（可能是‘死猫跳’），但在未确认跌破支撑前，在此位置做空属于‘空在底部’，盈亏比极差。本策略旨在博取向POC (67.6k) 的均值回归，并在67.45k提前止盈。止损设在VAL下方，以防范成交密集区下方的‘真空区’风险，确保在发生放量暴跌前离场。",
+    "take_profit": 67356.0,
+    "stop_loss": 64750.0,
+    "reasoning": "1. TP Dist: 1449.7 (vs ATR-Ref: 531.06). 2. SL Dist: 1156.3 (>=1.2x ATR). 3. TP/SL Ratio: 1.25 (>=1.2). 4. Floor Check: Price (65906.3) is above VAL (64962.74), prohibiting a BEARISH stance. Logic: Despite the bearish momentum and 'bear flag' structure noted in the critique, the price is currently holding the structural support of the Value Area Low (VAL). Per the hard constraint, a bearish opinion is prohibited while price remains above this floor. This setup targets a mean-reversion move toward the Point of Control (POC) at 67694.5. The SL is placed strictly below the VAL to mitigate the risk of a liquidity void breakdown, while the TP is front-run by 0.5% from the POC to ensure capture of the move.",
+    "reasoning_zh": "1. 止盈距离: 1449.7 (ATR参考值: 531.06)。 2. 止损距离: 1156.3 (>=1.2x ATR)。 3. 盈亏比: 1.25 (>=1.2)。 4. 底部检查: 价格 (65906.3) 高于价值区低点 VAL (64962.74)，严禁看空。 逻辑：尽管批评意见指出目前存在看跌动能和‘熊旗’结构，但价格目前仍守在价值区低点 (VAL) 这一结构性支撑之上。根据硬性约束，价格在 VAL 之上时禁止看空。本计划博取向成交量控制点 (POC) 67694.5 的均值回归。止损位严格设置在 VAL 下方，以规避进入‘流动性真空区’的风险，止盈位则在 POC 基础上提前 0.5% 设置，以确保利润兑现。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

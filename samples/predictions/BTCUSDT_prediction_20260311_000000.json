@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-11T00:00:00Z",
-    "confidence": 65,
+    "confidence": 75,
     "opinion": "BULLISH",
     "action": "LONG",
-    "current_price": 70000.0,
-    "take_profit": 72500.0,
-    "stop_loss": 68800.0,
-    "reasoning": "1. TP Dist: 2500. 2. SL Dist: 1200 (approx 1.7x ATR). 3. TP/SL Ratio: 2.08. 4. Floor Check: Price is at 70000, significantly above the POC (67184.96) and VAL (65414.24). Per the protocol, a bearish stance is prohibited while price maintains these levels. 5. Justification: Despite the distribution signs and upper wicks noted in the critique, the price has established local support near 69,000. Shorting above the POC is statistically risky as it represents the strongest volume-based support. The 15m chart shows a consolidation that could lead to a retest of the Value Area High (VAH) at 72,500.",
-    "reasoning_zh": "1. 止盈距离: 2500。2. 止损距离: 1200 (约 1.7x ATR)。3. 盈亏比: 2.08。4. 支撑检查: 当前价格 70000 远高于 POC (67184.96) 和 VAL (65414.24)。根据指令约束，价格在 POC 之上时严禁看空。5. 技术理由: 尽管存在派发迹象，但价格在 69,000 附近表现出支撑韧性。在 POC 这一核心机构支撑位之上做空风险极大。15分钟图表显示在回调后进入整理区间，若能守住该位置，大概率将再次冲击价值区高沿 (VAH) 72,500。",
+    "current_price": 69950.0,
+    "take_profit": 72400.0,
+    "stop_loss": 68750.0,
+    "reasoning": "1. TP Dist: 2450.0 (vs ATR-Ref: ~800). 2. SL Dist: 1200.0 (>=1.2x ATR). 3. TP/SL Ratio: 2.04 (>=1.2). 4. Floor Check: Price (69950.0) is above POC (67184.96), strictly requiring a non-bearish stance. Technical: The price is currently consolidating within a bullish wedge/flag structure on the 15m chart. While the critique warns of a potential liquidity trap, the technical floor provided by the POC and the lack of a confirmed breakdown below the $68.8k support level favor a long position. Shorting above the POC is statistically unfavorable in this trend. We target the VAH for a mean-reversion play within the established value area.",
+    "reasoning_zh": "1. 止盈距离: 2450.0 (参考ATR: ~800)。2. 止损距离: 1200.0 (>=1.2x ATR)。3. 盈亏比: 2.04 (>=1.2)。4. 底部检查: 价格 (69950.0) 高于 POC (67184.96)，根据指令不进行做空。技术分析：尽管近期出现回调，但价格仍处于POC上方的价值区域。15分钟图显示的楔形整理尚未向下破位，且在68.8k附近存在结构性支撑。在POC上方做空风险较高，因此维持看涨偏见，博取回归VAH的波动。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

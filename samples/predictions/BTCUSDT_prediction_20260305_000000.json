@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-05T00:00:00Z",
-    "confidence": 65,
+    "confidence": 62,
     "opinion": "BULLISH",
     "action": "LONG",
     "current_price": 72725.0,
-    "take_profit": 74800.0,
-    "stop_loss": 71800.0,
-    "reasoning": "1. TP Dist: 2075.0. 2. SL Dist: 925.0 (>=1.0x ATR). 3. TP/SL Ratio: 2.24. 4. Floor Check: Price (72725) is significantly above the POC (66826.72) and VAH (68922.79). We are NOT shorting because the asset is in a clear price discovery phase above the macro value area; shorting into such momentum is high-risk. While the 15m chart shows declining volume (exhaustion), the price is forming a high-level base. A tight stop below the 71.8k local support allows for a high R:R trade targeting a breakout toward the 75k psychological level.",
-    "reasoning_zh": "1. 获利距离: 2075.0。2. 止损距离: 925.0 (>=1.0x ATR)。3. 盈亏比: 2.24。4. 支撑位检查: 价格 (72725) 远高于 POC (66826.72) 和 VAH (68922.79)。由于资产处于宏观价值区之上的价格发现阶段，我们不选择做空，因为逆势做空风险极大。虽然 15 分钟图显示成交量下降（疲态），但价格正在形成高位平台。在 71.8k 局部支撑位下方设置紧凑止损，可以实现高盈亏比交易，目标是突破 7.5 万心理关口。",
+    "take_profit": 74700.0,
+    "stop_loss": 71100.0,
+    "reasoning": "1. TP Dist: 1975, 2. SL Dist: 1625, 3. TP/SL Ratio: 1.21, 4. Floor Check: Price (72725) is significantly above POC (66826.72). Technical Justification: Although the critique correctly identifies volume exhaustion and a potential 'gravity trap' toward the POC, the price remains in a confirmed breakout regime above the macro value area. Per the hard constraint, shorting is prohibited while price is above the POC floor. The 15m consolidation is interpreted as a bull flag rather than distribution as long as the 71k support holds. The SL is placed at 71100 to account for a potential sweep of the 'air' below the current price while staying above the VAH support zone. TP targets a retest of the highs near the 75k psychological level.",
+    "reasoning_zh": "1. 止盈距离: 1975, 2. 止损距离: 1625, 3. 盈亏比: 1.21, 4. 底部检查: 价格 (72725) 远高于 POC (66826.72)。由于价格处于支撑位 (POC/VAL) 之上，根据规则严禁做空。尽管红队指出存在量价背离和向 POC 回调的风险，但 BTC 目前仍处于宏观价值区上方的突破行情中。15分钟图的震荡被视为牛旗整理。止损设在 71100，以应对局部流动性空缺的回补，同时保持在 VAH 支撑之上。止盈目标设在 74700，博取对 75k 心理关口的再次冲击。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

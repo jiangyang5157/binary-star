@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-21T18:51:54Z",
-    "confidence": 75,
+    "confidence": 72,
     "opinion": "BULLISH",
     "action": "LONG",
     "current_price": 70360.6,
-    "take_profit": 70781.0,
-    "stop_loss": 70025.0,
-    "reasoning": "1. TP Dist: 420.4 (vs ATR-Ref: 256.114). 2. SL Dist: 335.6 (>=1.0x ATR). 3. TP/SL Ratio: 1.25 (>=1.25). 4. Floor Check: Price is 70360.6, which is above the POC (69949.67), so we are not shorting as the support floor is intact. 5. Logic: BTC is consolidating in a 15m bull flag directly on the POC. While macro wicks suggest resistance at 71k, the immediate structure is bullish. We avoid shorting because the price is above the high-volume node, which typically acts as a bounce zone in this configuration. The SL is placed tightly above the POC to mitigate the risk of a liquidity hunt into the volume vacuum below.",
-    "reasoning_zh": "1. 止盈距离: 420.4 (ATR参考: 256.114)。2. 止损距离: 335.6 (>=1.0x ATR)。3. 盈亏比: 1.25 (>=1.25)。4. 支撑位检查: 价格 70360.6 高于 POC (69949.67)，因此不进行做空操作。5. 逻辑: BTC 在 15 分钟图上于 POC 上方形成牛旗。尽管 1 小时图有阻力，但由于价格处于高成交量节点（POC）之上，该位置通常提供支撑而非阻力，故维持看涨偏见。止损设在 POC 上方以防范跌破后进入下方的流动性真空区。",
+    "take_profit": 71120.0,
+    "stop_loss": 69730.0,
+    "reasoning": "1. TP Dist: 759.4 (within 3x ATR limit of 768.3). 2. SL Dist: 630.6 (>=1.2x ATR). 3. TP/SL Ratio: 1.20. 4. Floor Check: Price (70360.6) is above POC (69949.67). Technical Justification: Shorting is avoided because the price maintains structural integrity above the POC, which represents the strongest historical support in this range. While the critique warns of a 'magnet' effect, the 15m chart shows a breakout from a descending wedge that is now holding as a new base. The SL is placed sufficiently below the POC to absorb minor volatility, while the TP targets the next liquidity cluster before the 74k VAH.",
+    "reasoning_zh": "1. 止盈距离: 759.4 (在3倍ATR限制768.3内)。2. 止损距离: 630.6 (>=1.2x ATR)。3. 盈亏比: 1.20。4. 支撑位检查: 价格 (70360.6) 高于 POC (69949.67)。由于价格处于支撑位 (POC) 之上，不适合做空，因为价格在 69949.67 这一关键成交量密集区上方维持了结构完整性，做空将违背价值区间支撑交易原则。15分钟图表显示下降楔形突破后已形成新底部，止损设在 POC 下方以应对波动，止盈目标指向 74k VAH 前方的流动性区。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

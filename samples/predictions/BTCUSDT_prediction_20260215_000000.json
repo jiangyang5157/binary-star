@@ -4,10 +4,10 @@
     "opinion": "BULLISH",
     "action": "LONG",
     "current_price": 69743.4,
-    "take_profit": 72500.0,
-    "stop_loss": 68500.0,
-    "reasoning": "1. TP Dist: 2756.6. 2. SL Dist: 1243.4. 3. TP/SL Ratio: 2.21. 4. Floor Check: Price is above POC (68775.06). Technical Justification: I am NOT shorting because the price has reclaimed and is holding above the high-volume POC, which acts as a structural floor. While the Red Team warns of a 'volume-less grind', the 15m chart shows a clear consolidation pattern above the POC with higher lows, suggesting absorption of supply. A move toward the 72.5k resistance is the path of least resistance as long as the POC holds. Shorting above a major volume node is counter-trend to the immediate recovery momentum.",
-    "reasoning_zh": "1. 止盈距离: 2756.6。2. 止损距离: 1243.4。3. 盈亏比: 2.21。4. 支撑检查: 价格位于 POC (68775.06) 之上。技术理由：我不选择做空是因为价格已收复并企稳在成交量控制点 (POC) 之上，该位置目前充当结构性底部。虽然红队警告存在“无量上涨”的风险，但 15 分钟图表显示在 POC 上方有明显的盘整形态且低点抬高，表明供应正在被吸收。只要 POC 支撑有效，向 72.5k 阻力位移动是阻力最小的路径。在主要成交量节点上方做空违背了当前的短期反弹动能。",
+    "take_profit": 71308.5,
+    "stop_loss": 68700.0,
+    "reasoning": "1. TP Dist: 1565.1, 2. SL Dist: 1043.4, 3. TP/SL Ratio: 1.5, 4. Floor Check: Price is above POC (68775.06). I am not shorting because the price has successfully flipped the high-volume POC into support. Despite the critique's warning of low-volume drift, the 15m structure shows a series of higher lows above 69,000. The trade targets the 71.3k-71.5k liquidity zone while placing the stop-loss safely below the POC structural floor to account for potential volatility and front-run the major supply zone at 72.5k.",
+    "reasoning_zh": "1. 止盈距离: 1565.1, 2. 止损距离: 1043.4, 3. 盈亏比: 1.5, 4. 支撑位检查: 价格位于 POC (68775.06) 之上。我不选择做空是因为价格已成功将高成交量 POC 转化为支撑位。尽管红队批评指出成交量萎缩，但 15 分钟结构在 69,000 上方形成了更高低点的排列。此交易目标定在 71.3k-71.5k 的流动性区域，同时将止损放在 POC 结构支撑下方，以应对可能的波动，并抢在 72.5k 主要供应区之前止盈。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

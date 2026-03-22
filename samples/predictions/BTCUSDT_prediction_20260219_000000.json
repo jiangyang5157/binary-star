@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-19T00:00:00Z",
-    "confidence": 70,
+    "confidence": 78,
     "opinion": "BULLISH",
     "action": "LONG",
     "current_price": 66410.7,
-    "take_profit": 67439.0,
-    "stop_loss": 65860.0,
-    "reasoning": "1. TP Dist: 1028.3, 2. SL Dist: 550.7, 3. TP/SL Ratio: 1.86, 4. Floor Check: Price is above VAL (66017.5). Technical: Despite the bearish momentum noted in the critique, the price is currently holding the Value Area Low (VAL). Per the rules, a bearish stance is prohibited while above this structural floor. The setup targets a mean-reversion to the POC (67639.45). The 15m chart shows a tightening range at support, which often precedes a volatility expansion. If the VAL holds, the path of least resistance for a relief rally is toward the high-volume node (POC). The SL is positioned below the VAL to account for potential liquidity sweeps.",
-    "reasoning_zh": "1. 止盈距离: 1028.3, 2. 止损距离: 550.7, 3. 盈亏比: 1.86, 4. 支撑检查: 价格处于 VAL (66017.5) 之上。技术分析：尽管红队评估强调了看跌动能，但价格目前守住了价值区低点 (VAL)。根据规则，价格在结构性底部之上时严禁看空。此交易逻辑是博取向 POC (67639.45) 的均值回归。15分钟图显示支撑位处的波动范围正在收窄，这通常是波动扩张的前兆。如果 VAL 支撑有效，反弹阻力最小的方向是向高成交量节点 (POC) 靠拢。止损位设在 VAL 下方，以应对可能的流动性扫荡。",
+    "take_profit": 67600.0,
+    "stop_loss": 65600.0,
+    "reasoning": "1. TP Dist: 1189.3 (vs ATR-Ref: 522.6). 2. SL Dist: 810.7 (>=1.2x ATR). 3. TP/SL Ratio: 1.46 (>=1.2). 4. Floor Check: Price (66410.7) is above VAL (66017.5), which acts as a major structural support. Per the hard constraint, a bearish opinion is not permitted while price remains above VAL. The 15m chart shows a stabilization attempt after the initial drop. This trade targets a mean reversion to the POC (67639.45), which is the high-volume node of the current range. The SL is placed below the recent swing low to account for potential volatility spikes.",
+    "reasoning_zh": "1. 止盈距离: 1189.3 (ATR参考: 522.6)。2. 止损距离: 810.7 (>=1.2x ATR)。3. 盈亏比: 1.46 (>=1.2)。4. 支撑检查: 价格 (66410.7) 位于 VAL (66017.5) 之上，该位置是关键结构支撑。根据硬性约束，价格在 VAL 之上时不应看空。15分钟图显示价格在初次下跌后尝试企稳。此交易目标是向 POC (67639.45) 进行均值回归，该位置是当前区间的筹码密集区。止损设在近期波动低点下方，以应对潜在的波动尖峰。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

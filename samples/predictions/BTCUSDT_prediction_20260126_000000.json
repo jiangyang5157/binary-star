@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-01-26T00:00:00Z",
-    "confidence": 75,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 60,
+    "opinion": "BULLISH",
+    "action": "LONG",
     "current_price": 86808.4,
-    "take_profit": 85131.0,
-    "stop_loss": 88150.0,
-    "reasoning": "1. TP Dist: 1677.4 (vs ATR-Ref: 506.595). 2. SL Dist: 1341.6 (>=1.0x ATR). 3. TP/SL Ratio: 1.25 (>=1.25). 4. Floor Check: Price is currently below the VAL (88403.78), confirming a macro breakdown where previous support has flipped to resistance. 5. Logic: Following the harsh critique of the previous bullish bias, the technical reality is that the 1h chart shows a decisive exit from the Value Area. The 15m chart's 'recovery' attempt is characterized by declining volume and a weak descending channel, signaling a 'dead cat bounce' rather than a reversal. The path of least resistance is a continuation lower to hunt liquidity below the 86,000 level. The Stop Loss is placed just below the VAL to protect against a false breakout, while maintaining the required risk-to-reward ratio.",
-    "reasoning_zh": "1. 止盈距离: 1677.4 (ATR参考: 506.595)。 2. 止损距离: 1341.6 (>=1.0x ATR)。 3. 盈亏比: 1.25 (>=1.25)。 4. 支撑位检查: 价格目前处于价值区低点 (VAL 88403.78) 下方，确认了宏观破位，之前的支撑位已转为强阻力位。 5. 逻辑: 修正之前的看涨偏差，技术面显示1小时图已果断跌破价值区。15分钟图的所谓“反弹”伴随着成交量萎缩，呈现典型的“死猫跳”特征，暗示缺乏买盘承接。市场大概率将继续下探以清理 86,000 下方的止损流动性。止损位设在 VAL 下方附近以防范假突破，同时确保符合 1.25 倍的盈亏比要求。",
+    "take_profit": 88300.0,
+    "stop_loss": 86100.0,
+    "reasoning": "1. TP Dist: 1491.6. 2. SL Dist: 708.4. 3. TP/SL Ratio: 2.1. 4. Floor Check: Price is currently below the Value Area Low (VAL: 88403.78), supporting a mean-reversion long setup. 5. Technical Justification: Despite the strong bearish momentum highlighted in the critique, BTC has undergone a vertical 1h decline into an oversold state. The 15m chart shows a descending wedge with multiple exhaustion wicks near 86k, suggesting a temporary bottom. While the critique identifies a 'Bear Flag', Rule 3 cautions against shorting parabolic extensions without a relief rally. A technical bounce to retest the broken VAL (88.4k) as resistance is statistically favored. TP is placed just below VAL to front-run structural resistance, and SL is set below the recent local consolidation floor to protect against a continuation of the flush.",
+    "reasoning_zh": "1. 止盈距离: 1491.6。2. 止损距离: 708.4。3. 盈亏比: 2.1。4. 底部检查: 价格目前低于价值区低点 (VAL: 88403.78)，支持均值回归做多逻辑。5. 技术理由: 尽管红队评估强调了看跌动能，但 BTC 在 1 小时级别经历了垂直下跌，处于超卖状态。15 分钟图表显示下降楔形，且在 86k 附近出现多次衰竭下影线，暗示短期底部。虽然评估将其视为‘熊旗’，但规则 3 警告不要在垂直延伸行情中直接追空。预期价格将向上回测被跌破的 VAL (88.4k) 作为阻力位。止盈位设在 VAL 下方以确保成交，止损位设在近期局部盘整区间下方以应对可能的进一步下探。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
