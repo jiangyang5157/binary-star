@@ -10,18 +10,14 @@ prediction:
 strategy:
   vp_value_area_pct: 0.7
   vp_bins: 50
-  atr_window: 21
-  min_sl_atr_mult: 1.8
-  max_tp_atr_mult: 2.0
-  min_tp_atr_mult: 1.2
-  min_tp_sl_ratio: 1.0
   order_flow_lookback_bars: 8
+  trend_intensity_threshold: 0.4
+  atr_window: 21
   bb_window: 21
   bb_std: 2.0
   kc_window: 21
   kc_mult: 1.5
   vol_ma_window: 21
-  trend_intensity_threshold: 0.4
   liquidation_fetch_limit: 21
   liquidation_context_limit: 7
 review:

@@ -164,7 +164,7 @@ class PredictorAgent:
               "current_price": 70000.5,
               "take_profit": 75000.0,
               "stop_loss": 68000.0,
-              "reasoning": "1. TP Dist: [X]. 2. SL Dist: [Base {{min_sl_atr_mult}}x + Offset Yx]. 3. TP/SL Ratio: [Z]. 4. Regime: [{{volatility_regime}}/{{market_regime}}]. 5. Logic: [Refined justification].",
+              "reasoning": "1. TP Dist: [X]. 2. SL Dist: [Base 1.8x + Offset Yx]. 3. TP/SL Ratio: [Z]. 4. Regime: [{{volatility_regime}}/{{market_regime}}]. 5. Logic: [Refined justification].",
               "reasoning_zh": "在 V2 框架下结合挤压因子、环境识别和红队审查后的最终结论，要求逻辑清晰且对用户友好。"
             }}
             NOTE: For NEUTRAL actions, set take_profit and stop_loss to null but still provide current_price.
