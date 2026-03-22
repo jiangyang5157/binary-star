@@ -23,7 +23,7 @@ from src.analyzer.chart_generator import ChartGenerator
 from src.agent.predictor_agent import PredictorAgent
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
 logger = logging.getLogger("PredictionPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:

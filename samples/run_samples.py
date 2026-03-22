@@ -10,7 +10,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("samples/samples.log"),
+        logging.FileHandler("samples.log"),
         logging.StreamHandler(sys.stdout)
     ],
     force=True  # Important: Force clear any existing config from other modules

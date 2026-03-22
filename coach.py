@@ -18,7 +18,7 @@ from src.data_fetcher.storage import DataStorage
 from src.agent.coach_agent import CoachAgent
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
 logger = logging.getLogger("CoachPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:

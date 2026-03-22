@@ -19,7 +19,7 @@ crypto/
 ├── samples/              # 🧪 磨刀石工作室 (Samples Workbench)
 │   ├── extract_samples.py # 提取工具：将 data/ 中的真实案例提取到 samples/
 │   ├── run_samples.py     # 运行入口：执行全自动 A->B->C 闭环测试
-│   └── samples.log        #  workbench 运行日志
+├── samples.log            #  workbench 运行日志 (根目录)
 ├── config/
 │   └── config.yaml       # 🧠 核心配置（统一路径管理：base_dir）
 ├── src/
@@ -141,7 +141,7 @@ python samples/extract_samples.py
 python samples/run_samples.py
 ```
 *   **隔离性**：所有的图片 (`samples/images`) 和报告均保存在 `samples/` 目录下。
-*   **全日志**：执行过程详尽记录在 `samples/samples.log`。
+*   **全日志**：执行过程详尽记录在根目录的 `samples.log`。
 *   **自动 Coach**：流程结束后会自动触发 Coach 代理对本次 Workbench 的所有样本进行总结，生成优化补丁。
 
 ---
