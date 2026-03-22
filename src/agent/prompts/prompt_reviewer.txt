@@ -82,5 +82,5 @@ You MUST output your final decision in strict JSON format.
     "hallucination_detected": boolean
   }},
   "prediction_post_mortem": "A technical Comprehensive report structured as: [CATEGORY] -> [TECHNICAL MECHANIC] -> [LOGIC EVOLUTION ADVICE]. Focus on the gap between prediction's reasoning and the Shadow Counter-Position findings. Including MAE stress, Shadow Counter-Position validation, and core technical mechanics.",
-  "prediction_post_mortem_zh": "这里是 prediction_post_mortem 的中文解释"
+  "prediction_post_mortem_zh": "这里是 prediction_post_mortem 的中文翻译"
 }}

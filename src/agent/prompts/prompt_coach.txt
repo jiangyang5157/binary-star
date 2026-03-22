@@ -39,7 +39,7 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) used by 
 You MUST output your final decision in strict JSON format. 
 {{
   "batch_analysis": "Systemic biases identified, numerical TP/SL accuracy analysis, recurring logical flaws, and recommended optimizations across {batch_count} predictions.",
-  "batch_analysis_zh": "系统性偏差、分析精度审计、反复出现的逻辑缺陷、以及优化建议。",
+  "batch_analysis_zh": "这里是 batch_analysis 的中文翻译",
   "master_prompt_patch": [
     {{
       "action": "ADD",
@@ -69,6 +69,7 @@ You MUST output your final decision in strict JSON format.
 - **Redundancy Filter**: You MUST NOT include a key in `master_config_update` if its value is already identical.
 - **Key Discovery Prohibition**: Only update existing keys in the `strategy` section.
 - **Precision**: If you suggest a config change, explain WHY in the `batch_analysis`.
+- **Structural Superiority Directive**: Prioritize Structural Logic updates in `master_prompt_patch` over Numerical Parameter tweaks in `master_config_update`. Adjusting a threshold is a temporary fix; refining how the Agent interprets Volume Profile and Liquidity Dynamics is a systemic cure.
 
 **CRITICAL GUIDELINES**: 
 - **Batch Analysis**: `batch_analysis` is the SINGLE comprehensive report. Be as detailed as necessary — cover both the high-level strategic summary and the granular numerical findings. No length restriction.
