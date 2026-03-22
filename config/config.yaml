@@ -12,7 +12,7 @@ strategy:
   vp_bins: 50
   atr_window: 21
   min_sl_atr_mult: 1.0
-  max_tp_atr_mult: 3.0
+  max_tp_atr_mult: 2.0
   min_tp_atr_mult: 1.5
   min_tp_sl_ratio: 1.5
   order_flow_lookback_bars: 8

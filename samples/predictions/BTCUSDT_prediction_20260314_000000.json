@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-14T00:00:00Z",
-    "confidence": 80,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 90,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 70600.0,
-    "take_profit": 66500.0,
-    "stop_loss": 71850.0,
-    "reasoning": "1) Macro Rejection: The 1h chart shows a significant 'blow-off' wick at $74,000, indicating a high-volume liquidity grab and potential distribution (UTAD). 2) POC Flip: The Point of Control at $71,169.08 has failed as support and is now acting as heavy overhead resistance, as evidenced by the 15m price action struggling to reclaim it. 3) Structural Breakdown: The 15m chart shows a clear breakdown from a local consolidation wedge (teal dashed lines), confirming bearish momentum. 4) Volume Gap: Below the current price, there is a significant 'air pocket' in the volume profile, suggesting limited structural support until the Value Area Low (VAL) near $66,100. 5) Sentiment: The weak bounce at the POC suggests retail exhaustion, making a 'long squeeze' toward the VAL the path of least resistance.",
-    "reasoning_zh": "1) 宏观拒绝：1小时图在74,000美元处出现放量长上影线，暗示高位派发（UTAD）。2) POC 压力：71,169.08美元的POC位已从支撑转为阻力，价格在15分钟级别未能收复该位。3) 结构破位：15分钟图跌破局部整理区间（青色虚线），确认看跌趋势。4) 支撑真空：成交量分布显示下方至66,100美元（VAL）缺乏支撑，存在快速下跌风险。5) 情绪博弈：POC处的弱势反弹诱多后破位，预示将发生多头挤压。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "The asset is currently in a high-risk 'no-trade' zone. Following the rejection from the new ATH near 74,000, price has lost the Macro POC (71,169.08) and is treating it as resistance on the 15m timeframe (S/R flip). A BULLISH setup is mathematically impossible under current constraints: the required 1.5x ATR volatility move for a take-profit would target ~71,575, which violates the mandatory rule to front-run major structural levels (POC). Conversely, a BEARISH setup is strictly prohibited by the 'Floor Check' rule, as the current price remains above the Value Area Low (VAL) at 66,078. The most prudent action is to wait for a reclaim of the POC or a test of the VAL liquidity.",
+    "reasoning_zh": "资产目前处于高风险的“观望区”。在 74,000 附近的历史高点受阻后，价格已跌破 Macro POC (71,169.08)，且 15 分钟图显示该位点已由支撑转为阻力（S/R 翻转）。目前无法建立看多头寸，因为根据 1.5x ATR 计算的最小止盈位（约 71,575）超过了必须在 POC 结构位前止盈的强制规则。同时，由于价格仍高于 VAL (66,078)，触发了“地板检查”规则，严禁看空。综上所述，在价格有效收复 POC 或回踩 VAL 支撑之前，保持中立是唯一符合风控逻辑的选择。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

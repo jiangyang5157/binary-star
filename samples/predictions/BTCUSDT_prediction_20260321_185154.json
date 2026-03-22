@@ -1,13 +1,13 @@
 {
-    "timestamp": "2026-03-21T18:51:54.175200Z",
-    "confidence": 70,
+    "timestamp": "2026-03-21T18:51:54Z",
+    "confidence": 85,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70385.1,
-    "take_profit": 68000.0,
+    "current_price": 70360.6,
+    "take_profit": 67000.0,
     "stop_loss": 71500.0,
-    "reasoning": "Following the technical critique, the current position at the POC (69949.67) is identified as a high-liquidity 'fair value' magnet rather than a support floor. The 15m 'bull flag' breakout is characterized by declining volume, signaling a lack of institutional follow-through and a high probability of a retail trap. Macro structure on the 1h chart shows a series of lower highs, suggesting the path of least resistance is a move toward the Value Area Low (VAL) near 67,000 to flush out over-leveraged longs. TP is set at 68,000 to capture this mean-reversion, with SL at 71,500 to invalidate the fakeout scenario.",
-    "reasoning_zh": "根据技术评估，当前 POC (69949.67) 位点应被视为高流动性的“公允价值”磁铁而非支撑地板。15分钟图的“牛旗”突破伴随成交量萎缩，显示缺乏机构资金跟进，极有可能是诱多陷阱。1小时宏观结构呈现一系列较低的高点，暗示阻力最小的方向是向 67,000 附近的价值区低点 (VAL) 回落，以清洗过度杠杆的做多头寸。止盈设在 68,000 以捕捉均值回归行情，止损设在 71,500 以证伪假突破情景。",
+    "reasoning": "The initial bullish bias is reversed following a technical critique of the 15m 'bull flag,' which is identified as a low-volume trap. On the 1h chart, the price structure shows a clear rejection from the 76k highs and the formation of lower highs. The Point of Control (POC) at 69949.67 is acting as a pivot of distribution rather than a solid floor. Given the 'supply overhang' (long upper wicks) between 71k and 72k and the volume vacuum below the POC, a flush toward the Value Area Low (VAL) at 67000 is highly probable. The lack of impulsive buying volume on the micro-breakout confirms the exhaustion of the recent corrective bounce.",
+    "reasoning_zh": "在对15分钟‘牛旗’进行技术复盘后，看多观点被逆转，该形态被识别为低成交量陷阱。1小时图表显示价格在76k高点受阻后形成了清晰的更低的高点（Lower High）结构。69949.67的POC位目前表现为派发中继而非坚实支撑。鉴于71k-72k区间存在明显的供应压力（长上影线），且POC下方存在成交量真空，价格极有可能向下回踩67000的价值区低点（VAL）。微观突破时缺乏冲动性买盘成交量，证实了近期修正性反弹的动能枯竭。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-10T00:00:00Z",
-    "confidence": 78,
+    "confidence": 70,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 68550.0,
+    "current_price": 68250.0,
     "take_profit": 64000.0,
-    "stop_loss": 69650.0,
-    "reasoning": "The 15m chart shows a bearish pennant/distribution phase forming immediately above the high-volume Point of Control (POC) at 67991. Volume is steadily declining during this consolidation, suggesting a lack of aggressive buying interest. On the 1h macro scale, the price has established a clear lower-high structure after the rejection from the 73k-74k zone. A breakdown below the POC is expected to trigger a 'long squeeze' into the 'Volume Vacuum' visible in the profile between 67k and 64k, where liquidity is thin. This setup targets the Value Area Low (VAL) near 63500, offering a high risk-to-reward ratio of over 4:1.",
-    "reasoning_zh": "15分钟图在POC（67991）上方形成了明显的看跌旗形/派发区间，成交量持续萎缩显示买盘动能枯竭。1小时大级别图表在73k-74k受阻后呈现清晰的高点降低（Lower High）空头结构。一旦价格跌破POC支撑，由于67000-64000区间存在明显的‘成交量真空区’，极易引发多头踩踏并快速下探至价值区低点（VAL）63500附近。当前价位入场空单，止损设在15分钟局部高点上方，盈亏比超过4倍，极具交易价值。",
+    "stop_loss": 69800.0,
+    "reasoning": "Following the Red Team critique, the macro structure on the 1h chart indicates a clear distribution phase after the rejection at 74,000. The 15m 'bullish pennant' is identified as a liquidity trap; the breakout attempt occurred on declining volume with significant rejection wicks near 69,500, suggesting institutional selling. While price is currently near the POC (67,991), it is failing to find momentum, making a mean-reversion move toward the Value Area Low (VAL) at ~63,500 the highest probability outcome. The trade targets the liquidity void below the current range.",
+    "reasoning_zh": "根据红队评估，1小时大周期显示在74,000受阻后已进入派发阶段。15分钟图所谓的“牛旗”被识别为流动性陷阱：向上突破时成交量萎缩，且在69,500附近出现明显的拒绝影线，显示机构正在逢高派发。尽管价格目前仍处于POC（67,991）附近，但动能枯竭暗示该位置已由支撑转为阻力。市场大概率将向价值区间低沿（VAL）63,500附近进行均值回归，以清理下方的散户止损盘。止损设在近期高点上方以维持优越的盈亏比。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

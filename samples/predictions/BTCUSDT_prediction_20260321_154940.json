@@ -1,13 +1,13 @@
 {
-    "timestamp": "2026-03-21T15:49:40.179386Z",
-    "confidence": 68,
+    "timestamp": "2026-03-21T15:49:40Z",
+    "confidence": 65,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70624.5,
-    "take_profit": 68400.0,
-    "stop_loss": 72000.0,
-    "reasoning": "Following the rejection from the 76k peak, BTC is currently consolidating at the high-volume POC (69949.67). The 15m chart reveals significant absorption wicks near 71k, suggesting that the current range is a redistribution phase (bear flag) rather than accumulation. The lack of aggressive buying volume at the POC increases the probability of a 'liquidity hunt' toward the Value Area Low (VAL) near 67k to clear out retail longs. By shorting the upper bound of the 15m consolidation, we target the liquidity void below 70k while maintaining a 1.6+ R:R ratio.",
-    "reasoning_zh": "在 76k 高点受阻后，BTC 目前在 POC (69949.67) 附近盘整。15分钟图在 71k 附近出现明显的吸收影线，表明当前的区间更像是派发阶段（看跌旗形）而非吸筹。POC 处缺乏积极买盘，增加了价格向下回踩价值区低点 (VAL, 约 67k) 以清理多头流动性的概率。通过在 15分钟盘整区间上沿做空，我们瞄准 70k 下方的流动性真空区，同时保持 1.6 倍以上的盈亏比。",
+    "current_price": 70725.0,
+    "take_profit": 67500.0,
+    "stop_loss": 72150.0,
+    "reasoning": "The 1h chart reveals a dominant bearish impulse followed by a corrective 'Bear Flag' consolidation around the POC (69,949). The recent 15m move toward 71,000 occurred on declining volume, suggesting a low-conviction 'liquidity hunt' rather than a trend reversal. The POC is acting as a ceiling of indecision; a failure to hold this level likely leads to a retest of the Value Area Low (VAL) at 67,000. The trade targets the VAL while placing the stop-loss above the recent local high and the overhead volume shelf to avoid being caught in a liquidity trap.",
+    "reasoning_zh": "1小时图显示在大幅下跌后进入了典型的‘熊旗’整理形态，价格围绕POC（69,949）波动。15分钟图上的近期反弹伴随成交量萎缩，暗示这只是一个缺乏动力的流动性陷阱，而非趋势反转。POC目前更像是阻力位而非支撑位；一旦无法站稳，价格极大概率回踩价值区低点（VAL）67,000附近。止盈设在VAL上方，止损设在近期局部高点及上方成交密集区之上，以规避虚假突破风险。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

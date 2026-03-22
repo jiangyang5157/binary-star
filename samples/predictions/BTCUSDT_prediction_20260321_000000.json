@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-21T00:00:00Z",
-    "confidence": 75,
+    "confidence": 80,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 70643.9,
-    "take_profit": 68250.0,
-    "stop_loss": 72150.0,
-    "reasoning": "Following the Red Team critique, the bias has been reversed to BEARISH. The 15m chart exhibits a rising wedge with clear bearish volume divergence, signaling buyer exhaustion. On the 1h timeframe, the price is struggling to maintain momentum at the POC (69949.67) after a sharp rejection from the VAH (74k) area, suggesting this is a bearish retest of a breakdown level. The lack of buying delta at this high-volume node indicates distribution. We anticipate a liquidity sweep targeting the equal lows and the VAL near 67k-68k. TP is set at 68250 (3.39% move) with an R:R of 1.59.",
-    "reasoning_zh": "根据红队评估，研判转向看跌。15分钟图显示上升楔形伴随明显的成交量背离，暗示多头动能枯竭。1小时图确认价格在从VAH（74k）区域大幅回落后，目前在POC（69949.67）附近的震荡属于弱势回测。高位成交密集区缺乏主动买盘支撑，显示派发迹象。预计市场将向下扫荡68.5k下方的等低点流动性并回踩VAL（67k）附近。止盈设在68250（预期跌幅3.39%），盈亏比为1.59。",
+    "take_profit": 67000.0,
+    "stop_loss": 72200.0,
+    "reasoning": "The impulsive drop from the 76k peak to the POC (69949.67) followed by a low-volume ascending channel on the 15m chart indicates a classic 'Bear Flag' or distribution pattern. The price is struggling to sustain momentum above 71k, suggesting that the POC is acting as a distribution hub rather than support. A breakdown from the current 15m channel is likely to target the Value Area Low (VAL) at 67k, where significant liquidity resides. The lack of volume expansion on the recent move up confirms a 'bull trap' scenario, making a short position toward the structural floor more probable.",
+    "reasoning_zh": "从 76k 峰值跌至 POC (69949.67) 的脉冲式下跌，随后在 15 分钟图上形成的低成交量上升通道，构成了典型的‘看跌旗形’或派发形态。价格难以维持在 71k 上方的动能，表明 POC 更多是作为派发中心而非支撑位。当前 15 分钟通道的破位很可能指向 67k 的价值区低点 (VAL)，那里存在大量流动性。近期反弹缺乏成交量配合，证实了‘多头陷阱’的可能，因此看跌至结构性底部更为合理。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
