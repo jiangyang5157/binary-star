@@ -43,21 +43,22 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 
 5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem" summarizing the exact technical mechanic of the outcome.
 
-### Final Scoring Algorithm (Strict Weighting):
-1. **Base Score**: 
-   - TP Hit / Positive Direction: **50 pts** (Correct Thesis)
-   - SL Hit / Negative Direction: **0 pts** (Failed Thesis)
+### Final Scoring Algorithm (Sliding Scale):
+
+1. **Base Score (Directional Accuracy)**: 
+   - TP Hit / Positive Direction: **50 pts**
+   - SL Hit / Negative Direction: **0 pts**
    - Neutral / Range Bound: **40 pts**
    
-2. **MAE Modifiers (Risk Quality)**:
-   - MAE < 20% of SL: **+40 pts** (Precision Entry)
-   - MAE 20-50% of SL: **+20 pts** (Acceptable)
-   - MAE 50-80% of SL: **+0 pts** (High Stress)
-   - MAE > 80% of SL: **-20 pts** (Logic Death Penalty)
+2. **MAE Modifiers (Sliding Scale)**:
+   - MAE 0-20%: Scale from **+40 down to +30** (0% gets +40, 20% gets +30)
+   - MAE 20-50%: Scale from **+30 down to +10** (20% gets +30, 50% gets +10)
+   - MAE 50-80%: Scale from **+10 down to 0** (50% gets +10, 80% gets 0)
+   - MAE > 80%: **-20 pts** (Logic Death Penalty)
 
-3. **Logic Bonus/Penalty**:
-   - All Strategic Rules Followed: **+10 pts**
-   - Hallucination / Rule Violation: **-50 pts**
+3. **Logic Bonus/Penalty (Discretionary)**:
+   - Rule Execution Bonus: **0 to +10 pts** (Reward for precise rule alignment)
+   - Logic Penalty: **-10 to -50 pts** (Based on severity of Hallucination or Rule Violation)
 
 **Final Score (Clamped 0-100) = Base Score + MAE Modifier + Logic Bonus**
 
