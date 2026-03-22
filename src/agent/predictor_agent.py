@@ -46,7 +46,7 @@ class PredictorAgent:
         Extracts a specific section from the prompt template.
         Sections are defined by ### [SECTION_NAME] headers.
         """
-        pattern = rf"### \[{section_name}\](.*?)(?=### \[|\Z)"
+        pattern = rf"### \[{section_name}\](.*?)(?=\n## |^## |\n### \[|\Z)"
         match = re.search(pattern, template, re.DOTALL)
         if match:
             return match.group(1).strip()
@@ -60,9 +60,9 @@ class PredictorAgent:
         return template
 
     def get_footer(self, template: str) -> str:
-        """Extracts the format enforcement footer."""
-        if "## Format Enforcement" in template:
-            return "## Format Enforcement\n" + template.split("## Format Enforcement")[-1].strip()
+        """Extracts the final output protocol and format enforcement footer."""
+        if "## 4. FINAL OUTPUT PROTOCOL" in template:
+            return "## 4. FINAL OUTPUT PROTOCOL\n" + template.split("## 4. FINAL OUTPUT PROTOCOL")[-1].strip()
         return ""
 
     def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:

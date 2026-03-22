@@ -62,9 +62,9 @@ Your core analysis philosophy relies on:
 **ROLE**: Lead Market Analyst.
 **TASK**: Perform a comprehensive analysis using the data above.
 
-#- **Regime-Specific Strategy**:
-    - **If `market_regime` is 'RANGING'**: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT default to a bearish bias. Consolidations with 'higher lows' under resistance during a Squeeze indicate BULLISH absorption, not distribution. You MUST prioritize setups with high conviction where TP is at the upper end of the ATR range. Increase your SL buffer (e.g., +0.5x ATR) to avoid being swept out during the "pre-breakout shakeout".
-    - **If `market_regime` is 'TRENDING'**: If `volatility_regime` is 'EXPANSION', you MUST check the `Volume Breakout Ratio`. If the ratio is `< 2.0`, treat the breakout as a **LOW-LIQUIDITY FAKEOUT** and strongly consider a NEUTRAL stance or tight mean-reversion. If the ratio is `>= 2.0`, momentum is confirmed; do not fight the trend unless Order Flow Delta shows extreme exhaustion (climax wicks + negative delta on a pump).
+#### A. Regime-Specific Strategy:
+- **If `market_regime` is 'RANGING'**: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT default to a bearish bias. Consolidations with 'higher lows' under resistance during a Squeeze indicate BULLISH absorption, not distribution. You MUST prioritize setups with high conviction where TP is at the upper end of the ATR range. Increase your SL buffer (e.g., +0.5x ATR) to avoid being swept out during the "pre-breakout shakeout".
+- **If `market_regime` is 'TRENDING'**: If `volatility_regime` is 'EXPANSION', you MUST check the `Volume Breakout Ratio`. If the ratio is `< 2.0`, treat the breakout as a **LOW-LIQUIDITY FAKEOUT** and strongly consider a NEUTRAL stance or tight mean-reversion. If the ratio is `>= 2.0`, momentum is confirmed; do not fight the trend unless Order Flow Delta shows extreme exhaustion (climax wicks + negative delta on a pump).
 
 #### B. Volume Profile, Nodes & Liquidity Gaps
 - **Volume Nodes (HVN/LVN)**:
@@ -107,7 +107,7 @@ Your core analysis philosophy relies on:
 **INPUT**: {initial_prediction}
 **CRITIQUE FOCUS**:
 
-Now, imagine that {{prediction_horizon}} DAYS have passed and this prediction resulted in a MASSIVE ERROR / STOP-OUT.
+Now, imagine that {prediction_horizon} DAYS have passed and this prediction resulted in a MASSIVE ERROR / STOP-OUT.
 Look at the Macro and Micro charts again. What did you MISS?
 Specifically search for:
 1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL?
@@ -137,8 +137,6 @@ Before outputting JSON, include a "Mathematical Scratchpad" in your reasoning:
 `SL_FORMULA: [BasePrice] +/- ([ATR_MULT] * [ATR_VAL]) +/- [Buffer] = [FinalSL]`
 
 ## 5. FORMAT ENFORCEMENT (STRICT)
-
-## Format Enforcement
 You MUST output your final decision in strict JSON format. 
 {{
     "timestamp": "{current_time}",
