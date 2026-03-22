@@ -78,6 +78,11 @@ Your core analysis philosophy relies on:
     4. Regime Check (Squeeze/Trend).
     5. Logic (Why this move?).
 
+### Final Output Protocol:
+Before outputting the JSON, you MUST provide a "Mathematical Scratchpad" inside your reasoning block using the following syntax:
+`TP_FORMULA: [BasePrice] +/- ([ATR_MULT] * [ATR_VAL]) +/- [Buffer] = [FinalTP]`
+`SL_FORMULA: [BasePrice] +/- ([ATR_MULT] * [ATR_VAL]) +/- [Buffer] = [FinalSL]`
+
 ## 📝 Format Enforcement
 You MUST output your final decision in strict JSON format. 
 {{

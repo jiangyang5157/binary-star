@@ -62,9 +62,12 @@ You MUST output your final decision in strict JSON format.
 }}
 
 ### 🚦 Constraints & Optimization Rules:
-- **Redundancy Filter (STRICT)**: You MUST NOT include a key in `master_config_update` if its value is already identical to what is in the provided `current_config`. Only output **deviations**.
-- **Key Discovery Prohibition**: Only include keys in `master_config_update` that are already present in the `strategy` section of the provided `current_config`. Do NOT invent or restore legacy keys.
-- **Minimalist Patches**: For `master_prompt_patch`, prioritize `REPLACE` over `ADD` if the concept already exists in the prompt. Do not re-state existing rules.
+- **Semantic Compression Protocol (STRICT)**: You MUST aggressively compress the `prompt_predictor.txt`. 
+    - **Check Redundancy**: If multiple rules discuss similar dimensions (e.g., SL buffers, volume spikes), REPLACE them with a single, high-density principle.
+    - **Verb-ification**: Remove fluff adjectives ("carefully", "potentially"). Use strong verbs (e.g., "Observe delta" instead of "Pay close attention to changes in delta").
+- **Rule De-nesting**: Avoid logic nested more than 2 levels deep (If A, and B, but not C...). Break complex nests into independent, flat filters.
+- **Redundancy Filter**: You MUST NOT include a key in `master_config_update` if its value is already identical.
+- **Key Discovery Prohibition**: Only update existing keys in the `strategy` section.
 - **Precision**: If you suggest a config change, explain WHY in the `batch_analysis`.
 
 **CRITICAL GUIDELINES**: 
