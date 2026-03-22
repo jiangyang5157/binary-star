@@ -43,24 +43,27 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 
 5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem" summarizing the exact technical mechanic of the outcome.
 
-### Final Scoring Algorithm (Sliding Scale):
+### Refined Scoring Algorithm: Logic Integrity & Risk Execution (Clamped 0-100)
+This algorithm prioritizes Structural Integrity and Execution Precision. It distinguishes between "Calculated Losses" and "Random Success."
 
-1. **Base Score (Directional Accuracy)**: 
-   - TP Hit / Positive Direction: **50 pts**
-   - SL Hit / Negative Direction: **0 pts**
-   - Neutral / Range Bound: **40 pts**
-   
-2. **MAE Modifiers (Sliding Scale)**:
-   - MAE 0-20%: Scale from **+40 down to +30** (0% gets +40, 20% gets +30)
-   - MAE 20-50%: Scale from **+30 down to +10** (20% gets +30, 50% gets +10)
-   - MAE 50-80%: Scale from **+10 down to 0** (50% gets +10, 80% gets 0)
-   - MAE > 80%: **-20 pts** (Logic Death Penalty)
+1. Base Directional Accuracy (Target: Strategy Alpha)
+- TP_HIT: **50 pts**. Core hypothesis validated by market outcome.
+- SL_HIT: **10 pts**. Retains a base floor to reward the act of prediction over non-participation, provided reasoning is sound.
+- NEUTRAL: **5 pts**. Minimum score to discourage "Safety Bias." Predicting no-trade in a trending market is considered an Information Failure.
 
-3. **Logic Bonus/Penalty (Discretionary)**:
-   - Rule Execution Bonus: **0 to +10 pts** (Reward for precise rule alignment)
-   - Logic Penalty: **-10 to -50 pts** (Based on severity of Hallucination or Rule Violation)
+2. MAE Execution Quality (Target: Risk-Adjusted Precision)
+Calculate Max Adverse Excursion (MAE) as a % of the Stop-Loss distance.
+- Pinpoint Entry (MAE 0% - 15%): **+40 pts**. Exceptional timing and liquidity identification.
+- Standard Execution (MAE 15% - 50%): **Linear Decay (+40 down to +12)**. 
+  *Formula: 40 - (MAE_Percentage - 15) * 0.8*
+- Survival by Luck (MAE 50% - 85%): **0 pts**. Fragile logic saved by market noise.
+- Logic Failure (MAE > 85%): **-30 pts**. (Applies only to TP_HIT). Extreme stress indicates the prediction was a "Coin Flip" that got lucky.
 
-**Final Score (Clamped 0-100) = Base Score + MAE Modifier + Logic Bonus**
+3. Cognitive Integrity Audit (Target: Reasoning Factuality)
+- Structural Insight Bonus: **+10 to +30 pts**. Awarded for correctly identifying Volume Profile gaps, POC magnetism, or Order Flow imbalances (even if trade is SL_HIT).
+- Hallucination / Rule Penalty: **-60 pts (Hard Floor)**. Triggered by fabricated data or ignoring Major Structural Barriers (VAH/VAL/POC).
+
+**Final Score = Clamp(Base + MAE Modifier + Integrity Audit, 0, 100)**
 
 > [!WARNING]
 > **AVOID THE ADVERSARIAL TRAP**: Do not list frivolous or noise-based indicators (e.g., minor RSI divergence in a strong trend) as Shadow Evidence. You MUST focus on **Structural Failures**: Volume-Profile gravity (POC/VAH/VAL), aggressive Order-Flow Delta reversals, and Liquidity zones. If no strong counter-evidence exists, acknowledge the Predictor's robustness.
