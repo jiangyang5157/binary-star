@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-11T00:00:00Z",
+    "confidence": 65,
+    "opinion": "BULLISH",
+    "action": "LONG",
+    "current_price": 70000.0,
+    "take_profit": 72500.0,
+    "stop_loss": 68800.0,
+    "reasoning": "1. TP Dist: 2500. 2. SL Dist: 1200 (approx 1.7x ATR). 3. TP/SL Ratio: 2.08. 4. Floor Check: Price is at 70000, significantly above the POC (67184.96) and VAL (65414.24). Per the protocol, a bearish stance is prohibited while price maintains these levels. 5. Justification: Despite the distribution signs and upper wicks noted in the critique, the price has established local support near 69,000. Shorting above the POC is statistically risky as it represents the strongest volume-based support. The 15m chart shows a consolidation that could lead to a retest of the Value Area High (VAH) at 72,500.",
+    "reasoning_zh": "1. 止盈距离: 2500。2. 止损距离: 1200 (约 1.7x ATR)。3. 盈亏比: 2.08。4. 支撑检查: 当前价格 70000 远高于 POC (67184.96) 和 VAL (65414.24)。根据指令约束，价格在 POC 之上时严禁看空。5. 技术理由: 尽管存在派发迹象，但价格在 69,000 附近表现出支撑韧性。在 POC 这一核心机构支撑位之上做空风险极大。15分钟图表显示在回调后进入整理区间，若能守住该位置，大概率将再次冲击价值区高沿 (VAH) 72,500。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

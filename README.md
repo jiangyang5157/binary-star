@@ -197,6 +197,38 @@ python simulator.py --days 14 --sampling 10 --mode spaced
 
 ---
 
+## 🔥 进阶：磨刀石工作流 (Enhanced Sharpening Workflow)
+
+如果标准流程提升不明显，使用以下针对性更强的“磨刀石”闭环，直接在失败案例上进行暴力迭代：
+
+1.  **Phase 1: 弱点采样与提取 (Extraction)**
+    运行 30 天仿真采样（20 个样本），然后提取其中的 SL/报错/低分样本：
+    ```bash
+    python simulator.py --days 30 --sampling 20 --mode regime
+    python samples/extract_samples.py
+    ```
+
+2.  **Phase 2: 首次逻辑注入 (First Injection)**
+    根据全局表现生成并应用第一版优化补丁：
+    ```bash
+    python coach.py --batch 20
+    python apply_patches.py data/coach/coach_xxxx.json
+    ```
+
+3.  **Phase 3: 靶向压力测试 (Targeted Stress Test)**
+    使用已打补丁的 Prompt，在 `samples/` 隔离区重新运行那些刚才失败的案例：
+    ```bash
+    python samples/run_samples.py
+    ```
+
+4.  **Phase 4: 残差分析与二次注入 (Residual Tuning)**
+    对 Phase 3 的结果再次运行 Coach，识别补丁后的残留偏离，并应用二次进化补丁。
+
+5.  **Phase 5: 质量审计**
+    对比最初得分与经过两轮注入后的得分。
+
+---
+
 ## 🧪 测试
 
 ```bash
