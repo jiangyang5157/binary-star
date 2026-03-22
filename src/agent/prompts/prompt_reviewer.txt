@@ -47,13 +47,13 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 1. **Base Score**: 
    - TP Hit / Positive Direction: **50 pts** (Correct Thesis)
    - SL Hit / Negative Direction: **0 pts** (Failed Thesis)
-   - Neutral / Range Bound: **35 pts**
+   - Neutral / Range Bound: **40 pts**
    
 2. **MAE Modifiers (Risk Quality)**:
    - MAE < 20% of SL: **+40 pts** (Precision Entry)
    - MAE 20-50% of SL: **+20 pts** (Acceptable)
    - MAE 50-80% of SL: **+0 pts** (High Stress)
-   - MAE > 80% of SL: **-20 pts** (Logic Death Penalty - Max Score Cap: 40)
+   - MAE > 80% of SL: **-20 pts** (Logic Death Penalty)
 
 3. **Logic Bonus/Penalty**:
    - All Strategic Rules Followed: **+10 pts**
