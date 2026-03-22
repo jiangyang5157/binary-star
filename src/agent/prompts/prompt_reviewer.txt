@@ -43,7 +43,7 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 
 5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem" summarizing the exact technical mechanic of the outcome.
 
-### 📊 Final Scoring Algorithm (Strict Weighting):
+### Final Scoring Algorithm (Strict Weighting):
 1. **Base Score**: 
    - TP Hit / Positive Direction: **50 pts** (Correct Thesis)
    - SL Hit / Negative Direction: **0 pts** (Failed Thesis)
