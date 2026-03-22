@@ -41,7 +41,9 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
     - Hunt for "Hallucinations". If Agent A claims "Volume is rising" but the chart/data shows declining OBV or Delta, flag it as a critical reasoning failure.
     - Audit for "Reasoning Circularity": Did the Agent justify a loss as "unpredictable volatility" when there was clear structural evidence of failure?
 
-5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem" summarizing the exact technical mechanic of the outcome.
+5.  **Diagnostic Synthesis**: 
+    - Create a structured "Prediction Post-Mortem". You MUST categorize the outcome into: [Regime Mismatch], [Execution Sloppiness], [Structural Blindness], or [Strategic Alpha].
+    - Local Technical Advice: Based on this specific outcome, suggest a precise logic refinement to handle similar setups. Focus on "Next Time" behavior rather than global config changes (e.g., "Place SL at least 0.5x ATR beyond the magnetic POC zone").
 
 ### Refined Scoring Algorithm: Logic Integrity & Risk Execution (Clamped 0-100)
 This algorithm prioritizes Structural Integrity and Execution Precision. It distinguishes between "Calculated Losses" and "Random Success."
