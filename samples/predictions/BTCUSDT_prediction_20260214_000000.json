@@ -4,10 +4,10 @@
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 68593.76,
-    "take_profit": 67523.2,
-    "stop_loss": 69610.8,
-    "reasoning": "1. TP Dist: 2.0x ATR. 2. SL Dist: 1.9x ATR (Base 1.8x + 0.1x Offset). 3. TP/SL Ratio: 1.05. 4. Regime: LOW_VOLATILITY/RANGING. 5. Logic: Following the Red Team critique, the previous bullish bias was identified as 'POC Blindness'. Current 15m price action shows a clear bull trap/fakeout above the POC (68593.76) with declining volume and exhaustion wicks. The macro trend remains bearish after the rejection from 85k. TP is set at the 2.0x ATR limit to capture the initial leg of the expected reversal toward the range lows. SL is placed above the fakeout high (1.9x ATR) to protect against volatility sweeps.",
-    "reasoning_zh": "1. 止盈距离：2.0x ATR。2. 止损距离：1.9x ATR（1.8x 基准 + 0.1x 偏移）。3. 盈亏比：1.05。4. 市场环境：低波动/震荡（RANGING）。5. 逻辑：根据红队审查，之前的看涨观点被识别为“POC 盲区”陷阱。15分钟图显示在 POC（68593.76）上方出现了明显的“多头陷阱”，伴随成交量萎缩和长上影线。大趋势在 85k 见顶后依然偏空。止盈设在 2.0x ATR 的数学上限，旨在捕捉向区间下沿回落的初期动能。止损设在假突破高点上方（1.9x ATR），以规避波动扫损。",
+    "take_profit": 65500.0,
+    "stop_loss": 70200.0,
+    "reasoning": "1. TP Dist: 3093.76 (5.78x ATR). 2. SL Dist: [Base 1.8x + Offset 1.2x] = 1606.24. 3. TP/SL Ratio: 1.92. 4. Regime: VOLATILE/RANGING. 5. Logic: Re-evaluating based on Red Team critique: the move above POC (68593.76) showed clear signs of absorption (high volume, small candles, upper wicks) near 70k. This suggests a liquidity sweep of retail stops rather than a structural breakout. Price is now back at the POC, which acts as 'Fair Value' in a macro downtrend. Expecting mean reversion toward the Value Area Low (VAL) as aggressive buying has exhausted and the POC is acting as a ceiling rather than a floor.",
+    "reasoning_zh": "1. 止盈距离: 3093.76 (5.78倍 ATR)。2. 止损距离: [基础 1.8倍 + 偏移 1.2倍] = 1606.24。3. 盈亏比: 1.92。4. 市场环境: 波动/震荡。5. 逻辑：根据红队审查进行重新评估：POC (68593.76) 上方的近期走势在 70k 附近显示出明显的吸收迹象（高成交量、小实体蜡烛、上影线）。这表明是针对散户止损的流动性扫荡，而非结构性突破。价格目前回到 POC，在宏观下行趋势中，POC 充当“公允价值”。由于主动买盘已耗尽，且 POC 表现为阻力而非支撑，预计价格将向价值区低点 (VAL) 进行均值回归。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

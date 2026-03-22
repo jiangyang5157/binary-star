@@ -10,8 +10,8 @@ prediction:
 strategy:
   vp_value_area_pct: 0.7
   vp_bins: 50
-  order_flow_lookback_bars: 12
-  trend_intensity_threshold: 0.7
+  order_flow_lookback_bars: 24
+  trend_intensity_threshold: 0.75
   atr_window: 21
   bb_window: 21
   bb_std: 2.0

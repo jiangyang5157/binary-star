@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-28T00:00:00Z",
-    "confidence": 78,
+    "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 65906.3,
-    "take_profit": 64844.18,
-    "stop_loss": 66862.21,
-    "reasoning": "1. TP Dist: 2.0x ATR. 2. SL Dist: 1.8x ATR. 3. TP/SL Ratio: 1.11. 4. Regime: HIGH_VOLATILITY/BEARISH_TREND. 5. Logic: Following the Red Team critique, the recent move above the VAL (65,000) is identified as a low-volume 'Dead Cat Bounce' and a liquidity trap. The 1h chart shows a clear distribution pattern with lower highs and price trading below the EMA. Volume is declining on the upward move, confirming a lack of buyer conviction and a volume-price divergence. The trade targets a continuation of the macro-downtrend into the Low Volume Node (LVN) below 65,000, with the SL placed above the local resistance cluster to protect against a volatility spike.",
-    "reasoning_zh": "1. 止盈距离：2.0x ATR。2. 止损距离：1.8x ATR。3. 盈亏比：1.11。4. 市场环境：高波动/看跌趋势。5. 逻辑：根据红队审查，近期重回价值区域低点（VAL: 65,000）上方的走势被识别为典型的低成交量“死猫跳”和流动性陷阱。1小时图显示明显的派发形态，高点不断降低，且价格处于均线下方。上涨过程中成交量萎缩，证实买盘乏力且存在量价背离。该交易目标是顺应宏观下行趋势，进入 65,000 下方的低成交量节点（LVN），止损设在局部阻力位上方，以防波动性扫盘。",
+    "take_profit": 64844.2,
+    "stop_loss": 66862.2,
+    "reasoning": "1. TP Dist: 1062.1. 2. SL Dist: 955.9 (Base 1.8x ATR). 3. TP/SL Ratio: 1.11. 4. Regime: High Volatility/Bearish Distribution. 5. Logic: Following the structural breakdown on the 1h chart, price is forming a bear flag on the 15m timeframe, pinned below the 20-period EMA. The POC (67694) now acts as a heavy supply ceiling. A breakdown of the VAL (64,962) is expected to trigger a move into the liquidity vacuum below. TP is capped at the 2.0x ATR limit to capture the initial impulse of the breakdown, while SL is placed at 1.8x ATR to clear the immediate 15m resistance zone.",
+    "reasoning_zh": "1. 止盈距离: 1062.1 (2.0x ATR)。2. 止损距离: 955.9 (1.8x ATR 基准)。3. 盈亏比: 1.11。4. 市场环境: 高波动/看跌派发。5. 逻辑: 继 1小时图结构性破位后，15分钟图正形成熊旗整理，价格受制于 20周期 EMA。POC (67694) 已转为沉重的上方供应区。预计价值区低位 (VAL 64,962) 将失守并引发向下方流动性真空区的快速下杀。止盈位设定在 2.0x ATR 限制处以捕捉突破初期的惯性，止损位设在 1.8x ATR 以覆盖 15分钟周期的即时结构阻力。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

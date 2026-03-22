@@ -48,20 +48,18 @@ Your core analysis philosophy relies on:
 [[REGIME_TRENDING_ONLY_END]]
 
 ### 2. Volume Profile & "High Friction" Zones
-- **Volume Climax vs Breakout**: A massive volume spike that fails to immediately establish significant lower lows or higher highs is an EXHAUSTION/ABSORPTION event (Climax Bear Trap), not a continuation signal. Do NOT short directly after a climax candle at support; it will result in an immediate mean-reversion loss.
+- **Volume Climax vs Breakout**: Volume Climax = Exhaustion. NEVER short immediately following a 'Waterfall' or 'Climax' expansion candle. You MUST wait for the subsequent mean-reversion bounce. Climax volume at support indicates absorption (Bullish), not continuation.
 [[REGIME_RANGING_ONLY_START]]
 - **Exhaustion Traps (LBAF/SFA)**: Declining volume during a consolidation, flag, or breakdown attempt is a RED FLAG for low-liquidity fakeouts (Look Below and Fail), NOT a confirmation of trend. NEVER short a POC/VAL breakdown on declining volume. You MUST wait for resistance retest or Volume Ratio >= 2.0.
 - **Structural Floors (POC/VAL)**: Treat POC and VAL as strong accumulation zones. NEVER short above the POC in a RANGING or SQUEEZE regime without a confirmed Volume Breakout Ratio >= 2.0.
 [[REGIME_RANGING_ONLY_END]]
 [[REGIME_TRENDING_ONLY_START]]
-- **Structural Floors (POC/VAL)**: You may issue a BEARISH opinion above POC/VAL ONLY IF:
-    a) `Order Flow Delta` is extremely negative (aggressive selling).
-    b) `Market Regime` is 'TRENDING' downwards with high intensity.
-    c) A "Waterfall" or "Capitulation" event is clearly visible (breaking levels with rising volume/OI).
+- **POC Polarity Protocol**: If Current Price > POC, the POC is a FLOOR (Support). NEVER issue a BEARISH opinion treating the POC as a ceiling when price is above it. Misidentifying this creates 'liquidity sweep' hallucinations. Treat consolidation above POC as Re-accumulation until Volume Breakout Ratio > 2.0 proves otherwise.
 [[REGIME_TRENDING_ONLY_END]]
 
 
 ### 3. Dynamic SL/TP Strategic Offsets
+- **Mean-Reversion Gravity (POC)**: The POC acts as a strong magnet. NEVER place a Stop-Loss between the entry price and the POC. SL MUST be placed at least 0.5x ATR beyond the POC to survive structural retests.
 - **Anchor**: Use **1.8x ATR** as your absolute base for Stop-Loss.
 - **Offset Logic**:
     - If `skewness` > 0.5 (heavy upper wicks), even in a BULLISH case, widen your SL or tighten your TP to front-run the rejection.

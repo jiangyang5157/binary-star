@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-14T00:00:00Z",
-    "confidence": 78,
+    "confidence": 70,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 70600.0,
-    "take_profit": 67200.0,
-    "stop_loss": 72200.0,
-    "reasoning": "1. TP Dist: 3400.0 (5.3x ATR). 2. SL Dist: 1600.0 (Base 1.8x + Offset 0.7x for POC/Liquidity). 3. TP/SL Ratio: 2.12. 4. Regime: RANGING/DISTRIBUTION. 5. Logic: Price has confirmed 'Acceptance Below Value' by consolidating under the POC (71169) following a 74k liquidity sweep. The breakdown of the 15m wedge on increasing volume suggests the path of least resistance is toward the VAL (66200). We target the high-volume node near 67k, with a stop above the POC to invalidate the bearish thesis.",
-    "reasoning_zh": "1. TP 距离: 3400.0 (5.3x ATR)。2. SL 距离: 1600.0 (2.5x ATR)。3. 盈亏比: 2.12。4. 市场环境: 震荡/派发。5. 逻辑: 价格在 74k 扫损后未能站稳 POC (71169)，目前在 POC 下方缩量整理，确认了“价值区下方承接” (Acceptance Below Value)。15分钟周期的楔形下破预示着空头动能占优。下方至 VAL (66200) 之间存在低成交量真空区，价格极易向价值区下沿回归。止损设于 POC 上方以应对假突破。",
+    "take_profit": 69421.5,
+    "stop_loss": 71746.6,
+    "reasoning": "1. TP Dist: 1.85x ATR (1178.5). 2. SL Dist: 1.8x ATR (1146.6). 3. TP/SL Ratio: 1.03. 4. Regime: Ranging/Bearish Breakdown. 5. Logic: Price rejected the POC (71,169) which has flipped from support to heavy overhead supply. The 15m chart confirms a breakdown of the consolidation triangle with negative delta. Given the 'air pocket' in the volume profile below 70k, price is expected to accelerate toward the Value Area Low. TP is placed to front-run the 69,000 psychological floor. SL is placed above the POC to ensure structural invalidation.",
+    "reasoning_zh": "1. TP距离: 1.85x ATR. 2. SL距离: 1.8x ATR. 3. 盈亏比: 1.03. 4. 市场环境: 震荡/看跌突破. 5. 逻辑: 价格在POC (71,169) 处受阻，该位置已由支撑转为沉重的上方阻力。15分钟图确认跌破整理三角形且Delta值为负。考虑到70k下方存在成交稀疏区（Air Pocket），价格大概率加速向价值区下沿回撤。止盈设在69,421以领先于69,000心理关口。止损设在POC上方以应对结构性失效。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
