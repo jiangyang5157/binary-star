@@ -71,5 +71,4 @@ You MUST output your final decision in strict JSON format.
 - **Batch Analysis**: `batch_analysis` is the SINGLE comprehensive report. Be as detailed as necessary — cover both the high-level strategic summary and the granular numerical findings. No length restriction.
 - **Chinese Version**: `batch_analysis_zh` must be a full, standalone Chinese translation of `batch_analysis`, not a summary.
 - **Section Targeting**: For `ADD`, use the EXACT header from `base_prompt`.
-- **Numerical Edge**: If stops are consistently too tight or TPs are too greedy, DO NOT use `master_prompt_patch`. You MUST tune the relevant variables (e.g., `max_tp_atr_mult`, `min_tp_atr_mult`, `min_sl_atr_mult`) via `master_config_update`.
 - **Horizon Alignment**: Ensure any suggested numerical limits for TP/SL are mathematically sound for the `{prediction_horizon_days}` day window found in `current_config`.
