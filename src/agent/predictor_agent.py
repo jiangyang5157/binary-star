@@ -81,16 +81,7 @@ class PredictorAgent:
         common_context = self.get_common_context(master_template)
         footer = self.get_footer(master_template)
         
-        # 3. Dynamic Instruction Pruning (Context-Aware Slashing)
-        market_regime = context_data.get("market_regime", "RANGING").upper()
-        if "TRENDING" in market_regime:
-            common_context = re.sub(r"\[\[REGIME_RANGING_ONLY_START\]\].*?\[\[REGIME_RANGING_ONLY_END\]\]", "", common_context, flags=re.DOTALL)
-            common_context = common_context.replace("[[REGIME_TRENDING_ONLY_START]]", "").replace("[[REGIME_TRENDING_ONLY_END]]", "")
-        else:
-            common_context = re.sub(r"\[\[REGIME_TRENDING_ONLY_START\]\].*?\[\[REGIME_TRENDING_ONLY_END\]\]", "", common_context, flags=re.DOTALL)
-            common_context = common_context.replace("[[REGIME_RANGING_ONLY_START]]", "").replace("[[REGIME_RANGING_ONLY_END]]", "")
-
-        # 4. Global Variables
+        # 3. Global Variables
         dt_now = datetime.now(timezone.utc)
         current_time = dt_now.isoformat().replace("+00:00", "Z")
         format_vars = copy.deepcopy(context_data)
