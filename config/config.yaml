@@ -9,7 +9,7 @@ prediction:
     limit: 192
 strategy:
   vp_value_area_pct: 0.7
-  vp_bins: 50
+  vp_bins: 100
   order_flow_lookback_bars: 24
   trend_intensity_threshold: 0.75
   atr_window: 21

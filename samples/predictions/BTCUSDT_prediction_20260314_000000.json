@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-14T00:00:00Z",
-    "confidence": 70,
+    "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70600.0,
-    "take_profit": 69421.5,
-    "stop_loss": 71746.6,
-    "reasoning": "1. TP Dist: 1.85x ATR (1178.5). 2. SL Dist: 1.8x ATR (1146.6). 3. TP/SL Ratio: 1.03. 4. Regime: Ranging/Bearish Breakdown. 5. Logic: Price rejected the POC (71,169) which has flipped from support to heavy overhead supply. The 15m chart confirms a breakdown of the consolidation triangle with negative delta. Given the 'air pocket' in the volume profile below 70k, price is expected to accelerate toward the Value Area Low. TP is placed to front-run the 69,000 psychological floor. SL is placed above the POC to ensure structural invalidation.",
-    "reasoning_zh": "1. TP距离: 1.85x ATR. 2. SL距离: 1.8x ATR. 3. 盈亏比: 1.03. 4. 市场环境: 震荡/看跌突破. 5. 逻辑: 价格在POC (71,169) 处受阻，该位置已由支撑转为沉重的上方阻力。15分钟图确认跌破整理三角形且Delta值为负。考虑到70k下方存在成交稀疏区（Air Pocket），价格大概率加速向价值区下沿回撤。止盈设在69,421以领先于69,000心理关口。止损设在POC上方以应对结构性失效。",
+    "current_price": 70800.0,
+    "take_profit": 68800.0,
+    "stop_loss": 71946.6,
+    "reasoning": "1. TP Dist: 2000.0 (3.14x ATR). 2. SL Dist: 1146.6 (Base 1.8x ATR). 3. TP/SL Ratio: 1.74. 4. Regime: HIGH_VOLATILITY/DISTRIBUTION. 5. Logic: Following the Red Team critique, the previous bullish wedge is identified as a retail trap/fakeout. Price has decisively broken below the Point of Control (POC: 71169.08) after a Swing Failure Pattern (SFP) at the ATH. The 15m chart confirms a shift in market structure to lower highs and lower lows. The POC has now flipped into a major overhead resistance level. We anticipate a move toward the liquidity cluster near 68,800, which aligns with a mean-reversion toward the Value Area Low (VAL).",
+    "reasoning_zh": "1. 止盈距离: 2000.0 (3.14倍 ATR)。2. 止损距离: 1146.6 (基准 1.8倍 ATR)。3. 盈亏比: 1.74。4. 市场环境: 高波动/派发阶段。5. 逻辑：根据红队审查，之前的看涨楔形被确认为散户陷阱/虚假突破。价格在历史高点（ATH）出现摆动失败模式（SFP）后，已果断跌破控制点（POC: 71169.08）。15分钟图确认市场结构已转变为下降趋势。POC 现已转为主要的上方阻力位。我们预计价格将向 68,800 附近的流动性集群移动，这符合向价值区低点（VAL）回归的预期。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

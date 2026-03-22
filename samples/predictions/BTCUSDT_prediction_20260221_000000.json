@@ -3,11 +3,11 @@
     "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 68005.5,
-    "take_profit": 66350.0,
-    "stop_loss": 69150.0,
-    "reasoning": "1. TP Dist: 1655.5. 2. SL Dist: 1144.5 (Base 1.8x ATR + Offset). 3. TP/SL Ratio: 1.44. 4. Regime: EXHAUSTION/RANGING. 5. Logic: Incorporating the Red Team critique, the recent move to 68k is identified as a 'Ghost Breakout' characterized by declining volume and heavy overhead supply between 68.5k-69.5k. Price is significantly overextended from the POC (67246.7). The strategy shifts to a mean-reversion play, anticipating a liquidity flush toward the Value Area Low (VAL) to clear out late-long retail positions that entered during the low-conviction grind.",
-    "reasoning_zh": "1. TP 距离：1655.5。2. SL 距离：1144.5 (基准 1.8x ATR + 偏移)。3. TP/SL 比率：1.44。4. 市场状态：衰竭/震荡。5. 逻辑：结合红队审查意见，68k 附近的上涨被识别为伴随成交量背离的“虚假突破”，且正撞向 68.5k-69.5k 的重度供应墙。价格目前严重偏离价值中心 POC (67246.7)。在 V2 框架下，由于动能衰竭且上方阻力巨大，预计市场将进行均值回归，下探 VAL (66.2k) 附近以清理在低迷上涨中入场的散户多头杠杆。",
+    "current_price": 67805.2,
+    "take_profit": 66200.0,
+    "stop_loss": 68776.0,
+    "reasoning": "1. TP Dist: 1605.2. 2. SL Dist: [Base 1.8x + Offset 0x]. 3. TP/SL Ratio: 1.65. 4. Regime: [SQUEEZE/RANGING]. 5. Logic: Price is exhibiting volume-price divergence on the 15m chart, suggesting a 'low-volume grind' into overhead supply. Given the macro 1h downtrend (lower highs) and the magnetic pull of the POC at 67246.7, a mean-reversion to the Value Area Low (VAL) at 66200 is highly probable to clear long-side liquidity traps identified in the red team critique.",
+    "reasoning_zh": "1. TP 距离: 1605.2 (目标 VAL)。2. SL 距离: 970.8 (基准 1.8x ATR)。3. TP/SL 比率: 1.65。4. 市场状态: [挤压/震荡]。5. 逻辑: 15分钟图显示明显的量价背离，价格在缺乏成交量支持的情况下向上‘漂移’，属于典型的多头衰竭信号。结合1小时图的下降结构（更低的高点）以及 POC (67246.7) 的强引力作用，预计价格将发生均值回归，向下回测价值区低点 (VAL) 66200 附近，以清理在微型通道顶部堆积的多头流动性。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

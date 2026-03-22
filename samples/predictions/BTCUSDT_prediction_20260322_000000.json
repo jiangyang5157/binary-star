@@ -4,10 +4,10 @@
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 68904.5,
-    "take_profit": 68264.5,
-    "stop_loss": 69484.9,
-    "reasoning": "1. TP Dist: 640.0. 2. SL Dist: 580.4 (Base 1.8x ATR). 3. TP/SL Ratio: 1.10. 4. Regime: TRENDING/Waterfall. 5. Logic: Validating the Red Team Critique, the high-volume 'Waterfall' candle through the POC (69,949) signals a major liquidation event rather than a support test. Macro 1h structure shows a completed distribution phase with lower highs. Shorting the continuation as price breaks the Value Area Low (VAL), targeting the next liquidity pocket while maintaining a strict ATR-based stop to manage volatility.",
-    "reasoning_zh": "1. 止盈距离：640.0。2. 止损距离：580.4（基于 1.8x ATR）。3. 盈亏比：1.10。4. 市场环境：趋势/瀑布式下跌。5. 逻辑：验证红队审查结论，放量跌破 POC（69,949）的‘瀑布’阴线标志着重大的清算事件，而非支撑测试。宏观 1 小时结构显示派发阶段已完成并伴随更低的高点。在价格跌破价值区低点（VAL）时顺势做空，目标是下一个流动性口袋，同时保持严格的基于 ATR 的止损以应对波动。",
+    "take_profit": 67000.0,
+    "stop_loss": 70000.0,
+    "reasoning": "1. TP Dist: 1904.5. 2. SL Dist: [Base 1.8x + Offset 1.6x]. 3. TP/SL Ratio: 1.74. 4. Regime: High Volatility/Trending Down. 5. Logic: Pivot to bearish following the high-volume 'waterfall' breakdown of the POC (69949). The Red Team critique correctly identifies this as a momentum shift where the VAL (68500) acts as a liquidity trap rather than support. Target is the 67k psychological level/swing low.",
+    "reasoning_zh": "在红队审查后，我们将观点转为看跌。15分钟图显示高成交量的‘瀑布式’下跌，价格放量跌破POC（69949），暗示市场进入下行趋势。VAL（68500）处缺乏买盘吸收，极可能成为流动性陷阱。止损设在POC上方以对冲反弹风险，目标看向67000附近的结构性支撑。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-14T00:00:00Z",
-    "confidence": 72,
+    "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 68593.76,
-    "take_profit": 65500.0,
-    "stop_loss": 70200.0,
-    "reasoning": "1. TP Dist: 3093.76 (5.78x ATR). 2. SL Dist: [Base 1.8x + Offset 1.2x] = 1606.24. 3. TP/SL Ratio: 1.92. 4. Regime: VOLATILE/RANGING. 5. Logic: Re-evaluating based on Red Team critique: the move above POC (68593.76) showed clear signs of absorption (high volume, small candles, upper wicks) near 70k. This suggests a liquidity sweep of retail stops rather than a structural breakout. Price is now back at the POC, which acts as 'Fair Value' in a macro downtrend. Expecting mean reversion toward the Value Area Low (VAL) as aggressive buying has exhausted and the POC is acting as a ceiling rather than a floor.",
-    "reasoning_zh": "1. 止盈距离: 3093.76 (5.78倍 ATR)。2. 止损距离: [基础 1.8倍 + 偏移 1.2倍] = 1606.24。3. 盈亏比: 1.92。4. 市场环境: 波动/震荡。5. 逻辑：根据红队审查进行重新评估：POC (68593.76) 上方的近期走势在 70k 附近显示出明显的吸收迹象（高成交量、小实体蜡烛、上影线）。这表明是针对散户止损的流动性扫荡，而非结构性突破。价格目前回到 POC，在宏观下行趋势中，POC 充当“公允价值”。由于主动买盘已耗尽，且 POC 表现为阻力而非支撑，预计价格将向价值区低点 (VAL) 进行均值回归。",
+    "current_price": 69062.2,
+    "take_profit": 67188.6,
+    "stop_loss": 70132.8,
+    "reasoning": "1. TP Dist: 3.5x ATR (1873.55). 2. SL Dist: [Base 1.8x + Offset 0.2x] (1070.6). 3. TP/SL Ratio: 1.75. 4. Regime: HIGH_VOLATILITY/BEARISH. 5. Logic: Price rejection at the POC (68593.76) is confirmed by 15m distribution and volume-price divergence (declining volume on flat price). The 1h chart reveals a classic Bear Flag structure following a major impulse down. Shorting at the POC targets a mean-reversion move toward the Value Area Low (VAL) near 63k. The SL offset is applied to protect against the 'Liquidity Hunt' wicks identified in the critique.",
+    "reasoning_zh": "1. 止盈距离：3.5倍 ATR (1873.55)。2. 止损距离：[基础 1.8x + 偏移 0.2x] (1070.6)。3. 盈亏比：1.75。4. 市场环境：高波动/看跌。5. 逻辑：价格在控制点 (POC: 68593.76) 处的受阻得到了15分钟线派发形态和量价背离（价格持平但成交量下降）的确认。1小时图显示在大跌后形成了典型的熊旗结构。在 POC 处做空的目标是向 63k 附近的价值区低点 (VAL) 进行均值回归。止损偏移量的设置是为了防止红队审查中提到的 POC 上方的“流动性猎取”影线。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
