@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-25T00:00:00Z",
-    "confidence": 78,
+    "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 64109.0,
-    "take_profit": 62200.0,
-    "stop_loss": 64850.0,
-    "reasoning": "Following the critique's logic, the market has executed a clear 'break-and-retest' of the Value Area Low (VAL) at 64,109.06. The 15m chart confirms this with multiple rejection wicks at the VAL level on declining volume, indicating that previous support has flipped into a hard resistance ceiling. The 1h trend remains firmly bearish with a sequence of lower highs and lower lows. Given the 'volume gap' visible in the profile below the VAL, price is expected to accelerate downward to hunt liquidity near the 62,200 level. The stop loss is placed above the recent 15m consolidation cluster to invalidate the bearish retest thesis.",
-    "reasoning_zh": "遵循评测逻辑，市场已完成对价值区低沿 (VAL) 64,109.06 的典型“跌破并回测”动作。15分钟图确认了这一点：价格在 VAL 附近多次收出上影线且买盘成交量萎缩，表明之前的支撑位已确认为强阻力位。1小时级别趋势维持坚定的下降通道（高低点降低）。鉴于成交量分布图中 VAL 下方存在明显的“成交真空区”，预计价格将加速下跌以寻找 62,200 附近的流动性。止损位设在 15 分钟近期盘整簇上方，若突破则看跌回测逻辑失效。",
+    "current_price": 64188.9,
+    "take_profit": 63200.0,
+    "stop_loss": 64800.0,
+    "reasoning": "1. TP Dist: 988.9 (vs ATR-Ref: 536.038). 2. SL Dist: 611.1 (>=1.0x ATR). 3. TP/SL Ratio: 1.61 (>=1.5). 4. Ceiling Check: Price 64188.9 is testing the Value Area Low (VAL) at 64109.06 as resistance. 5. Logic: Following the sharp breakdown from the 67k-70k distribution range, the current move back to the VAL is a textbook bearish retest on declining volume. The 15m chart shows clear rejection wicks at this level, indicating that previous support has flipped to resistance. The 'volume gap' above 64k acts as a vacuum that lacks structural support, making a continuation lower to hunt liquidity below the recent 62.5k swing low the high-probability outcome.",
+    "reasoning_zh": "1. 止盈距离: 988.9 (ATR参考值: 536.038)。2. 止损距离: 611.1 (>=1.0x ATR)。3. 盈亏比: 1.61 (>=1.5)。4. 阻力检查: 当前价格 64188.9 正在将价值区低点 (VAL) 64109.06 作为阻力位进行测试。5. 逻辑: 在 67k-70k 分派区间放量跌破后，目前回升至 VAL 的走势是典型的缩量回抽确认（Bearish Retest）。15分钟图表在该水平出现明显的上影线拒绝信号，表明之前的支撑已转为阻力。64k 上方的“成交量真空区”缺乏结构性支撑，因此价格大概率将受阻回落，去扫除前期低点 62.5k 下方的流动性。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

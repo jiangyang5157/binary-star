@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-11T00:00:00Z",
-    "confidence": 70,
+    "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 70000.0,
-    "take_profit": 67250.0,
-    "stop_loss": 71550.0,
-    "reasoning": "Following the rejection at the Value Area High (VAH) near 72,500, the 1h chart shows a macro lower-high formation. The 15m chart reveals a descending channel where recent 'bullish' attempts are characterized by declining volume, suggesting a lack of institutional follow-through. There is a significant volume gap between 71,000 and the Point of Control (POC) at 67,184.96; a break below 69,500 is likely to trigger a long-squeeze back to the POC for a mean-reversion play. The risk-to-reward ratio favors a short position targeting the high-liquidity POC zone.",
-    "reasoning_zh": "在价值区高沿 (VAH) 约 72,500 附近遭到拒绝后，1小时图显示出宏观较低高点的结构。15分钟图显示价格处于下降通道中，且近期的反弹伴随着成交量萎缩，暗示缺乏机构资金支持。由于 71,000 至控制点 (POC) 67,184.96 之间存在成交量真空区，一旦跌破 69,500，极易引发多头挤压并导致价格回踩 POC 进行均值回归。目前的盈亏比有利于看空，目标指向高流动性的 POC 区域。",
+    "take_profit": 67185.0,
+    "stop_loss": 71500.0,
+    "reasoning": "1. TP Dist: 2815.0. 2. SL Dist: 1500.0. 3. TP/SL Ratio: 1.87. 4. Floor Check: Price 70000.0 is significantly above POC 67184.96. 5. Logic: The 15m teal wedge is a Bear Flag following a sharp rejection from the 74k ATH. Declining volume on the bounce indicates a lack of aggressive buying. The POC at 67,184.96 acts as a mean-reversion magnet. A breakdown of the wedge is expected to trigger a liquidation flush towards the high-volume support zone.",
+    "reasoning_zh": "1. TP 距离: 2815.0。2. SL 距离: 1500.0。3. 盈亏比: 1.87。4. 地板检查: 价格 70000.0 显著高于 POC 67184.96，存在回归需求。5. 逻辑: 15 分钟图上的青色楔形被识别为看跌旗形，是在 74k 历史高点受阻回落后的弱势整理。反弹期间成交量持续萎缩，暗示买盘枯竭。POC (67,184.96) 具有强大的磁吸效应，预计价格将跌破旗形并回测该高成交量支撑区。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

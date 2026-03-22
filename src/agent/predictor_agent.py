@@ -164,8 +164,8 @@ class PredictorAgent:
               "current_price": 70000.5,
               "take_profit": 75000.0,
               "stop_loss": 68000.0,
-              "reasoning": "Technical, logical analysis justifying the opinion. Mention specific chart levels (POC/VAH/VAL), volume spikes, and sentiment indicators used for the final decision.",
-              "reasoning_zh": "结合图表支撑/压力位、成交量和市场情绪出的核心研判。要求逻辑清晰、对用户友好且包含关键技术位点。"
+              "reasoning": "1. TP Dist, 2. SL Dist, 3. TP/SL Ratio, 4. Floor Check. Followed by detailed technical/logical justification as defined in your system instructions.",
+              "reasoning_zh": "核心研判：必须包含 1-4 点机械化自检（TP/SL/盈亏比/地板检查），随后是逻辑详述。"
             }}
             NOTE: For NEUTRAL actions, set take_profit and stop_loss to null but still provide current_price.
             """

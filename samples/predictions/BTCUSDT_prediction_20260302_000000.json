@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-02T00:00:00Z",
-    "confidence": 85,
+    "confidence": 60,
     "opinion": "NEUTRAL",
     "action": "WAIT",
-    "current_price": 66472.5,
+    "current_price": 65800.0,
     "take_profit": null,
     "stop_loss": null,
-    "reasoning": "The market is currently in a high-risk 'no-trade' zone. 1. Resistance: The POC at 67643.96 is acting as a heavy supply ceiling; the distance to this target (minus the 0.3% front-run requirement) is 968.5, failing the 1.5x Macro ATR threshold (1080.9). 2. Support: While the price is above the VAL (63789.36), preventing a bearish bias per internal rules, the 15m chart reveals a textbook 'Bear Flag' consolidation with declining volume on the bounce, suggesting a distribution phase rather than accumulation. 3. Liquidity: A high L/S ratio (1.74) indicates retail is heavily longing the dip, creating a massive liquidity pool below the Feb 24 lows (~63k) that market makers are likely to target. 4. Conclusion: With conflicting structural rules and a clear bearish divergence in volume/price action, the probability of a stop-run to the downside is high, but the entry criteria for a short are not yet met.",
-    "reasoning_zh": "市场目前处于高风险的“非交易区”。1. 阻力位：POC (67643.96) 正充当沉重的供应天花板；到该目标的获利空间（扣除 0.3% 提前挂单要求后）仅为 968.5，未达到 1.5x Macro ATR 的门槛 (1080.9)。2. 支撑位：虽然价格高于 VAL (63789.36)，根据规则禁止看空，但 15 分钟图显示了一个典型的“看跌旗形”整理，且反弹成交量萎缩，暗示这是派发阶段而非吸筹。3. 流动性：高达 1.74 的多空比显示散户正在大量抄底，这在 2 月 24 日低点（约 63k）下方形成了巨大的流动性池，极易引发机构的扫损行为。4. 结论：由于结构性规则冲突且量价行为出现明显的看跌背离，向下洗盘的概率较高，但在跌破关键支撑前，多空双方均缺乏高盈亏比的入场机会。",
+    "reasoning": "1. TP/SL Dist: N/A. 2. TP/SL Ratio: N/A. 3. Floor Check: Price (65800) is above the VAL (~63700), rendering a BEARISH opinion forbidden. 4. Logic: The price is currently drifting in 'No Man's Land' between the POC (67643) and the VAL. While a bullish setup could theoretically be constructed to meet ATR constraints (TP ~67000), the required Stop Loss to maintain the mandatory 2.0 R:R would be at 65200. This is structurally unsound as it sits right in the middle of recent 15m volatility and above the local swing low. The Red Team critique correctly identifies the 'gravity' of the VAL and the distributive volume profile (high volume on red candles). Without a clear reclaim of the POC or a sweep of the VAL, there is no high-probability edge.",
+    "reasoning_zh": "1. TP/SL 距离: 不适用。2. 盈亏比: 不适用。3. 底部检查: 价格 (65800) 高于 VAL (~63700)，根据规则禁止看空。4. 逻辑: 价格目前在 POC (67643) 和 VAL 之间的“无人区”漂移。虽然理论上可以构建符合 ATR 约束的多单方案（止盈约 67000），但为了维持强制性的 2.0 盈亏比，止损位需设在 65200。从结构上看这是不合理的，因为它处于 15 分钟图近期波动范围的中间，且高于局部波动低点。红队评估正确指出了 VAL 的吸引力以及派发性的成交量特征（阴线放量）。在没有明确收复 POC 或回踩 VAL 之前，不存在高概率的交易优势。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

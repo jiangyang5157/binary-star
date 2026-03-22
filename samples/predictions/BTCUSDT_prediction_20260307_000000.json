@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-07T00:00:00Z",
-    "confidence": 80,
-    "opinion": "BEARISH",
-    "action": "SHORT",
-    "current_price": 68100.0,
-    "take_profit": 64000.0,
-    "stop_loss": 70200.0,
-    "reasoning": "The market structure has shifted significantly bearish following the violent rejection at the 74k highs. The 15m chart reveals a clear bear flag/descending triangle consolidating directly on the Macro POC (67,991.20). The failure to produce an immediate impulsive bounce from this high-volume node suggests that the level is being used for distribution rather than accumulation. Volume profile analysis shows a significant 'liquidity gap' (low-volume node) between the POC and the Value Area Low (VAL) near 63,500. A breakdown below the current consolidation will likely trigger a long squeeze, flushing price through this thin volume area toward the VAL. Declining buy-side volume during this consolidation confirms the exhaustion of the previous bullish trend.",
-    "reasoning_zh": "在74,000点高位遭到剧烈拒绝后，市场结构已明显转为看跌。15分钟图显示价格在宏观POC（67,991.20）处形成了清晰的看跌旗形/下降三角形。价格未能从该高成交量节点立即反弹，表明该水平目前更多被用于派发而非累积。成交量分布分析显示，在POC与价值区低点（VAL，约63,500）之间存在显著的‘流动性真空’（低成交量区）。一旦跌破当前的盘整区间，极易引发多头挤压，导致价格快速穿过薄弱成交区向VAL回落。盘整期间买盘成交量的萎缩进一步证实了此前牛市趋势的枯竭。",
+    "confidence": 65,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 68243.2,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "1. TP/SL: N/A (Neutral). 2. Floor Check: Price 68243.2 is marginally above POC 67991.2, which technically prohibits a bearish stance per system rules. 3. Logic: The Red Team critique identifies a 'Fatal Flaw' in the initial bullish thesis, correctly noting that the POC is acting as a magnet rather than firm support. The 15m chart shows a bearish continuation pattern (bear flag/descending wedge) with declining volume on the 'recovery,' indicating a lack of buyer conviction. 4. Risk Management: Entering a long here is a high-risk 'liquidity trap' play, as the market structure suggests a potential rotation through the POC toward the Value Area Low (VAL) near 63,500 to find actual liquidity. Neutrality is maintained until a high-volume breakout or a confirmed breakdown occurs.",
+    "reasoning_zh": "1. TP/SL: 无 (中立)。2. 地板检查: 价格 68243.2 略高于 POC 67991.2，根据系统规则技术上禁止看空。3. 逻辑: 红队评估指出了原看涨逻辑中的“致命错误”，正确地指出 POC 目前表现为吸引价格的“磁石”而非坚实支撑。15分钟图显示缩量形成的看跌持续形态（熊旗/下降楔形），表明买盘动能匮乏。4. 风险管理: 在此处做多属于高风险的“流动性陷阱”，因为市场结构暗示价格极有可能穿透 POC 向价值区低点 (VAL) 约 63,500 附近回撤以寻找真正的流动性。在出现放量突破或确认跌破之前，保持中立观望。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

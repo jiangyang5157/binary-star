@@ -49,7 +49,7 @@ Specifically look for:
 - Do not blindly entry breakouts; require high Taker Volume and rising Open Interest (OI) for confirmation.
 - Wait for a structural shift (Higher Highs/Lower Lows) or a retest with exhaustion wicks on the {micro_interval} chart.
 - Treat breakouts that immediately stall with long rejection wicks as Liquidity Traps or Fakeouts.
-- ABSOLUTE BAN ON PREDICTIVE ANTICIPATION & SHORTING INTO SUPPORT: If current_price >= POC or current_price >= VAL, you are FORBIDDEN from issuing a BEARISH opinion. You CANNOT treat support levels as 'magnets' or target them for 'liquidity sweeps'. They are IMPENETRABLE FLOORS. BANNED TERMS: 'liquidity vacuum', 'air pocket', 'volume void', 'volume gap'. Wait for a mathematical structural breakdown before shorting.
+- ABSOLUTE BAN ON PREDICTIVE ANTICIPATION & SHORTING INTO SUPPORT: If current_price >= POC or current_price >= VAL, you are FORBIDDEN from issuing a BEARISH opinion. Micro-timeframe (15m) patterns like 'wedges' or 'exhaustion wicks' CANNOT override this Macro rule. You CANNOT treat support levels as 'magnets' or target them for 'liquidity sweeps'. They are IMPENETRABLE FLOORS. BANNED TERMS: 'liquidity vacuum', 'air pocket', 'volume void', 'volume gap'. Wait for a definitive 1h candle close below the level before shorting.
 
 ### 2. Value Area & POC Dynamics
 - Identify the Macro POC and treat it as a primary consolidation magnet or structural floor.
@@ -73,7 +73,7 @@ Specifically look for:
 - Sentiment Data Hierarchy: Price Structure > Volume > Sentiment. High L/S ratios (even >2.0) are secondary background noise unless accompanied by a confirmed 15m structural breakdown. NEVER use sentiment to abort a technically sound BUY setup if price is holding firmly above the POC, and NEVER use it to justify shorting into support.
 
 ### 5. Risk, Reward & Logic (Mandatory)
-- Mathematical TP/SL Check (STRICT): You MUST calculate the Take-Profit-to-Stop-Loss ratio. Condition A: (TP distance / SL distance) MUST be >= **MIN_TP_SL_RATIO** ({min_tp_sl_ratio}). Condition B: TP distance MUST be within [**MIN_TP_ATR_MULT** * Macro ATR, **MAX_TP_ATR_MULT** * Macro ATR].
+- Mathematical TP/SL Check (STRICT): You MUST calculate the Take-Profit-to-Stop-Loss ratio. Condition A: (TP distance / SL distance) MUST be >= **MIN_TP_SL_RATIO** ({min_tp_sl_ratio}). Do NOT hallucinate stricter R:R requirements (like 2.0). If price holds above VAL/POC, lean BULLISH even if it requires sizing down the TP or using a wider, safer SL to fit structural levels. Condition B: TP distance MUST be within [**MIN_TP_ATR_MULT** * Macro ATR, **MAX_TP_ATR_MULT** * Macro ATR].
 - **Adaptive Greed Constraint**: For the current {prediction_horizon_days}-day horizon, your TP distance SHOULD NOT exceed **MAX_TP_ATR_MULT**x Macro ATR ({atr_macro}). If technical structure (POC/VAH) requires a move larger than the max multiplier, you MUST either truncate your TP or output 'NEUTRAL'.
 - **Target Threshold**: Only prioritize setups where the primary Take Profit target represents a price move of at least **MIN_TP_ATR_MULT**x Macro ATR ({atr_macro}) from the `current_price`.
 - Set Take Profit targets based on the nearest structural hurdle (Round numbers, POC, VAH/VAL), but always validate against the ATR limits above.
