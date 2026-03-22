@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-21T00:00:00Z",
+    "confidence": 72,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 67805.2,
+    "take_profit": 66100.0,
+    "stop_loss": 68900.0,
+    "reasoning": "1. TP Dist: 3.16x ATR (Targeting Value Area Low). 2. SL Dist: 2.03x ATR (Base 1.8x + 0.23x offset for overhead wick protection). 3. TP/SL Ratio: 1.56. 4. Regime: SQUEEZE/RANGING. 5. Logic: Following Red Team critique, the 15m 'bullish pennant' is identified as a low-volume liquidity trap. Macro 1h structure shows a clear series of lower highs and heavy supply absorption near 69k. Price is 'velcroed' to the POC (67,246), suggesting it is acting as a magnet rather than support. Expecting a breakdown toward the VAL (66,100) as the volatility squeeze resolves downward.",
+    "reasoning_zh": "1. 止盈距离：3.16x ATR（目标为价值区低点 VAL）。2. 止损距离：2.03x ATR（1.8x 基准 + 0.23x 针对上方影线的保护偏移）。3. 盈亏比：1.56。4. 市场环境：挤压/震荡。5. 逻辑：参考红队审查，15m 级别的“看涨旗形”缺乏成交量支持，确认为流动性陷阱。1h 宏观趋势呈现明显的下降高点（Lower Highs），且 POC (67,246) 表现出磁吸效应而非支撑。上方 69k 附近抛压沉重，预计价格将向价值区下沿 (66,100) 回撤以完成均值回归。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

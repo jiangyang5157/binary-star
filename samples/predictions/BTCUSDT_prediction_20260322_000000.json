@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-22T00:00:00Z",
+    "confidence": 85,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 68904.5,
+    "take_profit": 67614.7,
+    "stop_loss": 69710.6,
+    "reasoning": "1. TP Dist: 4.0x ATR. 2. SL Dist: 2.5x ATR (Base 1.8x + 0.7x Volatility Offset). 3. TP/SL Ratio: 1.6. 4. Regime: HIGH_VOLATILITY/TRENDING. 5. Logic: The 15m chart shows a definitive high-volume breakdown of the POC (69949.67), signaling aggressive institutional selling. The POC has flipped from support to major overhead resistance. Price is currently testing the VAL (68700); a failure here opens a liquidity vacuum toward 67k. The SL is placed just below the POC to maintain a tight R:R while respecting the new resistance level.",
+    "reasoning_zh": "1. TP 距离: 4.0x ATR (趋势目标)。2. SL 距离: 2.5x ATR (基准 1.8x + 0.7x 波动率偏移)。3. TP/SL 比率: 1.6。4. 市场环境: 高波动/趋势行情。5. 逻辑: 15分钟图表显示 POC (69949.67) 出现决定性的放量跌破，表明机构抛压沉重。POC 已由支撑转为强压力位。目前价格正回测价值区低点 (VAL 68700)，一旦失守将进入下方流动性真空区（目标 67k 附近）。止损设在 POC 下方以优化盈亏比，同时尊重新的阻力结构。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

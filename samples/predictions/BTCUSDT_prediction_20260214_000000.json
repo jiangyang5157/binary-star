@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-14T00:00:00Z",
+    "confidence": 72,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 68593.76,
+    "take_profit": 67523.2,
+    "stop_loss": 69610.8,
+    "reasoning": "1. TP Dist: 2.0x ATR. 2. SL Dist: 1.9x ATR (Base 1.8x + 0.1x Offset). 3. TP/SL Ratio: 1.05. 4. Regime: LOW_VOLATILITY/RANGING. 5. Logic: Following the Red Team critique, the previous bullish bias was identified as 'POC Blindness'. Current 15m price action shows a clear bull trap/fakeout above the POC (68593.76) with declining volume and exhaustion wicks. The macro trend remains bearish after the rejection from 85k. TP is set at the 2.0x ATR limit to capture the initial leg of the expected reversal toward the range lows. SL is placed above the fakeout high (1.9x ATR) to protect against volatility sweeps.",
+    "reasoning_zh": "1. 止盈距离：2.0x ATR。2. 止损距离：1.9x ATR（1.8x 基准 + 0.1x 偏移）。3. 盈亏比：1.05。4. 市场环境：低波动/震荡（RANGING）。5. 逻辑：根据红队审查，之前的看涨观点被识别为“POC 盲区”陷阱。15分钟图显示在 POC（68593.76）上方出现了明显的“多头陷阱”，伴随成交量萎缩和长上影线。大趋势在 85k 见顶后依然偏空。止盈设在 2.0x ATR 的数学上限，旨在捕捉向区间下沿回落的初期动能。止损设在假突破高点上方（1.9x ATR），以规避波动扫损。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

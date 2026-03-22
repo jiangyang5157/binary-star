@@ -283,6 +283,9 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                 # Save review
                 try:
                     parsed_review = json.loads(review_content)
+                    if isinstance(parsed_review, list) and len(parsed_review) > 0:
+                        parsed_review = parsed_review[0]
+                    
                     final_record = {
                         "prediction": {
                             "source": filename,

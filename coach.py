@@ -134,6 +134,9 @@ def run_coach_pipeline(n: int, base_dir: str = None):
     
     try:
         parsed_coach = json.loads(coach_content)
+        if isinstance(parsed_coach, list) and len(parsed_coach) > 0:
+            parsed_coach = parsed_coach[0]
+            
         final_record = {
             "symbol": symbol,
             "sources": [item["filename"] for item in target_reviews],

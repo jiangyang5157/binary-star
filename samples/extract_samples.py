@@ -42,6 +42,12 @@ class SampleExtractor:
                         continue
                         
                 analysis = data.get('analysis', {})
+                if isinstance(analysis, list) and len(analysis) > 0:
+                    analysis = analysis[0]
+                
+                if not isinstance(analysis, dict):
+                    continue
+                
                 pred_content = data.get('prediction', {}).get('content', {})
                 
                 if not isinstance(analysis, dict): continue

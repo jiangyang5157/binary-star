@@ -60,7 +60,10 @@ def apply_patches(base_text: str, patch_list: List[Dict[str, Any]]) -> str:
 def apply_to_prompt(report_data: Dict[str, Any], prompt_path: str):
     """Applies master_prompt_patch from report to the specified prompt file."""
     analysis = report_data.get("analysis", {})
-    patch_list = analysis.get("master_prompt_patch", [])
+    if isinstance(analysis, list) and len(analysis) > 0:
+        analysis = analysis[0]
+        
+    patch_list = analysis.get("master_prompt_patch", []) if isinstance(analysis, dict) else []
     
     if not patch_list:
         logger.info("No master_prompt_patch found in the report. Skipping prompt update.")
@@ -106,8 +109,11 @@ def apply_to_config(report_data: Dict[str, Any], config_path: str):
     Supports both nested and flat key updates.
     """
     analysis = report_data.get("analysis", {})
+    if isinstance(analysis, list) and len(analysis) > 0:
+        analysis = analysis[0]
+        
     # Note: Coach prompt uses master_config_update
-    config_update = analysis.get("master_config_update", {})
+    config_update = analysis.get("master_config_update", {}) if isinstance(analysis, dict) else {}
     
     if not config_update:
         logger.info("No master_config_update found in the report. Skipping config update.")
