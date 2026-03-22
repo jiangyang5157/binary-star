@@ -1,4 +1,5 @@
 import os
+import re
 import copy
 import logging
 from typing import Dict, Any
@@ -56,8 +57,21 @@ class PredictorAgent:
 
         # 2. Prepare context data
         context_summary = copy.deepcopy(context_data)
-        
-        # Format the specific text prompt with our dynamic data
+        market_regime = context_summary.get("market_regime", "RANGING").upper()
+
+        # 3. Dynamic Instruction Pruning (Context-Aware Slashing)
+        if "TRENDING" in market_regime:
+            # Remove Ranging blocks
+            formatted_prompt = re.sub(r"\[\[REGIME_RANGING_ONLY_START\]\].*?\[\[REGIME_RANGING_ONLY_END\]\]", "", formatted_prompt, flags=re.DOTALL)
+            # Strip Trending markers but keep content
+            formatted_prompt = formatted_prompt.replace("[[REGIME_TRENDING_ONLY_START]]", "").replace("[[REGIME_TRENDING_ONLY_END]]", "")
+        else:
+            # Remove Trending blocks
+            formatted_prompt = re.sub(r"\[\[REGIME_TRENDING_ONLY_START\]\].*?\[\[REGIME_TRENDING_ONLY_END\]\]", "", formatted_prompt, flags=re.DOTALL)
+            # Strip Ranging markers but keep content
+            formatted_prompt = formatted_prompt.replace("[[REGIME_RANGING_ONLY_START]]", "").replace("[[REGIME_RANGING_ONLY_END]]", "")
+
+        # 4. Prepare for output formatting
         dt_now = datetime.now(timezone.utc)
         current_time = dt_now.isoformat().replace("+00:00", "Z")
         
