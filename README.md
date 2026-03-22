@@ -52,15 +52,17 @@ crypto/
 ### 👤 Agent A (Predictor) — 执行大脑
 *   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio）。
 *   **三轮推演**：执行 `初步分析` -> `红队质疑 (Red Team Critique)` -> `最终决策`。这种架构能有效识别陷阱，降低伪突破的诱惑。
-*   **数学约束**：严格遵守 **3.5% 止盈上限** 和 **1.5x 盈亏比**。若二者冲突，Agent 将强制输出 `NEUTRAL`。
+*   **数学约束**：严格遵守配置的 **盈亏比门槛** (`min_tp_sl_ratio`) 和 **基于 ATR 的动态止盈空间** (`max_tp_atr_mult`)。若当前市场波动不满足这些约束，Agent 将强制输出 `NEUTRAL`，保持绝对的风险偏好一致性。
 
+### 🛡️ Agent B (Reviewer) — 审计法官
 *   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
 *   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
 *   **深度复盘**：分析为什么预测失败（如："未能识别 POC 下方的成交量真空区"），为 Coach 提供高质量的底层数据。
 
 ### 🧠 Agent C (Coach) — 战略导师
-*   **模式识别**：跳出单场胜负，观察全局。例如：如果最近 10 场失败中有 7 场是因为“右侧入场太晚”，Coach 会识别出这一系统性偏差。
-*   **输出补丁**：产出具体的调整建议，包括对 `prompt_predictor.txt` 内的 `ADD/REPLACE/REMOVE` 和 `config.yaml` 中的参数。
+*   **战略元分析**：不同于 A 和 B 关注单场胜负，Coach 通过批量分析（Batch Analysis）识别系统性的行为特征。例如：识别出高波环境下的止损过窄，或单边趋势中的止盈过早。
+*   **闭环自进化**：根据分析结果直接生成 `Master Patch`。这些补丁包含对 `prompt_predictor.txt` 的逻辑指令重构（ADD/REPLACE/REMOVE）以及对 `config.yaml` 核心参数（如 `min_tp_sl_ratio`）的数值调优建议。
+*   **双模式运行**：既可以对生产环境的真实报告进行“在线指导”，也可以在 `samples/` 隔离区驱动“靶向压力测试”实现暴力进化。
 
 ---
 
@@ -143,14 +145,18 @@ python samples/run_samples.py
 
 ---
 
-## 📊 术语速查
+## 📊 关键字
 
-| 术语 | 全称 | 说明 |
+| 关键字 | 全称 | 说明 |
 |------|------|------|
 | **POC** | Point of Control | 成交量最集中的价格区域，通常具有强大的吸引力/支撑力 |
 | **VAH/VAL** | Value Area H/L | 价值区域上下界，主要的成交量在此区间完成 |
 | **OI** | Open Interest | 未平仓合约，增加通常意味着趋势的持续或增强 |
 | **Red Team** | 红队 | 专门负责寻找预测漏洞的逻辑环节，防止 AI 产生"证实偏差" |
+| **min_tp_sl_ratio** | 盈亏比门槛 | 核心风控参数，(止盈/止损) 必须大于此值才会下单 |
+| **max_tp_atr_mult** | 止盈 ATR 乘数 | 基于 ATR 计算的动态止盈上限，防止 AI 陷入不切实际的“贪婪” |
+| **min_sl_atr_mult** | 止损 ATR 乘数 | 止损位至少需要具备的 ATR 缓冲，防止被正常的波动“扫描”扫损 |
+| **prediction_horizon_days** | 预测周期 | 系统预期持仓/预测的有效天数，直接影响 ATR 计算的宏观参考 |
 
 ---
 
@@ -172,60 +178,42 @@ python simulator.py --days 14 --sampling 10 --mode spaced
 
 ## 💎 核心开发流：Prompt 质量提升 (Standard Workflow)
 
-当你发现预测的准确率（尤其是止盈止损）不理想时，请按照以下标准流程进行一轮“进化”：
+当你发现预测准确率（如 SL 触发频繁）不理想时，请按照以下“磨刀石”标准流程进行针对性进化：
 
-1.  **第一阶段：全局博弈录制 (Training)**
-    运行大样本回测以收集系统性错误：
+1.  **第一阶段：仿真与录制 (Record & Sample)**
+    在回测模拟器中运行大样本，记录不同行情下的系统表现：
     ```bash
     python simulator.py --days 30 --sampling 20 --mode regime
     ```
-    *注：`regime` 模式能确保在牛/熊/高低波动下都有足够样本。*
 
-2.  **第二阶段：战略分析与注入 (Coach & Patch)**
-    运行 Coach 处理这 20 个复盘报告并应用补丁：
+2.  **第二阶段：全局策略注入 (Batch Coach & Patch)**
+    运行 Coach 分析这 20 个样本的系统性偏差，并应用第一轮“基础补丁”：
     ```bash
     python coach.py --batch 20
-    python apply_patches.py data/coach/coach_BTCUSDT_2026xxxx.json
+    python apply_patches.py data/coach/coach_latest.json
     ```
 
-3.  **第三阶段：独立验证 (Testing/Validation)**
-    使用从未见过的最新数据验证优化效果：
+3.  **第三阶段：弱点提取 (Extract Targets)**
+    使用提取工具将刚才仍然失败（SL）、逻辑混乱或评分较低的案例移动到 `samples/` 磨刀石工作室：
     ```bash
-    python simulator.py --days 10 --sampling 10 --mode regime
-    ```
-    *目标：对比 V1 (Baseline) 与 V2 (Optimized) 在这 10 个测试样本上的评分提升。*
-
----
-
-## 🔥 进阶：磨刀石工作流 (Enhanced Sharpening Workflow)
-
-如果标准流程提升不明显，使用以下针对性更强的“磨刀石”闭环，直接在失败案例上进行暴力迭代：
-
-1.  **Phase 1: 弱点采样与提取 (Extraction)**
-    运行 30 天仿真采样（20 个样本），然后提取其中的 SL/报错/低分样本：
-    ```bash
-    python simulator.py --days 30 --sampling 20 --mode regime
     python samples/extract_samples.py
     ```
 
-2.  **Phase 2: 首次逻辑注入 (First Injection)**
-    根据全局表现生成并应用第一版优化补丁：
-    ```bash
-    python coach.py --batch 20
-    python apply_patches.py data/coach/coach_xxxx.json
-    ```
-
-3.  **Phase 3: 靶向压力测试 (Targeted Stress Test)**
-    使用已打补丁的 Prompt，在 `samples/` 隔离区重新运行那些刚才失败的案例：
+4.  **第四阶段：靶向压力测试与优化 (Workbench Iteration)**
+    在 `samples/` 隔离区重新运行这些难题，利用“磨刀石”闭环进行暴力针对性演化：
     ```bash
     python samples/run_samples.py
     ```
+    *注：此步骤结束后，系统会自动触发 Coach 基于这些工作区样本生成更高精度的二次优化补丁。*
 
-4.  **Phase 4: 残差分析与二次注入 (Residual Tuning)**
-    对 Phase 3 的结果再次运行 Coach，识别补丁后的残留偏离，并应用二次进化补丁。
+5.  **第五阶段：生产环境注入 (Inject & Deploy)**
+    当 workbench 中的样本评分大幅提升后，将最优补丁应用到生产 Prompt：
+    ```bash
+    python apply_patches.py samples/coach/coach_latest.json
+    ```
 
-5.  **Phase 5: 质量审计**
-    对比最初得分与经过两轮注入后的得分。
+6.  **第六阶段：回归验证 (Validation)**
+    使用从未见过的最新数据运行一次回测验证，确保“进化”有效且没有产生负面退化。
 
 ---
 
