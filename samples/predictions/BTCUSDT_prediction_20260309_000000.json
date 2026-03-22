@@ -3,11 +3,11 @@
     "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 66050.0,
-    "take_profit": 63500.0,
-    "stop_loss": 67200.0,
-    "reasoning": "1. TP Dist: 2550.0 (Targeting Value Area Low). 2. SL Dist: 1150.0 (Base 1.8x ATR + 0.1x Offset above POC). 3. TP/SL Ratio: 2.22. 4. Regime: RANGING/BREAKDOWN. 5. Logic: Price has decisively broken below the Point of Control (POC) at 66128 on the 15m chart with a massive volume spike, signaling institutional selling. The descending triangle consolidation has resolved to the downside, invalidating the previous support thesis. The POC is now expected to act as overhead resistance, with the next major liquidity target being the Value Area Low (VAL) near 63500.",
-    "reasoning_zh": "1. 止盈距离: 2550.0 (目标位价值区低点 VAL)。 2. 止损距离: 1150.0 (1.8x ATR + 0.1x 偏移，设在 POC 上方)。 3. 盈亏比: 2.22。 4. 市场环境: 震荡/向下突破。 5. 逻辑: 价格已放量跌破 66128 的控制点 (POC)，15分钟图上的成交量激增确认了机构抛压。之前的下降三角形形态已向下突破，使看涨支撑逻辑失效。POC 现在转为上方阻力位，短期目标看向 63500 附近的价值区低点 (VAL)。",
+    "current_price": 66326.9,
+    "take_profit": 63650.0,
+    "stop_loss": 68200.0,
+    "reasoning": "1. TP Dist: 2676.9. 2. SL Dist: 1873.1. 3. TP/SL Ratio: 1.43. 4. Regime: HIGH_VOLATILITY/DISTRIBUTION. 5. Logic: Following the Red Team critique, the POC (66128) is identified as a magnet rather than a floor. The 15m chart reveals a Bear Pennant breakdown following a failed auction at the POC. High volume on the drop confirms distribution. The path of least resistance is toward the Value Area Low (63.5k) through the Low Volume Node (LVN) gap. SL is placed above the 68k resistance cluster to invalidate the bearish thesis.",
+    "reasoning_zh": "1. TP 距离: 2676.9。2. SL 距离: 1873.1。3. TP/SL 比率: 1.43。4. 市场环境: 高波动/派发。5. 逻辑: 采纳红队审查意见，POC (66128) 目前表现为引力位而非支撑位。15m 周期显示在 POC 附近的失败拍卖后形成了看跌旗形破位。下跌过程中的高成交量确认了派发行为。由于 POC 到 VAL (63.5k) 之间存在低成交量真空区，价格大概率向下寻求流动性。止损设在 68k 阻力簇上方以对冲看跌逻辑失效的风险。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

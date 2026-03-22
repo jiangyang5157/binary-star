@@ -23,29 +23,43 @@ And the **Current Configuration** (`config.yaml`):
 Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) including "Refined Execution Logic":
 {base_prompt}
 
-### Your Audit Tasks:
-1.  **TP/SL Hit Determination**: This is TOP PRIORITY. Using `actual_market_outcome`:
-    - Compare Agent A's `take_profit` with `max_price_reached` (for BULLISH) or `min_price_reached` (for BEARISH).
-    - Compare Agent A's `stop_loss` with `min_price_reached` (for BULLISH) or `max_price_reached` (for BEARISH).
-    - Determine which was hit FIRST based on the price extremes and the `tp_reached`/`sl_reached` hints. Report as `tp_hit`, `sl_hit`, or `neither`.
-2.  **Rules Adherence Check**: Specifically look at the "Refined Execution Logic (Post-Review Rules)" in the Base Predictor Prompt. Did Agent A follow these specific rules? (e.g., If a rule says "Never specualte into consolidation", and Agent A went BEARISH into a tight range, flag this as a critical failure).
-3.  **Price Action vs. Vision**: Contrast Agent A's stated reasoning with the visual evidence in the charts. Did it miss an exhaustion wick? Did it speculate into a distribution zone?
-4.  **R:R & Execution Audit**: Was the stop-loss technically sound (below POC/Swing Low)? Was the TP realistic given the current trend? 
-5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem". This should be a detailed paragraph describing the **exact technical mechanic** that caused the outcome, whether a specific rule was violated or validated, and the **single most important lesson** from this prediction.
+### Your Adversarial Audit Tasks (V3):
+1.  **TP/SL Hit Determination (TOP PRIORITY)**: Using `actual_market_outcome`:
+    - Compare Agent A's `take_profit` vs `max_price_reached` (BULL) / `min_price_reached` (BEAR).
+    - Compare Agent A's `stop_loss` vs `min_price_reached` (BULL) / `max_price_reached` (BEAR).
+    - Determine which was hit FIRST based on time-priority and price extremes.
 
-### Evaluation Score Guide:
-Use the following anchors, but apply your own judgment for nuance:
-- **90-100**: Direction correct, TP hit, rules fully followed, excellent R:R execution.
-- **70-89**: Direction correct, prediction was profitable or near-breakeven, minor execution issues.
-- **50-69**: Direction correct but execution poor (SL too tight, TP too greedy, entered too late).
-- **30-49**: Direction wrong, but rules were followed and risk was managed (reasonable loss).
-- **0-29**: Direction wrong AND rules were violated (e.g., BEARISH into consolidation, ignored POC, no volume confirmation).
+2.  **Shadow Counter-Position (影子对手盘)**: 
+    - You MUST build a logic model completely OPPOSITE to Agent A's prediction.
+    - List 3 technical evidences that Agent A chose to ignore or misinterpret (e.g., Delta divergence, massive ask-wall at VAH, weakening RSI during "breakout").
+
+3.  **Stress Path Audit (压力路径审计 - MAE Analysis)**:
+    - Analyze the *entire* trade duration. Calculate the **Max Adverse Excursion (MAE)**: how deep did the price go against the trade before hitting TP?
+    - If MAE exceeded **80% of the Stop-Loss distance**, the trade is marked as "High Risk / Logic Failure" even if it eventually hit TP.
+
+4.  **Logic Conflict Probe (逻辑冲突探测)**:
+    - Hunt for "Hallucinations". If Agent A claims "Volume is rising" but the chart/data shows declining OBV or Delta, flag it as a critical reasoning failure.
+    - Audit for "Reasoning Circularity": Did the Agent justify a loss as "unpredictable volatility" when there was clear structural evidence of failure?
+
+5.  **Diagnostic Synthesis**: Create a "Prediction Post-Mortem" summarizing the exact technical mechanic of the outcome.
+
+### Adversarial Evaluation Score Guide:
+- **90-100**: Direction/TP correct, rules followed, MAE was minimal (< 20% of SL).
+- **70-89**: Direction correct, TP hit, but encountered moderate stress (MAE 20-50% of SL).
+- **50-69**: Direction correct but logic was flawed (MAE > 80% of SL, hit TP by luck) OR entered too late. **MAX 60 if MAE > 80% of SL.**
+- **30-49**: Direction wrong, but risk was managed and Shadow Evidence was subtle.
+- **0-29**: Direction wrong AND rules violated OR extreme Hallucination detected.
 
 ### Output Requirements:
 You MUST output your final decision in strict JSON format.
 {{
   "evaluation_score": 0-100,
   "tp_sl_result": "TP_HIT / SL_HIT / NEITHER / NA",
-  "prediction_post_mortem": "A detailed, technical analysis of this specific prediction's performance. Cover: (1) which was hit first — TP or SL, (2) whether the Predictor followed the 'Refined Execution Logic', (3) how market mechanics (POC, Volume, Wicks) played out, and (4) the single most important lesson from this prediction.",
-  "prediction_post_mortem_zh": "对本次预测执行的深度技术诊断。须包含：(1) 止盈还是止损先被触碰，(2) Predictor 是否遵守了核心执行逻辑，(3) 市场机制（POC、成交量、影线）如何影响结果，(4) 本次预测最重要的一条教训。"
+  "adversarial_audit": {{
+    "shadow_evidence": ["Evidence 1 ignored", "Evidence 2 ignored", "Evidence 3 ignored"],
+    "mae_stress_level": "Percentage (e.g. 45%)",
+    "hallucination_detected": boolean
+  }},
+  "prediction_post_mortem": "Comprehensive report covering MAE stress, Shadow Counter-Position validation, and core technical mechanics.",
+  "prediction_post_mortem_zh": "深度技术诊断：包含压力路径（MAE）分析、影子对手盘验证、以及核心失效/成功机制。"
 }}

@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-01-23T00:00:00Z",
-    "confidence": 75,
+    "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
     "current_price": 89484.6,
-    "take_profit": 87000.0,
-    "stop_loss": 90800.0,
-    "reasoning": "1. TP Dist: 2484.6. 2. SL Dist: 1315.4 (Base 1.8x + 0.2x offset). 3. TP/SL Ratio: 1.89. 4. Regime: TRENDING/BEARISH. 5. Logic: Following the Red Team critique, the market structure is clearly bearish after breaking below the Value Area Low (VAL) at 89,500. The consolidation identified in the 1h chart is a Bear Flag, not a reversal pattern. Low volume on the 'bounces' and price acceptance below the VAL suggest a continuation of the downward expansion. We target the liquidity vacuum below the recent 88k wick, with a stop placed above the VAL and the recent 15m micro-highs to invalidate the bearish thesis.",
-    "reasoning_zh": "1. 止盈距离: 2484.6。2. 止损距离: 1315.4 (基准 1.8x + 0.2x 偏移)。3. 盈亏比: 1.89。4. 市场环境: 趋势/看跌。5. 逻辑：根据红队审查，市场在跌破 89,500 的价值区域低点 (VAL) 后结构明显转为看跌。1小时图中的整理区间是看跌旗形而非反转形态。反弹时的低成交量以及价格在 VAL 下方的企稳表明下跌趋势将延续。我们的目标是近期 88k 影线以下的流动性真空区，止损设在 VAL 和 15 分钟微观高点上方，以防看跌逻辑失效。",
+    "take_profit": 87200.0,
+    "stop_loss": 90650.0,
+    "reasoning": "1. TP Dist: 2284.6. 2. SL Dist: 1165.4 (Base 1.8x + 0.5x volatility offset). 3. TP/SL Ratio: 1.96. 4. Regime: HIGH_VOLATILITY/BEARISH. 5. Logic: Following the Red Team critique, the 'diamond' consolidation is re-evaluated as a bearish pennant/continuation pattern. Price is trading below the POC (95,357) and VAL, indicating a 'Sell the Rip' environment. Declining volume during the consolidation suggests a lack of accumulation, making a breakdown to hunt liquidity below 88,000 highly probable.",
+    "reasoning_zh": "1. TP 距离：2284.6。2. SL 距离：1165.4 (基准 1.8x + 0.5x 波动率偏移)。3. TP/SL 比率：1.96。4. 市场环境：高波动/看跌。5. 逻辑：参考红队审查意见，将当前的“钻石形”整理重新评估为看跌旗形/持续形态。价格目前处于 POC (95,357) 和 VAL 下方，处于“逢高做空”环境。整理期间成交量持续萎缩，表明缺乏吸筹支撑，向下突破以猎取 88,000 下方流动性的概率极高。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

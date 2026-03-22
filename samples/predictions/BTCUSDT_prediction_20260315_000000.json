@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-15T00:00:00Z",
-    "confidence": 72,
+    "confidence": 68,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 71100.0,
-    "take_profit": 68500.0,
+    "current_price": 71150.0,
+    "take_profit": 66500.0,
     "stop_loss": 73500.0,
-    "reasoning": "1. TP Dist: 2.0x ATR. 2. SL Dist: [Base 1.8x + Offset 0.05x]. 3. TP/SL Ratio: 1.08. 4. Regime: HIGH_VOLATILITY/DISTRIBUTION. 5. Logic: Following the Red Team critique, the 15m chart shows a clear bearish divergence where price is grinding higher on diminishing volume, indicating buyer exhaustion at the local range high. The POC at 70070.88 acts as a gravitational magnet; a failure to hold this level exposes the 'liquidity void' seen in the volume profile down to the VAL near 66,200. The trade targets a mean reversion to the lower value area.",
-    "reasoning_zh": "1. TP 距离：2.0x ATR。2. SL 距离：[基础 1.8x + 偏移 0.05x]。3. 盈亏比：1.08。4. 市场环境：HIGH_VOLATILITY/DISTRIBUTION。5. 逻辑：参考红队审查意见，15分钟图显示价格在局部高位出现明显的量价背离（缩量上涨），表明买盘动能枯竭。POC (70070.88) 具有强烈的引力作用，一旦价格跌破该核心支撑位，将触发下方流动性真空区的快速回补，目标直指 66,200 附近的价值区低沿 (VAL)。此交易旨在捕捉高波动环境下的均值回归。",
+    "reasoning": "1. TP Dist: 4650 (7.1x ATR). 2. SL Dist: 2350 (3.6x ATR). 3. TP/SL Ratio: 1.98. 4. Regime: SQUEEZE/DISTRIBUTION. 5. Logic: Price is exhibiting 'Thin Air' breakout characteristics on the 15m chart with declining volume into the VAH (72.4k). The 1h chart shows significant upper wicks (distribution) near 73k. Following the Red Team critique, the POC (70070) is likely to act as a magnet rather than support, leading to a liquidity hunt of retail stops clustered below 70k. A mean-reversion trade toward the VAL (66.3k) offers a superior R:R compared to chasing a low-volume breakout.",
+    "reasoning_zh": "1. 止盈距离: 4650 (7.1x ATR)。2. 止损距离: 2350 (3.6x ATR)。3. 盈亏比: 1.98。4. 市场环境: 挤压/派发。5. 逻辑: 15分钟图显示价格在接近价值区高沿（VAH 72.4k）时成交量持续萎缩，呈现典型的“空气突破”特征。1小时图在73k附近留下多根长上影线，暗示大户正在派发。结合红队审查，POC（70070）目前更像是一个引力场而非支撑位，市场极有可能向下扫荡聚集在70k下方的散户止损盘。向价值区低沿（VAL 66.3k）的均值回归交易提供了更佳的风险回报比。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

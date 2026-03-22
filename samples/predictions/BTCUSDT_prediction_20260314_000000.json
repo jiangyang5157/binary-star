@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-14T00:00:00Z",
-    "confidence": 75,
+    "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70750.0,
+    "current_price": 70600.0,
     "take_profit": 66500.0,
-    "stop_loss": 72200.0,
-    "reasoning": "1. TP Dist: 4250 pts (Targeting VAL). 2. SL Dist: 1450 pts (Above POC resistance). 3. TP/SL Ratio: 2.93. 4. Regime: HIGH VOLATILITY/DISTRIBUTION. 5. Logic: The 15m chart confirms a breakdown and retest of the POC (71169) as resistance. This 'SFP' (Swing Failure Pattern) at the 74k highs followed by a POC flip indicates a shift in momentum. With a lack of structural support between the POC and the VAL (66078), the path of least resistance is downward.",
-    "reasoning_zh": "1. 止盈距离：4250 点（目标指向价值区低沿 VAL）。2. 止损距离：1450 点（位于 POC 阻力位上方）。3. 盈亏比：2.93。4. 市场环境：高波动/派发阶段。5. 逻辑：15m 图表确认价格跌破并回测了 POC（71169）作为阻力位。在 74k 高点出现“摆动失败模式”（SFP）后，POC 的失守标志着动量反转。由于 POC 与 VAL（66078）之间缺乏结构性支撑，目前阻力最小的路径是向下运行。",
+    "stop_loss": 72500.0,
+    "reasoning": "1. TP Dist: 4100. 2. SL Dist: 1900 (Base 1.8x ATR + Offset). 3. TP/SL Ratio: 2.16. 4. Regime: VOLATILE/BEARISH. 5. Logic: Following the Red Team critique, the rejection at the $74k ATH is identified as a major liquidity grab. Price has lost the POC (71169.08), which is now acting as a hard resistance ceiling. The 15m consolidation is a bear flag under resistance rather than a bull pennant. High-volume selling followed by low-volume consolidation confirms distribution. The target is the Value Area Low (VAL) near $66k to clear out over-leveraged long liquidity.",
+    "reasoning_zh": "1. 止盈距离：4100。2. 止损距离：1900 (基准 1.8x ATR + 偏移)。3. 盈亏比：2.16。4. 市场环境：高波动/看跌。5. 逻辑：根据红队审查，74k 历史高点的受阻被确认为重大的流动性掠夺。价格已跌破 POC (71169.08)，该位置现已转为强阻力位。15分钟图的盘整在阻力位下方形成了熊旗，而非牛旗。放量下跌后的缩量盘整确认了派发行为。目标位设定在 66k 附近的价值区下沿，旨在清理过度杠杆的多头流动性。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
