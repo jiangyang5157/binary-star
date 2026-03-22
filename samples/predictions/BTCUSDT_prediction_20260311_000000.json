@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-11T00:00:00Z",
+    "confidence": 75,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 69998.1,
+    "take_profit": 67185.0,
+    "stop_loss": 71405.0,
+    "reasoning": "1. TP Dist: 2813.1 (3.6x ATR). 2. SL Dist: [Base 1.8x + Offset 0x] (1406.9). 3. TP/SL Ratio: 2.0. 4. Regime: NORMAL/RANGING. 5. Logic: Following the red team critique, the bullish thesis is invalidated by the clear distribution signature on the 15m chart and the breakdown of the teal trendlines. Price is significantly extended above the high-volume POC (67,184.96), which now acts as a primary downside target. The rejection at the VAH (~72.5k) confirms a lack of demand at higher levels, favoring a mean reversion trade back to the value area center.",
+    "reasoning_zh": "1. 止盈距离：2813.1 (3.6x ATR)。2. 止损距离：[基准 1.8x + 偏移 0x] (1406.9)。3. 盈亏比：2.0。4. 市场环境：正常/震荡（高位派发）。5. 逻辑：根据红队审查，15分钟图表上明显的派发特征和青色趋势线的跌破使看涨逻辑失效。价格在成交量集中的 POC (67,184.96) 之上过度延伸，该位置现在是主要的下行目标。在 VAH (~72.5k) 附近的受阻确认了高位需求不足，支持向价值区域中心进行均值回归交易。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

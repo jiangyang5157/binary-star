@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-20T00:00:00Z",
+    "confidence": 78,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 67190.1,
+    "take_profit": 65940.0,
+    "stop_loss": 68090.0,
+    "reasoning": "1. TP Dist: 1250.1. 2. SL Dist: 899.9 (Base 1.8x ATR). 3. TP/SL Ratio: 1.39. 4. Regime: BEARISH/DISTRIBUTION. 5. Logic: Following the red team critique, the market structure is identified as bearish with a series of lower highs on the 1h chart. The 15m 'pennant' is re-evaluated as a bear flag forming under heavy overhead supply (POC 68940). Declining volume on the bounce confirms a lack of demand, suggesting the recent move was a bull trap to engineer liquidity for further downside toward the lower range support.",
+    "reasoning_zh": "1. 止盈距离：1250.1。2. 止损距离：899.9 (基准 1.8x ATR)。3. 盈亏比：1.39。4. 市场环境：看跌/派发。5. 逻辑：根据红队审查，1小时图呈现明显的下降趋势（高点降低）。15分钟图上的“小三角”被重新评估为在重重上方供应区（POC 68940）下方形成的看跌旗形。反弹过程中成交量萎缩，证实了需求匮乏，表明近期走势是为进一步下跌制造流动性的多头陷阱。目标位设在 66,000 下方的支撑区域。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
