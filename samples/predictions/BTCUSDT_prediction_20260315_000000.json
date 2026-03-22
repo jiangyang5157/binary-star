@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-15T00:00:00Z",
-    "confidence": 78,
+    "confidence": 75,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 71150.0,
-    "take_profit": 66500.0,
-    "stop_loss": 72850.0,
-    "reasoning": "1. TP Dist: [4650]. 2. SL Dist: [Base 1.8x + Offset 0.5x]. 3. TP/SL Ratio: [2.73]. 4. Regime: [SQUEEZE/RANGING]. 5. Logic: Price exhibits a 'Look Above and Fail' pattern after rejecting 74k. The 15m chart shows a bear flag forming on declining volume, suggesting exhaustion. The POC (70070) is a primary magnet, and a failure there targets the VAL (66300). Shorting the upper value area distribution provides a high-probability mean-reversion setup.",
-    "reasoning_zh": "1. TP距离：[4650]。2. SL距离：[基础1.8x + 偏移0.5x]。3. 盈亏比：[2.73]。4. 市场环境：[挤压/震荡]。5. 逻辑：价格在74k附近出现典型的“假突破后回落”形态。15分钟图显示在成交量萎缩的情况下形成熊旗，暗示买盘枯竭。POC（70070）具有强磁吸作用，一旦跌破将下探价值区间下沿（VAL 66300）。在价值区间上部做空是高盈亏比的均值回归策略。",
+    "current_price": 71100.0,
+    "take_profit": 69850.0,
+    "stop_loss": 72350.0,
+    "reasoning": "1. TP Dist: 1,250. 2. SL Dist: 1,250 [Base 1.8x + Offset 0.1x ATR]. 3. TP/SL Ratio: 1.0. 4. Regime: [SQUEEZE/RANGING]. 5. Logic: Red Team critique identifies a 'Dead Cat Grind' with significant volume-price divergence on the 15m chart. While price makes higher lows, declining volume indicates a lack of institutional follow-through. The 1h 'Wall of Supply' (72.5k-74k) characterized by exhaustion wicks acts as a hard ceiling. With a high squeeze factor (0.9161), a volatility expansion is imminent; the path of least resistance is a 'Long Squeeze' mean-reversion through the POC (70070.88) to hunt stops in the 69.8k liquidity zone.",
+    "reasoning_zh": "1. TP 距离：1,250。2. SL 距离：1,250 [基准 1.8x + 偏移 0.1x ATR]。3. TP/SL 比率：1.0。4. 市场环境：[挤压/震荡]。5. 逻辑：红队审查识别出 15m 级别存在量价背离的‘死猫式反弹’。尽管价格在抬高低点，但成交量萎缩显示缺乏机构买盘支撑。1h 图表在 72.5k-74k 区域形成的‘供应墙’及派发影线构成了坚固阻力。在极高挤压因子（0.9161）背景下，波动率释放迫在眉睫；鉴于上涨动能枯竭，阻力最小的路径是向下进行‘多头挤压’，穿透 POC (70070.88) 并触及 69.8k 的流动性区以清理散户止损。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

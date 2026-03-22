@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-11T00:00:00Z",
-    "confidence": 90,
-    "opinion": "NEUTRAL",
-    "action": "WAIT",
-    "current_price": 69998.1,
-    "take_profit": null,
-    "stop_loss": null,
-    "reasoning": "1. TP Dist: N/A (Structural target for long exceeds 2.0x ATR cap). 2. SL Dist: N/A (Must be > 4.2x ATR to clear POC gravity well at 67184.96). 3. TP/SL Ratio: N/A (Calculated RR < 0.5). 4. Regime: NORMAL/RANGING. 5. Logic: Market structure presents a direct conflict between volatility constraints and structural protection. Following the rejection from the Value Area High (~72.8k), price is currently in a 'liquidity vacuum' above the Point of Control (67184.96). The 15m chart confirms the previous consolidation was a distribution phase, not a bull flag. A long entry is mathematically prohibited as the required SL (below POC) creates an invalid RR. Shorting into the POC in a ranging regime lacks the necessary volume breakout confirmation. Capital preservation dictates a neutral stance until price either tests the POC for a bounce or breaks the VAH with volume.",
-    "reasoning_zh": "1. 止盈距离：不适用（多头结构目标超过 2.0x ATR 上限）。2. 止损距离：不适用（必须 > 4.2x ATR 才能避开 67184.96 的 POC 引力区）。3. 盈亏比：不适用（计算出的 RR < 0.5）。4. 市场环境：正常/震荡。5. 逻辑：市场结构在波动率限制与结构性保护之间存在直接冲突。在价值区高点（~72.8k）遭到拒绝后，价格目前处于控制点（POC 67184.96）上方的“流动性真空”区。15分钟图确认之前的盘整是派发阶段而非牛旗。由于合规止损（需置于 POC 下方）会导致盈亏比低于 0.5，多单入场在数学上被禁止。而在震荡行情中，在没有成交量突破确认的情况下直接向 POC 做空风险较高。基于资本保护原则，在价格测试 POC 支撑或放量突破 VAH 之前保持中立。",
+    "confidence": 75,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 69950.0,
+    "take_profit": 67200.0,
+    "stop_loss": 71600.0,
+    "reasoning": "1. TP Dist: 2750.0. 2. SL Dist: [Base 1.8x + Offset 0.03x] (1650.0). 3. TP/SL Ratio: 1.67. 4. Regime: NORMAL/DISTRIBUTION. 5. Logic: Re-evaluating the structure as a bearish flag following the rejection at $72,000. The lack of volume on the current bounce confirms seller dominance. Price is currently in a liquidity vacuum above the high-volume POC at $67,184.96. Stop loss is placed above the descending channel resistance to invalidate the bearish thesis and protect against a liquidity sweep of the recent lower high.",
+    "reasoning_zh": "1. 止盈距离：2750.0。2. 止损距离：[1.8x ATR + 偏移] (1650.0)。3. 盈亏比：1.67。4. 市场环境：正常/派发。5. 逻辑：根据红队审查，将之前的“看涨楔形”重新识别为在72,000美元受阻后的看跌旗形。当前反弹成交量萎缩，显示买盘无力。价格处于POC（67,184.96美元）上方的流动性真空区，极大概率回归均值寻找支撑。止损设在下降通道压力位上方，以应对可能的流动性扫损并验证看跌逻辑。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

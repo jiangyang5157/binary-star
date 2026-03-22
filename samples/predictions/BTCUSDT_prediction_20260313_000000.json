@@ -3,11 +3,11 @@
     "confidence": 72,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70850.0,
-    "take_profit": 65800.0,
-    "stop_loss": 72600.0,
-    "reasoning": "1. TP Dist: 5050. 2. SL Dist: 1750 (Base 1.8x ATR + Offset 0.5x). 3. TP/SL Ratio: 2.88. 4. Regime: RANGING/DISTRIBUTION. 5. Logic: Following the rejection at the Value Area High (VAH) near 72k, price is currently hovering at the Point of Control (POC) of 70,062. The 1h volume profile reveals a significant 'Low Volume Node' (LVN) below the POC, suggesting that a failure to hold this level will result in a fast move toward the Value Area Low (VAL) at 65,800. The 15m triangle is interpreted as a distribution pattern under the macro lower-high structure, likely serving as a liquidity trap for retail longs before a mean-reversion move to the VAL.",
-    "reasoning_zh": "1. 止盈距离：5050。2. 止损距离：1750 (基准 1.8x ATR + 0.5x 偏移)。3. 盈亏比：2.88。4. 市场环境：震荡/派发。5. 逻辑：在 72k 附近的价值区高点 (VAH) 遭到拒绝后，价格目前在 70,062 的控制点 (POC) 附近徘徊。1小时成交量分布显示 POC 下方存在明显的低成交量节点 (LVN)，这意味着一旦无法守住该水平，价格将迅速跌向 65,800 的价值区低点 (VAL)。15分钟图上的三角形在宏观“更低的高点”结构下被视为派发形态，极有可能是针对散户多头的流动性陷阱，随后将发生向 VAL 的均值回归。",
+    "current_price": 71100.0,
+    "take_profit": 66250.0,
+    "stop_loss": 72850.0,
+    "reasoning": "1. TP Dist: 4850.0. 2. SL Dist: 1750.0 (Base 1.8x ATR). 3. TP/SL Ratio: 2.77. 4. Regime: RANGING/MEAN_REVERSION. 5. Logic: Price is currently testing the Value Area High (VAH) at 71,200 following a low-volume grind. The Red Team critique correctly identifies a 'Look Above and Fail' scenario. With the POC at 70,062 acting as a distribution node rather than accumulation, a rotation back to the Value Area Low (VAL) at 65,800 is highly probable. The lack of structural support (liquidity gap) between 68k and 70k suggests that a break below the POC will accelerate the move toward the VAL.",
+    "reasoning_zh": "价格目前正在测试 71,200 附近的价值区高点 (VAH)，但 15 分钟图显示成交量萎缩，呈现典型的‘向上突破失败’(Look Above and Fail) 迹象。红队审查指出，70,062 的 POC 更多是派发节点而非吸筹区。在震荡格局 (RANGING) 下，价格极大概率从 VAH 向价值区低点 (VAL) 65,800 附近进行均值回归。由于 68k-70k 之间存在流动性空洞，一旦跌破 POC，下行速度将加快。止损设在 VAH 上方以对冲假突破风险。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

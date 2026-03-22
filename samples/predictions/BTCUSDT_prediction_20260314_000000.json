@@ -3,11 +3,11 @@
     "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 70700.0,
+    "current_price": 70650.0,
     "take_profit": 66500.0,
-    "stop_loss": 72300.0,
-    "reasoning": "1. TP Dist: 4200 (3.5x ATR). 2. SL Dist: 1600 (1.3x ATR). 3. TP/SL Ratio: 2.62. 4. Regime: VOLATILE/BEARISH_MOMENTUM. 5. Logic: Following the rejection at the 74k ATH area, the market has confirmed a Bear Flag breakdown on the 15m timeframe. Price is now trading below the POC (71169), which has flipped from support to overhead resistance. The Volume Profile reveals a significant Low Volume Node (LVN) between 70k and 67k, suggesting price will 'teleport' through this void toward the Value Area Low (VAL) near 66.2k. High long-side positioning among top traders (1.63 ratio) increases the risk of a liquidation cascade as price breaks local support.",
-    "reasoning_zh": "1. 止盈距离：4200（3.5倍ATR）。2. 止损距离：1600（1.3倍ATR）。3. 盈亏比：2.62。4. 市场环境：高波动/看跌动量。5. 逻辑：在74k历史高点受阻后，15分钟图表确认了熊旗结构的向下突破。价格目前处于POC（71169）下方，该位置已由支撑转为上方阻力。成交量分布显示70k至67k之间存在明显的低成交量节点（LVN），暗示价格将迅速穿过该真空区，向66.2k附近的价值区低点（VAL）靠拢。顶级交易员的高多头持仓比（1.63）增加了价格跌破局部支撑时发生多头踩踏（清算级联）的风险。",
+    "stop_loss": 72850.0,
+    "reasoning": "1. TP Dist: ~3.4x ATR. 2. SL Dist: [Base 1.8x + Offset 0.2x]. 3. TP/SL Ratio: 1.91. 4. Regime: HIGH VOLATILITY/DISTRIBUTION. 5. Logic: Following the Red Team critique, the 'Look Above and Fail' at 74k is a major bearish reversal signal. Price has broken below the POC (71169.08) and retested it as resistance on the 15m timeframe. Volume analysis shows aggressive selling on the drop and weak buying on the bounce. The target is the Value Area Low (VAL) near 66k, where significant liquidity resides.",
+    "reasoning_zh": "1. 止盈距离：约3.4倍ATR。2. 止损距离：[基准1.8倍 + 偏移0.2倍]。3. 盈亏比：1.91。4. 市场环境：高波动/派发阶段。5. 逻辑：结合红队审查，74k上方的流动性掠夺失败是重大的看跌反转信号。价格已跌破POC（71169.08），且15分钟线确认该位已由支撑转为阻力。成交量分析显示下跌时卖盘激进，反弹时买盘乏力。目标位设定在价值区低沿（VAL）66k附近，即市场寻求流动性的下一个主要区域。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

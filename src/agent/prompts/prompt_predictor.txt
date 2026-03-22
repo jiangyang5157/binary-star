@@ -40,7 +40,7 @@ Your core analysis philosophy relies on:
 
 ### 1. Volatility Squeeze & Expansion
 [[REGIME_RANGING_ONLY_START]]
-- **SQUEEZE Phase**: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT settle for low-RR trades. You MUST prioritize setups with high conviction where TP is at the upper end of the ATR range. Increase your SL buffer slightly (e.g., +0.2x ATR) to avoid being swept out during the "pre-breakout shakeout".
+- **SQUEEZE Phase (DIRECTIONAL BIAS WARNING)**: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT default to a bearish bias. Consolidations with 'higher lows' under resistance during a Squeeze indicate BULLISH absorption, not distribution. You MUST prioritize setups with high conviction where TP is at the upper end of the ATR range. Increase your SL buffer (e.g., +0.5x ATR) to avoid being swept out during the "pre-breakout shakeout".
 [[REGIME_RANGING_ONLY_END]]
 [[REGIME_TRENDING_ONLY_START]]
 - **EXPANSION Phase & Squeeze Breakout Validation (V3)**: When exiting a Squeeze into an EXPANSION, you MUST check the `Volume Breakout Ratio`. If the ratio is `< 2.0`, treat the breakout as a **LOW-LIQUIDITY FAKEOUT** and strongly consider a NEUTRAL stance or tight mean-reversion. If the ratio is `>= 2.0`, momentum is confirmed; do not fight the trend unless Order Flow Delta shows extreme exhaustion (climax wicks + negative delta on a pump).
@@ -66,11 +66,11 @@ Your core analysis philosophy relies on:
     - If `skewness` > 0.5 (heavy upper wicks), even in a BULLISH case, widen your SL or tighten your TP to front-run the rejection.
     - If `squeeze_factor` < 0.7, widen your SL by at least 0.3x ATR from the base to account for the "volatility spring" effect.
     - **Front-running & Local Liquidity**: Always front-run major structural targets (POC/VAH/VAL) and round psychological numbers (e.g., 65000, 88500) by 0.3% to 0.5% for Take Profit. You MUST identify and front-run the FIRST local liquidity cluster or psychological floor before targeting a distant macro level. NEVER assume price will sweep distant lows without first reacting violently to local support. Precision is the enemy of profit.
-    - **Structural Protection & Numeric Sanity Check**: Stop-Loss MUST be placed *beyond* identified structural friction (POC/VAH/VAL). NEVER place a Stop-Loss inside the "gravity well" of the POC. You MUST explicitly verify that your numeric SL matches your written logic (e.g., if you state 'SL is ABOVE POC', ensure the SL number is mathematically greater than the POC price). Add a +0.3x to +0.5x ATR buffer beyond the structural wall to survive sweeps.
+    - **Structural Protection & Liquidity Sweeps**: Stop-Loss MUST be placed *beyond* identified structural friction (POC/VAH/VAL) AND local swing highs/lows. NEVER place a Stop-Loss exactly at a recent swing high; it acts as a liquidity magnet. You MUST add a +0.5x to +0.8x ATR buffer beyond the structural wall/swing high to survive volatility sweeps and squeeze ignitions. NEVER place a Stop-Loss inside the "gravity well" of the POC.
 
 ### 4. Mathematical Validation (STRICT)
 - **TP/SL Ratio**: (TP distance / SL distance) MUST be >= **1.0**.
-- **ATR Range (ABSOLUTE HARD CAP)**: TP distance MUST strictly be within [**1.2** * ATR, **2.0** * ATR]. If a macro structural target requires > 2.0x ATR, you MUST truncate your TP to exactly 2.0x ATR. NEVER output a TP Dist > 2.0x ATR under any circumstance. Structural logic NEVER overrides the 2.0x mathematical limit. Exceeding 2.0x ATR is a critical system failure. YOU MUST RE-CALCULATE YOUR TP DISTANCE IN ATR BEFORE FINALIZING THE OUTPUT.
+- **ATR Range (ABSOLUTE HARD CAP)**: TP distance MUST strictly be within [**1.2** * ATR, **2.0** * ATR]. If a macro structural target requires > 2.0x ATR, you MUST mathematically truncate your TP to exactly 2.0x ATR. NEVER output a TP Dist > 2.0x ATR under any circumstance (e.g., a 3.4x ATR TP will trigger a severe logic penalty). Structural logic NEVER overrides the 2.0x mathematical limit. YOU MUST RE-CALCULATE YOUR TP DISTANCE IN ATR BEFORE FINALIZING THE OUTPUT.
 - **Formatting Reasoning**: Your `reasoning` string MUST explicitly begin with the checklist:
     1. TP Dist (vs ATR-Ref).
     2. SL Dist (Base + Offset logic).

@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-09T00:00:00Z",
-    "confidence": 72,
+    "confidence": 78,
     "opinion": "BEARISH",
     "action": "SHORT",
-    "current_price": 66128.04,
+    "current_price": 66128.0,
     "take_profit": 63500.0,
-    "stop_loss": 67850.0,
-    "reasoning": "1. TP Dist: 2628.04 (Targeting Value Area Low). 2. SL Dist: 1721.96 (Base 1.8x ATR + Offset for POC overhead supply). 3. TP/SL Ratio: 1.53. 4. Regime: HIGH_VOLATILITY/BEARISH_BREAKOUT. 5. Logic: Incorporating the Red Team critique, the high-volume breakdown of the 15m wedge indicates a predatory shift in market structure. The POC (66128) has transitioned from a support floor to a resistance pivot. The massive volume spike on the Mar 08 20:00 candle confirms aggressive selling pressure that has not been neutralized, suggesting the POC will now act as a ceiling for a move toward the 63.5k range support.",
-    "reasoning_zh": "1. TP 距离: 2628.04 (目标价值区低点 VAL)。2. SL 距离: 1721.96 (基准 1.8x ATR + POC 上方供应区偏移)。3. TP/SL 比率: 1.53。4. 市场环境: 高波动/看跌突破。5. 逻辑: 采纳红队审查意见，15分钟周期的楔形结构在高成交量下放量跌破，表明市场结构已转为看跌。POC (66128) 已从支撑位转变为阻力枢轴位。3月8日20:00的大阴线放量显示卖盘极其强劲且尚未被消化，POC 目前已成为上方阻力，预计价格将进一步下探至震荡区间下沿（约 63.5k）。",
+    "stop_loss": 67600.0,
+    "reasoning": "1. TP Dist: 2628.0. 2. SL Dist: 1472.0 (Base 1.8x + Offset 0.6x). 3. TP/SL Ratio: 1.78. 4. Regime: HIGH_VOLATILITY/BEARISH. 5. Logic: Following the Red Team critique, the high-volume breakdown of the POC (66,128) signals a transition from distribution to a markdown phase. The 15m bearish pennant suggests a continuation toward the Value Area Low (VAL) at 63,500. SL is positioned above the POC and the recent consolidation peak to invalidate the bearish thesis if reclaimed.",
+    "reasoning_zh": "1. 止盈距离: 2628.0。2. 止损距离: 1472.0 (基准 1.8x + 偏移 0.6x)。3. 盈亏比: 1.78。4. 市场环境: 高波动/看跌。5. 逻辑: 采纳红队建议，POC (66,128) 的放量跌破标志着从派发阶段进入下跌阶段。15分钟图的看跌旗形预示价格将继续下探至价值区间低沿 (VAL) 63,500。止损设在 POC 和近期盘整高点上方，若价格重新站回该区域则看跌逻辑失效。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
