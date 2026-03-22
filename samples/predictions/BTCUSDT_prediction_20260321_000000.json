@@ -6,8 +6,8 @@
     "current_price": 70643.9,
     "take_profit": null,
     "stop_loss": null,
-    "reasoning": "1. TP Dist: null, 2. SL Dist: null, 3. TP/SL Ratio: null, 4. Floor Check: Price (70643.9) is above Macro POC (69949.67), prohibiting bearish bias. Technical Analysis: The critique correctly identifies a 'Long Squeeze' setup. The 15m ascending channel is forming on low volume, suggesting a bear flag rather than a trend reversal. Below the POC, a significant volume gap exists down to $67,500, meaning a breakdown would likely be violent and fast. While the system's floor check prevents a bearish trade, the structural weakness and lack of buy-side momentum make a long position extremely risky. Neutrality is the only logical choice to avoid the liquidity trap at the POC.",
-    "reasoning_zh": "核心研判：1. 止盈距离: null，2. 止损距离: null，3. 盈亏比: null，4. 地板检查: 当前价格 (70643.9) 高于宏观 POC (69949.67)，严禁看空。逻辑详述：红队评估准确指出了‘多头挤压’的风险。15 分钟级别的上升通道伴随成交量萎缩，呈现典型的熊旗形态。POC 下方存在巨大的成交量真空区（Volume Gap）直至 67,500 美元，这意味着一旦跌破 POC，价格将失去结构性支撑。虽然‘地板检查’规则禁止在 POC 之上做空，但当前的结构性弱势和买盘动能不足使得做多风险极大。选择中立（NEUTRAL）是为了规避 POC 附近的流动性陷阱，等待市场确认支撑或完成结构性调整。",
+    "reasoning": "1. TP/SL: N/A (Neutral stance). 2. Floor Check: Price (70643.9) is above the POC (69949.67), which prohibits a bearish opinion per the hard constraint. 3. Technical Justification: Although price is above the POC, the 15m chart shows a 'Rising Wedge' or 'Bear Flag' structure with declining volume, suggesting the move is a low-conviction correction rather than a trend reversal. The macro 1h chart shows a heavy rejection from 76k, making the current consolidation look like a bearish re-distribution. Because the price is above the POC (preventing a short) but shows clear signs of exhaustion (preventing a long), a neutral stance is the most prudent to avoid the liquidity trap.",
+    "reasoning_zh": "1. 盈亏比：不适用（中性观望）。2. 支撑检查：价格 (70643.9) 位于 POC (69949.67) 之上，根据硬性约束禁止看空。3. 技术理由：尽管价格维持在 POC 上方，但 15 分钟图显示出明显的‘上升楔形’或‘熊旗’特征，且成交量持续萎缩，表明这只是一个低动能的修正，而非趋势反转。1 小时宏观图表显示价格在 76k 附近遭到剧烈拒绝，当前的震荡更像是看跌的再分配过程。由于价格处于 POC 之上（禁止做空）但表现出明显的动能衰竭（不宜做多），因此选择中性立场以规避流动性陷阱。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
