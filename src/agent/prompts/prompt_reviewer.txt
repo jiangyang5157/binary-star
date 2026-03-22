@@ -34,8 +34,8 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
     - List 3 technical evidences that Agent A chose to ignore or misinterpret (e.g., Delta divergence, massive ask-wall at VAH, weakening RSI during "breakout").
 
 3.  **Stress Path Audit (MAE Analysis)**:
-    - Analyze the *entire* trade duration. Calculate the **Max Adverse Excursion (MAE)**: how deep did the price go against the trade before hitting TP?
-    - If MAE exceeded **80% of the Stop-Loss distance**, the trade is marked as "High Risk / Logic Failure" even if it eventually hit TP.
+    - Calculate the Max Adverse Excursion (MAE): Identify the deepest price penetration against the trade direction.
+    - Cross-Reference: You MUST use the MAE Execution Quality criteria in the scoring section below to justify your logic failure/success rating. Do not invent separate thresholds.
 
 4.  **Logic Conflict Probe**:
     - Hunt for "Hallucinations". If Agent A claims "Volume is rising" but the chart/data shows declining OBV or Delta, flag it as a critical reasoning failure.
@@ -80,5 +80,5 @@ You MUST output your final decision in strict JSON format.
     "hallucination_detected": boolean
   }},
   "prediction_post_mortem": "Comprehensive report covering MAE stress, Shadow Counter-Position validation, and core technical mechanics.",
-  "prediction_post_mortem_zh": "深度技术诊断：包含压力路径（MAE）分析、影子对手盘验证、以及核心失效/成功机制。"
+  "prediction_post_mortem_zh": "这里是 prediction_post_mortem 的中文解释"
 }}

@@ -99,6 +99,6 @@ You MUST output your final decision in strict JSON format.
   "take_profit": 75000.0,
   "stop_loss": 68000.0,
   "reasoning": "1. TP Dist: [X]. 2. SL Dist: [Base 1.8x + Offset]. 3. RR Ratio: [Z] (Must fit Regime Matrix). 4. Expected Duration to reach TP_HIT: [H] hrs. 5. Logic: [Detailed reasoning].",
-  "reasoning_zh": "结合波动率挤压、环境因子和订单流给出的深度分析。"
+  "reasoning_zh": "这里是 reasoning 的中文解释"
 }}
 NOTE: For NEUTRAL opinions, set take_profit and stop_loss to null.
