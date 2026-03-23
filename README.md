@@ -197,10 +197,10 @@ python samples/run_samples.py
 系统内置了强大的模拟器，支持在历史任意时间点触发 Agent A 的逻辑：
 ```bash
 # 采样过去 14 天的 8-10 个随机时间点进行模拟
-python simulator.py --days 14 --sampling 10 --mode regime
+python simulator.py --days 14 --sampling 5 --mode regime
 
 # 指定模式：spaced 表示等间隔采样，regime 表示按行情分层采样（推荐用于调优）
-python simulator.py --days 14 --sampling 10 --mode spaced
+python simulator.py --days 14 --sampling 5 --mode spaced
 
 > [!TIP]
 > **监控运行**：你可以通过 `tail -f simulator.log` 实时查看模拟进度，系统会输出每个样本的采样原因（市场状态判断）以及预测/审计的完成情况。
