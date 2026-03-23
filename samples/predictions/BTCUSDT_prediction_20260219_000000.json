@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-19T00:00:00Z",
-    "confidence": 60,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 40,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 66410.7,
-    "take_profit": 65104.2,
-    "stop_loss": 67351.4,
-    "reasoning": "[ANCHOR] POC: 67774.617 | VAH: 70883.366 | VAL: 62232.934 | Current: 66410.7. The market exhibits a classic 'Passive Seller Absorption' pattern: a positive Order Flow Delta (+865 BTC) failing to lift prices, which are instead drifting lower and forming lower highs on the 15m chart. This Order Flow Divergence, combined with price trading below the POC (67774.6), creates a high-probability SHORT setup despite the low Volume Breakout Ratio (0.33). The POC now acts as a firm structural ceiling. TP_FORMULA: 66410.7 - (2.5 * 522.6) = 65104.2. SL_FORMULA: 66410.7 + (1.8 * 522.6) = 67351.4. RR: 1.39. Confidence is capped at 60% due to the low-volume environment which may lead to extended sideways chop before the target is reached.",
-    "reasoning_zh": "[锚点] POC: 67774.617 | VAH: 70883.366 | VAL: 62232.934 | 当前价格: 66410.7。市场表现出经典的“被动卖方吸收”模式：正向订单流 Delta (+865 BTC) 未能推高价格，价格反而阴跌并在 15 分钟图表上形成较低的高点。这种订单流背离，结合价格处于 POC (67774.6) 下方交易，尽管成交量突破比率较低 (0.33)，仍构成了高概率的做空设置。POC 现在充当坚实的结构性天花板。止盈公式：66410.7 - (2.5 * 522.6) = 65104.2。止损公式：66410.7 + (1.8 * 522.6) = 67351.4。盈亏比：1.39。由于低成交量环境可能导致在触及目标前出现长时间的横盘震荡，信心评分为 60%。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 67855.7148 | VAH: 71045.5616 | VAL: 62341.0644 | Current: 66410.7. 1. Mathematical Scratchpad: Ranging TP Cap (1.5x ATR) = 783.9; SL Base (1.8x ATR) = 940.7. Max RR = 0.83. 2. VETO: The setup fails the Min RR requirement of 1.0. Under RANGING regime constraints, the maximum allowable TP distance is insufficient to offset the required ATR-based stop loss. 3. Volume Friction: A Volume Breakout Ratio of 0.33 indicates extreme liquidity exhaustion. Price is currently drifting in a 'vacuum' between the VAL and POC without directional conviction. 4. Structural Context: The 15m chart shows a staircase descent with positive ATR Skew (0.0771), suggesting that minor bounces are being sold into. Entering a mean-reversion long to the POC (67855) without a volume catalyst (Ratio > 2.0) or a clear rejection at VAL (62341) is statistically unfavorable. 5. Conclusion: Standing aside to wait for a test of structural extremes or a volatility expansion (Squeeze Factor is currently 1.75, not yet at extreme compression).",
+    "reasoning_zh": "[ANCHOR] POC: 67855.7148 | VAH: 71045.5616 | VAL: 62341.0644 | 当前价格: 66410.7。1. 数学计算: 震荡止盈上限 (1.5x ATR) = 783.9; 止损基准 (1.8x ATR) = 940.7。最大盈亏比 (RR) = 0.83。2. 否决 (VETO): 该设置未能满足最小盈亏比 1.0 的要求。在震荡 (RANGING) 格局约束下，最大允许止盈距离不足以抵消基于 ATR 的必要止损空间。3. 成交量摩擦: 成交量突破比率仅为 0.33，表明流动性极度枯竭。价格目前在 VAL 和 POC 之间的“真空区”漂移，缺乏方向性共识。4. 结构背景: 15 分钟图显示阶梯式下跌，且 ATR 偏度为正 (0.0771)，暗示小幅反弹正面临抛压。在没有成交量催化剂 (比率 > 2.0) 或 VAL (62341) 处出现明确拒绝信号的情况下，向 POC (67855) 进行均值回归做多在统计上是不利的。5. 结论: 保持观望，等待结构性极值测试或波动率扩张（目前挤压因子为 1.75，尚未达到极端压缩状态）。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

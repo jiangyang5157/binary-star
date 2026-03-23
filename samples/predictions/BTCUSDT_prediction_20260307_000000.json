@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-07T00:00:00Z",
-    "confidence": 45,
-    "opinion": "BULLISH",
-    "action": "LONG",
+    "confidence": 48,
+    "opinion": "BEARISH",
+    "action": "SHORT",
     "current_price": 68243.2,
-    "take_profit": 69122.2,
-    "stop_loss": 67610.0,
-    "reasoning": "[ANCHOR] POC: 68049.428 | VAH: 72765.572 | VAL: 63042.164 | Current: 68243.2. TP_FORMULA: 68243.2 + (1.5 * 586.0) = 69122.2. SL_FORMULA: 68049.43 - (0.75 * 586.0) = 67610.0. The market is in a RANGING regime, and price is currently oscillating around the POC. While the 15m chart exhibits a bearish descending triangle structure pressing into support, the macro context remains range-bound with positive delta (426.79) suggesting active buyer interest. The Volume Breakout Ratio is critically low (0.43), favoring mean reversion over a sustained breakdown. Confidence is set at 45% to account for the Red Team warning regarding passive seller absorption and the high likelihood of a liquidity sweep below the POC. The SL is widened to 0.75x ATR below the POC to provide a buffer for this expected volatility while maintaining a viable RR of 1.38.",
-    "reasoning_zh": "[ANCHOR] POC: 68049.428 | VAH: 72765.572 | VAL: 63042.164 | 当前价格: 68243.2。TP公式: 68243.2 + (1.5 * 586.0) = 69122.2。SL公式: 68049.43 - (0.75 * 586.0) = 67610.0。市场处于震荡（RANGING）格局，价格目前在 POC 附近波动。虽然 15 分钟图显示出看跌的下降三角形结构正向支撑位施压，但宏观背景仍处于区间震荡，正向 Delta (426.79) 表明存在主动买盘兴趣。成交量突破比率极低 (0.43)，有利于均值回归而非持续下跌。信心评分设定为 45%，以考虑红队关于被动卖方吸收以及 POC 下方极可能发生流动性扫荡的警告。止损位扩大至 POC 下方 0.75x ATR，为预期的波动提供缓冲，同时保持 1.38 的有效盈亏比。",
+    "take_profit": 67364.2,
+    "stop_loss": 68750.0,
+    "reasoning": "[ANCHOR] POC: 68503.5752 | VAH: 73114.916 | VAL: 63053.8088 | Current: 68243.2. MATHEMATICAL SCRATCHPAD: TP_FORMULA: 68243.2 - (1.5 * 586.0) = 67364.2; SL_FORMULA: 68503.58 + 246.42 (Structural Buffer) = 68750.0; RR: 1.73. The final decision committee adopts the 'Directional Inversion' strategy from the Red Team critique. While the macro ATR-based SL for a long position failed the RR test, a SHORT setup based on structural rejection at the POC (68503.58) provides a viable trade. The 15m chart confirms a series of lower highs following the initial 'Waterfall' drop, indicating that buyers are unable to reclaim the value area center. The critically low Volume Breakout Ratio (0.43) suggests a lack of aggressive buying interest, favoring a mean-reversion 'bleed' toward the lower range. By tightening the SL to the local structural ceiling (POC + buffer) instead of the macro ATR baseline, we achieve a superior Risk/Reward ratio of 1.73, targeting a sweep of local liquidity below.",
+    "reasoning_zh": "[锚点] POC: 68503.5752 | VAH: 73114.916 | VAL: 63053.8088 | 当前价格: 68243.2。数学计算：止盈公式: 68243.2 - (1.5 * 586.0) = 67364.2; 止损公式: 68503.58 + 246.42 (结构缓冲) = 68750.0; 风险回报比 (RR): 1.73。最终决策委员会采纳了红队评论中的“方向反转”策略。虽然多头头寸的宏观 ATR 止损未能通过 RR 测试，但基于 POC (68503.58) 结构性拒绝的做空设置提供了一个可行的交易机会。15分钟图确认了初始“瀑布式”下跌后的一系列更低的高点，表明买家无法收复价值区中心。极低的成交量突破比率 (0.43) 表明缺乏主动买盘兴趣，有利于向区间下限进行均值回归式的“阴跌”。通过将止损收紧至局部结构天花板（POC + 缓冲）而非宏观 ATR 基准，我们实现了 1.73 的优越风险回报比，目标是扫过下方的局部流动性。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

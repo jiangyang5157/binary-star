@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-18T00:00:00Z",
-    "confidence": 50,
-    "opinion": "NEUTRAL",
-    "action": "WAIT",
+    "confidence": 65,
+    "opinion": "BEARISH",
+    "action": "SHORT",
     "current_price": 73821.3,
-    "take_profit": null,
-    "stop_loss": null,
-    "reasoning": "[ANCHOR] POC: 71253.3865 | VAH: 74069.4055 | VAL: 66247.1305 | Current: 73821.3. TP_FORMULA: N/A. SL_FORMULA: N/A. The market is currently in a high-compression SQUEEZE (0.7138) at the Value Area High (VAH). While a mean-reversion short was initially considered, the audit reveals 'Bullish Absorption'—significant negative delta (-259.8 BTC) is failing to push price lower, indicating strong passive buying at resistance. Additionally, the 1.5x ATR TP cap for ranging regimes makes the risk/reward for a short to the POC mathematically unfavorable. With Trend Intensity at an extreme low (0.0453) and a Volume Breakout Ratio of only 0.8, the risk of a volatility expansion (squeeze release) is high. Protocol mandates a NEUTRAL stance until a Volume Breakout Ratio > 2.0 confirms a directional move.",
-    "reasoning_zh": "[锚点] POC: 71253.3865 | VAH: 74069.4055 | VAL: 66247.1305 | 当前价格: 73821.3。TP公式: 无。SL公式: 无。市场目前在价值区高点 (VAH) 处于高压缩挤压状态 (SQUEEZE 0.7138)。虽然最初考虑了均值回归做空，但审计显示存在“看涨吸收”——显著的负 Delta (-259.8 BTC) 未能推动价格下跌，表明阻力位有强大的被动买盘。此外，震荡格局下 1.5x ATR 的获利上限使得向 POC 做空的风险回报比在数学上不利。由于趋势强度处于极低水平 (0.0453) 且成交量突破比率仅为 0.8，波动性扩张（挤压释放）的风险很高。根据协议，在成交量突破比率 > 2.0 确认方向性移动之前，必须保持中立立场。",
+    "take_profit": 71326.39,
+    "stop_loss": 75139.12,
+    "reasoning": "[ANCHOR] POC: 71326.39439999999 | VAH: 75081.0864 | VAL: 66236.70079999999 | Current: 73821.3. TP_FORMULA: Target POC (Mean Reversion) = 71326.39. SL_FORMULA: VAH + (0.1 * ATR) = 75081.09 + 58.03 = 75139.12. Final synthesis favors the Red-Team's mean-reversion thesis. While the 'Gravity Rule' identifies POC as a floor, the current 'Structural Vacuum' between POC and VAH, combined with a SQUEEZE factor of 0.71, suggests an imminent volatility expansion. Order flow reveals a bearish divergence: Negative Delta (-481.14 BTC) at local highs indicates passive seller absorption. Trend Intensity (0.045) is extremely low, contradicting the visual price grind and suggesting a lack of genuine momentum. A SHORT setup targeting the POC provides an asymmetric RR of 1.89, whereas a LONG targeting VAH yields a sub-optimal 0.45 RR. The low Volume Breakout Ratio (0.8) confirms exhaustion at the range highs, favoring a liquidity sweep back to the POC before any sustained breakout attempt.",
+    "reasoning_zh": "[锚点] POC: 71326.39 | VAH: 75081.09 | VAL: 66236.70 | 当前价格: 73821.3。TP公式：目标 POC（均值回归）= 71326.39。SL公式：VAH + (0.1 * ATR) = 75139.12。最终综合评估支持红队的均值回归论点。虽然“引力规则”将 POC 视为支撑，但目前价格处于 POC 和 VAH 之间的“结构真空区”，结合 0.71 的挤压因子，预示着波动率即将扩张。订单流显示看跌背离：局部高点出现负 Delta (-481.14 BTC)，表明存在被动卖方吸收。趋势强度 (0.045) 极低，与视觉上的价格上涨相矛盾，表明缺乏真正的动量。做空至 POC 的方案提供了 1.89 的非对称盈亏比，而做多至 VAH 的盈亏比仅为 0.45。低成交量突破比率 (0.8) 确认了区间高点的动能衰竭，统计上更倾向于在尝试持续突破前先回测 POC 进行流动性扫荡。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

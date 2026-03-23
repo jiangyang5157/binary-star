@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-02-18T00:00:00Z",
-    "confidence": 40,
+    "confidence": 50,
     "opinion": "NEUTRAL",
     "action": "WAIT",
     "current_price": 67263.9,
     "take_profit": null,
     "stop_loss": null,
-    "reasoning": "[ANCHOR] POC: 68890.825 | VAH: 70949.125 | VAL: 62201.35 | Current: 67263.9. MATHEMATICAL SCRATCHPAD: TP_FORMULA: 67263.9 +/- (1.5 * 560.819) = 841.2 (Capped by Ranging Regime) | SL_FORMULA: 67263.9 +/- (1.8 * 560.819) = 1009.4 | RR: 0.83. 1. Structural Vacuum: Price is currently floating in a low-volume node between the POC (resistance) and VAL (support). In a RANGING regime with a Trend Intensity of 0.1358, mean-reversion is the only viable play, but price is currently at the 'mean' of the local 15m consolidation. 2. Mathematical Audit: Strategy logic for RANGING regimes caps TP at 1.5x ATR (841.2). Using the mandatory 1.8x ATR SL (1009.4) results in an RR of 0.83, which is below the minimum 1.0 threshold. 3. Signal Magnification: The Volume Breakout Ratio (0.39) and Trend Intensity (0.1358) indicate extreme market apathy. Trading in this environment is akin to betting on noise. Confidence is penalized due to the lack of structural or momentum confirmation at current levels.",
-    "reasoning_zh": "[锚点] POC: 68890.825 | VAH: 70949.125 | VAL: 62201.35 | 当前价格: 67263.9。数学计算：止盈公式: 67263.9 +/- (1.5 * 560.819) = 841.2 (受震荡格局限制) | 止损公式: 67263.9 +/- (1.8 * 560.819) = 1009.4 | 盈亏比: 0.83。1. 结构性真空：价格目前处于 POC（阻力位）和 VAL（支撑位）之间的低成交量节点。在趋势强度仅为 0.1358 的震荡（RANGING）格局下，均值回归是唯一可行的策略，但价格目前正处于 15 分钟局部盘整的“均值”附近。2. 数学审计：震荡格局下的策略逻辑将止盈限制在 1.5x ATR (841.2)。使用强制性的 1.8x ATR 止损 (1009.4) 会导致盈亏比仅为 0.83，低于 1.0 的最低门槛。3. 信号放大：成交量突破比率 (0.39) 和趋势强度 (0.1358) 表明市场极度冷淡。在当前环境下交易无异于博弈噪音。由于当前水平缺乏结构或动能确认，信心评分较低。",
+    "reasoning": "[ANCHOR] POC: 67758.76 | VAH: 73590.61 | VAL: 62338.57 | Current: 67263.9. The market is currently in a RANGING regime with a critically low Volume Breakout Ratio of 0.39 and Trend Intensity of 0.1358, indicating a total lack of institutional momentum. Price is oscillating near the Point of Control (POC), which acts as a high-friction 'fair value' zone. MATHEMATICAL SCRATCHPAD: TP_FORMULA (Long to 1.2x ATR): 67263.9 + (1.2 * 560.82) = 67936.88; SL_FORMULA (1.8x ATR): 67263.9 - (1.8 * 560.82) = 66254.42; RR: 0.66. Both long and short setups using standard ATR-based stops fail the Min RR 1.0 threshold. Per the 'Structural Vacuum' protocol, initiating trades midway between major nodes during low-volume compression is prohibited to avoid 'chop' and liquidity sweeps. We remain sidelined until a test of VAL (62338) or a Volume Breakout > 2.0 occurs.",
+    "reasoning_zh": "[锚点] POC: 67758.76 | VAH: 73590.61 | VAL: 62338.57 | 当前价格: 67263.9。市场目前处于震荡（RANGING）格局，成交量突破比率仅为 0.39，趋势强度为 0.1358，显示机构动能完全缺失。价格在控制点 (POC) 附近波动，该区域作为高摩擦的“公平价值”区，缺乏方向性。数学计算：若以 1.2x ATR 为目标的做多方案（目标位 67936），配合 1.8x ATR 止损（66254），盈亏比仅为 0.66。基于 ATR 止损的做多或做空方案均无法满足 1.0 的最低盈亏比门槛。根据“结构性真空”协议，在低成交量压缩期间于主要节点中间位置入场是被禁止的，以避免“反复扫损”和流动性陷阱。建议保持观望，直到价格测试 VAL (62338) 或成交量突破比率超过 2.0。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

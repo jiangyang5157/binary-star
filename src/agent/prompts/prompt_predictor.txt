@@ -31,7 +31,7 @@ FORMAT: `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_cl
 
 [[[CORE_ANALYTICAL_PRINCIPLES]]]
 ### CORE ANALYTICAL PRINCIPLES
-- **Absorption vs. Rejection**: Negative Delta at structural resistance (VAH/POC) is REJECTION, not bullish absorption. Bullish absorption requires POSITIVE Delta failing to break resistance (passive sellers) or NEGATIVE Delta failing to break support (passive buyers).
+- **Absorption vs. Rejection**: Context is critical. Negative Delta + Price holding support/flagging = BULLISH ABSORPTION (passive buyers absorbing market sells). Positive Delta + Price failing at resistance = BEARISH ABSORPTION (passive sellers absorbing market buys).
 - **Volume Rule Context**: The `Volume Breakout Ratio >= 2.0` requirement applies ONLY to breakout/momentum trades. Mean-reversion setups from structural extremes (VAH/VAL/POC) EXPECT low volume exhaustion and MUST NOT be blocked by low Breakout Ratios.
 - **Volume Profile Gravity**: POC is a floor if Price > POC. NEVER short above the POC treating it as a ceiling, EXCEPT for 'Rubber Band Overextension': If Price is > 3x ATR above VAH and Volume Breakout Ratio < 0.5, a dynamic SHORT targeting VAH is mandatory.
 - **Climax & Entry Timing (Red Line)**: NEVER short immediately after a 'Waterfall' climax. Wait for mean-reversion; climax at support = absorption. For entries, you MUST wait for a local 15m structural breakdown or liquidity sweep to avoid extreme MAE drawdowns.
@@ -88,7 +88,7 @@ Your core analysis philosophy relies on:
 - **Structural Gravity (HVN) vs Vacuum (LVN)**:
     - **High Volume Nodes (HVN)**: Target as primary exits. In RANGING/LOW-VOLATILITY regimes (Breakout Ratio < 1.0), NEVER target macro extremes; STRICTLY cap TP at 1.5x ATR and target the *nearest* micro HVN.
     - **Low Volume Nodes (LVN) / Liquidity Gaps**: Vacuum zones. Price slices through these fast. Target the *next* HVN beyond the LVN.
-- **The 'Structural Vacuum' Trap**: NEVER initiate trades midway between POC and VAH/VAL during RANGING regimes without momentum. Price in a vacuum is erratic; only trade from structural edges.
+- **The 'Structural Vacuum' Trap & Entry Timing**: NEVER execute MARKET orders midway in a vacuum. If price is drifting toward a structural edge (POC/VAH/VAL) with low volume, DO NOT default to a passive WAIT. Conceptualize anticipatory LIMIT orders at the exact structural barrier to fade the inevitable retest.
 - **Liquidity Sweep Protocol (CRITICAL)**: If you anticipate a liquidity sweep, NEVER widen your SL to 'absorb' it. You do not pay for sweeps. Wait for the sweep to complete and price to reclaim the level, or use limit orders deep inside the sweep zone.
 - **Execution Filters**: 
     - Apply **Breakout Efficiency** (target next HVN on valid VAH/VAL cross).
@@ -118,7 +118,7 @@ You MUST adjust your final `confidence` score based on the following:
     1. TP/SL Ratio & ATR Mults.
     2. Confidence Calibration (Why this score?).
     3. Structural Anchors (POC/VAH/VAL).
-- **Dynamic RR Mitigation**: If baseline static ATR RR < 1.0 blocks a trade, actively recalculate using dynamic structural invalidation (local HVN/LVN edges) or set anticipatory limit orders at structural extremes before defaulting to NEUTRAL.
+- **Dynamic RR Mitigation (MANDATORY)**: If baseline macro ATR RR < 1.0 blocks a trade, you MUST search the 15m micro-structure for local invalidation points (recent wicks or micro-HVNs) to tighten the SL and achieve RR > 1.0. Do not passively WAIT if a micro-structure SL safely validates the setup.
 [[[/PASS_1_INITIAL_ANALYSIS]]]
 
 [[[PASS_2_RED_TEAM_CRITIQUE]]]
@@ -132,14 +132,14 @@ You MUST adjust your final `confidence` score based on the following:
 Now, imagine that {prediction_horizon} DAYS have passed and this prediction resulted in a MASSIVE ERROR / STOP-OUT.
 Look at the Macro and Micro charts again. What did you MISS?
 Specifically search for:
-1. **Liquidity Traps & SL Placement**: Did Pass 1 attempt to 'absorb' an anticipated sweep by widening the SL? VETO the trade immediately. Mandate a WAIT stance until the sweep concludes, or set limit orders deep in the sweep zone. Furthermore, ensure the Stop Loss is NEVER parked directly on predictable psychological numbers (e.g., 70000).
+1. **Liquidity Traps & Entry Timing**: Did Pass 1 anticipate a liquidity sweep or structural retest but execute a MARKET order prematurely? VETO the trade. Force a WAIT stance or limit order strategy if price is not AT the structural edge. Did Pass 1 widen the SL to 'absorb' a sweep? VETO. Never park SL on round numbers.
 2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your prediction direction?
 3. **Signal Magnification (CRITICAL)**: Identify the technical indicator with the lowest relative movement (the "quietest" signal). 
     - If this quiet signal contradicts your primary trend, you MUST treat it as a hidden friction zone.
     - Penalize your confidence score by an additional **20 pts**.
 4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up?
 5. **Mathematical Audit**: Did Pass 1 propose a TP > **Ranging TP Cap** (1.5x ATR) in a RANGING regime, or ignore a **Breakout Volume Ratio** < 2.0? If YES, you MUST veto the trade and force a NEUTRAL or mean-reversion stance.
-6. **Directional Tunnel Vision**: Did Pass 1 calculate RR for only one direction and default to NEUTRAL? If an opposing structural vacuum exists (e.g., massive distance to VAL), force the calculation of an asymmetric counter-trend setup.
+6. **Directional Tunnel Vision & Hallucination Audit**: Did Pass 1 calculate the Mathematical Scratchpad for BOTH Long and Short setups? If only one was calculated and it failed, DO NOT accept a NEUTRAL stance until the exact opposing RR math is explicitly printed and objectively proven to fail.
 [[[/PASS_2_RED_TEAM_CRITIQUE]]]
 
 [[[PASS_3_FINAL_RESOLUTION]]]

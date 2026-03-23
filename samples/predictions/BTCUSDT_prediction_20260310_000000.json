@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-10T00:00:00Z",
-    "confidence": 65,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 45,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 69113.1,
-    "take_profit": 66244.5,
-    "stop_loss": 70500.0,
-    "reasoning": "[ANCHOR] POC: 66244.484 | VAH: 72765.572 | VAL: 63216.836 | Current: 69113.1. TP_FORMULA: 69113.1 - (4.26 * 673.25) = 66244.5. SL_FORMULA: 69113.1 + (2.06 * 673.25) = 70500.0. RR: 2.06. The market is in a RANGING regime with low Trend Intensity (0.31) and a Volume Breakout Ratio < 1.0 (0.95), which invalidates momentum-based long breakouts. A long setup fails the Min RR requirement (0.83) when adhering to the 1.5x ATR TP cap for ranging markets. Conversely, a SHORT setup targeting the POC (mean reversion) offers a superior RR of 2.06. Positive ATR Skewness (0.0027) and negative Order Flow Delta (-522 BTC) indicate selling pressure and absorption at the 70k psychological level, favoring a drift back to structural gravity.",
-    "reasoning_zh": "[锚点] POC: 66244.484 | VAH: 72765.572 | VAL: 63216.836 | 当前价格: 69113.1。止盈公式: 69113.1 - (4.26 * 673.25) = 66244.5。止损公式: 69113.1 + (2.06 * 673.25) = 70500.0。盈亏比: 2.06。市场处于震荡 (RANGING) 格局，趋势强度较低 (0.31)，且成交量突破比率 < 1.0 (0.95)，这否定了基于动量的看涨突破。在遵守震荡市场 1.5x ATR 止盈上限的情况下，做多方案的盈亏比 (0.83) 未达到最低要求。相反，针对 POC（均值回归）的做空方案提供了 2.06 的优越盈亏比。正的 ATR 偏度 (0.0027) 和负的订单流 Delta (-522 BTC) 表明在 70k 心理关口存在卖压和吸收，有利于价格回落至结构重心。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 66919.8824 | VAH: 73114.916 | VAL: 63053.8088 | Current: 69113.1. TP_FORMULA: 69113.1 + (1.5 * 673.25) = 70122.97. SL_FORMULA: 66919.88 - (0.5 * 673.25) = 66583.25. 1. Structural Vacuum: Price is currently trapped in a Low Volume Node (LVN) between the POC floor and the VAH ceiling. Per the handbook, entries in the middle of a structural vacuum are prohibited unless the Volume Breakout Ratio > 2.0. Currently, the ratio is 0.95, indicating a lack of institutional commitment. 2. Mathematical Audit & RR: A Long setup from current market price requires an SL below the POC (66583.25), while the Ranging TP Cap (1.5x ATR) limits the target to ~70123. This yields a sub-optimal RR of ~0.4, failing the Min RR 1.0 threshold. 3. Signal Magnification: The Trend Intensity is exceptionally low (0.3155), which contradicts the local 15m bull flag appearance. This 'quiet' signal suggests the flag is likely a liquidity trap or a low-conviction grind. 4. Order Flow Divergence: Negative Delta (-464.13 BTC) combined with positive ATR Skewness (0.0027) indicates that recent upward attempts are being met with passive selling pressure/rejection. Conclusion: Maintain NEUTRAL stance until price reaches a structural edge or momentum confirms a breakout.",
+    "reasoning_zh": "[锚点] POC: 66919.8824 | VAH: 73114.916 | VAL: 63053.8088 | 当前价格: 69113.1。TP_公式: 69113.1 + (1.5 * 673.25) = 70122.97。SL_公式: 66919.88 - (0.5 * 673.25) = 66583.25。1. 结构性真空：价格目前被困在 POC 底部和 VAH 顶部之间的低成交量节点（LVN）中。根据手册，除非成交量突破比率 > 2.0，否则禁止在结构性真空区中部入场。目前该比率为 0.95，表明缺乏机构资金的介入。2. 数学审计与 RR：从当前市价开多需要将止损设在 POC 下方（66583.25），而震荡止盈上限（1.5x ATR）将目标限制在 ~70123 左右。这导致 RR 仅为 ~0.4，低于 1.0 的最低阈值。3. 信号放大：趋势强度极低（0.3155），这与 15 分钟级别局部的牛旗形态相矛盾。这一“安静”的信号表明该旗形极有可能是流动性陷阱或低置信度的震荡。4. 订单流背离：负 Delta (-464.13 BTC) 配合正向 ATR 偏度 (0.0027) 表明近期的上涨尝试正遭遇被动卖盘压力/拒绝。结论：保持中立，直到价格触及结构边缘或动能确认突破。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
