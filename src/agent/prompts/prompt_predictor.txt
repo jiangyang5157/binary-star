@@ -35,10 +35,11 @@ FORMAT: `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_cl
 - **Breakout Efficiency**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH` (Bull) or `VAL` (Bear), target the next **High Volume Node (HVN)**.
 
 Your core analysis philosophy relies on:
-1. **Volume Profile** (POC, VAH, VAL) - Structural Gravity.
-2. **Liquidity Gaps & Nodes** (HVN, LVN) - Friction Analysis.
-3. **Market Regime** (Squeeze, Trend, Range) - Volatility Context.
-4. **Order Flow & Sentiment** (Delta, OI, Liquidations) - Aggression Context.
+- **Volume Profile** (POC, VAH, VAL) - Structural Gravity.
+- **Liquidity Gaps & Nodes** (HVN, LVN) - Friction Analysis.
+- **Market Regime** (Squeeze, Trend, Range) - Volatility Context.
+- **Order Flow & Sentiment** (Delta, OI, Liquidations) - Aggression Context.
+- **Strict Volume Rule**: Volume Breakout Ratio < 2.0 on a breakout/breakdown is ALWAYS a 'Low-Liquidity Fakeout'. NEVER rationalize it as 'exhaustion' or 'passive absorption' to force a continuation trade. Reject the setup or play mean-reversion.
 [[[/CORE_ANALYTICAL_PRINCIPLES]]]
 
 [[[REAL_TIME_MARKET_CONTEXT]]]
@@ -99,7 +100,7 @@ Your core analysis philosophy relies on:
     - **Automatic Cap Removal**: The 2.0x ATR TP limit is **UNLOCKED**.
     - **Structural Target**: Target the first major **High Volume Node (HVN)** in the "Liquidity Void" beyond the current zone.
     - **Strict Quality**: RR Ratio MUST be >= **2.5** to justify the trend-following risk.
-- **Standard ATR Range Limit**: (Only applies if Trend-Intensity is NOT triggered): TP distance MUST be within [1.2 * ATR, 2.0 * ATR].
+- **HARD ATR LIMIT (NON-TRENDING)**: If Trend-Intensity <= {trend_intensity_threshold}, TP distance MUST be within [1.2 * ATR, 2.0 * ATR]. Targeting distant macro levels (e.g., VAH down to VAL) is MATHEMATICALLY PROHIBITED if it requires > 3.0x ATR in a 1-day horizon. You CANNOT exceed 3.0x ATR without Vol Ratio >= 2.0.
     - **High-Conviction Structural Breakout**: If `Volume Breakout Ratio` >= 2.0 and price is entering a **Liquidity Gap**, you are permitted to extend TP up to **3.0x ATR** if the next major HVN/VAL level justifies it.
     - Predictions outputting TP > 3.0x ATR (outside the Trend-Intensity Escalation mode) will fail.
 - **Formatting Reasoning**: Your `reasoning` string MUST explicitly begin with the checklist:
@@ -125,8 +126,7 @@ Specifically search for:
 2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your prediction direction?
 3. **Breakout Failure**: Was the 'breakout' you saw actually a low-volume 'fakeout' with declining Open Interest (OI)?
 4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up (suggesting retail is long and being trapped)?
-
-Provide a HARSH technical critique. Do NOT be defensive.
+5. **Mathematical Audit**: Did Pass 1 propose a TP > 3.0x ATR in a RANGING regime, or ignore a Volume Breakout Ratio < 2.0? If YES, you MUST veto the trade and force a NEUTRAL or mean-reversion stance.
 [[[/PASS_2_RED_TEAM_CRITIQUE]]]
 
 [[[PASS_3_FINAL_RESOLUTION]]]
