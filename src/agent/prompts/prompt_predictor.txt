@@ -30,7 +30,7 @@ FORMAT: `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_cl
 [[[CORE_ANALYTICAL_PRINCIPLES]]]
 ### CORE ANALYTICAL PRINCIPLES
 - **Bias Check**: Avoid perpetual directional bias. Assess both long and short liquidity pools objectively. High-volume absorption at support (or flat price action despite heavy selling) is a BULLISH signal, not a 'dead cat bounce'.
-- **Volume Profile Gravity**: POC is a floor if Price > POC. NEVER short above the POC treating it as a ceiling.
+- **Volume Profile Gravity**: POC is a floor if Price > POC. NEVER short above the POC treating it as a ceiling, EXCEPT for 'Rubber Band Overextension': If Price is > 3x ATR above VAH and Volume Breakout Ratio < 0.5, a dynamic SHORT targeting VAH is mandatory.
 - **Climax vs Breakout**: NEVER short immediately following a 'Waterfall' or 'Climax' expansion candle. Wait for the mean-reversion bounce.
 - **Breakout Efficiency**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH` (Bull) or `VAL` (Bear), target the next **High Volume Node (HVN)**.
 
@@ -40,6 +40,7 @@ Your core analysis philosophy relies on:
 - **Market Regime** (Squeeze, Trend, Range) - Volatility Context.
 - **Order Flow & Sentiment** (Delta, OI, Liquidations) - Aggression Context.
 - **Strict Volume Rule & Structural Exceptions**: Volume Breakout Ratio < 2.0 usually indicates a fakeout. However, DO NOT default to NEUTRAL if: (1) Price is cleanly rejected at a structural barrier (POC/VAH/VAL) offering a tight invalidation setup. (2) There is Order Flow Divergence (e.g., high positive delta failing to break resistance indicates massive passive seller absorption = prime SHORT setup).
+- **Directional Inversion RR**: If your primary directional bias yields a poor Risk/Reward (< 1.0) due to a nearby structural blockade, you MUST automatically invert your bias and calculate RR for the opposing setup before declaring a NEUTRAL stance.
 [[[/CORE_ANALYTICAL_PRINCIPLES]]]
 
 [[[REAL_TIME_MARKET_CONTEXT]]]
@@ -73,8 +74,8 @@ Your core analysis philosophy relies on:
 
 #### STEP A: Regime-Specific Strategy Logic
 - **If `market_regime` is 'RANGING'**: 
-    - *Context*: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT default to a bearish bias. 
-    - *Action*: Consolidations under resistance during a Squeeze indicate BULLISH absorption. Furthermore, low volume at support with a distant macro POC magnet is an asymmetric LONG setup. Prioritize setups where TP targets the upper ATR range or front-runs the POC.
+    - *Context*: If `volatility_regime` is 'SQUEEZE', anticipate massive expansion. DO NOT invent 'survival protocols' to justify neutrality.
+    - *Action*: Squeeze + distant macro POC + passive absorption = asymmetric LONG. Consolidations under resistance during a Squeeze indicate BULLISH absorption. Prioritize long setups front-running the upper ATR range.
     - *Safety*: Increase your SL buffer (+0.5x ATR) to avoid "pre-breakout shakeout" sweeps.
 - **If `market_regime` is 'TRENDING'**: 
     - *Validation*: If `volatility_regime` is 'EXPANSION', you MUST check the `Volume Breakout Ratio`. 
@@ -82,7 +83,7 @@ Your core analysis philosophy relies on:
 
 #### STEP B: Volume Profile & Liquidity Architecture
 - **HVN vs LVN (Structural Gravity)**:
-    - **High Volume Nodes (HVN)**: Target HVNs (like POC) as exits, but in LOW-VOLATILITY/RANGING regimes, you MUST front-run the target by at least 0.5x ATR to avoid missing fills due to passive absorption.
+    - **High Volume Nodes (HVN)**: Target HVNs as exits. However, in RANGING/LOW-VOLATILITY regimes (Breakout Ratio < 1.0), NEVER target distant macro extremes. You MUST strictly cap TP at 1.5x-2.0x ATR and target the nearest micro HVN, front-running it by 0.5x ATR.
     - **Low Volume Nodes (LVN)**: Vacuum zones. Target the *next* HVN beyond the LVN.
 - **Breakout Efficiency Rule**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH`/`VAL`, the target SHOULD be the structural barrier (HVN), not just an ATR multiple.
 - **Climax vs Breakout**: NEVER short immediately following a 'Waterfall' climax candle. Wait for the mean-reversion bounce. Climax at support = absorption.
@@ -131,6 +132,7 @@ Specifically search for:
     - Penalize your confidence score by an additional **20 pts**.
 4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up?
 5. **Mathematical Audit**: Did Pass 1 propose a TP > 3.0x ATR in a RANGING regime, or ignore a Volume Breakout Ratio < 2.0? If YES, you MUST veto the trade and force a NEUTRAL or mean-reversion stance.
+6. **Directional Tunnel Vision**: Did Pass 1 calculate RR for only one direction and default to NEUTRAL? If an opposing structural vacuum exists (e.g., massive distance to VAL), force the calculation of an asymmetric counter-trend setup.
 [[[/PASS_2_RED_TEAM_CRITIQUE]]]
 
 [[[PASS_3_FINAL_RESOLUTION]]]
