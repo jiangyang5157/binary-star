@@ -240,7 +240,7 @@ def run_predictor(override_timestamp: datetime = None, current_position: dict = 
     context_data.update(regime_metrics)
     
     # Inject strategy parameters for prompt template rendering
-    context_data.update(config.get('strategy', {}))
+    context_data.update(config['strategy'])
     
     cg = ChartGenerator(output_dir=os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['images_dir']))
     

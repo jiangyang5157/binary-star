@@ -56,8 +56,8 @@ class PredictorAgent:
         """Extracts the common principles and market context parts of the prompt."""
         if "[[[ROLE_SPECIFIC_INSTRUCTIONS]]]" in template:
             content = template.split("[[[ROLE_SPECIFIC_INSTRUCTIONS]]]")[0].strip()
-            # Clean up any residual opening tags that might be at the start
-            return re.sub(r"\[\[\[.*?\]\]\]", "", content).strip()
+            # Clean up any residual opening or closing tags
+            return re.sub(r"\[\[\[/?.*?\]\]\]", "", content).strip()
         return template
 
     def get_footer(self, template: str) -> str:
@@ -95,7 +95,8 @@ class PredictorAgent:
             "symbol": symbol,
             "current_time": current_time,
             "current_position": current_position,
-            "prediction_horizon": context_data["prediction_horizon_days"]
+            "prediction_horizon": context_data["prediction_horizon_days"],
+            "context_data": "" # Placeholder to avoid KeyError if {context_data} exists in prompt
         })
 
         # Multi-modal Input preparation (upload charts)
