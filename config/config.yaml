@@ -22,10 +22,10 @@ strategy:
   liquidation_context_limit: 7
 review:
   review_kline_interval: 1m
-  minimum_review_age_hours: 4
+  minimum_review_age_hours: 24
 automation:
   prediction_interval_hours: 1.0
-  review_interval_hours: 4.0
+  review_interval_hours: 12.0
 paths:
   base_dir: data
   images_dir: images
