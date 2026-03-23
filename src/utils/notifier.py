@@ -232,10 +232,9 @@ class EmailNotifier:
                 {prediction_ui}
                 {img_html}
 
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-bottom: 40px;">
                     <pre style="background: #0f172a; color: #cbd5e1; padding: 15px; border-radius: 6px; font-size: 11px; overflow-x: auto;"><code>{formatted_json}</code></pre>
                 </div>
-
             </div>
         </body></html>
         """
@@ -314,7 +313,7 @@ class EmailNotifier:
                     <p style="font-size: 15px; color: #744210; margin-bottom: 0; line-height: 1.7;">{post_mortem_zh}</p>
                 </div>
 
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px; margin-bottom: 40px;">
                     <pre style="background: #0f172a; color: #cbd5e1; padding: 15px; border-radius: 6px; font-size: 11px; overflow-x: auto;"><code>{formatted_json}</code></pre>
                 </div>
 
