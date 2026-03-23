@@ -30,18 +30,25 @@ def apply_patches(base_text: str, patch_list: List[Dict[str, Any]]) -> str:
             end_index = -1
             
             if target_section:
-                start_tag = target_section
-                end_tag = target_section.replace("[[[", "[[[/")
+                # Ensure we have the clean section name and wrap it in triple brackets
+                clean_name = target_section.strip("[]")
+                start_tag = f"[[[{clean_name}]]]"
+                end_tag = f"[[[/{clean_name}]]]"
                 
+                # To avoid matching instructions lists, we search for the REAL block pattern
+                # A real block usually has a newline or a specific prefix.
+                # Here we just look for both tags.
                 start_match = patched_text.find(start_tag)
                 end_match = patched_text.find(end_tag)
                 
-                if start_match != -1 and end_match != -1:
+                # Validation: if multiple matches exist, find() gives first ones. 
+                # We should make sure start < end.
+                if start_match != -1 and end_match != -1 and start_match < end_match:
                     start_index = start_match + len(start_tag)
                     end_index = end_match
                     section_content = patched_text[start_index:end_index]
                 else:
-                    logger.warning(f"Target section '{target_section}' tags not found. Falling back to global search.")
+                    logger.warning(f"Target section '{target_section}' valid block not found. Falling back.")
 
             if action == "ADD":
                 content = patch.get("content", "")

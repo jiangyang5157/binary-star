@@ -55,13 +55,20 @@ class PredictorAgent:
     def get_common_context(self, template: str) -> str:
         """Extracts the common principles and market context parts of the prompt."""
         if "[[[ROLE_SPECIFIC_INSTRUCTIONS]]]" in template:
-            return template.split("[[[ROLE_SPECIFIC_INSTRUCTIONS]]]")[0].strip()
+            content = template.split("[[[ROLE_SPECIFIC_INSTRUCTIONS]]]")[0].strip()
+            # Clean up any residual opening tags that might be at the start
+            return re.sub(r"\[\[\[.*?\]\]\]", "", content).strip()
         return template
 
     def get_footer(self, template: str) -> str:
         """Extracts the final output protocol and format enforcement footer."""
+        footer_content = self.extract_section(template, "FINAL_OUTPUT_PROTOCOL")
+        if footer_content:
+            return footer_content
+        # Fallback if tags missing
         if "[[[FINAL_OUTPUT_PROTOCOL]]]" in template:
-            return template.split("[[[FINAL_OUTPUT_PROTOCOL]]]")[-1].strip()
+            content = template.split("[[[FINAL_OUTPUT_PROTOCOL]]]")[-1].strip()
+            return content.split("[[[/FINAL_OUTPUT_PROTOCOL]]]")[0].strip()
         return ""
 
     def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:

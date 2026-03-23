@@ -192,42 +192,32 @@ python simulator.py --days 14 --sampling 10 --mode spaced
 
 ## 💎 核心开发流：Prompt 质量提升 (Standard Workflow)
 
-当你发现预测准确率（如 SL 触发频繁）不理想时，请按照以下“磨刀石”标准流程进行针对性进化：
+本项目采用 **混合 Prompt 架构 (Hybrid Prompt Architecture)** 结合 **外科手术式补丁 (Surgical Patching)**，确保 AI 进化的极致稳健空间。
 
-1.  **第一阶段：仿真与录制 (Record & Sample)**
-    在回测模拟器中运行大样本，记录不同行情下的系统表现：
-    ```bash
-    python simulator.py --days 30 --sampling 20 --mode regime
-    ```
+### 1. 混合 Prompt 结构规范
+所有 Agent 的 Prompt 逻辑块均被三括号标签包裹，并将 Markdown 标题内置，实现“全量覆盖”：
+```markdown
+[[[SECTION_NAME]]]
+## 1. 标题描述 (人类阅读)
+具体的业务规则、If/Then 逻辑、锚点指令等。
+[[[/SECTION_NAME]]]
+```
+*   **优势**：提取出的 Section 自带身份标识，方便 Reviewer 审计和 Coach 重构，彻底消除“孤儿文本”。
 
-2.  **第二阶段：全局策略注入 (Batch Coach & Patch)**
-    运行 Coach 分析这 20 个样本的系统性偏差，并应用第一轮“基础补丁”：
-    ```bash
-    python coach.py --batch 20
-    python apply_patches.py data/coach/coach_latest.json
-    ```
+### 2. 外科手术式补丁协议 (Surgical Patching)
+Coach (Agent C) 通过 `master_prompt_patch` 生成补丁时遵循以下准则：
+-   **强制 `target_section`**：所有动作 (`ADD`, `REPLACE`, `REMOVE`) 必须指定目标块。这确保了修改被严格锁定在局部，避免全局字符串替换导致的“误伤”。
+-   **精准插入规则**：
+    -   **末尾追加**：使用 `action: ADD`。
+    -   **中间插入/局部修改**：使用 `action: REPLACE`。选中一小段“锚点文本”，替换为“锚点文本 + 新规则”。
 
-3.  **第三阶段：弱点提取 (Extract Targets)**
-    使用提取工具将刚才仍然失败（SL）、逻辑混乱或评分较低的案例移动到 `samples/` 磨刀石工作室：
-    ```bash
-    python samples/extract_samples.py
-    ```
-
-4.  **第四阶段：靶向压力测试与优化 (Workbench Iteration)**
-    在 `samples/` 隔离区重新运行这些难题，利用“磨刀石”闭环进行暴力针对性演化：
-    ```bash
-    python samples/run_samples.py
-    ```
-    *注：此步骤结束后，系统会自动触发 Coach 基于这些工作区样本生成更高精度的二次优化补丁。*
-
-5.  **第五阶段：生产环境注入 (Inject & Deploy)**
-    当 workbench 中的样本评分大幅提升后，将最优补丁应用到生产 Prompt：
-    ```bash
-    python apply_patches.py samples/coach/coach_latest.json
-    ```
-
-6.  **第六阶段：回归验证 (Validation)**
-    使用从未见过的最新数据运行一次回测验证，确保“进化”有效且没有产生负面退化。
+### 3. 标准进化工作流 (Six-Phase Evolution)
+1.  **第一阶段：仿真与录制 (Record & Sample)**：运行 `simulator.py` 收集不同行情下的系统表现。
+2.  **第二阶段：全局策略注入 (Batch Coach & Patch)**：运行 `coach_cli.py` 分析系统性偏差。
+3.  **第三阶段：弱点提取 (Extract Targets)**：使用 `extract_samples.py` 将失败案例移动到 `samples/` 隔离区。
+4.  **第四阶段：靶向压力测试 (Workbench Iteration)**：在 `samples/` 运行 `run_samples.py` 进行针对性暴力演化。
+5.  **第五阶段：生产环境注入 (Inject & Deploy)**：将验证后的最优补丁 (`report.json`) 应用于生产环境：`python apply_patches.py report.json`。
+6.  **第六阶段：回归验证 (Validation)**：运行 `pytest` 及新回测，确保进化有效且无逻辑退化。
 
 ### 💡 Coach 训练策略建议 (Training Strategy)
 针对 Coach (Agent C) 的训练计划，建议如下最佳实践：
