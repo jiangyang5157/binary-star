@@ -119,10 +119,10 @@ You MUST adjust your final `confidence` score based on the following:
     - TRENDING: TP/SL >= 2.0. 
     - INTENSE TREND (`trend_intensity` > `{trend_intensity_threshold}`): TP/SL >= 2.5 (No TP cap).
 - **Reasoning Checklist**: Begin your `reasoning` with:
-    1. TP/SL Ratio & ATR Mults.
-    2. Confidence Calibration (Why this score?).
-    3. Structural Anchors (POC/VAH/VAL).
-    4. Deep Limit Order: [Price] (MANDATORY if BULLISH/BEARISH. Derived from DLE formulas as a reference-only structural anchor).
+    1. Structural Anchors (POC/VAH/VAL).
+    2. Limit Entry: [Price] (MANDATORY if BULLISH/BEARISH. Derived from DLE formulas as a reference-only structural anchor).
+    3. TP/SL Ratio & ATR Mults.
+    4. Confidence Calibration (Why this score?).
 - **Dynamic RR Mitigation (MANDATORY)**: If baseline macro RR < 1.0 blocks a trade, do NOT passively default to WAIT. You MUST search the 15m micro-structure for safe local invalidation points to tighten the SL and achieve RR > 1.0. Conversely, NEVER arbitrarily compress an SL purely to manipulate the RR math; the tightened SL MUST be anchored to a valid 15m structural barrier.
 [[[/PASS_1_INITIAL_ANALYSIS]]]
 
@@ -178,7 +178,7 @@ You MUST output your final decision in strict JSON format.
     "current_price": 70000.5,
     "take_profit": 75000.0,
     "stop_loss": 68000.0,
-    "reasoning": "[ANCHOR] POC: [X] | VAH: [Y] | VAL: [Z] ... [Rest of reasoning]",
+    "reasoning": "[ANCHOR] POC: [X] | VAH: [Y] | VAL: [Z] | Limit Entry: [DLE_FORMULA] ... [Rest of reasoning]",
     "reasoning_zh": "这里是 reasoning 的中文翻译"
 }}
 NOTE: For NEUTRAL opinions, set take_profit and stop_loss to null.
