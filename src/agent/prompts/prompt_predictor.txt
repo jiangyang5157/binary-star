@@ -36,6 +36,10 @@ FORMAT: `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_cl
 - **Volume Profile Gravity**: POC is a floor if Price > POC. NEVER short above the POC treating it as a ceiling, EXCEPT for 'Rubber Band Overextension': If Price is > 3x ATR above VAH and Volume Breakout Ratio < 0.5, a dynamic SHORT targeting VAH is mandatory.
 - **Climax & Entry Timing (Red Line)**: NEVER short immediately after a 'Waterfall' climax. Wait for mean-reversion; climax at support = absorption. For entries, you MUST wait for a local 15m structural breakdown or liquidity sweep to avoid extreme MAE drawdowns.
 - **Breakout Efficiency**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH` (Bull) or `VAL` (Bear), target the next **High Volume Node (HVN)**.
+- **Deep Limit Entry (DLE) (Reference Only)**: For review purposes, identify the "optimal" deep entry point. 
+    - `LONG_DLE = VAL - (0.5 * ATR)` or `Price at nearest Micro-HVN below Current Price`.
+    - `SHORT_DLE = VAH + (0.5 * ATR)` or `Price at nearest Micro-HVN above Current Price`.
+    - This is NOT an action, but a structural anchor for performance evaluation.
 
 Your core analysis philosophy relies on:
 - **Volume Profile** (POC, VAH, VAL) - Structural Gravity.
@@ -118,6 +122,7 @@ You MUST adjust your final `confidence` score based on the following:
     1. TP/SL Ratio & ATR Mults.
     2. Confidence Calibration (Why this score?).
     3. Structural Anchors (POC/VAH/VAL).
+    4. **Deep Limit Order: [Price]** (MANDATORY if BULLISH/BEARISH. Use DLE formulas for reference).
 - **Dynamic RR Mitigation (MANDATORY)**: If baseline macro RR < 1.0 blocks a trade, do NOT passively default to WAIT. You MUST search the 15m micro-structure for safe local invalidation points to tighten the SL and achieve RR > 1.0. Conversely, NEVER arbitrarily compress an SL purely to manipulate the RR math; the tightened SL MUST be anchored to a valid 15m structural barrier.
 [[[/PASS_1_INITIAL_ANALYSIS]]]
 
@@ -163,6 +168,7 @@ Refine the entry/exit points for optimal TP/SL Ratio based on current market con
 Before outputting JSON, include a "Mathematical Scratchpad" in your reasoning:
 `TP_FORMULA: [BasePrice] +/- ([ATR_MULT] * [ATR_VAL]) +/- [Buffer] = [FinalTP]`
 `SL_FORMULA: [BasePrice] +/- ([ATR_MULT] * [ATR_VAL]) +/- [Buffer] = [FinalSL]`
+`DLE_FORMULA: [VAL/VAH] +/- (0.5 * ATR) = [DeepLimitPrice] (or Micro-HVN alternative)`
 
 You MUST output your final decision in strict JSON format. 
 {{

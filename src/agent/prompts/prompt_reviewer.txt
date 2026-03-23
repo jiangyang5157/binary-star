@@ -45,7 +45,11 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
     - List 3 technical evidences that Agent A chose to ignore or misinterpret.
 4.  **Narrative-Data Conflict Probe**:
     - Hunt for "Hallucinations". If Agent A claims a trend existed that the data does not support, flag it.
-5.  **Diagnostic Synthesis**: 
+5.  **Deep Limit Order (DLE) Validation**:
+    - If Agent A provided a `Deep Limit Order` in its reasoning, assess its accuracy:
+    - Did price reach the DLE? If so, did it hold or slice through?
+    - If price did NOT reach the DLE but reversed, was the DLE "too deep" or well-placed for a worst-case scenario?
+6.  **Diagnostic Synthesis**: 
     - Categorize into: [Regime Mismatch], [Execution Sloppiness], [Structural Blindness], or [Strategic Alpha].
 [[[/ADVERSARIAL_AUDIT_TASKS]]]
 
@@ -67,7 +71,7 @@ Calculate Max Adverse Excursion (MAE) as a % of the Stop-Loss distance.
 - Logic Failure (MAE > 85%): **-30 pts**. (Applies only to TP_HIT). Extreme stress indicates the prediction was a "Coin Flip" that got lucky.
 
 3. Cognitive Integrity Audit (Target: Reasoning Factuality)
-- Structural Insight Bonus: **+10 to +30 pts**. Awarded for correctly identifying Volume Profile gaps, POC magnetism, or Order Flow imbalances (even if trade is SL_HIT).
+- Structural Insight Bonus: **+10 to +30 pts**. Awarded for correctly identifying Volume Profile gaps, POC magnetism, or Order Flow imbalances. **A highly accurate "Deep Limit Order" (DLE) that successfully identifies the structure's "bend but don't break" point is a prime candidate for this bonus.**
 - Hallucination / Rule Penalty: **-60 pts (Hard Floor)**. Triggered by fabricated data or ignoring Major Structural Barriers (VAH/VAL/POC).
 
 **Final Score = Clamp(Base + MAE Modifier + Integrity Audit, 0, 100)**
