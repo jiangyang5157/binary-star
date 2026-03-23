@@ -146,7 +146,7 @@ class EmailNotifier:
         return f"""
                 <div style="margin-bottom: 25px;">
                     <!-- Single-row Target Summary (Mirrored Dashboard Style) -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 25px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); margin: 0 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background-color: #ffffff; border: 1px solid #f1f5f9; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                         <div style="text-align: center; flex: 1; padding: 0 10px;">
                             <span style="display: block; font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Market Price</span>
                             <span style="font-size: 15px; font-weight: 700; color: #334155;">{current_price}</span>
