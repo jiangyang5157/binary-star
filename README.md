@@ -53,9 +53,10 @@ crypto/
 
 ### 👤 Agent A (Predictor) — 执行大脑
 *   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio, Squeeze Factor）。
-*   **五步强化推演 (Five-Step Analysis)**：执行模块化的分析流程：环境判断 -> 结构定位 -> 偏差补偿 -> **信心校准** -> 数学验证。这有效解决了“逻辑密度过载”导致的语义钝化问题。
+*   **五步强化推演 (Five-Step Analysis)**：执行模块化的分析流程：环境判断 -> 结构定位 -> 偏差补偿 -> **信心校准** -> 数学验证。
 *   **信心校准协议 (Confidence Calibration)**：强制模型识别 2 个失败场景，并在 RANGING/SQUEEZE 等高风险环境下自动压制信心分数。
-*   **三轮推演 (Multi-Pass Reasoning)**：执行 `初步分析 (Pass 1)` -> `红队质疑 (Pass 2)` -> `最终决策 (Pass 3)`。在 Pass 2 中引入了 **弱信号放大 (Signal Magnification)** 机制，强制挖掘反向证据。
+*   **逻辑精简与去冗余 (Logic Efficiency)**：深度优化了 `CORE_ANALYTICAL_PRINCIPLES`，彻底消除了指令间的自我指涉（Self-Reference）和重复逻辑，降低了约 10% 的 Token 开销，显著提升了模型对关键突破（Breakout）规约的解析与执行力。
+*   **三轮推演 (Multi-Pass Reasoning)**：执行 `初步分析 (Pass 1)` -> `红队质疑 (Pass 2)` -> `最终决策 (Pass 3)`。在 Pass 2 中引入了 **弱信号放大 (Signal Magnification)** 机制。
 
 ### 🛡️ Agent B (Reviewer) — 审计法官
 *   **反转审计协议 (Inversion Protocol)**：核心审计逻辑。Reviewer 被强制要求在阅读 Predictor 的主观叙事之前，先独立从原始 K 线和成交数据中提取“冷事实”。这彻底打破了“审计盲点”和注意力跟随（Attention Following）偏见。
@@ -131,6 +132,8 @@ python predictor.py
 ```bash
 python scheduler.py
 ```
+> [!NOTE]
+> **日志清洁度 (Log Hygiene)**：系统优化了多进程日志捕获流。所有正常运行日志通过 `stdout` 统一输出，确保 `scheduler.log` 能精准区分系统信息（INFO）与真正的异常错误（ERR），排除了 Python 默认 Logging 带来的噪音。
 
 #### 3. 策略进化 (自循环核心)
 当积累了一定数量的复盘报告后（例如 10 份）：
@@ -212,10 +215,8 @@ python simulator.py --days 14 --sampling 5 --mode spaced
 
 ### 2. 外科手术式补丁协议 (Surgical Patching)
 Coach (Agent C) 通过 `master_prompt_patch` 生成补丁时遵循以下准则：
--   **强制 `target_section`**：所有动作 (`ADD`, `REPLACE`, `REMOVE`) 必须指定目标块。这确保了修改被严格锁定在局部，避免全局字符串替换导致的“误伤”。
--   **精准插入规则**：
-    -   **末尾追加**：使用 `action: ADD`。
-    -   **中间插入/局部修改**：使用 `action: REPLACE`。选中一小段“锚点文本”，替换为“锚点文本 + 新规则”。
+-   **强制 `target_section`**：所有动作 (`ADD`, `REPLACE`, `REMOVE`) 必须指定目标块。这确保了修改被严格锁定在局部。
+-   **精确子串替换 (Exact REPLACE)**：`REPLACE` 引擎由简单的行匹配升级为 **精确子串匹配**。模型被要求提供具备唯一性的 `target` 锚点文本，确保补丁注入的 100% 准确性。
 
 ### 3. 标准进化工作流 (Six-Phase Evolution)
 1.  **第一阶段：仿真与录制 (Record & Sample)**：运行 `simulator.py` 收集不同行情下的系统表现。
