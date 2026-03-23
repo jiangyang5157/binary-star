@@ -50,3 +50,11 @@ agent:
   predictor_temp_final: 0.1
   review_temperature: 1.0
   coach_temperature: 1.0
+observer:
+  model: gemini-flash-latest
+  temperature: 0.2
+  hvn_count: 3
+  lvn_count: 3
+  hvn_sensitivity: 0.15      # 识别高峰的灵敏度 (0.0-1.0)，越小越灵敏
+  lvn_sensitivity: 0.10      # 识别谷底的灵敏度 (0.0-1.0)
+  min_node_spacing: 10       # 两个点之间的最小间距 (单位: Bins，即直方图的柱子数)
