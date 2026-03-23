@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-07T00:00:00Z",
+    "confidence": 45,
+    "opinion": "BULLISH",
+    "action": "LONG",
+    "current_price": 68243.2,
+    "take_profit": 69122.2,
+    "stop_loss": 67610.0,
+    "reasoning": "[ANCHOR] POC: 68049.428 | VAH: 72765.572 | VAL: 63042.164 | Current: 68243.2. TP_FORMULA: 68243.2 + (1.5 * 586.0) = 69122.2. SL_FORMULA: 68049.43 - (0.75 * 586.0) = 67610.0. The market is in a RANGING regime, and price is currently oscillating around the POC. While the 15m chart exhibits a bearish descending triangle structure pressing into support, the macro context remains range-bound with positive delta (426.79) suggesting active buyer interest. The Volume Breakout Ratio is critically low (0.43), favoring mean reversion over a sustained breakdown. Confidence is set at 45% to account for the Red Team warning regarding passive seller absorption and the high likelihood of a liquidity sweep below the POC. The SL is widened to 0.75x ATR below the POC to provide a buffer for this expected volatility while maintaining a viable RR of 1.38.",
+    "reasoning_zh": "[ANCHOR] POC: 68049.428 | VAH: 72765.572 | VAL: 63042.164 | 当前价格: 68243.2。TP公式: 68243.2 + (1.5 * 586.0) = 69122.2。SL公式: 68049.43 - (0.75 * 586.0) = 67610.0。市场处于震荡（RANGING）格局，价格目前在 POC 附近波动。虽然 15 分钟图显示出看跌的下降三角形结构正向支撑位施压，但宏观背景仍处于区间震荡，正向 Delta (426.79) 表明存在主动买盘兴趣。成交量突破比率极低 (0.43)，有利于均值回归而非持续下跌。信心评分设定为 45%，以考虑红队关于被动卖方吸收以及 POC 下方极可能发生流动性扫荡的警告。止损位扩大至 POC 下方 0.75x ATR，为预期的波动提供缓冲，同时保持 1.38 的有效盈亏比。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

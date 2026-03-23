@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-12T00:00:00Z",
+    "confidence": 85,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 70176.9,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | Current: 70176.9. The market is in a RANGING regime with a Trend Intensity of 0.2854 and a very low Volume Breakout Ratio (0.35), indicating high chop risk and low momentum. MATHEMATICAL SCRATCHPAD: TP_FORMULA (Long 2x ATR) = 70176.9 + (2.0 * 631.319) = 71439.54; SL_FORMULA (POC-based) = 68513.0 - (0.5 * 631.319) = 68197.34; RR = 1262.64 / 1979.56 = 0.637. A LONG setup fails the minimum 1.0 RR threshold due to the mandatory stop-loss placement below the POC. SHORTING is prohibited by protocol as price remains above the POC floor and no 'Rubber Band Overextension' (Price > 74612.4) is present. Positive Order Flow Delta (+325 BTC) against stagnant price action suggests passive seller absorption, further validating a range-bound expectation. Neutrality is the only mathematically sound stance.",
+    "reasoning_zh": "[锚点] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | 当前价格: 70176.9。市场处于 RANGING（震荡）格局，趋势强度为 0.2854，成交量突破比率极低（0.35），表明洗盘风险高且动能不足。数学计算：止盈公式 (做多 2x ATR) = 70176.9 + (2.0 * 631.319) = 71439.54；止损公式 (基于 POC) = 68513.0 - (0.5 * 631.319) = 68197.34；风险回报比 (RR) = 1262.64 / 1979.56 = 0.637。由于强制止损需设在 POC 下方，做多方案无法达到 1.0 的最低 RR 阈值。由于价格高于 POC 支撑位且未出现“橡皮筋过度扩张”（价格未超过 74612.4），协议禁止做空。正向订单流 Delta (+325 BTC) 与停滞的价格走势暗示存在被动卖方吸收，进一步验证了区间震荡的预期。保持中立是唯一在数学上合理的立场。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

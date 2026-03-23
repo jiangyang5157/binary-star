@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-19T00:00:00Z",
+    "confidence": 45,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 70970.1,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 71253.3865 | VAH: 74590.8905 | VAL: 66247.1305 | Current: 70970.1. Final Synthesis: The market is currently in a low-conviction RANGING regime (Trend Intensity: 0.4246). Although Price < POC suggests a bearish structural bias, the Volume Breakout Ratio of 0.38 is critically low, indicating a lack of institutional participation to sustain a trend. Furthermore, the ATR Skewness (-0.2566) reveals significant lower wicks, signaling passive buyer absorption despite the negative Delta (-191.8 BTC). The 15m chart shows a 'V-reversal' attempt directly into the POC, creating a high risk of a mean-reversion squeeze toward the 72.5k HVN. Per the 'Breakout Efficiency' protocol, a NEUTRAL stance is mandatory until a high-volume rejection (Ratio > 1.5) or a clean structural breakdown of the 70.5k local shelf occurs. TP_FORMULA: null. SL_FORMULA: null.",
+    "reasoning_zh": "[锚点] POC: 71253.3865 | VAH: 74590.8905 | VAL: 66247.1305 | 当前价格: 70970.1。最终综合分析：市场目前处于低信心的震荡（RANGING）格局（趋势强度：0.4246）。尽管价格 < POC 暗示了看跌的结构性偏见，但 0.38 的成交量突破比率极低，表明缺乏维持趋势的机构参与。此外，ATR 偏度（-0.2566）显示出明显的下影线，表明尽管 Delta 为负（-191.8 BTC），但存在被动买盘吸收。15分钟图显示在 POC 处有“V型反转”尝试，这带来了向 72.5k 高成交量节点（HVN）均值回归挤压的高风险。根据“突破效率”协议，在出现高成交量拒绝（比率 > 1.5）或 70.5k 局部支撑位出现清晰的结构性破位之前，必须保持中立（NEUTRAL）立场。止盈公式：无。止损公式：无。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

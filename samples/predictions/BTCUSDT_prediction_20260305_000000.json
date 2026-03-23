@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-05T00:00:00Z",
+    "confidence": 52,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 72725.0,
+    "take_profit": 70945.7,
+    "stop_loss": 74326.4,
+    "reasoning": "[ANCHOR] POC: 68456.996 | VAH: 68922.788 | VAL: 63682.628 | Current: 72725.0. 1. Protocol Trigger: 'Rubber Band Overextension' is active as Price is ~4.27x ATR above the VAH (68922) with a Volume Breakout Ratio of 0.35 (< 0.5), mandating a mean-reversion short. 2. Mathematical Scratchpad: TP_FORMULA: 72725.0 - (2.0 * 889.67) = 70945.66; SL_FORMULA: 72725.0 + (1.8 * 889.67) = 74326.4. RR Ratio = 1.11. 3. Synthesis & Risk: Confidence is adjusted to 52% to account for the Red Team's warning regarding 'Passive Absorption' (negative delta of -164 BTC failing to push price lower) and the 15m consolidation wedge. While these suggest hidden buyer strength, the structural deviation from the Value Area is statistically extreme, favoring a pullback to the nearest micro-HVN above the VAH.",
+    "reasoning_zh": "[锚点] POC: 68456.996 | VAH: 68922.788 | VAL: 63682.628 | 当前价格: 72725.0。1. 协议触发：“橡皮筋过度扩张”协议已激活，价格位于 VAH (68922) 之上约 4.27x ATR，且成交量突破比率仅为 0.35 (< 0.5)，强制执行均值回归做空。2. 数学计算：止盈公式: 72725.0 - (2.0 * 889.67) = 70945.66；止损公式: 72725.0 + (1.8 * 889.67) = 74326.4。盈亏比 = 1.11。3. 综合风险：信心指数调整为 52%，以考虑红队关于“被动吸收”的警告（-164 BTC 的负 Delta 未能压低价格）以及 15 分钟图的整合楔形。虽然这些信号暗示存在隐藏买盘，但价格偏离价值区的结构性程度在统计上已达极端，倾向于回调至 VAH 上方的最近微型高成交量节点 (HVN)。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

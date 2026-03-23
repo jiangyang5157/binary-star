@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-18T00:00:00Z",
+    "confidence": 50,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 73821.3,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 71253.3865 | VAH: 74069.4055 | VAL: 66247.1305 | Current: 73821.3. TP_FORMULA: N/A. SL_FORMULA: N/A. The market is currently in a high-compression SQUEEZE (0.7138) at the Value Area High (VAH). While a mean-reversion short was initially considered, the audit reveals 'Bullish Absorption'—significant negative delta (-259.8 BTC) is failing to push price lower, indicating strong passive buying at resistance. Additionally, the 1.5x ATR TP cap for ranging regimes makes the risk/reward for a short to the POC mathematically unfavorable. With Trend Intensity at an extreme low (0.0453) and a Volume Breakout Ratio of only 0.8, the risk of a volatility expansion (squeeze release) is high. Protocol mandates a NEUTRAL stance until a Volume Breakout Ratio > 2.0 confirms a directional move.",
+    "reasoning_zh": "[锚点] POC: 71253.3865 | VAH: 74069.4055 | VAL: 66247.1305 | 当前价格: 73821.3。TP公式: 无。SL公式: 无。市场目前在价值区高点 (VAH) 处于高压缩挤压状态 (SQUEEZE 0.7138)。虽然最初考虑了均值回归做空，但审计显示存在“看涨吸收”——显著的负 Delta (-259.8 BTC) 未能推动价格下跌，表明阻力位有强大的被动买盘。此外，震荡格局下 1.5x ATR 的获利上限使得向 POC 做空的风险回报比在数学上不利。由于趋势强度处于极低水平 (0.0453) 且成交量突破比率仅为 0.8，波动性扩张（挤压释放）的风险很高。根据协议，在成交量突破比率 > 2.0 确认方向性移动之前，必须保持中立立场。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
