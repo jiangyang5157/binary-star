@@ -21,39 +21,70 @@ def apply_patches(base_text: str, patch_list: List[Dict[str, Any]]) -> str:
     patched_text = base_text
     for patch in patch_list:
         action = patch.get("action", "").upper()
+        target_section = patch.get("target_section", "")
         
         try:
-            if action == "ADD":
-                target_section = patch.get("target_section", "")
-                content = patch.get("content", "")
-                if target_section in patched_text:
-                    logger.info(f"Applying ADD patch to section: {target_section}")
-                    # If it's a bracketed section, we can insert before the closing tag for better structure
-                    closing_tag = target_section.replace("[[[", "[[[/")
-                    if closing_tag in patched_text:
-                         patched_text = patched_text.replace(closing_tag, f"{content}\n{closing_tag}")
-                    else:
-                         patched_text = patched_text.replace(target_section, f"{target_section}\n{content}")
+            # 1. Locate the section content if target_section is provided
+            section_content = ""
+            start_index = -1
+            end_index = -1
+            
+            if target_section:
+                start_tag = target_section
+                end_tag = target_section.replace("[[[", "[[[/")
+                
+                start_match = patched_text.find(start_tag)
+                end_match = patched_text.find(end_tag)
+                
+                if start_match != -1 and end_match != -1:
+                    start_index = start_match + len(start_tag)
+                    end_index = end_match
+                    section_content = patched_text[start_index:end_index]
                 else:
-                    logger.warning(f"Target section '{target_section}' not found for ADD action. Appending to end.")
-                    patched_text += f"\n\n{content}"
+                    logger.warning(f"Target section '{target_section}' tags not found. Falling back to global search.")
+
+            if action == "ADD":
+                content = patch.get("content", "")
+                if start_index != -1 and end_index != -1:
+                    logger.info(f"Applying ADD patch to section: {target_section}")
+                    # Append to the end of the section content
+                    new_section_content = section_content.rstrip() + "\n" + content + "\n"
+                    patched_text = patched_text[:start_index] + new_section_content + patched_text[end_index:]
+                else:
+                    logger.warning(f"Target section '{target_section}' not found for ADD action. Appending to end of file.")
+                    patched_text = patched_text.rstrip() + f"\n\n{content}\n"
 
             elif action == "REPLACE":
                 target = patch.get("target", "")
                 replacement = patch.get("replacement", "")
-                if target and target in patched_text:
-                    logger.info(f"Applying REPLACE patch for: {target[:30]}...")
-                    patched_text = patched_text.replace(target, replacement)
+                
+                if start_index != -1 and end_index != -1:
+                    if target in section_content:
+                        logger.info(f"Applying surgical REPLACE in section: {target_section}")
+                        new_section_content = section_content.replace(target, replacement)
+                        patched_text = patched_text[:start_index] + new_section_content + patched_text[end_index:]
+                    else:
+                        logger.warning(f"Target text for REPLACE not found in section '{target_section}'.")
                 else:
-                    logger.warning(f"Target text for REPLACE not found.")
+                    # Global fallback
+                    if target in patched_text:
+                        logger.info(f"Applying global REPLACE for: {target[:30]}...")
+                        patched_text = patched_text.replace(target, replacement)
 
             elif action == "REMOVE":
                 target = patch.get("target", "")
-                if target and target in patched_text:
-                    logger.info(f"Applying REMOVE patch for: {target[:30]}...")
-                    patched_text = patched_text.replace(target, "")
+                if start_index != -1 and end_index != -1:
+                    if target in section_content:
+                        logger.info(f"Applying surgical REMOVE in section: {target_section}")
+                        new_section_content = section_content.replace(target, "")
+                        patched_text = patched_text[:start_index] + new_section_content + patched_text[end_index:]
+                    else:
+                        logger.warning(f"Target text for REMOVE not found in section '{target_section}'.")
                 else:
-                    logger.warning(f"Target text for REMOVE not found.")
+                    # Global fallback
+                    if target in patched_text:
+                        logger.info(f"Applying global REMOVE for: {target[:30]}...")
+                        patched_text = patched_text.replace(target, "")
         
         except Exception as e:
             logger.error(f"Failed to apply patch {patch}: {e}")
@@ -109,13 +140,11 @@ def find_and_update_flat_key(base: Dict[str, Any], key: str, value: Any) -> bool
 def apply_to_config(report_data: Dict[str, Any], config_path: str):
     """
     Applies master_config_update from report to the specified config YAML file.
-    Supports both nested and flat key updates.
     """
     analysis = report_data.get("analysis", {})
     if isinstance(analysis, list) and len(analysis) > 0:
         analysis = analysis[0]
         
-    # Note: Coach prompt uses master_config_update
     config_update = analysis.get("master_config_update", {}) if isinstance(analysis, dict) else {}
     
     if not config_update:
@@ -128,20 +157,20 @@ def apply_to_config(report_data: Dict[str, Any], config_path: str):
 
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
-            current_config = yaml.safe_load(f) or {}
+            current_config = yaml.safe_load(f)
+            if current_config is None:
+                current_config = {}
 
         logger.info(f"Applying {len(config_update)} config updates...")
         
         for key, value in config_update.items():
             if isinstance(value, dict):
-                # If it's a dict, use recursive update (assuming it follows structure)
-                if key not in current_config:
+                if key not in current_config or not isinstance(current_config[key], dict):
                     current_config[key] = {}
                 recursive_update(current_config[key], value)
             else:
-                # If it's a flat value, try to find where it belongs
                 if not find_and_update_flat_key(current_config, key, value):
-                    logger.warning(f"Config key '{key}' not found in current structure. Adding as top-level.")
+                    logger.warning(f"Config key '{key}' not found. Adding as top-level.")
                     current_config[key] = value
 
         with open(config_path, 'w', encoding='utf-8') as f:

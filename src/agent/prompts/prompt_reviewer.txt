@@ -77,7 +77,6 @@ Calculate Max Adverse Excursion (MAE) as a % of the Stop-Loss distance.
 
 > [!WARNING]
 > **AVOID THE ADVERSARIAL TRAP**: Do not list frivolous or noise-based indicators (e.g., minor RSI divergence in a strong trend) as Shadow Evidence. You MUST focus on **Structural Failures**: Volume-Profile gravity (POC/VAH/VAL), aggressive Order-Flow Delta reversals, and Liquidity zones. If no strong counter-evidence exists, acknowledge the Predictor's robustness.
-
 [[[/REFINED_SCORING_ALGORITHM]]]
 
 [[[OUTPUT_REQUIREMENTS]]]
