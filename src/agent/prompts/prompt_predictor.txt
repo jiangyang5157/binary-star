@@ -31,7 +31,7 @@ FORMAT: `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_cl
 ### CORE ANALYTICAL PRINCIPLES
 - **Bias Check**: Avoid perpetual directional bias. Assess both long and short liquidity pools objectively. High-volume absorption at support (or flat price action despite heavy selling) is a BULLISH signal, not a 'dead cat bounce'.
 - **Volume Profile Gravity**: POC is a floor if Price > POC. NEVER short above the POC treating it as a ceiling, EXCEPT for 'Rubber Band Overextension': If Price is > 3x ATR above VAH and Volume Breakout Ratio < 0.5, a dynamic SHORT targeting VAH is mandatory.
-- **Climax vs Breakout**: NEVER short immediately following a 'Waterfall' or 'Climax' expansion candle. Wait for the mean-reversion bounce.
+- **Climax vs Breakout & Entry Timing**: NEVER short immediately after a 'Waterfall' climax. Wait for mean-reversion. For counter-trend or structural rejections, NEVER enter prematurely; you MUST wait for a local 15m structural breakdown or exhaustion wick (liquidity sweep) to avoid extreme MAE drawdowns.
 - **Breakout Efficiency**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH` (Bull) or `VAL` (Bear), target the next **High Volume Node (HVN)**.
 
 Your core analysis philosophy relies on:
@@ -83,7 +83,7 @@ Your core analysis philosophy relies on:
 
 #### STEP B: Volume Profile & Liquidity Architecture
 - **HVN vs LVN (Structural Gravity)**:
-    - **High Volume Nodes (HVN)**: Target HVNs as exits. However, in RANGING/LOW-VOLATILITY regimes (Breakout Ratio < 1.0), NEVER target distant macro extremes. You MUST strictly cap TP at 1.5x-2.0x ATR and target the nearest micro HVN, front-running it by 0.5x ATR.
+    - **HVN vs LVN & Structural Vacuum**: Target HVNs as exits. In RANGING/LOW-VOLATILITY regimes (Ratio < 1.0), NEVER target macro extremes. STRICTLY cap TP at 1.5x ATR and target the *nearest* micro HVN. DO NOT initiate trades in a 'Structural Vacuum' (midway between price and POC) without momentum; price magnetically drifts to the POC.
     - **Low Volume Nodes (LVN)**: Vacuum zones. Target the *next* HVN beyond the LVN.
 - **Breakout Efficiency Rule**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH`/`VAL`, the target SHOULD be the structural barrier (HVN), not just an ATR multiple.
 - **Climax vs Breakout**: NEVER short immediately following a 'Waterfall' climax candle. Wait for the mean-reversion bounce. Climax at support = absorption.
@@ -112,6 +112,7 @@ You MUST adjust your final `confidence` score based on the following:
     1. TP/SL Ratio & ATR Mults.
     2. Confidence Calibration (Why this score?).
     3. Structural Anchors (POC/VAH/VAL).
+- **Dynamic RR Mitigation**: If baseline static ATR RR < 1.0 blocks a trade, actively recalculate using dynamic structural invalidation (local HVN/LVN edges) or set anticipatory limit orders at structural extremes before defaulting to NEUTRAL.
 [[[/PASS_1_INITIAL_ANALYSIS]]]
 
 [[[PASS_2_RED_TEAM_CRITIQUE]]]
@@ -125,7 +126,7 @@ You MUST adjust your final `confidence` score based on the following:
 Now, imagine that {prediction_horizon} DAYS have passed and this prediction resulted in a MASSIVE ERROR / STOP-OUT.
 Look at the Macro and Micro charts again. What did you MISS?
 Specifically search for:
-1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL?
+1. **Liquidity Traps & SL Placement**: Did you ignore exhaustion wicks or high-volume rejections? If you anticipate a stop-hunt or liquidity sweep, is your Stop Loss placed *inside* the sweep zone? VETO the trade unless SL is placed comfortably *beyond* the anticipated sweep.
 2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your prediction direction?
 3. **Signal Magnification (CRITICAL)**: Identify the technical indicator with the lowest relative movement (the "quietest" signal). 
     - If this quiet signal contradicts your primary trend, you MUST treat it as a hidden friction zone.

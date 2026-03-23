@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-23T00:00:00Z",
-    "confidence": 60,
+    "confidence": 65,
     "opinion": "BULLISH",
     "action": "LONG",
     "current_price": 67642.5,
-    "take_profit": 70000.0,
+    "take_profit": 69929.0,
     "stop_loss": 66842.0,
-    "reasoning": "[ANCHOR] POC: 70151.34 | VAH: 74083.32 | VAL: 67630.84 | Current: 67642.5. TP_FORMULA: 67642.5 + (5.3x ATR) = 70000.0 (Front-running POC). SL_FORMULA: 67642.5 - (1.8x ATR) = 66842.0. The market is in a RANGING regime with very low Trend Intensity (0.17), favoring a mean-reversion trade from the Value Area Low (VAL) back toward the Point of Control (POC). Despite the recent 'Waterfall' drop on the 15m chart, the Volume Breakout Ratio of 1.7 (below the 2.0 threshold) suggests the breakdown lacks trend-shifting momentum and is likely a fakeout. Positive Order Flow Delta (+767 BTC) and negative ATR Skewness (-0.18) indicate significant buying absorption and the formation of lower wicks at this structural floor. Confidence is set at 60% to account for the possibility of a secondary liquidity sweep below 67k before the reversal fully materializes.",
-    "reasoning_zh": "[锚点] POC: 70151.34 | VAH: 74083.32 | VAL: 67630.84 | 当前价格: 67642.5。止盈公式: 67642.5 + (5.3x ATR) = 70000.0 (在POC前止盈)。止损公式: 67642.5 - (1.8x ATR) = 66842.0。市场处于震荡格局 (RANGING)，趋势强度极低 (0.17)，有利于从价值区低点 (VAL) 向控制点 (POC) 进行均值回归交易。尽管15分钟图表上出现了“瀑布式”下跌，但成交量突破比率为 1.7（低于 2.0 的阈值），表明该跌破缺乏趋势转变的动力，很可能是一个假突破。正向订单流 Delta (+767 BTC) 和负 ATR 偏度 (-0.18) 表明在该结构性支撑位存在显著的买盘吸收和下影线形成。信心评分设定为 60%，以考虑到在反转完全实现之前，价格可能会在 67k 下方进行二次流动性扫荡。",
+    "reasoning": "[ANCHOR] POC: 70151.34 | VAH: 74083.32 | VAL: 67630.84 | Current: 67642.5. TP_FORMULA: 67642.5 + (5.14 * 444.74) = 69929.0. SL_FORMULA: 67642.5 - (1.8 * 444.74) = 66842.0. The market is currently in a RANGING regime (Trend Intensity: 0.17) and price has reached the Value Area Low (VAL) of the volume profile. According to the 'Climax vs Breakout' principle, we avoid shorting immediately after the 'Waterfall' drop seen on the 15m chart, favoring a mean-reversion setup. The Volume Breakout Ratio of 1.7 is below the critical 2.0 threshold, suggesting the current test of VAL lacks the conviction for a sustained breakdown and indicates absorption. Positive Order Flow Delta (+767 BTC) during this consolidation at lows confirms passive buyers are stepping in. Negative ATR Skewness (-0.18) highlights the presence of lower wicks, signaling rejection of sub-VAL prices. Confidence is set at 65% as we are betting against immediate momentum at a major structural floor. Failure Scenario: A high-volume expansion (Ratio > 2.0) below 67600 would flip the bias to bearish targeting the next liquidity node.",
+    "reasoning_zh": "[锚点] POC: 70151.34 | VAH: 74083.32 | VAL: 67630.84 | 当前价格: 67642.5。止盈公式: 67642.5 + (5.14 * 444.74) = 69929.0。止损公式: 67642.5 - (1.8 * 444.74) = 66842.0。市场目前处于震荡格局（趋势强度：0.17），价格已触及成交量分布图的价值区低点 (VAL)。根据“高潮 vs 突破”原则，我们避免在 15 分钟图表所示的“瀑布式”下跌后立即做空，转而倾向于均值回归设置。1.7 的成交量突破比率低于 2.0 的关键阈值，这表明当前对 VAL 的测试缺乏持续跌破的动能，并预示着吸收。在低位盘整期间，正向订单流 Delta (+767 BTC) 确认了被动买家正在介入。负 ATR 偏度 (-0.18) 突显了下影线的存在，信号显示对 VAL 以下价格的拒绝。信心评分设定为 65%，因为我们是在主要结构性底部逆短期动能博弈。失败场景：跌破 67600 且成交量放大（比率 > 2.0）将使偏见转向看跌，目标指向下一个流动性节点。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

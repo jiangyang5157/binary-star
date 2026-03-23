@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-01T00:00:00Z",
-    "confidence": 30,
-    "opinion": "NEUTRAL",
-    "action": "WAIT",
+    "confidence": 55,
+    "opinion": "BEARISH",
+    "action": "SHORT",
     "current_price": 66755.6,
-    "take_profit": null,
-    "stop_loss": null,
-    "reasoning": "[ANCHOR] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | Current: 66755.6. 1. Mathematical Scratchpad: TP_FORMULA: N/A (Neutral) | SL_FORMULA: N/A (Neutral). 2. Structural Dead Zone: Price is currently situated in the middle of the Value Area, approximately 939 points below the POC and 3073 points above the VAL. A long entry targeting the POC yields an RR of 0.62 (Target: 938.9 / SL: 1503.3 based on 1.8x ATR), which fails the mandatory Min RR of 1.0. 3. Volume Anemia: The Volume Breakout Ratio is 0.45, confirming that the current price action is low-conviction noise. Entering in a ranging regime with such low relative volume significantly increases the risk of being 'chopped' out by random volatility. 4. Order Flow Divergence: Despite a positive 12-bar Delta (+687.13 BTC), the lack of price expansion toward the POC suggests that passive sellers are effectively absorbing the buying pressure. 5. Final Resolution: The lack of structural edge and poor risk-to-reward ratio necessitates a NEUTRAL stance until price reaches a high-confluence boundary (POC or VAL).",
-    "reasoning_zh": "[ANCHOR] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | 当前价格: 66755.6。1. 数学草稿：TP_FORMULA: 无 (中立) | SL_FORMULA: 无 (中立)。2. 结构性死区：价格目前处于价值区中间，位于 POC 下方约 939 点，VAL 上方约 3073 点。以 POC 为目标的做多入场 RR 仅为 0.62（目标：938.9 / 基于 1.8x ATR 的止损：1503.3），未达到 1.0 的最低 RR 要求。3. 成交量贫血：成交量突破比率为 0.45，证实当前价格行为是低信心的噪音。在如此低的相对成交量下进入震荡格局，会显著增加被随机波动“洗盘”出局的风险。4. 订单流背离：尽管 12 根 K 线的 Delta 为正（+687.13 BTC），但价格未能向 POC 扩张，表明被动卖家正在有效吸收买盘压力。5. 最终决议：由于缺乏结构性优势且风险回报比极差，在价格触及高汇聚边界（POC 或 VAL）之前，必须保持中立立场。",
+    "take_profit": 63682.22,
+    "stop_loss": 68258.87,
+    "reasoning": "[ANCHOR] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | Current: 66755.6. TP_FORMULA: 66755.6 - (3.68 * 835.15) = 63682.22; SL_FORMULA: 66755.6 + (1.8 * 835.15) = 68258.87. The market is currently in a RANGING regime with a critically low Volume Breakout Ratio of 0.45, indicating the recent upward drift is a low-conviction move. Price is grinding into the POC (67694) from below; despite a positive Delta of 687 BTC, the lack of price expansion suggests heavy passive seller absorption at this structural ceiling. ATR Skewness (0.072) further confirms overhead selling pressure. Following the 'Directional Inversion RR' protocol, a SHORT setup is preferred as it offers a 2.04 RR targeting the VAL (63682), whereas a long to POC yields a sub-optimal 0.62 RR. The stop-loss is strategically placed above the POC, utilizing it as structural protection against minor volatility spikes.",
+    "reasoning_zh": "[锚点] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | 当前价格: 66755.6。止盈公式: 66755.6 - (3.68 * 835.15) = 63682.22; 止损公式: 66755.6 + (1.8 * 835.15) = 68258.87。市场目前处于震荡（RANGING）格局，成交量突破比率极低，仅为 0.45，表明近期的向上漂移是缺乏信心的表现。价格正从下方磨向 POC (67694)；尽管 Delta 为正（687 BTC），但价格未能有效扩张，暗示在该结构性天花板存在沉重的被动卖方吸收。ATR 偏度 (0.072) 进一步确认了上方抛压。根据“方向反转 RR”协议，做空设置更为理想，因为其目标位 VAL (63682) 可提供 2.04 的盈亏比，而针对 POC 的做多仅能产生 0.62 的盈亏比。止损位战略性地设在 POC 之上，利用其作为结构性保护，防止轻微的波动毛刺。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

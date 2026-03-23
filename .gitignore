@@ -10,9 +10,11 @@ data/images/
 data/predictions/
 data/reviews/
 data/coach/
+data/backups/
 samples/images/
 samples/reviews/
 samples/coach/
+samples/backups/
 *.log
 nohup.out
 
