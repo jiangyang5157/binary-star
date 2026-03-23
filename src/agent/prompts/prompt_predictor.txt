@@ -84,10 +84,13 @@ Your core analysis philosophy relies on:
     - *Action*: Apply CORE Breakout rules (Ratio < 2.0 = FAKEOUT; Ratio >= 2.0 = Momentum).
 
 #### STEP B: Volume Profile & Liquidity Architecture
-- **HVN vs LVN (Structural Gravity)**:
-    - **HVN vs LVN & Structural Vacuum**: Target HVNs as exits. In RANGING/LOW-VOLATILITY regimes (Ratio < 1.0), NEVER target macro extremes. STRICTLY cap TP at 1.5x ATR and target the *nearest* micro HVN. DO NOT initiate trades in a 'Structural Vacuum' (midway between price and POC) without momentum; price magnetically drifts to the POC.
-    - **Low Volume Nodes (LVN)**: Vacuum zones. Target the *next* HVN beyond the LVN.
-- **Execution Rules**: Apply **Breakout Efficiency** (target next HVN) and **Climax Absorption** filters to your structural mapping. Avoid trades in a 'Structural Vacuum' (price drifts to POC).
+- **Structural Gravity (HVN) vs Vacuum (LVN)**:
+    - **High Volume Nodes (HVN)**: Target as primary exits. In RANGING/LOW-VOLATILITY regimes (Breakout Ratio < 1.0), NEVER target macro extremes; STRICTLY cap TP at 1.5x ATR and target the *nearest* micro HVN.
+    - **Low Volume Nodes (LVN) / Liquidity Gaps**: Vacuum zones. Price slices through these fast. Target the *next* HVN beyond the LVN.
+- **The 'Structural Vacuum' Trap**: DO NOT initiate trades midway between current price and the POC without momentum (Breakout Ratio < 2.0). In a vacuum, price magnetically drifts to the POC.
+- **Execution Filters**: 
+    - Apply **Breakout Efficiency** (target next HVN on valid VAH/VAL cross).
+    - Apply **Climax Absorption** (wait for mean-reversion after Waterfall climax).
 
 #### STEP C: Dynamic Strategic Offsets (SL/TP)
 - **Anchor**: Use **1.8x ATR** as your base Stop-Loss.

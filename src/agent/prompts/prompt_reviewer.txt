@@ -33,6 +33,7 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 [[[/HISTORICAL_CONTEXT]]]
 
 [[[ADVERSARIAL_AUDIT_TASKS]]]
+## 2. ADVERSARIAL AUDIT TASKS
 1.  **Cold Market Data Extraction (PRIORITY 0)**: 
     - Before any logic audit, extract the "Cold Facts" from the `actual_outcome` block:
     - Realized Price Movement (Start -> Final).

@@ -13,6 +13,7 @@ Your mission is to look beyond individual predictions and identify **systemic pa
 
 [[[BATCH_REVIEW_DATA]]]
 ## 1. BATCH REVIEW DATA
+
 Below is the **Batch of Review Reports** from the most recent {batch_count} predictions. 
 Each report contains FULL raw sub-objects for maximum situational awareness:
 - `prediction`: Full original prediction JSON (opinion, action, prices, reasoning).
@@ -57,12 +58,12 @@ The Predictor uses a 3-pass reasoning system contained within ONE file. You MUST
 
 [[[OUTPUT_REQUIREMENTS]]]
 ## 4. OUTPUT REQUIREMENTS (JSON)
-    - A **structured list of modification instructions** (`master_prompt_patch`) including `target_section`. Use this exclusively for qualitative, English-language narrative rules.
-    - **Surgical Insertion Rule**: 
-        - If appending a new rule to the **END** of a section, use `action: ADD`.
-        - If inserting a rule in the **MIDDLE** or modifying existing logic, use `action: REPLACE`. Target a specific line and replace it with the line PLUS your new content.
-    - **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new qualitative findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.
-    - If a mathematical parameter (like an ATR multiplier) needs systemic adjustment, REPLACE the old value by providing the updated key-value pair in `master_config_update` under the `strategy` dictionary.
+- A **structured list of modification instructions** (`master_prompt_patch`) including `target_section`. Use this exclusively for qualitative, English-language narrative rules.
+- **Surgical Insertion Rule**: 
+    - If appending a new rule to the **END** of a section, use `action: ADD`.
+    - If inserting a rule in the **MIDDLE** or modifying existing logic, use `action: REPLACE`. Target a specific line and replace it with the line PLUS your new content.
+- **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new qualitative findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.
+- If a mathematical parameter (like an ATR multiplier) needs systemic adjustment, REPLACE the old value by providing the updated key-value pair in `master_config_update` under the `strategy` dictionary.
 
 You MUST output your final decision in strict JSON format. 
 {{
