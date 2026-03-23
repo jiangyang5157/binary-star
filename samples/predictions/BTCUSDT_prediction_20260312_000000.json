@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-12T00:00:00Z",
-    "confidence": 45,
-    "opinion": "NEUTRAL",
-    "action": "WAIT",
+    "confidence": 50,
+    "opinion": "BULLISH",
+    "action": "LONG",
     "current_price": 70176.9,
-    "take_profit": null,
-    "stop_loss": null,
-    "reasoning": "[ANCHOR] POC: 66919.352 | VAH: 73116.872 | VAL: 63687.788 | Current: 70176.9. TP_FORMULA: N/A | SL_FORMULA: N/A. Mathematical Scratchpad: ATR (1h) = 631.32. Market is in a RANGING regime with a Volume Breakout Ratio of 0.35, significantly below the 2.0 threshold required for momentum. Price is currently positioned in a 'Structural Vacuum' between the POC floor and VAH ceiling. Trend Intensity (0.28) confirms a lack of directional conviction. Entering at current levels provides a sub-optimal Risk/Reward ratio as structural stops would need to be placed beyond the POC (66919) or VAH (73116), leading to excessive MAE. Per the Adversarial Audit, the low volume and lack of structural proximity mandate a NEUTRAL stance to avoid liquidity traps around the 70k level.",
-    "reasoning_zh": "[ANCHOR] POC: 66919.352 | VAH: 73116.872 | VAL: 63687.788 | 当前价格: 70176.9。数学计算：ATR (1h) = 631.32。市场处于 RANGING（震荡）格局，成交量突破比率仅为 0.35，远低于动量确认所需的 2.0 阈值。价格目前处于 POC 支撑位与 VAH 阻力位之间的“结构真空区”。趋势强度（0.28）证实了缺乏方向性信心。在当前水平入场提供的风险回报比不理想，因为结构性止损需要设置在 POC (66919) 或 VAH (73116) 之外，导致过大的最大回撤（MAE）。根据对抗性审计，低成交量和缺乏结构接近性强制要求保持 NEUTRAL（中立），以避免 70k 附近的流动性陷阱。",
+    "take_profit": 71123.88,
+    "stop_loss": 69820.5,
+    "reasoning": "[ANCHOR] POC: 70136.16 | VAH: 73234.92 | VAL: 63680.41 | Current: 70176.9. TP_FORMULA: 70176.9 + (1.5 * 631.32) = 71123.88. SL_FORMULA: 70136.16 - (0.5 * 631.32) = 69820.50. 1. TP/SL Ratio: 2.65. ATR Mults: TP 1.5x (Ranging Cap), SL ~0.5x ATR offset from POC. 2. Confidence Calibration: 50%. Reduced from initial assessment due to the 'quietest signal' (Volume Breakout Ratio at 0.35) which indicates extreme lack of participation and high risk of sideways chop or a 'fakeout' sweep. 3. Structural Analysis: Price is currently magnetized to the POC. Recent Order Flow Delta (+204.06 BTC) suggests bullish absorption of market sells at this structural floor. 4. Adversarial Audit: The primary risk is a liquidity sweep below the recent 15m lows (approx 69900) before any upward expansion. The SL is placed at 69820.5 to allow for this 'noise' while maintaining structural validity. 5. Strategy: Mean-reversion long from POC targeting the upper range bound, respecting the 1.5x ATR cap for ranging regimes.",
+    "reasoning_zh": "[ANCHOR] POC: 70136.16 | VAH: 73234.92 | VAL: 63680.41 | 当前价格: 70176.9。TP_FORMULA: 70176.9 + (1.5 * 631.32) = 71123.88。SL_FORMULA: 70136.16 - (0.5 * 631.32) = 69820.50。1. 盈亏比: 2.65。ATR 倍数: TP 1.5x (震荡上限), SL 距 POC 偏移约 0.5x ATR。2. 信心校准: 50%。由于“最安静信号”（成交量突破比仅为 0.35）表明市场参与度极低，存在极高的横盘震荡或“诱多/诱空”扫单风险，因此下调了信心值。3. 结构分析: 价格目前受 POC 吸引。近期订单流 Delta (+204.06 BTC) 表明在该结构性支撑位存在对市价卖单的多头吸收。4. 对抗性审计: 主要风险是价格在向上扩张前，先向下扫荡 15 分钟图近期低点（约 69900）的流动性。止损设在 69820.5 以容纳此类“噪音”，同时保持结构有效性。5. 策略: 从 POC 出发的均值回归做多，目标位设定在震荡区间上限，严格遵守震荡行情下 1.5x ATR 的盈利上限限制。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

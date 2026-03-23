@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-05T00:00:00Z",
-    "confidence": 70,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 45,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 72725.0,
-    "take_profit": 71390.5,
-    "stop_loss": 73792.6,
-    "reasoning": "[ANCHOR] POC: 68503.58 | VAH: 72742.28 | VAL: 63659.34 | Current: 72725.0. TP_FORMULA: 72725.0 - (1.5 * 889.67) = 71390.5. SL_FORMULA: 72725.0 + (1.2 * 889.67) = 73792.6. Price is currently testing the VAH (Value Area High) within a RANGING regime. The Volume Breakout Ratio of 0.35 is significantly below the 2.0 threshold required for a momentum breakout, indicating that the current move toward the range high lacks the necessary participation to sustain a break. Recent Order Flow Delta is negative (-540.97 BTC), confirming structural rejection at resistance rather than bullish absorption. TP is strictly capped at 1.5x ATR targeting the nearest micro HVN, while SL is tightened to 1.2x ATR to maintain a positive RR ratio (~1.25) at structural extremes. Confidence is capped at 70% due to the low volume environment and the potential for a liquidity sweep above the local 15m highs before the mean reversion begins.",
-    "reasoning_zh": "[锚点] POC: 68503.58 | VAH: 72742.28 | VAL: 63659.34 | 当前价格: 72725.0。止盈公式：72725.0 - (1.5 * 889.67) = 71390.5。止损公式：72725.0 + (1.2 * 889.67) = 73792.6。价格目前正在震荡（RANGING）格局下测试价值区高点（VAH）。成交量突破比率为 0.35，远低于动能突破所需的 2.0 阈值，表明当前向区间高点的移动缺乏维持突破的必要参与度。近期订单流 Delta 为负（-540.97 BTC），确认了阻力位的结构性拒绝而非看涨吸收。止盈严格限制在 1.5x ATR 以内，目标指向最近的微型高成交量节点（HVN），同时止损收紧至 1.2x ATR，以在结构边缘维持约 1.25 的盈亏比。由于低成交量环境以及在均值回归开始前可能出现针对 15 分钟局部高点的流动性扫荡，信心评分上限设定为 70%。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 68495.812 | VAH: 72765.572 | VAL: 63216.835999999996 | Current: 72725.0. 1. Mathematical Scratchpad: Short TP_FORMULA: 72725.0 - (1.5 * 889.67) = 71390.5; Short SL_FORMULA: 72725.0 + (1.2 * 889.67) = 73792.6. Long TP_FORMULA: 72725.0 + (2.0 * 889.67) = 74504.3; Long SL_FORMULA: 72725.0 - (1.8 * 889.67) = 71123.6. 2. Conflict Analysis: Price is at VAH resistance in a RANGING regime. While the strategy handbook permits mean-reversion on low volume (Ratio 0.35), the Order Flow Delta is significantly negative (-540.97 BTC) while price remains stable at the highs. This indicates Bullish Absorption (passive buyers absorbing market sells), making a short entry highly susceptible to a liquidity sweep above 74k. 3. Execution Blockers: A Long entry is strictly prohibited by the Volume Breakout Ratio (0.35), which is far below the 2.0 threshold required for momentum confirmation. 4. Conclusion: With the bearish thesis invalidated by absorption and the bullish thesis blocked by volume constraints, a WAIT stance is mandatory.",
+    "reasoning_zh": "[锚点] POC: 68495.812 | VAH: 72765.572 | VAL: 63216.835999999996 | 当前价格: 72725.0。1. 数学计算：做空止盈公式: 72725.0 - (1.5 * 889.67) = 71390.5；做空止损公式: 72725.0 + (1.2 * 889.67) = 73792.6。做多止盈公式: 72725.0 + (2.0 * 889.67) = 74504.3；做多止损公式: 72725.0 - (1.8 * 889.67) = 71123.6。2. 冲突分析：价格处于震荡格局下的 VAH 阻力位。虽然策略手册允许在低成交量（比率 0.35）下进行均值回归，但订单流 Delta 显著为负 (-540.97 BTC)，而价格在高位保持稳定。这表明存在看涨吸收（被动买家吸收市场抛盘），使得做空入场极易受到 74k 上方流动性扫荡的影响。3. 执行阻碍：成交量突破比率 (0.35) 远低于动能确认所需的 2.0 阈值，严格禁止做多入场。4. 结论：由于看跌逻辑被吸收现象削弱，且看涨逻辑受成交量限制阻碍，必须采取观望立场。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

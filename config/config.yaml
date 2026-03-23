@@ -8,7 +8,7 @@ prediction:
     interval: 15m
     limit: 192
 strategy:
-  vp_value_area_pct: 0.7
+  vp_value_area_pct: 0.75
   vp_bins: 300
   order_flow_lookback_bars: 8
   trend_intensity_threshold: 0.8

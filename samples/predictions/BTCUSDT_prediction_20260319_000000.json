@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-19T00:00:00Z",
-    "confidence": 45,
-    "opinion": "NEUTRAL",
-    "action": "WAIT",
+    "confidence": 50,
+    "opinion": "BEARISH",
+    "action": "SHORT",
     "current_price": 70970.1,
-    "take_profit": null,
-    "stop_loss": null,
-    "reasoning": "[ANCHOR] POC: 71242.9568 | VAH: 75081.0864 | VAL: 66236.7008 | Current: 70970.1. The market is currently in a RANGING regime (Trend Intensity: 0.4246) with price oscillating immediately below the Point of Control (POC). The primary friction point is the Volume Breakout Ratio of 0.38, which is significantly below the 2.0 threshold required for a momentum-based entry. Per the 'Structural Vacuum Trap' protocol, initiating trades at the POC during low-volatility compression (Squeeze Factor: 3.06) offers no statistical edge and high risk of being stopped out by noise. While the negative ATR Skewness (-0.2566) and positive Delta (169.89 BTC) suggest passive absorption near 71k, the lack of a clear rejection from the Value Area boundaries (VAH/VAL) makes the Risk/Reward profile unfavorable. A liquidity sweep toward the 70,000 psychological level is probable before any sustained move. TP_FORMULA: N/A | SL_FORMULA: N/A.",
-    "reasoning_zh": "[锚点] POC: 71242.9568 | VAH: 75081.0864 | VAL: 66236.7008 | 当前价格: 70970.1。市场目前处于震荡格局（趋势强度：0.4246），价格在控制点（POC）紧下方波动。主要的阻力点是 0.38 的成交量突破比率，远低于动能入场所需的 2.0 阈值。根据“结构真空陷阱”协议，在低波动压缩期（挤压因子：3.06）于 POC 处开仓没有统计学优势，且面临被市场噪音扫损的高风险。虽然负 ATR 偏度（-0.2566）和正 Delta（169.89 BTC）暗示在 71k 附近存在被动吸收，但由于缺乏价值区边界（VAH/VAL）的明确拒绝信号，风险回报比并不理想。在出现任何持续行情之前，极有可能先向 70,000 心理关口进行流动性扫荡。TP_FORMULA: 无 | SL_FORMULA: 无。",
+    "take_profit": 70122.5,
+    "stop_loss": 71518.5,
+    "reasoning": "[ANCHOR] POC: 71236.00 | VAH: 75512.18 | VAL: 66229.75 | Current: 70970.1. TP_FORMULA: 70970.1 - (1.5 * 565.05) = 70122.5. SL_FORMULA: 71236.0 + (0.5 * 565.05) = 71518.5. 1. Structural Context: Price is currently positioned below the POC (71236.00), which serves as the primary overhead resistance. The 15m chart confirms a rejection and subsequent consolidation below this level, indicating a 'break and retest' of the highest volume node. 2. Risk/Reward: The setup offers an RR of 1.54, targeting a move towards local support levels while placing the stop-loss safely above the structural barrier of the POC. 3. Confidence Calibration: 50%. While the structural setup is bearish, the extremely low Volume Breakout Ratio (0.38) and RANGING regime significantly increase the probability of directionless chop or a 'liquidity grab' above the POC before any real move occurs. 4. Failure Scenarios: (1) A low-volume sweep of liquidity above the POC triggers the SL before a reversal. (2) Bullish absorption at the 70.5k level prevents further downside expansion.",
+    "reasoning_zh": "[锚点] POC: 71236.00 | VAH: 75512.18 | VAL: 66229.75 | 当前价格: 70970.1。止盈公式: 70970.1 - (1.5 * 565.05) = 70122.5。止损公式: 71236.0 + (0.5 * 565.05) = 71518.5。1. 结构背景：价格目前位于 POC (71236.00) 下方，该位是主要的上方阻力。15 分钟图确认了在该水平下方的受阻及随后的整合，表明对最高成交量节点的“突破并回测”。2. 盈亏比：该设置提供了 1.54 的盈亏比，目标是向局部支撑位移动，同时将止损安全地置于 POC 结构屏障之上。3. 信心校准：50%。虽然结构性设置看跌，但极低的成交量突破比率 (0.38) 和震荡行情 (RANGING) 显著增加了无方向震荡或在真正波动前出现 POC 上方“流动性抓取”的可能性。4. 失败场景：(1) POC 上方的低量流动性扫荡在反转前触发止损。(2) 70.5k 水平的看涨吸收阻止了进一步的下跌扩张。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

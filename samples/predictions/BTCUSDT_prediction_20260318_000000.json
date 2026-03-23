@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-18T00:00:00Z",
-    "confidence": 65,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 85,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 73821.3,
-    "take_profit": 71326.39,
-    "stop_loss": 75139.12,
-    "reasoning": "[ANCHOR] POC: 71326.39439999999 | VAH: 75081.0864 | VAL: 66236.70079999999 | Current: 73821.3. TP_FORMULA: Target POC (Mean Reversion) = 71326.39. SL_FORMULA: VAH + (0.1 * ATR) = 75081.09 + 58.03 = 75139.12. Final synthesis favors the Red-Team's mean-reversion thesis. While the 'Gravity Rule' identifies POC as a floor, the current 'Structural Vacuum' between POC and VAH, combined with a SQUEEZE factor of 0.71, suggests an imminent volatility expansion. Order flow reveals a bearish divergence: Negative Delta (-481.14 BTC) at local highs indicates passive seller absorption. Trend Intensity (0.045) is extremely low, contradicting the visual price grind and suggesting a lack of genuine momentum. A SHORT setup targeting the POC provides an asymmetric RR of 1.89, whereas a LONG targeting VAH yields a sub-optimal 0.45 RR. The low Volume Breakout Ratio (0.8) confirms exhaustion at the range highs, favoring a liquidity sweep back to the POC before any sustained breakout attempt.",
-    "reasoning_zh": "[锚点] POC: 71326.39 | VAH: 75081.09 | VAL: 66236.70 | 当前价格: 73821.3。TP公式：目标 POC（均值回归）= 71326.39。SL公式：VAH + (0.1 * ATR) = 75139.12。最终综合评估支持红队的均值回归论点。虽然“引力规则”将 POC 视为支撑，但目前价格处于 POC 和 VAH 之间的“结构真空区”，结合 0.71 的挤压因子，预示着波动率即将扩张。订单流显示看跌背离：局部高点出现负 Delta (-481.14 BTC)，表明存在被动卖方吸收。趋势强度 (0.045) 极低，与视觉上的价格上涨相矛盾，表明缺乏真正的动量。做空至 POC 的方案提供了 1.89 的非对称盈亏比，而做多至 VAH 的盈亏比仅为 0.45。低成交量突破比率 (0.8) 确认了区间高点的动能衰竭，统计上更倾向于在尝试持续突破前先回测 POC 进行流动性扫荡。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 71340.30 | VAH: 75512.18 | VAL: 66229.75 | Current: 73821.3. TP_FORMULA: 1.5 * 580.29 = 870.4 (Ranging Cap); SL_FORMULA: 1.8 * 580.29 = 1044.5 (SL Floor). RR_CALC: 870.4 / 1044.5 = 0.83. The market is in a high-compression SQUEEZE (0.7138) within a RANGING regime. While price is stable near the highs, the Volume Breakout Ratio (0.8) is significantly below the 2.0 threshold required for a momentum breakout. Furthermore, the Trend Intensity (0.0453) confirms a total lack of directional conviction. Per the strategic handbook, a trade at current levels is mathematically prohibited because the Ranging TP Cap (1.5x ATR) combined with the mandatory SL floor (1.8x ATR) results in a Risk/Reward ratio below 1.0. We remain NEUTRAL until price reaches a structural extreme (VAH/POC) or volume confirms a breakout expansion.",
+    "reasoning_zh": "[锚点] POC: 71340.30 | VAH: 75512.18 | VAL: 66229.75 | 当前价格: 73821.3。止盈公式：1.5 * 580.29 = 870.4（震荡上限）；止损公式：1.8 * 580.29 = 1044.5（止损底线）。盈亏比计算：870.4 / 1044.5 = 0.83。市场处于震荡格局下的高压缩挤压状态（0.7138）。虽然价格在高位附近保持稳定，但成交量突破比率（0.8）远低于动量突破所需的 2.0 阈值。此外，趋势强度（0.0453）确认了方向性动力的完全缺失。根据策略手册，在当前水平进行交易在数学上是被禁止的，因为震荡止盈上限（1.5x ATR）结合强制性止损底线（1.8x ATR）导致盈亏比低于 1.0。我们将保持中立（NEUTRAL），直到价格触及结构极端位（VAH/POC）或成交量确认突破扩张。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
