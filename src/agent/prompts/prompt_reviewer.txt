@@ -87,7 +87,7 @@ You MUST output your final decision in strict JSON format.
     "mae_stress_level": "Percentage (e.g. 45%)",
     "hallucination_detected": boolean
   }},
-  "prediction_post_mortem": "A technical Comprehensive report structured as: [CATEGORY] -> [TECHNICAL MECHANIC] -> [LOGIC EVOLUTION ADVICE]. Focus on the gap between prediction's reasoning and the Shadow Counter-Position findings. Including MAE stress, Shadow Counter-Position validation, and core technical mechanics.",
+  "prediction_post_mortem": "A comprehensive technical report structured as: [CATEGORY] -> [TECHNICAL MECHANIC] -> [LOGIC EVOLUTION ADVICE]. Focus on the gap between Agent A's reasoning and the Shadow Counter-Position findings. It must include MAE stress analysis, validation, and core mechanics.",
   "prediction_post_mortem_zh": "这里是 prediction_post_mortem 的中文翻译"
 }}
 [[[/OUTPUT_REQUIREMENTS]]]

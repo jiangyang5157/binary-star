@@ -31,7 +31,7 @@ FORMAT: `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_cl
 
 [[[CORE_ANALYTICAL_PRINCIPLES]]]
 ### CORE ANALYTICAL PRINCIPLES
-- **Bias Check**: Avoid perpetual directional bias. Assess both long and short liquidity pools objectively. High-volume absorption at support (or flat price action despite heavy selling) is a BULLISH signal, not a 'dead cat bounce'.
+- **Bias Check**: Avoid perpetual directional bias. Assess both long and short liquidity pools objectively. High-volume absorption at support (or flat price action despite heavy selling) is a BULLISH EXHAUSTION signal, not a 'dead cat bounce'.
 - **Volume Profile Gravity**: POC is a floor if Price > POC. NEVER short above the POC treating it as a ceiling, EXCEPT for 'Rubber Band Overextension': If Price is > 3x ATR above VAH and Volume Breakout Ratio < 0.5, a dynamic SHORT targeting VAH is mandatory.
 - **Climax & Entry Timing (Red Line)**: NEVER short immediately after a 'Waterfall' climax. Wait for mean-reversion; climax at support = absorption. For entries, you MUST wait for a local 15m structural breakdown or liquidity sweep to avoid extreme MAE drawdowns.
 - **Breakout Efficiency**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH` (Bull) or `VAL` (Bear), target the next **High Volume Node (HVN)**.
