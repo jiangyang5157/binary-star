@@ -68,10 +68,10 @@ crypto/
 `[ANCHOR] POC: {poc_price} | VAH: {vah} | VAL: {val} | Current: {last_close_price}`
 
 ### 🛡️ Agent B (Reviewer) — 审计法官
-*   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止损或止盈是否被触发。
-*   **严格配置 (Strict Config)**：系统取消了所有配置项的默认值。如果 `config.yaml` 缺少必要参数，系统将立即报错，确保"真理来源"唯一化。
+*   **事实驱动**：不看 Agent A 的主观分析，仅根据 `review_kline_interval` 的真实成交价来验证止盈/止损是否被触发，并使用回归算法计算 MAE 偏离度。
+*   **严格配置 (Strict Config)**：系统层级取消了所有配置项的默认值。所有 `.get(key, default)` 已被替换为直接索引 `config[key]`。如果 `config.yaml` 缺少必要参数，系统将立即抛出 `KeyError` 并停止运行，确保“真理来源”唯一化且配置透明。
 *   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
-*   **深度复盘**：分析为什么预测失败（如："未能识别 POC 下方的成交量真空区"），为 Coach 提供高质量的底层数据。
+*   **深度复盘**：分析为什么预测失败（如：“未能识别价格在 POC 处的粘滞行为”），为 Coach 提供高质量的底层数据。
 
 ### 🧠 Agent C (Coach) — 战略导师
 *   **战略元分析**：不同于 A 和 B 关注单场胜负，Coach 通过批量分析（Batch Analysis）识别系统性的行为特征。例如：识别出高波环境下的止损过窄，或单边趋势中的止盈过早。
