@@ -270,7 +270,6 @@ class EmailNotifier:
         
         score = analysis.get('evaluation_score', review_record.get('evaluation_score', 0))
         tp_sl_result = str(analysis.get('tp_sl_result', review_record.get('tp_sl_result', 'N/A'))).upper()
-        if tp_sl_result == "NA": tp_sl_result = "N/A"
         mae_stress = analysis.get('adversarial_audit', {}).get('mae_stress_level', 
                         review_record.get('mae_stress_level', 'N/A'))
         post_mortem_zh = analysis.get('prediction_post_mortem_zh', 

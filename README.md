@@ -60,10 +60,10 @@ crypto/
 
 ### 🛡️ Agent B (Reviewer) — 审计法官
 *   **反转审计协议 (Inversion Protocol)**：核心审计逻辑。Reviewer 被强制要求在阅读 Predictor 的主观叙事之前，先独立从原始 K 线和成交数据中提取“冷事实”。这彻底打破了“审计盲点”和注意力跟随（Attention Following）偏见。
-*   **事实驱动**：不仅验证止盈/止损，还通过 MAE (Maximum Adverse Excursion) 计算交易的“压力指数” (`mae_stress_level`)。
+*   **事实驱动**：不仅验证止盈/止损，还通过 MAE (Maximum Adverse Excursion) 计算交易的“压力指数” (`mae_stress_level`)。如果是中性观望信号，则显示为 `N/A`。
 *   **严格配置 (Strict Config)**：系统层级取消了所有配置项的默认值，直接从 `config.yaml` 索引。如果配置缺失，系统将立即抛出 `KeyError`，确保“真理来源”唯一且透明。
 *   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与当前配置匹配的记录。
-*   **深度复盘**：分析预测失败的结构性原因，为 Coach 提供高质量的底层数据。
+*   **深度复盘**：分析预测失败的结构性原因，包含 `shadow_evidence`（影子证据）审计，为 Coach 提供高质量的底层数据。
 
 ### 🧠 Agent C (Coach) — 战略导师
 *   **逻辑优先审计 (Logic-First Audit)**：Coach 被禁止进行单纯的数值调优，除非它能同时识别并修复对应的 Prompt 逻辑漏洞，确保系统进化是“结构性”的。
@@ -144,6 +144,12 @@ python coach.py --batch 10
 # 应用补丁 (支持 Prompt 替换以及 Config 参数调优)
 python apply_patches.py data/coach/coach_BTCUSDT_2026xxxx.json
 ```
+
+#### 4. 邮件可视化通知 (Premium Email UI)
+系统集成了高度可视化的邮件通知系统，支持在信号触发或复盘结束时发送专业简报：
+*   **预测快照 (Prediction Dashboard)**：一行显示当前价格、仓位、止盈/止损位及预估胜率，并附带 Macro/Micro 双周期图表。
+*   **复盘看板 (Review Dashboard)**：采用紫色主题色的专业看板，清晰展示“持续时间”、“操作结果”、“预测评分”及“环境压力”，并附带 AI 深度复盘 (Post-Mortem) 报告。
+*   **自动对齐**：所有数值显示对齐专业交易终端 (15px 核心数值 / 11px 辅助标签)，确保决策信息一目了然。
 
 ---
 
