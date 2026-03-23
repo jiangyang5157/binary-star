@@ -53,8 +53,26 @@ crypto/
 
 ### 👤 Agent A (Predictor) — 执行大脑
 *   **多模型协同**：利用 Gemini 多模态能力，同时分析 K 线图表和数值指标（OI, L/S Ratio, Squeeze Factor）。
-*   **三轮推演 (Multi-Pass Reasoning)**：执行 `初步分析 (Pass 1)` -> `红队质疑 (Pass 2)` -> `最终决策 (Pass 3)`。这种架构能有效识别陷阱，降低伪突破的诱惑。
-*   **Prompt 手册化标准**：所有规则均在 `prompt_predictor.txt` 中以自然语言定义，逻辑与代码完全解耦。
+*   **五步强化推演 (Five-Step Analysis)**：执行模块化的分析流程：环境判断 -> 结构定位 -> 偏差补偿 -> **信心校准** -> 数学验证。这有效解决了“逻辑密度过载”导致的语义钝化问题。
+*   **信心校准协议 (Confidence Calibration)**：强制模型识别 2 个失败场景，并在 RANGING/SQUEEZE 等高风险环境下自动压制信心分数。
+*   **三轮推演 (Multi-Pass Reasoning)**：执行 `初步分析 (Pass 1)` -> `红队质疑 (Pass 2)` -> `最终决策 (Pass 3)`。在 Pass 2 中引入了 **弱信号放大 (Signal Magnification)** 机制，强制挖掘反向证据。
+
+### 🛡️ Agent B (Reviewer) — 审计法官
+*   **反转审计协议 (Inversion Protocol)**：核心审计逻辑。Reviewer 被强制要求在阅读 Predictor 的主观叙事之前，先独立从原始 K 线和成交数据中提取“冷事实”。这彻底打破了“审计盲点”和注意力跟随（Attention Following）偏见。
+*   **事实驱动**：不仅验证止盈/止损，还通过 MAE 计算交易的“压力指数”。
+*   **严格配置 (Strict Config)**：系统层级取消了所有配置项的默认值。所有 `.get(key, default)` 已被替换为直接索引 `config[key]`。如果 `config.yaml` 缺少必要参数，系统将立即抛出 `KeyError` 并停止运行，确保“真理来源”唯一化且配置透明。
+*   **精准过滤**：自动识别预测文件中的 `config_context` 标识，仅复盘与 `config.yaml` 当前 `symbol` 匹配的记录，确保审计的一致性。
+*   **深度复盘**：分析为什么预测失败（如：“未能识别价格在 POC 处的粘滞行为”），为 Coach 提供高质量的底层数据。
+
+### 🧠 Agent C (Coach) — 战略导师
+*   **逻辑优先审计 (Logic-First Audit)**：Coach 被禁止进行单纯的数值调优（如：微调 ATR 乘数），除非它能同时识别并修复对应的 Prompt 逻辑漏洞。这确保了系统进化是“结构性”的而非“病急乱投医”。
+*   **战略元分析**：识别系统性的行为特征，生成 `Master Patch` 实现闭环自进化。
+*   **闭环自进化**：根据分析结果直接生成 `Master Patch`。这些补丁包含对 `prompt_predictor.txt` 的逻辑指令重构（ADD/REPLACE/REMOVE）以及对 `config.yaml` 核心参数（如 `min_tp_sl_ratio`）的数值调优建议。
+*   **双模式运行**：既可以对生产环境的真实报告进行“在线指导”，也可以在 `samples/` 隔离区驱动“靶向压力测试”实现暴力进化。
+
+---
+
+### 📝 Prompt Robustness & Calibration (Prompt 鲁棒性与校准)
 
 #### 📝 Prompt 结构规范 (Robust Block Delimiters)
 为确保 Agent C (Coach) 能精准补丁以及模型稳定解析，本项目不再依赖 Markdown 标题进行抽取，而是使用显式的 **Block Delimiters**：
