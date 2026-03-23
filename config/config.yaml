@@ -37,7 +37,7 @@ paths:
   prompt_reviewer_filename: prompt_reviewer.txt
   prompt_coach_filename: prompt_coach.txt
 notifications:
-  min_confidence_threshold: 70
+  min_confidence_threshold: 60
   smtp_server: smtp.gmail.com
   smtp_port: 587
   timezone: Pacific/Auckland
