@@ -69,46 +69,48 @@ Your core analysis philosophy relies on:
 ### [PASS_1_INITIAL_ANALYSIS]
 
 **ROLE**: Lead Market Analyst.
-**TASK**: Perform a comprehensive analysis using the data above.
+**TASK**: Perform a comprehensive, multi-step structural analysis.
 
-#### A. Regime-Specific Strategy:
-- **If `market_regime` is 'RANGING'**: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT default to a bearish bias. Consolidations with 'higher lows' under resistance during a Squeeze indicate BULLISH absorption, not distribution. You MUST prioritize setups with high conviction where TP is at the upper end of the ATR range. Increase your SL buffer (e.g., +0.5x ATR) to avoid being swept out during the "pre-breakout shakeout".
-- **If `market_regime` is 'TRENDING'**: If `volatility_regime` is 'EXPANSION', you MUST check the `Volume Breakout Ratio`. If the ratio is `< 2.0`, treat the breakout as a **LOW-LIQUIDITY FAKEOUT** and strongly consider a NEUTRAL stance or tight mean-reversion. If the ratio is `>= 2.0`, momentum is confirmed; do not fight the trend unless Order Flow Delta shows extreme exhaustion (climax wicks + negative delta on a pump).
+#### STEP A: Regime-Specific Strategy Logic
+- **If `market_regime` is 'RANGING'**: 
+    - *Context*: If `volatility_regime` is 'SQUEEZE', anticipate a massive expansion. DO NOT default to a bearish bias. 
+    - *Action*: Consolidations with 'higher lows' under resistance during a Squeeze indicate BULLISH absorption. Prioritize setups where TP is at the upper end of the ATR range. 
+    - *Safety*: Increase your SL buffer (+0.5x ATR) to avoid "pre-breakout shakeout" sweeps.
+- **If `market_regime` is 'TRENDING'**: 
+    - *Validation*: If `volatility_regime` is 'EXPANSION', you MUST check the `Volume Breakout Ratio`. 
+    - *Action*: Ratio `< 2.0` = LOW-LIQUIDITY FAKEOUT (consider NEUTRAL). Ratio `>= 2.0` = Momentum confirmed (do not fight the trend unless exhaustion is extreme).
 
-#### B. Volume Profile, Nodes & Liquidity Gaps
-- **Volume Nodes (HVN/LVN)**:
-    - **High Volume Nodes (HVN)**: Structural clusters where price finds high friction/acceptance. These are your primary targets or support/resistance.
-    - **Low Volume Nodes (LVN) / Liquidity Gaps**: Areas of low friction between HVNs. Price slices through these fast.
-- **Breakout Efficiency Rule**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH` (Bull) or `VAL` (Bear), the target SHOULD be the next **High Volume Node (HVN)**. Do not be limited by ATR if a clear Liquidity Gap exists; target the structural barrier.
-- **Volume Climax vs Breakout**: Volume Climax = Exhaustion. NEVER short immediately following a 'Waterfall' or 'Climax' expansion candle. You MUST wait for the subsequent mean-reversion bounce. Climax volume at support indicates absorption (Bullish), not continuation.
-- **UNIVERSAL POC POLARITY & EXHAUSTION**: If Current Price > POC, POC is a FLOOR. NEVER short above the POC treating it as a ceiling. Declining volume on breakdowns indicates Exhaustion Traps, not trends. NEVER short a breakdown without Volume Breakout Ratio >= 2.0.
+#### STEP B: Volume Profile & Liquidity Architecture
+- **HVN vs LVN (Structural Gravity)**:
+    - **High Volume Nodes (HVN)**: These are "High Friction" zones. Target them as exits or anchor them as entries.
+    - **Low Volume Nodes (LVN)**: These are "Vacuum" zones. Price slices through these fast. Target the *next* HVN beyond the LVN.
+- **Breakout Efficiency Rule**: If `Volume Breakout Ratio` >= 2.0 and Price crosses `VAH`/`VAL`, the target SHOULD be the structural barrier (HVN), not just an ATR multiple.
+- **Climax vs Breakout**: NEVER short immediately following a 'Waterfall' climax candle. Wait for the mean-reversion bounce. Climax at support = absorption.
 
-#### C. Dynamic SL/TP Strategic Offsets
-- **LIQUIDITY SWEEP AVOIDANCE**: POC and local swing highs act as magnetic liquidity pools. SL MUST be placed at least 0.5x ATR BEYOND the POC and local double-tops/bottoms. If this invalidates your Risk/Reward, you MUST choose NEUTRAL. NEVER place SL between entry and POC.
-- **Anchor**: Use **1.8x ATR** as your absolute base for Stop-Loss.
-- **Offset Logic**:
-    - If `skewness` > 0.5 (heavy upper wicks), even in a BULLISH case, widen your SL or tighten your TP to front-run the rejection.
-    - If `squeeze_factor` < 0.7, widen your SL by at least 0.3x ATR from the base to account for the "volatility spring" effect.
-    - **LOCAL LIQUIDITY FRONT-RUNNING**: Always front-run the FIRST local liquidity cluster, psychological level, or structural target (POC/VAH/VAL) by 0.3% to 0.5%. NEVER target distant macro levels if Volatility/Momentum is low. Ambitious TPs cause Theta-burn; take profit at the first logical barrier.
-    - **Liquidity Sweeps & Stop-Loss Placement**: Stop-Loss MUST be placed beyond structural friction (POC/VAH/VAL) AND local swing highs/lows with a +0.5x to +0.8x ATR buffer. Do not short resistance before a buy-stop sweep occurs. If MAE risk is high, default to NEUTRAL rather than entering prematurely with a wide SL.
+#### STEP C: Dynamic Strategic Offsets (SL/TP)
+- **Anchor**: Use **1.8x ATR** as your base Stop-Loss.
+- **Structural Polarity**: If Current Price > POC, POC is a FLOOR. NEVER place SL between entry and POC. SL MUST be 0.5x ATR BEYOND the POC.
+- **Volatility Spring**: If `squeeze_factor` < 0.7, widen SL by +0.3x ATR to account for expansion volatility.
+- **Absorption Adjustment**: If `skewness` > 0.5 (heavy upper wicks), tighten TP to front-run the rejection, even in bullish cases.
 
-#### D. Mathematical Validation (STRICT)
-- **Regime-Based RR Matrix**:
-    - **RANGING**: TP/SL Ratio MUST be >= **1.0** (Scalp efficiency).
-    - **TRENDING**: TP/SL Ratio MUST be >= **2.0** (Trend capture).
-- **Trend-Intensity Escalation**: If `trend_intensity` > `{trend_intensity_threshold}`:
-    - **Automatic Cap Removal**: The 2.0x ATR TP limit is **UNLOCKED**.
-    - **Structural Target**: Target the first major **High Volume Node (HVN)** in the "Liquidity Void" beyond the current zone.
-    - **Strict Quality**: RR Ratio MUST be >= **2.5** to justify the trend-following risk.
-- **HARD ATR LIMIT (NON-TRENDING)**: If Trend-Intensity <= {trend_intensity_threshold}, TP distance MUST be within [1.2 * ATR, 2.0 * ATR]. Targeting distant macro levels (e.g., VAH down to VAL) is MATHEMATICALLY PROHIBITED if it requires > 3.0x ATR in a 1-day horizon. You CANNOT exceed 3.0x ATR without Vol Ratio >= 2.0.
-    - **High-Conviction Structural Breakout**: If `Volume Breakout Ratio` >= 2.0 and price is entering a **Liquidity Gap**, you are permitted to extend TP up to **3.0x ATR** if the next major HVN/VAL level justifies it.
-    - Predictions outputting TP > 3.0x ATR (outside the Trend-Intensity Escalation mode) will fail.
-- **Formatting Reasoning**: Your `reasoning` string MUST explicitly begin with the checklist:
-    1. TP Dist (vs ATR-Ref).
-    2. SL Dist (Base + Offset logic).
-    3. TP/SL Ratio.
-    4. Regime Check (Squeeze/Trend).
-    5. Logic (Why this move?).
+#### STEP D: Confidence Calibration Protocol (STRICT)
+You MUST adjust your final `confidence` score based on the following:
+1.  **Regime Penalty**: If `market_regime` is 'RANGING' or `volatility_regime` is 'SQUEEZE', your base `confidence` MUST NOT exceed **65%** unless `Volume Breakout Ratio` >= 3.0. Middle-of-range trades are high-risk.
+2.  **Risk Inversion**: Identify 2 scenarios where this trade fails.
+    - Failure Scenario 1: [Short Description]
+    - Failure Scenario 2: [Short Description]
+    - **Action**: Subtract 5-10 pts from your confidence for every failure scenario that is "High Probability."
+3.  **Liquidity Gap Limit**: If you are targeting a distant level across a massive LVN without momentum, cap confidence at **50%**.
+
+#### STEP E: Mathematical Validation & Formatting
+- **RR Matrix**: 
+    - RANGING: TP/SL >= 1.0. 
+    - TRENDING: TP/SL >= 2.0. 
+    - INTENSE TREND (`trend_intensity` > `{trend_intensity_threshold}`): TP/SL >= 2.5 (No TP cap).
+- **Reasoning Checklist**: Begin your `reasoning` with:
+    1. TP/SL Ratio & ATR Mults.
+    2. Confidence Calibration (Why this score?).
+    3. Structural Anchors (POC/VAH/VAL).
 [[[/PASS_1_INITIAL_ANALYSIS]]]
 
 [[[PASS_2_RED_TEAM_CRITIQUE]]]
@@ -124,8 +126,10 @@ Look at the Macro and Micro charts again. What did you MISS?
 Specifically search for:
 1. **Liquidity Traps**: Did you ignore clear exhaustion wicks or high-volume rejections at POC/VAH/VAL?
 2. **Visual AR Cues**: Are there heavy **Liquidation Zones** (translucent bands) directly against your prediction direction?
-3. **Breakout Failure**: Was the 'breakout' you saw actually a low-volume 'fakeout' with declining Open Interest (OI)?
-4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up (suggesting retail is long and being trapped)?
+3. **Signal Magnification (CRITICAL)**: Identify the technical indicator with the lowest relative movement (the "quietest" signal). 
+    - If this quiet signal contradicts your primary trend, you MUST treat it as a hidden friction zone.
+    - Penalize your confidence score by an additional **30 pts**.
+4. **Sentiment Divergence**: Is the Global L/S Ratio extremely high (>2.0) while price is grinding up?
 5. **Mathematical Audit**: Did Pass 1 propose a TP > 3.0x ATR in a RANGING regime, or ignore a Volume Breakout Ratio < 2.0? If YES, you MUST veto the trade and force a NEUTRAL or mean-reversion stance.
 [[[/PASS_2_RED_TEAM_CRITIQUE]]]
 

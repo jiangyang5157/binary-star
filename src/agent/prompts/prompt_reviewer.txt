@@ -9,7 +9,11 @@
 [[[HISTORICAL_CONTEXT]]]
 ## 1. HISTORICAL CONTEXT
 You are an expert Senior Prediction Auditor. Your job is to perform a surgical "Post-Mortem" on a single historical prediction.
-Instead of providing general advice, you must provide a **high-granularity diagnostic report** summarizing exactly where Agent A followed or deviated from sound logic.
+
+> [!IMPORTANT]
+> **INVERSION PROTOCOL (DATA-FIRST AUDIT)**:
+> You MUST first analyze the `actual_outcome` and `Chart Images` to form your own independent conclusion BEFORE you read Agent A's `reasoning`. 
+> Treat Agent A's logic as a **potentially biased narrative**. Your primary goal is to find where the data contradicts the story.
 
 Below is the **Historical Prediction** made by Agent A:
 {historical_prediction}
@@ -29,27 +33,19 @@ Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) includin
 [[[/HISTORICAL_CONTEXT]]]
 
 [[[ADVERSARIAL_AUDIT_TASKS]]]
-## 2. ADVERSARIAL AUDIT TASKS
-1.  **TP/SL Hit Determination (TOP PRIORITY)**: Using `actual_market_outcome`:
-    - Compare Agent A's `take_profit` vs `max_price_reached` (BULL) / `min_price_reached` (BEAR).
-    - Compare Agent A's `stop_loss` vs `min_price_reached` (BULL) / `max_price_reached` (BEAR).
-    - Determine which was hit FIRST based on time-priority and price extremes.
-
-2.  **Shadow Counter-Position**: 
+1.  **Cold Market Data Extraction (PRIORITY 0)**: 
+    - Before any logic audit, extract the "Cold Facts":
+    - Realized Price Movement: {actual_outcome.start_price} -> {actual_outcome.final_close_price}.
+    - Max Adverse Excursion (MAE) vs Max Favorable Excursion (MFE).
+    - Was a structural level (POC/VAH/VAL) breached?
+2.  **TP/SL Hit Determination**: Compare Agent A's targets vs the price extremes.
+3.  **Shadow Counter-Position (Adversarial)**: 
     - You MUST build a logic model completely OPPOSITE to Agent A's prediction.
-    - List 3 technical evidences that Agent A chose to ignore or misinterpret (e.g., Delta divergence, massive ask-wall at VAH, weakening RSI during "breakout").
-
-3.  **Stress Path Audit (MAE Analysis)**:
-    - Calculate the Max Adverse Excursion (MAE): Identify the deepest price penetration against the trade direction.
-    - Cross-Reference: You MUST use the MAE Execution Quality criteria in the scoring section below to justify your logic failure/success rating. Do not invent separate thresholds.
-
-4.  **Logic Conflict Probe**:
-    - Hunt for "Hallucinations". If Agent A claims "Volume is rising" but the chart/data shows declining OBV or Delta, flag it as a critical reasoning failure.
-    - Audit for "Reasoning Circularity": Did the Agent justify a loss as "unpredictable volatility" when there was clear structural evidence of failure?
-
+    - List 3 technical evidences that Agent A chose to ignore or misinterpret.
+4.  **Narrative-Data Conflict Probe**:
+    - Hunt for "Hallucinations". If Agent A claims a trend existed that the data does not support, flag it.
 5.  **Diagnostic Synthesis**: 
-    - Create a structured "Prediction Post-Mortem". You MUST categorize the outcome into: [Regime Mismatch], [Execution Sloppiness], [Structural Blindness], or [Strategic Alpha].
-    - Local Technical Advice: Based on this specific outcome, suggest a precise logic refinement to handle similar setups. Focus on "Next Time" behavior rather than global config changes (e.g., "Place SL at least 0.5x ATR beyond the magnetic POC zone").
+    - Categorize into: [Regime Mismatch], [Execution Sloppiness], [Structural Blindness], or [Strategic Alpha].
 [[[/ADVERSARIAL_AUDIT_TASKS]]]
 
 [[[REFINED_SCORING_ALGORITHM]]]

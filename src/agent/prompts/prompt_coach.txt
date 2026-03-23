@@ -103,5 +103,8 @@ You MUST output your final decision in strict JSON format.
 - **Redundancy Filter**: You MUST NOT include a key in `master_config_update` if its value is already identical.
 - **Key Discovery Prohibition**: Only update existing keys in the `strategy` section.
 - **Precision**: If you suggest a config change, explain WHY in the `batch_analysis`.
-- **Structural Superiority Directive**: Prioritize Structural Logic updates in `master_prompt_patch` over Numerical Parameter tweaks in `master_config_update`. Adjusting a threshold is a temporary fix; refining how the Agent interprets Volume Profile and Liquidity Dynamics is a systemic cure.
+- **Structural Superiority Directive (CRITICAL)**: 
+    - Prioritize Structural Logic updates in `master_prompt_patch` over Numerical Parameter tweaks in `master_config_update`. 
+    - **Logic-First Audit**: You MUST NOT propose a change to `config.yaml` (e.g., ATR multipliers, thresholds) UNLESS you have also identified and patched a specific structural flaw in the `prompt_predictor.txt`. 
+    - Adjusting a threshold is a temporary fix; refining how the Agent interprets Volume Profile and Liquidity Dynamics is a systemic cure.
 [[[/CONSTRAINTS_AND_RULES]]]
