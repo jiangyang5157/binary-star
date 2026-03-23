@@ -206,7 +206,7 @@ class EmailNotifier:
         
         opinion = str(prediction.get('opinion', 'NEUTRAL')).upper()
         confidence = prediction.get('confidence', 0)
-        subject = f"Crypto: {symbol} | {opinion} ({confidence}%) | {action} | {local_time_str}"
+        subject = f"Crypto: {symbol} | {local_time_str} | {opinion} ({confidence}%) | {action}"
         formatted_json = json.dumps(prediction, indent=4, ensure_ascii=False)
 
         prediction_header_html = self._get_prediction_header_html(symbol, prediction, local_time_str, action_color, action_icon)
@@ -296,7 +296,7 @@ class EmailNotifier:
         action_icon = action_icons.get(action, "🔔")
         confidence = prediction.get('confidence', 0)
         
-        subject = f"Crypto: {symbol} | {local_time_str} | {tp_sl_result} | {score} | {mae_stress}"
+        subject = f"Crypto: {symbol} | {local_time_str} | {score} ({mae_stress} stress) | {tp_sl_result}"
         formatted_json = json.dumps(review_record, indent=4, ensure_ascii=False)
 
         review_dashboard_html = self._get_review_dashboard_html(symbol, prediction, local_time_str, score, tp_sl_result, mae_stress, time_elapsed_str)
