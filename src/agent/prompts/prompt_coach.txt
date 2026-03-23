@@ -61,7 +61,7 @@ The Predictor uses a 3-pass reasoning system contained within ONE file. You MUST
 - A **structured list of modification instructions** (`master_prompt_patch`) including `target_section`. Use this exclusively for qualitative, English-language narrative rules.
 - **Surgical Insertion Rule**: 
     - If appending a new rule to the **END** of a section, use `action: ADD`.
-    - If modifying existing logic or inserting in the middle, use `action: REPLACE`. Provide the `EXACT_TEXT_TO_BE_REPLACED` (keep it concise to ensure strict string matching) and your `NEW_CONSOLIDATED_TEXT`.
+    - If modifying existing logic or inserting in the middle, use `action: REPLACE`. Provide the exact substring to identify the target in the `target` key (ensure it is long enough to be unique) and your final content in the `replacement` key.
 - **Optimization Rule**: If you see existing rules in `base_prompt` that are similar to your new qualitative findings, use `REPLACE` to consolidate and simplify them instead of creating redundant `ADD` entries.
 - If a mathematical parameter (like an ATR multiplier) needs systemic adjustment, REPLACE the old value by providing the updated key-value pair in `master_config_update` under the `strategy` dictionary.
 
@@ -73,7 +73,7 @@ You MUST output your final decision in strict JSON format.
     {{
       "action": "ADD",
       "target_section": "EXACT_SECTION_TAG_NAME",
-      "content": "TEXT_TO_APPEND_TO_SECTION_END"
+      "content": "TEXT_TO_APPEND"
     }},
     {{
       "action": "REPLACE",
