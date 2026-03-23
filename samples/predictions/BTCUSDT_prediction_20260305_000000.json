@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-05T00:00:00Z",
-    "confidence": 78,
-    "opinion": "BULLISH",
-    "action": "LONG",
+    "confidence": 50,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 72725.0,
-    "take_profit": 75000.0,
-    "stop_loss": 71100.0,
-    "reasoning": "[ANCHOR] POC: 68456.996 | VAH: 68922.788 | VAL: 63682.628 | Current: 72725.0. MATHEMATICAL SCRATCHPAD: TP_FORMULA: 72725.0 + (2.5 * 889.666) = 74949.165 -> 75000.0 | SL_FORMULA: 72725.0 - (1.8 * 889.666) = 71123.60 -> 71100.0. 1. Regime Shift: While the Trend Intensity metric (0.34) suggests ranging, visual analysis of the 1h chart confirms a decisive breakout from the 63k-69k value area into a 'Vacuum Zone' where liquidity is thin. 2. 15m Pattern: The 15m chart reveals a classic bull flag/pennant consolidation. The low Volume Breakout Ratio (0.35) noted in Pass 1 is actually a sign of 'Supply Exhaustion' during the flag's formation, rather than weakness. 3. Absorption: Price is holding the 72k level despite being at all-time highs, indicating aggressive absorption of overhead supply. 4. Liquidity Target: A cluster of short liquidations is likely positioned above 74k, which will act as fuel for a push toward the 75k psychological level. 5. Risk Management: The SL is placed at 1.8x ATR, protecting against a mean-reversion back into the VAH while allowing for the current volatility expansion.",
-    "reasoning_zh": "[ANCHOR] POC: 68456.996 | VAH: 68922.788 | VAL: 63682.628 | 当前价格: 72725.0。数学计算：止盈公式: 72725.0 + (2.5 * 889.666) = 74949.165 -> 75000.0 | 止损公式: 72725.0 - (1.8 * 889.666) = 71123.60 -> 71100.0。1. 格局转变：虽然趋势强度指标 (0.34) 暗示震荡，但 1 小时图的视觉分析确认了价格已果断突破 63k-69k 价值区，进入流动性稀薄的“真空区”。2. 15 分钟形态：15 分钟图显示了经典的牛旗/旗形整合。第一轮分析中提到的低成交量突破比率 (0.35) 实际上是旗形形成过程中“供应枯竭”的信号，而非弱势。3. 吸收：价格在历史高点附近守住 72k 水平，表明上方供应正被积极吸收。4. 流动性目标：74k 上方可能聚集了大量空头爆仓单，这将为推向 75k 心理关口提供动力。5. 风险管理：止损设在 1.8 倍 ATR 处，既能防止价格均值回归至 VAH，又能容纳当前的波动扩张。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 68456.996 | VAH: 68922.788 | VAL: 63682.628 | Current: 72725.0. TP_FORMULA: 72725 + (5.3 * 889.67) = 77438. SL_FORMULA: 68457 - (0.5 * 889.67) = 68012. The market is currently in a RANGING regime following a massive expansion, characterized by a critically low Volume Breakout Ratio of 0.35. This indicates a complete lack of immediate momentum to sustain the current highs. Price is significantly extended from the Value Area (VAH at 68922). Per protocol, since Price > POC, the POC is the primary structural floor. A valid long setup would require a stop-loss 0.5x ATR below the POC (~68012), resulting in a massive risk distance of 4713 points. To satisfy the minimum 1.0 RR, the target would need to be ~77438 (>5x ATR), which is statistically improbable given the current low-volume environment and lack of a SQUEEZE signal. Shorting is prohibited by protocol while above the POC. Therefore, a NEUTRAL stance is mandatory until price retraces to structural support or a high-volume breakout (Ratio > 2.0) occurs.",
+    "reasoning_zh": "[锚点] POC: 68456.996 | VAH: 68922.788 | VAL: 63682.628 | 当前价格: 72725.0。止盈公式: 72725 + (5.3 * 889.67) = 77438。止损公式: 68457 - (0.5 * 889.67) = 68012。市场在大规模扩张后目前处于 RANGING（震荡）格局，其特征是成交量突破比（Volume Breakout Ratio）极低，仅为 0.35。这表明目前完全缺乏维持当前高点的即时动能。价格明显偏离价值区（VAH 为 68922）。根据协议，由于价格 > POC，POC 是主要的结构性地板。有效的做多设置需要将止损放在 POC 下方 0.5x ATR 处（约 68012），这将导致 4713 点的巨大风险距离。为了满足最低 1.0 的盈亏比，目标位需要达到约 77438（>5x ATR），在当前低成交量环境且无挤压（SQUEEZE）信号的情况下，这在统计学上是不可能的。由于价格在 POC 之上，协议禁止做空。因此，在价格回撤至结构支撑位或出现高成交量突破（比例 > 2.0）之前，必须保持中立立场。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

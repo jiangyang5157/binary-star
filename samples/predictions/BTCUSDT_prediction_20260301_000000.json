@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-01T00:00:00Z",
-    "confidence": 35,
+    "confidence": 30,
     "opinion": "NEUTRAL",
     "action": "WAIT",
     "current_price": 66755.6,
     "take_profit": null,
     "stop_loss": null,
-    "reasoning": "[ANCHOR] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | Current: 66755.6. TP_FORMULA: N/A (Neutral) | SL_FORMULA: N/A (Neutral). Final Resolution: The market is in a RANGING regime with a critically low Volume Breakout Ratio (0.45), which invalidates any immediate breakout narrative toward the VAH. Although the positive Order Flow Delta (+4068 BTC) indicates significant absorption of selling pressure, the price remains trapped below the POC 'ceiling'. Without a Volume Breakout Ratio > 2.0, the POC acts as a high-friction barrier that passive sellers are currently defending. The initial bullish bias is overruled by the strict Volume Rule. A neutral stance is maintained as the risk-to-reward for a mean-reversion play to the POC is insufficient given the current proximity and lack of expansion momentum.",
-    "reasoning_zh": "[锚点] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | 当前价格: 66755.6。止盈公式：不适用 (中性) | 止损公式：不适用 (中性)。最终决议：市场处于震荡格局，成交量突破比极低 (0.45)，这使任何针对 VAH 的即时突破叙事失效。尽管正向订单流 Delta (+4068 BTC) 表明卖压得到了显著吸收，但价格仍被困在 POC “天花板”下方。在成交量突破比未超过 2.0 的情况下，POC 作为一个高摩擦障碍，目前正被被动卖家防守。最初的看涨倾向因严格的成交量规则而被否决。由于当前价格与 POC 过于接近且缺乏扩张动能，向 POC 进行均值回归交易的盈亏比不足，因此维持中性立场。",
+    "reasoning": "[ANCHOR] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | Current: 66755.6. 1. Mathematical Scratchpad: TP_FORMULA: N/A (Neutral) | SL_FORMULA: N/A (Neutral). 2. Structural Dead Zone: Price is currently situated in the middle of the Value Area, approximately 939 points below the POC and 3073 points above the VAL. A long entry targeting the POC yields an RR of 0.62 (Target: 938.9 / SL: 1503.3 based on 1.8x ATR), which fails the mandatory Min RR of 1.0. 3. Volume Anemia: The Volume Breakout Ratio is 0.45, confirming that the current price action is low-conviction noise. Entering in a ranging regime with such low relative volume significantly increases the risk of being 'chopped' out by random volatility. 4. Order Flow Divergence: Despite a positive 12-bar Delta (+687.13 BTC), the lack of price expansion toward the POC suggests that passive sellers are effectively absorbing the buying pressure. 5. Final Resolution: The lack of structural edge and poor risk-to-reward ratio necessitates a NEUTRAL stance until price reaches a high-confluence boundary (POC or VAL).",
+    "reasoning_zh": "[ANCHOR] POC: 67694.516 | VAH: 68975.036 | VAL: 63682.22 | 当前价格: 66755.6。1. 数学草稿：TP_FORMULA: 无 (中立) | SL_FORMULA: 无 (中立)。2. 结构性死区：价格目前处于价值区中间，位于 POC 下方约 939 点，VAL 上方约 3073 点。以 POC 为目标的做多入场 RR 仅为 0.62（目标：938.9 / 基于 1.8x ATR 的止损：1503.3），未达到 1.0 的最低 RR 要求。3. 成交量贫血：成交量突破比率为 0.45，证实当前价格行为是低信心的噪音。在如此低的相对成交量下进入震荡格局，会显著增加被随机波动“洗盘”出局的风险。4. 订单流背离：尽管 12 根 K 线的 Delta 为正（+687.13 BTC），但价格未能向 POC 扩张，表明被动卖家正在有效吸收买盘压力。5. 最终决议：由于缺乏结构性优势且风险回报比极差，在价格触及高汇聚边界（POC 或 VAL）之前，必须保持中立立场。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null

@@ -1,13 +1,13 @@
 {
     "timestamp": "2026-03-12T00:00:00Z",
-    "confidence": 45,
-    "opinion": "BEARISH",
-    "action": "SHORT",
+    "confidence": 50,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
     "current_price": 70176.9,
-    "take_profit": 68513.0,
-    "stop_loss": 71313.28,
-    "reasoning": "[ANCHOR] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | Current: 70176.9. TP_FORMULA: 70176.9 - 1663.9 (Targeting POC) = 68513.0. SL_FORMULA: 70176.9 + (1.8 * 631.32) = 71313.28. Reasoning: The market is firmly in a RANGING regime (Trend Intensity 0.28) with a critically low Volume Breakout Ratio (0.35). According to the Strict Volume Rule, the lack of volume expansion invalidates the bullish breakout narrative towards the VAH. Negative Delta (-468 BTC) and positive ATR Skewness (0.02) indicate persistent overhead supply and selling pressure on rallies. Price is currently extended above the POC (68513.0), which acts as the primary structural magnet and high-volume node in a range. The highest probability setup is a mean-reversion to the POC. Confidence is capped at 45% due to the low-volatility environment and lack of aggressive directional catalysts.",
-    "reasoning_zh": "[锚点] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | 当前价格: 70176.9。止盈公式：70176.9 - 1663.9 (目标 POC) = 68513.0。止损公式：70176.9 + (1.8 * 631.32) = 71313.28。逻辑：市场处于明确的震荡格局（趋势强度 0.28），成交量突破比率极低（0.35）。根据严格成交量规则，缺乏成交量放大使得向 VAH 的看涨突破叙事失效。负 Delta (-468 BTC) 和正 ATR 偏度 (0.02) 表明上方存在持续供应，且反弹时存在卖盘压力。价格目前处于 POC (68513.0) 上方，而 POC 是震荡行情中的主要结构引力点和高成交量节点。概率最高的交易设置是向 POC 的均值回归。由于低波动环境和缺乏激进的方向性催化剂，信心评分为 45%。",
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | Current: 70176.9. Final Resolution: Adopting a NEUTRAL stance. While the structural bias remains bullish (Price > POC, Positive Delta), the Volume Breakout Ratio (0.35) is critically low, indicating a lack of participation for a sustained move to VAH. In a RANGING regime with Trend Intensity at 0.28, the risk of 'choppy' price action is high. The 15m chart shows local exhaustion wicks near 71,000. Without a volume spike (> 2.0 ratio), any directional bet is premature. The most likely scenario is continued consolidation or a slow drift back to the POC (68513.0) to re-establish liquidity. TP_FORMULA: N/A (Neutral). SL_FORMULA: N/A (Neutral).",
+    "reasoning_zh": "[锚点] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | 当前价格: 70176.9。最终决议：采取中性（NEUTRAL）立场。虽然结构性偏见仍偏向看涨（价格高于 POC，订单流 Delta 为正），但成交量突破比率 (0.35) 极低，表明缺乏推动价格持续向 VAH 移动的参与度。在趋势强度仅为 0.28 的震荡（RANGING）格局中，面临“反复洗盘”的风险很高。15 分钟图表显示在 71,000 附近有局部衰竭影线。在没有成交量激增（比率 > 2.0）的情况下，任何方向性押注都为时过早。最可能的情况是继续整合，或缓慢回落至 POC (68513.0) 以重新建立流动性。止盈公式：不适用（中性）。止损公式：不适用（中性）。",
     "position_context": {
         "position_type": "NONE",
         "entry_price": null
