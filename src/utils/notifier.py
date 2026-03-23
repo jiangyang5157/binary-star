@@ -206,7 +206,7 @@ class EmailNotifier:
         
         opinion = str(prediction.get('opinion', 'NEUTRAL')).upper()
         confidence = prediction.get('confidence', 0)
-        subject = f"Crypto: {symbol} | {local_time_str} | {opinion} ({confidence}%) | {action}"
+        subject = f"Crypto: {symbol} | {local_time_str} | {opinion} ({confidence}% confidence) | {action}"
         formatted_json = json.dumps(prediction, indent=4, ensure_ascii=False)
 
         prediction_header_html = self._get_prediction_header_html(symbol, prediction, local_time_str, action_color, action_icon)
