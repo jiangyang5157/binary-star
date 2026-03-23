@@ -297,6 +297,21 @@ def main_review(target_files: List[str] = None, override_now: datetime = None, f
                     }
                     DataStorage.save_json(final_record, review_path)
                     logger.info(f"Successfully saved review to {review_path}")
+
+                    # 5. Send Notification if confidence is high
+                    try:
+                        from src.utils.notifier import EmailNotifier
+                        notifier = EmailNotifier(config)
+                        
+                        if notifier.enabled:
+                            # Use threshold from config
+                            min_confidence = config['notifications']['min_confidence_threshold']
+                            
+                            if prediction.get('confidence', 0) >= min_confidence:
+                                logger.info(f"Triggering review email for {symbol} (Confidence: {prediction.get('confidence')}%)")
+                                notifier.send_review_alert(symbol, final_record, chart_paths=chart_paths)
+                    except Exception as e:
+                        logger.error(f"Failed to handle review notification: {e}")
                 except (json.JSONDecodeError, TypeError):
                     logger.error(f"Agent B returned invalid JSON content for {filename}")
 
