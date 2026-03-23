@@ -171,11 +171,11 @@ class EmailNotifier:
                             <span style="display: block; font-size: 11px; color: #3b82f6; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">TP/SL Ratio</span>
                             <span style="font-size: 15px; font-weight: 700; color: #3b82f6;">{tpsl_ratio}</span>
                         </div>
-                    </div>
-
-                    <div style="background-color: #fcfaff; border: 1px solid #efe5ff; border-radius: 8px; padding: 10px; text-align: center; margin-bottom: 20px;">
-                        <span style="display: block; font-size: 10px; color: #8e44ad; text-transform: uppercase; letter-spacing: 1px;">Prediction Outlook (Horizon)</span>
-                        <span style="font-size: 16px; font-weight: 700; color: #8e44ad;">{horizon} DAYS</span>
+                        <div style="width: 1px; height: 35px; background-color: #f1f5f9;"></div>
+                        <div style="text-align: center; flex: 1.2; padding: 0 10px;">
+                            <span style="display: block; font-size: 11px; color: #8e44ad; text-transform: uppercase; font-weight: 700; margin-bottom: 6px;">Outlook</span>
+                            <span style="font-size: 15px; font-weight: 700; color: #8e44ad;">{horizon} DAYS</span>
+                        </div>
                     </div>
 
                     <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; border-left: 6px solid #3498db; margin-bottom: 30px;">
@@ -231,9 +231,11 @@ class EmailNotifier:
                 {prediction_header_html}
                 {prediction_ui}
                 {img_html}
+
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
                     <pre style="background: #0f172a; color: #cbd5e1; padding: 15px; border-radius: 6px; font-size: 11px; overflow-x: auto;"><code>{formatted_json}</code></pre>
                 </div>
+
             </div>
         </body></html>
         """
@@ -305,24 +307,20 @@ class EmailNotifier:
         body = f"""
         <html><body style="font-family: 'Segoe UI', Arial, sans-serif; color: #1e293b; background: #f1f5f9; padding: 20px;">
             <div style="max-width: 850px; margin: 0 auto; background: #ffffff; padding: 35px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
-                
-                <!-- 1. Consolidated Results Dashboard -->
                 {review_dashboard_html}
 
-                <!-- 2. Post-Mortem Analysis -->
                 <div style="background-color: #fffaf0; border-left: 5px solid #f6ad55; padding: 20px; border-radius: 8px; margin-bottom: 40px;">
                     <h3 style="margin-top: 0; color: #c05621; font-size: 16px;">🔍 Post-Mortem 分析</h3>
                     <p style="font-size: 15px; color: #744210; margin-bottom: 0; line-height: 1.7;">{post_mortem_zh}</p>
                 </div>
 
-                <!-- 3. Original Prediction Context -->
-                <div style="border-top: 2px dashed #e2e8f0; padding-top: 30px;">
-                    {prediction_header_html}
-                    {prediction_ui}
-                </div>
-
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
                     <pre style="background: #0f172a; color: #cbd5e1; padding: 15px; border-radius: 6px; font-size: 11px; overflow-x: auto;"><code>{formatted_json}</code></pre>
+                </div>
+
+                <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px;">
+                    {prediction_header_html}
+                    {prediction_ui}
                 </div>
             </div>
         </body></html>
