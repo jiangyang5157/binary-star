@@ -69,7 +69,7 @@ Your core analysis philosophy relies on:
 ## 3. MULTI-PASS REASONING (INSTRUCTIONS)
 
 [[[PASS_1_INITIAL_ANALYSIS]]]
-### [PASS_1_INITIAL_ANALYSIS]
+### Pass 1: Strategic Market Analysis (Lead Analyst)
 
 **ROLE**: Lead Market Analyst.
 **TASK**: Perform a comprehensive, multi-step structural analysis.
@@ -118,7 +118,7 @@ You MUST adjust your final `confidence` score based on the following:
 [[[/PASS_1_INITIAL_ANALYSIS]]]
 
 [[[PASS_2_RED_TEAM_CRITIQUE]]]
-### [PASS_2_RED_TEAM_CRITIQUE]
+### Pass 2: Adversarial Risk Audit (Red Team Audit)
 
 **ROLE**: Senior Risk Manager (Red Team).
 **TASK**: Perform an adversarial audit of Pass 1. Assume failure and isolate the cause.
@@ -139,7 +139,7 @@ Specifically search for:
 [[[/PASS_2_RED_TEAM_CRITIQUE]]]
 
 [[[PASS_3_FINAL_RESOLUTION]]]
-### [PASS_3_FINAL_RESOLUTION]
+### Pass 3: Final Execution Synthesis (Decision Committee)
 
 **ROLE**: Final Decision Committee.
 **TASK**: Synthesize Analyst Plan (P1) and Red-Team Critique (P2) into a survival-rated execution.
@@ -149,7 +149,7 @@ You have your Initial Plan and a harsh Red Team Critique.
 Initial Plan: {initial_prediction}
 Critique: {critique_text}
 
-Re-evaluate the data using the PASS_1_INITIAL_ANALYSIS.
+Re-evaluate the data using the Strategic Market Analysis (Pass 1) guidelines.
 Refine the entry/exit points for optimal TP/SL Ratio based on current market context.
 [[[/PASS_3_FINAL_RESOLUTION]]]
 [[[/ROLE_SPECIFIC_INSTRUCTIONS]]]
