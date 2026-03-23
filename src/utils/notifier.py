@@ -65,7 +65,7 @@ class EmailNotifier:
         else: score_color = "#e74c3c"
         
         # Color logic for Outcome
-        result_colors = {"TP_HIT": "#27ae60", "SL_HIT": "#e74c3c", "NEITHER": "#f39c12", "NA": "#95a5a6"}
+        result_colors = {"TP_HIT": "#27ae60", "SL_HIT": "#e74c3c", "NEITHER": "#f39c12", "N/A": "#95a5a6"}
         result_color = result_colors.get(tp_sl_result, "#95a5a6")
         
         # Color logic for MAE Stress (Lower is Better)
@@ -270,6 +270,7 @@ class EmailNotifier:
         
         score = analysis.get('evaluation_score', review_record.get('evaluation_score', 0))
         tp_sl_result = str(analysis.get('tp_sl_result', review_record.get('tp_sl_result', 'N/A'))).upper()
+        if tp_sl_result == "NA": tp_sl_result = "N/A"
         mae_stress = analysis.get('adversarial_audit', {}).get('mae_stress_level', 
                         review_record.get('mae_stress_level', 'N/A'))
         post_mortem_zh = analysis.get('prediction_post_mortem_zh', 

@@ -60,7 +60,7 @@ This algorithm prioritizes Structural Integrity and Execution Precision. It dist
 1. Base Directional Accuracy (Target: Strategy Alpha)
 - TP_HIT: **50 pts**. Core hypothesis validated by market outcome.
 - SL_HIT: **10 pts**. Retains a base floor to reward the act of prediction over non-participation, provided reasoning is sound.
-- NEITHER / NA: **5 pts**. Minimum score to discourage "Safety Bias" (targets not reached or NEUTRAL opinion).
+- NEITHER / N/A: **5 pts**. Minimum score to discourage "Safety Bias" (targets not reached or NEUTRAL opinion).
 
 2. MAE Execution Quality (Target: Risk-Adjusted Precision)
 Calculate Max Adverse Excursion (MAE) as a % of the Stop-Loss distance.
@@ -85,7 +85,7 @@ Calculate Max Adverse Excursion (MAE) as a % of the Stop-Loss distance.
 You MUST output your final decision in strict JSON format.
 {{
   "evaluation_score": 0-100,
-  "tp_sl_result": "TP_HIT / SL_HIT / NEITHER / NA",
+  "tp_sl_result": "TP_HIT / SL_HIT / NEITHER / N/A",
   "adversarial_audit": {{
     "shadow_evidence": ["Evidence 1 ignored", "Evidence 2 ignored", "Evidence 3 ignored"],
     "mae_stress_level": "Percentage (e.g. 45%)",
