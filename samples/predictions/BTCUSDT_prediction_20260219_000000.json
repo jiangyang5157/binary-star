@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-19T00:00:00Z",
+    "confidence": 72,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 66410.7,
+    "take_profit": 62500.0,
+    "stop_loss": 67850.0,
+    "reasoning": "[ANCHOR] POC: 67774.617 | VAH: 70883.366 | VAL: 62232.934 | Current: 66410.7. TP_FORMULA: 66410.7 - (7.5 * 522.6) = 62491.2 (Targeting VAL). SL_FORMULA: 66410.7 + (2.7 * 522.6) = 67821.7 (Above POC). 1. TP Dist: 3910.7. 2. SL Dist: 1439.3. 3. TP/SL Ratio: 2.72. 4. Regime Check: RANGING / Bearish Micro-Breakdown. 5. Logic: Synthesizing the Red Team critique, the 'Neutral' stance is rejected in favor of a 'Low-Volume Drift' short. Price has broken below the 15m bearish pennant (cyan dashed lines) and is trading below the POC (67774.6), which now serves as structural resistance. The significant negative Delta (-2455 BTC) indicates persistent distribution. A liquidity gap (LVN) exists between 66k and the VAL (62232.9), providing a clear path for price to gravitate toward the range floor. The RR is highly favorable at 2.72, justifying the entry despite low macro-volume.",
+    "reasoning_zh": "[锚点] POC: 67774.617 | VAH: 70883.366 | VAL: 62232.934 | 当前价格: 66410.7。止盈公式: 66410.7 - (7.5 * 522.6) = 62491.2 (目标 VAL)。止损公式: 66410.7 + (2.7 * 522.6) = 67821.7 (POC 之上)。1. 止盈距离: 3910.7。2. 止损距离: 1439.3。3. 盈亏比: 2.72。4. 市场环境: 震荡 / 看跌微观突破。5. 逻辑：综合红队批评，拒绝“中立”立场，转而采取“低成交量漂移”做空策略。价格已跌破 15 分钟看跌旗形（青色虚线），且交易价格低于 POC (67774.6)，该位置现已转为结构性阻力。显著的负 Delta (-2455 BTC) 表明持续的派发行为。在 66k 和 VAL (62232.9) 之间存在流动性真空 (LVN)，为价格向区间底部靠拢提供了清晰路径。盈亏比高达 2.72，尽管宏观成交量较低，但入场逻辑充分。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
