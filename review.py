@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env if it exists
 load_dotenv()
 
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
+logger = logging.getLogger("ReviewPipeline")
+
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
@@ -17,10 +21,6 @@ sys.path.insert(0, PROJECT_ROOT)
 from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.storage import DataStorage
 from src.agent.reviewer_agent import ReviewerAgent
-
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
-logger = logging.getLogger("ReviewPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
     abs_config_path = os.path.join(PROJECT_ROOT, config_path)

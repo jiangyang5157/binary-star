@@ -10,6 +10,10 @@ from dotenv import load_dotenv
 # Load environment variables from .env if it exists
 load_dotenv()
 
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
+logger = logging.getLogger("PredictionPipeline")
+
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, PROJECT_ROOT)
@@ -21,10 +25,6 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer
 from src.analyzer.market_regime import MarketRegimeAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
 from src.agent.predictor_agent import PredictorAgent
-
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s", stream=sys.stdout)
-logger = logging.getLogger("PredictionPipeline")
 
 def load_config(config_path: str = "config/config.yaml") -> dict:
     abs_config_path = os.path.join(PROJECT_ROOT, config_path)
