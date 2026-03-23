@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-23T00:00:00Z",
+    "confidence": 30,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 67692.8,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 70151.34 | VAH: 74083.32 | VAL: 68639.04 | Current: 67692.8. Mathematical Scratchpad: TP_FORMULA: N/A; SL_FORMULA: N/A. Resolution: The synthesis of P1 and P2 reveals a critical impasse between structural rules and local momentum. P1's Bullish thesis correctly identifies a 'Low-Liquidity Fakeout' based on the Volume Breakout Ratio (1.47 < 2.0), which theoretically mandates a mean-reversion play in a Ranging regime (0.15 intensity). However, P2's Red-Team critique highlights the aggressive negative Order Flow Delta (-948.14 BTC) and a clear 15m bear flag, suggesting the 'Waterfall' drop has not yet found a floor. Per the handbook, we cannot short without a 2.0 Volume Ratio confirmation, and we cannot long into high-velocity selling without clear absorption wicks. Survival-rated execution dictates a NEUTRAL stance until the friction between the quiet macro trend and aggressive local selling is resolved.",
+    "reasoning_zh": "[锚点] POC: 70151.34 | VAH: 74083.32 | VAL: 68639.04 | 当前价格: 67692.8。数学计算: 止盈公式: 无; 止损公式: 无。决议：第一轮和第二轮分析的综合揭示了结构性规则与局部动能之间的关键僵局。第一轮的看涨逻辑正确识别了基于成交量突破比率 (1.47 < 2.0) 的“低流动性假突破”，这在震荡行情（0.15 强度）中理论上要求进行均值回归操作。然而，第二轮的红队审查强调了大幅负值的订单流 Delta (-948.14 BTC) 和清晰的 15 分钟熊旗形态，表明“瀑布式”下跌尚未触底。根据手册，在没有 2.0 成交量比率确认的情况下不能做空，而在没有明确吸收影线的情况下也不能逆着高速抛压做多。生存评级执行要求在宏观趋势的平静与局部抛压的激进之间的摩擦解决之前，保持中立 (NEUTRAL) 立场。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

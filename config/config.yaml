@@ -10,7 +10,7 @@ prediction:
 strategy:
   vp_value_area_pct: 0.7
   vp_bins: 100
-  order_flow_lookback_bars: 24
+  order_flow_lookback_bars: 12
   trend_intensity_threshold: 0.8
   atr_window: 21
   bb_window: 21
@@ -37,7 +37,7 @@ paths:
   prompt_reviewer_filename: prompt_reviewer.txt
   prompt_coach_filename: prompt_coach.txt
 notifications:
-  min_confidence_threshold: 75
+  min_confidence_threshold: 70
   smtp_server: smtp.gmail.com
   smtp_port: 587
   timezone: Pacific/Auckland

@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-08T00:00:00Z",
+    "confidence": 40,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 69100.2,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 87821.35699999999 | VAH: 89053.065 | VAL: 62263.416 | Current: 69100.2. TP_FORMULA: N/A | SL_FORMULA: N/A. The market is currently in a RANGING regime with a Trend Intensity of 0.312, indicating a lack of directional conviction. While the 1h chart displays a visual pennant consolidation, the Volume Breakout Ratio is critically low at 0.36, which, according to the Strict Volume Rule, classifies any current price action as a 'Low-Liquidity Fakeout'. The Squeeze Factor of 1.0188 suggests that volatility is normal and not yet compressed enough for an explosive expansion. Although the POC at 87.8k remains a long-term gravitational target, the immediate lack of volume and momentum makes any entry at the current level high-risk noise. Confidence is capped at 40% due to the significant friction between the visual consolidation pattern and the stagnant quantitative indicators.",
+    "reasoning_zh": "[ANCHOR] POC: 87821.35699999999 | VAH: 89053.065 | VAL: 62263.416 | 当前价格: 69100.2。TP_FORMULA: 无 | SL_FORMULA: 无。市场目前处于震荡（RANGING）格局，趋势强度为 0.312，表明缺乏方向性信心。虽然 1h 图表显示出视觉上的三角旗形整合，但成交量突破比率极低，仅为 0.36，根据严格的成交量规则，这会将当前的价格行为归类为“低流动性虚假突破”。1.0188 的挤压因子（Squeeze Factor）表明波动率正常，尚未压缩到足以产生爆发性扩张的程度。尽管 87.8k 的 POC 仍是长期的引力目标，但目前缺乏成交量和动量，使得在当前水平的任何入场都属于高风险噪音。由于视觉整合形态与停滞的量化指标之间存在显著摩擦，置信度上限设定为 40%。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

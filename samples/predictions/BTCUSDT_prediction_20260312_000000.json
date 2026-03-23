@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-12T00:00:00Z",
+    "confidence": 45,
+    "opinion": "BEARISH",
+    "action": "SHORT",
+    "current_price": 70176.9,
+    "take_profit": 68513.0,
+    "stop_loss": 71313.28,
+    "reasoning": "[ANCHOR] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | Current: 70176.9. TP_FORMULA: 70176.9 - 1663.9 (Targeting POC) = 68513.0. SL_FORMULA: 70176.9 + (1.8 * 631.32) = 71313.28. Reasoning: The market is firmly in a RANGING regime (Trend Intensity 0.28) with a critically low Volume Breakout Ratio (0.35). According to the Strict Volume Rule, the lack of volume expansion invalidates the bullish breakout narrative towards the VAH. Negative Delta (-468 BTC) and positive ATR Skewness (0.02) indicate persistent overhead supply and selling pressure on rallies. Price is currently extended above the POC (68513.0), which acts as the primary structural magnet and high-volume node in a range. The highest probability setup is a mean-reversion to the POC. Confidence is capped at 45% due to the low-volatility environment and lack of aggressive directional catalysts.",
+    "reasoning_zh": "[锚点] POC: 68513.0 | VAH: 72718.46 | VAL: 63864.86 | 当前价格: 70176.9。止盈公式：70176.9 - 1663.9 (目标 POC) = 68513.0。止损公式：70176.9 + (1.8 * 631.32) = 71313.28。逻辑：市场处于明确的震荡格局（趋势强度 0.28），成交量突破比率极低（0.35）。根据严格成交量规则，缺乏成交量放大使得向 VAH 的看涨突破叙事失效。负 Delta (-468 BTC) 和正 ATR 偏度 (0.02) 表明上方存在持续供应，且反弹时存在卖盘压力。价格目前处于 POC (68513.0) 上方，而 POC 是震荡行情中的主要结构引力点和高成交量节点。概率最高的交易设置是向 POC 的均值回归。由于低波动环境和缺乏激进的方向性催化剂，信心评分为 45%。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
