@@ -97,10 +97,12 @@ def run_coach_pipeline(symbol: Optional[str] = None, batch_size: Optional[int] =
 
     # 3. Invoke Coach Agent
     coach_config = config['coach']
+    api_key = os.environ.get("GEMINI_API_KEY")
     coach = CoachAgent(
         model_name=coach_config['model'], 
         prompt_path=os.path.join(PROJECT_ROOT, coach_config['prompt_path']),
-        temperature=coach_config['temperature']
+        temperature=coach_config['temperature'],
+        api_key=api_key
     )
 
     logger.info(f"Invoking Coach Agent for symbol: {symbol} ({len(all_reviews_context)} reports)...")

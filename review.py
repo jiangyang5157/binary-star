@@ -24,21 +24,7 @@ from src.data_fetcher.storage import DataStorage
 from src.agent.reviewer_agent import ReviewerAgent
 from src.agent.observer_agent import ObserverAgent
 
-def load_config(config_path: str = "config/config.yaml") -> dict:
-    abs_config_path = os.path.join(PROJECT_ROOT, config_path)
-    if not os.path.exists(abs_config_path):
-        raise FileNotFoundError(f"Config file not found at: {abs_config_path}")
-    try:
-        with open(abs_config_path, 'r') as f:
-            config = yaml.safe_load(f)
-            if config is None:
-                raise ValueError(f"Config file is empty: {abs_config_path}")
-            return config
-    except Exception as e:
-        logger.error(f"Failed to load config: {e}")
-        raise
-
-def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def calculate_outcome(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any]) -> Dict[str, Any]:
     """
     Analyzes kline data to determine the actual market outcome.
     Incorporates Ground Truth TP/SL hits and MAE stress level.
@@ -71,65 +57,64 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: O
         "order": None
     }
     
-    if prediction:
-        opinion = prediction.get('opinion', '').upper()
-        limit_order = prediction.get('limit_order') or {}
-        target_entry = float(limit_order.get('entry', entry_price))
-        tp = float(limit_order.get('take_profit', prediction.get('take_profit', 0)))
-        sl = float(limit_order.get('stop_loss', prediction.get('stop_loss', 0)))
+    opinion = strategy.get('opinion', '').upper()
+    limit_order = strategy.get('limit_order') or {}
+    target_entry = float(limit_order.get('entry', entry_price))
+    tp = float(limit_order.get('take_profit', strategy.get('take_profit', 0)))
+    sl = float(limit_order.get('stop_loss', strategy.get('stop_loss', 0)))
+    
+    if opinion in ('BULLISH', 'BEARISH') and tp > 0 and sl > 0:
+        entry_hit = False
+        hit_result = "NEITHER"
+        max_p_after_entry = -float('inf')
+        min_p_after_entry = float('inf')
         
-        if opinion in ('BULLISH', 'BEARISH') and tp > 0 and sl > 0:
-            entry_hit = False
-            hit_result = "NEITHER"
-            max_p_after_entry = -float('inf')
-            min_p_after_entry = float('inf')
+        # Use 1m klines for precise sequential detection
+        for k in klines:
+            high = float(k[2])
+            low = float(k[3])
             
-            # Use 1m klines for precise sequential detection
-            for k in klines:
-                high = float(k[2])
-                low = float(k[3])
-                
-                # 1. Entry Detection (Only if NOT already hit)
-                if not entry_hit:
-                    if opinion == 'BULLISH' and low <= target_entry:
-                        entry_hit = True
-                    elif opinion == 'BEARISH' and high >= target_entry:
-                        entry_hit = True
-                
-                # 2. Performance Tracking (Only AFTER entry hit)
-                if entry_hit:
-                    max_p_after_entry = max(max_p_after_entry, high)
-                    min_p_after_entry = min(min_p_after_entry, low)
-                    
-                    if hit_result == "NEITHER":
-                        if opinion == 'BULLISH':
-                            if low <= sl:
-                                hit_result = "SL_HIT"
-                            elif high >= tp:
-                                hit_result = "TP_HIT"
-                        else: # BEARISH
-                            if high >= sl:
-                                hit_result = "SL_HIT"
-                            elif low <= tp:
-                                hit_result = "TP_HIT"
+            # 1. Entry Detection (Only if NOT already hit)
+            if not entry_hit:
+                if opinion == 'BULLISH' and low <= target_entry:
+                    entry_hit = True
+                elif opinion == 'BEARISH' and high >= target_entry:
+                    entry_hit = True
             
+            # 2. Performance Tracking (Only AFTER entry hit)
             if entry_hit:
-                # Calculate MAE Relative to the Target Entry Price
-                sl_distance = abs(target_entry - sl)
-                mae = 0
-                if sl_distance > 0:
-                    if opinion == 'BULLISH':
-                        mae = max(0, target_entry - min_p_after_entry)
-                    else: # BEARISH
-                        mae = max(0, max_p_after_entry - target_entry)
-                    stress = (mae / sl_distance) * 100
-                else:
-                    stress = 0
+                max_p_after_entry = max(max_p_after_entry, high)
+                min_p_after_entry = min(min_p_after_entry, low)
                 
-                result["order"] = {
-                    "tp_sl_result": hit_result,
-                    "mae_stress_level": f"{round(stress, 1)}%"
-                }
+                if hit_result == "NEITHER":
+                    if opinion == 'BULLISH':
+                        if low <= sl:
+                            hit_result = "SL_HIT"
+                        elif high >= tp:
+                            hit_result = "TP_HIT"
+                    else: # BEARISH
+                        if high >= sl:
+                            hit_result = "SL_HIT"
+                        elif low <= tp:
+                            hit_result = "TP_HIT"
+        
+        if entry_hit:
+            # Calculate MAE Relative to the Target Entry Price
+            sl_distance = abs(target_entry - sl)
+            mae = 0
+            if sl_distance > 0:
+                if opinion == 'BULLISH':
+                    mae = max(0, target_entry - min_p_after_entry)
+                else: # BEARISH
+                    mae = max(0, max_p_after_entry - target_entry)
+                stress = (mae / sl_distance) * 100
+            else:
+                stress = 0
+            
+            result["order"] = {
+                "tp_sl_result": hit_result,
+                "mae_stress_level": f"{round(stress, 1)}%"
+            }
     
     return result
 
@@ -170,9 +155,9 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
 
     bf = BinanceDataFetcher()
     try:
-        reviewer = ReviewerAgent(config)
-        observers = {}
         api_key = os.environ.get("GEMINI_API_KEY")
+        reviewer = ReviewerAgent(config, api_key=api_key)
+        observers = {}
 
         for filename in files:
             pred_path = os.path.join(predictions_dir, filename)

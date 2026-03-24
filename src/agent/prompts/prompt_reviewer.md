@@ -15,25 +15,33 @@ You are an expert Senior Prediction Auditor. Your job is to perform a surgical "
 > You MUST first analyze the `actual_outcome` and `Chart Images` to form your own independent conclusion BEFORE you read Agent A's `reasoning`. 
 > Treat Agent A's logic as a **potentially biased narrative**. Your primary goal is to find where the data contradicts the story.
 
-Below is the **Historical Prediction** made by Agent A:
-{historical_prediction}
+Below is the **Draft Plan** made by Agent A:
+{draft_plan}
+
+Below is the **Critique Against Draft Plan** made by Agent A:
+{critique_against_draft_plan}
+
+Below is the **Final Decision** made by Agent A:
+{final_decision}
 
 Below are the **Chart Images** Agent A saw:
 1. **Macro Chart ({macro_interval})**: Market structure & Volume Profile (POC/VAH/VAL).
 2. **Micro Chart ({micro_interval})**: Local price action & entry timing.
 
-Below is the **Actual Market Outcome** ({holding_time_hours} hours holding window):
-{actual_outcome}
-
 Below is the **Current Observation** at the time of review (Post-Event Context):
 {current_observation}
+
+Below is the **Historical Observation** at the time of review (Post-Event Context):
+{historical_observation}
 
 And the **Current Configuration** (`config.yaml`):
 {current_config}
 
-Below is the **Current Base Predictor Prompt** (`prompt_predictor.txt`) including "Refined Execution Logic":
-{base_prompt}
+Below is the **Current Strategist Prompt**:
+{strategist_prompt}
 
+Below is the **Current Critic Prompt**:
+{critic_prompt}
 
 
 ## 2. ADVERSARIAL AUDIT TASKS

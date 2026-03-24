@@ -13,16 +13,15 @@ class CoachAgent:
     Reviews batches of historical review reports to identify systemic patterns.
     Suggests high-level prompt patches and configuration adjustments.
     """
-    def __init__(self, model_name: str, prompt_path: str, temperature: float):
+    def __init__(self, model_name: str, prompt_path: str, temperature: float, api_key: str):
         self.model_name = model_name
         self.prompt_path = prompt_path
         self.temperature = temperature
-        try:
-            api_key = os.environ.get("GEMINI_API_KEY")
-            self.client = genai.Client(api_key=api_key)
-        except Exception as e:
-            logger.error(f"Failed to initialize GenAI client: {e}")
-            self.client = None
+        
+        if not api_key:
+            raise ValueError("Coach: api_key is required for initialization")
+            
+        self.client = genai.Client(api_key=api_key)
 
     def load_prompt_template(self) -> str:
         prompt_path = self.prompt_path
