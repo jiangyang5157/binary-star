@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 class StrategistAgent:
     """
     Agent B: The Strategist.
-    Consumes Observer JSON and produces a structured trading strategy.
-    Implements Pass 1 (Drafting) and Pass 3 (Synthesis).
+    Responsible for drafting initial strategic plans based on market observations 
+    and synthesizing those drafts with adversarial critiques into a final, 
+    actionable trading decision.
     """
     def __init__(self, config: Dict[str, Any], api_key: str):
         self.config = config
@@ -31,7 +32,13 @@ class StrategistAgent:
 
     def draft(self, observation: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Pass 1: Generate initial strategic draft based on observations.
+        Generates an initial strategic draft (Pass 1).
+        
+        Args:
+            observation (Dict): The market observation context.
+            
+        Returns:
+            Dict: The initial trading plan draft.
         """
         template = load_prompt(self.prompt_path)
         prompt_with_context = partition_prompt(template, ["DRAFTING"])
@@ -53,12 +60,20 @@ class StrategistAgent:
         try:
             return json.loads(response.text)
         except Exception as e:
-            logger.error(f"Failed to parse strategist draft: {e}")
-            return {"error": "JSON parsing failed", "raw_response": response.text}
+            logger.error(f"Strategist: Failed to parse draft JSON: {e}")
+            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}
 
     def synthesize(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], critique: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Pass 3: Synthesize draft and critique into final strategy JSON.
+        Synthesizes the draft and critique into a final decision (Pass 3).
+        
+        Args:
+            observation (Dict): The market observation context.
+            draft_plan (Dict): The initial strategic draft.
+            critique (Dict): The adversarial audit results.
+            
+        Returns:
+            Dict: The final crystallized trading strategy.
         """
         template = load_prompt(self.prompt_path)
         prompt_with_context = partition_prompt(template, ["SYNTHESIS"])
@@ -82,5 +97,5 @@ class StrategistAgent:
         try:
             return json.loads(response.text)
         except Exception as e:
-            logger.error(f"Failed to parse strategist synthesis: {e}")
-            return {"error": "JSON parsing failed", "raw_response": response.text}
+            logger.error(f"Strategist: Failed to parse synthesis JSON: {e}")
+            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}

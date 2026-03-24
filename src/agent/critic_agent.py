@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 class CriticAgent:
     """
     Agent C: The Critic.
-    Performs adversarial audit of a strategic draft.
+    Responsible for performing adversarial audits on strategic drafts, identifying 
+    psychological biases, logical gaps, and hidden structural risks.
     """
     def __init__(self, config: Dict[str, Any], api_key: str):
         self.config = config
@@ -27,7 +28,14 @@ class CriticAgent:
 
     def audit(self, observation: Dict[str, Any], draft_plan: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Audit the draft plan against the observations.
+        Performs an adversarial audit on a draft trading plan.
+        
+        Args:
+            observation (Dict): The market observation context.
+            draft_plan (Dict): The initial strategic draft from the Strategist.
+            
+        Returns:
+            Dict: The audit findings including skepticism score and veto status.
         """
         prompt_with_context = load_prompt(self.prompt_path)
         
@@ -45,4 +53,8 @@ class CriticAgent:
                 response_mime_type="application/json"
             )
         )
-        return json.loads(response.text)
+        try:
+            return json.loads(response.text)
+        except Exception as e:
+            logger.error(f"Critic: Failed to parse audit JSON: {e}")
+            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}

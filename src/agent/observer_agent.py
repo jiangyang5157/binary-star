@@ -13,7 +13,7 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer
 from src.analyzer.market_regime import MarketRegimeAnalyzer
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.agent_utils import load_prompt
-from src.utils.datetime_utils import format_datetime
+from src.utils.datetime_utils import format_datetime, get_utc_now
 from src.utils.path_utils import find_project_root
 
 logger = logging.getLogger(__name__)
@@ -78,7 +78,18 @@ class ObserverAgent:
         self.client = genai.Client(api_key=api_key)
         self.model_name = observer_config['model']
 
-    def observe(self, timestamp_utc: Optional[datetime] = datetime.now(timezone.utc), data_dir: Optional[str] = None) -> Dict[str, Any]:
+    def observe(self, timestamp: Optional[datetime] = None, data_dir: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Executes a full observation cycle for the current symbol.
+        
+        Args:
+            timestamp (Optional[datetime]): The point in time to observe. Defaults to now (UTC).
+            data_dir (Optional[str]): Base directory for output. Defaults to config['paths']['data_dir'].
+            
+        Returns:
+            Dict[str, Any]: A self-contained JSON-serializable observation context.
+        """
+        timestamp_utc = timestamp or get_utc_now()
         logger.info(f"ObserverAgent: Starting observation for {self.symbol} at {timestamp_utc}")
         
         prediction_config = self.config['prediction']
@@ -127,7 +138,9 @@ class ObserverAgent:
         mapping = {"m": 60, "h": 3600, "d": 86400}
         return val * mapping.get(unit, 60) * 1000
 
-    def _fetch_raw_data(self, timestamp_utc: Optional[datetime] = datetime.now(timezone.utc)) -> Dict[str, Any]:
+    def _fetch_raw_data(self, timestamp: Optional[datetime] = None) -> Dict[str, Any]:
+        """Fetches all required market data from Binance and sentiment sources."""
+        timestamp_utc = timestamp or get_utc_now()
         fetch_kwargs = {}
         fetch_kwargs['endTime'] = int(timestamp_utc.timestamp() * 1000)
         now_ts = fetch_kwargs.get('endTime')
@@ -339,13 +352,17 @@ class ObserverAgent:
     def _generate_semantic_observations(self, 
                                        metrics: Dict[str, Any], 
                                        chart_paths: Dict[str, str],
-                                       timestamp_utc: Optional[datetime] = datetime.now(timezone.utc)) -> Tuple[Dict[str, str], str]:
+                                       timestamp: Optional[datetime] = None) -> Tuple[Dict[str, Any], datetime]:
+        """
+        Interleaves charts and metrics into a multimodal Gemini prompt to generate 
+        semantic observations.
+        """
+        timestamp_utc = timestamp or get_utc_now()
         
         prediction_config = self.config['prediction']
         observer_config = self.config['observer']
         
         try:
-            from google.genai import types
             macro_tf_interval = prediction_config['macro_timeframe']['interval']
             micro_tf_interval = prediction_config['micro_timeframe']['interval']
             
@@ -403,7 +420,7 @@ class ObserverAgent:
             return obs_dict, timestamp_utc
         except Exception as e:
             logger.error(f"Failed to generate semantic observations: {e}", exc_info=True)
-            return {"error": str(e)}, format_datetime(timestamp_utc)
+            return {"error": str(e)}, timestamp_utc
 
     def close(self):
         self.binance_fetcher.close()

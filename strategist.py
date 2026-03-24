@@ -20,6 +20,13 @@ def main():
     parser.add_argument("--data_dir", type=str, help="Override base data directory")
     args = parser.parse_args()
     
+    # Load environment variables (API Keys)
+    load_dotenv()
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        logger.error("GEMINI_API_KEY not found in environment")
+        return
+    
     # 1. Load Observation
     if not os.path.exists(args.file):
         logger.error(f"Observation file not found: {args.file}")
@@ -36,8 +43,8 @@ def main():
 
     try:
         # 2. Initialize Agents
-        strategist = StrategistAgent(config)
-        critic = CriticAgent(config)
+        strategist = StrategistAgent(config, api_key=api_key)
+        critic = CriticAgent(config, api_key=api_key)
 
         # 3. Step 1: Drafting (Pass 1)
         logger.info("Step 1: Strategist is drafting initial plan...")

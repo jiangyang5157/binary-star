@@ -1,18 +1,15 @@
 #!/usr/bin/env python3
 import os
-import sys
 import argparse
-import yaml
 import logging
 from typing import Dict, Any
 from dotenv import load_dotenv
 
-# Add src to path if needed (though running from root should be fine)
 from src.agent.observer_agent import ObserverAgent
 from src.utils.json_utils import save_json
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
-from src.utils.datetime_utils import parse_iso_to_utc, get_utc_now, FILE_TS_FORMAT
+from src.utils.datetime_utils import parse_iso_to_utc, get_utc_now, FILE_TIMESTAMP_FORMAT
 
 # Setup logging
 logger = setup_logger("ObserverPipeline")
@@ -46,14 +43,14 @@ def main():
     data_dir = args.data_dir or paths_config['data_dir']
     
         
-    observerAgent = ObserverAgent(config, symbol=symbol, api_key=api_key)
+    observer_agent = ObserverAgent(config, symbol=symbol, api_key=api_key)
     try:
-        context = observerAgent.observe(timestamp=timestamp, data_dir=data_dir)
+        context = observer_agent.observe(timestamp=timestamp, data_dir=data_dir)
         
         observations_path = os.path.join(data_dir, paths_config['observations_dir'])
         os.makedirs(observations_path, exist_ok=True)
         
-        timestamp_str = (timestamp or get_utc_now()).strftime(FILE_TS_FORMAT)
+        timestamp_str = (timestamp or get_utc_now()).strftime(FILE_TIMESTAMP_FORMAT)
         output_file = f"{symbol}_observation_{timestamp_str}.json"
         final_observation = os.path.join(observations_path, output_file)
         
@@ -63,7 +60,7 @@ def main():
     except Exception as e:
         logger.error(f"Observation failed: {e}", exc_info=True)
     finally:
-        observerAgent.close()
+        observer_agent.close()
 
 if __name__ == "__main__":
     main()

@@ -1,79 +1,101 @@
 import os
 import sys
+import pytest
 import json
-import logging
+from unittest.mock import MagicMock, patch
 from datetime import datetime, timezone
 
-# Add project root to sys.path
+# Ensure project root is in path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.observer_agent import ObserverAgent
-import yaml
-from dotenv import load_dotenv
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("TestObserverAgent")
+@pytest.fixture
+def mock_config():
+    return {
+        "observer": {
+            "model": "gemini-2.0-flash",
+            "prompt_path": "src/agent/prompts/prompt_observer.md",
+            "temperature": 0.1,
+            "hvn_count": 3,
+            "lvn_count": 3,
+            "hvn_sensitivity": 0.5,
+            "lvn_sensitivity": 0.5,
+            "node_min_separation": 1,
+            "structural_anchor_count": 2
+        },
+        "strategy": {
+            "vp_value_area_pct": 0.7,
+            "vp_bins": 50,
+            "atr_window": 14,
+            "bb_window": 20,
+            "bb_std": 2,
+            "kc_window": 20,
+            "kc_mult": 1.5,
+            "vol_ma_window": 20,
+            "trend_intensity_threshold": 25,
+            "liquidation_fetch_limit": 100,
+            "order_flow_lookback_bars": 5,
+            "liquidation_context_limit": 5
+        },
+        "prediction": {
+            "macro_timeframe": {"interval": "1h", "limit": 100},
+            "micro_timeframe": {"interval": "15m", "limit": 100}
+        },
+        "paths": {
+            "data_dir": "data",
+            "images_dir": "images"
+        }
+    }
 
-def load_config(config_path: str = "config/config.yaml") -> dict:
-    abs_config_path = os.path.join(PROJECT_ROOT, config_path)
-    with open(abs_config_path, 'r') as f:
-        return yaml.safe_load(f)
+def test_observer_initialization(mock_config):
+    """Verify that ObserverAgent initializes correctly with a valid API key."""
+    agent = ObserverAgent(mock_config, symbol="BTCUSDT", api_key="test_key")
+    assert agent.symbol == "BTCUSDT"
+    assert agent.model_name == "gemini-2.0-flash"
 
-def main():
-    load_dotenv()
-    logger.info("Starting Observer Agent Test...")
+def test_observer_api_key_error(mock_config):
+    """Verify that ObserverAgent raises ValueError if api_key is missing."""
+    with pytest.raises(ValueError, match="api_key is required"):
+        ObserverAgent(mock_config, symbol="BTCUSDT", api_key=None)
+
+@patch("src.data_fetcher.binance_client.BinanceDataFetcher.fetch_historical_klines")
+@patch("src.data_fetcher.sentiment.SentimentFetcher.fetch_open_interest")
+@patch("src.data_fetcher.sentiment.SentimentFetcher.fetch_long_short_ratio")
+@patch("src.data_fetcher.binance_client.BinanceDataFetcher.fetch_liquidations")
+@patch("src.analyzer.chart_generator.ChartGenerator.generate_chart")
+@patch("google.genai.Client")
+def test_observe_mock_flow(mock_genai, mock_gen_chart, mock_liq, mock_ls, mock_oi, mock_klines, mock_config):
+    """
+    Test the full observation flow using mocks for all external dependencies.
+    """
+    # Mock Klines return (minimal data for 100 bars)
+    mock_klines.return_value = [[0]*12]*100
+    mock_oi.return_value = {"openInterest": "1000000"}
+    mock_ls.return_value = [{"longShortRatio": "1.5"}]
+    mock_liq.return_value = []
+    mock_gen_chart.return_value = "data/images/test_chart.png"
     
-    # 1. Load config
-    config = load_config()
-    symbol = "BTCUSDT"
-    api_key = os.getenv("GEMINI_API_KEY")
-    
-    if not api_key:
-        logger.error("GEMINI_API_KEY not found in environment. Please check your .env file.")
-        return
+    # Mock Gemini Response
+    mock_response = MagicMock()
+    mock_response.text = json.dumps({
+        "structural_proximity": "Near POC",
+        "anomaly_detection": "None",
+        "regime_delta": "Stable",
+        "macro_topography": "Range",
+        "micro_execution": "Wait"
+    })
+    mock_genai.return_value.models.generate_content.return_value = mock_response
 
-    # 2. Initialize Observer Agent
-    observer = ObserverAgent(config, symbol, api_key)
+    agent = ObserverAgent(mock_config, symbol="BTCUSDT", api_key="test_key")
+    context = agent.observe(data_dir="data")
     
-    try:
-        # 3. Perform Observation
-        logger.info(f"Step 1: Running observe() for {symbol}...")
-        context = observer.observe()
-        
-        # 4. Save results for inspection
-        from src.utils.json_utils import save_json
-        data_dir = config.get('paths', {}).get('data_dir', 'data')
-        test_dir = os.path.join(PROJECT_ROOT, data_dir, "test")
-        os.makedirs(test_dir, exist_ok=True)
-        
-        output_file = os.path.join(test_dir, "sample_observer_agent_output.json")
-        save_json(context, output_file)
-            
-        logger.info(f"Step 2: Observation results saved to {output_file}")
-        
-        # 5. Quick verification
-        print("\n--- OBSERVER AGENT TEST SUMMARY ---")
-        print(f"Symbol: {context['symbol']}")
-        print(f"Price: {context['metrics']['price']['current']}")
-        print(f"VAH/POC/VAL: {context['metrics']['volume_profile'].get('vah')}/{context['metrics']['volume_profile'].get('poc')}/{context['metrics']['volume_profile'].get('val')}")
-        print(f"Macro Chart: {context['chart_path']['snapshot_macro']}")
-        print(f"Micro Chart: {context['chart_path']['snapshot_micro']}")
-        
-        print("\n--- SEMANTIC OBSERVATIONS ---")
-        observations = context.get('observations', {})
-        if isinstance(observations, dict):
-            for key, val in observations.items():
-                print(f"[{key.upper()}]:")
-                print(f"  {val}\n")
-        else:
-            print(f"Unexpected observations format: {type(observations)}")
-            
-    except Exception as e:
-        logger.error(f"Observer agent test failed: {e}", exc_info=True)
-    finally:
-        observer.close()
+    assert context["symbol"] == "BTCUSDT"
+    assert "metrics" in context
+    assert "observations" in context
+    assert context["observations"]["structural_proximity"] == "Near POC"
 
 if __name__ == "__main__":
-    main()
+    pytest.main([__file__])
