@@ -83,7 +83,7 @@ class ObserverAgent:
         
         Args:
             timestamp (Optional[datetime]): The point in time to observe. Defaults to now (UTC).
-            data_dir (Optional[str]): Base directory for output. Defaults to config['paths']['data_dir'].
+            data_dir (Optional[str]): Data directory for output. Defaults to config['paths']['data_dir'].
             
         Returns:
             Dict[str, Any]: A self-contained JSON-serializable observation context.

@@ -16,7 +16,7 @@ from src.agent.strategist_agent import StrategistAgent
 from src.agent.critic_agent import CriticAgent
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
-from src.utils.json_utils import archive_session_result
+from src.utils.json_utils import save_json
 from src.utils.datetime_utils import parse_iso_to_utc
 
 # Setup logging
@@ -59,7 +59,8 @@ def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_
     output_dir = os.path.join(project_root, data_dir, target_dir)
     os.makedirs(output_dir, exist_ok=True)
     
-    ts_suffix = sanitize_timestamp(timestamp)
+    ts_str = timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
+    ts_suffix = sanitize_timestamp(ts_str)
     filename = f"{symbol}_{target_dir}_{ts_suffix}.json"
     output_file = os.path.join(output_dir, filename)
     
@@ -73,6 +74,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
     logger.info(f"=== Starting Fresh Strategist Pipeline for {symbol} ===")
     
     config = load_config()
+    paths_config = config['paths']
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -88,6 +90,9 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             logger.error(f"Invalid timestamp format: {timestamp_str}")
             return
 
+    # Use config default if data_dir not provided
+    final_data_dir = data_dir or paths_config['data_dir']
+
     try:
         # 1. Initialize Agents
         observer = ObserverAgent(config, symbol, api_key=api_key)
@@ -96,7 +101,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
 
         # 2. Stage 1: Observe
         logger.info(f"Stage 1: Gathering facts for {symbol}...")
-        observation = observer.observe(timestamp=timestamp, data_dir=base_dir)
+        observation = observer.observe(timestamp=timestamp, data_dir=final_data_dir)
         
         # 3. Stages 2-4: Reasoning Triad (Draft -> Audit -> Synthesis)
         result = run_full_triad_flow(observation, strategist, critic)
@@ -109,7 +114,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             symbol=symbol, 
             timestamp=observation.get('timestamp'), 
             result=result, 
-            data_dir=data_dir or config['paths'].get('data_dir'), 
+            data_dir=final_data_dir, 
             target_dir=config['paths']['strategies_dir']
         )
         logger.info(f"Full Strategy archived to: {output_file}")
@@ -145,7 +150,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
     parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
-    parser.add_argument("--data_dir", type=str, help="Base directory override")
+    parser.add_argument("--data_dir", type=str, help="Data directory override")
     args = parser.parse_args()
     
-    run_pipeline(symbol=args.symbol, timestamp_str=args.timestamp, base_dir=args.data_dir)
+    run_pipeline(symbol=args.symbol, timestamp_str=args.timestamp, data_dir=args.data_dir)

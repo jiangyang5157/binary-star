@@ -16,12 +16,12 @@ from src.agent.critic_agent import CriticAgent
 from strategist import run_full_triad_flow, archive_strategy_result
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
-from src.utils.json_utils import archive_session_result
+# No extra imports needed for archival here
 
 # Setup logging
 logger = setup_logger("StrategistRetestPipeline")
 
-def run_retest(file_path: str, base_dir: Optional[str] = None):
+def run_retest(file_path: str, data_dir: Optional[str] = None):
     """
     Offline Retest Pipeline: JSON Observation -> (Draft -> Audit -> Synthesis)
     """
@@ -32,11 +32,16 @@ def run_retest(file_path: str, base_dir: Optional[str] = None):
         return
 
     config = load_config()
+    paths_config = config['paths']
+
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         logger.error("GEMINI_API_KEY not found in environment")
         return
+
+    # Use config default if data_dir not provided
+    final_data_dir = data_dir or paths_config['data_dir']
 
     try:
         # 1. Load Observation
@@ -58,7 +63,7 @@ def run_retest(file_path: str, base_dir: Optional[str] = None):
             symbol=symbol, 
             timestamp=observation.get('timestamp'), 
             result=result, 
-            data_dir=data_dir or config['paths'].get('data_dir'), 
+            data_dir=final_data_dir, 
             target_dir=config['paths']['strategies_dir']
         )
         logger.info(f"Retest Session archived to: {output_file}")
@@ -74,4 +79,4 @@ if __name__ == "__main__":
     parser.add_argument("--data_dir", type=str, help="Data directory override")
     args = parser.parse_args()
     
-    run_retest(file_path=args.file, base_dir=args.data_dir)
+    run_retest(file_path=args.file, data_dir=args.data_dir)

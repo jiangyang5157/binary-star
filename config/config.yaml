@@ -52,7 +52,6 @@ paths:
   observations_dir: observations
   strategies_dir: strategies
   # //
-  predictions_dir: predictions
   reviews_dir: reviews
   coach_dir: coach
   prompts_dir: src/agent/prompts
