@@ -9,6 +9,7 @@ __pycache__/
 data/test/
 data/images/
 data/observations/
+data/strategies/
 data/predictions/
 data/reviews/
 data/coach/

@@ -83,7 +83,7 @@ class ObserverAgent:
             logger.error(f"Failed to initialize GenAI client: {e}")
             self.client = None
 
-    def observe(self, override_timestamp: Optional[datetime] = None, base_data_dir: Optional[str] = None) -> Dict[str, Any]:
+    def observe(self, override_timestamp: Optional[datetime] = None, data_dir: Optional[str] = None) -> Dict[str, Any]:
         """
         Main entry point for observing the market state.
         Now supports historical observation for simulation/backtesting.
@@ -96,11 +96,11 @@ class ObserverAgent:
         # 2. Process Indicators
         processed_metrics = self._process_indicators(raw_data)
         
-        # 3. Generate Charts (Pass base_data_dir and timestamp for naming)
+        # 3. Generate Charts (Pass data_dir and timestamp for naming)
         chart_paths = self._generate_charts(
             raw_data, 
             processed_metrics, 
-            base_data_dir=base_data_dir,
+            data_dir=data_dir,
             naming_ts=override_timestamp
         )
         
@@ -310,14 +310,14 @@ class ObserverAgent:
     def _generate_charts(self, 
                        raw_data: Dict[str, Any], 
                        metrics: Dict[str, Any],
-                       base_data_dir: Optional[str] = None,
+                       data_dir: Optional[str] = None,
                        naming_ts: Optional[datetime] = None) -> Dict[str, str]:
         """
         Generates visualized charts for the Macro and Micro timeframes.
         Supports custom output directories and deterministic naming.
         """
         # 1. Setup Output Directory
-        data_root = base_data_dir or self.config['paths']['data_dir']
+        data_root = data_dir or self.config['paths']['data_dir']
         images_subdir = self.config['paths']['images_dir']
         images_path = os.path.join(data_root, images_subdir)
         os.makedirs(images_path, exist_ok=True)
