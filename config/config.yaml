@@ -2,7 +2,6 @@ observer:
   prompt_path: src/agent/prompts/prompt_observer.md
   model: gemini-flash-latest
   temperature: 0.1
-  holding_period_days: 1
   macro_timeframe:
     interval: 1h
     limit: 336
@@ -27,6 +26,13 @@ observer:
   lvn_sensitivity: 0.10
   node_min_separation: 10 
   structural_anchor_count: 3
+
+prediction:
+  prediction_horizon_days: 1
+  macro_timeframe:
+    interval: 1h
+  micro_timeframe:
+    interval: 15m
 
 strategist:
   prompt_path: src/agent/prompts/prompt_strategist.md
@@ -56,13 +62,14 @@ paths:
   coach_dir: coach
   prompts_dir: src/agent/prompts
   prompt_reviewer_filename: prompt_reviewer.txt
+  prompt_predictor_filename: prompt_predictor.txt
   prompt_coach_filename: prompt_coach.txt
 
 agent:
-  reviewer_model: gemini-3.1-pro-preview
-  coach_model: gemini-3.1-pro-preview
+  reviewer_model: gemini-flash-latest
+  coach_model: gemini-flash-latest
   review_temperature: 1.0
-  coach_temperature: 1.0
+  coach_temperature: 0.5
 
 review:
   review_kline_interval: 1m

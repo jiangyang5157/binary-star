@@ -53,7 +53,7 @@ def main():
         # Use the EXACT timestamp from the generated context for 100% synchronization
         observation_ts = context.get('timestamp')
         timestamp_clean = sanitize_timestamp(observation_ts)
-        output_file = f"{symbol}_observation_{timestamp_clean}.json"
+        output_file = f"{symbol}_{paths_config['observations_dir']}_{timestamp_clean}.json"
         final_observation = os.path.join(observations_path, output_file)
         
         save_json(context, final_observation)

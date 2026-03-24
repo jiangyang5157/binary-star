@@ -114,7 +114,6 @@ class ObserverAgent:
         return {
             "symbol": self.symbol,
             "timestamp": f"{final_timestamp}Z",
-            "holding_period_days": observer_config['holding_period_days'],
             "macro_timeframe": {
                 "interval": macro_timeframe['interval'],
                 "limit": macro_timeframe['limit']

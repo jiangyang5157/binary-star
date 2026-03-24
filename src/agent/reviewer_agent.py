@@ -31,6 +31,7 @@ class ReviewerAgent:
 
     def review(self, historical_prediction: Dict[str, Any], 
                actual_outcome: Dict[str, Any], 
+               current_observation: Optional[Dict[str, Any]] = None,
                chart_image_paths: Optional[List[str]] = None) -> str:
         """
         Executes a multimodal post-mortem audit of Agent A's performance.
@@ -62,6 +63,7 @@ class ReviewerAgent:
                 prediction_horizon_days=self.config['prediction']['prediction_horizon_days'],
                 macro_interval=self.config['prediction']['macro_timeframe']['interval'],
                 micro_interval=self.config['prediction']['micro_timeframe']['interval'],
+                current_observation=json.dumps(current_observation, indent=2, ensure_ascii=False) if current_observation else "N/A",
                 base_prompt=base_prompt
             )
         except Exception as e:

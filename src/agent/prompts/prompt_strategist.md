@@ -20,6 +20,7 @@ To produce structurally sound and survival-rated trading strategies. You must ba
 - Perform the **"Three-Pillar Synthesis"** based on the `INPUT DATUM`.
 - Focus on identifying the **High-Probability Path**.
 - Logic: Facts -> Insights -> Vision.
+- **Holding Time Estimation**: Predict the expected duration of the trade in hours based on ATR and regime volatility.
 [[[/PASS: DRAFTING]]]
 
 [[[PASS: SYNTHESIS]]]
@@ -42,7 +43,8 @@ You MUST output a valid JSON object.
     "limit_order": {{ 
         "entry": decimal,
         "take_profit": decimal,
-        "stop_loss": decimal
+        "stop_loss": decimal,
+        "holding_time_hours": decimal
     }} or null, // null if opinion is NEUTRAL
     "reasoning": "...",
     "critic_impact": "..." or null // null in Pass 1 (Draft)

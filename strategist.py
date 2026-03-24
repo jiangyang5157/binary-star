@@ -115,7 +115,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             timestamp=observation.get('timestamp'), 
             result=result, 
             data_dir=final_data_dir, 
-            target_dir=config['paths']['strategies_dir']
+            target_dir=paths_config['strategies_dir']
         )
         logger.info(f"Full Strategy archived to: {output_file}")
 
