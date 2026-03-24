@@ -87,9 +87,8 @@ class ChartGenerator:
 
         if "timestamp" in profile_data:
             ts = profile_data["timestamp"]
-            ts_readable = ts.replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
-            if ts.endswith("Z") and not ts_readable.endswith("Z"):
-                ts_readable += "Z"
+            # Robust parsing for Python 3.9 (strips Z and +offset for clean filename)
+            ts_readable = ts.split('+')[0].split('Z')[0].replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
             filename = f"{symbol}_{filename_suffix}_{ts_readable}_chart.png"
         else:
             filename = f"{symbol}_{filename_suffix}_chart.png"

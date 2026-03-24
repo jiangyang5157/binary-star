@@ -1,0 +1,92 @@
+{
+  "symbol": "BTCUSDT",
+  "timestamp": "2026-03-23 22:30:00Z",
+  "macro_timeframe": {
+    "interval": "1h",
+    "limit": 336
+  },
+  "micro_timeframe": {
+    "interval": "15m",
+    "limit": 192
+  },
+  "chart_path": {
+    "snapshot_macro": "data/images/BTCUSDT_1h_20260323_223000_chart.png",
+    "snapshot_micro": "data/images/BTCUSDT_15m_20260323_223000_chart.png"
+  },
+  "metrics": {
+    "price": {
+      "current": 70745.1,
+      "atr_macro": 780.790476190475,
+      "atr_micro": 233.380952380951,
+      "skewness": "0.70"
+    },
+    "structural_proximity_atr": {
+      "to_poc": "0.96",
+      "to_vah": "-6.13",
+      "to_val": "3.45"
+    },
+    "volume_profile": {
+      "poc": 69996.659,
+      "vah": 75534.95866666666,
+      "val": 68053.90466666667,
+      "nearest_nodes_above": [
+        {
+          "price": 70924.54,
+          "vacuum_score": 0.019,
+          "type": "LVN"
+        },
+        {
+          "price": 71243.5,
+          "strength": 0.781,
+          "type": "HVN"
+        },
+        {
+          "price": 71620.45,
+          "vacuum_score": 0.024,
+          "type": "LVN"
+        }
+      ],
+      "nearest_nodes_below": [
+        {
+          "price": 70460.6,
+          "strength": 0.534,
+          "type": "HVN"
+        },
+        {
+          "price": 69996.66,
+          "strength": 1.0,
+          "type": "HVN"
+        },
+        {
+          "price": 68633.83,
+          "vacuum_score": 0.021,
+          "type": "LVN"
+        }
+      ],
+      "volume_breakout_ratio": "0.25"
+    },
+    "regime": {
+      "volatility_regime": "NORMAL",
+      "squeeze_factor": 2.2117,
+      "market_regime": "RANGING",
+      "trend_intensity": 0.3882,
+      "skewness": -0.1214,
+      "volume_breakout_ratio": 0.25
+    },
+    "sentiment": {
+      "oi": 85456.187,
+      "oi_delta_macro": "+0.16%",
+      "oi_delta_micro": "+0.03%",
+      "ls_ratio": "1.3602",
+      "order_flow_delta": "102.7840",
+      "top_liquidations": null
+    }
+  },
+  "observations": {
+    "structural_proximity": "The current price of 70745.1 is situated 0.96 ATR from the primary Point of Control (POC) at 69996.66, indicating a high degree of structural gravity toward the mean value area. Price is currently navigating a high-friction zone characterized by a series of High Volume Nodes (HVN), specifically the immediate support at 70460.6 and overhead resistance at 71243.5. The proximity to these anchors suggests a state of topographical equilibrium where price movement is constrained by dense liquidity clusters rather than traversing Low Volume Node (LVN) vacuum zones. The Value Area High (VAH) remains distant at -6.13 ATR, while the Value Area Low (VAL) at 68053.90 provides the lower boundary of the current structural range.",
+    "regime_delta": "The market is operating within a ranging regime with normal volatility and a squeeze factor of 2.2117, signaling a period of price compression. The volume breakout ratio is low at 0.25, which quantifies a lack of mechanical efficiency in current price movements and suggests that active aggression is being neutralized by passive absorption. While the order flow delta is positive at 102.78, the micro-open interest delta of +0.03% indicates negligible new positioning, confirming that the current environment is dominated by the rotation of existing liquidity rather than an aggressive directional expansion.",
+    "macro_topography": "The macro chart illustrates a significant structural sweep below the 68053.90 VAL, followed by a rapid reclamation of the 69996.66 POC. The skewness of 0.70 is reflected in the prominent lower wicks observed near the 68000 level, identifying this area as a zone of dense absorption and successful liquidity harvesting. Above the current price, the topography is defined by a series of minor HVNs that act as incremental friction points, preventing a clean run toward the macro VAH at 75534.96. The overall architecture shows a market that has transitioned from a volatility expansion back into the core of its established value distribution.",
+    "micro_execution": "On the micro timeframe, the price action has transitioned from a high-volume vertical impulse into a consolidation phase immediately above the 70000 structural anchor. Local interaction with the 70924.54 LVN is currently producing a ceiling effect, where candle bodies are narrowing as they encounter overhead structural friction. This behavior reinforces the macro-pillar of structural gravity, as the initial momentum from the 68000 sweep has dissipated into a sideways grind. The micro-volume profile shows that the majority of recent execution is concentrated between the POC and the 71000 level, establishing a localized high-density bracket.",
+    "anomaly_detection": "No observable data-price asynchronicity is present in the current environment. The ranging price action is fundamentally aligned with the low volume breakout ratio and the near-static open interest metrics. Price movement remains tightly correlated with the identified HVN and POC anchors, reflecting a standard mechanical response to high-density liquidity zones without evidence of delta divergence or aggressive positioning imbalances. The market is currently in a state of structural validation, where price discovery is secondary to the maintenance of the established value area."
+  }
+}

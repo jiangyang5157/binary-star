@@ -119,10 +119,10 @@ class BinanceDataFetcher:
                 return response.json()
             else:
                 logger.error(f"Fallback liquidation fetch failed: {response.status_code} - {response.text}")
-                return []
+                return None
         except Exception as e:
             logger.error(f"Error fetching liquidations via fallback: {e}")
-            return []
+            return None
 
     def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
         """

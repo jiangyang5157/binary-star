@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-03-07T00:00:00Z",
+    "confidence": 85,
+    "opinion": "NEUTRAL",
+    "action": "WAIT",
+    "current_price": 68243.2,
+    "take_profit": null,
+    "stop_loss": null,
+    "reasoning": "[ANCHOR] POC: 68495.812 | VAH: 73231.364 | VAL: 63061.572 | Current: 68243.2. TP_FORMULA: N/A (Neutral). SL_FORMULA: N/A (Neutral). Mathematical Scratchpad: ATR_1h: 586.0 | SL_distance (1.8x ATR): 1054.8 | Ranging_TP_Cap (1.5x ATR): 879.0 | Max_RR: 0.83. The adversarial audit has VETOED the initial bearish bias. Price is currently oscillating near the POC in a RANGING regime with a low Volume Breakout Ratio (0.43), indicating a lack of directional momentum. While positive Delta (+302 BTC) and negative ATR skewness (-0.115) suggest passive absorption of selling pressure, the current location offers no structural edge. Any trade targeting the Value Area extremes (VAH/VAL) would violate the 'Ranging TP Cap' of 1.5x ATR (879 points) or fail the Min RR 1.0 requirement (Max RR possible is 0.83). Additionally, the 'Waterfall' rule prohibits shorting immediately after the recent sharp decline without a clear structural retest. Standing aside until price reaches the VAL for a mean-reversion long or reclaims the POC with volume expansion (>2.0 ratio).",
+    "reasoning_zh": "[锚点] POC: 68495.812 | VAH: 73231.364 | VAL: 63061.572 | 当前价格: 68243.2。止盈公式：不适用（中立）。止损公式：不适用（中立）。数学计算：ATR_1h: 586.0 | 止损距离 (1.8x ATR): 1054.8 | 震荡止盈上限 (1.5x ATR): 879.0 | 最大盈亏比: 0.83。对抗性审计已否决了最初的看跌偏见。价格目前在震荡格局（RANGING）下靠近 POC 波动，成交量突破率较低（0.43），表明缺乏方向性动能。虽然正向 Delta (+302 BTC) 和负向 ATR 偏度 (-0.115) 表明卖压被被动吸收，但当前位置没有提供结构性优势。任何针对价值区极端值 (VAH/VAL) 的交易都会违反 1.5x ATR (879 点) 的“震荡止盈上限”，或无法满足最小盈亏比 1.0 的要求（当前最大盈亏比仅为 0.83）。此外，“瀑布”规则禁止在近期大幅下跌后立即做空，而没有明确的结构性重新测试。在价格到达 VAL 进行均值回归做多，或以成交量扩张（比率 > 2.0）收复 POC 之前，保持观望。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}

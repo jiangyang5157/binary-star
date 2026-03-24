@@ -1,46 +1,54 @@
-symbol: BTCUSDT
+symbol: BTCUSDT # observer
 prediction:
   prediction_horizon_days: 1
-  macro_timeframe:
-    interval: 1h
-    limit: 336
-  micro_timeframe:
-    interval: 15m
-    limit: 192
+  macro_timeframe: # observer
+    interval: 1h # observer
+    limit: 336 # observer
+  micro_timeframe: # observer
+    interval: 15m # observer
+    limit: 192 # observer
 strategy:
-  vp_value_area_pct: 0.75
-  vp_bins: 300
-  order_flow_lookback_bars: 8
-  trend_intensity_threshold: 0.8
-  atr_window: 21
-  bb_window: 21
-  bb_std: 2.0
-  kc_window: 21
-  kc_mult: 1.5
-  vol_ma_window: 21
-  liquidation_fetch_limit: 21
-  liquidation_context_limit: 7
+  vp_value_area_pct: 0.75 # observer
+  vp_bins: 300 # observer
+  order_flow_lookback_bars: 8 # observer
+  trend_intensity_threshold: 0.8 # observer
+  atr_window: 21 # observer
+  bb_window: 21 # observer
+  bb_std: 2.0 # observer
+  kc_window: 21 # observer
+  kc_mult: 1.5 # observer
+  vol_ma_window: 21 # observer
+  liquidation_fetch_limit: 50 # observer
+  liquidation_context_limit: 10 # observer
+
 review:
   review_kline_interval: 1m
   minimum_review_age_hours: 24
+
 automation:
   prediction_interval_hours: 1.0
   review_interval_hours: 12.0
+
 paths:
-  base_dir: data
-  images_dir: images
+  data_dir: data
+  base_dir: data # observer
+  images_dir: images # observer
+  observations_dir: observations
   predictions_dir: predictions
   reviews_dir: reviews
   coach_dir: coach
+
   prompts_dir: src/agent/prompts
   prompt_predictor_filename: prompt_predictor.txt
   prompt_reviewer_filename: prompt_reviewer.txt
   prompt_coach_filename: prompt_coach.txt
+  
 notifications:
   min_confidence_threshold: 60
   smtp_server: smtp.gmail.com
   smtp_port: 587
   timezone: Pacific/Auckland
+
 agent:
   predictor_model: gemini-flash-latest
   reviewer_model: gemini-3.1-pro-preview
@@ -50,11 +58,18 @@ agent:
   predictor_temp_final: 0.1
   review_temperature: 1.0
   coach_temperature: 1.0
+
 observer:
   model: gemini-flash-latest
-  temperature: 0.2
+  prompt_path: src/agent/prompts/prompt_observer.md
+  temperature: 0.1
   hvn_count: 3
   lvn_count: 3
-  hvn_sensitivity: 0.15      # 识别高峰的灵敏度 (0.0-1.0)，越小越灵敏
-  lvn_sensitivity: 0.10      # 识别谷底的灵敏度 (0.0-1.0)
-  min_node_spacing: 10       # 两个点之间的最小间距 (单位: Bins，即直方图的柱子数)
+  hvn_sensitivity: 0.15 
+  lvn_sensitivity: 0.10
+  node_min_separation: 10 
+  structural_anchor_count: 3
+
+strategist:
+  model: gemini-flash-latest
+  temperature: 0.3

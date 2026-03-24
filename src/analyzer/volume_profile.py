@@ -11,7 +11,7 @@ class VolumeProfileAnalyzer:
     def __init__(self, value_area_pct: float, vol_profile_bins: int, atr_window: int, 
                  hvn_count: int, lvn_count: int, 
                  hvn_sensitivity: float, lvn_sensitivity: float, 
-                 min_node_spacing: int):
+                 node_min_separation: int):
         self.value_area_pct = value_area_pct
         self.vol_profile_bins = vol_profile_bins
         self.atr_window = atr_window
@@ -19,7 +19,7 @@ class VolumeProfileAnalyzer:
         self.lvn_count = lvn_count
         self.hvn_sensitivity = hvn_sensitivity
         self.lvn_sensitivity = lvn_sensitivity
-        self.min_node_spacing = min_node_spacing
+        self.node_min_separation = node_min_separation
 
     def process_klines(self, klines_data: List[List[Any]]) -> pd.DataFrame:
         """
@@ -146,13 +146,19 @@ class VolumeProfileAnalyzer:
         prices = np.array([float(d['price']) for d in data])
         max_vol = volumes.max() if volumes.size > 0 else 1.0
         
+        # Prepare data for peak finding
+        vol_counts = volumes
+        inv_counts = -volumes
+        prominence_hvn = max_vol * self.hvn_sensitivity
+        prominence_lvn = max_vol * self.lvn_sensitivity
+
         # Simple peak/trough detection
         from scipy.signal import find_peaks
         
         # HVNs: Local maxima with prominence check
-        hvn_indices, _ = find_peaks(volumes, prominence=max_vol * self.hvn_sensitivity, distance=self.min_node_spacing)
+        hvn_peaks, _ = find_peaks(vol_counts, prominence=prominence_hvn, distance=self.node_min_separation)
         hvns = []
-        for i in hvn_indices:
+        for i in hvn_peaks: # Changed from hvn_indices to hvn_peaks
             hvns.append({
                 "price": round(float(prices[i]), 2),
                 "strength": round(float(volumes[i] / max_vol), 3)
@@ -160,9 +166,9 @@ class VolumeProfileAnalyzer:
         hvns = sorted(hvns, key=lambda x: x['strength'], reverse=True)
         
         # LVNs: Local minima (inverted peaks)
-        lvn_indices, _ = find_peaks(-volumes, prominence=max_vol * self.lvn_sensitivity, distance=self.min_node_spacing)
+        lvn_peaks, _ = find_peaks(inv_counts, prominence=prominence_lvn, distance=self.node_min_separation)
         lvns = []
-        for i in lvn_indices:
+        for i in lvn_peaks: # Changed from lvn_indices to lvn_peaks
             lvns.append({
                 "price": round(float(prices[i]), 2),
                 "vacuum_score": round(float(volumes[i] / max_vol), 3)

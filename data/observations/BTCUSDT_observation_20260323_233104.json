@@ -1,0 +1,84 @@
+{
+  "symbol": "BTCUSDT",
+  "timestamp": "2026-03-23 23:30:50Z",
+  "metrics": {
+    "price": {
+      "current": 70663.7,
+      "atr_macro": 771.1190476190462,
+      "atr_micro": 207.2571428571412,
+      "skewness": "0.72"
+    },
+    "structural_proximity_atr": {
+      "to_poc": "0.87",
+      "to_vah": "-6.32",
+      "to_val": "3.38"
+    },
+    "volume_profile": {
+      "poc": 69996.659,
+      "vah": 75534.95866666666,
+      "val": 68053.90466666667,
+      "nearest_nodes_above": [
+        {
+          "price": 70924.54,
+          "vacuum_score": 0.019,
+          "type": "LVN"
+        },
+        {
+          "price": 71243.5,
+          "strength": 0.781,
+          "type": "HVN"
+        },
+        {
+          "price": 71620.45,
+          "vacuum_score": 0.024,
+          "type": "LVN"
+        }
+      ],
+      "nearest_nodes_below": [
+        {
+          "price": 70460.6,
+          "strength": 0.534,
+          "type": "HVN"
+        },
+        {
+          "price": 69996.66,
+          "strength": 1.0,
+          "type": "HVN"
+        },
+        {
+          "price": 68633.83,
+          "vacuum_score": 0.021,
+          "type": "LVN"
+        }
+      ],
+      "volume_breakout_ratio": "0.17"
+    },
+    "regime": {
+      "volatility_regime": "NORMAL",
+      "squeeze_factor": 2.1873,
+      "market_regime": "RANGING",
+      "trend_intensity": 0.3431,
+      "skewness": -0.2608,
+      "volume_breakout_ratio": 0.17
+    },
+    "sentiment": {
+      "oi": 85508.876,
+      "oi_delta_macro": "+0.22%",
+      "oi_delta_micro": "+0.11%",
+      "ls_ratio": "1.3579",
+      "order_flow_delta": "258.7530",
+      "top_liquidations": null
+    }
+  },
+  "chart_path": {
+    "macro_timeframe": "data/images/BTCUSDT_1h_20260323_233050_chart.png",
+    "micro_timeframe": "data/images/BTCUSDT_15m_20260323_233050_chart.png"
+  },
+  "observations": {
+    "structural_proximity": "Current price at 70663.7 is positioned above the primary Point of Control (POC) of 69996.66, indicating a departure from the highest density volume anchor. The immediate topographical environment is defined by structural friction, with a High Volume Node (HVN) at 70460.6 providing a proximal floor. Above the current location, a Low Volume Node (LVN) at 70924.54 functions as a vacuum zone, preceding a secondary HVN at 71243.5. Price remains within the lower quadrant of the broader Value Area, situated between the Value Area Low (VAL) of 68053.90 and the Value Area High (VAH) of 75534.96.",
+    "regime_delta": "The market is operating within a Ranging regime characterized by Normal volatility and a squeeze factor of 2.1873. Mechanical efficiency is low, as evidenced by a volume breakout ratio of 0.17, suggesting that price movement is currently dominated by passive absorption rather than aggressive directional force. Order flow delta is positive at 258.7530, coinciding with a marginal expansion in Open Interest across macro (+0.22%) and micro (+0.11%) horizons. This data indicates a slow accumulation of positioning within the current range rather than a high-velocity structural breakout.",
+    "macro_topography": "The 1h macro chart illustrates a recovery sequence following a liquidity sweep below the 68000 level, with price currently stabilizing above the 70000 psychological and volume pivot. The negative skewness of -0.2608 reflects the presence of lower wicks, signifying successful rejections of downside extensions into the Value Area Low. Price is currently navigating a structural gap between the 70000 POC and the 72000 resistance cluster. This zone acts as a transitional area where the market is attempting to establish a higher base relative to the long-term volume center.",
+    "micro_execution": "The 15m micro chart displays a period of price compression following a high-volume vertical impulse. Immediate edge dynamics are constrained by local resistance near 71200 and the 70460 HVN support. Candlestick behavior shows a contraction in range and declining volume, which validates the identified ranging regime and low volume breakout ratio. This localized tightening suggests a state of temporary equilibrium as price interacts with the upper boundaries of the immediate high-volume cluster, reinforcing the macro observation of structural friction.",
+    "anomaly_detection": "No observable data-price asynchronicity is present in the current environment. The incremental rise in Open Interest and the positive order flow delta are fundamentally aligned with the price's sustained position above the 69996.66 POC. The low volume breakout ratio accurately reflects the lack of directional follow-through observed on both the 1h and 15m timeframes. Current price action is mechanically consistent with the underlying liquidity architecture, showing no signs of delta divergence or anomalous absorption at the current valuation."
+  }
+}

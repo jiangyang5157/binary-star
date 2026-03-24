@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-18T00:00:00Z",
+    "confidence": 65,
+    "opinion": "BULLISH",
+    "action": "LONG",
+    "current_price": 67263.9,
+    "take_profit": 67861.7,
+    "stop_loss": 66700.0,
+    "reasoning": "[ANCHOR] POC: 67861.675 | VAH: 74379.625 | VAL: 62315.7 | Current: 67263.9. Mathematical Scratchpad: TP_FORMULA: 67263.9 + (1.066 * 560.8) = 67861.7 (POC Target); SL_FORMULA: 67263.9 - (1.0 * 560.8) = 66703.1 (Adjusted to 66700 for structural buffer). The market is in a RANGING regime with low Trend Intensity (0.1358) and a Volume Breakout Ratio of 0.39, favoring mean-reversion toward the POC. Price is currently trading below the POC, and recent Order Flow Delta is positive (+333.38 BTC), indicating bullish absorption of selling pressure at local support. While the Red Team critique warns of 'chop' near the POC, the current price provides a sufficient gap (~600 points) to capture a mean-reversion move with an RR of 1.06. SL is placed below the 15m structural consolidation to protect against liquidity sweeps.",
+    "reasoning_zh": "[锚点] POC: 67861.675 | VAH: 74379.625 | VAL: 62315.7 | 当前价格: 67263.9。数学计算：TP_FORMULA: 67263.9 + (1.066 * 560.8) = 67861.7 (目标 POC)；SL_FORMULA: 67263.9 - (1.0 * 560.8) = 66703.1 (调整至 66700 以包含结构缓冲)。市场处于震荡（RANGING）格局，趋势强度较低（0.1358），成交量突破比率为 0.39，有利于向 POC 进行均值回归。目前价格处于 POC 下方，且近期订单流 Delta 为正（+333.38 BTC），显示出在局部支撑位对卖盘的看涨吸收。尽管红队评论警告 POC 附近存在“反复收割”风险，但当前价格提供了足够的空间（约 600 点）来捕捉盈亏比为 1.06 的均值回归行情。止损位设在 15 分钟结构盘整区下方，以防止流动性扫盘。",
+    "position_context": {
+        "position_type": "NONE",
+        "entry_price": null
+    },
+    "config_context": {
+        "symbol": "BTCUSDT",
+        "prediction_horizon_days": 1,
+        "model": "gemini-flash-latest"
+    }
+}
