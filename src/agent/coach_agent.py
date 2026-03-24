@@ -36,7 +36,7 @@ class CoachAgent:
             logger.error(f"Failed to load coach prompt template: {e}")
             return ""
 
-    def coaching_session(self, review_reports: List[Dict[str, Any]], current_config: Dict[str, Any], base_prompt: str) -> str:
+    def coaching_session(self, review_reports: List[Dict[str, Any]], current_config: Dict[str, Any], strategist_prompt: str, critic_prompt: str) -> str:
         """
         Executes a Gemini API call to perform a batch review (coaching session).
         """
@@ -47,31 +47,19 @@ class CoachAgent:
         if not prompt_template:
             return '{"error": "Agent C (Coach) prompt template missing."}'
 
-        # Format the batch data for the prompt
-        batch_summary = []
-        for i, report in enumerate(review_reports):
-            summary = {
-                "id": i + 1,
-                "prediction": report.get('prediction', {}).get('content', {}),
-                "actual_market_outcome": report.get('actual_market_outcome', {}),
-                "analysis": report.get('analysis', {})
-            }
-            batch_summary.append(summary)
-
         try:
             formatted_prompt = prompt_template.format(
-                batch_data=json.dumps(batch_summary, indent=2, ensure_ascii=False),
+                batch_data=json.dumps(review_reports, indent=2, ensure_ascii=False),
                 current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
-                batch_count=len(batch_summary),
-                base_prompt=base_prompt,
-                prediction_horizon_days=1# from review report
+                strategist_prompt=strategist_prompt,
+                critic_prompt=critic_prompt
             )
         except Exception as e:
             logger.error(f"Failed to format Coach prompt: {e}")
             return json.dumps({"error": f"Formatting error: {str(e)}"})
 
         try:
-            logger.info(f"Invoking Coach Agent Model ({self.model_name}) for {len(batch_summary)} reviews...")
+            logger.info(f"Invoking Coach Agent Model ({self.model_name}) for {len(review_reports)} reviews...")
             
             response = self.client.models.generate_content(
                 model=self.model_name,
