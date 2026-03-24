@@ -27,9 +27,9 @@ class ObserverAgent:
     4. Generating 'Semantic Observations' using Gemini Flash.
     """
     
-    def __init__(self, config: Dict[str, Any], symbol: Optional[str] = None):
+    def __init__(self, config: Dict[str, Any], symbol: str):
         self.config = config
-        self.symbol = symbol or config.get('symbol', 'BTCUSDT')
+        self.symbol = symbol
         
         # Initialize fetchers
         self.binance_fetcher = BinanceDataFetcher()
@@ -410,35 +410,45 @@ class ObserverAgent:
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=contents,
-                config=types.GenerateContentConfig(temperature=self.config['observer']['temperature'])
+                config=types.GenerateContentConfig(
+                    temperature=self.config['observer']['temperature'],
+                    response_mime_type="application/json"
+                )
             )
+            
+            # Robustly extract text
             text = response.text or ""
-            
-            # Map lines to structured sections, skipping bracketed titles
-            section_keys = [
-                "structural_proximity",
-                "regime_delta",
-                "macro_topography",
-                "micro_execution",
-                "anomaly_detection"
-            ]
-            
-            # Filter out titles like [TASK NAME] or **[TASK NAME]**
-            import re
-            content_lines = []
-            for line in text.strip().split('\n'):
-                line = line.strip()
-                if not line: continue
-                # Strip prefix like [ANYTHING] or **[ANYTHING]**
-                line = re.sub(r'^(\*\*)?\[.*?\](\*\*)?\s*', '', line)
-                if not line: continue
-                content_lines.append(line.strip("- "))
-            
-            obs_dict = {}
-            for i, sec_name in enumerate(section_keys):
-                obs_dict[sec_name] = content_lines[i] if i < len(content_lines) else None
+            if not text:
+                # Fallback for models that might return non-text parts but have a text attribute that fails
+                try:
+                    text = "".join([part.text for part in response.candidates[0].content.parts if hasattr(part, 'text')])
+                except:
+                    text = ""
+
+            try:
+                # Direct JSON parsing from the AI response
+                obs_dict = json.loads(text)
                 
-            return obs_dict, timestamp_utc
+                # Robustness check for required keys
+                section_keys = [
+                    "structural_proximity",
+                    "regime_delta",
+                    "macro_topography",
+                    "micro_execution",
+                    "anomaly_detection"
+                ]
+                for key in section_keys:
+                    if key not in obs_dict:
+                        obs_dict[key] = "[MISSING DATA]"
+                
+                return obs_dict, timestamp_utc
+            except Exception as parse_err:
+                logger.error(f"Observer: JSON parsing failed: {parse_err}")
+                # Fallback: if it's not JSON, return the raw text in an error field
+                return {
+                    "error": "JSON_PARSE_FAILURE",
+                    "raw_response": response.text
+                }, timestamp_utc
         except Exception as e:
             logger.error(f"Failed to generate semantic observations: {e}")
             return {"error": f"Error generating observations: {str(e)}"}, datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
