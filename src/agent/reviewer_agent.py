@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from typing import Dict, Any, List, Optional
+from src.utils.agent_utils import load_prompt
 from google import genai
 from google.genai import types
 
@@ -30,6 +31,7 @@ class ReviewerAgent:
     def review(self, historical_strategy: Dict[str, Any], 
                observation: Dict[str, Any], 
                current_observation: Optional[Dict[str, Any]]) -> str:
+               chart_image_paths: List[str] = None) -> str:
         """
         Executes a multimodal post-mortem audit of Agent A's performance.
         Includes a self-audit against the Predictor's logic handbook.
@@ -53,7 +55,6 @@ class ReviewerAgent:
                 final_decision=final_decision,
                 strategist_prompt=strategist_prompt,
                 critic_prompt=critic_prompt,
-                current_observation=json.dumps(current_observation, indent=2, ensure_ascii=False) if current_observation else "N/A",
                 macro_interval=self.config['observer']['macro_timeframe']['interval'],
                 micro_interval=self.config['observer']['micro_timeframe']['interval'],
             )

@@ -23,6 +23,7 @@ from src.data_fetcher.binance_client import BinanceDataFetcher
 from src.data_fetcher.storage import DataStorage
 from src.agent.reviewer_agent import ReviewerAgent
 from src.agent.observer_agent import ObserverAgent
+from src.utils.agent_utils import load_config
 
 def calculate_outcome(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -237,7 +238,7 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
                     logger.warning(f"No klines found for {symbol} in window.")
                     continue
 
-                outcome = calculate_outcome(klines, float(klines[0][1]), prediction=prediction)
+                outcome = calculate_outcome(klines, float(klines[0][1]), strategy=prediction)
 
                 # 3. Handle Multimodal Context
                 chart_paths = []
@@ -256,7 +257,7 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
 
                 # 5. Invoke AI Audit
                 review_content = reviewer.review(
-                    historical_prediction=session, 
+                    historical_strategy=session, 
                     actual_outcome=outcome,
                     current_observation=current_observation,
                     chart_image_paths=chart_paths
