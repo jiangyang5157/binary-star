@@ -8,8 +8,18 @@ FILE_TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 NZ_TIMEZONE = ZoneInfo("Pacific/Auckland")
 
 def sanitize_timestamp(ts_str: str) -> str:
-    """Sanitizes a timestamp string for use in filenames by removing spaces, colons, and 'Z'."""
-    return ts_str.replace(' ', '_').replace(':', '').replace('Z', '')
+    """
+    Standardizes a timestamp string to a compact filename-friendly format (Style A).
+    Example: '2026-03-24 10:30:00Z' -> '20260324_103000'
+    """
+    try:
+        # Clean potential quirks (like extra Z after offset)
+        clean_ts = ts_str.replace('Z', '').strip()
+        dt = datetime.fromisoformat(clean_ts)
+        return dt.strftime(FILE_TIMESTAMP_FORMAT)
+    except Exception:
+        # Fallback to simple replacement if ISO parsing fails
+        return ts_str.replace(' ', '_').replace(':', '').replace('Z', '').replace('.', '_')
 
 def format_datetime(dt: datetime, fmt: str = DEFAULT_FORMAT) -> str:
     """Formats a datetime object to a string."""

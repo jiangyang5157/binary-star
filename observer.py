@@ -9,7 +9,7 @@ from src.agent.observer_agent import ObserverAgent
 from src.utils.json_utils import save_json
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
-from src.utils.datetime_utils import parse_iso_to_utc, get_utc_now, FILE_TIMESTAMP_FORMAT
+from src.utils.datetime_utils import parse_iso_to_utc, get_utc_now, FILE_TIMESTAMP_FORMAT, sanitize_timestamp
 
 # Setup logging
 logger = setup_logger("ObserverPipeline")
@@ -50,8 +50,10 @@ def main():
         observations_path = os.path.join(data_dir, paths_config['observations_dir'])
         os.makedirs(observations_path, exist_ok=True)
         
-        timestamp_str = (timestamp or get_utc_now()).strftime(FILE_TIMESTAMP_FORMAT)
-        output_file = f"{symbol}_observation_{timestamp_str}.json"
+        # Use the EXACT timestamp from the generated context for 100% synchronization
+        observation_ts = context.get('timestamp')
+        timestamp_clean = sanitize_timestamp(observation_ts)
+        output_file = f"{symbol}_observation_{timestamp_clean}.json"
         final_observation = os.path.join(observations_path, output_file)
         
         save_json(context, final_observation)
