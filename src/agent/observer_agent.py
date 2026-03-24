@@ -33,7 +33,7 @@ class ObserverAgent:
         self.symbol = symbol
             
         observer_config = config['observer']
-        paths_config = config['paths']
+        # paths_config = config['paths'] # Removed
 
         self.vp_analyzer = VolumeProfileAnalyzer(
             value_area_pct=observer_config['vp_value_area_pct'],
@@ -61,8 +61,8 @@ class ObserverAgent:
         self.chart_generator = ChartGenerator(
             output_dir=os.path.join(
                 project_root, 
-                paths_config['data_dir'], 
-                paths_config['images_dir']
+                "data", 
+                "images"
             )
         )
         
@@ -77,13 +77,13 @@ class ObserverAgent:
         self.client = genai.Client(api_key=api_key)
         self.model_name = observer_config['model']
 
-    def observe(self, timestamp: Optional[datetime] = None, data_dir: Optional[str] = None) -> Dict[str, Any]:
+    def observe(self, timestamp: Optional[datetime] = None, data_dir: Optional[str] = None, prefix: str = "") -> Dict[str, Any]:
         """
         Executes a full observation cycle for the current symbol.
         
         Args:
             timestamp (Optional[datetime]): The point in time to observe. Defaults to now (UTC).
-            data_dir (Optional[str]): Data directory for output. Defaults to config['paths']['data_dir'].
+            data_dir (Optional[str]): Data directory for output. Defaults to "data".
             
         Returns:
             Dict[str, Any]: A self-contained JSON-serializable observation context.
@@ -92,7 +92,7 @@ class ObserverAgent:
         logger.info(f"ObserverAgent: Starting observation for {self.symbol} at {timestamp_utc}")
         
         observer_config = self.config['observer']
-        paths_config = self.config['paths']
+        # paths_config = self.config['paths'] # Removed
 
         raw_data = self._fetch_raw_data(timestamp_utc)
         
@@ -101,8 +101,9 @@ class ObserverAgent:
         chart_paths = self._generate_charts(
             raw_data, 
             metrics, 
-            data_dir=data_dir or paths_config['data_dir'],
-            timestamp=timestamp_utc
+            data_dir=data_dir or "data",
+            timestamp=timestamp_utc,
+            prefix=prefix
         )
         
         observations, final_timestamp = self._generate_semantic_observations(metrics, chart_paths, timestamp_utc)
@@ -303,16 +304,17 @@ class ObserverAgent:
                        raw_data: Dict[str, Any], 
                        metrics: Dict[str, Any],
                        data_dir: str,
-                       timestamp: Optional[datetime] = datetime.now(timezone.utc)) -> Dict[str, str]:
+                       timestamp: Optional[datetime] = datetime.now(timezone.utc),
+                       prefix: str = "") -> Dict[str, str]:
         """
         Generates visualized charts for the Macro and Micro timeframes.
         Supports custom output directories and deterministic naming.
         """
 
-        paths_config = self.config['paths']
+        # paths_config = self.config['paths'] # Removed
 
         # 1. Setup Output Directory
-        images_path = os.path.join(data_dir, paths_config['images_dir'])
+        images_path = os.path.join(data_dir, "images")
         os.makedirs(images_path, exist_ok=True)
         
         # 2. Update Generator Output Dir
@@ -334,11 +336,13 @@ class ObserverAgent:
         
         macro_path = self.chart_generator.generate_chart(
             self.symbol, df_macro, profile_data_for_chart, raw_data['liquidations'], 
-            filename_suffix=self.config['observer']['macro_timeframe']['interval']
+            filename_suffix=self.config['observer']['macro_timeframe']['interval'],
+            prefix=prefix
         )
         micro_path = self.chart_generator.generate_chart(
             self.symbol, df_micro, profile_data_for_chart, raw_data['liquidations'], 
-            filename_suffix=self.config['observer']['micro_timeframe']['interval']
+            filename_suffix=self.config['observer']['micro_timeframe']['interval'],
+            prefix=prefix
         )
         
         return {

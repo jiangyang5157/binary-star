@@ -41,6 +41,7 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
 def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Analyzes kline data to determine the actual market outcome.
+    Incorporates Ground Truth TP/SL hits and MAE stress level.
     """
     if not klines:
         return {}
@@ -66,23 +67,69 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: O
         "price_change_pct": round(price_change_pct, 2),
         "max_drawup_pct": round(max_drawup, 2),
         "max_drawdown_pct": round(max_drawdown, 2),
-        "outcome_period_bars": len(klines)
+        "outcome_period_bars": len(klines),
+        "order": None
     }
     
     if prediction:
         opinion = prediction.get('opinion', '').upper()
-        tp = prediction.get('take_profit')
-        sl = prediction.get('stop_loss')
+        limit_order = prediction.get('limit_order') or {}
+        target_entry = float(limit_order.get('entry', entry_price))
+        tp = float(limit_order.get('take_profit', prediction.get('take_profit', 0)))
+        sl = float(limit_order.get('stop_loss', prediction.get('stop_loss', 0)))
         
-        if opinion in ('BULLISH', 'BEARISH') and tp is not None and sl is not None:
-            tp, sl = float(tp), float(sl)
-            tp_reached = max_price >= tp if opinion == 'BULLISH' else min_price <= tp
-            sl_reached = min_price <= sl if opinion == 'BULLISH' else max_price >= sl
-            result["tp_reached"] = tp_reached
-            result["sl_reached"] = sl_reached
-        elif opinion == 'NEUTRAL':
-            result["tp_reached"] = False
-            result["sl_reached"] = False
+        if opinion in ('BULLISH', 'BEARISH') and tp > 0 and sl > 0:
+            entry_hit = False
+            hit_result = "NEITHER"
+            max_p_after_entry = -float('inf')
+            min_p_after_entry = float('inf')
+            
+            # Use 1m klines for precise sequential detection
+            for k in klines:
+                high = float(k[2])
+                low = float(k[3])
+                
+                # 1. Entry Detection (Only if NOT already hit)
+                if not entry_hit:
+                    if opinion == 'BULLISH' and low <= target_entry:
+                        entry_hit = True
+                    elif opinion == 'BEARISH' and high >= target_entry:
+                        entry_hit = True
+                
+                # 2. Performance Tracking (Only AFTER entry hit)
+                if entry_hit:
+                    max_p_after_entry = max(max_p_after_entry, high)
+                    min_p_after_entry = min(min_p_after_entry, low)
+                    
+                    if hit_result == "NEITHER":
+                        if opinion == 'BULLISH':
+                            if low <= sl:
+                                hit_result = "SL_HIT"
+                            elif high >= tp:
+                                hit_result = "TP_HIT"
+                        else: # BEARISH
+                            if high >= sl:
+                                hit_result = "SL_HIT"
+                            elif low <= tp:
+                                hit_result = "TP_HIT"
+            
+            if entry_hit:
+                # Calculate MAE Relative to the Target Entry Price
+                sl_distance = abs(target_entry - sl)
+                mae = 0
+                if sl_distance > 0:
+                    if opinion == 'BULLISH':
+                        mae = max(0, target_entry - min_p_after_entry)
+                    else: # BEARISH
+                        mae = max(0, max_p_after_entry - target_entry)
+                    stress = (mae / sl_distance) * 100
+                else:
+                    stress = 0
+                
+                result["order"] = {
+                    "tp_sl_result": hit_result,
+                    "mae_stress_level": f"{round(stress, 1)}%"
+                }
     
     return result
 
@@ -95,29 +142,25 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
     """
     logger.info("=== Starting Crypto Review Pipeline (Agent B) ===")
     config = load_config()
-    if base_dir:
-        config['paths']['base_dir'] = base_dir
+    data_dir = base_dir or "data"
 
-    base_sub = config['paths'].get('data_dir', '')
     potential_strat_dirs = [
-        config['paths'].get('strategies_dir', 'strategies'),
-        config['paths'].get('predictions_dir', 'predictions'),
         'strategies',
         'predictions'
     ]
     
     predictions_dir = None
     for d in potential_strat_dirs:
-        p = os.path.join(PROJECT_ROOT, base_sub, d)
+        p = os.path.join(PROJECT_ROOT, data_dir, d)
         if os.path.isdir(p):
             predictions_dir = p
             break
             
     if not predictions_dir:
-        logger.error(f"Could not find strategy directory in {os.path.join(PROJECT_ROOT, base_sub)}")
+        logger.error(f"Could not find strategy directory in {os.path.join(PROJECT_ROOT, data_dir)}")
         return
 
-    reviews_dir = os.path.join(PROJECT_ROOT, base_sub, config['paths'].get('reviews_dir', 'reviews'))
+    reviews_dir = os.path.join(PROJECT_ROOT, data_dir, "reviews")
     os.makedirs(reviews_dir, exist_ok=True)
 
     files = target_files or [f for f in os.listdir(predictions_dir) if f.endswith(".json")]
@@ -196,7 +239,7 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
                 logger.info(f"Reviewing {filename} for {symbol} at {review_dt}...")
                 
                 # 2. Fetch Outcome
-                fetch_interval = config['review']['review_kline_interval']
+                fetch_interval = config['review']['kline_interval']
                 klines = bf.fetch_historical_klines(
                     symbol=symbol, 
                     interval=fetch_interval, 

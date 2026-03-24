@@ -23,15 +23,9 @@ def cleanup_samples():
     samples_dir = Path("samples")
     
     # Strictly enforce configuration paths
-    try:
-        paths = config['paths']
-        preds_dir = samples_dir / paths['predictions_dir']
-        revs_dir = samples_dir / paths['reviews_dir']
-        imgs_dir = samples_dir / paths['images_dir']
-    except KeyError as e:
-        error_msg = f"Config is missing required path key: {e}. Please check your config.yaml."
-        logger.error(error_msg)
-        raise RuntimeError(error_msg)
+    preds_dir = samples_dir / "predictions"
+    revs_dir = samples_dir / "reviews"
+    imgs_dir = samples_dir / "images"
 
     if not revs_dir.exists():
         logger.warning(f"Reviews directory not found: {revs_dir}")

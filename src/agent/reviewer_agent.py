@@ -63,13 +63,18 @@ class ReviewerAgent:
                 with open(predictor_prompt_path, 'r', encoding='utf-8') as f:
                     base_prompt = f.read()
 
+            prediction = historical_prediction.get("final_decision", historical_prediction)
+            limit_order = prediction.get("limit_order") or {}
+            holding_time_hours = limit_order.get("holding_time_hours", "N/A")
+
             formatted_prompt = prompt_template.format(
                 historical_prediction=json.dumps(historical_prediction, indent=2, ensure_ascii=False),
                 actual_outcome=json.dumps(actual_outcome, indent=2, ensure_ascii=False),
                 current_config=json.dumps(self.config, indent=2, ensure_ascii=False),
-                prediction_horizon_days=self.config['prediction']['prediction_horizon_days'],
-                macro_interval=self.config['prediction']['macro_timeframe']['interval'],
-                micro_interval=self.config['prediction']['micro_timeframe']['interval'],
+                prediction_horizon_days=1,# from strategy report
+                macro_interval=self.config['observer']['macro_timeframe']['interval'],
+                micro_interval=self.config['observer']['micro_timeframe']['interval'],
+                holding_time_hours=holding_time_hours,
                 current_observation=json.dumps(current_observation, indent=2, ensure_ascii=False) if current_observation else "N/A",
                 base_prompt=base_prompt
             )

@@ -208,14 +208,9 @@ def main():
             config = yaml.safe_load(f)
         
         # Strict existence check for required keys
-        paths_config = config['paths']
-        prompts_dir = paths_config['prompts_dir']
-        trader_prompt_file = paths_config['prompt_predictor_filename']
-        # Path to the patch file (e.g. data/coach/report.json)
+        # Resolve Prompt Path using strategist.prompt_path
+        prompt_path = os.path.join(project_root, config['strategist']['prompt_path'])
         report_path = args.patch_filename
-        
-        # Resolve Prompt Path using config filename
-        prompt_path = os.path.join(project_root, prompts_dir, trader_prompt_file)
         
     except KeyError as e:
         logger.error(f"Config is missing required key: {e}. Please update config.yaml.")

@@ -32,7 +32,7 @@ def run_retest(file_path: str, data_dir: Optional[str] = None):
         return
 
     config = load_config()
-    paths_config = config['paths']
+    # paths_config = config['paths']  # Removed
 
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -40,8 +40,8 @@ def run_retest(file_path: str, data_dir: Optional[str] = None):
         logger.error("GEMINI_API_KEY not found in environment")
         return
 
-    # Use config default if data_dir not provided
-    final_data_dir = data_dir or paths_config['data_dir']
+    # Use "data" as default if data_dir not provided
+    final_data_dir = data_dir or "data"
 
     try:
         # 1. Load Observation
@@ -64,7 +64,7 @@ def run_retest(file_path: str, data_dir: Optional[str] = None):
             timestamp=observation.get('timestamp'), 
             result=result, 
             data_dir=final_data_dir, 
-            target_dir=config['paths']['strategies_dir']
+            target_dir="strategies"
         )
         logger.info(f"Retest Session archived to: {output_file}")
 

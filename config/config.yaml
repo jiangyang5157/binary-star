@@ -27,18 +27,12 @@ observer:
   node_min_separation: 10 
   structural_anchor_count: 3
 
-prediction:
-  prediction_horizon_days: 1
-  macro_timeframe:
-    interval: 1h
-  micro_timeframe:
-    interval: 15m
-
 strategist:
   prompt_path: src/agent/prompts/prompt_strategist.md
   model: gemini-flash-latest
   temperature_draft: 0.3
   temperature_synthesis: 0.1
+  confidence_threshold: 60
 
 critic:
   prompt_path: src/agent/prompts/prompt_critic.md
@@ -49,27 +43,9 @@ review:
   prompt_path: src/agent/prompts/prompt_reviewer.md
   model: gemini-flash-latest
   temperature: 1.0
-  review_kline_interval: 1m
+  kline_interval: 1m
 
 coach:
   prompt_path: src/agent/prompts/prompt_coach.md
   model: gemini-flash-latest
   temperature: 0.5
-
-notifications:
-  min_confidence_threshold: 60
-  smtp_server: smtp.gmail.com
-  smtp_port: 587
-  timezone: Pacific/Auckland
-
-paths:
-  data_dir: data
-  images_dir: images
-  observations_dir: observations
-  strategies_dir: strategies
-  reviews_dir: reviews
-  coaches_dir: coaches
-
-  # //
-  prompts_dir: src/agent/prompts
-  prompt_predictor_filename: prompt_predictor.txt

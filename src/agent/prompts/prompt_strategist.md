@@ -32,6 +32,7 @@ Synthesize your initial draft and the adversarial critique:
 - **Traceability**: In your reasoning, explicitly mention what changed between the draft and this final version.
 [[[/PASS: SYNTHESIS]]]
 
+
 # OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object.
 

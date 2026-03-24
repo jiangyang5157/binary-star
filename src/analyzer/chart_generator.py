@@ -55,7 +55,7 @@ class ChartGenerator:
             return []
 
     def generate_chart(self, symbol: str, df: pd.DataFrame, profile_data: Dict[str, Any], 
-                       liquidations: Optional[List[Dict[str, Any]]] = None, filename_suffix: str = "") -> str:
+                       liquidations: Optional[List[Dict[str, Any]]] = None, filename_suffix: str = "", prefix: str = "") -> str:
         """
         Plots the OHLCV chart with POC levels, Liquidation Zones, and Trendlines.
         """
@@ -89,9 +89,9 @@ class ChartGenerator:
             ts = profile_data["timestamp"]
             # Robust parsing for Python 3.9 (strips Z and +offset for clean filename)
             ts_readable = ts.split('+')[0].split('Z')[0].replace(":", "").replace("-", "").replace("T", "_").split(".")[0]
-            filename = f"{symbol}_{filename_suffix}_{ts_readable}_chart.png"
+            filename = f"{prefix}{symbol}_{filename_suffix}_chart_{ts_readable}.png"
         else:
-            filename = f"{symbol}_{filename_suffix}_chart.png"
+            filename = f"{prefix}{symbol}_{filename_suffix}_chart.png"
             
         filepath = os.path.join(self.output_dir, filename)
 

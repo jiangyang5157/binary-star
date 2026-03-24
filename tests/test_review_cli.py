@@ -75,7 +75,7 @@ def test_aging_protection_logic():
         },
         "review": {
             "minimum_review_age_hours": 168.0, 
-            "review_kline_interval": "15m"
+            "kline_interval": "15m"
         },
         "automation": {
             "review_interval_hours": 12.0

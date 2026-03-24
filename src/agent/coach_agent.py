@@ -64,7 +64,7 @@ class CoachAgent:
                 current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
                 batch_count=len(batch_summary),
                 base_prompt=base_prompt,
-                prediction_horizon_days=current_config['prediction']['prediction_horizon_days']
+                prediction_horizon_days=1# from review report
             )
         except Exception as e:
             logger.error(f"Failed to format Coach prompt: {e}")

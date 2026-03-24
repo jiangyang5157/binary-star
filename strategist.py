@@ -74,7 +74,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
     logger.info(f"=== Starting Fresh Strategist Pipeline for {symbol} ===")
     
     config = load_config()
-    paths_config = config['paths']
+    # paths_config = config['paths']  # Removed
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -90,8 +90,8 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             logger.error(f"Invalid timestamp format: {timestamp_str}")
             return
 
-    # Use config default if data_dir not provided
-    final_data_dir = data_dir or paths_config['data_dir']
+    # Use "data" as default if data_dir not provided
+    final_data_dir = data_dir or "data"
 
     try:
         # 1. Initialize Agents
@@ -107,7 +107,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
         result = run_full_triad_flow(observation, strategist, critic)
         
         # 4. Notifications
-        _handle_notifications(symbol, result, config)
+        _handle_notification(symbol, result, config)
 
         # 5. Archive
         output_file = archive_strategy_result(
@@ -115,7 +115,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             timestamp=observation.get('timestamp'), 
             result=result, 
             data_dir=final_data_dir, 
-            target_dir=paths_config['strategies_dir']
+            target_dir="strategies"
         )
         logger.info(f"Full Strategy archived to: {output_file}")
 
@@ -124,14 +124,14 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
     finally:
         logger.info("=== Pipeline Complete ===")
 
-def _handle_notifications(symbol, session_result, config):
+def _handle_notification(symbol, session_result, config):
     """Helper to manage alerts based on confidence."""
 
-    notifications_config = config['notifications']
+    # notification_config = config['notification'] # Singular
     try:
         final_decision = session_result["final_decision"]
         confidence = final_decision.get('confidence', 0)
-        min_confidence = notifications_config['min_confidence_threshold']
+        min_confidence = config['strategist']['confidence_threshold']
         
         if confidence >= min_confidence:
             logger.info(f"Confidence {confidence}% >= Threshold {min_confidence}%. Triggering notification...")

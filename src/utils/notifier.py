@@ -12,22 +12,23 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 class EmailNotifier:
-    def __init__(self, config):
+    def __init__(self, config=None):
         """
-        Initialize with config dictionary from config.yaml
+        Initialize with environment variables for email notification settings.
         """
-        self.config = config['notifications']
-        self.smtp_server = self.config['smtp_server']
-        self.smtp_port = self.config['smtp_port']
-        self.timezone = self.config['timezone']
-
-        # Load credentials from .env
         load_dotenv()
-        self.recipient = os.environ.get("RECIPIENT_EMAIL")
-        self.recipient_app_password = os.environ.get("RECIPIENT_APP_PASSWORD")
+        
+        # SMTP Settings from Environment
+        self.smtp_server = os.environ.get("EMAIL_SMTP_SERVER", "smtp.gmail.com")
+        self.smtp_port = int(os.environ.get("EMAIL_SMTP_PORT", 587))
+        self.timezone = "Pacific/Auckland"
+
+        # Credentials from Environment
+        self.email_address = os.environ.get("EMAIL_ADDRESS")
+        self.email_password = os.environ.get("EMAIL_APP_PASSWORD")
         
         # Auto-enable if both credentials are provided
-        self.enabled = bool(self.recipient and self.recipient_app_password)
+        self.enabled = bool(self.email_address and self.email_password)
 
     def _get_prediction_header_html(self, symbol, prediction, local_time_str, action_color, action_icon):
         """
@@ -186,7 +187,7 @@ class EmailNotifier:
         """
 
     def send_prediction_alert(self, symbol, prediction, chart_paths=None):
-        if not self.enabled or not self.recipient or not self.recipient_app_password:
+        if not self.enabled or not self.email_address or not self.email_password:
             return False
 
         action = str(prediction.get('action', 'WAIT')).upper()
@@ -240,7 +241,7 @@ class EmailNotifier:
         """
 
         msg = MIMEMultipart('related')
-        msg['From'] = self.recipient; msg['To'] = self.recipient; msg['Subject'] = subject
+        msg['From'] = self.email_address; msg['To'] = self.email_address; msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html', 'utf-8'))
         if chart_paths:
             for i, path in enumerate(chart_paths):
@@ -253,12 +254,12 @@ class EmailNotifier:
 
         try:
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls(); server.login(self.recipient, self.recipient_app_password); server.send_message(msg)
+                server.starttls(); server.login(self.email_address, self.email_password); server.send_message(msg)
             return True
         except: return False
 
     def send_review_alert(self, symbol, review_record, chart_paths=None):
-        if not self.enabled or not self.recipient or not self.recipient_app_password:
+        if not self.enabled or not self.email_address or not self.email_password:
             return False
 
         # Robust extraction supporting both legacy nested and flat formats
@@ -326,10 +327,10 @@ class EmailNotifier:
         """
 
         msg = MIMEMultipart('related')
-        msg['From'] = self.recipient; msg['To'] = self.recipient; msg['Subject'] = subject
+        msg['From'] = self.email_address; msg['To'] = self.email_address; msg['Subject'] = subject
         msg.attach(MIMEText(body, 'html', 'utf-8'))
         try:
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
-                server.starttls(); server.login(self.recipient, self.recipient_app_password); server.send_message(msg)
+                server.starttls(); server.login(self.email_address, self.email_password); server.send_message(msg)
             return True
         except: return False

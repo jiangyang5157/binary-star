@@ -34,9 +34,8 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         # Pre-flight check for ALL required keys to enforce Strict Config
         try:
             # Paths
-            _ = config['paths']['data_dir']
-            _ = config['paths']['reviews_dir']
-            _ = config['paths']['coach_dir']
+            data_dir = "data"
+            _ = os.path.exists(os.path.join(PROJECT_ROOT, data_dir))
             
             # Symbol
             _ = config['symbol']
@@ -74,12 +73,11 @@ def run_coach_pipeline(n: int, base_dir: str = None):
     if not config:
         return
 
-    if base_dir:
-        config['paths']['base_dir'] = base_dir
+    data_dir = base_dir or "data"
 
     symbol = config['symbol']
-    reviews_dir = os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['reviews_dir'])
-    coach_dir = os.path.join(PROJECT_ROOT, config['paths']['base_dir'], config['paths']['coach_dir'])
+    reviews_dir = os.path.join(PROJECT_ROOT, data_dir, "reviews")
+    coach_dir = os.path.join(PROJECT_ROOT, data_dir, "coaches")
     os.makedirs(coach_dir, exist_ok=True)
 
     # 1. Filter and find latest N review reports for this symbol
