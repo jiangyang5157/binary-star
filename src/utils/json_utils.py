@@ -2,7 +2,7 @@ import json
 import numpy as np
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     """

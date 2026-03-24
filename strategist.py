@@ -1,85 +1,151 @@
+#!/usr/bin/env python3
 import os
+import sys
 import argparse
-import json
 import logging
+from datetime import datetime
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
+# Setup paths
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, PROJECT_ROOT)
+
+from src.agent.observer_agent import ObserverAgent
 from src.agent.strategist_agent import StrategistAgent
 from src.agent.critic_agent import CriticAgent
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
-from src.utils.datetime_utils import get_utc_now, FILE_TIMESTAMP_FORMAT, sanitize_timestamp
+from src.utils.json_utils import archive_session_result
+from src.utils.datetime_utils import parse_iso_to_utc
 
 # Setup logging
 logger = setup_logger("StrategistPipeline")
 
-
-def main():
-    parser = argparse.ArgumentParser(description="Strategist Agent Pipeline - Generate trading plans from observations.")
-    parser.add_argument("--file", type=str, required=True, help="Path to observation JSON file.")
-    parser.add_argument("--data_dir", type=str, help="Override base data directory")
-    args = parser.parse_args()
+def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: StrategistAgent, critic_agent: CriticAgent) -> Dict[str, Any]:
+    """
+    Standardizes the 3-pass reasoning interaction:
+    1. Strategist Drafts
+    2. Critic Audits (Adversarial)
+    3. Strategist Synthesizes final decision
+    """
+    logger.info("Triad Step 1/3: Strategist is drafting initial plan...")
+    draft = strategist_agent.draft(observation)
     
-    # Load environment variables (API Keys)
+    logger.info("Triad Step 2/3: Critic is performing adversarial audit...")
+    critique = critic_agent.audit(observation, draft)
+    
+    logger.info("Triad Step 3/3: Strategist is performing final synthesis...")
+    final_decision = strategist_agent.synthesize(observation, draft, critique)
+    
+    return {
+        "observation": observation,
+        "draft": draft,
+        "critique": critique,
+        "final_decision": final_decision
+    }
+
+def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_dir: str, target_dir: str):
+    """
+    Standardized archival for all pipeline results.
+    Ensures synchronized timestamps and directory structure.
+    """
+    import os
+    from src.utils.datetime_utils import sanitize_timestamp
+    
+    # Resolve directory relative to project root (in case of relative paths)
+    from src.utils.path_utils import find_project_root
+    project_root = find_project_root()
+    output_dir = os.path.join(project_root, data_dir, target_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    
+    ts_suffix = sanitize_timestamp(timestamp)
+    filename = f"{symbol}_{target_dir}_{ts_suffix}.json"
+    output_file = os.path.join(output_dir, filename)
+    
+    save_json(result, output_file)
+    return output_file
+    
+def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Optional[str] = None):
+    """
+    Main Fresh Pipeline: Observer -> (Draft -> Audit -> Synthesis)
+    """
+    logger.info(f"=== Starting Fresh Strategist Pipeline for {symbol} ===")
+    
+    config = load_config()
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         logger.error("GEMINI_API_KEY not found in environment")
         return
-    
-    # 1. Load Observation
-    if not os.path.exists(args.file):
-        logger.error(f"Observation file not found: {args.file}")
-        return
 
-    with open(args.file, 'r', encoding='utf-8') as f:
-        observation = json.load(f)
-
-    logger.info(f"--- Strategist session START: {observation.get('symbol')} ---")
-
-    config = load_config()
-    paths_config = config['paths']
-    data_dir = args.data_dir or paths_config['data_dir']
+    # Parse historical timestamp if provided
+    timestamp = None
+    if timestamp_str:
+        try:
+            timestamp = parse_iso_to_utc(timestamp_str)
+        except ValueError:
+            logger.error(f"Invalid timestamp format: {timestamp_str}")
+            return
 
     try:
-        # 2. Initialize Agents
+        # 1. Initialize Agents
+        observer = ObserverAgent(config, symbol, api_key=api_key)
         strategist = StrategistAgent(config, api_key=api_key)
         critic = CriticAgent(config, api_key=api_key)
 
-        # 3. Step 1: Drafting (Pass 1)
-        logger.info("Step 1: Strategist is drafting initial plan...")
-        draft_plan = strategist.draft(observation)
+        # 2. Stage 1: Observe
+        logger.info(f"Stage 1: Gathering facts for {symbol}...")
+        observation = observer.observe(timestamp=timestamp, data_dir=base_dir)
         
-        # 4. Step 2: Auditing (Pass 2)
-        logger.info("Step 2: Critic is performing adversarial audit...")
-        critique = critic.audit(observation, draft_plan)
+        # 3. Stages 2-4: Reasoning Triad (Draft -> Audit -> Synthesis)
+        result = run_full_triad_flow(observation, strategist, critic)
         
-        # 5. Step 3: Synthesis (Pass 3)
-        logger.info("Step 3: Strategist is performing final synthesis...")
-        final_decision = strategist.synthesize(observation, draft_plan, critique)
+        # 4. Notifications
+        _handle_notifications(symbol, result, config)
 
-        # 6. Save Result (Self-Contained)
-        strategies_dir = os.path.join(data_dir, paths_config['strategies_dir'])
-        os.makedirs(strategies_dir, exist_ok=True)
-        observation_symbol = observation.get('symbol')
-        observation_timestamp = observation.get('timestamp')
-
-        # Clean timestamp for filename via standard utility
-        timestamp_clean = sanitize_timestamp(observation_timestamp or "")
-        
-        output_file = os.path.join(strategies_dir, f"{observation_symbol}_strategy_{timestamp_clean}.json")
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump({
-                "observation": observation,
-                "draft": draft_plan,
-                "critique": critique,
-                "final_decision": final_decision
-            }, f, indent=2, ensure_ascii=False)
-
-        logger.info(f"Strategist session COMPLETE. Result saved to: {output_file}")
+        # 5. Archive
+        output_file = archive_strategy_result(
+            symbol=symbol, 
+            timestamp=observation.get('timestamp'), 
+            result=result, 
+            data_dir=data_dir or config['paths'].get('data_dir'), 
+            target_dir=config['paths']['strategies_dir']
+        )
+        logger.info(f"Full Strategy archived to: {output_file}")
 
     except Exception as e:
-        logger.error(f"Strategist session FAILED: {e}", exc_info=True)
+        logger.error(f"Pipeline failed: {e}", exc_info=True)
+    finally:
+        logger.info("=== Pipeline Complete ===")
+
+def _handle_notifications(symbol, session_result, config):
+    """Helper to manage alerts based on confidence."""
+
+    notifications_config = config['notifications']
+    try:
+        final_decision = session_result["final_decision"]
+        confidence = final_decision.get('confidence', 0)
+        min_confidence = notifications_config['min_confidence_threshold']
+        
+        if confidence >= min_confidence:
+            logger.info(f"Confidence {confidence}% >= Threshold {min_confidence}%. Triggering notification...")
+            from src.utils.notifier import EmailNotifier
+            notifier = EmailNotifier(config)
+            if notifier.enabled:
+                chart_paths = session_result["observation"].get("chart_path", {})
+                notifier_charts = [p for p in chart_paths.values() if p]
+                notifier.send_prediction_alert(symbol, final_decision, chart_paths=notifier_charts)
+        else:
+            logger.info(f"Confidence {confidence}% below threshold. Skipping notification.")
+    except Exception as e:
+        logger.error(f"Notification failure: {e}")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
+    parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
+    parser.add_argument("--data_dir", type=str, help="Base directory override")
+    args = parser.parse_args()
+    
+    run_pipeline(symbol=args.symbol, timestamp_str=args.timestamp, base_dir=args.data_dir)
