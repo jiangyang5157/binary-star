@@ -19,14 +19,9 @@ def mock_config():
             "model": "gemini-2.0-flash",
             "prompt_path": "src/agent/prompts/prompt_observer.md",
             "temperature": 0.1,
-            "hvn_count": 3,
-            "lvn_count": 3,
-            "hvn_sensitivity": 0.5,
-            "lvn_sensitivity": 0.5,
-            "node_min_separation": 1,
-            "structural_anchor_count": 2
-        },
-        "strategy": {
+            "holding_period_days": 1,
+            "macro_timeframe": {"interval": "1h", "limit": 100},
+            "micro_timeframe": {"interval": "15m", "limit": 100},
             "vp_value_area_pct": 0.7,
             "vp_bins": 50,
             "atr_window": 14,
@@ -36,13 +31,15 @@ def mock_config():
             "kc_mult": 1.5,
             "vol_ma_window": 20,
             "trend_intensity_threshold": 25,
+            "hvn_count": 3,
+            "lvn_count": 3,
+            "hvn_sensitivity": 0.5,
+            "lvn_sensitivity": 0.5,
+            "node_min_separation": 1,
+            "structural_anchor_count": 2,
             "liquidation_fetch_limit": 100,
-            "order_flow_lookback_bars": 5,
-            "liquidation_context_limit": 5
-        },
-        "prediction": {
-            "macro_timeframe": {"interval": "1h", "limit": 100},
-            "micro_timeframe": {"interval": "15m", "limit": 100}
+            "liquidation_context_limit": 5,
+            "order_flow_lookback_bars": 5
         },
         "paths": {
             "data_dir": "data",

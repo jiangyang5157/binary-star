@@ -33,13 +33,12 @@ class ObserverAgent:
         self.symbol = symbol
             
         observer_config = config['observer']
-        strategy_config = config['strategy']
         paths_config = config['paths']
 
         self.vp_analyzer = VolumeProfileAnalyzer(
-            value_area_pct=strategy_config['vp_value_area_pct'],
-            vol_profile_bins=strategy_config['vp_bins'],
-            atr_window=strategy_config['atr_window'],
+            value_area_pct=observer_config['vp_value_area_pct'],
+            vol_profile_bins=observer_config['vp_bins'],
+            atr_window=observer_config['atr_window'],
             hvn_count=observer_config['hvn_count'],
             lvn_count=observer_config['lvn_count'],
             hvn_sensitivity=observer_config['hvn_sensitivity'],
@@ -47,12 +46,12 @@ class ObserverAgent:
             node_min_separation=observer_config['node_min_separation']
         )
         self.regime_analyzer = MarketRegimeAnalyzer(
-            bb_window=strategy_config['bb_window'],
-            bb_std=strategy_config['bb_std'],
-            kc_window=strategy_config['kc_window'],
-            kc_mult=strategy_config['kc_mult'],
-            vol_ma_window=strategy_config['vol_ma_window'],
-            trend_intensity_threshold=strategy_config['trend_intensity_threshold']
+            bb_window=observer_config['bb_window'],
+            bb_std=observer_config['bb_std'],
+            kc_window=observer_config['kc_window'],
+            kc_mult=observer_config['kc_mult'],
+            vol_ma_window=observer_config['vol_ma_window'],
+            trend_intensity_threshold=observer_config['trend_intensity_threshold']
         )
         
         self.binance_fetcher = BinanceDataFetcher()
@@ -92,7 +91,7 @@ class ObserverAgent:
         timestamp_utc = timestamp or get_utc_now()
         logger.info(f"ObserverAgent: Starting observation for {self.symbol} at {timestamp_utc}")
         
-        prediction_config = self.config['prediction']
+        observer_config = self.config['observer']
         paths_config = self.config['paths']
 
         raw_data = self._fetch_raw_data(timestamp_utc)
@@ -108,13 +107,14 @@ class ObserverAgent:
         
         observations, final_timestamp = self._generate_semantic_observations(metrics, chart_paths, timestamp_utc)
         
-        macro_timeframe = prediction_config['macro_timeframe']
-        micro_timeframe = prediction_config['micro_timeframe']
+        macro_timeframe = observer_config['macro_timeframe']
+        micro_timeframe = observer_config['micro_timeframe']
         
         logger.info("Observer: Observation cycle complete.")
         return {
             "symbol": self.symbol,
             "timestamp": f"{final_timestamp}Z",
+            "holding_period_days": observer_config['holding_period_days'],
             "macro_timeframe": {
                 "interval": macro_timeframe['interval'],
                 "limit": macro_timeframe['limit']
@@ -145,10 +145,9 @@ class ObserverAgent:
         fetch_kwargs['endTime'] = int(timestamp_utc.timestamp() * 1000)
         now_ts = fetch_kwargs.get('endTime')
 
-        prediction_config = self.config['prediction']
-        macro_timeframe = prediction_config['macro_timeframe']
-        micro_timeframe = prediction_config['micro_timeframe']
-        strategy_config = self.config['strategy']
+        observer_config = self.config['observer']
+        macro_timeframe = observer_config['macro_timeframe']
+        micro_timeframe = observer_config['micro_timeframe']
         
         klines_macro = self.binance_fetcher.fetch_historical_klines(
             self.symbol, macro_timeframe['interval'], macro_timeframe['limit'], **fetch_kwargs
@@ -169,7 +168,7 @@ class ObserverAgent:
         ls_ratio_micro = self.sentiment_fetcher.fetch_long_short_ratio(self.symbol, micro_timeframe['interval'], limit=1, **fetch_kwargs)
         
         oi_current = self.sentiment_fetcher.fetch_open_interest(self.symbol, micro_timeframe['interval'], **fetch_kwargs)
-        liquidations = self.binance_fetcher.fetch_liquidations(self.symbol, limit=strategy_config['liquidation_fetch_limit'])
+        liquidations = self.binance_fetcher.fetch_liquidations(self.symbol, limit=observer_config['liquidation_fetch_limit'])
         
         return {
             "klines_macro": klines_macro,
@@ -183,7 +182,6 @@ class ObserverAgent:
         }
 
     def _build_metrics(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        strategy_config = self.config['strategy']
         observer_config = self.config['observer']
 
         df_macro = self.vp_analyzer.process_klines(raw_data['klines_macro'])
@@ -193,7 +191,7 @@ class ObserverAgent:
         nodes = self.vp_analyzer.find_significant_nodes(profile)
         regime = self.regime_analyzer.analyze(df_macro)
         
-        lookback = strategy_config['order_flow_lookback_bars']
+        lookback = observer_config['order_flow_lookback_bars']
         total_delta = 0
         if raw_data['klines_micro']:
             recent = raw_data['klines_micro'][-lookback:]
@@ -202,7 +200,7 @@ class ObserverAgent:
                 taker_buy = float(k[9])
                 total_delta += (taker_buy - (vol - taker_buy))
 
-        vol_window = strategy_config['vol_ma_window']
+        vol_window = observer_config['vol_ma_window']
         vol_ratio = 1.0
         if raw_data['klines_macro']:
             recent_vols = [float(k[5]) for k in raw_data['klines_macro'][-vol_window:]]
@@ -260,7 +258,7 @@ class ObserverAgent:
         if raw_data.get('liquidations') is not None:
             top_liquidations = []
             sorted_liqs = sorted(raw_data['liquidations'], key=lambda x: float(x.get('qty', 0)), reverse=True)
-            liq_limit = strategy_config['liquidation_context_limit']
+            liq_limit = observer_config['liquidation_context_limit']
             for l in sorted_liqs[:liq_limit]:
                 top_liquidations.append({
                     "side": l.get('side'),
@@ -337,11 +335,11 @@ class ObserverAgent:
         
         macro_path = self.chart_generator.generate_chart(
             self.symbol, df_macro, profile_data_for_chart, raw_data['liquidations'], 
-            filename_suffix=self.config['prediction']['macro_timeframe']['interval']
+            filename_suffix=self.config['observer']['macro_timeframe']['interval']
         )
         micro_path = self.chart_generator.generate_chart(
             self.symbol, df_micro, profile_data_for_chart, raw_data['liquidations'], 
-            filename_suffix=self.config['prediction']['micro_timeframe']['interval']
+            filename_suffix=self.config['observer']['micro_timeframe']['interval']
         )
         
         return {
@@ -359,20 +357,20 @@ class ObserverAgent:
         """
         timestamp_utc = timestamp or get_utc_now()
         
-        prediction_config = self.config['prediction']
+        observer_config = self.config['observer']
         observer_config = self.config['observer']
         
         try:
-            macro_tf_interval = prediction_config['macro_timeframe']['interval']
-            micro_tf_interval = prediction_config['micro_timeframe']['interval']
+            macro_tf_interval = observer_config['macro_timeframe']['interval']
+            micro_tf_interval = observer_config['micro_timeframe']['interval']
             
             prompt_with_context = load_prompt(self.prompt_path)
             
             from src.utils.json_utils import to_json
             prompt = prompt_with_context.format(
                 timestamp=format_datetime(timestamp_utc),
-                macro_timeframe=to_json(prediction_config['macro_timeframe']),
-                micro_timeframe=to_json(prediction_config['micro_timeframe']),
+                macro_timeframe=to_json(observer_config['macro_timeframe']),
+                micro_timeframe=to_json(observer_config['micro_timeframe']),
                 metrics=to_json(metrics)
             )
             
