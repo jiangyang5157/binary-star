@@ -8,6 +8,7 @@ __pycache__/
 # Data and Logs
 data/test/
 data/images/
+data/observations/
 data/predictions/
 data/reviews/
 data/coach/
