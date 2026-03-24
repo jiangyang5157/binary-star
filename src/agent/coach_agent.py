@@ -13,11 +13,9 @@ class CoachAgent:
     Reviews batches of historical review reports to identify systemic patterns.
     Suggests high-level prompt patches and configuration adjustments.
     """
-    def __init__(self, model_name: str, prompts_dir: str, 
-                 prompt_filename: str, temperature: float):
+    def __init__(self, model_name: str, prompt_path: str, temperature: float):
         self.model_name = model_name
-        self.prompts_dir = prompts_dir
-        self.prompt_filename = prompt_filename
+        self.prompt_path = prompt_path
         self.temperature = temperature
         try:
             api_key = os.environ.get("GEMINI_API_KEY")
@@ -27,7 +25,7 @@ class CoachAgent:
             self.client = None
 
     def load_prompt_template(self) -> str:
-        prompt_path = os.path.join(self.prompts_dir, self.prompt_filename)
+        prompt_path = self.prompt_path
         try:
             if not os.path.exists(prompt_path):
                 logger.error(f"Coach prompt template missing at {prompt_path}")

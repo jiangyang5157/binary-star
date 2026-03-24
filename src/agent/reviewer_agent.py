@@ -15,11 +15,11 @@ class ReviewerAgent:
     """
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.model_name = config['agent'].get('reviewer_model', 'gemini-3.1-pro-preview')
-        self.temperature = config['agent'].get('review_temperature', 1.0)
-        self.prompts_dir = config['paths']['prompts_dir']
-        self.prompt_filename = config['paths']['prompt_reviewer_filename']
-        self.predictor_prompt_filename = config['paths']['prompt_predictor_filename']
+        review_config = config.get('review', {})
+        self.model_name = review_config.get('model', 'gemini-flash-latest')
+        self.temperature = review_config.get('temperature', 1.0)
+        self.prompt_path = review_config.get('prompt_path')
+        self.predictor_prompt_path = config.get('strategist', {}).get('prompt_path', 'src/agent/prompts/prompt_strategist.md')
         
         api_key = os.environ.get("GEMINI_API_KEY")
         self.mock_mode = (api_key == "MOCK")
@@ -39,13 +39,20 @@ class ReviewerAgent:
         """
         if self.mock_mode or not self.client:
             return json.dumps({
-                "evaluation_score": 50,
-                "tp_sl_result": "NEITHER",
-                "prediction_post_mortem": "MOCKED: Market outcome calculated, but AI analysis is disabled."
+                "order": {
+                    "tp_sl_result": "NEITHER",
+                    "mae_stress_level": "0%"
+                },
+                "adversarial_audit": {
+                    "shadow_evidence": [],
+                    "hallucination_detected": False
+                },
+                "post_mortem": "MOCKED: Market outcome calculated, but AI analysis is disabled."
             }, indent=2, ensure_ascii=False)
 
-        prompt_path = os.path.join(self.prompts_dir, self.prompt_filename)
-        predictor_prompt_path = os.path.join(self.prompts_dir, self.predictor_prompt_filename)
+        # Handle both filenames and full relative paths
+        prompt_path = self.prompt_path
+        predictor_prompt_path = self.predictor_prompt_path
         
         try:
             with open(prompt_path, 'r', encoding='utf-8') as f:

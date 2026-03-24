@@ -41,7 +41,6 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
 def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Analyzes kline data to determine the actual market outcome.
-    Optionally pre-computes TP/SL hit hints if prediction data is provided.
     """
     if not klines:
         return {}
@@ -70,7 +69,6 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: O
         "outcome_period_bars": len(klines)
     }
     
-    # Pre-compute TP/SL hit hints for the Reviewer
     if prediction:
         opinion = prediction.get('opinion', '').upper()
         tp = prediction.get('take_profit')
@@ -88,7 +86,7 @@ def calculate_outcome(klines: List[List[Any]], entry_price: float, prediction: O
     
     return result
 
-def main_review(target_files: Optional[List[str]] = None, override_now: Optional[datetime] = None, force: bool = False, base_dir: Optional[str] = None, review_timestamp: Optional[datetime] = None):
+def main_review(target_files: Optional[List[str]] = None, override_now: Optional[datetime] = None, force: bool = False, base_dir: Optional[str] = None):
     """
     Agent B Strategy Reviewer:
     1. Scans for archived predictions.
@@ -100,8 +98,7 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
     if base_dir:
         config['paths']['base_dir'] = base_dir
 
-    # Robust strategy directory discovery
-    base_sub = config['paths'].get('base_dir', '')
+    base_sub = config['paths'].get('data_dir', '')
     potential_strat_dirs = [
         config['paths'].get('strategies_dir', 'strategies'),
         config['paths'].get('predictions_dir', 'predictions'),
@@ -130,15 +127,10 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
 
     bf = BinanceDataFetcher()
     try:
-        try:
-            reviewer = ReviewerAgent(config)
-            observers = {}
-            api_key = os.environ.get("GEMINI_API_KEY")
-        except Exception as e:
-            logger.error(f"Failed to initialize ReviewerAgent: {e}", exc_info=True)
-            return
+        reviewer = ReviewerAgent(config)
+        observers = {}
+        api_key = os.environ.get("GEMINI_API_KEY")
 
-        # Ensure directories are found
         for filename in files:
             pred_path = os.path.join(predictions_dir, filename)
             review_path = os.path.join(reviews_dir, f"review_{filename}")
@@ -146,59 +138,62 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
             if os.path.exists(review_path) and not force:
                 continue
 
+            if not os.path.exists(pred_path):
+                logger.warning(f"File not found: {pred_path}")
+                continue
+
             session = DataStorage.load_json(pred_path)
-            # Support both old format (flat) and new format (nested session)
-            prediction = session.get("final_decision", session) if "final_decision" in session else session
+            # Use nested session if available
+            prediction = session.get("final_decision", session)
+            limit_order = prediction.get("limit_order") or {}
             
-            timestamp_str = prediction.get('timestamp') or session.get('observation', {}).get('timestamp')
+            timestamp_str = session.get('observation', {}).get('timestamp') or prediction.get('timestamp')
             if not timestamp_str:
                 logger.warning(f"Skipping {filename} (no timestamp found)")
                 continue
 
             try:
-                # 1. Determine Review Window and Review Time
+                # 1. Determine Review Time based on Duration and Force Flag
                 ts_str = timestamp_str.replace('Z', '')
                 dt_start = datetime.fromisoformat(ts_str).replace(tzinfo=timezone.utc)
                 dt_now = override_now if override_now is not None else datetime.now(timezone.utc)
                 
-                # Calculate review_dt (the point in time when the review is "happening")
-                if review_timestamp:
-                    review_dt = review_timestamp
-                else:
-                    # Default: Now, but capped by macro window to ensure strategy is still visible
-                    macro_config = config['observer']['macro_timeframe']
-                    interval_str = macro_config['interval']
-                    limit = macro_config['limit']
-                    # Parse interval to minutes
-                    unit = interval_str[-1]
-                    val = int(interval_str[:-1])
-                    mapping = {"m": 1, "h": 60, "d": 1440}
-                    macro_duration_mins = val * mapping.get(unit, 1) * limit
-                    
-                    if (dt_now - dt_start).total_seconds() / 60 < macro_duration_mins:
-                        review_dt = dt_now
-                    else:
-                        review_dt = dt_start + timedelta(minutes=macro_duration_mins)
-                
-                prediction_horizon = config['prediction']['prediction_horizon_days']
-                review_dt_val: datetime = review_dt  # type: ignore
-                dt_end = min(dt_start + timedelta(days=prediction_horizon), review_dt_val)
+                # Fetch macro window duration
+                macro_config = config['observer']['macro_timeframe']
+                m_interval = macro_config['interval']
+                m_limit = int(macro_config.get('limit', 336))
+                m_mapping = {"m": 1/60, "h": 1, "d": 24}
+                macro_duration_hours = int(m_interval[:-1]) * m_mapping.get(m_interval[-1], 1) * m_limit
 
-                min_delay_hours = config['review']['minimum_review_age_hours']
-                # Use total_seconds() to avoid linter confusion with "-" operator if possible, 
-                # but ensure dt_now is datetime.
-                age_seconds = (dt_now - dt_start).total_seconds()
-                if not force and age_seconds < min_delay_hours * 3600:
-                    logger.info(f"Skipping {filename} (too recent: {age_seconds/3600:.1f}h)")
-                    continue
+                holding_time_hours: float = float(limit_order.get("holding_time_hours", 24))
+                
+                if not force:
+                    # target = min(start + holding, start + macro)
+                    target_duration = float(min(holding_time_hours, macro_duration_hours))
+                    target_review_dt: datetime = dt_start + timedelta(hours=target_duration)
+                    
+                    if dt_now < target_review_dt:
+                        logger.info(f"Skipping {filename} (target review date {target_review_dt} not reached)")
+                        continue
+                    
+                    review_dt = target_review_dt
+                else:
+                    # target = min(start + holding, start + macro, now)
+                    # Forcing means we review at the earliest available data point or target
+                    review_dt = min(
+                        dt_start + timedelta(hours=holding_time_hours),
+                        dt_start + timedelta(hours=macro_duration_hours),
+                        dt_now
+                    )
+
+                dt_end: datetime = review_dt
 
                 symbol = session.get("observation", {}).get("symbol")
                 if not symbol:
-                    # Fallback for old files if necessary, but we moved away from config['symbol']
-                    logger.warning(f"Skipping {filename} (no symbol found in session)")
+                    logger.warning(f"Skipping {filename} (no symbol found)")
                     continue
                     
-                logger.info(f"Reviewing {filename} for {symbol}...")
+                logger.info(f"Reviewing {filename} for {symbol} at {review_dt}...")
                 
                 # 2. Fetch Outcome
                 fetch_interval = config['review']['review_kline_interval']
@@ -211,11 +206,12 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
                 )
 
                 if not klines:
+                    logger.warning(f"No klines found for {symbol} in window.")
                     continue
 
                 outcome = calculate_outcome(klines, float(klines[0][1]), prediction=prediction)
 
-                # 3. Handle Multimodal Context (Look for archived charts)
+                # 3. Handle Multimodal Context
                 chart_paths = []
                 obs = session.get("observation", {})
                 if "chart_path" in obs:
@@ -225,13 +221,10 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
                         if os.path.exists(abs_p):
                             chart_paths.append(abs_p)
 
-                # 4. Perform fresh observation at review_dt
+                # 4. Fresh Observation at review_dt
                 if symbol not in observers:
                     observers[symbol] = ObserverAgent(config, symbol, api_key)
-                observer = observers[symbol]
-                
-                logger.info(f"Generating post-event observation at {review_dt_val}...")
-                current_observation = observer.observe(timestamp=review_dt_val)
+                current_observation = observers[symbol].observe(timestamp=review_dt)
 
                 # 5. Invoke AI Audit
                 review_content = reviewer.review(
@@ -241,38 +234,34 @@ def main_review(target_files: Optional[List[str]] = None, override_now: Optional
                     chart_image_paths=chart_paths
                 )
 
-                # 5. Save Result
+                # 6. Save Standardized Record
                 parsed_review = json.loads(review_content)
+                # Ensure analysis is a single object (Gemini sometimes returns a list)
+                analysis_obj = parsed_review[0] if isinstance(parsed_review, list) and len(parsed_review) > 0 else parsed_review
+                
                 final_record = {
-                    "prediction_source": filename,
-                    "review_timestamp": review_dt_val.isoformat().replace("+00:00", "Z"),
-                    "actual_market_outcome": outcome,
-                    "post_event_observation": current_observation,
-                    "analysis": parsed_review
+                    "strategy": session,
+                    "timestamp": review_dt.isoformat().replace("+00:00", "Z"),
+                    "observation": current_observation,
+                    "actual_market_outcome": outcome, 
+                    "analysis": analysis_obj
                 }
                 
                 DataStorage.save_json(final_record, review_path)
                 logger.info(f"Review archived: {review_path}")
 
             except Exception as e:
-                logger.error(f"Error reviewing {filename}: {e}")
+                logger.error(f"Error reviewing {filename}: {e}", exc_info=True)
     finally:
         bf.close()
         logger.info("=== Review Pipeline Complete ===")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the Crypto Review Agent B.")
-    parser.add_argument("--force", action="store_true", help="Bypass aging protection.")
+    parser.add_argument("--force", action="store_true", help="Bypass protective checks.")
     parser.add_argument("--base-dir", type=str, default=None, help="Base directory override")
-    parser.add_argument("--timestamp", type=str, default=None, help="Review timestamp (ISO format)")
+    parser.add_argument("--file", type=str, default=None, help="Specific strategy file to review")
     args = parser.parse_args()
     
-    review_dt = None
-    if args.timestamp:
-        try:
-            review_dt = datetime.fromisoformat(args.timestamp.replace('Z', '+00:00')).replace(tzinfo=timezone.utc)
-        except ValueError:
-            logger.error(f"Invalid timestamp format: {args.timestamp}. Use YYYY-MM-DDTHH:MM:SSZ")
-            sys.exit(1)
-
-    main_review(force=args.force, base_dir=args.base_dir, review_timestamp=review_dt)
+    target_files = [args.file] if args.file else None
+    main_review(target_files=target_files, force=args.force, base_dir=args.base_dir)

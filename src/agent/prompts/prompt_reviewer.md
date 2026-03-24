@@ -87,15 +87,14 @@ Calculate Max Adverse Excursion (MAE) as a % of the Stop-Loss distance.
 ## 4. OUTPUT REQUIREMENTS (JSON)
 You MUST output your final decision in strict JSON format.
 {{
-  "order": null, // Use null ONLY if a limit order was never hit (price never reached entry).
-  "order_details": {{ // Optional: if order is NOT null
-    "tp_sl_result": "TP_HIT / SL_HIT / NEITHER / N/A",
+  "order": {{ 
+    "tp_sl_result": "TP_HIT / SL_HIT", // null if neither
     "mae_stress_level": "Percentage (e.g. 45%)"
-  }},
+  }}, // null if a limit order was never hit (price never reached entry).
   "adversarial_audit": {{
     "shadow_evidence": ["Evidence 1 ignored", "Evidence 2 ignored", "Evidence 3 ignored"],
     "hallucination_detected": boolean
   }},
-  "prediction_post_mortem": "A comprehensive technical report structured as: [CATEGORY] -> [TECHNICAL MECHANIC] -> [LOGIC EVOLUTION ADVICE]. Focus on the gap between Agent A's reasoning and the Shadow Counter-Position findings. It must include MAE stress analysis, validation, and core mechanics."
+  "post_mortem": "A comprehensive technical report structured as: [CATEGORY] -> [TECHNICAL MECHANIC] -> [LOGIC EVOLUTION ADVICE]. Focus on the gap between Agent A's reasoning and the Shadow Counter-Position findings. It must include MAE stress analysis, validation, and core mechanics."
 }}
 [[[/OUTPUT_REQUIREMENTS]]]

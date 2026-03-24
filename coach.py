@@ -34,20 +34,16 @@ def load_config(config_path: str = "config/config.yaml") -> dict:
         # Pre-flight check for ALL required keys to enforce Strict Config
         try:
             # Paths
-            _ = config['paths']['base_dir']
+            _ = config['paths']['data_dir']
             _ = config['paths']['reviews_dir']
             _ = config['paths']['coach_dir']
-            _ = config['paths']['prompts_dir']
-            _ = config['paths']['prompt_predictor_filename']
-            _ = config['paths']['prompt_reviewer_filename']
-            _ = config['paths']['prompt_coach_filename']
             
             # Symbol
             _ = config['symbol']
             
             # Agent
-            _ = config['agent']['coach_model']
-            _ = config['agent']['coach_temperature']
+            _ = config['coach']['model']
+            _ = config['coach']['temperature']
             
             # Automation & Intervals
             _ = config['automation']['review_interval_hours']
@@ -104,16 +100,15 @@ def run_coach_pipeline(n: int, base_dir: str = None):
         return
 
     # 2. Invoke Coach Agent
+    coach_config = config['coach']
     coach = CoachAgent(
-        model_name=config['agent']['coach_model'], 
-        prompts_dir=os.path.join(PROJECT_ROOT, config['paths']['prompts_dir']),
-        prompt_filename=config['paths']['prompt_coach_filename'],
-        temperature=config['agent']['coach_temperature']
+        model_name=coach_config['model'], 
+        prompt_path=os.path.join(PROJECT_ROOT, coach_config['prompt_path']),
+        temperature=coach_config['temperature']
     )
 
     logger.info("Invoking Coach Agent strategic analysis...")
-    paths_config = config['paths']
-    base_prompt_path = os.path.join(PROJECT_ROOT, paths_config['prompts_dir'], paths_config['prompt_predictor_filename'])
+    base_prompt_path = os.path.join(PROJECT_ROOT, config['strategist']['prompt_path'])
     base_prompt = ""
     if os.path.exists(base_prompt_path):
         with open(base_prompt_path, 'r', encoding='utf-8') as f:

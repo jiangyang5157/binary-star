@@ -55,6 +55,9 @@ def job_predictor():
 def job_reviewer():
     run_script("review.py")
 
+
+# todo add param for "strategist_interval_hours"
+
 def start_scheduler():
     # Load config to get intervals
     config_path = "config/config.yaml"
