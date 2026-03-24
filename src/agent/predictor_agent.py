@@ -1,161 +1,118 @@
 import os
-import re
-import copy
+import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone
-from google import genai
-from google.genai import types
+
+from src.agent.observer_agent import ObserverAgent
+from src.agent.strategist_agent import StrategistAgent
+from src.agent.critic_agent import CriticAgent
+from src.utils.agent_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 class PredictorAgent:
     """
-    Agent A: The Predictor / Analyst.
-    Uses the multimodal Gemini API to analyze market context and charts.
+    Agent A: The Orchestrator (formerly Predictor).
+    coordinates the 'Pure JSON Triad': Observer -> Strategist -> Critic -> Strategist.
     """
-    def __init__(self, model_name: str, prompts_dir: str, 
-                 prompt_filename: str,
-                 temp_initial: float, temp_critique: float, temp_final: float):
-        self.model_name = model_name
-        self.prompts_dir = prompts_dir
-        self.prompt_filename = prompt_filename
-        self.temp_initial = temp_initial
-        self.temp_critique = temp_critique
-        self.temp_final = temp_final
+    def __init__(self, config: Dict[str, Any], symbol: str, api_key: str):
+        self.config = config
+        self.symbol = symbol
+        self.api_key = api_key
+        self.observer = ObserverAgent(config, symbol, api_key=api_key)
+        self.strategist = StrategistAgent(config, api_key=api_key)
+        self.critic = CriticAgent(config, api_key=api_key)
         
-        # Initialize the GenAI client.
+        # Guardrail Settings
+        self.model_name = config['agent'].get('predictor_model', 'gemini-flash-latest')
+        self.temp_final = config['agent'].get('predictor_temp_final', 0.1)
+        self.prompt_path = os.path.join(
+            config['paths']['prompts_dir'], 
+            config['paths']['prompt_predictor_filename']
+        )
+        
+        # Initialize GenAI client (mandatory)
+        from google import genai
+        self.client = genai.Client(api_key=self.api_key)
+
+    def run_cycle(self, 
+                 override_timestamp: Optional[datetime] = None,
+                 data_dir: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Executes the full Triad + Integrity Guardrail cycle.
+        Returns a self-contained session JSON.
+        """
+        
+        logger.info(f"--- ORCHESTRATION START: {self.symbol} ---")
+        
         try:
-            api_key = os.environ.get("GEMINI_API_KEY")
-            self.client = genai.Client(api_key=api_key)
+            # 1. Observation
+            logger.info("Stage 1/5: Observer (Fact Gathering)")
+            observation = self.observer.observe(override_timestamp, data_dir)
+            
+            # 2. Draft
+            logger.info("Stage 2/5: Strategist (Drafting)")
+            draft = self.strategist.draft(observation)
+            
+            # 3. Audit
+            logger.info("Stage 3/5: Critic (Adversarial Red-Team)")
+            critique = self.critic.audit(observation, draft)
+            
+            # 4. Synthesis
+            logger.info("Stage 4/5: Strategist (Synthesis)")
+            synthesis = self.strategist.synthesize(observation, draft, critique)
+            
+            # 5. Integrity Guardrail (Pass 4)
+            logger.info("Stage 5/5: Predictor (Integrity Guardrail)")
+            final_decision = self._run_integrity_check(observation, draft, critique, synthesis)
+            
+            # Composite Report
+            session_result = {
+                "observation": observation,
+                "draft": draft,
+                "critique": critique,
+                "final_decision": final_decision
+            }
+            
+            logger.info(f"Orchestration Cycle Complete. Final Opinion: {final_decision.get('opinion', 'N/A')}")
+            return session_result
+
         except Exception as e:
-            logger.error(f"Failed to initialize GenAI client: {e}")
-            self.client = None
+            logger.error(f"Orchestration Cycle Failed: {e}", exc_info=True)
+            return {"error": str(e)}
 
-    def load_prompt_template(self) -> str:
-        prompt_path = os.path.join(self.prompts_dir, self.prompt_filename)
-        try:
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Failed to load prompt template: {e}")
-            return ""
-
-    def extract_section(self, template: str, section_name: str) -> str:
-        """
-        Extracts a specific section from the prompt template.
-        Sections are defined by ### [SECTION_NAME] headers.
-        """
-        pattern = rf"\[\[\[{section_name}\]\]\](.*?)(?=\[\[\[/{section_name}\]\]\]|\Z)"
-        match = re.search(pattern, template, re.DOTALL)
-        if match:
-            return match.group(1).strip()
-        return ""
-
-    def get_common_context(self, template: str) -> str:
-        """Extracts the common principles and market context parts of the prompt."""
-        if "[[[ROLE_SPECIFIC_INSTRUCTIONS]]]" in template:
-            content = template.split("[[[ROLE_SPECIFIC_INSTRUCTIONS]]]")[0].strip()
-            # Clean up any residual opening or closing tags
-            return re.sub(r"\[\[\[/?.*?\]\]\]", "", content).strip()
-        return template
-
-    def get_footer(self, template: str) -> str:
-        """Extracts the final output protocol and format enforcement footer."""
-        footer_content = self.extract_section(template, "FINAL_OUTPUT_PROTOCOL")
-        if footer_content:
-            return footer_content
-        # Fallback if tags missing
-        if "[[[FINAL_OUTPUT_PROTOCOL]]]" in template:
-            content = template.split("[[[FINAL_OUTPUT_PROTOCOL]]]")[-1].strip()
-            return content.split("[[[/FINAL_OUTPUT_PROTOCOL]]]")[0].strip()
-        return ""
-
-    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:
-        """
-        Executes the multimodal Gemini API call to determine the trading action.
-        """
+    def _run_integrity_check(self, obs, draft, critique, synthesis):
         if not self.client:
-            return '{"error": "GenAI API Client is not initialized. Is GEMINI_API_KEY set?"}'
-
-        # 1. Load Master Prompt Template
-        master_template = self.load_prompt_template()
-        if not master_template:
-            return '{"error": "Agent prompt template missing."}'
-
-        # 2. Extract Components
-        common_context = self.get_common_context(master_template)
-        footer = self.get_footer(master_template)
-        
-        # 3. Global Variables
-        dt_now = datetime.now(timezone.utc)
-        current_time = dt_now.isoformat().replace("+00:00", "Z")
-        format_vars = copy.deepcopy(context_data)
-        format_vars.update({
-            "symbol": symbol,
-            "current_time": current_time,
-            "current_position": current_position,
-            "prediction_horizon": context_data["prediction_horizon_days"],
-            "context_data": "" # Placeholder to avoid KeyError if {context_data} exists in prompt
-        })
-
-        # Multi-modal Input preparation (upload charts)
-        contents_base = []
-        for path in chart_image_paths:
-            if os.path.exists(path):
-                try:
-                    uploaded_file = self.client.files.upload(file=path)
-                    contents_base.append(uploaded_file)
-                except Exception as e:
-                    logger.warning(f"File upload failed for {path}: {e}")
-
+            return synthesis
+            
         try:
-            # --- PASS 1: Initial Prediction ---
-            pass1_instr = self.extract_section(master_template, "PASS_1_INITIAL_ANALYSIS")
-            pass1_prompt = f"{common_context}\n\n{pass1_instr}\n\n{footer}".format(**format_vars)
+            from google.genai import types
+            prompt_template = load_prompt(self.prompt_path)
             
-            pass1_contents = copy.deepcopy(contents_base)
-            pass1_contents.append(pass1_prompt)
-            
-            logger.info("Pass 1 (Initial Prediction) starting...")
-            initial_response = self.client.models.generate_content(
-                model=self.model_name, contents=pass1_contents,
-                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=self.temp_initial)
+            prompt = prompt_template.format(
+                observation=json.dumps(obs, indent=2),
+                draft=json.dumps(draft, indent=2),
+                critique=json.dumps(critique, indent=2),
+                synthesis=json.dumps(synthesis, indent=2)
             )
-            initial_prediction = initial_response.text or "No initial prediction generated."
-            logger.info("Pass 1 complete.")
-
-            # --- PASS 2: Red Team Critique ---
-            pass2_instr = self.extract_section(master_template, "PASS_2_RED_TEAM_CRITIQUE")
-            format_vars["initial_prediction"] = initial_prediction
-            pass2_prompt = f"{common_context}\n\n{pass2_instr}".format(**format_vars)
             
-            pass2_contents = copy.deepcopy(contents_base)
-            pass2_contents.append(pass2_prompt)
-            
-            logger.info("Pass 2 (Red Team Critique) starting...")
-            critique_response = self.client.models.generate_content(
-                model=self.model_name, contents=pass2_contents,
-                config=types.GenerateContentConfig(temperature=self.temp_critique)
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=self.temp_final,
+                    response_mime_type="application/json"
+                )
             )
-            critique_text = critique_response.text or "No critique generated."
-            logger.info("Pass 2 complete.")
-
-            # --- PASS 3: Final Resolution ---
-            pass3_instr = self.extract_section(master_template, "PASS_3_FINAL_RESOLUTION")
-            format_vars["critique_text"] = critique_text
-            pass3_prompt = f"{common_context}\n\n{pass3_instr}\n\n{footer}".format(**format_vars)
-            
-            pass3_contents = copy.deepcopy(contents_base)
-            pass3_contents.append(pass3_prompt)
-            
-            logger.info("Pass 3 (Final Resolution) starting...")
-            final_response = self.client.models.generate_content(
-                model=self.model_name, contents=pass3_contents,
-                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=self.temp_final)
-            )
-            return final_response.text
-            
+            return json.loads(response.text)
         except Exception as e:
-            logger.error(f"Multi-pass execution failed: {e}")
-            return f'{{"error": "{str(e)}"}}'
+            logger.warning(f"Integrity check failed to execute: {e}. Falling back to Raw Synthesis.")
+            return synthesis
+
+    # Legacy alias for backward compatibility during transition
+    def analyze(self, symbol: str, chart_image_paths: list[str], context_data: Dict[str, Any], current_position: str = "None") -> str:
+        """DEPRECATED: Use run_cycle instead."""
+        logger.warning("PredictorAgent.analyze() is deprecated. Redirecting to run_cycle().")
+        res = self.run_cycle()
+        return json.dumps(res, indent=2, ensure_ascii=False)

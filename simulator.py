@@ -5,20 +5,14 @@ import numpy as np
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 
-# Setup logging BEFORE imports to ensure it is configured correctly
-logging.basicConfig(
-    level=logging.INFO, 
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("simulator.log"),
-        logging.StreamHandler()
-    ],
-    force=True  # Force configuration even if handlers already exist
-)
-logger = logging.getLogger("Simulator")
+from src.utils.agent_utils import load_config
+from src.utils.logger_utils import setup_logger
+
+# Setup logging
+logger = setup_logger("Simulator")
 
 # Now safe to import internal modules
-from predictor import run_predictor, load_config
+from predictor import run_predictor
 from review import main_review as run_reviewer_pipeline
 from src.data_fetcher.binance_client import BinanceDataFetcher
 

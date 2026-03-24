@@ -27,13 +27,19 @@ def main():
     
     # 1. Load config
     config = load_config()
+    symbol = "BTCUSDT"
+    api_key = os.getenv("GEMINI_API_KEY")
     
+    if not api_key:
+        logger.error("GEMINI_API_KEY not found in environment. Please check your .env file.")
+        return
+
     # 2. Initialize Observer Agent
-    observer = ObserverAgent(config)
+    observer = ObserverAgent(config, symbol, api_key)
     
     try:
         # 3. Perform Observation
-        logger.info("Step 1: Running observe()...")
+        logger.info(f"Step 1: Running observe() for {symbol}...")
         context = observer.observe()
         
         # 4. Save results for inspection
@@ -51,12 +57,18 @@ def main():
         print("\n--- OBSERVER AGENT TEST SUMMARY ---")
         print(f"Symbol: {context['symbol']}")
         print(f"Price: {context['metrics']['price']['current']}")
-        print(f"VAH/POC/VAL: {context['metrics']['volume_profile']}")
+        print(f"VAH/POC/VAL: {context['metrics']['volume_profile'].get('vah')}/{context['metrics']['volume_profile'].get('poc')}/{context['metrics']['volume_profile'].get('val')}")
         print(f"Macro Chart: {context['chart_path']['snapshot_macro']}")
         print(f"Micro Chart: {context['chart_path']['snapshot_micro']}")
+        
         print("\n--- SEMANTIC OBSERVATIONS ---")
-        for obs in context['observations']:
-            print(f"- {obs}")
+        observations = context.get('observations', {})
+        if isinstance(observations, dict):
+            for key, val in observations.items():
+                print(f"[{key.upper()}]:")
+                print(f"  {val}\n")
+        else:
+            print(f"Unexpected observations format: {type(observations)}")
             
     except Exception as e:
         logger.error(f"Observer agent test failed: {e}", exc_info=True)
