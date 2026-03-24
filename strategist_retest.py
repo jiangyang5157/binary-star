@@ -13,7 +13,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.strategist_agent import StrategistAgent
 from src.agent.critic_agent import CriticAgent
-from strategist import run_full_triad_flow
+from strategist import run_full_triad_flow, archive_strategy_result
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
 from src.utils.json_utils import archive_session_result
@@ -60,7 +60,7 @@ def run_retest(file_path: str, base_dir: Optional[str] = None):
             result=result, 
             data_dir=data_dir or config['paths'].get('data_dir'), 
             target_dir=config['paths']['strategies_dir']
-        ）
+        )
         logger.info(f"Retest Session archived to: {output_file}")
 
     except Exception as e:
