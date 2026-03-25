@@ -254,6 +254,10 @@ class TestStrategyNotifier(unittest.TestCase):
         # The order block uses a specific background color and 3-column grid
         self.assertNotIn("display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;", html)
         self.assertIn("Refined Strategic Reasoning", html)
+        
+        # Also generate a preview for visual confirmation as requested
+        notifier = StrategyNotifier(data_root="data/tests")
+        notifier.notify_strategy("BTCUSDT_NEUTRAL", self.mock_neutral_no_order_data)
 
     @patch('smtplib.SMTP')
     def test_notification_dispatch(self, mock_smtp):
