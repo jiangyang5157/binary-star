@@ -33,8 +33,8 @@ To perform a high-fidelity stress test on the Strategist's Draft Plan by contras
 1. **Correlation Audit**: Contrast `net_taker_delta` and `cvd_trend` against the Draft's `opinion`. Search for "Asynchronicity" that the Strategist missed.
 2. **Structural Integrity Check**: Cross-reference the proposed `stop_loss` and `take_profit` with the `volume_topography`. Is the SL "Liquidity Food"? Is the TP "Delusional" (placed beyond a major HVN without momentum)?
 3. **Signal Magnification**: Identify the one metric the Strategist ignored. Explain how this "quiet signal" destroys the trade's probability.
-4. **Veto Determination**: Decide if the plan's mathematical or structural flaws are fatal, and decide on the `is_veto` status.
-5. **Final Verdict**: Quantify the doubt into a `skepticism_score` (0-100).
+4. **Veto Determination**: Decide if the plan's mathematical or structural flaws are fatal. Set `is_veto` status accordingly.
+5. **Final Verdict**: Quantify the overall systemic doubt into a `skepticism_score` (0-100).
 
 # OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
@@ -45,6 +45,7 @@ You MUST output a valid JSON object. Do NOT include conversational filler or mar
     "is_veto": boolean,
     "skepticism_score": 0-100,
     "adversarial_tone": "Harsh forensic summary of why this plan is logically or mathematically flawed.",
-    "hidden_risk": "Specific data-driven threat (e.g., 'CVD divergence at the local 15m edge suggests aggressive sellers are absorbing the move')."
+    "hidden_risk": "Specific data-driven threat (e.g., 'CVD divergence at the local 15m edge suggests aggressive sellers are absorbing the move').",
+    "math_check": "Explicit validation of the Strategist's RR and Stop Loss placement."
 }}
 ```

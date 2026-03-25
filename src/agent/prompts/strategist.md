@@ -11,7 +11,7 @@ To synthesize objective market topography into actionable limit orders. You must
 4. **NEUTRALITY BIAS**: If the Critic provides `is_veto`, or if data-price asynchronicity is detected, you MUST output **NEUTRAL**.
 5. **CRITIC ABSORPTION**: In Pass: SYNTHESIS, you must treat the Critic's `hidden_risk` as a high-probability failure scenario. Hardening the plan is mandatory.
 6. **REGIME EXECUTION**: Ranging (Mean-Reversion) targets nearest HVN; Trending (Momentum) targets next HVN/LVN edge.
-7. **TEMPORAL EXPECTATION**: Support every limit order with a `holding_time_hours` (decimal) estimate. This is the **Strategy Validity Window**—the total hours from generation until the Setup is considered expired (Accounting for time-to-fill and price oscillations before hitting TP).
+7. **TEMPORAL EXPECTATION**: Support every limit order with a `holding_time_hours` (decimal) estimate. Calculate using: `abs(TP - Entry) / ATR_macro`. Adjust speed logically based on `market_regime`.
 
 # ANALYTICAL REFERENCE
 **EXECUTION LAW**: Use the following thresholds as mandatory filters for all tactical decisions.
@@ -60,7 +60,7 @@ You MUST output a valid JSON object. DO NOT include conversational filler.
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
-        "holding_time_hours": decimal // Strategy Validity Window (Total hours from now to expected TP_HIT or Expiry)
+        "holding_time_hours": decimal
     }} or null,
     "reasoning": "Mathematical Scratchpad: [TP/SL Formulas] | Logic Synthesis...",
     "critic_impact": "Summary of how critic changed the plan (null in Pass DRAFTING)" or null
