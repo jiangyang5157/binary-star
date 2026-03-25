@@ -125,11 +125,23 @@ def main():
         visual_context=visual_context
     )
     
-    # Output to stdout and save as retest result
+    # 4. Persistence
     output_dir = os.path.join(PROJECT_ROOT, args.data_root, "reviewers")
     os.makedirs(output_dir, exist_ok=True)
     
-    output_filename = f"reviewers_retest_{os.path.basename(args.file)}"
+    # Extract metadata for standardized naming: SYMBOL_reviewers_YYYYMMDD_HHMMSS.json
+    obs = session.get("observation", {})
+    symbol = obs.get("symbol", "UNKNOWN")
+    raw_ts = obs.get("timestamp", "")
+    
+    import re
+    match = re.search(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", raw_ts)
+    if match:
+        ts_str = f"{match.group(1)}{match.group(2)}{match.group(3)}_{match.group(4)}{match.group(5)}{match.group(6)}"
+    else:
+        ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    output_filename = f"{symbol}_reviewers_{ts_str}.json"
     output_path = os.path.join(output_dir, output_filename)
     
     with open(output_path, 'w', encoding='utf-8') as f:

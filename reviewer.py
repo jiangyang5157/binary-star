@@ -119,26 +119,43 @@ class ReviewerOrchestrator:
 
     def execute_single(self, filename: str, force: bool = False):
         """Processes a specific strategy file for review."""
-        # Handle both absolute paths and filenames within strategies dir
+        # 1. Resolve Path & Load JSON
         if os.path.isabs(filename) or "/" in filename:
             pred_path = filename
-            base_filename = os.path.basename(filename)
         else:
             pred_path = os.path.join(PROJECT_ROOT, self.data_root, "strategies", filename)
-            base_filename = filename
-
-        review_path = os.path.join(PROJECT_ROOT, self.data_root, "reviewers", f"reviewers_{base_filename}")
-        os.makedirs(os.path.dirname(review_path), exist_ok=True)
-
-        if os.path.exists(review_path) and not force:
-            logger.info(f"Skipping {base_filename} - Review already exists.")
-            return
 
         if not os.path.exists(pred_path):
             logger.error(f"Strategy file not found: {pred_path}")
             return
 
         session = load_json(pred_path)
+        if not session:
+            logger.error(f"Failed to load strategy session: {pred_path}")
+            return
+
+        # 2. Extract Metadata for Naming
+        obs = session.get("observation", {})
+        symbol = obs.get("symbol", "UNKNOWN")
+        raw_ts = obs.get("timestamp", "")
+        
+        # Format timestamp: 2026-03-25T11:02:32.148369Z -> 20260325_110232
+        import re
+        match = re.search(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", raw_ts)
+        if match:
+            ts_str = f"{match.group(1)}{match.group(2)}{match.group(3)}_{match.group(4)}{match.group(5)}{match.group(6)}"
+        else:
+            ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        output_filename = f"{symbol}_reviewers_{ts_str}.json"
+        review_path = os.path.join(PROJECT_ROOT, self.data_root, "reviewers", output_filename)
+        os.makedirs(os.path.dirname(review_path), exist_ok=True)
+
+        # 3. Process
+        if os.path.exists(review_path) and not force:
+            logger.info(f"Skipping {output_filename} - Review already exists.")
+            return
+
         self._process_session(session, review_path, force=force)
 
     def execute_batch(self, force: bool = False):
