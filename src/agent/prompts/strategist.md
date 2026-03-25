@@ -36,14 +36,16 @@ To synthesize objective market topography into actionable limit orders. You must
 1. **Data Alignment**: Extract `current_price`, `atr_macro`, and primary anchors (`POC/VAH/VAL`).
 2. **Path Identification**: Contrast `cvd_trend` and `wick_skewness`. Determine if the path of least resistance is organic momentum or passive absorption.
 3. **Execution Engineering**: Select the entry anchor. Use the **Mathematical Scratchpad** within `reasoning` to define SL and TP based on `STRATEGY REFERENCE`.
-4. **Probability Check**: Verify if the `market_regime` and `vol_breakout` support the intended direction.
+4. **Temporal Projection**: Calculate the `holding_time_hours`. Define the Strategy Validity Window by evaluating the distance to TP against current volatility and regime velocity.
+5. **Probability Check**: Verify if the `market_regime` and `vol_breakout` support the intended direction and timeframe.
 [[[/PASS: DRAFTING]]]
 
 [[[PASS: SYNTHESIS]]]
 ### SYNTHESIS
 1. **Conflict Resolution**: Directly address the `skepticism_score` and `hidden_risk` provided by the Critic Agent.
 2. **Structural Hardening**: If the Critic identifies a "Liquidity Sweep" risk, move the `limit_order.entry` deeper into the structural anchor or widen the SL buffer.
-3. **Audit Traceability**: In your `reasoning`, explicitly mention what changed between the draft and this final version based on the audit.
+3. **Temporal Re-audit**: If entry or TP levels shift during hardening, **re-calculate** the `holding_time_hours`. Deeper entries mandate extended validity windows.
+4. **Audit Traceability**: In your `reasoning`, explicitly mention what changed between the draft and this final version based on the audit.
 [[[/PASS: SYNTHESIS]]]
 
 # OUTPUT FORMAT
