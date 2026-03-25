@@ -16,7 +16,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 
 | Action Code | Execution Mandate | Target Requirement |
 | :--- | :--- | :--- |
-| `ADD` | Append a new rule to the end of a specific section. | `target` must specify the Section Name (e.g., "OPERATING PROTOCOLS"). |
+| `ADD` | Append a new rule to the end of a specific section. | `target` must specify a unique Section Name (e.g., "# OPERATING PROTOCOLS" or "**AUDIT CODES**"). |
 | `REPLACE` | Overwrite existing flawed logic or consolidate redundant rules. | `target` MUST be an exact, unique, raw substring from the current prompt (including markdown symbols). |
 | `REMOVE` | Delete obsolete, conflicting, or overly verbose logic. | `target` MUST be an exact, raw substring. |
 
@@ -52,14 +52,14 @@ If no patches are needed for a specific module, return an empty array `[]` for a
   "strategist_prompt_patches": [
     {{
       "action": "ADD / REPLACE / REMOVE",
-      "target": "EXACT substring from the prompt. MUST INCLUDE all original Markdown symbols (**, #, etc.) to allow Python .replace().",
+      "target": "EXACT substring from the prompt.",
       "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
     }}
   ],
   "critic_prompt_patches": [
     {{
       "action": "ADD / REPLACE / REMOVE",
-      "target": "EXACT substring from the prompt. MUST INCLUDE all original Markdown symbols (**, #, etc.) to allow Python .replace().",
+      "target": "EXACT substring from the prompt.",
       "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
     }}
   ],

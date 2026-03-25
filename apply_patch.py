@@ -63,8 +63,9 @@ class PromptEvolutionStrategy(EvolutionStrategy):
             self.logger.info(f"  [SUCCESS] Updated {target_path}")
 
     def _handle_add(self, content: str, section: str, logic: str, path: str) -> str:
-        """Finds a section header and inserts the new logic directly beneath it."""
-        header_pattern = rf"^(#+.*{re.escape(section)}.*)$"
+        """Finds a section header (or bolded title) and inserts the new logic directly beneath it."""
+        # Match lines starting with # (Markdown header) OR ** (Bolded section title)
+        header_pattern = rf"^((?:#+|\*\*).*{re.escape(section)}.*)$"
         match = re.search(header_pattern, content, re.MULTILINE)
         
         if match:
