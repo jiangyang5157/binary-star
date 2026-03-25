@@ -100,7 +100,7 @@ class CoachOrchestrator:
                 analysis_data = analysis_data["analysis"]
 
             final_record = {
-                "coach_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "strategic_analysis": analysis_data
             }
             
