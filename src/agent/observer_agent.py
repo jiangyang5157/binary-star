@@ -311,7 +311,7 @@ class ObserverAgent:
         self._binance = BinanceFuturesClient()
         self._vp_analyzer = self._init_vp()
         self._regime_analyzer = self._init_regime()
-        self._charting = ChartGenerator(output_dir=os.path.join(resolve_project_root(), data_root, "images"))
+        self._charting = ChartGenerator(output_dir=os.path.join(resolve_project_root(), data_root, "klines"))
         self._ai_client = genai.Client(api_key=api_key) if api_key else None
         
         # SRP Sub-components
@@ -341,7 +341,7 @@ class ObserverAgent:
         return self._package_observation(semantic_report, metrics, snapshots, at_time)
 
     def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics, data_root: str, at_time: datetime) -> Dict[str, str]:
-        img_dir = os.path.join(data_root, "images")
+        img_dir = os.path.join(data_root, "klines")
         self._charting.storage.output_dir = img_dir # Direct access to manager if needed or use Facade setter
         
         ctx = {**metrics.volume_topography, "timestamp": at_time.isoformat()}
