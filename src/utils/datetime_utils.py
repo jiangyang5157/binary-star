@@ -56,3 +56,14 @@ def parse_iso_string_to_utc(iso_timestamp: str) -> datetime:
         return dt_obj.astimezone(timezone.utc)
     except (ValueError, TypeError) as e:
         raise ValueError(f"Invalid ISO timestamp format: {iso_timestamp}") from e
+
+def to_iso_zulu(dt_obj: datetime) -> str:
+    """Returns a clean ISO-8601 string with 'Z' suffix (Zulu time)."""
+    if dt_obj.tzinfo is None:
+        dt_obj = dt_obj.replace(tzinfo=timezone.utc)
+    return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+# Aliases for backward compatibility
+get_utc_now = get_current_utc_time
+sanitize_timestamp = format_timestamp_for_filename
+parse_iso_to_utc = parse_iso_string_to_utc

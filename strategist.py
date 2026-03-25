@@ -138,7 +138,7 @@ def _handle_notification(symbol, session_result, config):
             from src.utils.notifier import EmailNotifier
             notifier = EmailNotifier(config)
             if notifier.enabled:
-                chart_paths = session_result["observation"].get("chart_path", {})
+                chart_paths = session_result["observation"].get("visual_assets", {})
                 notifier_charts = [p for p in chart_paths.values() if p]
                 notifier.send_prediction_alert(symbol, final_decision, chart_paths=notifier_charts)
         else:

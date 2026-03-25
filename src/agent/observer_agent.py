@@ -14,7 +14,7 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.agent_utils import read_prompt_template
-from src.utils.datetime_utils import format_datetime, get_current_utc_time
+from src.utils.datetime_utils import format_datetime, get_current_utc_time, to_iso_zulu
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string
 
@@ -252,10 +252,17 @@ class SemanticSynthesizer:
         """Translates metrics and visuals into a thematic topographical report."""
         try:
             prompt_tpl = read_prompt_template(self.prompt_path)
+            
+            # Enrich specs for both report and semantic analysis
+            specs = {
+                "macro": {"interval": self.config.macro_context.time_interval, "limit": self.config.macro_context.historical_lookback_candles},
+                "micro": {"interval": self.config.micro_context.time_interval, "limit": self.config.micro_context.historical_lookback_candles}
+            }
+            
             input_text = prompt_tpl.format(
                 timestamp=format_datetime(at_time),
-                macro_timeframe=convert_to_json_string({"interval": self.config.macro_context.time_interval, "limit": self.config.macro_context.historical_lookback_candles}),
-                micro_timeframe=convert_to_json_string({"interval": self.config.micro_context.time_interval, "limit": self.config.micro_context.historical_lookback_candles}),
+                macro_timeframe=convert_to_json_string(specs["macro"]),
+                micro_timeframe=convert_to_json_string(specs["micro"]),
                 metrics=convert_to_json_string(metrics.__dict__)
             )
             
@@ -349,14 +356,20 @@ class ObserverAgent:
     def _package_observation(self, report: Dict[str, Any], metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
         return {
             "symbol": self.symbol,
-            "timestamp": f"{at_time.isoformat()}Z",
+            "timestamp": to_iso_zulu(at_time),
             "observation_specs": {
-                "macro": metrics.market_regime.get("interval", self.config.macro_context.time_interval),
-                "micro": self.config.micro_context.time_interval
+                "macro": {
+                    "interval": self.config.macro_context.time_interval,
+                    "limit": self.config.macro_context.historical_lookback_candles
+                },
+                "micro": {
+                    "interval": self.config.micro_context.time_interval,
+                    "limit": self.config.micro_context.historical_lookback_candles
+                }
             },
             "visual_assets": charts,
             "quantitative_metrics": metrics.__dict__,
-            "semantic_observations": report
+            "semantic_analysis": report
         }
 
     def _init_vp(self) -> VolumeProfileAnalyzer:

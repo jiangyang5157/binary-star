@@ -70,3 +70,8 @@ def load_from_json_file(file_path: str) -> Any:
     except Exception as e:
         logger.error(f"Failed to load JSON from {file_path}: {e}")
         return None
+
+# Aliases for backward compatibility
+to_json = convert_to_json_string
+save_json = save_to_json_file
+load_json = load_from_json_file
