@@ -249,7 +249,6 @@ class ReviewerOrchestrator:
             # 4. Persist
             final_record = {
                 "audit_timestamp": dt_fetch_end.isoformat(),
-                "symbol": symbol,
                 "strategy_session": session,
                 "market_outcome": outcome,
                 "audit_findings": audit_result

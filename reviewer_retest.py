@@ -1,8 +1,9 @@
-#!/usr/bin/env python3
 import os
 import sys
 import argparse
 import json
+import logging
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Ensure project root is in path
@@ -130,22 +131,33 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     # Extract metadata for standardized naming: SYMBOL_reviewers_YYYYMMDD_HHMMSS.json
-    obs = session.get("observation", {})
-    symbol = obs.get("symbol", "UNKNOWN")
-    raw_ts = obs.get("timestamp", "")
+    observation = session.get("observation", {})
+    symbol = observation.get("symbol", "UNKNOWN")
+    raw_ts = observation.get("timestamp", "")
     
     import re
     match = re.search(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", raw_ts)
     if match:
         ts_str = f"{match.group(1)}{match.group(2)}{match.group(3)}_{match.group(4)}{match.group(5)}{match.group(6)}"
     else:
-        ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     output_filename = f"{symbol}_reviewers_{ts_str}.json"
     output_path = os.path.join(output_dir, output_filename)
     
+    # Standardized record format (Omitting redundant top-level symbol)
+    final_record = {
+        "audit_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "strategy_session": session,
+        "market_outcome": {
+            "result": "NEITHER",
+            "reason": "Retest Mock Outcome"
+        },
+        "audit_findings": audit_result
+    }
+
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(audit_result, f, indent=2, ensure_ascii=False)
+        json.dump(final_record, f, indent=2, ensure_ascii=False)
     
     logger.info(f"Retest complete. Audit results saved to: {output_path}")
     print("\n--- AI AUDIT FINDINGS ---")
