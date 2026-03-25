@@ -22,7 +22,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 # INPUT DATUM
 
 **[THE FEEDBACK LOOP]**
-- **Batch Review Reports**: {batch_data} (JSON array of the Reviewer's post-mortems).
+- **Batch Review Reports**: {batch_data} (JSON array containing market outcomes, execution metrics, and the Reviewer's post-mortems).
 
 **[THE SYSTEM DNA]**
 - **Current Strategist Prompt**: {strategist_prompt}
@@ -32,7 +32,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 # ANALYTICAL TASKS
 **SYSTEMIC EVOLUTION**: Execute a deep-dive pattern recognition sequence.
 
-1. **Pathology Scan**: Aggregate `adversarial_audit.shadow_evidence` and `mae_stress_level` across the batch. Identify the dominant "Systemic Bias" (e.g., [LAZY_TREND_FOLLOWING] or [ABSORPTION_BLINDNESS]).
+1. **Pathology Scan**: Aggregate `adversarial_audit.shadow_evidence`, `protocol_breach`, and overall `evaluation_score` across the batch. Identify the dominant "Systemic Bias" (e.g., [LAZY_TREND_FOLLOWING] or [ABSORPTION_BLINDNESS]).
 2. **Strategist Vulnerability Audit**: Locate the exact line in the Strategist's Prompt that allowed this pathology to occur. Does it need a stricter RR constraint or a new temporal rule?
 3. **Critic Blindspot Audit**: Did the Critic fail to trigger an `is_veto` when it should have? Identify which `AUDIT CODES` need to be hardened or added to its reference table.
 4. **Parameter Optimization**: Cross-reference the systemic failures with the `Current Configuration`. (e.g., If entries are consistently late, should `volume_moving_average_period` be shortened?).
