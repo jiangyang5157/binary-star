@@ -26,7 +26,7 @@ logger = setup_logger("StrategistOrchestrator")
 def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: StrategistAgent, critic_agent: CriticAgent) -> Dict[str, Any]:
     """
     Standardizes the 3-pass reasoning interaction (Triad logic).
-    Maintained as a public function for backward compatibility with retest scripts.
+    Maintained as a public function for backward compatibility with offline audit scripts.
     """
     logger.info("Triad Step 1/3: Drafting initial strategic plan...")
     draft = strategist_agent.draft(observation)

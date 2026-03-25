@@ -15,16 +15,16 @@ from src.agent.reviewer_agent import ReviewerAgent
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
 
-logger = setup_logger("ReviewerRetest")
+logger = setup_logger("ReviewerMockOutcome")
 
 def main():
     """
-    Isolated Retest Utility for Reviewer Reports.
+    Isolated Mock Outcome Audit Utility for Reviewer Reports.
     
     Accepts observation/strategy JSON files and triggers a direct AI audit 
-    without executing the full market retrieval pipeline.
+    using a simulated market outcome (mock price action).
     """
-    parser = argparse.ArgumentParser(description="Forensic Review Retest - AI Audit Verification")
+    parser = argparse.ArgumentParser(description="Reviewer Mock Outcome Audit - AI Verification")
     parser.add_argument("--file", type=str, required=True, help="Path to strategy/observation JSON")
     parser.add_argument("--data_root", type=str, default="data", help="Data root (default: 'data')")
     args = parser.parse_args()
@@ -74,12 +74,12 @@ def main():
     visual_context = {
         "t0_macro": resolve(assets.get("macro_snapshot")),
         "t0_micro": resolve(assets.get("micro_snapshot")),
-        "t1_macro": resolve(assets.get("macro_snapshot")), # Simplified for retest
-        "t1_micro": resolve(assets.get("micro_snapshot")), # Simplified for retest
+        "t1_macro": resolve(assets.get("macro_snapshot")), # Simplified for mock audit
+        "t1_micro": resolve(assets.get("micro_snapshot")), # Simplified for mock audit
     }
 
     # Execute isolated review pass
-    logger.info("=== Triggering Isolated Reviewer AI Pass ===")
+    logger.info("=== Triggering Mock Outcome Reviewer AI Pass ===")
     
     # [DIAGNOSTIC MOCK EXAMPLES]
     # To test different AI reactions, you can swap the actual_outcome block below:
@@ -157,7 +157,7 @@ def main():
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(final_record, f, indent=2, ensure_ascii=False)
     
-    logger.info(f"Retest complete. Audit results saved to: {output_path}")
+    logger.info(f"Audit complete. Results saved to: {output_path}")
     print("\n--- AI AUDIT FINDINGS ---")
     print(json.dumps(audit_result, indent=2, ensure_ascii=False))
 
