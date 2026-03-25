@@ -62,8 +62,8 @@ class CoachOrchestrator:
         if not os.path.exists(reviews_dir):
             return []
 
-        # Current naming convention is reviewers_SYMBOL_strategies_TIMESTAMP.json
-        prefix = f"reviewers_{symbol}_strategies_"
+        # New standardized naming convention: SYMBOL_reviewers_YYYYMMDD_HHMMSS.json
+        prefix = f"{symbol}_reviewers_"
         files = sorted([
             f for f in os.listdir(reviews_dir) 
             if f.endswith(".json") and f.startswith(prefix)
@@ -98,7 +98,6 @@ class CoachOrchestrator:
                 analysis_data = analysis_data["analysis"]
 
             final_record = {
-                "symbol": symbol,
                 "coach_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 "sample_size": len(review_history),
                 "strategic_analysis": analysis_data
