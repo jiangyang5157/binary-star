@@ -34,7 +34,7 @@ Below is the **Current Observation** at the time of review (Post-Event Context):
 Below is the **Historical Observation** at the time of review (Post-Event Context):
 {historical_observation}
 
-And the **Current Configuration** (`config.yaml`):
+And the **Current Configuration** (`agent_config.yaml`):
 {current_config}
 
 Below is the **Current Strategist Prompt**:

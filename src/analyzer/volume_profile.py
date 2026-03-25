@@ -1,181 +1,226 @@
 import pandas as pd
 import numpy as np
+import logging
+from dataclasses import dataclass
 from typing import List, Dict, Any, Optional
-from typing import Dict, List, Any
+from scipy.signal import find_peaks
 
-class VolumeProfileAnalyzer:
-    """
-    Analyzes K-line data to calculate the Volume Profile.
-    Essential for identifying Point of Control (POC), Value Area High (VAH), and Value Area Low (VAL).
-    """
-    def __init__(self, value_area_pct: float, vol_profile_bins: int, atr_window: int, 
-                 hvn_count: int, lvn_count: int, 
-                 hvn_sensitivity: float, lvn_sensitivity: float, 
-                 node_min_separation: int):
-        self.value_area_pct = value_area_pct
-        self.vol_profile_bins = vol_profile_bins
-        self.atr_window = atr_window
-        self.hvn_count = hvn_count
-        self.lvn_count = lvn_count
-        self.hvn_sensitivity = hvn_sensitivity
-        self.lvn_sensitivity = lvn_sensitivity
-        self.node_min_separation = node_min_separation
+# Initialize project-standard logger
+logger = logging.getLogger(__name__)
 
-    def process_klines(self, klines_data: List[List[Any]]) -> pd.DataFrame:
+@dataclass(frozen=True)
+class VolumeProfileConfig:
+    """
+    Configuration parameters for Volume Profile analysis.
+    """
+    value_area_ratio: float           # Percentage of volume to include in Value Area (e.g., 0.70)
+    resolution_bins: int              # Number of horizontal price buckets
+    atr_period: int                   # Window for Average True Range calculation
+    max_hvn_nodes: int                # Maximum High Volume Nodes to return
+    max_lvn_nodes: int                # Maximum Low Volume Nodes to return
+    hvn_sensitivity: float            # Prominence threshold for HVN detection
+    lvn_sensitivity: float            # Prominence threshold for LVN detection
+    min_node_distance: int            # Minimum bin separation between nodes
+
+@dataclass(frozen=True)
+class VolumeNode:
+    """
+    Represents a significant horizontal price level.
+    """
+    price: float
+    strength: float                   # Relative strength/vacuum score (0.0 to 1.0)
+
+class MarketDataPreprocessor:
+    """
+    Handles cleaning and enrichment of raw kline data.
+    """
+    @staticmethod
+    def prepare_dataframe(klines_data: List[List[Any]], atr_period: int) -> pd.DataFrame:
         """
-        Converts raw Binance Kline data into a usable pandas DataFrame.
+        Converts raw Binance klines into a technical-ready DataFrame.
         """
-        # Binance Kline format:
-        # [Open time, Open, High, Low, Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy base asset volume, Taker buy quote asset volume, Ignore]
+        # Binance Kline format: [Time, O, H, L, C, V, CloseTime, QVol, Trades, TakerBase, TakerQuote, Ignore]
         df = pd.DataFrame(klines_data, columns=[
             "open_time", "open", "high", "low", "close", "volume", 
             "close_time", "quote_volume", "trades", "taker_buy_base", 
             "taker_buy_quote", "ignore"
         ])
         
-        # Convert numeric columns
+        # Convert to numeric
         numeric_cols = ["open", "high", "low", "close", "volume", "taker_buy_base"]
         for col in numeric_cols:
             df[col] = pd.to_numeric(df[col], errors='coerce')
             
-        # Convert timestamps
         df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
         df.set_index("open_time", inplace=True)
         
-        # Calculate ATR (14-period)
-        high_low = df['high'] - df['low']
-        high_cp = np.abs(df['high'] - df['close'].shift())
-        low_cp = np.abs(df['low'] - df['close'].shift())
+        # Calculate ATR for volatility context
+        h_l = df['high'] - df['low']
+        h_cp = np.abs(df['high'] - df['close'].shift())
+        l_cp = np.abs(df['low'] - df['close'].shift())
+        tr = np.maximum(h_l, np.maximum(h_cp, l_cp))
+        df['atr'] = tr.rolling(window=atr_period).mean()
         
-        df['tr'] = np.maximum(high_low, np.maximum(high_cp, low_cp))
-        df['atr'] = df['tr'].rolling(window=self.atr_window).mean()
+        # Typical price for Volume-at-Price distribution estimation
+        df['typical_price'] = (df['high'] + df['low'] + df['close']) / 3
         
         return df
 
-    def calculate_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Calculates the Volume Profile over the provided DataFrame.
-        
-        Concept:
-        - POC (Point of Control): The price level with the highest traded volume.
-        - VAH (Value Area High): The upper boundary of the price range where 70% (default) of volume occurred.
-        - VAL (Value Area Low): The lower boundary of the price range where 70% (default) of volume occurred.
+class VolumeProfileEngine:
+    """
+    Mathematical engine for horizontal volume distribution.
+    """
+    def __init__(self, config: VolumeProfileConfig):
+        self.config = config
 
-        Returns:
-            {
-                "poc": 74060.80,       # Point of Control：成交量最大的那个价格
-                "vah": 75200.00,       # Value Area High：价值区上限
-                "val": 73100.00,       # Value Area Low：价值区下限
-                "profile_data": [      # 这是一个列表，包含了所有 50 个格子的分布数据，用于绘图
-                    {"price": 72500.0, "volume": 120.5},
-                    {"price": 72600.0, "volume": 340.2},
-                    ... # 总共 50 条记录
-                ]
-            }
+    def compute_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Computes the volume profile distribution and key fair-value benchmarks.
         """
         if df.empty:
             return {}
 
-        # 1. Determine the global price range for the current window
-        min_price = df['low'].min()
-        max_price = df['high'].max()
+        min_p, max_p = df['low'].min(), df['high'].max()
+        price_bins = np.linspace(min_p, max_p, self.config.resolution_bins + 1)
         
-        # 2. Divide this range into 'bins' (horizontal buckets)
-        price_bins = np.linspace(min_price, max_price, self.vol_profile_bins + 1)
-        
-        # 3. Associate each K-line's volume with its price location.
-        # For simplicity, we use 'typical price' (H+L+C)/3 to represent the center of gravity of the candle.
-        df['typical_price'] = (df['high'] + df['low'] + df['close']) / 3
-        
-        # 4. Sorting candles into their respective horizontal buckets
+        # Binning and aggregation
         df['bin'] = np.digitize(df['typical_price'], price_bins)
-        
-        # 5. Summarize volume per bin (Summing up the total volume traded at each price level)
         profile = df.groupby('bin')['volume'].sum().reset_index()
-        
-        # 6. Map bin indices back to human-readable price values
         profile['price'] = profile['bin'].apply(lambda x: price_bins[x-1] if x > 0 else price_bins[0])
         
-        # 7. Identify the Point of Control (POC) - The 'busiest' price level
+        # Point of Control (POC) - Peak Activity
         poc_idx = profile['volume'].idxmax()
         poc_price = profile.loc[poc_idx, 'price']
         
-        # 8. Calculate the Value Area (VA)
-        # This identifies where the majority of trading ('fair value') took place.
-        total_volume = profile['volume'].sum()
-        value_area_volume = total_volume * self.value_area_pct
+        # Value Area (VA) - Core Trading Range (e.g., 70% of volume)
+        total_vol = profile['volume'].sum()
+        target_va_vol = total_vol * self.config.value_area_ratio
         
-        # We find the value area by sorting bins by volume descending 
-        # and accumulating until we reach the target volume percentage (currenlty 70%).
         sorted_profile = profile.sort_values(by='volume', ascending=False)
-        
-        cumulative_volume = 0
-        value_area_bins = []
-        for idx, row in sorted_profile.iterrows():
-            cumulative_volume += row['volume']
-            value_area_bins.append(row['price'])
-            if cumulative_volume >= value_area_volume:
+        cumulative_vol = 0
+        va_prices = []
+        for _, row in sorted_profile.iterrows():
+            cumulative_vol += row['volume']
+            va_prices.append(row['price'])
+            if cumulative_vol >= target_va_vol:
                 break
                 
-        # The VAH and VAL are the boundaries of these most active bins
-        if not value_area_bins:
-            vah, val = poc_price, poc_price
-        else:
-            vah = max(value_area_bins)
-            val = min(value_area_bins)
+        vah = max(va_prices) if va_prices else poc_price
+        val = min(va_prices) if va_prices else poc_price
         
         return {
             "poc": poc_price,
             "vah": vah,
             "val": val,
-            "profile_data": profile[['price', 'volume']].to_dict('records') # Full data for charting
+            "profile_data": profile[['price', 'volume']].to_dict('records')
         }
 
-    def find_significant_nodes(self, profile_result: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+class SignificantNodeFinder:
+    """
+    Isolates peak/vulnerability detection logic.
+    """
+    def __init__(self, config: VolumeProfileConfig):
+        self.config = config
+
+    def find_nodes(self, profile_result: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Identifies High Volume Nodes (HVN) and Low Volume Nodes (LVN) from the profile.
-        Returns a structured list with relative strength/vacuum scores.
+        Identifies High Volume Nodes (peaks) and Low Volume Nodes (valleys).
         """
         data = profile_result.get("profile_data", [])
-        poc_price = profile_result.get("poc", 0)
-        
         if not data:
             return {"hvn": [], "lvn": []}
             
-        volumes = np.array([float(d['volume']) for d in data])
+        vols = np.array([float(d['volume']) for d in data])
         prices = np.array([float(d['price']) for d in data])
-        max_vol = volumes.max() if volumes.size > 0 else 1.0
+        max_v = vols.max() if vols.size > 0 else 1.0
         
-        # Prepare data for peak finding
-        vol_counts = volumes
-        inv_counts = -volumes
-        prominence_hvn = max_vol * self.hvn_sensitivity
-        prominence_lvn = max_vol * self.lvn_sensitivity
-
-        # Simple peak/trough detection
-        from scipy.signal import find_peaks
+        # Detect HVNs (Local Maxima)
+        h_peaks, _ = find_peaks(vols, 
+                                prominence=max_v * self.config.hvn_sensitivity, 
+                                distance=self.config.min_node_distance)
         
-        # HVNs: Local maxima with prominence check
-        hvn_peaks, _ = find_peaks(vol_counts, prominence=prominence_hvn, distance=self.node_min_separation)
-        hvns = []
-        for i in hvn_peaks: # Changed from hvn_indices to hvn_peaks
-            hvns.append({
-                "price": round(float(prices[i]), 2),
-                "strength": round(float(volumes[i] / max_vol), 3)
-            })
-        hvns = sorted(hvns, key=lambda x: x['strength'], reverse=True)
+        hvns = sorted([
+            {"price": round(float(prices[i]), 2), "strength": round(float(vols[i] / max_v), 3)}
+            for i in h_peaks
+        ], key=lambda x: x['strength'], reverse=True)
         
-        # LVNs: Local minima (inverted peaks)
-        lvn_peaks, _ = find_peaks(inv_counts, prominence=prominence_lvn, distance=self.node_min_separation)
-        lvns = []
-        for i in lvn_peaks: # Changed from lvn_indices to lvn_peaks
-            lvns.append({
-                "price": round(float(prices[i]), 2),
-                "vacuum_score": round(float(volumes[i] / max_vol), 3)
-            })
-        lvns = sorted(lvns, key=lambda x: x['vacuum_score'])
+        # Detect LVNs (Local Minima / Liquid Vacuums)
+        l_valleys, _ = find_peaks(-vols, 
+                                  prominence=max_v * self.config.lvn_sensitivity, 
+                                  distance=self.config.min_node_distance)
+        
+        lvns = sorted([
+            {"price": round(float(prices[i]), 2), "vacuum_score": round(float(vols[i] / max_v), 3)}
+            for i in l_valleys
+        ], key=lambda x: x['vacuum_score'])
         
         return {
-            "hvn": hvns[:self.hvn_count],
-            "lvn": lvns[:self.lvn_count]
+            "hvn": hvns[:self.config.max_hvn_nodes],
+            "lvn": lvns[:self.config.max_lvn_nodes]
         }
+
+class VolumeProfileAnalyzer:
+    """
+    Facade class for Volume Profile analysis.
+    Orchestrates pre-processing, profile computation, and node discovery.
+    """
+    def __init__(self, **kwargs):
+        """
+        Initializes the analyzer. Supports individual arguments for backward compatibility
+        with agents, or a VolumeProfileConfig object.
+        """
+        if len(kwargs) == 1 and isinstance(next(iter(kwargs.values())), VolumeProfileConfig):
+            self.config = next(iter(kwargs.values()))
+        else:
+            # Map legacy names to new config structure
+            self.config = VolumeProfileConfig(
+                value_area_ratio=kwargs.get('value_area_pct', 0.7),
+                resolution_bins=kwargs.get('vol_profile_bins', 50),
+                atr_period=kwargs.get('atr_window', 14),
+                max_hvn_nodes=kwargs.get('hvn_count', 3),
+                max_lvn_nodes=kwargs.get('lvn_count', 3),
+                hvn_sensitivity=kwargs.get('hvn_sensitivity', 0.1),
+                lvn_sensitivity=kwargs.get('lvn_sensitivity', 0.05),
+                min_node_distance=kwargs.get('node_min_separation', 2)
+            )
+            
+        self.preprocessor = MarketDataPreprocessor()
+        self.engine = VolumeProfileEngine(self.config)
+        self.node_finder = SignificantNodeFinder(self.config)
+
+    def process_klines(self, klines_data: List[List[Any]]) -> pd.DataFrame:
+        """Entry point for data cleaning and feature engineering."""
+        return self.preprocessor.prepare_dataframe(klines_data, self.config.atr_period)
+
+    def calculate_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Entry point for volume distribution analysis."""
+        return self.engine.compute_profile(df)
+
+    def find_significant_nodes(self, profile_result: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+        """Entry point for identifying structural support/resistance levels."""
+        return self.node_finder.find_nodes(profile_result)
+
+    def analyze(self, klines_data: List[List[Any]]) -> Dict[str, Any]:
+        """
+        Full analysis pipeline: Preprocessing -> Profile calculation -> Node discovery.
+        """
+        if not klines_data:
+            logger.warning("No kline data provided for Volume Profile analysis.")
+            return {
+                "poc": 0.0, "vah": 0.0, "val": 0.0, 
+                "hvn": [], "lvn": [], "market_regime": "UNKNOWN"
+            }
+            
+        df = self.process_klines(klines_data)
+        profile = self.calculate_profile(df)
+        nodes = self.find_significant_nodes(profile)
+        
+        # Merge results
+        result = profile.copy()
+        result.update(nodes)
+        
+        # Determine a simple regime based on VA width vs ATR if needed, 
+        # but usually handled by MarketRegimeAnalyzer.
+        result["market_regime"] = "BALANCED" if (result["vah"] - result["val"]) < (df["atr"].iloc[-1] * 2) else "IMBALANCED"
+        
+        return result

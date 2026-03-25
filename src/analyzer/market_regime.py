@@ -1,105 +1,158 @@
 import pandas as pd
 import numpy as np
-from typing import Dict, Any
+import logging
+from dataclasses import dataclass, asdict
+from typing import Dict, Any, Optional
 
-class MarketRegimeAnalyzer:
+# Initialize project-standard logger
+logger = logging.getLogger(__name__)
+
+@dataclass(frozen=True)
+class MarketRegimeConfig:
     """
-    Analyzes market volatility regimes and trends.
-    Focuses on Volatility Squeeze (BB vs KC) and Trend Intensity.
+    Configuration parameters for Market Regime analysis.
     """
-    def __init__(self, bb_window: int, bb_std: float, kc_window: int, kc_mult: float, vol_ma_window: int, trend_intensity_threshold: float):
-        self.bb_window = bb_window
-        self.bb_std = bb_std
-        self.kc_window = kc_window
-        self.kc_mult = kc_mult
-        self.vol_ma_window = vol_ma_window
-        self.trend_intensity_threshold = trend_intensity_threshold
+    bollinger_window: int             # Period for Bollinger Bands
+    bollinger_std_dev: float           # Standard deviation for Bollinger Bands
+    keltner_window: int               # Period for Keltner Channels
+    keltner_multiplier: float          # ATR multiplier for Keltner Channels
+    volume_ma_window: int              # Window for volume moving average
+    trend_threshold: float            # Threshold for trend intensity classification
 
-    def analyze(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Calculates Squeeze and Regime metrics.
-        """
-        if df.empty or len(df) < self.bb_window:
-            return {
-                "volatility_regime": "UNKNOWN",
-                "squeeze_factor": 0.0,
-                "market_regime": "UNKNOWN",
-                "trend_intensity": 0.0,
-                "skewness": 0.0
-            }
+@dataclass(frozen=True)
+class RegimeResult:
+    """
+    Structured output of the market regime analysis.
+    """
+    volatility_regime: str            # SQUEEZE, EXPANSION, NORMAL, or UNKNOWN
+    squeeze_factor: float             # Ratio of BB width to KC width
+    market_regime: str                # TRENDING, RANGING, or UNKNOWN
+    trend_intensity: float            # Quantitative score of trend strength
+    skewness: float                   # Bias in candle wicks (bullish/bearish asymmetry)
+    volume_breakout_ratio: float      # Current volume relative to moving average
 
+class IndicatorEngine:
+    """
+    Isolated engine for technical indicator calculations.
+    """
+    def __init__(self, config: MarketRegimeConfig):
+        self.config = config
+
+    def calculate_indicators(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Calculates core indicators: Bollinger Bands, Keltner Channels, and Trend Intensity.
+        """
         # 1. Bollinger Bands
-        sma = df['close'].rolling(window=self.bb_window).mean()
-        std = df['close'].rolling(window=self.bb_window).std()
-        df['bb_upper'] = sma + (self.bb_std * std)
-        df['bb_lower'] = sma - (self.bb_std * std)
+        sma = df['close'].rolling(window=self.config.bollinger_window).mean()
+        std = df['close'].rolling(window=self.config.bollinger_window).std()
+        df['bb_upper'] = sma + (self.config.bollinger_std_dev * std)
+        df['bb_lower'] = sma - (self.config.bollinger_std_dev * std)
         df['bb_width'] = df['bb_upper'] - df['bb_lower']
 
         # 2. Keltner Channels (using ATR)
-        # Assuming 'tr' is already in df from VolumeProfileAnalyzer or calculate it here
         if 'tr' not in df.columns:
-            high_low = df['high'] - df['low']
-            high_cp = np.abs(df['high'] - df['close'].shift())
-            low_cp = np.abs(df['low'] - df['close'].shift())
-            df['tr'] = np.maximum(high_low, np.maximum(high_cp, low_cp))
+            h_l = df['high'] - df['low']
+            h_cp = np.abs(df['high'] - df['close'].shift())
+            l_cp = np.abs(df['low'] - df['close'].shift())
+            df['tr'] = np.maximum(h_l, np.maximum(h_cp, l_cp))
         
-        atr = df['tr'].rolling(window=self.kc_window).mean()
-        df['kc_upper'] = sma + (self.kc_mult * atr)
-        df['kc_lower'] = sma - (self.kc_mult * atr)
+        atr = df['tr'].rolling(window=self.config.keltner_window).mean()
+        df['kc_upper'] = sma + (self.config.keltner_multiplier * atr)
+        df['kc_lower'] = sma - (self.config.keltner_multiplier * atr)
         df['kc_width'] = df['kc_upper'] - df['kc_lower']
 
-        # 3. Squeeze Detection (TTM Squeeze logic)
-        # Squeeze is ON if BB is completely inside KC
-        latest = df.iloc[-1]
-        is_squeeze = (latest['bb_upper'] < latest['kc_upper']) and (latest['bb_lower'] > latest['kc_lower'])
-        
-        # Squeeze Factor: How tight is the BB relative to KC?
-        # If < 1.0, it's squeezing. The smaller, the tighter.
-        squeeze_factor = latest['bb_width'] / latest['kc_width'] if latest['kc_width'] > 0 else 1.0
-
-        # 4. Market Regime (Trend vs Range)
-        # Simple method: use ADX-like logic or Price Correlation
-        # Let's use a 14-period ADX calculation if possible, or simpler: 
-        # Trend Intensity = Abs(Price Change) / Sum(Abs(Individual Price Changes)) over window
-        window = 14
+        # 3. Efficiency Ratio (Trend Intensity)
+        # Abs(Total Price Change) / Sum(Abs(Individual Price Changes))
+        lookback = 14
         price_diff = df['close'].diff()
-        abs_price_diff = price_diff.abs()
-        total_change = df['close'].iloc[-1] - df['close'].iloc[-window] if len(df) >= window else 0
-        sum_abs_changes = abs_price_diff.rolling(window=window).sum().iloc[-1]
-        
-        trend_intensity = abs(total_change) / sum_abs_changes if sum_abs_changes > 0 else 0.0
-        
-        market_regime = "TRENDING" if trend_intensity > self.trend_intensity_threshold else "RANGING"
-        if is_squeeze:
-            volatility_regime = "SQUEEZE"
-        else:
-            # Check if we just exited a squeeze (expansion)
-            prev_squeeze = (df.iloc[-2]['bb_upper'] < df.iloc[-2]['kc_upper']) if len(df) > 1 else False
-            volatility_regime = "EXPANSION" if prev_squeeze else "NORMAL"
+        total_change = df['close'].iloc[-1] - df['close'].iloc[-lookback] if len(df) >= lookback else 0
+        sum_abs_changes = price_diff.abs().rolling(window=lookback).sum().iloc[-1]
+        df['trend_intensity'] = abs(total_change) / (sum_abs_changes + 1e-9)
 
-        # 5. Skewness (Wick Analysis)
-        # Ratio of upper wicks to lower wicks in the last few bars
+        return df
+
+class RegimeClassifier:
+    """
+    Logic engine for classifying market states based on indicators.
+    """
+    def __init__(self, config: MarketRegimeConfig):
+        self.config = config
+
+    def classify_regime(self, df: pd.DataFrame) -> RegimeResult:
+        """
+        Interprets indicator values into meaningful market regimes.
+        """
+        latest = df.iloc[-1]
+        
+        # 1. Squeeze Analysis (TTM Squeeze Logic)
+        is_squeeze = (latest['bb_upper'] < latest['kc_upper']) and (latest['bb_lower'] > latest['kc_lower'])
+        squeeze_factor = latest['bb_width'] / (latest['kc_width'] + 1e-9)
+        
+        if is_squeeze:
+            vol_regime = "SQUEEZE"
+        else:
+            prev_squeeze = (df.iloc[-2]['bb_upper'] < df.iloc[-2]['kc_upper']) if len(df) > 1 else False
+            vol_regime = "EXPANSION" if prev_squeeze else "NORMAL"
+
+        # 2. Trend vs Range
+        market_regime = "TRENDING" if latest['trend_intensity'] > self.config.trend_threshold else "RANGING"
+
+        # 3. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
         if all(col in df.columns for col in ['open', 'high', 'low', 'close']):
             recent = df.tail(5)
-            upper_wicks = (recent['high'] - np.maximum(recent['open'], recent['close'])).sum()
-            lower_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
-            # Avoid division by zero
-            skewness = (upper_wicks - lower_wicks) / (upper_wicks + lower_wicks + 1e-9)
+            up_wicks = (recent['high'] - np.maximum(recent['open'], recent['close'])).sum()
+            lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
+            skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
 
-        # 6. Volume Breakout Ratio
-        current_vol_ratio = 1.0
+        # 4. Volume Breakout
+        vol_ratio = 1.0
         if 'volume' in df.columns:
-            df['vol_ma'] = df['volume'].rolling(window=self.vol_ma_window).mean()
-            df['volume_breakout_ratio'] = df['volume'] / (df['vol_ma'] + 1e-9)
-            df['volume_breakout_ratio'] = df['volume_breakout_ratio'].fillna(1.0)
-            current_vol_ratio = df['volume_breakout_ratio'].iloc[-1]
+            vol_ma = df['volume'].rolling(window=self.config.volume_ma_window).mean()
+            vol_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
 
-        return {
-            "volatility_regime": volatility_regime,
-            "squeeze_factor": round(float(squeeze_factor), 4),
-            "market_regime": market_regime,
-            "trend_intensity": round(float(trend_intensity), 4),
-            "skewness": round(float(skewness), 4),
-            "volume_breakout_ratio": round(float(current_vol_ratio), 2)
-        }
+        return RegimeResult(
+            volatility_regime=vol_regime,
+            squeeze_factor=round(float(squeeze_factor), 4),
+            market_regime=market_regime,
+            trend_intensity=round(float(latest['trend_intensity']), 4),
+            skewness=round(float(skewness), 4),
+            volume_breakout_ratio=round(float(vol_ratio), 2)
+        )
+
+class MarketRegimeAnalyzer:
+    """
+    Facade for Market Regime analysis.
+    Orchestrates technical indicators and classification.
+    """
+    def __init__(self, **kwargs):
+        """
+        Initializes the analyzer. Supports individual arguments for backward compatibility.
+        """
+        if len(kwargs) == 1 and isinstance(next(iter(kwargs.values())), MarketRegimeConfig):
+            self.config = next(iter(kwargs.values()))
+        else:
+            # Map legacy names to new config structure
+            self.config = MarketRegimeConfig(
+                bollinger_window=kwargs.get('bb_window', 20),
+                bollinger_std_dev=kwargs.get('bb_std', 2.0),
+                keltner_window=kwargs.get('kc_window', 20),
+                keltner_multiplier=kwargs.get('kc_mult', 1.5),
+                volume_ma_window=kwargs.get('vol_ma_window', 20),
+                trend_threshold=kwargs.get('trend_intensity_threshold', 0.6)
+            )
+            
+        self.engine = IndicatorEngine(self.config)
+        self.classifier = RegimeClassifier(self.config)
+
+    def analyze(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Entry point for market regime analysis.
+        """
+        if df.empty or len(df) < self.config.bollinger_window:
+            logger.warning("Insufficient data for Market Regime analysis.")
+            return asdict(RegimeResult("UNKNOWN", 1.0, "UNKNOWN", 0.0, 0.0, 1.0))
+
+        processed_df = self.engine.calculate_indicators(df.copy())
+        result = self.classifier.classify_regime(processed_df)
+        return asdict(result)

@@ -6,20 +6,13 @@ __pycache__/
 .pytest_cache/
 
 # Data and Logs
-data/images/
+data/tests/
 data/observations/
 data/strategies/
 data/reviews/
 data/coaches/
 data/test/
 data/backups/
-samples/images/
-samples/observations/
-samples/strategies/
-samples/reviews/
-samples/coaches/
-samples/test/
-samples/backups/
 *.log
 nohup.out
 

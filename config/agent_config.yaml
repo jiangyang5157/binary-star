@@ -1,0 +1,51 @@
+observer:
+  role_definition_prompt: src/agent/prompts/prompt_observer.md
+  model: gemini-flash-latest
+  temperature: 0.1
+  macro_analysis_context:
+    time_interval: 1h
+    historical_lookback_candles: 336
+  micro_analysis_context:
+    time_interval: 15m
+    historical_lookback_candles: 192
+  volume_profile_value_area_width: 0.75
+  volume_profile_price_buckets_count: 300
+  taker_volume_delta_lookback_period: 8
+  market_regime_trend_strength_threshold: 0.8
+  average_true_range_period: 21
+  bollinger_bands_period: 21
+  bollinger_bands_std_dev: 2.0
+  keltner_channels_period: 21
+  keltner_channels_multiplier: 1.5
+  volume_moving_average_period: 21
+  max_liquidation_events_to_fetch: 50
+  max_liquidation_events_for_ai_context: 10
+  high_volume_peak_count: 3
+  low_volume_valley_count: 3
+  high_volume_peak_sensitivity: 0.15 
+  low_volume_valley_sensitivity: 0.10
+  min_price_gap_between_nodes: 10 
+  top_structural_levels_to_report: 3
+
+strategist:
+  role_definition_prompt: src/agent/prompts/prompt_strategist.md
+  model: gemini-flash-latest
+  temperature_draft: 0.3
+  temperature_synthesis: 0.1
+  minimum_strategy_confidence_score: 60
+
+critic:
+  role_definition_prompt: src/agent/prompts/prompt_critic.md
+  model: gemini-flash-latest
+  temperature: 0.7
+
+reviewer:
+  role_definition_prompt: src/agent/prompts/prompt_reviewer.md
+  model: gemini-flash-latest
+  temperature: 1.0
+  execution_timeframe_interval: 1m
+
+coach:
+  role_definition_prompt: src/agent/prompts/prompt_coach.md
+  model: gemini-flash-latest
+  temperature: 0.5

@@ -1,428 +1,427 @@
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Dict, Any, List, Optional, Tuple, Union
 import os
 import json
 import logging
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
+import pandas as pd
 
 from google import genai
 from google.genai import types
 
-from src.data_fetcher.binance_client import BinanceDataFetcher
-from src.data_fetcher.sentiment import SentimentFetcher
-from src.analyzer.volume_profile import VolumeProfileAnalyzer
-from src.analyzer.market_regime import MarketRegimeAnalyzer
+from src.data.remote.binance_client import BinanceFuturesClient
+from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
+from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.agent_utils import load_prompt
+from src.utils.agent_utils import read_prompt_template
 from src.utils.datetime_utils import format_datetime, get_utc_now
-from src.utils.path_utils import find_project_root
+from src.utils.path_utils import resolve_project_root
+from src.utils.json_utils import to_json
 
 logger = logging.getLogger(__name__)
 
+@dataclass(frozen=True)
+class TimeframeConfig:
+    """Encapsulates timeframe parameters for market data fetching."""
+    time_interval: str
+    historical_lookback_candles: int
+
+@dataclass(frozen=True)
+class ObserverConfig:
+    """Type-safe configuration for the ObserverAgent with AI-friendly verbose keys."""
+    role_definition_prompt: str
+    model: str
+    temperature: float
+    macro_analysis_context: TimeframeConfig
+    micro_analysis_context: TimeframeConfig
+    volume_profile_value_area_width: float
+    volume_profile_price_buckets_count: int
+    taker_volume_delta_lookback_period: int
+    market_regime_trend_strength_threshold: float
+    average_true_range_period: int
+    bollinger_bands_period: int
+    bollinger_bands_std_dev: float
+    keltner_channels_period: int
+    keltner_channels_multiplier: float
+    volume_moving_average_period: int
+    max_liquidation_events_to_fetch: int
+    max_liquidation_events_for_ai_context: int
+    high_volume_peak_count: int
+    low_volume_valley_count: int
+    high_volume_peak_sensitivity: float
+    low_volume_valley_sensitivity: float
+    min_price_gap_between_nodes: int
+    top_structural_levels_to_report: int
+
+    @classmethod
+    def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
+        """Factory method to create config from a dictionary with verbose type casting."""
+        obs = cfg['observer']
+        macro = obs['macro_analysis_context']
+        micro = obs['micro_analysis_context']
+        
+        return cls(
+            role_definition_prompt=str(obs['role_definition_prompt']),
+            model=str(obs['model']),
+            temperature=float(obs['temperature']),
+            macro_analysis_context=TimeframeConfig(
+                time_interval=str(macro['time_interval']), 
+                historical_lookback_candles=int(macro['historical_lookback_candles'])
+            ),
+            micro_analysis_context=TimeframeConfig(
+                time_interval=str(micro['time_interval']), 
+                historical_lookback_candles=int(micro['historical_lookback_candles'])
+            ),
+            volume_profile_value_area_width=float(obs['volume_profile_value_area_width']),
+            volume_profile_price_buckets_count=int(obs['volume_profile_price_buckets_count']),
+            taker_volume_delta_lookback_period=int(obs['taker_volume_delta_lookback_period']),
+            market_regime_trend_strength_threshold=float(obs['market_regime_trend_strength_threshold']),
+            average_true_range_period=int(obs['average_true_range_period']),
+            bollinger_bands_period=int(obs['bollinger_bands_period']),
+            bollinger_bands_std_dev=float(obs['bollinger_bands_std_dev']),
+            keltner_channels_period=int(obs['keltner_channels_period']),
+            keltner_channels_multiplier=float(obs['keltner_channels_multiplier']),
+            volume_moving_average_period=int(obs['volume_moving_average_period']),
+            max_liquidation_events_to_fetch=int(obs['max_liquidation_events_to_fetch']),
+            max_liquidation_events_for_ai_context=int(obs['max_liquidation_events_for_ai_context']),
+            high_volume_peak_count=int(obs['high_volume_peak_count']),
+            low_volume_valley_count=int(obs['low_volume_valley_count']),
+            high_volume_peak_sensitivity=float(obs['high_volume_peak_sensitivity']),
+            low_volume_valley_sensitivity=float(obs['low_volume_valley_sensitivity']),
+            min_price_gap_between_nodes=int(obs['min_price_gap_between_nodes']),
+            top_structural_levels_to_report=int(obs['top_structural_levels_to_report'])
+        )
+
+@dataclass
+class MarketDataContainer:
+    """Holds raw market data collected during an observation cycle."""
+    macro_klines: List[List[Any]] = field(default_factory=list)
+    micro_klines: List[List[Any]] = field(default_factory=list)
+    macro_oi_history: Optional[Dict[str, Any]] = None
+    micro_oi_history: Optional[Dict[str, Any]] = None
+    macro_ls_ratio: List[Dict[str, Any]] = field(default_factory=list)
+    micro_ls_ratio: List[Dict[str, Any]] = field(default_factory=list)
+    current_oi: Optional[Dict[str, Any]] = None
+    liquidations: List[Dict[str, Any]] = field(default_factory=list)
+
+@dataclass
+class MarketMetricsContainer:
+    """Container for all calculated market indicators and profiles."""
+    price: Dict[str, Any]
+    structural_proximity: Dict[str, Any]
+    volume_profile: Dict[str, Any]
+    regime: Dict[str, Any]
+    sentiment: Dict[str, Any]
+
 class ObserverAgent:
     """
-    Observer Agent (Data Service).
-    Responsible for:
-    1. Fetching raw market data (Klines, Sentiment, Liquidations).
-    2. Calculating technical indicators (VP, BB, KC, ATR, etc.).
-    3. Generating visual charts.
-    4. Generating 'Semantic Observations' using Gemini Flash.
+    Elite Market Topographer & Data Service.
+    
+    Orchestrates high-fidelity data collection, technical analysis, and multi-modal
+    AI processing to provide a 'Single Source of Truth' for trading strategies.
+    
+    Attributes:
+        symbol: The trading pair symbol (e.g., BTCUSDT).
+        config: Type-safe configuration object.
+        data_root: Base directory for storing generated data assets.
     """
     
-    def __init__(self, config: Dict[str, Any], symbol: str, api_key: str):
-        self.config = config
+    def __init__(self, config_dict: Dict[str, Any], symbol: str, api_key: str, data_root: str = "data"):
+        """Initializes the Agent with required services and configuration."""
         self.symbol = symbol
+        self.data_root = data_root
+        self.config = ObserverConfig.from_dict(config_dict)
             
-        observer_config = config['observer']
-        # paths_config = config['paths'] # Removed
+        # Domain Logic Services
+        self._vp_analyzer = self._setup_vp_analyzer()
+        self._regime_analyzer = self._setup_regime_analyzer()
+        
+        # Primary Data Adapters
+        self._binance = BinanceFuturesClient()
 
-        self.vp_analyzer = VolumeProfileAnalyzer(
-            value_area_pct=observer_config['vp_value_area_pct'],
-            vol_profile_bins=observer_config['vp_bins'],
-            atr_window=observer_config['atr_window'],
-            hvn_count=observer_config['hvn_count'],
-            lvn_count=observer_config['lvn_count'],
-            hvn_sensitivity=observer_config['hvn_sensitivity'],
-            lvn_sensitivity=observer_config['lvn_sensitivity'],
-            node_min_separation=observer_config['node_min_separation']
-        )
-        self.regime_analyzer = MarketRegimeAnalyzer(
-            bb_window=observer_config['bb_window'],
-            bb_std=observer_config['bb_std'],
-            kc_window=observer_config['kc_window'],
-            kc_mult=observer_config['kc_mult'],
-            vol_ma_window=observer_config['vol_ma_window'],
-            trend_intensity_threshold=observer_config['trend_intensity_threshold']
+        # Visual Asset Management
+        project_root = resolve_project_root()
+        self._charting = ChartGenerator(
+            output_dir=os.path.join(project_root, data_root, "images")
         )
         
-        self.binance_fetcher = BinanceDataFetcher()
-        self.sentiment_fetcher = SentimentFetcher()
-
-        project_root = find_project_root()
-        self.chart_generator = ChartGenerator(
-            output_dir=os.path.join(
-                project_root, 
-                "data", 
-                "images"
-            )
-        )
-        
-        self.prompt_path = os.path.join(
-            project_root,
-            observer_config['prompt_path']
-        )
-        
+        # AI Infrastructure
+        self._prompt_file = os.path.join(project_root, self.config.role_definition_prompt)
         if not api_key:
-            raise ValueError("ObserverAgent: api_key is required for initialization")
-            
-        self.client = genai.Client(api_key=api_key)
-        self.model_name = observer_config['model']
+            raise ValueError("ObserverAgent Specialist: Gemini API key is required.")
+        self._ai_client = genai.Client(api_key=api_key)
 
     def observe(self, timestamp: Optional[datetime] = None, data_dir: Optional[str] = None, prefix: str = "") -> Dict[str, Any]:
         """
-        Executes a full observation cycle for the current symbol.
+        Executes a comprehensive market observation cycle.
         
         Args:
-            timestamp (Optional[datetime]): The point in time to observe. Defaults to now (UTC).
-            data_dir (Optional[str]): Data directory for output. Defaults to "data".
+            timestamp: Specific point in time to observe. Defaults to UTC now.
+            data_dir: Override path for data output.
+            prefix: Optional filename prefix for generated assets.
             
         Returns:
-            Dict[str, Any]: A self-contained JSON-serializable observation context.
+            A dictionary containing the structured observation context.
         """
-        timestamp_utc = timestamp or get_utc_now()
-        logger.info(f"ObserverAgent: Starting observation for {self.symbol} at {timestamp_utc}")
+        target_time = timestamp or get_utc_now()
+        logger.info(f"Observer [Specialist]: Mapping {self.symbol} topographical state at {target_time}")
         
-        observer_config = self.config['observer']
-        # paths_config = self.config['paths'] # Removed
+        # Phase 1: High-Fidelity Data Collection
+        raw_market_data = self._collect_raw_data(target_time)
+        
+        # Phase 2: Multi-Dimensional Metric Calculation
+        if not raw_market_data.macro_klines or not raw_market_data.micro_klines:
+            logger.warning(f"Observer: Insufficient kline data for {self.symbol} at {target_time}")
+            return {"error": "Insufficient market data."}
 
-        raw_data = self._fetch_raw_data(timestamp_utc)
+        market_metrics = self._calculate_metrics(raw_market_data)
         
-        metrics = self._build_metrics(raw_data)
-        
-        chart_paths = self._generate_charts(
-            raw_data, 
-            metrics, 
-            data_dir=data_dir or "data",
-            timestamp=timestamp_utc,
+        # Phase 3: Visual Evidence Generation
+        visual_snapshots = self._generate_visual_proofs(
+            raw_market_data, 
+            market_metrics, 
+            output_dir=data_dir or self.data_root,
+            at_time=target_time,
             prefix=prefix
         )
         
-        observations, final_timestamp = self._generate_semantic_observations(metrics, chart_paths, timestamp_utc)
+        # Phase 4: Semantic Synthesis via Multi-modal AI
+        mapping_report, final_at = self._synthesize_semantic_mapping(market_metrics, visual_snapshots, target_time)
         
-        macro_timeframe = observer_config['macro_timeframe']
-        micro_timeframe = observer_config['micro_timeframe']
+        return self._build_final_observation_package(mapping_report, market_metrics, visual_snapshots, final_at)
+
+    def _collect_raw_data(self, at_time: datetime) -> MarketDataContainer:
+        """Fetches raw datum from multiple exchange and sentiment endpoints."""
+        ts_ms = int(at_time.timestamp() * 1000)
+        cfg = self.config
         
-        logger.info("Observer: Observation cycle complete.")
+        # Specialized collection logic using DTO for isolation
+        return MarketDataContainer(
+            macro_klines=self._binance.fetch_historical_klines(self.symbol, cfg.macro_analysis_context.time_interval, cfg.macro_analysis_context.historical_lookback_candles, endTime=ts_ms) or [],
+            micro_klines=self._binance.fetch_historical_klines(self.symbol, cfg.micro_analysis_context.time_interval, cfg.micro_analysis_context.historical_lookback_candles, endTime=ts_ms) or [],
+            macro_oi_history=self._binance.fetch_open_interest(self.symbol, cfg.macro_analysis_context.time_interval, endTime=ts_ms - self._ms(cfg.macro_analysis_context.time_interval)),
+            micro_oi_history=self._binance.fetch_open_interest(self.symbol, cfg.micro_analysis_context.time_interval, endTime=ts_ms - self._ms(cfg.micro_analysis_context.time_interval)),
+            macro_ls_ratio=self._binance.fetch_long_short_ratio(self.symbol, cfg.macro_analysis_context.time_interval, limit=1, endTime=ts_ms) or [],
+            micro_ls_ratio=self._binance.fetch_long_short_ratio(self.symbol, cfg.micro_analysis_context.time_interval, limit=1, endTime=ts_ms) or [],
+            current_oi=self._binance.fetch_open_interest(self.symbol, cfg.micro_analysis_context.time_interval, endTime=ts_ms),
+            liquidations=self._binance.fetch_liquidations(self.symbol, limit=cfg.max_liquidation_events_to_fetch) or []
+        )
+
+    def _calculate_metrics(self, raw: MarketDataContainer) -> MarketMetricsContainer:
+        """Processes raw datum into structured market metrics."""
+        m_df = self._vp_analyzer.process_klines(raw.macro_klines)
+        n_df = self._vp_analyzer.process_klines(raw.micro_klines)
+        
+        profile = self._vp_analyzer.calculate_profile(m_df)
+        nodes = self._vp_analyzer.find_significant_nodes(profile)
+        regime = self._regime_analyzer.analyze(m_df)
+        
+        # Composed metric container for variable isolation
+        return MarketMetricsContainer(
+            price=self._derive_price_dynamics(m_df, n_df),
+            structural_proximity=self._derive_structural_anchors(m_df, profile),
+            volume_profile=self._refine_volume_topography(profile, nodes),
+            regime=regime,
+            sentiment=self._derive_sentiment_delta(raw)
+        )
+
+    def _derive_price_dynamics(self, m_df: pd.DataFrame, n_df: pd.DataFrame) -> Dict[str, Any]:
+        """Calculates volatility-adjusted price metrics and structural pressure."""
+        last = m_df.iloc[-1]
+        h, l, c = last['high'], last['low'], last['close']
+        wick_skew = (c - l) / (h - l) if (h - l) > 0 else 0.5
+        
         return {
-            "symbol": self.symbol,
-            "timestamp": f"{final_timestamp}Z",
-            "macro_timeframe": {
-                "interval": macro_timeframe['interval'],
-                "limit": macro_timeframe['limit']
-            },
-            "micro_timeframe": {
-                "interval": micro_timeframe['interval'],
-                "limit": micro_timeframe['limit']
-            },
-            "chart_path": {
-                "snapshot_macro": chart_paths.get("macro_timeframe"),
-                "snapshot_micro": chart_paths.get("micro_timeframe")
-            },
-            "metrics": metrics,
-            "observations": observations
+            "current_price": c,
+            "atr_macro": m_df['atr'].iloc[-1],
+            "atr_micro": n_df['atr'].iloc[-1],
+            "wick_skewness": f"{wick_skew:.2f}"
         }
 
-    def _get_ms_from_interval(self, interval: str) -> int:
-        """Converts interval strings (1m, 15m, 1h, 1d) to milliseconds."""
-        unit = interval[-1]
-        val = int(interval[:-1])
-        mapping = {"m": 60, "h": 3600, "d": 86400}
-        return val * mapping.get(unit, 60) * 1000
+    def _derive_structural_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:
+        """Maps price distance to key structural nodes in ATR units."""
+        price = df['close'].iloc[-1]
+        atr = df['atr'].iloc[-1]
+        
+        def to_atr_dist(target):
+            if not target or not atr: return None
+            return f"{((price - target) / atr):.2f}"
 
-    def _fetch_raw_data(self, timestamp: Optional[datetime] = None) -> Dict[str, Any]:
-        """Fetches all required market data from Binance and sentiment sources."""
-        timestamp_utc = timestamp or get_utc_now()
-        fetch_kwargs = {}
-        fetch_kwargs['endTime'] = int(timestamp_utc.timestamp() * 1000)
-        now_ts = fetch_kwargs.get('endTime')
+        return {
+            "poc_dist_atr": to_atr_dist(profile.get('poc')),
+            "vah_dist_atr": to_atr_dist(profile.get('vah')),
+            "val_dist_atr": to_atr_dist(profile.get('val'))
+        }
 
-        observer_config = self.config['observer']
-        macro_timeframe = observer_config['macro_timeframe']
-        micro_timeframe = observer_config['micro_timeframe']
+    def _refine_volume_topography(self, profile: Dict[str, Any], nodes: Dict[str, List]) -> Dict[str, Any]:
+        """Filters and organizes significant volume nodes relative to price."""
+        poc = profile.get('poc', 0)
+        limit = self.config.top_structural_levels_to_report
         
-        klines_macro = self.binance_fetcher.fetch_historical_klines(
-            self.symbol, macro_timeframe['interval'], macro_timeframe['limit'], **fetch_kwargs
-        )
-        klines_micro = self.binance_fetcher.fetch_historical_klines(
-            self.symbol, micro_timeframe['interval'], micro_timeframe['limit'], **fetch_kwargs
-        )
-        
-        hist_kwargs_macro = fetch_kwargs.copy()
-        hist_kwargs_macro['endTime'] = now_ts - self._get_ms_from_interval(macro_timeframe['interval'])
-        oi_hist_macro = self.sentiment_fetcher.fetch_open_interest(self.symbol, macro_timeframe['interval'], **hist_kwargs_macro)
-        
-        hist_kwargs_micro = fetch_kwargs.copy()
-        hist_kwargs_micro['endTime'] = now_ts - self._get_ms_from_interval(micro_timeframe['interval'])
-        oi_hist_micro = self.sentiment_fetcher.fetch_open_interest(self.symbol, micro_timeframe['interval'], **hist_kwargs_micro)
-        
-        ls_ratio_macro = self.sentiment_fetcher.fetch_long_short_ratio(self.symbol, macro_timeframe['interval'], limit=1, **fetch_kwargs)
-        ls_ratio_micro = self.sentiment_fetcher.fetch_long_short_ratio(self.symbol, micro_timeframe['interval'], limit=1, **fetch_kwargs)
-        
-        oi_current = self.sentiment_fetcher.fetch_open_interest(self.symbol, micro_timeframe['interval'], **fetch_kwargs)
-        liquidations = self.binance_fetcher.fetch_liquidations(self.symbol, limit=observer_config['liquidation_fetch_limit'])
+        all_nodes = [{**n, "type": "HVN"} for n in nodes.get('hvn', [])] + [{**n, "type": "LVN"} for n in nodes.get('lvn', [])]
         
         return {
-            "klines_macro": klines_macro,
-            "klines_micro": klines_micro,
-            "oi_hist_macro": oi_hist_macro,
-            "oi_hist_micro": oi_hist_micro,
+            "poc": profile.get('poc'),
+            "vah": profile.get('vah'),
+            "val": profile.get('val'),
+            "anchors_above": sorted([n for n in all_nodes if n['price'] > poc], key=lambda x: x['price'])[:limit],
+            "anchors_below": sorted([n for n in all_nodes if n['price'] < poc], key=lambda x: x['price'], reverse=True)[:limit]
+        }
+
+    def _derive_sentiment_delta(self, raw: MarketDataContainer) -> Dict[str, Any]:
+        """Aggregates multi-source sentiment and order flow signals."""
+        cfg = self.config
+        
+        # Order Flow Cumulative Delta (Short-term)
+        cvd = 0.0
+        if raw.micro_klines:
+            for k in raw.micro_klines[-cfg.taker_volume_delta_lookback_period:]:
+                v, tb = float(k[5]), float(k[9])
+                cvd += (tb - (v - tb))
+
+        # Open Interest Sensitivity
+        cur_oi = float(raw.current_oi.get('openInterest', 0)) if raw.current_oi else 0
+        
+        def pct_chg(hist):
+            if not hist: return None
+            h_val = float(hist.get('openInterest', 0))
+            return f"{(((cur_oi - h_val) / h_val) * 100):+.2f}%" if h_val > 0 else None
+
+        ls_ratio_macro = raw.macro_ls_ratio[0].get('longShortRatio') if raw.macro_ls_ratio else None
+        ls_ratio_micro = raw.micro_ls_ratio[0].get('longShortRatio') if raw.micro_ls_ratio else None
+
+        return {
+            "oi_nominal": cur_oi,
+            "oi_delta_macro": pct_chg(raw.macro_oi_history),
+            "oi_delta_micro": pct_chg(raw.micro_oi_history),
             "ls_ratio_macro": ls_ratio_macro,
             "ls_ratio_micro": ls_ratio_micro,
-            "open_interest": oi_current,
-            "liquidations": liquidations
+            "net_taker_delta": f"{cvd:.4f}",
+            "high_value_liquidations": self._parse_liquidations(raw.liquidations)
         }
 
-    def _build_metrics(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
-        observer_config = self.config['observer']
+    def _parse_liquidations(self, liqs: List[Dict]) -> Optional[List[Dict[str, Any]]]:
+        """Extracts significant liquidations into a readable context."""
+        if not liqs: return None
+        sorted_liqs = sorted(liqs, key=lambda x: float(x.get('qty', 0)), reverse=True)
+        return [{
+            "side": l.get('side'),
+            "price": float(l.get('price', 0)),
+            "qty": float(l.get('qty', 0)),
+            "time": datetime.fromtimestamp(l.get('time', 0)/1000, tz=timezone.utc).strftime('%H:%M:%S')
+        } for l in sorted_liqs[:self.config.max_liquidation_events_for_ai_context]]
 
-        df_macro = self.vp_analyzer.process_klines(raw_data['klines_macro'])
-        df_micro = self.vp_analyzer.process_klines(raw_data['klines_micro'])
+    def _generate_visual_proofs(self, raw: MarketDataContainer, metrics: MarketMetricsContainer, output_dir: str, at_time: datetime, prefix: str) -> Dict[str, str]:
+        """Generates visual chart artifacts for auditability."""
+        img_dir = os.path.join(output_dir, "images")
+        os.makedirs(img_dir, exist_ok=True)
+        self._charting.output_dir = img_dir
         
-        profile = self.vp_analyzer.calculate_profile(df_macro)
-        nodes = self.vp_analyzer.find_significant_nodes(profile)
-        regime = self.regime_analyzer.analyze(df_macro)
-        
-        lookback = observer_config['order_flow_lookback_bars']
-        total_delta = 0
-        if raw_data['klines_micro']:
-            recent = raw_data['klines_micro'][-lookback:]
-            for k in recent:
-                vol = float(k[5])
-                taker_buy = float(k[9])
-                total_delta += (taker_buy - (vol - taker_buy))
-
-        vol_window = observer_config['vol_ma_window']
-        vol_ratio = 1.0
-        if raw_data['klines_macro']:
-            recent_vols = [float(k[5]) for k in raw_data['klines_macro'][-vol_window:]]
-            if recent_vols:
-                avg_vol = sum(recent_vols) / len(recent_vols)
-                curr_vol = float(raw_data['klines_macro'][-1][5])
-                vol_ratio = curr_vol / avg_vol if avg_vol > 0 else 1.0
-
-        # ATR Skewness (Wick Pressure)
-        last_k = raw_data['klines_macro'][-1]
-        k_h, k_l, k_c = float(last_k[2]), float(last_k[3]), float(last_k[4])
-        skewness = (k_c - k_l) / (k_h - k_l) if (k_h - k_l) > 0 else 0.5
-
-        # Structural Proximity (Distance to POC/VAH/VAL in ATR units)
-        curr_price = df_macro['close'].iloc[-1]
-        atr_m = df_macro['atr'].iloc[-1]
-        
-        def get_dist_atr(target_price):
-            if not target_price or not atr_m: return None
-            return f"{((curr_price - target_price) / atr_m):.2f}"
-
-        # Nearest Structural Nodes (Structural Anchors) - Inclusion of Count (Density)
-        node_count = observer_config['structural_anchor_count']
-        all_nodes = []
-        for n in nodes['hvn']: all_nodes.append({**n, "type": "HVN"})
-        for n in nodes['lvn']: all_nodes.append({**n, "type": "LVN"})
-        
-        above = sorted([n for n in all_nodes if n['price'] > curr_price], key=lambda x: x['price'])[:node_count]
-        below = sorted([n for n in all_nodes if n['price'] < curr_price], key=lambda x: x['price'], reverse=True)[:node_count]
-
-        # OI Delta % (Multi-Timeframe)
-        oi_current = 0
-        oi_delta_macro = None
-        oi_delta_micro = None
-        
-        if raw_data['open_interest'] and 'openInterest' in raw_data['open_interest']:
-            oi_current = float(raw_data['open_interest']['openInterest'])
-            
-            # Macro Delta
-            if raw_data.get('oi_hist_macro') and 'openInterest' in raw_data['oi_hist_macro']:
-                hist_oi_m = float(raw_data['oi_hist_macro']['openInterest'])
-                if hist_oi_m > 0:
-                    delta_m = ((oi_current - hist_oi_m) / hist_oi_m) * 100
-                    oi_delta_macro = f"{delta_m:+.2f}%"
-            
-            # Micro Delta
-            if raw_data.get('oi_hist_micro') and 'openInterest' in raw_data['oi_hist_micro']:
-                hist_oi_n = float(raw_data['oi_hist_micro']['openInterest'])
-                if hist_oi_n > 0:
-                    delta_n = ((oi_current - hist_oi_n) / hist_oi_n) * 100
-                    oi_delta_micro = f"{delta_n:+.2f}%"
-
-        # Liquidations Processing (Null for Failed/Maintenance, Empty list for strictly Zero)
-        top_liquidations = None
-        if raw_data.get('liquidations') is not None:
-            top_liquidations = []
-            sorted_liqs = sorted(raw_data['liquidations'], key=lambda x: float(x.get('qty', 0)), reverse=True)
-            liq_limit = observer_config['liquidation_context_limit']
-            for l in sorted_liqs[:liq_limit]:
-                top_liquidations.append({
-                    "side": l.get('side'),
-                    "price": float(l.get('price', 0)),
-                    "qty": float(l.get('qty', 0)),
-                    "time": datetime.fromtimestamp(l.get('time', 0)/1000, tz=timezone.utc).strftime('%H:%M:%S')
-                })
-
-        metrics = {
-            "price": {
-                "current": curr_price,
-                "atr_macro": atr_m,
-                "atr_micro": df_micro['atr'].iloc[-1],
-                "skewness": f"{skewness:.2f}"
-            },
-            "structural_proximity_atr": {
-                "to_poc": get_dist_atr(profile.get('poc')),
-                "to_vah": get_dist_atr(profile.get('vah')),
-                "to_val": get_dist_atr(profile.get('val'))
-            },
-            "volume_profile": {
-                "poc": profile.get('poc'),
-                "vah": profile.get('vah'),
-                "val": profile.get('val'),
-                "nearest_nodes_above": above,
-                "nearest_nodes_below": below,
-                "volume_breakout_ratio": f"{vol_ratio:.2f}"
-            },
-            "regime": regime,
-            "sentiment": {
-                "open_interest": oi_current,
-                "oi_delta_macro": oi_delta_macro,
-                "oi_delta_micro": oi_delta_micro,
-                "ls_ratio_macro": raw_data['ls_ratio_macro'][0].get('longShortRatio') if raw_data['ls_ratio_macro'] else None,
-                "ls_ratio_micro": raw_data['ls_ratio_micro'][0].get('longShortRatio') if raw_data['ls_ratio_micro'] else None,
-                "order_flow_delta": f"{total_delta:.4f}",
-                "top_liquidations": top_liquidations
-            }
-        }
-        return metrics
-
-    def _generate_charts(self, 
-                       raw_data: Dict[str, Any], 
-                       metrics: Dict[str, Any],
-                       data_dir: str,
-                       timestamp: Optional[datetime] = datetime.now(timezone.utc),
-                       prefix: str = "") -> Dict[str, str]:
-        """
-        Generates visualized charts for the Macro and Micro timeframes.
-        Supports custom output directories and deterministic naming.
-        """
-
-        # paths_config = self.config['paths'] # Removed
-
-        # 1. Setup Output Directory
-        images_path = os.path.join(data_dir, "images")
-        os.makedirs(images_path, exist_ok=True)
-        
-        # 2. Update Generator Output Dir
-        self.chart_generator.output_dir = images_path
-        
-        # 3. Prepare Figure Data (POC/VAH/VAL)
-        # Note: ChartGenerator expects profile_data in a specific format
-        profile_data_for_chart = metrics['volume_profile'].copy()
-        # Use provided timestamp or current
-        profile_data_for_chart['timestamp'] = timestamp.isoformat()
-        
-        # Add full profile data for VAP plot
-        profile_data_for_chart['profile_data'] = metrics['volume_profile'].get('profile_data', [])
-        
-        # 4. Generate Both Timeframes
-        # We need to convert raw klines to DataFrames for the generator
-        df_macro = self.vp_analyzer.process_klines(raw_data['klines_macro'])
-        df_micro = self.vp_analyzer.process_klines(raw_data['klines_micro'])
-        
-        macro_path = self.chart_generator.generate_chart(
-            self.symbol, df_macro, profile_data_for_chart, raw_data['liquidations'], 
-            filename_suffix=self.config['observer']['macro_timeframe']['interval'],
-            prefix=prefix
-        )
-        micro_path = self.chart_generator.generate_chart(
-            self.symbol, df_micro, profile_data_for_chart, raw_data['liquidations'], 
-            filename_suffix=self.config['observer']['micro_timeframe']['interval'],
-            prefix=prefix
-        )
+        # Profile data binding for visualizer
+        chart_ctx = {**metrics.volume_profile, "timestamp": at_time.isoformat()}
+        m_df = self._vp_analyzer.process_klines(raw.macro_klines)
+        n_df = self._vp_analyzer.process_klines(raw.micro_klines)
         
         return {
-            "macro_timeframe": macro_path if macro_path else None,
-            "micro_timeframe": micro_path if micro_path else None
+            "macro_snapshot": self._charting.generate_chart(self.symbol, m_df, chart_ctx, raw.liquidations, time_interval=self.config.macro_analysis_context.time_interval),
+            "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, chart_ctx, raw.liquidations, time_interval=self.config.micro_analysis_context.time_interval)
         }
 
-    def _generate_semantic_observations(self, 
-                                       metrics: Dict[str, Any], 
-                                       chart_paths: Dict[str, str],
-                                       timestamp: Optional[datetime] = None) -> Tuple[Dict[str, Any], datetime]:
-        """
-        Interleaves charts and metrics into a multimodal Gemini prompt to generate 
-        semantic observations.
-        """
-        timestamp_utc = timestamp or get_utc_now()
-        
-        observer_config = self.config['observer']
-        observer_config = self.config['observer']
-        
+    def _synthesize_semantic_mapping(self, metrics: MarketMetricsContainer, snapshots: Dict[str, str], at_time: datetime) -> Tuple[Dict[str, Any], datetime]:
+        """Translates numerical metrics and charts into objective semantic observations via AI."""
         try:
-            macro_tf_interval = observer_config['macro_timeframe']['interval']
-            micro_tf_interval = observer_config['micro_timeframe']['interval']
-            
-            prompt_with_context = load_prompt(self.prompt_path)
-            
-            from src.utils.json_utils import to_json
-            prompt = prompt_with_context.format(
-                timestamp=format_datetime(timestamp_utc),
-                macro_timeframe=to_json(observer_config['macro_timeframe']),
-                micro_timeframe=to_json(observer_config['micro_timeframe']),
-                metrics=to_json(metrics)
+            prompt_tpl = read_prompt_template(self._prompt_file)
+            input_text = prompt_tpl.format(
+                timestamp=format_datetime(at_time),
+                macro_timeframe=to_json({"interval": self.config.macro_analysis_context.time_interval, "limit": self.config.macro_analysis_context.historical_lookback_candles}),
+                micro_timeframe=to_json({"interval": self.config.micro_analysis_context.time_interval, "limit": self.config.micro_analysis_context.historical_lookback_candles}),
+                metrics=to_json(metrics.__dict__)
             )
             
-            contents = []
+            # Multi-modal payload construction
+            payload = []
+            for lbl, path in [("MACRO", snapshots['macro_snapshot']), ("MICRO", snapshots['micro_snapshot'])]:
+                if path and path is not None and os.path.exists(path):
+                    payload.append(f"[VISUAL PROOF: {lbl}]")
+                    with open(path, 'rb') as f:
+                        payload.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
+            payload.append(input_text)
             
-            # 1. Macro Chart
-            path_macro = chart_paths['macro_timeframe']
-            if path_macro and os.path.exists(path_macro):
-                contents.append("[IMAGE: MACRO CHART]")
-                with open(path_macro, 'rb') as f:
-                    contents.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
-
-            # 2. Micro Chart
-            path_micro = chart_paths['micro_timeframe']
-            if path_micro and os.path.exists(path_micro):
-                contents.append("[IMAGE: MICRO CHART]")
-                with open(path_micro, 'rb') as f:
-                    contents.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
-
-            # Add prompt text at the end
-            contents.append(prompt)
-            
-            response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    temperature=observer_config['temperature'],
-                    response_mime_type="application/json"
-                )
+            resp = self._ai_client.models.generate_content(
+                model=self.config.model,
+                contents=payload,
+                config=types.GenerateContentConfig(temperature=self.config.temperature, response_mime_type="application/json")
             )
 
-            obs_dict = json.loads(response.text)
+            result = json.loads(resp.text)
+            return self._validate_report_schema(result), at_time
             
-            section_keys = [
-                "structural_proximity",
-                "anomaly_detection",
-                "regime_delta",
-                "macro_topography",
-                "micro_execution"
-            ]
-            for key in section_keys:
-                if key not in obs_dict:
-                    obs_dict[key] = "AI analysis currently unavailable for this dimension."
-            
-            return obs_dict, timestamp_utc
         except Exception as e:
-            logger.error(f"Failed to generate semantic observations: {e}", exc_info=True)
-            return {"error": str(e)}, timestamp_utc
+            logger.error(f"Semantic Mapping Failure: {e}", exc_info=True)
+            return {"error": "Observer failed to generate semantic mapping."}, at_time
+
+    def _validate_report_schema(self, report: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensures the AI output adheres to the specialist topographical schema."""
+        required = ["structural_proximity", "anomaly_detection", "regime_delta", "macro_topography", "micro_execution"]
+        for key in required:
+            if key not in report:
+                report[key] = "Mapping unavailable for this dimension."
+        return report
+
+    def _build_final_observation_package(self, mapping: Dict[str, Any], metrics: MarketMetricsContainer, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
+        """Constructs the high-level response dictionary for the observer cycle."""
+        cfg = self.config
+        return {
+            "symbol": self.symbol,
+            "timestamp": f"{at_time.isoformat()}Z",
+            "observation_specs": {
+                "macro": {"interval": cfg.macro_analysis_context.time_interval, "limit": cfg.macro_analysis_context.historical_lookback_candles},
+                "micro": {"interval": cfg.micro_analysis_context.time_interval, "limit": cfg.micro_analysis_context.historical_lookback_candles}
+            },
+            "visual_assets": charts,
+            "quantitative_metrics": metrics.__dict__,
+            "semantic_observations": mapping
+        }
+
+    def _ms(self, interval: Union[str, Any]) -> int:
+        """Utility to convert timeframe strings to milliseconds."""
+        if not isinstance(interval, str):
+            logger.warning(f"Invalid interval type: {type(interval)}")
+            return 60000
+        u = interval[-1]
+        v = int(interval[:-1])
+        m = {"m": 60, "h": 3600, "d": 86400}
+        return v * m.get(u, 60) * 1000
+
+    def _setup_vp_analyzer(self) -> VolumeProfileAnalyzer:
+        """Configures the Volume Profile analyzer with type-safe parameters."""
+        cfg = self.config
+        vp_config = VolumeProfileConfig(
+            value_area_ratio=cfg.volume_profile_value_area_width, 
+            resolution_bins=cfg.volume_profile_price_buckets_count,
+            atr_period=cfg.average_true_range_period, 
+            max_hvn_nodes=cfg.high_volume_peak_count, 
+            max_lvn_nodes=cfg.low_volume_valley_count,
+            hvn_sensitivity=cfg.high_volume_peak_sensitivity, 
+            lvn_sensitivity=cfg.low_volume_valley_sensitivity,
+            min_node_distance=cfg.min_price_gap_between_nodes
+        )
+        return VolumeProfileAnalyzer(config=vp_config)
+
+    def _setup_regime_analyzer(self) -> MarketRegimeAnalyzer:
+        """Configures the Market Regime analyzer with type-safe parameters."""
+        cfg = self.config
+        regime_config = MarketRegimeConfig(
+            bollinger_window=cfg.bollinger_bands_period, 
+            bollinger_std_dev=cfg.bollinger_bands_std_dev, 
+            keltner_window=cfg.keltner_channels_period,
+            keltner_multiplier=cfg.keltner_channels_multiplier, 
+            volume_ma_window=cfg.volume_moving_average_period,
+            trend_threshold=cfg.market_regime_trend_strength_threshold
+        )
+        return MarketRegimeAnalyzer(config=regime_config)
 
     def close(self):
-        self.binance_fetcher.close()
-        self.sentiment_fetcher.close()
+        """Cleanly releases network resources."""
+        if hasattr(self, '_binance'):
+            self._binance.close()

@@ -1,69 +1,74 @@
 import os
 import yaml
-import logging
 import re
-from typing import Dict, Any, List, Set
+from typing import Dict, Any, List
 
-def load_config(config_path: str = "config/config.yaml") -> Dict[str, Any]:
+
+def load_config(config_filepath: str = "config/agent_config.yaml") -> Dict[str, Any]:
     """
-    Loads YAML configuration. If config_path is relative, it resolves
-    it relative to the project root.
+    Loads a YAML configuration file from the given path.
+    If the path is relative, it is resolved against the project root.
     """
-    from src.utils.path_utils import find_project_root
-    project_root = find_project_root()
+    from src.utils.path_utils import resolve_project_root
+    project_root = resolve_project_root()
     
-    if not os.path.isabs(config_path):
-        config_path = os.path.join(project_root, config_path)
+    absolute_path = config_filepath
+    if not os.path.isabs(config_filepath):
+        absolute_path = os.path.join(project_root, config_filepath)
         
-    with open(config_path, 'r', encoding='utf-8') as f:
+    with open(absolute_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
-def load_prompt(prompt_path: str) -> str:
-    """Reads a prompt template from disk."""
+def read_prompt_template(prompt_path: str) -> str:
+    """Reads a prompt template file and returns its content as a string."""
     with open(prompt_path, 'r', encoding='utf-8') as f:
         return f.read()
 
-def partition_prompt(template: str, active_passes: List[str]) -> str:
+def apply_prompt_logic_filters(template: str, active_passes: List[str]) -> str:
     """
-    Advanced Prompt Partitioning (The 'Sieve' Algorithm):
+    Filters a prompt template based on active 'PASS' blocks.
+    
+    Logic:
     1. Supports multiple active passes simultaneously.
-    2. Handles nested [[[PASS]]] blocks correctly.
+    2. Handles nested [[[PASS: name]]] blocks correctly.
     3. Rule: Content is included ONLY if it is NOT inside any INACTIVE pass block.
     """
-    # Regex to find any start or end tag
+    # Pattern to match both opening [[[PASS: name]]] and closing [[[/PASS: name]]] tags
     tag_pattern = re.compile(r"(\[\[\[PASS: (.*?)\]\]\]|\[\[\[/PASS: (.*?)\]\]\])")
     
-    result_parts = []
-    last_pos = 0
-    inactive_stack = set()
+    processed_parts = []
+    current_index = 0
+    inactive_block_stack = set()
     
     for match in tag_pattern.finditer(template):
-        # 1. Append text before the tag if we are in an active context
-        if not inactive_stack:
-            result_parts.append(template[last_pos:match.start()])
+        # 1. Capture text before the tag if we are NOT inside an inactive block
+        if not inactive_block_stack:
+            processed_parts.append(template[current_index:match.start()])
             
-        full_tag = match.group(1)
-        start_name = match.group(2)
-        end_name = match.group(3)
+        opening_tag_name = match.group(2)
+        closing_tag_name = match.group(3)
         
-        if start_name:
-            # Entering a pass
-            if start_name.strip() not in active_passes:
-                inactive_stack.add(start_name.strip())
-        elif end_name:
-            # Exiting a pass
-            if end_name.strip() in inactive_stack:
-                inactive_stack.remove(end_name.strip())
+        if opening_tag_name:
+            # Entering a new pass block
+            pass_id = opening_tag_name.strip()
+            if pass_id not in active_passes:
+                inactive_block_stack.add(pass_id)
+        elif closing_tag_name:
+            # Exiting a pass block
+            pass_id = closing_tag_name.strip()
+            if pass_id in inactive_block_stack:
+                inactive_block_stack.remove(pass_id)
                 
-        last_pos = match.end()
+        current_index = match.end()
         
-    # Append remaining text if active
-    if not inactive_stack:
-        result_parts.append(template[last_pos:])
+    # Append the remaining part of the template if it's not excluded
+    if not inactive_block_stack:
+        processed_parts.append(template[current_index:])
         
-    result = "".join(result_parts)
+    final_output = "".join(processed_parts)
     
-    # Cleanup excessive newlines
-    result = re.sub(r"\n{3,}", "\n\n", result)
-    return result.strip()
+    # Cleanup: Collapse 3+ newlines into 2 to prevent excessive whitespace
+    final_output = re.sub(r"\n{3,}", "\n\n", final_output)
+    
+    return final_output.strip()
 

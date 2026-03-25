@@ -4,7 +4,7 @@ import json
 from typing import Dict, Any
 from google import genai
 from google.genai import types
-from src.utils.agent_utils import load_prompt
+from src.utils.agent_utils import read_prompt_template
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class CriticAgent:
         self.config = config
         self.critic_config = config.get('critic', {})
         self.model_name = self.critic_config['model']
-        self.prompt_path = self.critic_config['prompt_path']
+        self.prompt_path = self.critic_config['role_definition_prompt']
         self.temperature = self.critic_config['temperature']
         
         if not api_key:
@@ -37,7 +37,7 @@ class CriticAgent:
         Returns:
             Dict: The audit findings including skepticism score and veto status.
         """
-        prompt_with_context = load_prompt(self.prompt_path)
+        prompt_with_context = read_prompt_template(self.prompt_path)
         
         prompt = prompt_with_context.format(
             observation_json=json.dumps(observation, indent=2),

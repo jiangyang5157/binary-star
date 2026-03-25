@@ -6,7 +6,7 @@ from typing import Dict, Any
 from datetime import datetime, timezone
 from google import genai
 from google.genai import types
-from src.utils.agent_utils import load_prompt, partition_prompt
+from src.utils.agent_utils import read_prompt_template, apply_prompt_logic_filters
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +19,9 @@ class StrategistAgent:
     """
     def __init__(self, config: Dict[str, Any], api_key: str):
         self.config = config
-        self.strat_config = config.get('strategist', {})
+        self. strat_config = config.get('strategist', {})
         self.model_name = self.strat_config.get('model')
-        self.prompt_path = self.strat_config.get('prompt_path')
+        self.prompt_path = self.strat_config.get('role_definition_prompt')
         self.temp_draft = self.strat_config.get('temperature_draft')
         self.temp_synthesis = self.strat_config.get('temperature_synthesis')
         
@@ -40,8 +40,8 @@ class StrategistAgent:
         Returns:
             Dict: The initial trading plan draft.
         """
-        template = load_prompt(self.prompt_path)
-        prompt_with_context = partition_prompt(template, ["DRAFTING"])
+        template = read_prompt_template(self.prompt_path)
+        prompt_with_context = apply_prompt_logic_filters(template, ["DRAFTING"])
         
         prompt = prompt_with_context.format(
             observation_json=json.dumps(observation, indent=2)
@@ -75,8 +75,8 @@ class StrategistAgent:
         Returns:
             Dict: The final crystallized trading strategy.
         """
-        template = load_prompt(self.prompt_path)
-        prompt_with_context = partition_prompt(template, ["SYNTHESIS"])
+        template = read_prompt_template(self.prompt_path)
+        prompt_with_context = apply_prompt_logic_filters(template, ["SYNTHESIS"])
         
         prompt = prompt_with_context.format(
             observation_json=json.dumps(observation, indent=2),

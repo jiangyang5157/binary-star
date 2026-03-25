@@ -131,7 +131,7 @@ def _handle_notification(symbol, session_result, config):
     try:
         final_decision = session_result["final_decision"]
         confidence = final_decision.get('confidence', 0)
-        min_confidence = config['strategist']['confidence_threshold']
+        min_confidence = config['strategist']['minimum_strategy_confidence_score']
         
         if confidence >= min_confidence:
             logger.info(f"Confidence {confidence}% >= Threshold {min_confidence}%. Triggering notification...")

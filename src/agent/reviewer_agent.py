@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from src.utils.agent_utils import load_prompt
+from src.utils.agent_utils import read_prompt_template
 from google import genai
 from google.genai import types
 
@@ -19,9 +19,9 @@ class ReviewerAgent:
         review_config = config.get('review', {})
         self.model_name = review_config.get('model')
         self.temperature = review_config.get('temperature', 1.0)
-        self.prompt_path = review_config.get('prompt_path')
-        self.strat_prompt_path = config.get('strategist', {}).get('prompt_path')
-        self.critic_prompt_path = config.get('critic', {}).get('prompt_path')
+        self.prompt_path = review_config.get('role_definition_prompt')
+        self.strat_prompt_path = config.get('strategist', {}).get('role_definition_prompt')
+        self.critic_prompt_path = config.get('critic', {}).get('role_definition_prompt')
         
         if not api_key:
             raise ValueError("Reviewer: api_key is required for initialization")
@@ -29,17 +29,17 @@ class ReviewerAgent:
         self.client = genai.Client(api_key=api_key)
 
     def review(self, historical_strategy: Dict[str, Any], 
-               observation: Dict[str, Any], 
-               current_observation: Optional[Dict[str, Any]]) -> str:
-               chart_image_paths: List[str] = None) -> str:
+               actual_outcome: Dict[str, Any],
+               current_observation: Optional[Dict[str, Any]],
+               chart_image_paths: Optional[List[str]] = None) -> str:
         """
         Executes a multimodal post-mortem audit of Agent A's performance.
-        Includes a self-audit against the Predictor's logic handbook.
+        Includes a self-audit against the Predictor's logic and rules.
         """
         try:
-            prompt_with_context = load_prompt(self.prompt_path)
-            strategist_prompt = load_prompt(self.strat_prompt_path)
-            critic_prompt = load_prompt(self.critic_prompt_path)
+            prompt_with_context = read_prompt_template(self.prompt_path)
+            strategist_prompt = read_prompt_template(self.strat_prompt_path)
+            critic_prompt = read_prompt_template(self.critic_prompt_path)
 
             historical_observation = historical_strategy.get("observation")
             draft_plan = historical_strategy.get("draft")
@@ -55,8 +55,8 @@ class ReviewerAgent:
                 final_decision=final_decision,
                 strategist_prompt=strategist_prompt,
                 critic_prompt=critic_prompt,
-                macro_interval=self.config['observer']['macro_timeframe']['interval'],
-                micro_interval=self.config['observer']['micro_timeframe']['interval'],
+                macro_interval=self.config['observer']['macro_analysis_context']['time_interval'],
+                micro_interval=self.config['observer']['micro_analysis_context']['time_interval'],
             )
         except Exception as e:
             logger.error(f"Reviewer formatting error: {e}")
