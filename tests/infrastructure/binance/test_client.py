@@ -1,7 +1,7 @@
 import os
 import pytest
 from unittest.mock import MagicMock, patch
-from src.data.remote.binance_client import BinanceFuturesClient
+from src.infrastructure.binance.client import BinanceFuturesClient
 from binance.error import ClientError
 
 # Manually load .env for integration tests
@@ -19,7 +19,7 @@ load_env()
 @pytest.fixture
 def mock_client():
     """Fixture to provide a BinanceFuturesClient with a mocked internal SDK client."""
-    with patch('src.data.remote.binance_client.UMFutures') as mock_um:
+    with patch('src.infrastructure.binance.client.UMFutures') as mock_um:
         client = BinanceFuturesClient(api_key="mock_key", api_secret="mock_secret")
         # Access the internal client instance
         client.client = mock_um.return_value

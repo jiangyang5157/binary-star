@@ -9,7 +9,7 @@ import pandas as pd
 from google import genai
 from google.genai import types
 
-from src.data.remote.binance_client import BinanceFuturesClient
+from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator

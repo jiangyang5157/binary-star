@@ -97,7 +97,7 @@ class TradingOrchestrator:
             session_result = run_full_triad_flow(observation, self.strategist, self.critic)
             
             # 4. Stage 5: Notification (Actionable Alerts)
-            # self._handle_notifications(session_result)
+            self._handle_notifications(session_result)
 
             # 5. Stage 6: Archival (Forensic History)
             output_file = archive_strategy_result(
@@ -123,12 +123,10 @@ class TradingOrchestrator:
             
             if confidence >= threshold:
                 logger.info(f"High Confidence ({confidence}% >= {threshold}%). Dispatching alerts...")
-                from src.utils.notifier import EmailNotifier
-                notifier = EmailNotifier(self.config)
+                from src.infrastructure.notifications.email_notifier import StrategyNotifier
+                notifier = StrategyNotifier(data_root=self.data_root)
                 if notifier.enabled:
-                    visual_assets = session_result["observation"].get("visual_assets", {})
-                    charts = [path for path in visual_assets.values() if path]
-                    notifier.send_prediction_alert(self.symbol, final_decision, chart_paths=charts)
+                    notifier.notify_strategy(self.symbol, session_result)
             else:
                 logger.info(f"Low Confidence ({confidence}% < {threshold}%). Skipping alerts.")
         except Exception as e:
