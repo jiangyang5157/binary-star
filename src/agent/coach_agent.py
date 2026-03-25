@@ -30,7 +30,7 @@ class CoachConfig:
         
         return cls(
             model=coach_cfg.get('model'),
-            temperature=float(coach_cfg.get('temperature', 0.5)),
+            temperature=float(coach_cfg.get('temperature')),
             role_prompt_path=os.path.join(project_root, coach_cfg.get('role_definition_prompt')),
             strategist_prompt_path=os.path.join(project_root, strat_cfg.get('role_definition_prompt')),
             critic_prompt_path=os.path.join(project_root, crit_cfg.get('role_definition_prompt'))

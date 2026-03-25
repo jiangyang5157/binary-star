@@ -117,9 +117,12 @@ class CoachOrchestrator:
 def main():
     parser = argparse.ArgumentParser(description="Strategic Trading Coach (Agent C)")
     parser.add_argument("--symbol", type=str, required=True, help="Symbol to analyze.")
-    parser.add_argument("--batch", type=int, default=5, help="Number of recent reviews to analyze.")
+    parser.add_argument("--batch", type=int, default=10, help="Number of recent reviews for this specific symbol to analyze.")
     parser.add_argument("--data_root", type=str, default="data", help="Data directory root.")
     args = parser.parse_args()
+
+    # Ensure batch is at least 1 to avoid slicing anomalies
+    batch_size = max(1, args.batch)
 
     try:
         orchestrator = CoachOrchestrator(data_root=args.data_root)
