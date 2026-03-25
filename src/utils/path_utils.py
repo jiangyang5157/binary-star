@@ -25,3 +25,5 @@ def resolve_project_root() -> str:
     
     # Fallback to current working directory if no markers are found
     return os.getcwd()
+# Alias for backward compatibility
+find_project_root = resolve_project_root

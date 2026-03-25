@@ -1,101 +1,105 @@
+from dataclasses import dataclass
 import os
-import re
 import logging
 import json
-from typing import Dict, Any
-from datetime import datetime, timezone
+from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
 from src.utils.agent_utils import read_prompt_template, apply_prompt_logic_filters
+from src.utils.path_utils import resolve_project_root
 
 logger = logging.getLogger(__name__)
 
+@dataclass(frozen=True)
+class StrategistConfig:
+    """Encapsulates configuration for the StrategistAgent."""
+    model: str
+    role_prompt_path: str
+    temperature_draft: float
+    temperature_synthesis: float
+    min_confidence: int
+
+    @classmethod
+    def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
+        """Factory method to extract strategist config from the global config dict."""
+        strat = full_config.get('strategist', {})
+        return cls(
+            model=strat.get('model', "gemini-2.0-flash"),
+            role_prompt_path=os.path.join(resolve_project_root(), strat.get('role_definition_prompt', "")),
+            temperature_draft=float(strat.get('temperature_draft', 0.1)),
+            temperature_synthesis=float(strat.get('temperature_synthesis', 0.1)),
+            min_confidence=int(strat.get('minimum_strategy_confidence_score', 60))
+        )
+
 class StrategistAgent:
     """
-    Agent B: The Strategist.
-    Responsible for drafting initial strategic plans based on market observations 
-    and synthesizing those drafts with adversarial critiques into a final, 
-    actionable trading decision.
+    The Strategist & Orchestrator.
+    Handles the drafting of initial plans and the final synthesis of 
+    adversarial feedback into actionable trading strategies.
     """
-    def __init__(self, config: Dict[str, Any], api_key: str):
-        self.config = config
-        self. strat_config = config.get('strategist', {})
-        self.model_name = self.strat_config.get('model')
-        self.prompt_path = self.strat_config.get('role_definition_prompt')
-        self.temp_draft = self.strat_config.get('temperature_draft')
-        self.temp_synthesis = self.strat_config.get('temperature_synthesis')
+    def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
+        """
+        Initializes the Strategist with a configuration and optional AI client injection.
         
-        if not api_key:
-            raise ValueError("Strategist: api_key is required for initialization")
-        
-        self.client = genai.Client(api_key=api_key)
+        Args:
+            config_dict: The full application configuration dictionary.
+            api_key: Gemini API key for fallback client initialization.
+            ai_client: Optional pre-configured Gemini client for DI.
+        """
+        self.config = StrategistConfig.from_dict(config_dict)
+        self.client = ai_client or genai.Client(api_key=api_key)
 
     def draft(self, observation: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Generates an initial strategic draft (Pass 1).
-        
-        Args:
-            observation (Dict): The market observation context.
-            
-        Returns:
-            Dict: The initial trading plan draft.
+        Phase 1: Generates an initial strategic draft based on market topography.
         """
-        template = read_prompt_template(self.prompt_path)
-        prompt_with_context = apply_prompt_logic_filters(template, ["DRAFTING"])
-        
-        prompt = prompt_with_context.format(
-            observation_json=json.dumps(observation, indent=2)
-        )
-        
-        logger.info(f"Strategist: Generating initial draft...")
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=self.temp_draft,
-                response_mime_type="application/json"
-            )
-        )
-        
-        try:
-            return json.loads(response.text)
-        except Exception as e:
-            logger.error(f"Strategist: Failed to parse draft JSON: {e}")
-            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}
+        prompt = self._build_prompt(observation, filter_logic="DRAFTING")
+        logger.info("Strategist: Drafting initial strategic plan...")
+        return self._execute_ai_cycle(prompt, temperature=self.config.temperature_draft)
 
     def synthesize(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], critique: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Synthesizes the draft and critique into a final decision (Pass 3).
-        
-        Args:
-            observation (Dict): The market observation context.
-            draft_plan (Dict): The initial strategic draft.
-            critique (Dict): The adversarial audit results.
-            
-        Returns:
-            Dict: The final crystallized trading strategy.
+        Phase 3: Crystalizes the draft and adversarial critique into a final decision.
         """
-        template = read_prompt_template(self.prompt_path)
-        prompt_with_context = apply_prompt_logic_filters(template, ["SYNTHESIS"])
-        
-        prompt = prompt_with_context.format(
-            observation_json=json.dumps(observation, indent=2),
-            draft_plan=json.dumps(draft_plan, indent=2),
-            critic_feedback=json.dumps(critique, indent=2)
+        prompt = self._build_prompt(
+            observation, 
+            filter_logic="SYNTHESIS", 
+            draft_plan=draft_plan, 
+            critic_feedback=critique
         )
-        
-        logger.info(f"Strategist: Synthesizing final decision...")
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=self.temp_synthesis,
-                response_mime_type="application/json"
-            )
-        )
+        logger.info("Strategist: Synthesizing final strategy...")
+        return self._execute_ai_cycle(prompt, temperature=self.config.temperature_synthesis)
 
+    def _build_prompt(self, observation: Dict[str, Any], filter_logic: str, **extra_context) -> str:
+        """Helper to load and format the prompt template with logic filters."""
+        template = read_prompt_template(self.config.role_prompt_path)
+        prompt_with_logic = apply_prompt_logic_filters(template, [filter_logic])
+        
+        # Prepare context
+        context = {
+            "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
+            "draft_plan": json.dumps(extra_context.get("draft_plan"), indent=2, ensure_ascii=False),
+            "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False)
+        }
+        
         try:
+            return prompt_with_logic.format(**context)
+        except KeyError as e:
+            logger.warning(f"Strategist: Missing prompt placeholder during {filter_logic}: {e}")
+            return prompt_with_logic # Fallback if formatting fails due to missing keys (e.g. in draft phase)
+
+    def _execute_ai_cycle(self, prompt: str, temperature: float) -> Dict[str, Any]:
+        """Core AI execution logic for both drafting and synthesis."""
+        try:
+            response = self.client.models.generate_content(
+                model=self.config.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=temperature,
+                    response_mime_type="application/json"
+                )
+            )
             return json.loads(response.text)
         except Exception as e:
-            logger.error(f"Strategist: Failed to parse synthesis JSON: {e}")
-            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}
+            logger.error(f"Strategist AI execution failed: {e}", exc_info=True)
+            return {"error": "STRATEGIST_EXECUTION_FAILURE", "details": str(e)}
