@@ -74,8 +74,26 @@ class TestEvolutionStrategies(unittest.TestCase):
         # Verify
         with open(prompt_path, 'r') as f:
             updated_content = f.read()
-        # Should be inserted after the PROTOCOLS header
-        self.assertIn("# PROTOCOLS\n3. New Rule X", updated_content)
+    def test_prompt_add_to_bold_section(self):
+        # Setup (Bolded title instead of # header)
+        prompt_path = os.path.join(self.test_dir, "test_bold_add.md")
+        original_content = "**AUDIT CODES**: The original rules.\n\nNext section."
+        with open(prompt_path, 'w') as f:
+            f.write(original_content)
+
+        patches = [
+            {"action": "ADD", "target": "AUDIT CODES", "replacement": "- New Bold Rule!"}
+        ]
+
+        # Execute
+        self.prompt_strategy.apply(prompt_path, patches)
+
+        # Verify
+        with open(prompt_path, 'r') as f:
+            updated_content = f.read()
+        
+        # Should be inserted after the **AUDIT CODES** line
+        self.assertIn("**AUDIT CODES**: The original rules.\n- New Bold Rule!", updated_content)
 
     def test_config_patch_merge(self):
         # Setup
