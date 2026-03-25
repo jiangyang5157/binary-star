@@ -9,7 +9,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 2. **STRUCTURAL SUPREMACY**: Logic fixes (Prompt Patches) ALWAYS supersede Parameter tweaks (Config Updates). Adjusting a numerical threshold is a band-aid; refining how an agent interprets liquidity is a systemic cure.
 3. **SEMANTIC COMPRESSION**: When writing new prompt rules, use absolute noun-verb pairs. Strip all conversational fluff, adjectives, and ambiguity. Be ruthless and algorithmic.
 4. **CONFIG INTEGRITY**: You MUST NOT invent or hallucinate new configuration keys. You may ONLY update values for keys explicitly present in the provided `Current Configuration`.
-5. **MARKDOWN FIDELITY**: When extracting a `target` string for REPLACE or REMOVE, you MUST include all exact Markdown symbols (e.g., **, #, >, `) exactly as they appear in the source text. Do not normalize or strip formatting. Example: If the source says `**Min RR** | 1.5x`, your target MUST include the asterisks.
+5. **SURGICAL PRECISION & MARKDOWN FIDELITY**: When using `REPLACE` or `REMOVE`, the `target` MUST be a character-for-character, byte-perfect copy of the source prompt. You MUST preserve all markdown formatting (`**`, `#`, etc.), whitespace, and punctuation exactly.
 
 # ANALYTICAL REFERENCE
 **EVOLUTION LAW**: Use the following strict operational codes when generating Prompt Patches.
@@ -67,7 +67,17 @@ If no patches are needed for a specific module, return an empty array `[]` or ob
     "observer": {{
       "existing_key_name": "new_value"
     }},
-    "strategist": {{}},
-    "critic": {{}}
+    "strategist": {{
+      "existing_key_name": "new_value"
+    }},
+    "critic": {{
+      "existing_key_name": "new_value"
+    }}，
+    "reviewer": {{
+      "existing_key_name": "new_value"
+    }}，
+    "coach": {{
+      "existing_key_name": "new_value"
+    }}
   }}
 }}

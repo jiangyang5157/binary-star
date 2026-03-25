@@ -22,31 +22,27 @@ observer:
   max_liquidation_events_for_ai_context: 10
   high_volume_peak_count: 3
   low_volume_valley_count: 3
-  high_volume_peak_sensitivity: 0.15 
+  high_volume_peak_sensitivity: 0.15
   low_volume_valley_sensitivity: 0.05
-  min_price_gap_between_nodes: 50 
+  min_price_gap_between_nodes: 50
   top_structural_levels_to_report: 3
   funding_rate_history_limit: 1
   trend_intensity_lookback: 24
-  wick_skewness_lookback: 3
-
+  wick_skewness_lookback: 8
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
   temperature_draft: 0.3
   temperature_synthesis: 0.1
-
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-flash-latest
   temperature: 0.7
-
 reviewer:
   role_definition_prompt: src/agent/prompts/reviewer.md
   model: gemini-flash-latest
   temperature: 1.0
   execution_timeframe_interval: 1m
-
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-flash-latest
