@@ -54,7 +54,7 @@ class CoachOrchestrator:
         raw_analysis = self.coach.analyze(review_history)
 
         # 3. Archive the Strategic Report
-        self._archive_report(symbol, review_history, raw_analysis)
+        self._archive_report(symbol, raw_analysis)
 
     def _fetch_review_history(self, symbol: str, batch_size: Optional[int]) -> List[Dict[str, Any]]:
         """Scans the data directory for the latest forensic audits."""
@@ -82,7 +82,7 @@ class CoachOrchestrator:
         
         return history
 
-    def _archive_report(self, symbol: str, review_history: List[Dict[str, Any]], raw_analysis: str):
+    def _archive_report(self, symbol: str, raw_analysis: str):
         """Standardizes and saves the systemic coaching report."""
         coaches_dir = os.path.join(self.data_root, "coaches")
         os.makedirs(coaches_dir, exist_ok=True)
@@ -101,7 +101,6 @@ class CoachOrchestrator:
 
             final_record = {
                 "coach_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                "sample_size": len(review_history),
                 "strategic_analysis": analysis_data
             }
             
