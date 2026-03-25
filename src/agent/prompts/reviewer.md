@@ -32,9 +32,11 @@ To dissect the causal relationship between the historical market topography (T0)
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
 - **Ground Truth Execution**: {actual_outcome_metrics}
-- **Visual Evidence**: You are provided with 4 explicitly labeled image attachments:
-  - `T0 Historical Macro Snapshot` & `T0 Historical Micro Snapshot` (The Past setup)
-  - `T1 Current Macro Snapshot` & `T1 Current Micro Snapshot` (The Present outcome)
+- **Visual Evidence**: You are provided with 4 image attachments in the payload. Each image is immediately preceded by one of the following exact text labels:
+  - `T0 Historical Macro Snapshot`
+  - `T0 Historical Micro Snapshot`
+  - `T1 Current Macro Snapshot`
+  - `T1 Current Micro Snapshot`
 
 **[THE LAWS]**
 - **Strategist Directives**: {strategist_prompt}
@@ -55,7 +57,7 @@ To dissect the causal relationship between the historical market topography (T0)
    - Evaluate Pass-2 CRITIQUE: Did it identify the real threat and verify math?
    - Assess Pass-3 SYNTHESIS: Did it mathematically and structurally resolve the Critic's warnings?
 4. **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the actual duration. Flag severe miscalculations.
-5. **Shadow Counter-Position**: Extract T0 metrics or specific structural cues from the `T0 Historical` snapshots that contradicted the Final Decision. Prove negligence if the trade failed.
+5. **Shadow Counter-Position**: Extract specific metrics or structural cues from the `T0 Historical` snapshots that contradicted the Final Decision. Prove negligence if the trade failed.
 6. **Final Scoring**: Calculate the `evaluation_score` explicitly applying the `SCORING LAW`.
 
 # OUTPUT FORMAT (STRICT JSON)
