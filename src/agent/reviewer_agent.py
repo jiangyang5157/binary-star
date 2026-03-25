@@ -20,6 +20,7 @@ class ReviewerConfig:
     critic_prompt_path: str
     macro_interval: str
     micro_interval: str
+    execution_timeframe_interval: str
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -37,8 +38,9 @@ class ReviewerConfig:
             role_prompt_path=os.path.join(project_root, rev.get('role_definition_prompt')),
             strategist_prompt_path=os.path.join(project_root, strat.get('role_definition_prompt')),
             critic_prompt_path=os.path.join(project_root, crit.get('role_definition_prompt')),
-            macro_interval=obs.get('macro_analysis_context', {}).get('time_interval', '1h'),
-            micro_interval=obs.get('micro_analysis_context', {}).get('time_interval', '15m')
+            macro_interval=obs.get('macro_analysis_context', {}).get('time_interval'),
+            micro_interval=obs.get('micro_analysis_context', {}).get('time_interval'),
+            execution_timeframe_interval=rev.get('execution_timeframe_interval')
         )
 
 class ReviewerAgent:

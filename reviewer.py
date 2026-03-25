@@ -180,10 +180,22 @@ class ReviewerOrchestrator:
             logger.info(f"Auditing {symbol} from {dt_start} to {dt_fetch_end}...")
 
             # 1. Fetch & Calculate Outcome
+            # Use dynamic interval mapping to calculate how many klines we need
+            # This ensures we get the exact history from T0 (dt_start) to T1 (now)
+            fetch_interval = self.reviewer.config.execution_timeframe_interval
+            interval_map = {
+                "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
+                "1h": 3600, "4h": 14400, "1d": 86400
+            }
+            interval_seconds = interval_map.get(fetch_interval, 60)
+            duration_seconds = (dt_fetch_end - dt_start).total_seconds()
+            required_limit = int(duration_seconds / interval_seconds) + 2 # +2 safety buffer
+            target_limit = min(required_limit, 1500)
+
             klines = self.fetcher.fetch_historical_klines(
                 symbol=symbol, 
-                interval=self.reviewer.config.macro_interval, 
-                limit=1500,
+                interval=fetch_interval, 
+                limit=target_limit,
                 startTime=int(dt_start.timestamp() * 1000),
                 endTime=int(dt_fetch_end.timestamp() * 1000)
             )
