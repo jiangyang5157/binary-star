@@ -14,7 +14,9 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.agent_utils import read_prompt_template
-from src.utils.datetime_utils import format_datetime, get_current_utc_time, to_iso_zulu
+from src.utils.datetime_utils import (
+    format_datetime, get_current_utc_time, to_iso_zulu, get_interval_seconds
+)
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string
 
@@ -53,6 +55,9 @@ class ObserverConfig:
     lvn_sensitivity: float
     min_node_gap_price: int
     top_levels_to_report: int
+    funding_rate_limit: int
+    trend_intensity_lookback: int
+    wick_skewness_lookback: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -90,7 +95,10 @@ class ObserverConfig:
             hvn_sensitivity=float(obs.get('high_volume_peak_sensitivity', 1.2)),
             lvn_sensitivity=float(obs.get('low_volume_valley_sensitivity', 0.8)),
             min_node_gap_price=int(obs.get('min_price_gap_between_nodes', 50)),
-            top_levels_to_report=int(obs.get('top_structural_levels_to_report', 5))
+            top_levels_to_report=int(obs.get('top_structural_levels_to_report', 5)),
+            funding_rate_limit=int(obs.get('funding_rate_history_limit', 1)),
+            trend_intensity_lookback=int(obs.get('trend_intensity_lookback', 14)),
+            wick_skewness_lookback=int(obs.get('wick_skewness_lookback', 5))
         )
 
 @dataclass
@@ -104,6 +112,7 @@ class RawMarketData:
     micro_ls: List[Dict[str, Any]] = field(default_factory=list)
     current_oi: Optional[Dict[str, Any]] = None
     liquidations: List[Dict[str, Any]] = field(default_factory=list)
+    funding_rate: List[Dict[str, Any]] = field(default_factory=list)
 
 @dataclass
 class ProcessedMarketMetrics:
@@ -137,17 +146,13 @@ class MarketDataLoader:
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
-            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch) or []
+            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch) or [],
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=cfg.funding_rate_limit) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
         """Converts Binance interval strings to timedeltas."""
-        unit = interval[-1]
-        value = int(interval[:-1])
-        if unit == 'm': return timedelta(minutes=value)
-        if unit == 'h': return timedelta(hours=value)
-        if unit == 'd': return timedelta(days=value)
-        return timedelta(minutes=1)
+        return timedelta(seconds=get_interval_seconds(interval))
 
 class MarketMetricsRefiner:
     """Processes raw data into actionable technical and semantic metrics."""
@@ -178,10 +183,18 @@ class MarketMetricsRefiner:
         h, l, c = last['high'], last['low'], last['close']
         wick_skew = (c - l) / (h - l) if (h - l) > 0 else 0.5
         
+        atr_m = m_df['atr'].iloc[-1]
+        atr_n = n_df['atr'].iloc[-1]
+        
+        # Dynamic normalization: ratio of micro to macro seconds
+        ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
+        vol_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
+        
         return {
             "current_price": c,
-            "atr_macro": m_df['atr'].iloc[-1],
-            "atr_micro": n_df['atr'].iloc[-1],
+            "atr_macro": atr_m,
+            "atr_micro": atr_n,
+            "vol_ratio": f"{vol_ratio:.2f}",
             "wick_skewness": f"{wick_skew:.2f}"
         }
 
@@ -228,6 +241,7 @@ class MarketMetricsRefiner:
             "ls_ratio_macro": raw.macro_ls[0].get('longShortRatio') if raw.macro_ls else None,
             "ls_ratio_micro": raw.micro_ls[0].get('longShortRatio') if raw.micro_ls else None,
             "net_taker_delta": f"{cvd:.4f}",
+            "funding_rate": raw.funding_rate[0].get('fundingRate') if raw.funding_rate else None,
             "liquidations": self._parse_liquidations(raw.liquidations)
         }
 
@@ -290,9 +304,7 @@ class SemanticSynthesizer:
         return payload
 
     def _apply_schema_defaults(self, report: Dict[str, Any]) -> Dict[str, Any]:
-        keys = ["structural_proximity", "anomaly_detection", "regime_delta", "macro_topography", "micro_execution", "liquidity_architecture"]
-        for k in keys:
-            if k not in report: report[k] = "N/A"
+        """Passes through the report as-is, ensuring no hardcoded constraint on keys."""
         return report
 
 class ObserverAgent:
@@ -387,7 +399,9 @@ class ObserverAgent:
         rg_cfg = MarketRegimeConfig(
             bollinger_window=cfg.bb_period, bollinger_std_dev=cfg.bb_std_dev,
             keltner_window=cfg.kc_period, keltner_multiplier=cfg.kc_multiplier,
-            volume_ma_window=cfg.vol_ma_period, trend_threshold=cfg.regime_trend_threshold
+            volume_ma_window=cfg.vol_ma_period, trend_threshold=cfg.regime_trend_threshold,
+            trend_intensity_lookback=cfg.trend_intensity_lookback,
+            wick_skewness_lookback=cfg.wick_skewness_lookback
         )
         return MarketRegimeAnalyzer(config=rg_cfg)
 

@@ -6,7 +6,9 @@ from typing import Dict, List, Any, Optional
 
 from binance.um_futures import UMFutures
 from binance.error import ClientError
+import yaml
 from src.utils.logger_utils import setup_logger
+from src.utils.path_utils import resolve_project_root
 
 # Initialize project-standard logger
 logger = setup_logger(__name__)
@@ -39,6 +41,20 @@ class BinanceFuturesClient:
         else:
             logger.info("Initializing Binance client in public (unauthenticated) mode.")
             self.client = UMFutures()
+            
+        self.network_cfg = self._load_network_config()
+        self.timeout = self.network_cfg.get('binance', {}).get('api_timeout_seconds', 10)
+
+    def _load_network_config(self) -> Dict[str, Any]:
+        """Loads the network configuration from YAML."""
+        try:
+            cfg_path = os.path.join(resolve_project_root(), "config", "network_config.yaml")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, 'r') as f:
+                    return yaml.safe_load(f)
+        except Exception as e:
+            logger.warning(f"Failed to load network_config.yaml: {e}. Using defaults.")
+        return {}
 
     # --- Technical Market Data ---
 
@@ -73,7 +89,7 @@ class BinanceFuturesClient:
         # Fallback to public REST API
         try:
             url = f"https://fapi.binance.com/fapi/v1/allForceOrders?symbol={symbol}&limit={limit}"
-            resp = requests.get(url, timeout=10)
+            resp = requests.get(url, timeout=self.timeout)
             return resp.json() if resp.status_code == 200 else []
         except Exception as e:
             logger.error(f"Fallback liquidation fetch failed: {e}")

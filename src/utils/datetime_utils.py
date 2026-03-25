@@ -63,6 +63,21 @@ def to_iso_zulu(dt_obj: datetime) -> str:
         dt_obj = dt_obj.replace(tzinfo=timezone.utc)
     return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
+def get_interval_seconds(interval: str) -> int:
+    """
+    Converts a Binance interval string (e.g., '1h', '15m', '1d') to seconds.
+    """
+    unit = interval[-1]
+    try:
+        value = int(interval[:-1])
+    except ValueError:
+        return 60 # Default to 1m if malformed
+        
+    if unit == 'm': return value * 60
+    if unit == 'h': return value * 3600
+    if unit == 'd': return value * 86400
+    return 60
+
 # Aliases for backward compatibility
 get_utc_now = get_current_utc_time
 sanitize_timestamp = format_timestamp_for_filename

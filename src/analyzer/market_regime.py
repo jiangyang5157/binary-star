@@ -18,6 +18,8 @@ class MarketRegimeConfig:
     keltner_multiplier: float          # ATR multiplier for Keltner Channels
     volume_ma_window: int              # Window for volume moving average
     trend_threshold: float            # Threshold for trend intensity classification
+    trend_intensity_lookback: int      # Lookback for efficiency ratio
+    wick_skewness_lookback: int        # Lookback for wick analysis
 
 @dataclass(frozen=True)
 class RegimeResult:
@@ -63,7 +65,7 @@ class IndicatorEngine:
 
         # 3. Efficiency Ratio (Trend Intensity)
         # Abs(Total Price Change) / Sum(Abs(Individual Price Changes))
-        lookback = 14
+        lookback = self.config.trend_intensity_lookback
         price_diff = df['close'].diff()
         total_change = df['close'].iloc[-1] - df['close'].iloc[-lookback] if len(df) >= lookback else 0
         sum_abs_changes = price_diff.abs().rolling(window=lookback).sum().iloc[-1]
@@ -100,7 +102,7 @@ class RegimeClassifier:
         # 3. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
         if all(col in df.columns for col in ['open', 'high', 'low', 'close']):
-            recent = df.tail(5)
+            recent = df.tail(self.config.wick_skewness_lookback)
             up_wicks = (recent['high'] - np.maximum(recent['open'], recent['close'])).sum()
             lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
@@ -139,7 +141,9 @@ class MarketRegimeAnalyzer:
                 keltner_window=kwargs.get('kc_window', 20),
                 keltner_multiplier=kwargs.get('kc_mult', 1.5),
                 volume_ma_window=kwargs.get('vol_ma_window', 20),
-                trend_threshold=kwargs.get('trend_intensity_threshold', 0.6)
+                trend_threshold=kwargs.get('trend_intensity_threshold', 0.6),
+                trend_intensity_lookback=kwargs.get('trend_lookback', 14),
+                wick_skewness_lookback=kwargs.get('wick_lookback', 5)
             )
             
         self.engine = IndicatorEngine(self.config)

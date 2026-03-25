@@ -26,6 +26,9 @@ observer:
   low_volume_valley_sensitivity: 0.10
   min_price_gap_between_nodes: 10 
   top_structural_levels_to_report: 3
+  funding_rate_history_limit: 1
+  trend_intensity_lookback: 24
+  wick_skewness_lookback: 8
 
 strategist:
   role_definition_prompt: src/agent/prompts/prompt_strategist.md
