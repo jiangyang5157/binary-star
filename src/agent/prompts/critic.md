@@ -45,6 +45,6 @@ You MUST output a valid JSON object. Do NOT include conversational filler or mar
     "is_veto": boolean,
     "skepticism_score": 0-100,
     "adversarial_tone": "Harsh forensic summary of why this plan is logically or mathematically flawed.",
-    "hidden_risk": "Specific data-driven threat (e.g., 'CVD divergence at the local 15m edge suggests aggressive sellers are absorbing the move').",
-}
+    "hidden_risk": "Specific data-driven threat (e.g., 'CVD divergence at the local 15m edge suggests aggressive sellers are absorbing the move')."
+}}
 ```

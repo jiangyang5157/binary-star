@@ -53,12 +53,12 @@ You MUST output a valid JSON object. DO NOT include conversational filler.
 {{
     "opinion": "BULLISH/BEARISH/NEUTRAL",
     "confidence": 0-100,
-    "limit_order": { 
+    "limit_order": {{ 
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
         "holding_time_hours": decimal 
-    } or null,
+    }} or null,
     "reasoning": "Mathematical Scratchpad: [TP/SL Formulas] | Logic Synthesis...",
     "critic_impact": "Summary of how critic changed the plan (null in Pass DRAFTING)" or null
 }}
