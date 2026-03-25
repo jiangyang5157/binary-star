@@ -32,7 +32,9 @@ To dissect the causal relationship between the historical market topography (T0)
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
 - **Ground Truth Execution**: {actual_outcome_metrics}
-- **Visual Evidence**: [T0 MACRO/MICRO CHARTS] | [T1 MACRO/MICRO CHARTS]
+- **Visual Evidence**: You are provided with 4 explicitly labeled image attachments:
+  - `T0 Historical Macro Snapshot` & `T0 Historical Micro Snapshot` (The Past setup)
+  - `T1 Current Macro Snapshot` & `T1 Current Micro Snapshot` (The Present outcome)
 
 **[THE LAWS]**
 - **Strategist Directives**: {strategist_prompt}
@@ -46,14 +48,14 @@ To dissect the causal relationship between the historical market topography (T0)
 # ANALYTICAL TASKS
 **FORENSIC AUTOPSY**: Execute a step-by-step reconstruction.
 
-1. **Trajectory Reconstruction**: Contrast T0 visual/metric telemetry with T1. Define the objective market reality.
+1. **Trajectory Reconstruction**: Contrast the `T0 Historical` visual snapshots with the `T1 Current` visual snapshots. Cross-reference with telemetry. Define the objective market reality (e.g., did price gravitate towards the T0 HVN as expected?).
 2. **Protocol Compliance Audit**: Cross-reference the agents' actions against `The Laws`. Did the Strategist bypass its RR thresholds? Did the Critic enforce the Audit Codes?
 3. **Decision Chain Autopsy**: 
    - Isolate confirmation bias in Pass-1 DRAFTING.
    - Evaluate Pass-2 CRITIQUE: Did it identify the real threat and verify math?
    - Assess Pass-3 SYNTHESIS: Did it mathematically and structurally resolve the Critic's warnings?
 4. **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the actual duration. Flag severe miscalculations.
-5. **Shadow Counter-Position**: Extract T0 metrics/visual patterns that contradicted the Final Decision. Prove negligence if the trade failed.
+5. **Shadow Counter-Position**: Extract T0 metrics or specific structural cues from the `T0 Historical` snapshots that contradicted the Final Decision. Prove negligence if the trade failed.
 6. **Final Scoring**: Calculate the `evaluation_score` explicitly applying the `SCORING LAW`.
 
 # OUTPUT FORMAT (STRICT JSON)
@@ -66,14 +68,13 @@ You MUST output a valid JSON object. Do NOT include conversational filler or mar
 {{
   "evaluation_score": 0-100,
   "adversarial_audit": {{
-    "executed_order_audit": {
+    "executed_order_audit": {{
       "tp_sl_result": "TP_HIT / SL_HIT / NEITHER",
       "mae_stress_level": "Percentage (e.g., 45%)"
-    }, 
+    }}, 
     "protocol_breach": "Identify any broken rules from The Laws, or 'None'.",
-    "shadow_evidence": ["Metric X indicated Y...", "Visual pattern Z ignored..."],
+    "shadow_evidence": ["Metric X indicated Y...", "Visual pattern Z in T0 Macro ignored..."],
     "hallucination_detected": boolean
   }},
   "post_mortem": "A comprehensive technical report structured as: [TRAJECTORY REALITY] -> [PROTOCOL & DECISION CHAIN AUTOPSY] -> [MATH & TEMPORAL DIAGNOSTIC] -> [SCORING MATH & LOGIC EVOLUTION ADVICE]. Use nouns and verbs. Be ruthless."
 }}
-```
