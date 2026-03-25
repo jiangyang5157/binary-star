@@ -290,7 +290,7 @@ class SemanticSynthesizer:
         return payload
 
     def _apply_schema_defaults(self, report: Dict[str, Any]) -> Dict[str, Any]:
-        keys = ["structural_proximity", "anomaly_detection", "regime_delta", "macro_topography", "micro_execution"]
+        keys = ["structural_proximity", "anomaly_detection", "regime_delta", "macro_topography", "micro_execution", "liquidity_architecture"]
         for k in keys:
             if k not in report: report[k] = "N/A"
         return report

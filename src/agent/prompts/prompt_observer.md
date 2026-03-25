@@ -28,6 +28,8 @@ Volatility state, Breakout Ratio, Active vs. Passive aggression.
 Macro pivots, liquidity architecture, wick pressure (Skewness).
 ### Task 5: Micro Execution Context
 Local interactive behavior at boundaries.
+### Task 6: Liquidity Architecture Mapping
+Identification of major liquidity shelves, vacuum zones, and magnet nodes.
 
 # OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object.
@@ -39,6 +41,7 @@ You MUST output a valid JSON object.
     "anomaly_detection": "Concise paragraph on Task 2",
     "regime_delta": "Concise paragraph on Task 3",
     "macro_topography": "Concise paragraph on Task 4",
-    "micro_execution": "Concise paragraph on Task 5"
+    "micro_execution": "Concise paragraph on Task 5",
+    "liquidity_architecture": "Concise paragraph on Task 6"
 }}
 ```
