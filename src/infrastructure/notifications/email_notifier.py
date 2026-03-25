@@ -53,122 +53,187 @@ class StrategyEmailTemplate:
         # 1. Local Time Conversion (Device Local)
         utc_ts = obs.get("timestamp", "")
         try:
-            # astimezone() with no args uses the system's local timezone
             local_dt = datetime.fromisoformat(utc_ts.replace("Z", "+00:00")).astimezone()
             display_time = local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
         except Exception:
             display_time = utc_ts
 
-        # 2. Extract Key Metrics
+        # 2. Extract Data Suites
         metrics = obs.get("quantitative_metrics", {})
         dynamics = metrics.get("price_dynamics", {})
         regime = metrics.get("market_regime", {})
         sentiment = metrics.get("sentiment_signals", {})
+        structural = metrics.get("structural_anchors", {})
+        topography = metrics.get("volume_topography", {})
+        semantics = obs.get("semantic_analysis", {})
+        
+        critique = strategy_data.get("critique", {})
+        skepticism = critique.get("skepticism_score", 0)
         
         opinion = decision.get("opinion", "NEUTRAL").upper()
         confidence = decision.get("confidence", 0)
         reasoning = decision.get("reasoning", "No description provided.")
+        limit_order = decision.get("limit_order")
         
-        # UI Styling based on opinion
+        # 3. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
         icons = {"BULLISH": "📈", "BEARISH": "📉", "NEUTRAL": "↔️"}
         theme_color = colors.get(opinion, "#64748b")
         theme_icon = icons.get(opinion, "💡")
-
+        
+        # Formatting helper to handle None (null) values gracefully in the UI
+        fmt = lambda v: v if v is not None else "N/A"
+        
         return f"""
         <html>
-        <body style="font-family: 'Inter', system-ui, -apple-system, sans-serif; color: #1e293b; background: #f8fafc; padding: 20px;">
-            <div style="max-width: 800px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
-                
-                <!-- Header Section -->
-                <div style="text-align: center; margin-bottom: 35px;">
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155; margin: 0; padding: 20px; background-color: #f8fafc; }}
+                .container {{ max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 40px; border: 1px solid #e2e8f0; }}
+                .badge {{ display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }}
+                .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 35px; }}
+                .panel {{ background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; }}
+                .panel-title {{ margin: 0 0 10px 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
                         {theme_icon} MARKET {opinion}
                     </div>
                     <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Strategy Report</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
-                        Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | {display_time}
+                        Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
                 </div>
 
-                <!-- Strategic Summary (Draft -> Audit -> Synthesis Result) -->
-                <div style="background-color: #f1f5f9; padding: 25px; border-radius: 12px; border-left: 5px solid {theme_color}; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; display: flex; align-items: center;">
-                        <span style="margin-right: 8px;">🎯</span> Refined Strategic Reasoning
-                    </h3>
-                    <p style="font-size: 15px; line-height: 1.6; color: #1e293b; margin-bottom: 0;">{reasoning}</p>
-                </div>
-
-                <!-- Limit Order Section (If Present) -->
+                <!-- Adversarial Risk Disclosure -->
                 {f'''
-                <div style="background-color: {theme_color}08; padding: 25px; border-radius: 12px; border: 1px dashed {theme_color}50; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px;">🛠️ Execution Parameters</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background-color: #fff7ed; padding: 25px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
+                    <h3 style="margin: 0 0 10px 0; color: #9a3412; font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>⚠️ Forensic Risk Disclosure</span>
+                        <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Skepticism: {fmt(critique.get('skepticism_score'))}%</span>
+                    </h3>
+                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;"><strong>Hidden Risk:</strong> {fmt(critique.get('hidden_risk'))}</p>
+                </div>
+                ''' if critique else ""}
+
+                <!-- Strategic Reasoning -->
+                <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">⚡ Refined Strategic Reasoning</h3>
+                    <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
+                    
+                    {f'''
+                    <div style="background: #1e293b; padding: 20px; border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
                         <div>
-                            <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Entry</span><br>
-                            <span style="font-size: 18px; font-weight: 700; color: {theme_color};">{decision.get('limit_order', {}).get('entry', 'N/A')}</span>
+                            <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase;">Entry</span><br>
+                            <strong style="color: #ffffff; font-size: 16px;">{fmt(limit_order.get('entry'))}</strong>
                         </div>
                         <div>
-                                <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Stop Loss</span><br>
-                                <span style="font-size: 18px; font-weight: 700; color: #ef4444;">{decision.get('limit_order', {}).get('stop_loss', 'N/A')}</span>
+                            <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase;">Take Profit</span><br>
+                            <strong style="color: #10b981; font-size: 16px;">{fmt(limit_order.get('take_profit'))}</strong>
                         </div>
                         <div>
-                            <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Take Profit</span><br>
-                            <span style="font-size: 18px; font-weight: 700; color: #10b981;">{decision.get('limit_order', {}).get('take_profit', 'N/A')}</span>
+                            <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase;">Stop Loss</span><br>
+                            <strong style="color: #ef4444; font-size: 16px;">{fmt(limit_order.get('stop_loss'))}</strong>
                         </div>
-                        <div>
-                            <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Holding Time</span><br>
-                            <span style="font-size: 18px; font-weight: 700; color: #1e293b;">{decision.get('limit_order', {}).get('holding_time_hours', 'N/A')}h</span>
+                    </div>
+                    ''' if limit_order else ""}
+                </div>
+
+                <!-- Forensic Dashboard Grid -->
+                <div class="grid">
+                    <div class="panel">
+                        <h4 class="panel-title">Price Dynamics</h4>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+                            Price: <strong>{fmt(dynamics.get('current_price'))}</strong><br>
+                            Vol Ratio: <strong>{fmt(dynamics.get('vol_of_vol'))}</strong><br>
+                            Skewness: <strong>{fmt(dynamics.get('wick_skewness'))}</strong>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h4 class="panel-title">Market Regime</h4>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+                            Regime: <strong>{fmt(regime.get('market_regime'))}</strong><br>
+                            Intensity: <strong>{fmt(regime.get('trend_intensity'))}</strong><br>
+                            Squeeze: <strong>{fmt(regime.get('squeeze_factor'))}</strong>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h4 class="panel-title">Structural Anchors</h4>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+                            POC: <strong>{fmt(topography.get('poc'))}</strong><br>
+                            VAH: <strong>{fmt(topography.get('vah'))}</strong><br>
+                            VAL: <strong>{fmt(topography.get('val'))}</strong>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h4 class="panel-title">Sentiment Flow</h4>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+                            OI Nominal: <strong>{fmt(sentiment.get('oi_nominal'))}</strong><br>
+                            L/S Ratio: <strong>{fmt(sentiment.get('ls_ratio_macro'))}</strong><br>
+                            Funding: <strong>{fmt(sentiment.get('funding_rate'))}</strong>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h4 class="panel-title">Momentum Pulse</h4>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+                            CVD: <strong>{fmt(sentiment.get('cvd_trend'))}</strong><br>
+                            Net Taker Δ: <strong>{fmt(sentiment.get('net_taker_delta'))}</strong><br>
+                            OI Δ Micro: <strong>{fmt(sentiment.get('oi_delta_micro'))}</strong>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <h4 class="panel-title">Topography Nodes</h4>
+                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
+                            POC Δ ATR: <strong>{fmt(structural.get('poc_dist_atr'))}</strong><br>
+                            Anchors ↑: <strong>{len(topography.get('anchors_above', []))}</strong><br>
+                            Anchors ↓: <strong>{len(topography.get('anchors_below', []))}</strong>
                         </div>
                     </div>
                 </div>
-                ''' if decision.get('limit_order') else ""}
 
-                <!-- Dashboard Stats Grid -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 35px;">
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
-                        <h4 style="margin: 0 0 12px 0; color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Price Dynamics</h4>
-                        <div style="font-size: 14px; color: #334155; line-height: 1.8;">
-                            Price: <strong>{dynamics.get('current_price', 'N/A')}</strong><br>
-                            Vol-Ratio: <strong>{dynamics.get('vol_ratio', 'N/A')}</strong><br>
-                            Wick-Skew: <strong>{dynamics.get('wick_skewness', 'N/A')}</strong>
+                <!-- Intelligence Briefing -->
+                <div style="margin-bottom: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🕵️ Intelligence Briefing</h3>
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Structural Gravity</span>
+                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('structural_gravity'))}</p>
                         </div>
-                    </div>
-                    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
-                        <h4 style="margin: 0 0 12px 0; color: #64748b; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">Market Regime</h4>
-                        <div style="font-size: 14px; color: #334155; line-height: 1.8;">
-                            Regime: <strong>{regime.get('market_regime', 'N/A')}</strong><br>
-                            Trend: <strong>{regime.get('trend_intensity', 'N/A')}</strong><br>
-                            Squeeze: <strong>{regime.get('squeeze_factor', 'N/A')}</strong>
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Topographical Friction</span>
+                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('topographical_friction'))}</p>
+                        </div>
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
+                            <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Sentiment Flow</span>
+                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('sentiment_flow'))}</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Visual Assets (Charts) -->
-                <div id="charts-root">
-                    <!-- Placeholder for CID images -->
-                    <div style="margin-top: 30px; text-align: center;">
-                        <div style="margin-bottom: 30px;">
-                            <h4 style="color: #64748b; margin-bottom: 12px; font-size: 11px; text-transform: uppercase;">📊 Macro Topography Snapshot</h4>
-                            <img src="cid:macro_chart" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        </div>
-                        <div style="margin-bottom: 10px;">
-                            <h4 style="color: #64748b; margin-bottom: 12px; font-size: 11px; text-transform: uppercase;">🔍 Micro execution context</h4>
-                            <img src="cid:micro_chart" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        </div>
+                <!-- Visual Assets -->
+                <div id="charts-root" style="text-align: center;">
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📊 Strategic Topography Snapshots</h4>
+                    <div style="margin-bottom: 30px;">
+                        <img src="cid:macro_chart" style="max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    </div>
+                    <div>
+                        <img src="cid:micro_chart" style="max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     </div>
                 </div>
 
-                <!-- Forensic Detail (Raw JSON) -->
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
+                <!-- Footer -->
+                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
                     <details>
-                        <summary style="font-size: 13px; color: #94a3b8; cursor: pointer; font-weight: 600;">View Raw JSON</summary>
-                        <pre style="background: #0f172a; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(strategy_data, indent=2, ensure_ascii=False)}</code></pre>
+                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">View Raw JSON</summary>
+                        <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(strategy_data, indent=2, ensure_ascii=False)}</code></pre>
                     </details>
-                </div>
-
-                <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
-                    This is an auto-generated crypto strategy alert.
+                    <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
+                        This is an auto-generated email notification | Triggered by Crypto Strategy
+                    </div>
                 </div>
             </div>
         </body>
