@@ -31,7 +31,7 @@ To dissect the causal relationship between the historical market topography (T0)
 **[THE EVIDENCE]**
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
-- **Ground Truth Execution**: {actual_outcome_metrics}
+- **Ground Truth Execution**: {actual_outcome_metrics} (Contains the pre-calculated execution status, duration, and MAE percentage. **Trust and use these exact numbers for scoring.**)
 - **Visual Evidence**: You are provided with 4 image attachments in the payload. Each image is immediately preceded by one of the following exact text labels:
   - `T0 Historical Macro Snapshot`
   - `T0 Historical Micro Snapshot`
@@ -56,9 +56,9 @@ To dissect the causal relationship between the historical market topography (T0)
    - Isolate confirmation bias in Pass-1 DRAFTING.
    - Evaluate Pass-2 CRITIQUE: Did it identify the real threat and verify math?
    - Assess Pass-3 SYNTHESIS: Did it mathematically and structurally resolve the Critic's warnings?
-4. **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the actual duration. Flag severe miscalculations.
+4. **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the actual duration provided in `Ground Truth Execution`. Flag severe miscalculations.
 5. **Shadow Counter-Position**: Extract specific metrics or structural cues from the `T0 Historical` snapshots that contradicted the Final Decision. Prove negligence if the trade failed.
-6. **Final Scoring**: Calculate the `evaluation_score` explicitly applying the `SCORING LAW`.
+6. **Final Scoring**: Calculate the `evaluation_score` by directly applying the `SCORING LAW` to the pre-calculated metrics in `Ground Truth Execution`. Do not recalculate MAE manually.
 
 # OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
