@@ -103,7 +103,7 @@ class StrategyEmailTemplate:
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
                         {theme_icon} MARKET {opinion}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Strategy Report</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Signal Detected</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
