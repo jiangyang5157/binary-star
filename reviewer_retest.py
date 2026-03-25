@@ -129,7 +129,7 @@ def main():
     output_dir = os.path.join(PROJECT_ROOT, args.data_root, "reviewers")
     os.makedirs(output_dir, exist_ok=True)
     
-    output_filename = f"retest_{os.path.basename(args.file)}"
+    output_filename = f"reviewers_retest_{os.path.basename(args.file)}"
     output_path = os.path.join(output_dir, output_filename)
     
     with open(output_path, 'w', encoding='utf-8') as f:

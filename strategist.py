@@ -119,7 +119,7 @@ class StrategistOrchestrator:
         try:
             from src.infrastructure.notifications.email_notifier import StrategyNotifier
             notifier = StrategyNotifier(data_root=self.data_root)
-            notifier.notify_strategy(self.symbol, session_result)
+            notifier.notify_strategy(self.symbol, session_result, save_local=False)
         except Exception as e:
             logger.error(f"Notification service failure: {e}")
 

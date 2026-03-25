@@ -299,7 +299,7 @@ class StrategyNotifier:
     def enabled(self) -> bool:
         return self.config.enabled
 
-    def notify_strategy(self, symbol: str, strategy_data: Dict[str, Any]) -> bool:
+    def notify_strategy(self, symbol: str, strategy_data: Dict[str, Any], save_local: bool = True) -> bool:
         """
         Parses strategy result and dispatches an actionable email alert.
         """
@@ -314,7 +314,8 @@ class StrategyNotifier:
         }
 
         # 1. Local Preview (Useful for debugging/UI verification)
-        self.save_html_preview(symbol, html_body, attachments)
+        if save_local:
+            self.save_html_preview(symbol, html_body, attachments)
 
         if not self.enabled:
             return False
