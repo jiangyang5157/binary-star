@@ -17,25 +17,24 @@ from src.agent.critic_agent import CriticAgent
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
 from src.utils.json_utils import save_json
-from src.utils.datetime_utils import parse_iso_to_utc
+from src.utils.datetime_utils import parse_iso_to_utc, sanitize_timestamp
+from src.utils.path_utils import find_project_root
 
-# Setup logging
-logger = setup_logger("StrategistPipeline")
+# Initialize pipeline logger
+logger = setup_logger("TradingOrchestrator")
 
 def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: StrategistAgent, critic_agent: CriticAgent) -> Dict[str, Any]:
     """
-    Standardizes the 3-pass reasoning interaction:
-    1. Strategist Drafts
-    2. Critic Audits (Adversarial)
-    3. Strategist Synthesizes final decision
+    Standardizes the 3-pass reasoning interaction (Triad logic).
+    Maintained as a public function for backward compatibility with retest scripts.
     """
-    logger.info("Triad Step 1/3: Strategist is drafting initial plan...")
+    logger.info("Triad Step 1/3: Drafting initial strategic plan...")
     draft = strategist_agent.draft(observation)
     
-    logger.info("Triad Step 2/3: Critic is performing adversarial audit...")
+    logger.info("Triad Step 2/3: Performing adversarial audit...")
     critique = critic_agent.audit(observation, draft)
     
-    logger.info("Triad Step 3/3: Strategist is performing final synthesis...")
+    logger.info("Triad Step 3/3: Synthesizing final decision...")
     final_decision = strategist_agent.synthesize(observation, draft, critique)
     
     return {
@@ -45,16 +44,11 @@ def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: Strategis
         "final_decision": final_decision
     }
 
-def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_root: str, target_dir: str):
+def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_root: str, target_dir: str) -> str:
     """
     Standardized archival for all pipeline results.
-    Ensures synchronized timestamps and directory structure.
+    Maintained as a public function for consistency.
     """
-    import os
-    from src.utils.datetime_utils import sanitize_timestamp
-    
-    # Resolve directory relative to project root (in case of relative paths)
-    from src.utils.path_utils import find_project_root
     project_root = find_project_root()
     output_dir = os.path.join(project_root, data_root, target_dir)
     os.makedirs(output_dir, exist_ok=True)
@@ -66,91 +60,94 @@ def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_
     
     save_json(result, output_file)
     return output_file
-    
-def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_root: Optional[str] = None):
-    """
-    Main Fresh Pipeline: Observer -> (Draft -> Audit -> Synthesis)
-    """
-    logger.info(f"=== Starting Fresh Strategist Pipeline for {symbol} ===")
-    
-    config = load_config()
-    # paths_config = config['paths']  # Removed
-    load_dotenv()
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        logger.error("GEMINI_API_KEY not found in environment")
-        return
 
-    # Parse historical timestamp if provided
-    timestamp = None
-    if timestamp_str:
+class TradingOrchestrator:
+    """
+    Orchestrates the end-to-end trading intelligence pipeline:
+    Observation -> Drafting -> Auditing -> Synthesis -> Notification -> Archival.
+    """
+    def __init__(self, symbol: str, data_root: str = "data"):
+        self.symbol = symbol
+        self.data_root = data_root
+        self.config = load_config()
+        
+        load_dotenv()
+        self.api_key = os.environ.get("GEMINI_API_KEY")
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment")
+            
+        # Initialize specialized agents
+        self.observer = ObserverAgent(self.config, symbol, api_key=self.api_key, data_root=data_root)
+        self.strategist = StrategistAgent(self.config, api_key=self.api_key)
+        self.critic = CriticAgent(self.config, api_key=self.api_key)
+
+    def execute_pipeline(self, timestamp_str: Optional[str] = None):
+        """Runs the complete fresh prediction cycle."""
+        logger.info(f"=== Starting Trading Pipeline for {self.symbol} ===")
+        
+        # 1. Prepare temporal context
+        timestamp = parse_iso_to_utc(timestamp_str) if timestamp_str else None
+
         try:
-            timestamp = parse_iso_to_utc(timestamp_str)
-        except ValueError:
-            logger.error(f"Invalid timestamp format: {timestamp_str}")
-            return
+            # 2. Stage 1: Observe (Market Topography)
+            logger.info("Stage 1: Gathering market facts...")
+            observation = self.observer.observe(timestamp=timestamp, data_root=self.data_root)
+            
+            # 3. Stages 2-4: Reasoning Triad (Draft -> Audit -> Synthesis)
+            session_result = run_full_triad_flow(observation, self.strategist, self.critic)
+            
+            # 4. Stage 5: Notification (Actionable Alerts)
+            # self._handle_notifications(session_result)
 
-    # Use "data" as default if data_root not provided
-    final_data_root = data_root or "data"
+            # 5. Stage 6: Archival (Forensic History)
+            output_file = archive_strategy_result(
+                symbol=self.symbol, 
+                timestamp=observation.get('timestamp'), 
+                result=session_result, 
+                data_root=self.data_root, 
+                target_dir="strategies"
+            )
+            logger.info(f"Pipeline complete. Strategy archived at: {output_file}")
 
-    try:
-        # 1. Initialize Agents
-        observer = ObserverAgent(config, symbol, api_key=api_key, data_root=final_data_root)
-        strategist = StrategistAgent(config, api_key=api_key)
-        critic = CriticAgent(config, api_key=api_key)
+        except Exception as e:
+            logger.error(f"Pipeline execution failed: {e}", exc_info=True)
+        finally:
+            logger.info("=== Pipeline Operation Concluded ===")
 
-        # 2. Stage 1: Observe
-        logger.info(f"Stage 1: Gathering facts for {symbol}...")
-        observation = observer.observe(timestamp=timestamp, data_root=final_data_root)
-        
-        # 3. Stages 2-4: Reasoning Triad (Draft -> Audit -> Synthesis)
-        result = run_full_triad_flow(observation, strategist, critic)
-        
-        # 4. Notifications
-        _handle_notification(symbol, result, config)
+    def _handle_notifications(self, session_result: Dict[str, Any]):
+        """Manages external alerts based on decision confidence."""
+        try:
+            final_decision = session_result["final_decision"]
+            confidence = final_decision.get('confidence', 0)
+            threshold = self.config['strategist']['minimum_strategy_confidence_score']
+            
+            if confidence >= threshold:
+                logger.info(f"High Confidence ({confidence}% >= {threshold}%). Dispatching alerts...")
+                from src.utils.notifier import EmailNotifier
+                notifier = EmailNotifier(self.config)
+                if notifier.enabled:
+                    visual_assets = session_result["observation"].get("visual_assets", {})
+                    charts = [path for path in visual_assets.values() if path]
+                    notifier.send_prediction_alert(self.symbol, final_decision, chart_paths=charts)
+            else:
+                logger.info(f"Low Confidence ({confidence}% < {threshold}%). Skipping alerts.")
+        except Exception as e:
+            logger.error(f"Notification service failure: {e}")
 
-        # 5. Archive
-        output_file = archive_strategy_result(
-            symbol=symbol, 
-            timestamp=observation.get('timestamp'), 
-            result=result, 
-            data_root=final_data_root, 
-            target_dir="strategies"
-        )
-        logger.info(f"Full Strategy archived to: {output_file}")
-
-    except Exception as e:
-        logger.error(f"Pipeline failed: {e}", exc_info=True)
-    finally:
-        logger.info("=== Pipeline Complete ===")
-
-def _handle_notification(symbol, session_result, config):
-    """Helper to manage alerts based on confidence."""
-
-    # notification_config = config['notification'] # Singular
-    try:
-        final_decision = session_result["final_decision"]
-        confidence = final_decision.get('confidence', 0)
-        min_confidence = config['strategist']['minimum_strategy_confidence_score']
-        
-        if confidence >= min_confidence:
-            logger.info(f"Confidence {confidence}% >= Threshold {min_confidence}%. Triggering notification...")
-            from src.utils.notifier import EmailNotifier
-            notifier = EmailNotifier(config)
-            if notifier.enabled:
-                chart_paths = session_result["observation"].get("visual_assets", {})
-                notifier_charts = [p for p in chart_paths.values() if p]
-                notifier.send_prediction_alert(symbol, final_decision, chart_paths=notifier_charts)
-        else:
-            logger.info(f"Confidence {confidence}% below threshold. Skipping notification.")
-    except Exception as e:
-        logger.error(f"Notification failure: {e}")
-
-if __name__ == "__main__":
+def main():
+    """CLI entry point for the Trading Orchestrator."""
     parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
     parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
-    parser.add_argument("--data_root", type=str, help="Data directory override")
+    parser.add_argument("--data_root", type=str, default="data", help="Data directory root")
     args = parser.parse_args()
     
-    run_pipeline(symbol=args.symbol, timestamp_str=args.timestamp, data_root=args.data_root)
+    try:
+        orchestrator = TradingOrchestrator(symbol=args.symbol, data_root=args.data_root)
+        orchestrator.execute_pipeline(timestamp_str=args.timestamp)
+    except Exception as e:
+        logger.error(f"Failed to initialize orchestrator: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
