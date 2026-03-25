@@ -51,9 +51,9 @@ def main():
         logger.info("Ingesting standalone observation file. Wrapping in mock session.")
         session = {
             "observation": data,
-            "draft": data.get("semantic_analysis", {}).get("logic_draft", {"status": "MOCK"}),
-            "critique": {"audit_findings": "MOCK_AUDIT - Retest Mode"},
-            "final_decision": {"opinion": "NEUTRAL", "reason": "Retest context."}
+            "draft": {"opinion": "NEUTRAL", "reasoning": "Mock data."},
+            "critique": {"adversarial_tone": "MOCK_AUDIT - Retest Mode"},
+            "final_decision": {"opinion": "NEUTRAL", "reasoning": "Retest context."}
         }
     else:
         logger.info("Ingesting full strategy session file.")
@@ -94,7 +94,7 @@ def main():
     #     "max_favorable_runup_pct": 3.5,
     #     "max_adverse_drawdown_pct": -0.2,
     #     "audit_duration_candles": 12,
-    #     "executed_order_audit": {"tp_sl_result": "TP_HIT", "mae_stress_level": "15%"}
+    #     "trade_execution_metrics": {"tp_sl_result": "TP_HIT", "mae_stress_level": "15%"}
     # }
     # 
     # Example 2: SL_HIT (Critical Failure)
@@ -107,7 +107,7 @@ def main():
     #     "max_favorable_runup_pct": 0.3,
     #     "max_adverse_drawdown_pct": -2.1,
     #     "audit_duration_candles": 5,
-    #     "executed_order_audit": {"tp_sl_result": "SL_HIT", "mae_stress_level": "100%"}
+    #     "trade_execution_metrics": {"tp_sl_result": "SL_HIT", "mae_stress_level": "100%"}
     # }
 
     audit_result = reviewer.review(
@@ -119,7 +119,7 @@ def main():
             "max_favorable_runup_pct": 0.0,
             "max_adverse_drawdown_pct": 0.0,
             "audit_duration_candles": 1,
-            "executed_order_audit": None
+            "trade_execution_metrics": None
         },
         current_observation=obs,
         visual_context=visual_context
@@ -149,7 +149,7 @@ def main():
         "audit_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "strategy_session": session,
         "market_outcome": {
-            "executed_order_audit": None
+            "trade_execution_metrics": None
         },
         "audit_findings": audit_result
     }
