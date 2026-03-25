@@ -115,20 +115,11 @@ class TradingOrchestrator:
             logger.info("=== Pipeline Operation Concluded ===")
 
     def _handle_notifications(self, session_result: Dict[str, Any]):
-        """Manages external alerts based on decision confidence."""
+        """Delegates notification filtering to the Smart Notifier."""
         try:
-            final_decision = session_result["final_decision"]
-            confidence = final_decision.get('confidence', 0)
-            threshold = self.config['strategist']['minimum_strategy_confidence_score']
-            
-            if confidence >= threshold:
-                logger.info(f"High Confidence ({confidence}% >= {threshold}%). Dispatching alerts...")
-                from src.infrastructure.notifications.email_notifier import StrategyNotifier
-                notifier = StrategyNotifier(data_root=self.data_root)
-                if notifier.enabled:
-                    notifier.notify_strategy(self.symbol, session_result)
-            else:
-                logger.info(f"Low Confidence ({confidence}% < {threshold}%). Skipping alerts.")
+            from src.infrastructure.notifications.email_notifier import StrategyNotifier
+            notifier = StrategyNotifier(data_root=self.data_root)
+            notifier.notify_strategy(self.symbol, session_result)
         except Exception as e:
             logger.error(f"Notification service failure: {e}")
 

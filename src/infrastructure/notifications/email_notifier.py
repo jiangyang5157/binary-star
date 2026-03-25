@@ -288,6 +288,7 @@ class StrategyNotifier:
     High-level facade for dispatching trading strategy alerts.
     Orchestrates template rendering and email dispatching.
     """
+    MIN_CONFIDENCE_THRESHOLD = 60
     
     def __init__(self, data_root: str = "data"):
         self.config = NotificationConfig.from_env()
@@ -320,6 +321,12 @@ class StrategyNotifier:
             
         opinion = strategy_data.get("final_decision", {}).get("opinion", "NEUTRAL")
         confidence = strategy_data.get("final_decision", {}).get("confidence", 0)
+        
+        # Hardcoded Filter: Only notify if confidence >= MIN_CONFIDENCE_THRESHOLD
+        if confidence < self.MIN_CONFIDENCE_THRESHOLD:
+            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.MIN_CONFIDENCE_THRESHOLD}%). Skipping dispatch.")
+            return False
+            
         subject = f"Crypto: {symbol} [{opinion}] ({confidence}%)"
         
         # 2. Dispatch Email

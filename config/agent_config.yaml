@@ -35,7 +35,6 @@ strategist:
   model: gemini-flash-latest
   temperature_draft: 0.3
   temperature_synthesis: 0.1
-  minimum_strategy_confidence_score: 60
 
 critic:
   role_definition_prompt: src/agent/prompts/prompt_critic.md
