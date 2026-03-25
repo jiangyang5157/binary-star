@@ -44,14 +44,14 @@ class OutcomeCalculator:
         final_close = closes[-1]
         
         result = {
-            "start_price": entry_price,
-            "max_p": max_price,
-            "min_p": min_price,
-            "final_p": final_close,
-            "change_pct": round(((final_close - entry_price) / entry_price) * 100, 2),
-            "drawup_pct": round(((max_price - entry_price) / entry_price) * 100, 2),
-            "drawdown_pct": round(((min_price - entry_price) / entry_price) * 100, 2),
-            "bars": len(klines),
+            "entry_price_at_t0": entry_price,
+            "highest_reached_price": max_price,
+            "lowest_reached_price": min_price,
+            "exit_price_at_t1": final_close,
+            "total_price_change_pct": round(((final_close - entry_price) / entry_price) * 100, 2),
+            "max_favorable_runup_pct": round(((max_price - entry_price) / entry_price) * 100, 2),
+            "max_adverse_drawdown_pct": round(((min_price - entry_price) / entry_price) * 100, 2),
+            "audit_duration_candles": len(klines),
             "order_audit": None
         }
         
