@@ -186,16 +186,23 @@ class MarketMetricsRefiner:
         atr_m = m_df['atr'].iloc[-1]
         atr_n = n_df['atr'].iloc[-1]
         
-        # Dynamic normalization: ratio of micro to macro seconds
+        # 1. Vol-Ratio (Micro vs Macro)
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
         vol_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
+        
+        # 2. Vol-of-Vol (Current Macro ATR vs Historical Average)
+        # We use a lookback of 24 for the average-of-average
+        avg_atr_lookback = min(24, len(m_df))
+        mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
+        atr_rel_pct = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
         return {
             "current_price": c,
             "atr_macro": atr_m,
             "atr_micro": atr_n,
             "vol_ratio": f"{vol_ratio:.2f}",
-            "wick_skewness": f"{wick_skew:.2f}"
+            "wick_skewness": f"{wick_skew:.2f}",
+            "vol_of_vol": f"{atr_rel_pct:.2f}" # > 1.0 means current volatility is expanding beyond its own average
         }
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:
@@ -222,11 +229,27 @@ class MarketMetricsRefiner:
         }
 
     def _derive_sentiment(self, raw: RawMarketData) -> Dict[str, Any]:
-        cvd = 0.0
+        cvd_current = 0.0
+        cvd_prev = 0.0
+        
         if raw.micro_klines:
-            for k in raw.micro_klines[-self.config.taker_vol_delta_lookback:]:
+            lookback = self.config.taker_vol_delta_lookback
+            # Current window
+            curr_window = raw.micro_klines[-lookback:]
+            for k in curr_window:
                 v, tb = float(k[5]), float(k[9])
-                cvd += (tb - (v - tb))
+                cvd_current += (tb - (v - tb))
+            
+            # Previous window (for slope)
+            if len(raw.micro_klines) >= lookback * 2:
+                prev_window = raw.micro_klines[-(lookback*2):-lookback]
+                for k in prev_window:
+                    v, tb = float(k[5]), float(k[9])
+                    cvd_prev += (tb - (v - tb))
+        
+        cvd_slope = "STABLE"
+        if cvd_current > cvd_prev + 1.0: cvd_slope = "UPWARD"
+        elif cvd_current < cvd_prev - 1.0: cvd_slope = "DOWNWARD"
 
         cur_oi = float(raw.current_oi.get('openInterest', 0)) if raw.current_oi else 0
         def oi_delta(hist):
@@ -240,20 +263,36 @@ class MarketMetricsRefiner:
             "oi_delta_micro": oi_delta(raw.micro_oi),
             "ls_ratio_macro": raw.macro_ls[0].get('longShortRatio') if raw.macro_ls else None,
             "ls_ratio_micro": raw.micro_ls[0].get('longShortRatio') if raw.micro_ls else None,
-            "net_taker_delta": f"{cvd:.4f}",
+            "net_taker_delta": f"{cvd_current:.4f}",
+            "cvd_trend": cvd_slope,
             "funding_rate": raw.funding_rate[0].get('fundingRate') if raw.funding_rate else None,
-            "liquidations": self._parse_liquidations(raw.liquidations)
+            "liquidation_clusters": self._parse_liquidations_to_clusters(raw.liquidations)
         }
 
-    def _parse_liquidations(self, liqs: List[Dict]) -> Optional[List[Dict[str, Any]]]:
+    def _parse_liquidations_to_clusters(self, liqs: List[Dict]) -> Optional[Dict[str, Any]]:
+        """Groups raw liquidations into price clusters for identifying liquidity magnets."""
         if not liqs: return None
-        sorted_liqs = sorted(liqs, key=lambda x: float(x.get('qty', 0)), reverse=True)
-        return [{
-            "side": l.get('side'),
-            "price": float(l.get('price', 0)),
-            "qty": float(l.get('qty', 0)),
-            "time": datetime.fromtimestamp(l.get('time', 0)/1000, tz=timezone.utc).strftime('%H:%M:%S')
-        } for l in sorted_liqs[:self.config.max_liq_for_ai]]
+        
+        # 1. Price Bucket (0.5% resolution)
+        prices = [float(l.get('price', 0)) for l in liqs]
+        if not prices: return None
+        
+        avg_p = sum(prices) / len(prices)
+        bucket_size = avg_p * 0.005 # 0.5% clusters
+        
+        clusters = {}
+        for l in liqs:
+            p = float(l.get('price', 0))
+            bucket = round(p / bucket_size) * bucket_size
+            key = f"{bucket:.2f}"
+            if key not in clusters:
+                clusters[key] = {"total_qty": 0, "count": 0, "side": l.get('side')}
+            clusters[key]["total_qty"] += float(l.get('qty', 0))
+            clusters[key]["count"] += 1
+            
+        # 2. Return top 3 clusters by volume
+        sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
+        return {k: v for k, v in sorted_clusters[:3]}
 
 class SemanticSynthesizer:
     """Orchestrates AI multi-modal synthesis to generate qualitative insights."""
