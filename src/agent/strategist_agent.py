@@ -17,7 +17,6 @@ class StrategistConfig:
     role_prompt_path: str
     temperature_draft: float
     temperature_synthesis: float
-    min_confidence: int
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -27,8 +26,7 @@ class StrategistConfig:
             model=strat.get('model'),
             role_prompt_path=os.path.join(resolve_project_root(), strat.get('role_definition_prompt')),
             temperature_draft=float(strat.get('temperature_draft')),
-            temperature_synthesis=float(strat.get('temperature_synthesis')),
-            min_confidence=int(strat.get('minimum_strategy_confidence_score'))
+            temperature_synthesis=float(strat.get('temperature_synthesis'))
         )
 
 class StrategistAgent:
