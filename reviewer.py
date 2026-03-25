@@ -193,18 +193,28 @@ class ReviewerOrchestrator:
 
             outcome = OutcomeCalculator.calculate(klines, float(klines[0][1]), strategy)
 
-            # 2. Multimedia & Context
-            chart_paths = self._resolve_charts(session)
+            # 2. Multimedia & Visual Forensic Context
             if symbol not in self.observers:
                 self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key)
             current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
 
-            # 3. AI Audit
+            t0_assets = session.get("observation", {}).get("visual_assets", {})
+            t1_assets = current_obs.get("visual_assets", {})
+
+            # Resolve absolute paths for all assets
+            visual_context = {
+                "t0_macro": self._resolve_abs_path(t0_assets.get("macro_snapshot")),
+                "t0_micro": self._resolve_abs_path(t0_assets.get("micro_snapshot")),
+                "t1_macro": self._resolve_abs_path(t1_assets.get("macro_snapshot")),
+                "t1_micro": self._resolve_abs_path(t1_assets.get("micro_snapshot"))
+            }
+
+            # 3. AI Forensic Audit
             audit_result = self.reviewer.review(
                 historical_strategy=session,
                 actual_outcome=outcome,
                 current_observation=current_obs,
-                chart_image_paths=chart_paths
+                visual_context=visual_context
             )
 
             # 4. Persist
@@ -238,16 +248,14 @@ class ReviewerOrchestrator:
         except: pass
         return min(holding, macro_hours)
 
-    def _resolve_charts(self, session: Dict[str, Any]) -> List[str]:
-        """Resolves absolute paths for chart visual assets."""
-        paths = []
-        assets = session.get("observation", {}).get("visual_assets", {})
-        for path in assets.values():
-            if path:
-                abs_p = os.path.join(PROJECT_ROOT, path)
-                if os.path.exists(abs_p):
-                    paths.append(abs_p)
-        return paths
+    def _resolve_abs_path(self, path: Optional[str]) -> Optional[str]:
+        """Resolves a relative path to an absolute project-root path."""
+        if not path:
+            return None
+        if os.path.isabs(path):
+            return path
+        abs_p = os.path.join(PROJECT_ROOT, path)
+        return abs_p if os.path.exists(abs_p) else None
 
 def main():
     parser = argparse.ArgumentParser(description="Reviewer Orchestrator - Post-Mortem Audit Pipeline")

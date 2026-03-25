@@ -49,7 +49,11 @@ To synthesize objective market topography into actionable limit orders. You must
 [[[/PASS: SYNTHESIS]]]
 
 # OUTPUT FORMAT (STRICT JSON)
-You MUST output a valid JSON object. DO NOT include conversational filler.
+You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
+
+**NULL MANDATES**:
+1. If `opinion` is "NEUTRAL", you MUST set the entire `limit_order` object strictly to `null`. Do not invent entry or exit prices.
+2. In Pass: DRAFTING, you MUST set `critic_impact` strictly to `null`.
 
 ### SCHEMA
 ```json
@@ -61,8 +65,8 @@ You MUST output a valid JSON object. DO NOT include conversational filler.
         "take_profit": decimal,
         "stop_loss": decimal,
         "holding_time_hours": decimal
-    }} or null,
+    }},
     "reasoning": "Mathematical Scratchpad: [TP/SL Formulas] | Logic Synthesis...",
-    "critic_impact": "Summary of how critic changed the plan (null in Pass DRAFTING)" or null
+    "critic_impact": "Summary of how critic changed the plan (null in Pass DRAFTING)"
 }}
 ```

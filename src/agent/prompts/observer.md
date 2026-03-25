@@ -47,7 +47,9 @@ Perform a forensic mapping of the market topography across 6 distinct dimensions
 6. **Synthesized Topography**: A concise technical summary of the "As-Is" market map. Identify the **Key Structural Conflict** currently governing the price action.
 
 # OUTPUT FORMAT (STRICT JSON)
-Your response must be a valid JSON object. Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
+You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
+
+Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
 
 ### SCHEMA
 ```json

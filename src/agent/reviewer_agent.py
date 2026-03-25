@@ -63,7 +63,7 @@ class ReviewerAgent:
     def review(self, historical_strategy: Dict[str, Any], 
                actual_outcome: Dict[str, Any],
                current_observation: Optional[Dict[str, Any]] = None,
-               chart_image_paths: Optional[List[str]] = None) -> Dict[str, Any]:
+               visual_context: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
         Executes a multimodal post-mortem audit of a historical trading session.
         
@@ -71,14 +71,16 @@ class ReviewerAgent:
             historical_strategy: The full results from a previous triad run.
             actual_outcome: Data describing what actually happened in the market.
             current_observation: Latest market state for context.
-            chart_image_paths: Optional paths to visual kline data.
+            visual_context: Structured dict containing paths to:
+                - t0_macro, t0_micro
+                - t1_macro, t1_micro
             
         Returns:
             A structured JSON-like dictionary containing the audit findings.
         """
         logger.info(f"Reviewer: Auditing historical strategy session...")
         prompt = self._build_prompt(historical_strategy, actual_outcome, current_observation)
-        return self._execute_ai_cycle(prompt, chart_image_paths)
+        return self._execute_ai_cycle(prompt, visual_context)
 
     def _build_prompt(self, strategy: Dict[str, Any], 
                       outcome: Dict[str, Any], 
@@ -90,36 +92,50 @@ class ReviewerAgent:
         strategist_prompt = read_prompt_template(self.config.strategist_prompt_path)
         critic_prompt = read_prompt_template(self.config.critic_prompt_path)
         
-        # Prepare context data
+        # Prepare context data (Aligned with forensic schema)
         context = {
             "historical_observation": json.dumps(strategy.get("observation"), indent=2, ensure_ascii=False),
-            "actual_outcome_metrics": json.dumps(outcome, indent=2, ensure_ascii=False),
-            "current_observation": json.dumps(observation, indent=2, ensure_ascii=False) if observation else "N/A",
-            "current_config": json.dumps(self.raw_config, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(strategy.get("draft"), indent=2, ensure_ascii=False),
             "critique_against_draft_plan": json.dumps(strategy.get("critique"), indent=2, ensure_ascii=False),
             "final_decision": json.dumps(strategy.get("final_decision"), indent=2, ensure_ascii=False),
+            "actual_outcome_metrics": json.dumps(outcome, indent=2, ensure_ascii=False),
+            "current_observation": json.dumps(observation, indent=2, ensure_ascii=False) if observation else "N/A",
             "strategist_prompt": strategist_prompt,
             "critic_prompt": critic_prompt,
-            "macro_interval": self.config.macro_interval,
-            "micro_interval": self.config.micro_interval,
         }
         
         try:
             return template.format(**context)
         except KeyError as e:
-            logger.warning(f"Reviewer: Missing prompt placeholder: {e}")
+            logger.warning(f"Reviewer: Missing prompt placeholder in template: {e}")
             return template
 
-    def _execute_ai_cycle(self, prompt: str, image_paths: Optional[List[str]]) -> Dict[str, Any]:
-        """Core AI execution logic for the audit session."""
+    def _execute_ai_cycle(self, prompt: str, visual_context: Optional[Dict[str, str]]) -> Dict[str, Any]:
+        """Core AI execution logic for the multimodal audit session."""
         try:
             logger.info(f"Invoking Reviewer Agent ({self.config.model})...")
             
-            # TODO: Implement multimodal support if image_paths are provided
-            # For now, focus on text-based forensic audit
+            # 1. Coordinate File Uploads for Visual Forensic
             contents = [prompt]
+            if visual_context:
+                labels = {
+                    "t0_macro": "T0 Historical Macro Snapshot",
+                    "t0_micro": "T0 Historical Micro Snapshot",
+                    "t1_macro": "T1 Current Macro Snapshot",
+                    "t1_micro": "T1 Current Micro Snapshot"
+                }
+                
+                for key, path in visual_context.items():
+                    if path and os.path.exists(path):
+                        label = labels.get(key, f"Visual Supplement: {key}")
+                        logger.info(f"Reviewer: Uploading forensic asset: {label} ({path})")
+                        
+                        # Upload to Gemini File API
+                        file_obj = self.client.files.upload(file=path)
+                        contents.append(f"\n{label}:")
+                        contents.append(file_obj)
             
+            # 2. Execution
             response = self.client.models.generate_content(
                 model=self.config.model,
                 contents=contents,
