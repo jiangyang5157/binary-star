@@ -10,7 +10,7 @@ observer:
     historical_lookback_candles: 192
   volume_profile_value_area_width: 0.75
   volume_profile_price_buckets_count: 300
-  taker_volume_delta_lookback_period: 8
+  taker_volume_delta_lookback_period: 4
   market_regime_trend_strength_threshold: 0.8
   average_true_range_period: 21
   bollinger_bands_period: 21
@@ -23,12 +23,12 @@ observer:
   high_volume_peak_count: 3
   low_volume_valley_count: 3
   high_volume_peak_sensitivity: 0.15 
-  low_volume_valley_sensitivity: 0.10
-  min_price_gap_between_nodes: 10 
+  low_volume_valley_sensitivity: 0.05
+  min_price_gap_between_nodes: 50 
   top_structural_levels_to_report: 3
   funding_rate_history_limit: 1
   trend_intensity_lookback: 24
-  wick_skewness_lookback: 8
+  wick_skewness_lookback: 3
 
 strategist:
   role_definition_prompt: src/agent/prompts/prompt_strategist.md
