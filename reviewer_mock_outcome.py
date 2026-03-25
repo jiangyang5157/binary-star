@@ -129,7 +129,7 @@ def main():
     output_dir = os.path.join(PROJECT_ROOT, args.data_root, "reviewers")
     os.makedirs(output_dir, exist_ok=True)
     
-    # Extract metadata for standardized naming: SYMBOL_reviewers_YYYYMMDD_HHMMSS.json
+    # Extract metadata for standardized naming: SYMBOL_reviewers_mock_outcome_YYYYMMDD_HHMMSS.json
     observation = session.get("observation", {})
     symbol = observation.get("symbol", "UNKNOWN")
     raw_ts = observation.get("timestamp", "")
@@ -141,7 +141,7 @@ def main():
     else:
         ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
-    output_filename = f"{symbol}_reviewers_{ts_str}.json"
+    output_filename = f"{symbol}_reviewers_mock_outcome_{ts_str}.json"
     output_path = os.path.join(output_dir, output_filename)
     
     # Standardized record format (Omitting redundant top-level symbol)
