@@ -81,7 +81,7 @@ class TestStrategyNotifier(unittest.TestCase):
         """Verify that the HTML preview is saved to the correct directory."""
         notifier = StrategyNotifier(data_root="data/tests")
         html = "<html>Test</html>"
-        path = notifier.save_html_preview("TEST_SYMBOL", html)
+        path = notifier.save_html_preview("TEST_SYMBOL", html, {})
         
         self.assertIsNotNone(path)
         self.assertTrue(os.path.exists(path))

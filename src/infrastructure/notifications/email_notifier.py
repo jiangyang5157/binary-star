@@ -99,6 +99,31 @@ class StrategyEmailTemplate:
                     <p style="font-size: 15px; line-height: 1.6; color: #1e293b; margin-bottom: 0;">{reasoning}</p>
                 </div>
 
+                <!-- Limit Order Section (If Present) -->
+                {f'''
+                <div style="background-color: {theme_color}08; padding: 25px; border-radius: 12px; border: 1px dashed {theme_color}50; margin-bottom: 35px;">
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px;">🛠️ Execution Parameters</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Entry</span><br>
+                            <span style="font-size: 18px; font-weight: 700; color: {theme_color};">{decision.get('limit_order', {}).get('entry', 'N/A')}</span>
+                        </div>
+                        <div>
+                                <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Stop Loss</span><br>
+                                <span style="font-size: 18px; font-weight: 700; color: #ef4444;">{decision.get('limit_order', {}).get('stop_loss', 'N/A')}</span>
+                        </div>
+                        <div>
+                            <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Take Profit</span><br>
+                            <span style="font-size: 18px; font-weight: 700; color: #10b981;">{decision.get('limit_order', {}).get('take_profit', 'N/A')}</span>
+                        </div>
+                        <div>
+                            <span style="color: #64748b; font-size: 12px; text-transform: uppercase;">Holding Time</span><br>
+                            <span style="font-size: 18px; font-weight: 700; color: #1e293b;">{decision.get('limit_order', {}).get('holding_time_hours', 'N/A')}h</span>
+                        </div>
+                    </div>
+                </div>
+                ''' if decision.get('limit_order') else ""}
+
                 <!-- Dashboard Stats Grid -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 35px;">
                     <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
@@ -137,13 +162,13 @@ class StrategyEmailTemplate:
                 <!-- Forensic Detail (Raw JSON) -->
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
                     <details>
-                        <summary style="font-size: 13px; color: #94a3b8; cursor: pointer; font-weight: 600;">View Raw Data Logs</summary>
+                        <summary style="font-size: 13px; color: #94a3b8; cursor: pointer; font-weight: 600;">View Raw JSON</summary>
                         <pre style="background: #0f172a; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(strategy_data, indent=2, ensure_ascii=False)}</code></pre>
                     </details>
                 </div>
 
                 <div style="text-align: center; margin-top: 40px; color: #94a3b8; font-size: 12px;">
-                    Automated Trading Intelligence System | Forensic Modernization Phase
+                    This is an auto-generated crypto strategy alert.
                 </div>
             </div>
         </body>
@@ -223,7 +248,7 @@ class StrategyNotifier:
         }
 
         # 1. Local Preview (Useful for debugging/UI verification)
-        self.save_html_preview(symbol, html_body)
+        self.save_html_preview(symbol, html_body, attachments)
 
         if not self.enabled:
             return False
@@ -236,20 +261,31 @@ class StrategyNotifier:
         logger.info(f"Notifier: Dispatching strategy alert for {symbol}...")
         return self.dispatcher.dispatch(subject, html_body, attachments)
 
-    def save_html_preview(self, symbol: str, html_body: str) -> Optional[str]:
+    def save_html_preview(self, symbol: str, html_body: str, attachments: Dict[str, str]) -> Optional[str]:
         """
         Saves the rendered HTML to a local file for visual inspection.
-        Uses the instance's data_root.
+        Swaps CID references for local filesystem paths.
         """
         try:
             output_dir = os.path.join(self.data_root, "html")
             os.makedirs(output_dir, exist_ok=True)
+            
+            # For local preview, we need to swap 'cid:name' with the actual file path.
+            # Since the preview is in data/html and assets are usually in data/klines,
+            # we try to make them relative or use absolute if needed.
+            preview_html = html_body
+            for cid, file_path in attachments.items():
+                if file_path:
+                    # Convert to absolute path for reliable local browser opening
+                    abs_path = os.path.abspath(file_path)
+                    preview_html = preview_html.replace(f"cid:{cid}", f"file://{abs_path}")
+            
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             file_name = f"{symbol}_strategy_preview_{timestamp}.html"
             file_path = os.path.join(output_dir, file_name)
             
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(html_body)
+                f.write(preview_html)
             
             logger.info(f"Notifier: HTML preview saved to {file_path}")
             return file_path
