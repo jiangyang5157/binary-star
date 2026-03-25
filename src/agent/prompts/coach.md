@@ -39,7 +39,8 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 5. **Patch Generation**: Construct the surgical JSON payload using the `EVOLUTION LAW`.
 
 # OUTPUT FORMAT (STRICT JSON)
-You MUST output a valid JSON object. Do NOT include conversational filler.
+You MUST output a valid JSON object.
+
 If no patches are needed for a specific module, return an empty array `[]` or object `{}`.
 
 ### SCHEMA
@@ -51,14 +52,14 @@ If no patches are needed for a specific module, return an empty array `[]` or ob
     {{
       "action": "ADD / REPLACE / REMOVE",
       "target": "EXACT substring from the current Strategist prompt",
-      "replacement": "New logic to insert (or null if REMOVE)"
+      "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
     }}
   ],
   "critic_prompt_patches": [
     {{
       "action": "ADD / REPLACE / REMOVE",
       "target": "EXACT substring from the current Critic prompt",
-      "replacement": "New logic to insert (or null if REMOVE)"
+      "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
     }}
   ],
   "config_updates": {{
