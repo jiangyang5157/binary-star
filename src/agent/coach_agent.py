@@ -1,76 +1,95 @@
 import os
 import json
 import logging
-from typing import Dict, Any, List
+from dataclasses import dataclass
+from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
+from src.utils.agent_utils import read_prompt_template, safe_format
+from src.utils.path_utils import resolve_project_root
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class CoachConfig:
+    """Dataclass for type-safe Coach configuration."""
+    model: str
+    temperature: float
+    role_prompt_path: str
+    strategist_prompt_path: str
+    critic_prompt_path: str
+
+    @classmethod
+    def from_dict(cls, full_config: Dict[str, Any]) -> "CoachConfig":
+        """Factory method to extract coach config from the global config dict."""
+        coach_cfg = full_config.get('coach', {})
+        strat_cfg = full_config.get('strategist', {})
+        crit_cfg = full_config.get('critic', {})
+        
+        project_root = resolve_project_root()
+        
+        return cls(
+            model=coach_cfg.get('model'),
+            temperature=float(coach_cfg.get('temperature', 0.5)),
+            role_prompt_path=os.path.join(project_root, coach_cfg.get('role_definition_prompt')),
+            strategist_prompt_path=os.path.join(project_root, strat_cfg.get('role_definition_prompt')),
+            critic_prompt_path=os.path.join(project_root, crit_cfg.get('role_definition_prompt'))
+        )
+
 class CoachAgent:
     """
-    Agent C: The Coach / Strategist.
-    Reviews batches of historical review reports to identify systemic patterns.
-    Suggests high-level prompt patches and configuration adjustments.
+    Agent C: The Strategic Coach.
+    Analyzes batches of historical forensic audits to identify systemic patterns.
+    Suggests high-level architectural and logic refinements.
     """
-    def __init__(self, model_name: str, prompt_path: str, temperature: float, api_key: str):
-        self.model_name = model_name
-        self.prompt_path = prompt_path
-        self.temperature = temperature
+    def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
+        """
+        Initializes the Coach with configuration and injected dependencies.
+        """
+        self.config = CoachConfig.from_dict(config_dict)
+        self.raw_config = config_dict
+        self.client = ai_client or genai.Client(api_key=api_key)
+
+    def analyze(self, review_history: List[Dict[str, Any]]) -> str:
+        """
+        Executes a coaching session by analyzing a batch of historical reviews.
+        """
+        logger.info(f"Coach: Starting systemic analysis of {len(review_history)} forensic reports...")
+        prompt = self._build_prompt(review_history)
+        return self._execute_ai_cycle(prompt)
+
+    def _build_prompt(self, review_history: List[Dict[str, Any]]) -> str:
+        """Constructs the analysis prompt by injecting context and history."""
+        template = read_prompt_template(self.config.role_prompt_path)
         
-        if not api_key:
-            raise ValueError("Coach: api_key is required for initialization")
-            
-        self.client = genai.Client(api_key=api_key)
+        # Load linked agent prompts for context
+        strategist_prompt = read_prompt_template(self.config.strategist_prompt_path)
+        critic_prompt = read_prompt_template(self.config.critic_prompt_path)
+        
+        context = {
+            "batch_data": json.dumps(review_history, indent=2, ensure_ascii=False),
+            "current_config": json.dumps(self.raw_config, indent=2, ensure_ascii=False),
+            "strategist_prompt": strategist_prompt,
+            "critic_prompt": critic_prompt
+        }
+        
+        return safe_format(template, **context)
 
-    def load_prompt_template(self) -> str:
-        prompt_path = self.prompt_path
+    def _execute_ai_cycle(self, prompt: str) -> str:
+        """Handles the low-level communication with the Gemini API."""
         try:
-            if not os.path.exists(prompt_path):
-                logger.error(f"Coach prompt template missing at {prompt_path}")
-                return ""
-            with open(prompt_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        except Exception as e:
-            logger.error(f"Failed to load coach prompt template: {e}")
-            return ""
-
-    def coaching_session(self, review_reports: List[Dict[str, Any]], current_config: Dict[str, Any], strategist_prompt: str, critic_prompt: str) -> str:
-        """
-        Executes a Gemini API call to perform a batch review (coaching session).
-        """
-        if not self.client:
-            return '{"error": "GenAI API Client is not initialized."}'
-
-        prompt_template = self.load_prompt_template()
-        if not prompt_template:
-            return '{"error": "Agent C (Coach) prompt template missing."}'
-
-        try:
-            formatted_prompt = prompt_template.format(
-                batch_data=json.dumps(review_reports, indent=2, ensure_ascii=False),
-                current_config=json.dumps(current_config, indent=2, ensure_ascii=False),
-                strategist_prompt=strategist_prompt,
-                critic_prompt=critic_prompt
-            )
-        except Exception as e:
-            logger.error(f"Failed to format Coach prompt: {e}")
-            return json.dumps({"error": f"Formatting error: {str(e)}"})
-
-        try:
-            logger.info(f"Invoking Coach Agent Model ({self.model_name}) for {len(review_reports)} reviews...")
+            logger.info(f"Invoking Coach Agent ({self.config.model})...")
             
             response = self.client.models.generate_content(
-                model=self.model_name,
-                contents=formatted_prompt,
+                model=self.config.model,
+                contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=self.temperature
+                    temperature=self.config.temperature
                 )
             )
-            
             return response.text
             
         except Exception as e:
-            logger.error(f"Failed to get response from Coach GenAI API: {e}")
-            return f'{{"error": "{str(e)}"}}'
+            logger.error(f"Coach AI execution failed: {e}", exc_info=True)
+            return json.dumps({"error": "COACH_EXECUTION_FAILURE", "details": str(e)})
