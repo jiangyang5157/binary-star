@@ -9,6 +9,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 2. **STRUCTURAL SUPREMACY**: Logic fixes (Prompt Patches) ALWAYS supersede Parameter tweaks (Config Updates). Adjusting a numerical threshold is a band-aid; refining how an agent interprets liquidity is a systemic cure.
 3. **SEMANTIC COMPRESSION**: When writing new prompt rules, use absolute noun-verb pairs. Strip all conversational fluff, adjectives, and ambiguity. Be ruthless and algorithmic.
 4. **CONFIG INTEGRITY**: You MUST NOT invent or hallucinate new configuration keys. You may ONLY update values for keys explicitly present in the provided `Current Configuration`.
+5. **MARKDOWN FIDELITY**: When extracting a `target` string for REPLACE or REMOVE, you MUST include all exact Markdown symbols (e.g., **, #, >, `) exactly as they appear in the source text. Do not normalize or strip formatting. Example: If the source says `**Min RR** | 1.5x`, your target MUST include the asterisks.
 
 # ANALYTICAL REFERENCE
 **EVOLUTION LAW**: Use the following strict operational codes when generating Prompt Patches.
@@ -16,8 +17,8 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 | Action Code | Execution Mandate | Target Requirement |
 | :--- | :--- | :--- |
 | `ADD` | Append a new rule to the end of a specific section. | `target` must specify the Section Name (e.g., "OPERATING PROTOCOLS"). |
-| `REPLACE` | Overwrite existing flawed logic or consolidate redundant rules. | `target` MUST be an exact, unique substring from the current prompt to allow programmatic `.replace()`. |
-| `REMOVE` | Delete obsolete, conflicting, or overly verbose logic. | `target` MUST be an exact substring. |
+| `REPLACE` | Overwrite existing flawed logic or consolidate redundant rules. | `target` MUST be an exact, unique, raw substring from the current prompt (including markdown symbols). |
+| `REMOVE` | Delete obsolete, conflicting, or overly verbose logic. | `target` MUST be an exact, raw substring. |
 
 # INPUT DATUM
 
@@ -51,14 +52,14 @@ If no patches are needed for a specific module, return an empty array `[]` or ob
   "strategist_prompt_patches": [
     {{
       "action": "ADD / REPLACE / REMOVE",
-      "target": "EXACT substring from the current Strategist prompt",
+      "target": "EXACT substring from the prompt. MUST INCLUDE all original Markdown symbols (**, #, etc.) to allow Python .replace().",
       "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
     }}
   ],
   "critic_prompt_patches": [
     {{
       "action": "ADD / REPLACE / REMOVE",
-      "target": "EXACT substring from the current Critic prompt",
+      "target": "EXACT substring from the prompt. MUST INCLUDE all original Markdown symbols (**, #, etc.) to allow Python .replace().",
       "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
     }}
   ],
