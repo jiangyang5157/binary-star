@@ -79,9 +79,48 @@ def main():
 
     # Execute isolated review pass
     logger.info("=== Triggering Isolated Reviewer AI Pass ===")
+    
+    # [DIAGNOSTIC MOCK EXAMPLES]
+    # To test different AI reactions, you can swap the actual_outcome block below:
+    # 
+    # Example 1: TP_HIT (Optimistic Success)
+    # mock_outcome = {
+    #     "entry_price_at_t0": obs.get("price", 70000),
+    #     "highest_reached_price": 72500,
+    #     "lowest_reached_price": 69800,
+    #     "exit_price_at_t1": 72500,
+    #     "total_price_change_pct": 3.5,
+    #     "max_favorable_runup_pct": 3.5,
+    #     "max_adverse_drawdown_pct": -0.2,
+    #     "audit_duration_candles": 12,
+    #     "order_audit": {"result": "TP_HIT", "stress": "15%"}
+    # }
+    # 
+    # Example 2: SL_HIT (Critical Failure)
+    # mock_outcome = {
+    #     "entry_price_at_t0": obs.get("price", 70000),
+    #     "highest_reached_price": 70200,
+    #     "lowest_reached_price": 68500,
+    #     "exit_price_at_t1": 68500,
+    #     "total_price_change_pct": -2.1,
+    #     "max_favorable_runup_pct": 0.3,
+    #     "max_adverse_drawdown_pct": -2.1,
+    #     "audit_duration_candles": 5,
+    #     "order_audit": {"result": "SL_HIT", "stress": "100%"}
+    # }
+
     audit_result = reviewer.review(
         historical_strategy=session,
-        actual_outcome={"result": "NEITHER", "reason": "Retest Mock Outcome"},
+        actual_outcome={
+            "result": "NEITHER",           # Default: No major milestone hit
+            "reason": "Retest Mock Outcome",
+            "entry_price_at_t0": obs.get("price", 0),
+            "exit_price_at_t1": obs.get("price", 0),
+            "total_price_change_pct": 0.0,
+            "max_favorable_runup_pct": 0.0,
+            "max_adverse_drawdown_pct": 0.0,
+            "audit_duration_candles": 1
+        },
         current_observation=obs,
         visual_context=visual_context
     )
