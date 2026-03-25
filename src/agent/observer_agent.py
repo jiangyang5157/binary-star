@@ -68,37 +68,37 @@ class ObserverConfig:
         
         return cls(
             role_definition_prompt=str(obs.get('role_definition_prompt', "")),
-            model=str(obs.get('model', "gemini-2.0-flash")),
-            temperature=float(obs.get('temperature', 0.1)),
+            model=str(obs.get('model')),
+            temperature=float(obs.get('temperature')),
             macro_context=TimeframeConfig(
-                time_interval=str(macro.get('time_interval', "1h")), 
-                historical_lookback_candles=int(macro.get('historical_lookback_candles', 100))
+                time_interval=str(macro.get('time_interval')), 
+                historical_lookback_candles=int(macro.get('historical_lookback_candles'))
             ),
             micro_context=TimeframeConfig(
-                time_interval=str(micro.get('time_interval', "15m")), 
-                historical_lookback_candles=int(micro.get('historical_lookback_candles', 100))
+                time_interval=str(micro.get('time_interval')), 
+                historical_lookback_candles=int(micro.get('historical_lookback_candles'))
             ),
-            vp_value_area_width=float(obs.get('volume_profile_value_area_width', 0.7)),
-            vp_price_buckets_count=int(obs.get('volume_profile_price_buckets_count', 24)),
-            taker_vol_delta_lookback=int(obs.get('taker_volume_delta_lookback_period', 12)),
-            regime_trend_threshold=float(obs.get('market_regime_trend_strength_threshold', 0.4)),
-            atr_period=int(obs.get('average_true_range_period', 14)),
-            bb_period=int(obs.get('bollinger_bands_period', 20)),
-            bb_std_dev=float(obs.get('bollinger_bands_std_dev', 2.0)),
-            kc_period=int(obs.get('keltner_channels_period', 20)),
-            kc_multiplier=float(obs.get('keltner_channels_multiplier', 1.5)),
-            vol_ma_period=int(obs.get('volume_moving_average_period', 20)),
-            max_liq_to_fetch=int(obs.get('max_liquidation_events_to_fetch', 100)),
-            max_liq_for_ai=int(obs.get('max_liquidation_events_for_ai_context', 10)),
-            hvn_count=int(obs.get('high_volume_peak_count', 3)),
-            lvn_count=int(obs.get('low_volume_valley_count', 3)),
-            hvn_sensitivity=float(obs.get('high_volume_peak_sensitivity', 1.2)),
-            lvn_sensitivity=float(obs.get('low_volume_valley_sensitivity', 0.8)),
-            min_node_gap_price=int(obs.get('min_price_gap_between_nodes', 50)),
-            top_levels_to_report=int(obs.get('top_structural_levels_to_report', 5)),
-            funding_rate_limit=int(obs.get('funding_rate_history_limit', 1)),
-            trend_intensity_lookback=int(obs.get('trend_intensity_lookback', 14)),
-            wick_skewness_lookback=int(obs.get('wick_skewness_lookback', 5))
+            vp_value_area_width=float(obs.get('volume_profile_value_area_width')),
+            vp_price_buckets_count=int(obs.get('volume_profile_price_buckets_count')),
+            taker_vol_delta_lookback=int(obs.get('taker_volume_delta_lookback_period')),
+            regime_trend_threshold=float(obs.get('market_regime_trend_strength_threshold')),
+            atr_period=int(obs.get('average_true_range_period')),
+            bb_period=int(obs.get('bollinger_bands_period')),
+            bb_std_dev=float(obs.get('bollinger_bands_std_dev')),
+            kc_period=int(obs.get('keltner_channels_period')),
+            kc_multiplier=float(obs.get('keltner_channels_multiplier')),
+            vol_ma_period=int(obs.get('volume_moving_average_period')),
+            max_liq_to_fetch=int(obs.get('max_liquidation_events_to_fetch')),
+            max_liq_for_ai=int(obs.get('max_liquidation_events_for_ai_context')),
+            hvn_count=int(obs.get('high_volume_peak_count')),
+            lvn_count=int(obs.get('low_volume_valley_count')),
+            hvn_sensitivity=float(obs.get('high_volume_peak_sensitivity')),
+            lvn_sensitivity=float(obs.get('low_volume_valley_sensitivity')),
+            min_node_gap_price=int(obs.get('min_price_gap_between_nodes')),
+            top_levels_to_report=int(obs.get('top_structural_levels_to_report')),
+            funding_rate_limit=int(obs.get('funding_rate_history_limit')),
+            trend_intensity_lookback=int(obs.get('trend_intensity_lookback')),
+            wick_skewness_lookback=int(obs.get('wick_skewness_lookback'))
         )
 
 @dataclass

@@ -24,11 +24,11 @@ class StrategistConfig:
         """Factory method to extract strategist config from the global config dict."""
         strat = full_config.get('strategist', {})
         return cls(
-            model=strat.get('model', "gemini-2.0-flash"),
-            role_prompt_path=os.path.join(resolve_project_root(), strat.get('role_definition_prompt', "")),
-            temperature_draft=float(strat.get('temperature_draft', 0.1)),
-            temperature_synthesis=float(strat.get('temperature_synthesis', 0.1)),
-            min_confidence=int(strat.get('minimum_strategy_confidence_score', 60))
+            model=strat.get('model'),
+            role_prompt_path=os.path.join(resolve_project_root(), strat.get('role_definition_prompt')),
+            temperature_draft=float(strat.get('temperature_draft')),
+            temperature_synthesis=float(strat.get('temperature_synthesis')),
+            min_confidence=int(strat.get('minimum_strategy_confidence_score'))
         )
 
 class StrategistAgent:
@@ -51,7 +51,7 @@ class StrategistAgent:
 
     def draft(self, observation: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Phase 1: Generates an initial strategic draft based on market topography.
+        Phase Draft: Generates an initial strategic draft based on market topography.
         """
         prompt = self._build_prompt(observation, filter_logic="DRAFTING")
         logger.info("Strategist: Drafting initial strategic plan...")
@@ -59,7 +59,7 @@ class StrategistAgent:
 
     def synthesize(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], critique: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Phase 3: Crystalizes the draft and adversarial critique into a final decision.
+        Phase Synthesize: Crystalizes the draft and adversarial critique into a final decision.
         """
         prompt = self._build_prompt(
             observation, 
