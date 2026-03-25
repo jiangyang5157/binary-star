@@ -76,6 +76,8 @@ class CoachOrchestrator:
         for filename in files:
             data = load_json(os.path.join(reviews_dir, filename))
             if data:
+                # Inject filename for traceability in the COACH prompt (sources_analyzed)
+                data["_source_file"] = filename
                 history.append(data)
         
         return history

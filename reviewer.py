@@ -89,7 +89,7 @@ class OutcomeCalculator:
                 sl_dist = abs(target_entry - sl)
                 mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                 stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
-                result["order_audit"] = {"result": hit_result, "stress": f"{round(stress, 1)}%"}
+                result["order_audit"] = {"result": hit_result, "mae_stress_level": f"{round(stress, 1)}%"}
         
         return result
 
