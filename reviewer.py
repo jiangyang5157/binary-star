@@ -52,7 +52,7 @@ class OutcomeCalculator:
             "max_favorable_runup_pct": round(((max_price - entry_price) / entry_price) * 100, 2),
             "max_adverse_drawdown_pct": round(((min_price - entry_price) / entry_price) * 100, 2),
             "audit_duration_candles": len(klines),
-            "order_audit": None
+            "executed_order_audit": None
         }
         
         opinion = strategy.get('opinion', '').upper()
@@ -89,7 +89,7 @@ class OutcomeCalculator:
                 sl_dist = abs(target_entry - sl)
                 mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                 stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
-                result["order_audit"] = {"result": hit_result, "mae_stress_level": f"{round(stress, 1)}%"}
+                result["executed_order_audit"] = {"tp_sl_result": hit_result, "mae_stress_level": f"{round(stress, 1)}%"}
         
         return result
 
@@ -251,7 +251,7 @@ class ReviewerOrchestrator:
                 "audit_timestamp": dt_fetch_end.isoformat(),
                 "strategy_session": session,
                 "market_outcome": outcome,
-                "audit_findings": audit_result
+                "executed_order_audit": audit_result
             }
             save_json(final_record, output_path)
             logger.info(f"Forensic audit archived: {output_path}")

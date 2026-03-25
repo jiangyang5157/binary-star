@@ -94,7 +94,7 @@ def main():
     #     "max_favorable_runup_pct": 3.5,
     #     "max_adverse_drawdown_pct": -0.2,
     #     "audit_duration_candles": 12,
-    #     "order_audit": {"result": "TP_HIT", "stress": "15%"}
+    #     "executed_order_audit": {"tp_sl_result": "TP_HIT", "mae_stress_level": "15%"}
     # }
     # 
     # Example 2: SL_HIT (Critical Failure)
@@ -107,20 +107,19 @@ def main():
     #     "max_favorable_runup_pct": 0.3,
     #     "max_adverse_drawdown_pct": -2.1,
     #     "audit_duration_candles": 5,
-    #     "order_audit": {"result": "SL_HIT", "stress": "100%"}
+    #     "executed_order_audit": {"tp_sl_result": "SL_HIT", "mae_stress_level": "100%"}
     # }
 
     audit_result = reviewer.review(
         historical_strategy=session,
         actual_outcome={
-            "result": "NEITHER",           # Default: No major milestone hit
-            "reason": "Retest Mock Outcome",
             "entry_price_at_t0": obs.get("price", 0),
             "exit_price_at_t1": obs.get("price", 0),
             "total_price_change_pct": 0.0,
             "max_favorable_runup_pct": 0.0,
             "max_adverse_drawdown_pct": 0.0,
-            "audit_duration_candles": 1
+            "audit_duration_candles": 1,
+            "executed_order_audit": None
         },
         current_observation=obs,
         visual_context=visual_context
@@ -150,8 +149,7 @@ def main():
         "audit_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "strategy_session": session,
         "market_outcome": {
-            "result": "NEITHER",
-            "reason": "Retest Mock Outcome"
+            "executed_order_audit": None
         },
         "audit_findings": audit_result
     }

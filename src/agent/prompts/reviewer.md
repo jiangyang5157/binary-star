@@ -63,17 +63,11 @@ To dissect the causal relationship between the historical market topography (T0)
 # OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
 
-**NULL MANDATE**: If the Strategist's Final Decision was NEUTRAL (no limit order placed), you MUST set the `executed_order_audit` object strictly to `null`. Do not invent MAE or TP/SL data for non-existent trades.
-
 ### SCHEMA
 ```json
 {{
   "evaluation_score": 0-100,
   "adversarial_audit": {{
-    "executed_order_audit": {{
-      "tp_sl_result": "TP_HIT / SL_HIT / NEITHER",
-      "mae_stress_level": "Percentage (e.g., 45%)"
-    }}, 
     "protocol_breach": "Identify any broken rules from The Laws, or 'None'.",
     "shadow_evidence": ["Metric X indicated Y...", "Visual pattern Z in T0 Macro ignored..."],
     "hallucination_detected": boolean
