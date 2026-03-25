@@ -19,7 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description="Observer Agent Pipeline")
     parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Historical timestamp (ISO format, e.g., 2026-03-23T22:30:00)")
-    parser.add_argument("--data_dir", type=str, help="Override base data directory")
+    parser.add_argument("--data_root", type=str, help="Override base data directory")
     args = parser.parse_args()
 
     symbol = args.symbol
@@ -40,14 +40,14 @@ def main():
 
     config = load_config()
     # paths_config = config['paths']  # Removed
-    data_dir = args.data_dir or "data"
+    data_root = args.data_root or "data"
     
         
-    observer_agent = ObserverAgent(config, symbol=symbol, api_key=api_key)
+    observer_agent = ObserverAgent(config, symbol=symbol, api_key=api_key, data_root=data_root)
     try:
-        context = observer_agent.observe(timestamp=timestamp, data_dir=data_dir)
+        context = observer_agent.observe(timestamp=timestamp, data_root=data_root)
         
-        observations_path = os.path.join(data_dir, "observations")
+        observations_path = os.path.join(data_root, "observations")
         os.makedirs(observations_path, exist_ok=True)
         
         # Use the EXACT timestamp from the generated context for 100% synchronization

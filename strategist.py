@@ -45,7 +45,7 @@ def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: Strategis
         "final_decision": final_decision
     }
 
-def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_dir: str, target_dir: str):
+def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_root: str, target_dir: str):
     """
     Standardized archival for all pipeline results.
     Ensures synchronized timestamps and directory structure.
@@ -56,7 +56,7 @@ def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_
     # Resolve directory relative to project root (in case of relative paths)
     from src.utils.path_utils import find_project_root
     project_root = find_project_root()
-    output_dir = os.path.join(project_root, data_dir, target_dir)
+    output_dir = os.path.join(project_root, data_root, target_dir)
     os.makedirs(output_dir, exist_ok=True)
     
     ts_str = timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
@@ -67,7 +67,7 @@ def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_
     save_json(result, output_file)
     return output_file
     
-def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Optional[str] = None):
+def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_root: Optional[str] = None):
     """
     Main Fresh Pipeline: Observer -> (Draft -> Audit -> Synthesis)
     """
@@ -90,18 +90,18 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             logger.error(f"Invalid timestamp format: {timestamp_str}")
             return
 
-    # Use "data" as default if data_dir not provided
-    final_data_dir = data_dir or "data"
+    # Use "data" as default if data_root not provided
+    final_data_root = data_root or "data"
 
     try:
         # 1. Initialize Agents
-        observer = ObserverAgent(config, symbol, api_key=api_key)
+        observer = ObserverAgent(config, symbol, api_key=api_key, data_root=final_data_root)
         strategist = StrategistAgent(config, api_key=api_key)
         critic = CriticAgent(config, api_key=api_key)
 
         # 2. Stage 1: Observe
         logger.info(f"Stage 1: Gathering facts for {symbol}...")
-        observation = observer.observe(timestamp=timestamp, data_dir=final_data_dir)
+        observation = observer.observe(timestamp=timestamp, data_root=final_data_root)
         
         # 3. Stages 2-4: Reasoning Triad (Draft -> Audit -> Synthesis)
         result = run_full_triad_flow(observation, strategist, critic)
@@ -114,7 +114,7 @@ def run_pipeline(symbol: str, timestamp_str: Optional[str] = None, data_dir: Opt
             symbol=symbol, 
             timestamp=observation.get('timestamp'), 
             result=result, 
-            data_dir=final_data_dir, 
+            data_root=final_data_root, 
             target_dir="strategies"
         )
         logger.info(f"Full Strategy archived to: {output_file}")
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
     parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
-    parser.add_argument("--data_dir", type=str, help="Data directory override")
+    parser.add_argument("--data_root", type=str, help="Data directory override")
     args = parser.parse_args()
     
-    run_pipeline(symbol=args.symbol, timestamp_str=args.timestamp, data_dir=args.data_dir)
+    run_pipeline(symbol=args.symbol, timestamp_str=args.timestamp, data_root=args.data_root)

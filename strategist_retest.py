@@ -21,7 +21,7 @@ from src.utils.logger_utils import setup_logger
 # Setup logging
 logger = setup_logger("StrategistRetestPipeline")
 
-def run_retest(file_path: str, data_dir: Optional[str] = None):
+def run_retest(file_path: str, data_root: Optional[str] = None):
     """
     Offline Retest Pipeline: JSON Observation -> (Draft -> Audit -> Synthesis)
     """
@@ -40,8 +40,8 @@ def run_retest(file_path: str, data_dir: Optional[str] = None):
         logger.error("GEMINI_API_KEY not found in environment")
         return
 
-    # Use "data" as default if data_dir not provided
-    final_data_dir = data_dir or "data"
+    # Use "data" as default if data_root not provided
+    final_data_root = data_root or "data"
 
     try:
         # 1. Load Observation
@@ -63,7 +63,7 @@ def run_retest(file_path: str, data_dir: Optional[str] = None):
             symbol=symbol, 
             timestamp=observation.get('timestamp'), 
             result=result, 
-            data_dir=final_data_dir, 
+            data_root=final_data_root, 
             target_dir="strategies"
         )
         logger.info(f"Retest Session archived to: {output_file}")
@@ -76,7 +76,7 @@ def run_retest(file_path: str, data_dir: Optional[str] = None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Strategist Retest - Reasoning from File")
     parser.add_argument("--file", type=str, required=True, help="Path to observation JSON file.")
-    parser.add_argument("--data_dir", type=str, help="Data directory override")
+    parser.add_argument("--data_root", type=str, help="Data directory override")
     args = parser.parse_args()
     
-    run_retest(file_path=args.file, data_dir=args.data_dir)
+    run_retest(file_path=args.file, data_root=args.data_root)
