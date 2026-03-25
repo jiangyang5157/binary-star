@@ -1,5 +1,5 @@
 observer:
-  role_definition_prompt: src/agent/prompts/prompt_observer.md
+  role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest
   temperature: 0.1
   macro_analysis_context:
