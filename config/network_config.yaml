@@ -1,5 +1,3 @@
-# Network Configuration for External APIs
-
 binance:
   api_timeout_seconds: 15
   retry_count: 3
