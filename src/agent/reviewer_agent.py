@@ -132,7 +132,7 @@ class ReviewerAgent:
                         
                         # Upload to Gemini File API
                         file_obj = self.client.files.upload(file=path)
-                        contents.append(f"\n{label}:")
+                        contents.append(f"\n{label}")
                         contents.append(file_obj)
             
             # 2. Execution

@@ -63,7 +63,7 @@ class OutcomeCalculator:
         
         if opinion in ('BULLISH', 'BEARISH') and tp > 0 and sl > 0:
             entry_hit = False
-            hit_result = "PENDING"
+            hit_result = "NEITHER"
             max_after = -float('inf')
             min_after = float('inf')
             
@@ -77,7 +77,7 @@ class OutcomeCalculator:
                 
                 if entry_hit:
                     max_after, min_after = max(max_after, high), min(min_after, low)
-                    if hit_result == "PENDING":
+                    if hit_result == "NEITHER":
                         if opinion == 'BULLISH':
                             if low <= sl: hit_result = "SL_HIT"
                             elif high >= tp: hit_result = "TP_HIT"
