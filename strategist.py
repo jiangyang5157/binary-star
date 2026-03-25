@@ -21,7 +21,7 @@ from src.utils.datetime_utils import parse_iso_to_utc, sanitize_timestamp
 from src.utils.path_utils import find_project_root
 
 # Initialize pipeline logger
-logger = setup_logger("TradingOrchestrator")
+logger = setup_logger("StrategistOrchestrator")
 
 def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: StrategistAgent, critic_agent: CriticAgent) -> Dict[str, Any]:
     """
@@ -61,7 +61,7 @@ def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_
     save_json(result, output_file)
     return output_file
 
-class TradingOrchestrator:
+class StrategistOrchestrator:
     """
     Orchestrates the end-to-end trading intelligence pipeline:
     Observation -> Drafting -> Auditing -> Synthesis -> Notification -> Archival.
@@ -132,7 +132,7 @@ def main():
     args = parser.parse_args()
     
     try:
-        orchestrator = TradingOrchestrator(symbol=args.symbol, data_root=args.data_root)
+        orchestrator = StrategistOrchestrator(symbol=args.symbol, data_root=args.data_root)
         orchestrator.execute_pipeline(timestamp_str=args.timestamp)
     except Exception as e:
         logger.error(f"Failed to initialize orchestrator: {e}")
