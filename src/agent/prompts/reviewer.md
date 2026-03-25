@@ -31,7 +31,7 @@ To dissect the causal relationship between the historical market topography (T0)
 **[THE EVIDENCE]**
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
-- **Ground Truth Execution**: {actual_outcome_metrics} (Contains the pre-calculated execution status, duration, and MAE percentage. **Trust and use these exact numbers for scoring.**)
+- **Ground Truth Execution**: {actual_outcome_metrics} (Look inside the nested `trade_execution_metrics` for the pre-calculated execution status and MAE percentage. **Trust and use these exact numbers for scoring.**)
 - **Visual Evidence**: You are provided with 4 image attachments in the payload. Each image is immediately preceded by one of the following exact text labels:
   - `T0 Historical Macro Snapshot`
   - `T0 Historical Micro Snapshot`
