@@ -320,10 +320,10 @@ class StrategyNotifier:
             
         opinion = strategy_data.get("final_decision", {}).get("opinion", "NEUTRAL")
         confidence = strategy_data.get("final_decision", {}).get("confidence", 0)
-        subject = f"[{opinion}] {symbol} Trading Strategy ({confidence}%)"
+        subject = f"Crypto: {symbol} [{opinion}] ({confidence}%)"
         
         # 2. Dispatch Email
-        logger.info(f"Notifier: Dispatching strategy alert for {symbol}...")
+        logger.info(f"Notifier: Dispatching alert: {subject}")
         return self.dispatcher.dispatch(subject, html_body, attachments)
 
     def save_html_preview(self, symbol: str, html_body: str, attachments: Dict[str, str]) -> Optional[str]:
