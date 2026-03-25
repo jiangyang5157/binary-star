@@ -36,7 +36,7 @@ To perform a high-fidelity stress test on the Strategist's Draft Plan by contras
 4. **Veto Determination**: Decide if the plan's mathematical or structural flaws are fatal, and decide on the `is_veto` status.
 5. **Final Verdict**: Quantify the doubt into a `skepticism_score` (0-100).
 
-# OUTPUT FORMAT
+# OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
 
 ### SCHEMA

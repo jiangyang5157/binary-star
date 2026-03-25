@@ -46,7 +46,7 @@ To dissect the causal relationship between the historical market topography (T0)
 4. **Execution Precision (MAE/DLE)**: Evaluate the Entry and SL relative to the structural anchors. If a Deep Limit Order (DLE) was used, did it act as a perfect trap or liquidity food?
 5. **Final Scoring Calculation**: Calculate the `evaluation_score` explicitly applying the `SCORING LAW`.
 
-# OUTPUT FORMAT
+# OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
 
 ### SCHEMA

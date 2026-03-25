@@ -48,7 +48,7 @@ To synthesize objective market topography into actionable limit orders. You must
 4. **Audit Traceability**: In your `reasoning`, explicitly mention what changed between the draft and this final version based on the audit.
 [[[/PASS: SYNTHESIS]]]
 
-# OUTPUT FORMAT
+# OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object. DO NOT include conversational filler.
 
 ### SCHEMA

@@ -2,7 +2,6 @@
 import os
 import sys
 import json
-import yaml
 import argparse
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, List, Optional
@@ -99,10 +98,10 @@ class ReviewerOrchestrator:
     Manages the end-to-end review lifecycle: 
     Discovery -> Temporal Validation -> Outcome Retrieval -> AI Audit -> Archival.
     """
-    def __init__(self, config_path: str = "config/agent_config.yaml", data_root: str = "data"):
-        load_dotenv()
-        self.config = load_config(config_path)
+    def __init__(self, data_root: str = "data"):
         self.data_root = data_root
+        self.config = load_config()
+        load_dotenv()
         self.api_key = os.environ.get("GEMINI_API_KEY")
         self.reviewer = ReviewerAgent(self.config, api_key=self.api_key)
         self.fetcher = BinanceFuturesClient()

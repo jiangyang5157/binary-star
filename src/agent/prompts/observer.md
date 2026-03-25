@@ -46,7 +46,7 @@ Perform a forensic mapping of the market topography across 6 distinct dimensions
 5. **Micro-Interactive Detail**: Analyze local boundaries using `wick_skewness`. Spot "Weak Breakouts" where price exceeds a level but `vol_ratio` or `vol_breakout` fails to validate the move.
 6. **Synthesized Topography**: A concise technical summary of the "As-Is" market map. Identify the **Key Structural Conflict** currently governing the price action.
 
-# OUTPUT FORMAT
+# OUTPUT FORMAT (STRICT JSON)
 Your response must be a valid JSON object. Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
 
 ### SCHEMA
