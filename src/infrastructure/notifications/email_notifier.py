@@ -228,7 +228,7 @@ class StrategyEmailTemplate:
                 <!-- Footer -->
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
                     <details>
-                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">View Raw JSON</summary>
+                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Raw JSON</summary>
                         <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(strategy_data, indent=2, ensure_ascii=False)}</code></pre>
                     </details>
                     <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
@@ -357,3 +357,45 @@ class StrategyNotifier:
         except Exception as e:
             logger.error(f"Notifier: Failed to save HTML preview: {e}")
             return None
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+    
+    # Configure granular logging for CLI use
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    parser = argparse.ArgumentParser(description="Crypto Strategy Email Notifier CLI")
+    parser.add_argument("--strategy", required=True, help="Path to the strategy JSON file")
+    parser.add_argument("--data-root", default="data", help="Root directory for visualizations/logs")
+    
+    args = parser.parse_args()
+    
+    if not os.path.exists(args.strategy):
+        print(f"Error: Strategy file not found at {args.strategy}")
+        sys.exit(1)
+        
+    try:
+        with open(args.strategy, 'r') as f:
+            # We use a hacky way to support 'null', 'true', 'false' in case the file 
+            # was copied from a Python representation, but primarily we expect standard JSON.
+            # json.load handles standard JSON 'null' correctly.
+            strategy_data = json.load(f)
+            
+        symbol = strategy_data.get("observation", {}).get("symbol", "UNKNOWN")
+        notifier = StrategyNotifier(data_root=args.data_root)
+        
+        print(f"--- Dispatching Test Email for {symbol} ---")
+        success = notifier.notify_strategy(symbol, strategy_data)
+        
+        if success:
+            print("Successfully dispatched strategy alert!")
+        else:
+            print("Failed to dispatch alert. Check logs or check if credentials are set in .env")
+            
+    except Exception as e:
+        print(f"Critical error during execution: {e}")
+        sys.exit(1)
