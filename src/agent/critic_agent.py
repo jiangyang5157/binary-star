@@ -5,7 +5,7 @@ import json
 from typing import Dict, Any, Optional
 from google import genai
 from google.genai import types
-from src.utils.agent_utils import read_prompt_template
+from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,8 @@ class CriticAgent:
         """
         template = read_prompt_template(self.config.role_prompt_path)
         
-        prompt = template.format(
+        prompt = safe_format(
+            template,
             observation_json=json.dumps(observation, indent=2, ensure_ascii=False),
             draft_plan=json.dumps(draft_plan, indent=2, ensure_ascii=False)
         )

@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+import os
+import sys
+import argparse
+import json
+from dotenv import load_dotenv
+
+# Ensure project root is in path
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from src.agent.reviewer_agent import ReviewerAgent
+from src.utils.agent_utils import load_config
+from src.utils.logger_utils import setup_logger
+
+logger = setup_logger("ReviewerRetest")
+
+def main():
+    """
+    Isolated Retest Utility for Reviewer Reports.
+    
+    Accepts observation/strategy JSON files and triggers a direct AI audit 
+    without executing the full market retrieval pipeline.
+    """
+    parser = argparse.ArgumentParser(description="Forensic Review Retest - AI Audit Verification")
+    parser.add_argument("--file", type=str, required=True, help="Path to strategy/observation JSON")
+    parser.add_argument("--data_root", type=str, default="data", help="Data root (default: 'data')")
+    args = parser.parse_args()
+
+    load_dotenv()
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        logger.error("GEMINI_API_KEY not found in environment.")
+        sys.exit(1)
+        
+    config = load_config()
+    
+    if not os.path.exists(args.file):
+        logger.error(f"File not found: {args.file}")
+        sys.exit(1)
+
+    with open(args.file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    # Robust Input Handling:
+    # If it's a raw observation (from observer.py), wrap it.
+    # Otherwise assume it's a full strategy session (from strategist.py).
+    if "observation" not in data:
+        logger.info("Ingesting standalone observation file. Wrapping in mock session.")
+        session = {
+            "observation": data,
+            "draft": data.get("semantic_analysis", {}).get("logic_draft", {"status": "MOCK"}),
+            "critique": {"audit_findings": "MOCK_AUDIT - Retest Mode"},
+            "final_decision": {"opinion": "NEUTRAL", "reason": "Retest context."}
+        }
+    else:
+        logger.info("Ingesting full strategy session file.")
+        session = data
+
+    reviewer = ReviewerAgent(config, api_key=api_key)
+    
+    # Forensic context construction for isolated retest
+    # We use T0 assets as T1 proxies if T1 isn't available in the file
+    obs = session["observation"]
+    assets = obs.get("visual_assets", {})
+    
+    # Resolve paths relative to PROJECT_ROOT
+    def resolve(p):
+        if not p: return None
+        return p if os.path.isabs(p) else os.path.join(PROJECT_ROOT, p)
+
+    visual_context = {
+        "t0_macro": resolve(assets.get("macro_snapshot")),
+        "t0_micro": resolve(assets.get("micro_snapshot")),
+        "t1_macro": resolve(assets.get("macro_snapshot")), # Simplified for retest
+        "t1_micro": resolve(assets.get("micro_snapshot")), # Simplified for retest
+    }
+
+    # Execute isolated review pass
+    logger.info("=== Triggering Isolated Reviewer AI Pass ===")
+    audit_result = reviewer.review(
+        historical_strategy=session,
+        actual_outcome={"result": "NEITHER", "reason": "Retest Mock Outcome"},
+        current_observation=obs,
+        visual_context=visual_context
+    )
+    
+    # Output to stdout and save as retest result
+    output_dir = os.path.join(PROJECT_ROOT, args.data_root, "reviewers")
+    os.makedirs(output_dir, exist_ok=True)
+    
+    output_filename = f"retest_{os.path.basename(args.file)}"
+    output_path = os.path.join(output_dir, output_filename)
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(audit_result, f, indent=2, ensure_ascii=False)
+    
+    logger.info(f"Retest complete. Audit results saved to: {output_path}")
+    print("\n--- AI AUDIT FINDINGS ---")
+    print(json.dumps(audit_result, indent=2, ensure_ascii=False))
+
+if __name__ == "__main__":
+    main()

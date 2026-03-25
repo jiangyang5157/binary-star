@@ -19,8 +19,14 @@ def load_config(config_filepath: str = "config/agent_config.yaml") -> Dict[str, 
     with open(absolute_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
+from functools import lru_cache
+
+@lru_cache(maxsize=32)
 def read_prompt_template(prompt_path: str) -> str:
-    """Reads a prompt template file and returns its content as a string."""
+    """
+    Reads a prompt template file and returns its content as a string.
+    Cached to minimize IO during multi-agent sessions.
+    """
     with open(prompt_path, 'r', encoding='utf-8') as f:
         return f.read()
 
@@ -71,4 +77,25 @@ def apply_prompt_logic_filters(template: str, active_passes: List[str]) -> str:
     final_output = re.sub(r"\n{3,}", "\n\n", final_output)
     
     return final_output.strip()
+
+
+import string
+
+class SafeFormatter(string.Formatter):
+    """
+    A custom formatter that returns the key itself (surrounded by braces) 
+    if the key is missing from the format arguments.
+    """
+    def get_value(self, key: Any, args: Any, kwargs: Any) -> Any:
+        try:
+            return super().get_value(key, args, kwargs)
+        except (KeyError, IndexError):
+            return f"{{{key}}}"
+
+def safe_format(template: str, **kwargs) -> str:
+    """
+    Formats a string template using kwargs. 
+    Ignores missing keys by keeping them as-is (e.g., '{missing}' stays '{missing}').
+    """
+    return SafeFormatter().format(template, **kwargs)
 

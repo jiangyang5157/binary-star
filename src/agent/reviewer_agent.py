@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
-from src.utils.agent_utils import read_prompt_template
+from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 
 logger = logging.getLogger(__name__)
@@ -105,7 +105,7 @@ class ReviewerAgent:
         }
         
         try:
-            return template.format(**context)
+            return safe_format(template, **context)
         except KeyError as e:
             logger.warning(f"Reviewer: Missing prompt placeholder in template: {e}")
             return template

@@ -207,15 +207,16 @@ class ChartVisualRenderer:
         
         for liq in liquidations:
             try:
-                price = float(liq.get('p', 0))
+                # Handle both REST (price/side/qty) and WebSocket (p/S/q) keys
+                price = float(liq.get('price') or liq.get('p', 0))
                 if not (min_p <= price <= max_p):
                     continue
                     
-                side = liq.get('S', 'BUY')
+                side = (liq.get('side') or liq.get('S', 'BUY')).upper()
                 color = self.config.liq_buy_color if side == 'BUY' else self.config.liq_sell_color
                 
                 # Dynamic alpha based on quantity
-                qty = float(liq.get('q', 1))
+                qty = float(liq.get('qty') or liq.get('origQty') or liq.get('q', 1))
                 alpha = min(max(qty / 5.0, 0.10), 0.40)
                 
                 rect = patches.Rectangle(

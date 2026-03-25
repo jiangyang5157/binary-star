@@ -90,7 +90,10 @@ class BinanceFuturesClient:
         try:
             url = f"https://fapi.binance.com/fapi/v1/allForceOrders?symbol={symbol}&limit={limit}"
             resp = requests.get(url, timeout=self.timeout)
-            return resp.json() if resp.status_code == 200 else []
+            raw_data = resp.json() if resp.status_code == 200 else []
+            # The 'allForceOrders' endpoint returns 'price', 'origQty', 'side', etc.
+            # We already expect these in our refined analyzer.
+            return raw_data
         except Exception as e:
             logger.error(f"Fallback liquidation fetch failed: {e}")
             return []

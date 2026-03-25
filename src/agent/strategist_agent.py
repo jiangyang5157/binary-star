@@ -5,7 +5,7 @@ import json
 from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
-from src.utils.agent_utils import read_prompt_template, apply_prompt_logic_filters
+from src.utils.agent_utils import read_prompt_template, apply_prompt_logic_filters, safe_format
 from src.utils.path_utils import resolve_project_root
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ class StrategistAgent:
         }
         
         try:
-            return prompt_with_logic.format(**context)
+            return safe_format(prompt_with_logic, **context)
         except KeyError as e:
             logger.warning(f"Strategist: Missing prompt placeholder during {filter_logic}: {e}")
             return prompt_with_logic # Fallback if formatting fails due to missing keys (e.g. in draft phase)

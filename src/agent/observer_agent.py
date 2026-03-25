@@ -13,7 +13,7 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.agent_utils import read_prompt_template
+from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.datetime_utils import (
     format_datetime, get_current_utc_time, to_iso_zulu, get_interval_seconds
 )
@@ -312,7 +312,8 @@ class SemanticSynthesizer:
                 "micro": {"interval": self.config.micro_context.time_interval, "limit": self.config.micro_context.historical_lookback_candles}
             }
             
-            input_text = prompt_tpl.format(
+            input_text = safe_format(
+                prompt_tpl,
                 timestamp=format_datetime(at_time),
                 macro_timeframe=convert_to_json_string(specs["macro"]),
                 micro_timeframe=convert_to_json_string(specs["micro"]),
