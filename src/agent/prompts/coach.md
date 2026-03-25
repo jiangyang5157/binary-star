@@ -42,7 +42,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 # OUTPUT FORMAT (STRICT JSON)
 You MUST output a valid JSON object.
 
-If no patches are needed for a specific module, return an empty array `[]` or object `{}`.
+If no patches are needed for a specific module, return an empty array `[]` for any prompt patches or object `{}` for config updates.
 
 ### SCHEMA
 ```json
