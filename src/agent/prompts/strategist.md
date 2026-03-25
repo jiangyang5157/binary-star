@@ -30,7 +30,7 @@ To synthesize objective market topography into actionable limit orders. You must
 - **Draft Plan**: {draft_plan} (Available in Pass: SYNTHESIS only).
 - **Critic Feedback**: {critic_feedback} (Available in Pass: SYNTHESIS only).
 
-# NALYTICAL TASKS
+# ANALYTICAL TASKS
 [[[PASS: DRAFTING]]]
 ### DRAFTING
 1. **Data Alignment**: Extract `current_price`, `atr_macro`, and primary anchors (`POC/VAH/VAL`).
@@ -54,7 +54,7 @@ You MUST output a valid JSON object. DO NOT include conversational filler.
 ### SCHEMA
 ```json
 {{
-    "opinion": "BULLISH/BEARISH/NEUTRAL",
+    "opinion": "BULLISH / BEARISH / NEUTRAL",
     "confidence": 0-100,
     "limit_order": {{ 
         "entry": decimal,

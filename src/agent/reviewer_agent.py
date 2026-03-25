@@ -93,7 +93,7 @@ class ReviewerAgent:
         # Prepare context data
         context = {
             "historical_observation": json.dumps(strategy.get("observation"), indent=2, ensure_ascii=False),
-            "actual_outcome": json.dumps(outcome, indent=2, ensure_ascii=False),
+            "actual_outcome_metrics": json.dumps(outcome, indent=2, ensure_ascii=False),
             "current_observation": json.dumps(observation, indent=2, ensure_ascii=False) if observation else "N/A",
             "current_config": json.dumps(self.raw_config, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(strategy.get("draft"), indent=2, ensure_ascii=False),
