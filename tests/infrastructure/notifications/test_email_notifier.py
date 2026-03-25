@@ -7,7 +7,6 @@ from src.infrastructure.notifications.email_notifier import StrategyNotifier, St
 
 class TestStrategyNotifier(unittest.TestCase):
     def setUp(self):
-        # Sample mock data based on recent BTCUSDT run (2026-03-25 04:31:30)
         self.mock_strategy_data = {
           "observation": {
             "symbol": "BTCUSDT",
@@ -30,9 +29,15 @@ class TestStrategyNotifier(unittest.TestCase):
             }
           },
           "final_decision": {
-            "opinion": "NEUTRAL",
-            "confidence": 90,
-            "reasoning": "The BTCUSDT pair is currently exhibiting a RANGING regime with a trend_intensity of 0.0887... neutrality mandate is strictly enforced."
+            "opinion": "BULLISH",
+            "confidence": 80,
+            "limit_order": {
+                "entry": 70100.0,
+                "take_profit": 73000.0,
+                "stop_loss": 69000.0,
+                "holding_time_hours": 24.0
+            },
+            "reasoning": "Confidence is at 80% because price cleared the 69996.66 POC with strong taker delta. A limit buy at 70100 is positioned at the HVN support with a target toward the 73000 LVN gap."
           }
         }
 
@@ -40,9 +45,9 @@ class TestStrategyNotifier(unittest.TestCase):
         """Verify that the HTML template renders with key data points."""
         html = StrategyEmailTemplate.render(self.mock_strategy_data)
         self.assertIn("BTCUSDT Strategy Report", html)
-        self.assertIn("MARKET NEUTRAL", html)
+        self.assertIn("MARKET BULLISH", html)
         self.assertIn("70800.1", html)
-        self.assertIn("90%", html)
+        self.assertIn("80%", html)
         self.assertIn("Refined Strategic Reasoning", html)
 
     @patch('smtplib.SMTP')
