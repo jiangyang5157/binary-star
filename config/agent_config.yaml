@@ -17,17 +17,17 @@ observer:
   bollinger_bands_std_dev: 2.0
   keltner_channels_period: 21
   keltner_channels_multiplier: 1.5
-  volume_moving_average_period: 21
+  volume_moving_average_period: 14
   max_liquidation_events_to_fetch: 50
   max_liquidation_events_for_ai_context: 10
   high_volume_peak_count: 3
   low_volume_valley_count: 3
-  high_volume_peak_sensitivity: 0.15 
+  high_volume_peak_sensitivity: 0.15
   low_volume_valley_sensitivity: 0.05
-  min_price_gap_between_nodes: 50 
+  min_price_gap_between_nodes: 50
   top_structural_levels_to_report: 3
   funding_rate_history_limit: 1
-  trend_intensity_lookback: 24
+  trend_intensity_lookback: 12
   wick_skewness_lookback: 3
   liq_cluster_atr_multiplier: 0.25
   liq_cluster_fallback_pct: 0.005
@@ -49,4 +49,3 @@ coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-3.1-pro-preview
   temperature: 0.0
-  
