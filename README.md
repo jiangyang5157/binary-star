@@ -38,7 +38,12 @@ python3 pipeline_orchestrator.py --symbol BTCUSDT --data_root data/live --interv
 ```bash
 python3 backtest.py --sampling 7 --mode regime --start T-21d --data_root data/backtest
 ```
-*`--mode regime` 会自动分析市场环境（震荡/趋势）进行分层抽样。*
+*`--mode regime` 会自动分析市场环境（震荡/趋势）进行分层抽样，确保策略在不同波段下的稳健性。*
+
+```bash
+python3 backtest.py --sampling 3 --mode spaced --start T-14d --data_root data/backtest
+```
+*`--mode spaced` 采用等距时间抽样，适合对系统每天的常规表现进行“体检”式扫描。*
 
 ---
 
