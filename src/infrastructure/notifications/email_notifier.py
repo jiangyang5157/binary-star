@@ -113,7 +113,7 @@ class StrategyEmailTemplate:
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
                         {theme_icon} MARKET {opinion}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Signal Detected</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Topography Audit</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
@@ -130,6 +130,14 @@ class StrategyEmailTemplate:
                 </div>
                 ''' if critique else ""}
 
+                <!-- Logic Hardening (Audit Response) -->
+                {f'''
+                <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🏢 Logic Hardening (Audit Response)</h3>
+                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">"{fmt(decision.get('critic_impact'))}"</p>
+                </div>
+                ''' if decision.get('critic_impact') else ""}
+
                 <!-- Strategic Synthesis -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
                     <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🎯 Strategic Synthesis</h3>
@@ -139,19 +147,19 @@ class StrategyEmailTemplate:
                     <div style="background: #1e293b; padding: 20px; border-radius: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center;">
                         <div>
                             <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Entry</div>
-                            <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('entry_price'))}</div>
+                            <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('entry'))}</div>
                         </div>
                         <div>
                             <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Take Profit</div>
-                            <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('take_profit_price'))}</div>
+                            <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('take_profit'))}</div>
                         </div>
                         <div>
                             <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Stop Loss</div>
-                            <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('stop_loss_price'))}</div>
+                            <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('stop_loss'))}</div>
                         </div>
                         <div>
                             <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
-                            <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration(decision.get('holding_time_hours', 0))}</div>
+                            <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration(decision.get('limit_order', {}).get('holding_time_hours', 0))}</div>
                         </div>
                     </div>
                     ''' if decision else ""}
@@ -329,7 +337,7 @@ class StrategyNotifier:
             logger.info(f"Notifier: Confidence too low ({confidence}% < {self.min_confidence_threshold}%). Skipping dispatch.")
             return False
             
-        subject = f"Crypto: {symbol} [{opinion}] ({confidence}%)"
+        subject = f"{symbol} | {opinion} ({confidence}%) | Strategic Synthesis"
         
         # 2. Dispatch Email
         logger.info(f"Notifier: Dispatching alert: {subject}")
