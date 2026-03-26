@@ -114,16 +114,10 @@ class OutcomeCalculator:
                 # Calculate Missed Relative Range for NEITHER
                 missed_range = max_price - min_price
                 rel_range = (missed_range / atr) if atr > 0 else 0
-                
-                # Calculate Temporal Efficiency (even for missed trades)
-                estimated_hours = float(limit_order.get('holding_time_hours', 1.0))
-                actual_hours = len(klines) * interval_hours
-                time_multiplier = round(actual_hours / estimated_hours, 2) if estimated_hours > 0 else 0
 
                 result["trade_execution_metrics"] = {
                     "tp_sl_result": "NEITHER",
-                    "missed_relative_range": round(rel_range, 2),
-                    "time_efficiency_multiplier": time_multiplier
+                    "missed_relative_range": round(rel_range, 2)
                 }
         
         return result

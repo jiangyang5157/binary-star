@@ -22,12 +22,12 @@ To dissect the causal relationship between the historical market topography (T0)
 | | **NEITHER (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +20 (Capital preserved) |
 | | **NEITHER (Missed)**: `missed_relative_range` > 1.5 (Opportunity cost). | Penalty: -40 |
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - 15%. | +40 |
-| *(Entry triggered)*| **Standard**: `mae_stress_level` is 15% - 50%. | Linear Decay (+40 to +10) |
+| *(If entry triggered)*| **Standard**: `mae_stress_level` is 15% - 50%. | Linear Decay (+40 to +10) |
 | | **Luck**: `mae_stress_level` is 50% - 85%. | +0 (Saved by noise) |
 | | **Logic Failure**: `mae_stress_level` > 85% OR `mae_atr_ratio` > 1.2. | -50 (High-risk gamble) |
 | **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > 150%. | Penalty: -20 (Poor liquidity target) |
 | *(Only if TP_HIT)* | **Optimal Capture**: `mfe_efficiency` 100% - 110%. | Bonus: +10 |
-| **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > 2.5. | Penalty: -15 (Dead capital) |
+| **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > 2.5 (If entry triggered). | Penalty: -15 (Dead capital) |
 | | **Stop-Hunt**: `SL_HIT` but `mfe_efficiency` > 100% later. | Penalty: -20 (Blind to liquidity sweep) |
 | **5. Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly with DLE. | Bonus: +20 |
 | | **Compliance Breach**: Protocol violation, ignored POC/VAL, faked data, or ignored `math_check`. | Penalty: -100 (Instant Zero) |
