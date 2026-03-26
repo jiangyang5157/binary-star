@@ -9,7 +9,8 @@ from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import extract_json_from_text
 
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 @dataclass
 class ReviewerConfig:

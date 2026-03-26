@@ -12,7 +12,8 @@ from dotenv import load_dotenv
 import yaml
 from src.utils.path_utils import find_project_root
 
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
 class NotificationConfig:

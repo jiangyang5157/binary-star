@@ -5,7 +5,8 @@ from dataclasses import dataclass, asdict
 from typing import Dict, Any, Optional
 
 # Initialize project-standard logger
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
 class MarketRegimeConfig:

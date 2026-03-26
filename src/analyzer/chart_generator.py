@@ -12,7 +12,8 @@ from typing import Dict, List, Any, Optional
 from src.utils.datetime_utils import format_timestamp_for_filename, get_current_utc_time
 
 # Initialize project-standard logger
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
 class ChartConfig:

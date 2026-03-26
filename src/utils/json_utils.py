@@ -6,7 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, Dict
 
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     """

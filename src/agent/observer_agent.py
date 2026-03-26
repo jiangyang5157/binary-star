@@ -21,7 +21,8 @@ from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string, extract_json_from_text
 
 # Initialize project-standard logger
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
 class TimeframeConfig:

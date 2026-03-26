@@ -6,7 +6,8 @@ from typing import List, Dict, Any, Optional
 from scipy.signal import find_peaks
 
 # Initialize project-standard logger
-logger = logging.getLogger(__name__)
+from src.utils.logger_utils import setup_logger
+logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
 class VolumeProfileConfig:

@@ -85,7 +85,7 @@ class CoachOrchestrator:
                     tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
                     
                     if is_premature and tp_sl_status == "NEITHER":
-                        self.logger.debug(f"Skipping pending trade from Coach batch: {filename}")
+                        self.logger.info(f"Skipping pending trade from Coach batch: {filename}")
                         continue
                 # ---------------------------------------------------------------------
 
