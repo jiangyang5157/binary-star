@@ -46,10 +46,20 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
         sl_dist = abs(entry - sl)
         tp_dist = abs(tp - entry)
         
+        # Extract Regime and Trend Intensity
+        regime = metrics.get('market_regime', {})
+        trend_intensity = float(regime.get('trend_intensity', 1.0))
+        
+        # Load Agent Config for Floor (Enforce mandatory config)
+        agent_cfg = load_config()
+        velocity_floor = float(agent_cfg['strategist']['min_temporal_efficiency'])
+        
+        effective_velocity = atr * max(trend_intensity, velocity_floor)
+        
         return {
             "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
             "sl_atr_distance": round(sl_dist / atr, 2) if atr > 0 else 0,
-            "projected_holding_hours": round(tp_dist / atr, 2) if atr > 0 else 0
+            "projected_holding_hours": round(tp_dist / effective_velocity, 2) if effective_velocity > 0 else 0
         }
     except (ValueError, TypeError, KeyError) as e:
         logger.warning(f"Math Fact Check calculation failed: {e}")
