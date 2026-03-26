@@ -36,7 +36,7 @@ python3 pipeline_orchestrator.py --symbol BTCUSDT --data_root data/live --interv
 ### 3. 历史回测 (Backtest)
 在历史数据上测试策略生成能力：
 ```bash
-python3 backtest.py --sampling 10 --mode regime --start T-30d --data_root data/backtest
+python3 backtest.py --sampling 7 --mode regime --start T-21d --data_root data/backtest
 ```
 *`--mode regime` 会自动分析市场环境（震荡/趋势）进行分层抽样。*
 
