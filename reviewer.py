@@ -280,8 +280,8 @@ class ReviewerOrchestrator:
                 audit_result = {
                     "evaluation_score": 0,
                     "adversarial_audit": {
-                        "protocol_breach": "None",
-                        "shadow_evidence": ["[SYSTEM INTERCEPT] Holding period has not expired. Order is pending in the market."],
+                        "protocol_breach": "[SYSTEM INTERCEPT] Holding period has not expired. Order is pending in the market.",
+                        "shadow_evidence": [],
                         "hallucination_detected": False
                     },
                     "post_mortem": "[TRAJECTORY REALITY] -> Market in progress. [PROTOCOL & DECISION CHAIN AUTOPSY] -> Skipped to preserve compute. [MATH & TEMPORAL DIAGNOSTIC] -> Time window active. [SCORING MATH & LOGIC EVOLUTION ADVICE] -> Trade is pending."
