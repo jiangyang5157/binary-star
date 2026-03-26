@@ -11,6 +11,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
+# Setup paths
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from src.utils.logger_utils import setup_logger
 
 # --- 1. Infrastructure: Logging & Execution ---
@@ -36,45 +41,45 @@ class ProcessExecutor:
                 return p
         return sys.executable
 
-    def run_script(self, script_path: str, args: Optional[List[str]] = None) -> bool:
-        """Executes a python script as a subprocess."""
+    def run_script(self, script_path: str, args: List[str]) -> bool:
+        """Executes a python script as a separate process."""
         if not os.path.exists(script_path):
             self.logger.error(f"Script not found: {script_path}")
             return False
 
-        full_command = [self.venv_python, script_path] + (args or [])
+        cmd = [self.venv_python, script_path] + args
         display_name = os.path.basename(script_path)
-        
-        self.logger.info(f">>> Launching: {display_name} {' '.join(args or [])}")
+        self.logger.info(f"Executor: Launching {display_name} with args {args}")
         
         try:
-            result = subprocess.run(
-                full_command, 
-                capture_output=True, 
-                text=True, 
-                timeout=3600
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1
             )
             
-            if result.stdout:
-                for line in result.stdout.strip().split('\n'):
+            # Use communicate to wait for the process to terminate and capture output
+            stdout, stderr = process.communicate()
+            
+            if stdout:
+                for line in stdout.splitlines():
                     if line.strip():
                         self.logger.info(f"[{display_name}] {line}")
             
-            if result.stderr:
-                for line in result.stderr.strip().split('\n'):
+            if stderr:
+                for line in stderr.splitlines():
                     if line.strip():
-                        self.logger.warning(f"[{display_name} ERR] {line}")
-
-            if result.returncode == 0:
+                        self.logger.error(f"[{display_name} ERR] {line}")
+            
+            if process.returncode == 0:
                 self.logger.info(f"Successfully completed: {display_name}")
                 return True
             else:
-                self.logger.error(f"Execution failed: {display_name} (Exit Code: {result.returncode})")
+                self.logger.error(f"Execution failed: {display_name} (Exit Code: {process.returncode})")
                 return False
                 
-        except subprocess.TimeoutExpired:
-            self.logger.error(f"Execution TIMEOUT: {display_name} exceeded 1 hour.")
-            return False
         except Exception as e:
             self.logger.error(f"Execution ERROR: {display_name} - {str(e)}")
             return False

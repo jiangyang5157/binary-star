@@ -5,7 +5,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 # Ensure project root is in path
-sys.path.append(os.getcwd())
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.observer_agent import ObserverAgent
 from src.utils.agent_utils import load_config

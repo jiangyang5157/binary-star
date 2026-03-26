@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, PROJECT_ROOT)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.observer_agent import ObserverAgent
 from src.agent.strategist_agent import StrategistAgent

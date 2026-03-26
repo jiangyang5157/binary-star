@@ -64,7 +64,8 @@ def main():
     # Forensic context construction for isolated replay
     # We use T0 assets as T1 proxies if T1 isn't available in the file
     obs = session["observation"]
-    assets = obs.get("visual_assets", {})
+    assets_raw = obs.get("visual_assets", {})
+    assets = assets_raw if isinstance(assets_raw, dict) else {}
     
     # Resolve paths relative to PROJECT_ROOT
     def resolve(p):
@@ -113,13 +114,22 @@ def main():
     audit_result = reviewer.review(
         historical_strategy=session,
         actual_outcome={
-            "entry_price_at_t0": obs.get("price", 0),
+            "entry_price_at_t0": float(obs.get("price", 0)),
+            "highest_reached_price": float(obs.get("price", 0)) * 1.01,
+            "lowest_reached_price": float(obs.get("price", 0)) * 0.99,
             "exit_price_at_t1": obs.get("price", 0),
             "total_price_change_pct": 0.0,
-            "max_favorable_runup_pct": 0.0,
-            "max_adverse_drawdown_pct": 0.0,
+            "max_favorable_runup_pct": 1.0,
+            "max_adverse_drawdown_pct": -1.0,
             "audit_duration_candles": 1,
-            "trade_execution_metrics": None
+            "trade_execution_metrics": {
+                "tp_sl_result": "NEITHER",
+                "mae_stress_level": "0%",
+                "mae_atr_ratio": 0.0,
+                "mfe_efficiency": 0.0,
+                "time_efficiency_multiplier": 1.0,
+                "missed_relative_range": 0.0
+            }
         },
         current_observation=obs,
         visual_context=visual_context
