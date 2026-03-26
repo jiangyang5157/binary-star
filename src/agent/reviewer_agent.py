@@ -128,14 +128,17 @@ class ReviewerAgent:
                 }
                 
                 for key, path in visual_context.items():
+                    label = labels.get(key, f"Visual Supplement: {key}")
                     if path and os.path.exists(path):
-                        label = labels.get(key, f"Visual Supplement: {key}")
                         logger.info(f"Reviewer: Uploading forensic asset: {label} ({path})")
                         
                         # Upload to Gemini File API
                         file_obj = self.client.files.upload(file=path)
                         contents.append(f"\n{label}")
                         contents.append(file_obj)
+                    else:
+                        # Explicitly notify the AI that the asset is missing to prevent hallucination
+                        contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' is missing or deleted from storage. Reasoning must rely on quantitative metrics for this dimension.]")
             
             # 2. Execution
             response = self.client.models.generate_content(
