@@ -111,22 +111,21 @@ class StrategyEmailTemplate:
                     </p>
                 </div>
 
-                <!-- Adversarial Risk Disclosure -->
+                <!-- Adversarial Risk Audit -->
                 {f'''
-                <div style="background-color: #fff7ed; padding: 25px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
-                    <h3 style="margin: 0 0 10px 0; color: #9a3412; font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
-                        <span>⚠️ Forensic Risk Disclosure</span>
+                <div style="background-color: #f8fafc; border: 1px solid #ebd5d5; padding: 25px; border-radius: 12px; margin-bottom: 35px; border-left: 5px solid #ef4444;">
+                    <h3 style="margin-top: 0; color: #991b1b; font-size: 18px; display: flex; align-items: center; margin-bottom: 20px;">
+                        <span style="margin-right: 12px;">⚖️ Adversarial Risk Audit</span>
                         <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Skepticism: {fmt(critique.get('skepticism_score'))}%</span>
                     </h3>
                     <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;"><strong>Hidden Risk:</strong> {fmt(critique.get('hidden_risk'))}</p>
                 </div>
                 ''' if critique else ""}
 
-                <!-- Strategic Reasoning -->
-                <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">⚡ Refined Strategic Reasoning</h3>
-                    <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
-                    
+                <!-- Strategic Synthesis -->
+                <div style="margin-bottom: 10px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🎯 Strategic Synthesis</h3>
+                    <div style="font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap; background-color: #f1f5f9; padding: 20px; border-radius: 10px; font-weight: 500;">{fmt(reasoning)}</div>
                     {f'''
                     <div style="background: #1e293b; padding: 20px; border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
                         <div>
@@ -153,7 +152,7 @@ class StrategyEmailTemplate:
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         <!-- 1. Synthesized Topography (Highest Priority) -->
                         <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
-                            <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography (Key Conflict)</span>
+                            <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography (Market Narrative)</span>
                             <p style="font-size: 13px; color: #1e3a8a; margin-top: 8px; line-height: 1.6; font-weight: 500;">{fmt(semantics.get('synthesized_topography'))}</p>
                         </div>
 
@@ -191,7 +190,7 @@ class StrategyEmailTemplate:
 
                 <!-- Visual Assets -->
                 <div id="charts-root" style="text-align: center;">
-                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📊 Strategic Topography Snapshots</h4>
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📊 Visual Forensic Proof</h4>
                     <div style="margin-bottom: 30px;">
                         <img src="cid:macro_chart" style="max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                     </div>
@@ -203,7 +202,7 @@ class StrategyEmailTemplate:
                 <!-- Footer -->
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
                     <details>
-                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Raw JSON</summary>
+                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Full Forensic Dataset</summary>
                         <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(strategy_data, indent=2, ensure_ascii=False)}</code></pre>
                     </details>
                     <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
