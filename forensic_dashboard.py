@@ -28,9 +28,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meta-Analytics: {{SYMBOL}}</title>
+    <title>Strategic Alpha Ledger: {{SYMBOL}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-serif; }
         .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 0.75rem; padding: 1.5rem; }
@@ -43,37 +44,33 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         
         <div class="flex justify-between items-end border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-3xl font-bold text-blue-400 tracking-tight">{{SYMBOL}} Forensic Analytics</h1>
+                <h1 class="text-3xl font-bold text-blue-400 tracking-tight">{{SYMBOL}} Strategic Alpha Ledger</h1>
                 <p class="text-slate-400 text-sm mt-1">Generated: {{GENERATION_TIME}} (UTC)</p>
             </div>
             <div class="text-right">
-                <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-mono">Agent Performance Radar</span>
+                <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-mono">Outcome Sentinel</span>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Total Reports</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Total Reports Processed</div>
                 <div class="text-3xl font-bold mt-1" id="kpi-total">0</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Signal Ratio (Trades/Total)</div>
-                <div class="text-3xl font-bold mt-1 text-blue-400" id="kpi-ratio">0%</div>
-            </div>
-            <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Executed)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Finalized)</div>
                 <div class="text-3xl font-bold mt-1 text-emerald-400" id="kpi-winrate">0%</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Net Est. PnL (%)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Sum Net Est. PnL (%)</div>
                 <div class="text-3xl font-bold mt-1 text-purple-400" id="kpi-pnl">0.00%</div>
             </div>
         </div>
 
         <div class="card">
             <h2 class="text-lg font-semibold mb-4 text-slate-200">Temporal Execution & Confidence Mapping</h2>
-            <p class="text-xs text-slate-400 mb-4">X: Batch Index | Y: Confidence | Bubble Size: Holding Time | Green: TP_HIT, Red: SL_HIT, Gray: NEITHER/STUB</p>
-            <div class="relative h-[400px]">
+            <p class="text-xs text-slate-400 mb-4">X: Observation Time | Y: Confidence | Bubble Size: Holding Time | Green: TP_HIT, Red: SL_HIT, Gray: NEITHER</p>
+            <div class="relative h-[450px]">
                 <canvas id="timelineChart"></canvas>
             </div>
         </div>
@@ -88,7 +85,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
             <div class="card">
                 <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Score Distribution</h2>
-                <p class="text-xs text-slate-400 mb-4">Frequency of confidence scores emitted by the Strategist/Critic synthesis.</p>
+                <p class="text-xs text-slate-400 mb-4">Frequency of confidence scores emitted by the Strategist/Critic synthesis (5pt Bins).</p>
                 <div class="relative h-[300px]">
                     <canvas id="distChart"></canvas>
                 </div>
@@ -96,7 +93,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Filtered Forensic Dataset</h2>
+            <h2 class="text-lg font-semibold mb-4 text-slate-200">Full Forensic Dataset</h2>
             <div class="bg-slate-900 rounded-lg p-4 overflow-x-auto">
                 <pre><code class="text-xs font-mono text-emerald-300" id="json-dump"></code></pre>
             </div>
@@ -120,30 +117,36 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         executedTrades.forEach(t => netPnl += t.estimated_pnl_pct);
 
         document.getElementById('kpi-total').innerText = totalReports;
-        document.getElementById('kpi-ratio').innerText = totalReports > 0 ? ((signals.length / totalReports) * 100).toFixed(1) + '%' : '0%';
-        document.getElementById('kpi-winrate').innerText = executedTrades.length > 0 ? ((wins.length / executedTrades.length) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('kpi-winrate').innerText = signals.length > 0 ? ((wins.length / signals.length) * 100).toFixed(1) + '%' : '0%';
         
         const pnlEl = document.getElementById('kpi-pnl');
         pnlEl.innerText = (netPnl > 0 ? '+' : '') + netPnl.toFixed(2) + '%';
         pnlEl.className = netPnl >= 0 ? 'text-3xl font-bold mt-1 text-emerald-400' : 'text-3xl font-bold mt-1 text-rose-400';
 
-        // 3. Timeline Bubble Chart
-        const bubbleData = RAW_DATA.filter(d => d.confidence !== null).map((d, i) => {
-            let color = 'rgba(148, 163, 184, 0.6)'; // Gray (Neutral/Pending)
+        // 3. Timeline Bubble Chart (Temporal)
+        const bubbleData = RAW_DATA.filter(d => d.confidence !== null).map((d) => {
+            let color = 'rgba(148, 163, 184, 0.6)'; // Gray (Neutral/expired)
             if (d.tp_sl_result === 'TP_HIT') color = 'rgba(52, 211, 153, 0.7)'; // Emerald
             if (d.tp_sl_result === 'SL_HIT') color = 'rgba(251, 113, 133, 0.7)'; // Rose
             
             const r = Math.max(5, Math.min(30, (d.holding_time_hours || 1) * 2));
             
             return {
-                x: i,
+                x: d.observation_time,
                 y: d.confidence,
                 r: r,
                 label: d.name,
                 pnl: d.estimated_pnl_pct,
+                holding: d.holding_time_hours,
                 color: color
             };
         });
+
+        // Calculate absolute temporal bounds
+        const allTimes = RAW_DATA.map(d => new Date(d.observation_time).getTime());
+        const allEndTimes = RAW_DATA.map(d => new Date(d.observation_time).getTime() + (d.holding_time_hours || 0) * 3600000);
+        const minTime = Math.min(...allTimes) - (2 * 3600000); // 2h buffer before
+        const maxTime = Math.max(...allEndTimes) + (2 * 3600000); // 2h buffer after
 
         new Chart(document.getElementById('timelineChart'), {
             type: 'bubble',
@@ -164,13 +167,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         callbacks: {
                             label: (ctx) => {
                                 const d = ctx.raw;
-                                return `${d.label} | Conf: ${d.y} | PnL: ${d.pnl.toFixed(2)}%`;
+                                return [`${d.label}`, `Confidence: ${d.y}%`, `PnL: ${d.pnl.toFixed(2)}%`, `Holding: ${d.holding.toFixed(1)} hours`];
                             }
                         }
                     }
                 },
                 scales: {
-                    x: { ticks: { color: '#64748b' }, grid: { color: '#334155' }, title: { display: true, text: 'Batch Sequence', color: '#94a3b8'} },
+                    x: { 
+                        type: 'time',
+                        min: minTime,
+                        max: maxTime,
+                        time: { unit: 'hour', displayFormats: { hour: 'MMM dd, HH:mm' } },
+                        ticks: { color: '#64748b' }, 
+                        grid: { color: '#334155' }, 
+                        title: { display: true, text: 'Observation Timestamp', color: '#94a3b8'} 
+                    },
                     y: { min: 40, max: 100, ticks: { color: '#64748b' }, grid: { color: '#334155' }, title: { display: true, text: 'Confidence Score', color: '#94a3b8'} }
                 }
             }
@@ -208,33 +219,35 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: { ticks: { color: '#64748b' }, grid: { display: false }, title: { display: true, text: 'Minimum Confidence Threshold Filter', color: '#94a3b8'} },
+                    x: { ticks: { color: '#64748b' }, grid: { display: false }, title: { display: true, text: 'Min Confidence Threshold (%)', color: '#94a3b8'} },
                     y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } }
                 }
             }
         });
 
-        // 5. Confidence Distribution
-        const confBins = { "40-49":0, "50-59":0, "60-69":0, "70-79":0, "80-89":0, "90-100":0 };
+        // 5. Confidence Distribution (5pt Bins)
+        const bins = [];
+        for (let i = 40; i <= 95; i += 5) {
+            const label = i === 95 ? "95-100" : `${i}-${i+4}`;
+            bins.push({ label: label, min: i, max: i === 95 ? 100 : i+4, count: 0 });
+        }
         signals.forEach(s => {
             const c = s.confidence;
-            if (c >= 90) confBins["90-100"]++;
-            else if (c >= 80) confBins["80-89"]++;
-            else if (c >= 70) confBins["70-79"]++;
-            else if (c >= 60) confBins["60-69"]++;
-            else if (c >= 50) confBins["50-59"]++;
-            else if (c >= 40) confBins["40-49"]++;
+            bins.forEach(b => {
+                if (c >= b.min && c <= b.max) b.count++;
+            });
         });
 
         new Chart(document.getElementById('distChart'), {
             type: 'bar',
             data: {
-                labels: Object.keys(confBins),
+                labels: bins.map(b => b.label),
                 datasets: [{
                     label: 'Frequency',
-                    data: Object.values(confBins),
+                    data: bins.map(b => b.count),
                     backgroundColor: '#8b5cf6', 
-                    borderRadius: 4
+                    borderRadius: 4,
+                    barPercentage: 0.7
                 }]
             },
             options: {
@@ -372,7 +385,7 @@ class ForensicDashboardGenerator:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
-        self.logger.info(f"Forensic Radar Dashboard generated: {output_path}")
+        self.logger.info(f"Forensic Alpha Matrix generated: {output_path}")
 
 def main():
     parser = argparse.ArgumentParser(description="Forensic Performance & Confidence Analyzer")
