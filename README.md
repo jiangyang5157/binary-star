@@ -6,12 +6,28 @@
 
 ## 🏗 项目架构：闭环演化系统
 
-系统由四大核心模块构成，形成了一个可持续改进的“决策-审计-进化”闭环：
+系统通过“对抗性决策 + 物理校验 + 周期性演化”构建了一个高度透明且具备自我进化能力的闭环：
 
-1.  **观察与决策 (Observer & Strategist)**: 捕捉市场瞬时状态，生成带置信度的交易策略。
-2.  **法医审计 (Reviewer)**: 在交易完成后（或到达预定时间），自动回溯市场数据，判定预测准确度并记录 MAE/MFE 等核心指标。
-3.  **系统反馈 (Forensic Dashboard)**: 将审计结果可视化，展示置信度与胜率的关联，帮助定位系统薄弱环节。
-4.  **自我进化 (Coach & Evolution)**: Coach 智能体分析审计报告，提炼优化方案并生成补丁（Patches）；补丁应用后直接更新 Agent 的 Prompt 或配置。
+| 阶段 | 核心组件 | 物理/逻辑动作 | 演化价值 |
+| :--- | :--- | :--- | :--- |
+| **1. 决策层 (Execution)** | Observer + Strategist | 宏微观测绘 -> 方案草拟 | 生成具备原始态势感知、带盈亏比预期的市场切片。 |
+| **2. 校验层 (Verification)** | Middleware + Critic | 数学事实校验 (Math Fact Check) -> 对抗审计 | 消除 AI 逻辑幻觉，确保止损与时间窗口具备物理真实性。 |
+| **3. 存档层 (Forensics)** | Forensic Repo | 全量决策（含被否决项）存档 | 提供完整的决策心理链路与 Veto (否决) 现场供事后追溯。 |
+| **4. 审计层 (Audit)** | Reviewer | PnL / MFE / MAE 真实数据回溯 | 将理论决策与市场真实反馈进行对标，量化系统偏差。 |
+| **5. 演化层 (Evolution)** | Coach | 批量诊断 (Batch Analysis) -> 逻辑突变 | 识别系统性偏向（如过于保守或冒险），生成 Prompt 补丁。 |
+
+### 🔍 核心机制深度解析
+
+#### A. 物理真实锚点 (The Middleware Gate)
+这是系统中最关键的非 AI 模块。在每一份策略草案生成后，中间件会直接从底层 K 线提取 **ATR (波动率)**、**CVD (成交量累积)** 等硬性指标，并计算出该策略真实的 **盈亏比 (RR)** 和 **持仓时间 (Holding Time)**。这组数据被强制注入审计流程，作为衡量 AI 决策是否“脱离物理现实”的唯一标尺。
+
+#### B. 双向决策博弈 (Bifurcation Protocol)
+审计员 (Critic) 并不只是简单的“过滤器”。在面对高风险环境（如 LS Ratio 极端失衡）时，审计员会提出 **硬化（Hardening）** 建议，例如将传统的支撑位入场改为“深层限价单 (DLE)”。策略师必须采纳这些对抗性建议并重新计算数学逻辑；若修正后的 RR 无法达标，该单据将被强制转为 `NEUTRAL`。
+
+#### C. 由于实战驱动的演化 (Evolutionary Mutation)
+`Coach` 模块通过分析多份历史审计报告，对比 **“审计员的担忧”** 与 **“市场的真实走势”**。
+*   如果市场并未发生审计员担心的风险（判读过严），Coach 会建议释放更多探索空间。
+*   如果市场反复触发了被忽略的微观信号（判读过松），Coach 会生成对应的逻辑补丁，直接修改 Agent 的提示词（Prompts）或配置（Configs），实现系统的动态进化。
 
 ---
 
@@ -36,12 +52,12 @@ python3 pipeline_orchestrator.py --symbol BTCUSDT --data_root data/live --interv
 ### 3. 历史回测 (Backtest)
 在历史数据上测试策略生成能力：
 ```bash
-python3 backtest.py --sampling 7 --mode regime --start T-21d --data_root data/backtest
+python3 backtest.py --sampling 12 --mode regime --start T-24d --data_root data/backtest
 ```
 *`--mode regime` 会自动分析市场环境（震荡/趋势）进行分层抽样，确保策略在不同波段下的稳健性。*
 
 ```bash
-python3 backtest.py --sampling 7 --mode spaced --start T-21d --data_root data/backtest
+python3 backtest.py --sampling 12 --mode spaced --start T-24d --data_root data/backtest
 ```
 *`--mode spaced` 采用等距时间抽样，适合对系统每天的常规表现进行“体检”式扫描。*
 
