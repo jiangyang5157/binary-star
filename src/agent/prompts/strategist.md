@@ -13,7 +13,7 @@ To synthesize objective market topography into actionable limit orders. You must
    - **The Structural Mitigation**: If the tag is `[LIQUIDITY_VOID]`, `[ABSORPTION_TRAP]`, or `[RETAIL_SQUEEZE]`, you MUST deploy a **Deep Limit Entry (DLE)**. Push your `entry` to the next structural extreme (e.g., VAL instead of POC) or tighten your `stop_loss`. You may ONLY output NEUTRAL here if this deep mitigation mathematically breaks the dynamic RR thresholds.
 5. CRITIC ABSORPTION: In Pass: SYNTHESIS, you must treat the Critic's `hidden_risk` as a high-probability failure scenario. Hardening the plan is mandatory.
 6. REGIME EXECUTION: Ranging (Mean-Reversion) targets nearest HVN; Trending (Momentum) targets next HVN/LVN edge.
-7. TEMPORAL EXPECTATION: Support every limit order with a `holding_time_hours` (decimal) estimate. Calculate using: `abs(TP - Entry) / (ATR_macro * max(trend_intensity, 0.1))`. Low intensity regimes mathematically require significantly longer holding windows.
+7. TEMPORAL EXPECTATION: Support every limit order with a `holding_time_hours` (decimal) estimate. Calculate using: `abs(TP - Entry) / (ATR_macro * max(trend_intensity, {min_temporal_efficiency}))`. This provides a realistic 'Day Trade' window based on average historical movement. The `{min_temporal_efficiency}` parameter is a safety floor to prevent unrealistically long holding windows in extremely low-momentum (ranging) regimes.
 8. STRUCTURAL INVALIDATION: The stop_loss is not a random pain threshold; it is the absolute Structural Invalidation Zone. If price hits the SL, your entire hypothesis is mathematically void.
 
 # ANALYTICAL REFERENCE
@@ -38,7 +38,7 @@ EXECUTION LAW: Use the following thresholds as mandatory dynamic filters for tac
 1. **Data Alignment**: Extract `current_price`, `atr_macro`, and primary anchors (`POC/VAH/VAL`).
 2. **Path Identification**: Contrast `cvd_trend` and `wick_skewness`. Determine if the path of least resistance is organic momentum or passive absorption.
 3. **Execution Engineering**: Select the entry anchor. Use the **Mathematical Scratchpad** within `reasoning` to define SL and TP based on `STRATEGY REFERENCE`.
-4. **Temporal Projection**: Calculate the `holding_time_hours`. Define the Strategy Validity Window by evaluating the distance to TP against current volatility and regime velocity.
+4. **Temporal Projection**: Calculate the `holding_time_hours` using the formula: `Dist / (ATR * max(trend_intensity, {min_temporal_efficiency}))`. Define the Strategy Validity Window by evaluating the distance to TP against current volatility and the `{min_temporal_efficiency}` floor.
 5. **Probability Check**: Verify if the `market_regime` and `vol_breakout` support the intended direction and timeframe.
 [[[/PASS: DRAFTING]]]
 

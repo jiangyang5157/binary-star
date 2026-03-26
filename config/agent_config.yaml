@@ -36,6 +36,7 @@ strategist:
   model: gemini-flash-latest
   temperature_draft: 0.4
   temperature_synthesis: 0.2
+  min_temporal_efficiency: 0.4
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview

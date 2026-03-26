@@ -19,6 +19,7 @@ class StrategistConfig:
     role_prompt_path: str
     temperature_draft: float
     temperature_synthesis: float
+    min_temporal_efficiency: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -28,7 +29,8 @@ class StrategistConfig:
             model=str(strat['model']),
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
             temperature_draft=float(strat['temperature_draft']),
-            temperature_synthesis=float(strat['temperature_synthesis'])
+            temperature_synthesis=float(strat['temperature_synthesis']),
+            min_temporal_efficiency=float(strat.get('min_temporal_efficiency', 0.1))
         )
 
 class StrategistAgent:
@@ -75,11 +77,15 @@ class StrategistAgent:
         template = read_prompt_template(self.config.role_prompt_path)
         prompt_with_logic = apply_prompt_logic_filters(template, [filter_logic])
         
+        # Extract dynamic parameters from configuration
+        velocity_floor = self.config.min_temporal_efficiency
+
         # Prepare context
         context = {
             "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(extra_context.get("draft_plan"), indent=2, ensure_ascii=False),
-            "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False)
+            "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False),
+            "min_temporal_efficiency": velocity_floor
         }
         
         try:
