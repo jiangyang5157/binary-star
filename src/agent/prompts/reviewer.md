@@ -37,7 +37,7 @@ To dissect the causal relationship between the historical market topography (T0)
 **[THE EVIDENCE]**
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
-- **Ground Truth Execution**: {actual_outcome_metrics} (Look inside the nested `trade_execution_metrics` for the pre-calculated execution status and MAE percentage. **Trust and use these exact numbers for scoring.**)
+- **Ground Truth Execution**: {actual_outcome_metrics}
 - **Visual Evidence**: You are provided with 4 image attachments in the payload. Each image is immediately preceded by one of the following exact text labels:
   - `T0 Historical Macro Snapshot`
   - `T0 Historical Micro Snapshot`
@@ -56,7 +56,7 @@ To dissect the causal relationship between the historical market topography (T0)
 # ANALYTICAL TASKS
 **FORENSIC AUTOPSY**: Execute a step-by-step reconstruction.
 
-1. **Trajectory Reconstruction**: Contrast the `T0 Historical` visual snapshots with the `T1 Current` visual snapshots. Cross-reference with telemetry. Define the objective market reality (e.g., did price gravitate towards the T0 HVN as expected?).
+1. **Trajectory Reconstruction**: Contrast the `T0 Historical` visual snapshots with the `T1 Current` visual snapshots. Cross-reference with telemetry. Define the objective market reality.
 2. **Protocol Compliance Audit**: Cross-reference the agents' actions against `The Laws`. Did the Strategist bypass its RR thresholds? Did the Critic enforce the Audit Codes?
 3. **Decision Chain Autopsy**: 
    - Isolate confirmation bias in Pass-1 DRAFTING.
@@ -82,3 +82,4 @@ Do not include markdown markers of any kind.
   }},
   "post_mortem": "A comprehensive technical report structured as: [TRAJECTORY REALITY] -> [PROTOCOL & DECISION CHAIN AUTOPSY] -> [MATH & TEMPORAL DIAGNOSTIC] -> [SCORING MATH & LOGIC EVOLUTION ADVICE]. Use nouns and verbs. Be ruthless."
 }}
+```

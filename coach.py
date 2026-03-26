@@ -76,6 +76,19 @@ class CoachOrchestrator:
         for filename in files:
             data = load_json(os.path.join(reviews_dir, filename))
             if data:
+                # ----------------- [核心过滤：剔除未决订单的占位报告] -----------------
+                market_outcome = data.get("market_outcome", {})
+                trade_metrics = market_outcome.get("trade_execution_metrics", {})
+                
+                if trade_metrics:
+                    is_premature = trade_metrics.get("is_premature_audit", False)
+                    tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
+                    
+                    if is_premature and tp_sl_status == "NEITHER":
+                        self.logger.debug(f"Skipping pending trade from Coach batch: {filename}")
+                        continue
+                # ---------------------------------------------------------------------
+
                 # Inject filename for traceability in the COACH prompt (sources_analyzed)
                 data["_source_file"] = filename
                 history.append(data)

@@ -29,7 +29,7 @@ class OutcomeCalculator:
     Determines TP/SL hits and MAE (Maximum Adverse Excursion).
     """
     @staticmethod
-    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], atr: float = 0, interval_hours: float = 0) -> Dict[str, Any]:
+    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], atr: float = 0, interval_hours: float = 0, is_premature: bool = False) -> Dict[str, Any]:
         """Analyzes klines to determine the actual market outcome vs strategist hypothesis."""
         if not klines:
             return {}
@@ -113,7 +113,8 @@ class OutcomeCalculator:
                     "mae_stress_level": f"{round(stress, 1)}%",
                     "mae_atr_ratio": round(mae_atr, 2),
                     "mfe_efficiency": f"{round(mfe_eff, 1)}%",
-                    "time_efficiency_multiplier": time_multiplier
+                    "time_efficiency_multiplier": time_multiplier,
+                    "is_premature_audit": is_premature
                 }
             else:
                 # Calculate Missed Relative Range for NEITHER
@@ -122,7 +123,8 @@ class OutcomeCalculator:
 
                 result["trade_execution_metrics"] = {
                     "tp_sl_result": "NEITHER",
-                    "missed_relative_range": round(rel_range, 2)
+                    "missed_relative_range": round(rel_range, 2),
+                    "is_premature_audit": is_premature
                 }
         
         return result
@@ -221,10 +223,7 @@ class ReviewerOrchestrator:
             # Temporal Window Logic
             window_hours = self._calculate_review_window(strategy)
             dt_end = dt_start + timedelta(hours=window_hours)
-
-            if dt_now < dt_end and not force:
-                logger.info(f"Window not reached for {symbol} (Target: {dt_end}). Skipping.")
-                return
+            is_premature = (dt_now < dt_end) and not force
 
             # Cap end time at now for fetching
             dt_fetch_end = min(dt_end, dt_now)
@@ -267,31 +266,51 @@ class ReviewerOrchestrator:
             limit_order = strategy_obj.get("limit_order") or {}
             target_entry = float(limit_order.get("entry", klines[0][1]))
             
-            outcome = OutcomeCalculator.calculate(klines, target_entry, session, atr=atr_macro, interval_hours=interval_hours)
+            outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=atr_macro, interval_hours=interval_hours, is_premature=is_premature)
 
-            # 2. Multimedia & Visual Forensic Context
-            if symbol not in self.observers:
-                self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key, self.data_root)
-            current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
+            # ----------------- [新增：Python 成本防火墙 & 占位报告生成] -----------------
+            trade_metrics = outcome.get("trade_execution_metrics", {})
+            is_premature_status = trade_metrics.get("is_premature_audit", False)
+            tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
 
-            t0_assets = session.get("observation", {}).get("visual_assets", {})
-            t1_assets = current_obs.get("visual_assets", {})
+            if is_premature_status and tp_sl_status == "NEITHER":
+                logger.info(f"Audit premature and order pending for {symbol}. Generating SYSTEM-STUB report.")
+                
+                # 伪造一个结构完全合规的 audit_findings，不调用大模型
+                audit_result = {
+                    "evaluation_score": 0,
+                    "adversarial_audit": {
+                        "protocol_breach": "None",
+                        "shadow_evidence": ["[SYSTEM INTERCEPT] Holding period has not expired. Order is pending in the market."],
+                        "hallucination_detected": False
+                    },
+                    "post_mortem": "[TRAJECTORY REALITY] -> Market in progress. [PROTOCOL & DECISION CHAIN AUTOPSY] -> Skipped to preserve compute. [MATH & TEMPORAL DIAGNOSTIC] -> Time window active. [SCORING MATH & LOGIC EVOLUTION ADVICE] -> Trade is pending."
+                }
+            else:
+                # 2. Multimedia & Visual Forensic Context
+                if symbol not in self.observers:
+                    self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key, self.data_root)
+                current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
 
-            # Resolve absolute paths for all assets
-            visual_context = {
-                "t0_macro": self._resolve_abs_path(t0_assets.get("macro_snapshot")),
-                "t0_micro": self._resolve_abs_path(t0_assets.get("micro_snapshot")),
-                "t1_macro": self._resolve_abs_path(t1_assets.get("macro_snapshot")),
-                "t1_micro": self._resolve_abs_path(t1_assets.get("micro_snapshot"))
-            }
+                t0_assets = session.get("observation", {}).get("visual_assets", {})
+                t1_assets = current_obs.get("visual_assets", {})
 
-            # 3. AI Forensic Audit
-            audit_result = self.reviewer.review(
-                historical_strategy=session,
-                actual_outcome=outcome,
-                current_observation=current_obs,
-                visual_context=visual_context
-            )
+                # Resolve absolute paths for all assets
+                visual_context = {
+                    "t0_macro": self._resolve_abs_path(t0_assets.get("macro_snapshot")),
+                    "t0_micro": self._resolve_abs_path(t0_assets.get("micro_snapshot")),
+                    "t1_macro": self._resolve_abs_path(t1_assets.get("macro_snapshot")),
+                    "t1_micro": self._resolve_abs_path(t1_assets.get("micro_snapshot"))
+                }
+
+                # 3. AI Forensic Audit (只对熟透的果实调用 API)
+                audit_result = self.reviewer.review(
+                    historical_strategy=session,
+                    actual_outcome=outcome,
+                    current_observation=current_obs,
+                    visual_context=visual_context
+                )
+            # -------------------------------------------------------------------------
 
             # 4. Persist
             final_record = {
