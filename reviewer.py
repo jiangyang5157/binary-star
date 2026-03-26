@@ -271,7 +271,7 @@ class ReviewerOrchestrator:
 
             # 2. Multimedia & Visual Forensic Context
             if symbol not in self.observers:
-                self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key)
+                self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key, self.data_root)
             current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
 
             t0_assets = session.get("observation", {}).get("visual_assets", {})

@@ -130,17 +130,17 @@ class StrategyEmailTemplate:
                 </div>
                 ''' if critique else ""}
 
-                <!-- Logic Hardening (Audit Response) -->
+                <!-- Audit Response -->
                 {f'''
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🏢 Logic Hardening (Audit Response)</h3>
-                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">"{fmt(decision.get('critic_impact'))}"</p>
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Audit Response</h3>
+                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('critic_impact'))}</p>
                 </div>
                 ''' if decision.get('critic_impact') else ""}
 
                 <!-- Strategic Synthesis -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🎯 Strategic Synthesis</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🧩 Strategic Synthesis</h3>
                     <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
                     
                     {f'''
