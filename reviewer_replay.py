@@ -25,8 +25,8 @@ def main():
     using a simulated market outcome (mock price action).
     """
     parser = argparse.ArgumentParser(description="Reviewer Replay Audit - AI Verification")
+    parser.add_argument("--data_root", type=str, required=True, help="Data root")
     parser.add_argument("--file", type=str, required=True, help="Path to strategy/observation JSON")
-    parser.add_argument("--data_root", type=str, required=True, help="Data root (default: 'data')")
     args = parser.parse_args()
 
     load_dotenv()
