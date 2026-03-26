@@ -145,24 +145,26 @@ class StrategyEmailTemplate:
                     <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
                     
                     {f'''
-                    <div style="background: #1e293b; padding: 20px; border-radius: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center;">
-                        <div>
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Entry</div>
-                            <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('entry'))}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Take Profit</div>
-                            <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('take_profit'))}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Stop Loss</div>
-                            <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('stop_loss'))}</div>
-                        </div>
-                        <div>
-                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
-                            <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration(decision.get('limit_order', {}).get('holding_time_hours', 0))}</div>
-                        </div>
-                    </div>
+                    <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
+                        <tr>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Entry</div>
+                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('entry'))}</div>
+                            </td>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Take Profit</div>
+                                <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('take_profit'))}</div>
+                            </td>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Stop Loss</div>
+                                <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('stop_loss'))}</div>
+                            </td>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration(decision.get('limit_order', {}).get('holding_time_hours', 0))}</div>
+                            </td>
+                        </tr>
+                    </table>
                     ''' if decision else ""}
                 </div>
 
