@@ -145,73 +145,46 @@ class StrategyEmailTemplate:
                     ''' if limit_order else ""}
                 </div>
 
-                <!-- Forensic Dashboard Grid -->
-                <div class="grid">
-                    <div class="panel">
-                        <h4 class="panel-title">Price Dynamics</h4>
-                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                            Price: <strong>{fmt(dynamics.get('current_price'))}</strong><br>
-                            Vol Ratio: <strong>{fmt(dynamics.get('vol_of_vol'))}</strong><br>
-                            Skewness: <strong>{fmt(dynamics.get('wick_skewness'))}</strong>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <h4 class="panel-title">Market Regime</h4>
-                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                            Regime: <strong>{fmt(regime.get('market_regime'))}</strong><br>
-                            Intensity: <strong>{fmt(regime.get('trend_intensity'))}</strong><br>
-                            Squeeze: <strong>{fmt(regime.get('squeeze_factor'))}</strong>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <h4 class="panel-title">Structural Anchors</h4>
-                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                            POC: <strong>{fmt(topography.get('poc'))}</strong><br>
-                            VAH: <strong>{fmt(topography.get('vah'))}</strong><br>
-                            VAL: <strong>{fmt(topography.get('val'))}</strong>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <h4 class="panel-title">Sentiment Flow</h4>
-                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                            OI Nominal: <strong>{fmt(sentiment.get('oi_nominal'))}</strong><br>
-                            L/S Ratio: <strong>{fmt(sentiment.get('ls_ratio_macro'))}</strong><br>
-                            Funding: <strong>{fmt(sentiment.get('funding_rate'))}</strong>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <h4 class="panel-title">Momentum Pulse</h4>
-                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                            CVD: <strong>{fmt(sentiment.get('cvd_trend'))}</strong><br>
-                            Net Taker Δ: <strong>{fmt(sentiment.get('net_taker_delta'))}</strong><br>
-                            OI Δ Micro: <strong>{fmt(sentiment.get('oi_delta_micro'))}</strong>
-                        </div>
-                    </div>
-                    <div class="panel">
-                        <h4 class="panel-title">Topography Nodes</h4>
-                        <div style="font-size: 12px; color: #334155; line-height: 1.6;">
-                            POC Δ ATR: <strong>{fmt(structural.get('poc_dist_atr'))}</strong><br>
-                            Anchors ↑: <strong>{len(topography.get('anchors_above', []))}</strong><br>
-                            Anchors ↓: <strong>{len(topography.get('anchors_below', []))}</strong>
-                        </div>
-                    </div>
-                </div>
+                <!-- 2026-03-26 Update: Forensic Dashboard Grid removed to reduce noise for focused textual analysis. -->
 
                 <!-- Intelligence Briefing -->
                 <div style="margin-bottom: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🕵️ Intelligence Briefing</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🗺️ Market Topography Forensic</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
-                            <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Structural Gravity</span>
+                        <!-- 1. Synthesized Topography (Highest Priority) -->
+                        <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
+                            <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography (Key Conflict)</span>
+                            <p style="font-size: 13px; color: #1e3a8a; margin-top: 8px; line-height: 1.6; font-weight: 500;">{fmt(semantics.get('synthesized_topography'))}</p>
+                        </div>
+
+                        <!-- 2. Structural Gravity -->
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Structural Gravity</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('structural_gravity'))}</p>
                         </div>
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
-                            <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Topographical Friction</span>
+
+                        <!-- 3. Topographical Friction -->
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Topographical Friction</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('topographical_friction'))}</p>
                         </div>
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
-                            <span style="font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">Sentiment Flow</span>
+
+                        <!-- 4. Sentiment Flow -->
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Sentiment Flow</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('sentiment_flow'))}</p>
+                        </div>
+
+                        <!-- 5. Regime & Volatility -->
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Regime & Volatility</span>
+                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('regime_volatility'))}</p>
+                        </div>
+
+                        <!-- 6. Micro-Interactive detail -->
+                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
+                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Micro-Interactive detail</span>
+                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('micro_interactive'))}</p>
                         </div>
                     </div>
                 </div>
@@ -356,7 +329,9 @@ class StrategyNotifier:
         Swaps CID references for local filesystem paths.
         """
         try:
-            output_dir = os.path.join(self.data_root, "html")
+            # Default to data/test/html for previews to avoid mixing with live data
+            test_root = os.path.join(find_project_root(), "data", "test")
+            output_dir = os.path.join(test_root, "html")
             os.makedirs(output_dir, exist_ok=True)
             
             # For local preview, we need to swap 'cid:name' with the actual file path.
