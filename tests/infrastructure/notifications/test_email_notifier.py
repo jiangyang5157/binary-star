@@ -27,8 +27,8 @@ class TestStrategyNotifier(unittest.TestCase):
       }
     },
     "visual_assets": {
-      "macro_snapshot": "data/tests/klines/BTCUSDT_1h_klines_20260325_043130.png",
-      "micro_snapshot": "data/tests/klines/BTCUSDT_15m_klines_20260325_043130.png"
+      "macro_snapshot": "data/test/klines/BTCUSDT_1h_klines_20260325_043130.png",
+      "micro_snapshot": "data/test/klines/BTCUSDT_15m_klines_20260325_043130.png"
     },
     "quantitative_metrics": {
       "price_dynamics": {
@@ -142,8 +142,8 @@ class TestStrategyNotifier(unittest.TestCase):
       }
     },
     "visual_assets": {
-      "macro_snapshot": "data/tests/klines/BTCUSDT_1h_klines_20260325_043130.png",
-      "micro_snapshot": "data/tests/klines/BTCUSDT_15m_klines_20260325_043130.png"
+      "macro_snapshot": "data/test/klines/BTCUSDT_1h_klines_20260325_043130.png",
+      "micro_snapshot": "data/test/klines/BTCUSDT_15m_klines_20260325_043130.png"
     },
     "quantitative_metrics": {
       "price_dynamics": {
@@ -213,12 +213,12 @@ class TestStrategyNotifier(unittest.TestCase):
         self.assertIn("Refined Strategic Reasoning", html)
         
         # Also generate a preview for visual confirmation as requested
-        notifier = StrategyNotifier(data_root="data/tests")
+        notifier = StrategyNotifier(data_root="data/test")
         notifier.notify_strategy("BTCUSDT", self.mock_neutral_no_order_data)
 
     def test_confidence_filter(self):
         """Verify that the Notifier skips dispatch when confidence < 60%."""
-        notifier = StrategyNotifier(data_root="data/tests")
+        notifier = StrategyNotifier(data_root="data/test")
         notifier.dispatcher.dispatch = MagicMock()
         
         success = notifier.notify_strategy("BTCUSDT", self.mock_low_confidence_data)
@@ -239,7 +239,8 @@ class TestStrategyNotifier(unittest.TestCase):
         )
         
         with patch('src.infrastructure.notifications.email_notifier.NotificationConfig.from_env', return_value=config):
-            notifier = StrategyNotifier(data_root="data/tests")
+            data_root = "data/test"
+            notifier = StrategyNotifier(data_root=data_root)
             # Mock dispatcher to avoid real SMTP
             notifier.dispatcher.dispatch = MagicMock(return_value=True)
             
@@ -248,20 +249,21 @@ class TestStrategyNotifier(unittest.TestCase):
             self.assertTrue(result)
             notifier.dispatcher.dispatch.assert_called_once()
             
-            # Check if preview was saved in data/tests/html
-            preview_dir = "data/tests/html"
+            # Check if preview was saved in data/test/html
+            preview_dir = os.path.join(data_root, "html")
             files = os.listdir(preview_dir)
             self.assertTrue(any("BTCUSDT_strategy_preview" in f for f in files))
 
     def test_local_preview_generation(self):
         """Verify that the HTML preview is saved to the correct directory."""
-        notifier = StrategyNotifier(data_root="data/tests")
+        data_root = "data/test"
+        notifier = StrategyNotifier(data_root=data_root)
         html = "<html>Test</html>"
         path = notifier.save_html_preview("TEST_SYMBOL", html, {})
         
         self.assertIsNotNone(path)
         self.assertTrue(os.path.exists(path))
-        self.assertIn("data/tests/html", path)
+        self.assertIn(os.path.join(data_root, "html"), path)
         
         # Cleanup
         if os.path.exists(path):

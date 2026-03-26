@@ -179,7 +179,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Industrial-Grade Automated System Evolution Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Usage: python3 apply_patch.py --file data/tests/coaches/report.json"
+        epilog="Usage: python3 apply_patch.py --file data/test/coaches/report.json"
     )
     parser.add_argument(
         "--file", 

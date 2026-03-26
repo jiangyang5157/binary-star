@@ -10,7 +10,7 @@ class TestObserverCLI(unittest.TestCase):
         load_dotenv()
         self.config = load_config()
         self.symbol = "BTCUSDT"
-        self.data_root = "data/tests"
+        self.data_root = "data/test"
 
     def test_argument_defaults(self):
         """Verify that default values are correctly handled in the logic."""

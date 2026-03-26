@@ -24,7 +24,7 @@ def test_observer_agent_live():
     load_dotenv()
     
     symbol = "BTCUSDT"
-    data_root = "data/tests"
+    data_root = "data/test"
     api_key = os.environ.get("GEMINI_API_KEY")
     
     if not api_key:

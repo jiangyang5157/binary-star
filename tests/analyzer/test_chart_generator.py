@@ -7,7 +7,7 @@ from src.analyzer.chart_generator import ChartVisualRenderer, ChartConfig
 from src.infrastructure.binance.client import BinanceFuturesClient
 
 # Configuration for test output
-TEST_OUTPUT_DIR = "data/tests/klines"
+TEST_OUTPUT_DIR = "data/test/klines"
 
 @pytest.fixture(scope="module")
 def chart_renderer():
