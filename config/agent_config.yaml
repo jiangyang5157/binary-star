@@ -47,6 +47,6 @@ reviewer:
   execution_timeframe_interval: 1m
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
-  model: gemini-flash-latest
+  model: gemini-3.1-pro-preview
   temperature: 0.6
   
