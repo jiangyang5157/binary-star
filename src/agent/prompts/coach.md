@@ -40,13 +40,12 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 5. **Patch Generation**: Construct the surgical JSON payload using the `EVOLUTION LAW`.
 
 # OUTPUT FORMAT (STRICT JSON)
-Output RAW JSON only. **DO NOT wrap the output in ```json ... ``` code blocks.** The first character of your response MUST be `{` and the last character MUST be `}`. 
+Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. 
 Do not include conversational filler.
 
 If no patches are needed for a specific module, return an empty array `[]` for any prompt patches or object `{}` for config updates.
 
 ### SCHEMA
-```json
 {{
   "sources_analyzed": ["List of review filenames or timestamps processed"],
   "systemic_diagnosis": "Macro summary of recurring failures, classifying the dominant pathology.",
@@ -82,4 +81,3 @@ If no patches are needed for a specific module, return an empty array `[]` for a
     }}
   }}
 }}
-```

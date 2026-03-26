@@ -67,12 +67,11 @@ To dissect the causal relationship between the historical market topography (T0)
 6. **Final Scoring**: Calculate the `evaluation_score` by directly applying the `SCORING LAW` to the pre-calculated metrics in `Ground Truth Execution`. Do not recalculate MAE manually.
 
 # OUTPUT FORMAT (STRICT JSON)
-Output RAW JSON only. **DO NOT wrap the output in ```json ... ``` code blocks.** The first character of your response MUST be `{` and the last character MUST be `}`. 
+Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. 
 Do not include conversational filler.
 Do not include markdown markers of any kind.
 
 ### SCHEMA
-```json
 {{
   "evaluation_score": 0-100,
   "adversarial_audit": {{
@@ -82,4 +81,3 @@ Do not include markdown markers of any kind.
   }},
   "post_mortem": "A comprehensive technical report structured as: [TRAJECTORY REALITY] -> [PROTOCOL & DECISION CHAIN AUTOPSY] -> [MATH & TEMPORAL DIAGNOSTIC] -> [SCORING MATH & LOGIC EVOLUTION ADVICE]. Use nouns and verbs. Be ruthless."
 }}
-```

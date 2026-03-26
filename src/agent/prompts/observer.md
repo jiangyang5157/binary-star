@@ -48,14 +48,13 @@ Perform a forensic mapping of the market topography across 6 distinct dimensions
 6. Synthesized Topography: A concise technical summary of the "As-Is" market map. Identify the **Key Structural Conflict** currently governing the price action.
 
 # OUTPUT FORMAT (STRICT JSON)
-Output RAW JSON only. **DO NOT wrap the output in ```json ... ``` code blocks.** The first character of your response MUST be `{` and the last character MUST be `}`. 
+Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. 
 Do not include conversational filler.
 Do not include markdown markers of any kind.
 
 Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
 
 ### SCHEMA
-```json
 {{
     "structural_gravity": "Analysis with metrics...",
     "topographical_friction": "Analysis with metrics...",
@@ -64,4 +63,3 @@ Every field must be a detailed paragraph (3-5 sentences) containing specific dat
     "micro_interactive": "Analysis with metrics...",
     "synthesized_topography": "Final forensic map summary including Key Structural Conflict."
 }}
-```
