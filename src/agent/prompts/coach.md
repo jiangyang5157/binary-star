@@ -72,10 +72,10 @@ If no patches are needed for a specific module, return an empty array `[]` for a
     }},
     "critic": {{
       "existing_key_name": "new_value"
-    }}，
+    }},
     "reviewer": {{
       "existing_key_name": "new_value"
-    }}，
+    }},
     "coach": {{
       "existing_key_name": "new_value"
     }}
