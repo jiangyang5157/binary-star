@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os
+import sys
 import argparse
 import logging
 from dataclasses import dataclass

@@ -13,7 +13,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.coach_agent import CoachAgent
-from src.utils.agent_utils import load_config
+from src.utils.agent_utils import load_config, load_global_config
 from src.utils.json_utils import save_json, load_json
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
@@ -116,17 +116,25 @@ class CoachOrchestrator:
 
 def main():
     parser = argparse.ArgumentParser(description="Strategic Trading Coach (Agent C)")
-    parser.add_argument("--symbol", type=str, required=True, help="Symbol to analyze.")
+    parser.add_argument("--symbol", type=str, help="Symbol to analyze.")
     parser.add_argument("--data_root", type=str, required=True, help="Data directory root.")
     parser.add_argument("--batch", type=int, required=True, help="Number of recent reviews for this specific symbol to analyze.")
     args = parser.parse_args()
+    
+    # Load global defaults for missing CLI args
+    global_cfg = load_global_config()
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
+    if not symbol:
+        print("Error: Symbol not provided and no default found in global_config.yaml")
+        sys.exit(1)
 
     # Ensure batch is at least 1 to avoid slicing anomalies
     batch_size = max(1, args.batch)
 
     try:
         orchestrator = CoachOrchestrator(data_root=args.data_root)
-        orchestrator.execute_pipeline(symbol=args.symbol, batch_size=args.batch)
+        orchestrator.execute_pipeline(symbol=symbol, batch_size=args.batch)
     except Exception as e:
         print(f"Coaching Pipeline Failed: {e}")
         sys.exit(1)
