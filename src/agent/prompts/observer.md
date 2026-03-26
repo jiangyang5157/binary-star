@@ -40,15 +40,17 @@ To provide an exhaustive, high-fidelity topographical map of the current market 
 # ANALYTICAL TASKS
 Perform a forensic mapping of the market topography across 6 distinct dimensions. **Actively search for "Logical Friction" (divergences between metrics):**
 
-1. **Structural Gravity**: Use a **Spatial Coordinate System**. Describe price as "anchored," "at a junction," or "stranded in a void" relative to POC/VAH/VAL. Cite `*_dist_atr` values.
-2. **Topographical Friction**: Identify specific HVN clusters and `liquidation_clusters`. Note how price interacts with these magnets—is it being drawn in or repelled?
-3. **Regime & Volatility**: Contrast `market_regime` with `vol_of_vol`. Determine if the state is "Standard Rotation," "Exhausted Range," or "Anomalous Structural Expansion."
-4. **Sentiment & Flow**: Detect **Logical Friction**. Highlight cases where `cvd_trend` diverges from price movement (e.g., Hidden Distribution or Passive Absorption).
-5. **Micro-Interactive Detail**: Analyze local boundaries using `wick_skewness`. Spot "Weak Breakouts" where price exceeds a level but `vol_ratio` or `vol_breakout` fails to validate the move.
-6. **Synthesized Topography**: A concise technical summary of the "As-Is" market map. Identify the **Key Structural Conflict** currently governing the price action.
+1. Temporal Confluence & Gravity: Compare the Macro trend against the Micro movement (using the exact timeframes provided in Observational Parameters). State explicitly if they are in [CONFLUENCE] or [CONFLICT]. Describe price as anchored or stranded relative to POC/VAH/VAL. Cite dist_atr values.
+2. Topographical Friction: Identify specific HVN clusters and `liquidation_clusters`. Note how price interacts with these magnets—is it being drawn in or repelled?
+3. Regime & Volatility: Contrast `market_regime` with `vol_of_vol`. Determine if the state is "Standard Rotation," "Exhausted Range," or "Anomalous Structural Expansion."
+4. Sentiment & Flow: Detect **Logical Friction**. Highlight cases where `cvd_trend` diverges from price movement (e.g., Hidden Distribution or Passive Absorption).
+5. Micro-Interactive Detail: Analyze local boundaries using `wick_skewness`. Spot "Weak Breakouts" where price exceeds a level but `vol_ratio` or `vol_breakout` fails to validate the move.
+6. Synthesized Topography: A concise technical summary of the "As-Is" market map. Identify the **Key Structural Conflict** currently governing the price action.
 
 # OUTPUT FORMAT (STRICT JSON)
-You MUST output a valid JSON object. Do NOT include conversational filler or markdown markers.
+Output RAW JSON only. **DO NOT wrap the output in ```json ... ``` code blocks.** The first character of your response MUST be `{` and the last character MUST be `}`. 
+Do not include conversational filler.
+Do not include markdown markers of any kind.
 
 Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
 

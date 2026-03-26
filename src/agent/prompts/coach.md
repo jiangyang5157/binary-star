@@ -40,7 +40,8 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 5. **Patch Generation**: Construct the surgical JSON payload using the `EVOLUTION LAW`.
 
 # OUTPUT FORMAT (STRICT JSON)
-You MUST output a valid JSON object.
+Output RAW JSON only. **DO NOT wrap the output in ```json ... ``` code blocks.** The first character of your response MUST be `{` and the last character MUST be `}`. 
+Do not include conversational filler.
 
 If no patches are needed for a specific module, return an empty array `[]` for any prompt patches or object `{}` for config updates.
 
