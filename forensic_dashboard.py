@@ -58,7 +58,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <div class="text-3xl font-bold mt-1" id="kpi-total">0</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Finalized)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Executed)</div>
                 <div class="text-3xl font-bold mt-1 text-emerald-400" id="kpi-winrate">0%</div>
             </div>
             <div class="card">
@@ -77,15 +77,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card">
-                <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Threshold Optimizer (PnL Curve)</h2>
-                <p class="text-xs text-slate-400 mb-4">Simulates total PnL if you ONLY traded signals with Confidence >= X. Target the peak.</p>
+                <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Threshold Optimizer</h2>
+                <p class="text-xs text-slate-400 mb-4">Simulations if you ONLY traded signals with Confidence >= X.</p>
                 <div class="relative h-[300px]">
                     <canvas id="optimizerChart"></canvas>
                 </div>
             </div>
             <div class="card">
                 <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Score Distribution</h2>
-                <p class="text-xs text-slate-400 mb-4">Frequency of confidence scores emitted by the Strategist/Critic synthesis (5pt Bins).</p>
+                <p class="text-xs text-slate-400 mb-4">Frequency of confidence scores emitted by the Strategist/Critic synthesis.</p>
                 <div class="relative h-[300px]">
                     <canvas id="distChart"></canvas>
                 </div>
