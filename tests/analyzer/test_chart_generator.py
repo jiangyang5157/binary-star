@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timezone
 from src.analyzer.chart_generator import ChartVisualRenderer, ChartConfig
-from src.data.remote.binance_client import BinanceFuturesClient
+from src.infrastructure.binance.client import BinanceFuturesClient
 
 # Configuration for test output
 TEST_OUTPUT_DIR = "data/tests/klines"

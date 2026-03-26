@@ -11,7 +11,9 @@ def regime_config():
         keltner_window=20,
         keltner_multiplier=1.5,
         volume_ma_window=20,
-        trend_threshold=0.6
+        trend_threshold=0.6,
+        trend_intensity_lookback=14,
+        wick_skewness_lookback=24
     )
 
 @pytest.fixture

@@ -13,7 +13,7 @@ from typing import Dict, Any, List, Optional
 
 # --- 1. Infrastructure: Logging & Execution ---
 
-def setup_orchestrator_logger(name: str = "Orchestrator") -> logging.Logger:
+def setup_orchestrator_logger(data_root: str, name: str = "Orchestrator") -> logging.Logger:
     """Configures a standardized logger for the orchestration service."""
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
@@ -26,8 +26,12 @@ def setup_orchestrator_logger(name: str = "Orchestrator") -> logging.Logger:
         ch.setFormatter(formatter)
         logger.addHandler(ch)
         
-        # File Handler
-        fh = logging.FileHandler("orchestrator.log")
+        # File Handler - Relocate to data_root
+        log_dir = data_root
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "pipeline_orchestrator.log")
+        
+        fh = logging.FileHandler(log_path)
         fh.setFormatter(formatter)
         logger.addHandler(fh)
         
@@ -179,14 +183,13 @@ class JobScheduler:
 
 class PipelineOrchestrator:
     def __init__(self, symbol: str, interval: float, data_root: str):
-        self.logger = setup_orchestrator_logger()
+        self.data_root = data_root
+        self.symbol = symbol
+        self.interval = interval
+        self.logger = setup_orchestrator_logger(data_root=self.data_root)
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
         self.validator = ConfigValidator(self.logger)
-        
-        self.symbol = symbol
-        self.interval = interval
-        self.data_root = data_root
 
     def start(self):
         """Starts the service cycle."""
