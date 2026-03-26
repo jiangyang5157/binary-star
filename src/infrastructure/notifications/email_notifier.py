@@ -44,6 +44,14 @@ class StrategyEmailTemplate:
     """
     
     @staticmethod
+    def _format_duration(hours: float) -> str:
+        """Formats hours into a human-readable string (e.g., 18.5h or 2.3d)."""
+        if hours < 24:
+            return f"{hours:.1f}h"
+        days = hours / 24
+        return f"{days:.1f}d"
+
+    @staticmethod
     def render(strategy_data: Dict[str, Any]) -> str:
         """
         Renders the final strategy JSON into a rich HTML report.
@@ -113,35 +121,40 @@ class StrategyEmailTemplate:
 
                 <!-- Adversarial Risk Audit -->
                 {f'''
-                <div style="background-color: #f8fafc; border: 1px solid #ebd5d5; padding: 25px; border-radius: 12px; margin-bottom: 35px; border-left: 5px solid #ef4444;">
-                    <h3 style="margin-top: 0; color: #991b1b; font-size: 18px; display: flex; align-items: center; margin-bottom: 20px;">
-                        <span style="margin-right: 12px;">⚖️ Adversarial Risk Audit</span>
-                        <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Skepticism: {fmt(critique.get('skepticism_score'))}%</span>
+                <div style="background-color: #fff7ed; padding: 25px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
+                    <h3 style="margin: 0 0 10px 0; color: #9a3412; font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
+                        <span>⚖️ Adversarial Risk Audit</span>
+                        <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Audit Severity: {fmt(critique.get('skepticism_score'))}%</span>
                     </h3>
-                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;"><strong>Hidden Risk:</strong> {fmt(critique.get('hidden_risk'))}</p>
+                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt(critique.get('hidden_risk'))}</p>
                 </div>
                 ''' if critique else ""}
 
                 <!-- Strategic Synthesis -->
-                <div style="margin-bottom: 10px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🎯 Strategic Synthesis</h3>
-                    <div style="font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap; background-color: #f1f5f9; padding: 20px; border-radius: 10px; font-weight: 500;">{fmt(reasoning)}</div>
+                <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🎯 Strategic Synthesis</h3>
+                    <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
+                    
                     {f'''
-                    <div style="background: #1e293b; padding: 20px; border-radius: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                    <div style="background: #1e293b; padding: 20px; border-radius: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; text-align: center;">
                         <div>
-                            <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase;">Entry</span><br>
-                            <strong style="color: #ffffff; font-size: 16px;">{fmt(limit_order.get('entry'))}</strong>
+                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Entry</div>
+                            <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('entry_price'))}</div>
                         </div>
                         <div>
-                            <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase;">Take Profit</span><br>
-                            <strong style="color: #10b981; font-size: 16px;">{fmt(limit_order.get('take_profit'))}</strong>
+                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Take Profit</div>
+                            <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('take_profit_price'))}</div>
                         </div>
                         <div>
-                            <span style="color: #94a3b8; font-size: 10px; text-transform: uppercase;">Stop Loss</span><br>
-                            <strong style="color: #ef4444; font-size: 16px;">{fmt(limit_order.get('stop_loss'))}</strong>
+                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Stop Loss</div>
+                            <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('stop_loss_price'))}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
+                            <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration(decision.get('holding_time_hours', 0))}</div>
                         </div>
                     </div>
-                    ''' if limit_order else ""}
+                    ''' if decision else ""}
                 </div>
 
                 <!-- 2026-03-26 Update: Forensic Dashboard Grid removed to reduce noise for focused textual analysis. -->
@@ -152,7 +165,7 @@ class StrategyEmailTemplate:
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         <!-- 1. Synthesized Topography (Highest Priority) -->
                         <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
-                            <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography (Market Narrative)</span>
+                            <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography</span>
                             <p style="font-size: 13px; color: #1e3a8a; margin-top: 8px; line-height: 1.6; font-weight: 500;">{fmt(semantics.get('synthesized_topography'))}</p>
                         </div>
 
