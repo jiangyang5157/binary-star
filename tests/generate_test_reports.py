@@ -107,21 +107,27 @@ def generate_random_tp_sl(data_root, index, symbol="BTCUSDT", base_time=None):
     else:
         return generate_sl(data_root, index, symbol, base_time)
 
-def generate_batch_reports(data_root, count_active=12, count_neutral=8, count_stubs=3):
+def generate_batch_reports(data_root, total_count=40):
+    import shutil
+    review_dir = os.path.join(data_root, "reviewers")
+    if os.path.exists(review_dir):
+        shutil.rmtree(review_dir)
+    os.makedirs(review_dir)
+    
     base_time = datetime.now(timezone.utc) - timedelta(days=2)
     
-    # Generate mix using modular methods
-    for i in range(count_active):
-        if i < count_active // 2: generate_tp(data_root, i, base_time=base_time)
-        else: generate_sl(data_root, i, base_time=base_time)
-        
-    for i in range(count_neutral):
-        generate_neutral(data_root, i, base_time=base_time)
-        
-    for i in range(count_stubs):
-        generate_pending(data_root, i, base_time=base_time)
+    # Weights for variety (TP: 15, SL: 10, Neither: 8, Neutral: 5, Pending: 2)
+    methods = [
+        generate_tp, generate_sl, generate_neither, generate_neutral, generate_pending
+    ]
+    weights = [15, 10, 8, 5, 2]
+    
+    selected_methods = random.choices(methods, weights=weights, k=total_count)
+    
+    for i, method in enumerate(selected_methods):
+        method(data_root, i, base_time=base_time)
             
-    print(f"Generated {count_active + count_neutral + count_stubs} modular test reports in {data_root}/reviewers")
+    print(f"Generated {total_count} randomized/mixed test reports in {data_root}/reviewers")
 
 if __name__ == "__main__":
-    generate_batch_reports("data/test")
+    generate_batch_reports("data/test", 40)

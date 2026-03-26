@@ -44,11 +44,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         
         <div class="flex justify-between items-end border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-3xl font-bold text-blue-400 tracking-tight">{{SYMBOL}} Strategic Alpha Ledger</h1>
+                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Outcome Sentinel</h1>
                 <p class="text-slate-400 text-sm mt-1">Generated: {{GENERATION_TIME}} (UTC)</p>
-            </div>
-            <div class="text-right">
-                <span class="px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-mono">Outcome Sentinel</span>
             </div>
         </div>
 
@@ -56,6 +53,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="card">
                 <div class="text-slate-400 text-xs font-semibold uppercase">Total Reports Processed</div>
                 <div class="text-3xl font-bold mt-1" id="kpi-total">0</div>
+            </div>
+            <div class="card">
+                <div class="text-slate-400 text-xs font-semibold uppercase">Total Executed (TP + SL + NEITHER)</div>
+                <div class="text-3xl font-bold mt-1 text-slate-200" id="kpi-executed">0</div>
             </div>
             <div class="card">
                 <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Executed)</div>
@@ -117,6 +118,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         executedTrades.forEach(t => netPnl += t.estimated_pnl_pct);
 
         document.getElementById('kpi-total').innerText = totalReports;
+        document.getElementById('kpi-executed').innerText = signals.length;
         document.getElementById('kpi-winrate').innerText = signals.length > 0 ? ((wins.length / signals.length) * 100).toFixed(1) + '%' : '0%';
         
         const pnlEl = document.getElementById('kpi-pnl');
