@@ -22,18 +22,18 @@ class CoachConfig:
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CoachConfig":
         """Factory method to extract coach config from the global config dict."""
-        coach_cfg = full_config.get('coach', {})
-        strat_cfg = full_config.get('strategist', {})
-        crit_cfg = full_config.get('critic', {})
+        coach_cfg = full_config['coach']
+        strat_cfg = full_config['strategist']
+        crit_cfg = full_config['critic']
         
         project_root = resolve_project_root()
         
         return cls(
-            model=coach_cfg.get('model'),
-            temperature=float(coach_cfg.get('temperature')),
-            role_prompt_path=os.path.join(project_root, coach_cfg.get('role_definition_prompt')),
-            strategist_prompt_path=os.path.join(project_root, strat_cfg.get('role_definition_prompt')),
-            critic_prompt_path=os.path.join(project_root, crit_cfg.get('role_definition_prompt'))
+            model=str(coach_cfg['model']),
+            temperature=float(coach_cfg['temperature']),
+            role_prompt_path=os.path.join(project_root, coach_cfg['role_definition_prompt']),
+            strategist_prompt_path=os.path.join(project_root, strat_cfg['role_definition_prompt']),
+            critic_prompt_path=os.path.join(project_root, crit_cfg['role_definition_prompt'])
         )
 
 class CoachAgent:

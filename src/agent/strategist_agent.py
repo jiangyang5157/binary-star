@@ -21,12 +21,12 @@ class StrategistConfig:
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
         """Factory method to extract strategist config from the global config dict."""
-        strat = full_config.get('strategist', {})
+        strat = full_config['strategist']
         return cls(
-            model=strat.get('model'),
-            role_prompt_path=os.path.join(resolve_project_root(), strat.get('role_definition_prompt')),
-            temperature_draft=float(strat.get('temperature_draft')),
-            temperature_synthesis=float(strat.get('temperature_synthesis'))
+            model=str(strat['model']),
+            role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
+            temperature_draft=float(strat['temperature_draft']),
+            temperature_synthesis=float(strat['temperature_synthesis'])
         )
 
 class StrategistAgent:

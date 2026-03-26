@@ -20,11 +20,11 @@ class CriticConfig:
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
         """Factory method to extract critic config from the global config dict."""
-        critic = full_config.get('critic', {})
+        critic = full_config['critic']
         return cls(
-            model=critic.get('model'),
-            role_prompt_path=os.path.join(resolve_project_root(), critic.get('role_definition_prompt')),
-            temperature=float(critic.get('temperature'))
+            model=str(critic['model']),
+            role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
+            temperature=float(critic['temperature'])
         )
 
 class CriticAgent:

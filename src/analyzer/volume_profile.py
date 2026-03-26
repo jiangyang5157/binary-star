@@ -172,16 +172,16 @@ class VolumeProfileAnalyzer:
         if len(kwargs) == 1 and isinstance(next(iter(kwargs.values())), VolumeProfileConfig):
             self.config = next(iter(kwargs.values()))
         else:
-            # Map legacy names to new config structure
+            # Map legacy names to new config structure (strictly)
             self.config = VolumeProfileConfig(
-                value_area_ratio=kwargs.get('value_area_pct', 0.7),
-                resolution_bins=kwargs.get('vol_profile_bins', 50),
-                atr_period=kwargs.get('atr_window', 14),
-                max_hvn_nodes=kwargs.get('hvn_count', 3),
-                max_lvn_nodes=kwargs.get('lvn_count', 3),
-                hvn_sensitivity=kwargs.get('hvn_sensitivity', 0.1),
-                lvn_sensitivity=kwargs.get('lvn_sensitivity', 0.05),
-                min_node_distance=kwargs.get('node_min_separation', 2)
+                value_area_ratio=float(kwargs['value_area_pct']),
+                resolution_bins=int(kwargs['vol_profile_bins']),
+                atr_period=int(kwargs['atr_window']),
+                max_hvn_nodes=int(kwargs['hvn_count']),
+                max_lvn_nodes=int(kwargs['lvn_count']),
+                hvn_sensitivity=float(kwargs['hvn_sensitivity']),
+                lvn_sensitivity=float(kwargs['lvn_sensitivity']),
+                min_node_distance=int(kwargs['node_min_separation'])
             )
             
         self.preprocessor = MarketDataPreprocessor()

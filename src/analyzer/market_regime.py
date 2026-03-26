@@ -134,16 +134,16 @@ class MarketRegimeAnalyzer:
         if len(kwargs) == 1 and isinstance(next(iter(kwargs.values())), MarketRegimeConfig):
             self.config = next(iter(kwargs.values()))
         else:
-            # Map legacy names to new config structure
+            # Map legacy names to new config structure (strictly)
             self.config = MarketRegimeConfig(
-                bollinger_window=kwargs.get('bb_window', 20),
-                bollinger_std_dev=kwargs.get('bb_std', 2.0),
-                keltner_window=kwargs.get('kc_window', 20),
-                keltner_multiplier=kwargs.get('kc_mult', 1.5),
-                volume_ma_window=kwargs.get('vol_ma_window', 20),
-                trend_threshold=kwargs.get('trend_intensity_threshold', 0.6),
-                trend_intensity_lookback=kwargs.get('trend_lookback', 14),
-                wick_skewness_lookback=kwargs.get('wick_lookback', 5)
+                bollinger_window=int(kwargs['bb_window']),
+                bollinger_std_dev=float(kwargs['bb_std']),
+                keltner_window=int(kwargs['kc_window']),
+                keltner_multiplier=float(kwargs['kc_mult']),
+                volume_ma_window=int(kwargs['vol_ma_window']),
+                trend_threshold=float(kwargs['trend_intensity_threshold']),
+                trend_intensity_lookback=int(kwargs['trend_lookback']),
+                wick_skewness_lookback=int(kwargs['wick_lookback'])
             )
             
         self.engine = IndicatorEngine(self.config)

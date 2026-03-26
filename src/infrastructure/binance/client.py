@@ -50,7 +50,8 @@ class BinanceFuturesClient:
             self.client = UMFutures()
             
         self.network_cfg = self._load_network_config()
-        self.timeout = self.network_cfg.get('binance', {}).get('api_timeout_seconds', 10)
+        # Strict sourcing from network_config.yaml
+        self.timeout = int(self.network_cfg['binance']['api_timeout_seconds'])
 
     def _load_network_config(self) -> Dict[str, Any]:
         """Loads the network configuration from YAML."""

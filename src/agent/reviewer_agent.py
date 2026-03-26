@@ -25,22 +25,22 @@ class ReviewerConfig:
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
         """Factory method to extract reviewer config from the global config dict."""
-        rev = full_config.get('reviewer', {}) # Fixed key: was 'review'
-        obs = full_config.get('observer', {})
-        strat = full_config.get('strategist', {})
-        crit = full_config.get('critic', {})
+        rev = full_config['reviewer']
+        obs = full_config['observer']
+        strat = full_config['strategist']
+        crit = full_config['critic']
         
         project_root = resolve_project_root()
         
         return cls(
-            model=rev.get('model'),
-            temperature=float(rev.get('temperature', 1.0)),
-            role_prompt_path=os.path.join(project_root, rev.get('role_definition_prompt')),
-            strategist_prompt_path=os.path.join(project_root, strat.get('role_definition_prompt')),
-            critic_prompt_path=os.path.join(project_root, crit.get('role_definition_prompt')),
-            macro_interval=obs.get('macro_analysis_context', {}).get('time_interval'),
-            micro_interval=obs.get('micro_analysis_context', {}).get('time_interval'),
-            execution_timeframe_interval=rev.get('execution_timeframe_interval')
+            model=str(rev['model']),
+            temperature=float(rev['temperature']),
+            role_prompt_path=os.path.join(project_root, rev['role_definition_prompt']),
+            strategist_prompt_path=os.path.join(project_root, strat['role_definition_prompt']),
+            critic_prompt_path=os.path.join(project_root, crit['role_definition_prompt']),
+            macro_interval=str(obs['macro_analysis_context']['time_interval']),
+            micro_interval=str(obs['micro_analysis_context']['time_interval']),
+            execution_timeframe_interval=str(rev['execution_timeframe_interval'])
         )
 
 class ReviewerAgent:

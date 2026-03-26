@@ -200,11 +200,15 @@ class ReviewerOrchestrator:
             # Use dynamic interval mapping to calculate how many klines we need
             # This ensures we get the exact history from T0 (dt_start) to T1 (now)
             fetch_interval = self.reviewer.config.execution_timeframe_interval
+            # Strict interval mapping for required history limit calculation
             interval_map = {
                 "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
-                "1h": 3600, "4h": 14400, "1d": 86400
+                "1h": 3600, "4h": 14400, "1d": 86400, "1w": 604800, "1M": 2592000
             }
-            interval_seconds = interval_map.get(fetch_interval, 60)
+            if fetch_interval not in interval_map:
+                raise ValueError(f"CRITICAL: Unknown execution_timeframe_interval '{fetch_interval}' in config.")
+                
+            interval_seconds = interval_map[fetch_interval]
             duration_seconds = (dt_fetch_end - dt_start).total_seconds()
             required_limit = int(duration_seconds / interval_seconds) + 2 # +2 safety buffer
             target_limit = min(required_limit, 1500)
