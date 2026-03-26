@@ -11,31 +11,9 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
-# --- 1. Infrastructure: Logging & Execution ---
+from src.utils.logger_utils import setup_logger
 
-def setup_orchestrator_logger(data_root: str, name: str = "Orchestrator") -> logging.Logger:
-    """Configures a standardized logger for the orchestration service."""
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-    
-    if not logger.handlers:
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        
-        # Console Handler
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-        
-        # File Handler - Relocate to data_root
-        log_dir = data_root
-        os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "pipeline_orchestrator.log")
-        
-        fh = logging.FileHandler(log_path)
-        fh.setFormatter(formatter)
-        logger.addHandler(fh)
-        
-    return logger
+# --- 1. Infrastructure: Logging & Execution ---
 
 class ProcessExecutor:
     """
@@ -186,7 +164,7 @@ class PipelineOrchestrator:
         self.data_root = data_root
         self.symbol = symbol
         self.interval = interval
-        self.logger = setup_orchestrator_logger(data_root=self.data_root)
+        self.logger = setup_logger("PipelineOrchestrator") # Uses project-standard console logger
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
         self.validator = ConfigValidator(self.logger)

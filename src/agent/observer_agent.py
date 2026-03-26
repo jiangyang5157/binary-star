@@ -58,6 +58,8 @@ class ObserverConfig:
     funding_rate_limit: int
     trend_intensity_lookback: int
     wick_skewness_lookback: int
+    liq_cluster_atr_multiplier: float
+    liq_cluster_fallback_pct: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -98,7 +100,9 @@ class ObserverConfig:
             top_levels_to_report=int(obs['top_structural_levels_to_report']),
             funding_rate_limit=int(obs['funding_rate_history_limit']),
             trend_intensity_lookback=int(obs['trend_intensity_lookback']),
-            wick_skewness_lookback=int(obs['wick_skewness_lookback'])
+            wick_skewness_lookback=int(obs['wick_skewness_lookback']),
+            liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
+            liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct'])
         )
 
 @dataclass
@@ -166,6 +170,9 @@ class MarketMetricsRefiner:
         m_df = self.vp.process_klines(raw.macro_klines)
         n_df = self.vp.process_klines(raw.micro_klines)
         
+        # Calculate ATR-Macro here to pass down for high-fidelity clustering
+        atr_macro = m_df['atr'].iloc[-1] if 'atr' in m_df.columns and not m_df.empty else 0
+        
         profile = self.vp.calculate_profile(m_df)
         nodes = self.vp.find_significant_nodes(profile)
         regime_data = self.regime.analyze(m_df)
@@ -175,7 +182,7 @@ class MarketMetricsRefiner:
             structural_anchors=self._derive_anchors(m_df, profile),
             volume_topography=self._refine_topography(profile, nodes),
             market_regime=regime_data,
-            sentiment_signals=self._derive_sentiment(raw)
+            sentiment_signals=self._derive_sentiment(raw, atr_macro)
         )
 
     def _derive_price_dynamics(self, m_df: pd.DataFrame, n_df: pd.DataFrame) -> Dict[str, Any]:
@@ -228,7 +235,7 @@ class MarketMetricsRefiner:
             "anchors_below": sorted([n for n in all_nodes if n['price'] < poc], key=lambda x: x['price'], reverse=True)[:limit]
         }
 
-    def _derive_sentiment(self, raw: RawMarketData) -> Dict[str, Any]:
+    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float = 0) -> Dict[str, Any]:
         cvd_current = 0.0
         cvd_prev = 0.0
         
@@ -266,19 +273,25 @@ class MarketMetricsRefiner:
             "net_taker_delta": f"{cvd_current:.4f}",
             "cvd_trend": cvd_slope,
             "funding_rate": raw.funding_rate[0].get('fundingRate') if raw.funding_rate else None,
-            "liquidation_clusters": self._parse_liquidations_to_clusters(raw.liquidations)
+            "liquidation_clusters": self._parse_liquidations_to_clusters(raw.liquidations, atr_macro)
         }
 
-    def _parse_liquidations_to_clusters(self, liqs: List[Dict]) -> Optional[Dict[str, Any]]:
+    def _parse_liquidations_to_clusters(self, liqs: List[Dict], atr_macro: float = 0) -> Optional[Dict[str, Any]]:
         """Groups raw liquidations into price clusters for identifying liquidity magnets."""
         if not liqs: return None
         
-        # 1. Price Bucket (0.5% resolution)
+        # 1. Price Bucket (Dynamic ATR Resolution vs % Fallback)
         prices = [float(l.get('price', 0)) for l in liqs]
         if not prices: return None
         
         avg_p = sum(prices) / len(prices)
-        bucket_size = avg_p * 0.005 # 0.5% clusters
+        
+        if atr_macro > 0:
+            # Use 0.25 ATR (default) as resolution for high-fidelity clustering
+            bucket_size = atr_macro * self.config.liq_cluster_atr_multiplier
+        else:
+            # Fallback to % of price if ATR is missing (e.g. 0.5%)
+            bucket_size = avg_p * self.config.liq_cluster_fallback_pct
         
         clusters = {}
         for l in liqs:

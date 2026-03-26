@@ -67,6 +67,8 @@ class OutcomeCalculator:
             max_after = -float('inf')
             min_after = float('inf')
             
+            # Use current_high/low to determine if entry was hit during the T0 candle itself
+            # This is more accurate than assuming a limit order is hit immediately
             for k in klines:
                 high, low = float(k[2]), float(k[3])
                 
@@ -74,11 +76,14 @@ class OutcomeCalculator:
                     if (opinion == 'BULLISH' and low <= target_entry) or \
                        (opinion == 'BEARISH' and high >= target_entry):
                         entry_hit = True
+                        # If entry hit within this kline, we start tracking from here
+                        max_after, min_after = high, low
                 
                 if entry_hit:
                     max_after, min_after = max(max_after, high), min(min_after, low)
                     if hit_result == "NEITHER":
                         if opinion == 'BULLISH':
+                            # In extreme cases where both hit in 1m, check if SL was more likely (conservative)
                             if low <= sl: hit_result = "SL_HIT"
                             elif high >= tp: hit_result = "TP_HIT"
                         else: # BEARISH
@@ -89,7 +94,7 @@ class OutcomeCalculator:
                 sl_dist = abs(target_entry - sl)
                 tp_dist = abs(tp - target_entry)
                 
-                # Calculate MAE (Max Adverse Excursion)
+                # Calculate MAE (Max Adverse Excursion) relative to TARGET entry
                 mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                 stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
                 mae_atr = (mae / atr) if atr > 0 else 0
@@ -251,10 +256,18 @@ class ReviewerOrchestrator:
             )
             if not klines:
                 logger.warning(f"No klines found for {symbol}. Skipping.")
+                return
+
             # 1. Fetch & Calculate Outcome
             atr_macro = session.get("observation", {}).get("atr_macro", 0)
             interval_hours = interval_seconds / 3600
-            outcome = OutcomeCalculator.calculate(klines, float(klines[0][1]), session, atr=atr_macro, interval_hours=interval_hours)
+            
+            # Use the target entry from the strategy if available, fallback to first kline's open
+            strategy_obj = session.get("final_decision", {})
+            limit_order = strategy_obj.get("limit_order") or {}
+            target_entry = float(limit_order.get("entry", klines[0][1]))
+            
+            outcome = OutcomeCalculator.calculate(klines, target_entry, session, atr=atr_macro, interval_hours=interval_hours)
 
             # 2. Multimedia & Visual Forensic Context
             if symbol not in self.observers:
