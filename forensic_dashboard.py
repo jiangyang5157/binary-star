@@ -299,72 +299,66 @@ class ForensicDashboardGenerator:
         # Keyword and Symbol filter
         prefix = f"{symbol}_reviewers_"
         
-        self.logger.info(f"Recursive scan started in {reviewers_root}...")
+        self.logger.info(f"Scanning root of {reviewers_root}...")
 
-        for root, dirs, files in os.walk(reviewers_root):
-            # Sort files for stable processing order
-            for filename in sorted(files):
-                if not filename.endswith(".json") or not filename.startswith(prefix):
-                    continue
-                
-                # 1. Strict Deduplication
-                if filename in processed_filenames:
-                    self.logger.info(f"Skipping duplicate report: {filename} (already processed from another folder)")
-                    continue
-                
-                filepath = os.path.join(root, filename)
-                data = load_json(filepath)
-                if not data:
-                    continue
+        # Non-recursive scan of the root folder specifically
+        files = [f for f in os.listdir(reviewers_root) if os.path.isfile(os.path.join(reviewers_root, f))]
+        
+        for filename in sorted(files):
+            if not filename.endswith(".json") or not filename.startswith(prefix):
+                continue
+            
+            filepath = os.path.join(reviewers_root, filename)
+            data = load_json(filepath)
+            if not data:
+                continue
 
-                # 2. Core logic: Filter for finalized orders
-                market_outcome = data.get("market_outcome", {})
-                trade_metrics = market_outcome.get("trade_execution_metrics") or {}
-                
-                is_premature = trade_metrics.get("is_premature_audit", False)
-                tp_sl_result = trade_metrics.get("tp_sl_result", "NEITHER")
+            # 2. Core logic: Filter for finalized orders
+            market_outcome = data.get("market_outcome", {})
+            trade_metrics = market_outcome.get("trade_execution_metrics") or {}
+            
+            is_premature = trade_metrics.get("is_premature_audit", False)
+            tp_sl_result = trade_metrics.get("tp_sl_result", "NEITHER")
 
-                if is_premature and tp_sl_result == "NEITHER":
-                    self.logger.info(f"Skipping pending stub: {filename} (Order not yet finalized)")
-                    continue
+            if is_premature and tp_sl_result == "NEITHER":
+                self.logger.info(f"Skipping pending stub: {filename} (Order not yet finalized)")
+                continue
 
-                # Extract Strategy metadata
-                session = data.get("strategy_session", {})
-                obs = session.get("observation", {})
-                start_time = obs.get("timestamp")
+            # Extract Strategy metadata
+            session = data.get("strategy_session", {})
+            obs = session.get("observation", {})
+            start_time = obs.get("timestamp")
+            
+            final_decision = session.get("final_decision", {})
+            opinion = final_decision.get("opinion", "NEUTRAL")
+            confidence = final_decision.get("confidence")
+            
+            limit_order = final_decision.get("limit_order", {})
+            holding_time_hours = 0
+            est_pnl_pct = 0.0
+            
+            if opinion in ["BULLISH", "BEARISH"] and limit_order:
+                holding_time_hours = limit_order.get("holding_time_hours", 0)
+                entry = float(limit_order.get("entry", 0))
+                tp = float(limit_order.get("take_profit", 0))
+                sl = float(limit_order.get("stop_loss", 0))
                 
-                final_decision = session.get("final_decision", {})
-                opinion = final_decision.get("opinion", "NEUTRAL")
-                confidence = final_decision.get("confidence")
-                
-                limit_order = final_decision.get("limit_order", {})
-                holding_time_hours = 0
-                est_pnl_pct = 0.0
-                
-                if opinion in ["BULLISH", "BEARISH"] and limit_order:
-                    holding_time_hours = limit_order.get("holding_time_hours", 0)
-                    entry = float(limit_order.get("entry", 0))
-                    tp = float(limit_order.get("take_profit", 0))
-                    sl = float(limit_order.get("stop_loss", 0))
-                    
-                    if entry > 0:
-                        if tp_sl_result == "TP_HIT":
-                            est_pnl_pct = abs(tp - entry) / entry * 100
-                        elif tp_sl_result == "SL_HIT":
-                            est_pnl_pct = -abs(entry - sl) / entry * 100
-                else:
-                    confidence = None
+                if entry > 0:
+                    if tp_sl_result == "TP_HIT":
+                        est_pnl_pct = abs(tp - entry) / entry * 100
+                    elif tp_sl_result == "SL_HIT":
+                        est_pnl_pct = -abs(entry - sl) / entry * 100
+            else:
+                confidence = None
 
-                extracted_data.append({
-                    "name": filename,
-                    "observation_time": start_time,
-                    "holding_time_hours": holding_time_hours,
-                    "tp_sl_result": tp_sl_result,
-                    "estimated_pnl_pct": round(float(est_pnl_pct), 2),
-                    "confidence": confidence
-                })
-                
-                processed_filenames.add(filename)
+            extracted_data.append({
+                "name": filename,
+                "observation_time": start_time,
+                "holding_time_hours": holding_time_hours,
+                "tp_sl_result": tp_sl_result,
+                "estimated_pnl_pct": round(float(est_pnl_pct), 2),
+                "confidence": confidence
+            })
             
         # Ensure chronological order based on observation time
         extracted_data.sort(key=lambda x: x['observation_time'] if x['observation_time'] else "")
