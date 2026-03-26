@@ -50,4 +50,5 @@ def setup_logger(
                 # Fallback to console if file logging fails, but notify
                 print(f"ERROR: Could not setup file logger at {log_file}: {e}", file=sys.stderr)
                 
+    logger.propagate = False
     return logger

@@ -189,8 +189,20 @@ class ReviewerOrchestrator:
 
         # 3. Process
         if os.path.exists(review_path) and not force:
-            logger.info(f"Skipping {output_filename} - Review already exists.")
-            return
+            existing_review = load_json(review_path)
+            if existing_review:
+                outcome = existing_review.get("market_outcome", {})
+                metrics = outcome.get("trade_execution_metrics", {})
+                is_stub = metrics.get("is_premature_audit") and metrics.get("tp_sl_result") == "NEITHER"
+                
+                if not is_stub:
+                    logger.info(f"Skipping {output_filename} - Finalized review already exists.")
+                    return
+                else:
+                    logger.info(f"Re-auditing {output_filename} - Previous review was a SYSTEM-STUB.")
+            else:
+                # Corrupted file, allow overwrite
+                pass
 
         self._process_session(session, review_path, force=force)
 
