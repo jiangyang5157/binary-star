@@ -24,6 +24,37 @@ from src.utils.path_utils import find_project_root
 # Initialize pipeline logger
 logger = setup_logger("StrategistOrchestrator")
 
+def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Extracted logic for the [Middleware Computation Gate].
+    Calculates deterministic math facts to prevent LLM hallucinations.
+    """
+    limit_order = draft.get('limit_order')
+    if not (limit_order and all(k in limit_order and limit_order[k] is not None for k in ('entry', 'take_profit', 'stop_loss'))):
+        return None
+
+    try:
+        entry = float(limit_order['entry'])
+        tp = float(limit_order['take_profit'])
+        sl = float(limit_order['stop_loss'])
+        
+        # Extract ATR from the correct nested location in the observation
+        metrics = observation.get('quantitative_metrics', {})
+        dynamics = metrics.get('price_dynamics', {})
+        atr = float(dynamics.get('atr_macro', 1.0))
+        
+        sl_dist = abs(entry - sl)
+        tp_dist = abs(tp - entry)
+        
+        return {
+            "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
+            "sl_atr_distance": round(sl_dist / atr, 2) if atr > 0 else 0,
+            "projected_holding_hours": round(tp_dist / atr, 2) if atr > 0 else 0
+        }
+    except (ValueError, TypeError, KeyError) as e:
+        logger.warning(f"Math Fact Check calculation failed: {e}")
+        return None
+
 def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: StrategistAgent, critic_agent: CriticAgent) -> Dict[str, Any]:
     """
     Standardizes the 3-pass reasoning interaction (Triad logic).
@@ -35,25 +66,8 @@ def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: Strategis
     logger.info("Triad Step 2/3: Performing adversarial audit...")
     
     # [Middleware Computation Gate] Intercept Draft and Inject Math Facts
-    math_fact_check = None
-    limit_order = draft.get('limit_order')
-    if limit_order and all(k in limit_order and limit_order[k] for k in ('entry', 'take_profit', 'stop_loss')):
-        entry = float(limit_order['entry'])
-        tp = float(limit_order['take_profit'])
-        sl = float(limit_order['stop_loss'])
-        # Extract ATR from the correct nested location in the observation
-        metrics = observation.get('quantitative_metrics', {})
-        dynamics = metrics.get('price_dynamics', {})
-        atr = float(dynamics.get('atr_macro', 1.0))
-        
-        sl_dist = abs(entry - sl)
-        tp_dist = abs(tp - entry)
-        
-        math_fact_check = {
-            "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
-            "sl_atr_distance": round(sl_dist / atr, 2) if atr > 0 else 0,
-            "projected_holding_hours": round(tp_dist / atr, 2) if atr > 0 else 0
-        }
+    math_fact_check = calculate_math_fact_check(observation, draft)
+    if math_fact_check:
         logger.info(f"Math Fact Check generated: {math_fact_check}")
 
     critique = critic_agent.audit(observation, draft, math_fact_check=math_fact_check)
