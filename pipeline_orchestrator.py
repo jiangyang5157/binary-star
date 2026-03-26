@@ -216,8 +216,8 @@ class PipelineOrchestrator:
 def main():
     parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
     parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
-    parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
     parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
+    parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
     args = parser.parse_args()
     
     # Load global defaults for missing CLI args
