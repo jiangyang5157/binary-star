@@ -46,7 +46,7 @@ class CriticAgent:
         self.config = CriticConfig.from_dict(config_dict)
         self.client = ai_client or genai.Client(api_key=api_key)
 
-    def audit(self, observation: Dict[str, Any], draft_plan: Dict[str, Any]) -> Dict[str, Any]:
+    def audit(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], math_fact_check: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Performs an adversarial audit on a draft trading plan.
         
@@ -62,7 +62,8 @@ class CriticAgent:
         prompt = safe_format(
             template,
             observation_json=json.dumps(observation, indent=2, ensure_ascii=False),
-            draft_plan=json.dumps(draft_plan, indent=2, ensure_ascii=False)
+            draft_plan=json.dumps(draft_plan, indent=2, ensure_ascii=False),
+            math_fact_check=json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system."
         )
         
         logger.info("Critic: Performing adversarial audit...")

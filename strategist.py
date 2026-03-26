@@ -32,7 +32,27 @@ def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: Strategis
     draft = strategist_agent.draft(observation)
     
     logger.info("Triad Step 2/3: Performing adversarial audit...")
-    critique = critic_agent.audit(observation, draft)
+    
+    # [Middleware Computation Gate] Intercept Draft and Inject Math Facts
+    math_fact_check = None
+    limit_order = draft.get('limit_order')
+    if limit_order and all(k in limit_order and limit_order[k] for k in ('entry', 'take_profit', 'stop_loss')):
+        entry = float(limit_order['entry'])
+        tp = float(limit_order['take_profit'])
+        sl = float(limit_order['stop_loss'])
+        atr = float(observation.get('atr_macro', 1.0))
+        
+        sl_dist = abs(entry - sl)
+        tp_dist = abs(tp - entry)
+        
+        math_fact_check = {
+            "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
+            "sl_atr_distance": round(sl_dist / atr, 2) if atr > 0 else 0,
+            "projected_holding_hours": round(tp_dist / atr, 2) if atr > 0 else 0
+        }
+        logger.info(f"Math Fact Check generated: {math_fact_check}")
+
+    critique = critic_agent.audit(observation, draft, math_fact_check=math_fact_check)
     
     logger.info("Triad Step 3/3: Synthesizing final decision...")
     final_decision = strategist_agent.synthesize(observation, draft, critique)
