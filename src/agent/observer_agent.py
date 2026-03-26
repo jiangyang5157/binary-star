@@ -18,7 +18,7 @@ from src.utils.datetime_utils import (
     format_datetime, get_current_utc_time, to_iso_zulu, get_interval_seconds
 )
 from src.utils.path_utils import resolve_project_root
-from src.utils.json_utils import convert_to_json_string
+from src.utils.json_utils import convert_to_json_string, extract_json_from_text
 
 # Initialize project-standard logger
 logger = logging.getLogger(__name__)
@@ -327,7 +327,10 @@ class SemanticSynthesizer:
                 config=types.GenerateContentConfig(temperature=self.config.temperature, response_mime_type="application/json")
             )
 
-            report = json.loads(resp.text)
+            report = extract_json_from_text(resp.text)
+            if report is None:
+                logger.error(f"Observer Synthesis: Failed to parse JSON from response: {resp.text}")
+                return {"error": "JSON_PARSE_FAILURE", "raw_response": resp.text}
             return self._apply_schema_defaults(report)
         except Exception as e:
             logger.error(f"Synthesis failed: {e}", exc_info=True)

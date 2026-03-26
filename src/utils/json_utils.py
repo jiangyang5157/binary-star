@@ -4,7 +4,7 @@ import logging
 import numpy as np
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,34 @@ def load_from_json_file(file_path: str) -> Any:
     except Exception as e:
         logger.error(f"Failed to load JSON from {file_path}: {e}")
         return None
+
+def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
+    """
+    Extracts and parses a JSON object from a string, even if it contains 
+    conversational filler. It finds the substring between the first '{' 
+    and the last '}'.
+    """
+    if not text:
+        return None
+        
+    try:
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        
+        if start_idx == -1 or end_idx == -1 or end_idx < start_idx:
+            # Maybe it's just raw JSON without extra text
+            return json.loads(text.strip())
+            
+        json_str = text[start_idx:end_idx + 1]
+        return json.loads(json_str)
+    except Exception as e:
+        logger.warning(f"Failed to extract JSON from text. Error: {e}")
+        # Final fallback: try cleaning common LLM artifacts
+        try:
+            cleaned = text.strip().replace('```json', '').replace('```', '').strip()
+            return json.loads(cleaned)
+        except Exception:
+            return None
 
 # Aliases for backward compatibility
 to_json = convert_to_json_string

@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types
 from src.utils.agent_utils import read_prompt_template, apply_prompt_logic_filters, safe_format
 from src.utils.path_utils import resolve_project_root
+from src.utils.json_utils import extract_json_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +98,11 @@ class StrategistAgent:
                     response_mime_type="application/json"
                 )
             )
-            return json.loads(response.text)
+            parsed = extract_json_from_text(response.text)
+            if parsed is None:
+                logger.error(f"Strategist: Failed to parse JSON from response: {response.text}")
+                return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}
+            return parsed
         except Exception as e:
             logger.error(f"Strategist AI execution failed: {e}", exc_info=True)
             return {"error": "STRATEGIST_EXECUTION_FAILURE", "details": str(e)}

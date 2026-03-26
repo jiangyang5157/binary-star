@@ -7,6 +7,7 @@ from google import genai
 from google.genai import types
 from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
+from src.utils.json_utils import extract_json_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,11 @@ class CoachAgent:
                     temperature=self.config.temperature
                 )
             )
-            return response.text
+            parsed = extract_json_from_text(response.text)
+            if parsed is None:
+                logger.error(f"Coach: Failed to parse JSON from response: {response.text}")
+                return json.dumps({"error": "JSON_PARSE_FAILURE", "raw_response": response.text})
+            return response.text # Coach expects raw string for patch processing, but we validate it's JSON first
             
         except Exception as e:
             logger.error(f"Coach AI execution failed: {e}", exc_info=True)
