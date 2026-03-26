@@ -169,7 +169,8 @@ class PipelineOrchestrator:
         self.data_root = data_root
         self.symbol = symbol
         self.interval = interval
-        self.logger = setup_logger("PipelineOrchestrator") # Uses project-standard console logger
+        log_path = os.path.join(data_root, "pipeline_service.log")
+        self.logger = setup_logger("PipelineOrchestrator", log_file=log_path)
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
         self.validator = ConfigValidator(self.logger)
