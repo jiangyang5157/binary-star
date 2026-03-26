@@ -15,16 +15,16 @@ from src.agent.reviewer_agent import ReviewerAgent
 from src.utils.agent_utils import load_config
 from src.utils.logger_utils import setup_logger
 
-logger = setup_logger("ReviewerMockOutcome")
+logger = setup_logger("ReviewerReplay")
 
 def main():
     """
-    Isolated Mock Outcome Audit Utility for Reviewer Reports.
+    Isolated Replay Audit Utility for Reviewer Reports.
     
     Accepts observation/strategy JSON files and triggers a direct AI audit 
     using a simulated market outcome (mock price action).
     """
-    parser = argparse.ArgumentParser(description="Reviewer Mock Outcome Audit - AI Verification")
+    parser = argparse.ArgumentParser(description="Reviewer Replay Audit - AI Verification")
     parser.add_argument("--file", type=str, required=True, help="Path to strategy/observation JSON")
     parser.add_argument("--data_root", type=str, default="data", help="Data root (default: 'data')")
     args = parser.parse_args()
@@ -48,12 +48,12 @@ def main():
     # If it's a raw observation (from observer.py), wrap it.
     # Otherwise assume it's a full strategy session (from strategist.py).
     if "observation" not in data:
-        logger.info("Ingesting standalone observation file. Wrapping in mock session.")
+        logger.info("Ingesting standalone observation file. Wrapping in replay session.")
         session = {
             "observation": data,
-            "draft": {"opinion": "NEUTRAL", "reasoning": "Mock data."},
-            "critique": {"adversarial_tone": "MOCK_AUDIT - Retest Mode"},
-            "final_decision": {"opinion": "NEUTRAL", "reasoning": "Retest context."}
+            "draft": {"opinion": "NEUTRAL", "reasoning": "Replay data."},
+            "critique": {"adversarial_tone": "REPLAY_AUDIT - Replay Mode"},
+            "final_decision": {"opinion": "NEUTRAL", "reasoning": "Replay context."}
         }
     else:
         logger.info("Ingesting full strategy session file.")
@@ -61,7 +61,7 @@ def main():
 
     reviewer = ReviewerAgent(config, api_key=api_key)
     
-    # Forensic context construction for isolated retest
+    # Forensic context construction for isolated replay
     # We use T0 assets as T1 proxies if T1 isn't available in the file
     obs = session["observation"]
     assets = obs.get("visual_assets", {})
@@ -79,7 +79,7 @@ def main():
     }
 
     # Execute isolated review pass
-    logger.info("=== Triggering Mock Outcome Reviewer AI Pass ===")
+    logger.info("=== Triggering Replay Reviewer AI Pass ===")
     
     # [DIAGNOSTIC MOCK EXAMPLES]
     # To test different AI reactions, you can swap the actual_outcome block below:
@@ -129,7 +129,7 @@ def main():
     output_dir = os.path.join(PROJECT_ROOT, args.data_root, "reviewers")
     os.makedirs(output_dir, exist_ok=True)
     
-    # Extract metadata for standardized naming: SYMBOL_reviewers_mock_outcome_YYYYMMDD_HHMMSS.json
+    # Extract metadata for standardized naming: SYMBOL_reviewers_replay_YYYYMMDD_HHMMSS.json
     observation = session.get("observation", {})
     symbol = observation.get("symbol", "UNKNOWN")
     raw_ts = observation.get("timestamp", "")
@@ -141,7 +141,7 @@ def main():
     else:
         ts_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
-    output_filename = f"{symbol}_reviewers_mock_outcome_{ts_str}.json"
+    output_filename = f"{symbol}_reviewers_replay_{ts_str}.json"
     output_path = os.path.join(output_dir, output_filename)
     
     # Standardized record format (Omitting redundant top-level symbol)
