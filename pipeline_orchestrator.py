@@ -178,7 +178,7 @@ class JobScheduler:
 # --- 4. Orchestrator Service ---
 
 class PipelineOrchestrator:
-    def __init__(self, symbol: str, interval: float, data_root: str = "data"):
+    def __init__(self, symbol: str, interval: float, data_root: str):
         self.logger = setup_orchestrator_logger()
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
@@ -216,8 +216,8 @@ class PipelineOrchestrator:
 def main():
     parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
     parser.add_argument("--symbol", type=str, required=True, help="Symbol to oversee (e.g. BTCUSDT)")
+    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
     parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
-    parser.add_argument("--data_root", type=str, default="data", help="Data directory root")
     args = parser.parse_args()
 
     orchestrator = PipelineOrchestrator(

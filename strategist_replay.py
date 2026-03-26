@@ -27,13 +27,13 @@ class StrategyReplayOrchestrator:
     observation files.
     """
     
-    def __init__(self, data_root: Optional[str] = None):
+    def __init__(self, data_root: str):
         """
         Initializes the orchestrator with required configurations and credentials.
         """
         self.logger = setup_logger("StrategyReplay")
         self.config = load_config()
-        self.data_root = data_root or "data"
+        self.data_root = data_root
         
         load_dotenv()
         self.api_key = os.environ.get("GEMINI_API_KEY")
@@ -98,18 +98,8 @@ def main():
     parser = argparse.ArgumentParser(
         description="Forensic Strategy Replay: Re-execute Reasoning from Historical Observations"
     )
-    parser.add_argument(
-        "--file", 
-        type=str, 
-        required=True, 
-        help="Path to the source observation JSON file (e.g., /data/observations/BTCUSDT_...json)"
-    )
-    parser.add_argument(
-        "--data_root", 
-        type=str, 
-        default="data",
-        help="Target data directory root (defaults to 'data')"
-    )
+    parser.add_argument("--data_root", type=str, required=True, help="Target data directory root")
+    parser.add_argument("--file", type=str, required=True, help="Path to the source observation JSON file (e.g., /data/observations/BTCUSDT_...json)")
     
     args = parser.parse_args()
     

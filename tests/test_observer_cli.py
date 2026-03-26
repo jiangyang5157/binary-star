@@ -15,8 +15,8 @@ class TestObserverCLI(unittest.TestCase):
     def test_argument_defaults(self):
         """Verify that default values are correctly handled in the logic."""
         # This tests the logic inside our Orchestrator if we manually pass args
-        args = ObservationArgs(symbol=self.symbol, timestamp_raw=None, data_root="data")
-        self.assertEqual(args.data_root, "data")
+        args = ObservationArgs(symbol=self.symbol, timestamp_raw=None, data_root="data/test")
+        self.assertEqual(args.data_root, "data/test")
         self.assertIsNone(args.timestamp_raw)
 
     def test_timestamp_parsing_logic(self):
@@ -36,7 +36,6 @@ class TestObserverCLI(unittest.TestCase):
         mock_context = {
             "symbol": "BTCUSDT",
             "timestamp": "2026-03-25T15:30:00Z",
-            "data": "test"
         }
         
         # Test saving

@@ -354,7 +354,7 @@ class ObserverAgent:
     Coordinates high-fidelity telemetry collection and AI processing to provide 
     a 'Single Source of Truth' for downstream strategy agents.
     """
-    def __init__(self, config_dict: Dict[str, Any], symbol: str, api_key: str, data_root: str = "data"):
+    def __init__(self, config_dict: Dict[str, Any], symbol: str, api_key: str, data_root: str):
         self.symbol = symbol
         self.data_root = data_root
         self.config = ObserverConfig.from_dict(config_dict)

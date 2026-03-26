@@ -101,8 +101,8 @@ def main():
     """Main entry point for the Observer CLI."""
     parser = argparse.ArgumentParser(description="Elite Market Topographer CLI")
     parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
+    parser.add_argument("--data_root", type=str, required=True, help="Root directory for data storage")
     parser.add_argument("--timestamp", type=str, help="Historical target timestamp (ISO-8601)")
-    parser.add_argument("--data_root", type=str, default="data", help="Root directory for data storage")
     
     parsed = parser.parse_args()
     

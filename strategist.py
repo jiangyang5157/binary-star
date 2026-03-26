@@ -66,7 +66,7 @@ class StrategistOrchestrator:
     Orchestrates the end-to-end trading intelligence pipeline:
     Observation -> Drafting -> Auditing -> Synthesis -> Notification -> Archival.
     """
-    def __init__(self, symbol: str, data_root: str = "data"):
+    def __init__(self, symbol: str, data_root: str):
         self.symbol = symbol
         self.data_root = data_root
         self.config = load_config()
@@ -127,8 +127,8 @@ def main():
     """CLI entry point for the Trading Orchestrator."""
     parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
     parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
+    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
     parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
-    parser.add_argument("--data_root", type=str, default="data", help="Data directory root")
     args = parser.parse_args()
     
     try:

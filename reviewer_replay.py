@@ -26,7 +26,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description="Reviewer Replay Audit - AI Verification")
     parser.add_argument("--file", type=str, required=True, help="Path to strategy/observation JSON")
-    parser.add_argument("--data_root", type=str, default="data", help="Data root (default: 'data')")
+    parser.add_argument("--data_root", type=str, required=True, help="Data root (default: 'data')")
     args = parser.parse_args()
 
     load_dotenv()

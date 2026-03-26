@@ -290,7 +290,7 @@ class StrategyNotifier:
     """
     MIN_CONFIDENCE_THRESHOLD = 60
     
-    def __init__(self, data_root: str = "data"):
+    def __init__(self, data_root: str):
         self.config = NotificationConfig.from_env()
         self.dispatcher = StrategyEmailDispatcher(self.config)
         self.data_root = data_root
@@ -377,8 +377,8 @@ if __name__ == "__main__":
     )
     
     parser = argparse.ArgumentParser(description="Crypto Strategy Email Notifier CLI")
+    parser.add_argument("--data-root", required=True, help="Root directory for visualizations/logs")
     parser.add_argument("--strategy", required=True, help="Path to the strategy JSON file")
-    parser.add_argument("--data-root", default="data", help="Root directory for visualizations/logs")
     
     args = parser.parse_args()
     

@@ -98,7 +98,7 @@ class ReviewerOrchestrator:
     Manages the end-to-end review lifecycle: 
     Discovery -> Temporal Validation -> Outcome Retrieval -> AI Audit -> Archival.
     """
-    def __init__(self, data_root: str = "data"):
+    def __init__(self, data_root: str):
         self.data_root = data_root
         self.config = load_config()
         load_dotenv()
@@ -304,8 +304,8 @@ class ReviewerOrchestrator:
 
 def main():
     parser = argparse.ArgumentParser(description="Reviewer Orchestrator - Post-Mortem Audit Pipeline")
+    parser.add_argument("--data_root", type=str, required=True, help="Data root directory")
     parser.add_argument("--file", type=str, help="Specific strategy JSON to review")
-    parser.add_argument("--data_root", type=str, default="data", help="Data root directory")
     parser.add_argument("--force", action="store_true", help="Bypass temporal checks")
     args = parser.parse_args()
     
