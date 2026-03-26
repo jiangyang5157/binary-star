@@ -52,7 +52,7 @@ class OutcomeCalculator:
             "max_favorable_runup_pct": round(((max_price - entry_price) / entry_price) * 100, 2),
             "max_adverse_drawdown_pct": round(((min_price - entry_price) / entry_price) * 100, 2),
             "audit_duration_candles": len(klines),
-            "trade_execution_metrics": None
+            "trade_execution_metrics": {}
         }
         
         opinion = strategy.get('opinion', '').upper()
@@ -281,7 +281,7 @@ class ReviewerOrchestrator:
             outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=atr_macro, interval_hours=interval_hours, is_premature=is_premature)
 
             # ----------------- [新增：Python 成本防火墙 & 占位报告生成] -----------------
-            trade_metrics = outcome.get("trade_execution_metrics", {})
+            trade_metrics = outcome.get("trade_execution_metrics") or {}
             is_premature_status = trade_metrics.get("is_premature_audit", False)
             tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
 

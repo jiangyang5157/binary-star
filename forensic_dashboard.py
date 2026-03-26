@@ -319,7 +319,7 @@ class ForensicDashboardGenerator:
 
                 # 2. Core logic: Filter for finalized orders
                 market_outcome = data.get("market_outcome", {})
-                trade_metrics = market_outcome.get("trade_execution_metrics", {})
+                trade_metrics = market_outcome.get("trade_execution_metrics") or {}
                 
                 is_premature = trade_metrics.get("is_premature_audit", False)
                 tp_sl_result = trade_metrics.get("tp_sl_result", "NEITHER")

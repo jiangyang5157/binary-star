@@ -159,7 +159,7 @@ def main():
         "audit_timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "strategy_session": session,
         "market_outcome": {
-            "trade_execution_metrics": None
+            "trade_execution_metrics": {}
         },
         "audit_findings": audit_result
     }

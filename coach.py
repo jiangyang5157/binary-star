@@ -96,7 +96,7 @@ class CoachOrchestrator:
             if data:
                 # Filter out premature stub reports
                 market_outcome = data.get("market_outcome", {})
-                trade_metrics = market_outcome.get("trade_execution_metrics", {})
+                trade_metrics = market_outcome.get("trade_execution_metrics") or {}
                 
                 if trade_metrics:
                     is_premature = trade_metrics.get("is_premature_audit", False)
