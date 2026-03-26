@@ -260,37 +260,34 @@ class ReviewerOrchestrator:
             logger.error(f"Failed to process session: {e}", exc_info=True)
 
     def _calculate_review_window(self, strategy: Dict[str, Any]) -> float:
-        """Determines the optimal review duration based on strategy and config."""
+        """Determines the review duration based on strategy opinion and micro/macro context."""
         opinion = strategy.get("opinion", "").upper()
         limit_order = strategy.get("limit_order") or {}
         
-        # 1. Base Holding Time
-        holding = float(limit_order.get("holding_time_hours", 24))
+        # 1. Base Holding Time for Directional Orders
+        holding_time = float(limit_order.get("holding_time_hours", 24))
 
-        # 2. Macro Interval Buffer (Minimum observation required)
-        macro_hours = 1.0 # Default fallback
-        try:
-            m_config = self.config['observer']['macro_analysis_context']
-            interval = m_config['time_interval']
-            unit = interval[-1]
-            val = float(interval[:-1])
-            mapping = {"m": 1/60, "h": 1, "d": 24}
-            macro_hours = val * mapping.get(unit, 1)
-        except: pass
+        # 2. Extract context parameters directly from config
+        obs_cfg = self.config['observer']
+        micro_cfg = obs_cfg['micro_analysis_context']
+        macro_cfg = obs_cfg['macro_analysis_context']
 
-        # 3. Dynamic logic for Neutral vs Directional
+        # Get interval seconds from standard utility
+        from src.utils.datetime_utils import get_interval_seconds
+        micro_interval_sec = get_interval_seconds(micro_cfg['time_interval'])
+        macro_interval_sec = get_interval_seconds(macro_cfg['time_interval'])
+
+        # 3. Dynamic Threshold Calculation
         if opinion == "NEUTRAL":
-            # Use micro-analysis context duration for Neutral audit
-            try:
-                micro_cfg = self.config['observer']['micro_analysis_context']
-                m_interval = micro_cfg['time_interval']
-                m_lookback = int(micro_cfg.get('historical_lookback_candles', 192))
-                from src.utils.datetime_utils import get_interval_seconds
-                return (get_interval_seconds(m_interval) * m_lookback) / 3600
-            except:
-                return macro_hours
-            
-        return min(holding, 336) # Cap at 2 weeks for safety
+            # Neutral Audit: Wait until the micro-context (the 'lens' the AI used) has fully passed.
+            micro_lookback = int(micro_cfg['historical_lookback_candles'])
+            return (micro_interval_sec * micro_lookback) / 3600
+        
+        # Directional Audit: Use strategy's suggested holding time, capped by macro lookback duration
+        macro_lookback = int(macro_cfg['historical_lookback_candles'])
+        max_macro_hours = (macro_interval_sec * macro_lookback) / 3600
+        
+        return min(holding_time, max_macro_hours)
 
     def _resolve_abs_path(self, path: Optional[str]) -> Optional[str]:
         """Resolves a relative path to an absolute project-root path."""
