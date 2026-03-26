@@ -194,8 +194,7 @@ def main():
         description="Industrial-Grade Automated System Evolution Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
-  python3 apply_patch.py --file data/test (Auto-finds latest in data/test/reviewers/)
-  python3 apply_patch.py --file data/adhoc/strategies/BTCUSDT_strategies_20260326.json"""
+  python3 apply_patch.py --file data/test (Auto-finds latest in data/test/reviewers/)"""
     )
     parser.add_argument(
         "--file", 
