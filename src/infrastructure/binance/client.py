@@ -50,18 +50,19 @@ class BinanceFuturesClient:
             self.client = UMFutures()
             
         self.network_cfg = self._load_network_config()
-        # Strict sourcing from network_config.yaml
-        self.timeout = int(self.network_cfg['binance']['api_timeout_seconds'])
+        # Strict sourcing from global_config.yaml (network section)
+        self.timeout = int(self.network_cfg['network']['binance']['api_timeout_seconds'])
 
     def _load_network_config(self) -> Dict[str, Any]:
-        """Loads the network configuration from YAML."""
+        """Loads the global configuration from YAML (for network settings)."""
         try:
-            cfg_path = os.path.join(resolve_project_root(), "config", "network_config.yaml")
+            cfg_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
             if os.path.exists(cfg_path):
                 with open(cfg_path, 'r') as f:
                     return yaml.safe_load(f)
         except Exception as e:
-            logger.warning(f"Failed to load network_config.yaml: {e}. Using defaults.")
+            logger.error(f"CRITICAL: Failed to load global_config.yaml: {e}")
+            raise
         return {}
 
     # --- Technical Market Data ---

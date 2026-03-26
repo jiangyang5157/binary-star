@@ -14,7 +14,7 @@ sys.path.insert(0, PROJECT_ROOT)
 from src.agent.observer_agent import ObserverAgent
 from src.agent.strategist_agent import StrategistAgent
 from src.agent.critic_agent import CriticAgent
-from src.utils.agent_utils import load_config
+from src.utils.agent_utils import load_config, load_global_config
 from src.utils.logger_utils import setup_logger
 from src.utils.json_utils import save_json
 from src.utils.datetime_utils import parse_iso_to_utc, sanitize_timestamp
@@ -126,13 +126,21 @@ class StrategistOrchestrator:
 def main():
     """CLI entry point for the Trading Orchestrator."""
     parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
-    parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
-    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
+    parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
+    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
     args = parser.parse_args()
     
+    # Load global defaults for missing CLI args
+    global_cfg = load_global_config()
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
+    if not symbol:
+        logger.error("Error: Symbol not provided and no default found in global_config.yaml")
+        sys.exit(1)
+        
     try:
-        orchestrator = StrategistOrchestrator(symbol=args.symbol, data_root=args.data_root)
+        orchestrator = StrategistOrchestrator(symbol=symbol, data_root=args.data_root)
         orchestrator.execute_pipeline(timestamp_str=args.timestamp)
     except Exception as e:
         logger.error(f"Failed to initialize orchestrator: {e}")

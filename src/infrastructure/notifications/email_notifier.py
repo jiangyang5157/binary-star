@@ -9,6 +9,8 @@ from email.mime.image import MIMEImage
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from dotenv import load_dotenv
+import yaml
+from src.utils.path_utils import find_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -288,12 +290,26 @@ class StrategyNotifier:
     High-level facade for dispatching trading strategy alerts.
     Orchestrates template rendering and email dispatching.
     """
-    MIN_CONFIDENCE_THRESHOLD = 60
     
     def __init__(self, data_root: str):
         self.config = NotificationConfig.from_env()
         self.dispatcher = StrategyEmailDispatcher(self.config)
         self.data_root = data_root
+        self.global_cfg = self._load_global_config()
+        
+        # Sourcing threshold from global_config.yaml with fallback to hardcoded safety
+        self.min_confidence_threshold = int(self.global_cfg['system']['min_confidence_for_notifier_threshold'])
+
+    def _load_global_config(self) -> Dict[str, Any]:
+        """Loads global system settings."""
+        try:
+            cfg_path = os.path.join(find_project_root(), "config", "global_config.yaml")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, 'r') as f:
+                    return yaml.safe_load(f)
+        except Exception as e:
+            logger.error(f"Failed to load global_config.yaml: {e}")
+        return {}
 
     @property
     def enabled(self) -> bool:
@@ -323,9 +339,9 @@ class StrategyNotifier:
         opinion = strategy_data.get("final_decision", {}).get("opinion", "NEUTRAL")
         confidence = strategy_data.get("final_decision", {}).get("confidence", 0)
         
-        # Hardcoded Filter: Only notify if confidence >= MIN_CONFIDENCE_THRESHOLD
-        if confidence < self.MIN_CONFIDENCE_THRESHOLD:
-            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.MIN_CONFIDENCE_THRESHOLD}%). Skipping dispatch.")
+        # Only notify if confidence >= threshold
+        if confidence < self.min_confidence_threshold:
+            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.min_confidence_threshold}%). Skipping dispatch.")
             return False
             
         subject = f"Crypto: {symbol} [{opinion}] ({confidence}%)"
@@ -378,16 +394,16 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description="Crypto Strategy Email Notifier CLI")
     parser.add_argument("--data-root", required=True, help="Root directory for visualizations/logs")
-    parser.add_argument("--strategy", required=True, help="Path to the strategy JSON file")
+    parser.add_argument("--file", required=True, help="Path to the strategy JSON file")
     
     args = parser.parse_args()
     
-    if not os.path.exists(args.strategy):
-        print(f"Error: Strategy file not found at {args.strategy}")
+    if not os.path.exists(args.file):
+        print(f"Error: Strategy file not found at {args.file}")
         sys.exit(1)
         
     try:
-        with open(args.strategy, 'r') as f:
+        with open(args.file, 'r') as f:
             # We use a hacky way to support 'null', 'true', 'false' in case the file 
             # was copied from a Python representation, but primarily we expect standard JSON.
             # json.load handles standard JSON 'null' correctly.

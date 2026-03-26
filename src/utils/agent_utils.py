@@ -19,6 +19,23 @@ def load_config(config_filepath: str = "config/agent_config.yaml") -> Dict[str, 
     with open(absolute_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
+def load_global_config(config_filepath: str = "config/global_config.yaml") -> Dict[str, Any]:
+    """
+    Loads the global system configuration file.
+    """
+    from src.utils.path_utils import resolve_project_root
+    project_root = resolve_project_root()
+    
+    absolute_path = config_filepath
+    if not os.path.isabs(config_filepath):
+        absolute_path = os.path.join(project_root, config_filepath)
+        
+    try:
+        with open(absolute_path, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f)
+    except Exception:
+        return {}
+
 from functools import lru_cache
 
 @lru_cache(maxsize=32)

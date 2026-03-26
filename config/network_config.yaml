@@ -1,7 +1,0 @@
-binance:
-  api_timeout_seconds: 15
-  retry_count: 3
-
-gemini:
-  api_timeout_seconds: 30
-  retry_count: 2

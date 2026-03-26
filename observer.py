@@ -100,14 +100,23 @@ class ObserverCLI:
 def main():
     """Main entry point for the Observer CLI."""
     parser = argparse.ArgumentParser(description="Elite Market Topographer CLI")
-    parser.add_argument("--symbol", type=str, required=True, help="Trading symbol (e.g., BTCUSDT)")
-    parser.add_argument("--data_root", type=str, required=True, help="Root directory for data storage")
+    parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Historical target timestamp (ISO-8601)")
+    parser.add_argument("--data_root", type=str, required=True, help="Root directory for data storage")
     
     parsed = parser.parse_args()
     
+    # Load global defaults for missing CLI args
+    from src.utils.agent_utils import load_global_config
+    global_cfg = load_global_config()
+    symbol = parsed.symbol or global_cfg['system']['default_symbol']
+    
+    if not symbol:
+        print("Error: Symbol not provided and no default found in global_config.yaml")
+        sys.exit(1)
+        
     args = ObservationArgs(
-        symbol=parsed.symbol,
+        symbol=symbol,
         timestamp_raw=parsed.timestamp,
         data_root=parsed.data_root
     )

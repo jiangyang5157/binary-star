@@ -215,13 +215,22 @@ class PipelineOrchestrator:
 
 def main():
     parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
-    parser.add_argument("--symbol", type=str, required=True, help="Symbol to oversee (e.g. BTCUSDT)")
-    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
+    parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
     parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
+    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
     args = parser.parse_args()
-
+    
+    # Load global defaults for missing CLI args
+    from src.utils.agent_utils import load_global_config
+    global_cfg = load_global_config()
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
+    if not symbol:
+        print("Error: Symbol not provided and no default found in global_config.yaml")
+        sys.exit(1)
+        
     orchestrator = PipelineOrchestrator(
-        symbol=args.symbol, 
+        symbol=symbol, 
         interval=args.interval, 
         data_root=args.data_root
     )
