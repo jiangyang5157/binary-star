@@ -30,7 +30,7 @@ class StrategistConfig:
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
             temperature_draft=float(strat['temperature_draft']),
             temperature_synthesis=float(strat['temperature_synthesis']),
-            min_temporal_efficiency=float(strat.get('min_temporal_efficiency', 0.1))
+            min_temporal_efficiency=float(strat['min_temporal_efficiency'])
         )
 
 class StrategistAgent:
