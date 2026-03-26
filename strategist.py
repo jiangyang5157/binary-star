@@ -41,7 +41,10 @@ def run_full_triad_flow(observation: Dict[str, Any], strategist_agent: Strategis
         entry = float(limit_order['entry'])
         tp = float(limit_order['take_profit'])
         sl = float(limit_order['stop_loss'])
-        atr = float(observation.get('atr_macro', 1.0))
+        # Extract ATR from the correct nested location in the observation
+        metrics = observation.get('quantitative_metrics', {})
+        dynamics = metrics.get('price_dynamics', {})
+        atr = float(dynamics.get('atr_macro', 1.0))
         
         sl_dist = abs(entry - sl)
         tp_dist = abs(tp - entry)
