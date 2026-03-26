@@ -73,10 +73,14 @@ def get_interval_seconds(interval: str) -> int:
     except ValueError:
         return 60 # Default to 1m if malformed
         
-    if unit == 'm': return value * 60
-    if unit == 'h': return value * 3600
-    if unit == 'd': return value * 86400
-    return 60
+    mapping = {
+        'm': 60,
+        'h': 3600,
+        'd': 86400,
+        'w': 604800,
+        'M': 2592000
+    }
+    return value * mapping.get(unit, 60)
 
 # Aliases for backward compatibility
 get_utc_now = get_current_utc_time

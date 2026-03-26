@@ -261,20 +261,36 @@ class ReviewerOrchestrator:
 
     def _calculate_review_window(self, strategy: Dict[str, Any]) -> float:
         """Determines the optimal review duration based on strategy and config."""
+        opinion = strategy.get("opinion", "").upper()
         limit_order = strategy.get("limit_order") or {}
+        
+        # 1. Base Holding Time
         holding = float(limit_order.get("holding_time_hours", 24))
-        # Macro limit from config (rough estimate of total data availability)
-        macro_hours = 336 # Default fallback
+
+        # 2. Macro Interval Buffer (Minimum observation required)
+        macro_hours = 1.0 # Default fallback
         try:
-            m_config = self.config['observer']['macro_timeframe']
-            interval = m_config['interval']
+            m_config = self.config['observer']['macro_analysis_context']
+            interval = m_config['time_interval']
             unit = interval[-1]
-            val = int(interval[:-1])
-            limit = int(m_config.get('limit', 336))
+            val = float(interval[:-1])
             mapping = {"m": 1/60, "h": 1, "d": 24}
-            macro_hours = val * mapping.get(unit, 1) * limit
+            macro_hours = val * mapping.get(unit, 1)
         except: pass
-        return min(holding, macro_hours)
+
+        # 3. Dynamic logic for Neutral vs Directional
+        if opinion == "NEUTRAL":
+            # Use micro-analysis context duration for Neutral audit
+            try:
+                micro_cfg = self.config['observer']['micro_analysis_context']
+                m_interval = micro_cfg['time_interval']
+                m_lookback = int(micro_cfg.get('historical_lookback_candles', 192))
+                from src.utils.datetime_utils import get_interval_seconds
+                return (get_interval_seconds(m_interval) * m_lookback) / 3600
+            except:
+                return macro_hours
+            
+        return min(holding, 336) # Cap at 2 weeks for safety
 
     def _resolve_abs_path(self, path: Optional[str]) -> Optional[str]:
         """Resolves a relative path to an absolute project-root path."""
