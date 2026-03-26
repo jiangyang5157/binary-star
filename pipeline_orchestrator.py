@@ -44,11 +44,10 @@ class ProcessExecutor:
 
     def _resolve_python_path(self) -> str:
         """Determines the path to the virtual environment's python interpreter."""
-        # Check for standard venv patterns
         paths = [
             os.path.join(os.getcwd(), "venv", "bin", "python"),
             os.path.join(os.getcwd(), ".venv", "bin", "python"),
-            sys.executable # Fallback
+            sys.executable
         ]
         for p in paths:
             if os.path.exists(p):
@@ -57,6 +56,10 @@ class ProcessExecutor:
 
     def run_script(self, script_path: str, args: Optional[List[str]] = None) -> bool:
         """Executes a python script as a subprocess."""
+        if not os.path.exists(script_path):
+            self.logger.error(f"Script not found: {script_path}")
+            return False
+
         full_command = [self.venv_python, script_path] + (args or [])
         display_name = os.path.basename(script_path)
         
@@ -67,16 +70,14 @@ class ProcessExecutor:
                 full_command, 
                 capture_output=True, 
                 text=True, 
-                timeout=3600 # 1 hour safety timeout
+                timeout=3600
             )
             
-            # Log standard output
             if result.stdout:
                 for line in result.stdout.strip().split('\n'):
                     if line.strip():
                         self.logger.info(f"[{display_name}] {line}")
             
-            # Log standard error as warnings
             if result.stderr:
                 for line in result.stderr.strip().split('\n'):
                     if line.strip():
@@ -104,128 +105,127 @@ class Job(ABC):
     def run(self) -> None:
         pass
 
-class ScriptJob(Job):
-    """A concrete job that executes a Python script."""
-    def __init__(self, name: str, script_path: str, executor: ProcessExecutor, args: Optional[List[str]] = None):
-        self.name = name
-        self.script_path = script_path
+class SequentialPipelineJob(Job):
+    """
+    A job that runs a sequence of steps (Strategist -> Reviewer).
+    """
+    def __init__(self, symbol: str, data_root: str, executor: ProcessExecutor):
+        self.name = f"Pipeline-{symbol}"
+        self.symbol = symbol
+        self.data_root = data_root
         self.executor = executor
-        self.args = args or []
 
     def run(self) -> None:
-        self.executor.run_script(self.script_path, self.args)
+        """Executes the full pipeline cycle for a symbol."""
+        # Step 1: Execute Strategist
+        strat_args = ["--symbol", self.symbol, "--data_root", self.data_root]
+        strat_success = self.executor.run_script("strategist.py", strat_args)
+        
+        # Step 2: Trigger Reviewer (Checks for any pending reviews)
+        # We always trigger the reviewer after a strategy run
+        rev_args = ["--data_root", self.data_root]
+        self.executor.run_script("reviewer.py", rev_args)
 
-# --- 3. Management: Configuration & Scheduling ---
+# --- 3. Validation & Management ---
 
-class ConfigManager:
-    """Handles loading and validation of the orchestrator configuration."""
-    def __init__(self, config_path: str, logger: logging.Logger):
-        self.config_path = config_path
+class ConfigValidator:
+    """Validates the orchestrator settings against the global agent config."""
+    def __init__(self, logger: logging.Logger):
         self.logger = logger
 
-    def load(self) -> Dict[str, Any]:
-        """Loads and validates the YAML configuration."""
-        if not os.path.exists(self.config_path):
-            self.logger.error(f"Configuration file not found: {self.config_path}")
-            raise FileNotFoundError(self.config_path)
-
-        with open(self.config_path, 'r', encoding='utf-8') as f:
-            config = yaml.safe_load(f)
-            if not config:
-                raise ValueError("Empty configuration file.")
-        
-        # Validate required section
-        if 'automation' not in config:
-            raise KeyError("Missing 'automation' section in config.")
+    def validate_interval(self, interval_hours: float) -> bool:
+        """Ensures the requested interval is greater than the micro analysis timeframe."""
+        try:
+            from src.utils.agent_utils import load_config
+            config = load_config()
             
-        return config
+            micro_interval_str = config['observer']['micro_analysis_context']['time_interval']
+            micro_hours = self._parse_time_to_hours(micro_interval_str)
+            
+            if interval_hours <= micro_hours:
+                self.logger.error(
+                    f"Invalid Interval: Requested {interval_hours}h is not greater than "
+                    f"micro timeframe {micro_interval_str} ({micro_hours}h)."
+                )
+                return False
+            
+            self.logger.info(f"Interval validated: {interval_hours}h > {micro_interval_str}")
+            return True
+        except Exception as e:
+            self.logger.warning(f"Could not perform interval validation: {e}. Proceeding anyway.")
+            return True
+
+    def _parse_time_to_hours(self, time_str: str) -> float:
+        """Parses strings like '15m', '1h', '1d' into float hours."""
+        unit = time_str[-1].lower()
+        val = float(time_str[:-1])
+        mapping = {"m": 1/60, "h": 1, "d": 24}
+        return val * mapping.get(unit, 1)
 
 class JobScheduler:
-    """Manages the scheduling of Jobs using the schedule library."""
+    """Manages the scheduling logic."""
     def __init__(self, logger: logging.Logger):
         self.logger = logger
         self.schedule = schedule
 
     def add_job(self, job: Job, interval_hours: float):
-        """Schedules a job to run at a fixed interval."""
-        self.logger.info(f"Scheduling job '{getattr(job, 'name', 'Unknown')}' every {interval_hours} hours.")
-        # Conversion to minutes/seconds if needed for precise scheduling
-        if interval_hours < 0.01: # Use seconds for very short intervals (testing)
-            self.schedule.every(int(interval_hours * 3600)).seconds.do(job.run)
-        else:
-            self.schedule.every(interval_hours).hours.do(job.run)
+        self.logger.info(f"Scheduling '{job.name}' every {interval_hours} hours.")
+        self.schedule.every(interval_hours).hours.do(job.run)
 
     def run_pending(self):
-        """Executes jobs that are due for execution."""
         self.schedule.run_pending()
 
 # --- 4. Orchestrator Service ---
 
 class PipelineOrchestrator:
-    """
-    Main service class for managing the automated crypto trading pipeline.
-    """
-    def __init__(self, config_path: str, is_mock: bool = False):
+    def __init__(self, symbol: str, interval: float, data_root: str = "data"):
         self.logger = setup_orchestrator_logger()
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
-        self.config_manager = ConfigManager(config_path, self.logger)
-        self.is_mock = is_mock
-
-    def bootstrap(self):
-        """Initializes the service, loads config, and registers initial jobs."""
-        self.logger.info("=== Bootstrapping Pipeline Orchestrator ===")
+        self.validator = ConfigValidator(self.logger)
         
-        config = self.config_manager.load()
-        auto_cfg = config['automation']
+        self.symbol = symbol
+        self.interval = interval
+        self.data_root = data_root
+
+    def start(self):
+        """Starts the service cycle."""
+        self.logger.info(f"=== Starting Pipeline Orchestrator for {self.symbol} ===")
         
-        # Define scripts based on mode
-        if self.is_mock:
-            strat_script = "mock_strategist.py"
-            rev_script = "mock_reviewer.py"
-        else:
-            strat_script = "strategist.py"
-            rev_script = "reviewer.py"
+        if not self.validator.validate_interval(self.interval):
+            self.logger.error("Validation failed. Aborting startup.")
+            sys.exit(1)
 
-        # Initialize Jobs
-        # You can extend this to run different symbols if needed by passing args
-        strat_job = ScriptJob("Strategist", strat_script, self.executor, ["--symbol", "BTCUSDT"])
-        rev_job = ScriptJob("Reviewer", rev_script, self.executor)
+        pipeline_job = SequentialPipelineJob(self.symbol, self.data_root, self.executor)
 
-        # Register with Scheduler
-        self.scheduler.add_job(strat_job, auto_cfg['prediction_interval_hours'])
-        self.scheduler.add_job(rev_job, auto_cfg['review_interval_hours'])
-
-        # Initial Startup Execution
+        # Initial run
         self.logger.info("Executing initial startup run...")
-        strat_job.run()
-        rev_job.run()
+        pipeline_job.run()
 
-    def run_forever(self):
-        """Main loop: waits and triggers scheduled tasks."""
-        self.logger.info("Orchestrator loop started. Monitoring tasks...")
+        # Schedule
+        self.scheduler.add_job(pipeline_job, self.interval)
+
+        self.logger.info("Orchestrator monitoring loop active.")
         try:
             while True:
                 self.scheduler.run_pending()
-                time.sleep(1)
+                time.sleep(10) # 10s check interval for loop efficiency
         except KeyboardInterrupt:
             self.logger.info("Orchestrator received shutdown signal.")
-        except Exception as e:
-            self.logger.critical(f"Orchestrator crashed: {e}", exc_info=True)
 
 def main():
-    parser = argparse.ArgumentParser(description="Clean Code Pipeline Orchestrator")
-    parser.add_argument("--config", type=str, default="config/config.yaml", help="Path to config file")
-    parser.add_argument("--mock", action="store_true", help="Run with mock scripts for verification")
+    parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
+    parser.add_argument("--symbol", type=str, required=True, help="Symbol to oversee (e.g. BTCUSDT)")
+    parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
+    parser.add_argument("--data_root", type=str, default="data", help="Data directory root")
     args = parser.parse_args()
 
-    orchestrator = PipelineOrchestrator(args.config, is_mock=args.mock)
-    try:
-        orchestrator.bootstrap()
-        orchestrator.run_forever()
-    except Exception as e:
-        print(f"FATAL: {e}")
-        sys.exit(1)
+    orchestrator = PipelineOrchestrator(
+        symbol=args.symbol, 
+        interval=args.interval, 
+        data_root=args.data_root
+    )
+    orchestrator.start()
 
 if __name__ == "__main__":
     main()
