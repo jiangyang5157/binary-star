@@ -366,7 +366,7 @@ class StrategyNotifier:
                     preview_html = preview_html.replace(f"cid:{cid}", f"file://{abs_path}")
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_name = f"{symbol}_strategy_preview_{timestamp}.html"
+            file_name = f"{symbol}_strategies_preview_{timestamp}.html"
             file_path = os.path.join(output_dir, file_name)
             
             with open(file_path, "w", encoding="utf-8") as f:

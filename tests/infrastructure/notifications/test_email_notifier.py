@@ -252,7 +252,7 @@ class TestStrategyNotifier(unittest.TestCase):
             # Check if preview was saved in data/test/html
             preview_dir = os.path.join(data_root, "html")
             files = os.listdir(preview_dir)
-            self.assertTrue(any("BTCUSDT_strategy_preview" in f for f in files))
+            self.assertTrue(any("BTCUSDT_strategies_preview" in f for f in files))
 
     def test_local_preview_generation(self):
         """Verify that the HTML preview is saved to the correct directory."""
