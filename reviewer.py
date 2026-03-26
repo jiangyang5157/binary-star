@@ -270,7 +270,9 @@ class ReviewerOrchestrator:
                 return
 
             # 1. Fetch & Calculate Outcome
-            atr_macro = session.get("observation", {}).get("atr_macro", 0)
+            metrics = session.get("observation", {}).get("quantitative_metrics", {})
+            price_dynamics = metrics.get("price_dynamics", {})
+            atr_macro = float(price_dynamics.get("atr_macro", 0))
             interval_hours = interval_seconds / 3600
             
             # Use the target entry from the strategy if available, fallback to first kline's open
