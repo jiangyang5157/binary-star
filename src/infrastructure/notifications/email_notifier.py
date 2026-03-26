@@ -57,8 +57,8 @@ class StrategyEmailTemplate:
         """
         Renders the final strategy JSON into a rich HTML report.
         """
-        obs = strategy_data.get("observation", {})
-        decision = strategy_data.get("final_decision", {})
+        obs = strategy_data.get("observation") or {}
+        decision = strategy_data.get("final_decision") or {}
         symbol = obs.get("symbol", "UNKNOWN")
         
         # 1. Local Time Conversion (Device Local)
@@ -69,22 +69,23 @@ class StrategyEmailTemplate:
         except Exception:
             display_time = utc_ts
 
-        # 2. Extract Data Suites
-        metrics = obs.get("quantitative_metrics", {})
-        dynamics = metrics.get("price_dynamics", {})
-        regime = metrics.get("market_regime", {})
-        sentiment = metrics.get("sentiment_signals", {})
-        structural = metrics.get("structural_anchors", {})
-        topography = metrics.get("volume_topography", {})
-        semantics = obs.get("semantic_analysis", {})
+        # 2. Extract Data Suites (Force dictionary types for safety)
+        metrics = obs.get("quantitative_metrics") or {}
+        dynamics = metrics.get("price_dynamics") or {}
+        regime = metrics.get("market_regime") or {}
+        sentiment = metrics.get("sentiment_signals") or {}
+        structural = metrics.get("structural_anchors") or {}
+        topography = metrics.get("volume_topography") or {}
+        semantics = obs.get("semantic_analysis") or {}
         
-        critique = strategy_data.get("critique", {})
+        critique = strategy_data.get("critique") or {}
         skepticism = critique.get("skepticism_score", 0)
         
-        opinion = decision.get("opinion", "NEUTRAL").upper()
+        opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
+        opinion = str(opinion).upper()
         confidence = decision.get("confidence", 0)
         reasoning = decision.get("reasoning", "No description provided.")
-        limit_order = decision.get("limit_order")
+        limit_order = decision.get("limit_order") or {}
         
         # 3. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
@@ -93,7 +94,8 @@ class StrategyEmailTemplate:
         theme_icon = icons.get(opinion, "💡")
         
         # Formatting helper to handle None (null) values gracefully in the UI
-        fmt = lambda v: v if v is not None else "N/A"
+        def fmt(v: Any) -> str:
+            return str(v) if v is not None else "N/A"
         
         return f"""
         <html>
@@ -125,9 +127,9 @@ class StrategyEmailTemplate:
                 <div style="background-color: #fff7ed; padding: 25px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
                     <h3 style="margin: 0 0 10px 0; color: #9a3412; font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
                         <span>⚖️ Adversarial Risk Audit</span>
-                        <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Audit Severity: {fmt(critique.get('skepticism_score'))}%</span>
+                        <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Audit Severity: {fmt((critique or {}).get('skepticism_score'))}%</span>
                     </h3>
-                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt(critique.get('hidden_risk'))}</p>
+                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt((critique or {}).get('hidden_risk'))}</p>
                 </div>
                 ''' if critique else ""}
 
@@ -149,19 +151,19 @@ class StrategyEmailTemplate:
                         <tr>
                             <td style="width: 25%; vertical-align: top;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Entry</div>
-                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('entry'))}</div>
+                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Take Profit</div>
-                                <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('take_profit'))}</div>
+                                <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('take_profit'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Stop Loss</div>
-                                <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(decision.get('limit_order', {}).get('stop_loss'))}</div>
+                                <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('stop_loss'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration(decision.get('limit_order', {}).get('holding_time_hours', 0))}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration((decision.get('limit_order') or {}).get('holding_time_hours', 0))}</div>
                             </td>
                         </tr>
                     </table>
@@ -207,7 +209,7 @@ class StrategyEmailTemplate:
                         <!-- 6. Micro-Interactive detail -->
                         <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
                             <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Micro-Interactive detail</span>
-                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('micro_interactive'))}</p>
+                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt((semantics or {}).get('micro_interactive'))}</p>
                         </div>
                     </div>
                 </div>
@@ -316,13 +318,14 @@ class StrategyNotifier:
         Parses strategy result and dispatches an actionable email alert.
         """
         # Always generate HTML for potential preview even if email is disabled
-        html_body = StrategyEmailTemplate.render(strategy_data)
+        html_body = StrategyEmailTemplate.render(strategy_data or {})
         
         # Collect Visual Attachments
-        assets = strategy_data.get("observation", {}).get("visual_assets", {})
+        obs = (strategy_data or {}).get("observation") or {}
+        assets = obs.get("visual_assets") or {}
         attachments = {
-            "macro_chart": assets.get("macro_snapshot"),
-            "micro_chart": assets.get("micro_snapshot")
+            "macro_chart": str(assets.get("macro_snapshot") or ""),
+            "micro_chart": str(assets.get("micro_snapshot") or "")
         }
 
         # 1. Local Preview (Useful for debugging/UI verification)
@@ -332,15 +335,16 @@ class StrategyNotifier:
         if not self.enabled:
             return False
             
-        opinion = strategy_data.get("final_decision", {}).get("opinion", "NEUTRAL")
-        confidence = strategy_data.get("final_decision", {}).get("confidence", 0)
+        final_decision = (strategy_data or {}).get("final_decision") or {}
+        opinion = final_decision.get("opinion") or "NEUTRAL"
+        confidence = final_decision.get("confidence", 0)
         
         # Only notify if confidence >= threshold
         if confidence < self.min_confidence_threshold:
             logger.info(f"Notifier: Confidence too low ({confidence}% < {self.min_confidence_threshold}%). Skipping dispatch.")
             return False
             
-        subject = f"{symbol} | {opinion} ({confidence}%) | Strategic Synthesis"
+        subject = f"{symbol} | {opinion.upper()} ({confidence}%) | Strategic Synthesis"
         
         # 2. Dispatch Email
         logger.info(f"Notifier: Dispatching alert: {subject}")
