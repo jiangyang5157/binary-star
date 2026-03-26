@@ -9,6 +9,7 @@ To provide an exhaustive, high-fidelity topographical map of the current market 
 2. **MODAL SYNTHESIS**: Correlate provided `QUANTITATIVE METRICS` with the `VISUAL PROOF` (CHART). Identify where candle behavior validates or contradicts the metrics.
 3. **MANDATORY CITATION**: Every analytical claim MUST cite a specific metric value. (e.g., "Due to `vol_ratio` of 1.69, we observe a volatility expansion...").
 4. **NEGATIVE SPACE**: Note the absence of liquidity (vacuums) as clearly as the presence of friction (HVNs). Identify gaps where price may accelerate.
+5. **MISSING DATA PROTOCOL**: If any metric in the `INPUT DATUM` is `null`, `None`, or missing, you MUST explicitly state '[Metric Name] Unavailable' in your analysis. **DO NOT hallucinate, assume, or calculate a missing value.** Simply proceed with the remaining available data.
 
 # ANALYTICAL REFERENCE
 **DECODING LAW**: This table defines the objective physical meaning for all telemetry fields. Use these definitions to transform raw metrics into topographical insights. **Zero deviation allowed.**

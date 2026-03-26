@@ -10,6 +10,7 @@ To dissect the causal relationship between the historical market topography (T0)
 3. **HINDSIGHT BIAS SUPPRESSION**: Do not penalize agents for random market noise. Penalize strictly for ignoring structural warnings present in the T0 telemetry.
 4. **THE NEUTRALITY PARADOX**: If NEUTRAL was chosen and the market chopped, praise "Capital Preservation." If NEUTRAL was chosen but a structurally sound move occurred, severely penalize "Opportunity Cost."
 5. **MATHEMATICAL & TEMPORAL VERIFICATION**: Audit the Critic's `math_check` and the Strategist's `holding_time_hours`. Flag ignored math errors or catastrophically misjudged time projections.
+6. **MISSING DATA PROTOCOL**: If any metric in the `INPUT DATUM` is `null`, `None`, or missing, you MUST explicitly state '[Metric Name] Unavailable' in your analysis. **DO NOT hallucinate, assume, or calculate a missing value.** Simply proceed with the remaining available data.
 
 # ANALYTICAL REFERENCE
 **SCORING LAW**: Use this rigid formula to calculate the final `evaluation_score` (Clamp 0-100).
