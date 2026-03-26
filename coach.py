@@ -3,6 +3,7 @@ import sys
 import json
 import logging
 import argparse
+import shutil
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 from dotenv import load_dotenv
@@ -23,9 +24,9 @@ load_dotenv()
 
 class CoachOrchestrator:
     """
-    Orchestrates the strategic coaching session.
-    Fetches historical forensic audits, invokes the Coach Agent, 
-    and archives the systemic analysis reports.
+    Orchestrates the strategic coaching session with physical archival.
+    Fetches fresh forensic audits, invokes the Coach Agent, 
+    archives patches, and moves processed sources to history.
     """
     def __init__(self, data_root: str):
         self.config = load_config()
@@ -40,43 +41,60 @@ class CoachOrchestrator:
 
     def execute_pipeline(self, symbol: str, batch_size: Optional[int] = None):
         """
-        Executes the full coaching workflow for a specific symbol.
+        Executes the full coaching workflow: Fetch -> Analyze -> Patch -> Archive.
         """
         self.logger.info(f"=== Starting Coaching Pipeline for {symbol} ===")
         
-        # 1. Fetch Historical Forensic Audits
-        review_history = self._fetch_review_history(symbol, batch_size)
+        # 1. Setup Directories
+        review_dir = os.path.join(self.data_root, "reviewers")
+        archive_dir = os.path.join(review_dir, "archived")
+        patch_dir = os.path.join(review_dir, "patches")
+        os.makedirs(archive_dir, exist_ok=True)
+        os.makedirs(patch_dir, exist_ok=True)
+
+        # 2. Fetch Historical Forensic Audits (Only from Root, ignoring archived/patches)
+        review_history, source_paths = self._fetch_review_history(symbol, batch_size, review_dir)
+        
         if not review_history:
-            self.logger.warning(f"No forensic audits found for {symbol}. Sidestepping.")
+            self.logger.warning(f"No fresh forensic audits found for {symbol}. Coach is resting.")
             return
 
-        # 2. Invoke Coach Agent for Systemic Analysis
+        # 3. Invoke Coach Agent for Systemic Analysis
+        self.logger.info(f"Feeding {len(review_history)} valid reports to Coach for systemic diagnosis...")
         raw_analysis = self.coach.analyze(review_history)
 
-        # 3. Archive the Strategic Report
-        self._archive_report(symbol, raw_analysis)
+        # 4. Archive the Strategic Patch & Move Sources
+        if raw_analysis:
+            # A. Save the patch proposal
+            patch_path = self._archive_patch(symbol, raw_analysis, patch_dir)
+            
+            # B. Physical Archival of processed reviews
+            if patch_path:
+                self._archive_sources(source_paths, archive_dir)
 
-    def _fetch_review_history(self, symbol: str, batch_size: Optional[int]) -> List[Dict[str, Any]]:
-        """Scans the data directory for the latest forensic audits."""
-        reviews_dir = os.path.join(self.data_root, "reviewers")
-        if not os.path.exists(reviews_dir):
-            return []
+    def _fetch_review_history(self, symbol: str, batch_size: Optional[int], review_dir: str):
+        """Scans the root reviewers directory for fresh, non-premature audits."""
+        if not os.path.exists(review_dir):
+            return [], []
 
-        # New standardized naming convention: SYMBOL_reviewers_YYYYMMDD_HHMMSS.json
+        # Only look at files in the root of review_dir (ignores 'archived' and 'patches' subfolders)
         prefix = f"{symbol}_reviewers_"
         files = sorted([
-            f for f in os.listdir(reviews_dir) 
-            if f.endswith(".json") and f.startswith(prefix)
+            f for f in os.listdir(review_dir) 
+            if f.endswith(".json") and f.startswith(prefix) and os.path.isfile(os.path.join(review_dir, f))
         ], reverse=True)
 
         if batch_size:
             files = files[:batch_size]
 
         history = []
+        valid_source_paths = []
+        
         for filename in files:
-            data = load_json(os.path.join(reviews_dir, filename))
+            file_path = os.path.join(review_dir, filename)
+            data = load_json(file_path)
             if data:
-                # ----------------- [核心过滤：剔除未决订单的占位报告] -----------------
+                # Filter out premature stub reports
                 market_outcome = data.get("market_outcome", {})
                 trade_metrics = market_outcome.get("trade_execution_metrics", {})
                 
@@ -85,25 +103,20 @@ class CoachOrchestrator:
                     tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
                     
                     if is_premature and tp_sl_status == "NEITHER":
-                        self.logger.info(f"Skipping pending trade from Coach batch: {filename}")
+                        self.logger.debug(f"Skipping pending trade (No training value): {filename}")
                         continue
-                # ---------------------------------------------------------------------
 
-                # Inject filename for traceability in the COACH prompt (sources_analyzed)
                 data["_source_file"] = filename
                 history.append(data)
+                valid_source_paths.append(file_path)
         
-        return history
+        return history, valid_source_paths
 
-    def _archive_report(self, symbol: str, raw_analysis: str):
-        """Standardizes and saves the systemic coaching report."""
-        coaches_dir = os.path.join(self.data_root, "coaches")
-        os.makedirs(coaches_dir, exist_ok=True)
-
+    def _archive_patch(self, symbol: str, raw_analysis: str, patch_dir: str) -> Optional[str]:
+        """Standardizes and saves the systemic coaching patch."""
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        # Requested format: SYMBOL_coaches_YYYYMMDD_HHMMSS.json
-        filename = f"{symbol}_coaches_{ts}.json"
-        report_path = os.path.join(coaches_dir, filename)
+        filename = f"{symbol}_patches_{ts}.json"
+        patch_path = os.path.join(patch_dir, filename)
 
         try:
             analysis_data = json.loads(raw_analysis)
@@ -117,33 +130,42 @@ class CoachOrchestrator:
                 "strategic_analysis": analysis_data
             }
             
-            save_json(final_record, report_path)
-            self.logger.info(f"Strategic Coach Report archived: {report_path}")
+            save_json(final_record, patch_path)
+            self.logger.info(f"Coach Patch Proposal archived: {patch_path}")
+            return patch_path
             
         except json.JSONDecodeError:
             self.logger.error("Coach Agent returned invalid JSON. Archiving raw text as fallback.")
-            txt_path = report_path.replace(".json", ".txt")
+            txt_path = patch_path.replace(".json", ".txt")
             with open(txt_path, "w", encoding="utf-8") as f:
                 f.write(raw_analysis)
             self.logger.info(f"Raw analysis saved to {txt_path}")
+            return txt_path
+
+    def _archive_sources(self, source_paths: List[str], archive_dir: str):
+        """Moves processed source files to the archived folder."""
+        for file_path in source_paths:
+            try:
+                dest_path = os.path.join(archive_dir, os.path.basename(file_path))
+                shutil.move(file_path, dest_path)
+            except Exception as e:
+                self.logger.error(f"Failed to archive source {file_path}: {e}")
+        
+        self.logger.info(f"Archived {len(source_paths)} processed reports to {archive_dir}.")
 
 def main():
     parser = argparse.ArgumentParser(description="Strategic Trading Coach (Agent C)")
     parser.add_argument("--symbol", type=str, help="Symbol to analyze.")
     parser.add_argument("--data_root", type=str, required=True, help="Data directory root.")
-    parser.add_argument("--batch", type=int, required=True, help="Number of recent reviews for this specific symbol to analyze.")
+    parser.add_argument("--batch", type=int, help="Limit number of recent reviews to analyze.")
     args = parser.parse_args()
     
-    # Load global defaults for missing CLI args
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
     if not symbol:
         print("Error: Symbol not provided and no default found in global_config.yaml")
         sys.exit(1)
-
-    # Ensure batch is at least 1 to avoid slicing anomalies
-    batch_size = max(1, args.batch)
 
     try:
         orchestrator = CoachOrchestrator(data_root=args.data_root)
