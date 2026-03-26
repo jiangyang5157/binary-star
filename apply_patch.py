@@ -174,44 +174,26 @@ class SystemEvolutionEngine:
         except Exception as e:
             self.logger.error(f"Critical failure during evolution cycle: {e}")
 
-def _find_latest_report(data_root: str) -> Optional[str]:
-    """Finds the most recent JSON report in the data_root/reviewers/ directory."""
-    review_dir = os.path.join(data_root, "reviewers")
-    if not os.path.exists(review_dir):
-        return None
-    
-    # Filter for .json files and sort by modification time (or name if following ts convention)
-    files = [os.path.join(review_dir, f) for f in os.listdir(review_dir) if f.endswith(".json")]
-    if not files:
-        return None
-    
-    # Returning the latest based on file modification time for maximum robustness
-    return max(files, key=os.path.getmtime)
-
 # --- CLI INTERFACE ---
 def main():
     parser = argparse.ArgumentParser(
         description="Industrial-Grade Automated System Evolution Engine",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples:
-  python3 apply_patch.py --file data/test (Auto-finds latest in data/test/reviewers/)"""
+  python3 apply_patch.py --file data/test/reviewers/archived/BTCUSDT_patches_20260327_102600.json"""
     )
     parser.add_argument(
         "--file", 
         type=str, 
         required=True,
-        help="Path to specific JSON report OR data_root directory (scripts will find latest in data_root/reviewers/)."
+        help="Path to a specific JSON patch file to apply."
     )
     args = parser.parse_args()
 
     target_path = args.file
     if os.path.isdir(target_path):
-        discovered = _find_latest_report(target_path)
-        if not discovered:
-            print(f"Error: No JSON reports found in {os.path.join(target_path, 'reviewers')}")
-            return
-        print(f"Auto-discovered latest report in {target_path}/reviewers/: {os.path.basename(discovered)}")
-        target_path = discovered
+        print(f"Error: {target_path} is a directory. Please provide a path to a specific JSON patch file.")
+        return
 
     if not os.path.exists(target_path):
         print(f"Error: Report file not found: {target_path}")

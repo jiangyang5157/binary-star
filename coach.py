@@ -48,9 +48,7 @@ class CoachOrchestrator:
         # 1. Setup Directories
         review_dir = os.path.join(self.data_root, "reviewers")
         archive_dir = os.path.join(review_dir, "archived")
-        patch_dir = os.path.join(review_dir, "patches")
         os.makedirs(archive_dir, exist_ok=True)
-        os.makedirs(patch_dir, exist_ok=True)
 
         # 2. Fetch Historical Forensic Audits (Only from Root, ignoring archived/patches)
         review_history, source_paths = self._fetch_review_history(symbol, batch_size, review_dir)
@@ -66,7 +64,7 @@ class CoachOrchestrator:
         # 4. Archive the Strategic Patch & Move Sources
         if raw_analysis:
             # A. Save the patch proposal
-            patch_path = self._archive_patch(symbol, raw_analysis, patch_dir)
+            patch_path = self._archive_patch(symbol, raw_analysis, archive_dir)
             
             # B. Physical Archival of processed reviews
             if patch_path:
@@ -77,7 +75,7 @@ class CoachOrchestrator:
         if not os.path.exists(review_dir):
             return [], []
 
-        # Only look at files in the root of review_dir (ignores 'archived' and 'patches' subfolders)
+        # Only look at files in the root of review_dir (ignores subfolders)
         prefix = f"{symbol}_reviewers_"
         files = sorted([
             f for f in os.listdir(review_dir) 
@@ -112,11 +110,11 @@ class CoachOrchestrator:
         
         return history, valid_source_paths
 
-    def _archive_patch(self, symbol: str, raw_analysis: str, patch_dir: str) -> Optional[str]:
+    def _archive_patch(self, symbol: str, raw_analysis: str, output_dir: str) -> Optional[str]:
         """Standardizes and saves the systemic coaching patch."""
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"{symbol}_patches_{ts}.json"
-        patch_path = os.path.join(patch_dir, filename)
+        patch_path = os.path.join(output_dir, filename)
 
         try:
             analysis_data = json.loads(raw_analysis)
