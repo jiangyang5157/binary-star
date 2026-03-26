@@ -29,7 +29,7 @@ class OutcomeCalculator:
     Determines TP/SL hits and MAE (Maximum Adverse Excursion).
     """
     @staticmethod
-    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], atr: float = 0) -> Dict[str, Any]:
         """Analyzes klines to determine the actual market outcome vs strategist hypothesis."""
         if not klines:
             return {}
@@ -87,9 +87,31 @@ class OutcomeCalculator:
             
             if entry_hit:
                 sl_dist = abs(target_entry - sl)
+                tp_dist = abs(tp - target_entry)
+                
+                # Calculate MAE (Max Adverse Excursion)
                 mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                 stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
-                result["trade_execution_metrics"] = {"tp_sl_result": hit_result, "mae_stress_level": f"{round(stress, 1)}%"}
+                mae_atr = (mae / atr) if atr > 0 else 0
+                
+                # Calculate MFE (Max Favorable Excursion) Efficiency 
+                mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
+                mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
+                
+                result["trade_execution_metrics"] = {
+                    "tp_sl_result": hit_result, 
+                    "mae_stress_level": f"{round(stress, 1)}%",
+                    "mae_atr_ratio": round(mae_atr, 2),
+                    "mfe_efficiency": f"{round(mfe_eff, 1)}%"
+                }
+            else:
+                # Calculate Missed Relative Range for NEITHER
+                missed_range = max_price - min_price
+                rel_range = (missed_range / atr) if atr > 0 else 0
+                result["trade_execution_metrics"] = {
+                    "tp_sl_result": "NEITHER",
+                    "missed_relative_range": round(rel_range, 2)
+                }
         
         return result
 
@@ -222,9 +244,9 @@ class ReviewerOrchestrator:
             )
             if not klines:
                 logger.warning(f"No klines found for {symbol}. Skipping.")
-                return
-
-            outcome = OutcomeCalculator.calculate(klines, float(klines[0][1]), strategy)
+            # 1. Fetch & Calculate Outcome
+            atr_macro = session.get("observation", {}).get("atr_macro", 0)
+            outcome = OutcomeCalculator.calculate(klines, float(klines[0][1]), session, atr=atr_macro)
 
             # 2. Multimedia & Visual Forensic Context
             if symbol not in self.observers:

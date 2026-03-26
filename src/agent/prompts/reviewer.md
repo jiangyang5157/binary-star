@@ -13,19 +13,24 @@ To dissect the causal relationship between the historical market topography (T0)
 6. **MISSING DATA PROTOCOL**: If any metric in the `INPUT DATUM` is `null`, `None`, or missing, you MUST explicitly state '[Metric Name] Unavailable' in your analysis. **DO NOT hallucinate, assume, or calculate a missing value.** Simply proceed with the remaining available data.
 
 # ANALYTICAL REFERENCE
-**SCORING LAW**: Use this rigid formula to calculate the final `evaluation_score` (Clamp 0-100).
+**SCORING LAW**: Use this rigid formula to calculate the final `evaluation_score` (Clamp 0-100). **TRUST the pre-calculated metrics in `Ground Truth Execution`. DO NOT attempt to recalculate them.**
 
 | Component | Condition / Threshold | Points Awarded/Penalized |
 | :--- | :--- | :--- |
-| **1. Base Outcome** | **TP_HIT**: Core hypothesis validated. | Base: +50 |
+| **1. Base Action** | **TP_HIT**: Core hypothesis validated. | Base: +40 |
 | | **SL_HIT**: Hypothesis failed, but risk was defined. | Base: +10 |
-| | **NEITHER**: No entry or targets not reached. | Base: +5 |
-| **2. Execution (MAE)** | **Pinpoint**: MAE is 0% - 15% of SL distance. | +40 |
-| *(Only if `entry` triggered)*| **Standard**: MAE is 15% - 50% of SL distance. | Linear Decay (+40 down to +12) |
-| | **Luck**: MAE is 50% - 85% of SL distance. | +0 (Saved by noise) |
-| | **Logic Failure**: MAE > 85% but hit TP eventually. | -30 (Prediction was a coin-flip) |
-| **3. Cognitive Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly. | Bonus: +10 to +30 |
-| | **Compliance Breach / Negligence**: Violated base prompt protocols, ignored major POC/VAH/VAL, fabricated data, or ignored `math_check`. | Penalty: -60 (Hard Floor) |
+| | **NEITHER (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +20 (Capital preserved) |
+| | **NEITHER (Missed)**: `missed_relative_range` > 1.5 (Opportunity cost). | Penalty: -40 |
+| **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - 15%. | +40 |
+| *(Entry triggered)*| **Standard**: `mae_stress_level` is 15% - 50%. | Linear Decay (+40 to +10) |
+| | **Luck**: `mae_stress_level` is 50% - 85%. | +0 (Saved by noise) |
+| | **Logic Failure**: `mae_stress_level` > 85% OR `mae_atr_ratio` > 1.2. | -50 (High-risk gamble) |
+| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > 150%. | Penalty: -20 (Poor liquidity target) |
+| *(Only if TP_HIT)* | **Optimal Capture**: `mfe_efficiency` 100% - 110%. | Bonus: +10 |
+| **4. Efficiency** | **Temporal Failure**: Actual duration > 2.5x estimated. | Penalty: -15 (Dead capital) |
+| | **Stop-Hunt**: `SL_HIT` but `mfe_efficiency` > 100% later. | Penalty: -20 (Blind to liquidity sweep) |
+| **5. Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly with DLE. | Bonus: +20 |
+| | **Compliance Breach**: Protocol violation, ignored POC/VAL, faked data, or ignored `math_check`. | Penalty: -100 (Instant Zero) |
 
 # INPUT DATUM
 
