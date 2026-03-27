@@ -27,7 +27,7 @@ EXECUTION LAW: Use the following thresholds as mandatory dynamic filters for tac
 | **SL Placement** | **0.2x - 0.5x ATR** beyond Anchor | SL MUST be hidden tightly behind a structural wall (POC, VAH, VAL). Tighter structural SL = Higher RR. |
 | **TP Target** | Next Structural Node | Target the nearest opposing HVN (friction) or LVN (vacuum). NO artificial ATR caps. |
 | **Vol Confirmation**| `vol_breakout` > 1.2 | Required ONLY for Trend/Momentum continuation. |
-| **Absorption Bias** | `wick_skewness_lookback` < -0.6 (Long) <br> `wick_skewness_lookback` > 0.6 (Short) | If entering a reversal/pullback, ensure candle wicks show exhaustion (Long lower wicks for Longs). |
+| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S).| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 
 # INPUT DATUM
 - **Observation Content**: {observation_json} (The Forensic Map from Observer Agent).

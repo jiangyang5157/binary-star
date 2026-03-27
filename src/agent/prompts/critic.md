@@ -29,7 +29,7 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 | **Volatility**| `squeeze_factor` expands violently against trade. | **[VOLATILITY_EXPANSION]** (Fatal: Momentum override). |
 | **Divergence**| Price making HH while `cvd_trend` is DOWNWARD. | **[ABSORPTION_TRAP]** (Mitigate: Demand deeper entry). |
 | **Weak Breakout**| Price crosses VAH/VAL but `vol_breakout` < 1.2. | **[ABSORPTION_TRAP]** (Mitigate: Wait for liquidity sweep). |
-| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S).| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
+| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S). Analyzed over **1h Tactical Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 | **Vacuum Risk**| Stop Loss placed inside an LVN (`vacuum_score` > 0.3).| **[LIQUIDITY_VOID]** (Mitigate: Move SL behind a wall). |
 | **Retail Trap**| `ls_ratio` > 2.0 while price is at resistance. | **[RETAIL_SQUEEZE]** (Mitigate: Place DLE below retail SLs). |
 | **Math/Logic**| `math_fact_check` contradicts Draft, or RR < min. | **[MATH_VIOLATION]** (Fatal: Abort). |

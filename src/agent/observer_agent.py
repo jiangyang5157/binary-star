@@ -165,7 +165,7 @@ class MarketDataLoader:
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=1, endTime=ts_ms) or []
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=100, startTime=ts_ms - (24 * 60 * 60 * 1000), endTime=ts_ms) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
@@ -296,7 +296,7 @@ class MarketMetricsRefiner:
             "ls_ratio_micro": raw.micro_ls[0].get('longShortRatio') if raw.micro_ls else None,
             "net_taker_delta": f"{cvd_current:.4f}",
             "cvd_trend": cvd_slope,
-            "funding_rate": raw.funding_rate[0].get('fundingRate') if raw.funding_rate else None,
+            "funding_rate": raw.funding_rate[-1].get('fundingRate') if raw.funding_rate else None,
             "liquidation_clusters": self._parse_liquidations_to_clusters(raw.liquidations, atr_macro)
         }
 
@@ -457,6 +457,11 @@ class ObserverAgent:
                 "micro": {
                     "interval": self.config.micro_context.time_interval,
                     "limit": self.config.micro_context.historical_lookback_candles
+                },
+                "logic": {
+                    "tactical_window_hours": self.config.taker_vol_delta_duration_hours,
+                    "structural_window_hours": self.config.trend_intensity_duration_hours,
+                    "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.historical_lookback_candles) / 3600, 1)
                 }
             },
             "visual_assets": charts,
