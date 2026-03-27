@@ -119,9 +119,10 @@ class StrategyEmailTemplate(BaseEmailTemplate):
         
         # 3. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
-        icons = {"BULLISH": "📈", "BEARISH": "📉", "NEUTRAL": "↔️"}
+        icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
         theme_color = colors.get(opinion, "#64748b")
-        theme_icon = icons.get(opinion, "💡")
+        theme_icon = icons.get(opinion, "⚡")
+        display_opinion = "STAND ASIDE" if opinion == "NEUTRAL" else opinion
         
         fmt = StrategyEmailTemplate.fmt
         
@@ -132,7 +133,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
             <div class="container">
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
-                        {theme_icon} {opinion}
+                        {theme_icon} {display_opinion}
                     </div>
                     <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Blueprint</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
@@ -146,7 +147,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 10px 0;">
                         <tr>
                             <td align="left" style="color: #9a3412; font-size: 16px; font-weight: bold;">
-                                <span>⚖️ Risk Assessment</span>
+                                <span>🛡️ Risk Assessment</span>
                             </td>
                             <td align="right" style="vertical-align: middle;">
                                 <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #9a3412; font-weight: bold;">Risk Level: {fmt((critique or {}).get('skepticism_score'))}%</span>
@@ -159,34 +160,34 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
                 <!-- Critic's Verdict -->
                 {f'''
-                <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Critic's Verdict</h3>
+                <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background_color: #f8fafc;">
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Critic's Verdict</h3>
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('critic_impact'))}</p>
                 </div>
                 ''' if decision.get('critic_impact') else ""}
 
                 <!-- Reasoning -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🧩 Reasoning</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🧠 Logic & Reasoning</h3>
                     <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
                     
                     {f'''
                     <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Entry</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📥 Entry</div>
                                 <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Take Profit</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Take Profit</div>
                                 <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('take_profit'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Stop Loss</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🛡️ Stop Loss</div>
                                 <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('stop_loss'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Temporal Window</div>
                                 <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours', 0))}</div>
                             </td>
                         </tr>
@@ -196,7 +197,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
                 <!-- Intelligence Briefing -->
                 <div style="margin-bottom: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🗺️ Forensic Breakdown</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🔬 Forensic Breakdown</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
                             <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography</span>
@@ -232,7 +233,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
                 <!-- Visual Assets -->
                 <div id="charts-root" style="text-align: center;">
-                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📸 Visual Snapshots</h4>
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">🖼️ Visual Snapshots</h4>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 15px 0;">
                         <tr>
                             <td style="width: 50%; vertical-align: top;">
@@ -312,9 +313,9 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                 <!-- Header -->
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {res_color}15; color: {res_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {res_color}30;">
-                        🔍 {res_label}
+                        🏁 {res_label}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Performance</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Performance</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Original Signal: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
                     </p>
@@ -322,21 +323,21 @@ class ReviewEmailTemplate(BaseEmailTemplate):
 
                 <!-- Outcome Summary -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">📊 Outcome Summary</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🏁 Outcome Summary</h3>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 10px 0;">
                         <tr>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
-                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Actual Change</span>
+                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">📐 Price Change</span>
                                 <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if outcome.get('total_price_change_pct', 0) >= 0 else '#ef4444'};">
                                     {fmt(outcome.get('total_price_change_pct'))}%
                                 </div>
                             </td>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
-                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Max Favorable (MFE)</span>
+                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">🔥 Max Favorable (MFE)</span>
                                 <div style="font-size: 18px; font-weight: 800; color: #10b981;">{fmt(outcome.get('max_favorable_runup_pct'))}%</div>
                             </td>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
-                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Max Adverse (MAE)</span>
+                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">💧 Max Adverse (MAE)</span>
                                 <div style="font-size: 18px; font-weight: 800; color: #ef4444;">{fmt(outcome.get('max_adverse_drawdown_pct'))}%</div>
                             </td>
                         </tr>
@@ -345,15 +346,15 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">MFE Efficiency</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⚡ Efficiency</div>
                                 <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">MAE Stress</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🌡️ MAE Stress</div>
                                 <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level'))}</div>
                             </td>
                             <td style="width: 25%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Duration (Actual)</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>
                                 <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{ReviewEmailTemplate.format_duration(metrics.get('actual_hours', 0))}</div>
                             </td>
                         </tr>
@@ -365,10 +366,10 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 15px 0; border-bottom: 1px solid #dbeafe; padding-bottom: 10px;">
                         <tr>
                             <td align="left" style="color: #1e40af; font-size: 18px; font-weight: bold;">
-                                🚩 Auditor Findings & Score
+                                📑 Audit Findings & Score
                             </td>
                             <td align="right" style="vertical-align: middle;">
-                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Score: {audit.get('evaluation_score', 0)}/10</span>
+                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Score: {audit.get('evaluation_score', 0)}/100</span>
                             </td>
                         </tr>
                     </table>
@@ -388,13 +389,13 @@ class ReviewEmailTemplate(BaseEmailTemplate):
 
                 <!-- Original Strategy Summary (Context) -->
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Context</h3>
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Context</h3>
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('reasoning'))}</p>
                 </div>
 
                 <!-- Visual Assets (Comparative Proof) -->
                 <div id="charts-root" style="text-align: center;">
-                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📸 Visual Snapshots</h4>
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">🖼️ Visual Snapshots</h4>
                     
                     <!-- Macro Row -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px; border-collapse: separate; border-spacing: 15px 0;">
@@ -539,7 +540,8 @@ class StrategyNotifier:
             logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH/BEARISH allowed).")
             return False
             
-        subject = f"💡 Signal | {symbol} | {opinion.upper()} ({confidence}%)"
+        indicator = '🟢' if opinion.upper() == 'BULLISH' else '🔴'
+        subject = f"{indicator} Signal | {symbol} | {opinion.upper()} ({confidence}%)"
         
         # 2. Dispatch Email
         logger.info(f"Notifier: Dispatching alert: {subject}")
@@ -586,7 +588,7 @@ class StrategyNotifier:
             logger.info(f"Notifier: Result is {result}. Skipping review dispatch (only TP_HIT/SL_HIT/NEITHER allowed).")
             return False
             
-        subject = f"🔍 Audit | {symbol} | {result}"
+        subject = f"📋 Audit | {symbol} | {result}"
         
         logger.info(f"Notifier: Dispatching forensic report: {subject}")
         return self.dispatcher.dispatch(subject, html_body, attachments)
