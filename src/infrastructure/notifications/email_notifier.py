@@ -125,10 +125,16 @@ class StrategyEmailTemplate:
                 <!-- Adversarial Risk Audit -->
                 {f'''
                 <div style="background-color: #fff7ed; padding: 25px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
-                    <h3 style="margin: 0 0 10px 0; color: #9a3412; font-size: 16px; display: flex; align-items: center; justify-content: space-between;">
-                        <span>⚖️ Adversarial Risk Audit</span>
-                        <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Audit Severity: {fmt((critique or {}).get('skepticism_score'))}%</span>
-                    </h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 10px 0;">
+                        <tr>
+                            <td align="left" style="color: #9a3412; font-size: 16px; font-weight: bold;">
+                                <span>⚖️ Adversarial Risk Audit</span>
+                            </td>
+                            <td align="right" style="vertical-align: middle;">
+                                <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #9a3412; font-weight: bold;">Audit Severity: {fmt((critique or {}).get('skepticism_score'))}%</span>
+                            </td>
+                        </tr>
+                    </table>
                     <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt((critique or {}).get('hidden_risk'))}</p>
                 </div>
                 ''' if critique else ""}
