@@ -77,7 +77,7 @@ class BaseEmailTemplate:
         return f"""
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
                     <details>
-                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Full Forensic Dataset</summary>
+                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Raw Data</summary>
                         <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(full_json, indent=2, ensure_ascii=False)}</code></pre>
                     </details>
                     <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
@@ -134,22 +134,22 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
                         {theme_icon} {opinion}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Topography</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Blueprint</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
                 </div>
 
-                <!-- Adversarial Risk Audit -->
+                <!-- Risk Assessment -->
                 {f'''
                 <div style="background-color: #fff7ed; padding: 25px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 10px 0;">
                         <tr>
                             <td align="left" style="color: #9a3412; font-size: 16px; font-weight: bold;">
-                                <span>⚖️ Adversarial Risk Audit</span>
+                                <span>⚖️ Risk Assessment</span>
                             </td>
                             <td align="right" style="vertical-align: middle;">
-                                <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #9a3412; font-weight: bold;">Audit Severity: {fmt((critique or {}).get('skepticism_score'))}%</span>
+                                <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #9a3412; font-weight: bold;">Risk Level: {fmt((critique or {}).get('skepticism_score'))}%</span>
                             </td>
                         </tr>
                     </table>
@@ -157,17 +157,17 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                 </div>
                 ''' if critique else ""}
 
-                <!-- Audit Response -->
+                <!-- Critic's Verdict -->
                 {f'''
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Audit Response</h3>
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Critic's Verdict</h3>
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('critic_impact'))}</p>
                 </div>
                 ''' if decision.get('critic_impact') else ""}
 
-                <!-- Strategic Synthesis -->
+                <!-- Reasoning -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🧩 Strategic Synthesis</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🧩 Reasoning</h3>
                     <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
                     
                     {f'''
@@ -196,7 +196,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
                 <!-- Intelligence Briefing -->
                 <div style="margin-bottom: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🗺️ Market Topography Forensic</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🗺️ Forensic Breakdown</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
                         <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
                             <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography</span>
@@ -314,15 +314,15 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {res_color}15; color: {res_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {res_color}30;">
                         🔍 {res_label}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Auditor Post-Mortem</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Performance</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Original Signal: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
                     </p>
                 </div>
 
-                <!-- Market Outcome Dashboard -->
+                <!-- Outcome Summary -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">📊 Market Outcome</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">📊 Outcome Summary</h3>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 10px 0;">
                         <tr>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
@@ -374,21 +374,21 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     </table>
                     
                     <div style="margin-bottom: 20px;">
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Adversarial Autopsy</span>
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Critical Audit</span>
                         <div style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0; background: #ffffff66; padding: 12px; border-radius: 6px;">
                             {shadow_html}
                         </div>
                     </div>
 
                     <div>
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Post-Mortem Analysis</span>
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Execution Analysis</span>
                         <p style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0;">{fmt(audit.get('post_mortem'))}</p>
                     </div>
                 </div>
 
                 <!-- Original Strategy Summary (Context) -->
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Original Synthesis Review</h3>
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Context</h3>
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('reasoning'))}</p>
                 </div>
 
