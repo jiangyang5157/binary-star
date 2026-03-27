@@ -78,7 +78,7 @@ class BinanceFuturesClient:
             MAX_CHUNK = 1000
             
             if limit <= MAX_CHUNK:
-                logger.info(f"Fetching {limit} klines for {symbol} ({interval})")
+                logger.debug(f"Fetching klines for {symbol} ({interval}) with limit {limit} and kwargs {kwargs}")
                 return self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
             
             # Pagination Logic for large limits
@@ -86,29 +86,36 @@ class BinanceFuturesClient:
             remaining = limit
             current_kwargs = kwargs.copy()
             
-            # Map interval to milliseconds for temporal shifting
-            interval_ms = self.INTERVAL_SECONDS.get(interval, 60) * 1000
+            # Directional Detection: If startTime is present, fetch forward.
+            # Otherwise, use standard backward-to-forward pagination.
+            is_forward = 'startTime' in current_kwargs
             
-            # Backward-to-Forward Fetching (Standard Binance Protocol for endTime)
             while remaining > 0:
                 fetch_count = min(remaining, MAX_CHUNK)
-                logger.debug(f"Paginating klines for {symbol}: Fetching chunk of {fetch_count} (Remaining: {remaining})")
+                logger.debug(f"Paginating klines ({'FORWARD' if is_forward else 'BACKWARD'}) for {symbol}: Fetching chunk of {fetch_count} (Remaining: {remaining})")
                 
                 chunk = self.client.klines(symbol=symbol, interval=interval, limit=fetch_count, **current_kwargs)
                 if not chunk:
                     break
                     
-                # Prepend chunk to maintain chronological order [Earliest -> Latest]
-                all_klines = chunk + all_klines
+                if is_forward:
+                    # Append chunk to maintain chronological order [Earliest -> Latest]
+                    all_klines.extend(chunk)
+                    latest_open = int(chunk[-1][0])
+                    current_kwargs['startTime'] = latest_open + 1
+                    
+                    # Stop if we've bypassed the endTime limit
+                    if 'endTime' in current_kwargs and current_kwargs['startTime'] > current_kwargs['endTime']:
+                        break
+                else:
+                    # Prepend chunk to maintain chronological order [Earliest -> Latest]
+                    all_klines = chunk + all_klines
+                    earliest_open = int(chunk[0][0])
+                    current_kwargs['endTime'] = earliest_open - 1
+                
                 remaining -= len(chunk)
-                
-                # Shift timeframe backwards based on the earliest kline in the current chunk
-                # Subtract 1ms from OpenTime to fetch the previous set
-                earliest_open = int(chunk[0][0])
-                current_kwargs['endTime'] = earliest_open - 1
-                
                 if len(chunk) < fetch_count:
-                    # No more historical data available
+                    # No more data in this range
                     break
             
             # Final deduplication and sorting by OpenTime (index 0)
