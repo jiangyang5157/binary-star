@@ -55,7 +55,7 @@ class StrategistAgent:
         """
         Phase Draft: Generates an initial strategic draft based on market topography.
         """
-        prompt = self._build_prompt(observation, filter_logic="DRAFTING")
+        prompt = self._build_prompt(observation)
         logger.info("Strategist: Drafting initial strategic plan...")
         return self._execute_ai_cycle(prompt, temperature=self.config.temperature_draft)
 
@@ -65,22 +65,20 @@ class StrategistAgent:
         """
         prompt = self._build_prompt(
             observation, 
-            filter_logic="SYNTHESIS", 
             draft_plan=draft_plan, 
             critic_feedback=critique
         )
         logger.info("Strategist: Synthesizing final strategy...")
         return self._execute_ai_cycle(prompt, temperature=self.config.temperature_synthesis)
 
-    def _build_prompt(self, observation: Dict[str, Any], filter_logic: str, **extra_context) -> str:
-        """Helper to load and format the prompt template with logic filters."""
+    def _build_prompt(self, observation: Dict[str, Any], **extra_context) -> str:
+        """Helper to load and format the prompt template."""
         template = read_prompt_template(self.config.role_prompt_path)
-        prompt_with_logic = apply_prompt_logic_filters(template, [filter_logic])
         
         # Extract dynamic parameters from configuration
         velocity_floor = self.config.min_temporal_efficiency
 
-        # Prepare context
+        # Prepare context (explicitly handle None for Phase 1 signaling)
         context = {
             "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(extra_context.get("draft_plan"), indent=2, ensure_ascii=False),
@@ -89,10 +87,10 @@ class StrategistAgent:
         }
         
         try:
-            return safe_format(prompt_with_logic, **context)
+            return safe_format(template, **context)
         except KeyError as e:
-            logger.warning(f"Strategist: Missing prompt placeholder during {filter_logic}: {e}")
-            return prompt_with_logic # Fallback if formatting fails due to missing keys (e.g. in draft phase)
+            logger.warning(f"Strategist: Missing prompt placeholder: {e}")
+            return template 
 
     def _execute_ai_cycle(self, prompt: str, temperature: float) -> Dict[str, Any]:
         """Core AI execution logic for both drafting and synthesis."""
