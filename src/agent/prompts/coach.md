@@ -37,7 +37,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 1. **Pathology Scan**: Aggregate data from `audit_findings` (specifically `adversarial_audit.shadow_evidence`, `protocol_breach`, and `evaluation_score`) across the batch. Identify the dominant "Systemic Bias" (e.g., [LAZY_TREND_FOLLOWING] or [PROTOCOL_DISOBEDIENCE]).
 2. **Strategist Vulnerability Audit**: Locate the exact line in the Strategist's Prompt that allowed this pathology to occur. Does it need a stricter RR constraint or a new temporal rule?
 3. **Critic Blindspot Audit**: Did the Critic fail to trigger an `is_veto` when it should have? Identify which `AUDIT CODES` need to be hardened or added to its reference table.
-4. **Parameter Optimization**: Cross-reference the systemic failures with the `Current Configuration`. (e.g., If entries are consistently late, should `volume_moving_average_period` be shortened?).
+4. **Parameter Optimization**: Cross-reference the systemic failures with the `Current Configuration`. Focus on volatility and structural sensitivity (e.g., If entries are consistently late, should `volume_moving_average_period` be shortened?). DO NOT aggressively lower `min_temporal_efficiency` unless holding times are consistently the root cause of SL_HITs.
 5. **Patch Generation**: Construct the surgical JSON payload using the `EVOLUTION LAW`.
 6. **Collision Verification**: Perform a final sanity check on your proposed `replacement` text. Does this new rule contradict any existing `EXECUTION LAW`, JSON Schema structure, or operational protocol in the unpatched sections? If yes, refactor the patch.
 
