@@ -58,6 +58,11 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
         agent_cfg = load_config()
         velocity_floor = float(agent_cfg['strategist']['min_temporal_efficiency'])
         
+        # [Unit Fragility Fix] Determine hours per macro candle
+        from src.utils.datetime_utils import get_interval_seconds
+        macro_interval = agent_cfg['observer']['macro_analysis_context']['time_interval']
+        macro_hours = get_interval_seconds(macro_interval) / 3600
+        
         effective_velocity = atr * max(trend_intensity, velocity_floor)
         
         # Extract Topology for SL buffer verification
@@ -67,9 +72,13 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
         val = topography.get('val')
 
         def dist_to_atr(anchor):
+            """Calculates a signed vector from Anchor to SL in ATR units."""
             try:
                 if anchor is not None and atr > 0:
-                    return round(abs(sl - float(anchor)) / atr, 2)
+                    # (Price_SL - Price_Anchor) / ATR
+                    # BULLISH: SL < Anchor -> Negative
+                    # BEARISH: SL > Anchor -> Positive
+                    return round((sl - float(anchor)) / atr, 2)
             except (ValueError, TypeError):
                 pass
             return None
@@ -81,7 +90,7 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
             "sl_to_poc_atr": dist_to_atr(poc),
             "sl_to_vah_atr": dist_to_atr(vah),
             "sl_to_val_atr": dist_to_atr(val),
-            "projected_holding_hours": round(tp_dist / effective_velocity, 2) if effective_velocity > 0 else 0
+            "projected_holding_hours": round((tp_dist / effective_velocity) * macro_hours, 2) if effective_velocity > 0 else 0
         }
     except (ValueError, TypeError, KeyError) as e:
         logger.warning(f"Math Fact Check calculation failed: {e}")
