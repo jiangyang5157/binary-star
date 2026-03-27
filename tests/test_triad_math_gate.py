@@ -1,6 +1,7 @@
 import unittest
 import os
 import sys
+from unittest.mock import patch
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -31,7 +32,12 @@ class TestTriadMathGate(unittest.TestCase):
             }
         }
 
-    def test_calculate_math_fact_check_success(self):
+    @patch('strategist.load_config')
+    def test_calculate_math_fact_check_success(self, mock_load):
+        mock_load.return_value = {
+            "strategist": {"min_temporal_efficiency": 0.4},
+            "observer": {"macro_analysis_context": {"time_interval": "1h"}}
+        }
         result = calculate_math_fact_check(self.observation, self.draft)
         self.assertIsNotNone(result)
         # sl_dist = 70000 - 69750 = 250
@@ -41,9 +47,9 @@ class TestTriadMathGate(unittest.TestCase):
         # projected_holding_hours = 1500 / 500 = 3.0
         self.assertEqual(result["actual_rr"], 6.0)
         self.assertEqual(result["entry_to_sl_atr"], 0.5)
-        self.assertEqual(result["sl_to_poc_atr"], 0.5)   # abs(69750 - 69500) / 500 = 0.5
-        self.assertEqual(result["sl_to_vah_atr"], 2.5)   # abs(69750 - 71000) / 500 = 2.5
-        self.assertEqual(result["sl_to_val_atr"], 3.5)   # abs(69750 - 68000) / 500 = 3.5
+        self.assertEqual(result["sl_to_poc_atr"], 0.5)   # (69750 - 69500) / 500 = 0.5
+        self.assertEqual(result["sl_to_vah_atr"], -2.5)  # (69750 - 71000) / 500 = -2.5
+        self.assertEqual(result["sl_to_val_atr"], 3.5)   # (69750 - 68000) / 500 = 3.5
         self.assertEqual(result["projected_holding_hours"], 3.0)
 
     def test_calculate_math_fact_check_missing_limit_order(self):

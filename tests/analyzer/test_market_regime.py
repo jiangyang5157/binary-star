@@ -11,9 +11,9 @@ def regime_config():
         keltner_window=20,
         keltner_multiplier=1.5,
         volume_ma_window=20,
-        trend_threshold=0.6,
-        trend_intensity_lookback=14,
-        wick_skewness_lookback=24
+        trend_intensity_threshold=0.6,
+        trend_lookback=14,
+        wick_skewness_period=24
     )
 
 @pytest.fixture
@@ -61,7 +61,7 @@ def test_wick_skewness(analyzer):
     df = pd.DataFrame(klines)
     result = analyzer.analyze(df)
     # upper_wicks = 1, lower_wicks = 5. skew = (1-5)/(1+5) = -4/6
-    assert result["skewness"] < 0
+    assert result["wick_skewness_lookback"] < 0
 
 def test_insufficient_data(analyzer):
     df = generate_trending_df(5, trend=0)

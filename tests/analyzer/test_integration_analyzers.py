@@ -48,9 +48,9 @@ def test_real_data_analysis(binance_client):
         keltner_window=20,
         keltner_multiplier=1.5,
         volume_ma_window=20,
-        trend_threshold=0.6,
-        trend_intensity_lookback=14,
-        wick_skewness_lookback=24
+        trend_intensity_threshold=0.6,
+        trend_lookback=14,
+        wick_skewness_period=24
     )
     mr_analyzer = MarketRegimeAnalyzer(config=mr_cfg)
     
