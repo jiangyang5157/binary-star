@@ -56,5 +56,5 @@ Output RAW JSON only. The first character of your response MUST be `{` and the l
     "skepticism_score": 0-100,
     "adversarial_tone": "If passing, state 'Structural logic verified.' If vetoing, give a harsh forensic summary.",
     "hidden_risk": "MUST begin with ONE exact tag (e.g., [CLEAR], [LIQUIDITY_VOID]). Follow with 1-2 sentences of data-driven reasoning.",
-    "math_check": "Explicit validation of the Strategist's RR and Stop Loss placement against the math_fact_check (specifically comparing entry_to_sl_atr and the claimed Anchor-to-SL distance). (If opinion is NEUTRAL, output 'N/A - Neutral Stance')."
+    "math_check": "Explicit validation of the Strategist's RR and Stop Loss placement using [MATH FACT CHECK] metrics: actual_rr, entry_to_sl_atr, and structural buffers (sl_to_poc_atr, sl_to_vah_atr, sl_to_val_atr). (If opinion is NEUTRAL, output 'N/A - Neutral Stance')."
 }}
