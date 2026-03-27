@@ -1,10 +1,11 @@
-from dataclasses import dataclass
 import os
-import logging
 import json
+from dataclasses import dataclass
 from typing import Dict, Any, Optional
 from google import genai
 from google.genai import types
+
+from src.agent.base_agent import BaseAgent
 from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import extract_json_from_text
@@ -29,63 +30,46 @@ class CriticConfig:
             temperature=float(critic['temperature'])
         )
 
-class CriticAgent:
+class CriticAgent(BaseAgent):
     """
-    Agent C: The Critic (Adversarial Auditor).
-    Responsible for performing adversarial audits on strategic drafts, identifying 
-    psychological biases, logical gaps, and hidden structural risks.
+    The Skeptical Risk Auditor (Adversarial Agent).
+    
+    This agent performs a high-fidelity stress test on the Strategist's draft.
+    It identifies hidden flaws, structural traps, and math violations by 
+    contrasting the draft against 'Math Fact Check' telemetry and volume topography.
     """
     def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
         """
-        Initializes the Critic with a configuration and optional AI client injection.
-        
-        Args:
-            config_dict: The full application configuration dictionary.
-            api_key: Gemini API key for fallback client initialization.
-            ai_client: Optional pre-configured Gemini client for DI.
+        Initializes the Critic with configuration.
         """
         self.config = CriticConfig.from_dict(config_dict)
-        self.client = ai_client or genai.Client(api_key=api_key)
+        super().__init__(
+            model=self.config.model,
+            temperature=self.config.temperature,
+            api_key=api_key,
+            ai_client=ai_client
+        )
 
     def audit(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], math_fact_check: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Performs an adversarial audit on a draft trading plan.
+        Performs an adversarial audit of a proposed trading draft.
         
         Args:
-            observation: The market observation context (topography).
-            draft_plan: The initial strategic draft from the Strategist.
+            observation: The forensic market map (Observer output).
+            draft_plan: The proposed strategy from Strategist (Phase A).
+            math_fact_check: Deterministic math facts (RR, ATR distances) to prevent LLM hallucination.
             
         Returns:
-            Dict: The audit findings (skepticism_score, veto_status, etc.).
+            A critique dictionary containing 'is_veto' status and risk tags (e.g., [CLEAR], [LIQUIDITY_VOID]).
         """
-        template = read_prompt_template(self.config.role_prompt_path)
+        # Prepare semantic context for the audit session
+        context = {
+            "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
+            "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
+            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system."
+        }
         
-        prompt = safe_format(
-            template,
-            observation_json=json.dumps(observation, indent=2, ensure_ascii=False),
-            draft_plan=json.dumps(draft_plan, indent=2, ensure_ascii=False),
-            math_fact_check=json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system."
-        )
+        prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
         
         logger.info("Critic: Performing adversarial audit...")
-        return self._execute_ai_cycle(prompt)
-
-    def _execute_ai_cycle(self, prompt: str) -> Dict[str, Any]:
-        """Core AI execution logic for the audit phase."""
-        try:
-            response = self.client.models.generate_content(
-                model=self.config.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=self.config.temperature,
-                    response_mime_type="application/json"
-                )
-            )
-            parsed = extract_json_from_text(response.text)
-            if parsed is None:
-                logger.error(f"Critic: Failed to parse JSON from response: {response.text}")
-                return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}
-            return parsed
-        except Exception as e:
-            logger.error(f"Critic AI execution failed: {e}", exc_info=True)
-            return {"error": "CRITIC_EXECUTION_FAILURE", "details": str(e)}
+        return self._execute_ai_cycle(prompt, agent_name="Critic")

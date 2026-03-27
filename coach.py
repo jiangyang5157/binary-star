@@ -24,11 +24,19 @@ load_dotenv()
 
 class CoachOrchestrator:
     """
-    Orchestrates the strategic coaching session with physical archival.
-    Fetches fresh forensic audits, invokes the Coach Agent, 
-    archives patches, and moves processed sources to history.
+    The Meta-Learning Orchestrator.
+    
+    This orchestrator manages the high-fidelity coaching lifecycle:
+    1. Fetch: Scans the /reviewers/ root for fresh forensic audits (post-outcome).
+    2. Filter: Discards premature stub reports to ensure 'Clean Training Data'.
+    3. Analyze: Invokes the Coach Agent to identify systemic alpha-leakage.
+    4. Patch: Archives the proposed 'Strategic Patch' for human/system review.
+    5. Cleanup: Physically moves processed reports to /archived/ for deduplication.
     """
     def __init__(self, data_root: str):
+        """
+        Initializes the orchestrator with data-driven dependencies.
+        """
         self.config = load_config()
         self.data_root = os.path.join(resolve_project_root(), data_root)
         self.api_key = os.environ.get("GEMINI_API_KEY")
@@ -110,15 +118,18 @@ class CoachOrchestrator:
         
         return history, valid_source_paths
 
-    def _archive_patch(self, symbol: str, raw_analysis: str, output_dir: str) -> Optional[str]:
+    def _archive_patch(self, symbol: str, analysis_data: Dict[str, Any], output_dir: str) -> Optional[str]:
         """Standardizes and saves the systemic coaching patch."""
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
         filename = f"{symbol}_patches_{ts}.json"
         patch_path = os.path.join(output_dir, filename)
 
         try:
-            analysis_data = json.loads(raw_analysis)
-            
+            # Handle potential error in analysis_data
+            if "error" in analysis_data:
+                self.logger.error(f"Coach Agent returned an error: {analysis_data['error']}")
+                return None
+
             # Handle potential nested analysis object from AI
             if "analysis" in analysis_data and len(analysis_data) == 1:
                 analysis_data = analysis_data["analysis"]
@@ -132,13 +143,9 @@ class CoachOrchestrator:
             self.logger.info(f"Coach Patch Proposal archived: {patch_path}")
             return patch_path
             
-        except json.JSONDecodeError:
-            self.logger.error("Coach Agent returned invalid JSON. Archiving raw text as fallback.")
-            txt_path = patch_path.replace(".json", ".txt")
-            with open(txt_path, "w", encoding="utf-8") as f:
-                f.write(raw_analysis)
-            self.logger.info(f"Raw analysis saved to {txt_path}")
-            return txt_path
+        except Exception as e:
+            self.logger.error(f"Failed to archive patch: {e}")
+            return None
 
     def _archive_sources(self, source_paths: List[str], archive_dir: str):
         """Moves processed source files to the archived folder."""

@@ -1,10 +1,11 @@
 import os
 import json
-import logging
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
+
+from src.agent.base_agent import BaseAgent
 from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import extract_json_from_text
@@ -45,24 +46,26 @@ class ReviewerConfig:
             execution_timeframe_interval=str(rev['execution_timeframe_interval'])
         )
 
-class ReviewerAgent:
+class ReviewerAgent(BaseAgent):
     """
-    Handles post-mortem auditing of trading strategy executions.
-    Evaluates the reasoning triad (Draft -> Audit -> Synthesis) against 
-    actual market outcomes to provide feedback for continuous improvement.
+    The High-Fidelity Forensic Auditor (The Reviewer).
+    
+    This agent performs post-mortem audits of historical trading sessions. 
+    It evaluates the 'Reasoning Triad' (Draft -> Audit -> Synthesis) against 
+    the actual market outcome to identify 'Delta Failures' and logic gaps.
     """
     def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
         """
-        Initializes the Reviewer with configuration and injected dependencies.
-        
-        Args:
-            config_dict: Full application configuration dictionary.
-            api_key: Gemini API key for fallback client initialization.
-            ai_client: Optional pre-configured Gemini client for DI.
+        Initializes the Reviewer with multimodal configuration and dependencies.
         """
         self.config = ReviewerConfig.from_dict(config_dict)
-        self.raw_config = config_dict # Kept for prompt context if needed
-        self.client = ai_client or genai.Client(api_key=api_key)
+        self.raw_config = config_dict
+        super().__init__(
+            model=self.config.model,
+            temperature=self.config.temperature,
+            api_key=api_key,
+            ai_client=ai_client
+        )
 
     def review(self, historical_strategy: Dict[str, Any], 
                actual_outcome: Dict[str, Any],
@@ -72,31 +75,52 @@ class ReviewerAgent:
         Executes a multimodal post-mortem audit of a historical trading session.
         
         Args:
-            historical_strategy: The full results from a previous triad run.
-            actual_outcome: Data describing what actually happened in the market.
-            current_observation: Latest market state for context.
-            visual_context: Structured dict containing paths to:
-                - t0_macro, t0_micro
-                - t1_macro, t1_micro
+            historical_strategy: The full triad session (Draft, Critique, Final).
+            actual_outcome: The PnL, TP/SL status, and execution metrics.
+            current_observation: The market data at the time of review.
+            visual_context: Dictionary of historical/current chart snapshots.
             
         Returns:
-            A structured JSON-like dictionary containing the audit findings.
+            A structured dictionary containing the forensic audit results.
         """
         logger.info(f"Reviewer: Auditing historical strategy session...")
-        prompt = self._build_prompt(historical_strategy, actual_outcome, current_observation)
-        return self._execute_ai_cycle(prompt, visual_context)
+        prompt_text = self._build_prompt(historical_strategy, actual_outcome, current_observation)
+        
+        # Build multimodal payload with forensic visual evidence
+        contents = [prompt_text]
+        if visual_context:
+            labels = {
+                "t0_macro": "T0 Historical Macro Snapshot",
+                "t0_micro": "T0 Historical Micro Snapshot",
+                "t1_macro": "T1 Current Macro Snapshot",
+                "t1_micro": "T1 Current Micro Snapshot"
+            }
+            
+            for key, path in visual_context.items():
+                label = labels.get(key, f"Visual Supplement: {key}")
+                if path and os.path.exists(path):
+                    logger.info(f"Reviewer: Attaching forensic evidence: {label} ({path})")
+                    with open(path, "rb") as f:
+                        image_bytes = f.read()
+                        contents.append(f"\n[FORENSIC ASSET: {label}]")
+                        contents.append(types.Part.from_bytes(data=image_bytes, mime_type="image/png"))
+                else:
+                    contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
+
+        # Execute high-fidelity review cycle via BaseAgent
+        return self._execute_ai_cycle(contents, agent_name="Reviewer")
 
     def _build_prompt(self, strategy: Dict[str, Any], 
                       outcome: Dict[str, Any], 
                       observation: Optional[Dict[str, Any]]) -> str:
-        """Helper to construct and format the audit prompt."""
-        template = read_prompt_template(self.config.role_prompt_path)
-        
-        # Load linked agent prompts for semantic context
+        """
+        Constructs the high-context review prompt by injecting the full triad history.
+        """
+        # Load linked agent prompts for semantic ground-truth context
         strategist_prompt = read_prompt_template(self.config.strategist_prompt_path)
         critic_prompt = read_prompt_template(self.config.critic_prompt_path)
         
-        # Prepare context data (Aligned with forensic schema)
+        # Prepare context data
         context = {
             "historical_observation": json.dumps(strategy.get("observation"), indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(strategy.get("draft"), indent=2, ensure_ascii=False),
@@ -108,54 +132,4 @@ class ReviewerAgent:
             "critic_prompt": critic_prompt,
         }
         
-        try:
-            return safe_format(template, **context)
-        except KeyError as e:
-            logger.warning(f"Reviewer: Missing prompt placeholder in template: {e}")
-            return template
-
-    def _execute_ai_cycle(self, prompt: str, visual_context: Optional[Dict[str, str]]) -> Dict[str, Any]:
-        """Core AI execution logic for the multimodal audit session."""
-        try:
-            logger.info(f"Invoking Reviewer Agent ({self.config.model})...")
-            
-            # 1. Coordinate File Uploads for Visual Forensic
-            contents = [prompt]
-            if visual_context:
-                labels = {
-                    "t0_macro": "T0 Historical Macro Snapshot",
-                    "t0_micro": "T0 Historical Micro Snapshot",
-                    "t1_macro": "T1 Current Macro Snapshot",
-                    "t1_micro": "T1 Current Micro Snapshot"
-                }
-                
-                for key, path in visual_context.items():
-                    label = labels.get(key, f"Visual Supplement: {key}")
-                    if path and os.path.exists(path):
-                        logger.info(f"Reviewer: Uploading forensic asset: {label} ({path})")
-                        
-                        # Upload to Gemini File API
-                        file_obj = self.client.files.upload(file=path)
-                        contents.append(f"\n{label}")
-                        contents.append(file_obj)
-                    else:
-                        # Explicitly notify the AI that the asset is missing to prevent hallucination
-                        contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' is missing or deleted from storage. Reasoning must rely on quantitative metrics for this dimension.]")
-            
-            # 2. Execution
-            response = self.client.models.generate_content(
-                model=self.config.model,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    temperature=self.config.temperature,
-                    response_mime_type="application/json"
-                )
-            )
-            parsed = extract_json_from_text(response.text)
-            if parsed is None:
-                logger.error(f"Reviewer: Failed to parse JSON from response: {response.text}")
-                return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text}
-            return parsed
-        except Exception as e:
-            logger.error(f"Reviewer AI execution failed: {e}", exc_info=True)
-            return {"error": "REVIEWER_EXECUTION_FAILURE", "details": str(e)}
+        return self._prepare_prompt(self.config.role_prompt_path, **context)

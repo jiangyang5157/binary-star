@@ -9,6 +9,7 @@ import pandas as pd
 from google import genai
 from google.genai import types
 
+from src.agent.base_agent import BaseAgent
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
@@ -331,61 +332,81 @@ class MarketMetricsRefiner:
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
         return {k: v for k, v in sorted_clusters[:3]}
 
-class SemanticSynthesizer:
-    """Orchestrates AI multi-modal synthesis to generate qualitative insights."""
+class SemanticSynthesizer(BaseAgent):
+    """
+    The Multimodal Forensic Observer.
+    
+    This agent synthesizes quantitative telemetry and qualitative visual assets 
+    (macro/micro snapshots) into a thematic topographical report. It generates 
+     the 'Single Source of Truth' used by the reasoning triad.
+    """
     def __init__(self, config: ObserverConfig, ai_client: genai.Client):
+        """
+        Initializes the synthesizer with multimodal AI configuration.
+        """
         self.config = config
-        self.client = ai_client
         self.prompt_path = os.path.join(resolve_project_root(), config.role_definition_prompt)
+        super().__init__(
+            model=config.model,
+            temperature=config.temperature,
+            api_key="", # Client already provided via Dependency Injection
+            ai_client=ai_client
+        )
 
     def synthesize(self, metrics: ProcessedMarketMetrics, snapshots: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
-        """Translates metrics and visuals into a thematic topographical report."""
-        try:
-            prompt_tpl = read_prompt_template(self.prompt_path)
+        """
+        Translates raw metrics and visuals into a semantic market map.
+        
+        Args:
+            metrics: Processed quantitative telemetry (price dynamics, volume profile, etc).
+            snapshots: Dictionary mapping 'macro_snapshot' and 'micro_snapshot' to file paths.
+            at_time: The timestamp of the observation.
             
-            # Enrich specs for both report and semantic analysis
+        Returns:
+            A structured JSON-like dictionary containing the qualitative analysis.
+        """
+        try:
+            # Prepare metadata for prompt context
             specs = {
                 "macro": {"interval": self.config.macro_context.time_interval, "limit": self.config.macro_context.historical_lookback_candles},
                 "micro": {"interval": self.config.micro_context.time_interval, "limit": self.config.micro_context.historical_lookback_candles}
             }
             
-            input_text = safe_format(
-                prompt_tpl,
-                timestamp=to_iso_zulu(at_time), # Changed from format_datetime to to_iso_zulu
-                macro_timeframe=convert_to_json_string(specs["macro"]),
-                micro_timeframe=convert_to_json_string(specs["micro"]),
-                metrics=convert_to_json_string(metrics.__dict__)
-            )
+            context = {
+                "timestamp": to_iso_zulu(at_time),
+                "macro_timeframe": json.dumps(specs["macro"]),
+                "micro_timeframe": json.dumps(specs["micro"]),
+                "metrics": json.dumps(metrics.__dict__)
+            }
             
-            payload = self._build_payload(snapshots, input_text)
-            resp = self.client.models.generate_content(
-                model=self.config.model,
-                contents=payload,
-                config=types.GenerateContentConfig(temperature=self.config.temperature, response_mime_type="application/json")
-            )
-
-            report = extract_json_from_text(resp.text)
-            if report is None:
-                logger.error(f"Observer Synthesis: Failed to parse JSON from response: {resp.text}")
-                return {"error": "JSON_PARSE_FAILURE", "raw_response": resp.text}
-            return self._apply_schema_defaults(report)
+            prompt_text = self._prepare_prompt(self.prompt_path, **context)
+            payload = self._build_payload(snapshots, prompt_text)
+            
+            logger.info("Observer: Synthesizing qualitative market report...")
+            # Execute multimodal AI cycle via BaseAgent
+            return self._execute_ai_cycle(payload, agent_name="Observer Synthesis")
+            
         except Exception as e:
             logger.error(f"Synthesis failed: {e}", exc_info=True)
-            return {"error": "Semantic mapping failed."}
+            return {"error": "Semantic mapping failed.", "details": str(e)}
 
     def _build_payload(self, snapshots: Dict[str, str], text: str) -> List[Any]:
+        """
+        Constructs a multimodal payload for the Gemini model.
+        
+        Pairs visual proofs (as Part bytes) with the primary analysis instructions.
+        """
         payload = []
         for label, path in [("MACRO", snapshots.get('macro_snapshot')), ("MICRO", snapshots.get('micro_snapshot'))]:
             if path and os.path.exists(path):
                 payload.append(f"[VISUAL PROOF: {label}]")
                 with open(path, 'rb') as f:
                     payload.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
+            else:
+                payload.append(f"\n[SYSTEM NOTICE: Visual asset '{label}' is missing from storage. Relying on quantitative telemetry.]")
+        
         payload.append(text)
         return payload
-
-    def _apply_schema_defaults(self, report: Dict[str, Any]) -> Dict[str, Any]:
-        """Passes through the report as-is, ensuring no hardcoded constraint on keys."""
-        return report
 
 class ObserverAgent:
     """

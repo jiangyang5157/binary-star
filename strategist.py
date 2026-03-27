@@ -142,10 +142,20 @@ def archive_strategy_result(symbol: str, timestamp: datetime, result: Any, data_
 
 class StrategistOrchestrator:
     """
-    Orchestrates the end-to-end trading intelligence pipeline:
-    Observation -> Drafting -> Auditing -> Synthesis -> Notification -> Archival.
+    The Master Trading Orchestrator.
+    
+    This class manages the high-fidelity 'Reasoning Triad' lifecycle:
+    1. Observe: Invokes the ObserverAgent for multimodal topographical mapping.
+    2. Draft: Phase A of the StrategistAgent (Initial strategic plan).
+    3. Audit: Invokes the CriticAgent with 'Math Fact Check' telemetry injection.
+    4. Synthesis: Phase B of the StrategistAgent (Risk-hardened final decision).
+    5. Notify: Dispatches smart alerts via StrategyNotifier.
+    6. Archive: Stores the full forensic session for later post-mortem review.
     """
     def __init__(self, symbol: str, data_root: str):
+        """
+        Initializes the orchestrator with the full agent triad.
+        """
         self.symbol = symbol
         self.data_root = data_root
         self.config = load_config()
@@ -155,7 +165,7 @@ class StrategistOrchestrator:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not found in environment")
             
-        # Initialize specialized agents
+        # Initialize the Specialized Forensic Trio
         self.observer = ObserverAgent(self.config, symbol, api_key=self.api_key, data_root=data_root)
         self.strategist = StrategistAgent(self.config, api_key=self.api_key)
         self.critic = CriticAgent(self.config, api_key=self.api_key)

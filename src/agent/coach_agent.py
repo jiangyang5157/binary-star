@@ -1,13 +1,13 @@
 import os
 import json
-import logging
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
+
+from src.agent.base_agent import BaseAgent
 from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
-from src.utils.json_utils import extract_json_from_text
 
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
@@ -38,11 +38,14 @@ class CoachConfig:
             critic_prompt_path=os.path.join(project_root, crit_cfg['role_definition_prompt'])
         )
 
-class CoachAgent:
+class CoachAgent(BaseAgent):
     """
-    Agent C: The Strategic Coach.
-    Analyzes batches of historical forensic audits to identify systemic patterns.
-    Suggests high-level architectural and logic refinements.
+    The Systemic Meta-Analyst (The Coach).
+    
+    This agent analyzes high-fidelity batches of historical forensic reviews to 
+    identify recursive failures, logic gaps, and architectural weaknesses. 
+    It suggests 'Forensic Patches'—optimized prompts or config changes—to 
+    improve the overall intelligence of the trading triad.
     """
     def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
         """
@@ -50,21 +53,37 @@ class CoachAgent:
         """
         self.config = CoachConfig.from_dict(config_dict)
         self.raw_config = config_dict
-        self.client = ai_client or genai.Client(api_key=api_key)
+        super().__init__(
+            model=self.config.model,
+            temperature=self.config.temperature,
+            api_key=api_key,
+            ai_client=ai_client
+        )
 
-    def analyze(self, review_history: List[Dict[str, Any]]) -> str:
+    def analyze(self, review_history: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Executes a coaching session by analyzing a batch of historical reviews.
+        
+        Args:
+            review_history: A list of consolidated forensic reports (triad + outcome).
+            
+        Returns:
+            A structured dictionary containing systemic findings and suggested patches.
         """
         logger.info(f"Coach: Starting systemic analysis of {len(review_history)} forensic reports...")
         prompt = self._build_prompt(review_history)
-        return self._execute_ai_cycle(prompt)
+        
+        # Execute recursive analysis cycle via BaseAgent
+        return self._execute_ai_cycle(prompt, agent_name="Coach")
 
     def _build_prompt(self, review_history: List[Dict[str, Any]]) -> str:
-        """Constructs the analysis prompt by injecting context and history."""
-        template = read_prompt_template(self.config.role_prompt_path)
+        """
+        Constructs the high-context analysis prompt.
         
-        # Load linked agent prompts for context
+        Injects the full current configuration and individual agent prompts 
+        to ensure the Coach has the 'Semantic Map' required to suggest valid patches.
+        """
+        # Load linked agent prompts for holistic context
         strategist_prompt = read_prompt_template(self.config.strategist_prompt_path)
         critic_prompt = read_prompt_template(self.config.critic_prompt_path)
         
@@ -75,27 +94,4 @@ class CoachAgent:
             "critic_prompt": critic_prompt
         }
         
-        return safe_format(template, **context)
-
-    def _execute_ai_cycle(self, prompt: str) -> str:
-        """Handles the low-level communication with the Gemini API."""
-        try:
-            logger.info(f"Invoking Coach Agent ({self.config.model})...")
-            
-            response = self.client.models.generate_content(
-                model=self.config.model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=self.config.temperature
-                )
-            )
-            parsed = extract_json_from_text(response.text)
-            if parsed is None:
-                logger.error(f"Coach: Failed to parse JSON from response: {response.text}")
-                return json.dumps({"error": "JSON_PARSE_FAILURE", "raw_response": response.text})
-            return response.text # Coach expects raw string for patch processing, but we validate it's JSON first
-            
-        except Exception as e:
-            logger.error(f"Coach AI execution failed: {e}", exc_info=True)
-            return json.dumps({"error": "COACH_EXECUTION_FAILURE", "details": str(e)})
+        return self._prepare_prompt(self.config.role_prompt_path, **context)
