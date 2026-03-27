@@ -132,9 +132,9 @@ class StrategyEmailTemplate(BaseEmailTemplate):
             <div class="container">
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
-                        {theme_icon} MARKET {opinion}
+                        {theme_icon} {opinion}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Topography Audit</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Topography</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
@@ -312,11 +312,11 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                 <!-- Header -->
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {res_color}15; color: {res_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {res_color}30;">
-                        🔍 FORENSIC REVIEW: {res_label}
+                        🔍 {res_label}
                     </div>
                     <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Auditor Post-Mortem</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
-                        Original Strategy: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
+                        Original Signal: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
                     </p>
                 </div>
 
@@ -581,7 +581,11 @@ class StrategyNotifier:
             
         metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
         result = metrics.get("tp_sl_result", "N/A")
-        
+
+        if result not in ["TP_HIT", "SL_HIT", "NEITHER"]:
+            logger.info(f"Notifier: Result is {result}. Skipping review dispatch (only TP_HIT/SL_HIT/NEITHER allowed).")
+            return False
+            
         subject = f"🔍 Audit | {symbol} | {result}"
         
         logger.info(f"Notifier: Dispatching forensic report: {subject}")
