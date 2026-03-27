@@ -119,6 +119,7 @@ class RegimeClassifier:
             squeeze_factor=round(float(squeeze_factor), 4),
             market_regime=market_regime,
             trend_intensity=round(float(latest['trend_intensity']), 4),
+            wick_skewness_lookback=round(float(skewness), 4),
             vol_breakout=round(float(vol_ratio), 2)
         )
 
