@@ -29,8 +29,9 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 | :--- | :--- | :--- |
 | **Safe/Valid**| Logic aligns, math is verified, SL is hidden. | **[CLEAR]** (Pass: Approve trade with `is_veto: false`). |
 | **Macro/Time**| 1h trend heavily contradicts 15m entry direction. | **[MACRO_CONFLICT]** (Fatal: Trend override). |
-| **Regime Velocity**| Mean-reverting to POC in high-velocity TREND (intensity > 0.35, vol_ratio > 2.0). | **[LIQUIDITY_VOID]** (Mitigate: Demand shallow LVN/Edge entry). |
-| **Ranging SL Trap**| SL anchored to POC in RANGING regime with vol_ratio > 1.3. | **[LIQUIDITY_VOID]** (Mitigate: Move SL behind VAH/VAL). |
+| **Regime Velocity**| Mean-reverting to POC in high-velocity TREND (unless poc_dist_atr > 4.0). | **[LIQUIDITY_VOID]** (Mitigate: Demand shallow LVN/Edge entry). |
+| **Regime Transition**| Mean-reverting when squeeze_factor < 1.0 AND vol_ratio > 1.5. | **[VOLATILITY_EXPANSION]** (Fatal: Breakout imminent). |
+| **Anchor SL Trap**| SL anchored to POC in RANGING (vol_ratio > 1.3) OR TRENDING/IMBALANCED regimes. | **[LIQUIDITY_VOID]** (Mitigate: Move SL behind VAH/VAL or distal HVN). |
 | **Volatility**| `squeeze_factor` expands violently against trade. | **[VOLATILITY_EXPANSION]** (Fatal: Momentum override). |
 | **Divergence**| Price making HH while `cvd_trend` is DOWNWARD. | **[ABSORPTION_TRAP]** (Mitigate: Demand deeper entry). |
 | **Weak Breakout**| Price crosses VAH/VAL but `vol_breakout` < 1.2. | **[ABSORPTION_TRAP]** (Mitigate: Wait for liquidity sweep). |
