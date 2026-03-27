@@ -38,20 +38,59 @@ class NotificationConfig:
             enabled=bool(sender and password)
         )
 
-class StrategyEmailTemplate:
+class BaseEmailTemplate:
     """
-    Handles the generation of professional HTML templates for trading strategies.
-    Decouples the UI presentation from the data fetching/sending logic.
+    Base class for email templates, providing shared styles and structural components.
     """
-    
     @staticmethod
-    def _format_duration(hours: float) -> str:
+    def get_styles() -> str:
+        return """
+            <meta charset="utf-8">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155; margin: 0; padding: 20px; background-color: #f8fafc; }
+                .container { max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 40px; border: 1px solid #e2e8f0; }
+                .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+                .panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; }
+                .panel-title { margin: 0 0 10px 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
+                .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 35px; }
+                .metric-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+                .metric-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
+                .metric-value { font-size: 16px; color: #0f172a; font-weight: 800; }
+            </style>
+        """
+
+    @staticmethod
+    def fmt(v: Any) -> str:
+        """Formatting helper to handle None (null) values gracefully in the UI."""
+        return str(v) if v is not None else "N/A"
+
+    @staticmethod
+    def format_duration(hours: float) -> str:
         """Formats hours into a human-readable string (e.g., 18.5h or 2.3d)."""
         if hours < 24:
             return f"{hours:.1f}h"
         days = hours / 24
         return f"{days:.1f}d"
 
+    @staticmethod
+    def render_footer(full_json: Dict[str, Any], trigger_info: str) -> str:
+        return f"""
+                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
+                    <details>
+                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Full Forensic Dataset</summary>
+                        <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(full_json, indent=2, ensure_ascii=False)}</code></pre>
+                    </details>
+                    <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
+                        {trigger_info}
+                    </div>
+                </div>
+        """
+
+class StrategyEmailTemplate(BaseEmailTemplate):
+    """
+    Handles the generation of professional HTML templates for trading strategies.
+    Decouples the UI presentation from the data fetching/sending logic.
+    """
     @staticmethod
     def render(strategy_data: Dict[str, Any]) -> str:
         """
@@ -69,23 +108,14 @@ class StrategyEmailTemplate:
         except Exception:
             display_time = utc_ts
 
-        # 2. Extract Data Suites (Force dictionary types for safety)
-        metrics = obs.get("quantitative_metrics") or {}
-        dynamics = metrics.get("price_dynamics") or {}
-        regime = metrics.get("market_regime") or {}
-        sentiment = metrics.get("sentiment_signals") or {}
-        structural = metrics.get("structural_anchors") or {}
-        topography = metrics.get("volume_topography") or {}
+        # 2. Extract Data Suites
         semantics = obs.get("semantic_analysis") or {}
-        
         critique = strategy_data.get("critique") or {}
-        skepticism = critique.get("skepticism_score", 0)
         
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
         confidence = decision.get("confidence", 0)
         reasoning = decision.get("reasoning", "No description provided.")
-        limit_order = decision.get("limit_order") or {}
         
         # 3. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
@@ -93,23 +123,11 @@ class StrategyEmailTemplate:
         theme_color = colors.get(opinion, "#64748b")
         theme_icon = icons.get(opinion, "💡")
         
-        # Formatting helper to handle None (null) values gracefully in the UI
-        def fmt(v: Any) -> str:
-            return str(v) if v is not None else "N/A"
+        fmt = StrategyEmailTemplate.fmt
         
         return f"""
         <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155; margin: 0; padding: 20px; background-color: #f8fafc; }}
-                .container {{ max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 40px; border: 1px solid #e2e8f0; }}
-                .badge {{ display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }}
-                .grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 35px; }}
-                .panel {{ background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; }}
-                .panel-title {{ margin: 0 0 10px 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }}
-            </style>
-        </head>
+        <head>{StrategyEmailTemplate.get_styles()}</head>
         <body>
             <div class="container">
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
@@ -169,50 +187,42 @@ class StrategyEmailTemplate:
                             </td>
                             <td style="width: 25%; vertical-align: top;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Temporal Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate._format_duration((decision.get('limit_order') or {}).get('holding_time_hours', 0))}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours', 0))}</div>
                             </td>
                         </tr>
                     </table>
                     ''' if decision else ""}
                 </div>
 
-                <!-- 2026-03-26 Update: Forensic Dashboard Grid removed to reduce noise for focused textual analysis. -->
-
                 <!-- Intelligence Briefing -->
                 <div style="margin-bottom: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
                     <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🗺️ Market Topography Forensic</h3>
                     <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                        <!-- 1. Synthesized Topography (Highest Priority) -->
                         <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
                             <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography</span>
                             <p style="font-size: 13px; color: #1e3a8a; margin-top: 8px; line-height: 1.6; font-weight: 500;">{fmt(semantics.get('synthesized_topography'))}</p>
                         </div>
 
-                        <!-- 2. Structural Gravity -->
                         <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
                             <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Structural Gravity</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('structural_gravity'))}</p>
                         </div>
 
-                        <!-- 3. Topographical Friction -->
                         <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
                             <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Topographical Friction</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('topographical_friction'))}</p>
                         </div>
 
-                        <!-- 4. Sentiment Flow -->
                         <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
                             <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Sentiment Flow</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('sentiment_flow'))}</p>
                         </div>
 
-                        <!-- 5. Regime & Volatility -->
                         <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
                             <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Regime & Volatility</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('regime_volatility'))}</p>
                         </div>
 
-                        <!-- 6. Micro-Interactive detail -->
                         <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
                             <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Micro-Interactive detail</span>
                             <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt((semantics or {}).get('micro_interactive'))}</p>
@@ -223,24 +233,199 @@ class StrategyEmailTemplate:
                 <!-- Visual Assets -->
                 <div id="charts-root" style="text-align: center;">
                     <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📊 Visual Forensic Proof</h4>
-                    <div style="margin-bottom: 30px;">
-                        <img src="cid:macro_chart" style="max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 15px 0;">
+                        <tr>
+                            <td style="width: 50%; vertical-align: top;">
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Macro View</span>
+                                <img src="cid:macro_chart" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            </td>
+                            <td style="width: 50%; vertical-align: top;">
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Micro View</span>
+                                <img src="cid:micro_chart" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                {StrategyEmailTemplate.render_footer(strategy_data, "This is an auto-generated email notification | Triggered by Crypto Strategy")}
+            </div>
+        </body>
+        </html>
+        """
+
+class ReviewEmailTemplate(BaseEmailTemplate):
+    """
+    Handles the generation of professional HTML templates for Forensic Reviews.
+    """
+    @staticmethod
+    def render(review_data: Dict[str, Any]) -> str:
+        """
+        Renders the final review JSON into a rich HTML report.
+        """
+        strat_session = review_data.get("strategy_session") or {}
+        obs = strat_session.get("observation") or {}
+        decision = strat_session.get("final_decision") or {}
+        outcome = review_data.get("market_outcome") or {}
+        audit = review_data.get("audit_findings") or {}
+        
+        symbol = obs.get("symbol", "UNKNOWN")
+        strat_ts = obs.get("timestamp", "")
+        audit_ts = review_data.get("audit_timestamp", "")
+        
+        # Local Time Conversion
+        try:
+            strat_dt = datetime.fromisoformat(strat_ts.replace("Z", "+00:00")).astimezone()
+            display_strat_time = strat_dt.strftime("%Y-%m-%d %H:%M:%S")
+            audit_dt = datetime.fromisoformat(audit_ts.replace("Z", "+00:00")).astimezone()
+            display_audit_time = audit_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+        except Exception:
+            display_strat_time = strat_ts
+            display_audit_time = audit_ts
+
+        opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
+        opinion = str(opinion).upper()
+        confidence = decision.get("confidence", 0)
+        
+        # Outcome styling
+        metrics = outcome.get("trade_execution_metrics") or {}
+        result_type = metrics.get("tp_sl_result", "NEITHER")
+        
+        result_colors = {"TP_HIT": "#10b981", "SL_HIT": "#ef4444", "NEITHER": "#64748b"}
+        result_labels = {"TP_HIT": "PROFIT (TP)", "SL_HIT": "LOSS (SL)", "NEITHER": "FLAT (NEITHER)"}
+        res_color = result_colors.get(result_type, "#64748b")
+        res_label = result_labels.get(result_type, "PENDING / N/A")
+        
+        fmt = ReviewEmailTemplate.fmt
+        
+        # 4. Forensic Formatting
+        shadow_list = audit.get('adversarial_audit', {}).get('shadow_evidence', [])
+        if isinstance(shadow_list, list) and shadow_list:
+            shadow_html = f'<ul style="margin: 0; padding-left: 18px;">' + "".join([f"<li>{fmt(item)}</li>" for item in shadow_list]) + "</ul>"
+        else:
+            shadow_html = fmt(shadow_list or "None")
+
+        return f"""
+        <html>
+        <head>{ReviewEmailTemplate.get_styles()}</head>
+        <body>
+            <div class="container">
+                <!-- Header -->
+                <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
+                    <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {res_color}15; color: {res_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {res_color}30;">
+                        🔍 FORENSIC REVIEW: {res_label}
                     </div>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Auditor Post-Mortem</h1>
+                    <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
+                        Original Strategy: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
+                    </p>
+                </div>
+
+                <!-- Market Outcome Dashboard -->
+                <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">📊 Market Outcome</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 10px 0;">
+                        <tr>
+                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
+                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Actual Change</span>
+                                <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if outcome.get('total_price_change_pct', 0) >= 0 else '#ef4444'};">
+                                    {fmt(outcome.get('total_price_change_pct'))}%
+                                </div>
+                            </td>
+                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
+                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Max Favorable (MFE)</span>
+                                <div style="font-size: 18px; font-weight: 800; color: #10b981;">{fmt(outcome.get('max_favorable_runup_pct'))}%</div>
+                            </td>
+                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
+                                <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">Max Adverse (MAE)</span>
+                                <div style="font-size: 18px; font-weight: 800; color: #ef4444;">{fmt(outcome.get('max_adverse_drawdown_pct'))}%</div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
+                        <tr>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">MFE Efficiency</div>
+                                <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency'))}</div>
+                            </td>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">MAE Stress</div>
+                                <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level'))}</div>
+                            </td>
+                            <td style="width: 25%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Duration (Actual)</div>
+                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{ReviewEmailTemplate.format_duration(metrics.get('actual_hours', 0))}</div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Forensic Audit Findings -->
+                <div style="background-color: #eff6ff; padding: 25px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 35px; border-left: 5px solid #3b82f6;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 15px 0; border-bottom: 1px solid #dbeafe; padding-bottom: 10px;">
+                        <tr>
+                            <td align="left" style="color: #1e40af; font-size: 18px; font-weight: bold;">
+                                🚩 Auditor Findings & Score
+                            </td>
+                            <td align="right" style="vertical-align: middle;">
+                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Score: {audit.get('evaluation_score', 0)}/10</span>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Adversarial Autopsy</span>
+                        <div style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0; background: #ffffff66; padding: 12px; border-radius: 6px;">
+                            {shadow_html}
+                        </div>
+                    </div>
+
                     <div>
-                        <img src="cid:micro_chart" style="max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Post-Mortem Analysis</span>
+                        <p style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0;">{fmt(audit.get('post_mortem'))}</p>
                     </div>
                 </div>
 
-                <!-- Footer -->
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
-                    <details>
-                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Full Forensic Dataset</summary>
-                        <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(strategy_data, indent=2, ensure_ascii=False)}</code></pre>
-                    </details>
-                    <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
-                        This is an auto-generated email notification | Triggered by Crypto Strategy
-                    </div>
+                <!-- Original Strategy Summary (Context) -->
+                <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🔄 Original Synthesis Review</h3>
+                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('reasoning'))}</p>
                 </div>
+
+                <!-- Visual Assets (Comparative Proof) -->
+                <div id="charts-root" style="text-align: center;">
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📸 Forensic Snapshots</h4>
+                    
+                    <!-- Macro Row -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px; border-collapse: separate; border-spacing: 15px 0;">
+                        <tr>
+                            <td style="width: 50%; vertical-align: top;">
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Macro T0 (Entry)</span>
+                                <img src="cid:t0_macro" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            </td>
+                            <td style="width: 50%; vertical-align: top;">
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Macro T1 (Audit)</span>
+                                <img src="cid:t1_macro" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- Micro Row -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 15px 0;">
+                        <tr>
+                            <td style="width: 50%; vertical-align: top;">
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Micro T0 (Entry)</span>
+                                <img src="cid:t0_micro" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            </td>
+                            <td style="width: 50%; vertical-align: top;">
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Micro T1 (Audit)</span>
+                                <img src="cid:t1_micro" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                {ReviewEmailTemplate.render_footer(review_data, "This is an auto-generated email notification | Triggered by Crypto Strategy")}
             </div>
         </body>
         </html>
@@ -336,7 +521,7 @@ class StrategyNotifier:
 
         # 1. Local Preview (Useful for debugging/UI verification)
         if save_local:
-            self.save_html_preview(symbol, html_body, attachments)
+            self.save_html_preview(f"{symbol}_strategy", html_body, attachments)
 
         if not self.enabled:
             return False
@@ -356,29 +541,71 @@ class StrategyNotifier:
         logger.info(f"Notifier: Dispatching alert: {subject}")
         return self.dispatcher.dispatch(subject, html_body, attachments)
 
-    def save_html_preview(self, symbol: str, html_body: str, attachments: Dict[str, str]) -> Optional[str]:
+    def notify_review(self, symbol: str, review_data: Dict[str, Any], save_local: bool = True) -> bool:
+        """
+        Parses review result and dispatches a forensic audit report.
+        """
+        html_body = ReviewEmailTemplate.render(review_data or {})
+        
+        # Collect Comparative Assets
+        strat_session = (review_data or {}).get("strategy_session") or {}
+        t0_obs = strat_session.get("observation") or {}
+        t0_assets = t0_obs.get("visual_assets") or {}
+        visual_ctx = review_data.get("visual_context") or {}
+        
+        # Attach all 4 snapshots (Macro/Micro T0 vs T1)
+        attachments = {
+            "t0_macro": str(t0_assets.get("macro_snapshot") or ""),
+            "t0_micro": str(t0_assets.get("micro_snapshot") or ""),
+            "t1_macro": str(visual_ctx.get("t1_macro") or ""),
+            "t1_micro": str(visual_ctx.get("t1_micro") or "")
+        }
+
+        if save_local:
+            self.save_html_preview(f"{symbol}_review", html_body, attachments)
+
+        if not self.enabled:
+            return False
+            
+        # We only notify reviews for strategies that met our confidence threshold
+        final_decision = strat_session.get("final_decision") or {}
+        confidence = final_decision.get("confidence", 0)
+        
+        if confidence < self.min_confidence_threshold:
+            logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping review dispatch.")
+            return False
+            
+        metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
+        result = metrics.get("tp_sl_result", "N/A")
+        
+        subject = f"{symbol} | {result} | Forensic Review"
+        
+        logger.info(f"Notifier: Dispatching forensic report: {subject}")
+        return self.dispatcher.dispatch(subject, html_body, attachments)
+
+    def save_html_preview(self, name_prefix: str, html_body: str, attachments: Dict[str, str]) -> Optional[str]:
         """
         Saves the rendered HTML to a local file for visual inspection.
         Swaps CID references for local filesystem paths.
         """
         try:
-            # Default to data/test/html for previews to avoid mixing with live data
-            test_root = os.path.join(find_project_root(), "data", "test")
-            output_dir = os.path.join(test_root, "html")
+            # Determine output directory based on data_root to keep it isolated (e.g. data/test/html)
+            output_dir = os.path.join(find_project_root(), self.data_root, "html")
             os.makedirs(output_dir, exist_ok=True)
             
-            # For local preview, we need to swap 'cid:name' with the actual file path.
-            # Since the preview is in data/html and assets are usually in data/klines,
-            # we try to make them relative or use absolute if needed.
+            # For local preview, swap 'cid:name' with the actual file path.
             preview_html = html_body
             for cid, file_path in attachments.items():
                 if file_path:
-                    # Convert to absolute path for reliable local browser opening
-                    abs_path = os.path.abspath(file_path)
+                    # Resolve to absolute path for reliable local browser opening
+                    if not os.path.isabs(file_path):
+                        abs_path = os.path.abspath(os.path.join(find_project_root(), file_path))
+                    else:
+                        abs_path = file_path
                     preview_html = preview_html.replace(f"cid:{cid}", f"file://{abs_path}")
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_name = f"{symbol}_strategies_preview_{timestamp}.html"
+            file_name = f"{name_prefix}_preview_{timestamp}.html"
             file_path = os.path.join(output_dir, file_name)
             
             with open(file_path, "w", encoding="utf-8") as f:

@@ -19,6 +19,7 @@ from src.utils.agent_utils import load_config
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc, sanitize_timestamp
+from src.infrastructure.notifications.email_notifier import StrategyNotifier
 
 # Initialize pipeline logger
 logger = setup_logger("ReviewerOrchestrator")
@@ -153,6 +154,7 @@ class ReviewerOrchestrator:
         self.reviewer = ReviewerAgent(self.config, api_key=self.api_key)
         self.fetcher = BinanceFuturesClient()
         self.observers = {}
+        self.notifier = StrategyNotifier(data_root=data_root)
 
     def run_review(self, target_file: Optional[str] = None, force: bool = False):
         """Main entry point for review execution."""
@@ -343,10 +345,15 @@ class ReviewerOrchestrator:
                 "audit_timestamp": dt_fetch_end.isoformat(),
                 "strategy_session": session,
                 "market_outcome": outcome,
+                "visual_context": visual_context,
                 "audit_findings": audit_result
             }
             save_json(final_record, output_path)
             logger.info(f"Forensic audit archived: {output_path}")
+
+            # 5. Notify Review Report
+            symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
+            self.notifier.notify_review(symbol, final_record)
 
         except Exception as e:
             logger.error(f"Failed to process session: {e}", exc_info=True)
