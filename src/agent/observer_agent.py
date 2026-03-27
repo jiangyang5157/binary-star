@@ -14,9 +14,7 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.agent_utils import read_prompt_template, safe_format
-from src.utils.datetime_utils import (
-    format_datetime, get_current_utc_time, to_iso_zulu, get_interval_seconds
-)
+from src.utils.datetime_utils import get_current_utc_time, to_iso_zulu, get_interval_seconds
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string, extract_json_from_text
 
@@ -40,7 +38,7 @@ class ObserverConfig:
     micro_context: TimeframeConfig
     vp_value_area_width: float
     vp_price_buckets_count: int
-    taker_vol_delta_lookback: int
+    taker_vol_delta_duration_hours: float
     regime_trend_threshold: float
     atr_period: int
     bb_period: int
@@ -56,8 +54,7 @@ class ObserverConfig:
     lvn_sensitivity: float
     min_node_gap_price: int
     top_levels_to_report: int
-    funding_rate_limit: int
-    trend_intensity_lookback: int
+    trend_intensity_duration_hours: float
     wick_skewness_period: int
     liq_cluster_atr_multiplier: float
     liq_cluster_fallback_pct: float
@@ -83,7 +80,7 @@ class ObserverConfig:
             ),
             vp_value_area_width=float(obs['volume_profile_value_area_width']),
             vp_price_buckets_count=int(obs['volume_profile_price_buckets_count']),
-            taker_vol_delta_lookback=int(obs['taker_volume_delta_lookback_period']),
+            taker_vol_delta_duration_hours=float(obs['taker_volume_delta_duration_hours']),
             regime_trend_threshold=float(obs['market_regime_trend_strength_threshold']),
             atr_period=int(obs['average_true_range_period']),
             bb_period=int(obs['bollinger_bands_period']),
@@ -99,12 +96,23 @@ class ObserverConfig:
             lvn_sensitivity=float(obs['low_volume_valley_sensitivity']),
             min_node_gap_price=int(obs['min_price_gap_between_nodes']),
             top_levels_to_report=int(obs['top_structural_levels_to_report']),
-            funding_rate_limit=int(obs['funding_rate_history_limit']),
-            trend_intensity_lookback=int(obs['trend_intensity_lookback']),
+            trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
             wick_skewness_period=int(obs['wick_skewness_period']),
             liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
             liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct'])
         )
+
+    @property
+    def taker_vol_delta_lookback(self) -> int:
+        """Calculates candle count for tactical window (default 1h)."""
+        secs = get_interval_seconds(self.micro_context.time_interval)
+        return max(1, int(self.taker_vol_delta_duration_hours * 3600 / secs))
+
+    @property
+    def trend_lookback(self) -> int:
+        """Calculates candle count for structural window (default 24h)."""
+        secs = get_interval_seconds(self.macro_context.time_interval)
+        return max(1, int(self.trend_intensity_duration_hours * 3600 / secs))
 
 @dataclass
 class RawMarketData:
@@ -157,7 +165,7 @@ class MarketDataLoader:
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=cfg.funding_rate_limit, startTime=liq_start_ts_ms, endTime=ts_ms) or []
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=1, endTime=ts_ms) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
@@ -343,7 +351,7 @@ class SemanticSynthesizer:
             
             input_text = safe_format(
                 prompt_tpl,
-                timestamp=format_datetime(at_time),
+                timestamp=to_iso_zulu(at_time), # Changed from format_datetime to to_iso_zulu
                 macro_timeframe=convert_to_json_string(specs["macro"]),
                 micro_timeframe=convert_to_json_string(specs["micro"]),
                 metrics=convert_to_json_string(metrics.__dict__)
@@ -471,9 +479,9 @@ class ObserverAgent:
         rg_cfg = MarketRegimeConfig(
             bollinger_window=cfg.bb_period, bollinger_std_dev=cfg.bb_std_dev,
             keltner_window=cfg.kc_period, keltner_multiplier=cfg.kc_multiplier,
-            volume_ma_window=cfg.vol_ma_period, trend_threshold=cfg.regime_trend_threshold,
-            trend_intensity_lookback=cfg.trend_intensity_lookback,
-            wick_skewness_period=cfg.wick_skewness_period
+            volume_ma_window=cfg.vol_ma_period, trend_intensity_threshold=self.config.regime_trend_threshold,
+            trend_lookback=self.config.trend_lookback,
+            wick_skewness_period=self.config.wick_skewness_period
         )
         return MarketRegimeAnalyzer(config=rg_cfg)
 

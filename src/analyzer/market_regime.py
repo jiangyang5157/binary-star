@@ -18,9 +18,9 @@ class MarketRegimeConfig:
     keltner_window: int               # Period for Keltner Channels
     keltner_multiplier: float          # ATR multiplier for Keltner Channels
     volume_ma_window: int              # Window for volume moving average
-    trend_threshold: float            # Threshold for trend intensity classification
-    trend_intensity_lookback: int      # Lookback for efficiency ratio
-    wick_skewness_period: int          # Lookback for wick analysis
+    trend_intensity_threshold: float            # Threshold for trend intensity classification
+    trend_lookback: int                      # Lookback for efficiency ratio
+    wick_skewness_period: int                # Lookback for wick analysis
 
 @dataclass(frozen=True)
 class RegimeResult:
@@ -66,7 +66,7 @@ class IndicatorEngine:
 
         # 3. Efficiency Ratio (Trend Intensity)
         # Abs(Total Price Change) / Sum(Abs(Individual Price Changes))
-        lookback = self.config.trend_intensity_lookback
+        lookback = self.config.trend_lookback
         price_diff = df['close'].diff()
         total_change = df['close'].iloc[-1] - df['close'].iloc[-lookback] if len(df) >= lookback else 0
         sum_abs_changes = price_diff.abs().rolling(window=lookback).sum().iloc[-1]
@@ -98,7 +98,7 @@ class RegimeClassifier:
             vol_regime = "EXPANSION" if prev_squeeze else "NORMAL"
 
         # 2. Trend vs Range
-        market_regime = "TRENDING" if latest['trend_intensity'] > self.config.trend_threshold else "RANGING"
+        market_regime = "TRENDING" if latest['trend_intensity'] > self.config.trend_intensity_threshold else "RANGING"
 
         # 3. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
@@ -142,9 +142,9 @@ class MarketRegimeAnalyzer:
                 keltner_window=int(kwargs['kc_window']),
                 keltner_multiplier=float(kwargs['kc_mult']),
                 volume_ma_window=int(kwargs['vol_ma_window']),
-                trend_threshold=float(kwargs['trend_intensity_threshold']),
-                trend_intensity_lookback=int(kwargs['trend_lookback']),
-                wick_skewness_period=int(kwargs.get('wick_skewness_period', 3))
+                trend_intensity_threshold=float(kwargs['trend_intensity_threshold']),
+                trend_lookback=int(kwargs['trend_lookback']),
+                wick_skewness_period=int(kwargs['wick_skewness_period'])
             )
             
         self.engine = IndicatorEngine(self.config)

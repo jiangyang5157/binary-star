@@ -10,7 +10,7 @@ observer:
     historical_lookback_candles: 192
   volume_profile_value_area_width: 0.75
   volume_profile_price_buckets_count: 300
-  taker_volume_delta_lookback_period: 4
+  taker_volume_delta_duration_hours: 1.0
   market_regime_trend_strength_threshold: 0.35
   average_true_range_period: 21
   bollinger_bands_period: 21
@@ -26,8 +26,7 @@ observer:
   low_volume_valley_sensitivity: 0.05
   min_price_gap_between_nodes: 50 
   top_structural_levels_to_report: 3
-  funding_rate_history_limit: 1
-  trend_intensity_lookback: 24
+  trend_intensity_duration_hours: 24.0
   wick_skewness_period: 3
   liq_cluster_atr_multiplier: 0.25
   liq_cluster_fallback_pct: 0.005
