@@ -56,10 +56,27 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
         
         effective_velocity = atr * max(trend_intensity, velocity_floor)
         
+        # Extract Topology for SL buffer verification
+        topography = metrics.get('volume_topography', {})
+        poc = topography.get('poc')
+        vah = topography.get('vah')
+        val = topography.get('val')
+
+        def dist_to_atr(anchor):
+            try:
+                if anchor is not None and atr > 0:
+                    return round(abs(sl - float(anchor)) / atr, 2)
+            except (ValueError, TypeError):
+                pass
+            return None
+
         return {
             "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
             "entry_to_sl_atr": round(sl_dist / atr, 2) if atr > 0 else 0,
             "entry_to_tp_atr": round(tp_dist / atr, 2) if atr > 0 else 0,
+            "sl_to_poc_atr": dist_to_atr(poc),
+            "sl_to_vah_atr": dist_to_atr(vah),
+            "sl_to_val_atr": dist_to_atr(val),
             "projected_holding_hours": round(tp_dist / effective_velocity, 2) if effective_velocity > 0 else 0
         }
     except (ValueError, TypeError, KeyError) as e:

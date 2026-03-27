@@ -15,6 +15,11 @@ class TestTriadMathGate(unittest.TestCase):
             "quantitative_metrics": {
                 "price_dynamics": {
                     "atr_macro": 500.0
+                },
+                "volume_topography": {
+                    "poc": 69500.0,
+                    "vah": 71000.0,
+                    "val": 68000.0
                 }
             }
         }
@@ -35,7 +40,10 @@ class TestTriadMathGate(unittest.TestCase):
         # sl_atr_distance = 250 / 500 = 0.5
         # projected_holding_hours = 1500 / 500 = 3.0
         self.assertEqual(result["actual_rr"], 6.0)
-        self.assertEqual(result["sl_atr_distance"], 0.5)
+        self.assertEqual(result["entry_to_sl_atr"], 0.5)
+        self.assertEqual(result["sl_to_poc_atr"], 0.5)   # abs(69750 - 69500) / 500 = 0.5
+        self.assertEqual(result["sl_to_vah_atr"], 2.5)   # abs(69750 - 71000) / 500 = 2.5
+        self.assertEqual(result["sl_to_val_atr"], 3.5)   # abs(69750 - 68000) / 500 = 3.5
         self.assertEqual(result["projected_holding_hours"], 3.0)
 
     def test_calculate_math_fact_check_missing_limit_order(self):
@@ -63,7 +71,7 @@ class TestTriadMathGate(unittest.TestCase):
         }
         result = calculate_math_fact_check(obs, self.draft)
         self.assertIsNotNone(result)
-        self.assertEqual(result["sl_atr_distance"], 0)
+        self.assertEqual(result["entry_to_sl_atr"], 0)
         self.assertEqual(result["projected_holding_hours"], 0)
 
     def test_calculate_math_fact_check_zero_sl_dist(self):
