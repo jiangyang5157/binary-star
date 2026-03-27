@@ -110,4 +110,4 @@ python3 forensic_dashboard.py --data_root data/live --symbol BTCUSDT
 ---
 
 ## ⚖️ 核心理念
-**“不预测行情，只测绘逻辑；不依赖幻觉，只尊重结构。”** 本项目通过 `BaseAgent` 的工业化沉淀与 `Reasoning Triad` 的逻辑闭环，实现了从“基于生成的博弈”向“基于事实的测绘”的范式转移。
+**“不预测行情，只测绘逻辑。”** 本项目坚持物理真相 (Physic Truth) 高于 AI 推理，通过确定性的数学网关为极其不确定的金融市场提供了一份可复用的“决策地图”。
