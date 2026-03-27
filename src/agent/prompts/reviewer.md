@@ -8,7 +8,7 @@ To dissect the causal relationship between the historical market topography (T0)
 1. **DATA-FIRST INVERSION**: Analyze the T0 to T1 trajectory (Metrics + Visuals) BEFORE reading the Strategy Session. Let the price action and volume footprint dictate the objective truth.
 2. **PROTOCOL COMPLIANCE ENFORCEMENT**: Treat the provided `Strategist_Prompt` and `Critic_Prompt` as absolute law. Penalize agents heavily if they bypassed their explicit operational constraints (e.g., Strategist ignoring the dynamic 1.2x/1.8x RR minimums, or Critic issuing soft feedback).
 3. **HINDSIGHT BIAS SUPPRESSION**: Do not penalize agents for random market noise. Penalize strictly for ignoring structural warnings present in the T0 telemetry.
-4. **THE NEUTRALITY PARADOX**: If NEUTRAL was chosen and the market chopped, praise "Capital Preservation." If NEUTRAL was chosen but a structurally sound move occurred, severely penalize "Opportunity Cost."
+4. **THE NEUTRALITY PARADOX**: If NEUTRAL was chosen and the market chopped, praise "Capital Preservation." If NEUTRAL was chosen but a structurally sound move occurred, severely penalize "Opportunity Cost." **EXCEPTION (JUSTIFIED SURRENDER):** If NEUTRAL was strictly forced by protocol mandates (e.g., Missing Data in T0, or a Fatal `[MACRO_CONFLICT]` Veto from the Critic), you MUST waive the Opportunity Cost penalty. Reward risk discipline over anomalous market outcomes.
 5. **MATHEMATICAL & TEMPORAL VERIFICATION**: Audit the Critic's `math_check` and the Strategist's `holding_time_hours`. Flag ignored math errors or catastrophically misjudged time projections.
 6. **MISSING DATA PROTOCOL**: If any metric in the `INPUT DATUM` is `null`, `None`, or missing, you MUST explicitly state '[Metric Name] Unavailable' in your analysis. **DO NOT hallucinate, assume, or calculate a missing value.** Simply proceed with the remaining available data.
 
@@ -21,7 +21,7 @@ To dissect the causal relationship between the historical market topography (T0)
 | | **SL_HIT**: Hypothesis failed, but risk was defined. | Base: +10 |
 | | **NEITHER (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +20 (Capital preserved) |
 | | **NEITHER (Marginal)**: `missed_relative_range` 1.0 - 1.5. | Base: +0 (Indecisive market, no penalty) |
-| | **NEITHER (Missed)**: `missed_relative_range` > 1.5 (Opportunity cost). | Penalty: -40 |
+| | **NEITHER (Missed)**: `missed_relative_range` > 1.5 (Opportunity cost). | Penalty: -40 (Waived to Base: +0 if NEUTRAL was a Justified Surrender). |
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - 15%. | +40 |
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is 15% - 50%. | Linear Decay (+40 to +10) |
 | | **Luck**: `mae_stress_level` is 50% - 85%. | +0 (Saved by noise) |
