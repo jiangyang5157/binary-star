@@ -304,6 +304,9 @@ class ReviewerOrchestrator:
             if is_premature_status and tp_sl_status == "NEITHER":
                 logger.info(f"Audit premature and order pending for {symbol}. Generating SYSTEM-STUB report.")
                 
+                # Multimedia & Visual Forensic Context (Empty for stub reports to preserve compute)
+                visual_context = {}
+
                 # 伪造一个结构完全合规的 audit_findings，不调用大模型
                 audit_result = {
                     "evaluation_score": 0,
