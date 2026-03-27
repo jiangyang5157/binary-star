@@ -29,6 +29,10 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
     Extracted logic for the [Middleware Computation Gate].
     Calculates deterministic math facts to prevent LLM hallucinations.
     """
+    # If action is NEUTRAL, we bypass math check (trigger [CLEAR] in Critic)
+    if draft.get('action') == 'NEUTRAL':
+        return None
+
     limit_order = draft.get('limit_order')
     if not (limit_order and all(k in limit_order and limit_order[k] is not None for k in ('entry', 'take_profit', 'stop_loss'))):
         return None
