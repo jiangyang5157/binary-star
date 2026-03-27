@@ -1,113 +1,132 @@
-# Strategic Alpha Ledger: Multi-Agent Trading & Evolution System
+# Strategic Alpha Ledger: The Forensic Trading Machine
 
-这是一个基于多智能体（Multi-Agent）协作的加密货币交易预测与系统演化框架。它通过将“物理金融事实”与“对抗性逻辑审计”相结合，构建了一个具备自我进化能力的高度稳健交易系统。
+> **“不预测行情，只测绘逻辑。”**
+
+这是一个基于物理真相（Physic Truth）与对抗性演化（Adversarial Evolution）构建的多智能体交易系统。它通过“三路推理 (Reasoning Triad)”架构，将极度不确定的市场博弈转化为确定性的物理地形测绘与逻辑审计。
 
 ---
 
-## 🏗 项目架构：物理锚定与闭环演化
+## 🏗 架构全景：闭环演化与逻辑枢纽 (The Evolutionary Hub)
 
-系统通过“测绘、分相决策、对抗审计、复盘反馈”构建了一个严密的逻辑闭环。全线 Agent 基于统一的 `BaseAgent` 基类构建，确保了多模态数据处理、JSON 解析与错误处理的高度一致性：
+系统通过 **前向预测 (Forward Prediction)** 与 **后向演化 (Backward Evolution)** 构建了一个具备自我修复能力的闭环生态：
 
-| 阶段 | 核心 Agent / 组件 | 物理/逻辑内涵 | 核心防御逻辑 |
+```mermaid
+graph TD
+    subgraph "Forward Logic: The Reasoning Triad"
+        A["Observer"] -->|"Topographical Map"| B("Strategist: Phase A")
+        B -->|"Draft Plan"| C{"Middleware: Math Gate"}
+        C -->|"Physical Fact Check"| D["Critic: Adversary"]
+        D -->|"Audit Verdict"| E("Strategist: Phase B")
+        E -->|"Hardened Decision"| F("Actionable Strategy")
+    end
+
+    subgraph "Backward Evolution: The Forensic Loop"
+        F -->|"Execution Log"| G["Reviewer: Coroner"]
+        G -->|"Audit Report"| H["Coach: Strategist"]
+        H -->|"Diagnosis & Patch"| I["Prompt Optimization"]
+        I -->|"Inject Intelligence"| B
+        I -->|"Inject Constraints"| D
+    end
+
+    style C fill:#f96,stroke:#333,stroke-width:2px
+    style F fill:#00ff00,stroke:#333,stroke-width:2px
+    style I fill:#f9f,stroke:#333,stroke-width:4px
+```
+
+---
+
+## 🧬 智理引擎：多智能体决策协作协议 (Agentic Collaboration Protocol)
+
+系统各组件通过确定的物理边界与逻辑主权，确保每一棒交接都具备“法医级”的严谨性：
+
+| 执行角色 | 输入信号 (INPUT) | 核心逻辑 (LOGIC?) | 输出产出 (OUTPUT) |
 | :--- | :--- | :--- | :--- |
-| **1. 景观测绘** | **Observer (观察员)** | 宏微观 Topography 多模态测绘 | 结合 K 线图与量价指标，输出 `conviction_score` (信号汇聚度) 过滤低质量噪声。 |
-| **2. 分相决策** | **Strategist (策略师)** | **PHASE A: DRAFTING** (初始方案) | 静态 Prompt 状态检测。强制 SL 隐藏在 POC/VAH/VAL 之后，确保逻辑不处于“真空区”。 |
-| **3. 物理校验** | **Middleware (计算网关)** | 确定性数学事实 (Math Fact Check) | 后端计算真实的 RR、ATR 距离与持仓时间，消除 LLM 幻觉，注入后续审计。 |
-| **4. 对抗审计** | **Critic (审计员)** | 对抗性风险侦测 (Adversarial Audit) | 基于物理因子校验止损缓冲区，识别吸收陷阱 (Absorption Trap) 与扫损风险。 |
-| **5. 决策合成** | **Strategist (策略师)** | **PHASE B: SYNTHESIS** (决策收敛) | 结合审计反馈进行风险硬化，根据 `CONFIDENCE CALIBRATION LAW` 调整最终信心分。 |
-| **6. 复盘进化** | **Reviewer (复盘官)** | 离线取证与 PnL 效率审计 | 通过历史多模态资产比对，量化“逻辑溢价”与“确定性偏见”。 |
+| **Observer** (测绘师) | 原始 K 线 / 流动性资产 | **景观聚合**：识别宏微观地形 Confluence，计算趋势强度。 | 物理地形快照 (Observation) |
+| **Strategist (A)** (设计师) | Topographical Map | **构思逻辑**：寻找 HVN 锚点，根据地形初步设计入场轨迹。 | 决策草案 (Draft Plan) |
+| **Middleware** (校验门) | Draft + Observation | **物理公证**：计算确定性 RR 与 ATR 距离，强制抹除 LLM 幻觉。 | 数学事实 (Math Fact Check) |
+| **Critic** (审判官) | Draft + Math Facts | **对抗审计**：基于《怀疑论》进行压力测试，识别吸收陷阱。 | 审计标签 (Audit Verdict) |
+| **Strategist (B)** (觉醒者) | Draft + Critique | **风险收敛**：融合审计意见，执行 DLE 硬化或强制 NEUTRAL。 | 最终执行方案 (Final Decision) |
+| **Reviewer** (复盘官) | Decision + T1 Truth | **尸检对比**：量化 PnL 效率，捕捉“逻辑与现实”的偏离。 | 法医复盘报告 (Forensic Report) |
+| **Coach** (遗传学家) | Forensic Archives | **进化合成**：识别系统性偏见，生成指令集 (Prompt) 优化方案。 | 演化补丁 (Prompt Patch) |
 
 ---
 
-## 🧬 核心硬化机制 (Hardening Protocols)
+## 🛡 核心硬化盾牌 (Forensic Hardening Mechanism)
 
-### A. 物理真相网关 (The Middleware Computation Gate)
-这是系统防御“AI 幻觉”的核心。代理不再负责复杂的金融计算，所有关键指标在后端计算并注入：
-*   **确定性盈亏比 (RR)**：不再信任 Agent 的自我计算，以物理坐标点为唯一准则。
-*   **结构化缓冲区 (Structural Buffer)**：强制审计止损位到最近结构墙（如 POC）的有效距离。
-*   **动态时间窗口 (Temporal Gate)**：根据波动率 (ATR) 与趋势强度自动投影成交有效时长，防止过度持仓。
+为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
 
-### B. 高分辨率信心评分 (Precision Scoring Protocol)
-系统强制要求 Agent 进行“精细化打分”：
-*   **去整数化偏见**：禁止使用粗颗粒度的 50/65/75 分，要求根据信号共振程度给出如 67% 或 72% 的确切分数。
-*   **加权负向反馈**：通过 `CONFIDENCE CALIBRATION LAW`，任何为规避风险而采取的“深层挂单 (DLE)”必须同步导致信心分的折损。
+### 第一层：物理事实真理网关
+> **Hallucination Killer**: 禁止 AI 进行任何关键数学计算。由后端 Python 逻辑注入确定性的 RR (盈亏比)、ATR 距离与 Temporal Efficiency (时间效率)，作为 Critic 审计的唯一法定依据。
 
-### C. 多模态视觉证伪 (Visual Counter-Evidence)
-系统不只听取数据，更“看见”市场：
-*   **图表注入**：Observer、Strategist 与 Reviewer 共享一致的图表快照 (Visual Assets)，AI 必须在 Reasoning 中引用图表的视觉特征（如阻力位、影线长度）进行证伪，确立“单点真实来源”。
+### 第二层：多模态视觉证伪体系
+> **Visual Anchoring**: 所有的推理必须引用视觉快照（Snapshot）中的特征。AI 必须回答：“我看到了 K 线影线在 X 位置的阻力”，而非盲目信任数字，确立“单点真实来源”。
 
-### D. 无状态感知侦测 (Recursive State Detection)
-Strategist 放弃了脆弱的正则匹配逻辑，通过上下文数据（`draft_plan` 是否为 null）自动感知执行相位。这使得 Prompt 永远保持 static，极大地增强了系统的鲁棒性与可维护性。
+### 第三层：无状态递归相位侦测
+> **Deterministic State Machine**: 策略师不再通过复杂的 Context 管理状态，而是直接递归检测 `Draft` 的存在。这使得 Prompt 保持静态且可预测，极大提升了分布式部署的稳定性。
 
 ---
 
-## 🚀 快速开始
+## 🚀 运行手册 (Operational Manual)
 
 ### 1. 环境准备
-确保已安装 Python 3.9+ 并配置虚拟环境：
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-```
-在 `.env` 文件中配置您的 `GEMINI_API_KEY` 和 `BINANCE_API_KEY`。
-
-### 2. 实盘运行 (Live Pipeline)
-使用编排器启动自动化预测和审计循环：
-```bash
-python3 pipeline_orchestrator.py --symbol BTCUSDT --data_root data/live --interval 1
-```
-
-### 3. 历史回测 (Backtest)
-在历史数据上测试策略生成与审计链路的稳健性：
-```bash
-# Regime 模式：自动识别市场分层（震荡/趋势）进行均衡抽样
-python3 backtest.py --sampling 12 --mode regime --start T-24d --data_root data/backtest
-
-# Spaced 模式：采用等距时间抽样，适合对系统表现进行日常体检
-python3 backtest.py --sampling 12 --mode spaced --start T-24d --data_root data/backtest
+# 在 .env 中配置
+# BINANCE_API_KEY="..."
+# BINANCE_API_SECRET="..."
+# GEMINI_API_KEY="..."
+# EMAIL_ADDRESS="...@gmail.com"
+# EMAIL_APP_PASSWORD="..."
+# EMAIL_SMTP_SERVER="smtp.gmail.com"
+# EMAIL_SMTP_PORT="587"
 ```
 
----
-
-## 🔍 取证与可视化 (Forensics)
-
-### 执行复盘 (Reviewer Pipeline)
-量化历史决策的 MFE/MAE 表现与真实盈亏：
-```bash
-python3 reviewer.py --data_root data/live
-```
-
-### 取证回放 (Forensic Replay)
-对特定历史观测点进行全链路推理复现：
-```bash
-python3 strategist_replay.py --data_root data/test --file data/test/observations/your_file.json
-```
-
-### 生成可视化看板 (Forensic Dashboard)
-生成交互式 HTML 看板，查看置信度分布、盈亏曲线及模型效能：
-```bash
-python3 forensic_dashboard.py --data_root data/live --symbol BTCUSDT
-```
-*结果保存在 `data/live/html/` 目录下。*
-
----
-
-## 🛠 数据驱动演化 (The Coach Loop)
-
-当积累了足够的审计报告后，可以让系统自我生成优化方案：
-
-1.  **诊断并生成补丁 (Diagnosis & Patch)**：
+### 2. 策略执行与回测 (Strategy & Backtest)
+*   **单点预测 (Live/Manual)**:
     ```bash
-    python3 coach.py --data_root data/live --symbol BTCUSDT
+    python3 strategist.py --symbol BTCUSDT --data_root data/live
     ```
-2.  **应用补丁 (Apply Patch)**：
+*   **历史抽样回测 (Backtest)**:
     ```bash
-    python3 apply_patch.py --file data/live/reviewers/archived/BTCUSDT_patches_YYYYMMDD_HHMMSS.json
+    # Regime 模式：按市场分层抽样
+    python3 backtest.py --sampling 12 --mode regime --start T-24d --data_root data/backtest
     ```
-    *注意：为保证安全，所有 Patch 必须经人确认后手动应用。*
+*   **策略回放 (Strategy Replay)**:
+    ```bash
+    python3 strategist_replay.py --data_root data/backtest --file [JSON_PATH]
+    ```
+
+### 3. 法医复盘与取证 (Review & Forensics)
+*   **批量生成审计报告**:
+    ```bash
+    python3 reviewer.py --data_root data/backtest
+    ```
+*   **复盘回放 (Review Replay)**:
+    ```bash
+    python3 reviewer_replay.py --data_root data/backtest --file [JSON_PATH]
+    ```
+*   **可视化看板 (Analytics)**:
+    ```bash
+    python3 forensic_dashboard.py --symbol BTCUSDT --data_root data/backtest
+    ```
+
+### 4. 自动化演化循环 (Evolution Loop)
+*   **启动无人守值编排器 (Orchestrator)**:
+    ```bash
+    # 每 1 小时自动运行一次 观察-决策草案-审计-决策 循环
+    python3 pipeline_orchestrator.py --symbol BTCUSDT --interval 1 --data_root data/live
+    ```
+*   **诊断进化 (Diagnosis)**:
+    ```bash
+    python3 coach.py --symbol BTCUSDT --data_root data/backtest
+    ```
+*   **应用补丁 (Apply Patch)**:
+    ```bash
+    python3 apply_patch.py --file [PATCH_JSON_PATH]
+    ```
 
 ---
 
-## ⚖️ 核心理念
-**“不预测行情，只测绘逻辑。”** 本项目坚持物理真相 (Physic Truth) 高于 AI 推理，通过确定性的数学网关为极其不确定的金融市场提供了一份可复用的“决策地图”。
+## ⚖️ 我们的哲学
+系统不通过“预测”未来获利，而是通过“**精确测绘当前的逻辑陷阱**”获利。每一张单子都是物理事实与对抗性逻辑的结晶。
