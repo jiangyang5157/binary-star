@@ -54,3 +54,29 @@ def test_fetch_historical_klines_no_pagination_for_small_limit(mock_client):
     assert len(result) == 1
     assert mock_client.client.klines.call_count == 1
     mock_client.client.klines.assert_called_with(symbol="BTCUSDT", interval="1m", limit=500)
+
+def test_fetch_historical_klines_forward_pagination(mock_client):
+    """
+    Verify that it uses forward pagination when startTime is provided.
+    """
+    # Chunk 1 (Earlier): 1000 candles starting at 1000ms
+    chunk1 = [[1000 + i, str(i), "h", "l", "c", "v"] for i in range(1000)]
+    # Chunk 2 (Later): 500 candles starting at 2000ms
+    # Note: last ts of chunk1 is 1999. Next startTime should be 2000.
+    chunk2 = [[2000 + i, str(i), "h", "l", "c", "v"] for i in range(500)]
+    
+    mock_client.client.klines.side_effect = [chunk1, chunk2]
+    
+    # Request 1500 klines starting from 1000ms
+    result = mock_client.fetch_historical_klines("BTCUSDT", "1m", 1500, startTime=1000)
+    
+    assert mock_client.client.klines.call_count == 2
+    assert len(result) == 1500
+    assert result[0][0] == 1000  # Earliest
+    assert result[-1][0] == 2499 # Latest
+    
+    calls = mock_client.client.klines.call_args_list
+    # First call uses initial startTime
+    assert calls[0].kwargs['startTime'] == 1000
+    # Second call uses latest_open + 1 = 1999 + 1 = 2000
+    assert calls[1].kwargs['startTime'] == 2000
