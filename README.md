@@ -68,7 +68,7 @@ graph TD
 | :--- | :--- | :--- |
 | **放行 (Pass)** | `[CLEAR]` | **维持原判**：保持现有策略，仅应用细微优化。 |
 | **硬化 (Mitigation)** | `[LIQUIDITY_VOID]` <br> `[ABSORPTION_TRAP]` <br> `[RETAIL_SQUEEZE]` | **强制加固**：必须部署深层限价单 (DLE) 或收紧止损。 |
-| **撤退 (Fatal)** | `[MACRO_CONFLICT]` <br> `[VOLATILITY_EXPANSION]` <br> `[ANOMALY]` | **强制止损/空仓**：直接输出 NEUTRAL 投降。 |
+| **撤退 (Fatal)** | `[MACRO_CONFLICT]` <br> `[VOLATILITY_EXPANSION]` <br> `[ANOMALY]` <br> `[MATH_VIOLATION]` | **强制止损/空仓**：直接输出 NEUTRAL 投降。 |
 
 ---
 

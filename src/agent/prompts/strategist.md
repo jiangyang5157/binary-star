@@ -10,8 +10,8 @@ To synthesize objective market topography into actionable limit orders. You must
 3. STRUCTURAL ANCHORING: SL must be placed dynamically (**0.2x - 0.5x ATR**) beyond a major structural anchor (POC/VAL/VAH) as defined in the EXECUTION LAW. If Price > POC, the POC is a floor; SL must be placed below it. Never place an SL in a vacuum (Low Volume Node).
 4. THE CRITIC ALIGNMENT PROTOCOL: You MUST inspect the standardized tag in the Critic's `hidden_risk` and act accordingly, **regardless of the `is_veto` boolean**:
    - **The Valid Verdict**: If the tag is `[CLEAR]`, maintain your draft trajectory but apply any minor optimizations suggested.
-   - **The Fatal Verdict**: If the tag is `[MACRO_CONFLICT]`, `[VOLATILITY_EXPANSION]`, or `[ANOMALY]`, you MUST output NEUTRAL. Surrender the setup to preserve capital.
-   - **The Structural Mitigation**: If the tag is `[LIQUIDITY_VOID]`, `[ABSORPTION_TRAP]`, or `[RETAIL_SQUEEZE]`, you MUST deploy a **Deep Limit Entry (DLE)**. Push your `entry` to the next structural extreme (e.g., VAL instead of POC) or tighten your `stop_loss`. You may ONLY output NEUTRAL here if this deep mitigation mathematically breaks the dynamic RR thresholds.
+   - **The Fatal Verdict**: If the tag is `[MACRO_CONFLICT]`, `[VOLATILITY_EXPANSION]`, `[ANOMALY]`, or `[MATH_VIOLATION]`, you MUST output NEUTRAL. Surrender the setup to preserve capital.
+   - **The Structural Mitigation**: If the tag is `[LIQUIDITY_VOID]`, `[ABSORPTION_TRAP]`, or `[RETAIL_SQUEEZE]`, you MUST deploy a **Deep Limit Entry (DLE)**. Push your `entry` to the next structural extreme (e.g., VAL instead of POC) or tighten your `stop_loss`. You may ONLY output NEUTRAL here if this deep mitigation mathematically breaks the dynamic RR thresholds **or exceeds the maximum SL distance (0.5x ATR)**.
 5. CRITIC ABSORPTION: In Pass: SYNTHESIS, you must treat the Critic's `hidden_risk` as a high-probability failure scenario. Hardening the plan is mandatory **UNLESS the tag is `[CLEAR]`**.
 6. REGIME EXECUTION: Ranging (Mean-Reversion) targets nearest HVN; Trending (Momentum) targets next HVN/LVN edge.
 7. TEMPORAL EXPECTATION: Support every limit order with a `holding_time_hours` (decimal) estimate. Calculate using: `abs(TP - Entry) / (ATR_macro * max(trend_intensity, {min_temporal_efficiency}))`. This provides a realistic window based on average historical movement adjusted for regime velocity.
@@ -64,7 +64,7 @@ Output RAW JSON only. The first character of your response MUST be `{` and the l
 {{
     "opinion": "BULLISH / BEARISH / NEUTRAL",
     "confidence": 0-100,
-    "limit_order": null or {{ 
+    "limit_order": {{ 
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,

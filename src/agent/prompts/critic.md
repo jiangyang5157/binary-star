@@ -31,6 +31,7 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 | **Weak Breakout**| Price crosses VAH/VAL but `vol_breakout` < 1.2. | **[ABSORPTION_TRAP]** (Mitigate: Wait for liquidity sweep). |
 | **Vacuum Risk**| Stop Loss placed inside an LVN (`vacuum_score` > 0.3).| **[LIQUIDITY_VOID]** (Mitigate: Move SL behind a wall). |
 | **Retail Trap**| `ls_ratio` > 2.0 while price is at resistance. | **[RETAIL_SQUEEZE]** (Mitigate: Place DLE below retail SLs). |
+| **Math/Logic**| `math_fact_check` contradicts Draft, or RR < min. | **[MATH_VIOLATION]** (Fatal: Abort). |
 | **Unknown** | Extreme metric collision not defined above. | **[ANOMALY]** (Fatal: Protect capital). |
 
 # INPUT DATUM
