@@ -33,7 +33,7 @@ observer:
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
-  temperature_draft: 0.3
+  temperature_draft: 0.2
   temperature_synthesis: 0.2
   min_temporal_efficiency: 0.4
 critic:
