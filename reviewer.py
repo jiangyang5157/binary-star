@@ -64,12 +64,13 @@ class OutcomeCalculator:
         if opinion in ('BULLISH', 'BEARISH') and tp > 0 and sl > 0:
             entry_hit = False
             hit_result = "NEITHER"
+            hit_index = len(klines) # Default to full window if no hit
             max_after = -float('inf')
             min_after = float('inf')
             
             # Use current_high/low to determine if entry was hit during the T0 candle itself
             # This is more accurate than assuming a limit order is hit immediately
-            for k in klines:
+            for i, k in enumerate(klines):
                 high, low = float(k[2]), float(k[3])
                 
                 if not entry_hit:
@@ -83,12 +84,19 @@ class OutcomeCalculator:
                     max_after, min_after = max(max_after, high), min(min_after, low)
                     if hit_result == "NEITHER":
                         if opinion == 'BULLISH':
-                            # In extreme cases where both hit in 1m, check if SL was more likely (conservative)
-                            if low <= sl: hit_result = "SL_HIT"
-                            elif high >= tp: hit_result = "TP_HIT"
+                            if low <= sl: 
+                                hit_result = "SL_HIT"
+                                hit_index = i + 1
+                            elif high >= tp: 
+                                hit_result = "TP_HIT"
+                                hit_index = i + 1
                         else: # BEARISH
-                            if high >= sl: hit_result = "SL_HIT"
-                            elif low <= tp: hit_result = "TP_HIT"
+                            if high >= sl: 
+                                hit_result = "SL_HIT"
+                                hit_index = i + 1
+                            elif low <= tp: 
+                                hit_result = "TP_HIT"
+                                hit_index = i + 1
             
             if entry_hit:
                 sl_dist = abs(target_entry - sl)
@@ -103,13 +111,16 @@ class OutcomeCalculator:
                 mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
                 mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
                 
-                # Calculate Temporal Efficiency
+                # Multi-Factor Scoring Data
                 estimated_hours = float(limit_order.get('holding_time_hours', 1.0))
-                actual_hours = len(klines) * interval_hours
+                # [Temporal Efficiency Fix] Use hit_index instead of full klines length
+                actual_hours = hit_index * interval_hours
                 time_multiplier = round(actual_hours / estimated_hours, 2) if estimated_hours > 0 else 0
                 
                 result["trade_execution_metrics"] = {
-                    "tp_sl_result": hit_result, 
+                    "tp_sl_result": hit_result,
+                    "duration_candles": hit_index,
+                    "actual_hours": actual_hours,
                     "mae_stress_level": f"{round(stress, 1)}%",
                     "mae_atr_ratio": round(mae_atr, 2),
                     "mfe_efficiency": f"{round(mfe_eff, 1)}%",

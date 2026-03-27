@@ -83,6 +83,33 @@ class TestOutcomeCalculator(unittest.TestCase):
         self.assertTrue("mae_atr_ratio" in metrics) # Entry hit means MAE is calculated
         self.assertEqual(metrics["mae_atr_ratio"], 0.4) # (100 - 98) / 5.0 = 0.4
 
+    def test_temporal_efficiency_long_window_early_hit(self):
+        # 10 candles, but TP hit on candle 2
+        klines = [
+            [0, 100.0, 101.0, 99.0, 100.5], # Candle 1: Entry
+            [0, 100.5, 115.0, 100.0, 110.0], # Candle 2: TP hit!
+            [0, 110.0, 112.0, 108.0, 111.0], # Candle 3
+            [0, 111.0, 113.0, 109.0, 112.0], # Candle 4
+            [0, 112.0, 114.0, 110.0, 113.0], # Candle 5
+        ]
+        # Prediction: 10 hours. Interval: 1h.
+        # Old logic: 5 candles * 1h = 5h. Multiplier = 5 / 10 = 0.5
+        # New logic: 2 candles * 1h = 2h. Multiplier = 2 / 10 = 0.2
+        strategy = {
+            "opinion": "BULLISH",
+            "limit_order": {
+                "entry": 100.0,
+                "take_profit": 110.0,
+                "stop_loss": 90.0,
+                "holding_time_hours": 10
+            }
+        }
+        result = OutcomeCalculator.calculate(klines, 100.0, strategy, atr=5.0, interval_hours=1)
+        metrics = result["trade_execution_metrics"]
+        self.assertEqual(metrics["duration_candles"], 2)
+        self.assertEqual(metrics["actual_hours"], 2.0)
+        self.assertEqual(metrics["time_efficiency_multiplier"], 0.2)
+
     def test_no_entry_hit(self):
         klines = [
             [0, 101.0, 102.0, 100.5, 101.5], # High and Low > 100.0
