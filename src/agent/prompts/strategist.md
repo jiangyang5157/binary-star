@@ -64,7 +64,7 @@ Output RAW JSON only. The first character of your response MUST be `{` and the l
 {{
     "opinion": "BULLISH / BEARISH / NEUTRAL",
     "confidence": 0-100,
-    "limit_order": {{ 
+    "limit_order": null or {{ 
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
