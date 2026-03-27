@@ -109,6 +109,10 @@ class VolumeProfileEngine:
         vah = max(va_prices) if va_prices else poc_price
         val = min(va_prices) if va_prices else poc_price
         
+        # Balanced/Imbalanced State (VA Width vs ATR-Macro)
+        # Note: We assume the profile's 'atr' for the latest bar is passed or accessible.
+        # But since we are in the engine, we just return the anchors and let the facade handle regime.
+        
         return {
             "poc": poc_price,
             "vah": vah,
@@ -222,6 +226,6 @@ class VolumeProfileAnalyzer:
         
         # Determine a simple regime based on VA width vs ATR if needed, 
         # but usually handled by MarketRegimeAnalyzer.
-        result["market_regime"] = "BALANCED" if (result["vah"] - result["val"]) < (df["atr"].iloc[-1] * 2) else "IMBALANCED"
+        result["structural_state"] = "BALANCED" if (result["vah"] - result["val"]) < (df["atr"].iloc[-1] * 2) else "IMBALANCED"
         
         return result

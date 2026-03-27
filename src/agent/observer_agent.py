@@ -58,7 +58,7 @@ class ObserverConfig:
     top_levels_to_report: int
     funding_rate_limit: int
     trend_intensity_lookback: int
-    wick_skewness_lookback: int
+    wick_skewness_period: int
     liq_cluster_atr_multiplier: float
     liq_cluster_fallback_pct: float
 
@@ -101,7 +101,7 @@ class ObserverConfig:
             top_levels_to_report=int(obs['top_structural_levels_to_report']),
             funding_rate_limit=int(obs['funding_rate_history_limit']),
             trend_intensity_lookback=int(obs['trend_intensity_lookback']),
-            wick_skewness_lookback=int(obs['wick_skewness_lookback']),
+            wick_skewness_period=int(obs['wick_skewness_period']),
             liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
             liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct'])
         )
@@ -181,7 +181,7 @@ class MarketMetricsRefiner:
         return ProcessedMarketMetrics(
             price_dynamics=self._derive_price_dynamics(m_df, n_df),
             structural_anchors=self._derive_anchors(m_df, profile),
-            volume_topography=self._refine_topography(profile, nodes),
+            volume_topography=self._refine_topography(profile, nodes, atr_macro),
             market_regime=regime_data,
             sentiment_signals=self._derive_sentiment(raw, atr_macro)
         )
@@ -209,7 +209,7 @@ class MarketMetricsRefiner:
             "atr_macro": atr_m,
             "atr_micro": atr_n,
             "vol_ratio": f"{vol_ratio:.2f}",
-            "wick_skewness": f"{wick_skew:.2f}",
+            "latest_wick_skew": f"{wick_skew:.2f}",
             "vol_of_vol": f"{atr_rel_pct:.2f}" # > 1.0 means current volatility is expanding beyond its own average
         }
 
@@ -225,13 +225,23 @@ class MarketMetricsRefiner:
             "val_dist_atr": to_atr(profile.get('val'))
         }
 
-    def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List]) -> Dict[str, Any]:
+    def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float) -> Dict[str, Any]:
         poc = profile.get('poc', 0)
         limit = self.config.top_levels_to_report
         all_nodes = [{**n, "type": "HVN"} for n in nodes.get('hvn', [])] + [{**n, "type": "LVN"} for n in nodes.get('lvn', [])]
         
+        # Determine structural_state (BALANCED/IMBALANCED)
+        vah = profile.get('vah', 0)
+        val = profile.get('val', 0)
+        va_width = vah - val
+        
+        # Consistent with VolumeProfileAnalyzer logic: Balanced if VA width < 2 * ATR
+        state = "BALANCED" if va_width < (atr_macro * 2.0) else "IMBALANCED"
+        if va_width == 0: state = "INITIALIZING"
+        
         return {
-            "poc": poc, "vah": profile.get('vah'), "val": profile.get('val'),
+            "poc": poc, "vah": vah, "val": val,
+            "structural_state": state,
             "anchors_above": sorted([n for n in all_nodes if n['price'] > poc], key=lambda x: x['price'])[:limit],
             "anchors_below": sorted([n for n in all_nodes if n['price'] < poc], key=lambda x: x['price'], reverse=True)[:limit]
         }
@@ -458,7 +468,7 @@ class ObserverAgent:
             keltner_window=cfg.kc_period, keltner_multiplier=cfg.kc_multiplier,
             volume_ma_window=cfg.vol_ma_period, trend_threshold=cfg.regime_trend_threshold,
             trend_intensity_lookback=cfg.trend_intensity_lookback,
-            wick_skewness_lookback=cfg.wick_skewness_lookback
+            wick_skewness_period=cfg.wick_skewness_period
         )
         return MarketRegimeAnalyzer(config=rg_cfg)
 

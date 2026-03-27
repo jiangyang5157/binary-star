@@ -20,7 +20,7 @@ class MarketRegimeConfig:
     volume_ma_window: int              # Window for volume moving average
     trend_threshold: float            # Threshold for trend intensity classification
     trend_intensity_lookback: int      # Lookback for efficiency ratio
-    wick_skewness_lookback: int        # Lookback for wick analysis
+    wick_skewness_period: int          # Lookback for wick analysis
 
 @dataclass(frozen=True)
 class RegimeResult:
@@ -31,8 +31,8 @@ class RegimeResult:
     squeeze_factor: float             # Ratio of BB width to KC width
     market_regime: str                # TRENDING, RANGING, or UNKNOWN
     trend_intensity: float            # Quantitative score of trend strength
-    skewness: float                   # Bias in candle wicks (bullish/bearish asymmetry)
-    volume_breakout_ratio: float      # Current volume relative to moving average
+    wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
+    vol_breakout: float               # Current volume relative to moving average
 
 class IndicatorEngine:
     """
@@ -103,7 +103,7 @@ class RegimeClassifier:
         # 3. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
         if all(col in df.columns for col in ['open', 'high', 'low', 'close']):
-            recent = df.tail(self.config.wick_skewness_lookback)
+            recent = df.tail(self.config.wick_skewness_period)
             up_wicks = (recent['high'] - np.maximum(recent['open'], recent['close'])).sum()
             lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
@@ -119,8 +119,7 @@ class RegimeClassifier:
             squeeze_factor=round(float(squeeze_factor), 4),
             market_regime=market_regime,
             trend_intensity=round(float(latest['trend_intensity']), 4),
-            skewness=round(float(skewness), 4),
-            volume_breakout_ratio=round(float(vol_ratio), 2)
+            vol_breakout=round(float(vol_ratio), 2)
         )
 
 class MarketRegimeAnalyzer:
@@ -144,7 +143,7 @@ class MarketRegimeAnalyzer:
                 volume_ma_window=int(kwargs['vol_ma_window']),
                 trend_threshold=float(kwargs['trend_intensity_threshold']),
                 trend_intensity_lookback=int(kwargs['trend_lookback']),
-                wick_skewness_lookback=int(kwargs['wick_lookback'])
+                wick_skewness_period=int(kwargs.get('wick_skewness_period', 3))
             )
             
         self.engine = IndicatorEngine(self.config)

@@ -27,7 +27,7 @@ EXECUTION LAW: Use the following thresholds as mandatory dynamic filters for tac
 | **SL Placement** | **0.2x - 0.5x ATR** beyond Anchor | SL MUST be hidden tightly behind a structural wall (POC, VAH, VAL). Tighter structural SL = Higher RR. |
 | **TP Target** | Next Structural Node | Target the nearest opposing HVN (friction) or LVN (vacuum). NO artificial ATR caps. |
 | **Vol Confirmation**| `vol_breakout` > 1.2 | Required ONLY for Trend/Momentum continuation. |
-| **Absorption Bias** | `wick_skewness` > 0.6 | If entering a reversal/pullback, ensure candle wicks show exhaustion. |
+| **Absorption Bias** | `wick_skewness_lookback` < -0.6 (Long) <br> `wick_skewness_lookback` > 0.6 (Short) | If entering a reversal/pullback, ensure candle wicks show exhaustion (Long lower wicks for Longs). |
 
 # INPUT DATUM
 - **Observation Content**: {observation_json} (The Forensic Map from Observer Agent).
@@ -38,7 +38,7 @@ EXECUTION LAW: Use the following thresholds as mandatory dynamic filters for tac
 [[[PASS: DRAFTING]]]
 ### DRAFTING
 1. **Data Alignment**: Extract `current_price`, `atr_macro`, and primary anchors (`POC/VAH/VAL`).
-2. **Path Identification**: Contrast `cvd_trend` and `wick_skewness`. Determine if the path of least resistance is organic momentum or passive absorption.
+2. **Path Identification**: Contrast `cvd_trend` and `wick_skewness_lookback`. Determine if the path of least resistance is organic momentum or passive absorption.
 3. **Execution Engineering**: Select the entry anchor. Use the Mathematical Scratchpad to define SL and TP based on the `EXECUTION LAW`.
 4. **Temporal Projection**: Calculate the `holding_time_hours` using the formula: `Dist / (ATR_macro * max(trend_intensity, {min_temporal_efficiency}))`.
 5. **Probability Check**: Verify if the `market_regime` and `vol_breakout` support the intended direction and timeframe.

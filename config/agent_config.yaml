@@ -28,7 +28,7 @@ observer:
   top_structural_levels_to_report: 3
   funding_rate_history_limit: 1
   trend_intensity_lookback: 24
-  wick_skewness_lookback: 3
+  wick_skewness_period: 3
   liq_cluster_atr_multiplier: 0.25
   liq_cluster_fallback_pct: 0.005
 strategist:
