@@ -30,6 +30,8 @@ observer:
   wick_skewness_period: 3
   liq_cluster_atr_multiplier: 0.25
   liq_cluster_fallback_pct: 0.005
+  funding_rate_lookback_hours: 24.0
+  vol_intensity_lookback: 24
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest

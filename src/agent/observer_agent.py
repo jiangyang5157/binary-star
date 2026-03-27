@@ -59,6 +59,8 @@ class ObserverConfig:
     wick_skewness_period: int
     liq_cluster_atr_multiplier: float
     liq_cluster_fallback_pct: float
+    funding_rate_lookback_hours: float
+    vol_intensity_lookback: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -100,7 +102,9 @@ class ObserverConfig:
             trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
             wick_skewness_period=int(obs['wick_skewness_period']),
             liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
-            liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct'])
+            liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct']),
+            funding_rate_lookback_hours=float(obs['funding_rate_lookback_hours']),
+            vol_intensity_lookback=int(obs['vol_intensity_lookback'])
         )
 
     @property
@@ -166,7 +170,7 @@ class MarketDataLoader:
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=100, startTime=ts_ms - (24 * 60 * 60 * 1000), endTime=ts_ms) or []
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=100, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
@@ -212,11 +216,11 @@ class MarketMetricsRefiner:
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
         vol_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
         
-        # 2. Vol-of-Vol (Current Macro ATR vs Historical Average)
-        # We use a lookback of 24 for the average-of-average
-        avg_atr_lookback = min(24, len(m_df))
+        # 2. Volatility Intensity (Current Macro ATR vs Historical Average)
+        # We use a lookback from config for the average-of-average
+        avg_atr_lookback = min(self.config.vol_intensity_lookback, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
-        atr_rel_pct = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
+        vol_intensity = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
         return {
             "current_price": c,
@@ -224,7 +228,7 @@ class MarketMetricsRefiner:
             "atr_micro": atr_n,
             "vol_ratio": f"{vol_ratio:.2f}",
             "latest_wick_skew": f"{wick_skew:.2f}",
-            "vol_of_vol": f"{atr_rel_pct:.2f}" # > 1.0 means current volatility is expanding beyond its own average
+            "vol_intensity_index": f"{vol_intensity:.2f}" # > 1.0 means current volatility is expanding beyond its own average
         }
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:
