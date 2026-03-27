@@ -58,7 +58,8 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
         
         return {
             "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
-            "sl_atr_distance": round(sl_dist / atr, 2) if atr > 0 else 0,
+            "entry_to_sl_atr": round(sl_dist / atr, 2) if atr > 0 else 0,
+            "entry_to_tp_atr": round(tp_dist / atr, 2) if atr > 0 else 0,
             "projected_holding_hours": round(tp_dist / effective_velocity, 2) if effective_velocity > 0 else 0
         }
     except (ValueError, TypeError, KeyError) as e:
