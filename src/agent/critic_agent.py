@@ -19,15 +19,20 @@ class CriticConfig:
     model: str
     role_prompt_path: str
     temperature: float
+    sl_structural_buffer_floor: float
+    sl_structural_buffer_ceiling: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
         """Factory method to extract critic config from the global config dict."""
         critic = full_config['critic']
+        strat = full_config['strategist']
         return cls(
             model=str(critic['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
-            temperature=float(critic['temperature'])
+            temperature=float(critic['temperature']),
+            sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
+            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling'])
         )
 
 class CriticAgent(BaseAgent):
@@ -66,7 +71,9 @@ class CriticAgent(BaseAgent):
         context = {
             "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
-            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system."
+            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system.",
+            "sl_structural_buffer_floor": self.config.sl_structural_buffer_floor,
+            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling
         }
         
         prompt = self._prepare_prompt(self.config.role_prompt_path, **context)

@@ -51,6 +51,30 @@ graph TD
 
 ---
 
+## 📊 深度演化分析：持仓周期与缩放指南 (The Deep Evolution Audit)
+
+> [!IMPORTANT]
+> **“持仓周期 (Holding Period)” 是系统的核心权重，而非简单的环境参数。** 调整持仓目标会导致系统产生“多阶维度”的偏移，必须配套以下硬化逻辑。
+
+### 1. 缩放路线图 (Strategy Scaling Logic)
+针对系统在 **“时间跨度周期对齐” (Temporal Alignment)** 上的局限性，提供如下缩放配置：
+
+| 目标策略 | Macro / Micro | 核心改动 (Config) | 核心改动 (Prompt) |
+| :--- | :--- | :--- | :--- |
+| **Swing (1周内)** | 1h / 15m | `funding_lookback`: 168h | `min_temporal_efficiency`: 0.3 |
+| **Position (1月内)**| **4h / 1h** | `resolution_bins`: 800+ | `Dynamic RR`: Trend >= 3.0x |
+| **Logic (Scalp)** | 15m / 1m | `wick_skew_period`: 1 | `confidence`: High Fill Priority |
+
+### 2. 数学逻辑审计 (Pass 2 Analysis)
+*   **物理几何崩溃**: 当 `macro_interval` 拉长至周/月级别时，分桶数 (Bins) 必须呈 **对数级增加**。否则，高成交量节点（墙）的厚度会吞没系统预留的止损缓冲区。
+*   **线性公式失效**: `holding_time_hours` 的线性算法在月度持仓中会导致预测值脱靶。长线策略必须在 Prompt 中引入 **“波动率预期衰减”** 的权重。
+
+### 3. 架构压力与 API 极限 (Pass 3 Analysis)
+*   **数据孤岛风险**: 对于月线级别，`fetch_liquidations` (Limit=100) 无法捕获 2 周前的关键清算集群，导致 AI 生成的“反向扫荡”预测失效。
+*   **计算摩擦**: 800+ Bins 会显著增加 Telemetry 的 JSON 密度，虽然不影响 Gemini 的 1M 窗口，但可能导致任务聚焦度（Attentional Drift）偏差。
+
+---
+
 ## 🛡 核心硬化盾牌 (Forensic Hardening Mechanism)
 
 为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
@@ -89,7 +113,6 @@ pip install -r requirements.txt
     ```
 *   **历史抽样回测 (Backtest)**:
     ```bash
-    # Regime 模式：按市场分层抽样
     python3 backtest.py --sampling 12 --mode regime --start T-24d --data_root data/backtest
     ```
 *   **策略回放 (Strategy Replay)**:
@@ -114,7 +137,6 @@ pip install -r requirements.txt
 ### 4. 自动化演化循环 (Evolution Loop)
 *   **启动无人守值编排器 (Orchestrator)**:
     ```bash
-    # 每 1 小时自动运行一次 观察-决策草案-审计-决策 循环
     python3 pipeline_orchestrator.py --symbol BTCUSDT --interval 1 --data_root data/live
     ```
 *   **诊断进化 (Diagnosis)**:
@@ -128,39 +150,33 @@ pip install -r requirements.txt
 
 ---
 
-## ⚖️ 我们的哲学
-系统不通过“预测”未来获利，而是通过“**精确测绘当前的逻辑陷阱**”获利。每一张单子都是物理事实与对抗性逻辑的结晶。
+## 📓 系统演化笔记 (Evolution Notebook)
+
+### 🗓 2026-03-27: 多周期弹性与长线演化大审计
+
+#### 1. 系统哲学与背景
+本次审计聚焦于“时间跨度僵化”问题。系统在 24h 尺度下表现完美，但在 1 个月尺度下会出现“宏观盲视”。
+
+#### 2. 核心调整建议
+*   **结构性容忍度 (Strategic Forgiveness)**: 
+    - 止损上限从 `0.5x` 提升至 `1.2x` ATR。
+    - **实装方案**: 已将 `sl_structural_buffer_floor` 和 `sl_structural_buffer_ceiling` 抽离至 `agent_config.yaml`。
+*   **清算记忆层 (Liquidation Memory)**: 
+    - 建议建立 `liquidation_store.json` 以记录历史强平簇，充当长线“价格磁铁”。
+*   **几何分辨率 (Geometric Resolution)**: 
+    - 必须在长线模式下将 `volume_profile_price_buckets_count` 提升至 800+ 以维持结构精度。
+
+#### 3. 数学模型审计
+*   `holding_time_hours` 公式在月线级别存在线性退化，建议引入波动率衰减因子，并下调 `min_temporal_efficiency` 指标。
+
+#### 4. 基础设施压力预测
+*   Binance API 的 `force_orders` 100条限制是唯一的单点故障点，必须通过本地持久化来对抗数据丢失。
 
 ---
 
-## 📊 持仓策略与演化分析 (Holding Strategy & Evolution Analysis)
+*(注：此部分将记录系统所有的深度分析与演化历程，作为项目长期维护的活文档。)*
 
-### 1. 系统核心逻辑架构 (Logical Pivot)
-你的系统是一个典型的 **“观察-推理-风控-审计”** 四位一体的闭环演化模型。
-*   **观察层 (Observer)**: 负责“单一口径真理 (Single Source of Truth)”的构建。它不仅提取 OHLCV，还通过 **Volume Profile (成交量分布)** 和 **Market Regime (市场环境分析)** 将非结构化数据转化为“地形图”。
-*   **推理层 (Strategist)**: 系统的核心执行引擎。它的逻辑枢纽在于 **ATR-Macro (波动率锚点)**。所有的进场、止损、止盈以及 `holding_time_hours` 的预测，其底层的数学分母都是波动率。
-*   **风控层 (Critic)**: 充当了“负面审计”，利用 `hidden_risk` 和 `DLE (深度限价进场)` 机制强制进行数学边缘测试。
-*   **演化层 (Coach)**: 利用 `Reviewer` 的 `evaluation_score` 反馈，动态修正 `Strategist.md` 中的判定阈值，实现闭环演化。
+---
 
-### 2. 场景分析 1：持仓时间 < 1 周 (168h)
-| 修改点 | 调整细节 | 为什么？ | 重要性 |
-| :--- | :--- | :--- | :--- |
-| **config: macro_lookback** | 从 336 (14d) 增加到 672+ (28d) | 1周的持仓属于跨周交易。14天的数据只能看到上一个波段，看不出月线级别的结构位。如果不增大，系统会由于不了解更远端的 HVN (高成交量区) 而设置了错误的止盈。 | **High (高)** |
-| **config: trend_intensity_duration** | 从 24h 增加到 72h 或 168h | 24小时的趋势强度在1周持仓面前只是“噪声”。你需要知道整个周线级别是否在趋势中。否则你会因为小级别的反弹误判大级别的反向趋势。 | **Medium (中)** |
-| **Strategist: min_temporal_efficiency** | 评估是否需要下调 (0.4 -> 0.3) | 持仓时间越长，市场实现预期目标的“效率”通常越低。如果效率门槛太高，系统会算出一个非常短的持仓时间，导致 Reviewer 在结算时给出 `Temporal Failure` (时间效率低下) 的失分。 | **Low (低)** |
-
-### 3. 场景分析 2：持仓时间 < 1 个月 (720h)
-如果你将目标设定为 1 个月持仓，而保持目前的配置，**系统的演化闭环将会断裂**。
-| 修改点 | 调整细节 | 为什么？ | 重要性 |
-| :--- | :--- | :--- | :--- |
-| **config: macro_interval** | **必须** 从 1h 改为 4h 或 1d | 1h 级别的数据在 1 个月尺度上不具备宏观统计意义。你无法通过 14 天的小时线看清未来 30 天可能遇到的结构。这会导致系统在“迷雾”中持仓。 | **Critical (极致重要)** |
-| **config: micro_interval** | 建议 从 15m 改为 1h | 15m 线对于 1 个月的持仓进场过于精细，会包含大量被剥头皮算法干扰的假信号。 | **Medium (高)** |
-| **observer.py: funding_rate** | 增加 Fetch 窗口 (目前 hardcoded 24h) | 持仓 1 个月，资金费率 (Funding Rate) 的多寡将直接决定你的持仓成本及 Alpha。24小时的快照无法代表 30 天的 Carry Cost。如果不改，系统可能选了一个长期高扣费的品种，吃掉所有利润。 | **High (高)** |
-| **Strategist: RR (盈亏比) Law** | 提高 Trending 模式的最小 RR (>= 3.0x) | 长期持仓面临的时间风险 (Time At Risk) 更大（黑天鹅风险增加）。如果没有更高的盈亏比补偿，闭环演化最终会导向亏损，因为 SL 的触发概率随时间呈非线性增长。 | **Medium (中)** |
-
-### 4. 系统压力预测 (Stress Prediction)
-*   **数据与 API 压力**: `VolumeProfileAnalyzer` 的 bin 分桶逻辑在数据量增加 10 倍（例如小时线看 3 个月）时，计算开销呈线性增长。
-*   **逻辑超负荷与 Bug 风险**: `holding_time_hours` 的线性公式在月度级别可能失效，且某些硬编码周期（如 `vol_intensity_lookback`）需随时间跨度调整。
-
-### 5. 弹性 (Flexibility) 与困惑深度分析
-你的系统在 **“相对估值”** 上极具弹性（ATR 驱动），但在 **“时间跨度对齐”** 上存在刚性断层。建议构建“多时域感知层”，根据持仓目标自动匹配不同比例尺的地形图。
+## ⚖️ 我们的哲学
+系统不通过“预测”未来获利，而是通过“**精确测绘当前的逻辑陷阱**”获利。每一张单子都是物理事实与对抗性逻辑的结晶。

@@ -19,6 +19,8 @@ class StrategistConfig:
     temperature_draft: float
     temperature_synthesis: float
     min_temporal_efficiency: float
+    sl_structural_buffer_floor: float
+    sl_structural_buffer_ceiling: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -29,7 +31,9 @@ class StrategistConfig:
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
             temperature_draft=float(strat['temperature_draft']),
             temperature_synthesis=float(strat['temperature_synthesis']),
-            min_temporal_efficiency=float(strat['min_temporal_efficiency'])
+            min_temporal_efficiency=float(strat['min_temporal_efficiency']),
+            sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
+            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -104,7 +108,9 @@ class StrategistAgent(BaseAgent):
             "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(extra_context.get("draft_plan"), indent=2, ensure_ascii=False),
             "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False),
-            "min_temporal_efficiency": velocity_floor
+            "min_temporal_efficiency": velocity_floor,
+            "sl_structural_buffer_floor": self.config.sl_structural_buffer_floor,
+            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
