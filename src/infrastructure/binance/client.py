@@ -85,23 +85,25 @@ class BinanceFuturesClient:
             logger.error(f"Order book fetch failed for {symbol}: {e.error_message}")
             return {}
 
-    def fetch_liquidations(self, symbol: str, limit: int = 100) -> List[Dict[str, Any]]:
+    def fetch_liquidations(self, symbol: str, limit: int = 100, **kwargs) -> List[Dict[str, Any]]:
         """
         Fetches recent forced liquidation orders. 
         Uses SDK first, falls back to public REST endpoint if necessary.
         """
         try:
-            return self.client.force_orders(symbol=symbol, limit=limit)
+            return self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
         except (ClientError, Exception) as e:
             logger.warning(f"SDK liquidation fetch failed for {symbol}, trying fallback: {e}")
             
         # Fallback to public REST API
         try:
-            url = f"https://fapi.binance.com/fapi/v1/allForceOrders?symbol={symbol}&limit={limit}"
+            params = f"symbol={symbol}&limit={limit}"
+            if 'startTime' in kwargs: params += f"&startTime={kwargs['startTime']}"
+            if 'endTime' in kwargs: params += f"&endTime={kwargs['endTime']}"
+            
+            url = f"https://fapi.binance.com/fapi/v1/allForceOrders?{params}"
             resp = requests.get(url, timeout=self.timeout)
             raw_data = resp.json() if resp.status_code == 200 else []
-            # The 'allForceOrders' endpoint returns 'price', 'origQty', 'side', etc.
-            # We already expect these in our refined analyzer.
             return raw_data
         except Exception as e:
             logger.error(f"Fallback liquidation fetch failed: {e}")
@@ -159,10 +161,10 @@ class BinanceFuturesClient:
             logger.error(f"Top L/S Ratio fetch failed for {symbol}: {e.error_message}")
             return []
 
-    def fetch_funding_rate(self, symbol: str, limit: int = 100) -> List[Dict[str, Any]]:
+    def fetch_funding_rate(self, symbol: str, limit: int = 100, **kwargs) -> List[Dict[str, Any]]:
         """Fetches historical funding rate data."""
         try:
-            return self.client.funding_rate(symbol=symbol, limit=limit)
+            return self.client.funding_rate(symbol=symbol, limit=limit, **kwargs)
         except ClientError as e:
             logger.error(f"Funding Rate fetch failed for {symbol}: {e.error_message}")
             return []

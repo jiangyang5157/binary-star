@@ -143,6 +143,11 @@ class MarketDataLoader:
         oi_delta = self._get_interval_delta(cfg.macro_context.time_interval)
         historical_ts_ms = ts_ms - int(oi_delta.total_seconds() * 1000)
 
+        # Calculate liquidation window based on micro analysis duration
+        micro_delta = self._get_interval_delta(cfg.micro_context.time_interval)
+        liq_lookback_ms = int(micro_delta.total_seconds() * cfg.micro_context.historical_lookback_candles * 1000)
+        liq_start_ts_ms = ts_ms - liq_lookback_ms
+
         return RawMarketData(
             macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.historical_lookback_candles, endTime=ts_ms) or [],
             micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.historical_lookback_candles, endTime=ts_ms) or [],
@@ -151,8 +156,8 @@ class MarketDataLoader:
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
-            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch) or [],
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=cfg.funding_rate_limit) or []
+            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=cfg.funding_rate_limit, startTime=liq_start_ts_ms, endTime=ts_ms) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
