@@ -37,41 +37,6 @@
 
 ---
 
-## 🧩 智能体通信协议 (Agent Communication Protocol)
-
-系统采用基于 **Tag-based RPC (基于标签的远程调用)** 的强类型通信协议。Agent 之间不只是传递自然语言，而是通过标准化的标签触发预定义的逻辑分支。
-
-```mermaid
-graph TD
-    subgraph "Phase 1: Observation"
-        OB[Observer] -->|Telemetry JSON| ST_D[Strategist Draft]
-    end
-
-    subgraph "Phase 2: Adversarial Audit"
-        ST_D -->|Draft Plan| CR[Critic Audit]
-        CR -->|Math Fact Check Verification| CR
-        CR -->|is_veto + skepticism_score| ST_S
-        CR -->|Standardized Tag in hidden_risk| ST_S
-    end
-
-    subgraph "Phase 3: Synthesis"
-        ST_S[Strategist Synthesis] -->|Protocol 4: Inspect Tag| ST_S
-        ST_S -->|Tag: CLEAR| ST_S_C[Maintain Trajectory]
-        ST_S -->|Tag: ABSORPTION/SQUEEZE/VOID| ST_S_H[Hardening: DLE or SL Adjustment]
-        ST_S -->|Tag: MACRO/VOL/ANOMALY| ST_S_N[NEUTRAL Surrender]
-    end
-```
-
-### 🏷️ 标准化标签字典 (Standardized Tag Glossary)
-
-| 标签类别 | 标准化标签 | 策略师 (Strategist) 响应协议 |
-| :--- | :--- | :--- |
-| **放行 (Pass)** | `[CLEAR]` | **维持原判**：保持现有策略，仅应用细微优化。 |
-| **硬化 (Mitigation)** | `[LIQUIDITY_VOID]` <br> `[ABSORPTION_TRAP]` <br> `[RETAIL_SQUEEZE]` | **强制加固**：必须部署深层限价单 (DLE) 或收紧止损。 |
-| **撤退 (Fatal)** | `[MACRO_CONFLICT]` <br> `[VOLATILITY_EXPANSION]` <br> `[ANOMALY]` <br> `[MATH_VIOLATION]` | **强制止损/空仓**：直接输出 NEUTRAL 投降。 |
-
----
-
 ## 🚀 快速开始
 
 ### 1. 环境准备
