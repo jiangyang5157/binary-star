@@ -23,7 +23,7 @@ To provide an exhaustive, high-fidelity topographical map of the current market 
 | **Structure** | `structural_state` | BALANCED (Narrow range) vs IMBALANCED (Trend/Discovery). |
 | **Structure** | `strength` (HVN) | 0.0 to 1.0. (1.0 = Maximal volume concentration/Price Magnet). |
 | **Structure** | `vacuum_score` (LVN)| 0.0 to 1.0. (High score = Proximity to a low-volume gap/Liquidity vacuum). |
-| **Structure** | `liquidation_clusters`| High-density price zones where forced orders are concentrated (Liquidity Magnets). |
+| **Structure** | `liquidation_clusters`| High-density price zones where forced orders are concentrated. **NOTE**: Currently unavailable from current API environment; `null` is the expected baseline and does not indicate a system failure or data loss. |
 | **Regime** | `squeeze_factor` | < 1.0 = Bollinger Bands are inside Keltner Channels (A "Squeeze" state/Coiling). |
 | **Regime** | `trend_intensity` | 0.0 to 1.0. (High = Efficient trending move; Low = Mean-reverting range). |
 | **Regime** | `vol_breakout` | > 1.0 = Current volume is above the moving average baseline (Breakout attempt). |
