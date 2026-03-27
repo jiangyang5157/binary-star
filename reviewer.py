@@ -256,7 +256,8 @@ class ReviewerOrchestrator:
             interval_seconds = interval_map[fetch_interval]
             duration_seconds = (dt_fetch_end - dt_start).total_seconds()
             required_limit = int(duration_seconds / interval_seconds) + 2 # +2 safety buffer
-            target_limit = min(required_limit, 1500)
+            # Remove the 1500 hard cap to support paginated fetching
+            target_limit = min(required_limit, 10000) 
 
             klines = self.fetcher.fetch_historical_klines(
                 symbol=symbol, 

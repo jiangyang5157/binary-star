@@ -68,12 +68,62 @@ class BinanceFuturesClient:
     # --- Technical Market Data ---
 
     def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs) -> List[List[Any]]:
-        """Fetches historical candlestick (kline) data."""
+        """
+        Fetches historical candlestick (kline) data with automated pagination.
+        Handles Binance API limits (typically 1000-1500) by splitting large 
+        requests into sequential chunks.
+        """
         try:
-            logger.info(f"Fetching {limit} klines for {symbol} ({interval})")
-            return self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
+            # Binance standard max limit per request
+            MAX_CHUNK = 1000
+            
+            if limit <= MAX_CHUNK:
+                logger.info(f"Fetching {limit} klines for {symbol} ({interval})")
+                return self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
+            
+            # Pagination Logic for large limits
+            all_klines = []
+            remaining = limit
+            current_kwargs = kwargs.copy()
+            
+            # Map interval to milliseconds for temporal shifting
+            interval_ms = self.INTERVAL_SECONDS.get(interval, 60) * 1000
+            
+            # Backward-to-Forward Fetching (Standard Binance Protocol for endTime)
+            while remaining > 0:
+                fetch_count = min(remaining, MAX_CHUNK)
+                logger.debug(f"Paginating klines for {symbol}: Fetching chunk of {fetch_count} (Remaining: {remaining})")
+                
+                chunk = self.client.klines(symbol=symbol, interval=interval, limit=fetch_count, **current_kwargs)
+                if not chunk:
+                    break
+                    
+                # Prepend chunk to maintain chronological order [Earliest -> Latest]
+                all_klines = chunk + all_klines
+                remaining -= len(chunk)
+                
+                # Shift timeframe backwards based on the earliest kline in the current chunk
+                # Subtract 1ms from OpenTime to fetch the previous set
+                earliest_open = int(chunk[0][0])
+                current_kwargs['endTime'] = earliest_open - 1
+                
+                if len(chunk) < fetch_count:
+                    # No more historical data available
+                    break
+            
+            # Final deduplication and sorting by OpenTime (index 0)
+            # Use dictionary to maintain unique entries by OpenTime
+            unique_klines = {k[0]: k for k in all_klines}
+            sorted_unique = [unique_klines[ts] for ts in sorted(unique_klines.keys())]
+            
+            logger.info(f"Fetched total of {len(sorted_unique)} klines for {symbol} via pagination.")
+            return sorted_unique
+            
         except ClientError as e:
             logger.error(f"Klines fetch failed for {symbol}: {e.error_message}")
+            return []
+        except Exception as e:
+            logger.error(f"Unexpected error during kline pagination: {e}", exc_info=True)
             return []
 
     def fetch_order_book(self, symbol: str, limit: int = 1000) -> Dict[str, Any]:
