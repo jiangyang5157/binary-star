@@ -459,8 +459,8 @@ class ObserverAgent:
                     "limit": self.config.micro_context.historical_lookback_candles
                 },
                 "logic": {
-                    "tactical_window_hours": self.config.taker_vol_delta_duration_hours,
-                    "structural_window_hours": self.config.trend_intensity_duration_hours,
+                    "taker_volume_delta_duration_hours": self.config.taker_vol_delta_duration_hours,
+                    "trend_intensity_duration_hours": self.config.trend_intensity_duration_hours,
                     "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.historical_lookback_candles) / 3600, 1)
                 }
             },
