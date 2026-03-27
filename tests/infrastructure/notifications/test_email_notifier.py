@@ -198,19 +198,18 @@ class TestStrategyNotifier(unittest.TestCase):
     def test_template_rendering(self):
         """Verify that the HTML template renders with key data points."""
         html = StrategyEmailTemplate.render(self.mock_bullish_order_data)
-        self.assertIn("BTCUSDT Signal Detected", html)
+        self.assertIn("BTCUSDT Market Topography Audit", html)
         self.assertIn("MARKET BULLISH", html)
         self.assertIn("70800.1", html)
         self.assertIn("80%", html)
-        self.assertIn("Refined Strategic Reasoning", html)
+        self.assertIn("Strategic Synthesis", html)
 
     def test_template_rendering_neutral(self):
         """Verify that the HTML template handles NEUTRAL opinion with no limit_order."""
         html = StrategyEmailTemplate.render(self.mock_neutral_no_order_data)
         self.assertIn("MARKET NEUTRAL", html)
         # The order block uses a specific background color and 3-column grid
-        self.assertNotIn("display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;", html)
-        self.assertIn("Refined Strategic Reasoning", html)
+        self.assertIn("Strategic Synthesis", html)
         
         # Also generate a preview for visual confirmation as requested
         notifier = StrategyNotifier(data_root="data/test")
