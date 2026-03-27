@@ -232,15 +232,15 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
                 <!-- Visual Assets -->
                 <div id="charts-root" style="text-align: center;">
-                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📊 Visual Forensic Proof</h4>
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📸 Visual Snapshots</h4>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 15px 0;">
                         <tr>
                             <td style="width: 50%; vertical-align: top;">
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Macro View</span>
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Macro</span>
                                 <img src="cid:macro_chart" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                             </td>
                             <td style="width: 50%; vertical-align: top;">
-                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Micro View</span>
+                                <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Micro</span>
                                 <img src="cid:micro_chart" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                             </td>
                         </tr>
@@ -394,7 +394,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
 
                 <!-- Visual Assets (Comparative Proof) -->
                 <div id="charts-root" style="text-align: center;">
-                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📸 Forensic Snapshots</h4>
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">📸 Visual Snapshots</h4>
                     
                     <!-- Macro Row -->
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px; border-collapse: separate; border-spacing: 15px 0;">
@@ -530,12 +530,16 @@ class StrategyNotifier:
         opinion = final_decision.get("opinion") or "NEUTRAL"
         confidence = final_decision.get("confidence", 0)
         
-        # Only notify if confidence >= threshold
+        # Only notify if confidence >= threshold AND opinion is BULLISH/BEARISH
         if confidence < self.min_confidence_threshold:
             logger.info(f"Notifier: Confidence too low ({confidence}% < {self.min_confidence_threshold}%). Skipping dispatch.")
             return False
+
+        if opinion.upper() not in ["BULLISH", "BEARISH"]:
+            logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH/BEARISH allowed).")
+            return False
             
-        subject = f"{symbol} | {opinion.upper()} ({confidence}%) | Strategic Synthesis"
+        subject = f"💡 Signal | {symbol} | {opinion.upper()} ({confidence}%)"
         
         # 2. Dispatch Email
         logger.info(f"Notifier: Dispatching alert: {subject}")
@@ -578,7 +582,7 @@ class StrategyNotifier:
         metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
         result = metrics.get("tp_sl_result", "N/A")
         
-        subject = f"{symbol} | {result} | Forensic Review"
+        subject = f"🔍 Audit | {symbol} | {result}"
         
         logger.info(f"Notifier: Dispatching forensic report: {subject}")
         return self.dispatcher.dispatch(subject, html_body, attachments)
