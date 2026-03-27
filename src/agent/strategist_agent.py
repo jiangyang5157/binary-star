@@ -53,22 +53,22 @@ class StrategistAgent:
 
     def draft(self, observation: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Phase Draft: Generates an initial strategic draft based on market topography.
+        Phase A: DRAFTING - Generates an initial strategic draft based on market topography.
         """
         prompt = self._build_prompt(observation)
-        logger.info("Strategist: Drafting initial strategic plan...")
+        logger.info("Strategist: Executing PHASE A: DRAFTING (Initial strategic plan)...")
         return self._execute_ai_cycle(prompt, temperature=self.config.temperature_draft)
 
     def synthesize(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], critique: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Phase Synthesize: Crystalizes the draft and adversarial critique into a final decision.
+        Phase B: SYNTHESIS - Crystalizes the draft and adversarial critique into a final decision.
         """
         prompt = self._build_prompt(
             observation, 
             draft_plan=draft_plan, 
             critic_feedback=critique
         )
-        logger.info("Strategist: Synthesizing final strategy...")
+        logger.info("Strategist: Executing PHASE B: SYNTHESIS (Final strategy)...")
         return self._execute_ai_cycle(prompt, temperature=self.config.temperature_synthesis)
 
     def _build_prompt(self, observation: Dict[str, Any], **extra_context) -> str:
