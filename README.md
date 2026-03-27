@@ -6,35 +6,38 @@
 
 ## 🏗 项目架构：物理锚定与闭环演化
 
-系统通过“观察、决策、审计、反馈”构建了一个严密的逻辑闭环，确保每一笔交易都具备深层的结构化支撑：
+系统通过“测绘、分相决策、对抗审计、复盘反馈”构建了一个严密的逻辑闭环。全线 Agent 基于统一的 `BaseAgent` 基类构建，确保了多模态数据处理、JSON 解析与错误处理的高度一致性：
 
 | 阶段 | 核心 Agent / 组件 | 物理/逻辑内涵 | 核心防御逻辑 |
 | :--- | :--- | :--- | :--- |
-| **1. 景观测绘** | **Observer (观察员)** | 宏微观 Topography 测绘 | 输出 `conviction_score` (信号汇聚度) 过滤低质量噪声。 |
-| **2. 方案起草** | **Strategist (策略师)** | 结构化锚定 (Structural Anchoring) | 强制 SL 隐藏在 POC/VAH/VAL 之后，确保逻辑不处于“真空区”。 |
-| **3. 物理校验** | **Middleware (计算网关)** | 确定性数学事实 (Math Fact Check) | 后端计算真实的 RR、ATR 距离与持仓时间，消除 LLM 幻觉。 |
-| **4. 对抗审计** | **Critic (审计员)** | 对抗性风险侦测 | 检查 SL 缓冲区是否符合物理分布，识别吸收陷阱 (Absorption Trap)。 |
-| **5. 绩效评价** | **Reviewer (复盘官)** | 真实 PnL 与效率审计 | 对比 MFE/MAE 与原始预期，量化系统预测的“溢价”。 |
-| **6. 逻辑突变** | **Coach (教练)** | 批量诊断与 Prompt 补丁生成 | 识别持续性偏见，通过修改 Prompts 实现系统的动态进化。 |
+| **1. 景观测绘** | **Observer (观察员)** | 宏微观 Topography 多模态测绘 | 结合 K 线图与量价指标，输出 `conviction_score` (信号汇聚度) 过滤低质量噪声。 |
+| **2. 分相决策** | **Strategist (策略师)** | **PHASE A: DRAFTING** (初始方案) | 静态 Prompt 状态检测。强制 SL 隐藏在 POC/VAH/VAL 之后，确保逻辑不处于“真空区”。 |
+| **3. 物理校验** | **Middleware (计算网关)** | 确定性数学事实 (Math Fact Check) | 后端计算真实的 RR、ATR 距离与持仓时间，消除 LLM 幻觉，注入后续审计。 |
+| **4. 对抗审计** | **Critic (审计员)** | 对抗性风险侦测 (Adversarial Audit) | 基于物理因子校验止损缓冲区，识别吸收陷阱 (Absorption Trap) 与扫损风险。 |
+| **5. 决策合成** | **Strategist (策略师)** | **PHASE B: SYNTHESIS** (决策收敛) | 结合审计反馈进行风险硬化，根据 `CONFIDENCE CALIBRATION LAW` 调整最终信心分。 |
+| **6. 复盘进化** | **Reviewer (复盘官)** | 离线取证与 PnL 效率审计 | 通过历史多模态资产比对，量化“逻辑溢价”与“确定性偏见”。 |
 
 ---
 
 ## 🧬 核心硬化机制 (Hardening Protocols)
 
-### A. 物理真实网关 (The Middleware Computation Gate)
-这是系统防御“AI 幻觉”的核心。在策略草案生成后，中间件直接在后端计算物理数据并注入审计流程：
-*   **确定性盈亏比 (RR)**：不再信任 Agent 自己的数学计算，而是以物理坐标点为准。
-*   **结构化缓冲区 (Structural Buffer)**：强制审计止损位到最近结构墙（如 POC）的 ATR 距离。若止损位暴露在“流动性真空区 (LVN)”，则直接否决。
-*   **动态时间窗口 (Temporal Gate)**：根据当前波动率 (ATR) 与趋势强度 (Trend Intensity) 自动投影合理的成交与持仓时长。
+### A. 物理真相网关 (The Middleware Computation Gate)
+这是系统防御“AI 幻觉”的核心。代理不再负责复杂的金融计算，所有关键指标在后端计算并注入：
+*   **确定性盈亏比 (RR)**：不再信任 Agent 的自我计算，以物理坐标点为唯一准则。
+*   **结构化缓冲区 (Structural Buffer)**：强制审计止损位到最近结构墙（如 POC）的有效距离。
+*   **动态时间窗口 (Temporal Gate)**：根据波动率 (ATR) 与趋势强度自动投影成交有效时长，防止过度持仓。
 
-### B. 语义一致性协议 (Semantic Consistency Protocol)
-为了确保多智能体协同不产生歧义，系统严格执行以下语义标准：
-*   **影线偏好 (Wick Skewness)**：全系统统一方向——负值代表下长影线（看涨信号/吸筹），正值代表上长影线（看跌信号/派发）。
-*   **属性对齐**：所有 Agent 使用相同的 `vol_breakout`、`ls_ratio` 和 `cvd_trend` 定义，确保决策链路中数据不因命名冲突而丢失。
-*   **中性绕过 (Neutral Bypass)**：当系统选择 `NEUTRAL` (弃权) 时，会自动旁路所有数学审计规则，确保“清白且安全”的 surrenders 不产生误报。
+### B. 高分辨率信心评分 (Precision Scoring Protocol)
+系统强制要求 Agent 进行“精细化打分”：
+*   **去整数化偏见**：禁止使用粗颗粒度的 50/65/75 分，要求根据信号共振程度给出如 67% 或 72% 的确切分数。
+*   **加权负向反馈**：通过 `CONFIDENCE CALIBRATION LAW`，任何为规避风险而采取的“深层挂单 (DLE)”必须同步导致信心分的折损。
 
-### C. 双向对抗博弈 (Bifurcation Protocol)
-审计员 (Critic) 拥有“一票否决权”和“方案硬化建议权”。如果审计员识别出潜在的流动性扫损风险，它会强制策略师采纳 **深层限价 (DLE)** 建议。策略师必须重新计算深层入场后的数学模型；若此时盈亏比不再达标，系统将不得不放弃该机会，实现真正的“宁可错过，不可投机”。
+### C. 多模态视觉证伪 (Visual Counter-Evidence)
+系统不只听取数据，更“看见”市场：
+*   **图表注入**：Observer、Strategist 与 Reviewer 共享一致的图表快照 (Visual Assets)，AI 必须在 Reasoning 中引用图表的视觉特征（如阻力位、影线长度）进行证伪，确立“单点真实来源”。
+
+### D. 无状态感知侦测 (Recursive State Detection)
+Strategist 放弃了脆弱的正则匹配逻辑，通过上下文数据（`draft_plan` 是否为 null）自动感知执行相位。这使得 Prompt 永远保持 static，极大地增强了系统的鲁棒性与可维护性。
 
 ---
 
@@ -69,10 +72,16 @@ python3 backtest.py --sampling 12 --mode spaced --start T-24d --data_root data/b
 
 ## 🔍 取证与可视化 (Forensics)
 
-### 执行审计 (Manual Review)
-手动触发对已生成策略的执行结果审核，量化 PnL 与 MFE/MAE 表现：
+### 执行复盘 (Reviewer Pipeline)
+量化历史决策的 MFE/MAE 表现与真实盈亏：
 ```bash
 python3 reviewer.py --data_root data/live
+```
+
+### 取证回放 (Forensic Replay)
+对特定历史观测点进行全链路推理复现：
+```bash
+python3 strategist_replay.py --data_root data/test --file data/test/observations/your_file.json
 ```
 
 ### 生成可视化看板 (Forensic Dashboard)
@@ -101,4 +110,4 @@ python3 forensic_dashboard.py --data_root data/live --symbol BTCUSDT
 ---
 
 ## ⚖️ 核心理念
-**“不预测行情，只测绘逻辑。”** 本项目坚持物理真相 (Physic Truth) 高于 AI 推理，通过确定性的数学网关为极其不确定的金融市场提供了一份可复用的“决策地图”。
+**“不预测行情，只测绘逻辑；不依赖幻觉，只尊重结构。”** 本项目通过 `BaseAgent` 的工业化沉淀与 `Reasoning Triad` 的逻辑闭环，实现了从“基于生成的博弈”向“基于事实的测绘”的范式转移。
