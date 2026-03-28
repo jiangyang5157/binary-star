@@ -198,27 +198,29 @@ class TestStrategyNotifier(unittest.TestCase):
     def test_template_rendering(self):
         """Verify that the HTML template renders with key data points."""
         html = StrategyEmailTemplate.render(self.mock_bullish_order_data)
-        self.assertIn("BTCUSDT Market Topography Audit", html)
-        self.assertIn("MARKET BULLISH", html)
+        self.assertIn("BTCUSDT Market Blueprint", html)
+        self.assertIn("BULLISH", html)
         self.assertIn("70800.1", html)
         self.assertIn("80%", html)
-        self.assertIn("Strategic Synthesis", html)
+        self.assertIn("Forensic Breakdown", html)
 
     def test_template_rendering_neutral(self):
         """Verify that the HTML template handles NEUTRAL opinion with no limit_order."""
         html = StrategyEmailTemplate.render(self.mock_neutral_no_order_data)
-        self.assertIn("MARKET NEUTRAL", html)
+        self.assertIn("STAND ASIDE", html)
         # The order block uses a specific background color and 3-column grid
-        self.assertIn("Strategic Synthesis", html)
+        self.assertIn("Forensic Breakdown", html)
         
         # Also generate a preview for visual confirmation as requested
-        notifier = StrategyNotifier(data_root="data/test")
-        notifier.notify_strategy("BTCUSDT", self.mock_neutral_no_order_data)
+        with patch('src.infrastructure.notifications.email_notifier.StrategyNotifier._load_global_config', return_value={'system': {}}):
+            notifier = StrategyNotifier(data_root="data/test")
+            notifier.notify_strategy("BTCUSDT", self.mock_neutral_no_order_data)
 
     def test_confidence_filter(self):
         """Verify that the Notifier skips dispatch when confidence < 60%."""
-        notifier = StrategyNotifier(data_root="data/test")
-        notifier.dispatcher.dispatch = MagicMock()
+        with patch('src.infrastructure.notifications.email_notifier.StrategyNotifier._load_global_config', return_value={'system': {'min_confidence_for_notifier_threshold': 60}}):
+            notifier = StrategyNotifier(data_root="data/test")
+            notifier.dispatcher.dispatch = MagicMock()
         
         success = notifier.notify_strategy("BTCUSDT", self.mock_low_confidence_data)
         
@@ -237,7 +239,8 @@ class TestStrategyNotifier(unittest.TestCase):
             enabled=True
         )
         
-        with patch('src.infrastructure.notifications.email_notifier.NotificationConfig.from_env', return_value=config):
+        with patch('src.infrastructure.notifications.email_notifier.NotificationConfig.from_env', return_value=config), \
+             patch('src.infrastructure.notifications.email_notifier.StrategyNotifier._load_global_config', return_value={'system': {'min_confidence_for_notifier_threshold': 60}}):
             data_root = "data/test"
             notifier = StrategyNotifier(data_root=data_root)
             # Mock dispatcher to avoid real SMTP
@@ -251,7 +254,7 @@ class TestStrategyNotifier(unittest.TestCase):
             # Check if preview was saved in data/test/html
             preview_dir = os.path.join(data_root, "html")
             files = os.listdir(preview_dir)
-            self.assertTrue(any("BTCUSDT_strategies_preview" in f for f in files))
+            self.assertTrue(any("BTCUSDT_strategy_preview" in f for f in files))
 
     def test_local_preview_generation(self):
         """Verify that the HTML preview is saved to the correct directory."""
