@@ -12,25 +12,35 @@
 
 ```mermaid
 graph TD
-    subgraph "Forward Logic: The Reasoning Triad"
-        A["Observer: Map Maker"] -->|"Topographical Map"| B("Strategist: Architect")
-        B -->|"Draft Plan"| C{"Middleware: Math Gate"}
-        C -->|"Physical Fact Check"| D["Critic: Adversary"]
-        D -->|"Audit Verdict"| E("Strategist: Awakened")
-        E -->|"Hardened Decision"| F("Actionable Strategy")
+    %% 前向三路推理回路
+    subgraph "前向驱动：三路推理轴 (The Reasoning Triad)"
+        A["Observer: 测绘师"] -->|"物理景观 (Observation)"| B("Strategist: 架构师 (Phase A)")
+        B -->|"逻辑草案 (Draft Plan)"| C{{"Middleware: 物理公证层"}}
+        C -->|"硬核事实 (Math Facts)"| D["Critic: 对抗审判官"]
+        D -->|"审计判决 (Verdict)"| E("Strategist: 觉醒者 (Phase B)")
+        E -->|"最终执行决议 (Decision)"| F["Market Execution"]
     end
 
-    subgraph "Backward Evolution: The Forensic Loop"
-        F -->|"Execution Log"| G["Reviewer: Coroner"]
-        G -->|"Forensic Report"| H["Coach: Geneticist"]
-        H -->|"Diagnosis & Patch"| I["Prompt Evolution"]
-        I -->|"Inject Intelligence"| B
-        I -->|"Inject Constraints"| D
+    %% 后向法医演化回路
+    subgraph "后向演化：法医闭环 (The Forensic Loop)"
+        F -->|"执行日志集 (Logs)"| G["Reviewer: 法医鉴定师"]
+        G -->|"法医审计报告 (Forensic Report)"| H["Coach: 演化合伙人"]
+        H -->|"逻辑补丁 (Patch)"| I[("Prompt & Config: 进化底座")]
     end
 
-    style C fill:#f96,stroke:#333,stroke-width:2px
-    style F fill:#00ff00,stroke:#333,stroke-width:2px
-    style I fill:#f9f,stroke:#333,stroke-width:4px
+    %% 关键进化路径映射：修复逻辑断裂
+    I -.->|"注入地形感知"| A
+    I -.->|"(同时覆盖 A/B 相位) 注入进化逻辑"| B
+    I -.->|"同步硬化策略"| E
+    I -.->|"注入对抗约束"| D
+
+    %% 节点样式美化 (法医级配色)
+    style C fill:#f96,stroke:#333,stroke-width:2px,color:#fff
+    style F fill:#00ff00,stroke:#333,stroke-width:2px,color:#000
+    style I fill:#f9f,stroke:#333,stroke-width:4px,color:#000
+    style A fill:#e1f5fe,stroke:#01579b
+    style G fill:#fff9c4,stroke:#fbc02d
+    style H fill:#e8f5e9,stroke:#2e7d32
 ```
 
 ---
