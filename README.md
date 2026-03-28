@@ -109,39 +109,43 @@ pip install -r requirements.txt
 ### 2. 策略执行与回测 (Strategy & Backtest)
 *   **单点预测 (Live/Manual)**:
     ```bash
-    python3 strategist.py --symbol BTCUSDT --data_root data/live
+    python3 strategist.py --symbol BTCUSDT live
     ```
 *   **历史抽样回测 (Backtest)**:
     ```bash
-    python3 backtest.py --sampling 12 --mode regime --start T-24d --data_root data/backtest
+    python3 backtest.py --sampling 12 --mode regime --start T-24d backtest
     ```
 *   **策略回放 (Strategy Replay)**:
     ```bash
-    python3 strategist_replay.py --data_root data/backtest --file [JSON_PATH]
+    python3 strategist_replay.py backtest --file [JSON_PATH]
     ```
 
 ### 3. 法医复盘与取证 (Review & Forensics)
 *   **批量生成审计报告**:
     ```bash
-    python3 reviewer.py --data_root data/backtest
+    python3 reviewer.py backtest
     ```
 *   **复盘回放 (Review Replay)**:
     ```bash
-    python3 reviewer_replay.py --data_root data/backtest --file [JSON_PATH]
+    python3 reviewer_replay.py backtest --file [JSON_PATH]
+    ```
+*   **策略逆向导出 (Strategy Export)**:
+    ```bash
+    python3 export_strategy.py [prod|test|live|backtest] --file [REVIEW_JSON_PATH]
     ```
 *   **可视化看板 (Analytics)**:
     ```bash
-    python3 forensic_dashboard.py --symbol BTCUSDT --data_root data/backtest
+    python3 forensic_dashboard.py --symbol BTCUSDT backtest
     ```
 
 ### 4. 自动化演化循环 (Evolution Loop)
 *   **启动无人守值编排器 (Orchestrator)**:
     ```bash
-    python3 pipeline_orchestrator.py --symbol BTCUSDT --interval 1 --data_root data/live
+    python3 pipeline_orchestrator.py --symbol BTCUSDT --interval 1 live
     ```
 *   **诊断进化 (Diagnosis)**:
     ```bash
-    python3 coach.py --symbol BTCUSDT --data_root data/backtest
+    python3 coach.py --symbol BTCUSDT backtest
     ```
 *   **应用补丁 (Apply Patch)**:
     ```bash
