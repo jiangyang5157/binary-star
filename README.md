@@ -95,6 +95,7 @@ graph TD
 | **战略意图** | `strategy_intent` | 逻辑演化语义 | **Critical** | 系统的“逻辑北极星”，所有物理参数以此意图为原点进行演化。 |
 | **物理分布精度** | `volume_profile_price_bucket_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
+| **法医分辨率** | `execution_timeframe_interval` | 审计精度 | **Critical** | 确定法医复盘时的 K 线精度。随持仓周期增加而必须放大（1m -> 1h）以确保数据完整性。 |
 | **生存硬化上限** | `stop_loss_buffer_max` | 风险硬化 | **High** | 波动扩张 (volatility_ratio > 2.0) 时必须提升至 0.7+。 |
 | **生存硬化下限** | `stop_loss_buffer_min` | 结构防御底线 | **High** | 结构防御的最小硬性装甲厚度，随系统时间窗口放大而必须加厚，以抵御宏观清算插针。 |
 | **逻辑执行效率** | `min_trade_velocity` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
@@ -114,6 +115,7 @@ graph TD
 | **战略意图** | `strategy_intent` | `Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `300` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
+| **法医分辨率** | `execution_timeframe_interval` | `1m` |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | `0.5` |
 | **生存硬化下限** | `stop_loss_buffer_min` | `0.2` |
 | **生存硬化上限** | `stop_loss_buffer_max` | `0.7` |
@@ -131,6 +133,7 @@ graph TD
 | **战略意图** | `strategy_intent` | `Swing: Regime Breakout & Value Area Migration` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `500` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `4h / 1h` |
+| **法医分辨率** | `execution_timeframe_interval` | `15m` |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | `1.0` |
 | **生存硬化下限** | `stop_loss_buffer_min` | `0.4` |
 | **生存硬化上限** | `stop_loss_buffer_max` | `1.2` |
@@ -147,7 +150,8 @@ graph TD
 | :--- | :--- | :--- |
 | **战略意图** | `strategy_intent` | `Macro: Secular Trend Reversal & HTF Accumulation Forensics` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `1000` |
-| **双相位时域对齐** | `macro/micro_analysis_context` | `1D / 4h` |
+| **双相位时域对齐** | `macro/micro_analysis_context` | `1d / 4h` |
+| **法医分辨率** | `execution_timeframe_interval` | `1h` |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | `2.5` |
 | **生存硬化下限** | `stop_loss_buffer_min` | `0.8` |
 | **生存硬化上限** | `stop_loss_buffer_max` | `2.0` |
