@@ -320,8 +320,9 @@ class ForensicDashboardGenerator:
             is_premature = trade_metrics.get("is_premature_audit", False)
             tp_sl_result = trade_metrics.get("tp_sl_result", "NEITHER")
 
-            if is_premature and tp_sl_result == "NEITHER":
-                self.logger.info(f"Skipping pending stub: {filename} (Order not yet finalized)")
+            # 1. 忽略/跳过还在 PENDING 或 PREMATURE 状态的 (即没有完成完整审计周期的)
+            if is_premature:
+                self.logger.info(f"Skipping premature stub: {filename} (Final audit window not yet closed)")
                 continue
 
             # Extract Strategy metadata
@@ -331,25 +332,26 @@ class ForensicDashboardGenerator:
             
             final_decision = session.get("final_decision", {})
             opinion = final_decision.get("opinion", "NEUTRAL")
+
+            # 2. 只包含原策略 final_decision.opinion 是 BULLISH 或者 BEARISH 的
+            if opinion not in ["BULLISH", "BEARISH"]:
+                self.logger.info(f"Skipping non-trading decision: {filename} (Opinion: {opinion})")
+                continue
+
             confidence = final_decision.get("confidence")
-            
             limit_order = final_decision.get("limit_order", {})
-            holding_time_hours = 0
+            holding_time_hours = limit_order.get("holding_time_hours", 0)
             est_pnl_pct = 0.0
             
-            if opinion in ["BULLISH", "BEARISH"] and limit_order:
-                holding_time_hours = limit_order.get("holding_time_hours", 0)
-                entry = float(limit_order.get("entry", 0))
-                tp = float(limit_order.get("take_profit", 0))
-                sl = float(limit_order.get("stop_loss", 0))
-                
-                if entry > 0:
-                    if tp_sl_result == "TP_HIT":
-                        est_pnl_pct = abs(tp - entry) / entry * 100
-                    elif tp_sl_result == "SL_HIT":
-                        est_pnl_pct = -abs(entry - sl) / entry * 100
-            else:
-                confidence = None
+            entry = float(limit_order.get("entry", 0))
+            tp = float(limit_order.get("take_profit", 0))
+            sl = float(limit_order.get("stop_loss", 0))
+            
+            if entry > 0:
+                if tp_sl_result == "TP_HIT":
+                    est_pnl_pct = abs(tp - entry) / entry * 100
+                elif tp_sl_result == "SL_HIT":
+                    est_pnl_pct = -abs(entry - sl) / entry * 100
 
             extracted_data.append({
                 "name": filename,
