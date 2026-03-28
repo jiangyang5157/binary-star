@@ -7,6 +7,7 @@ from typing import Dict, List, Any, Optional
 from binance.um_futures import UMFutures
 from binance.error import ClientError
 import yaml
+import tenacity
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
 
@@ -51,7 +52,21 @@ class BinanceFuturesClient:
             
         self.network_cfg = self._load_network_config()
         # Strict sourcing from global_config.yaml (network section)
-        self.timeout = int(self.network_cfg['network']['binance']['api_timeout_seconds'])
+        binance_net = self.network_cfg.get('network', {}).get('binance', {})
+        self.timeout = int(binance_net['api_timeout_seconds'])
+        self.retry_count = int(binance_net['retry_count'])
+
+    def _get_retryer(self, method_name: str) -> tenacity.Retrying:
+        """Returns a tenacity retrying object for Binance SDK methods."""
+        return tenacity.Retrying(
+            stop=tenacity.stop_after_attempt(self.retry_count),
+            wait=tenacity.wait_exponential(multiplier=1, min=1, max=10),
+            retry=tenacity.retry_if_exception_type((ClientError, Exception)),
+            before_sleep=lambda retry_state: logger.warning(
+                f"Binance: {method_name} failed. Retrying ({retry_state.attempt_number}/{self.retry_count})..."
+            ),
+            reraise=True
+        )
 
     def _load_network_config(self) -> Dict[str, Any]:
         """Loads the global configuration from YAML (for network settings)."""
@@ -79,7 +94,9 @@ class BinanceFuturesClient:
             
             if limit <= MAX_CHUNK:
                 logger.debug(f"Fetching klines for {symbol} ({interval}) with limit {limit} and kwargs {kwargs}")
-                return self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
+                for attempt in self._get_retryer("klines"):
+                    with attempt:
+                        return self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
             
             # Pagination Logic for large limits
             all_klines = []
@@ -94,7 +111,9 @@ class BinanceFuturesClient:
                 fetch_count = min(remaining, MAX_CHUNK)
                 logger.debug(f"Paginating klines ({'FORWARD' if is_forward else 'BACKWARD'}) for {symbol}: Fetching chunk of {fetch_count} (Remaining: {remaining})")
                 
-                chunk = self.client.klines(symbol=symbol, interval=interval, limit=fetch_count, **current_kwargs)
+                for attempt in self._get_retryer("klines_paginated"):
+                    with attempt:
+                        chunk = self.client.klines(symbol=symbol, interval=interval, limit=fetch_count, **current_kwargs)
                 if not chunk:
                     break
                     
@@ -137,7 +156,9 @@ class BinanceFuturesClient:
         """Fetches order book depth for identifying liquidity pools."""
         try:
             logger.debug(f"Fetching Order Book for {symbol} (Limit: {limit})")
-            return self.client.depth(symbol=symbol, limit=limit)
+            for attempt in self._get_retryer("depth"):
+                with attempt:
+                    return self.client.depth(symbol=symbol, limit=limit)
         except ClientError as e:
             logger.error(f"Order book fetch failed for {symbol}: {e.error_message}")
             return {}
@@ -148,7 +169,9 @@ class BinanceFuturesClient:
         Uses SDK first, falls back to public REST endpoint if necessary.
         """
         try:
-            return self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
+            for attempt in self._get_retryer("force_orders"):
+                with attempt:
+                    return self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
         except (ClientError, Exception) as e:
             logger.warning(f"SDK liquidation fetch failed for {symbol}, trying fallback: {e}")
             
@@ -180,7 +203,9 @@ class BinanceFuturesClient:
 
             if 'endTime' in kwargs:
                 # Historical fetch
-                resp = self.client.open_interest_hist(symbol=symbol, period=period, limit=1, **kwargs)
+                for attempt in self._get_retryer("open_interest_hist"):
+                    with attempt:
+                        resp = self.client.open_interest_hist(symbol=symbol, period=period, limit=1, **kwargs)
                 if resp:
                     return {
                         "symbol": symbol,
@@ -190,7 +215,9 @@ class BinanceFuturesClient:
                 return {}
             
             # Current fetch
-            return self.client.open_interest(symbol=symbol)
+            for attempt in self._get_retryer("open_interest"):
+                with attempt:
+                    return self.client.open_interest(symbol=symbol)
         except ClientError as e:
             logger.error(f"Open Interest fetch failed for {symbol}: {e.error_message}")
             return {}
@@ -205,7 +232,9 @@ class BinanceFuturesClient:
                 logger.info(f"Historical L/S ratio for {symbol} skipped (older than 30 days).")
                 return []
             
-            return self.client.long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+            for attempt in self._get_retryer("long_short_account_ratio"):
+                with attempt:
+                    return self.client.long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
         except ClientError as e:
             logger.error(f"L/S Ratio fetch failed for {symbol}: {e.error_message}")
             return []
@@ -213,7 +242,9 @@ class BinanceFuturesClient:
     def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs) -> List[Dict[str, Any]]:
         """Fetches the Top Trader Long/Short Ratio (Accounts)."""
         try:
-            return self.client.top_long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+            for attempt in self._get_retryer("top_long_short_account_ratio"):
+                with attempt:
+                    return self.client.top_long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
         except ClientError as e:
             logger.error(f"Top L/S Ratio fetch failed for {symbol}: {e.error_message}")
             return []
@@ -221,7 +252,9 @@ class BinanceFuturesClient:
     def fetch_funding_rate(self, symbol: str, limit: int = 100, **kwargs) -> List[Dict[str, Any]]:
         """Fetches historical funding rate data."""
         try:
-            return self.client.funding_rate(symbol=symbol, limit=limit, **kwargs)
+            for attempt in self._get_retryer("funding_rate"):
+                with attempt:
+                    return self.client.funding_rate(symbol=symbol, limit=limit, **kwargs)
         except ClientError as e:
             logger.error(f"Funding Rate fetch failed for {symbol}: {e.error_message}")
             return []

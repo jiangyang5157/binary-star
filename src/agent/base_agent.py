@@ -4,10 +4,14 @@ import logging
 from typing import Dict, Any, List, Optional, Union
 from google import genai
 from google.genai import types
+import tenacity
+import time
 
 from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
+from src.utils.path_utils import resolve_project_root
+import yaml
 
 logger = setup_logger(__name__)
 
@@ -35,6 +39,23 @@ class BaseAgent:
         self.model = model
         self.temperature = temperature
         self.client = ai_client or genai.Client(api_key=api_key)
+        
+        # Load Global Network Configuration
+        self.network_cfg = self._load_network_config()
+        gemini_cfg = self.network_cfg.get('network', {}).get('gemini', {})
+        self.retry_count = int(gemini_cfg.get('retry_count', 2))
+        self.api_timeout = int(gemini_cfg.get('api_timeout_seconds', 30))
+
+    def _load_network_config(self) -> Dict[str, Any]:
+        """Loads the global configuration from YAML (for network settings)."""
+        try:
+            cfg_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
+            if os.path.exists(cfg_path):
+                with open(cfg_path, 'r') as f:
+                    return yaml.safe_load(f)
+        except Exception as e:
+            logger.error(f"BaseAgent: Failed to load global_config.yaml: {e}")
+        return {}
 
     def _prepare_prompt(self, template_path: str, **context) -> str:
         """
@@ -71,15 +92,34 @@ class BaseAgent:
         try:
             temp = temperature if temperature is not None else self.temperature
             
-            # Enforce standardized response format for all agents
-            response = self.client.models.generate_content(
-                model=self.model,
-                contents=payload,
-                config=types.GenerateContentConfig(
-                    temperature=temp,
-                    response_mime_type="application/json"
+            # Use dynamic retry strategy based on global_config.yaml
+            from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+            retryer = Retrying(
+                stop=stop_after_attempt(self.retry_count),
+                wait=wait_exponential(multiplier=1, min=2, max=10),
+                retry=retry_if_exception_type(Exception),
+                before_sleep=lambda retry_state: logger.warning(
+                    f"{agent_name}: Network issues detected. Retrying ({retry_state.attempt_number}/{self.retry_count})..."
                 )
             )
+
+            def _call_genai():
+                # Note: GenAI SDK timeout is usually handled in the client config or http_options
+                # We apply it via http_options if supported, otherwise we rely on the SDK's internal timeouts.
+                return self.client.models.generate_content(
+                    model=self.model,
+                    contents=payload,
+                    config=types.GenerateContentConfig(
+                        temperature=temp,
+                        response_mime_type="application/json",
+                        http_options={'timeout': self.api_timeout * 1000} # ms
+                    )
+                )
+
+            for attempt in retryer:
+                with attempt:
+                    response = _call_genai()
             
             # Extract and validate structured output
             parsed = extract_json_from_text(response.text)

@@ -43,6 +43,7 @@ class BaseEmailTemplate:
     def get_styles() -> str:
         return """
             <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155; margin: 0; padding: 20px; background-color: #f8fafc; }
                 .container { max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 40px; border: 1px solid #e2e8f0; }
@@ -58,6 +59,23 @@ class BaseEmailTemplate:
                 table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
                 th { text-align: left; font-size: 11px; text-transform: uppercase; color: #64748b; padding: 10px; border-bottom: 1px solid #e2e8f0; }
                 td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; }
+                
+                /* Responsive Overrides */
+                @media only screen and (max-width: 600px) {
+                    .container { padding: 20px !important; }
+                    .responsive-metrics td { 
+                        display: block !important; 
+                        width: 100% !important; 
+                        box-sizing: border-box; 
+                        margin-bottom: 15px;
+                        border-bottom: 1px solid #334155 !important;
+                        padding-bottom: 15px !important;
+                    }
+                    .responsive-metrics td:last-child {
+                        border-bottom: none !important;
+                        margin-bottom: 0 !important;
+                    }
+                }
             </style>
         """
 

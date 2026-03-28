@@ -17,7 +17,7 @@ def test_notifications():
     
     # 1. Test Strategy Preview (Forced BULLISH)
     # Using relative paths from project root
-    strat_path = os.path.join(project_root, "data/live/strategies/BTCUSDT_strategies_20260327_201041.json")
+    strat_path = os.path.join(project_root, "data/live/strategies/BTCUSDT_strategies_20260328_121037.json")
     if os.path.exists(strat_path):
         with open(strat_path, 'r') as f:
             strat_data = json.load(f)
@@ -30,7 +30,7 @@ def test_notifications():
         print(f"Strategy file not found: {strat_path}")
 
     # 2. Test Review Preview (Forced TP_HIT)
-    review_path = os.path.join(project_root, "data/live/reviewers/BTCUSDT_reviewers_20260327_201041.json")
+    review_path = os.path.join(project_root, "data/live/reviewers/BTCUSDT_reviewers_20260328_121037.json")
     if os.path.exists(review_path):
         with open(review_path, 'r') as f:
             review_data = json.load(f)

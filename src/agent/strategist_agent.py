@@ -10,7 +10,7 @@ from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.datetime_utils import get_interval_seconds
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
-logger = setup_logger(__name__)
+logger = setup_logger(__name__, propagate = True)
 
 @dataclass(frozen=True)
 class StrategistConfig:
