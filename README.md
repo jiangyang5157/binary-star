@@ -100,10 +100,6 @@ pip install -r requirements.txt
 # BINANCE_API_KEY="..."
 # BINANCE_API_SECRET="..."
 # GEMINI_API_KEY="..."
-# EMAIL_ADDRESS="...@gmail.com"
-# EMAIL_APP_PASSWORD="..."
-# EMAIL_SMTP_SERVER="smtp.gmail.com"
-# EMAIL_SMTP_PORT="587"
 ```
 
 ### 2. 策略执行与回测 (Strategy & Backtest)
