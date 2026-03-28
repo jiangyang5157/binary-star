@@ -467,7 +467,7 @@ class StrategyNotifier:
         self.global_cfg = self._load_global_config()
         
         # Sourcing threshold from global_config.yaml with fallback to hardcoded safety
-        self.min_confidence_threshold = int(self.global_cfg['system'].get('min_confidence_for_notifier_threshold', 60))
+        self.min_confidence_threshold = int(self.global_cfg.get('system', {})['min_confidence_for_notifier_threshold'])
 
 
     def _load_global_config(self) -> Dict[str, Any]:
