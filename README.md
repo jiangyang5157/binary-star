@@ -91,6 +91,7 @@ graph TD
 | **物理分布精度** | `volume_profile_price_buckets_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
 | **生存硬化上限** | `sl_structural_buffer_ceiling` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须提升至 0.7+。 |
+| **生存硬化下限** | `sl_structural_buffer_floor` | 结构防御系数 | **Medium** | 结构防御的最小硬性装甲厚度 (通常为 0.2)。 |
 | **逻辑执行效率** | `min_temporal_efficiency` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
 | **物理清算映射** | `liq_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |
 | **历史记忆深度** | `funding_rate_lookback_hours` | 物理锚点 | **Low** | 给 Observer 提供背景数据量，影响宏观地形稳定性。 |
@@ -100,6 +101,8 @@ graph TD
 系统通过“法医审计”不断沉淀在不同时间跨度下的最优配置。
 
 #### 微观：日内高频波动中的物理插针
+
+> 验证中
 
 | 审计属性 | 核心变量 | **演化参考** |
 | :--- | :--- | :--- |
@@ -114,12 +117,34 @@ graph TD
 ---
 
 #### 周期：识别市场由震荡转为趋势的物理临界点
-> TODO
+
+> 验证中
+
+| 审计属性 | 核心变量 | **演化参考** |
+| :--- | :--- | :--- |
+| **战略意图** | `strategy_intent` | `Swing: Regime Breakout & Value Area Migration` |
+| **物理分布精度** | `volume_profile_price_buckets_count` | `500` |
+| **双相位时域对齐** | `macro/micro_analysis_context` | `4h / 1h` |
+| **物理清算映射** | `liq_cluster_atr_multiplier` | `1.0` |
+| **生存硬化上限** | `sl_structural_buffer_ceiling` | `1.2` |
+| **逻辑执行效率** | `min_temporal_efficiency` | `0.15` |
+| **历史记忆深度** | `funding_rate_lookback_hours` | `72.0` |
 
 ---
 
 #### 宏观：大规模底部/派发区间的物理地形反转测绘
-> TODO
+
+> 验证中
+
+| 审计属性 | 核心变量 | **演化参考** |
+| :--- | :--- | :--- |
+| **战略意图** | `strategy_intent` | `Macro: Secular Trend Reversal & HTF Accumulation Forensics` |
+| **物理分布精度** | `volume_profile_price_buckets_count` | `1000` |
+| **双相位时域对齐** | `macro/micro_analysis_context` | `1D / 4h` |
+| **物理清算映射** | `liq_cluster_atr_multiplier` | `2.5` |
+| **生存硬化上限** | `sl_structural_buffer_ceiling` | `2.0` |
+| **逻辑执行效率** | `min_temporal_efficiency` | `0.05` |
+| **历史记忆深度** | `funding_rate_lookback_hours` | `336.0` |
 
 ---
 
