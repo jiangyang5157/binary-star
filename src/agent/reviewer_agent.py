@@ -45,7 +45,7 @@ class ReviewerConfig:
             macro_interval=str(obs['macro_analysis_context']['time_interval']),
             micro_interval=str(obs['micro_analysis_context']['time_interval']),
             execution_timeframe_interval=str(rev['execution_timeframe_interval']),
-            strategy_intent=str(full_config.get('strategy_intent', 'Universal Crypto Logic'))
+            strategy_intent=str(full_config['strategy_intent'])
         )
 
 class ReviewerAgent(BaseAgent):

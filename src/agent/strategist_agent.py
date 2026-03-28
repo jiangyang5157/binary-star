@@ -37,7 +37,7 @@ class StrategistConfig:
             min_temporal_efficiency=float(strat['min_temporal_efficiency']),
             sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
             sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
-            strategy_intent=str(full_config.get('strategy_intent', 'Universal Crypto Logic')),
+            strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
             micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
         )
