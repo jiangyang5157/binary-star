@@ -104,7 +104,7 @@ class ReviewerAgent(BaseAgent):
                     logger.info(f"Reviewer: Attaching forensic evidence: {label} ({path})")
                     with open(path, "rb") as f:
                         image_bytes = f.read()
-                        contents.append(f"\n[FORENSIC ASSET: {label}]")
+                        contents.append(f"\n{label}")
                         contents.append(types.Part.from_bytes(data=image_bytes, mime_type="image/png"))
                 else:
                     contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
