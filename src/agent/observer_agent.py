@@ -54,7 +54,7 @@ class ObserverConfig:
     hvn_sensitivity: float
     lvn_sensitivity: float
     min_node_gap_price: int
-    top_structural_nodes_count: int
+    top_structural_node_count: int
     trend_intensity_duration_hours: float
     wick_skewness_period: int
     liq_cluster_atr_multiplier: float
@@ -98,7 +98,7 @@ class ObserverConfig:
             hvn_sensitivity=float(obs['high_volume_peak_sensitivity']),
             lvn_sensitivity=float(obs['low_volume_valley_sensitivity']),
             min_node_gap_price=int(obs['min_price_gap_between_nodes']),
-            top_structural_nodes_count=int(obs['top_structural_nodes_count']),
+            top_structural_node_count=int(obs['top_structural_node_count']),
             trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
             wick_skewness_period=int(obs['wick_skewness_period']),
             liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
@@ -245,7 +245,7 @@ class MarketMetricsRefiner:
 
     def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float) -> Dict[str, Any]:
         poc = profile.get('poc', 0)
-        limit = self.config.top_structural_nodes_count
+        limit = self.config.top_structural_node_count
         all_nodes = [{**n, "type": "HVN"} for n in nodes.get('hvn', [])] + [{**n, "type": "LVN"} for n in nodes.get('lvn', [])]
         
         # Determine structural_state (BALANCED/IMBALANCED)
