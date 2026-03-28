@@ -101,7 +101,6 @@ graph TD
 
 #### 微观：日内高频波动中的物理插针
 
-**BTCUSDT**
 | 审计属性 | 核心变量 | **演化参考** |
 | :--- | :--- | :--- |
 | **战略意图** | `strategy_intent` | `Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics` |
