@@ -429,7 +429,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
 
                 <!-- Evidence List -->
                 <div class="panel">
-                    <h3 class="panel-title">🔬 Forensic Performance Audit</h3>
+                    <h3 class="panel-title">🔬 Performance Audit</h3>
                     <table>
                         <thead>
                             <tr>
