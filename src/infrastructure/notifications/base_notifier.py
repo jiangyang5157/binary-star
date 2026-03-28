@@ -88,6 +88,17 @@ class BaseEmailTemplate:
                 </div>
         """
 
+    @staticmethod
+    def render_summary_footer(trigger_info: str) -> str:
+        """Lightweight footer for aggregate reports, excludes raw JSON data blocks."""
+        return f"""
+                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
+                    <div style="margin-top: 10px; color: #94a3b8; font-size: 11px; font-weight: 500;">
+                        {trigger_info}
+                    </div>
+                </div>
+        """
+
 class EmailDispatcher:
     """Manages the low-level infrastructure for sending emails via SMTP."""
     

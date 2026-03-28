@@ -372,21 +372,11 @@ class DashboardEmailTemplate(BaseEmailTemplate):
         """
         Renders an aggregate performance summary into a rich HTML report.
         """
-        fmt = DashboardEmailTemplate.fmt
-        
-        # Win Rate color
-        wr = stats.get('win_rate', 0.0)
-        wr_color = "#10b981" if wr >= 50 else "#f59e0b" if wr >= 40 else "#ef4444"
-        
-        # PnL color
-        pnl = stats.get('net_pnl', 0.0)
-        pnl_color = "#10b981" if pnl >= 0 else "#ef4444"
-        pnl_sign = "+" if pnl >= 0 else ""
-        
         # Build Rows
         rows_html = ""
         # iterate safely
-        recent_items = dataset[max(0, len(dataset)-15):] if len(dataset) > 15 else dataset
+        limit = 100
+        recent_items = dataset[max(0, len(dataset)-limit):] if len(dataset) > limit else dataset
         for item in recent_items:
             res_color = "#10b981" if item['tp_sl_result'] == 'TP_HIT' else "#ef4444" if item['tp_sl_result'] == 'SL_HIT' else "#64748b"
             pnl_val = float(item.get('estimated_pnl_pct', 0.0))
@@ -400,35 +390,46 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                 </tr>
             """
 
+        wr = stats.get('win_rate', 0.0)
+        pnl = stats.get('net_pnl', 0.0)
+        pnl_sign = "+" if pnl >= 0 else ""
+
         return f"""
         <html>
         <head>{DashboardEmailTemplate.get_styles()}</head>
         <body>
             <div class="container">
+                <!-- Header -->
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: #3b82f615; color: #3b82f6; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid #3b82f630;">
-                        🔍 AGGREGATE PERFORMANCE
+                        📊 AGGREGATE PERFORMANCE
                     </div>
                     <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Alpha Ledger</h1>
                 </div>
 
-                <div class="grid">
-                    <div class="metric-box">
-                        <span class="metric-label">Executed Samples</span>
-                        <div class="metric-value">{stats.get('executed_count', 0)}</div>
-                    </div>
-                    <div class="metric-box">
-                        <span class="metric-label">Win Rate</span>
-                        <div class="metric-value" style="color: {wr_color};">{wr}%</div>
-                    </div>
-                    <div class="metric-box">
-                        <span class="metric-label">Net Return</span>
-                        <div class="metric-value" style="color: {pnl_color};">{pnl_sign}{pnl}%</div>
-                    </div>
+                <!-- KPI Panel (Dark Style) -->
+                <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
+                    <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
+                        <tr>
+                            <td style="width: 33%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🧪 Validated Samples (TP+SL+NEITHER)</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800;">{stats.get('executed_count', 0)}</div>
+                            </td>
+                            <td style="width: 33%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🎯 Win Rate (TP / Total Validated)</div>
+                                <div style="font-size: 18px; color: #34d399; font-weight: 800;">{wr}%</div>
+                            </td>
+                            <td style="width: 33%; vertical-align: top;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Cumulative Net PnL (%)</div>
+                                <div style="font-size: 18px; color: {'#34d399' if pnl >= 0 else '#fb7185'}; font-weight: 800;">{pnl_sign}{pnl}%</div>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
 
+                <!-- Evidence List -->
                 <div class="panel">
-                    <h3 class="panel-title">Recent Forensic Evidence</h3>
+                    <h3 class="panel-title">🔬 Forensic Performance Audit</h3>
                     <table>
                         <thead>
                             <tr>
@@ -441,10 +442,12 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                             {rows_html}
                         </tbody>
                     </table>
-                    <p style="font-size: 11px; color: #94a3b8; text-align: center;">Only showing the most recent 15 records. View the full dashboard for complete trajectory.</p>
+                    <p style="font-size: 11px; color: #94a3b8; text-align: center;">
+                        Only showing the most recent {limit} records. View the full dashboard for complete trajectory.
+                    </p>
                 </div>
 
-                {DashboardEmailTemplate.render_footer(dataset, "Strategic Alpha Ledger: Historical Performance Audit")}
+                {DashboardEmailTemplate.render_summary_footer("Strategic Ledger: Historical Performance Audit")}
             </div>
         </body>
         </html>
