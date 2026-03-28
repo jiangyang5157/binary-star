@@ -105,19 +105,19 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     {f'''
                     <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📥 Entry</div>
                                 <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
                             </td>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Take Profit</div>
                                 <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('take_profit'))}</div>
                             </td>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🛡️ Stop Loss</div>
                                 <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('stop_loss'))}</div>
                             </td>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Temporal Window</div>
                                 <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours', 0))}</div>
                             </td>
@@ -257,17 +257,17 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🏁 Outcome Summary</h3>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 10px 0;">
                         <tr>
-                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
+                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">📐 Price Change</span>
                                 <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if outcome.get('total_price_change_pct', 0) >= 0 else '#ef4444'};">
                                     {fmt(outcome.get('total_price_change_pct'))}%
                                 </div>
                             </td>
-                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
+                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">🔥 Max Favorable (MFE)</span>
                                 <div style="font-size: 18px; font-weight: 800; color: #10b981;">{fmt(outcome.get('max_favorable_runup_pct'))}%</div>
                             </td>
-                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center;">
+                            <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">💧 Max Adverse (MAE)</span>
                                 <div style="font-size: 18px; font-weight: 800; color: #ef4444;">{fmt(outcome.get('max_adverse_drawdown_pct'))}%</div>
                             </td>
@@ -276,15 +276,15 @@ class ReviewEmailTemplate(BaseEmailTemplate):
 
                     <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⚡ Efficiency</div>
                                 <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency'))}</div>
                             </td>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🌡️ MAE Stress</div>
                                 <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level'))}</div>
                             </td>
-                            <td style="width: 25%; vertical-align: top;">
+                            <td style="width: 25%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>
                                 <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{ReviewEmailTemplate.format_duration(metrics.get('actual_hours', 0))}</div>
                             </td>
@@ -402,24 +402,24 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                 <!-- Header -->
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: #3b82f615; color: #3b82f6; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid #3b82f630;">
-                        📊 AGGREGATE PERFORMANCE
+                        💎 AGGREGATE PERFORMANCE
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Alpha Ledger</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Ledger</h1>
                 </div>
 
                 <!-- KPI Panel (Dark Style) -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
                     <table style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
-                            <td style="width: 33%; vertical-align: top;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🧪 Validated Samples (TP+SL+NEITHER)</div>
+                            <td style="width: 33%; vertical-align: top; border: none !important;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🧬 Validated Samples (TP+SL+NEITHER)</div>
                                 <div style="font-size: 18px; color: #cbd5e1; font-weight: 800;">{stats.get('executed_count', 0)}</div>
                             </td>
-                            <td style="width: 33%; vertical-align: top;">
+                            <td style="width: 33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🎯 Win Rate (TP / Total Validated)</div>
                                 <div style="font-size: 18px; color: #34d399; font-weight: 800;">{wr}%</div>
                             </td>
-                            <td style="width: 33%; vertical-align: top;">
+                            <td style="width: 33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Cumulative Net PnL (%)</div>
                                 <div style="font-size: 18px; color: {'#34d399' if pnl >= 0 else '#fb7185'}; font-weight: 800;">{pnl_sign}{pnl}%</div>
                             </td>
@@ -429,7 +429,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
 
                 <!-- Evidence List -->
                 <div class="panel">
-                    <h3 class="panel-title">🔬 Performance Audit</h3>
+                    <h3 class="panel-title">🔍 Validated Samples</h3>
                     <table>
                         <thead>
                             <tr>
