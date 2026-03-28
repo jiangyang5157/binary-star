@@ -36,7 +36,7 @@ def test_math_fix():
     with patch('strategist.load_config') as mock_load:
         # Case 1: 1h Macro
         mock_load.return_value = {
-            "strategist": {"min_temporal_efficiency": 0.4},
+            "strategist": {"min_trade_velocity": 0.4},
             "observer": {"macro_analysis_context": {"time_interval": "1h"}}
         }
         
@@ -50,7 +50,7 @@ def test_math_fix():
 
         # Case 2: 4h Macro
         mock_load.return_value = {
-            "strategist": {"min_temporal_efficiency": 0.4},
+            "strategist": {"min_trade_velocity": 0.4},
             "observer": {"macro_analysis_context": {"time_interval": "4h"}}
         }
         

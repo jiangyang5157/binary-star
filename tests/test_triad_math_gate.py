@@ -35,7 +35,7 @@ class TestTriadMathGate(unittest.TestCase):
     @patch('strategist.load_config')
     def test_calculate_math_fact_check_success(self, mock_load):
         mock_load.return_value = {
-            "strategist": {"min_temporal_efficiency": 0.4},
+            "strategist": {"min_trade_velocity": 0.4, "min_trade_velocity": 0.4},
             "observer": {"macro_analysis_context": {"time_interval": "1h"}}
         }
         result = calculate_math_fact_check(self.observation, self.draft)

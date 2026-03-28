@@ -497,9 +497,13 @@ class ObserverAgent:
     def _init_vp(self) -> VolumeProfileAnalyzer:
         cfg = self.config
         vp_cfg = VolumeProfileConfig(
-            value_area_ratio=cfg.vp_value_area_width, resolution_bins=cfg.vp_price_bucket_count,
-            atr_period=cfg.atr_period, max_hvn_nodes=cfg.max_high_volume_node_count, max_lvn_nodes=cfg.max_low_volume_node_count,
-            hvn_sensitivity=cfg.hvn_sensitivity, lvn_sensitivity=cfg.lvn_sensitivity,
+            value_area_ratio=cfg.vp_value_area_width, 
+            resolution_bins=cfg.vp_price_bucket_count,
+            atr_period=cfg.atr_period, 
+            max_hvn_nodes=cfg.max_high_volume_node_count, 
+            max_lvn_nodes=cfg.max_low_volume_node_count,
+            hvn_sensitivity=cfg.high_volume_node_detection_threshold, 
+            lvn_sensitivity=cfg.low_volume_node_detection_threshold,
             min_node_distance=cfg.min_node_gap_price
         )
         return VolumeProfileAnalyzer(config=vp_cfg)
@@ -507,9 +511,12 @@ class ObserverAgent:
     def _init_regime(self) -> MarketRegimeAnalyzer:
         cfg = self.config
         rg_cfg = MarketRegimeConfig(
-            bollinger_window=cfg.bb_period, bollinger_std_dev=cfg.bb_std_dev,
-            keltner_window=cfg.kc_period, keltner_multiplier=cfg.kc_multiplier,
-            volume_ma_window=cfg.vol_ma_period, trend_intensity_threshold=self.config.regime_trend_threshold,
+            bollinger_window=cfg.bb_period, 
+            bollinger_std_dev=cfg.bb_std_dev,
+            keltner_window=cfg.kc_period, 
+            keltner_multiplier=cfg.kc_multiplier,
+            volume_ma_window=cfg.vol_ma_period, 
+            trend_intensity_threshold=self.config.regime_trend_threshold,
             trend_lookback=self.config.trend_lookback,
             wick_skewness_period=self.config.wick_skewness_period
         )
