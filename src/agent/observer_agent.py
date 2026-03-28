@@ -226,9 +226,9 @@ class MarketMetricsRefiner:
             "current_price": c,
             "atr_macro": atr_m,
             "atr_micro": atr_n,
-            "volatility_ratio": f"{volatility_ratio:.2f}",
             "latest_wick_skew": f"{wick_skew:.2f}",
-            "vol_intensity_index": f"{vol_intensity:.2f}" # > 1.0 means current volatility is expanding beyond its own average
+            "volatility_ratio": f"{volatility_ratio:.2f}",
+            "volatility_intensity_index": f"{vol_intensity:.2f}" # > 1.0 means current volatility is expanding beyond its own average
         }
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:

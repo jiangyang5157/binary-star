@@ -32,7 +32,7 @@ class RegimeResult:
     market_regime: str                # TRENDING, RANGING, or UNKNOWN
     trend_intensity: float            # Quantitative score of trend strength
     wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
-    vol_breakout: float               # Current volume relative to moving average
+    volume_breakout_ratio: float      # Current volume relative to moving average
 
 class IndicatorEngine:
     """
@@ -120,7 +120,7 @@ class RegimeClassifier:
             market_regime=market_regime,
             trend_intensity=round(float(latest['trend_intensity']), 4),
             wick_skewness_lookback=round(float(skewness), 4),
-            vol_breakout=round(float(volatility_ratio), 2)
+            volume_breakout_ratio=round(float(volatility_ratio), 2)
         )
 
 class MarketRegimeAnalyzer:
