@@ -87,6 +87,7 @@ graph TD
 
 | 审计属性 | 核心变量 | 硬化维度 | 优先级 | 演化建议 |
 | :--- | :--- | :--- | :--- | :--- |
+| **战略意图** | `strategy_intent` | 逻辑演化语义 | **Critical** | 系统的“逻辑北极星”，所有物理参数以此意图为原点进行演化。 |
 | **物理分布精度** | `volume_profile_price_buckets_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
 | **生存硬化上限** | `sl_structural_buffer_ceiling` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须提升至 0.7+。 |
@@ -103,6 +104,7 @@ graph TD
 **BTCUSDT**
 | 审计属性 | 核心变量 | **演化参考** |
 | :--- | :--- | :--- |
+| **战略意图** | `strategy_intent` | `Micro-Scalp: 关注日内高频波动中的物理插针，通过极致的逻辑硬化锁定利润。` |
 | **物理分布精度** | `volume_profile_price_buckets_count` | `300` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
 | **物理清算映射** | `liq_cluster_atr_multiplier` | `0.5` |

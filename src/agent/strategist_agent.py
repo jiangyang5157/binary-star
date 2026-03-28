@@ -21,6 +21,9 @@ class StrategistConfig:
     min_temporal_efficiency: float
     sl_structural_buffer_floor: float
     sl_structural_buffer_ceiling: float
+    strategy_intent: str
+    macro_interval: str
+    micro_interval: str
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -33,7 +36,10 @@ class StrategistConfig:
             temperature_synthesis=float(strat['temperature_synthesis']),
             min_temporal_efficiency=float(strat['min_temporal_efficiency']),
             sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
-            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling'])
+            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
+            strategy_intent=str(full_config.get('strategy_intent', 'Universal Crypto Logic')),
+            macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
+            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -110,7 +116,10 @@ class StrategistAgent(BaseAgent):
             "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False),
             "min_temporal_efficiency": velocity_floor,
             "sl_structural_buffer_floor": self.config.sl_structural_buffer_floor,
-            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling
+            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling,
+            "strategy_intent": self.config.strategy_intent,
+            "macro_interval": self.config.macro_interval,
+            "micro_interval": self.config.micro_interval
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

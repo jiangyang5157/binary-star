@@ -1,3 +1,4 @@
+strategy_intent: "Micro-Scalp: 日内极速扩张与极端物理插针的逻辑溯源"
 observer:
   role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest

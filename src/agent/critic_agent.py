@@ -21,6 +21,9 @@ class CriticConfig:
     temperature: float
     sl_structural_buffer_floor: float
     sl_structural_buffer_ceiling: float
+    strategy_intent: str
+    macro_interval: str
+    micro_interval: str
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
@@ -32,7 +35,10 @@ class CriticConfig:
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
             temperature=float(critic['temperature']),
             sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
-            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling'])
+            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
+            strategy_intent=str(full_config.get('strategy_intent', 'Universal Crypto Logic')),
+            macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
+            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
         )
 
 class CriticAgent(BaseAgent):
@@ -73,7 +79,10 @@ class CriticAgent(BaseAgent):
             "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system.",
             "sl_structural_buffer_floor": self.config.sl_structural_buffer_floor,
-            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling
+            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling,
+            "strategy_intent": self.config.strategy_intent,
+            "macro_interval": self.config.macro_interval,
+            "micro_interval": self.config.micro_interval
         }
         
         prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
