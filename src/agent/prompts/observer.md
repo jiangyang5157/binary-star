@@ -31,7 +31,7 @@ To provide an exhaustive, high-fidelity topographical map of the current market 
 | **Flow** | `net_taker_delta` | Precise CVD increment. Positive = Aggressive Buys; Negative = Aggressive Sells. |
 | **Flow** | `cvd_trend` | UPWARD/DOWNWARD/STABLE. Detects sustained absorption or aggressive follow-through. |
 | **Flow** | `oi_delta_*` | Change in Open Interest. Positive = New positions; Negative = Liquidations/Closures. |
-| **Flow** | `ls_ratio_*` | > 1.0 = Retail/Aggregated accounts are mostly Long. |
+| **Flow** | `long_short_ratio*` | > 1.0 = Retail/Aggregated accounts are mostly Long. |
 | **Flow** | `funding_rate` | Current rate. Positive = Longs pay Shorts (Bullish crowd); Negative = Shorts pay Longs. |
 
 # INPUT DATUM
