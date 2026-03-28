@@ -15,7 +15,7 @@ if PROJECT_ROOT not in sys.path:
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.reviewer_agent import ReviewerAgent
 from src.agent.observer_agent import ObserverAgent
-from src.utils.agent_utils import load_config
+from src.utils.agent_utils import load_config, add_data_root_argument, resolve_data_root
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc, sanitize_timestamp
@@ -402,12 +402,21 @@ class ReviewerOrchestrator:
 
 def main():
     parser = argparse.ArgumentParser(description="Reviewer Orchestrator - Post-Mortem Audit Pipeline")
-    parser.add_argument("--data_root", type=str, required=True, help="Data root directory")
     parser.add_argument("--file", type=str, help="Specific strategy JSON to review")
     parser.add_argument("--force", action="store_true", help="Bypass temporal checks")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
+    
     args = parser.parse_args()
     
-    orchestrator = ReviewerOrchestrator(data_root=args.data_root)
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        logger.error("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
+    
+    orchestrator = ReviewerOrchestrator(data_root=data_root)
     orchestrator.run_review(target_file=args.file, force=args.force)
 
 if __name__ == "__main__":
