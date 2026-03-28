@@ -39,7 +39,7 @@ strategist:
   temperature_synthesis: 0.2
   min_temporal_efficiency: 0.4
   sl_structural_buffer_floor: 0.2
-  sl_structural_buffer_ceiling: 0.5
+  sl_structural_buffer_ceiling: 0.7
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview

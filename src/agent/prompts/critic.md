@@ -38,6 +38,8 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 | **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S). Analyzed over **1h Tactical Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 | **Vacuum Risk**| Stop Loss placed inside an LVN (`vacuum_score` > 0.3).| **[LIQUIDITY_VOID]** (Mitigate: Move SL behind a wall). |
 | **Retail Trap**| `ls_ratio` > 2.0 while price is at resistance. | **[RETAIL_SQUEEZE]** (Mitigate: Place DLE below retail SLs). |
+| **Cascade Risk**| `ls_ratio` > 2.0 AND `vol_ratio` > 2.0 with standard SL buffer. | **[VOLATILITY_EXPANSION]** (Fatal: Buffer insufficient against liquidation cascade). |
+| **Momentum Blindness**| `vol_ratio` > 2.0 AND `trend_intensity` > 0.5 but Draft demands deep structural retest. | **[LIQUIDITY_VOID]** (Mitigate: Demand shallower entry to ensure participation). |
 | **Math/Logic**| `math_fact_check` contradicts Draft, or RR < min. | **[MATH_VIOLATION]** (Fatal: Abort). |
 | **Unknown** | Extreme metric collision not defined above. | **[ANOMALY]** (Fatal: Protect capital). |
 
