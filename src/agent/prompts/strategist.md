@@ -28,7 +28,7 @@ EXECUTION LAW: Use the following thresholds as mandatory dynamic filters for tac
 | Parameter | Threshold / Rule | Strategic Intent |
 | :--- | :--- | :--- |
 | **Dynamic Min RR** | **>= 1.2x** (Ranging) <br> **>= 1.8x** (Trending) | Contextual survival. Mean-reversion in RANGING regimes allows slightly lower RR. Breakouts require high RR. |
-| **SL Placement** | **0.2x - 0.5x ATR** beyond Anchor | SL MUST be hidden tightly behind a structural wall (POC, VAH, VAL). Tighter structural SL = Higher RR. |
+| **SL Placement** | **{sl_structural_buffer_floor}x - {sl_structural_buffer_ceiling}x ATR** beyond Anchor | SL MUST be hidden tightly behind a structural wall (POC, VAH, VAL). Tighter structural SL = Higher RR. |
 | **TP Target** | Next Structural Node | Target the nearest opposing HVN (friction) or LVN (vacuum). NO artificial ATR caps. |
 | **Vol Confirmation**| `vol_breakout` > 1.2 | Required ONLY for Trend/Momentum continuation. |
 | **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S).| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
