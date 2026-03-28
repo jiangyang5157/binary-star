@@ -96,15 +96,27 @@ class StrategyReplayOrchestrator:
 def main():
     """CLI entry point for the Strategy Replay Utility."""
     parser = argparse.ArgumentParser(
-        description="Forensic Strategy Replay: Re-execute Reasoning from Historical Observations"
+        description="Strategist Replay - Re-runs the synthesis phase on a saved observation."
     )
-    parser.add_argument("--data_root", type=str, required=True, help="Target data directory root")
-    parser.add_argument("--file", type=str, required=True, help="Path to the source observation JSON file (e.g., /data/observations/BTCUSDT_...json)")
+    parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
+    parser.add_argument("--file", type=str, required=True, help="Path to the source observation JSON file")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
     
     args = parser.parse_args()
     
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
+        
+    global_cfg = load_global_config()
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
     try:
-        orchestrator = StrategyReplayOrchestrator(data_root=args.data_root)
+        orchestrator = StrategyReplayOrchestrator(data_root=data_root)
         orchestrator.execute_session(file_path=args.file)
     except Exception as e:
         print(f"Failed to initialize replay orchestrator: {e}")

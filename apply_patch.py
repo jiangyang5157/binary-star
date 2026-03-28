@@ -153,15 +153,26 @@ class SystemEvolutionEngine:
             # The report structure often nests the analysis under 'strategic_analysis'
             analysis = report.get("strategic_analysis", report)
             
+            # Load agent config to get prompt paths (avoid hardcoding)
+            from src.utils.agent_utils import load_config
+            agent_cfg = load_config()
+            
             # 1. Evolve Domain Agents (Prompts)
-            self.prompt_worker.apply(
-                "src/agent/prompts/strategist.md", 
-                analysis.get("strategist_prompt_patches", [])
-            )
-            self.prompt_worker.apply(
-                "src/agent/prompts/critic.md", 
-                analysis.get("critic_prompt_patches", [])
-            )
+            # Strategist
+            strat_prompt_path = agent_cfg.get("strategist", {}).get("role_definition_prompt")
+            if strat_prompt_path:
+                self.prompt_worker.apply(
+                    strat_prompt_path, 
+                    analysis.get("strategist_prompt_patches", [])
+                )
+            
+            # Critic
+            critic_prompt_path = agent_cfg.get("critic", {}).get("role_definition_prompt")
+            if critic_prompt_path:
+                self.prompt_worker.apply(
+                    critic_prompt_path, 
+                    analysis.get("critic_prompt_patches", [])
+                )
 
             # 2. Evolve System Parameters (Config)
             self.config_worker.apply(

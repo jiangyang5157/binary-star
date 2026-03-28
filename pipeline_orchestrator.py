@@ -203,9 +203,18 @@ class PipelineOrchestrator:
 def main():
     parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
     parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
-    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
     parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
+    
     args = parser.parse_args()
+    
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
     
     # Load global defaults for missing CLI args
     from src.utils.agent_utils import load_global_config
@@ -219,7 +228,7 @@ def main():
     orchestrator = PipelineOrchestrator(
         symbol=symbol, 
         interval=args.interval, 
-        data_root=args.data_root
+        data_root=data_root
     )
     orchestrator.start()
 

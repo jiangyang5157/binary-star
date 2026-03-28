@@ -430,17 +430,25 @@ class ForensicDashboardGenerator:
 
 def main():
     parser = argparse.ArgumentParser(description="Forensic Performance & Confidence Analyzer")
-    parser.add_argument("--data_root", type=str, required=True, help="Path to data directory (e.g., data/live)")
-    parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
+    parser.add_argument("--symbol", type=str, help="Symbol to filter")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
+    
     args = parser.parse_args()
-
-    # Load defaults
+    
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
+        
     global_cfg = load_global_config()
-    target_symbol = args.symbol or global_cfg.get('system', {}).get('default_symbol', "BTCUSDT")
-
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
     try:
-        generator = ForensicDashboardGenerator(data_root=args.data_root)
-        generator.generate(target_symbol)
+        generator = ForensicDashboardGenerator(data_root=data_root)
+        generator.generate(symbol)
     except Exception as e:
         logger.error(f"Dashboard Generation Failed: {e}")
         sys.exit(1)

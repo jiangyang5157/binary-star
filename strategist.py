@@ -217,8 +217,17 @@ def main():
     parser = argparse.ArgumentParser(description="Strategist Master - Fresh Prediction Pipeline")
     parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--timestamp", type=str, help="Optional historical timestamp (ISO)")
-    parser.add_argument("--data_root", type=str, required=True, help="Data directory root")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
+    
     args = parser.parse_args()
+    
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        logger.error("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
     
     # Load global defaults for missing CLI args
     global_cfg = load_global_config()
@@ -229,7 +238,7 @@ def main():
         sys.exit(1)
         
     try:
-        orchestrator = StrategistOrchestrator(symbol=symbol, data_root=args.data_root)
+        orchestrator = StrategistOrchestrator(symbol=symbol, data_root=data_root)
         orchestrator.execute_pipeline(timestamp_str=args.timestamp)
     except Exception as e:
         logger.error(f"Failed to initialize orchestrator: {e}")

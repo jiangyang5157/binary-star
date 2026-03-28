@@ -123,18 +123,30 @@ def parse_date(date_str: Optional[str]) -> datetime:
 
 def main():
     parser = argparse.ArgumentParser(description="Professional Crypto Backtest Simulator")
+    parser.add_argument("--symbol", type=str, help="Trading symbol (default: BTCUSDT)")
+    parser.add_argument("--start", type=valid_date, help="Start date (YYYY-MM-DD or T-30d)")
+    parser.add_argument("--end", type=valid_date, help="End date (YYYY-MM-DD)")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
+    
     parser.add_argument("--sampling", type=int, required=True, help="Total number of samples to backtest")
-    parser.add_argument("--start", type=str, required=True, help="Start date (YYYY-MM-DD or T-30d)")
-    parser.add_argument("--data_root", type=str, required=True, help="Root directory for backtest output")
-    parser.add_argument("--end", type=str, default="now", help="End date (default: now)")
     parser.add_argument("--mode", type=str, choices=["regime", "spaced"], required=True, 
                         help="Sampling mode: regime (stratified) or spaced (even)")
 
     args = parser.parse_args()
-
+    
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
+        
+    global_cfg = load_global_config()
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
     # Temporal context resolution
     try:
-        start_dt = parse_date(args.start)
         end_dt = parse_date(args.end if args.end != "now" else None)
         
         if start_dt >= end_dt:

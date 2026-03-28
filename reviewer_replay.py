@@ -12,7 +12,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.reviewer_agent import ReviewerAgent
-from src.utils.agent_utils import load_config
+from src.utils.agent_utils import load_config, add_data_root_argument, resolve_data_root
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger("ReviewerReplay")
@@ -25,9 +25,18 @@ def main():
     using a simulated market outcome (mock price action).
     """
     parser = argparse.ArgumentParser(description="Reviewer Replay Audit - AI Verification")
-    parser.add_argument("--data_root", type=str, required=True, help="Data root")
-    parser.add_argument("--file", type=str, required=True, help="Path to strategy/observation JSON")
+    parser.add_argument("--file", type=str, required=True, help="Path to a professional strategy session JSON")
+    parser.add_argument("--save", action="store_true", help="Save the review result to the data_root")
+    
+    add_data_root_argument(parser)
+    
     args = parser.parse_args()
+    
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
 
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -136,7 +145,7 @@ def main():
     )
     
     # 4. Persistence
-    output_dir = os.path.join(PROJECT_ROOT, args.data_root, "reviewers")
+    output_dir = os.path.join(PROJECT_ROOT, data_root, "reviewers")
     os.makedirs(output_dir, exist_ok=True)
     
     # Extract metadata for standardized naming: SYMBOL_reviewers_replay_YYYYMMDD_HHMMSS.json

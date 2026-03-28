@@ -159,12 +159,23 @@ class CoachOrchestrator:
         self.logger.info(f"Archived {len(source_paths)} processed reports to {archive_dir}.")
 
 def main():
+    """CLI entry point for the Strategic Coach."""
     parser = argparse.ArgumentParser(description="Strategic Trading Coach (Agent C)")
     parser.add_argument("--symbol", type=str, help="Symbol to analyze.")
-    parser.add_argument("--data_root", type=str, required=True, help="Data directory root.")
+    parser.add_argument("--backtest_dir", type=str, help="Specific backtest directory to analyze (optional)")
     parser.add_argument("--batch", type=int, help="Limit number of recent reviews to analyze.")
+    
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
+    
     args = parser.parse_args()
     
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
+        sys.exit(1)
+        
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     

@@ -99,31 +99,42 @@ class ObserverCLI:
 
 
 def main():
-    """Main entry point for the Observer CLI."""
+    """CLI entry point for standalone market topography."""
     parser = argparse.ArgumentParser(description="Elite Market Topographer CLI")
-    parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
-    parser.add_argument("--timestamp", type=str, help="Historical target timestamp (ISO-8601)")
-    parser.add_argument("--data_root", type=str, required=True, help="Root directory for data storage")
+    parser.add_argument("--symbol", type=str, help="Symbol (e.g., BTCUSDT)")
+    parser.add_argument("--timestamp", type=str, help="Optional ISO timestamp")
     
-    parsed = parser.parse_args()
+    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    add_data_root_argument(parser)
     
-    # Load global defaults for missing CLI args
-    from src.utils.agent_utils import load_global_config
-    global_cfg = load_global_config()
-    symbol = parsed.symbol or global_cfg['system']['default_symbol']
+    args = parser.parse_args()
     
-    if not symbol:
-        print("Error: Symbol not provided and no default found in global_config.yaml")
+    # Resolve data_root
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
         sys.exit(1)
-        
-    args = ObservationArgs(
-        symbol=symbol,
-        timestamp_raw=parsed.timestamp,
-        data_root=parsed.data_root
-    )
-
-    app = ObserverCLI(args)
-    app.run()
+    
+    from src.utils.agent_utils import load_config, load_global_config
+    config = load_config()
+    global_cfg = load_global_config()
+    
+    symbol = args.symbol or global_cfg['system']['default_symbol']
+    
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    api_key = os.environ.get("GEMINI_API_KEY")
+    
+    observer = ObserverAgent(config, symbol, api_key=api_key, data_root=data_root)
+    result = observer.observe(timestamp=args.timestamp, data_root=data_root)
+    
+    if "error" in result:
+        logger.error(f"Observation failed: {result['error']}")
+        sys.exit(1)
+    
+    saved_path = ObservationPersistor.save_result(result, symbol, data_root)
+    logger.info(f"Pipeline complete. Snapshot archived at: {saved_path}")
 
 
 if __name__ == "__main__":

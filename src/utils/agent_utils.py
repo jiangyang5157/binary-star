@@ -1,7 +1,8 @@
 import os
 import yaml
 import re
-from typing import Dict, Any, List
+import argparse
+from typing import Dict, Any, List, Optional
 
 
 def load_config(config_filepath: str = "config/agent_config.yaml") -> Dict[str, Any]:
@@ -115,4 +116,34 @@ def safe_format(template: str, **kwargs) -> str:
     Ignores missing keys by keeping them as-is (e.g., '{missing}' stays '{missing}').
     """
     return SafeFormatter().format(template, **kwargs)
+
+def resolve_data_root(data_root_arg: Optional[str]) -> str:
+    """
+    Resolves a data root path, checking against predefined mappings in global_config.
+    Example: 'prod' -> 'data/prod'
+    """
+    if not data_root_arg:
+        return ""
+        
+    global_cfg = load_global_config()
+    mapping = global_cfg.get('system', {}).get('data_root_mapping', {})
+    
+    # Return mapped value if exists, otherwise return original
+    return mapping.get(data_root_arg, data_root_arg)
+
+def add_data_root_argument(parser: argparse.ArgumentParser):
+    """
+    Standardizes the addition of data_root and env shortcut arguments.
+    """
+    parser.add_argument(
+        "env_shortcut", 
+        nargs="?", 
+        help="Environment shortcut (e.g., prod, live, test). Maps to --data_root if provided."
+    )
+    parser.add_argument(
+        "--data_root", 
+        type=str, 
+        required=False, 
+        help="Explicit data directory root. Overrides env_shortcut."
+    )
 

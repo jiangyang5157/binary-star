@@ -1,6 +1,11 @@
 system:
   default_symbol: "BTCUSDT"
   min_confidence_for_notifier_threshold: 60
+  data_root_mapping:
+    prod: "data/prod"
+    live: "data/live"
+    test: "data/test"
+    backtest: "data/backtest"
 network:
   binance:
     api_timeout_seconds: 15
