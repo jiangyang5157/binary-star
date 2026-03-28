@@ -24,6 +24,7 @@ class CriticConfig:
     strategy_intent: str
     macro_interval: str
     micro_interval: str
+    order_flow_lookback_hours: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
@@ -38,7 +39,8 @@ class CriticConfig:
             stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
             strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
-            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
+            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval']),
+            order_flow_lookback_hours=float(full_config['observer']['order_flow_lookback_hours'])
         )
 
 class CriticAgent(BaseAgent):
@@ -82,7 +84,8 @@ class CriticAgent(BaseAgent):
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
-            "micro_interval": self.config.micro_interval
+            "micro_interval": self.config.micro_interval,
+            "order_flow_lookback_hours": self.config.order_flow_lookback_hours
         }
         
         prompt = self._prepare_prompt(self.config.role_prompt_path, **context)

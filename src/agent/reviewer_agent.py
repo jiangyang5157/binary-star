@@ -25,6 +25,7 @@ class ReviewerConfig:
     micro_interval: str
     execution_timeframe_interval: str
     strategy_intent: str
+    stop_loss_buffer_max: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -45,7 +46,8 @@ class ReviewerConfig:
             macro_interval=str(obs['macro_analysis_context']['time_interval']),
             micro_interval=str(obs['micro_analysis_context']['time_interval']),
             execution_timeframe_interval=str(rev['execution_timeframe_interval']),
-            strategy_intent=str(full_config['strategy_intent'])
+            strategy_intent=str(full_config['strategy_intent']),
+            stop_loss_buffer_max=float(strat['stop_loss_buffer_max'])
         )
 
 class ReviewerAgent(BaseAgent):
@@ -143,7 +145,8 @@ class ReviewerAgent(BaseAgent):
             "critic_prompt": critic_prompt,
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
-            "micro_interval": self.config.micro_interval
+            "micro_interval": self.config.micro_interval,
+            "stop_loss_buffer_max": self.config.stop_loss_buffer_max
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
