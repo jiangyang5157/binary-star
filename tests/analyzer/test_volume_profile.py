@@ -7,7 +7,7 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 def vp_config():
     return VolumeProfileConfig(
         value_area_ratio=0.7,
-        resolution_bins=20,
+        resolution_bins=50,
         atr_period=14,
         max_hvn_nodes=3,
         max_lvn_nodes=3,
