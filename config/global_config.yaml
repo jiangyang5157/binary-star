@@ -2,14 +2,14 @@ system:
   default_symbol: "BTCUSDT"
   min_confidence_for_notifier_threshold: 60
   data_root_mapping:
+    test: "data/test"
     prod: "data/prod"
     live: "data/live"
-    test: "data/test"
     backtest: "data/backtest"
 network:
   binance:
     api_timeout_seconds: 15
-    retry_count: 3
+    retry_count: 2
   gemini:
     api_timeout_seconds: 30
     retry_count: 2

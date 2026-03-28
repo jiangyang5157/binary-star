@@ -48,19 +48,19 @@ class ObserverConfig:
     kc_multiplier: float
     vol_ma_period: int
     max_liq_to_fetch: int
-    max_liq_for_ai: int
+    max_liq_events_for_context: int
     hvn_count: int
     lvn_count: int
     hvn_sensitivity: float
     lvn_sensitivity: float
     min_node_gap_price: int
-    top_levels_to_report: int
+    top_structural_nodes_count: int
     trend_intensity_duration_hours: float
     wick_skewness_period: int
     liq_cluster_atr_multiplier: float
     liq_cluster_fallback_pct: float
     funding_rate_lookback_hours: float
-    vol_intensity_lookback: int
+    volatility_intensity_lookback: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -91,20 +91,20 @@ class ObserverConfig:
             kc_period=int(obs['keltner_channels_period']),
             kc_multiplier=float(obs['keltner_channels_multiplier']),
             vol_ma_period=int(obs['volume_moving_average_period']),
-            max_liq_to_fetch=int(obs['max_liquidation_events_to_fetch']),
-            max_liq_for_ai=int(obs['max_liquidation_events_for_ai_context']),
+            max_liq_to_fetch=int(obs['max_liq_events_to_fetch']),
+            max_liq_events_for_context=int(obs['max_liq_events_for_context']),
             hvn_count=int(obs['high_volume_peak_count']),
             lvn_count=int(obs['low_volume_valley_count']),
             hvn_sensitivity=float(obs['high_volume_peak_sensitivity']),
             lvn_sensitivity=float(obs['low_volume_valley_sensitivity']),
             min_node_gap_price=int(obs['min_price_gap_between_nodes']),
-            top_levels_to_report=int(obs['top_structural_levels_to_report']),
+            top_structural_nodes_count=int(obs['top_structural_nodes_count']),
             trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
             wick_skewness_period=int(obs['wick_skewness_period']),
             liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
             liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct']),
             funding_rate_lookback_hours=float(obs['funding_rate_lookback_hours']),
-            vol_intensity_lookback=int(obs['vol_intensity_lookback'])
+            volatility_intensity_lookback=int(obs['volatility_intensity_lookback'])
         )
 
     @property
@@ -218,7 +218,7 @@ class MarketMetricsRefiner:
         
         # 2. Volatility Intensity (Current Macro ATR vs Historical Average)
         # We use a lookback from config for the average-of-average
-        avg_atr_lookback = min(self.config.vol_intensity_lookback, len(m_df))
+        avg_atr_lookback = min(self.config.volatility_intensity_lookback, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
         vol_intensity = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
@@ -245,7 +245,7 @@ class MarketMetricsRefiner:
 
     def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float) -> Dict[str, Any]:
         poc = profile.get('poc', 0)
-        limit = self.config.top_levels_to_report
+        limit = self.config.top_structural_nodes_count
         all_nodes = [{**n, "type": "HVN"} for n in nodes.get('hvn', [])] + [{**n, "type": "LVN"} for n in nodes.get('lvn', [])]
         
         # Determine structural_state (BALANCED/IMBALANCED)

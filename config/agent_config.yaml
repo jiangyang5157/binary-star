@@ -11,6 +11,11 @@ observer:
     historical_lookback_candles: 192
   volume_profile_value_area_width: 0.75
   volume_profile_price_buckets_count: 300
+  volume_moving_average_period: 21
+  high_volume_peak_count: 3
+  low_volume_valley_count: 3
+  high_volume_peak_sensitivity: 0.15
+  low_volume_valley_sensitivity: 0.05
   taker_volume_delta_duration_hours: 1.0
   market_regime_trend_strength_threshold: 0.35
   average_true_range_period: 21
@@ -18,21 +23,16 @@ observer:
   bollinger_bands_std_dev: 2.0
   keltner_channels_period: 21
   keltner_channels_multiplier: 1.5
-  volume_moving_average_period: 21
-  max_liquidation_events_to_fetch: 50
-  max_liquidation_events_for_ai_context: 10
-  high_volume_peak_count: 3
-  low_volume_valley_count: 3
-  high_volume_peak_sensitivity: 0.15
-  low_volume_valley_sensitivity: 0.05
-  min_price_gap_between_nodes: 50
-  top_structural_levels_to_report: 3
   trend_intensity_duration_hours: 24.0
   wick_skewness_period: 3
+  volatility_intensity_lookback: 24
+  funding_rate_lookback_hours: 24.0
+  min_price_gap_between_nodes: 50
+  top_structural_nodes_count: 3
+  max_liq_events_to_fetch: 50
+  max_liq_events_for_context: 10
   liq_cluster_atr_multiplier: 0.25
   liq_cluster_fallback_pct: 0.005
-  funding_rate_lookback_hours: 24.0
-  vol_intensity_lookback: 24
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
