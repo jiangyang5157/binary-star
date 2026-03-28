@@ -48,5 +48,24 @@ def test_notifications():
     else:
         print(f"Review file not found: {review_path}")
 
+def test_dashboard_notification():
+    # Use data/test as root for internal previews
+    notifier = StrategyNotifier(data_root="data/test")
+    symbol = "BTCUSDT"
+    
+    # Mock dataset for dashboard
+    mock_dataset = [
+        {"observation_time": "2026-03-29 01:10:37", "tp_sl_result": "TP_HIT", "estimated_pnl_pct": 2.5, "confidence": 92},
+        {"observation_time": "2026-03-29 02:15:00", "tp_sl_result": "SL_HIT", "estimated_pnl_pct": -1.2, "confidence": 85},
+        {"observation_time": "2026-03-29 03:20:00", "tp_sl_result": "NEITHER", "estimated_pnl_pct": 0.0, "confidence": 70},
+        {"observation_time": "2026-03-29 04:30:00", "tp_sl_result": "TP_HIT", "estimated_pnl_pct": 1.8, "confidence": 88}
+    ]
+    
+    print(f"Generating Aggregate Dashboard HTML for {symbol}...")
+    notifier.notify_dashboard(symbol, mock_dataset)
+
 if __name__ == "__main__":
+    print("--- Starting Email Preview Tests ---")
     test_notifications()
+    test_dashboard_notification()
+    print("--- Tests Completed ---")
