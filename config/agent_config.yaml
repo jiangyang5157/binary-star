@@ -1,4 +1,4 @@
-strategy_intent: "Micro-Scalp: 关注日内高频波动中的物理插针，通过极致的逻辑硬化锁定利润。
+strategy_intent: "Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics"
 observer:
   role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest

@@ -104,7 +104,7 @@ graph TD
 **BTCUSDT**
 | 审计属性 | 核心变量 | **演化参考** |
 | :--- | :--- | :--- |
-| **战略意图** | `strategy_intent` | `Micro-Scalp: 关注日内高频波动中的物理插针，通过极致的逻辑硬化锁定利润。` |
+| **战略意图** | `strategy_intent` | `Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics` |
 | **物理分布精度** | `volume_profile_price_buckets_count` | `300` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
 | **物理清算映射** | `liq_cluster_atr_multiplier` | `0.5` |
