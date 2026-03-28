@@ -12,13 +12,18 @@
 
 ```mermaid
 graph TD
-    %% 前向三路推理回路
+    %% 前向驱动：三路推理轴 (The Reasoning Triad)
     subgraph "前向驱动：三路推理轴 (The Reasoning Triad)"
-        A["Observer: 测绘师"] -->|"物理景观 (Observation)"| B("Strategist: 架构师 (Phase A)")
-        B -->|"逻辑草案 (Draft Plan)"| C{{"Middleware: 物理公证层"}}
-        C -->|"硬核事实 (Math Facts)"| D["Critic: 对抗审判官"]
-        D -->|"审计判决 (Verdict)"| E("Strategist: 觉醒者 (Phase B)")
-        E -->|"最终执行决议 (Decision)"| F["Market Execution"]
+        A["Observer: 测绘师"] -- "物理真相 (Truth Bus)" --> TB{{"真相总线 (Observation)"}}
+        
+        TB -- "注入背景" --> B1("Strategist: 架构师 (Phase A)")
+        B1 -- "逻辑草案 (Draft)" --> C{{"Middleware: 物理公证层"}}
+        TB -- "数据对齐" --> C
+        C -- "数学事实 (Math Facts)" --> D["Critic: 对抗审判官"]
+        TB -- "对抗审计" --> D
+        D -- "审判报告 (Verdict)" --> B2("Strategist: 觉醒者 (Phase B)")
+        TB -- "决策收敛" --> B2
+        B2 -- "最终执行决议 (Decision)" --> F["Market Execution"]
     end
 
     %% 后向法医演化回路
@@ -30,17 +35,17 @@ graph TD
 
     %% 关键进化路径映射：修复逻辑断裂
     I -.->|"注入地形感知"| A
-    I -.->|"(同时覆盖 A/B 相位) 注入进化逻辑"| B
-    I -.->|"同步硬化策略"| E
+    I -.->|"注入进化逻辑"| B1
     I -.->|"注入对抗约束"| D
+    I -.->|"注入硬化策略"| B2
 
     %% 节点样式美化 (法医级配色)
     style C fill:#f96,stroke:#333,stroke-width:2px,color:#fff
+    style TB fill:#e1f5fe,stroke:#01579b,stroke-width:2px,stroke-dasharray: 5 5
     style F fill:#00ff00,stroke:#333,stroke-width:2px,color:#000
     style I fill:#f9f,stroke:#333,stroke-width:4px,color:#000
-    style A fill:#e1f5fe,stroke:#01579b
-    style G fill:#fff9c4,stroke:#fbc02d
-    style H fill:#e8f5e9,stroke:#2e7d32
+    style B1 fill:#e1f5fe,stroke:#01579b
+    style B2 fill:#e1f5fe,stroke:#01579b
 ```
 
 ---
@@ -51,11 +56,11 @@ graph TD
 
 | 智能实体 | 职能模型 | 枢纽逻辑 | 演化产物 |
 | :--- | :--- | :--- | :--- |
-| **Observer** | **测绘师** | **物理景观聚合**：识别宏微观地形共振 并量化趋势强度 | 地形全景数据 |
+| **Observer** | **测绘师** | **物理景观聚合**：识别宏微观地形共振，构建“真相总线” | 地形全景数据 |
 | **Strategist (A)** | **架构师** | **交易蓝图构建**：锚定高成交量节点 (HVN) 并预设物理执行轨迹 | 逻辑草案 |
-| **Middleware** | **真理校验门** | **物理解耦公证**：强制锁定 RR 与 ATR 参数，彻底消除 AI 幻觉 | 物理事实底座 |
-| **Critic** | **对抗审判官** | **生存压力测试**：基于《怀疑论》模型进行对抗性审计，识别流动性陷阱 | 审计判决书 |
-| **Strategist (B)** | **觉醒者** | **风险硬化收敛**：整合审计意见，执行深度入场防御 (DLE) 或强制弃权 | 最终执行方案 |
+| **Middleware** | **真理校验门** | **物理解耦公证**：通过真相总线锁定 RR 与 ATR 参数，彻底消除幻觉 | 物理事实底座 |
+| **Critic** | **对抗审判官** | **生存压力测试**：基于真相总线识别流动性陷阱，进行对抗性审计 | 审计判决书 |
+| **Strategist (B)** | **觉醒者** | **风险硬化收敛**：整合审计意见，执行深度入场防御 (DLE) 或强制弃权 | 最终决议 |
 | **Reviewer** | **法医鉴定师** | **尸检溯源对比**：精准对齐成交事实，捕捉逻辑与现实的“真值偏离” | 法医复盘报告 |
 | **Coach** | **演化合伙人** | **认知偏差修正**：诊断系统性盲区，合成多智能体进化的底层逻辑补丁 | 逻辑补丁 |
 
@@ -71,8 +76,8 @@ graph TD
 ### 第二层：多模态视觉证伪
 核心逻辑：特征引用与视觉存证。 拒绝由于纯数字漂移导致的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
 
-### 第三层：递归状态机
-核心逻辑：原子化状态切换。 废弃复杂的会话状态（Context）管理，采用原子化的相位探测逻辑（检测 Draft 是否存在来自动切换 Phase A/B）。这使得系统保持完全无状态（Stateless），极大提升了在分布式、高频环境下的推理可预测性与部署弹性。
+### 第三层：递归状态机 (The Atomic Phase Switch)
+核心逻辑：原子化状态切换与真相总线对齐。 废弃复杂的会话状态（Context）管理，采用原子化的相位探测逻辑（检测 Draft 是否存在来自动切换 Phase A/B）。这使得 **同一物理 Agent 实例** 在不同时间点能精准识别自己的职能边界。同时，真相总线（Observation）作为贯穿全周期的“唯一上下文”，确保了从草案到审计、再到终稿的逻辑一致性。
 
 ---
 
