@@ -447,7 +447,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                     </p>
                 </div>
 
-                {DashboardEmailTemplate.render_summary_footer("Strategic Ledger: Historical Performance Audit")}
+                {DashboardEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Crypto Strategy")}
             </div>
         </body>
         </html>
