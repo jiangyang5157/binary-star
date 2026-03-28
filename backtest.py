@@ -4,7 +4,7 @@ import sys
 import argparse
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Optional, List
+from typing import Optional, List, Any
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -95,9 +95,11 @@ class BacktestOrchestrator:
         self.logger.info(f"\n=== Backtest Complete: {len(target_timestamps)} strategies generated ===")
         self.logger.info(f"Results archived in: {os.path.join(self.data_root, 'strategies')}")
 
-def parse_date(date_str: Optional[str]) -> datetime:
-    """Supports flexible date parsing: YYYY-MM-DD and T-Nd/T-Nh relative formats."""
-    if not date_str:
+def parse_date(date_str: Any) -> datetime:
+    """Supports flexible date parsing: YYYY-MM-DD, T-Nd/T-Nh, 'now', or existing datetime."""
+    if isinstance(date_str, datetime):
+        return date_str
+    if not date_str or (isinstance(date_str, str) and date_str.lower() == "now"):
         return datetime.now(timezone.utc)
     
     # 1. Handle relative formats like T-30d
@@ -124,8 +126,8 @@ def parse_date(date_str: Optional[str]) -> datetime:
 def main():
     parser = argparse.ArgumentParser(description="Professional Crypto Backtest Simulator")
     parser.add_argument("--symbol", type=str, help="Trading symbol (default: BTCUSDT)")
-    parser.add_argument("--start", type=valid_date, help="Start date (YYYY-MM-DD or T-30d)")
-    parser.add_argument("--end", type=valid_date, help="End date (YYYY-MM-DD)")
+    parser.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
+    parser.add_argument("--end", type=parse_date, help="End date (YYYY-MM-DD)")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -145,16 +147,18 @@ def main():
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
-    # Temporal context resolution
+    # Temporal context resolution (argparse already calls parse_date for non-None values)
     try:
-        end_dt = parse_date(args.end if args.end != "now" else None)
+        # If --start/--end not provided, fallback to default (None -> parse_date handles this)
+        start_dt = parse_date(args.start or "T-30d") # Default to 30 days lookback if start missing
+        end_dt = parse_date(args.end or "now")
         
         if start_dt >= end_dt:
             print("Error: Start date must be before end date.")
             sys.exit(1)
             
         orchestrator = BacktestOrchestrator(
-            data_root=args.data_root,
+            data_root=data_root,
             sampling_count=args.sampling,
             sampling_mode=args.mode
         )

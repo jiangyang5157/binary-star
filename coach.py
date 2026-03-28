@@ -184,7 +184,9 @@ def main():
         sys.exit(1)
 
     try:
-        orchestrator = CoachOrchestrator(data_root=args.data_root)
+        # Use resolved data_root instead of args.data_root to support positional shortcuts like 'live'
+        # 使用解析后的 data_root 而不是 args.data_root，以支持 'live' 等位置参数快捷方式
+        orchestrator = CoachOrchestrator(data_root=data_root)
         orchestrator.execute_pipeline(symbol=symbol, batch_size=args.batch)
     except Exception as e:
         print(f"Coaching Pipeline Failed: {e}")
