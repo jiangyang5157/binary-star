@@ -7,6 +7,7 @@ from google.genai import types
 
 from src.agent.base_agent import BaseAgent
 from src.utils.agent_utils import read_prompt_template, safe_format
+from src.utils.datetime_utils import get_interval_seconds
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
@@ -108,6 +109,9 @@ class StrategistAgent(BaseAgent):
         """
         # Load the velocity floor for temporal calculations
         velocity_floor = self.config.min_trade_velocity
+        
+        # Calculate macro_hours for consistent temporal projection
+        macro_hours = get_interval_seconds(self.config.macro_interval) / 3600
 
         # Prepare context (json.dumps handles None as 'null' automatically)
         context = {
@@ -115,6 +119,7 @@ class StrategistAgent(BaseAgent):
             "draft_plan": json.dumps(extra_context.get("draft_plan"), indent=2, ensure_ascii=False),
             "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False),
             "min_trade_velocity": velocity_floor,
+            "macro_hours": f"{macro_hours:.4f}",
             "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "strategy_intent": self.config.strategy_intent,
