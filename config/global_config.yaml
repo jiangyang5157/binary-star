@@ -8,8 +8,8 @@ system:
     backtest: "data/backtest"
 network:
   binance:
-    api_timeout_seconds: 20
+    api_timeout_seconds: 60
     retry_count: 2
   gemini:
-    api_timeout_seconds: 30
-    retry_count: 3
+    api_timeout_seconds: 480
+    retry_count: 2

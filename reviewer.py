@@ -208,9 +208,15 @@ class ReviewerOrchestrator:
                 metrics = outcome.get("trade_execution_metrics", {})
                 is_stub = metrics.get("is_premature_audit") and metrics.get("tp_sl_result") == "NEITHER"
                 
-                if not is_stub:
+                # Check for AI execution failures in audit_findings
+                audit_findings = existing_review.get("audit_findings", {})
+                is_failure = audit_findings.get("error") in ("REVIEWER_EXECUTION_FAILURE", "JSON_PARSE_FAILURE")
+                
+                if not is_stub and not is_failure:
                     logger.info(f"Skipping {output_filename} - Finalized review already exists.")
                     return
+                elif is_failure:
+                    logger.info(f"Recovering {output_filename} - Previous review reported {audit_findings.get('error')}. Re-auditing...")
                 else:
                     logger.info(f"Re-auditing {output_filename} - Previous review was a SYSTEM-STUB.")
             else:
