@@ -76,24 +76,50 @@ graph TD
 
 ---
 
-## 📈 跨域缩放 · 硬化准则
+## ⏳ 时域硬化 · 缩放模型
 
-> [!IMPORTANT]
-> **“持仓周期 (Holding Period)” 是系统的核心权重，而非简单的环境参数。** 调整持仓目标会导致系统产生“多阶维度”的偏移，必须配套以下硬化逻辑。
+> ⚙️ **时域对齐：系统演化的核心权重**
+> 物理真相的“分辨率”必须随时间跨度同步缩放；调整持仓目标会导致系统产生“多阶维度”的逻辑偏移，必须同步调整参数矩阵以确保物理真相的客观真实。
 
-### 1. 缩放路线图 (Strategy Scaling Logic)
-针对系统在 **“时间跨度周期对齐” (Temporal Alignment)** 上的局限性，提供如下缩放配置：
+### 1. 时域参数矩阵
 
-| 目标策略 | Macro / Micro | 核心改动 (Config) | 核心改动 (Prompt) |
-| :--- | :--- | :--- | :--- |
-| **Swing (1周内)** | 1h / 15m | `funding_lookback`: 168h | `min_temporal_efficiency`: 0.3 |
-| **Position (1月内)**| **4h / 1h** | `resolution_bins`: 800+ | `Dynamic RR`: Trend >= 3.0x |
-| **Logic (Scalp)** | 15m / 1m | `wick_skew_period`: 1 | `confidence`: High Fill Priority |
+针对不同跨度的交易逻辑，系统通过以下物理与逻辑维度的硬化以对抗“时空退化”：
 
-### 2. 多维审计要点 (Deep Audit Points)
-*   **物理几何崩溃**: 当 `macro_interval` 拉长至周/月级别时，分桶数 (Bins) 必须呈 **对数级增加**。否则，高成交量节点（墙）的厚度会吞没系统预留的止损缓冲区。
-*   **线性公式失效**: `holding_time_hours` 的线性算法在月度持仓中会导致预测值脱靶。长线策略必须在 Prompt 中引入 **“波动率预期衰减”** 的权重。
-*   **数据孤岛风险**: 对于长线级别，`fetch_liquidations` 无法捕获数周前的关键强平簇，必须通过本地持久化来对抗 API 数据丢失。
+| 参数名称 | Variable| 硬化维度 | 优先级 | 逻辑演化建议 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Bins Count** | `volume_profile_price_buckets_count` | 物理分辨率 | **Critical** | 随时间跨度对数级增加。长线必须 > 800 以维持地形精度。 |
+| **Time Intervals** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例以锁定趋势/入场。 |
+| **SL Ceiling** | `sl_structural_buffer_ceiling` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须从 0.5 提升至 0.7+ 以生存。 |
+| **Temporal Eff.** | `min_temporal_efficiency` | 时间效率 | **Medium** | 长线策略应下调此权重，以容忍更缓慢的行情演化过程。 |
+| **Liq Multiplier** | `liq_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 波动率同步缩放。 |
+| **Lookback Hours** | `funding_rate_lookback_hours` | 历史记忆 | **Low** | 给记录提供的背景数据长度，影响宏观地形的稳定性。 |
+
+### 2. 实例库
+
+系统通过“法医审计”不断沉淀在不同时间跨度下的最优配置。
+
+#### 微观：日内高频波动中的物理插针
+
+**BTCUSDT**
+
+| 属性 | Variable | 推荐值 |
+| :--- | :--- | :--- |
+| **时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
+| **空间分辨率** | `volume_profile_price_buckets_count` | `300` |
+| **物理清算映射** | `liq_cluster_atr_multiplier` | `0.5` |
+| **生存硬化** | `sl_structural_buffer_ceiling` | `0.7` |
+| **时间屏障** | `min_temporal_efficiency` | `0.4` |
+| **物理锚点** | `funding_rate_lookback_hours` | `24.0` |
+
+---
+
+#### 周期：识别市场由震荡转为趋势的物理临界点
+> TODO
+
+---
+
+#### 宏观：大规模底部/派发区间的物理地形反转测绘
+> TODO
 
 ---
 
