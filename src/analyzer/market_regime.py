@@ -109,10 +109,10 @@ class RegimeClassifier:
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
 
         # 4. Volume Breakout
-        vol_ratio = 1.0
+        volatility_ratio = 1.0
         if 'volume' in df.columns:
             vol_ma = df['volume'].rolling(window=self.config.volume_ma_window).mean()
-            vol_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
+            volatility_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
 
         return RegimeResult(
             volatility_regime=vol_regime,
@@ -120,7 +120,7 @@ class RegimeClassifier:
             market_regime=market_regime,
             trend_intensity=round(float(latest['trend_intensity']), 4),
             wick_skewness_lookback=round(float(skewness), 4),
-            vol_breakout=round(float(vol_ratio), 2)
+            vol_breakout=round(float(volatility_ratio), 2)
         )
 
 class MarketRegimeAnalyzer:

@@ -30,16 +30,16 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 | **Safe/Valid**| Logic aligns, math is verified, SL is hidden. | **[CLEAR]** (Pass: Approve trade with `is_veto: false`). |
 | **Macro/Time**| {macro_interval} trend heavily contradicts {micro_interval} entry direction. | **[MACRO_CONFLICT]** (Fatal: Trend override). |
 | **Regime Velocity**| Mean-reverting to POC in high-velocity TREND (unless poc_dist_atr > 4.0). | **[LIQUIDITY_VOID]** (Mitigate: Demand shallow LVN/Edge entry). |
-| **Regime Transition**| Mean-reverting when squeeze_factor < 1.0 AND vol_ratio > 1.5. | **[VOLATILITY_EXPANSION]** (Fatal: Breakout imminent). |
-| **Anchor SL Trap**| SL anchored to POC in RANGING (vol_ratio > 1.3) OR TRENDING/IMBALANCED regimes. | **[LIQUIDITY_VOID]** (Mitigate: Move SL behind VAH/VAL or distal HVN). |
+| **Regime Transition**| Mean-reverting when squeeze_factor < 1.0 AND `volatility_ratio` > 1.5. | **[VOLATILITY_EXPANSION]** (Fatal: Breakout imminent). |
+| **Anchor SL Trap**| SL anchored to POC in RANGING (`volatility_ratio` > 1.3) OR TRENDING/IMBALANCED regimes. | **[LIQUIDITY_VOID]** (Mitigate: Move SL behind VAH/VAL or distal HVN). |
 | **Volatility**| `squeeze_factor` expands violently against trade. | **[VOLATILITY_EXPANSION]** (Fatal: Momentum override). |
 | **Divergence**| Price making HH while `cvd_trend` is DOWNWARD. | **[ABSORPTION_TRAP]** (Mitigate: Demand deeper entry). |
 | **Weak Breakout**| Price crosses VAH/VAL but `vol_breakout` < 1.2. | **[ABSORPTION_TRAP]** (Mitigate: Wait for liquidity sweep). |
 | **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S). Analyzed over **1h Tactical Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 | **Vacuum Risk**| Stop Loss placed inside an LVN (`vacuum_score` > 0.3).| **[LIQUIDITY_VOID]** (Mitigate: Move SL behind a wall). |
 | **Retail Trap**| `ls_ratio` > 2.0 while price is at resistance. | **[RETAIL_SQUEEZE]** (Mitigate: Place DLE below retail SLs). |
-| **Cascade Risk**| `ls_ratio` > 2.0 AND `vol_ratio` > 2.0 with standard SL buffer. | **[VOLATILITY_EXPANSION]** (Fatal: Buffer insufficient against liquidation cascade). |
-| **Momentum Blindness**| `vol_ratio` > 2.0 AND `trend_intensity` > 0.5 but Draft demands deep structural retest. | **[LIQUIDITY_VOID]** (Mitigate: Demand shallower entry to ensure participation). |
+| **Cascade Risk**| `ls_ratio` > 2.0 AND `volatility_ratio` > 2.0 with standard SL buffer. | **[VOLATILITY_EXPANSION]** (Fatal: Buffer insufficient against liquidation cascade). |
+| **Momentum Blindness**| `volatility_ratio` > 2.0 AND `trend_intensity` > 0.5 but Draft demands deep structural retest. | **[LIQUIDITY_VOID]** (Mitigate: Demand shallower entry to ensure participation). |
 | **Math/Logic**| `math_fact_check` contradicts Draft, or RR < min. | **[MATH_VIOLATION]** (Fatal: Abort). |
 | **Unknown** | Extreme metric collision not defined above. | **[ANOMALY]** (Fatal: Protect capital). |
 

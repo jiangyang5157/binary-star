@@ -90,7 +90,7 @@ graph TD
 | **战略意图** | `strategy_intent` | 逻辑演化语义 | **Critical** | 系统的“逻辑北极星”，所有物理参数以此意图为原点进行演化。 |
 | **物理分布精度** | `volume_profile_price_bucket_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
-| **生存硬化上限** | `stop_loss_buffer_max` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须提升至 0.7+。 |
+| **生存硬化上限** | `stop_loss_buffer_max` | 风险硬化 | **High** | 波动扩张 (volatility_ratio > 2.0) 时必须提升至 0.7+。 |
 | **生存硬化下限** | `stop_loss_buffer_min` | 结构防御底线 | **High** | 结构防御的最小硬性装甲厚度，随系统时间窗口放大而必须加厚，以抵御宏观清算插针。 |
 | **逻辑执行效率** | `min_trade_velocity` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |

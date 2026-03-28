@@ -214,7 +214,7 @@ class MarketMetricsRefiner:
         
         # 1. Vol-Ratio (Micro vs Macro)
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
-        vol_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
+        volatility_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
         
         # 2. Volatility Intensity (Current Macro ATR vs Historical Average)
         # We use a lookback from config for the average-of-average
@@ -226,7 +226,7 @@ class MarketMetricsRefiner:
             "current_price": c,
             "atr_macro": atr_m,
             "atr_micro": atr_n,
-            "vol_ratio": f"{vol_ratio:.2f}",
+            "volatility_ratio": f"{volatility_ratio:.2f}",
             "latest_wick_skew": f"{wick_skew:.2f}",
             "vol_intensity_index": f"{vol_intensity:.2f}" # > 1.0 means current volatility is expanding beyond its own average
         }
