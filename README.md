@@ -85,14 +85,15 @@ graph TD
 
 针对不同跨度的交易逻辑，系统通过以下物理与逻辑维度的硬化以对抗“时空退化”：
 
-| 参数名称 | Variable| 硬化维度 | 优先级 | 逻辑演化建议 |
+| 参数名称 | Variable | 硬化维度 | 优先级 | 逻辑演化建议 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Bins Count** | `volume_profile_price_buckets_count` | 物理分辨率 | **Critical** | 随时间跨度对数级增加。长线必须 > 800 以维持地形精度。 |
-| **Time Intervals** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例以锁定趋势/入场。 |
-| **SL Ceiling** | `sl_structural_buffer_ceiling` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须从 0.5 提升至 0.7+ 以生存。 |
-| **Temporal Eff.** | `min_temporal_efficiency` | 时间效率 | **Medium** | 长线策略应下调此权重，以容忍更缓慢的行情演化过程。 |
-| **Liq Multiplier** | `liq_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 波动率同步缩放。 |
-| **Lookback Hours** | `funding_rate_lookback_hours` | 历史记忆 | **Low** | 给记录提供的背景数据长度，影响宏观地形的稳定性。 |
+| **物理分布精度** | `volume_profile_price_buckets_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
+| **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
+| **生存硬化上限** | `sl_structural_buffer_ceiling` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须提升至 0.7+。 |
+| **逻辑执行效率** | `min_temporal_efficiency` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
+| **物理清算映射** | `liq_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |
+| **历史记忆深度** | `funding_rate_lookback_hours` | 物理锚点 | **Low** | 给 Observer 提供背景数据量，影响宏观地形稳定性。 |
+
 
 ### 2. 实例库
 
