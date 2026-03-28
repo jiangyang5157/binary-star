@@ -1,14 +1,14 @@
-# 🛡️ Strategic Alpha Ledger: The Forensic Trading Machine
+# ⚖️ 真相 · 逻辑 · 审计
 
 > **“不预测行情，只测绘逻辑。”**
 
-这是一个基于 **物理真相 (Physic Truth)** 与 **对抗性演化 (Adversarial Evolution)** 构建的多智能体交易系统。它通过“三路推理 (Reasoning Triad)”架构，将极度不确定的市场博弈转化为确定性的物理地形测绘与逻辑审计。每一笔交易都是对市场脆弱性的精确爆破。
+这是一个基于 **物理真相** 与 **对抗性演化** 构建的多智能体交易系统。它通过“三路推理 (Reasoning Triad)”架构，将极度不确定的市场博弈转化为确定性的物理地形测绘与逻辑审计。每一张单子都是物理事实与对抗性逻辑的结晶，是对市场脆弱性的精确爆破。
 
 ---
 
-## 🌐 物理地形与多向演化全景 (The Physical & Evolutionary Panorama)
+## 🗺️ 物理地形 · 演化枢纽
 
-系统通过 **前向逻辑推理 (Forward Reasoning)** 与 **后向法医演化 (Backward Forensic Evolution)** 构建了一个具备自我修复能力的闭环生态：
+系统通过 **前向推理 (Forward Reasoning)** 与 **后向演化 (Backward Evolution)** 构建了一个具备自我修复能力的闭环生态：
 
 ```mermaid
 graph TD
@@ -35,11 +35,11 @@ graph TD
 
 ---
 
-## 🧬 逻辑博弈：多智能体审计与共识协议 (Multi-Agent Consensus & Audit Protocol)
+## 🧬 逻辑审计 · 共识协议
 
-系统各组件通过确定的物理边界与逻辑主权，确保每一棒交接都具备“法医级”的严谨性：
+基于明确的物理地形边界与逻辑主权隔离，各组件在协作交接中始终维持着不可逾越的“法医级”逻辑严谨度：
 
-| 角色 | 职能 (Identity) | 核心生产逻辑 (Core Logic) | 产出物 (Output) |
+| 角色 | 职能 | 核心生产逻辑 | 产出物 |
 | :--- | :--- | :--- | :--- |
 | **Observer** | **测绘师** | **景观聚合**：识别宏微观地形 Confluence，计算趋势强度。 | 物理地形快照 (Observation) |
 | **Strategist (A)** | **设计师** | **构思逻辑**：寻找 HVN 锚点，根据地形初步设计入场轨迹。 | 决策草案 (Draft Plan) |
@@ -51,7 +51,22 @@ graph TD
 
 ---
 
-## 📊 跨域硬化：多尺度演化与缩放准则 (Spatio-Temporal Hardening & Scaling)
+## 🛡️ 逻辑盾牌
+
+为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
+
+### 第一层：物理真实网关
+核心逻辑：剥离 AI 的数学解释权。 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与时间效率 (Temporal Efficiency)，并作为系统的唯一法定事实注入。此举彻底消除了 LLM 在复杂计算中的幻觉，确保逻辑基座的绝对真实。
+
+### 第二层：多模态视觉证伪
+核心逻辑：特征引用与视觉存证。 拒绝由于纯数字漂移导致的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
+
+### 第三层：递归状态机
+核心逻辑：原子化状态切换。 废弃复杂的会话状态（Context）管理，采用原子化的相位探测逻辑（检测 Draft 是否存在来自动切换 Phase A/B）。这使得系统保持完全无状态（Stateless），极大提升了在分布式、高频环境下的推理可预测性与部署弹性。
+
+---
+
+## 📈 跨域缩放 · 硬化准则
 
 > [!IMPORTANT]
 > **“持仓周期 (Holding Period)” 是系统的核心权重，而非简单的环境参数。** 调整持仓目标会导致系统产生“多阶维度”的偏移，必须配套以下硬化逻辑。
@@ -72,30 +87,16 @@ graph TD
 
 ---
 
-## 🛡️ 法医级防御：多维逻辑硬化盾牌 (The Forensic Hardening Shields)
+## 🚀 运行手册
 
-为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
-
-### 第一层：物理事实真理网关 (Hallucination Killer)
-禁止 AI 进行任何关键数学计算。由后端 Python 逻辑注入确定性的 RR (盈亏比)、ATR 距离与 Temporal Efficiency (时间效率)，作为 Critic 审计的唯一法定依据。
-
-### 第二层：多模态视觉证伪体系 (Visual Anchoring)
-所有的推理必须引用视觉快照 (Snapshot) 中的特征。AI 必须回答：“我看到了 K 线影线在 X 位置的阻力”，而非盲目信任数字，确立“单点真实来源”。
-
-### 第三层：无状态递归相位侦测 (Deterministic State Machine)
-策略师不再通过复杂的 Context 管理状态，而是直接递归检测 `Draft` 的存在。这使得 Prompt 保持静态且可预测，提升了分布式部署的稳定性。
-
----
-
-## 🚀 运行手册 (Operational Manual)
-
-项目采用模块化设计，覆盖从地形探测到演化修补的全流程。
+系统采用模块化架构，实现从物理地形探测、策略法医审计到逻辑演化补偿的全生命周期闭环。
 
 ### Phase 0: 部署与核心环境
 ```bash
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-# 在 .env 中配置 API Keys
+# 在 .env 中配置以下关键凭证：
+# GEMINI_API_KEY="..."
 ```
 
 ### Phase 1: 策略执行与回测验证
@@ -113,9 +114,3 @@ pip install -r requirements.txt
 *   **全自动化编排**: `python3 pipeline_orchestrator.py --symbol BTCUSDT --interval 1 live`
 *   **诊断与进化合成**: `python3 coach.py --symbol BTCUSDT [prod|live|backtest]`
 *   **应用逻辑补丁**: `python3 apply_patch.py --file [PATCH_JSON_PATH]`
-
----
-
-## ⚖️ 我们的哲学
-
-系统不通过“预测”未来获利，而是通过“**精确测绘当前的逻辑陷阱**”获利。每一张单子都是物理事实与对抗性逻辑的结晶。
