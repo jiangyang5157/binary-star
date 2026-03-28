@@ -85,7 +85,7 @@ graph TD
 
 针对不同跨度的交易逻辑，系统通过以下物理与逻辑维度的硬化以对抗“时空退化”：
 
-| 参数名称 | Variable | 硬化维度 | 优先级 | 逻辑演化建议 |
+| 审计属性 | 核心变量 | 硬化维度 | 优先级 | 演化建议 |
 | :--- | :--- | :--- | :--- | :--- |
 | **物理分布精度** | `volume_profile_price_buckets_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
@@ -94,7 +94,6 @@ graph TD
 | **物理清算映射** | `liq_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |
 | **历史记忆深度** | `funding_rate_lookback_hours` | 物理锚点 | **Low** | 给 Observer 提供背景数据量，影响宏观地形稳定性。 |
 
-
 ### 2. 实例库
 
 系统通过“法医审计”不断沉淀在不同时间跨度下的最优配置。
@@ -102,15 +101,14 @@ graph TD
 #### 微观：日内高频波动中的物理插针
 
 **BTCUSDT**
-
-| 属性 | Variable | 推荐值 |
+| 审计属性 | 核心变量 | **演化参考** |
 | :--- | :--- | :--- |
-| **时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
-| **空间分辨率** | `volume_profile_price_buckets_count` | `300` |
+| **物理分布精度** | `volume_profile_price_buckets_count` | `300` |
+| **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
 | **物理清算映射** | `liq_cluster_atr_multiplier` | `0.5` |
-| **生存硬化** | `sl_structural_buffer_ceiling` | `0.7` |
-| **时间屏障** | `min_temporal_efficiency` | `0.4` |
-| **物理锚点** | `funding_rate_lookback_hours` | `24.0` |
+| **生存硬化上限** | `sl_structural_buffer_ceiling` | `0.7` |
+| **逻辑执行效率** | `min_temporal_efficiency` | `0.4` |
+| **历史记忆深度** | `funding_rate_lookback_hours` | `24.0` |
 
 ---
 
