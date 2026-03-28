@@ -10,7 +10,7 @@ observer:
     time_interval: 15m
     historical_lookback_candles: 192
   volume_profile_value_area_width: 0.75
-  volume_profile_price_buckets_count: 300
+  volume_profile_price_bucket_count: 300
   volume_moving_average_period: 21
   high_volume_peak_count: 3
   low_volume_valley_count: 3
@@ -28,7 +28,7 @@ observer:
   volatility_intensity_lookback: 24
   funding_rate_lookback_hours: 24.0
   min_price_gap_between_nodes: 50
-  top_structural_nodes_count: 3
+  top_structural_node_count: 3
   max_liq_events_to_fetch: 50
   max_liq_events_for_context: 10
   liq_cluster_atr_multiplier: 0.25

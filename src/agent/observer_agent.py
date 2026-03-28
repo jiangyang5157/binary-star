@@ -38,7 +38,7 @@ class ObserverConfig:
     macro_context: TimeframeConfig
     micro_context: TimeframeConfig
     vp_value_area_width: float
-    vp_price_buckets_count: int
+    vp_price_bucket_count: int
     taker_vol_delta_duration_hours: float
     regime_trend_threshold: float
     atr_period: int
@@ -82,7 +82,7 @@ class ObserverConfig:
                 historical_lookback_candles=int(micro['historical_lookback_candles'])
             ),
             vp_value_area_width=float(obs['volume_profile_value_area_width']),
-            vp_price_buckets_count=int(obs['volume_profile_price_buckets_count']),
+            vp_price_bucket_count=int(obs['volume_profile_price_bucket_count']),
             taker_vol_delta_duration_hours=float(obs['taker_volume_delta_duration_hours']),
             regime_trend_threshold=float(obs['market_regime_trend_strength_threshold']),
             atr_period=int(obs['average_true_range_period']),
@@ -497,7 +497,7 @@ class ObserverAgent:
     def _init_vp(self) -> VolumeProfileAnalyzer:
         cfg = self.config
         vp_cfg = VolumeProfileConfig(
-            value_area_ratio=cfg.vp_value_area_width, resolution_bins=cfg.vp_price_buckets_count,
+            value_area_ratio=cfg.vp_value_area_width, resolution_bins=cfg.vp_price_bucket_count,
             atr_period=cfg.atr_period, max_hvn_nodes=cfg.hvn_count, max_lvn_nodes=cfg.lvn_count,
             hvn_sensitivity=cfg.hvn_sensitivity, lvn_sensitivity=cfg.lvn_sensitivity,
             min_node_distance=cfg.min_node_gap_price
