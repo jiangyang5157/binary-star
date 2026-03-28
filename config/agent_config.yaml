@@ -14,9 +14,9 @@ observer:
   volume_moving_average_period: 21
   high_volume_peak_count: 3
   low_volume_valley_count: 3
-  high_volume_peak_sensitivity: 0.15
-  low_volume_valley_sensitivity: 0.05
-  taker_volume_delta_duration_hours: 1.0
+  high_volume_node_detection_threshold: 0.15
+  low_volume_node_detection_threshold: 0.05
+  order_flow_lookback_hours: 1.0
   market_regime_trend_strength_threshold: 0.35
   average_true_range_period: 21
   bollinger_bands_period: 21
@@ -29,18 +29,18 @@ observer:
   funding_rate_lookback_hours: 24.0
   min_price_gap_between_nodes: 50
   top_structural_node_count: 3
-  max_liq_events_to_fetch: 50
-  max_liq_events_for_context: 10
-  liq_cluster_atr_multiplier: 0.25
-  liq_cluster_fallback_pct: 0.005
+  max_liquidation_events_to_fetch: 50
+  max_liquidation_events_for_context: 10
+  liquidation_cluster_atr_multiplier: 0.25
+  liquidation_cluster_fallback_pct: 0.005
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
   model_temperature_draft: 0.2
   model_temperature_synthesis: 0.2
-  min_temporal_efficiency: 0.4
-  sl_structural_buffer_floor: 0.2
-  sl_structural_buffer_ceiling: 0.7
+  min_trade_velocity: 0.4
+  stop_loss_buffer_min: 0.2
+  stop_loss_buffer_max: 0.7
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview

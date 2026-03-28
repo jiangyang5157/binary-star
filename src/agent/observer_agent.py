@@ -39,7 +39,7 @@ class ObserverConfig:
     micro_context: TimeframeConfig
     vp_value_area_width: float
     vp_price_bucket_count: int
-    taker_vol_delta_duration_hours: float
+    order_flow_lookback_hours: float
     regime_trend_threshold: float
     atr_period: int
     bb_period: int
@@ -47,18 +47,18 @@ class ObserverConfig:
     kc_period: int
     kc_multiplier: float
     vol_ma_period: int
-    max_liq_to_fetch: int
-    max_liq_events_for_context: int
+    max_liquidation_events_to_fetch: int
+    max_liquidation_events_for_context: int
     hvn_count: int
     lvn_count: int
-    hvn_sensitivity: float
-    lvn_sensitivity: float
+    high_volume_node_detection_threshold: float
+    low_volume_node_detection_threshold: float
     min_node_gap_price: int
     top_structural_node_count: int
     trend_intensity_duration_hours: float
     wick_skewness_period: int
-    liq_cluster_atr_multiplier: float
-    liq_cluster_fallback_pct: float
+    liquidation_cluster_atr_multiplier: float
+    liquidation_cluster_fallback_pct: float
     funding_rate_lookback_hours: float
     volatility_intensity_lookback: int
 
@@ -83,7 +83,7 @@ class ObserverConfig:
             ),
             vp_value_area_width=float(obs['volume_profile_value_area_width']),
             vp_price_bucket_count=int(obs['volume_profile_price_bucket_count']),
-            taker_vol_delta_duration_hours=float(obs['taker_volume_delta_duration_hours']),
+            order_flow_lookback_hours=float(obs['order_flow_lookback_hours']),
             regime_trend_threshold=float(obs['market_regime_trend_strength_threshold']),
             atr_period=int(obs['average_true_range_period']),
             bb_period=int(obs['bollinger_bands_period']),
@@ -91,18 +91,18 @@ class ObserverConfig:
             kc_period=int(obs['keltner_channels_period']),
             kc_multiplier=float(obs['keltner_channels_multiplier']),
             vol_ma_period=int(obs['volume_moving_average_period']),
-            max_liq_to_fetch=int(obs['max_liq_events_to_fetch']),
-            max_liq_events_for_context=int(obs['max_liq_events_for_context']),
+            max_liquidation_events_to_fetch=int(obs['max_liquidation_events_to_fetch']),
+            max_liquidation_events_for_context=int(obs['max_liquidation_events_for_context']),
             hvn_count=int(obs['high_volume_peak_count']),
             lvn_count=int(obs['low_volume_valley_count']),
-            hvn_sensitivity=float(obs['high_volume_peak_sensitivity']),
-            lvn_sensitivity=float(obs['low_volume_valley_sensitivity']),
+            high_volume_node_detection_threshold=float(obs['high_volume_node_detection_threshold']),
+            low_volume_node_detection_threshold=float(obs['low_volume_node_detection_threshold']),
             min_node_gap_price=int(obs['min_price_gap_between_nodes']),
             top_structural_node_count=int(obs['top_structural_node_count']),
             trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
             wick_skewness_period=int(obs['wick_skewness_period']),
-            liq_cluster_atr_multiplier=float(obs['liq_cluster_atr_multiplier']),
-            liq_cluster_fallback_pct=float(obs['liq_cluster_fallback_pct']),
+            liquidation_cluster_atr_multiplier=float(obs['liquidation_cluster_atr_multiplier']),
+            liquidation_cluster_fallback_pct=float(obs['liquidation_cluster_fallback_pct']),
             funding_rate_lookback_hours=float(obs['funding_rate_lookback_hours']),
             volatility_intensity_lookback=int(obs['volatility_intensity_lookback'])
         )
@@ -317,10 +317,10 @@ class MarketMetricsRefiner:
         
         if atr_macro > 0:
             # Use 0.25 ATR (default) as resolution for high-fidelity clustering
-            bucket_size = atr_macro * self.config.liq_cluster_atr_multiplier
+            bucket_size = atr_macro * self.config.liquidation_cluster_atr_multiplier
         else:
             # Fallback to % of price if ATR is missing (e.g. 0.5%)
-            bucket_size = avg_p * self.config.liq_cluster_fallback_pct
+            bucket_size = avg_p * self.config.liquidation_cluster_fallback_pct
         
         clusters = {}
         for l in liqs:
@@ -484,7 +484,7 @@ class ObserverAgent:
                     "limit": self.config.micro_context.historical_lookback_candles
                 },
                 "logic": {
-                    "taker_volume_delta_duration_hours": self.config.taker_vol_delta_duration_hours,
+                    "order_flow_lookback_hours": self.config.order_flow_lookback_hours,
                     "trend_intensity_duration_hours": self.config.trend_intensity_duration_hours,
                     "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.historical_lookback_candles) / 3600, 1)
                 }

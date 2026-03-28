@@ -19,8 +19,8 @@ class CriticConfig:
     model: str
     role_prompt_path: str
     model_temperature: float
-    sl_structural_buffer_floor: float
-    sl_structural_buffer_ceiling: float
+    stop_loss_buffer_min: float
+    stop_loss_buffer_max: float
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -34,8 +34,8 @@ class CriticConfig:
             model=str(critic['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
             model_temperature=float(critic['model_temperature']),
-            sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
-            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
+            stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
+            stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
             strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
             micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
@@ -78,8 +78,8 @@ class CriticAgent(BaseAgent):
             "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system.",
-            "sl_structural_buffer_floor": self.config.sl_structural_buffer_floor,
-            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling,
+            "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
+            "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval

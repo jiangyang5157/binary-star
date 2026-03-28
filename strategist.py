@@ -56,7 +56,7 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
         
         # Load Agent Config for Floor (Enforce mandatory config)
         agent_cfg = load_config()
-        velocity_floor = float(agent_cfg['strategist']['min_temporal_efficiency'])
+        velocity_floor = float(agent_cfg['strategist']['min_trade_velocity'])
         
         # [Unit Fragility Fix] Determine hours per macro candle
         from src.utils.datetime_utils import get_interval_seconds

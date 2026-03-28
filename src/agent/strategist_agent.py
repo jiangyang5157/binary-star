@@ -18,9 +18,9 @@ class StrategistConfig:
     role_prompt_path: str
     model_temperature_draft: float
     model_temperature_synthesis: float
-    min_temporal_efficiency: float
-    sl_structural_buffer_floor: float
-    sl_structural_buffer_ceiling: float
+    min_trade_velocity: float
+    stop_loss_buffer_min: float
+    stop_loss_buffer_max: float
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -34,9 +34,9 @@ class StrategistConfig:
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
             model_temperature_draft=float(strat['model_temperature_draft']),
             model_temperature_synthesis=float(strat['model_temperature_synthesis']),
-            min_temporal_efficiency=float(strat['min_temporal_efficiency']),
-            sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
-            sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
+            min_trade_velocity=float(strat['min_trade_velocity']),
+            stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
+            stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
             strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
             micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
@@ -107,16 +107,16 @@ class StrategistAgent(BaseAgent):
         processes the correct operational protocols in the template.
         """
         # Load the velocity floor for temporal calculations
-        velocity_floor = self.config.min_temporal_efficiency
+        velocity_floor = self.config.min_trade_velocity
 
         # Prepare context (json.dumps handles None as 'null' automatically)
         context = {
             "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
             "draft_plan": json.dumps(extra_context.get("draft_plan"), indent=2, ensure_ascii=False),
             "critic_feedback": json.dumps(extra_context.get("critic_feedback"), indent=2, ensure_ascii=False),
-            "min_temporal_efficiency": velocity_floor,
-            "sl_structural_buffer_floor": self.config.sl_structural_buffer_floor,
-            "sl_structural_buffer_ceiling": self.config.sl_structural_buffer_ceiling,
+            "min_trade_velocity": velocity_floor,
+            "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
+            "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval

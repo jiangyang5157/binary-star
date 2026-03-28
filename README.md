@@ -66,7 +66,7 @@ graph TD
 为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
 
 ### 第一层：物理真实网关
-核心逻辑：剥离 AI 的数学解释权。 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与时间效率 (Temporal Efficiency)，并作为系统的唯一法定事实注入。此举彻底消除了 LLM 在复杂计算中的幻觉，确保逻辑基座的绝对真实。
+核心逻辑：剥离 AI 的数学解释权。 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与交易执行速度 (Trade Velocity)，并作为系统的唯一法定事实注入。此举彻底消除了 LLM 在复杂计算中的幻觉，确保逻辑基座的绝对真实。
 
 ### 第二层：多模态视觉证伪
 核心逻辑：特征引用与视觉存证。 拒绝由于纯数字漂移导致的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
@@ -90,10 +90,10 @@ graph TD
 | **战略意图** | `strategy_intent` | 逻辑演化语义 | **Critical** | 系统的“逻辑北极星”，所有物理参数以此意图为原点进行演化。 |
 | **物理分布精度** | `volume_profile_price_bucket_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
-| **生存硬化上限** | `sl_structural_buffer_ceiling` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须提升至 0.7+。 |
-| **生存硬化下限** | `sl_structural_buffer_floor` | 结构防御底线 | **High** | 结构防御的最小硬性装甲厚度，随系统时间窗口放大而必须加厚，以抵御宏观清算插针。 |
-| **逻辑执行效率** | `min_temporal_efficiency` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
-| **物理清算映射** | `liq_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |
+| **生存硬化上限** | `stop_loss_buffer_max` | 风险硬化 | **High** | 波动扩张 (vol_ratio > 2.0) 时必须提升至 0.7+。 |
+| **生存硬化下限** | `stop_loss_buffer_min` | 结构防御底线 | **High** | 结构防御的最小硬性装甲厚度，随系统时间窗口放大而必须加厚，以抵御宏观清算插针。 |
+| **逻辑执行效率** | `min_trade_velocity` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
+| **物理清算映射** | `liquidation_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |
 | **历史记忆深度** | `funding_rate_lookback_hours` | 物理锚点 | **Low** | 给 Observer 提供背景数据量，影响宏观地形稳定性。 |
 
 ### 2. 实例库
@@ -109,10 +109,10 @@ graph TD
 | **战略意图** | `strategy_intent` | `Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `300` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
-| **物理清算映射** | `liq_cluster_atr_multiplier` | `0.5` |
-| **生存硬化下限** | `sl_structural_buffer_floor` | `0.2` |
-| **生存硬化上限** | `sl_structural_buffer_ceiling` | `0.7` |
-| **逻辑执行效率** | `min_temporal_efficiency` | `0.4` |
+| **物理清算映射** | `liquidation_cluster_atr_multiplier` | `0.5` |
+| **生存硬化下限** | `stop_loss_buffer_min` | `0.2` |
+| **生存硬化上限** | `stop_loss_buffer_max` | `0.7` |
+| **逻辑执行效率** | `min_trade_velocity` | `0.4` |
 | **历史记忆深度** | `funding_rate_lookback_hours` | `24.0` |
 
 ---
@@ -126,10 +126,10 @@ graph TD
 | **战略意图** | `strategy_intent` | `Swing: Regime Breakout & Value Area Migration` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `500` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `4h / 1h` |
-| **物理清算映射** | `liq_cluster_atr_multiplier` | `1.0` |
-| **生存硬化下限** | `sl_structural_buffer_floor` | `0.4` |
-| **生存硬化上限** | `sl_structural_buffer_ceiling` | `1.2` |
-| **逻辑执行效率** | `min_temporal_efficiency` | `0.15` |
+| **物理清算映射** | `liquidation_cluster_atr_multiplier` | `1.0` |
+| **生存硬化下限** | `stop_loss_buffer_min` | `0.4` |
+| **生存硬化上限** | `stop_loss_buffer_max` | `1.2` |
+| **逻辑执行效率** | `min_trade_velocity` | `0.15` |
 | **历史记忆深度** | `funding_rate_lookback_hours` | `72.0` |
 
 ---
@@ -143,10 +143,10 @@ graph TD
 | **战略意图** | `strategy_intent` | `Macro: Secular Trend Reversal & HTF Accumulation Forensics` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `1000` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1D / 4h` |
-| **物理清算映射** | `liq_cluster_atr_multiplier` | `2.5` |
-| **生存硬化下限** | `sl_structural_buffer_floor` | `0.8` |
-| **生存硬化上限** | `sl_structural_buffer_ceiling` | `2.0` |
-| **逻辑执行效率** | `min_temporal_efficiency` | `0.05` |
+| **物理清算映射** | `liquidation_cluster_atr_multiplier` | `2.5` |
+| **生存硬化下限** | `stop_loss_buffer_min` | `0.8` |
+| **生存硬化上限** | `stop_loss_buffer_max` | `2.0` |
+| **逻辑执行效率** | `min_trade_velocity` | `0.05` |
 | **历史记忆深度** | `funding_rate_lookback_hours` | `336.0` |
 
 ---
