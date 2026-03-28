@@ -401,13 +401,13 @@ class SemanticSynthesizer(BaseAgent):
         Pairs visual assets (as Part bytes) with the primary analysis instructions.
         """
         payload = []
-        for label, path in [("MACRO", snapshots.get('macro_snapshot')), ("MICRO", snapshots.get('micro_snapshot'))]:
+        for label, path in [("Current Macro Snapshot", snapshots.get('macro_snapshot')), ("Current Micro Snapshot", snapshots.get('micro_snapshot'))]:
             if path and os.path.exists(path):
-                payload.append(f"[VISUAL ASSET: {label}]")
+                payload.append(f"\n{label}")
                 with open(path, 'rb') as f:
                     payload.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
             else:
-                payload.append(f"\n[SYSTEM NOTICE: Visual asset '{label}' is missing from storage. Relying on quantitative telemetry.]")
+                payload.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
         
         payload.append(text)
         return payload

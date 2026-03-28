@@ -37,7 +37,7 @@ To provide an exhaustive, high-fidelity topographical map of the current market 
 # INPUT DATUM
 - **Observational Parameters**: {timestamp} | Macro: {macro_timeframe} | Micro: {micro_timeframe}
 - **Quantitative Market State**: {metrics} (This JSON matches the keys defined in the `ANALYTICAL REFERENCE` table.)
-- **Visual Assets**: [VISUAL ASSET: MACRO] | [VISUAL ASSET: MICRO]
+- **Visual Assets**: `Current Macro Snapshot` | `Current Micro Snapshot`
 
 # ANALYTICAL TASKS
 Perform a forensic mapping of the market topography across 6 distinct dimensions. **Actively search for "Logical Friction" (divergences between metrics)**:
