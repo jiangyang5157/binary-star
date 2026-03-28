@@ -23,7 +23,7 @@ To synthesize objective market topography into actionable limit orders. You must
 11. **PRECISION SCORING**: Do not use "chunked" numbers for confidence. Evaluate the setup with high resolution. A 67% conviction is different from 65%.
 
 # ANALYTICAL REFERENCE
-EXECUTION LAW: Use the following thresholds as mandatory dynamic filters for tactical decisions. Do not let rigid numbers override clear structural logic.
+**EXECUTION LAW**: Use the following thresholds as mandatory dynamic filters for tactical decisions. Do not let rigid numbers override clear structural logic.
 
 | Parameter | Threshold / Rule | Strategic Intent |
 | :--- | :--- | :--- |

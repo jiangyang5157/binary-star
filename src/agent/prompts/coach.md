@@ -42,7 +42,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
     - **Temporal Calibration**: Compare `actual_hours` from reviews with the windows in `observation_specs.logic`:
         - **Tactical Window (`order_flow_lookback_hours`)**: If successful trades consistently exceed this, consider increasing it to capture "Slow Fills".
         - **Structural Window (`trend_intensity_duration_hours`)**: If trades consistently hit SL after long durations (Regime Decay), consider shortening it to enforce tighter execution.
-    - **Safety**: DO NOT aggressively lower `min_trade_velocity` unless holding times are consistently the root cause of SL_HITs.
+    - **Safety**: DO NOT aggressively lower `min_trade_velocity` unless holding times are consistently the root cause of `SL_HIT` outcomes.
 5. **Patch Generation**: Construct the surgical JSON payload using the `EVOLUTION LAW`.
 6. **Collision Verification**: Perform a final sanity check on your proposed `replacement` text. Does this new rule contradict any existing `EXECUTION LAW`, JSON Schema structure, or operational protocol in the unpatched sections? If yes, refactor the patch.
 

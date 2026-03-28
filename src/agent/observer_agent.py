@@ -49,8 +49,8 @@ class ObserverConfig:
     vol_ma_period: int
     max_liquidation_events_to_fetch: int
     max_liquidation_events_for_context: int
-    hvn_count: int
-    lvn_count: int
+    max_high_volume_node_count: int
+    max_low_volume_node_count: int
     high_volume_node_detection_threshold: float
     low_volume_node_detection_threshold: float
     min_node_gap_price: int
@@ -93,8 +93,8 @@ class ObserverConfig:
             vol_ma_period=int(obs['volume_moving_average_period']),
             max_liquidation_events_to_fetch=int(obs['max_liquidation_events_to_fetch']),
             max_liquidation_events_for_context=int(obs['max_liquidation_events_for_context']),
-            hvn_count=int(obs['max_high_volume_node_count']),
-            lvn_count=int(obs['low_volume_valley_count']),
+            max_high_volume_node_count=int(obs['max_high_volume_node_count']),
+            max_low_volume_node_count=int(obs['max_low_volume_node_count']),
             high_volume_node_detection_threshold=float(obs['high_volume_node_detection_threshold']),
             low_volume_node_detection_threshold=float(obs['low_volume_node_detection_threshold']),
             min_node_gap_price=int(obs['min_price_gap_between_nodes']),
@@ -498,7 +498,7 @@ class ObserverAgent:
         cfg = self.config
         vp_cfg = VolumeProfileConfig(
             value_area_ratio=cfg.vp_value_area_width, resolution_bins=cfg.vp_price_bucket_count,
-            atr_period=cfg.atr_period, max_hvn_nodes=cfg.hvn_count, max_lvn_nodes=cfg.lvn_count,
+            atr_period=cfg.atr_period, max_hvn_nodes=cfg.max_high_volume_node_count, max_lvn_nodes=cfg.max_low_volume_node_count,
             hvn_sensitivity=cfg.hvn_sensitivity, lvn_sensitivity=cfg.lvn_sensitivity,
             min_node_distance=cfg.min_node_gap_price
         )
