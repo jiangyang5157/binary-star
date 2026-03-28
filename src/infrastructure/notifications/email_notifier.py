@@ -512,16 +512,18 @@ class StrategyNotifier:
         opinion = final_decision.get("opinion") or "NEUTRAL"
         confidence = final_decision.get("confidence", 0)
         
-        # Only notify if confidence >= threshold AND opinion is BULLISH/BEARISH
+        # Only notify if confidence >= threshold
         if confidence < self.min_confidence_threshold:
             logger.info(f"Notifier: Confidence too low ({confidence}% < {self.min_confidence_threshold}%). Skipping dispatch.")
             return False
 
-        if opinion.upper() not in ["BULLISH", "BEARISH"]:
-            logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH/BEARISH allowed).")
-            return False
+        # Only notify if opinion is BULLISH / BEARISH
+        # if opinion.upper() not in ["BULLISH", "BEARISH"]:
+        #     logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH/BEARISH allowed).")
+        #     return False
             
-        indicator = '🟢' if opinion.upper() == 'BULLISH' else '🔴'
+        icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
+        indicator = icons.get(opinion.upper(), '⚡')
         subject = f"{indicator} Signal | {symbol} | {opinion.upper()} ({confidence}%)"
         
         # 2. Dispatch Email
