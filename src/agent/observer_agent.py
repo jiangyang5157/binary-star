@@ -34,7 +34,7 @@ class ObserverConfig:
     """Type-safe configuration for the ObserverAgent."""
     role_definition_prompt: str
     model: str
-    temperature: float
+    model_temperature: float
     macro_context: TimeframeConfig
     micro_context: TimeframeConfig
     vp_value_area_width: float
@@ -72,7 +72,7 @@ class ObserverConfig:
         return cls(
             role_definition_prompt=str(obs['role_definition_prompt']),
             model=str(obs['model']),
-            temperature=float(obs['temperature']),
+            model_temperature=float(obs['model_temperature']),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 
                 historical_lookback_candles=int(macro['historical_lookback_candles'])
@@ -352,7 +352,7 @@ class SemanticSynthesizer(BaseAgent):
         self.prompt_path = os.path.join(resolve_project_root(), config.role_definition_prompt)
         super().__init__(
             model=config.model,
-            temperature=config.temperature,
+            temperature=config.model_temperature,
             api_key="", # Client already provided via Dependency Injection
             ai_client=ai_client
         )

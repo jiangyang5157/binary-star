@@ -16,7 +16,7 @@ logger = setup_logger(__name__)
 class CoachConfig:
     """Dataclass for type-safe Coach configuration."""
     model: str
-    temperature: float
+    model_temperature: float
     role_prompt_path: str
     strategist_prompt_path: str
     critic_prompt_path: str
@@ -35,7 +35,7 @@ class CoachConfig:
         
         return cls(
             model=str(coach_cfg['model']),
-            temperature=float(coach_cfg['temperature']),
+            model_temperature=float(coach_cfg['model_temperature']),
             role_prompt_path=os.path.join(project_root, coach_cfg['role_definition_prompt']),
             strategist_prompt_path=os.path.join(project_root, strat_cfg['role_definition_prompt']),
             critic_prompt_path=os.path.join(project_root, crit_cfg['role_definition_prompt']),
@@ -61,7 +61,7 @@ class CoachAgent(BaseAgent):
         self.raw_config = config_dict
         super().__init__(
             model=self.config.model,
-            temperature=self.config.temperature,
+            temperature=self.config.model_temperature,
             api_key=api_key,
             ai_client=ai_client
         )

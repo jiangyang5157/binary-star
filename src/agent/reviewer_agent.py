@@ -17,7 +17,7 @@ logger = setup_logger(__name__)
 class ReviewerConfig:
     """Dataclass for type-safe Reviewer configuration."""
     model: str
-    temperature: float
+    model_temperature: float
     role_prompt_path: str
     strategist_prompt_path: str
     critic_prompt_path: str
@@ -38,7 +38,7 @@ class ReviewerConfig:
         
         return cls(
             model=str(rev['model']),
-            temperature=float(rev['temperature']),
+            model_temperature=float(rev['model_temperature']),
             role_prompt_path=os.path.join(project_root, rev['role_definition_prompt']),
             strategist_prompt_path=os.path.join(project_root, strat['role_definition_prompt']),
             critic_prompt_path=os.path.join(project_root, crit['role_definition_prompt']),
@@ -64,7 +64,7 @@ class ReviewerAgent(BaseAgent):
         self.raw_config = config_dict
         super().__init__(
             model=self.config.model,
-            temperature=self.config.temperature,
+            temperature=self.config.model_temperature,
             api_key=api_key,
             ai_client=ai_client
         )

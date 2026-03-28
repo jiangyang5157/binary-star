@@ -18,7 +18,7 @@ class CriticConfig:
     """Encapsulates configuration for the CriticAgent."""
     model: str
     role_prompt_path: str
-    temperature: float
+    model_temperature: float
     sl_structural_buffer_floor: float
     sl_structural_buffer_ceiling: float
     strategy_intent: str
@@ -33,7 +33,7 @@ class CriticConfig:
         return cls(
             model=str(critic['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
-            temperature=float(critic['temperature']),
+            model_temperature=float(critic['model_temperature']),
             sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
             sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
             strategy_intent=str(full_config['strategy_intent']),
@@ -56,7 +56,7 @@ class CriticAgent(BaseAgent):
         self.config = CriticConfig.from_dict(config_dict)
         super().__init__(
             model=self.config.model,
-            temperature=self.config.temperature,
+            temperature=self.config.model_temperature,
             api_key=api_key,
             ai_client=ai_client
         )

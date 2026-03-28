@@ -16,8 +16,8 @@ class StrategistConfig:
     """Encapsulates configuration for the StrategistAgent."""
     model: str
     role_prompt_path: str
-    temperature_draft: float
-    temperature_synthesis: float
+    model_temperature_draft: float
+    model_temperature_synthesis: float
     min_temporal_efficiency: float
     sl_structural_buffer_floor: float
     sl_structural_buffer_ceiling: float
@@ -32,8 +32,8 @@ class StrategistConfig:
         return cls(
             model=str(strat['model']),
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
-            temperature_draft=float(strat['temperature_draft']),
-            temperature_synthesis=float(strat['temperature_synthesis']),
+            model_temperature_draft=float(strat['model_temperature_draft']),
+            model_temperature_synthesis=float(strat['model_temperature_synthesis']),
             min_temporal_efficiency=float(strat['min_temporal_efficiency']),
             sl_structural_buffer_floor=float(strat['sl_structural_buffer_floor']),
             sl_structural_buffer_ceiling=float(strat['sl_structural_buffer_ceiling']),
@@ -60,7 +60,7 @@ class StrategistAgent(BaseAgent):
         self.config = StrategistConfig.from_dict(config_dict)
         super().__init__(
             model=self.config.model,
-            temperature=self.config.temperature_draft, # Default behavior
+            temperature=self.config.model_temperature_draft, # Default behavior
             api_key=api_key,
             ai_client=ai_client
         )
@@ -76,7 +76,7 @@ class StrategistAgent(BaseAgent):
         logger.info("Strategist: Executing PHASE A: DRAFTING (Initial strategic plan)...")
         return self._execute_ai_cycle(
             prompt, 
-            temperature=self.config.temperature_draft, 
+            temperature=self.config.model_temperature_draft, 
             agent_name="Strategist"
         )
 
@@ -95,7 +95,7 @@ class StrategistAgent(BaseAgent):
         logger.info("Strategist: Executing PHASE B: SYNTHESIS (Final strategy)...")
         return self._execute_ai_cycle(
             prompt, 
-            temperature=self.config.temperature_synthesis, 
+            temperature=self.config.model_temperature_synthesis, 
             agent_name="Strategist"
         )
 

@@ -2,7 +2,7 @@ strategy_intent: "Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liq
 observer:
   role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest
-  temperature: 0.0
+  model_temperature: 0.0
   macro_analysis_context:
     time_interval: 1h
     historical_lookback_candles: 336
@@ -36,21 +36,21 @@ observer:
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
-  temperature_draft: 0.2
-  temperature_synthesis: 0.2
+  model_temperature_draft: 0.2
+  model_temperature_synthesis: 0.2
   min_temporal_efficiency: 0.4
   sl_structural_buffer_floor: 0.2
   sl_structural_buffer_ceiling: 0.7
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview
-  temperature: 0.4
+  model_temperature: 0.4
 reviewer:
   role_definition_prompt: src/agent/prompts/reviewer.md
   model: gemini-flash-latest
-  temperature: 0.1
+  model_temperature: 0.1
   execution_timeframe_interval: 1m
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-3.1-pro-preview
-  temperature: 0.6
+  model_temperature: 0.6
