@@ -7,15 +7,23 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 class TestSemanticConsistency(unittest.TestCase):
     def setUp(self):
         self.regime_cfg = MarketRegimeConfig(
-            bollinger_window=20, bollinger_std_dev=2.0,
-            keltner_window=20, keltner_multiplier=1.5,
-            volume_ma_window=20, trend_intensity_threshold=0.35,
-            trend_lookback=14, wick_skewness_period=5
+            bollinger_window=20, 
+            bollinger_std_dev=2.0,
+            keltner_window=20, 
+            keltner_multiplier=1.5,
+            volume_ma_window=20, 
+            trend_intensity_threshold=0.35,
+            trend_lookback=14, 
+            wick_skewness_period=5
         )
         self.vp_cfg = VolumeProfileConfig(
-            value_area_ratio=0.7, resolution_bins=10,
-            atr_period=14, max_hvn_nodes=3, max_lvn_nodes=3,
-            hvn_sensitivity=0.1, lvn_sensitivity=0.1,
+            value_area_ratio=0.7, 
+            resolution_bins=10,
+            atr_period=14, 
+            max_high_volume_node_count=3, 
+            max_low_volume_node_count=3,
+            high_volume_node_detection_threshold=0.1, 
+            low_volume_node_detection_threshold=0.1,
             min_node_distance=1
         )
 

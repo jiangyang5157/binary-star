@@ -111,7 +111,7 @@ class ObserverConfig:
     def taker_vol_delta_lookback(self) -> int:
         """Calculates candle count for tactical window (default 1h)."""
         secs = get_interval_seconds(self.micro_context.time_interval)
-        return max(1, int(self.taker_vol_delta_duration_hours * 3600 / secs))
+        return max(1, int(self.order_flow_lookback_hours * 3600 / secs))
 
     @property
     def trend_lookback(self) -> int:
@@ -169,7 +169,7 @@ class MarketDataLoader:
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
-            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liq_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
+            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
             funding_rate=self.client.fetch_funding_rate(symbol, limit=100, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms) or []
         )
 
@@ -500,10 +500,10 @@ class ObserverAgent:
             value_area_ratio=cfg.vp_value_area_width, 
             resolution_bins=cfg.vp_price_bucket_count,
             atr_period=cfg.atr_period, 
-            max_hvn_nodes=cfg.max_high_volume_node_count, 
-            max_lvn_nodes=cfg.max_low_volume_node_count,
-            hvn_sensitivity=cfg.high_volume_node_detection_threshold, 
-            lvn_sensitivity=cfg.low_volume_node_detection_threshold,
+            max_high_volume_node_count=cfg.max_high_volume_node_count, 
+            max_low_volume_node_count=cfg.max_low_volume_node_count,
+            high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
+            low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
             min_node_distance=cfg.min_node_gap_price
         )
         return VolumeProfileAnalyzer(config=vp_cfg)

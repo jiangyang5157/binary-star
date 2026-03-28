@@ -17,10 +17,10 @@ class VolumeProfileConfig:
     value_area_ratio: float           # Percentage of volume to include in Value Area (e.g., 0.70)
     resolution_bins: int              # Number of horizontal price buckets
     atr_period: int                   # Window for Average True Range calculation
-    max_hvn_nodes: int                # Maximum High Volume Nodes to return
-    max_lvn_nodes: int                # Maximum Low Volume Nodes to return
-    hvn_sensitivity: float            # Prominence threshold for HVN detection
-    lvn_sensitivity: float            # Prominence threshold for LVN detection
+    max_high_volume_node_count: int                # Maximum High Volume Nodes to return
+    max_low_volume_node_count: int                # Maximum Low Volume Nodes to return
+    high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
+    low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
     min_node_distance: int            # Minimum bin separation between nodes
 
 @dataclass(frozen=True)
@@ -141,7 +141,7 @@ class SignificantNodeFinder:
         
         # Detect HVNs (Local Maxima)
         h_peaks, _ = find_peaks(vols, 
-                                prominence=max_v * self.config.hvn_sensitivity, 
+                                prominence=max_v * self.config.high_volume_node_detection_threshold, 
                                 distance=self.config.min_node_distance)
         
         hvns = sorted([
@@ -151,7 +151,7 @@ class SignificantNodeFinder:
         
         # Detect LVNs (Local Minima / Liquid Vacuums)
         l_valleys, _ = find_peaks(-vols, 
-                                  prominence=max_v * self.config.lvn_sensitivity, 
+                                  prominence=max_v * self.config.low_volume_node_detection_threshold, 
                                   distance=self.config.min_node_distance)
         
         lvns = sorted([
@@ -160,8 +160,8 @@ class SignificantNodeFinder:
         ], key=lambda x: x['vacuum_score'])
         
         return {
-            "hvn": hvns[:self.config.max_hvn_nodes],
-            "lvn": lvns[:self.config.max_lvn_nodes]
+            "hvn": hvns[:self.config.max_high_volume_node_count],
+            "lvn": lvns[:self.config.max_low_volume_node_count]
         }
 
 class VolumeProfileAnalyzer:
@@ -182,10 +182,10 @@ class VolumeProfileAnalyzer:
                 value_area_ratio=float(kwargs['value_area_pct']),
                 resolution_bins=int(kwargs['vol_profile_bins']),
                 atr_period=int(kwargs['atr_window']),
-                max_hvn_nodes=int(kwargs['max_high_volume_node_count']),
-                max_lvn_nodes=int(kwargs['max_low_volume_node_count']),
-                hvn_sensitivity=float(kwargs['hvn_sensitivity']),
-                lvn_sensitivity=float(kwargs['lvn_sensitivity']),
+                max_high_volume_node_count=int(kwargs['max_high_volume_node_count']),
+                max_low_volume_node_count=int(kwargs['max_low_volume_node_count']),
+                high_volume_node_detection_threshold=float(kwargs['high_volume_node_detection_threshold']),
+                low_volume_node_detection_threshold=float(kwargs['low_volume_node_detection_threshold']),
                 min_node_distance=int(kwargs['node_min_separation'])
             )
             

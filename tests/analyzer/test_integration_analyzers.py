@@ -28,10 +28,10 @@ def test_real_data_analysis(binance_client):
         value_area_ratio=0.7,
         resolution_bins=24,
         atr_period=14,
-        max_hvn_nodes=5,
-        max_lvn_nodes=5,
-        hvn_sensitivity=0.1,
-        lvn_sensitivity=0.05,
+        max_high_volume_node_count=5,
+        max_low_volume_node_count=5,
+        high_volume_node_detection_threshold=0.1,
+        low_volume_node_detection_threshold=0.05,
         min_node_distance=3
     )
     vp_analyzer = VolumeProfileAnalyzer(config=vp_cfg)
