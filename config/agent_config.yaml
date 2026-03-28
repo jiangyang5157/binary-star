@@ -12,7 +12,7 @@ observer:
   volume_profile_value_area_width: 0.75
   volume_profile_price_bucket_count: 300
   volume_moving_average_period: 21
-  high_volume_peak_count: 3
+  max_high_volume_node_count: 3
   low_volume_valley_count: 3
   high_volume_node_detection_threshold: 0.15
   low_volume_node_detection_threshold: 0.05
@@ -32,7 +32,7 @@ observer:
   max_liquidation_events_to_fetch: 50
   max_liquidation_events_for_context: 10
   liquidation_cluster_atr_multiplier: 0.25
-  liquidation_cluster_fallback_pct: 0.005
+  liquidation_cluster_fallback_percentage: 0.005
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest

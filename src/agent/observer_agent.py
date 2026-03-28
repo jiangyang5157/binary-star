@@ -58,7 +58,7 @@ class ObserverConfig:
     trend_intensity_duration_hours: float
     wick_skewness_period: int
     liquidation_cluster_atr_multiplier: float
-    liquidation_cluster_fallback_pct: float
+    liquidation_cluster_fallback_percentage: float
     funding_rate_lookback_hours: float
     volatility_intensity_lookback: int
 
@@ -93,7 +93,7 @@ class ObserverConfig:
             vol_ma_period=int(obs['volume_moving_average_period']),
             max_liquidation_events_to_fetch=int(obs['max_liquidation_events_to_fetch']),
             max_liquidation_events_for_context=int(obs['max_liquidation_events_for_context']),
-            hvn_count=int(obs['high_volume_peak_count']),
+            hvn_count=int(obs['max_high_volume_node_count']),
             lvn_count=int(obs['low_volume_valley_count']),
             high_volume_node_detection_threshold=float(obs['high_volume_node_detection_threshold']),
             low_volume_node_detection_threshold=float(obs['low_volume_node_detection_threshold']),
@@ -102,7 +102,7 @@ class ObserverConfig:
             trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
             wick_skewness_period=int(obs['wick_skewness_period']),
             liquidation_cluster_atr_multiplier=float(obs['liquidation_cluster_atr_multiplier']),
-            liquidation_cluster_fallback_pct=float(obs['liquidation_cluster_fallback_pct']),
+            liquidation_cluster_fallback_percentage=float(obs['liquidation_cluster_fallback_percentage']),
             funding_rate_lookback_hours=float(obs['funding_rate_lookback_hours']),
             volatility_intensity_lookback=int(obs['volatility_intensity_lookback'])
         )
@@ -320,7 +320,7 @@ class MarketMetricsRefiner:
             bucket_size = atr_macro * self.config.liquidation_cluster_atr_multiplier
         else:
             # Fallback to % of price if ATR is missing (e.g. 0.5%)
-            bucket_size = avg_p * self.config.liquidation_cluster_fallback_pct
+            bucket_size = avg_p * self.config.liquidation_cluster_fallback_percentage
         
         clusters = {}
         for l in liqs:

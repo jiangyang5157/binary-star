@@ -182,8 +182,8 @@ class VolumeProfileAnalyzer:
                 value_area_ratio=float(kwargs['value_area_pct']),
                 resolution_bins=int(kwargs['vol_profile_bins']),
                 atr_period=int(kwargs['atr_window']),
-                max_hvn_nodes=int(kwargs['hvn_count']),
-                max_lvn_nodes=int(kwargs['lvn_count']),
+                max_hvn_nodes=int(kwargs['max_high_volume_node_count']),
+                max_lvn_nodes=int(kwargs['max_low_volume_node_count']),
                 hvn_sensitivity=float(kwargs['hvn_sensitivity']),
                 lvn_sensitivity=float(kwargs['lvn_sensitivity']),
                 min_node_distance=int(kwargs['node_min_separation'])
