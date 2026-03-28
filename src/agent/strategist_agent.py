@@ -60,7 +60,7 @@ class StrategistAgent(BaseAgent):
         self.config = StrategistConfig.from_dict(config_dict)
         super().__init__(
             model=self.config.model,
-            temperature=self.config.model_temperature_draft, # Default behavior
+            temperature=self.config.model_temperature_draft,
             api_key=api_key,
             ai_client=ai_client
         )
