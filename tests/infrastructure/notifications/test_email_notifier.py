@@ -212,7 +212,8 @@ class TestStrategyNotifier(unittest.TestCase):
         self.assertIn("Forensic Breakdown", html)
         
         # Also generate a preview for visual confirmation as requested
-        with patch('src.infrastructure.notifications.email_notifier.StrategyNotifier._load_global_config', return_value={'system': {}}):
+        mock_cfg = {'system': {'min_confidence_for_notifier_threshold': 60}}
+        with patch('src.infrastructure.notifications.email_notifier.StrategyNotifier._load_global_config', return_value=mock_cfg):
             notifier = StrategyNotifier(data_root="data/test")
             notifier.notify_strategy("BTCUSDT", self.mock_neutral_no_order_data)
 
