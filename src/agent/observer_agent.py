@@ -398,12 +398,12 @@ class SemanticSynthesizer(BaseAgent):
         """
         Constructs a multimodal payload for the Gemini model.
         
-        Pairs visual proofs (as Part bytes) with the primary analysis instructions.
+        Pairs visual assets (as Part bytes) with the primary analysis instructions.
         """
         payload = []
         for label, path in [("MACRO", snapshots.get('macro_snapshot')), ("MICRO", snapshots.get('micro_snapshot'))]:
             if path and os.path.exists(path):
-                payload.append(f"[VISUAL PROOF: {label}]")
+                payload.append(f"[VISUAL ASSET: {label}]")
                 with open(path, 'rb') as f:
                     payload.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
             else:
