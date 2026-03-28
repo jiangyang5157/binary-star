@@ -16,6 +16,7 @@ from src.utils.agent_utils import load_global_config
 from src.utils.json_utils import load_json
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
+from src.infrastructure.notifications.email_notifier import StrategyNotifier
 
 # Initialize Dashboard logger
 logger = setup_logger("ForensicDashboard", log_level=logging.INFO)
@@ -316,6 +317,8 @@ class ForensicDashboardGenerator:
     def __init__(self, data_root: str):
         self.data_root = os.path.join(resolve_project_root(), data_root)
         self.logger = logger
+        # To avoid confusion with relative pathing in notifier
+        self.notifier = StrategyNotifier(data_root=data_root)
 
     def generate(self, symbol: str):
         """Main execution flow for report generation."""
@@ -327,7 +330,13 @@ class ForensicDashboardGenerator:
             return
 
         self.logger.info(f"Analyzed {len(dataset)} forensic records. Assembling HTML Dashboard...")
-        self._write_html(symbol, dataset)
+        output_path = self._write_html(symbol, dataset)
+        
+        # 3. Dispatch automated notification
+        try:
+            self.notifier.notify_dashboard(symbol, dataset, dashboard_path=output_path)
+        except Exception as e:
+            self.logger.error(f"Failed to dispatch dashboard notification: {e}")
 
     def _extract_data(self, symbol: str) -> List[Dict[str, Any]]:
         """Parses JSON review reports recursively and extracts normalized performance telemetry."""
@@ -415,7 +424,7 @@ class ForensicDashboardGenerator:
         os.makedirs(html_dir, exist_ok=True)
 
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        output_filename = f"{symbol}_forensic_dashboard_{ts}.html"
+        output_filename = f"{symbol}_dashboard_{ts}.html"
         output_path = os.path.join(html_dir, output_filename)
 
         # Token replacement
@@ -427,6 +436,7 @@ class ForensicDashboardGenerator:
             f.write(content)
 
         self.logger.info(f"Forensic Alpha Matrix generated: {output_path}")
+        return output_path
 
 def main():
     parser = argparse.ArgumentParser(description="Forensic Performance & Confidence Analyzer")

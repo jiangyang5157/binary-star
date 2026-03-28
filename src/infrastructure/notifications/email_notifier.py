@@ -1,90 +1,21 @@
-from dataclasses import dataclass
 import os
 import json
 import logging
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from dotenv import load_dotenv
 import yaml
 from src.utils.path_utils import find_project_root
+
+from .base_notifier import (
+    NotificationConfig, 
+    BaseEmailTemplate, 
+    EmailDispatcher
+)
 
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
-@dataclass(frozen=True)
-class NotificationConfig:
-    """Encapsulates email server and credential settings."""
-    smtp_server: str
-    smtp_port: int
-    sender_email: str
-    sender_password: str
-    enabled: bool
 
-    @classmethod
-    def from_env(cls) -> "NotificationConfig":
-        """Factory to load settings from environment variables."""
-        load_dotenv()
-        sender = os.environ.get("EMAIL_ADDRESS")
-        password = os.environ.get("EMAIL_APP_PASSWORD")
-        return cls(
-            smtp_server=os.environ.get("EMAIL_SMTP_SERVER", "smtp.gmail.com"),
-            smtp_port=int(os.environ.get("EMAIL_SMTP_PORT", 587)),
-            sender_email=sender or "",
-            sender_password=password or "",
-            enabled=bool(sender and password)
-        )
-
-class BaseEmailTemplate:
-    """
-    Base class for email templates, providing shared styles and structural components.
-    """
-    @staticmethod
-    def get_styles() -> str:
-        return """
-            <meta charset="utf-8">
-            <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #334155; margin: 0; padding: 20px; background-color: #f8fafc; }
-                .container { max-width: 850px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); padding: 40px; border: 1px solid #e2e8f0; }
-                .badge { display: inline-block; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
-                .panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; }
-                .panel-title { margin: 0 0 10px 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
-                .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 35px; }
-                .metric-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
-                .metric-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
-                .metric-value { font-size: 16px; color: #0f172a; font-weight: 800; }
-            </style>
-        """
-
-    @staticmethod
-    def fmt(v: Any) -> str:
-        """Formatting helper to handle None (null) values gracefully in the UI."""
-        return str(v) if v is not None else "N/A"
-
-    @staticmethod
-    def format_duration(hours: float) -> str:
-        """Formats hours into a human-readable string (e.g., 18.5h or 2.3d)."""
-        if hours < 24:
-            return f"{hours:.1f}h"
-        days = hours / 24
-        return f"{days:.1f}d"
-
-    @staticmethod
-    def render_footer(full_json: Dict[str, Any], trigger_info: str) -> str:
-        return f"""
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
-                    <details>
-                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Raw Data</summary>
-                        <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(full_json, indent=2, ensure_ascii=False)}</code></pre>
-                    </details>
-                    <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
-                        {trigger_info}
-                    </div>
-                </div>
-        """
 
 class StrategyEmailTemplate(BaseEmailTemplate):
     """
@@ -432,48 +363,93 @@ class ReviewEmailTemplate(BaseEmailTemplate):
         </html>
         """
 
-class StrategyEmailDispatcher:
-    """Manages the low-level infrastructure for sending emails via SMTP."""
-    
-    def __init__(self, config: NotificationConfig):
-        self.config = config
+class DashboardEmailTemplate(BaseEmailTemplate):
+    """
+    Handles the generation of professional HTML templates for Strategic Alpha Ledgers (Dashboards).
+    """
+    @staticmethod
+    def render(symbol: str, stats: Dict[str, Any], dataset: List[Dict[str, Any]]) -> str:
+        """
+        Renders an aggregate performance summary into a rich HTML report.
+        """
+        fmt = DashboardEmailTemplate.fmt
+        
+        # Win Rate color
+        wr = stats.get('win_rate', 0.0)
+        wr_color = "#10b981" if wr >= 50 else "#f59e0b" if wr >= 40 else "#ef4444"
+        
+        # PnL color
+        pnl = stats.get('net_pnl', 0.0)
+        pnl_color = "#10b981" if pnl >= 0 else "#ef4444"
+        pnl_sign = "+" if pnl >= 0 else ""
+        
+        # Build Rows
+        rows_html = ""
+        # iterate safely
+        recent_items = dataset[max(0, len(dataset)-15):] if len(dataset) > 15 else dataset
+        for item in recent_items:
+            res_color = "#10b981" if item['tp_sl_result'] == 'TP_HIT' else "#ef4444" if item['tp_sl_result'] == 'SL_HIT' else "#64748b"
+            pnl_val = float(item.get('estimated_pnl_pct', 0.0))
+            p_sign = "+" if pnl_val > 0 else ""
+            
+            rows_html += f"""
+                <tr>
+                    <td style="font-family: monospace; font-size: 11px;">{item['observation_time']}</td>
+                    <td><span style="font-weight: 700; color: {res_color};">{item['tp_sl_result']}</span></td>
+                    <td style="text-align: right; font-weight: 700;"><span class="{'metric_pnl_pos' if pnl_val > 0 else 'metric_pnl_neg' if pnl_val < 0 else ''}">{p_sign}{pnl_val}%</span></td>
+                </tr>
+            """
 
-    def dispatch(self, subject: str, html_body: str, attachments: Dict[str, str]) -> bool:
-        """Sends a multi-part email with HTML body and image attachments."""
-        if not self.config.enabled:
-            logger.warning("Dispatcher: Email notifications are disabled (missing credentials).")
-            return False
+        return f"""
+        <html>
+        <head>{DashboardEmailTemplate.get_styles()}</head>
+        <body>
+            <div class="container">
+                <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
+                    <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: #3b82f615; color: #3b82f6; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid #3b82f630;">
+                        🔍 AGGREGATE PERFORMANCE
+                    </div>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Alpha Ledger</h1>
+                </div>
 
-        msg = MIMEMultipart('related')
-        msg['From'] = self.config.sender_email
-        msg['To'] = self.config.sender_email  # Self-notification
-        msg['Subject'] = subject
+                <div class="grid">
+                    <div class="metric-box">
+                        <span class="metric-label">Executed Samples</span>
+                        <div class="metric-value">{stats.get('executed_count', 0)}</div>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Win Rate</span>
+                        <div class="metric-value" style="color: {wr_color};">{wr}%</div>
+                    </div>
+                    <div class="metric-box">
+                        <span class="metric-label">Net Return</span>
+                        <div class="metric-value" style="color: {pnl_color};">{pnl_sign}{pnl}%</div>
+                    </div>
+                </div>
 
-        # Attach HTML body
-        msg.attach(MIMEText(html_body, 'html', 'utf-8'))
+                <div class="panel">
+                    <h3 class="panel-title">Recent Forensic Evidence</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Result</th>
+                                <th style="text-align: right;">PnL %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows_html}
+                        </tbody>
+                    </table>
+                    <p style="font-size: 11px; color: #94a3b8; text-align: center;">Only showing the most recent 15 records. View the full dashboard for complete trajectory.</p>
+                </div>
 
-        # Attach Visual Assets (Charts)
-        for cid, file_path in attachments.items():
-            if file_path and os.path.exists(file_path):
-                try:
-                    with open(file_path, 'rb') as f:
-                        img = MIMEImage(f.read())
-                        img.add_header('Content-ID', f'<{cid}>')
-                        img.add_header('Content-Disposition', 'inline', filename=os.path.basename(file_path))
-                        msg.attach(img)
-                except Exception as e:
-                    logger.error(f"Dispatcher: Failed to attach image {cid}: {e}")
+                {DashboardEmailTemplate.render_footer(dataset, "Strategic Alpha Ledger: Historical Performance Audit")}
+            </div>
+        </body>
+        </html>
+        """
 
-        # Execute SMTP send
-        try:
-            with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
-                server.starttls()
-                server.login(self.config.sender_email, self.config.sender_password)
-                server.send_message(msg)
-            return True
-        except Exception as e:
-            logger.error(f"Dispatcher: SMTP relay failed: {e}")
-            return False
 
 class StrategyNotifier:
     """
@@ -483,12 +459,13 @@ class StrategyNotifier:
     
     def __init__(self, data_root: str):
         self.config = NotificationConfig.from_env()
-        self.dispatcher = StrategyEmailDispatcher(self.config)
+        self.dispatcher = EmailDispatcher(self.config)
         self.data_root = data_root
         self.global_cfg = self._load_global_config()
         
         # Sourcing threshold from global_config.yaml with fallback to hardcoded safety
-        self.min_confidence_threshold = int(self.global_cfg['system']['min_confidence_for_notifier_threshold'])
+        self.min_confidence_threshold = int(self.global_cfg['system'].get('min_confidence_for_notifier_threshold', 60))
+
 
     def _load_global_config(self) -> Dict[str, Any]:
         """Loads global system settings."""
@@ -593,7 +570,7 @@ class StrategyNotifier:
         logger.info(f"Notifier: Dispatching forensic report: {subject}")
         return self.dispatcher.dispatch(subject, html_body, attachments)
 
-    def save_html_preview(self, name_prefix: str, html_body: str, attachments: Dict[str, str]) -> Optional[str]:
+    def save_html_preview(self, name_prefix: str, html_body: str, attachments: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         Saves the rendered HTML to a local file for visual inspection.
         Swaps CID references for local filesystem paths.
@@ -605,14 +582,15 @@ class StrategyNotifier:
             
             # For local preview, swap 'cid:name' with the actual file path.
             preview_html = html_body
-            for cid, file_path in attachments.items():
-                if file_path:
-                    # Resolve to absolute path for reliable local browser opening
-                    if not os.path.isabs(file_path):
-                        abs_path = os.path.abspath(os.path.join(find_project_root(), file_path))
-                    else:
-                        abs_path = file_path
-                    preview_html = preview_html.replace(f"cid:{cid}", f"file://{abs_path}")
+            if attachments:
+                for cid, file_path in attachments.items():
+                    if file_path:
+                        # Resolve to absolute path for reliable local browser opening
+                        if not os.path.isabs(file_path):
+                            abs_path = os.path.abspath(os.path.join(find_project_root(), file_path))
+                        else:
+                            abs_path = file_path
+                        preview_html = str(preview_html).replace(f"cid:{cid}", f"file://{abs_path}")
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             file_name = f"{name_prefix}_preview_{timestamp}.html"
@@ -626,6 +604,43 @@ class StrategyNotifier:
         except Exception as e:
             logger.error(f"Notifier: Failed to save HTML preview: {e}")
             return None
+
+    def notify_dashboard(self, symbol: str, dataset: List[Dict[str, Any]], dashboard_path: Optional[str] = None) -> bool:
+        """
+        Calculates aggregate KPIs and sends a premium ledger summary.
+        """
+        # 1. Compute KPIs in Python
+        executed = [d for d in dataset if d['tp_sl_result'] in ['TP_HIT', 'SL_HIT', 'NEITHER']]
+        wins = [d for d in executed if d['tp_sl_result'] == 'TP_HIT']
+        
+        net_pnl = float(sum(d.get('estimated_pnl_pct', 0.0) for d in executed))
+        win_rate = round(float(len(wins) / len(executed) * 100.0), 1) if executed else 0.0
+        
+        stats = {
+            "executed_count": len(executed),
+            "win_rate": float(f"{win_rate:.1f}"),
+            "net_pnl": float(f"{net_pnl:.2f}")
+        }
+
+        # 2. Render Template
+        html_body = DashboardEmailTemplate.render(symbol, stats, dataset)
+        
+        # 3. Local Preview
+        self.save_html_preview(f"{symbol}_ledger", html_body)
+
+        if not self.enabled:
+            return False
+
+        # 4. Subject Design (🎯 style as requested)
+        pnl_sign = "+" if net_pnl >= 0 else ""
+        subject = f"🎯 Ledger | {symbol} | {win_rate}% WR | {pnl_sign}{float(f'{net_pnl:.2f}')}%"
+        
+        logger.info(f"Notifier: Dispatching ledger summary: {subject}")
+        
+        # Optionally attach the html file
+        files = [dashboard_path] if dashboard_path and os.path.exists(dashboard_path) else None
+        
+        return self.dispatcher.dispatch(subject, html_body, files=files)
 
 if __name__ == "__main__":
     import argparse
