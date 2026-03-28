@@ -26,7 +26,7 @@ To provide an exhaustive, high-fidelity topographical map of the current market 
 | **Structure** | `liquidation_clusters`| High-density price zones where forced orders are concentrated. **NOTE**: Currently unavailable from current API environment; `null` is the expected baseline and does not indicate a system failure or data loss. |
 | **Regime** | `squeeze_factor` | < 1.0 = Bollinger Bands are inside Keltner Channels (A "Squeeze" state/Coiling). |
 | **Regime** | `trend_intensity` | 0.0 to 1.0. (High = Efficient trending move; Low = Mean-reverting range). |
-| **Regime** | `vol_breakout` | > 1.0 = Current volume is above the moving average baseline (Breakout attempt). |
+| **Regime** | `volume_breakout_ratio` | > 1.0 = Current volume is above the moving average baseline (Breakout attempt). |
 | **Regime** | `wick_skewness_lookback` | -1.0 to 1.0. (-1.0 = Long Lower Wicks/Bullish; +1.0 = Long Upper Wicks/Bearish). |
 | **Flow** | `net_taker_delta` | Precise CVD increment. Positive = Aggressive Buys; Negative = Aggressive Sells. |
 | **Flow** | `cvd_trend` | UPWARD/DOWNWARD/STABLE. Detects sustained absorption or aggressive follow-through. |
@@ -46,7 +46,7 @@ Perform a forensic mapping of the market topography across 6 distinct dimensions
 2. Topographical Friction: Identify specific HVN clusters and `liquidation_clusters`. Note how price interacts with these magnets—is it being drawn in or repelled?
 3. Regime & Volatility: Contrast `structural_state`: BALANCED (Range/Value Area) vs IMBALANCED (Trend/Discovery) with `volatility_intensity_index`. Determine if the state is "Standard Rotation," "Exhausted Range," or "Anomalous Structural Expansion."
 4. Sentiment & Flow: Detect **Logical Friction**. Highlight cases where `cvd_trend` diverges from price movement (e.g., Hidden Distribution or Passive Absorption).
-5. Micro-Interactive Detail: Analyze local boundaries using `latest_wick_skew` (current candle) vs `wick_skewness_lookback` (structural exhaustion). Spot "Weak Breakouts" where price exceeds a level but `volatility_ratio` or `vol_breakout` fails to validate the move.
+5. Micro-Interactive Detail: Analyze local boundaries using `latest_wick_skew` (current candle) vs `wick_skewness_lookback` (structural exhaustion). Spot "Weak Breakouts" where price exceeds a level but `volatility_ratio` or `volume_breakout_ratio` fails to validate the move.
 6. Synthesized Topography: A concise technical summary of the "As-Is" market map. Identify the **Key Structural Conflict** currently governing the price action.
 
 # OUTPUT FORMAT (STRICT JSON)

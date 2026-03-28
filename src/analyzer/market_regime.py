@@ -29,7 +29,7 @@ class RegimeResult:
     """
     volatility_regime: str            # SQUEEZE, EXPANSION, NORMAL, or UNKNOWN
     squeeze_factor: float             # Ratio of BB width to KC width
-    market_regime: str                # TRENDING, RANGING, or UNKNOWN
+    price_trend_regime: str           # TRENDING, RANGING, or UNKNOWN
     trend_intensity: float            # Quantitative score of trend strength
     wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
     volume_breakout_ratio: float      # Current volume relative to moving average
@@ -98,7 +98,7 @@ class RegimeClassifier:
             vol_regime = "EXPANSION" if prev_squeeze else "NORMAL"
 
         # 2. Trend vs Range
-        market_regime = "TRENDING" if latest['trend_intensity'] > self.config.trend_intensity_threshold else "RANGING"
+        price_trend_regime = "TRENDING" if latest['trend_intensity'] > self.config.trend_intensity_threshold else "RANGING"
 
         # 3. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
@@ -117,7 +117,7 @@ class RegimeClassifier:
         return RegimeResult(
             volatility_regime=vol_regime,
             squeeze_factor=round(float(squeeze_factor), 4),
-            market_regime=market_regime,
+            price_trend_regime=price_trend_regime,
             trend_intensity=round(float(latest['trend_intensity']), 4),
             wick_skewness_lookback=round(float(skewness), 4),
             volume_breakout_ratio=round(float(volatility_ratio), 2)

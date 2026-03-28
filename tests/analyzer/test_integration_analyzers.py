@@ -66,5 +66,5 @@ def test_real_data_analysis(binance_client):
     mr_result = mr_analyzer.analyze(df)
     
     assert mr_result["volatility_regime"] in ["NORMAL", "SQUEEZE", "EXPANSION"]
-    assert mr_result["market_regime"] in ["TRENDING", "RANGING"]
+    assert mr_result["price_trend_regime"] in ["TRENDING", "RANGING"]
     assert mr_result["trend_intensity"] >= 0

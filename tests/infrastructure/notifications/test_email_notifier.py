@@ -76,7 +76,7 @@ class TestStrategyNotifier(unittest.TestCase):
       "market_regime": {
         "volatility_regime": "NORMAL",
         "squeeze_factor": 1.5771,
-        "market_regime": "RANGING",
+        "price_trend_regime": "RANGING",
         "trend_intensity": 0.0887,
         "skewness": 0.2249,
         "volume_breakout_ratio": 0.24
