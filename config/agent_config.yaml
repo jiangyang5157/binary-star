@@ -13,7 +13,7 @@ observer:
   volume_profile_price_bucket_count: 300
   volume_moving_average_period: 21
   max_high_volume_node_count: 3
-  low_volume_valley_count: 3
+  max_low_volume_node_count: 3
   high_volume_node_detection_threshold: 0.15
   low_volume_node_detection_threshold: 0.05
   order_flow_lookback_hours: 1.0
