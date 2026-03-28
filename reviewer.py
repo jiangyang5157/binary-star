@@ -328,10 +328,10 @@ class ReviewerOrchestrator:
 
                 # Resolve absolute paths for all assets
                 visual_context = {
-                    "t0_macro": self._resolve_abs_path(t0_assets.get("macro_snapshot")),
-                    "t0_micro": self._resolve_abs_path(t0_assets.get("micro_snapshot")),
-                    "t1_macro": self._resolve_abs_path(t1_assets.get("macro_snapshot")),
-                    "t1_micro": self._resolve_abs_path(t1_assets.get("micro_snapshot"))
+                    "t0_macro": t0_assets.get("macro_snapshot"),
+                    "t0_micro": t0_assets.get("micro_snapshot"),
+                    "t1_macro": t1_assets.get("macro_snapshot"),
+                    "t1_micro": t1_assets.get("micro_snapshot")
                 }
 
                 # 3. AI Forensic Audit (只对熟透的果实调用 API)

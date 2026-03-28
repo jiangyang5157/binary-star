@@ -100,12 +100,21 @@ class ReviewerAgent(BaseAgent):
             
             for key, path in visual_context.items():
                 label = labels.get(key, f"Visual Supplement: {key}")
-                if path and os.path.exists(path):
-                    logger.info(f"Reviewer: Attaching forensic evidence: {label} ({path})")
-                    with open(path, "rb") as f:
-                        image_bytes = f.read()
-                        contents.append(f"\n{label}")
-                        contents.append(types.Part.from_bytes(data=image_bytes, mime_type="image/png"))
+                if path:
+                    # Resolve to absolute path for reliable reading across environments
+                    if not os.path.isabs(path):
+                        abs_path = os.path.join(resolve_project_root(), path)
+                    else:
+                        abs_path = path
+                        
+                    if os.path.exists(abs_path):
+                        logger.info(f"Reviewer: Attaching forensic evidence: {label} ({abs_path})")
+                        with open(abs_path, "rb") as f:
+                            image_bytes = f.read()
+                            contents.append(f"\n{label}")
+                            contents.append(types.Part.from_bytes(data=image_bytes, mime_type="image/png"))
+                    else:
+                        contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
                 else:
                     contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
 
