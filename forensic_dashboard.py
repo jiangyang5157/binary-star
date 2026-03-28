@@ -44,33 +44,29 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         
         <div class="flex justify-between items-end border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Outcome Sentinel</h1>
-                <p class="text-slate-400 text-sm mt-1">Generated: {{GENERATION_TIME}} (UTC)</p>
+                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Ledger</h1>
+                <p class="text-slate-400 text-sm mt-1" id="gen-time-label">Generated: --</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Total Reports Processed</div>
-                <div class="text-3xl font-bold mt-1" id="kpi-total">0</div>
-            </div>
-            <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Total Executed (TP + SL + NEITHER)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Validated Samples (TP + SL + NEITHER)</div>
                 <div class="text-3xl font-bold mt-1 text-slate-200" id="kpi-executed">0</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Executed)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Validated)</div>
                 <div class="text-3xl font-bold mt-1 text-emerald-400" id="kpi-winrate">0%</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Sum Net Est. PnL (%)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Cumulative Net PnL (%)</div>
                 <div class="text-3xl font-bold mt-1 text-purple-400" id="kpi-pnl">0.00%</div>
             </div>
         </div>
 
         <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Temporal Execution & Confidence Mapping</h2>
-            <p class="text-xs text-slate-400 mb-4">X: Observation Time | Y: Confidence | Bubble Size: Holding Time | Green: TP_HIT, Red: SL_HIT, Gray: NEITHER</p>
+            <h2 class="text-lg font-semibold mb-4 text-slate-200">Samples Distribution</h2>
+            <p class="text-xs text-slate-400 mb-4">Bubble Radius = Target Holding Time | Green: TP_HIT | Red: SL_HIT | Gray: EXPIRED/NEITHER</p>
             <div class="relative h-[450px]">
                 <canvas id="timelineChart"></canvas>
             </div>
@@ -79,14 +75,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card">
                 <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Threshold Optimizer</h2>
-                <p class="text-xs text-slate-400 mb-4">Simulations if you ONLY traded signals with Confidence >= X.</p>
+                <p class="text-xs text-slate-400 mb-4">PnL simulation restricted to signals with Confidence >= X.</p>
                 <div class="relative h-[300px]">
                     <canvas id="optimizerChart"></canvas>
                 </div>
             </div>
             <div class="card">
                 <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Score Distribution</h2>
-                <p class="text-xs text-slate-400 mb-4">Frequency of confidence scores emitted by the Strategist/Critic synthesis.</p>
+                <p class="text-xs text-slate-400 mb-4">Quantized distribution of model confidence across the period.</p>
                 <div class="relative h-[300px]">
                     <canvas id="distChart"></canvas>
                 </div>
@@ -94,7 +90,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         </div>
 
         <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Full Forensic Dataset</h2>
+            <h2 class="text-lg font-semibold mb-4 text-slate-200">Raw Data</h2>
             <div class="bg-slate-900 rounded-lg p-4 overflow-x-auto">
                 <pre><code class="text-xs font-mono text-emerald-300" id="json-dump"></code></pre>
             </div>
@@ -105,28 +101,53 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <script>
         const RAW_DATA = {{JSON_DATA}};
         
-        // 1. Render JSON Dump
+        // 1. Render Local Generation Time with Timezone Abbreviation
+        const now = new Date();
+        const genTimeStr = now.toLocaleString('en-GB', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false }).replace(',', '');
+        
+        // Robust way to get 'NZDT' style abbreviations
+        let tzName = 'Local';
+        try {
+            const fullStr = now.toString(); // e.g., "... (New Zealand Daylight Time)"
+            const match = fullStr.match(/\(([^)]+)\)$/);
+            if (match) {
+                const longName = match[1];
+                // Check if it's already an abbreviation (like "NZDT" or "NZST")
+                if (longName.length <= 5 && /^[A-Z]+$/.test(longName)) {
+                    tzName = longName;
+                } else {
+                    // Convert "New Zealand Daylight Time" -> "NZDT"
+                    // Filter out non-capitalized words like 'of', 'the'
+                    tzName = longName.split(' ')
+                        .filter(word => word.length > 0 && /^[A-Z]/.test(word))
+                        .map(word => word[0])
+                        .join('')
+                        .toUpperCase();
+                }
+            }
+        } catch(e) {}
+        
+        document.getElementById('gen-time-label').innerText = `Generated: ${genTimeStr} ${tzName}`;
+
+        // 2. Render JSON Dump
         document.getElementById('json-dump').textContent = JSON.stringify(RAW_DATA, null, 2);
 
-        // 2. Compute KPIs
-        const totalReports = RAW_DATA.length;
-        const executedTrades = RAW_DATA.filter(d => d.tp_sl_result === 'TP_HIT' || d.tp_sl_result === 'SL_HIT');
-        const signals = RAW_DATA.filter(d => d.confidence !== null && d.confidence > 0);
+        // 3. Compute KPIs
+        const executedTrades = RAW_DATA.filter(d => d.tp_sl_result === 'TP_HIT' || d.tp_sl_result === 'SL_HIT' || d.tp_sl_result === 'NEITHER');
         const wins = executedTrades.filter(d => d.tp_sl_result === 'TP_HIT');
         
         let netPnl = 0;
         executedTrades.forEach(t => netPnl += t.estimated_pnl_pct);
 
-        document.getElementById('kpi-total').innerText = totalReports;
-        document.getElementById('kpi-executed').innerText = signals.length;
-        document.getElementById('kpi-winrate').innerText = signals.length > 0 ? ((wins.length / signals.length) * 100).toFixed(1) + '%' : '0%';
+        document.getElementById('kpi-executed').innerText = executedTrades.length;
+        document.getElementById('kpi-winrate').innerText = executedTrades.length > 0 ? ((wins.length / executedTrades.length) * 100).toFixed(1) + '%' : '0%';
         
         const pnlEl = document.getElementById('kpi-pnl');
         pnlEl.innerText = (netPnl > 0 ? '+' : '') + netPnl.toFixed(2) + '%';
         pnlEl.className = netPnl >= 0 ? 'text-3xl font-bold mt-1 text-emerald-400' : 'text-3xl font-bold mt-1 text-rose-400';
 
-        // 3. Timeline Bubble Chart (Temporal)
-        const bubbleData = RAW_DATA.filter(d => d.confidence !== null).map((d) => {
+        // 4. Timeline Bubble Chart (Temporal)
+        const bubbleData = RAW_DATA.map((d) => {
             let color = 'rgba(148, 163, 184, 0.6)'; // Gray (Neutral/expired)
             if (d.tp_sl_result === 'TP_HIT') color = 'rgba(52, 211, 153, 0.7)'; // Emerald
             if (d.tp_sl_result === 'SL_HIT') color = 'rgba(251, 113, 133, 0.7)'; // Rose
@@ -182,14 +203,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                         time: { unit: 'hour', displayFormats: { hour: 'MMM dd, HH:mm' } },
                         ticks: { color: '#64748b' }, 
                         grid: { color: '#334155' }, 
-                        title: { display: true, text: 'Observation Timestamp', color: '#94a3b8'} 
+                        title: { display: true, text: `Market Capture Timestamp (${tzName})`, color: '#94a3b8'} 
                     },
-                    y: { min: 40, max: 100, ticks: { color: '#64748b' }, grid: { color: '#334155' }, title: { display: true, text: 'Confidence Score', color: '#94a3b8'} }
+                    y: { min: 40, max: 100, ticks: { color: '#64748b' }, grid: { color: '#334155' }, title: { display: true, text: 'Model Confidence (%)', color: '#94a3b8'} }
                 }
             }
         });
 
-        // 4. Threshold Optimizer Chart
+        // 5. Threshold Optimizer Chart
         const thresholds = [];
         const pnlAtThresholds = [];
         
@@ -227,17 +248,39 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         });
 
-        // 5. Confidence Distribution (5pt Bins)
+        // 6. Confidence Distribution (5pt Bins)
         const bins = [];
         for (let i = 40; i <= 95; i += 5) {
             const label = i === 95 ? "95-100" : `${i}-${i+4}`;
             bins.push({ label: label, min: i, max: i === 95 ? 100 : i+4, count: 0 });
         }
-        signals.forEach(s => {
+        executedTrades.forEach(s => {
             const c = s.confidence;
             bins.forEach(b => {
                 if (c >= b.min && c <= b.max) b.count++;
             });
+        });
+
+        new Chart(document.getElementById('distChart'), {
+            type: 'bar',
+            data: {
+                labels: bins.map(b => b.label),
+                datasets: [{
+                    label: 'Frequency',
+                    data: bins.map(b => b.count),
+                    backgroundColor: '#8b5cf6', 
+                    borderRadius: 4,
+                    barPercentage: 0.7
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#64748b' }, grid: { display: false } },
+                    y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: '#334155' } }
+                }
+            }
         });
 
         new Chart(document.getElementById('distChart'), {

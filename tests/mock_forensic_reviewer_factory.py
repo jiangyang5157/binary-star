@@ -1,3 +1,12 @@
+"""
+Forensic Reviewer Mock Factory
+==============================
+Generates simulated 'Reviewer' JSON reports to test the Forensic Dashboard's 
+filtering and visualization logic.
+
+Usage:
+    python3 tests/mock_forensic_reviewer_factory.py
+"""
 import json
 import os
 import random
