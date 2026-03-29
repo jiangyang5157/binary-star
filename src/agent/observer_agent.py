@@ -61,6 +61,17 @@ class ObserverConfig:
     liquidation_cluster_fallback_percentage: float
     funding_rate_lookback_hours: float
     volatility_intensity_lookback: int
+    regime_volatility_baseline_ratio: float
+    regime_volatility_expansion_ratio: float
+    regime_volatility_extreme_ratio: float
+    regime_volume_breakout_threshold: float
+    regime_long_short_imbalance_ratio: float
+    regime_poc_gravity_atr_distance: float
+    regime_vacuum_risk_score: float
+    regime_wick_skewness_exhaustion: float
+    regime_trend_intensity_strong: float
+    regime_min_rr_ranging: float
+    regime_min_rr_trending: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -84,7 +95,7 @@ class ObserverConfig:
             vp_value_area_width=float(obs['volume_profile_value_area_width']),
             vp_price_bucket_count=int(obs['volume_profile_price_bucket_count']),
             order_flow_lookback_hours=float(obs['order_flow_lookback_hours']),
-            regime_trend_threshold=float(obs['market_regime_trend_strength_threshold']),
+            regime_trend_threshold=float(obs['regime_trend_intensity_threshold']),
             atr_period=int(obs['average_true_range_period']),
             bb_period=int(obs['bollinger_bands_period']),
             bb_std_dev=float(obs['bollinger_bands_std_dev']),
@@ -104,7 +115,18 @@ class ObserverConfig:
             liquidation_cluster_atr_multiplier=float(obs['liquidation_cluster_atr_multiplier']),
             liquidation_cluster_fallback_percentage=float(obs['liquidation_cluster_fallback_percentage']),
             funding_rate_lookback_hours=float(obs['funding_rate_lookback_hours']),
-            volatility_intensity_lookback=int(obs['volatility_intensity_lookback'])
+            volatility_intensity_lookback=int(obs['volatility_intensity_lookback']),
+            regime_volatility_baseline_ratio=float(obs['regime_volatility_baseline_ratio']),
+            regime_volatility_expansion_ratio=float(obs['regime_volatility_expansion_ratio']),
+            regime_volatility_extreme_ratio=float(obs['regime_volatility_extreme_ratio']),
+            regime_volume_breakout_threshold=float(obs['regime_volume_breakout_threshold']),
+            regime_long_short_imbalance_ratio=float(obs['regime_long_short_imbalance_ratio']),
+            regime_poc_gravity_atr_distance=float(obs['regime_poc_gravity_atr_distance']),
+            regime_vacuum_risk_score=float(obs['regime_vacuum_risk_score']),
+            regime_wick_skewness_exhaustion=float(obs['regime_wick_skewness_exhaustion']),
+            regime_trend_intensity_strong=float(obs['regime_trend_intensity_strong']),
+            regime_min_rr_ranging=float(obs['regime_min_rr_ranging']),
+            regime_min_rr_trending=float(obs['regime_min_rr_trending'])
         )
 
     @property

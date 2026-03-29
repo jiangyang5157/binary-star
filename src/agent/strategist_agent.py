@@ -25,6 +25,18 @@ class StrategistConfig:
     strategy_intent: str
     macro_interval: str
     micro_interval: str
+    regime_trend_intensity_threshold: float
+    regime_volatility_baseline_ratio: float
+    regime_volatility_expansion_ratio: float
+    regime_volatility_extreme_ratio: float
+    regime_volume_breakout_threshold: float
+    regime_long_short_imbalance_ratio: float
+    regime_poc_gravity_atr_distance: float
+    regime_vacuum_risk_score: float
+    regime_wick_skewness_exhaustion: float
+    regime_trend_intensity_strong: float
+    regime_min_rr_ranging: float
+    regime_min_rr_trending: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -40,7 +52,19 @@ class StrategistConfig:
             stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
             strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
-            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
+            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval']),
+            regime_trend_intensity_threshold=float(full_config['observer']['regime_trend_intensity_threshold']),
+            regime_volatility_baseline_ratio=float(full_config['observer']['regime_volatility_baseline_ratio']),
+            regime_volatility_expansion_ratio=float(full_config['observer']['regime_volatility_expansion_ratio']),
+            regime_volatility_extreme_ratio=float(full_config['observer']['regime_volatility_extreme_ratio']),
+            regime_volume_breakout_threshold=float(full_config['observer']['regime_volume_breakout_threshold']),
+            regime_long_short_imbalance_ratio=float(full_config['observer']['regime_long_short_imbalance_ratio']),
+            regime_poc_gravity_atr_distance=float(full_config['observer']['regime_poc_gravity_atr_distance']),
+            regime_vacuum_risk_score=float(full_config['observer']['regime_vacuum_risk_score']),
+            regime_wick_skewness_exhaustion=float(full_config['observer']['regime_wick_skewness_exhaustion']),
+            regime_trend_intensity_strong=float(full_config['observer']['regime_trend_intensity_strong']),
+            regime_min_rr_ranging=float(full_config['observer']['regime_min_rr_ranging']),
+            regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -124,7 +148,19 @@ class StrategistAgent(BaseAgent):
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
-            "micro_interval": self.config.micro_interval
+            "micro_interval": self.config.micro_interval,
+            "regime_trend_intensity_threshold": self.config.regime_trend_intensity_threshold,
+            "regime_volatility_baseline_ratio": self.config.regime_volatility_baseline_ratio,
+            "regime_volatility_expansion_ratio": self.config.regime_volatility_expansion_ratio,
+            "regime_volatility_extreme_ratio": self.config.regime_volatility_extreme_ratio,
+            "regime_volume_breakout_threshold": self.config.regime_volume_breakout_threshold,
+            "regime_long_short_imbalance_ratio": self.config.regime_long_short_imbalance_ratio,
+            "regime_poc_gravity_atr_distance": self.config.regime_poc_gravity_atr_distance,
+            "regime_vacuum_risk_score": self.config.regime_vacuum_risk_score,
+            "regime_wick_skewness_exhaustion": self.config.regime_wick_skewness_exhaustion,
+            "regime_trend_intensity_strong": self.config.regime_trend_intensity_strong,
+            "regime_min_rr_ranging": self.config.regime_min_rr_ranging,
+            "regime_min_rr_trending": self.config.regime_min_rr_trending
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

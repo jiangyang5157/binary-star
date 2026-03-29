@@ -26,7 +26,7 @@ To dissect the causal relationship between the historical market topography (T0)
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is 15% - 50%. | Linear Decay (+40 to +10) |
 | | **Luck**: `mae_stress_level` is 50% - 85%. | +0 (Saved by noise) |
 | | **Logic Failure**: `mae_stress_level` > 85% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` + 0.5). | -50 (High-risk gamble) |
-| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > 150%. | Dynamic Penalty: -20 * (1 - `trend_intensity`) |
+| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > 150%. | Dynamic Penalty: -20 * `trend_intensity` |
 | *(Only if TP_HIT)* | **Acceptable Capture**: `mfe_efficiency` 111% - 150%. | Base: +0 (Standard exit) |
 | | **Optimal Capture**: `mfe_efficiency` 100% - 110%. | Bonus: +10 |
 | **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > 2.5 (If entry triggered). | Penalty: -15 (Dead capital) |
