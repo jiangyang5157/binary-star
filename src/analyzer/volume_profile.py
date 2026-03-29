@@ -188,7 +188,7 @@ class VolumeProfileAnalyzer:
                 high_volume_node_detection_threshold=float(kwargs['high_volume_node_detection_threshold']),
                 low_volume_node_detection_threshold=float(kwargs['low_volume_node_detection_threshold']),
                 min_node_distance=int(kwargs['node_min_separation']),
-                balanced_atr_multiplier=float(kwargs.get('balanced_atr_multiplier', 2.0))
+                balanced_atr_multiplier=float(kwargs['balanced_atr_multiplier'])
             )
             
         self.preprocessor = MarketDataPreprocessor()
