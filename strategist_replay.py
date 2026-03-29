@@ -54,19 +54,29 @@ class StrategyReplayOrchestrator:
 
         try:
             # 1. Ingest Observation Data
-            observation = self._load_observation(file_path)
+            # Note: The source file might be a 'raw' observation or a 'final' strategy result.
+            # We must strip any existing AI layers (draft, critique, etc.) to ensure a clean replay.
+            raw_data = self._load_observation(file_path)
+            
+            # Unpack the Forensic Layer if it exists
+            if "observation" in raw_data and isinstance(raw_data["observation"], dict):
+                observation = raw_data["observation"]
+                self.logger.info("Forensic Layer detected. Unpacking inner observation telemetry...")
+            else:
+                observation = raw_data
+                self.logger.info("Raw telemetry detected. Using top-level object...")
+
             symbol = observation.get('symbol', 'UNKNOWN')
             timestamp = observation.get('timestamp', 'UNKNOWN')
             self.logger.info(f"Loaded high-fidelity observation for {symbol} ({timestamp})")
 
             # 2. Instantiate Reasoning Agents
-            # Pass 1: Strategist (Draft & Synthesis)
-            # Pass 2: Critic (Audit)
             strategist = StrategistAgent(self.config, api_key=self.api_key)
             critic = CriticAgent(self.config, api_key=self.api_key)
 
-            # 3. Execute Reasoning Triad
+            # 3. Execute Reasoning Triad (Draft -> Audit -> Synthesis)
             self.logger.info("Engaging Reasoning Triad (Draft -> Audit -> Synthesis)...")
+            # We pass ONLY the observation telemetry to the agents to ensure a fresh reasoning cycle.
             result = run_full_triad_flow(observation, strategist, critic)
             
             # 4. Persistence & Archival
