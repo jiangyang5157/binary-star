@@ -30,7 +30,7 @@ def main():
     if not data_root:
         print("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
         sys.exit(1)
-        
+    
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
@@ -57,7 +57,7 @@ def main():
             # Note: This will log all the internal signals within is_worth_it()
             is_triggered = scanner.should_trigger(observation)
             
-            if is_worth_it:
+            if is_triggered:
                 logger.info(">>> SIGNAL: CRITERIA MET. (Suggested to trigger agents)")
             else:
                 logger.info(">>> SIGNAL: NO OPPORTUNITY. (Waiting for next pulse)")

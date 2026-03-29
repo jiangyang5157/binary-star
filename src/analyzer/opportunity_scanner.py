@@ -23,13 +23,16 @@ class OpportunityScanner:
             from dotenv import load_dotenv
             load_dotenv()
             api_key = os.environ.get("GEMINI_API_KEY")
-            self.observer = ObserverAgent(self.config, symbol, api_key=api_key, data_root=data_root)
+            if not api_key:
+                # We still warn, but it's now technically required by ObserverAgent's original API
+                self.logger.warning("Scanner: GEMINI_API_KEY not found. Note that ObserverAgent typically requires it.")
+            self.observer = ObserverAgent(self.config, symbol, api_key, self.data_root)
 
     def scan(self) -> Dict[str, Any]:
         """
         Executes the observer to gather current market facts.
         """
-        self.logger.info(f"Scanner: Commencing structural mapping for {self.symbol}...")
+        self.logger.info(f"Scanner: Commencing mapping for {self.symbol}...")
         return self.observer.observe()
 
     def should_trigger(self, observation: Dict[str, Any]) -> bool:

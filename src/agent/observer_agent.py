@@ -494,7 +494,7 @@ class ObserverAgent:
 
         # 3. Visual Assets
         snapshots = self._generate_snapshots(raw, metrics, data_root or self.data_root, at_time)
-
+            
         # 4. AI Synthesis
         semantic_report = self.synthesizer.synthesize(metrics, snapshots, at_time)
 
