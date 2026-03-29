@@ -95,69 +95,100 @@ graph TD
 > ⚙️ **时域缩放 (Temporal Scaling) 是参数演化的核心动力源。**
 > 当你修改了 Macro 时间周期（如 1h -> 4h）时，下列 10 个模块的参数必须产生联动效应。
 
-### 1. 基础时域与全局采样 (Context)
+### 1. 基础时域与全局采样 (Observer Core)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| `macro_analysis_context` | **大局观**的时间尺子，看大趋势。 | 长线单必须拉长采样（1h -> 4h）。 |
-| `historical_lookback_candles` | **记忆深度**，往回翻多少根线。 | 维持 300+ 根。跨度越大，历史节点参考价值越高。 |
-| `volatility_intensity_lookback` | **波动率感知圈**。 | **必须对齐**。防止用 15m 的波动去配置 4h 的止损位。 |
+| `time_interval` | **采样颗粒度**。15m 看细节，1h 看结构。 | 联动：修改后，所有基于周期 (period) 的绝对时间都会改变。 |
+| `historical_lookback_candles` | **记忆深度**。往回看多少根线来计算成交量分布 (VP)。 | 越长则历史支撑位越“硬”，越不容易被短时波动击穿。 |
+| `order_flow_lookback_hours` | **流量窗口**。回看 CVD 和影线偏见的绝对时长。 | **关键**：日内设 1h 保证敏捷，长线应拉长。决定了 Sentiment 的时效性。 |
+| `average_true_range_period` | **波动标尺**。ATR 计算周期。 | 整个系统（止损、止盈、DLE）的通用度量衡。 |
+| `trend_intensity_duration_hours` | **趋势惯性窗口**。 | 判定趋势是否具备“高效持续性”的时间基准。 |
+| `volatility_intensity_lookback` | **波动烈度回溯**。 | 联动：必须与 `macro_analysis_context` 对齐，防止跨周期误判。 |
+| `funding_rate_lookback_hours` | **费率成本窗**。回看多久的资金费率。 | |
 
-### 2. 地形分辨率 (VP & Mapping)
+### 2. 地形分辨率 (Volume Topography)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| `volume_profile_price_bucket_count` | **地形精度**，价格切得有多细。 | **关键**：大周期波动大，格子必须多（800+），否则 POC 定位会模糊。 |
-| `volume_profile_value_area_width` | **核心成交区**横切占比。 | 默认 75%。极端高波市可调低以收缩防御区。 |
-| `min_price_gap_between_nodes` | **节点间距下限**，太近就合并。 | Macro 线越长，间距应成倍放大，否则目标会太碎。 |
+| `volume_profile_price_bucket_count` | **地形分辨率**。价格轴切分的格子数。 | **强联动**：周期越大波动越大，需调高 (800+)，否则 POC 定位会偏差。 |
+| `volume_profile_value_area_width` | **价值区宽度**。POC 周围覆盖多少成交量算 Value Area。 | 默认 75%。越窄则价值定义越严苛，越容易触发突破信号。 |
+| `min_price_gap_between_nodes` | **节点隔离距离**。节点太近就合并。 | Macro 周期越大，间距应成倍放大，防止目标定位过碎。 |
+| `high_volume_node_detection_threshold` | **主力节点判别线**。成交量占比超过此值认定为 HVN。 | 过滤细碎噪音，锁定真正的主力阵地。 |
+| `low_volume_node_detection_threshold` | **真空带判别线**。成交量占比低于此值认定为 LVN。 | 识别“价格滑梯”的关键逻辑门。 |
+| `volume_moving_average_period` | **成交量平滑期**。用于判定放量还是缩量。 | 直接决定了 `volume_breakout_ratio` 的敏感度。 |
+| `top_structural_node_count` | **核心结构数**。地图上显示的头部关键价位。 | |
 
 ### 3. 技术波动因子 (TA Channels)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| `average_true_range_period` | **通用的度量衡**，衡量当下波动。 | 止损和止盈的核心计算基准单位。 |
-| `wick_skewness_period` | **插针偏移量**，判断最近博弈方向。 | 影线单核心。不宜太长，防止信号被平滑掉。 |
-| `bollinger_bands_std_dev` | **离群门槛**。 | 判断价格是否进入“极端真空区”的探测器。 |
+| `wick_skewness_period` | **插针采样期**。最近几根线影线的物理偏差。 | 越短越能捕捉高频反转，越长越平滑。影线单核心。 |
+| `wick_skew_fallback` | **影线缺失代偿**。当数据不足时的默认偏移。 | |
+| `bollinger_bands_std_dev` | **离群门槛**。判定极端波动的统计学标准。 | 指导系统在超买/超卖真空区的逻辑收敛。 |
+| `keltner_channels_multiplier` | **物理边界倍率**。基于 ATR 的波动通道。 | 与布林带配合判断“挤压 (Squeeze)”状态。 |
+| `bollinger_bands_period` / `keltner_channels_period` | **通道计算周期**。价格波动包络的时间基准。 | |
 
-### 4. 流动性与爆仓热图 (Clusters)
+### 4. 流动性与爆仓热图 (Liquidity & Clusters)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| `order_flow_lookback_hours` | **盯盘时长**，回看最近多久的博弈。 | 日内设 1h，长线波段对应放大到 4-8h。 |
-| `liquidation_cluster_atr_multiplier` | **清算区磁吸半径**。 | **联动**：采样跨度越大，洗盘深度越深，半径须放大。 |
+| `liquidation_cluster_atr_multiplier` | **爆仓磁吸半径**。寻找清算密集区的范围。 | **联动**：采样时间跨度越大，洗盘深度越深，该倍率需放大。 |
+| `max_liquidation_events_to_fetch` | **爆仓采样规模**。从 API 获取的样本总数。 | |
+| `max_liquidation_events_for_context` | **爆仓焦点数**。喂给 AI 深度分析的头部爆仓点。 | |
+| `max_liquidation_clusters` | **爆仓簇上限**。地图上最多显示的爆仓集结地。 | |
+| `liquidation_cluster_fallback_percentage` | **爆仓兜底阈值**。无量行情时的最小探测幅度。 | |
 
-### 5. 市场态势判定阈值 (Regime Logic)
+### 5. 市场态势判定阈值 (Regime Detection)
 | 变量名 | 大白话解释 | 逻辑暗示 |
 | :--- | :--- | :--- |
-| `regime_trend_intensity_threshold` | **入场趋势门槛**。 | 想要更稳，就调高这个值以过滤随机波动。 |
-| `regime_poc_gravity_atr_distance` | **POC 磁力距离**。 | 强趋势下调大它，否则系统由于贪恋均值而不敢追单。 |
-| `regime_volatility_expansion_ratio` | **波动爆发倍率**。 | 15m 级别的爆发属于常见，4h 级别这属于天劫。 |
+| `regime_trend_intensity_threshold` | **趋势启动门槛**。 | 想要更稳，就调高这个值以过滤随机波动。 |
+| `regime_poc_gravity_atr_distance` | **POC 磁力半径**。判断价格是否被均值吸住。 | 强趋势下调大它，否则系统由于贪恋均值而不敢追单。 |
+| `regime_volatility_expansion_ratio` | **波动爆发倍率**。判断行情是否“失控”。 | 15m 级别的爆发属于常见，4h 级别这属于天劫。 |
+| `regime_volume_breakout_threshold` | **放量确认线**。突破时的标准动作。 | 入场不仅看价格，必须配合该倍数的成交量确认。 |
+| `regime_long_short_imbalance_ratio` | **多空失衡线**。散户多空比超过此值触发警报。 | 超过 2.0+ 触发“零售端反向清算 (Retail Flush)”逻辑。 |
+| `regime_vacuum_risk_score` | **真空暴露分**。 | 止损位若落在高分真空区，Critic 会强制 Veto。 |
+| `regime_wick_skewness_exhaustion` | **影线衰竭值**。 | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
+| `regime_min_rr_ranging / trending` | **动态生存 RR**。 | 震荡市允许 1.2+，趋势市严求 1.8+。 |
+| `regime_cvd_slope_threshold` | **买卖意愿斜率**。 | 衡量 Taker 攻击的垂直烈度。 |
+| `regime_squeeze_threshold` | **挤压临界值**。 | 判定能量蓄积是否到达爆发临界。 |
 
-### 6. 执行与风险硬化 (Decision Guards)
+### 6. 执行与风险硬化 (Execution Law)
 | 变量名 | 大白话解释 | 执行逻辑 |
 | :--- | :--- | :--- |
-| `min_trade_velocity` | **跑得够不够快**。 | 短线追求爆发（0.5+），长线可容忍阴跌（0.1）。 |
-| `stop_loss_buffer_min / max` | **止损位背后的空气层**。 | 结构防御位后留的冗余。日内窄，长线宽。 |
+| `min_trade_velocity` | **跑得够不够快**。预期成交的斜率。 | 短线追求爆发 (0.5+)，长线可容忍阴跌/磨损 (0.1)。 |
+| `stop_loss_buffer_min / max` | **物理冗余厚度**。 | 锚点后的冗余空间，防止被市场随机毛刺扫掉。 |
+| `regime_balanced_atr_multiplier` | **平衡态探测半径**。 | 决定了系统界定“震荡区间”物理边界的范围。 |
 
-### 7. 对抗性大脑配置 (Triad Brains)
+### 7. 大脑思维配置 (Agent Models)
 | 变量名 | 大白话解释 | 调参指南 |
 | :--- | :--- | :--- |
-| `model_temperature_draft` | **脑暴草案放飞度**。 | 建议 0.7。给系统捕捉不完美机会的灵感。 |
-| `threshold_skepticism_constructive` | **强制修改红线**。 | 高过这个怀疑值，Critic 会逼 Strategist 改方案。 |
+| `model_temperature_draft` | **直觉发射温度**。 | 建议 0.7。给系统捕捉不完美机会的灵感。 |
+| `model_temperature_synthesis` | **执行冷峻度**。 | 建议 0.3。确保最终决策逻辑是向紧缩靠拢。 |
+| `model` | **各职能位的大脑选型**。 | 根据任务复杂度分配（如 Critic 用 pro 模型，Draft 用 flash）。 |
 
-### 8. 法医评分法典 (Forensic Benchmarks)
+### 8. 对抗性审计红线 (Critic Skepticism)
+| 变量名 | 大白话解释 | 调参指南 |
+| :--- | :--- | :--- |
+| `threshold_skepticism_clear` | **完全通过线**。低于此分不质疑。 | 保持在 40 左右，给予 Strategist 基本的独立主权。 |
+| `threshold_skepticism_weak` | **弱反思线**。触发微调。 | |
+| `threshold_skepticism_constructive` | **强制重构线**。 | 高过此分 Critic 会逼 Strategist 改方案。 |
+
+### 9. 法医评分法典 (Reviewer Scoring)
 | 变量名 | 大白话解释 | 法医逻辑 |
 | :--- | :--- | :--- |
 | `execution_timeframe_interval` | **法医分辨率**。 | 复盘必须用 1m，无论你大方向看多长，都要看微观瞬间。 |
-| `score_mae_pinpoint_limit` | **老司机的入场误差线**。 | 判定你进场那一刻是不是被行情反复打脸。 |
-| `score_opportunity_cost_limit` | **踏空惩罚线**。 | 防止 AI 由于过度谨慎在单边行情中反复空仓。 |
+| `score_mae_pinpoint_limit` | **精准入场红线**。 | 判定你进场那一刻是不是被行情反复打脸 (MAE)。 |
+| `score_mae_standard_limit / logic_failure_limit` | **风险承受边界**。 | |
+| `score_mfe_optimal_lower` | **盈利补全比例**。 | 判断止盈是否发生在行情最高点附近。 |
+| `score_opportunity_cost_limit` | **踏空惩罚门槛**。 | 衡量行情飞了而系统空仓时的逻辑失分。 |
+| `score_time_efficiency_limit` | **时间价值窗**。 | 判断单子在场内占压资金但无产出的效率。 |
+| `penalty_compliance_breach` | **协议死刑**。 | 违反写死的硬性法律（如 RR）直接归零 (-100)。 |
+| `point_penalty_logic_failure / temporal_failure` | **思维偏差处罚**。 | |
+| `point_bonus_structural_insight` | **地形天赋奖励**。 | AI 成功捕捉到 DLE 或清算共振时的加分。 |
+| `score_mae_extra_buffer` | **MAE 归一化冗余**。 | 允许在精准度判定中存在的微小物理误差。 |
 
-### 9. 违规处罚与纪律 (Compliance)
-| 变量名 | 解释 | 后果 |
+### 10. 系统演化感知 (Evolution / Coach)
+| 变量名 | 大白话解释 | 联动影响 |
 | :--- | :--- | :--- |
-| `penalty_compliance_breach` | **纪律死刑**。 | 违反写死的协议（如 RR）直接判除执行死刑 (-100)。 |
-| `point_penalty_logic_failure` | **逻辑裂缝**。 | 推理和物理数据的错位。反映系统性幻觉。 |
-
-### 10. 系统演化感知 (Evolution)
-| 变量名 | 解析 | 联动 |
-| :--- | :--- | :--- |
-| `coach.model_parameters` | **教练的“洞见水平”**。 | 决定了逻辑补丁的生成质量和系统迭代速度。 |
+| `coach.model` | **教练的“核心大脑”**。 | 决定了逻辑补丁的生成质量和系统的进化上限。 |
+| `coach.model_parameters` | **教练的“洞见水平”**。 | 控制进化过程中的随机性与稳定性。 |
 
 ---
 
