@@ -31,7 +31,7 @@ graph TD
         F -->|"执行日志集 (Logs)"| G["Reviewer: 法医鉴定师"]
         G -->|"法医审计报告 (Forensic Report)"| H["Coach: 演化合伙人"]
         H -->|"逻辑补丁 (Patch)"| I[("Prompt & Config: 进化底座")]
-        H -.->|"递归法典补丁"| G
+        H -.->|"递归法典补丁意识"| G
     end
 
     %% 关键进化路径映射：修复逻辑断裂
@@ -71,157 +71,125 @@ graph TD
 
 ## 🛡️ 逻辑盾牌
 
-为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
+为了确保系统在极高波动的加密市场中生存，我们部署了五层“物理保护伞”：
 
 ### 第一层：物理真实网关 (Physical Realism)
-核心逻辑：剥离 AI 的数学解释权。 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与交易执行速度 (Trade Velocity)，并作为系统的唯一法定事实注入。此举彻底消除了 LLM 在复杂计算中的幻觉，确保逻辑基座的绝对真实。
+**核心逻辑：剥离 AI 的数学解释权。** 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与时间价值，作为系统唯一法定事实注入。彻底消除 LLM 在复算中的幻觉。
 
 ### 第二层：信息主权等级 (Information Sovereignty)
-核心逻辑：**地形决定论**。 系统在冲突信号中遵循以下优先级：
-1. **物理地形 (Topography)**: POC, VAH, VAL, ATR (绝对真理/生存边界)
-2. **流动性形态 (Flow)**: CVD, Long/Short Ratio, Liquidation Clusters (博弈参考)
-3. **AI 感知 (Sentiment)**: 推理文本、信心评分 (最后参考)
-这确保了即使在流量数据缺失时，系统依然能基于物理地形进行“盲扫（Blind-Strike）”而不至于导致逻辑死锁。
+**核心逻辑：地形决定论。** 系统在冲突信号中遵循：1. 物理地形 (POC/VAH) > 2. 流动性形态 (Flow/CVD) > 3. AI 感知。确保即使博弈信号混乱，也能基于物理边界进行攻击。
 
 ### 第三层：法医审计隔离 (Forensic Isolation)
-核心逻辑：**忽略中间态，只审计物理终态**。 在 Post-Mortem 阶段，Reviewer 被强制忽略 Pass-1 的草案、Pass-2 的中间审计建议。
-Reviewer 必须直接使用 `[Pass-3 SYNTHESIS]` 的最终执行坐标与 `T0` 环境原件进行重新建模。这防止了因为 Strategist 在合成阶段执行了硬化（如 DLE 深蹲）而导致 Reviewer 基于旧草稿数据判定的漏判或误判。
+**核心逻辑：忽略中间态，只审计物理终态。** Reviewer 强制忽略中间过程的草案和草稿数字。Reviewer 直接使用 `[Pass-3 SYNTHESIS]` 最终执行坐标与 `T0` 环境原件进行重新建模，防止“过程幸存者偏差”。
 
 ### 第四层：多模态视觉证伪 (Visual Verification)
-核心逻辑：特征引用与视觉存证。 拒绝由于纯数字漂移导致的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
+**核心逻辑：特征引用与视觉存证。** 拒绝纯数字漂移的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
 
-### 第五层：递归状态机 (The Atomic Phase Switch)
-核心逻辑：原子化状态切换与真相总线对齐。 废弃复杂的会话状态（Context）管理，采用原子化的相位探测逻辑（检测 Draft 是否存在来自动切换 Phase A/B）。这使得 **同一物理 Agent 实例** 在不同时间点能精准识别自己的职能边界。同时，真相总线（Observation）作为贯穿全周期的“唯一上下文”，确保了从草稿到审计、再到终稿的逻辑一致性。
+### 第五层：递归状态机 (Atomic Switch)
+**核心逻辑：原子化状态切换。** 废弃复杂的会话状态管理。系统根据 Draft 的存在与否自动触发职能相位探测。真相总线（Observation）作为唯一上下文，确保从草稿到审计、再到终稿的逻辑一致性。
 
 ---
 
-## 💎 参数大师课 · 工业级配置
+## 💎 参数大师课 · 全量工业级配置
 
 > ⚙️ **时域缩放 (Temporal Scaling) 是参数演化的核心动力源。**
-> 当你修改了 Macro 时间窗口（如 1h -> 4h）或 Micro 时间窗口（如 15m -> 1h）时，下列参数必须产生联动，否则系统会产生“维度错位”。
+> 当你修改了 Macro 时间周期（如 1h -> 4h）时，下列 10 个模块的参数必须产生联动效应。
 
-### 1. 核心参数映射表
-
-| 变量名 (Variable) | 大白话解释 (Plain Language) | 时域联动影响 (Temporal Scaling Impact) |
+### 1. 基础时域与全局采样 (Context)
+| 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| **`strategy_intent`** | **系统的“灵魂”**：告诉所有 Agent 此刻你是想做“极限影线狙击”还是“宏观趋势捕获”。 | 它是进化的原点。若从“狙击”改为“捕获”，止损缓冲区必须同步放大。 |
-| **`macro_analysis_context`** | **“大局观”的尺子**：决定了你看趋势的时间尺度。 | 如果你要做长线波段，这里必须从 1h 升至 4h/1d，否则你会对着 5 分钟的波动谈大势。 |
-| **`micro_analysis_context`** | **“手术刀”的刻度**：决定了你切入成交的观测精度。 | **狙击型入场**用 15m 甚至 5m，若仅是配合 Macro 趋势入场，可放宽至 1h 以减少噪音。 |
-| **`volume_profile_price_bucket_count`** | **地形的分辨率**：把价格区间切成多少个格子，格子越细，地形解析越深。 | **联动**：如果 Macro 时间拉长，价格波动会增大，格子必须多（1000+），否则 POC 会模糊。 |
-| **`order_flow_lookback_hours`** | **盯盘的“回溯时长”**：关注最近多久的博弈数据（如成交量、多空比）。 | **必须对齐**：日内策略关注 1h，若 Macro 是 4h，此变量应拉长至 4h 以对齐流动性反馈。 |
-| **`trend_intensity_duration_hours`** | **趋势的“记忆长度”**：系统通过多久的数据来判断趋势强弱。 | **联动**：判定 1h 级别的趋势需要 24h，判定 4h 级别建议至少 72h+，否则无法识别大惯性。 |
-| **`stop_loss_buffer_min/max`** | **止损的“呼吸空间”**：在物理防御位之外，留多少冗余以抵御波动。 | **硬化逻辑**：影线单追求极致精准（0.2），长线单必须加厚装甲（1.0+）以抵御清算插针。 |
-| **`regime_trend_intensity_strong`** | **“铁头单边市”判定门槛**：高于此值，系统会变成坚定的多/空头。 | **联动**：时域拉长后，由于均值回归频率降低，此门槛通常应微调以捕捉长线爆发力。 |
-| **`regime_min_rr_trending`** | **趋势单的最低“肉厚”**：在单边市里，你对盈亏比（RR）的底线要求。 | **联动**：既然走长线 4h，你不可能只拿 1.2 的 RR，底线通常应提升至 1.8+。 |
-| **`score_mae_pinpoint_limit`** | **法务入场判定限**：法医 Reviewer 用于判定你这一单进得“神不神”。 | **动态修正**：极短线追求 15% ATR 以内的精准度，长线若仍要求 15% 会导致评分崩盘。 |
+| `macro_analysis_context` | **大局观**的时间尺子，看大趋势。 | 长线单必须拉长采样（1h -> 4h）。 |
+| `historical_lookback_candles` | **记忆深度**，往回翻多少根线。 | 维持 300+ 根。跨度越大，历史节点参考价值越高。 |
+| `volatility_intensity_lookback` | **波动率感知圈**。 | **必须对齐**。防止用 15m 的波动去配置 4h 的止损位。 |
+
+### 2. 地形分辨率 (VP & Mapping)
+| 变量名 | 大白话解释 | 时域联动影响 |
+| :--- | :--- | :--- |
+| `volume_profile_price_bucket_count` | **地形精度**，价格切得有多细。 | **关键**：大周期波动大，格子必须多（800+），否则 POC 定位会模糊。 |
+| `volume_profile_value_area_width` | **核心成交区**横切占比。 | 默认 75%。极端高波市可调低以收缩防御区。 |
+| `min_price_gap_between_nodes` | **节点间距下限**，太近就合并。 | Macro 线越长，间距应成倍放大，否则目标会太碎。 |
+
+### 3. 技术波动因子 (TA Channels)
+| 变量名 | 大白话解释 | 时域联动影响 |
+| :--- | :--- | :--- |
+| `average_true_range_period` | **通用的度量衡**，衡量当下波动。 | 止损和止盈的核心计算基准单位。 |
+| `wick_skewness_period` | **插针偏移量**，判断最近博弈方向。 | 影线单核心。不宜太长，防止信号被平滑掉。 |
+| `bollinger_bands_std_dev` | **离群门槛**。 | 判断价格是否进入“极端真空区”的探测器。 |
+
+### 4. 流动性与爆仓热图 (Clusters)
+| 变量名 | 大白话解释 | 时域联动影响 |
+| :--- | :--- | :--- |
+| `order_flow_lookback_hours` | **盯盘时长**，回看最近多久的博弈。 | 日内设 1h，长线波段对应放大到 4-8h。 |
+| `liquidation_cluster_atr_multiplier` | **清算区磁吸半径**。 | **联动**：采样跨度越大，洗盘深度越深，半径须放大。 |
+
+### 5. 市场态势判定阈值 (Regime Logic)
+| 变量名 | 大白话解释 | 逻辑暗示 |
+| :--- | :--- | :--- |
+| `regime_trend_intensity_threshold` | **入场趋势门槛**。 | 想要更稳，就调高这个值以过滤随机波动。 |
+| `regime_poc_gravity_atr_distance` | **POC 磁力距离**。 | 强趋势下调大它，否则系统由于贪恋均值而不敢追单。 |
+| `regime_volatility_expansion_ratio` | **波动爆发倍率**。 | 15m 级别的爆发属于常见，4h 级别这属于天劫。 |
+
+### 6. 执行与风险硬化 (Decision Guards)
+| 变量名 | 大白话解释 | 执行逻辑 |
+| :--- | :--- | :--- |
+| `min_trade_velocity` | **跑得够不够快**。 | 短线追求爆发（0.5+），长线可容忍阴跌（0.1）。 |
+| `stop_loss_buffer_min / max` | **止损位背后的空气层**。 | 结构防御位后留的冗余。日内窄，长线宽。 |
+
+### 7. 对抗性大脑配置 (Triad Brains)
+| 变量名 | 大白话解释 | 调参指南 |
+| :--- | :--- | :--- |
+| `model_temperature_draft` | **脑暴草案放飞度**。 | 建议 0.7。给系统捕捉不完美机会的灵感。 |
+| `threshold_skepticism_constructive` | **强制修改红线**。 | 高过这个怀疑值，Critic 会逼 Strategist 改方案。 |
+
+### 8. 法医评分法典 (Forensic Benchmarks)
+| 变量名 | 大白话解释 | 法医逻辑 |
+| :--- | :--- | :--- |
+| `execution_timeframe_interval` | **法医分辨率**。 | 复盘必须用 1m，无论你大方向看多长，都要看微观瞬间。 |
+| `score_mae_pinpoint_limit` | **老司机的入场误差线**。 | 判定你进场那一刻是不是被行情反复打脸。 |
+| `score_opportunity_cost_limit` | **踏空惩罚线**。 | 防止 AI 由于过度谨慎在单边行情中反复空仓。 |
+
+### 9. 违规处罚与纪律 (Compliance)
+| 变量名 | 解释 | 后果 |
+| :--- | :--- | :--- |
+| `penalty_compliance_breach` | **纪律死刑**。 | 违反写死的协议（如 RR）直接判除执行死刑 (-100)。 |
+| `point_penalty_logic_failure` | **逻辑裂缝**。 | 推理和物理数据的错位。反映系统性幻觉。 |
+
+### 10. 系统演化感知 (Evolution)
+| 变量名 | 解析 | 联动 |
+| :--- | :--- | :--- |
+| `coach.model_parameters` | **教练的“洞见水平”**。 | 决定了逻辑补丁的生成质量和系统迭代速度。 |
 
 ---
 
 ## ⏳ 时域硬化 · 缩放实例库
 
-针对不同跨度的交易逻辑，系统主要通过以下物理与逻辑维度的硬化以对抗“时空退化”：
-
-| 审计属性 | 核心变量 | 硬化维度 | 优先级 | 演化建议 |
-| :--- | :--- | :--- | :--- | :--- |
-| **战略意图** | `strategy_intent` | 逻辑演化语义 | **Critical** | 系统的“逻辑北极星”，所有物理参数以此意图为原点进行演化。 |
-| **物理分布精度** | `volume_profile_price_bucket_count` | 物理分辨率 | **Critical** | 随时间跨度增加。长线必须 > 800 以维持地形精度。 |
-| **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
-| **法医分辨率** | `execution_timeframe_interval` | 审计精度 | **Critical** | 确定法医复盘时的 K 线精度。随持仓周期增加而必须放大（1m -> 1h）以确保数据完整性。 |
-| **趋势记忆时长** | `trend_intensity_duration_hours` | 结构趋势窗口 | **Critical** | 判定趋势强度的回溯时长。Macro 级别必须 > 168h (1w)，否则无法识别大周期结构。 |
-| **战术对齐时长** | `order_flow_lookback_hours` | 流量与形态同步窗口 | **High** | 计算 CVD 及流动性形态 (Exhaustion Gap) 的回溯时长。确保流量信号与 K 线形态在同一物理时值内进行对抗性校验。 |
-| **生存硬化上限** | `stop_loss_buffer_max` | 风险硬化 | **High** | 波动扩张 (volatility_ratio > 2.0) 时必须提升至 0.7+。 |
-| **生存硬化下限** | `stop_loss_buffer_min` | 结构防御底线 | **High** | 结构防御的最小硬性装甲厚度，随系统时间窗口放大而必须加厚，以抵御宏观清算插针。 |
-| **结构节点间距** | `min_price_gap_between_nodes` | 节点分辨率 | **Medium** | 物理密集点的最小价格间距。Macro 级别应放大（如 50 -> 1000）以避免节点信号过于细碎。 |
-| **逻辑执行效率** | `min_trade_velocity` | 时间效率 | **Medium** | 长线策略应下调此权重，容忍缓慢的行情演化。 |
-| **物理清算映射** | `liquidation_cluster_atr_multiplier` | 流动性映射 | **Medium** | 确定清算簇的影响半径，随 ATR 同步缩放。 |
-| **历史记忆深度** | `funding_rate_lookback_hours` | 物理锚点 | **Low** | 给 Observer 提供背景数据量，影响宏观地形稳定性。 |
-
-### 2. 实例库
-
 系统通过“法医审计”不断沉淀在不同时间跨度下的最优配置。
 
-#### 微观：日内高频波动中的物理插针
-
-> 验证中
-
-| 审计属性 | 核心变量 | **演化参考** |
+#### 微观：日内高频波动中的物理插针 (Intraday)
+| 变量 | 演化参考 | 逻辑目标 |
 | :--- | :--- | :--- |
-| **战略意图** | `strategy_intent` | `Forensic Micro-Tactical Precision & Macro-Structural Topographic Capture (Regime-Adaptive Execution)` |
-| **物理分布精度** | `volume_profile_price_bucket_count` | `300` |
-| **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
-| **法医分辨率** | `execution_timeframe_interval` | `1m` |
-| **趋势记忆时长** | `trend_intensity_duration_hours` | `24.0` |
-| **战术对齐时长** | `order_flow_lookback_hours` | `1.0` |
-| **物理清算映射** | `liquidation_cluster_atr_multiplier` | `0.5` |
-| **生存硬化下限** | `stop_loss_buffer_min` | `0.2` |
-| **生存硬化上限** | `stop_loss_buffer_max` | `0.7` |
-| **结构节点间距** | `min_price_gap_between_nodes` | `50` |
-| **逻辑执行效率** | `min_trade_velocity` | `0.4` |
-| **历史记忆深度** | `funding_rate_lookback_hours` | `24.0` |
+| `macro/micro` | `1h / 15m` | 环境快速刷新 |
+| `vp_bucket_count` | `300` | 聚焦单根节点 |
+| `sl_buffer_min` | `0.2` | 防守层极窄 |
 
----
-
-#### 周期：识别市场由震荡转为趋势的物理临界点
-
-> 验证中
-
-| 审计属性 | 核心变量 | **演化参考** |
+#### 宏观：波段与结构反转 (Swing)
+| 变量 | 演化参考 | 逻辑目标 |
 | :--- | :--- | :--- |
-| **战略意图** | `strategy_intent` | `Swing: Regime Breakout & Value Area Migration` |
-| **物理分布精度** | `volume_profile_price_bucket_count` | `500` |
-| **双相位时域对齐** | `macro/micro_analysis_context` | `4h / 1h` |
-| **法医分辨率** | `execution_timeframe_interval` | `15m` |
-| **趋势记忆时长** | `trend_intensity_duration_hours` | `168.0` |
-| **战术对齐时长** | `order_flow_lookback_hours` | `4.0` |
-| **物理清算映射** | `liquidation_cluster_atr_multiplier` | `1.0` |
-| **生存硬化下限** | `stop_loss_buffer_min` | `0.4` |
-| **生存硬化上限** | `stop_loss_buffer_max` | `1.2` |
-| **结构节点间距** | `min_price_gap_between_nodes` | `200` |
-| **逻辑执行效率** | `min_trade_velocity` | `0.15` |
-| **历史记忆深度** | `funding_rate_lookback_hours` | `72.0` |
-
----
-
-#### 宏观：大规模底部/派发区间的物理地形反转测绘
-
-> 验证中
-
-| 审计属性 | 核心变量 | **演化参考** |
-| :--- | :--- | :--- |
-| **战略意图** | `strategy_intent` | `Macro: Secular Trend Reversal & HTF Accumulation Forensics` |
-| **物理分布精度** | `volume_profile_price_bucket_count` | `1000` |
-| **双相位时域对齐** | `macro/micro_analysis_context` | `1d / 4h` |
-| **法医分辨率** | `execution_timeframe_interval` | `1h` |
-| **趋势记忆时长** | `trend_intensity_duration_hours` | `720.0` |
-| **战术对齐时长** | `order_flow_lookback_hours` | `24.0` |
-| **物理清算映射** | `liquidation_cluster_atr_multiplier` | `2.5` |
-| **生存硬化下限** | `stop_loss_buffer_min` | `0.8` |
-| **生存硬化上限** | `stop_loss_buffer_max` | `2.0` |
-| **结构节点间距** | `min_price_gap_between_nodes` | `1000` |
-| **逻辑执行效率** | `min_trade_velocity` | `0.05` |
-| **历史记忆深度** | `funding_rate_lookback_hours` | `336.0` |
+| `macro/micro` | `4h / 1h` | 对齐大周期结构 |
+| `vp_bucket_count` | `800` | 宏观地图精度 |
+| `sl_buffer_min` | `0.6` | 允许震荡洗盘 |
 
 ---
 
 ## 🚀 运行手册
 
-系统采用模块化架构，实现从物理地形探测、策略法医审计到逻辑演化补偿的全生命周期闭环。
-
-### Phase 0: 部署与核心环境
-```bash
-python3 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-# 在 .env 中配置以下关键凭证：
-# GEMINI_API_KEY="..."
-```
-
 ### Phase 1: 策略执行与回测验证
-*   **单点实时预测**: `python3 strategist.py prod --symbol BTCUSDT` (使用 prod 环境)
-*   **历史抽样回测**: `python3 backtest.py backtest --sampling 12 --mode regime --start T-24d`
+*   **实时预测**: `python3 strategist.py prod --symbol BTCUSDT`
+*   **抽样回测**: `python3 backtest.py backtest --sampling 12`
 *   **策略演化回放**: `python3 strategist_replay.py backtest --file [JSON_PATH]`
 
 ### Phase 2: 法医调查与看板分析
-*   **法医报告生成**: `python3 reviewer.py prod` (对 prod 目录下所有未审计订单进行批量尸检)
+*   **全量尸检**: `python3 reviewer.py prod`
 *   **定向法医复盘**: `python3 reviewer_replay.py prod --file [JSON_PATH]`
 *   **策略逆向导出**: `python3 export_strategy.py prod --file [REVIEW_JSON_PATH]`
 *   **可视化看板**: `python3 forensic_dashboard.py prod --symbol BTCUSDT`
@@ -229,4 +197,4 @@ pip install -r requirements.txt
 ### Phase 3: 自动化演化循环
 *   **全自动化编排**: `python3 pipeline_orchestrator.py live --symbol BTCUSDT --interval 1`
 *   **诊断与进化合成**: `python3 coach.py prod --symbol BTCUSDT`
-*   **应用逻辑补丁**: `python3 apply_patch.py --file [PATCH_JSON_PATH]`
+*   **应用逻辑补丁**: `python3 apply_patch.py --file [PATCH]`
