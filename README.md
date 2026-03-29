@@ -26,11 +26,12 @@ graph TD
         B2 -- "最终执行决议 (Decision)" --> F["Market Execution"]
     end
 
-    %% 后向法医演化回路
+    %% 后向法医演化回路 (Recursive Loop)
     subgraph "后向演化：法医闭环 (The Forensic Loop)"
         F -->|"执行日志集 (Logs)"| G["Reviewer: 法医鉴定师"]
         G -->|"法医审计报告 (Forensic Report)"| H["Coach: 演化合伙人"]
         H -->|"逻辑补丁 (Patch)"| I[("Prompt & Config: 进化底座")]
+        H -.->|"递归法典补丁"| G
     end
 
     %% 关键进化路径映射：修复逻辑断裂
@@ -39,13 +40,15 @@ graph TD
     I -.->|"注入对抗约束"| D
     I -.->|"注入硬化策略"| B2
 
-    %% 节点样式美化 (法医级配色)
+    %% 节点样式美化 (法务级配色)
     style C fill:#f96,stroke:#333,stroke-width:2px,color:#fff
-    style TB fill:#e1f5fe,stroke:#01579b,stroke-width:2px,stroke-dasharray: 5 5
+    style TB fill:#ffd700,stroke:#b8860b,stroke-width:3px,stroke-dasharray: 5 5
     style F fill:#00ff00,stroke:#333,stroke-width:2px,color:#000
     style I fill:#f9f,stroke:#333,stroke-width:4px,color:#000
     style B1 fill:#e1f5fe,stroke:#01579b
     style B2 fill:#e1f5fe,stroke:#01579b
+    style G fill:#ffcdd2,stroke:#b71c1c
+    style H fill:#c8e6c9,stroke:#1b5e20
 ```
 
 ---
@@ -70,23 +73,51 @@ graph TD
 
 为了确保系统在极高波动的加密市场中生存，我们部署了三层“逻辑护甲”：
 
-### 第一层：物理真实网关
+### 第一层：物理真实网关 (Physical Realism)
 核心逻辑：剥离 AI 的数学解释权。 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与交易执行速度 (Trade Velocity)，并作为系统的唯一法定事实注入。此举彻底消除了 LLM 在复杂计算中的幻觉，确保逻辑基座的绝对真实。
 
-### 第二层：多模态视觉证伪
+### 第二层：信息主权等级 (Information Sovereignty)
+核心逻辑：**地形决定论**。 系统在冲突信号中遵循以下优先级：
+1. **物理地形 (Topography)**: POC, VAH, VAL, ATR (绝对真理/生存边界)
+2. **流动性形态 (Flow)**: CVD, Long/Short Ratio, Liquidation Clusters (博弈参考)
+3. **AI 感知 (Sentiment)**: 推理文本、信心评分 (最后参考)
+这确保了即使在流量数据缺失时，系统依然能基于物理地形进行“盲扫（Blind-Strike）”而不至于导致逻辑死锁。
+
+### 第三层：法医审计隔离 (Forensic Isolation)
+核心逻辑：**忽略中间态，只审计物理终态**。 在 Post-Mortem 阶段，Reviewer 被强制忽略 Pass-1 的草案、Pass-2 的中间审计建议。
+Reviewer 必须直接使用 `[Pass-3 SYNTHESIS]` 的最终执行坐标与 `T0` 环境原件进行重新建模。这防止了因为 Strategist 在合成阶段执行了硬化（如 DLE 深蹲）而导致 Reviewer 基于旧草稿数据判定的漏判或误判。
+
+### 第四层：多模态视觉证伪 (Visual Verification)
 核心逻辑：特征引用与视觉存证。 拒绝由于纯数字漂移导致的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
 
-### 第三层：递归状态机 (The Atomic Phase Switch)
-核心逻辑：原子化状态切换与真相总线对齐。 废弃复杂的会话状态（Context）管理，采用原子化的相位探测逻辑（检测 Draft 是否存在来自动切换 Phase A/B）。这使得 **同一物理 Agent 实例** 在不同时间点能精准识别自己的职能边界。同时，真相总线（Observation）作为贯穿全周期的“唯一上下文”，确保了从草案到审计、再到终稿的逻辑一致性。
+### 第五层：递归状态机 (The Atomic Phase Switch)
+核心逻辑：原子化状态切换与真相总线对齐。 废弃复杂的会话状态（Context）管理，采用原子化的相位探测逻辑（检测 Draft 是否存在来自动切换 Phase A/B）。这使得 **同一物理 Agent 实例** 在不同时间点能精准识别自己的职能边界。同时，真相总线（Observation）作为贯穿全周期的“唯一上下文”，确保了从草稿到审计、再到终稿的逻辑一致性。
 
 ---
 
-## ⏳ 时域硬化 · 缩放模型
+## 💎 参数大师课 · 工业级配置
 
-> ⚙️ **时域对齐：系统演化的核心权重**
-> 物理真相的“分辨率”必须随时间跨度同步缩放；调整持仓目标会导致系统产生“多阶维度”的逻辑偏移，必须同步调整参数矩阵以确保物理真相的客观真实。
+> ⚙️ **时域缩放 (Temporal Scaling) 是参数演化的核心动力源。**
+> 当你修改了 Macro 时间窗口（如 1h -> 4h）或 Micro 时间窗口（如 15m -> 1h）时，下列参数必须产生联动，否则系统会产生“维度错位”。
 
-### 1. 时域参数矩阵
+### 1. 核心参数映射表
+
+| 变量名 (Variable) | 大白话解释 (Plain Language) | 时域联动影响 (Temporal Scaling Impact) |
+| :--- | :--- | :--- |
+| **`strategy_intent`** | **系统的“灵魂”**：告诉所有 Agent 此刻你是想做“极限影线狙击”还是“宏观趋势捕获”。 | 它是进化的原点。若从“狙击”改为“捕获”，止损缓冲区必须同步放大。 |
+| **`macro_analysis_context`** | **“大局观”的尺子**：决定了你看趋势的时间尺度。 | 如果你要做长线波段，这里必须从 1h 升至 4h/1d，否则你会对着 5 分钟的波动谈大势。 |
+| **`micro_analysis_context`** | **“手术刀”的刻度**：决定了你切入成交的观测精度。 | **狙击型入场**用 15m 甚至 5m，若仅是配合 Macro 趋势入场，可放宽至 1h 以减少噪音。 |
+| **`volume_profile_price_bucket_count`** | **地形的分辨率**：把价格区间切成多少个格子，格子越细，地形解析越深。 | **联动**：如果 Macro 时间拉长，价格波动会增大，格子必须多（1000+），否则 POC 会模糊。 |
+| **`order_flow_lookback_hours`** | **盯盘的“回溯时长”**：关注最近多久的博弈数据（如成交量、多空比）。 | **必须对齐**：日内策略关注 1h，若 Macro 是 4h，此变量应拉长至 4h 以对齐流动性反馈。 |
+| **`trend_intensity_duration_hours`** | **趋势的“记忆长度”**：系统通过多久的数据来判断趋势强弱。 | **联动**：判定 1h 级别的趋势需要 24h，判定 4h 级别建议至少 72h+，否则无法识别大惯性。 |
+| **`stop_loss_buffer_min/max`** | **止损的“呼吸空间”**：在物理防御位之外，留多少冗余以抵御波动。 | **硬化逻辑**：影线单追求极致精准（0.2），长线单必须加厚装甲（1.0+）以抵御清算插针。 |
+| **`regime_trend_intensity_strong`** | **“铁头单边市”判定门槛**：高于此值，系统会变成坚定的多/空头。 | **联动**：时域拉长后，由于均值回归频率降低，此门槛通常应微调以捕捉长线爆发力。 |
+| **`regime_min_rr_trending`** | **趋势单的最低“肉厚”**：在单边市里，你对盈亏比（RR）的底线要求。 | **联动**：既然走长线 4h，你不可能只拿 1.2 的 RR，底线通常应提升至 1.8+。 |
+| **`score_mae_pinpoint_limit`** | **法务入场判定限**：法医 Reviewer 用于判定你这一单进得“神不神”。 | **动态修正**：极短线追求 15% ATR 以内的精准度，长线若仍要求 15% 会导致评分崩盘。 |
+
+---
+
+## ⏳ 时域硬化 · 缩放实例库
 
 针对不同跨度的交易逻辑，系统主要通过以下物理与逻辑维度的硬化以对抗“时空退化”：
 
@@ -185,17 +216,17 @@ pip install -r requirements.txt
 ```
 
 ### Phase 1: 策略执行与回测验证
-*   **单点实时预测**: `python3 strategist.py --symbol BTCUSDT prod`
-*   **历史抽样回测**: `python3 backtest.py --sampling 12 --mode regime --start T-24d backtest`
+*   **单点实时预测**: `python3 strategist.py prod --symbol BTCUSDT` (使用 prod 环境)
+*   **历史抽样回测**: `python3 backtest.py backtest --sampling 12 --mode regime --start T-24d`
 *   **策略演化回放**: `python3 strategist_replay.py backtest --file [JSON_PATH]`
 
 ### Phase 2: 法医调查与看板分析
-*   **法医报告生成**: `python3 reviewer.py prod`
-*   **盲测复盘回放**: `python3 reviewer_replay.py prod --file [JSON_PATH]`
-*   **策略逆向导出**: `python3 export_strategy.py [env] --file [REVIEW_JSON_PATH]`
-*   **可视化看板**: `python3 forensic_dashboard.py --symbol BTCUSDT [env]`
+*   **法医报告生成**: `python3 reviewer.py prod` (对 prod 目录下所有未审计订单进行批量尸检)
+*   **定向法医复盘**: `python3 reviewer_replay.py prod --file [JSON_PATH]`
+*   **策略逆向导出**: `python3 export_strategy.py prod --file [REVIEW_JSON_PATH]`
+*   **可视化看板**: `python3 forensic_dashboard.py prod --symbol BTCUSDT`
 
 ### Phase 3: 自动化演化循环
-*   **全自动化编排**: `python3 pipeline_orchestrator.py --symbol BTCUSDT --interval 1 live`
-*   **诊断与进化合成**: `python3 coach.py --symbol BTCUSDT [prod|live|backtest]`
+*   **全自动化编排**: `python3 pipeline_orchestrator.py live --symbol BTCUSDT --interval 1`
+*   **诊断与进化合成**: `python3 coach.py prod --symbol BTCUSDT`
 *   **应用逻辑补丁**: `python3 apply_patch.py --file [PATCH_JSON_PATH]`
