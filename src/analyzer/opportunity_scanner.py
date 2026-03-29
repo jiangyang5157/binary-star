@@ -32,10 +32,10 @@ class OpportunityScanner:
         self.logger.info(f"Scanner: Commencing structural mapping for {self.symbol}...")
         return self.observer.observe()
 
-    def is_worth_it(self, observation: Dict[str, Any]) -> bool:
+    def should_trigger(self, observation: Dict[str, Any]) -> bool:
         """
         Multi-factor check to determine if the market is 'interesting'.
-        Resilient to null/empty liquidation data.
+        Renamed from is_worth_it for clarity.
         """
         if "error" in observation:
             self.logger.error(f"Scanner: Observation error - {observation['error']}")
@@ -54,25 +54,20 @@ class OpportunityScanner:
         self.logger.info(f"Volatility: {vol_regime} (Ratio: {metrics['price_dynamics']['volatility_intensity_index']})")
         self.logger.info(f"Volume Breakout: {vol_breakout:.2f}")
         
-        # 1. Macro Trend (Structural Momentum)
-        if regime['price_trend_regime'] == "TRENDING":
-            self.logger.info("Scanner: [READY] Structural TRENDING momentum detected.")
-            return True
-            
-        # 2. Volatility Expansion (The 'Bang')
+        # 1. Volatility Expansion (The 'Bang')
         if vol_regime == "EXPANSION":
             self.logger.info("Scanner: [READY] Volatility EXPLOSION/EXPANSION detected.")
             return True
             
-        # 3. Squeeze (The 'Gun' before the Bang)
-        # SQUEEZE is defined as Bollinger Bands inside Keltner Channels
+        # 2. Squeeze (The 'Gun' before the Bang)
         if vol_regime == "SQUEEZE":
-            self.logger.info("Scanner: [READY] Market in SQUEEZE. Loading strategy to intercept breakout.")
+            self.logger.info("Scanner: [READY] Market in SQUEEZE. Intercepting potential breakout.")
             return True
             
-        # 4. Volume Breakout
-        if vol_breakout >= 1.2:
-            self.logger.info("Scanner: [READY] VOLUME breakout detected (Activity Spike).")
+        # 3. Volume Breakout (Using Config Threshold)
+        vol_threshold = self.config['observer']['regime_volume_breakout_threshold']
+        if vol_breakout >= vol_threshold:
+            self.logger.info(f"Scanner: [READY] VOLUME breakout detected (>= {vol_threshold}).")
             return True
 
         # 5. Structural Proximity (Testing POC/VA/VAL)

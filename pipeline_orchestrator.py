@@ -217,7 +217,7 @@ class PipelineOrchestrator:
                 return
 
             if self.mode == "scan":
-                if not self.scanner.is_worth_it(observation):
+                if not self.scanner.should_trigger(observation):
                     return
 
             # Step 3: Triad Reasoning

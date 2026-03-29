@@ -55,7 +55,7 @@ def main():
             
             # 2. Analyze 'Worth It' signals
             # Note: This will log all the internal signals within is_worth_it()
-            is_worth_it = scanner.is_worth_it(observation)
+            is_triggered = scanner.should_trigger(observation)
             
             if is_worth_it:
                 logger.info(">>> SIGNAL: CRITERIA MET. (Suggested to trigger agents)")
