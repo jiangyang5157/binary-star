@@ -135,8 +135,6 @@ class OutcomeCalculator:
                     }
         
         return result
-        
-        return result
 
 class ReviewerOrchestrator:
     """

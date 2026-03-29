@@ -83,10 +83,13 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
                 pass
             return None
 
+        current_price = float(dynamics.get('current_price', 0))
+        
         return {
             "actual_rr": round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0,
             "entry_to_sl_atr": round(sl_dist / atr, 2) if atr > 0 else 0,
             "entry_to_tp_atr": round(tp_dist / atr, 2) if atr > 0 else 0,
+            "entry_to_current_atr": round((entry - current_price) / atr, 2) if atr > 0 else 0,
             "sl_to_poc_atr": dist_to_atr(poc),
             "sl_to_vah_atr": dist_to_atr(vah),
             "sl_to_val_atr": dist_to_atr(val),
