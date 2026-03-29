@@ -49,25 +49,23 @@ class OpportunityScanner:
         
         # Detailed Signal Log (Debugging Friendly)
         self.logger.info("-" * 40)
-        self.logger.info(f"SIGNAL AUDIT | {self.symbol}")
-        self.logger.info(f"Trend Intensity: {intensity:.2f} ({regime['price_trend_regime']})")
+
         self.logger.info(f"Volatility: {vol_regime} (Ratio: {metrics['price_dynamics']['volatility_intensity_index']})")
-        self.logger.info(f"Volume Breakout: {vol_breakout:.2f}")
-        
         # 1. Volatility Expansion (The 'Bang')
         if vol_regime == "EXPANSION":
             self.logger.info("Scanner: [READY] Volatility EXPLOSION/EXPANSION detected.")
             return True
-            
+        
         # 2. Squeeze (The 'Gun' before the Bang)
         if vol_regime == "SQUEEZE":
             self.logger.info("Scanner: [READY] Market in SQUEEZE. Intercepting potential breakout.")
             return True
             
         # 3. Volume Breakout (Using Config Threshold)
-        vol_threshold = self.config['observer']['regime_volume_breakout_threshold']
-        if vol_breakout >= vol_threshold:
-            self.logger.info(f"Scanner: [READY] VOLUME breakout detected (>= {vol_threshold}).")
+        regime_volume_breakout_threshold = self.config['observer']['regime_volume_breakout_threshold']
+        self.logger.info(f"Volume Breakout: {vol_breakout:.2f} (Threshold: {regime_volume_breakout_threshold})")
+        if vol_breakout >= regime_volume_breakout_threshold:
+            self.logger.info(f"Scanner: [READY] VOLUME breakout detected (>= {regime_volume_breakout_threshold}).")
             return True
 
         # 5. Structural Proximity (Testing POC/VA/VAL)
