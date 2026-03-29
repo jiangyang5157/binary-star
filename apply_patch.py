@@ -174,6 +174,14 @@ class SystemEvolutionEngine:
                     analysis.get("critic_prompt_patches", [])
                 )
 
+            # Reviewer
+            reviewer_prompt_path = agent_cfg.get("reviewer", {}).get("role_definition_prompt")
+            if reviewer_prompt_path:
+                self.prompt_worker.apply(
+                    reviewer_prompt_path, 
+                    analysis.get("reviewer_prompt_patches", [])
+                )
+
             # 2. Evolve System Parameters (Config)
             self.config_worker.apply(
                 "config/agent_config.yaml",
