@@ -48,6 +48,8 @@ observer:
   regime_min_rr_trending: 1.8
   regime_volume_baseline_ratio: 1.0
   regime_squeeze_threshold: 1.0
+  regime_squeeze_audit_threshold: 0.85
+  regime_breakout_buffer_atr: 0.1
   regime_balanced_atr_multiplier: 2.0
   regime_cvd_slope_threshold: 1.0
   regime_structural_proximity_threshold: 0.5

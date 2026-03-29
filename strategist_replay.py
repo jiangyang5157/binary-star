@@ -15,7 +15,7 @@ if PROJECT_ROOT not in sys.path:
 from src.agent.strategist_agent import StrategistAgent
 from src.agent.critic_agent import CriticAgent
 from strategist import run_full_triad_flow, archive_strategy_result
-from src.utils.agent_utils import load_config
+from src.utils.agent_utils import load_config, load_global_config
 from src.utils.logger_utils import setup_logger
 
 class StrategyReplayOrchestrator:

@@ -39,6 +39,7 @@ class StrategistConfig:
     regime_min_rr_trending: float
     regime_volume_baseline_ratio: float
     regime_squeeze_threshold: float
+    regime_breakout_buffer_atr: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -68,7 +69,8 @@ class StrategistConfig:
             regime_min_rr_ranging=float(full_config['observer']['regime_min_rr_ranging']),
             regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending']),
             regime_volume_baseline_ratio=float(full_config['observer']['regime_volume_baseline_ratio']),
-            regime_squeeze_threshold=float(full_config['observer']['regime_squeeze_threshold'])
+            regime_squeeze_threshold=float(full_config['observer']['regime_squeeze_threshold']),
+            regime_breakout_buffer_atr=float(full_config['observer']['regime_breakout_buffer_atr'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -166,7 +168,8 @@ class StrategistAgent(BaseAgent):
             "regime_min_rr_ranging": self.config.regime_min_rr_ranging,
             "regime_min_rr_trending": self.config.regime_min_rr_trending,
             "regime_volume_baseline_ratio": self.config.regime_volume_baseline_ratio,
-            "regime_squeeze_threshold": self.config.regime_squeeze_threshold
+            "regime_squeeze_threshold": self.config.regime_squeeze_threshold,
+            "regime_breakout_buffer_atr": self.config.regime_breakout_buffer_atr
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

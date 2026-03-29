@@ -39,6 +39,7 @@ class CriticConfig:
     regime_min_rr_trending: float
     regime_volume_baseline_ratio: float
     regime_squeeze_threshold: float
+    regime_squeeze_audit_threshold: float
     threshold_skepticism_clear: int
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
@@ -73,6 +74,7 @@ class CriticConfig:
             regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending']),
             regime_volume_baseline_ratio=float(full_config['observer']['regime_volume_baseline_ratio']),
             regime_squeeze_threshold=float(full_config['observer']['regime_squeeze_threshold']),
+            regime_squeeze_audit_threshold=float(full_config['observer']['regime_squeeze_audit_threshold']),
             threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive'])
@@ -135,6 +137,7 @@ class CriticAgent(BaseAgent):
             "regime_min_rr_trending": self.config.regime_min_rr_trending,
             "regime_volume_baseline_ratio": self.config.regime_volume_baseline_ratio,
             "regime_squeeze_threshold": self.config.regime_squeeze_threshold,
+            "regime_squeeze_audit_threshold": self.config.regime_squeeze_audit_threshold,
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
             "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
             "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive
