@@ -30,7 +30,7 @@ def calculate_math_fact_check(observation: Dict[str, Any], draft: Dict[str, Any]
     Calculates deterministic math facts to prevent LLM hallucinations.
     """
     # If action is NEUTRAL, we bypass math check (trigger [CLEAR] in Critic)
-    if draft.get('action') == 'NEUTRAL':
+    if draft.get('opinion') == 'NEUTRAL':
         return None
 
     limit_order = draft.get('limit_order')
