@@ -7,9 +7,16 @@ import logging
 import argparse
 import subprocess
 import schedule
+import pandas as pd
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
+
+from src.infrastructure.binance.client import BinanceFuturesClient
+from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
+from src.utils.agent_utils import load_config, resolve_data_root, add_data_root_argument, load_global_config
+from src.analyzer.opportunity_scanner import OpportunityScanner
+from strategist import StrategistOrchestrator, run_full_triad_flow, archive_strategy_result
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -165,32 +172,97 @@ class JobScheduler:
 # --- 4. Orchestrator Service ---
 
 class PipelineOrchestrator:
-    def __init__(self, symbol: str, pulse_minutes: float, data_root: str):
+    def __init__(self, symbol: str, pulse_minutes: float, data_root: str, mode: str):
         self.data_root = data_root
         self.symbol = symbol
+        self.mode = mode
         self.interval_hours = pulse_minutes / 60.0
         log_path = os.path.join(data_root, "pipeline_orchestrator.log")
         self.logger = setup_logger("PipelineOrchestrator", log_file=log_path)
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
         self.validator = ConfigValidator(self.logger)
+        
+        # Initialize the StrategistOrchestrator for in-process Triad execution
+        try:
+            self.triad_orchestrator = StrategistOrchestrator(self.symbol, self.data_root)
+            self.logger.info("Internal StrategistOrchestrator initialized.")
+            
+            # Use shared scanner
+            self.scanner = OpportunityScanner(
+                self.symbol, 
+                self.data_root, 
+                logger=self.logger, 
+                observer=self.triad_orchestrator.observer
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to initialize Triad Orchestrator or Scanner: {e}")
+            sys.exit(1)
+
+    def _run_cycle(self):
+        """
+        Executes a single pulse cycle:
+        1. Observe (via Scanner)
+        2. Scan Filter (via Scanner)
+        3. Triad Execution (Shared data)
+        4. Reviewer Execution (Subprocess)
+        """
+        try:
+            # Step 1: Observe & Step 2: Scan Check
+            self.logger.info("Cycle Start: Gathering market facts...")
+            observation = self.scanner.scan()
+            
+            if "error" in observation:
+                self.logger.error(f"Observation failed: {observation['error']}")
+                return
+
+            if self.mode == "scan":
+                if not self.scanner.is_worth_it(observation):
+                    return
+
+            # Step 3: Triad Reasoning
+            self.logger.info("Cycle: Triggering Triad Reasoning Flow...")
+            session_result = run_full_triad_flow(
+                observation, 
+                self.triad_orchestrator.strategist, 
+                self.triad_orchestrator.critic
+            )
+
+            # Step 4: Notifications
+            self.triad_orchestrator._handle_notifications(session_result)
+
+            # Step 5: Archival
+            output_file = archive_strategy_result(
+                symbol=self.symbol,
+                timestamp=observation['timestamp'],
+                result=session_result,
+                data_root=self.data_root,
+                target_dir="strategies"
+            )
+            self.logger.info(f"Strategy archived: {output_file}")
+
+            # Step 6: Reviewer (Independent Subprocess)
+            rev_args = ["--data_root", self.data_root]
+            self.executor.run_script("reviewer.py", rev_args)
+
+        except Exception as e:
+            self.logger.error(f"Cycle execution error: {e}", exc_info=True)
 
     def start(self):
         """Starts the service cycle."""
-        self.logger.info(f"=== Starting Pipeline Orchestrator for {self.symbol} ===")
+        self.logger.info(f"=== Starting Pipeline Orchestrator [{self.mode}] for {self.symbol} ===")
         
         if not self.validator.validate_interval(self.interval_hours):
             self.logger.error("Validation failed. Aborting startup.")
             sys.exit(1)
 
-        pipeline_job = SequentialPipelineJob(self.symbol, self.data_root, self.executor)
-
         # Initial run
         self.logger.info("Executing initial startup run...")
-        pipeline_job.run()
+        self._run_cycle()
 
         # Schedule
-        self.scheduler.add_job(pipeline_job, self.interval_hours)
+        self.logger.info(f"Scheduling pulse every {self.interval_hours} hours.")
+        self.scheduler.schedule.every(self.interval_hours).hours.do(self._run_cycle)
 
         self.logger.info("Orchestrator monitoring loop active.")
         try:
@@ -204,6 +276,7 @@ def main():
     parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
     parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
     parser.add_argument("--pulse", type=float, required=True, help="Pipeline interval in minutes")
+    parser.add_argument("--mode", type=str, choices=["fix", "scan"], default="fix", help="Execution mode (fix: run every pulse, scan: run only when market is interesting)")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -217,7 +290,6 @@ def main():
         sys.exit(1)
     
     # Load global defaults for missing CLI args
-    from src.utils.agent_utils import load_global_config
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
@@ -228,7 +300,8 @@ def main():
     orchestrator = PipelineOrchestrator(
         symbol=symbol, 
         pulse_minutes=args.pulse, 
-        data_root=data_root
+        data_root=data_root,
+        mode=args.mode
     )
     orchestrator.start()
 
