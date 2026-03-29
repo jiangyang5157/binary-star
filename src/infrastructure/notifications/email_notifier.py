@@ -565,6 +565,12 @@ class StrategyNotifier:
             return False
             
         metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
+        
+        # [Cost Firewall] Skip notifications for premature system-stub reports to reduce noise.
+        if metrics.get("is_premature_audit", False):
+            logger.info(f"Notifier: Audit for {symbol} is premature (SYSTEM-STUB). Skipping review dispatch.")
+            return False
+            
         result = metrics.get("tp_sl_result", "N/A")
 
         if result not in ["TP_HIT", "SL_HIT", "NEITHER"]:
