@@ -30,6 +30,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 **[THE SYSTEM DNA]**
 - **Current Strategist Prompt**: {strategist_prompt}
 - **Current Critic Prompt**: {critic_prompt}
+- **Current Reviewer Prompt**: {reviewer_prompt}
 - **Current Configuration**: {current_config}
 
 # ANALYTICAL TASKS
@@ -38,7 +39,8 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 1. **Pathology Scan**: Aggregate data from `audit_findings` (specifically `adversarial_audit.shadow_evidence`, `protocol_breach`, and `evaluation_score`) across the batch. Identify the dominant "Systemic Bias" (e.g., `[LAZY_TREND_FOLLOWING]` or `[PROTOCOL_DISOBEDIENCE]`).
 2. **Strategist Vulnerability Audit**: Locate the exact line in the Strategist's Prompt that allowed this pathology to occur. Does it need a stricter RR constraint or a new temporal rule?
 3. **Critic Blindspot Audit**: Did the Critic fail to trigger an `is_veto` when it should have? Identify which `AUDIT CODES` need to be hardened or added to its reference table.
-4. **Parameter Optimization**: Cross-reference the systemic failures with the `Current Configuration`.
+4. **Reviewer Logic Audit**: Is the Reviewer consistently misjudging structural failures? Does the Scoring Law need to be hardened to penalize `[OPPORTUNITY_DENIAL]` more strictly, or adjusted to account for anomalous regime-level MFE?
+5. **Parameter Optimization**: Cross-reference the systemic failures with the `Current Configuration`.
     - **Volatility/Structural**: If entries are consistently late, should `{volume_moving_average_period}` be shortened?
     - **Temporal Calibration**: Compare `actual_hours` from reviews with the windows in `observation_specs.logic`:
         - **Tactical Window (`{order_flow_lookback_hours}`)**: If successful trades consistently exceed this, consider increasing it to capture "Slow Fills".
@@ -66,6 +68,13 @@ If no patches are needed for a specific module, return an empty array `[]` for a
     }}
   ],
   "critic_prompt_patches": [
+    {{
+      "action": "ADD / REPLACE / REMOVE",
+      "target": "EXACT substring from the prompt.",
+      "replacement": "New logic to insert (MUST be an empty string \"\" if action is REMOVE)"
+    }}
+  ],
+  "reviewer_prompt_patches": [
     {{
       "action": "ADD / REPLACE / REMOVE",
       "target": "EXACT substring from the prompt.",

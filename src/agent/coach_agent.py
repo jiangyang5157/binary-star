@@ -20,6 +20,7 @@ class CoachConfig:
     role_prompt_path: str
     strategist_prompt_path: str
     critic_prompt_path: str
+    reviewer_prompt_path: str
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -39,6 +40,7 @@ class CoachConfig:
             role_prompt_path=os.path.join(project_root, coach_cfg['role_definition_prompt']),
             strategist_prompt_path=os.path.join(project_root, strat_cfg['role_definition_prompt']),
             critic_prompt_path=os.path.join(project_root, crit_cfg['role_definition_prompt']),
+            reviewer_prompt_path=os.path.join(project_root, full_config['reviewer']['role_definition_prompt']),
             strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
             micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval'])
@@ -92,12 +94,14 @@ class CoachAgent(BaseAgent):
         # Load linked agent prompts for holistic context
         strategist_prompt = read_prompt_template(self.config.strategist_prompt_path)
         critic_prompt = read_prompt_template(self.config.critic_prompt_path)
+        reviewer_prompt = read_prompt_template(self.config.reviewer_prompt_path)
         
         context = {
             "batch_data": json.dumps(review_history, indent=2, ensure_ascii=False),
             "current_config": json.dumps(self.raw_config, indent=2, ensure_ascii=False),
             "strategist_prompt": strategist_prompt,
             "critic_prompt": critic_prompt,
+            "reviewer_prompt": reviewer_prompt,
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval
