@@ -92,4 +92,4 @@ reviewer:
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-3.1-pro-preview
-  model_temperature: 0.4
+  model_temperature: 0.5
