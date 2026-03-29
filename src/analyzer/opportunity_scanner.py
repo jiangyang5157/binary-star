@@ -13,7 +13,7 @@ class OpportunityScanner:
     def __init__(self, symbol: str, data_root: str, logger: Optional[logging.Logger] = None, observer: Optional[ObserverAgent] = None):
         self.symbol = symbol
         self.data_root = data_root
-        self.logger = logger or setup_logger("OpportunityScanner")
+        self.logger = logger or setup_logger("OpportunityScanner", propagate = True)
         
         # Use existing observer or initialize new one
         if observer:
