@@ -17,7 +17,7 @@ observer:
   high_volume_node_detection_threshold: 0.15
   low_volume_node_detection_threshold: 0.05
   order_flow_lookback_hours: 1.0
-  market_regime_trend_strength_threshold: 0.35
+  market_regime_trend_strength_threshold: 0.4
   average_true_range_period: 21
   bollinger_bands_period: 21
   bollinger_bands_std_dev: 2.0
