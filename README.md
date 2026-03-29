@@ -97,7 +97,7 @@ graph TD
 | **双相位时域对齐** | `macro/micro_analysis_context` | 采样周期 | **Critical** | Macro/Micro 必须维持 4:1 或更高比例。 |
 | **法医分辨率** | `execution_timeframe_interval` | 审计精度 | **Critical** | 确定法医复盘时的 K 线精度。随持仓周期增加而必须放大（1m -> 1h）以确保数据完整性。 |
 | **趋势记忆时长** | `trend_intensity_duration_hours` | 结构趋势窗口 | **Critical** | 判定趋势强度的回溯时长。Macro 级别必须 > 168h (1w)，否则无法识别大周期结构。 |
-| **流向回溯时长** | `order_flow_lookback_hours` | 流量分析窗口 | **High** | 计算 CVD 累计成交差的窗口。应随微观周期等比例放大，以确保流量信号的平滑。 |
+| **战术对齐时长** | `order_flow_lookback_hours` | 流量与形态同步窗口 | **High** | 计算 CVD 及流动性形态 (Exhaustion Gap) 的回溯时长。确保流量信号与 K 线形态在同一物理时值内进行对抗性校验。 |
 | **生存硬化上限** | `stop_loss_buffer_max` | 风险硬化 | **High** | 波动扩张 (volatility_ratio > 2.0) 时必须提升至 0.7+。 |
 | **生存硬化下限** | `stop_loss_buffer_min` | 结构防御底线 | **High** | 结构防御的最小硬性装甲厚度，随系统时间窗口放大而必须加厚，以抵御宏观清算插针。 |
 | **结构节点间距** | `min_price_gap_between_nodes` | 节点分辨率 | **Medium** | 物理密集点的最小价格间距。Macro 级别应放大（如 50 -> 1000）以避免节点信号过于细碎。 |
@@ -120,7 +120,7 @@ graph TD
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
 | **法医分辨率** | `execution_timeframe_interval` | `1m` |
 | **趋势记忆时长** | `trend_intensity_duration_hours` | `24.0` |
-| **流向回溯时长** | `order_flow_lookback_hours` | `1.0` |
+| **战术对齐时长** | `order_flow_lookback_hours` | `1.0` |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | `0.5` |
 | **生存硬化下限** | `stop_loss_buffer_min` | `0.2` |
 | **生存硬化上限** | `stop_loss_buffer_max` | `0.7` |
@@ -141,7 +141,7 @@ graph TD
 | **双相位时域对齐** | `macro/micro_analysis_context` | `4h / 1h` |
 | **法医分辨率** | `execution_timeframe_interval` | `15m` |
 | **趋势记忆时长** | `trend_intensity_duration_hours` | `168.0` |
-| **流向回溯时长** | `order_flow_lookback_hours` | `4.0` |
+| **战术对齐时长** | `order_flow_lookback_hours` | `4.0` |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | `1.0` |
 | **生存硬化下限** | `stop_loss_buffer_min` | `0.4` |
 | **生存硬化上限** | `stop_loss_buffer_max` | `1.2` |
@@ -162,7 +162,7 @@ graph TD
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1d / 4h` |
 | **法医分辨率** | `execution_timeframe_interval` | `1h` |
 | **趋势记忆时长** | `trend_intensity_duration_hours` | `720.0` |
-| **流向回溯时长** | `order_flow_lookback_hours` | `24.0` |
+| **战术对齐时长** | `order_flow_lookback_hours` | `24.0` |
 | **物理清算映射** | `liquidation_cluster_atr_multiplier` | `2.5` |
 | **生存硬化下限** | `stop_loss_buffer_min` | `0.8` |
 | **生存硬化上限** | `stop_loss_buffer_max` | `2.0` |

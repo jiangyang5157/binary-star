@@ -35,7 +35,7 @@ To synthesize objective market topography into actionable limit orders. You must
 | **SL Placement** | **`{stop_loss_buffer_min}`x - `{stop_loss_buffer_max}`x ATR** beyond Anchor | SL MUST be hidden tightly behind a structural wall (`POC`, `VAH`, `VAL`). Tighter structural SL = Higher RR. |
 | **TP Target** | Next Structural Node | Target the nearest opposing HVN (friction) or LVN (vacuum). NO artificial ATR caps. |
 | **Vol Confirmation**| `volume_breakout_ratio` > 1.2 | Required ONLY for Trend/Momentum continuation. |
-| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S).| **[RETAIL_SQUEEZE]** (Mitigate via Sniping). |
+| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > 0.6 on L; < -0.6 on S). Analyzed over **`{order_flow_lookback_hours}`h Tactical Alignment Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 
 # INPUT DATUM
 - **Observation Content**: {observation_json} (The Forensic Map from **Observer Agent**).
