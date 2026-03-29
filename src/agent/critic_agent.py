@@ -71,11 +71,11 @@ class CriticConfig:
             regime_trend_intensity_strong=float(full_config['observer']['regime_trend_intensity_strong']),
             regime_min_rr_ranging=float(full_config['observer']['regime_min_rr_ranging']),
             regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending']),
-            regime_volume_baseline_ratio=float(full_config['observer'].get('regime_volume_baseline_ratio', 1.0)),
-            regime_squeeze_threshold=float(full_config['observer'].get('regime_squeeze_threshold', 1.0)),
-            threshold_skepticism_clear=int(crit.get('threshold_skepticism_clear', 40)),
-            threshold_skepticism_weak=int(crit.get('threshold_skepticism_weak', 69)),
-            threshold_skepticism_constructive=int(crit.get('threshold_skepticism_constructive', 89))
+            regime_volume_baseline_ratio=float(full_config['observer']['regime_volume_baseline_ratio']),
+            regime_squeeze_threshold=float(full_config['observer']['regime_squeeze_threshold']),
+            threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
+            threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
+            threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive'])
         )
 
 class CriticAgent(BaseAgent):

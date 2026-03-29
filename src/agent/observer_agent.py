@@ -129,8 +129,8 @@ class ObserverConfig:
             regime_trend_intensity_strong=float(obs['regime_trend_intensity_strong']),
             regime_min_rr_ranging=float(obs['regime_min_rr_ranging']),
             regime_min_rr_trending=float(obs['regime_min_rr_trending']),
-            regime_volume_baseline_ratio=float(obs.get('regime_volume_baseline_ratio', 1.0)),
-            regime_squeeze_threshold=float(obs.get('regime_squeeze_threshold', 1.0))
+            regime_volume_baseline_ratio=float(obs['regime_volume_baseline_ratio']),
+            regime_squeeze_threshold=float(obs['regime_squeeze_threshold'])
         )
 
     @property
