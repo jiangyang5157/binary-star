@@ -17,21 +17,21 @@ To dissect the causal relationship between the historical market topography (T0)
 
 | Component | Condition / Threshold | Points Awarded/Penalized |
 | :--- | :--- | :--- |
-| **1. Base Action** | **`TP_HIT`**: Core hypothesis validated. | Base: +40 |
-| | **`SL_HIT`**: Hypothesis failed, but risk was defined. | Base: +10 |
-| | **`NEITHER` (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +20 (Capital preserved) |
+| **1. Base Action** | **`TP_HIT`**: Core hypothesis validated. | Base: +`{point_base_tp_hit}` |
+| | **`SL_HIT`**: Hypothesis failed, but risk was defined. | Base: +`{point_base_sl_hit}` |
+| | **`NEITHER` (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +`{point_base_neutral_valid}` (Capital preserved) |
 | | **`NEITHER` (Marginal)**: `missed_relative_range` 1.0 - `{score_opportunity_cost_limit}`. | Base: +0 (Indecisive market, no penalty) |
-| | **`NEITHER` (Missed)**: `missed_relative_range` > `{score_opportunity_cost_limit}` (Opportunity cost). | Penalty: -40 (Waived to Base: +0 if `NEUTRAL` was a Justified Surrender). |
-| **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +40 |
-| *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+40 to +10) |
+| | **`NEITHER` (Missed)**: `missed_relative_range` > `{score_opportunity_cost_limit}` (Opportunity cost). | Penalty: `{point_penalty_opportunity_cost}` (Waived to Base: +0 if `NEUTRAL` was a Justified Surrender). |
+| **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +`{point_base_tp_hit}` |
+| *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
 | | **Luck**: `mae_stress_level` is `{score_mae_standard_limit}`% - `{score_mae_logic_failure_limit}`%. | +0 (Saved by noise) |
-| | **Logic Failure**: `mae_stress_level` > `{score_mae_logic_failure_limit}`% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` + 0.5). | -50 (High-risk gamble) |
-| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > `{score_mfe_acceptable_limit}`%. | Dynamic Penalty: -20 * `trend_intensity` |
+| | **Logic Failure**: `mae_stress_level` > `{score_mae_logic_failure_limit}`% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` + `{score_mae_extra_buffer}`). | `{point_penalty_logic_failure}` (High-risk gamble) |
+| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > `{score_mfe_acceptable_limit}`%. | Dynamic Penalty: `{point_penalty_mfe_premature_base}` * `trend_intensity` |
 | *(Only if TP_HIT)* | **Acceptable Capture**: `mfe_efficiency` `{score_mfe_optimal_upper}`% - `{score_mfe_acceptable_limit}`%. | Base: +0 (Standard exit) |
 | | **Optimal Capture**: `mfe_efficiency` `{score_mfe_optimal_lower}`% - `{score_mfe_optimal_upper}`%. | Bonus: +10 |
-| **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > `{score_time_efficiency_limit}` (If entry triggered). | Penalty: -15 (Dead capital) |
-| | **Stop-Hunt**: `SL_HIT` but `mfe_efficiency` > 100% later. | Penalty: -20 (Blind to liquidity sweep) |
-| **5. Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly with DLE. | Bonus: +20 |
+| **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > `{score_time_efficiency_limit}` (If entry triggered). | Penalty: `{point_penalty_temporal_failure}` (Dead capital) |
+| | **Stop-Hunt**: `SL_HIT` but `mfe_efficiency` > 100% later. | Penalty: `{point_penalty_stophunt_blindness}` (Blind to liquidity sweep) |
+| **5. Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly with DLE. | Bonus: +`{point_bonus_structural_insight}` |
 | | **Compliance Breach**: Protocol violation, ignored POC/VAL, faked data, or ignored `math_check`. | Penalty: `{penalty_compliance_breach}` (Instant Zero) |
 
 # INPUT DATUM

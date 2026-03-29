@@ -64,5 +64,5 @@ Every field must be a detailed paragraph (3-5 sentences) containing specific dat
     "sentiment_flow": "Analysis with metrics...",
     "micro_interactive": "Analysis with metrics...",
     "synthesized_topography": "Final forensic map summary including Key Structural Conflict.",
-    "conviction_score": "0-10 integer based on signal confluence."
+    "conviction_score": "0-100 integer based on signal confluence."
 }}

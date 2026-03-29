@@ -36,6 +36,16 @@ class ReviewerConfig:
     score_opportunity_cost_limit: float
     score_time_efficiency_limit: float
     penalty_compliance_breach: float
+    point_base_tp_hit: int
+    point_base_sl_hit: int
+    point_base_neutral_valid: int
+    point_penalty_opportunity_cost: int
+    point_penalty_logic_failure: int
+    point_penalty_mfe_premature_base: int
+    point_penalty_temporal_failure: int
+    point_penalty_stophunt_blindness: int
+    point_bonus_structural_insight: int
+    score_mae_extra_buffer: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -67,7 +77,17 @@ class ReviewerConfig:
             score_mfe_premature_exit_limit=float(rev.get('score_mfe_premature_exit_limit', 150)),
             score_opportunity_cost_limit=float(rev.get('score_opportunity_cost_limit', 1.5)),
             score_time_efficiency_limit=float(rev.get('score_time_efficiency_limit', 2.5)),
-            penalty_compliance_breach=float(rev.get('penalty_compliance_breach', -100))
+            penalty_compliance_breach=float(rev.get('penalty_compliance_breach', -100)),
+            point_base_tp_hit=int(rev.get('point_base_tp_hit', 40)),
+            point_base_sl_hit=int(rev.get('point_base_sl_hit', 10)),
+            point_base_neutral_valid=int(rev.get('point_base_neutral_valid', 20)),
+            point_penalty_opportunity_cost=int(rev.get('point_penalty_opportunity_cost', -40)),
+            point_penalty_logic_failure=int(rev.get('point_penalty_logic_failure', -50)),
+            point_penalty_mfe_premature_base=int(rev.get('point_penalty_mfe_premature_base', -20)),
+            point_penalty_temporal_failure=int(rev.get('point_penalty_temporal_failure', -15)),
+            point_penalty_stophunt_blindness=int(rev.get('point_penalty_stophunt_blindness', -20)),
+            point_bonus_structural_insight=int(rev.get('point_bonus_structural_insight', 20)),
+            score_mae_extra_buffer=float(rev.get('score_mae_extra_buffer', 0.5))
         )
 
 class ReviewerAgent(BaseAgent):
@@ -176,7 +196,17 @@ class ReviewerAgent(BaseAgent):
             "score_mfe_premature_exit_limit": self.config.score_mfe_premature_exit_limit,
             "score_opportunity_cost_limit": self.config.score_opportunity_cost_limit,
             "score_time_efficiency_limit": self.config.score_time_efficiency_limit,
-            "penalty_compliance_breach": self.config.penalty_compliance_breach
+            "penalty_compliance_breach": self.config.penalty_compliance_breach,
+            "point_base_tp_hit": self.config.point_base_tp_hit,
+            "point_base_sl_hit": self.config.point_base_sl_hit,
+            "point_base_neutral_valid": self.config.point_base_neutral_valid,
+            "point_penalty_opportunity_cost": self.config.point_penalty_opportunity_cost,
+            "point_penalty_logic_failure": self.config.point_penalty_logic_failure,
+            "point_penalty_mfe_premature_base": self.config.point_penalty_mfe_premature_base,
+            "point_penalty_temporal_failure": self.config.point_penalty_temporal_failure,
+            "point_penalty_stophunt_blindness": self.config.point_penalty_stophunt_blindness,
+            "point_bonus_structural_insight": self.config.point_bonus_structural_insight,
+            "score_mae_extra_buffer": self.config.score_mae_extra_buffer
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

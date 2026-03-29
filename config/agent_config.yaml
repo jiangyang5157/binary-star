@@ -75,6 +75,17 @@ reviewer:
   score_opportunity_cost_limit: 1.5
   score_time_efficiency_limit: 2.5
   penalty_compliance_breach: -100
+  # --- Scoring Point Rewards & Penalties ---
+  point_base_tp_hit: 40
+  point_base_sl_hit: 10
+  point_base_neutral_valid: 20
+  point_penalty_opportunity_cost: -40
+  point_penalty_logic_failure: -50
+  point_penalty_mfe_premature_base: -20
+  point_penalty_temporal_failure: -15
+  point_penalty_stophunt_blindness: -20
+  point_bonus_structural_insight: 20
+  score_mae_extra_buffer: 0.5
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-3.1-pro-preview
