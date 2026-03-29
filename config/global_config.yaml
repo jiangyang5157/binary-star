@@ -6,6 +6,7 @@ system:
     prod: "data/prod"
     live: "data/live"
     backtest: "data/backtest"
+    scan: "data/scan"
 network:
   binance:
     api_timeout_seconds: 60
