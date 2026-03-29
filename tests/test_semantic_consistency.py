@@ -24,7 +24,8 @@ class TestSemanticConsistency(unittest.TestCase):
             max_low_volume_node_count=3,
             high_volume_node_detection_threshold=0.1, 
             low_volume_node_detection_threshold=0.1,
-            min_node_distance=1
+            min_node_distance=1,
+            balanced_atr_multiplier=1.5
         )
 
     def test_wick_skewness_directionality(self):

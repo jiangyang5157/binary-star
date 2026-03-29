@@ -32,7 +32,8 @@ def test_real_data_analysis(binance_client):
         max_low_volume_node_count=5,
         high_volume_node_detection_threshold=0.1,
         low_volume_node_detection_threshold=0.05,
-        min_node_distance=3
+        min_node_distance=3,
+        balanced_atr_multiplier=1.5
     )
     vp_analyzer = VolumeProfileAnalyzer(config=vp_cfg)
     vp_result = vp_analyzer.analyze(klines)

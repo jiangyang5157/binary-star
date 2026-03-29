@@ -122,5 +122,26 @@ class TestEvolutionStrategies(unittest.TestCase):
         self.assertEqual(updated_config["observer"]["threshold"], 0.5)
         self.assertTrue(updated_config["critic"]["strict_mode"])
 
+    def test_reviewer_prompt_patch_dispatch(self):
+        """Verify that the reviewer_prompt_patches are correctly dispatched to the reviewer prompt."""
+        # Setup
+        prompt_path = os.path.join(self.test_dir, "reviewer.md")
+        original_content = "# REVIEWER PROTOCOLS\nRule: Be strict."
+        with open(prompt_path, 'w') as f:
+            f.write(original_content)
+
+        # Mock logic: Dispatch patches to the prompt
+        patches = [
+            {"action": "REPLACE", "target": "Be strict.", "replacement": "Be forensic."}
+        ]
+
+        # Execute
+        self.prompt_strategy.apply(prompt_path, patches)
+
+        # Verify
+        with open(prompt_path, 'r') as f:
+            updated_content = f.read()
+        self.assertIn("Be forensic.", updated_content)
+
 if __name__ == '__main__':
     unittest.main()
