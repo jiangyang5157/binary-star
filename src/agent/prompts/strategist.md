@@ -95,8 +95,9 @@ Output RAW JSON only. The first character of your response MUST be `{` and the l
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
+        "rr_ratio": decimal,
         "holding_time_hours": decimal
     }},
-    "reasoning": "Mathematical Scratchpad: [Base] +/- ([Multiplier] * [ATR] * [volatility_ratio]) = [Price] | Pivot Vectoring: [Breached Boundary] +/- ({regime_breakout_buffer_atr} * ATR) = [Entry] | Logic Synthesis...",
+    "reasoning": "Mathematical Scratchpad: [Base] +/- ([Multiplier] * [ATR] * [volatility_ratio]) = [Price] | RR: [TP Distance] / [SL Distance] = [Ratio] | Pivot Vectoring: [Breached Boundary] +/- ({regime_breakout_buffer_atr} * ATR) = [Entry] | Logic Synthesis...",
     "critic_impact": "Summary of how critic changed the plan (null in **PHASE A: DRAFTING**)"
 }}

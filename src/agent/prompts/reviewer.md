@@ -58,7 +58,7 @@ To dissect the causal relationship between the **historical market topography (T
 **FORENSIC AUTOPSY**: Execute a step-by-step reconstruction.
 
 1. **Trajectory Reconstruction**: Contrast the `T0 Historical` visual snapshots with the `T1 Current` visual snapshots. Cross-reference with telemetry. Define the objective market reality.
-2. **Protocol Compliance Audit**: Cross-reference the agents' actions against the **EXECUTION LAW** and **AUDIT CODES**. **DIFFERENTIAL MATH AUDIT**: You must extract the `entry_price`, `stop_loss`, and `take_profit` from **Pass-3 SYNTHESIS** and manually re-verify the final Risk/Reward and structural buffers using the **`atr_macro`** from the T0 topography as the unique unit of measurement. Prove that the final decision satisfies the Strategist's dynamic RR laws independently of the Critic's preliminary math notes.
+2. **Protocol Compliance Audit**: Cross-reference the agents' actions against the **EXECUTION LAW** and **AUDIT CODES**. **DIFFERENTIAL MATH AUDIT**: You must extract the `entry_price`, `stop_loss`, `take_profit`, and `rr_ratio` from **Pass-3 SYNTHESIS** and manually re-verify the final Risk/Reward and structural buffers using the **`atr_macro`** from the T0 topography as the unique unit of measurement. Prove that the final decision satisfies the Strategist's dynamic RR laws independently of the Critic's preliminary math notes.
 3. **Decision Chain Autopsy**: 
    - Isolate confirmation bias in **Pass-1 DRAFTING**.
    - Evaluate **Pass-2 CRITIQUE**: Did it identify the real threat and verify math?
