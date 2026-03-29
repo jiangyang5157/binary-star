@@ -225,6 +225,7 @@ class MarketMetricsRefiner:
         
         # Calculate ATR-Macro here to pass down for high-fidelity clustering
         atr_macro = m_df['atr'].iloc[-1] if 'atr' in m_df.columns and not m_df.empty else 0
+        current_price = m_df['close'].iloc[-1] if not m_df.empty else 0
         
         profile = self.vp.calculate_profile(m_df)
         nodes = self.vp.find_significant_nodes(profile)
@@ -233,7 +234,7 @@ class MarketMetricsRefiner:
         return ProcessedMarketMetrics(
             price_dynamics=self._derive_price_dynamics(m_df, n_df),
             structural_anchors=self._derive_anchors(m_df, profile),
-            volume_topography=self._refine_topography(profile, nodes, atr_macro),
+            volume_topography=self._refine_topography(profile, nodes, atr_macro, current_price),
             market_regime=regime_data,
             sentiment_signals=self._derive_sentiment(raw, atr_macro)
         )
@@ -277,7 +278,11 @@ class MarketMetricsRefiner:
             "val_dist_atr": to_atr(profile.get('val'))
         }
 
-    def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float) -> Dict[str, Any]:
+    def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float, current_price: float) -> Dict[str, Any]:
+        """
+        Constructs a physically accurate map of volume nodes relative to CURRENT PRICE (not POC).
+        This eliminates 'physical contradictions' where support nodes appear above the current price.
+        """
         poc = profile.get('poc', 0)
         limit = self.config.top_structural_node_count
         all_nodes = [{**n, "type": "HVN"} for n in nodes.get('hvn', [])] + [{**n, "type": "LVN"} for n in nodes.get('lvn', [])]
@@ -291,11 +296,15 @@ class MarketMetricsRefiner:
         state = "BALANCED" if va_width < (atr_macro * self.config.regime_balanced_atr_multiplier) else "IMBALANCED"
         if va_width == 0: state = "INITIALIZING"
         
+        # TOPOLOGICAL VALIDATOR: Slice relative to CURRENT PRICE to ensure logic consistency for the Strategist
+        anchors_above = sorted([n for n in all_nodes if n['price'] > current_price], key=lambda x: x['price'])[:limit]
+        anchors_below = sorted([n for n in all_nodes if n['price'] < current_price], key=lambda x: x['price'], reverse=True)[:limit]
+
         return {
             "poc": poc, "vah": vah, "val": val,
             "structural_state": state,
-            "anchors_above": sorted([n for n in all_nodes if n['price'] > poc], key=lambda x: x['price'])[:limit],
-            "anchors_below": sorted([n for n in all_nodes if n['price'] < poc], key=lambda x: x['price'], reverse=True)[:limit]
+            "anchors_above": anchors_above,
+            "anchors_below": anchors_below
         }
 
     def _derive_sentiment(self, raw: RawMarketData, atr_macro: float = 0) -> Dict[str, Any]:
