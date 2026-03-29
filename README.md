@@ -226,6 +226,6 @@ graph TD
 *   **可视化看板**: `python3 forensic_dashboard.py prod --symbol BTCUSDT`
 
 ### Phase 3: 自动化演化循环
-*   **全自动化编排**: `python3 pipeline_orchestrator.py live --symbol BTCUSDT --interval 1`
+*   **全自动化编排**: `python3 pipeline_orchestrator.py live --symbol BTCUSDT --pulse 60`
 *   **诊断与进化合成**: `python3 coach.py prod --symbol BTCUSDT`
 *   **应用逻辑补丁**: `python3 apply_patch.py --file [PATCH]`

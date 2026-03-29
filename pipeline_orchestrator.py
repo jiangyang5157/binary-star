@@ -165,10 +165,10 @@ class JobScheduler:
 # --- 4. Orchestrator Service ---
 
 class PipelineOrchestrator:
-    def __init__(self, symbol: str, interval: float, data_root: str):
+    def __init__(self, symbol: str, pulse_minutes: float, data_root: str):
         self.data_root = data_root
         self.symbol = symbol
-        self.interval = interval
+        self.interval_hours = pulse_minutes / 60.0
         log_path = os.path.join(data_root, "pipeline_orchestrator.log")
         self.logger = setup_logger("PipelineOrchestrator", log_file=log_path)
         self.executor = ProcessExecutor(self.logger)
@@ -179,7 +179,7 @@ class PipelineOrchestrator:
         """Starts the service cycle."""
         self.logger.info(f"=== Starting Pipeline Orchestrator for {self.symbol} ===")
         
-        if not self.validator.validate_interval(self.interval):
+        if not self.validator.validate_interval(self.interval_hours):
             self.logger.error("Validation failed. Aborting startup.")
             sys.exit(1)
 
@@ -190,7 +190,7 @@ class PipelineOrchestrator:
         pipeline_job.run()
 
         # Schedule
-        self.scheduler.add_job(pipeline_job, self.interval)
+        self.scheduler.add_job(pipeline_job, self.interval_hours)
 
         self.logger.info("Orchestrator monitoring loop active.")
         try:
@@ -203,7 +203,7 @@ class PipelineOrchestrator:
 def main():
     parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
     parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
-    parser.add_argument("--interval", type=float, required=True, help="Pipeline interval in hours")
+    parser.add_argument("--pulse", type=float, required=True, help="Pipeline interval in minutes")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -227,7 +227,7 @@ def main():
         
     orchestrator = PipelineOrchestrator(
         symbol=symbol, 
-        interval=args.interval, 
+        pulse_minutes=args.pulse, 
         data_root=data_root
     )
     orchestrator.start()
