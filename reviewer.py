@@ -30,7 +30,7 @@ class OutcomeCalculator:
     Determines TP/SL hits and MAE (Maximum Adverse Excursion).
     """
     @staticmethod
-    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], atr: float = 0, interval_hours: float = 0, is_premature: bool = False) -> Dict[str, Any]:
+    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], atr: float = 0, interval_hours: float = 0) -> Dict[str, Any]:
         """Analyzes klines to determine the actual market outcome vs strategist hypothesis."""
         if not klines:
             return {}
@@ -44,6 +44,10 @@ class OutcomeCalculator:
         min_price = min(lows)
         final_close = closes[-1]
         
+        # Calculate Volatility Analysis (Universal metrics)
+        missed_range = max_price - min_price
+        rel_range = (missed_range / atr) if atr > 0 else 0
+
         result = {
             "entry_price_at_t0": entry_price,
             "highest_reached_price": max_price,
@@ -53,100 +57,84 @@ class OutcomeCalculator:
             "max_favorable_runup_pct": round(((max_price - entry_price) / entry_price) * 100, 2),
             "max_adverse_drawdown_pct": round(((min_price - entry_price) / entry_price) * 100, 2),
             "audit_duration_candles": len(klines),
+            "volatility_analysis": {
+                "missed_relative_range": round(rel_range, 2)
+            },
             "trade_execution_metrics": {}
         }
         
         opinion = strategy.get('opinion', '').upper()
-        limit_order = strategy.get('limit_order') or {}
-        target_entry = float(limit_order.get('entry', entry_price))
-        tp = float(limit_order.get('take_profit', 0))
-        sl = float(limit_order.get('stop_loss', 0))
         
-        if opinion in ('BULLISH', 'BEARISH') and tp > 0 and sl > 0:
-            entry_hit = False
-            hit_result = "NEITHER"
-            hit_index = len(klines) # Default to full window if no hit
-            max_after = -float('inf')
-            min_after = float('inf')
+        # Only process execution metrics for Directional orders
+        if opinion in ('BULLISH', 'BEARISH'):
+            limit_order = strategy.get('limit_order') or {}
+            target_entry = float(limit_order.get('entry', entry_price))
+            tp = float(limit_order.get('take_profit', 0))
+            sl = float(limit_order.get('stop_loss', 0))
             
-            # Use current_high/low to determine if entry was hit during the T0 candle itself
-            # This is more accurate than assuming a limit order is hit immediately
-            for i, k in enumerate(klines):
-                high, low = float(k[2]), float(k[3])
+            if tp > 0 and sl > 0:
+                entry_hit = False
+                hit_result = "NEITHER"
+                hit_index = len(klines)
+                max_after = -float('inf')
+                min_after = float('inf')
                 
-                if not entry_hit:
-                    if (opinion == 'BULLISH' and low <= target_entry) or \
-                       (opinion == 'BEARISH' and high >= target_entry):
-                        entry_hit = True
-                        # If entry hit within this kline, we start tracking from here
-                        max_after, min_after = high, low
+                for i, k in enumerate(klines):
+                    high, low = float(k[2]), float(k[3])
+                    
+                    if not entry_hit:
+                        if (opinion == 'BULLISH' and low <= target_entry) or \
+                           (opinion == 'BEARISH' and high >= target_entry):
+                            entry_hit = True
+                            max_after, min_after = high, low
+                    
+                    if entry_hit:
+                        max_after, min_after = max(max_after, high), min(min_after, low)
+                        if hit_result == "NEITHER":
+                            if opinion == 'BULLISH':
+                                if low <= sl: 
+                                    hit_result = "SL_HIT"
+                                    hit_index = i + 1
+                                elif high >= tp: 
+                                    hit_result = "TP_HIT"
+                                    hit_index = i + 1
+                            else: # BEARISH
+                                if high >= sl: 
+                                    hit_result = "SL_HIT"
+                                    hit_index = i + 1
+                                elif low <= tp: 
+                                    hit_result = "TP_HIT"
+                                    hit_index = i + 1
                 
                 if entry_hit:
-                    max_after, min_after = max(max_after, high), min(min_after, low)
-                    if hit_result == "NEITHER":
-                        if opinion == 'BULLISH':
-                            if low <= sl: 
-                                hit_result = "SL_HIT"
-                                hit_index = i + 1
-                            elif high >= tp: 
-                                hit_result = "TP_HIT"
-                                hit_index = i + 1
-                        else: # BEARISH
-                            if high >= sl: 
-                                hit_result = "SL_HIT"
-                                hit_index = i + 1
-                            elif low <= tp: 
-                                hit_result = "TP_HIT"
-                                hit_index = i + 1
-            
-            if entry_hit:
-                sl_dist = abs(target_entry - sl)
-                tp_dist = abs(tp - target_entry)
-                
-                # Calculate MAE (Max Adverse Excursion) relative to TARGET entry
-                mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
-                stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
-                mae_atr = (mae / atr) if atr > 0 else 0
-                
-                # Calculate MFE (Max Favorable Excursion) Efficiency 
-                mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
-                mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
-                
-                # Multi-Factor Scoring Data
-                estimated_hours = float(limit_order.get('holding_time_hours', 1.0))
-                # [Temporal Efficiency Fix] Use hit_index instead of full klines length
-                actual_hours = hit_index * interval_hours
-                time_multiplier = round(actual_hours / estimated_hours, 2) if estimated_hours > 0 else 0
-                
-                result["trade_execution_metrics"] = {
-                    "tp_sl_result": hit_result,
-                    "duration_candles": hit_index,
-                    "actual_hours": actual_hours,
-                    "mae_stress_level": f"{round(stress, 1)}%",
-                    "mae_atr_ratio": round(mae_atr, 2),
-                    "mfe_efficiency": f"{round(mfe_eff, 1)}%",
-                    "time_efficiency_multiplier": time_multiplier,
-                    "is_premature_audit": is_premature
-                }
-            else:
-                # Calculate Missed Relative Range for NEITHER
-                missed_range = max_price - min_price
-                rel_range = (missed_range / atr) if atr > 0 else 0
-
-                result["trade_execution_metrics"] = {
-                    "tp_sl_result": "NEITHER",
-                    "missed_relative_range": round(rel_range, 2),
-                    "is_premature_audit": is_premature
-                }
-        else:
-            # Handle NEUTRAL or non-directional opinions
-            missed_range = max_price - min_price
-            rel_range = (missed_range / atr) if atr > 0 else 0
-            result["trade_execution_metrics"] = {
-                "tp_sl_result": "NEITHER",
-                "missed_relative_range": round(rel_range, 2),
-                "is_premature_audit": is_premature
-            }
+                    sl_dist = abs(target_entry - sl)
+                    tp_dist = abs(tp - target_entry)
+                    mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
+                    stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
+                    mae_atr = (mae / atr) if atr > 0 else 0
+                    mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
+                    mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
+                    
+                    estimated_hours = float(limit_order.get('holding_time_hours', 1.0))
+                    actual_hours = hit_index * interval_hours
+                    time_multiplier = round(actual_hours / estimated_hours, 2) if estimated_hours > 0 else 0
+                    
+                    result["trade_execution_metrics"] = {
+                        "tp_sl_result": hit_result,
+                        "duration_candles": hit_index,
+                        "actual_hours": actual_hours,
+                        "mae_stress_level": f"{round(stress, 1)}%",
+                        "mae_atr_ratio": round(mae_atr, 2),
+                        "mfe_efficiency": f"{round(mfe_eff, 1)}%",
+                        "time_efficiency_multiplier": time_multiplier
+                    }
+                else:
+                    # Order never filled
+                    result["trade_execution_metrics"] = {
+                        "tp_sl_result": "NEITHER"
+                    }
+        
+        return result
         
         return result
 
@@ -214,20 +202,20 @@ class ReviewerOrchestrator:
             existing_review = load_json(review_path)
             if existing_review:
                 outcome = existing_review.get("market_outcome", {})
-                metrics = outcome.get("trade_execution_metrics", {})
-                is_stub = metrics.get("is_premature_audit") and metrics.get("tp_sl_result") == "NEITHER"
+                intercept = outcome.get("intercept_status", {})
+                is_intercepted = intercept.get("is_intercepted", False)
                 
                 # Check for AI execution failures in audit_findings
                 audit_findings = existing_review.get("audit_findings", {})
                 is_failure = audit_findings.get("error") in ("REVIEWER_EXECUTION_FAILURE", "JSON_PARSE_FAILURE")
                 
-                if not is_stub and not is_failure:
+                if not is_intercepted and not is_failure:
                     logger.info(f"Skipping {output_filename} - Finalized review already exists.")
                     return
                 elif is_failure:
                     logger.info(f"Recovering {output_filename} - Previous review reported {audit_findings.get('error')}. Re-auditing...")
                 else:
-                    logger.info(f"Re-auditing {output_filename} - Previous review was a SYSTEM-STUB.")
+                    logger.info(f"Re-auditing {output_filename} - Previous review was a premature intercept.")
             else:
                 # Corrupted file, allow overwrite
                 pass
@@ -309,28 +297,36 @@ class ReviewerOrchestrator:
             limit_order = strategy_obj.get("limit_order") or {}
             target_entry = float(limit_order.get("entry", klines[0][1]))
             
-            outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=atr_macro, interval_hours=interval_hours, is_premature=is_premature)
+            outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=atr_macro, interval_hours=interval_hours)
 
-            # ----------------- [新增：Python 成本防火墙 & 占位报告生成] -----------------
+            # ----------------- [Revised: Structured Intercept Logic] -----------------
             trade_metrics = outcome.get("trade_execution_metrics") or {}
-            is_premature_status = trade_metrics.get("is_premature_audit", False)
             tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
+            
+            # Intercept if time has not passed and order is still pending/neither side hit
+            # Note: For NEUTRAL, tp_sl_status is always NEITHER.
+            const_is_intercepted = is_premature and tp_sl_status == "NEITHER"
+            
+            intercept_status = {
+                "is_intercepted": const_is_intercepted,
+                "reason": "PREMATURE_WINDOW" if const_is_intercepted else "NONE",
+                "threshold_hours": round(window_hours, 2),
+                "elapsed_hours": round((dt_fetch_end - dt_start).total_seconds() / 3600, 2),
+                "message": "Market window not yet closed. Review intercepted to preserve compute." if const_is_intercepted else "Finalized"
+            }
+            outcome["intercept_status"] = intercept_status
 
-            if is_premature_status and tp_sl_status == "NEITHER":
-                logger.info(f"Audit premature and order pending for {symbol}. Generating SYSTEM-STUB report.")
-                
-                # Multimedia & Visual Forensic Context (Empty for stub reports to preserve compute)
+            if const_is_intercepted:
+                logger.info(f"Intercept status active for {symbol}. Bypassing AI audit.")
                 visual_context = {}
-
-                # 伪造一个结构完全合规的 audit_findings，不调用大模型
                 audit_result = {
                     "evaluation_score": 0,
                     "adversarial_audit": {
-                        "protocol_breach": "[SYSTEM INTERCEPT] Holding period has not expired. Order is pending in the market.",
+                        "protocol_breach": f"SYSTEM INTERCEPT: {intercept_status['message']}",
                         "shadow_evidence": [],
                         "hallucination_detected": False
                     },
-                    "post_mortem": "[TRAJECTORY REALITY] -> Market in progress. [PROTOCOL & DECISION CHAIN AUTOPSY] -> Skipped to preserve compute. [MATH & TEMPORAL DIAGNOSTIC] -> Time window active. [SCORING MATH & LOGIC EVOLUTION ADVICE] -> Trade is pending."
+                    "post_mortem": f"[TRAJECTORY REALITY] -> Market window open ({intercept_status['elapsed_hours']}h / {intercept_status['threshold_hours']}h). [PROTOCOL & DECISION CHAIN AUTOPSY] -> Skipped. [SCORING] -> Pending."
                 }
             else:
                 # 2. Multimedia & Visual Forensic Context
@@ -341,7 +337,6 @@ class ReviewerOrchestrator:
                 t0_assets = session.get("observation", {}).get("visual_assets", {})
                 t1_assets = current_obs.get("visual_assets", {})
 
-                # Resolve absolute paths for all assets
                 visual_context = {
                     "t0_macro": t0_assets.get("macro_snapshot"),
                     "t0_micro": t0_assets.get("micro_snapshot"),
@@ -349,7 +344,7 @@ class ReviewerOrchestrator:
                     "t1_micro": t1_assets.get("micro_snapshot")
                 }
 
-                # 3. AI Forensic Audit (只对熟透的果实调用 API)
+                # 3. AI Forensic Audit
                 audit_result = self.reviewer.review(
                     historical_strategy=session,
                     actual_outcome=outcome,
@@ -396,9 +391,10 @@ class ReviewerOrchestrator:
 
         # 3. Dynamic Threshold Calculation
         if opinion == "NEUTRAL":
-            # Neutral Audit: Wait until the micro-context (the 'lens' the AI used) has fully passed.
+            # Neutral Audit: Use half of the micro-context lookback window (tactical half-cycle).
             micro_lookback = int(micro_cfg['historical_lookback_candles'])
-            return (micro_interval_sec * micro_lookback) / 3600
+            micro_window_sec = micro_interval_sec * micro_lookback
+            return (micro_window_sec / 2.0) / 3600
         
         # Directional Audit: Use strategy's suggested holding time, capped by macro lookback duration
         macro_lookback = int(macro_cfg['historical_lookback_candles'])

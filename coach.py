@@ -100,17 +100,13 @@ class CoachOrchestrator:
             file_path = os.path.join(review_dir, filename)
             data = load_json(file_path)
             if data:
-                # Filter out premature stub reports
+                # Filter out premature/intercepted reports
                 market_outcome = data.get("market_outcome", {})
-                trade_metrics = market_outcome.get("trade_execution_metrics") or {}
+                intercept = market_outcome.get("intercept_status", {})
                 
-                if trade_metrics:
-                    is_premature = trade_metrics.get("is_premature_audit", False)
-                    tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
-                    
-                    if is_premature and tp_sl_status == "NEITHER":
-                        self.logger.debug(f"Skipping pending trade (No training value): {filename}")
-                        continue
+                if intercept.get("is_intercepted", False):
+                    self.logger.debug(f"Skipping intercepted report (No training value): {filename}")
+                    continue
 
                 data["_source_file"] = filename
                 history.append(data)

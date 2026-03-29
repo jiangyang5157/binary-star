@@ -367,14 +367,11 @@ class ForensicDashboardGenerator:
 
             # 2. Core logic: Filter for finalized orders
             market_outcome = data.get("market_outcome", {})
-            trade_metrics = market_outcome.get("trade_execution_metrics") or {}
+            intercept = market_outcome.get("intercept_status", {})
             
-            is_premature = trade_metrics.get("is_premature_audit", False)
-            tp_sl_result = trade_metrics.get("tp_sl_result", "NEITHER")
-
-            # 1. 忽略/跳过还在 PENDING 或 PREMATURE 状态的 (即没有完成完整审计周期的)
-            if is_premature:
-                self.logger.info(f"Skipping premature stub: {filename} (Final audit window not yet closed)")
+            # 1. Skip if intercepted (STUB/PENDING)
+            if intercept.get("is_intercepted", False):
+                self.logger.info(f"Skipping intercepted session: {filename} ({intercept.get('reason')})")
                 continue
 
             # Extract Strategy metadata

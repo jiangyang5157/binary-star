@@ -116,9 +116,10 @@ class TestOutcomeCalculator(unittest.TestCase):
         ]
         result = OutcomeCalculator.calculate(klines, 100.0, self.strategy_bullish, atr=5.0)
         metrics = result["trade_execution_metrics"]
+        vol_analysis = result["volatility_analysis"]
         self.assertEqual(metrics["tp_sl_result"], "NEITHER")
         # missed_range = 102 - 100.5 = 1.5. rel_range = 1.5 / 5 = 0.3
-        self.assertEqual(metrics["missed_relative_range"], 0.3)
+        self.assertEqual(vol_analysis["missed_relative_range"], 0.3)
 
 if __name__ == '__main__':
     unittest.main()

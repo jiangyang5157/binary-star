@@ -564,13 +564,14 @@ class StrategyNotifier:
             logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping review dispatch.")
             return False
             
-        metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
+        intercept = (review_data.get("market_outcome") or {}).get("intercept_status") or {}
         
-        # [Cost Firewall] Skip notifications for premature system-stub reports to reduce noise.
-        if metrics.get("is_premature_audit", False):
-            logger.info(f"Notifier: Audit for {symbol} is premature (SYSTEM-STUB). Skipping review dispatch.")
+        # [Cost Firewall] Skip notifications for intercepted reports to reduce noise.
+        if intercept.get("is_intercepted", False):
+            logger.info(f"Notifier: Audit for {symbol} is intercepted ({intercept.get('reason')}). Skipping review dispatch.")
             return False
             
+        metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
         result = metrics.get("tp_sl_result", "N/A")
 
         if result not in ["TP_HIT", "SL_HIT", "NEITHER"]:
