@@ -25,7 +25,7 @@ To dissect the causal relationship between the **historical market topography (T
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +`{point_base_tp_hit}` |
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
 | | **Luck**: `mae_stress_level` is `{score_mae_standard_limit}`% - `{score_mae_logic_failure_limit}`%. | +0 (Saved by noise) |
-| | **Logic Failure**: `mae_stress_level` > `{score_mae_logic_failure_limit}`% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` + `{score_mae_extra_buffer}`). | `{point_penalty_logic_failure}` (High-risk gamble) |
+| | **Logic Failure**: `mae_stress_level` > `{score_mae_logic_failure_limit}`% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` * `volatility_ratio` + `{score_mae_extra_buffer}`). | `{point_penalty_logic_failure}` (High-risk gamble) |
 | **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > `{score_mfe_acceptable_limit}`%. | Dynamic Penalty: `{point_penalty_mfe_premature_base}` * `trend_intensity` |
 | *(Only if TP_HIT)* | **Acceptable Capture**: `mfe_efficiency` `{score_mfe_optimal_upper}`% - `{score_mfe_acceptable_limit}`%. | Base: +0 (Standard exit) |
 | | **Optimal Capture**: `mfe_efficiency` `{score_mfe_optimal_lower}`% - `{score_mfe_optimal_upper}`%. | Bonus: +10 |
