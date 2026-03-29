@@ -53,15 +53,15 @@ observer:
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
-  model_temperature_draft: 0.2
-  model_temperature_synthesis: 0.2
+  model_temperature_draft: 0.7
+  model_temperature_synthesis: 0.3
   min_trade_velocity: 0.4
   stop_loss_buffer_min: 0.2
   stop_loss_buffer_max: 0.7
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview
-  model_temperature: 0.4
+  model_temperature: 0.3
   threshold_skepticism_clear: 40
   threshold_skepticism_weak: 69
   threshold_skepticism_constructive: 89
@@ -92,4 +92,4 @@ reviewer:
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-3.1-pro-preview
-  model_temperature: 0.6
+  model_temperature: 0.4
