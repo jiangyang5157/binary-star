@@ -58,7 +58,7 @@ def main():
             is_worth_it = scanner.is_worth_it(observation)
             
             if is_worth_it:
-                logger.info(">>> SIGNAL: CRITERIA MET. (Normally would trigger agents now)")
+                logger.info(">>> SIGNAL: CRITERIA MET. (Suggested to trigger agents)")
             else:
                 logger.info(">>> SIGNAL: NO OPPORTUNITY. (Waiting for next pulse)")
             
