@@ -1,4 +1,4 @@
-strategy_intent: "Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics"
+strategy_intent: "Forensic Micro-Tactical Precision & Macro-Structural Topographic Capture (Regime-Adaptive Execution)"
 observer:
   role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest

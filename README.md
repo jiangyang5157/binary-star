@@ -115,7 +115,7 @@ graph TD
 
 | 审计属性 | 核心变量 | **演化参考** |
 | :--- | :--- | :--- |
-| **战略意图** | `strategy_intent` | `Micro-Scalp: Dynamic Intraday Volatility Tracing & Extreme Liquidity Wick Forensics` |
+| **战略意图** | `strategy_intent` | `Forensic Micro-Tactical Precision & Macro-Structural Topographic Capture (Regime-Adaptive Execution)` |
 | **物理分布精度** | `volume_profile_price_bucket_count` | `300` |
 | **双相位时域对齐** | `macro/micro_analysis_context` | `1h / 15m` |
 | **法医分辨率** | `execution_timeframe_interval` | `1m` |
