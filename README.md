@@ -214,6 +214,12 @@ graph TD
 
 ## 🚀 运行手册
 
+### 0. 环境准备 (VENV)
+在执行任何命令前，请确保处于项目的虚拟环境中：
+*   **激活环境**: `source venv/bin/activate`
+*   **直接运行 (推荐)**: 也可以直接使用 `./venv/bin/python` 代替 `python3`
+
+
 ### Phase 1: 策略执行与回测验证
 *   **实时预测**: `python3 strategist.py prod --symbol BTCUSDT`
 *   **抽样回测**: `python3 backtest.py backtest --sampling 12`
@@ -226,6 +232,7 @@ graph TD
 *   **可视化看板**: `python3 forensic_dashboard.py prod --symbol BTCUSDT`
 
 ### Phase 3: 自动化演化循环
-*   **全自动化编排**: `python3 pipeline_orchestrator.py live --symbol BTCUSDT --pulse 60`
-*   **诊断与进化合成**: `python3 coach.py prod --symbol BTCUSDT`
-*   **应用逻辑补丁**: `python3 apply_patch.py --file [PATCH]`
+*   **全自动化编排**: `./venv/bin/python pipeline_orchestrator.py live --symbol BTCUSDT --pulse 30 --mode scan`
+*   **市场诊断服务 (不触发 Agent)**: `./venv/bin/python market_scanner_service.py live --symbol BTCUSDT --pulse 30`
+*   **诊断与进化合成**: `./venv/bin/python coach.py live --symbol BTCUSDT`
+*   **应用逻辑补丁**: `./venv/bin/python apply_patch.py --file [PATCH]`
