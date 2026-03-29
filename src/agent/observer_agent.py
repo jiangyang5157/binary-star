@@ -72,6 +72,8 @@ class ObserverConfig:
     regime_trend_intensity_strong: float
     regime_min_rr_ranging: float
     regime_min_rr_trending: float
+    regime_volume_baseline_ratio: float
+    regime_squeeze_threshold: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -126,7 +128,9 @@ class ObserverConfig:
             regime_wick_skewness_exhaustion=float(obs['regime_wick_skewness_exhaustion']),
             regime_trend_intensity_strong=float(obs['regime_trend_intensity_strong']),
             regime_min_rr_ranging=float(obs['regime_min_rr_ranging']),
-            regime_min_rr_trending=float(obs['regime_min_rr_trending'])
+            regime_min_rr_trending=float(obs['regime_min_rr_trending']),
+            regime_volume_baseline_ratio=float(obs.get('regime_volume_baseline_ratio', 1.0)),
+            regime_squeeze_threshold=float(obs.get('regime_squeeze_threshold', 1.0))
         )
 
     @property

@@ -37,6 +37,11 @@ class CriticConfig:
     regime_trend_intensity_strong: float
     regime_min_rr_ranging: float
     regime_min_rr_trending: float
+    regime_volume_baseline_ratio: float
+    regime_squeeze_threshold: float
+    threshold_skepticism_clear: int
+    threshold_skepticism_weak: int
+    threshold_skepticism_constructive: int
     regime_trend_intensity_strong: float
 
     @classmethod
@@ -65,7 +70,12 @@ class CriticConfig:
             regime_wick_skewness_exhaustion=float(full_config['observer']['regime_wick_skewness_exhaustion']),
             regime_trend_intensity_strong=float(full_config['observer']['regime_trend_intensity_strong']),
             regime_min_rr_ranging=float(full_config['observer']['regime_min_rr_ranging']),
-            regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending'])
+            regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending']),
+            regime_volume_baseline_ratio=float(full_config['observer'].get('regime_volume_baseline_ratio', 1.0)),
+            regime_squeeze_threshold=float(full_config['observer'].get('regime_squeeze_threshold', 1.0)),
+            threshold_skepticism_clear=int(crit.get('threshold_skepticism_clear', 40)),
+            threshold_skepticism_weak=int(crit.get('threshold_skepticism_weak', 69)),
+            threshold_skepticism_constructive=int(crit.get('threshold_skepticism_constructive', 89))
         )
 
 class CriticAgent(BaseAgent):
@@ -122,7 +132,12 @@ class CriticAgent(BaseAgent):
             "regime_wick_skewness_exhaustion": self.config.regime_wick_skewness_exhaustion,
             "regime_trend_intensity_strong": self.config.regime_trend_intensity_strong,
             "regime_min_rr_ranging": self.config.regime_min_rr_ranging,
-            "regime_min_rr_trending": self.config.regime_min_rr_trending
+            "regime_min_rr_trending": self.config.regime_min_rr_trending,
+            "regime_volume_baseline_ratio": self.config.regime_volume_baseline_ratio,
+            "regime_squeeze_threshold": self.config.regime_squeeze_threshold,
+            "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
+            "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
+            "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive
         }
         
         prompt = self._prepare_prompt(self.config.role_prompt_path, **context)

@@ -44,6 +44,8 @@ observer:
   regime_trend_intensity_strong: 0.5
   regime_min_rr_ranging: 1.2
   regime_min_rr_trending: 1.8
+  regime_volume_baseline_ratio: 1.0
+  regime_squeeze_threshold: 1.0
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
@@ -56,11 +58,23 @@ critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview
   model_temperature: 0.4
+  threshold_skepticism_clear: 40
+  threshold_skepticism_weak: 69
+  threshold_skepticism_constructive: 89
 reviewer:
   role_definition_prompt: src/agent/prompts/reviewer.md
   model: gemini-flash-latest
   model_temperature: 0.1
   execution_timeframe_interval: 1m
+  score_mae_pinpoint_limit: 15
+  score_mae_standard_limit: 50
+  score_mae_logic_failure_limit: 85
+  score_mfe_optimal_upper: 110
+  score_mfe_optimal_lower: 100
+  score_mfe_acceptable_limit: 150
+  score_opportunity_cost_limit: 1.5
+  score_time_efficiency_limit: 2.5
+  penalty_compliance_breach: -100
 coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-3.1-pro-preview

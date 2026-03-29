@@ -26,6 +26,16 @@ class ReviewerConfig:
     execution_timeframe_interval: str
     strategy_intent: str
     stop_loss_buffer_max: float
+    score_mae_pinpoint_limit: float
+    score_mae_standard_limit: float
+    score_mae_logic_failure_limit: float
+    score_mfe_optimal_upper: float
+    score_mfe_optimal_lower: float
+    score_mfe_acceptable_limit: float
+    score_mfe_premature_exit_limit: float
+    score_opportunity_cost_limit: float
+    score_time_efficiency_limit: float
+    penalty_compliance_breach: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -47,7 +57,17 @@ class ReviewerConfig:
             micro_interval=str(obs['micro_analysis_context']['time_interval']),
             execution_timeframe_interval=str(rev['execution_timeframe_interval']),
             strategy_intent=str(full_config['strategy_intent']),
-            stop_loss_buffer_max=float(strat['stop_loss_buffer_max'])
+            stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
+            score_mae_pinpoint_limit=float(rev.get('score_mae_pinpoint_limit', 15)),
+            score_mae_standard_limit=float(rev.get('score_mae_standard_limit', 50)),
+            score_mae_logic_failure_limit=float(rev.get('score_mae_logic_failure_limit', 85)),
+            score_mfe_optimal_upper=float(rev.get('score_mfe_optimal_upper', 110)),
+            score_mfe_optimal_lower=float(rev.get('score_mfe_optimal_lower', 100)),
+            score_mfe_acceptable_limit=float(rev.get('score_mfe_acceptable_limit', 150)),
+            score_mfe_premature_exit_limit=float(rev.get('score_mfe_premature_exit_limit', 150)),
+            score_opportunity_cost_limit=float(rev.get('score_opportunity_cost_limit', 1.5)),
+            score_time_efficiency_limit=float(rev.get('score_time_efficiency_limit', 2.5)),
+            penalty_compliance_breach=float(rev.get('penalty_compliance_breach', -100))
         )
 
 class ReviewerAgent(BaseAgent):
@@ -146,7 +166,17 @@ class ReviewerAgent(BaseAgent):
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval,
-            "stop_loss_buffer_max": self.config.stop_loss_buffer_max
+            "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
+            "score_mae_pinpoint_limit": self.config.score_mae_pinpoint_limit,
+            "score_mae_standard_limit": self.config.score_mae_standard_limit,
+            "score_mae_logic_failure_limit": self.config.score_mae_logic_failure_limit,
+            "score_mfe_optimal_upper": self.config.score_mfe_optimal_upper,
+            "score_mfe_optimal_lower": self.config.score_mfe_optimal_lower,
+            "score_mfe_acceptable_limit": self.config.score_mfe_acceptable_limit,
+            "score_mfe_premature_exit_limit": self.config.score_mfe_premature_exit_limit,
+            "score_opportunity_cost_limit": self.config.score_opportunity_cost_limit,
+            "score_time_efficiency_limit": self.config.score_time_efficiency_limit,
+            "penalty_compliance_breach": self.config.penalty_compliance_breach
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
