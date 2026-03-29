@@ -138,6 +138,15 @@ class OutcomeCalculator:
                     "missed_relative_range": round(rel_range, 2),
                     "is_premature_audit": is_premature
                 }
+        else:
+            # Handle NEUTRAL or non-directional opinions
+            missed_range = max_price - min_price
+            rel_range = (missed_range / atr) if atr > 0 else 0
+            result["trade_execution_metrics"] = {
+                "tp_sl_result": "NEITHER",
+                "missed_relative_range": round(rel_range, 2),
+                "is_premature_audit": is_premature
+            }
         
         return result
 
