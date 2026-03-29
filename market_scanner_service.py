@@ -34,7 +34,10 @@ def main():
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
-    logger = setup_logger("ScannerService")
+    logger_name = "ScannerService"
+    log_path = os.path.join(data_root, "market_scanner_service.log")
+    logger = setup_logger(logger_name, log_file=log_path)
+    
     logger.info(f"=== Starting Pure Market Scanner Service for {symbol} ===")
     logger.info(f"Pulse: {args.pulse} minutes | Data Root: {data_root}")
 
