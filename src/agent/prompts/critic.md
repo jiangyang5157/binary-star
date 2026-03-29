@@ -30,12 +30,12 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 | **Safe/Valid**| Logic aligns, math is verified, SL is hidden. | **[CLEAR]** (Pass: Approve trade with `is_veto: false`). |
 | **Macro/Time**| {macro_interval} trend heavily contradicts {micro_interval} entry direction. | **[MACRO_CONFLICT]** (Fatal: Trend override). |
 | **Regime Velocity**| Mean-reverting to POC in high-velocity TREND (unless `poc_dist_atr` > `{regime_poc_gravity_atr_distance}`). | **[LIQUIDITY_VOID]** (Mitigate: Demand shallow LVN/Edge entry). |
-| **Regime Transition**| Mean-reverting when squeeze_factor < 1.0 AND `volatility_ratio` > `{regime_volatility_expansion_ratio}`. | **[VOLATILITY_EXPANSION]** (Fatal: Breakout imminent). |
+| **Regime Transition**| Mean-reverting when `squeeze_factor` < `{regime_squeeze_threshold}` AND `volatility_ratio` > `{regime_volatility_expansion_ratio}`. | **[VOLATILITY_EXPANSION]** (Fatal: Breakout imminent). |
 | **Anchor SL Trap**| SL anchored to POC in RANGING (`volatility_ratio` > `{regime_volatility_baseline_ratio}`) OR `TRENDING`/`IMBALANCED` regimes. | **[LIQUIDITY_VOID]** (Mitigate: Move SL behind VAH/VAL or distal HVN). |
 | **Volatility**| `squeeze_factor` expands violently against trade. | **[VOLATILITY_EXPANSION]** (Fatal: Momentum override). |
 | **Divergence**| Price making HH while `cvd_trend` is DOWNWARD. | **[ABSORPTION_TRAP]** (Mitigate: Demand deeper entry). |
 | **Weak Breakout**| Price crosses VAH/VAL but `volume_breakout_ratio` < `{regime_volume_breakout_threshold}`. | **[ABSORPTION_TRAP]** (Mitigate: Wait for liquidity sweep). |
-| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > {regime_wick_skewness_exhaustion} on L; < -{regime_wick_skewness_exhaustion} on S). Analyzed over **`{order_flow_lookback_hours}`h Tactical Alignment Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
+| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > `{regime_wick_skewness_exhaustion}` on L; < -`{regime_wick_skewness_exhaustion}` on S). Analyzed over **`{order_flow_lookback_hours}`h Tactical Alignment Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 | **Vacuum Risk**| Stop Loss placed inside an LVN (`vacuum_score` > `{regime_vacuum_risk_score}`).| **[LIQUIDITY_VOID]** (Mitigate: Move SL behind a wall). |
 | **Retail Trap**| `long_short_ratio` > `{regime_long_short_imbalance_ratio}` while price is at resistance. | **[RETAIL_SQUEEZE]** (Mitigate: Place DLE below retail SLs). |
 | **Cascade Risk**| `long_short_ratio` > `{regime_long_short_imbalance_ratio}` AND `volatility_ratio` > `{regime_volatility_extreme_ratio}` with standard SL buffer. | **[VOLATILITY_EXPANSION]** (Fatal: Buffer insufficient against liquidation cascade). |
@@ -63,10 +63,10 @@ Your default probability MUST favor objectivity. You are NOT required to find a 
 Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include markdown markers of any kind.
 
 ### SCHEMA
-{
-    "is_veto": boolean. Set to `true` if skepticism_score > `{threshold_skepticism_weak}`.,
+{{
+    "is_veto": boolean,
     "skepticism_score": 0-100,
     "adversarial_tone": "If passing, state 'Structural logic verified.' If vetoing, give a harsh forensic summary.",
     "hidden_risk": "MUST begin with ONE exact tag (e.g., [CLEAR], [LIQUIDITY_VOID]). Follow with 1-2 sentences of data-driven reasoning.",
     "math_check": "Explicit validation of the Strategist's RR and Stop Loss placement using [MATH FACT CHECK] metrics: actual_rr, entry_to_sl_atr, and structural buffers (sl_to_poc_atr, sl_to_vah_atr, sl_to_val_atr). (If opinion is `NEUTRAL`, output `N/A - Neutral Stance`)."
-}
+}}
