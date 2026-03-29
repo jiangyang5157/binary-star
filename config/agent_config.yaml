@@ -24,10 +24,12 @@ observer:
   keltner_channels_multiplier: 1.5
   trend_intensity_duration_hours: 24.0
   wick_skewness_period: 3
+  wick_skew_fallback: 0.5
   volatility_intensity_lookback: 24
   funding_rate_lookback_hours: 24.0
   min_price_gap_between_nodes: 50
   top_structural_node_count: 3
+  max_liquidation_clusters: 3
   max_liquidation_events_to_fetch: 50
   max_liquidation_events_for_context: 10
   liquidation_cluster_atr_multiplier: 0.25
@@ -46,6 +48,8 @@ observer:
   regime_min_rr_trending: 1.8
   regime_volume_baseline_ratio: 1.0
   regime_squeeze_threshold: 1.0
+  regime_balanced_atr_multiplier: 2.0
+  regime_cvd_slope_threshold: 1.0
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest

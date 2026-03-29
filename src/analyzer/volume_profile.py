@@ -22,6 +22,7 @@ class VolumeProfileConfig:
     high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
     low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
     min_node_distance: int            # Minimum bin separation between nodes
+    balanced_atr_multiplier: float    # ATR multiplier for state classification
 
 @dataclass(frozen=True)
 class VolumeNode:
@@ -186,7 +187,8 @@ class VolumeProfileAnalyzer:
                 max_low_volume_node_count=int(kwargs['max_low_volume_node_count']),
                 high_volume_node_detection_threshold=float(kwargs['high_volume_node_detection_threshold']),
                 low_volume_node_detection_threshold=float(kwargs['low_volume_node_detection_threshold']),
-                min_node_distance=int(kwargs['node_min_separation'])
+                min_node_distance=int(kwargs['node_min_separation']),
+                balanced_atr_multiplier=float(kwargs.get('balanced_atr_multiplier', 2.0))
             )
             
         self.preprocessor = MarketDataPreprocessor()
@@ -226,6 +228,6 @@ class VolumeProfileAnalyzer:
         
         # Determine a simple regime based on VA width vs ATR if needed, 
         # but usually handled by MarketRegimeAnalyzer.
-        result["structural_state"] = "BALANCED" if (result["vah"] - result["val"]) < (df["atr"].iloc[-1] * 2) else "IMBALANCED"
+        result["structural_state"] = "BALANCED" if (result["vah"] - result["val"]) < (df["atr"].iloc[-1] * self.config.balanced_atr_multiplier) else "IMBALANCED"
         
         return result

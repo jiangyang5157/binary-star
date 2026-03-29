@@ -74,6 +74,10 @@ class ObserverConfig:
     regime_min_rr_trending: float
     regime_volume_baseline_ratio: float
     regime_squeeze_threshold: float
+    regime_balanced_atr_multiplier: float
+    regime_cvd_slope_threshold: float
+    max_liquidation_clusters: int
+    wick_skew_fallback: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
@@ -130,7 +134,11 @@ class ObserverConfig:
             regime_min_rr_ranging=float(obs['regime_min_rr_ranging']),
             regime_min_rr_trending=float(obs['regime_min_rr_trending']),
             regime_volume_baseline_ratio=float(obs['regime_volume_baseline_ratio']),
-            regime_squeeze_threshold=float(obs['regime_squeeze_threshold'])
+            regime_squeeze_threshold=float(obs['regime_squeeze_threshold']),
+            regime_balanced_atr_multiplier=float(obs['regime_balanced_atr_multiplier']),
+            regime_cvd_slope_threshold=float(obs['regime_cvd_slope_threshold']),
+            max_liquidation_clusters=int(obs['max_liquidation_clusters']),
+            wick_skew_fallback=float(obs['wick_skew_fallback'])
         )
 
     @property
@@ -233,7 +241,7 @@ class MarketMetricsRefiner:
     def _derive_price_dynamics(self, m_df: pd.DataFrame, n_df: pd.DataFrame) -> Dict[str, Any]:
         last = m_df.iloc[-1]
         h, l, c = last['high'], last['low'], last['close']
-        wick_skew = (c - l) / (h - l) if (h - l) > 0 else 0.5
+        wick_skew = (c - l) / (h - l) if (h - l) > 0 else self.config.wick_skew_fallback
         
         atr_m = m_df['atr'].iloc[-1]
         atr_n = n_df['atr'].iloc[-1]
@@ -279,8 +287,8 @@ class MarketMetricsRefiner:
         val = profile.get('val', 0)
         va_width = vah - val
         
-        # Consistent with VolumeProfileAnalyzer logic: Balanced if VA width < 2 * ATR
-        state = "BALANCED" if va_width < (atr_macro * 2.0) else "IMBALANCED"
+        # Consistent with VolumeProfileAnalyzer logic: Balanced if VA width < Multiplier * ATR
+        state = "BALANCED" if va_width < (atr_macro * self.config.regime_balanced_atr_multiplier) else "IMBALANCED"
         if va_width == 0: state = "INITIALIZING"
         
         return {
@@ -310,8 +318,8 @@ class MarketMetricsRefiner:
                     cvd_prev += (tb - (v - tb))
         
         cvd_slope = "STABLE"
-        if cvd_current > cvd_prev + 1.0: cvd_slope = "UPWARD"
-        elif cvd_current < cvd_prev - 1.0: cvd_slope = "DOWNWARD"
+        if cvd_current > cvd_prev + self.config.regime_cvd_slope_threshold: cvd_slope = "UPWARD"
+        elif cvd_current < cvd_prev - self.config.regime_cvd_slope_threshold: cvd_slope = "DOWNWARD"
 
         cur_oi = float(raw.current_oi.get('openInterest', 0)) if raw.current_oi else 0
         def oi_delta(hist):
@@ -358,9 +366,9 @@ class MarketMetricsRefiner:
             clusters[key]["total_qty"] += float(l.get('qty', 0))
             clusters[key]["count"] += 1
             
-        # 2. Return top 3 clusters by volume
+        # 2. Return top clusters by volume
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
-        return {k: v for k, v in sorted_clusters[:3]}
+        return {k: v for k, v in sorted_clusters[:self.config.max_liquidation_clusters]}
 
 class SemanticSynthesizer(BaseAgent):
     """
@@ -530,7 +538,8 @@ class ObserverAgent:
             max_low_volume_node_count=cfg.max_low_volume_node_count,
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
-            min_node_distance=cfg.min_node_gap_price
+            min_node_distance=cfg.min_node_gap_price,
+            balanced_atr_multiplier=cfg.regime_balanced_atr_multiplier
         )
         return VolumeProfileAnalyzer(config=vp_cfg)
 
