@@ -1,4 +1,4 @@
-strategy_intent: "Forensic Micro-Tactical Precision & Macro-Structural Topographic Capture (Regime-Adaptive Execution)"
+strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess a forensic mathematical edge and absolute structural invalidation."
 observer:
   role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest
@@ -38,14 +38,14 @@ observer:
   regime_volatility_baseline_ratio: 1.3
   regime_volatility_expansion_ratio: 1.5
   regime_volatility_extreme_ratio: 2.0
-  regime_volume_breakout_threshold: 1.2
+  regime_volume_breakout_threshold: 1.5
   regime_long_short_imbalance_ratio: 2.0
   regime_poc_gravity_atr_distance: 4.0
   regime_vacuum_risk_score: 0.3
   regime_wick_skewness_exhaustion: 0.6
   regime_trend_intensity_strong: 0.5
-  regime_min_rr_ranging: 1.2
-  regime_min_rr_trending: 1.8
+  regime_min_rr_ranging: 1.3
+  regime_min_rr_trending: 2.5
   regime_volume_baseline_ratio: 1.0
   regime_squeeze_threshold: 1.0
   regime_squeeze_audit_threshold: 0.85
@@ -59,8 +59,8 @@ strategist:
   model_temperature_draft: 0.7
   model_temperature_synthesis: 0.3
   min_trade_velocity: 0.4
-  stop_loss_buffer_min: 0.2
-  stop_loss_buffer_max: 0.7
+  stop_loss_buffer_min: 0.3
+  stop_loss_buffer_max: 1.2
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview

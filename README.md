@@ -96,49 +96,56 @@ graph TD
 ## 💎 参数大师课 · 全量工业级配置
 
 > ⚙️ **时域缩放 (Temporal Scaling) 是参数演化的核心动力源。**
-> 当你修改了 Macro 时间周期（如 1h -> 4h）时，下列 10 个模块的参数必须产生联动效应。
 
-### 1. 基础时域与全局采样 (Observer Core)
+### 1. 核心意图与系统总纲 (System Directives)
+| 变量名 | 大白话解释 | 逻辑核心 |
+| :--- | :--- | :--- |
+| `strategy_intent` | **系统主权宣言**。定义交易的核心灵魂与风险边界。 | 决定了 Agent 在模糊地带的决策倾向性（如保护本金 vs 激进获利）。 |
+
+### 2. 基础时域与全局采样 (Observer Core)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| `time_interval` | **采样颗粒度**。15m 看细节，1h 看结构。 | 联动：修改后，所有基于周期 (period) 的绝对时间都会改变。 |
-| `historical_lookback_candles` | **记忆深度**。往回看多少根线来计算成交量分布 (VP)。 | 越长则历史支撑位越“硬”，越不容易被短时波动击穿。 |
-| `order_flow_lookback_hours` | **流量窗口**。回看 CVD 和影线偏见的绝对时长。 | **关键**：日内设 1h 保证敏捷，长线应拉长。决定了 Sentiment 的时效性。 |
+| `macro_analysis_context / time_interval` | **宏观采样颗粒度**。1h 看结构，4h 看趋势。 | 修改后，所有基于周期 (period) 的绝对时间都会改变。 |
+| `macro_analysis_context / historical_lookback_candles` | **宏观记忆深度**。往回看多少根线来计算成交量分布 (VP)。 | 决定了历史支撑位（VAH/VAL/POC）的稳固程度。 |
+| `micro_analysis_context / time_interval` | **微观细节颗粒度**。抓取进场点位的精度。 | 影响信号的敏捷度。建议 macro 的 1/4 左右。 |
+| `micro_analysis_context / historical_lookback_candles` | **微观记忆深度**。 | 影响短期成交量节点和形态的识别。 |
+| `order_flow_lookback_hours` | **流量窗口**。回看 CVD 和影线偏见的绝对时长。 | **关键**：日内设 1h 保证敏捷。决定了 Sentiment 的时效性。 |
 | `average_true_range_period` | **波动标尺**。ATR 计算周期。 | 整个系统（止损、止盈、DLE）的通用度量衡。 |
 | `trend_intensity_duration_hours` | **趋势惯性窗口**。 | 判定趋势是否具备“高效持续性”的时间基准。 |
-| `volatility_intensity_lookback` | **波动烈度回溯**。 | 联动：必须与 `macro_analysis_context` 对齐，防止跨周期误判。 |
-| `funding_rate_lookback_hours` | **费率成本窗**。回看多久的资金费率。 | |
+| `volatility_intensity_lookback` | **波动烈度回溯**。 | 采样宏观波动率基准的时间长度。 |
+| `funding_rate_lookback_hours` | **费率成本窗**。 | 识别市场多空情绪成本的周期。 |
+| `volume_moving_average_period` | **成交量平滑期**。 | 用于判定当前是否处于异常放量状态。 |
 
-### 2. 地形分辨率 (Volume Topography)
+### 3. 地形分辨率与结构识别 (Volume Topography)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
-| `volume_profile_price_bucket_count` | **地形分辨率**。价格轴切分的格子数。 | **强联动**：周期越大波动越大，需调高 (800+)，否则 POC 定位会偏差。 |
+| `volume_profile_price_bucket_count` | **地形分辨率**。价格轴切分的格子数。 | **强联动**：波动越大需调越高 (500+)，否则定位会偏移。 |
 | `volume_profile_value_area_width` | **价值区宽度**。POC 周围覆盖多少成交量算 Value Area。 | 默认 75%。越窄则价值定义越严苛，越容易触发突破信号。 |
 | `min_price_gap_between_nodes` | **节点隔离距离**。节点太近就合并。 | Macro 周期越大，间距应成倍放大，防止目标定位过碎。 |
 | `high_volume_node_detection_threshold` | **主力节点判别线**。成交量占比超过此值认定为 HVN。 | 过滤细碎噪音，锁定真正的主力阵地。 |
 | `low_volume_node_detection_threshold` | **真空带判别线**。成交量占比低于此值认定为 LVN。 | 识别“价格滑梯”的关键逻辑门。 |
-| `volume_moving_average_period` | **成交量平滑期**。用于判定放量还是缩量。 | 直接决定了 `volume_breakout_ratio` 的敏感度。 |
-| `top_structural_node_count` | **核心结构数**。地图上显示的头部关键价位。 | |
+| `top_structural_node_count` | **核心结构数**。地图上显现点关键价位数量。 | 决定了策略引用的“锚点”丰富度。 |
+| `max_high_volume_node_count` / `max_low_volume_node_count` | **节点容量限制**。 | 限制 AI 分析的复杂度，聚焦最核心的博弈区。 |
 
-### 3. 技术波动因子 (TA Channels)
+### 4. 技术波动因子 (TA Channels)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
 | `wick_skewness_period` | **插针采样期**。最近几根线影线的物理偏差。 | 越短越能捕捉高频反转，越长越平滑。影线单核心。 |
-| `wick_skew_fallback` | **影线缺失代偿**。当数据不足时的默认偏移。 | |
+| `wick_skew_fallback` | **影线缺失代偿**。当数据不足时的默认偏移。 | 保证系统在冷启动或极端行情下的逻辑稳定性。 |
 | `bollinger_bands_std_dev` | **离群门槛**。判定极端波动的统计学标准。 | 指导系统在超买/超卖真空区的逻辑收敛。 |
 | `keltner_channels_multiplier` | **物理边界倍率**。基于 ATR 的波动通道。 | 与布林带配合判断“挤压 (Squeeze)”状态。 |
-| `bollinger_bands_period` / `keltner_channels_period` | **通道计算周期**。价格波动包络的时间基准。 | |
+| `bollinger_bands_period` / `keltner_channels_period` | **通道计算周期**。 | 锚定波动包络线的时间基准。 |
 
-### 4. 流动性与爆仓热图 (Liquidity & Clusters)
+### 5. 流动性与爆仓热图 (Liquidity & Clusters)
 | 变量名 | 大白话解释 | 时域联动影响 |
 | :--- | :--- | :--- |
 | `liquidation_cluster_atr_multiplier` | **爆仓磁吸半径**。寻找清算密集区的范围。 | **联动**：采样时间跨度越大，洗盘深度越深，该倍率需放大。 |
-| `max_liquidation_events_to_fetch` | **爆仓采样规模**。从 API 获取的样本总数。 | |
+| `max_liquidation_events_to_fetch` | **爆仓采样规模**。从 API 获取的样本总数。 | 决定了流动性地图的细腻程度。 |
 | `max_liquidation_events_for_context` | **爆仓焦点数**。喂给 AI 深度分析的头部爆仓点。 | |
 | `max_liquidation_clusters` | **爆仓簇上限**。地图上最多显示的爆仓集结地。 | |
 | `liquidation_cluster_fallback_percentage` | **爆仓兜底阈值**。无量行情时的最小探测幅度。 | |
 
-### 5. 市场态势判定阈值 (Regime Detection)
+### 6. 市场态势判定阈值 (Regime Detection)
 | 变量名 | 大白话解释 | 逻辑暗示 |
 | :--- | :--- | :--- |
 | `regime_trend_intensity_threshold` | **趋势启动门槛**。 | 想要更稳，就调高这个值以过滤随机波动。 |
