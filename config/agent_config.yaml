@@ -50,6 +50,7 @@ observer:
   regime_squeeze_threshold: 1.0
   regime_balanced_atr_multiplier: 2.0
   regime_cvd_slope_threshold: 1.0
+  regime_structural_proximity_threshold: 0.5
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest
