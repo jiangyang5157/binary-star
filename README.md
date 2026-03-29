@@ -227,22 +227,37 @@ graph TD
 ### 0. 环境准备 (VENV)
 在执行任何命令前，请确保处于项目的虚拟环境中：
 *   **激活环境**: `source venv/bin/activate`
-*   **直接运行 (推荐)**: 也可以直接使用 `./venv/bin/python` 代替 `python3`
+*   **直接运行 (推荐)**: 也可以直接使用 `./venv/bin/python` 代替 `python` 命令。
 
 
-### Phase 1: 策略执行与回测验证
-*   **实时预测**: `python3 strategist.py prod --symbol BTCUSDT`
-*   **抽样回测**: `python3 backtest.py backtest --sampling 12`
-*   **策略演化回放**: `python3 strategist_replay.py backtest --file [JSON_PATH]`
+### Phase 1: 策略执行与回测验证 (The Strategist Axis)
+*   **实时生产执行**: 捕获当前时刻的物理视角并生成决策。
+    `python strategist.py prod`
+*   **分层回测 (Regime-based Sampling)**: 在指定时间内按市场环境权重采样（推荐 30天起步）。
+    `python backtest.py --start T-30d --end now --sampling 12 --mode regime`
+*   **等距回测 (Timeline Spaced)**: 在指定时间内按等距时间点均匀分布采样。
+    `python backtest.py --start T-24h --end now --sampling 12 --mode spaced`
+*   **特定快照逻辑演化回放**: 针对某个特定的策略 JSON 进行逻辑复盘。
+    `python strategist_replay.py prod --file [STRATEGY_JSON_PATH]`
 
-### Phase 2: 法医调查与看板分析
-*   **全量尸检**: `python3 reviewer.py prod`
-*   **定向法医复盘**: `python3 reviewer_replay.py prod --file [JSON_PATH]`
-*   **策略逆向导出**: `python3 export_strategy.py prod --file [REVIEW_JSON_PATH]`
-*   **可视化看板**: `python3 forensic_dashboard.py prod --symbol BTCUSDT`
 
-### Phase 3: 自动化演化循环
-*   **全自动化编排**: `./venv/bin/python pipeline_orchestrator.py live --symbol BTCUSDT --pulse 30 --mode scan`
-*   **市场诊断服务 (不触发 Agent)**: `./venv/bin/python market_scanner_service.py live --symbol BTCUSDT --pulse 30`
-*   **诊断与进化合成**: `./venv/bin/python coach.py live --symbol BTCUSDT`
-*   **应用逻辑补丁**: `./venv/bin/python apply_patch.py --file [PATCH]`
+### Phase 2: 法医调查与看板分析 (The Forensic Axis)
+*   **全量尸检**: 对所有已结束的单子进行法医级对齐与评分。
+    `python reviewer.py prod`
+*   **定向法医复盘**: 针对特定失败/成功案例进行深度因果链回溯。
+    `python reviewer_replay.py prod --file [STRATEGY_JSON_PATH]`
+*   **策略逆向导出**: 将 Review 后的逻辑补丁导出为可读格式。
+    `python export_strategy.py prod --file [REVIEW_JSON_PATH]`
+*   **可视化法医看板**: 启动本地 UI，可视化查看所有执行结果与 MAE/MFE 回撤。
+    `python forensic_dashboard.py prod --symbol BTCUSDT`
+
+
+### Phase 3: 自动化演化循环 (The Evolutionary Axis)
+*   **全自动化编排**: 开启循环扫描模式，自动执行从 Observer 到 Strategist 的全链路。
+    `python pipeline_orchestrator.py live --symbol BTCUSDT --pulse 30 --mode scan`
+*   **市场诊断服务 (静默监视)**: 仅在后台持续刷新真相总线，不消耗 Agent API 成本。
+    `python market_scanner_service.py live --symbol BTCUSDT --pulse 30`
+*   **诊断与进化合成**: 开启系统“自我反思”模式，由 Coach 自动合成逻辑补丁。
+    `python coach.py live --symbol BTCUSDT`
+*   **应用逻辑补丁**: 将 Coach 生成的 `.patch` 物理硬化到 Prompt 或 Config 中。
+    `python apply_patch.py --file [PATCH_PATH]`

@@ -126,8 +126,8 @@ def parse_date(date_str: Any) -> datetime:
 def main():
     parser = argparse.ArgumentParser(description="Professional Crypto Backtest Simulator")
     parser.add_argument("--symbol", type=str, help="Trading symbol (default: BTCUSDT)")
-    parser.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
-    parser.add_argument("--end", type=parse_date, help="End date (YYYY-MM-DD)")
+    parser.add_argument("--start", type=parse_date, required=True, help="Start date (YYYY-MM-DD or T-30d)")
+    parser.add_argument("--end", type=parse_date, required=True, help="End date (YYYY-MM-DD or now)")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -147,11 +147,10 @@ def main():
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
-    # Temporal context resolution (argparse already calls parse_date for non-None values)
+    # Temporal context resolution
     try:
-        # If --start/--end not provided, fallback to default (None -> parse_date handles this)
-        start_dt = parse_date(args.start or "T-30d") # Default to 30 days lookback if start missing
-        end_dt = parse_date(args.end or "now")
+        start_dt = args.start
+        end_dt = args.end
         
         if start_dt >= end_dt:
             print("Error: Start date must be before end date.")
