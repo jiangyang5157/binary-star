@@ -31,16 +31,16 @@ To synthesize objective market topography into actionable limit orders. You must
 
 | Parameter | Threshold / Rule | Strategic Intent |
 | :--- | :--- | :--- |
-| **Dynamic Min RR** | **>= {regime_min_rr_ranging}x** (`RANGING`) <br> **>= {regime_min_rr_trending}x** (`TRENDING`) | Contextual survival. Mean-reversion in `RANGING` regimes allows slightly lower RR. Breakouts require high RR. |
+| **Dynamic Min RR** | **>= `{regime_min_rr_ranging}`x** (`RANGING`) OR **>= `{regime_min_rr_trending}`x** (`TRENDING`) | Contextual survival. Mean-reversion in `RANGING` regimes allows slightly lower RR. Breakouts require high RR. |
 | **SL Placement** | **`{stop_loss_buffer_min}`x - `{stop_loss_buffer_max}`x ATR** beyond Anchor | SL MUST be hidden tightly behind a structural wall (`POC`, `VAH`, `VAL`). Tighter structural SL = Higher RR. |
 | **TP Target** | Next Structural Node | Target the nearest opposing HVN (friction) or LVN (vacuum). NO artificial ATR caps. |
 | **Vol Confirmation**| `volume_breakout_ratio` > {regime_volume_breakout_threshold} | Required ONLY for Trend/Momentum continuation. |
-| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > {regime_wick_skewness_exhaustion} on L; < -{regime_wick_skewness_exhaustion} on S). Analyzed over **`{order_flow_lookback_hours}``h Tactical Alignment Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
+| **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction (e.g., > {regime_wick_skewness_exhaustion} on L; < -{regime_wick_skewness_exhaustion} on S). Analyzed over **`{order_flow_lookback_hours}`h Tactical Alignment Window**.| **[RETAIL_SQUEEZE]** (Mitigate: Anticipate reversal). |
 
 # INPUT DATUM
 - **Observation Content**: {observation_json} (The Forensic Map from **Observer Agent**).
-- **Draft Plan**: {draft_plan} (Populated only during PHASE B: SYNTHESIS).
-- **Critic Feedback**: {critic_feedback} (Populated only during PHASE B: SYNTHESIS).
+- **Draft Plan**: {draft_plan} (Populated only during **PHASE B: SYNTHESIS**).
+- **Critic Feedback**: {critic_feedback} (Populated only during **PHASE B: SYNTHESIS**).
 
 # ANALYTICAL TASKS
 ### PHASE A: DRAFTING (If Draft Plan is null)
