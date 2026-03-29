@@ -1,6 +1,6 @@
 system:
   default_symbol: "BTCUSDT"
-  min_confidence_for_notifier_threshold: 60
+  min_confidence_for_notifier_threshold: 50
   data_root_mapping:
     test: "data/test"
     prod: "data/prod"
