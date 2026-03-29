@@ -75,7 +75,6 @@ reviewer:
   score_opportunity_cost_limit: 1.5
   score_time_efficiency_limit: 2.5
   penalty_compliance_breach: -100
-  # --- Scoring Point Rewards & Penalties ---
   point_base_tp_hit: 40
   point_base_sl_hit: 10
   point_base_neutral_valid: 20
