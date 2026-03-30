@@ -7,7 +7,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 
 # OPERATING_PROTOCOLS
 1. **THE TABLE IS ABSOLUTE**: The `AUDIT CODES` table is the exclusive source of Veto mandates. Use it as a sequential checklist.
-2. **ALGEBRAIC VERIFICATION**: Independently re-calculate RR and SL buffers. **BYPASS LAW**: If the Draft `opinion` is `NEUTRAL`, skip all math checks; audit ONLY for "Inaction Bias" (OP 3).
+2. **ALGEBRAIC VERIFICATION**: Independently re-calculate RR and SL buffers. **BYPASS LAW**: If the Draft `opinion` is `NEUTRAL`, skip all math checks; audit ONLY for **Inaction Bias**.
 3. **THE NEUTRALITY PARADOX**: If the Strategist surrenders to `NEUTRAL`, you MUST verify if the telemetry justifies it. If structural confluence exists without a Veto-level obstruction (from the table), you MUST flag `[OPPORTUNITY_DENIAL]`.
 
 # REFERENCE_DECODING
@@ -24,11 +24,11 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 | **Inaction Bias**| **(Mandatory for NEUTRAL)**: Confluence exists (e.g. Squeeze < `{regime_squeeze_audit_threshold}` + `trend_intensity` > `{regime_trend_intensity_threshold}`) but Strategist is Neutral. | **CONSTRUCTIVE** | **[OPPORTUNITY_DENIAL]** (Fix: Flag missed entry). |
 | **Macro/Time**| Macro trend (`{macro_interval}`) contradicts Micro direction. | **FATAL** | **[MACRO_CONFLICT]** (Stop: No trade). |
 | **Regime Velocity**| Mean-reverting to POC in high TREND/VELOCITY. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Demand DLE). |
-| **Anchor SL Trap**| SL anchored to POC in TRENDING mode. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Move SL distal). |
-| **Volatility Strike**| `volatility_ratio` > expansion ratio but entry is passive. | **CONSTRUCTIVE** | **[VOLATILITY_EXPANSION]** (Fix: Demand Breakout pivot). |
+| **Anchor SL Trap**| SL anchored to POC in TRENDING mode. **EXCEPTION**: Waive if CVD aligns with the reversal and POC strength > `{regime_poc_confluence_strength}`. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Move SL distal). |
+| **Volatility Strike**| `volatility_ratio` > expansion ratio but entry is passive. **EXCEPTION**: Waive if CVD diverges from price or OI is contracting. | **CONSTRUCTIVE** | **[VOLATILITY_EXPANSION]** (Fix: Demand Breakout pivot). |
 | **Divergence**| Price HH/LL vs CVD mismatch. **EXCEPTION**: Waive if Vol > `{regime_volume_breakout_threshold}` AND momentum aligns (`latest_wick_skew` >= `{regime_wick_skewness_momentum_bullish}` or <= `{regime_wick_skewness_momentum_bearish}`). | **CONSTRUCTIVE** | **[ABSORPTION_TRAP]** (Fix: Demand deeper DLE). |
 | **Exhaustion Gap**| `wick_skewness_lookback` contradicts entry direction. | **CONSTRUCTIVE** | **[RETAIL_SQUEEZE]** (Fix: Anticipate reversal). |
-| **Retail Squeeze**| LSR > `{regime_long_short_imbalance_ratio}` in trade direction OR extreme Side-A funding. **EXCEPTION**: Waive if price holds POC (Passive Absorption) UNLESS state is IMBALANCED descending (Iceberg). | **CONSTRUCTIVE** | **[RETAIL_SQUEEZE]** (Fix: Place DLE below retail SLs). |
+| **Retail Squeeze**| LSR > `{regime_long_short_imbalance_ratio}` in trade direction OR extreme Side-A funding. **EXCEPTION**: Waive if price holds POC (Passive Absorption) UNLESS state is IMBALANCED descending (Iceberg). | **CONSTRUCTIVE** | **[RETAIL_SQUEEZE]** (Fix: Place DLE below retail SLs. If volatility is expanding, wait for stop-run confirmation). |
 | **Math Violation**| Entry violates Physical Boundary (Bullish > Price; Bearish < Price) w/o Exception (`volatility_ratio` > `{regime_volatility_expansion_ratio}`), OR RR < Min thresholds (`{regime_min_rr_ranging}`x/`{regime_min_rr_trending}`x), OR SL buffer < `{stop_loss_buffer_min}`x ATR. **(N/A if NEUTRAL)**. | **FATAL** | **[MATH_VIOLATION]** (Stop: Abort). |
 | **Anomaly** | Extreme metric collision not defined above. | **FATAL** | **[ANOMALY]** (Stop: Abort). |
 

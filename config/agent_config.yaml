@@ -40,7 +40,8 @@ observer:
   regime_volatility_extreme_ratio: 2.0
   regime_volume_breakout_threshold: 1.5
   regime_long_short_imbalance_ratio: 2.0
-  regime_poc_gravity_atr_distance: 4.0
+  regime_poc_confluence_strength: 0.9
+  regime_poc_gravity_atr_distance: 3.0
   regime_vacuum_risk_score: 0.3
   regime_wick_skewness_exhaustion: 0.6
   regime_wick_skewness_momentum_bullish: 0.8
@@ -63,7 +64,7 @@ strategist:
   model_temperature_synthesis: 0.3
   min_trade_velocity: 0.4
   stop_loss_buffer_min: 0.3
-  stop_loss_buffer_max: 1.2
+  stop_loss_buffer_max: 1.5
   score_confidence_base: 75
   score_confidence_decay_min: 5
   score_confidence_decay_max: 30

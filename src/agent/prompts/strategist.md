@@ -9,11 +9,11 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 1. **SOURCE SUPREMACY**: The `Observation Content` is absolute. **DEGRADED EXECUTION**: If `POC`, `ATR`, or `volatility_ratio` are 'Unavailable', output `NEUTRAL`. If Flow data is 'Unavailable', enter `[DEGRADED_MODE]` but do NOT surrender; execute a **Topological Blind-Strike** using physical anchors. *(Note: `liquidation_clusters: null` is the normal baseline).*
 2. **THE PHYSICAL BOUNDARY LAW**: Every limit order MUST be defensive relative to `current_price` (Bullish <= Price; Bearish >= Price). 
     - **Step 1 (Exception)**: If `volatility_ratio` > `{regime_volatility_expansion_ratio}`, bypass the defensive rule for Momentum Participation.
-    - **Step 2 (Constraint)**: If violated without exception, you MUST trigger **OP 10 (DLE)** to find a valid level or stay `NEUTRAL`. No exceptions.
-3. **THE SEQUENTIAL ANCHOR LAW**: Stop Loss (SL) MUST be placed behind a structural anchor using the exact formula: `SL Distance = [Multiplier] * atr_macro` (Multiplier Range: `{stop_loss_buffer_min}` to Min(`{stop_loss_buffer_max}` * `volatility_ratio`, `{regime_poc_gravity_atr_distance}`)). Select the anchor via this strict Hierarchy:
+    - **Step 2 (Constraint)**: If violated without exception, you MUST trigger **DEFENSIVE LIMIT ORDER PROTOCOL (DLE)** to find a valid level or stay `NEUTRAL`. No exceptions.
+3. **THE SEQUENTIAL ANCHOR LAW**: Stop Loss (SL) MUST be placed behind a structural anchor using the exact formula: `SL Distance = ([Multiplier] * volatility_ratio) * atr_macro`. (Base Multiplier Range: `{stop_loss_buffer_min}` to `{stop_loss_buffer_max}`). **Rule**: Physical buffer MUST scale linearly with `volatility_ratio` to ensure survival during expansion, but the final `SL Distance` MUST NOT exceed `{regime_poc_gravity_atr_distance}` ATR units. Select the anchor via this strict Hierarchy:
     - **Hierarchy 1 (Distal)**: Prioritize HVNs behind `VAH`/`VAL` edges. 
     - **Hierarchy 2 (Edge)**: Fallback to the physical `VAH`/`VAL` boundaries. 
-    - **Hierarchy 3 (Inner)**: Use `POC` ONLY if `price_trend_regime` is `RANGING` AND `volatility_ratio` < `{regime_volatility_baseline_ratio}`. Forbidden in `TRENDING`.
+    - **Hierarchy 3 (Inner)**: Use `POC` ONLY if `price_trend_regime` is `RANGING` AND `volatility_ratio` < `{regime_volatility_baseline_ratio}`. Forbidden in `TRENDING` UNLESS CVD aligns with the reversal and POC strength is > `{regime_poc_confluence_strength}` (Confluence Override).
     - **Hierarchy 4 (Shield)**: If `volatility_ratio` > `{regime_volatility_extreme_ratio}` AND `long_short_ratio` > `{regime_long_short_imbalance_ratio}`, you MUST bypass Hierarchy 2/3 and anchor behind Hierarchy 1 (Distal HVN).
 4. **THE CRITIC ALIGNMENT PROTOCOL** (Phase B Only):
     - `FATAL`: Mandatory Abort to `NEUTRAL`. No repairs.
@@ -27,9 +27,10 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 8. **TEMPORAL EXPECTATION**: `holding_time_hours` = `abs(take_profit - entry) / (atr_macro * max(trend_intensity, {min_trade_velocity}))`. Do NOT use `atr_micro` for time projection. *(Note: Python execution scales this inherently).*
 9. **CONFIDENCE CALIBRATION LAW**: Start at >`{score_confidence_base}`%. Apply **[LOGICAL_ATTRITION]** (-`{score_confidence_decay_min}` to -`{score_confidence_decay_max}` points) for every friction point: Macro/Micro conflict, negative CVD, or Scenario-based DLE.
 10. **DEFENSIVE LIMIT ORDER PROTOCOL (DLE)**: 
-    - **Step 1 (Traverse)**: Traverse Topography to find the **Next Distal Anchor**.
+    - **Step 1 (Traverse)**: Traverse Topography to find the **Next Distal Anchor**. **OPPORTUNITY_OPTIMIZATION**: If `cvd_trend` aligns with the current price direction, you **MAY** position the DLE at the entry of the nearest liquidity vacuum (LVN) rather than deep behind the next HVN to prevent opportunity denial, **provided the entry remains defensive per THE PHYSICAL BOUNDARY LAW.** 
     - **Step 2 (Inverse Risk)**: Define SL behind the new anchor -> Identify fixed TP -> Calculate Max Entry Price using: `Entry = SL +/- (abs(take_profit - stop_loss) / (Min_RR + 1))`. **(Use `{regime_min_rr_ranging}` or `{regime_min_rr_trending}` for Min_RR).**
     - **Step 3 (Vacuum Offensive)**: If topography is a vacuum and no anchors exist, execute a **Vacuum Flip** (reverse opinion to short/long the void) OR output `NEUTRAL` if mathematically impossible or `rr_ratio` < Min_RR thresholds.
+11. **THE SQUEEZE EXHAUSTION FILTER (ABSOLUTE)**: Prohibit BULLISH momentum pivots if `current_price` > `VAH` AND (`oi_delta_micro` contains "-" OR `cvd_trend` == "DOWNWARD"). This indicates Short Squeeze Exhaustion; FORCE `NEUTRAL`. Prohibit BEARISH pivots if `current_price` < `VAL` AND (`oi_delta_micro` contains "-" OR `cvd_trend` == "UPWARD"). This indicates Long Liquidation Exhaustion; FORCE `NEUTRAL`. This rule overrides all breakout participation protocols.
 
 # REFERENCE_DECODING
 **EXECUTION LAW**: Use these thresholds as mandatory tactical filters.
@@ -53,7 +54,7 @@ Inspect the `INPUT_DATUM`. Your execution path is strictly determined by the pre
 **IF DRAFT PLAN IS NULL (PHASE A: DRAFTING):**
 1.  **Data Alignment**: Extract `current_price`, `atr_macro`, and primary anchors (`POC`/`VAH`/`VAL`).
 2.  **Path Identification**: Contrast `cvd_trend` and `wick_skewness_lookback`. Determine if the path of least resistance is organic momentum or passive absorption.
-3.  **Execution Engineering**: Select the entry anchor. Use the **Mathematical Scratchpad** to define SL and TP. If risk at `current_price` is excessive, trigger the **DEFENSIVE LIMIT ORDER PROTOCOL** to identify a Deep Limit Entry (DLE).
+3.  **Execution Engineering**: Select the entry anchor. Use the **Mathematical Scratchpad** to define SL and TP. If risk at `current_price` is excessive, trigger the **DEFENSIVE LIMIT ORDER PROTOCOL (DLE)** to identify a Deep Limit Entry (DLE).
 4.  **Temporal & Probability Check**: Calculate `holding_time_hours` and verify if `price_trend_regime` and volume support the trade.
 
 **IF DRAFT PLAN EXISTS (PHASE B: SYNTHESIS):**
