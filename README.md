@@ -106,6 +106,9 @@ graph TD
 ### 第十一层：物理核心数学熔断 (Triple-Loophole Hardening)
 **核心逻辑：黑天鹅熔断地板。** 在极端市场（如 519 级别行情）下，为了防止波动率异常激增导致 SL 缓冲区无限放大，系统在底层逻辑中引入了 `Min()` 函数强制封顶。止损乘数被物理锁死在 `{regime_poc_gravity_atr_distance}` (4.0 ATR) 以内。彻底终结由于波动率溢出导致的“幽灵订单”与数学逻辑崩溃。
 
+### 第十二层：零魔术数字政策 (Zero Magic Number Policy)
+**核心逻辑：语义解耦与中央集权。** 严禁在 Prompt 中直接书写任何硬编码数字（如 `0.8`, `75%`, `-30`）。所有逻辑阈值、评分系数、衰减范围必须全部由 `agent_config.yaml` 统筹并动态注入。确保系统在不触动“大脑 DNA (Prompt)”的前提下，具备通过参数配置调整全局性格（激进 vs 保守）的能力。
+
 ---
 
 ## 💎 参数大师课 · 全量工业级配置
@@ -188,6 +191,9 @@ graph TD
 | `min_trade_velocity` | **跑得够不够快**。预期成交的斜率。 | 短线追求爆发 (0.5+)，长线可容忍阴跌/磨损 (0.1)。 |
 | `stop_loss_buffer_min / max` | **物理冗余厚度**。基于 `volatility_ratio` 的动态缩放因子。 | 公式：`({min} to {max} * volatility_ratio) * ATR`。**硬顶封死在 4.0 ATR (Regime Gravity)。** |
 | `regime_balanced_atr_multiplier` | **平衡态探测半径** | 决定了系统界定“震荡区间”物理边界的范围。 |
+| `score_confidence_base` | **信心基准线**。策略生成的起始分数。 | 设定为 75。强制 AI 承认 25% 的不可知熵，建立“减法思维模型”。 |
+| `score_confidence_decay_min` | **最小逻辑损耗**。处理市场噪音的处罚。 | 针对微小瑕疵（影线斜率、量能波动）的黄牌警告。 |
+| `score_confidence_decay_max` | **最大逻辑损耗**。结构性风险的处罚。 | 针对核心矛盾（CVD 背离、HVN 击穿）的逻辑红牌。 |
 
 ### 7. 大脑思维配置 (Agent Models)
 | 变量名 | 大白话解释 | 调参指南 |
