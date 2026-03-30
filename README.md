@@ -94,6 +94,18 @@ graph TD
 ### 第七层：动态立场翻转与退守 (Pivot & Defensive Limit Protocol)
 **核心逻辑：政权适应性生存。** 当 Critic 识别出结构性陷阱（如流动性空洞）且级别判定为 `CONSTRUCTIVE`（可修复）时，Strategist 被强制执行**逆向风险工程 (Inverse Risk Engineering)**。系统不会在死地扩大止损硬扛，而是主动让出高潮入场点位，向深水区退守进场，以此换取足以抵御倍数级微观波动的物理缓冲地带，并死守动态 RR 底线。
 
+### 第八层：定向审计与猎手悖论 (Directional Audit & Hunting Law)
+**核心逻辑：识破散户与主力的伪装。** Critic 的 `[RETAIL_SQUEEZE]` 审计现在仅在 Strategist 的建议与散户仓位方向**一致**时触发。当市场极度狂热且散户做多时，如果系统建议做空，这被视为“逆向猎杀”，不仅不会被 Veto，反而会获得逻辑加成。解决了“审计员误杀前线将军”的逻辑死锁，让系统具备在崩盘前夜顺应主力清算的直觉。
+
+### 第九层：价格发现自主权 (Price Discovery Autonomy)
+**核心逻辑：无人区的物理投影。** 当市场进入历史新高 (ATH) 或新低 (ATL) 等无历史成交量锚点的“真空区”时，系统授权 Strategist 使用 `{regime_poc_gravity_atr_distance} * atr_macro` 自动合成止盈位 (Synthetic TP)。这确保了在极端波动中，系统不会因为“看不见目标”而陷入瘫痪，始终具备量化盈亏比的能力。
+
+### 第十层：突破死锁豁免 (Breakout Paradox Resolution)
+**核心逻辑：动量参与权。** 当 `volatility_ratio` 超过 `{regime_volatility_expansion_ratio}` 时，系统自动解除“必须回撤挂单”的禁令。允许 Strategist 直接发起顺势突破（Breakout）单。这标志着系统从单纯的“接飞刀/摸顶”进化为具备捕捉单边暴力趋势能力的动态政权，不再错过高波动扩张期的快速利润。
+
+### 第十一层：物理核心数学熔断 (Triple-Loophole Hardening)
+**核心逻辑：黑天鹅熔断地板。** 在极端市场（如 519 级别行情）下，为了防止波动率异常激增导致 SL 缓冲区无限放大，系统在底层逻辑中引入了 `Min()` 函数强制封顶。止损乘数被物理锁死在 `{regime_poc_gravity_atr_distance}` (4.0 ATR) 以内。彻底终结由于波动率溢出导致的“幽灵订单”与数学逻辑崩溃。
+
 ---
 
 ## 💎 参数大师课 · 全量工业级配置
@@ -152,23 +164,23 @@ graph TD
 | 变量名 | 大白话解释 | 逻辑暗示 |
 | :--- | :--- | :--- |
 | `regime_trend_intensity_threshold` | **趋势启动门槛**。 | 想要更稳，就调高这个值以过滤随机波动。 |
-| `regime_poc_gravity_atr_distance` | **POC 磁力半径**。判断价格是否被均值吸住。 | 强趋势下调大它，否则系统由于贪恋均值而不敢追单。 |
-| `regime_volatility_expansion_ratio` | **波动爆发倍率**。判断行情是否“失控”。 | 15m 级别的爆发属于常见，4h 级别这属于天劫。 |
+| `regime_poc_gravity_atr_distance` | **POC 磁力半径 / 无人区投影尺** | 强趋势下作为 SL 的最大硬顶 (4.0 ATR)；在无历史高低点 (ATH/ATL) 时作为 Synthetic TP 的投影基准。 |
+| `regime_volatility_expansion_ratio` | **波动爆发倍率** | 判断行情是否“失控”。超过此值触发 **突破死锁豁免 (Breakout Participation)**，允许直接追单。 |
 | `regime_volume_breakout_threshold` | **放量确认线**。突破时的标准动作。 | 入场不仅看价格，必须配合该倍数的成交量确认。 |
-| `regime_long_short_imbalance_ratio` | **多空失衡线**。散户多空比超过此值触发警报。 | 超过 2.0+ 触发“零售端反向清算 (Retail Flush)”逻辑。 |
-| `regime_vacuum_risk_score` | **真空暴露分**。 | 止损位若落在高分真空区，Critic 会强制 Veto。 |
-| `regime_wick_skewness_exhaustion` | **影线衰竭值**。 | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
-| `regime_min_rr_ranging / trending` | **动态生存 RR**。 | 震荡市允许 1.2+，趋势市严求 1.8+。 |
-| `regime_cvd_slope_threshold` | **买卖意愿斜率**。 | 衡量 Taker 攻击的垂直烈度。 |
-| `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值**。 | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC，防止盈利回吐。 |
-| `regime_squeeze_threshold` | **挤压临界值**。 | 判定能量蓄积是否到达爆发临界。 |
+| `regime_long_short_imbalance_ratio` | **多空失衡线**。散户多多空比超过此值触发警报。 | 触发 **定向审计 (Directional Audit)**。仅当策略师试图“顺散户”时拦截，鼓励“逆向猎杀”。 |
+| `regime_vacuum_risk_score` | **真空暴露分** | 止损位若落在高分真空区，Critic 会强制 Veto。 |
+| `regime_wick_skewness_exhaustion` | **影线衰竭值** | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
+| `regime_min_rr_ranging / trending` | **动态生存 RR** | 震荡市允许 1.2+，趋势市严求 1.8+。 |
+| `regime_cvd_slope_threshold` | **买卖意愿斜率** | 衡量 Taker 攻击的垂直烈度。 |
+| `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值** | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC。**Reviewer 此处设有免罚协议。** |
+| `regime_squeeze_threshold` | **挤压临界值** | 判定能量蓄积是否到达爆发临界。 |
 
 ### 6. 执行与风险硬化 (Execution Law)
 | 变量名 | 大白话解释 | 执行逻辑 |
 | :--- | :--- | :--- |
 | `min_trade_velocity` | **跑得够不够快**。预期成交的斜率。 | 短线追求爆发 (0.5+)，长线可容忍阴跌/磨损 (0.1)。 |
-| `stop_loss_buffer_min / max` | **物理冗余厚度**。基于 `volatility_ratio` 的动态缩放因子。 | 公式：`({min} to {max} * volatility_ratio) * ATR`。确保在高波动中自动拉宽防御带。 |
-| `regime_balanced_atr_multiplier` | **平衡态探测半径**。 | 决定了系统界定“震荡区间”物理边界的范围。 |
+| `stop_loss_buffer_min / max` | **物理冗余厚度**。基于 `volatility_ratio` 的动态缩放因子。 | 公式：`({min} to {max} * volatility_ratio) * ATR`。**硬顶封死在 4.0 ATR (Regime Gravity)。** |
+| `regime_balanced_atr_multiplier` | **平衡态探测半径** | 决定了系统界定“震荡区间”物理边界的范围。 |
 
 ### 7. 大脑思维配置 (Agent Models)
 | 变量名 | 大白话解释 | 调参指南 |
@@ -197,6 +209,7 @@ graph TD
 | `point_penalty_logic_failure / temporal_failure` | **思维偏差处罚**。 | |
 | `point_bonus_structural_insight` | **地形天赋奖励**。 | AI 成功捕捉到 DLE 或清算共振时的加分。 |
 | `score_mae_extra_buffer` | **MAE 归一化冗余**。 | 允许在精准度判定中存在的微小物理误差。 |
+| `POC Magnet Exemption` | **纪律免罚协议** | **核心豁免**：若止盈动作是根据 `regime_poc_magnet_atr_threshold` 锁定在 POC 而导致的后期 MFE (盈利回吐) 飙升，系统不再判定为“由于懦弱而早退”，保护了 Agent 遵守纪律的积极性。 |
 
 ### 10. 系统演化感知 (Evolution / Coach)
 | 变量名 | 大白话解释 | 联动影响 |

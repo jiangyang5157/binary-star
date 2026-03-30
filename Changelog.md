@@ -6,6 +6,13 @@
 
 ### 📋 演化记录 (Latest)
 
+#### [v1.2.1] - 2026-03-30 (Reviewer ATR Decoupling & Survival Audit Patch)
+
+- **[Architecture/Logic]**: **Lagging Indicator Paradox Resolution (度量衡时空解耦)**.
+    - 修复了 Reviewer 原子化评分中的“刻舟求剑”漏洞。系统现在将“事前合规审计”与“持仓生存审计”的度量衡进行了分离。
+    - **事前审计**：依然使用 **`atr_macro (T0)`** 校验策略师在决策时刻是否遵循了物理缓冲区法律。
+    - **生存审计**：在计算 MAE (最大回撤) 与压力等级时，自动切换为 **`max(T0, T1)`** 滚动最大波动率。确保在极端突破行情中，由波动率膨胀引起的健康回踩不会被误判为“逻辑失效 (Logic Failure)”，保护了系统进化的基因纯净度。
+
 #### [v1.2.0] - 2026-03-30 (Directional Audit & Price Discovery Synthesis)
 
 - **[Architecture/Logic]**: **Hunting the Hunter Paradox Resolution (反向猎杀逻辑修复)**.

@@ -287,7 +287,7 @@ class ReviewerOrchestrator:
             # 1. Fetch & Calculate Outcome
             metrics = session.get("observation", {}).get("quantitative_metrics", {})
             price_dynamics = metrics.get("price_dynamics", {})
-            atr_macro = float(price_dynamics.get("atr_macro", 0))
+            atr_macro_t0 = float(price_dynamics.get("atr_macro", 0))
             interval_hours = interval_seconds / 3600
             
             # Use the target entry from the strategy if available, fallback to first kline's open
@@ -295,7 +295,23 @@ class ReviewerOrchestrator:
             limit_order = strategy_obj.get("limit_order") or {}
             target_entry = float(limit_order.get("entry", klines[0][1]))
             
-            outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=atr_macro, interval_hours=interval_hours)
+            # Multimedia & Visual Forensic Context (T1 Data)
+            if symbol not in self.observers:
+                self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key, self.data_root)
+            current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
+            
+            current_metrics = current_obs.get("quantitative_metrics", {})
+            current_price_dynamics = current_metrics.get("price_dynamics", {})
+            atr_macro_t1 = float(current_price_dynamics.get("atr_macro", 0))
+            
+            # [Architect's Fix]: Decouple Time and Space.
+            # Use max(T0, T1) for MAE stress evaluation to prevent "Lagging Indicator Paradox".
+            max_atr = max(atr_macro_t0, atr_macro_t1)
+            
+            outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=max_atr, interval_hours=interval_hours)
+            outcome["atr_t0"] = atr_macro_t0
+            outcome["atr_t1"] = atr_macro_t1
+            outcome["max_atr_used"] = max_atr
 
             # ----------------- [Revised: Structured Intercept Logic] -----------------
             trade_metrics = outcome.get("trade_execution_metrics") or {}
@@ -327,11 +343,7 @@ class ReviewerOrchestrator:
                     "post_mortem": f"[TRAJECTORY REALITY] -> Market window open ({intercept_status['elapsed_hours']}h / {intercept_status['threshold_hours']}h). [PROTOCOL & DECISION CHAIN AUTOPSY] -> Skipped. [SCORING] -> Pending."
                 }
             else:
-                # 2. Multimedia & Visual Forensic Context
-                if symbol not in self.observers:
-                    self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key, self.data_root)
-                current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
-
+                # current_obs is now pre-fetched for ATR calculation
                 t0_assets = session.get("observation", {}).get("visual_assets", {})
                 t1_assets = current_obs.get("visual_assets", {})
 
