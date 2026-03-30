@@ -41,7 +41,7 @@ observer:
   regime_volume_breakout_threshold: 1.5
   regime_long_short_imbalance_ratio: 2.0
   regime_poc_confluence_strength: 0.9
-  regime_poc_gravity_atr_distance: 3.5
+  regime_poc_gravity_atr_distance: 3.0
   regime_vacuum_risk_score: 0.3
   regime_wick_skewness_exhaustion: 0.6
   regime_wick_skewness_momentum_bullish: 0.8
@@ -53,10 +53,12 @@ observer:
   regime_squeeze_threshold: 1.0
   regime_squeeze_audit_threshold: 0.85
   regime_breakout_buffer_atr: 0.2
-  regime_breakout_frontrun_atr: 0.35
+  regime_breakout_frontrun_atr: 0.45
   regime_poc_magnet_atr_threshold: 2.0
   regime_balanced_atr_multiplier: 2.0
   regime_cvd_slope_threshold: 1.0
+  regime_gravity_volume_override_ratio: 3.0
+  regime_boundary_clipping_atr: 0.05
   regime_structural_proximity_threshold: 0.5
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md

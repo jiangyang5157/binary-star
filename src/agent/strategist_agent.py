@@ -47,6 +47,8 @@ class StrategistConfig:
     regime_breakout_buffer_atr: float
     regime_breakout_frontrun_atr: float
     regime_poc_magnet_atr_threshold: float
+    regime_gravity_volume_override_ratio: float
+    regime_boundary_clipping_atr: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -84,7 +86,9 @@ class StrategistConfig:
             regime_squeeze_threshold=float(full_config['observer']['regime_squeeze_threshold']),
             regime_breakout_buffer_atr=float(full_config['observer']['regime_breakout_buffer_atr']),
             regime_breakout_frontrun_atr=float(full_config['observer']['regime_breakout_frontrun_atr']),
-            regime_poc_magnet_atr_threshold=float(full_config['observer']['regime_poc_magnet_atr_threshold'])
+            regime_poc_magnet_atr_threshold=float(full_config['observer']['regime_poc_magnet_atr_threshold']),
+            regime_gravity_volume_override_ratio=float(full_config['observer']['regime_gravity_volume_override_ratio']),
+            regime_boundary_clipping_atr=float(full_config['observer']['regime_boundary_clipping_atr'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -188,6 +192,8 @@ class StrategistAgent(BaseAgent):
             "regime_breakout_buffer_atr": self.config.regime_breakout_buffer_atr,
             "regime_breakout_frontrun_atr": self.config.regime_breakout_frontrun_atr,
             "regime_poc_magnet_atr_threshold": self.config.regime_poc_magnet_atr_threshold,
+            "regime_gravity_volume_override_ratio": self.config.regime_gravity_volume_override_ratio,
+            "regime_boundary_clipping_atr": self.config.regime_boundary_clipping_atr,
             "score_confidence_base": self.config.score_confidence_base,
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
             "score_confidence_decay_max": self.config.score_confidence_decay_max

@@ -132,12 +132,14 @@ graph TD
 | `regime_volume_baseline_ratio` | **常规成交量基准** | 用于与当前成交量对比。 |
 | `regime_volume_breakout_threshold` | **放量确认线** | 入场不仅看价格，必须配合该倍数的成交量确认。 |
 | `regime_long_short_imbalance_ratio` | **多空失衡线** | 散户多空比超过此值触发 **定向审计 (Directional Audit)**。 |
-| `regime_poc_gravity_atr_distance` | **POC 磁力半径 / 无人区投影尺** | 强趋势下作为 SL 的最大硬顶 (**3.5 ATR**)；在无历史锚点 (ATH/ATL) 时作为 Synthetic TP 的投影基准。 |
+| `regime_poc_gravity_atr_distance` | **POC 引力半径 / 突破禁区线** | 强趋势下作为 SL 的最大硬顶 (**3.0 ATR**)。在突破行情中，若偏离过远则触发 **Gravity Filter** 禁涨令。 |
 | `regime_vacuum_risk_score` | **真空暴露分** | 止损位若落在高分真空区，Critic 会强制 Veto。 |
 | `regime_wick_skewness_exhaustion` | **影线衰竭值** | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
 | `regime_wick_skewness_momentum_bullish/bearish` | **吸收陷阱/动力反转阈值** | 捕捉 V 型反转时的物理分界点。**Anti-Hardcode Patch (v1.2.2)**。 |
 | `regime_min_rr_ranging / trending` | **动态生存 RR** | 震荡市允许 1.2+，趋势市严求 1.8+。 |
 | `regime_cvd_slope_threshold` | **买卖意愿斜率** | 衡量 Taker 攻击的垂直烈度。 |
+| `regime_gravity_volume_override_ratio` | **引力突破量能限制** | 脱离 POC 引力范围后强行追涨所需的最小成交量倍率。**Anti-Hardcode Patch (v1.2.6)**。 |
+| `regime_boundary_clipping_atr` | **物理边界安全缓冲** | 在触发边界剪裁式入场时，为了确保 Limit 属性而预留的微小 ATR 间距。 |
 | `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值** | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC。 |
 | `regime_squeeze_threshold / audit_threshold` | **挤压临界/审计阈值** | 判定能量蓄积是否到达爆发临界，触发 Critic 的生存压力测试。 |
 | `regime_breakout_buffer_atr` | **突破入场缓冲距离** | 防止在假突破边缘反复摩擦。 |
