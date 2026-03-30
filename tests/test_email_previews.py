@@ -12,36 +12,39 @@ from src.infrastructure.notifications.email_notifier import StrategyNotifier
 
 def test_notifications():
     # Use data/test as root for internal previews
-    notifier = StrategyNotifier(data_root="data/test")
+    data_root = "data/test"
+    notifier = StrategyNotifier(data_root=data_root)
     symbol = "BTCUSDT"
     
-    # 1. Test Strategy Preview (Forced BULLISH)
-    # Using relative paths from project root
-    strat_path = os.path.join(project_root, "data/live/strategies/BTCUSDT_strategies_20260328_121037.json")
-    if os.path.exists(strat_path):
+    # 1. Test Strategy Preview
+    strat_dir = os.path.join(project_root, data_root, "strategies")
+    if os.path.exists(strat_dir) and os.listdir(strat_dir):
+        # Pick the first one
+        strat_filename = os.listdir(strat_dir)[0]
+        strat_path = os.path.join(strat_dir, strat_filename)
         with open(strat_path, 'r') as f:
             strat_data = json.load(f)
-        strat_data["final_decision"]["opinion"] = "BULLISH"
-        strat_data["final_decision"]["confidence"] = 92
         
-        print(f"Generating Final Strategy HTML (BULLISH) from {os.path.basename(strat_path)}...")
+        print(f"Generating Strategy HTML from {strat_filename}...")
         notifier.notify_strategy(symbol, strat_data, save_local=True)
     else:
-        print(f"Strategy file not found: {strat_path}")
+        print(f"No mock strategies found in {strat_dir}")
 
-    # 2. Test Review Preview (Forced TP_HIT)
-    review_path = os.path.join(project_root, "data/live/reviewers/BTCUSDT_reviewers_20260328_121037.json")
-    if os.path.exists(review_path):
+    # 2. Test Review Preview
+    review_dir = os.path.join(project_root, data_root, "reviewers")
+    if os.path.exists(review_dir) and os.listdir(review_dir):
+        # Pick a TP_HIT or SL_HIT one if possible
+        review_files = [f for f in os.listdir(review_dir) if "tp" in f or "sl" in f]
+        review_filename = review_files[0] if review_files else os.listdir(review_dir)[0]
+        review_path = os.path.join(review_dir, review_filename)
+        
         with open(review_path, 'r') as f:
             review_data = json.load(f)
-        # Update metrics to trigger dispatch in test
-        review_data["market_outcome"]["tp_sl_result"] = "TP_HIT"
-        review_data["strategy_session"]["final_decision"]["confidence"] = 92
         
-        print(f"Generating Final Review HTML (TP_HIT) from {os.path.basename(review_path)}...")
+        print(f"Generating Review HTML from {review_filename}...")
         notifier.notify_review(symbol, review_data, save_local=True)
     else:
-        print(f"Review file not found: {review_path}")
+        print(f"Review file not found in {review_dir}")
 
 def test_dashboard_notification():
     # Use data/test as root for internal previews

@@ -247,7 +247,7 @@ class TestStrategyNotifier(unittest.TestCase):
             # Mock dispatcher to avoid real SMTP
             notifier.dispatcher.dispatch = MagicMock(return_value=True)
             
-            result = notifier.notify_strategy("BTCUSDT", self.mock_bullish_order_data)
+            result = notifier.notify_strategy("BTCUSDT", self.mock_bullish_order_data, save_local=True)
             
             self.assertTrue(result)
             notifier.dispatcher.dispatch.assert_called_once()

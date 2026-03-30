@@ -46,8 +46,17 @@ def generate_mock_environment(data_root, count=5):
             "market_outcome": {
                 "tp_sl_result": "TP_HIT" if i % 2 == 0 else "SL_HIT",
                 "intercept_status": {"is_intercepted": False, "reason": "NONE"},
+                "market_context": {
+                    "atr_t0": 100.0,
+                    "atr_t1": 110.0,
+                    "max_atr_used": 115.0,
+                    "visual_evidence": {}
+                },
                 "trade_execution_metrics": {
-                    "duration_candles": 10
+                    "duration_candles": 10,
+                    "actual_hours": 2.5,
+                    "mae_stress_level": 15.0,
+                    "mfe_efficiency": 85.0
                 }
             },
             "audit_findings": {

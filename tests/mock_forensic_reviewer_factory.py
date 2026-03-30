@@ -43,8 +43,17 @@ def create_mock(filename, opinion, result, is_premature, confidence=None, timest
                 "is_intercepted": is_premature,
                 "reason": "PREMATURE_WINDOW" if is_premature else "NONE"
             },
+            "market_context": {
+                "atr_t0": 100.0,
+                "atr_t1": 105.0,
+                "max_atr_used": 1.2,
+                "visual_evidence": {}
+            },
             "trade_execution_metrics": { 
-                "duration_candles": 10
+                "duration_candles": 10,
+                "actual_hours": 3.2,
+                "mae_stress_level": 15.0,
+                "mfe_efficiency": 85.0
             }
         }
     }
