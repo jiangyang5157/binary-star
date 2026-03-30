@@ -13,7 +13,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
    - If `NEUTRAL` was chosen and the market chopped, praise "Capital Preservation." 
    - If `NEUTRAL` was chosen but a structurally sound move occurred, severely penalize "Opportunity Cost". 
    - **EXCEPTION (JUSTIFIED SURRENDER)**: A `NEUTRAL` stance is a Justified Surrender ONLY if core Topological data (`POC`, `VAH`, `VAL`, `atr_macro`) is 'Unavailable', OR if forced by a **FATAL** Veto Level (`is_veto: true`). Missing Flow data (`cvd_trend`, `long_short_ratio`) does NOT justify surrender. If Flow data is missing but a clear structural edge existed, you MUST penalize `NEUTRAL` as Opportunity Cost. *(Note: `liquidation_clusters: null` is the normal baseline).*
-5. **MATHEMATICAL & TEMPORAL VERIFICATION**: **Execute Independent Mathematical Verification.** Extract `entry_price`, `stop_loss`, and `take_profit` from **Pass-3 SYNTHESIS** and combine with **`atr_macro`** from the `[T0 Environment]` to manually re-verify Risk/Reward (RR) and structural buffers. The `math_check` in **Pass-2 CRITIQUE** was for an obsolete draft; do not use it to judge final compliance.
+5. **MATHEMATICAL & TEMPORAL VERIFICATION**: **Execute Independent Mathematical Verification.** Extract `entry_price`, `stop_loss`, and `take_profit` from **Pass-3 SYNTHESIS** and combine exclusively with **`atr_macro`** from the `[T0 Environment]` to manually re-verify Risk/Reward (RR) and structural buffers. (Unified Standard: Do NOT use `atr_micro` for score verification). The `math_check` in **Pass-2 CRITIQUE** was for an obsolete draft; do not use it to judge final compliance.
 6. **MISSING DATA PROTOCOL**: If any metric is `null`, explicitly state '[Metric Name] Unavailable'. Do not calculate or hallucinate missing values. Proceed with remaining data.
 
 # REFERENCE_DECODING
@@ -30,7 +30,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
 | | **Luck**: `mae_stress_level` is `{score_mae_standard_limit}`% - `{score_mae_logic_failure_limit}`%. | +0 (Saved by noise) |
 | | **Logic Failure**: `mae_stress_level` > `{score_mae_logic_failure_limit}`% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` * `volatility_ratio` + `{score_mae_extra_buffer}`). | `{point_penalty_logic_failure}` (High-risk gamble) |
-| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > `{score_mfe_acceptable_limit}`%. | Penalty: `{point_penalty_mfe_premature_base}` * `trend_intensity` |
+| **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > `{score_mfe_acceptable_limit}`%. | Penalty: `{point_penalty_mfe_premature_base}` * `trend_intensity`. **(EXCEPTION: Penalty waived if TP was strictly capped by THE POC MAGNET RULE).** |
 | *(If TP_HIT)* | **Acceptable Capture**: `mfe_efficiency` `{score_mfe_optimal_upper}`% - `{score_mfe_acceptable_limit}`%. | Base: +0 (Standard exit) |
 | | **Optimal Capture**: `mfe_efficiency` `{score_mfe_optimal_lower}`% - `{score_mfe_optimal_upper}`%. | Bonus: +10 |
 | **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > `{score_time_efficiency_limit}` (If entry triggered). | Penalty: `{point_penalty_temporal_failure}` (Dead capital) |
