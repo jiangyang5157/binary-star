@@ -132,7 +132,7 @@ graph TD
 | `regime_volume_baseline_ratio` | **常规成交量基准** | 用于与当前成交量对比。 |
 | `regime_volume_breakout_threshold` | **放量确认线** | 入场不仅看价格，必须配合该倍数的成交量确认。 |
 | `regime_long_short_imbalance_ratio` | **多空失衡线** | 散户多空比超过此值触发 **定向审计 (Directional Audit)**。 |
-| `regime_poc_gravity_atr_distance` | **POC 磁力半径 / 无人区投影尺** | 强趋势下作为 SL 的最大硬顶 (4.0 ATR)；在无历史锚点 (ATH/ATL) 时作为 Synthetic TP 的投影基准。 |
+| `regime_poc_gravity_atr_distance` | **POC 磁力半径 / 无人区投影尺** | 强趋势下作为 SL 的最大硬顶 (**3.5 ATR**)；在无历史锚点 (ATH/ATL) 时作为 Synthetic TP 的投影基准。 |
 | `regime_vacuum_risk_score` | **真空暴露分** | 止损位若落在高分真空区，Critic 会强制 Veto。 |
 | `regime_wick_skewness_exhaustion` | **影线衰竭值** | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
 | `regime_wick_skewness_momentum_bullish/bearish` | **吸收陷阱/动力反转阈值** | 捕捉 V 型反转时的物理分界点。**Anti-Hardcode Patch (v1.2.2)**。 |
@@ -141,6 +141,7 @@ graph TD
 | `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值** | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC。 |
 | `regime_squeeze_threshold / audit_threshold` | **挤压临界/审计阈值** | 判定能量蓄积是否到达爆发临界，触发 Critic 的生存压力测试。 |
 | `regime_breakout_buffer_atr` | **突破入场缓冲距离** | 防止在假突破边缘反复摩擦。 |
+| `regime_breakout_frontrun_atr` | **突破前置入场距离** | 在确认为“空心扩张”或高盈亏比动能时，允许在物理边界前置一定的 ATR 进行入场。**Anti-Hardcode Patch (v1.2.3)**。 |
 | `regime_structural_proximity_threshold` | **结构接近判定阈值** | 判定价格是否已到达有效“地形锚点”的感知范围。 |
 
 ### 6. 执行与风险硬化 (Execution Law)
