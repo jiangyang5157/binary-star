@@ -69,48 +69,6 @@ graph TD
 
 ---
 
-## 🛡️ 逻辑盾牌
-
-为了确保系统在极高波动的加密市场中生存，我们部署了五层“物理保护伞”：
-
-### 第一层：物理真实网关 (Physical Realism)
-**核心逻辑：剥离 AI 的数学解释权。** 强制由后端 Python 计算确定性的盈亏比 (RR)、波动幅度 (ATR) 与时间价值，作为系统唯一法定事实注入。彻底消除 LLM 在复算中的幻觉。
-
-### 第二层：信息主权等级 (Information Sovereignty)
-**核心逻辑：地形决定论。** 系统在冲突信号中遵循：1. 物理地形 (POC/VAH) > 2. 流动性形态 (Flow/CVD) > 3. AI 感知。确保即使博弈信号混乱，也能基于物理边界进行攻击。
-
-### 第三层：法医审计隔离 (Forensic Isolation)
-**核心逻辑：忽略中间态，只审计物理终态。** Reviewer 强制忽略中间过程的草案和草稿数字。Reviewer 直接使用 `[Pass-3 SYNTHESIS]` 最终执行坐标与 `T0` 环境原件进行重新建模，防止“过程幸存者偏差”。
-
-### 第四层：多模态视觉证伪 (Visual Verification)
-**核心逻辑：特征引用与视觉存证。** 拒绝纯数字漂移的盲目决策。所有推理必须显式引用视觉快照（Snapshot）中的地形特征（如“特定价格坐标的影线阻力”）。这建立了一种**“证据对齐”**机制，确保决策逻辑在物理空间中是有迹可循的。
-
-### 第五层：递归状态机与隔离 (Atomic Switch & Isolation)
-**核心逻辑：原子化状态切换。** 彻底废弃长文本记忆博弈。系统根据基于 `draft_plan = NULL` 自动阻断大模型的视野。Phase A 严禁写复盘，Phase B 强行带入法医上下文，确保“草稿 -> 审计 -> 终稿”处于彻底互斥的状态机循环中，消除“边写边改”的思维混乱。
-
-### 第六层：致命霸权与否决绑定 (Fatal Supremacy & Veto Coupling Law)
-**核心逻辑：逻辑互斥底线。** Critic 的 `is_veto: true` (开关) 与 `FATAL` (级别) 进行物理硬拉绑。一旦触发 FATAL（如逆宏观趋势、盈亏比为负），大语言模型的“缝补圣母心”会被立即强制短路，系统严禁进行后续深层挂单尝试（DLE），即刻执行 Mandatory Abort（安全投降）。
-
-### 第七层：动态立场翻转与退守 (Pivot & Defensive Limit Protocol)
-**核心逻辑：政权适应性生存。** 当 Critic 识别出结构性陷阱（如流动性空洞）且级别判定为 `CONSTRUCTIVE`（可修复）时，Strategist 被强制执行**逆向风险工程 (Inverse Risk Engineering)**。系统不会在死地扩大止损硬扛，而是主动让出高潮入场点位，向深水区退守进场，以此换取足以抵御倍数级微观波动的物理缓冲地带，并死守动态 RR 底线。
-
-### 第八层：定向审计与猎手悖论 (Directional Audit & Hunting Law)
-**核心逻辑：识破散户与主力的伪装。** Critic 的 `[RETAIL_SQUEEZE]` 审计现在仅在 Strategist 的建议与散户仓位方向**一致**时触发。当市场极度狂热且散户做多时，如果系统建议做空，这被视为“逆向猎杀”，不仅不会被 Veto，反而会获得逻辑加成。解决了“审计员误杀前线将军”的逻辑死锁，让系统具备在崩盘前夜顺应主力清算的直觉。
-
-### 第九层：价格发现自主权 (Price Discovery Autonomy)
-**核心逻辑：无人区的物理投影。** 当市场进入历史新高 (ATH) 或新低 (ATL) 等无历史成交量锚点的“真空区”时，系统授权 Strategist 使用 `{regime_poc_gravity_atr_distance} * atr_macro` 自动合成止盈位 (Synthetic TP)。这确保了在极端波动中，系统不会因为“看不见目标”而陷入瘫痪，始终具备量化盈亏比的能力。
-
-### 第十层：突破死锁豁免 (Breakout Paradox Resolution)
-**核心逻辑：动量参与权。** 当 `volatility_ratio` 超过 `{regime_volatility_expansion_ratio}` 时，系统自动解除“必须回撤挂单”的禁令。允许 Strategist 直接发起顺势突破（Breakout）单。这标志着系统从单纯的“接飞刀/摸顶”进化为具备捕捉单边暴力趋势能力的动态政权，不再错过高波动扩张期的快速利润。
-
-### 第十一层：物理核心数学熔断 (Triple-Loophole Hardening)
-**核心逻辑：黑天鹅熔断地板。** 在极端市场（如 519 级别行情）下，为了防止波动率异常激增导致 SL 缓冲区无限放大，系统在底层逻辑中引入了 `Min()` 函数强制封顶。止损乘数被物理锁死在 `{regime_poc_gravity_atr_distance}` (4.0 ATR) 以内。彻底终结由于波动率溢出导致的“幽灵订单”与数学逻辑崩溃。
-
-### 第十二层：零魔术数字政策 (Zero Magic Number Policy)
-**核心逻辑：语义解耦与中央集权。** 严禁在 Prompt 中直接书写任何硬编码数字（如 `0.8`, `75%`, `-30`）。所有逻辑阈值、评分系数、衰减范围必须全部由 `agent_config.yaml` 统筹并动态注入。确保系统在不触动“大脑 DNA (Prompt)”的前提下，具备通过参数配置调整全局性格（激进 vs 保守）的能力。
-
----
-
 ## 💎 参数大师课 · 全量工业级配置
 
 > ⚙️ **时域缩放 (Temporal Scaling) 是参数演化的核心动力源。**
@@ -232,26 +190,6 @@ graph TD
 
 ---
 
-## ⏳ 时域硬化 · 缩放实例库
-
-系统通过“法医审计”不断沉淀在不同时间跨度下的最优配置。
-
-#### 微观：日内高频波动中的物理插针 (Intraday)
-| 变量 | 演化参考 | 逻辑目标 |
-| :--- | :--- | :--- |
-| `macro/micro` | `1h / 15m` | 环境快速刷新 |
-| `vp_bucket_count` | `300` | 聚焦单根节点 |
-| `sl_buffer_min` | `0.2` | 防守层极窄 |
-
-#### 宏观：波段与结构反转 (Swing)
-| 变量 | 演化参考 | 逻辑目标 |
-| :--- | :--- | :--- |
-| `macro/micro` | `4h / 1h` | 对齐大周期结构 |
-| `vp_bucket_count` | `800` | 宏观地图精度 |
-| `sl_buffer_min` | `0.6` | 允许震荡洗盘 |
-
----
-
 ## 🚀 运行手册
 
 ### 0. 环境准备 (VENV)
@@ -274,8 +212,11 @@ graph TD
     `python reviewer.py prod`
 *   **定向法医复盘**: 针对特定失败/成功案例进行深度因果链回溯。
     `python reviewer.py prod --file [STRATEGY_JSON_PATH]`
-*   **策略逆向导出**: 将 Review 后的逻辑补丁导出为可读格式。
+*   **策略逆向提取与还原**: 从法医复盘报告（Reviewer Report）中反向提取原始策略会话，并自动还原至对应的 `strategies` 目录。
     `python export_strategy.py prod --file [REVIEW_JSON_PATH]`
+    > **💡 核心用例**: 
+    > 1. **数据恢复**: 当本地原始策略 JSON 文件丢失，但存有对应的法医复盘报告时，还原交易会话证据。
+    > 2. **回测隔离**: 将法医报告中的某一特定策略片段剥离出来，生成标准的策略 JSON 文件，以便使用 `backtest.py` 进行逻辑重放或参数调优验证。
 *   **可视化法医看板**: 启动本地 UI，可视化查看所有执行结果与 MAE/MFE 回撤。
     `python forensic_dashboard.py prod`
 
