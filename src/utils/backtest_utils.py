@@ -80,7 +80,17 @@ class RegimeSampler(Sampler):
     """
     Performs stratified random sampling based on market regimes.
     Ensures proportional representation of different market conditions.
+    After selecting days, shifts timestamps to session_hour_utc to capture
+    real trading session dynamics instead of midnight snapshots.
     """
+    def __init__(self, session_hour_utc: int = 0):
+        """
+        Args:
+            session_hour_utc: UTC hour to anchor sampling (e.g. 13 = NY open).
+                              0 means no shift (original daily candle open).
+        """
+        self.session_hour_utc = session_hour_utc
+
     def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
         if df.empty or count <= 0:
             return []
@@ -122,4 +132,14 @@ class RegimeSampler(Sampler):
             target_dates.extend(sampled['timestamp'].tolist())
 
         # Sort chronologically for better simulation flow
-        return sorted(target_dates)
+        sorted_dates = sorted(target_dates)
+
+        # Shift timestamps to the configured session hour (e.g. 13:00 UTC = NY open)
+        if self.session_hour_utc != 0:
+            sorted_dates = [
+                dt.replace(hour=self.session_hour_utc, minute=0, second=0, microsecond=0)
+                for dt in sorted_dates
+            ]
+
+        return sorted_dates
+

@@ -32,8 +32,8 @@ class BacktestOrchestrator:
         self.logger = setup_logger("BacktestOrchestrator", log_file=log_path)
         
         # Load system defaults
-        global_cfg = load_global_config()
-        self.symbol = global_cfg['system']['default_symbol']
+        self.global_cfg = load_global_config()
+        self.symbol = self.global_cfg['system']['default_symbol']
         
         self.fetcher = BinanceFuturesClient()
         self.analyzer = MarketRegimeAnalyzer()
@@ -72,7 +72,8 @@ class BacktestOrchestrator:
         ]
 
         if self.sampling_mode == "regime":
-            sampler = RegimeSampler()
+            session_hour = self.global_cfg.get('backtest', {}).get('session_hour_utc', 0)
+            sampler = RegimeSampler(session_hour_utc=session_hour)
         else:
             sampler = SpacedSampler()
 

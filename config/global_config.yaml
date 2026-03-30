@@ -14,3 +14,10 @@ network:
   gemini:
     api_timeout_seconds: 480
     retry_count: 2
+backtest:
+  # Session anchor for regime sampling timestamps.
+  # Shifts sampled daily candles to this UTC hour to capture real session dynamics.
+  # 0  = Asia open (default daily candle)
+  # 8  = London open
+  # 13 = New York open (recommended for max liquidity)
+  session_hour_utc: 13
