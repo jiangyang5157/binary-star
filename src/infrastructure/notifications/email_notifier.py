@@ -421,15 +421,15 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                     <table class="responsive-metrics" style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🧬 Validated Samples</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800;">{stats.get('executed_count', 0)}</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📊 Filled / Total Orders</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800;">{stats.get('filled_count', 0)} / {stats.get('total_count', 0)}</div>
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🎯 Win Rate</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🎯 Win Rate (TP / Filled)</div>
                                 <div style="font-size: 18px; color: #34d399; font-weight: 800;">{wr}%</div>
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Cumulative Net PnL</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Cumulative Net PnL (%)</div>
                                 <div style="font-size: 18px; color: {'#34d399' if pnl >= 0 else '#fb7185'}; font-weight: 800;">{pnl_sign}{pnl}%</div>
                             </td>
                         </tr>
@@ -438,7 +438,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
 
                 <!-- Evidence List -->
                 <div class="panel">
-                    <h3 class="panel-title">🔍 Validated Samples</h3>
+                    <h3 class="panel-title">📋 Total Orders</h3>
                     <table>
                         <thead>
                             <tr>
@@ -633,13 +633,17 @@ class StrategyNotifier:
         Calculates aggregate KPIs and sends a premium ledger summary.
         """
         # 1. Compute KPIs in Python
+        total_count = len(dataset)
         executed = [d for d in dataset if d['tp_sl_result'] in ['TP_HIT', 'SL_HIT', 'NEITHER']]
-        wins = [d for d in executed if d['tp_sl_result'] == 'TP_HIT']
+        filled = [d for d in executed if d.get('is_filled', True)]  # is_filled=True or absent means filled
+        wins = [d for d in filled if d['tp_sl_result'] == 'TP_HIT']
         
-        net_pnl = float(sum(d.get('estimated_pnl_pct', 0.0) for d in executed))
-        win_rate = round(float(len(wins) / len(executed) * 100.0), 1) if executed else 0.0
+        net_pnl = float(sum(d.get('estimated_pnl_pct', 0.0) for d in filled))
+        win_rate = round(float(len(wins) / len(filled) * 100.0), 1) if filled else 0.0
         
         stats = {
+            "total_count": total_count,
+            "filled_count": len(filled),
             "executed_count": len(executed),
             "win_rate": float(f"{win_rate:.1f}"),
             "net_pnl": float(f"{net_pnl:.2f}")
