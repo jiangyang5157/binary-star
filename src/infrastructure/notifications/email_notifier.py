@@ -522,9 +522,9 @@ class StrategyNotifier:
             return False
 
         # Only notify if opinion is BULLISH / BEARISH
-        # if opinion.upper() not in ["BULLISH", "BEARISH"]:
-        #     logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH/BEARISH allowed).")
-        #     return False
+        if opinion.upper() not in ["BULLISH", "BEARISH"]:
+            logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH /。BEARISH allowed).")
+            return False
             
         icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
         indicator = icons.get(opinion.upper(), '⚡')
