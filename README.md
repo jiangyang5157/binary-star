@@ -204,8 +204,18 @@ graph TD
     `python strategist.py prod`
 *   **分层回测 (Regime-based Sampling)**: 在指定时间内按市场环境权重采样（过去24天到今天）。
     `python backtest.py backtest --start T-24d --end now --sampling 12 --mode regime`
+    `python backtest.py backtest --start T-25d --end T-20d --sampling 5 --mode regime`
 *   **等距回测 (Timeline Spaced)**: 在指定时间内按等距时间点均匀分布采样（过去24天到7天前）。
     `python backtest.py backtest --start T-24d --end T-7d --sampling 12 --mode spaced`
+
+*   **Sample**:
+```python
+python backtest.py backtest --start T-20d --end T-15d --sampling 5 --mode regime
+python reviewer.py backtest
+python coach.py backtest
+# tips: move dashboard from html/ to archived/ and renames archived/ to archived{n}
+```
+
 
 
 ### Phase 2: 法医调查与看板分析 (The Forensic Axis)
