@@ -51,10 +51,10 @@ You must execute exactly 6 sequential mapping steps. **Actively search for "Logi
 6.  **Synthesized Execution Map**: A concise technical summary of the "As-Is" market map. You MUST identify the **Key Structural Conflict** currently governing the price action.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. 
+Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. 
 Do not include conversational filler or markdown markers. Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
 
-{
+{{
     "structural_gravity": "Analysis from Reasoning Chain Step 1...",
     "topographical_friction": "Analysis from Reasoning Chain Step 2...",
     "regime_volatility": "Analysis from Reasoning Chain Step 3...",
@@ -62,4 +62,4 @@ Do not include conversational filler or markdown markers. Every field must be a 
     "micro_interactive": "Analysis from Reasoning Chain Step 5...",
     "synthesized_topography": "Final forensic map summary including Key Structural Conflict (Step 6).",
     "conviction_score": "0-100 integer representing the clarity and confluence of the topographical signals (High score = Uniform confluence; Low score = Extreme logical friction/chaos)."
-}
+}}

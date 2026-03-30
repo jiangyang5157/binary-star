@@ -62,13 +62,13 @@ Execute these steps sequentially to build your forensic audit:
     - [`{threshold_skepticism_constructive}` + 1, 100]: **FATAL VETO**. `veto_level: FATAL`, `is_veto: true`.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include markdown markers of any kind.
+Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. Do not include markdown markers of any kind.
 
-{
+{{
     "is_veto": boolean,
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | FATAL",
     "skepticism_score": 0-100,
     "adversarial_tone": "Harsh forensic summary of detected risks and structural traps.",
     "hidden_risk": "MUST begin with ONE exact tag (e.g., [PRISTINE], [LIQUIDITY_VOID]). Follow with 1-2 sentences of data-driven reasoning. Propose a mitigation path ONLY if level is CONSTRUCTIVE.",
     "math_check": "Explicit validation of the rr_ratio, Stop Loss placement, and TP using `math_fact_check` vectors (sl_to_poc_atr, etc.). (If opinion is `NEUTRAL`, output `N/A`)."
-}
+}}

@@ -68,15 +68,15 @@ Execute a chronological forensic autopsy:
 6.  **Final Scoring**: Calculate `evaluation_score` by rigorously applying the `SCORING LAW` logic to the pre-calculated metrics in `Ground Truth Execution`. Do not infer or manually recalculate MAE. Apply The Neutrality Paradox rules.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include markdown markers of any kind.
+Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. Do not include markdown markers of any kind.
 
-{
+{{
   "evaluation_score": 0-100,
-  "adversarial_audit": {
+  "adversarial_audit": {{
     "protocol_breach": "Identify any broken rules from the Strategist/Critic prompts or 'None'.",
     "audit_trace": "Forensic confirmation of whether Critic's veto_level was correct and if Strategist's response (Hardened vs Neutral) was protocol-compliant.",
     "shadow_evidence": ["Metric X indicated Y...", "Visual pattern Z in T0 Macro ignored..."],
     "hallucination_detected": boolean
-  },
+  }},
   "post_mortem": "A comprehensive technical report structured exactly as: [TRAJECTORY REALITY] -> [PROTOCOL & DECISION CHAIN AUTOPSY] -> [MATH & TEMPORAL DIAGNOSTIC] -> [SCORING MATH & LOGIC EVOLUTION ADVICE]. Use nouns and verbs. Be ruthless."
-}
+}}

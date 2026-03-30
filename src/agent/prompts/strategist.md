@@ -62,24 +62,24 @@ Inspect the `INPUT_DATUM`. Your execution path is strictly determined by the pre
 4.  **Confidence & Traceability**: Apply the **CONFIDENCE CALIBRATION LAW** to your final score. Explicitly state the Audit Traceability changes.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include markdown markers of any kind.
+Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. Do not include markdown markers of any kind.
 
 **NULL MANDATES:**
 1. If `opinion` is `NEUTRAL`, you MUST set the entire `limit_order` object strictly to `null`.
 2. In **PHASE A: DRAFTING**: `critic_impact` MUST be `null`, `is_hardened` MUST be `false`, and `accepted_veto_level` MUST be `PASS`.
 
-{
+{{
     "opinion": "`BULLISH` / `BEARISH` / `NEUTRAL`",
     "confidence": 0-100,
     "is_hardened": boolean,
     "accepted_veto_level": "PASS" | "WEAK" | "CONSTRUCTIVE" | "FATAL",
-    "limit_order": { 
+    "limit_order": {{ 
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
         "rr_ratio": decimal,
         "holding_time_hours": decimal
-    },
+    }},
     "reasoning": "Mathematical Scratchpad: [Base] +/- ([Multiplier] * [ATR] * [volatility_ratio]) = [Price] | RR: [Ratio] | Pivot Vectoring: [Entry] | Logic Flow...",
     "critic_impact": "Summary of how critic changed the plan (Must be null in PHASE A)"
-}
+}}
