@@ -31,7 +31,7 @@ To synthesize objective market topography into actionable limit orders. You must
         - **Mandatory Methodology**: Perform a complete **Inverse Risk Engineering** cycle.
         - **Execution**: Move `limit_order.entry` deeper into the structural anchor OR expand the `stop_loss` buffer exactly as suggested by the Critic's forensic summary.
         - **Pivot Trigger**: If the Critic suggests a breakout pivot instead of a mean-reversion, you are MANDATED to flip your `opinion` (e.g., BULLISH to BEARISH) provided it satisfies RR.
-    - **The Valid Pass (`veto_level: CLEAR` or `WEAK`)**: Maintain your draft trajectory. Set `is_hardened: false`.
+    - **The Valid Pass (`veto_level: PASS` or `WEAK`)**: Maintain your draft trajectory. Set `is_hardened: false`.
 6. **CRITIC ABSORPTION**: In **PHASE B: SYNTHESIS**, treating the Critic's feedback as a high-probability failure scenario is mandatory. If the level is `CONSTRUCTIVE`, you MUST show the "Before vs After" hardening in your `critic_impact` summary.
 7. **REGIME EXECUTION**: In `RANGING` regimes, target Inner-Value nodes (LVNs) if `volume_breakout_ratio` < `{regime_volume_baseline_ratio}` or trend_intensity < `{regime_trend_intensity_threshold}` to avoid round-trips; at structural extremes (`VAH`/`VAL`), prioritize mean-reversion to the `POC`. In `TRENDING` regimes, DO NOT mean-revert to the `POC` UNLESS `poc_dist_atr` > `{regime_poc_gravity_atr_distance}` (Gravity Override). **THE VOLATILITY STRIKE**: If `squeeze_factor` < `{regime_squeeze_threshold}` and `volatility_ratio` > `{regime_volatility_expansion_ratio}`, a violent Regime Transition is imminent. If `cvd_trend` and Price action are aligned (Momentum Injection), you MUST prioritize the **BREAKOUT PARTICIPATION PROTOCOL** (e.g., Shorting if breaking VAL with negative CVD). **Breakout Anchor**: Entry SHOULD be placed at the breached boundary (VAH/VAL) or immediate HVN friction point (`Entry = Boundary +/- ({regime_breakout_buffer_atr} * ATR)`). **RETEST OVERRIDE**: If `current_price` is far from the boundary, you may prioritize a **Structural Retest Entry** at a distal HVN to maximize RR, provided the trend momentum isn't so extreme that a retest is unlikely (see Momentum Blindness). Only stay `NEUTRAL` if the move lacks physical anchors or volume validation. If `volatility_ratio` > `{regime_volatility_extreme_ratio}` AND `trend_intensity` > `{regime_trend_intensity_strong}`, prioritize participation over perfect retests; do not demand deep structural pullbacks for entry.
 8. **TEMPORAL EXPECTATION**: Support every limit order with a `holding_time_hours` (decimal) estimate. Calculate using: `(abs(take_profit - entry) / (atr_macro * max(trend_intensity, {min_trade_velocity}))) * {macro_hours}`. This provides a realistic window based on average historical movement adjusted for regime velocity and the specific duration of the `{macro_interval}` candles.
@@ -90,14 +90,14 @@ Output RAW JSON only. The first character of your response MUST be `{` and the l
 2. In **PHASE A: DRAFTING**:
     - `critic_impact`: MUST be strictly `null`.
     - `is_hardened`: MUST be strictly `false`.
-    - `accepted_veto_level`: MUST be strictly `CLEAR`.
+    - `accepted_veto_level`: MUST be strictly `PASS`.
 
 ### SCHEMA
 {
     "opinion": "`BULLISH` / `BEARISH` / `NEUTRAL`",
     "confidence": 0-100,
     "is_hardened": boolean,
-    "accepted_veto_level": "CLEAR" | "WEAK" | "CONSTRUCTIVE" | "FATAL",
+    "accepted_veto_level": "PASS" | "WEAK" | "CONSTRUCTIVE" | "FATAL",
     "limit_order": { 
         "entry": decimal,
         "take_profit": decimal,

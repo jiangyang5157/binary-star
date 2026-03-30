@@ -42,7 +42,7 @@ To ingest a batch of Post-Mortem Review Reports, isolate recurring logical patho
 
 1. **Pathology Scan**: Aggregate data from `audit_findings` (specifically `adversarial_audit.shadow_evidence`, `protocol_breach`, and `evaluation_score`) across the batch. Identify the dominant "Systemic Bias" (e.g., `[LAZY_TREND_FOLLOWING]` or `[PROTOCOL_DISOBEDIENCE]`).
 2. **Strategist Vulnerability Audit**: Locate the exact line in the Strategist's Prompt that allowed this pathology to occur. Does it need a stricter RR constraint or a new temporal rule?
-3. **Critic Blindspot Audit**: Did the Critic fail to trigger a `FATAL` / `is_veto` status, or misclassify a `CONSTRUCTIVE` risk? Identify which `AUDIT CODES` need to be hardened or added to its reference table to ensure clear logic segregation.
+3. **Critic Blindspot Audit**: Did the Critic fail to trigger a `FATAL` / `is_veto` status, or misclassify a `CONSTRUCTIVE` risk as `PASS`? Identify which `AUDIT CODES` need to be hardened or added to its reference table to ensure clear logic segregation.
 4. **Reviewer Logic Audit**: Is the Reviewer consistently misjudging structural failures? Does the Scoring Law need to be hardened to penalize `[OPPORTUNITY_DENIAL]` more strictly, or adjusted to account for anomalous regime-level MFE?
 5. **Parameter Optimization**: Cross-reference the systemic failures with the `Current Configuration`.
     - **Volatility/Structural**: If entries are consistently late, should `{volume_moving_average_period}` be shortened?
