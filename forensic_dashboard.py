@@ -73,6 +73,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
         </div>
 
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4 text-slate-200">Cumulative Net PnL (%) Curve</h2>
+            <p class="text-xs text-slate-400 mb-4">Chronological equity curve across all executed trades.</p>
+            <div class="relative h-[350px]">
+                <canvas id="equityChart"></canvas>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="card">
                 <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Threshold Optimizer</h2>
@@ -213,6 +221,74 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         });
 
+        // 4.5 Cumulative PnL Curve Chart
+        let runningPnl = 0;
+        // Ensure sorted by time for the curve
+        const sortedExecuted = [...executedTrades].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
+        const equityData = sortedExecuted.map(t => {
+            runningPnl += t.estimated_pnl_pct;
+            return { 
+                x: t.observation_time, 
+                y: runningPnl,
+                tradePnl: t.estimated_pnl_pct,
+                name: t.name
+            };
+        });
+
+        new Chart(document.getElementById('equityChart'), {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Cumulative Net PnL (%)',
+                    data: equityData,
+                    borderColor: '#a78bfa', // Purple-400
+                    backgroundColor: 'rgba(167, 139, 250, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: (items) => {
+                                const date = new Date(items[0].raw.x);
+                                return date.toLocaleString('en-GB', { hour12: false }) + ' ' + tzName;
+                            },
+                            label: (ctx) => {
+                                const d = ctx.raw;
+                                return [
+                                    `Trade PnL: ${d.tradePnl > 0 ? '+' : ''}${d.tradePnl.toFixed(2)}%`,
+                                    `Cumulative: ${d.y.toFixed(2)}%`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        type: 'time',
+                        min: minTime,
+                        max: maxTime,
+                        time: { unit: 'hour', displayFormats: { hour: 'MMM dd, HH:mm' } },
+                        ticks: { color: '#64748b' }, 
+                        grid: { color: '#334155' }, 
+                        title: { display: true, text: `Equity Timeline (${tzName})`, color: '#94a3b8'} 
+                    },
+                    y: { 
+                        ticks: { color: '#64748b' }, 
+                        grid: { color: '#334155' },
+                        title: { display: true, text: 'Net PnL (%)', color: '#94a3b8'}
+                    }
+                }
+            }
+        });
+
         // 5. Threshold Optimizer Chart
         const thresholds = [];
         const pnlAtThresholds = [];
@@ -300,11 +376,11 @@ class ForensicDashboardGenerator:
         # To avoid confusion with relative pathing in notifier
         self.notifier = StrategyNotifier(data_root=data_root)
 
-    def generate(self, symbol: str, notify: bool = False):
+    def generate(self, symbol: str, notify: bool = False, recursive: bool = False):
         """Main execution flow for report generation."""
-        self.logger.info(f"Scanning for {symbol} forensic evidence in {self.data_root}...")
+        self.logger.info(f"Scanning for {symbol} forensic evidence in {self.data_root} (Recursive: {recursive})...")
         
-        dataset = self._extract_data(symbol)
+        dataset = self._extract_data(symbol, recursive=recursive)
         if not dataset:
             self.logger.warning(f"No valid forensic reports found for {symbol}. Sidestepping dashboard generation.")
             return None, []
@@ -321,29 +397,32 @@ class ForensicDashboardGenerator:
         
         return output_path, dataset
 
-    def _extract_data(self, symbol: str) -> List[Dict[str, Any]]:
-        """Parses JSON review reports recursively and extracts normalized performance telemetry."""
+    def _extract_data(self, symbol: str, recursive: bool = False) -> List[Dict[str, Any]]:
+        """Parses JSON review reports and extracts normalized performance telemetry."""
         reviewers_root = os.path.join(self.data_root, "reviewers")
         if not os.path.exists(reviewers_root):
             self.logger.warning(f"Reviewers directory not found: {reviewers_root}")
             return []
 
         extracted_data = []
-        processed_filenames = set()
-        
-        # Keyword and Symbol filter
         prefix = f"{symbol}_reviewers_"
         
-        self.logger.info(f"Scanning root of {reviewers_root}...")
+        # Determine scan method based on recursive flag
+        if recursive:
+            self.logger.info(f"Performing deep recursive scan of {reviewers_root}...")
+            all_files = []
+            for root, _, files in os.walk(reviewers_root):
+                for f in files:
+                    all_files.append((root, f))
+        else:
+            self.logger.info(f"Performing shallow scan of {reviewers_root} (root only)...")
+            all_files = [(reviewers_root, f) for f in os.listdir(reviewers_root) if os.path.isfile(os.path.join(reviewers_root, f))]
 
-        # Non-recursive scan of the root folder specifically
-        files = [f for f in os.listdir(reviewers_root) if os.path.isfile(os.path.join(reviewers_root, f))]
-        
-        for filename in sorted(files):
+        for root, filename in sorted(all_files, key=lambda x: x[1]):
             if not filename.endswith(".json") or not filename.startswith(prefix):
                 continue
             
-            filepath = os.path.join(reviewers_root, filename)
+            filepath = os.path.join(root, filename)
             data = load_json(filepath)
             if not data:
                 continue
@@ -426,6 +505,7 @@ def main():
     parser = argparse.ArgumentParser(description="Forensic Performance & Confidence Analyzer")
     parser.add_argument("--symbol", type=str, help="Symbol to filter")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification after generation.")
+    parser.add_argument("--recursive", "-r", action="store_true", help="Perform recursive scan across archived directories.")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -443,7 +523,7 @@ def main():
     
     try:
         generator = ForensicDashboardGenerator(data_root=data_root)
-        generator.generate(symbol, notify=args.email)
+        generator.generate(symbol, notify=args.email, recursive=args.recursive)
     except Exception as e:
         logger.error(f"Dashboard Generation Failed: {e}")
         sys.exit(1)
