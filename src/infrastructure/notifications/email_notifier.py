@@ -408,7 +408,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: #3b82f615; color: #3b82f6; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid #3b82f630;">
                         💎 AGGREGATE PERFORMANCE
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Ledger</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Dashboard</h1>
                 </div>
 
                 <!-- KPI Panel (Dark Style) -->
@@ -729,7 +729,7 @@ class StrategyNotifier:
             logger.error(f"Notifier: Failed to save HTML preview: {e}")
             return None
 
-    def notify_coach(self, symbol: str, analysis_data: Dict[str, Any], dataset: List[Dict[str, Any]], dashboard_path: Optional[str] = None) -> bool:
+    def notify_coach(self, symbol: str, analysis_data: Dict[str, Any], dataset: List[Dict[str, Any]], dashboard_path: Optional[str] = None, save_local: bool = False) -> bool:
         """
         Consolidates AI Coach analysis and Forensic Audit dataset into one report.
         """
@@ -748,8 +748,9 @@ class StrategyNotifier:
         # 2. Render Template
         html_body = CoachEmailTemplate.render(symbol, analysis_data, stats, dataset)
         
-        # 3. Local Preview
-        self.save_html_preview(f"{symbol}_coach_report", html_body)
+        # 3. Local Preview (Optional)
+        if save_local:
+            self.save_html_preview(f"{symbol}_coach_report", html_body)
 
         if not self.enabled:
             return False
@@ -763,7 +764,7 @@ class StrategyNotifier:
         
         return self.dispatcher.dispatch(subject, html_body, files=files)
 
-    def notify_dashboard(self, symbol: str, dataset: List[Dict[str, Any]], dashboard_path: Optional[str] = None) -> bool:
+    def notify_dashboard(self, symbol: str, dataset: List[Dict[str, Any]], dashboard_path: Optional[str] = None, save_local: bool = False) -> bool:
         """
         Calculates aggregate KPIs and sends a premium ledger summary.
         """
@@ -783,8 +784,9 @@ class StrategyNotifier:
         # 2. Render Template
         html_body = DashboardEmailTemplate.render(symbol, stats, dataset)
         
-        # 3. Local Preview
-        self.save_html_preview(f"{symbol}_ledger", html_body)
+        # 3. Local Preview (Optional)
+        if save_local:
+            self.save_html_preview(f"{symbol}_ledger", html_body)
 
         if not self.enabled:
             return False
@@ -793,7 +795,7 @@ class StrategyNotifier:
         pnl_sign = "+" if net_pnl >= 0 else ""
         subject = f"🎯 Ledger | {symbol} | {win_rate}% WR | {pnl_sign}{float(f'{net_pnl:.2f}')}%"
         
-        logger.info(f"Notifier: Dispatching ledger summary: {subject}")
+        logger.info(f"Notifier: Dispatching dashboard summary: {subject}")
         
         # Attach the gorgeous interactive dashboard (Not the email template)
         files = [dashboard_path] if dashboard_path and os.path.exists(dashboard_path) else None

@@ -29,7 +29,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategic Alpha Ledger: {{SYMBOL}}</title>
+    <title>Strategic Alpha Dashboard: {{SYMBOL}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -45,7 +45,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         
         <div class="flex justify-between items-end border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Ledger</h1>
+                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Dashboard</h1>
                 <p class="text-slate-400 text-sm mt-1" id="gen-time-label">Generated: --</p>
             </div>
         </div>
@@ -283,27 +283,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }
             }
         });
-
-        new Chart(document.getElementById('distChart'), {
-            type: 'bar',
-            data: {
-                labels: bins.map(b => b.label),
-                datasets: [{
-                    label: 'Frequency',
-                    data: bins.map(b => b.count),
-                    backgroundColor: '#8b5cf6', 
-                    borderRadius: 4,
-                    barPercentage: 0.7
-                }]
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { ticks: { color: '#64748b' }, grid: { display: false } },
-                    y: { ticks: { color: '#64748b', stepSize: 1 }, grid: { color: '#334155' } }
-                }
-            }
         });
     </script>
 </body>
@@ -398,6 +377,8 @@ class ForensicDashboardGenerator:
             entry = float(limit_order.get("entry", 0))
             tp = float(limit_order.get("take_profit", 0))
             sl = float(limit_order.get("stop_loss", 0))
+            
+            tp_sl_result = market_outcome.get("trade_execution_metrics", {}).get("tp_sl_result", "NEITHER")
             
             if entry > 0:
                 if tp_sl_result == "TP_HIT":
