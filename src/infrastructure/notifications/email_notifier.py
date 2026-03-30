@@ -643,7 +643,7 @@ class StrategyNotifier:
         html_body = DashboardEmailTemplate.render(symbol, stats, dataset)
         
         # 3. Local Preview
-        saved_html = self.save_html_preview(f"{symbol}_ledger", html_body)
+        self.save_html_preview(f"{symbol}_ledger", html_body)
 
         if not self.enabled:
             return False
@@ -654,14 +654,10 @@ class StrategyNotifier:
         
         logger.info(f"Notifier: Dispatching ledger summary: {subject}")
         
-        # Optionally attach the html file and/or dashboard image
-        files = []
-        if dashboard_path and os.path.exists(dashboard_path):
-            files.append(dashboard_path)
-        if saved_html and os.path.exists(saved_html):
-            files.append(saved_html)
-            
-        return self.dispatcher.dispatch(subject, html_body, files=files if files else None)
+        # Attach the gorgeous interactive dashboard (Not the email template)
+        files = [dashboard_path] if dashboard_path and os.path.exists(dashboard_path) else None
+        
+        return self.dispatcher.dispatch(subject, html_body, files=files)
 
 if __name__ == "__main__":
     import argparse

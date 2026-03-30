@@ -62,7 +62,17 @@ def test_dashboard_notification():
     ]
     
     print(f"Generating Aggregate Dashboard HTML for {symbol}...")
-    notifier.notify_dashboard(symbol, mock_dataset)
+    
+    # Create a dummy dashboard HTML file to simulate the actual Forensic Dashboard Output
+    dummy_dashboard_path = os.path.join(project_root, "data/test/BTCUSDT_dummy_dashboard.html")
+    with open(dummy_dashboard_path, "w") as f:
+        f.write("<html><body><h1>GORGEOUS DASHBOARD SIMULATION</h1></body></html>")
+        
+    notifier.notify_dashboard(symbol, mock_dataset, dashboard_path=dummy_dashboard_path)
+    
+    # Cleanup dummy
+    if os.path.exists(dummy_dashboard_path):
+        os.remove(dummy_dashboard_path)
 
 if __name__ == "__main__":
     print("--- Starting Email Preview Tests ---")

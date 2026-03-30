@@ -152,14 +152,20 @@ class EmailDispatcher:
 
         # Attach Regular Files
         if files:
+            import mimetypes
             from email.mime.application import MIMEApplication
             for file_path in files:
                 if file_path and os.path.exists(file_path):
                     try:
-                        with open(file_path, 'rb') as f:
-                            part = MIMEApplication(f.read())
-                            part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
-                            msg.attach(part)
+                        mime_type, _ = mimetypes.guess_type(file_path)
+                        if mime_type == 'text/html':
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                part = MIMEText(f.read(), 'html', 'utf-8')
+                        else:
+                            with open(file_path, 'rb') as f:
+                                part = MIMEApplication(f.read())
+                        part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
+                        msg.attach(part)
                     except Exception as e:
                         logger.error(f"Dispatcher: Failed to attach file {file_path}: {e}")
 
