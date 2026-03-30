@@ -267,15 +267,13 @@ graph TD
     `python backtest.py backtest --start T-24d --end now --sampling 12 --mode regime`
 *   **等距回测 (Timeline Spaced)**: 在指定时间内按等距时间点均匀分布采样（过去24天到7天前）。
     `python backtest.py backtest --start T-24d --end T-7d --sampling 12 --mode spaced`
-*   **特定快照逻辑演化回放**: 针对某个特定的策略 JSON 进行逻辑复盘。
-    `python strategist_replay.py backtest --file [STRATEGY_JSON_PATH]`
 
 
 ### Phase 2: 法医调查与看板分析 (The Forensic Axis)
 *   **全量尸检**: 对所有已结束的单子进行法医级对齐与评分。
     `python reviewer.py prod`
 *   **定向法医复盘**: 针对特定失败/成功案例进行深度因果链回溯。
-    `python reviewer_replay.py prod --file [STRATEGY_JSON_PATH]`
+    `python reviewer.py prod --file [STRATEGY_JSON_PATH]`
 *   **策略逆向导出**: 将 Review 后的逻辑补丁导出为可读格式。
     `python export_strategy.py prod --file [REVIEW_JSON_PATH]`
 *   **可视化法医看板**: 启动本地 UI，可视化查看所有执行结果与 MAE/MFE 回撤。
