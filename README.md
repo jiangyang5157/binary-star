@@ -237,11 +237,11 @@ graph TD
 *   **实时生产执行**: 捕获当前时刻的物理视角并生成决策。
     `python strategist.py prod`
 *   **分层回测 (Regime-based Sampling)**: 在指定时间内按市场环境权重采样（过去24天到今天）。
-    `python backtest.py --start T-24d --end now --sampling 12 --mode regime`
+    `python backtest.py backtest --start T-24d --end now --sampling 12 --mode regime`
 *   **等距回测 (Timeline Spaced)**: 在指定时间内按等距时间点均匀分布采样（过去24天到7天前）。
-    `python backtest.py --start T-24d --end T-7d --sampling 12 --mode spaced`
+    `python backtest.py backtest --start T-24d --end T-7d --sampling 12 --mode spaced`
 *   **特定快照逻辑演化回放**: 针对某个特定的策略 JSON 进行逻辑复盘。
-    `python strategist_replay.py prod --file [STRATEGY_JSON_PATH]`
+    `python strategist_replay.py backtest --file [STRATEGY_JSON_PATH]`
 
 
 ### Phase 2: 法医调查与看板分析 (The Forensic Axis)
@@ -252,15 +252,15 @@ graph TD
 *   **策略逆向导出**: 将 Review 后的逻辑补丁导出为可读格式。
     `python export_strategy.py prod --file [REVIEW_JSON_PATH]`
 *   **可视化法医看板**: 启动本地 UI，可视化查看所有执行结果与 MAE/MFE 回撤。
-    `python forensic_dashboard.py prod --symbol BTCUSDT`
+    `python forensic_dashboard.py prod`
 
 
 ### Phase 3: 自动化演化循环 (The Evolutionary Axis)
 *   **全自动化编排**: 开启循环扫描模式，自动执行从 Observer 到 Strategist 的全链路。
-    `python pipeline_orchestrator.py live --symbol BTCUSDT --pulse 30 --mode scan`
+    `python pipeline_orchestrator.py live --pulse 60 --mode scan`
 *   **市场诊断服务 (静默监视)**: 仅在后台持续刷新真相总线，不消耗 Agent API 成本。
-    `python market_scanner_service.py live --symbol BTCUSDT --pulse 30`
+    `python market_scanner_service.py live --pulse 30`
 *   **诊断与进化合成**: 开启系统“自我反思”模式，由 Coach 自动合成逻辑补丁。
-    `python coach.py live --symbol BTCUSDT`
+    `python coach.py live`
 *   **应用逻辑补丁**: 将 Coach 生成的 `.patch` 物理硬化到 Prompt 或 Config 中。
     `python apply_patch.py --file [PATCH_PATH]`
