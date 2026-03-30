@@ -25,7 +25,7 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 6. **THE POC MAGNET RULE**: Absolute rule for Mean-Reversion trades. If absolute `poc_dist_atr` > `{regime_poc_magnet_atr_threshold}`, your `take_profit` MUST be fixed to the `POC`.
 7. **THE BREAKOUT PARTICIPATION PROTOCOL**: If `squeeze_factor` < `{regime_squeeze_threshold}` and `volatility_ratio` > `{regime_volatility_expansion_ratio}`, project entry at `Boundary +/- ({regime_breakout_buffer_atr} * ATR)`. If momentum is extreme (`trend_intensity` > `{regime_trend_intensity_strong}`), prioritize speed over retests.
 8. **TEMPORAL EXPECTATION**: `holding_time_hours` = `abs(take_profit - entry) / (atr_macro * max(trend_intensity, {min_trade_velocity}))`. Do NOT use `atr_micro` for time projection. *(Note: Python execution scales this inherently).*
-9. **CONFIDENCE CALIBRATION LAW**: Start at >75%. Apply **[LOGICAL_ATTRITION]** (-5 to -30 points) for every friction point: Macro/Micro conflict, negative CVD, or Scenario-based DLE.
+9. **CONFIDENCE CALIBRATION LAW**: Start at >{score_confidence_base}%. Apply **[LOGICAL_ATTRITION]** (-{score_confidence_decay_min} to -{score_confidence_decay_max} points) for every friction point: Macro/Micro conflict, negative CVD, or Scenario-based DLE.
 10. **DEFENSIVE LIMIT ORDER PROTOCOL (DLE)**: 
     - **Step 1 (Traverse)**: Traverse Topography to find the **Next Distal Anchor**.
     - **Step 2 (Inverse Risk)**: Define SL behind the new anchor -> Identify fixed TP -> Calculate Max Entry Price using: `Entry = SL +/- (abs(take_profit - stop_loss) / (Min_RR + 1))`. **(Use `{regime_min_rr_ranging}` or `{regime_min_rr_trending}` for Min_RR).**

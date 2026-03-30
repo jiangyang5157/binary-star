@@ -22,6 +22,9 @@ class StrategistConfig:
     min_trade_velocity: float
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
+    score_confidence_base: float
+    score_confidence_decay_min: float
+    score_confidence_decay_max: float
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -56,6 +59,9 @@ class StrategistConfig:
             min_trade_velocity=float(strat['min_trade_velocity']),
             stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
+            score_confidence_base=float(strat['score_confidence_base']),
+            score_confidence_decay_min=float(strat['score_confidence_decay_min']),
+            score_confidence_decay_max=float(strat['score_confidence_decay_max']),
             strategy_intent=str(full_config['strategy_intent']),
             macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
             micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval']),
@@ -178,7 +184,10 @@ class StrategistAgent(BaseAgent):
             "regime_volume_baseline_ratio": self.config.regime_volume_baseline_ratio,
             "regime_squeeze_threshold": self.config.regime_squeeze_threshold,
             "regime_breakout_buffer_atr": self.config.regime_breakout_buffer_atr,
-            "regime_poc_magnet_atr_threshold": self.config.regime_poc_magnet_atr_threshold
+            "regime_poc_magnet_atr_threshold": self.config.regime_poc_magnet_atr_threshold,
+            "score_confidence_base": self.config.score_confidence_base,
+            "score_confidence_decay_min": self.config.score_confidence_decay_min,
+            "score_confidence_decay_max": self.config.score_confidence_decay_max
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
