@@ -61,7 +61,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 Execute a chronological forensic autopsy:
 
 1.  **Trajectory Reconstruction**: Contrast T0 Visuals/Telemetry with **`market_context`** (Telemetry + `visual_evidence`). Define the objective market reality (What actually happened?). Identify any significant volatility shifts (`atr_t0` vs `atr_t1`).
-2.  **Protocol Compliance Audit**: Cross-reference the agents' actions against the Laws. Extract `entry_price`, `stop_loss`, `take_profit` from **Pass-3 SYNTHESIS**. Manually re-verify RR and buffers using **`atr_macro` (T0)** for planning compliance, but acknowledge **`market_context['max_atr_used']`** for execution state evaluation. Prove compliance dynamically.
+2.  **Protocol Compliance Audit**: Cross-reference the agents' actions against the Laws. Extract `entry_price`, `stop_loss`, `take_profit` from **Pass-3 SYNTHESIS**. Manually re-verify RR and buffers using **`atr_macro` (T0)** for planning compliance, but acknowledge **`max_atr_used`** for execution state evaluation. Prove compliance dynamically.
 3.  **Decision Chain Autopsy**: 
     - DRAFTING (Pass-1): Isolate confirmation bias.
     - CRITIQUE (Pass-2): Did it identify the real threat?

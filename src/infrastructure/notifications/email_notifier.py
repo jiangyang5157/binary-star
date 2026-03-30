@@ -223,6 +223,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
         confidence = decision.get("confidence", 0)
         
         # Outcome styling
+        metrics = outcome.get("trade_execution_metrics") or {}
         result_type = outcome.get("tp_sl_result", "NEITHER")
         
         result_colors = {"TP_HIT": "#10b981", "SL_HIT": "#ef4444", "NEITHER": "#64748b"}
