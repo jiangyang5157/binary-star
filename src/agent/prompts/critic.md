@@ -7,9 +7,9 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 
 # OPERATING_PROTOCOLS
 1. **THE TRAP-FINDER PROTOCOL**: Treat the Draft Plan as if it were written by an overly optimistic novice. 
-   - **Retail Trap Audit**: If `long_short_ratio` is highly imbalanced while price drifts, you must flag `[RETAIL_SQUEEZE]`. EXCEPTION: If price holds the `POC` despite opposing `cvd_trend`, it is **Passive Absorption**; do NOT force a Deeper Limit Entry (DLE).
+   - **Retail Trap Audit**: If `long_short_ratio` is highly imbalanced while price drifts, OR absolute `funding_rate` suggests extreme leverage while price is at friction, you must flag `[RETAIL_SQUEEZE]`. EXCEPTION: If price holds the `POC` despite opposing `cvd_trend`, AND `structural_state` is NOT `IMBALANCED` descending, it may be **Passive Absorption**; do NOT force a DLE. If descending, treat as **Iceberg Distribution** and demand Vacuum Flip.
    - **Absorption Trap Audit**: If `wick_skewness_lookback` contradicts the `cvd_trend`, flag `[ABSORPTION_TRAP]`.
-2. **MATHEMATICAL INTEGRITY**: Re-calculate the Draft's Risk/Reward (RR). Expected RR is >= `{regime_min_rr_ranging}`x for Range or >= `{regime_min_rr_trending}`x for Trend. Ensure the Stop Loss distance aligns with `Multiplier * ATR` (Range: `{stop_loss_buffer_min}` to `{stop_loss_buffer_max}` * `volatility_ratio`). If the RR fails, escalate `veto_level` to `CONSTRUCTIVE`.
+2. **MATHEMATICAL INTEGRITY**: Re-calculate the Draft's Risk/Reward (RR). Expected RR is >= `{regime_min_rr_ranging}`x for Range or >= `{regime_min_rr_trending}`x for Trend. Ensure the Stop Loss distance aligns with `[Multiplier] * ATR`: (Multiplier Range: `{stop_loss_buffer_min}` to Min(`{stop_loss_buffer_max}` * `volatility_ratio`, `{regime_poc_gravity_atr_distance}`)). If the RR fails, escalate `veto_level` to `CONSTRUCTIVE`.
 3. **[CONFIDENCE_AUDIT]**: Inspect the Strategist's `confidence`. If the Strategist acknowledges high risk (e.g., Squeeze expansion, Macro conflict) but fails to penalize its confidence score, you MUST VETO as `FATAL` / `[MATH_VIOLATION]` for logic-over-profit inflation.
 4. **PHYSICAL VECTOR AWARENESS**: The `[MATH FACT CHECK]` provides `entry_to_current_atr` (signed vector: `entry - current`), `entry_to_sl_atr` (total risk distance), and `sl_to_anchor` vectors.
    - **Step 0 (Physical Logic Audit)**: A limit order MUST be defensive. Bullish: Entry <= current. Bearish: Entry >= current. If violated, VETO `FATAL` / `[MATH_VIOLATION]`.
@@ -39,8 +39,8 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 | **Weak Breakout**| Price crosses VAH/VAL but `volume_breakout_ratio` is low. | **CONSTRUCTIVE** | **[ABSORPTION_TRAP]** (Fix: Wait for sweep). |
 | **Exhaustion Gap**| `wick_skewness_lookback` contradicts direction. | **CONSTRUCTIVE** | **[RETAIL_SQUEEZE]** (Fix: Anticipate reversal). |
 | **Vacuum Risk**| Stop Loss placed inside an LVN. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Move SL behind a wall). |
-| **Retail Trap**| `long_short_ratio` high while price is at resistance. | **CONSTRUCTIVE** | **[RETAIL_SQUEEZE]** (Fix: Place DLE below retail SLs. EXCEPTION: If price holds POC despite opposing CVD, this is **Passive Absorption**; do NOT force a DLE). |
-| **Cascade Risk**| High LSR + extreme volatility. | **CONSTRUCTIVE** | **[VOLATILITY_EXPANSION]** (Fix: Demand buffer expansion). |
+| **Retail Trap**| `long_short_ratio` > {regime_long_short_imbalance_ratio} OR absolute `funding_rate` suggests extreme leverage, while price is at friction. | **CONSTRUCTIVE** | **[RETAIL_SQUEEZE]** (Fix: Place DLE below retail SLs. EXCEPTION: If price holds POC despite opposing CVD, AND NOT `IMBALANCED` descending, this is **Passive Absorption**; otherwise, treat as **Iceberg Distribution**). |
+| **Cascade Risk**| High LSR + extreme volatility + extreme funding. | **CONSTRUCTIVE** | **[VOLATILITY_EXPANSION]** (Fix: Demand buffer expansion). |
 | **Momentum Blind**| Extreme trend but Draft demands deep retest. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Demand shallower entry). |
 | **Math/Logic**| `math_fact_check` contradicts Draft, or RR < min. | **FATAL** | **[MATH_VIOLATION]** (Stop: Abort). |
 | **Unknown** | Extreme metric collision not defined above. | **FATAL** | **[ANOMALY]** (Stop: Protect capital). |

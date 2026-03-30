@@ -11,7 +11,7 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
     - **Physical Boundary**: Your limit order MUST be defensive. **BULLISH**: `entry` MUST BE <= `current_price`. **BEARISH**: `entry` MUST BE >= `current_price`.
     - **Constraint**: If your trade violates these boundaries (instant fill), it's a logical failure. Use the **DEFENSIVE LIMIT ORDER PROTOCOL** to find a deeper valid level or stay `NEUTRAL`.
 3. **STRUCTURAL ANCHORING & ULTIMATE FLOOR**: Stop Loss (SL) must be placed behind a major structural anchor (`POC`/`VAL`/`VAH`) using a **Dynamic ATR Buffer**.
-    - **Buffer Calculation**: SL Distance = `[Multiplier] * ATR`. (Multiplier range: **`{stop_loss_buffer_min}`** to **(`{stop_loss_buffer_max}` * `volatility_ratio`)**).
+    - **Buffer Calculation**: SL Distance = `[Multiplier] * ATR`: (Multiplier Range: `{stop_loss_buffer_min}` to Min(`{stop_loss_buffer_max}` * `volatility_ratio`, `{regime_poc_gravity_atr_distance}`)).
     - **Regime Awareness**: In `RANGING` regimes with `volatility_ratio` > `{regime_volatility_baseline_ratio}` OR `TRENDING` regimes, anchor SL beyond `VAH`/`VAL` edges or distal HVNs, not the `POC`.
     - **Liquidity Shield**: If `volatility_ratio` > `{regime_volatility_extreme_ratio}` AND `long_short_ratio` > `{regime_long_short_imbalance_ratio}`, anchor SL behind a distal HVN.
     - **Vacuum Recovery**: If no HVNs exist, fallback to VAL/VAH. If price penetrates the boundary, activate **DEFENSIVE LIMIT ORDER PROTOCOL** to find a distal anchor.
@@ -37,7 +37,7 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 | Parameter | Constraint Rule | Strategic Intent |
 | :--- | :--- | :--- |
 | **Dynamic Min RR** | **>= `{regime_min_rr_ranging}`x** (`RANGING`) OR **>= `{regime_min_rr_trending}`x** (`TRENDING`) | Mean-reversion allows lower RR; Breakouts require higher RR. |
-| **SL Placement** | `Multiplier * ATR` (Range: `{stop_loss_buffer_min}` to `{stop_loss_buffer_max}` * `volatility_ratio`) | SL MUST be hidden behind a structural wall. |
+| **SL Placement** | `[Multiplier] * ATR`: (Multiplier Range: `{stop_loss_buffer_min}` to Min(`{stop_loss_buffer_max}` * `volatility_ratio`, `{regime_poc_gravity_atr_distance}`)) | SL MUST be hidden behind a structural wall. |
 | **TP Target** | Next Structural Node | Target nearest opposing HVN (friction) or LVN (vacuum). |
 | **Vol Confirmation**| `volume_breakout_ratio` > `{regime_volume_breakout_threshold}` | Required ONLY for Trend/Momentum continuation. |
 | **Exhaustion Gap**| `wick_skewness_lookback` vs direction (e.g., > `{regime_wick_skewness_exhaustion}` on L; < -`{regime_wick_skewness_exhaustion}` on S). | Analyzed over **`{order_flow_lookback_hours}`h**. Trigger `[RETAIL_SQUEEZE]`. |
@@ -81,6 +81,6 @@ Output RAW JSON only. The first character of your response MUST be `{{` and the 
         "rr_ratio": decimal,
         "holding_time_hours": decimal
     }},
-    "reasoning": "Mathematical Scratchpad: [Base] +/- ([Multiplier] * [ATR] * [volatility_ratio]) = [Price] | RR: [Ratio] | Pivot Vectoring: [Entry] | Logic Flow...",
+    "reasoning": "Mathematical Scratchpad: [Base] +/- ([Multiplier] * [ATR]) = [Price] (Multiplier: min(max*ratio, gravity)) | RR: [Ratio] | Pivot Vectoring: [Entry] | Logic Flow...",
     "critic_impact": "Summary of how critic changed the plan (Must be null in PHASE A)"
 }}
