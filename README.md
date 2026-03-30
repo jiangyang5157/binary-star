@@ -160,6 +160,7 @@ graph TD
 | `regime_wick_skewness_exhaustion` | **影线衰竭值**。 | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
 | `regime_min_rr_ranging / trending` | **动态生存 RR**。 | 震荡市允许 1.2+，趋势市严求 1.8+。 |
 | `regime_cvd_slope_threshold` | **买卖意愿斜率**。 | 衡量 Taker 攻击的垂直烈度。 |
+| `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值**。 | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC，防止盈利回吐。 |
 | `regime_squeeze_threshold` | **挤压临界值**。 | 判定能量蓄积是否到达爆发临界。 |
 
 ### 6. 执行与风险硬化 (Execution Law)
