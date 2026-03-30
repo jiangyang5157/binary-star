@@ -67,7 +67,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         <div class="card">
             <h2 class="text-lg font-semibold mb-4 text-slate-200">Samples Distribution</h2>
-            <p class="text-xs text-slate-400 mb-4">Bubble Radius = Target Holding Time | Green: TP_HIT | Red: SL_HIT | Gray: EXPIRED/NEITHER</p>
+            <p class="text-xs text-slate-400 mb-4">Bubble Radius = Target Holding Time | Green: TP_HIT | Red: SL_HIT | Dark Gray: EXPIRED (FLAT) | Light Gray: UNFILLED</p>
             <div class="relative h-[450px]">
                 <canvas id="timelineChart"></canvas>
             </div>
@@ -133,14 +133,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         // 2. Render JSON Dump
         document.getElementById('json-dump').textContent = JSON.stringify(RAW_DATA, null, 2);
 
-        // 3. Compute KPIs
-        const executedTrades = RAW_DATA.filter(d => d.tp_sl_result === 'TP_HIT' || d.tp_sl_result === 'SL_HIT' || d.tp_sl_result === 'NEITHER');
+        // 3. Compute KPIs (Win Rate calculated ONLY for trades that were actually filled)
+        const totalSamples = RAW_DATA.length;
+        const executedTrades = RAW_DATA.filter(d => d.is_filled);
         const wins = executedTrades.filter(d => d.tp_sl_result === 'TP_HIT');
         
         let netPnl = 0;
         executedTrades.forEach(t => netPnl += t.estimated_pnl_pct);
 
-        document.getElementById('kpi-executed').innerText = executedTrades.length;
+        document.getElementById('kpi-executed').innerText = `${executedTrades.length} / ${totalSamples}`;
         document.getElementById('kpi-winrate').innerText = executedTrades.length > 0 ? ((wins.length / executedTrades.length) * 100).toFixed(1) + '%' : '0%';
         
         const pnlEl = document.getElementById('kpi-pnl');
@@ -149,7 +150,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         // 4. Timeline Bubble Chart (Temporal)
         const bubbleData = RAW_DATA.map((d) => {
-            let color = 'rgba(148, 163, 184, 0.6)'; // Gray (Neutral/expired)
+            let color = 'rgba(148, 163, 184, 0.4)'; // Light Gray (UNFILLED)
+            if (d.is_filled && d.tp_sl_result === 'NEITHER') color = 'rgba(71, 85, 105, 0.6)'; // Dark Gray (EXPIRED)
             if (d.tp_sl_result === 'TP_HIT') color = 'rgba(52, 211, 153, 0.7)'; // Emerald
             if (d.tp_sl_result === 'SL_HIT') color = 'rgba(251, 113, 133, 0.7)'; // Rose
             
@@ -378,6 +380,7 @@ class ForensicDashboardGenerator:
             sl = float(limit_order.get("stop_loss", 0))
             
             tp_sl_result = market_outcome.get("tp_sl_result", "NEITHER")
+            is_filled = market_outcome.get("is_filled", False)
             
             if entry > 0:
                 if tp_sl_result == "TP_HIT":
@@ -389,6 +392,7 @@ class ForensicDashboardGenerator:
                 "name": filename,
                 "observation_time": start_time,
                 "holding_time_hours": holding_time_hours,
+                "is_filled": is_filled,
                 "tp_sl_result": tp_sl_result,
                 "estimated_pnl_pct": round(float(est_pnl_pct), 2),
                 "confidence": confidence

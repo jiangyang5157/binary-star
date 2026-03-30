@@ -123,7 +123,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 20%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Temporal Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours', 0))}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>
@@ -224,12 +224,17 @@ class ReviewEmailTemplate(BaseEmailTemplate):
         
         # Outcome styling
         metrics = outcome.get("trade_execution_metrics") or {}
+        is_filled = outcome.get("is_filled", False)
         result_type = outcome.get("tp_sl_result", "NEITHER")
         
-        result_colors = {"TP_HIT": "#10b981", "SL_HIT": "#ef4444", "NEITHER": "#64748b"}
-        result_labels = {"TP_HIT": "PROFIT (TP)", "SL_HIT": "LOSS (SL)", "NEITHER": "FLAT (NEITHER)"}
-        res_color = result_colors.get(result_type, "#64748b")
-        res_label = result_labels.get(result_type, "PENDING / N/A")
+        if not is_filled:
+            res_color = "#94a3b8"  # Slate 400
+            res_label = "UNFILLED"
+        else:
+            result_colors = {"TP_HIT": "#10b981", "SL_HIT": "#ef4444", "NEITHER": "#64748b"}
+            result_labels = {"TP_HIT": "PROFIT (TP)", "SL_HIT": "LOSS (SL)", "NEITHER": "EXPIRED (FLAT)"}
+            res_color = result_colors.get(result_type, "#64748b")
+            res_label = result_labels.get(result_type, "PENDING")
         
         fmt = ReviewEmailTemplate.fmt
         
@@ -263,7 +268,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                         <tr>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">📐 Price Change</span>
-                                <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if outcome.get('total_price_change_pct', 0) >= 0 else '#ef4444'};">
+                                <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if (outcome.get('total_price_change_pct') or 0) >= 0 else '#ef4444'};">
                                     {fmt(outcome.get('total_price_change_pct'))}%
                                 </div>
                             </td>
@@ -290,7 +295,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>
-                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{ReviewEmailTemplate.format_duration(metrics.get('actual_hours', 0))}</div>
+                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{ReviewEmailTemplate.format_duration(metrics.get('actual_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>
@@ -383,7 +388,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
         recent_items = dataset[max(0, len(dataset)-limit):] if len(dataset) > limit else dataset
         for item in recent_items:
             res_color = "#10b981" if item['tp_sl_result'] == 'TP_HIT' else "#ef4444" if item['tp_sl_result'] == 'SL_HIT' else "#64748b"
-            pnl_val = float(item.get('estimated_pnl_pct', 0.0))
+            pnl_val = float(item.get('estimated_pnl_pct') or 0.0)
             p_sign = "+" if pnl_val > 0 else ""
             
             rows_html += f"""

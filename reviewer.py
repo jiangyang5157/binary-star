@@ -67,6 +67,7 @@ class OutcomeCalculator:
         # 2. Results baseline (Initialized as null for non-filled trades)
         result = {
             "tp_sl_result": "NEITHER",
+            "is_filled": False,
             "entry_price_at_t0": entry_price,
             "highest_reached_price": None,
             "lowest_reached_price": None,
@@ -83,9 +84,9 @@ class OutcomeCalculator:
         # Only process execution metrics for Directional orders
         if opinion in ('BULLISH', 'BEARISH'):
             limit_order = strategy.get('limit_order') or {}
-            target_entry = float(limit_order.get('entry', entry_price))
-            tp = float(limit_order.get('take_profit', 0))
-            sl = float(limit_order.get('stop_loss', 0))
+            target_entry = float(limit_order.get('entry') or entry_price)
+            tp = float(limit_order.get('take_profit') or 0)
+            sl = float(limit_order.get('stop_loss') or 0)
             
             if tp > 0 and sl > 0:
                 entry_hit = False
@@ -135,6 +136,7 @@ class OutcomeCalculator:
                     time_multiplier = round(actual_hours / estimated_hours, 2) if estimated_hours > 0 else 0
                     
                     # Update top-level outcome to reflect "Trade Exposure Only"
+                    result["is_filled"] = True
                     result["tp_sl_result"] = hit_result
                     result["highest_reached_price"] = max_after
                     result["lowest_reached_price"] = min_after
@@ -311,13 +313,13 @@ class ReviewerOrchestrator:
             # 1. Fetch & Calculate Outcome
             metrics = session.get("observation", {}).get("quantitative_metrics", {})
             price_dynamics = metrics.get("price_dynamics", {})
-            atr_macro_t0 = float(price_dynamics.get("atr_macro", 0))
+            atr_macro_t0 = float(price_dynamics.get("atr_macro") or 0)
             interval_hours = interval_seconds / 3600
             
             # Use the target entry from the strategy if available, fallback to first kline's open
             strategy_obj = session.get("final_decision", {})
             limit_order = strategy_obj.get("limit_order") or {}
-            target_entry = float(limit_order.get("entry", klines[0][1]))
+            target_entry = float(limit_order.get("entry") or klines[0][1])
             
             # Multimedia & Visual Forensic Context (T1 Data)
             if symbol not in self.observers:
@@ -326,7 +328,7 @@ class ReviewerOrchestrator:
             
             current_metrics = current_obs.get("quantitative_metrics", {})
             current_price_dynamics = current_metrics.get("price_dynamics", {})
-            atr_macro_t1 = float(current_price_dynamics.get("atr_macro", 0))
+            atr_macro_t1 = float(current_price_dynamics.get("atr_macro") or 0)
             
             # 2. Execute Outcome Calculation (Decoupled Time and Space)
             outcome = OutcomeCalculator.calculate(

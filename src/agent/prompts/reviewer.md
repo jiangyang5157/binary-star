@@ -17,7 +17,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
    - **Planning Compliance**: Use **`atr_macro` from the `[T0 Environment]`** to manually re-verify the initial compliance of the Risk/Reward (RR) and structural buffers. Did the agents follow the laws using the facts available *at the time of decision*?
    - **Execution Survival**: However, when evaluating the execution survival space (e.g., `mae_atr_ratio`), you MUST use the **`max_atr_used`** (the maximum `atr_macro` recorded between T0 and T1) to accurately reflect the true physical stress of the holding period. This prevents the "Lagging Indicator Paradox" where volatility expansion during the trade makes healthy pullbacks look like logic failures.
    - **Unified Standard**: Do NOT use `atr_micro` for score verification. The `math_check` in **Pass-2 CRITIQUE** was for an obsolete draft; do not use it to judge final compliance.
-6. **MISSING DATA PROTOCOL**: If any metric is `null`, it marks a **NON-ENTRY EVENT** or data unavailability. Explicitly state '[Metric Name] Unavailable/Not Triggered'. Do not calculate or hallucinate missing values. Proceed with remaining data.
+6. **MISSING DATA PROTOCOL**: If `is_filled` is `false`, it marks a **NON-ENTRY EVENT**. In this state, `MAE`, `MFE`, and `total_price_change_pct` will be `null`. This is mathematically correct; do not calculate or hallucinate values. Proceed by judging the **Opportunity Cost** based on `missed_relative_range`. If any other metric is `null` despite `is_filled: true`, it marks data unavailability.
 
 # REFERENCE_DECODING
 **SCORING LAW**: Use this rigid formula to calculate the final `evaluation_score` (Clamp 0-100). **TRUST the pre-calculated metrics in `Ground Truth Execution`. DO NOT recalculate them.**
@@ -26,9 +26,10 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 | :--- | :--- | :--- |
 | **1. Base Action** | **`tp_sl_result` is `TP_HIT`**: Core hypothesis validated. | Base: +`{point_base_tp_hit}` |
 | | **`tp_sl_result` is `SL_HIT`**: Hypothesis failed, but risk was defined. | Base: +`{point_base_sl_hit}` |
-| | **`tp_sl_result` is `NEITHER` (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +`{point_base_neutral_valid}` (Capital preserved) |
-| | **`tp_sl_result` is `NEITHER` (Marginal)**: `missed_relative_range` 1.0 - `{score_opportunity_cost_limit}`. | Base: +0 (Indecisive market) |
-| | **`tp_sl_result` is `NEITHER` (Missed)**: `missed_relative_range` > `{score_opportunity_cost_limit}`. | Penalty: `{point_penalty_opportunity_cost}` (Waived to +0 if `NEUTRAL` was Justified Surrender). |
+| | **`NEITHER` (`is_filled: true`)**: (Expired/Flat) Entered but window closed. | Base: +`{point_base_neutral_valid}` (Capital preserved) |
+| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` < 1.0 (Valid Wait). | Base: +`{point_base_neutral_valid}` |
+| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` 1.0 - `{score_opportunity_cost_limit}` (Marginal). | Base: +0 |
+| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` > `{score_opportunity_cost_limit}` (Missed Opportunity). | Penalty: `{point_penalty_opportunity_cost}` (Waived to +0 if `NEUTRAL` was Justified Surrender). |
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +`{point_base_tp_hit}` |
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
 | | **Luck**: `mae_stress_level` is `{score_mae_standard_limit}`% - `{score_mae_logic_failure_limit}`%. | +0 (Saved by noise) |
