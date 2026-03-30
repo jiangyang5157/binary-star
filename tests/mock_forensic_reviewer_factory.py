@@ -12,7 +12,7 @@ import os
 import random
 from datetime import datetime, timedelta
 
-def create_mock(filename, opinion, result, is_premature, confidence=None, timestamp=None):
+def create_mock(filename, opinion, result, is_premature, is_filled=True, confidence=None, timestamp=None):
     if timestamp is None:
         timestamp = (datetime.utcnow() - timedelta(hours=random.randint(1, 24))).isoformat() + "Z"
     
@@ -39,6 +39,7 @@ def create_mock(filename, opinion, result, is_premature, confidence=None, timest
         },
         "market_outcome": {
             "tp_sl_result": result,
+            "is_filled": is_filled,
             "intercept_status": {
                 "is_intercepted": is_premature,
                 "reason": "PREMATURE_WINDOW" if is_premature else "NONE"
@@ -65,7 +66,7 @@ def create_mock(filename, opinion, result, is_premature, confidence=None, timest
     path = os.path.join(target_dir, filename)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
-    print(f"Generated: {path} (Opinion: {opinion}, Result: {result}, Premature: {is_premature})")
+    print(f"Generated: {path} (Opinion: {opinion}, Result: {result}, Filled: {is_filled}, Premature: {is_premature})")
 
 if __name__ == "__main__":
     # 1. Clear previous mocks for a fresh run
@@ -76,11 +77,12 @@ if __name__ == "__main__":
                 os.remove(os.path.join(target_dir, f))
                 
     # 2. Generate new diverse mocks
-    create_mock("BTCUSDT_reviewers_mock_tp1.json", "BULLISH", "TP_HIT", False, confidence=88.5)
-    create_mock("BTCUSDT_reviewers_mock_tp2.json", "BEARISH", "TP_HIT", False, confidence=91.0)
-    create_mock("BTCUSDT_reviewers_mock_sl1.json", "BULLISH", "SL_HIT", False, confidence=42.0)
-    create_mock("BTCUSDT_reviewers_mock_sl2.json", "BEARISH", "SL_HIT", False, confidence=55.0)
-    create_mock("BTCUSDT_reviewers_mock_expired1.json", "BULLISH", "NEITHER", False, confidence=65.0)
-    create_mock("BTCUSDT_reviewers_mock_expired2.json", "BEARISH", "NEITHER", False, confidence=58.0)
-    create_mock("BTCUSDT_reviewers_mock_pending1.json", "BULLISH", "NEITHER", True, confidence=77.0)
-    create_mock("BTCUSDT_reviewers_mock_neutral1.json", "NEUTRAL", "TP_HIT", False, confidence=50.0)
+    create_mock("BTCUSDT_reviewers_mock_tp1.json", "BULLISH", "TP_HIT", False, is_filled=True, confidence=88.5)
+    create_mock("BTCUSDT_reviewers_mock_tp2.json", "BEARISH", "TP_HIT", False, is_filled=True, confidence=91.0)
+    create_mock("BTCUSDT_reviewers_mock_sl1.json", "BULLISH", "SL_HIT", False, is_filled=True, confidence=42.0)
+    create_mock("BTCUSDT_reviewers_mock_sl2.json", "BEARISH", "SL_HIT", False, is_filled=True, confidence=55.0)
+    create_mock("BTCUSDT_reviewers_mock_expired1.json", "BULLISH", "NEITHER", False, is_filled=True, confidence=65.0)
+    create_mock("BTCUSDT_reviewers_mock_expired2.json", "BEARISH", "NEITHER", False, is_filled=True, confidence=58.0)
+    create_mock("BTCUSDT_reviewers_mock_unfilled1.json", "BULLISH", "NEITHER", False, is_filled=False, confidence=72.0)
+    create_mock("BTCUSDT_reviewers_mock_pending1.json", "BULLISH", "NEITHER", True, is_filled=True, confidence=77.0)
+    create_mock("BTCUSDT_reviewers_mock_neutral1.json", "NEUTRAL", "TP_HIT", False, is_filled=True, confidence=50.0)

@@ -32,6 +32,7 @@ def generate_tp(data_root, index, symbol="BTCUSDT", base_time=None):
         },
         "market_outcome": { 
           "tp_sl_result": "TP_HIT", 
+          "is_filled": True,
           "intercept_status": { "is_intercepted": False, "reason": "NONE" },
           "market_context": { "max_atr_used": 1.2, "atr_t0": 100.0, "atr_t1": 105.0 },
           "trade_execution_metrics": { "mae_stress_level": 12.5, "mfe_efficiency": 95.0, "actual_hours": 3.2 }
@@ -59,6 +60,7 @@ def generate_sl(data_root, index, symbol="BTCUSDT", base_time=None):
         },
         "market_outcome": { 
           "tp_sl_result": "SL_HIT", 
+          "is_filled": True,
           "intercept_status": { "is_intercepted": False, "reason": "NONE" },
           "market_context": { "max_atr_used": 1.5, "atr_t0": 100.0, "atr_t1": 102.0 },
           "trade_execution_metrics": { "mae_stress_level": 100.0, "mfe_efficiency": 15.0, "actual_hours": 1.5 }
@@ -118,9 +120,10 @@ def generate_pending(data_root, index, symbol="BTCUSDT", base_time=None):
     report = {
         "market_outcome": { 
           "tp_sl_result": "NEITHER", 
+          "is_filled": False,
           "intercept_status": { "is_intercepted": True, "reason": "PREMATURE_WINDOW" },
           "market_context": { "max_atr_used": 0.1, "atr_t0": 100.0, "atr_t1": 100.0 },
-          "trade_execution_metrics": { "mae_stress_level": null, "mfe_efficiency": null, "actual_hours": 0.1 }
+          "trade_execution_metrics": { "mae_stress_level": None, "mfe_efficiency": None, "actual_hours": 0.1 }
         }
     }
     _save_report(data_root, filename, report)

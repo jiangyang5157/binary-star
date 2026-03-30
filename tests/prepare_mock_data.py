@@ -45,6 +45,7 @@ def generate_mock_environment(data_root, count=5):
             "strategy_session": strat_session,
             "market_outcome": {
                 "tp_sl_result": "TP_HIT" if i % 2 == 0 else "SL_HIT",
+                "is_filled": True,
                 "intercept_status": {"is_intercepted": False, "reason": "NONE"},
                 "market_context": {
                     "atr_t0": 100.0,

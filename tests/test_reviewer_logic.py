@@ -39,6 +39,7 @@ def test_reviewer_re_audits_stub(mock_orchestrator):
     stub_data = {
         "market_outcome": {
             "tp_sl_result": "NEITHER",
+            "is_filled": False,
             "intercept_status": {
                 "is_intercepted": True
             }
@@ -75,6 +76,7 @@ def test_reviewer_skips_finalized_audit(mock_orchestrator):
     full_data = {
         "market_outcome": {
             "tp_sl_result": "TP_HIT",
+            "is_filled": True,
             "intercept_status": {
                 "is_intercepted": False
             }
