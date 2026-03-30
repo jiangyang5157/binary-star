@@ -45,7 +45,7 @@ def generate_mock_environment(data_root, count=5):
             "strategy_session": strat_session,
             "market_outcome": {
                 "trade_execution_metrics": {
-                    "tp_sl_result": "TP" if i % 2 == 0 else "SL_HIT",
+                    "tp_sl_result": "TP_HIT" if i % 2 == 0 else "SL_HIT",
                     "pnl_net": 2000.0 if i % 2 == 0 else -1000.0,
                     "is_premature_audit": False
                 }

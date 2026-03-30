@@ -77,10 +77,10 @@ class CoachOrchestrator:
         dashboard_res = dashboard_generator.generate(symbol, notify=False)
         dashboard_path, dashboard_dataset = dashboard_res if dashboard_res else (None, [])
 
-        # 5. Consolidated Notification (AI Analysis + Interactive Dashboard)
+        # 5. Consolidated Notification (AI Analysis saved to patch, Interactive Dashboard sent as update)
         if raw_analysis and dashboard_dataset:
             notifier = StrategyNotifier(data_root=self.data_root)
-            notifier.notify_coach(symbol, raw_analysis, dashboard_dataset, dashboard_path)
+            notifier.notify_dashboard(symbol, dashboard_dataset, dashboard_path)
 
         # 6. Archive the Strategic Patch & Move Sources
         if raw_analysis:

@@ -80,7 +80,7 @@ def test_reviewer_skips_finalized_audit(mock_orchestrator):
                 "is_intercepted": False
             },
             "trade_execution_metrics": {
-                "tp_sl_result": "TAKE_PROFIT"
+                "tp_sl_result": "TP_HIT"
             }
         }
     }

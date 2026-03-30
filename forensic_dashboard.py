@@ -283,7 +283,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 }
             }
         });
-        });
     </script>
 </body>
 </html>
