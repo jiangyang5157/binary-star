@@ -259,8 +259,8 @@ class MarketMetricsRefiner:
         
         return {
             "current_price": c,
-            "atr_macro": atr_m,
-            "atr_micro": atr_n,
+            "atr_macro": round(atr_m, 2) if isinstance(atr_m, float) else atr_m,
+            "atr_micro": round(atr_n, 2) if isinstance(atr_n, float) else atr_n,
             "latest_wick_skew": f"{wick_skew:.2f}",
             "volatility_ratio": f"{volatility_ratio:.2f}",
             "volatility_intensity_index": f"{vol_intensity:.2f}" # > 1.0 means current volatility is expanding beyond its own average

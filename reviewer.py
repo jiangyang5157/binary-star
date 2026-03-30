@@ -58,9 +58,9 @@ class OutcomeCalculator:
             "total_move_pct": round(((final_close - entry_price) / entry_price) * 100, 2),
             "missed_relative_range": round(rel_range, 2),
             "audit_duration_candles": len(klines),
-            "atr_t0": atr_macro_t0,
-            "atr_t1": atr_macro_t1,
-            "max_atr_used": max_atr,
+            "atr_t0": round(atr_macro_t0, 2),
+            "atr_t1": round(atr_macro_t1, 2),
+            "max_atr_used": round(max_atr, 2),
             "visual_evidence": {} # To be populated by Orchestrator
         }
 
@@ -146,7 +146,7 @@ class OutcomeCalculator:
 
                     result["trade_execution_metrics"] = {
                         "duration_candles": hit_index,
-                        "actual_hours": actual_hours,
+                        "actual_hours": round(actual_hours, 2),
                         "mae_stress_level": f"{round(stress, 1)}%",
                         "mae_atr_ratio": round(mae_atr, 2),
                         "mfe_efficiency": f"{round(mfe_eff, 1)}%",
@@ -157,7 +157,7 @@ class OutcomeCalculator:
                     result["tp_sl_result"] = "NEITHER"
                     result["trade_execution_metrics"] = {
                         "duration_candles": len(klines),
-                        "actual_hours": len(klines) * interval_hours
+                        "actual_hours": round(len(klines) * interval_hours, 2)
                     }
         
         return result

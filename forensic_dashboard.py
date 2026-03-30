@@ -52,11 +52,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Validated Samples (TP + SL + NEITHER)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Filled / Total Orders</div>
                 <div class="text-3xl font-bold mt-1 text-slate-200" id="kpi-executed">0</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Total Validated)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Filled)</div>
                 <div class="text-3xl font-bold mt-1 text-emerald-400" id="kpi-winrate">0%</div>
             </div>
             <div class="card">
