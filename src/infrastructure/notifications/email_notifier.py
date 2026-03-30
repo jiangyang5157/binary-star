@@ -223,8 +223,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
         confidence = decision.get("confidence", 0)
         
         # Outcome styling
-        metrics = outcome.get("trade_execution_metrics") or {}
-        result_type = metrics.get("tp_sl_result", "NEITHER")
+        result_type = outcome.get("tp_sl_result", "NEITHER")
         
         result_colors = {"TP_HIT": "#10b981", "SL_HIT": "#ef4444", "NEITHER": "#64748b"}
         result_labels = {"TP_HIT": "PROFIT (TP)", "SL_HIT": "LOSS (SL)", "NEITHER": "FLAT (NEITHER)"}
@@ -576,8 +575,7 @@ class StrategyNotifier:
             logger.info(f"Notifier: Audit for {symbol} is intercepted ({intercept.get('reason')}). Skipping review dispatch.")
             return False
             
-        metrics = (review_data.get("market_outcome") or {}).get("trade_execution_metrics") or {}
-        result = metrics.get("tp_sl_result", "N/A")
+        result = (review_data.get("market_outcome") or {}).get("tp_sl_result", "N/A")
 
         if result not in ["TP_HIT", "SL_HIT", "NEITHER"]:
             logger.info(f"Notifier: Result is {result}. Skipping review dispatch (only TP_HIT/SL_HIT/NEITHER allowed).")

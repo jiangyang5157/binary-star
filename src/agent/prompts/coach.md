@@ -49,7 +49,7 @@ Execute a deep-dive systemic evolution sequence:
 7.  **Patch Synthesis**: Construct the JSON payload mapping your conclusions strictly via the `EVOLUTION LAW`.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include conversational filler.
+Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. Do not include conversational filler.
 If no patches are needed for a specific module, return an empty array `[]` for prompt patches or an empty object `{{}}` for config updates.
 
 {{

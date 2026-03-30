@@ -11,24 +11,24 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 3. **HINDSIGHT BIAS SUPPRESSION**: Do not penalize agents for random market noise. Penalize strictly for ignoring structural warnings present in the T0 telemetry.
 4. **THE NEUTRALITY PARADOX**: 
    - If `NEUTRAL` was chosen and the market chopped, praise "Capital Preservation." 
-   - If `NEUTRAL` was chosen but a structurally sound move occurred, severely penalize "Opportunity Cost". 
+   - If `NEUTRAL` was chosen but a structurally sound move occurred (Check `missed_relative_range`), severely penalize "Opportunity Cost". 
    - **EXCEPTION (JUSTIFIED SURRENDER)**: A `NEUTRAL` stance is a Justified Surrender ONLY if core Topological data (`POC`, `VAH`, `VAL`, `atr_macro`) is 'Unavailable', OR if forced by a **FATAL** Veto Level (`is_veto: true`). Missing Flow data (`cvd_trend`, `long_short_ratio`) does NOT justify surrender. If Flow data is missing but a clear structural edge existed, you MUST penalize `NEUTRAL` as Opportunity Cost. *(Note: `liquidation_clusters: null` is the normal baseline).*
 5. **MATHEMATICAL & TEMPORAL VERIFICATION**: **Execute Independent Mathematical Verification.** Extract `entry_price`, `stop_loss`, and `take_profit` from **Pass-3 SYNTHESIS**.
    - **Planning Compliance**: Use **`atr_macro` from the `[T0 Environment]`** to manually re-verify the initial compliance of the Risk/Reward (RR) and structural buffers. Did the agents follow the laws using the facts available *at the time of decision*?
    - **Execution Survival**: However, when evaluating the execution survival space (e.g., `mae_atr_ratio`), you MUST use the **`max_atr_used`** (the maximum `atr_macro` recorded between T0 and T1) to accurately reflect the true physical stress of the holding period. This prevents the "Lagging Indicator Paradox" where volatility expansion during the trade makes healthy pullbacks look like logic failures.
    - **Unified Standard**: Do NOT use `atr_micro` for score verification. The `math_check` in **Pass-2 CRITIQUE** was for an obsolete draft; do not use it to judge final compliance.
-6. **MISSING DATA PROTOCOL**: If any metric is `null`, explicitly state '[Metric Name] Unavailable'. Do not calculate or hallucinate missing values. Proceed with remaining data.
+6. **MISSING DATA PROTOCOL**: If any metric is `null`, it marks a **NON-ENTRY EVENT** or data unavailability. Explicitly state '[Metric Name] Unavailable/Not Triggered'. Do not calculate or hallucinate missing values. Proceed with remaining data.
 
 # REFERENCE_DECODING
 **SCORING LAW**: Use this rigid formula to calculate the final `evaluation_score` (Clamp 0-100). **TRUST the pre-calculated metrics in `Ground Truth Execution`. DO NOT recalculate them.**
 
 | Component | Condition / Threshold | Points Awarded/Penalized |
 | :--- | :--- | :--- |
-| **1. Base Action** | **`TP_HIT`**: Core hypothesis validated. | Base: +`{point_base_tp_hit}` |
-| | **`SL_HIT`**: Hypothesis failed, but risk was defined. | Base: +`{point_base_sl_hit}` |
-| | **`NEITHER` (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +`{point_base_neutral_valid}` (Capital preserved) |
-| | **`NEITHER` (Marginal)**: `missed_relative_range` 1.0 - `{score_opportunity_cost_limit}`. | Base: +0 (Indecisive market) |
-| | **`NEITHER` (Missed)**: `missed_relative_range` > `{score_opportunity_cost_limit}`. | Penalty: `{point_penalty_opportunity_cost}` (Waived to +0 if `NEUTRAL` was Justified Surrender). |
+| **1. Base Action** | **`tp_sl_result` is `TP_HIT`**: Core hypothesis validated. | Base: +`{point_base_tp_hit}` |
+| | **`tp_sl_result` is `SL_HIT`**: Hypothesis failed, but risk was defined. | Base: +`{point_base_sl_hit}` |
+| | **`tp_sl_result` is `NEITHER` (Valid)**: `missed_relative_range` < 1.0 (Market chop/range). | Base: +`{point_base_neutral_valid}` (Capital preserved) |
+| | **`tp_sl_result` is `NEITHER` (Marginal)**: `missed_relative_range` 1.0 - `{score_opportunity_cost_limit}`. | Base: +0 (Indecisive market) |
+| | **`tp_sl_result` is `NEITHER` (Missed)**: `missed_relative_range` > `{score_opportunity_cost_limit}`. | Penalty: `{point_penalty_opportunity_cost}` (Waived to +0 if `NEUTRAL` was Justified Surrender). |
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +`{point_base_tp_hit}` |
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
 | | **Luck**: `mae_stress_level` is `{score_mae_standard_limit}`% - `{score_mae_logic_failure_limit}`%. | +0 (Saved by noise) |
@@ -45,8 +45,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 **[THE EVIDENCE]**
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
-- **Ground Truth Execution**: {actual_outcome_metrics}
-- **Visual Evidence**: Attached images labeled `T0 Historical Macro Snapshot`, `T0 Historical Micro Snapshot`, `T1 Current Macro Snapshot`, and `T1 Current Micro Snapshot`.
+- **Ground Truth Execution**: {actual_outcome_metrics} (Contains `tp_sl_result` for final outcome, `market_context` for environmental telemetry, and `visual_evidence` for T0/T1 charts).
 
 **[THE LAWS]**
 - **Strategist Directives**: {strategist_prompt}
@@ -60,18 +59,18 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 # REASONING_CHAIN
 Execute a chronological forensic autopsy:
 
-1.  **Trajectory Reconstruction**: Contrast T0 Visuals/Telemetry with T1 Visuals/Telemetry. Define the objective market reality (What actually happened?). Identify any significant volatility shifts (`atr_t0` vs `atr_t1`).
-2.  **Protocol Compliance Audit**: Cross-reference the agents' actions against the Laws. Extract `entry_price`, `stop_loss`, `take_profit` from **Pass-3 SYNTHESIS**. Manually re-verify RR and buffers using **`atr_macro` (T0)** for planning compliance, but acknowledge **`max_atr_used`** for execution state evaluation. Prove compliance dynamically.
+1.  **Trajectory Reconstruction**: Contrast T0 Visuals/Telemetry with **`market_context`** (Telemetry + `visual_evidence`). Define the objective market reality (What actually happened?). Identify any significant volatility shifts (`atr_t0` vs `atr_t1`).
+2.  **Protocol Compliance Audit**: Cross-reference the agents' actions against the Laws. Extract `entry_price`, `stop_loss`, `take_profit` from **Pass-3 SYNTHESIS**. Manually re-verify RR and buffers using **`atr_macro` (T0)** for planning compliance, but acknowledge **`market_context['max_atr_used']`** for execution state evaluation. Prove compliance dynamically.
 3.  **Decision Chain Autopsy**: 
     - DRAFTING (Pass-1): Isolate confirmation bias.
     - CRITIQUE (Pass-2): Did it identify the real threat?
     - SYNTHESIS (Pass-3): Did it structurally resolve the warnings or apply the Neutral/Fatal protocol correctly?
 4.  **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the `Ground Truth Execution` duration. Flag miscalculations.
 5.  **Shadow Counter-Position**: Extract specific metrics or visual signals from T0 that contradicted the Final Decision. Prove negligence if the trade failed.
-6.  **Final Scoring**: Calculate `evaluation_score` by rigorously applying the `SCORING LAW` logic to the pre-calculated metrics in `Ground Truth Execution`. Do not infer or manually recalculate MAE. Apply The Neutrality Paradox rules.
+6.  **Final Scoring**: Calculate `evaluation_score` by rigorously applying the `SCORING LAW` logic to the pre-calculated metrics in `Ground Truth Execution`. The primary result is defined by **`tp_sl_result`**. Do not infer or manually recalculate MAE. Apply The Neutrality Paradox rules.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. Do not include markdown markers of any kind.
+Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include markdown markers of any kind.
 
 {{
   "evaluation_score": 0-100,

@@ -30,7 +30,8 @@ class OutcomeCalculator:
     Determines TP/SL hits and MAE (Maximum Adverse Excursion).
     """
     @staticmethod
-    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], atr: float = 0, interval_hours: float = 0) -> Dict[str, Any]:
+    def calculate(klines: List[List[Any]], entry_price: float, strategy: Dict[str, Any], 
+                  atr_macro_t0: float = 0, atr_macro_t1: float = 0, interval_hours: float = 0) -> Dict[str, Any]:
         """Analyzes klines to determine the actual market outcome vs strategist hypothesis."""
         if not klines:
             return {}
@@ -44,22 +45,36 @@ class OutcomeCalculator:
         min_price = min(lows)
         final_close = closes[-1]
         
-        # Calculate Volatility Analysis (Universal metrics)
+        # [Architect's Fix]: Decouple Time and Space.
+        # Use max(T0, T1) for MAE stress evaluation to prevent "Lagging Indicator Paradox".
+        max_atr = max(atr_macro_t0, atr_macro_t1)
+        
+        # 1. Market Context (T0 -> T1 Full Window Reference)
         missed_range = max_price - min_price
-        rel_range = (missed_range / atr) if atr > 0 else 0
-
-        result = {
-            "entry_price_at_t0": entry_price,
-            "highest_reached_price": max_price,
-            "lowest_reached_price": min_price,
-            "exit_price_at_t1": final_close,
-            "total_price_change_pct": round(((final_close - entry_price) / entry_price) * 100, 2),
-            "max_favorable_runup_pct": round(((max_price - entry_price) / entry_price) * 100, 2),
-            "max_adverse_drawdown_pct": round(((min_price - entry_price) / entry_price) * 100, 2),
+        rel_range = (missed_range / max_atr) if max_atr > 0 else 0
+        market_context = {
+            "highest_reached_at_t1": max_price,
+            "lowest_reached_at_t1": min_price,
+            "total_move_pct": round(((final_close - entry_price) / entry_price) * 100, 2),
+            "missed_relative_range": round(rel_range, 2),
             "audit_duration_candles": len(klines),
-            "volatility_analysis": {
-                "missed_relative_range": round(rel_range, 2)
-            },
+            "atr_t0": atr_macro_t0,
+            "atr_t1": atr_macro_t1,
+            "max_atr_used": max_atr,
+            "visual_evidence": {} # To be populated by Orchestrator
+        }
+
+        # 2. Results baseline (Initialized as null for non-filled trades)
+        result = {
+            "tp_sl_result": "NEITHER",
+            "entry_price_at_t0": entry_price,
+            "highest_reached_price": None,
+            "lowest_reached_price": None,
+            "exit_price_at_t1": final_close,
+            "total_price_change_pct": None,
+            "max_favorable_runup_pct": None,
+            "max_adverse_drawdown_pct": None,
+            "market_context": market_context,
             "trade_execution_metrics": {}
         }
         
@@ -111,7 +126,7 @@ class OutcomeCalculator:
                     tp_dist = abs(tp - target_entry)
                     mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                     stress = (mae / sl_dist * 100) if sl_dist > 0 else 0
-                    mae_atr = (mae / atr) if atr > 0 else 0
+                    mae_atr = (mae / max_atr) if max_atr > 0 else 0
                     mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
                     mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
                     
@@ -119,8 +134,15 @@ class OutcomeCalculator:
                     actual_hours = hit_index * interval_hours
                     time_multiplier = round(actual_hours / estimated_hours, 2) if estimated_hours > 0 else 0
                     
+                    # Update top-level outcome to reflect "Trade Exposure Only"
+                    result["tp_sl_result"] = hit_result
+                    result["highest_reached_price"] = max_after
+                    result["lowest_reached_price"] = min_after
+                    result["total_price_change_pct"] = round(((final_close - target_entry) / target_entry) * 100, 2)
+                    result["max_favorable_runup_pct"] = round(((max_after - target_entry) / target_entry) * 100, 2)
+                    result["max_adverse_drawdown_pct"] = round(((min_after - target_entry) / target_entry) * 100, 2)
+
                     result["trade_execution_metrics"] = {
-                        "tp_sl_result": hit_result,
                         "duration_candles": hit_index,
                         "actual_hours": actual_hours,
                         "mae_stress_level": f"{round(stress, 1)}%",
@@ -130,8 +152,10 @@ class OutcomeCalculator:
                     }
                 else:
                     # Order never filled
+                    result["tp_sl_result"] = "NEITHER"
                     result["trade_execution_metrics"] = {
-                        "tp_sl_result": "NEITHER"
+                        "duration_candles": len(klines),
+                        "actual_hours": len(klines) * interval_hours
                     }
         
         return result
@@ -304,21 +328,16 @@ class ReviewerOrchestrator:
             current_price_dynamics = current_metrics.get("price_dynamics", {})
             atr_macro_t1 = float(current_price_dynamics.get("atr_macro", 0))
             
-            # [Architect's Fix]: Decouple Time and Space.
-            # Use max(T0, T1) for MAE stress evaluation to prevent "Lagging Indicator Paradox".
-            max_atr = max(atr_macro_t0, atr_macro_t1)
-            
-            outcome = OutcomeCalculator.calculate(klines, target_entry, strategy_obj, atr=max_atr, interval_hours=interval_hours)
-            outcome["atr_t0"] = atr_macro_t0
-            outcome["atr_t1"] = atr_macro_t1
-            outcome["max_atr_used"] = max_atr
+            # 2. Execute Outcome Calculation (Decoupled Time and Space)
+            outcome = OutcomeCalculator.calculate(
+                klines, target_entry, strategy_obj, 
+                atr_macro_t0=atr_macro_t0, 
+                atr_macro_t1=atr_macro_t1, 
+                interval_hours=interval_hours
+            )
 
-            # ----------------- [Revised: Structured Intercept Logic] -----------------
-            trade_metrics = outcome.get("trade_execution_metrics") or {}
-            tp_sl_status = trade_metrics.get("tp_sl_result", "NEITHER")
-            
-            # Intercept if time has not passed and order is still pending/neither side hit
-            # Note: For NEUTRAL, tp_sl_status is always NEITHER.
+            # 3. Handle Premature/Intercepted Windows
+            tp_sl_status = outcome.get("tp_sl_result", "NEITHER")
             const_is_intercepted = is_premature and tp_sl_status == "NEITHER"
             
             intercept_status = {
@@ -332,7 +351,7 @@ class ReviewerOrchestrator:
 
             if const_is_intercepted:
                 logger.info(f"Intercept status active for {symbol}. Bypassing AI audit.")
-                visual_context = {}
+                visual_evidence = {}
                 audit_result = {
                     "evaluation_score": 0,
                     "adversarial_audit": {
@@ -347,36 +366,38 @@ class ReviewerOrchestrator:
                 t0_assets = session.get("observation", {}).get("visual_assets", {})
                 t1_assets = current_obs.get("visual_assets", {})
 
-                visual_context = {
+                visual_evidence = {
                     "t0_macro": t0_assets.get("macro_snapshot"),
                     "t0_micro": t0_assets.get("micro_snapshot"),
                     "t1_macro": t1_assets.get("macro_snapshot"),
                     "t1_micro": t1_assets.get("micro_snapshot")
                 }
+                
+                # Inject visual evidence into nested market_context
+                if "market_context" in outcome:
+                    outcome["market_context"]["visual_evidence"] = visual_evidence
 
-                # 3. AI Forensic Audit
                 audit_result = self.reviewer.review(
                     historical_strategy=session,
                     actual_outcome=outcome,
                     current_observation=current_obs,
-                    visual_context=visual_context
+                    visual_context=visual_evidence
                 )
             # -------------------------------------------------------------------------
 
-            # 4. Persist
-            final_record = {
+            # 4. Archive results (No standalone visual_context or top-level ATRs)
+            audit_archive = {
                 "audit_timestamp": dt_fetch_end.isoformat(),
                 "strategy_session": session,
                 "market_outcome": outcome,
-                "visual_context": visual_context,
                 "audit_findings": audit_result
             }
-            save_json(final_record, output_path)
+            save_json(audit_archive, output_path)
             logger.info(f"Forensic audit archived: {output_path}")
 
             # 5. Notify Review Report
             symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
-            self.notifier.notify_review(symbol, final_record)
+            self.notifier.notify_review(symbol, audit_archive)
 
         except Exception as e:
             logger.error(f"Failed to process session: {e}", exc_info=True)

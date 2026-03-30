@@ -38,9 +38,13 @@ def create_mock(filename, opinion, result, is_premature, confidence=None, timest
             }
         },
         "market_outcome": {
+            "tp_sl_result": result,
+            "intercept_status": {
+                "is_intercepted": is_premature,
+                "reason": "PREMATURE_WINDOW" if is_premature else "NONE"
+            },
             "trade_execution_metrics": { 
-                "tp_sl_result": result, 
-                "is_premature_audit": is_premature 
+                "duration_candles": 10
             }
         }
     }

@@ -44,10 +44,10 @@ def generate_mock_environment(data_root, count=5):
             "audit_timestamp": now.isoformat(),
             "strategy_session": strat_session,
             "market_outcome": {
+                "tp_sl_result": "TP_HIT" if i % 2 == 0 else "SL_HIT",
+                "intercept_status": {"is_intercepted": False, "reason": "NONE"},
                 "trade_execution_metrics": {
-                    "tp_sl_result": "TP_HIT" if i % 2 == 0 else "SL_HIT",
-                    "pnl_net": 2000.0 if i % 2 == 0 else -1000.0,
-                    "is_premature_audit": False
+                    "duration_candles": 10
                 }
             },
             "audit_findings": {

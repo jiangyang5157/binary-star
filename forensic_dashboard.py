@@ -377,7 +377,7 @@ class ForensicDashboardGenerator:
             tp = float(limit_order.get("take_profit", 0))
             sl = float(limit_order.get("stop_loss", 0))
             
-            tp_sl_result = market_outcome.get("trade_execution_metrics", {}).get("tp_sl_result", "NEITHER")
+            tp_sl_result = market_outcome.get("tp_sl_result", "NEITHER")
             
             if entry > 0:
                 if tp_sl_result == "TP_HIT":

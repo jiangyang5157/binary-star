@@ -35,12 +35,7 @@ def test_notifications():
         with open(review_path, 'r') as f:
             review_data = json.load(f)
         # Update metrics to trigger dispatch in test
-        if "market_outcome" not in review_data:
-            review_data["market_outcome"] = {}
-        if "trade_execution_metrics" not in review_data["market_outcome"]:
-            review_data["market_outcome"]["trade_execution_metrics"] = {}
-        
-        review_data["market_outcome"]["trade_execution_metrics"]["tp_sl_result"] = "TP_HIT"
+        review_data["market_outcome"]["tp_sl_result"] = "TP_HIT"
         review_data["strategy_session"]["final_decision"]["confidence"] = 92
         
         print(f"Generating Final Review HTML (TP_HIT) from {os.path.basename(review_path)}...")

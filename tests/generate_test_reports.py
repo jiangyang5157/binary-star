@@ -30,7 +30,7 @@ def generate_tp(data_root, index, symbol="BTCUSDT", base_time=None):
                 "limit_order": { "entry": entry, "take_profit": tp, "stop_loss": sl, "holding_time_hours": round(random.uniform(2, 6), 2) }
             }
         },
-        "market_outcome": { "trade_execution_metrics": { "is_premature_audit": False, "tp_sl_result": "TP_HIT" } }
+        "market_outcome": { "tp_sl_result": "TP_HIT", "intercept_status": { "is_intercepted": False, "reason": "NONE" } }
     }
     _save_report(data_root, filename, report)
     return filename
@@ -52,7 +52,7 @@ def generate_sl(data_root, index, symbol="BTCUSDT", base_time=None):
                 "limit_order": { "entry": entry, "take_profit": tp, "stop_loss": sl, "holding_time_hours": round(random.uniform(2, 6), 2) }
             }
         },
-        "market_outcome": { "trade_execution_metrics": { "is_premature_audit": False, "tp_sl_result": "SL_HIT" } }
+        "market_outcome": { "tp_sl_result": "SL_HIT", "intercept_status": { "is_intercepted": False, "reason": "NONE" } }
     }
     _save_report(data_root, filename, report)
     return filename
@@ -70,7 +70,7 @@ def generate_neither(data_root, index, symbol="BTCUSDT", base_time=None):
                 "limit_order": { "entry": 60000, "take_profit": 59000, "stop_loss": 60500, "holding_time_hours": 4.0 }
             }
         },
-        "market_outcome": { "trade_execution_metrics": { "is_premature_audit": False, "tp_sl_result": "NEITHER" } }
+        "market_outcome": { "tp_sl_result": "NEITHER", "intercept_status": { "is_intercepted": False, "reason": "NONE" } }
     }
     _save_report(data_root, filename, report)
     return filename
@@ -85,7 +85,7 @@ def generate_neutral(data_root, index, symbol="BTCUSDT", base_time=None):
             "observation": { "symbol": symbol, "timestamp": (base_time + timedelta(hours=index*2 + 1)).isoformat() },
             "final_decision": { "opinion": "NEUTRAL", "confidence": None }
         },
-        "market_outcome": { "trade_execution_metrics": { "is_premature_audit": False, "tp_sl_result": "NEITHER" } }
+        "market_outcome": { "tp_sl_result": "NEITHER", "intercept_status": { "is_intercepted": False, "reason": "NONE" } }
     }
     _save_report(data_root, filename, report)
     return filename
@@ -96,7 +96,7 @@ def generate_pending(data_root, index, symbol="BTCUSDT", base_time=None):
     filename = f"{symbol}_reviewers_pending_{index}_{ts}.json"
     
     report = {
-        "market_outcome": { "trade_execution_metrics": { "is_premature_audit": True, "tp_sl_result": "NEITHER" } }
+        "market_outcome": { "tp_sl_result": "NEITHER", "intercept_status": { "is_intercepted": True, "reason": "PREMATURE_WINDOW" } }
     }
     _save_report(data_root, filename, report)
     return filename
