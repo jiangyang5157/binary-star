@@ -45,7 +45,8 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 **[THE EVIDENCE]**
 - **T0 Environment**: {historical_observation}
 - **T1 Environment**: {current_observation}
-- **Ground Truth Execution**: {actual_outcome_metrics} (Contains `tp_sl_result` for final outcome, `market_context` for environmental telemetry, and `visual_evidence` for T0/T1 charts).
+- **Ground Truth Execution**: {actual_outcome_metrics} (Contains `tp_sl_result` for final outcome, `market_context` for environmental telemetry, and `visual_evidence` for **Visual Evidence**).
+- **Visual Evidence**: Attached images labeled `T0 Historical Macro Snapshot`, `T0 Historical Micro Snapshot`, `T1 Current Macro Snapshot`, and `T1 Current Micro Snapshot`.
 
 **[THE LAWS]**
 - **Strategist Directives**: {strategist_prompt}
@@ -70,7 +71,7 @@ Execute a chronological forensic autopsy:
 6.  **Final Scoring**: Calculate `evaluation_score` by rigorously applying the `SCORING LAW` logic to the pre-calculated metrics in `Ground Truth Execution`. The primary result is defined by **`tp_sl_result`**. Do not infer or manually recalculate MAE. Apply The Neutrality Paradox rules.
 
 # OUTPUT_SCHEMA
-Output RAW JSON only. The first character of your response MUST be `{` and the last character MUST be `}`. Do not include markdown markers of any kind.
+Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. Do not include markdown markers of any kind.
 
 {{
   "evaluation_score": 0-100,
