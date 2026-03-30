@@ -237,7 +237,7 @@ graph TD
 *   **实时生产执行**: 捕获当前时刻的物理视角并生成决策。
     `python strategist.py prod`
 *   **分层回测 (Regime-based Sampling)**: 在指定时间内按市场环境权重采样（推荐 30天起步）。
-    `python backtest.py --start T-30d --end now --sampling 12 --mode regime`
+    `python backtest.py --start T-24d --end now --sampling 12 --mode regime`
 *   **等距回测 (Timeline Spaced)**: 在指定时间内按等距时间点均匀分布采样。
     `python backtest.py --start T-24h --end now --sampling 12 --mode spaced`
 *   **特定快照逻辑演化回放**: 针对某个特定的策略 JSON 进行逻辑复盘。
