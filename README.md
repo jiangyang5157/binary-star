@@ -211,13 +211,11 @@ graph TD
 
 *   **Sample**:
 ```python
-python backtest.py backtest --start T-20d --end T-15d --sampling 5 --mode regime
+python backtest.py backtest --start T-14d --end T-7d --sampling 7 --mode regime
 python reviewer.py backtest
 python coach.py backtest
 # tips: move dashboard from html/ to archived/ and renames archived/ to archived{n}
 ```
-
-
 
 ### Phase 2: 法医调查与看板分析 (The Forensic Axis)
 *   **全量尸检**: 对所有已结束的单子进行法医级对齐与评分。
