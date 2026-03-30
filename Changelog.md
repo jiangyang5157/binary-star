@@ -6,6 +6,14 @@
 
 ### 📋 演化记录 (Latest)
 
+#### [v1.2.2] - 2026-03-30 (Critic Momentum Reversal Override Patch)
+
+- **[Architecture/Logic]**: **V-Shape Legacy Paradox Resolution (长短周期相位差与动态参数化修复)**.
+    - 修复了 Critic 在面对 V 型反转时由于 `wick_skewness_lookback` 滞后导致的误判。
+    - **变量隔离**：该豁免机制严格仅限于 `[ABSORPTION_TRAP]` 审计，严禁应用于 `[RETAIL_SQUEEZE]`。
+    - **动态参数化 (Anti-Hardcode)**：将 `0.8` 与 `0.2` 的硬编码阈值从 Prompt 迁移至 `agent_config.yaml`（即 `regime_wick_skewness_momentum_bullish/bearish`），实现了“逻辑与数值”的彻底分离，支持全局动态调优。
+    - 赋予了系统在历史惯性未消失前，利用实时成交量爆发（`volume_breakout_ratio`）捕捉极限拐点的能力。
+
 #### [v1.2.1] - 2026-03-30 (Reviewer ATR Decoupling & Survival Audit Patch)
 
 - **[Architecture/Logic]**: **Lagging Indicator Paradox Resolution (度量衡时空解耦)**.

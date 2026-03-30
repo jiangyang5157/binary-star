@@ -163,17 +163,24 @@ graph TD
 ### 6. 市场态势判定阈值 (Regime Detection)
 | 变量名 | 大白话解释 | 逻辑暗示 |
 | :--- | :--- | :--- |
-| `regime_trend_intensity_threshold` | **趋势启动门槛**。 | 想要更稳，就调高这个值以过滤随机波动。 |
-| `regime_poc_gravity_atr_distance` | **POC 磁力半径 / 无人区投影尺** | 强趋势下作为 SL 的最大硬顶 (4.0 ATR)；在无历史高低点 (ATH/ATL) 时作为 Synthetic TP 的投影基准。 |
+| `regime_trend_intensity_threshold` | **趋势启动门槛** | 判定行情由“震荡”转为“趋势”的最低动能。 |
+| `regime_trend_intensity_strong` | **强趋势判别线** | 触发系统进入“强趋势防御”模式，对 SL/TP 的要求更苛刻。 |
+| `regime_volatility_baseline_ratio` | **常规波动基准** | 判定市场是否处于平稳的统计学基准。 |
 | `regime_volatility_expansion_ratio` | **波动爆发倍率** | 判断行情是否“失控”。超过此值触发 **突破死锁豁免 (Breakout Participation)**，允许直接追单。 |
-| `regime_volume_breakout_threshold` | **放量确认线**。突破时的标准动作。 | 入场不仅看价格，必须配合该倍数的成交量确认。 |
-| `regime_long_short_imbalance_ratio` | **多空失衡线**。散户多多空比超过此值触发警报。 | 触发 **定向审计 (Directional Audit)**。仅当策略师试图“顺散户”时拦截，鼓励“逆向猎杀”。 |
+| `regime_volatility_extreme_ratio` | **极端黑天鹅阈值** | 判定行情进入 519 级别崩溃/暴拉模式。 |
+| `regime_volume_baseline_ratio` | **常规成交量基准** | 用于与当前成交量对比。 |
+| `regime_volume_breakout_threshold` | **放量确认线** | 入场不仅看价格，必须配合该倍数的成交量确认。 |
+| `regime_long_short_imbalance_ratio` | **多空失衡线** | 散户多空比超过此值触发 **定向审计 (Directional Audit)**。 |
+| `regime_poc_gravity_atr_distance` | **POC 磁力半径 / 无人区投影尺** | 强趋势下作为 SL 的最大硬顶 (4.0 ATR)；在无历史锚点 (ATH/ATL) 时作为 Synthetic TP 的投影基准。 |
 | `regime_vacuum_risk_score` | **真空暴露分** | 止损位若落在高分真空区，Critic 会强制 Veto。 |
 | `regime_wick_skewness_exhaustion` | **影线衰竭值** | 判定当前推力是否已到达“油尽灯枯”的阈值。 |
+| `regime_wick_skewness_momentum_bullish/bearish` | **吸收陷阱/动力反转阈值** | 捕捉 V 型反转时的物理分界点。**Anti-Hardcode Patch (v1.2.2)**。 |
 | `regime_min_rr_ranging / trending` | **动态生存 RR** | 震荡市允许 1.2+，趋势市严求 1.8+。 |
 | `regime_cvd_slope_threshold` | **买卖意愿斜率** | 衡量 Taker 攻击的垂直烈度。 |
-| `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值** | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC。**Reviewer 此处设有免罚协议。** |
-| `regime_squeeze_threshold` | **挤压临界值** | 判定能量蓄积是否到达爆发临界。 |
+| `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值** | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC。 |
+| `regime_squeeze_threshold / audit_threshold` | **挤压临界/审计阈值** | 判定能量蓄积是否到达爆发临界，触发 Critic 的生存压力测试。 |
+| `regime_breakout_buffer_atr` | **突破入场缓冲距离** | 防止在假突破边缘反复摩擦。 |
+| `regime_structural_proximity_threshold` | **结构接近判定阈值** | 判定价格是否已到达有效“地形锚点”的感知范围。 |
 
 ### 6. 执行与风险硬化 (Execution Law)
 | 变量名 | 大白话解释 | 执行逻辑 |
@@ -199,16 +206,16 @@ graph TD
 ### 9. 法医评分法典 (Reviewer Scoring)
 | 变量名 | 大白话解释 | 法医逻辑 |
 | :--- | :--- | :--- |
-| `execution_timeframe_interval` | **法医分辨率**。 | 复盘必须用 1m，无论你大方向看多长，都要看微观瞬间。 |
-| `score_mae_pinpoint_limit` | **精准入场红线**。 | 判定你进场那一刻是不是被行情反复打脸 (MAE)。 |
-| `score_mae_standard_limit / logic_failure_limit` | **风险承受边界**。 | |
-| `score_mfe_optimal_lower` | **盈利补全比例**。 | 判断止盈是否发生在行情最高点附近。 |
-| `score_opportunity_cost_limit` | **踏空惩罚门槛**。 | 衡量行情飞了而系统空仓时的逻辑失分。 |
-| `score_time_efficiency_limit` | **时间价值窗**。 | 判断单子在场内占压资金但无产出的效率。 |
-| `penalty_compliance_breach` | **协议死刑**。 | 违反写死的硬性法律（如 RR）直接归零 (-100)。 |
-| `point_penalty_logic_failure / temporal_failure` | **思维偏差处罚**。 | |
-| `point_bonus_structural_insight` | **地形天赋奖励**。 | AI 成功捕捉到 DLE 或清算共振时的加分。 |
-| `score_mae_extra_buffer` | **MAE 归一化冗余**。 | 允许在精准度判定中存在的微小物理误差。 |
+| `execution_timeframe_interval` | **法医分辨率** | 复盘必须用 1m，无论你大方向看多长，都要看微观瞬间。 |
+| `score_mae_pinpoint_limit / standard_limit` | **精准入场/风险红线** | 判定你进场那一刻是不是被行情反复打脸 (MAE)。**Survival Audit (v1.2.1)**：动态使用 `max(T0, T1)` 波动率。 |
+| `score_mae_logic_failure_limit` | **逻辑崩溃线** | 超过此值认为策略方向与地形完全解构，直接判定为 Logic Failure。 |
+| `score_mfe_optimal_upper / lower` | **盈利补全比例** | 判断止盈是否发生在行情最高点附近。 |
+| `score_opportunity_cost_limit` | **踏空惩罚门槛** | 衡量行情飞了而系统空仓时的逻辑失分。 |
+| `score_time_efficiency_limit` | **时间价值窗** | 判断单子在场内占压资金但无产出的效率。 |
+| `penalty_compliance_breach` | **协议死刑** | 违反写死的硬性法律（如 RR）直接归零 (-100)。 |
+| `point_penalty_logic_failure / temporal_failure` | **思维偏差处罚** | |
+| `point_bonus_structural_insight` | **地形天赋奖励** | AI 成功捕捉到 DLE 或清算共振时的加分。 |
+| `score_mae_extra_buffer` | **MAE 归一化冗余** | 允许在精准度判定中存在的微小物理误差。 |
 | `POC Magnet Exemption` | **纪律免罚协议** | **核心豁免**：若止盈动作是根据 `regime_poc_magnet_atr_threshold` 锁定在 POC 而导致的后期 MFE (盈利回吐) 飙升，系统不再判定为“由于懦弱而早退”，保护了 Agent 遵守纪律的积极性。 |
 
 ### 10. 系统演化感知 (Evolution / Coach)

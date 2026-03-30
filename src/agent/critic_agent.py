@@ -34,6 +34,8 @@ class CriticConfig:
     regime_poc_gravity_atr_distance: float
     regime_vacuum_risk_score: float
     regime_wick_skewness_exhaustion: float
+    regime_wick_skewness_momentum_bullish: float
+    regime_wick_skewness_momentum_bearish: float
     regime_trend_intensity_strong: float
     regime_min_rr_ranging: float
     regime_min_rr_trending: float
@@ -43,7 +45,6 @@ class CriticConfig:
     threshold_skepticism_clear: int
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
-    regime_trend_intensity_strong: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
@@ -69,6 +70,8 @@ class CriticConfig:
             regime_poc_gravity_atr_distance=float(full_config['observer']['regime_poc_gravity_atr_distance']),
             regime_vacuum_risk_score=float(full_config['observer']['regime_vacuum_risk_score']),
             regime_wick_skewness_exhaustion=float(full_config['observer']['regime_wick_skewness_exhaustion']),
+            regime_wick_skewness_momentum_bullish=float(full_config['observer']['regime_wick_skewness_momentum_bullish']),
+            regime_wick_skewness_momentum_bearish=float(full_config['observer']['regime_wick_skewness_momentum_bearish']),
             regime_trend_intensity_strong=float(full_config['observer']['regime_trend_intensity_strong']),
             regime_min_rr_ranging=float(full_config['observer']['regime_min_rr_ranging']),
             regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending']),
@@ -132,6 +135,8 @@ class CriticAgent(BaseAgent):
             "regime_poc_gravity_atr_distance": self.config.regime_poc_gravity_atr_distance,
             "regime_vacuum_risk_score": self.config.regime_vacuum_risk_score,
             "regime_wick_skewness_exhaustion": self.config.regime_wick_skewness_exhaustion,
+            "regime_wick_skewness_momentum_bullish": self.config.regime_wick_skewness_momentum_bullish,
+            "regime_wick_skewness_momentum_bearish": self.config.regime_wick_skewness_momentum_bearish,
             "regime_trend_intensity_strong": self.config.regime_trend_intensity_strong,
             "regime_min_rr_ranging": self.config.regime_min_rr_ranging,
             "regime_min_rr_trending": self.config.regime_min_rr_trending,

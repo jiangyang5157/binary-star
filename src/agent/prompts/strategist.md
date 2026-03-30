@@ -27,7 +27,7 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 10. **DEFENSIVE LIMIT ORDER PROTOCOL** (Sequential Topographic Search): Break the "Anchoring Fallacy".
     - Step 1: Check `current_price` vs Primary Anchor. If fails Dynamic RR or SL buffer <= `{stop_loss_buffer_min}`x ATR, proceed to Step 2.
     - Step 2: Do NOT default Neutral. Traverse the Topography to find the **Next Distal Anchor**.
-    - Step 3 (Inverse Risk Engineering): Define SL behind the new anchor -> Add ATR buffer -> Calculate Max Entry Price to satisfy Min_RR (`Entry = SL +/- (ATR_Risk * Min_RR)`).
+    - Step 3 (Inverse Risk Engineering): Define SL behind the new anchor -> Identify fixed TP -> Calculate Max Entry Price to satisfy Min_RR using exact algebra: `Entry = SL +/- (abs(take_profit - stop_loss) / (Min_RR + 1))`. (Min_RR is `{regime_min_rr_ranging}` or `{regime_min_rr_trending}`).
     - Step 4: Propose the Deep Limit Entry (DLE).
     - Step 5 (Vacuum Offensive): If topography is a vacuum, consider a **Vacuum Flip** (e.g., shorting a break of VAL into a void). Only output `NEUTRAL` if no anchors exist or RR is mathematically impossible.
 
@@ -38,9 +38,9 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 | :--- | :--- | :--- |
 | **Dynamic Min RR** | **>= `{regime_min_rr_ranging}`x** (`RANGING`) OR **>= `{regime_min_rr_trending}`x** (`TRENDING`) | Mean-reversion allows lower RR; Breakouts require higher RR. |
 | **SL Placement** | `[Multiplier] * ATR`: (Multiplier Range: `{stop_loss_buffer_min}` to Min(`{stop_loss_buffer_max}` * `volatility_ratio`, `{regime_poc_gravity_atr_distance}`)) | SL MUST be hidden behind a structural wall. |
-| **TP Target** | Next Structural Node | Target nearest opposing HVN (friction) or LVN (vacuum). **EXCEPTION**: If in **Price Discovery** (no anchors exist in target direction), synthetically project TP using `{regime_poc_gravity_atr_distance} * atr_macro` to satisfy RR calculations. |
+| **TP Target** | Next Structural Node | Target nearest opposing HVN (friction) or LVN (vacuum). **EXCEPTION**: If in **Price Discovery** (no anchors exist in target direction), synthetically project TP using `max({regime_poc_gravity_atr_distance} * atr_macro, [Entry_to_SL_Distance] * {regime_min_rr_trending})`. |
 | **Vol Confirmation**| `volume_breakout_ratio` > `{regime_volume_breakout_threshold}` | Required ONLY for Trend/Momentum continuation. |
-| **Exhaustion Gap**| `wick_skewness_lookback` vs direction (e.g., > `{regime_wick_skewness_exhaustion}` on L; < -`{regime_wick_skewness_exhaustion}` on S). | Analyzed over **`{order_flow_lookback_hours}`h**. Trigger `[RETAIL_SQUEEZE]`. |
+| **Exhaustion Gap**| `wick_skewness_lookback` vs direction (e.g., > `{regime_wick_skewness_exhaustion}` on L; < -`{regime_wick_skewness_exhaustion}` on S). | Analyzed over **`{order_flow_lookback_hours}`h**. Trigger `[RETAIL_SQUEEZE]`. Also monitor **Momentum Reversal** vs `{regime_wick_skewness_momentum_bullish}` (Bull) / `{regime_wick_skewness_momentum_bearish}` (Bear). |
 
 # INPUT_DATUM
 - **Observation Content**: {observation_json} (The Forensic Map from **Observer Agent**).

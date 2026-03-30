@@ -43,6 +43,8 @@ observer:
   regime_poc_gravity_atr_distance: 4.0
   regime_vacuum_risk_score: 0.3
   regime_wick_skewness_exhaustion: 0.6
+  regime_wick_skewness_momentum_bullish: 0.8
+  regime_wick_skewness_momentum_bearish: 0.2
   regime_trend_intensity_strong: 0.5
   regime_min_rr_ranging: 1.3
   regime_min_rr_trending: 2.5
