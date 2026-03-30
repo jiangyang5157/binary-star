@@ -490,7 +490,7 @@ class StrategyNotifier:
     def enabled(self) -> bool:
         return self.config.enabled
 
-    def notify_strategy(self, symbol: str, strategy_data: Dict[str, Any], save_local: bool = True) -> bool:
+    def notify_strategy(self, symbol: str, strategy_data: Dict[str, Any], save_local: bool = False) -> bool:
         """
         Parses strategy result and dispatches an actionable email alert.
         """
@@ -534,7 +534,7 @@ class StrategyNotifier:
         logger.info(f"Notifier: Dispatching alert: {subject}")
         return self.dispatcher.dispatch(subject, html_body, attachments)
 
-    def notify_review(self, symbol: str, review_data: Dict[str, Any], save_local: bool = True) -> bool:
+    def notify_review(self, symbol: str, review_data: Dict[str, Any], save_local: bool = False) -> bool:
         """
         Parses review result and dispatches a forensic audit report.
         """
@@ -643,7 +643,7 @@ class StrategyNotifier:
         html_body = DashboardEmailTemplate.render(symbol, stats, dataset)
         
         # 3. Local Preview
-        self.save_html_preview(f"{symbol}_ledger", html_body)
+        saved_html = self.save_html_preview(f"{symbol}_ledger", html_body)
 
         if not self.enabled:
             return False
@@ -654,10 +654,14 @@ class StrategyNotifier:
         
         logger.info(f"Notifier: Dispatching ledger summary: {subject}")
         
-        # Optionally attach the html file
-        files = [dashboard_path] if dashboard_path and os.path.exists(dashboard_path) else None
-        
-        return self.dispatcher.dispatch(subject, html_body, files=files)
+        # Optionally attach the html file and/or dashboard image
+        files = []
+        if dashboard_path and os.path.exists(dashboard_path):
+            files.append(dashboard_path)
+        if saved_html and os.path.exists(saved_html):
+            files.append(saved_html)
+            
+        return self.dispatcher.dispatch(subject, html_body, files=files if files else None)
 
 if __name__ == "__main__":
     import argparse

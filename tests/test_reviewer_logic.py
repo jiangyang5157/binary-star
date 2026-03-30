@@ -38,8 +38,10 @@ def test_reviewer_re_audits_stub(mock_orchestrator):
     review_file = data_root / "reviewers" / "BTCUSDT_reviewers_20240101_000000.json"
     stub_data = {
         "market_outcome": {
+            "intercept_status": {
+                "is_intercepted": True
+            },
             "trade_execution_metrics": {
-                "is_premature_audit": True,
                 "tp_sl_result": "NEITHER"
             }
         }
@@ -74,8 +76,10 @@ def test_reviewer_skips_finalized_audit(mock_orchestrator):
     review_file = data_root / "reviewers" / "BTCUSDT_reviewers_20240101_000000.json"
     full_data = {
         "market_outcome": {
+            "intercept_status": {
+                "is_intercepted": False
+            },
             "trade_execution_metrics": {
-                "is_premature_audit": False,
                 "tp_sl_result": "TAKE_PROFIT"
             }
         }
