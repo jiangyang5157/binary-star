@@ -173,6 +173,7 @@ graph TD
 | :--- | :--- | :--- |
 | `execution_timeframe_interval` | **法医分辨率** | 复盘必须用 1m，无论你大方向看多长，都要看微观瞬间。 |
 | `score_mae_pinpoint_limit / standard_limit` | **精准入场/风险红线** | 判定你进场那一刻是不是被行情反复打脸 (MAE)。**Survival Audit (v1.2.1)**：动态使用 `max(T0, T1)` 波动率。 |
+| `score_frontrun_leniency_pct` | **前瞻赦免比例** | 对于为了捕捉单边行情而执行的前瞻性止损，给予的分值减免比例。**Anti-Hardcode Patch (v1.2.5)**。 |
 | `score_mae_logic_failure_limit` | **逻辑崩溃线** | 超过此值认为策略方向与地形完全解构，直接判定为 Logic Failure。 |
 | `score_mfe_optimal_upper / lower` | **盈利补全比例** | 判断止盈是否发生在行情最高点附近。 |
 | `score_opportunity_cost_limit` | **踏空惩罚门槛** | 衡量行情飞了而系统空仓时的逻辑失分。 |

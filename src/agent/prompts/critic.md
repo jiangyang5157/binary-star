@@ -22,6 +22,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 | :--- | :--- | :--- | :--- |
 | **Safe**| Logic aligns, math verified, SL hidden. | **PASS** | **[PRISTINE]** (None). |
 | **Inaction Bias**| **(Mandatory for NEUTRAL)**: Confluence exists (e.g. Squeeze < `{regime_squeeze_audit_threshold}` + `trend_intensity` > `{regime_trend_intensity_threshold}`) but Strategist is Neutral. | **CONSTRUCTIVE** | **[OPPORTUNITY_DENIAL]** (Fix: Flag missed entry). |
+| **Opportunity Denial**| Entry is placed at a distal anchor without front-running when `volatility_ratio` > `{regime_volatility_extreme_ratio}` OR (`squeeze_factor` < `{regime_squeeze_threshold}` AND `volume_breakout_ratio` > `{regime_volume_baseline_ratio}`). | **CONSTRUCTIVE** | **[OPPORTUNITY_DENIAL]** (Fix: Demand front-running by `{regime_breakout_frontrun_atr} * ATR` to ensure fill). |
 | **Macro/Time**| Macro trend (`{macro_interval}`) contradicts Micro direction. | **FATAL** | **[MACRO_CONFLICT]** (Stop: No trade). |
 | **Regime Velocity**| Mean-reverting to POC in high TREND/VELOCITY. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Demand DLE). |
 | **Anchor SL Trap**| SL anchored to POC in TRENDING mode. **EXCEPTION**: Waive if CVD aligns with the reversal and POC strength > `{regime_poc_confluence_strength}`. | **CONSTRUCTIVE** | **[LIQUIDITY_VOID]** (Fix: Move SL distal). |

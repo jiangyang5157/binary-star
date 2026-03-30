@@ -41,6 +41,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 | | **Stop-Hunt**: `SL_HIT` but `mfe_efficiency` > 100% later. | Penalty: `{point_penalty_stophunt_blindness}` (Blind to sweep) |
 | **5. Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly with DLE. | Bonus: +`{point_bonus_structural_insight}` |
 | | **Compliance Breach**: Protocol violation, ignored `POC`/`VAL`, or faked data. | Penalty: `{penalty_compliance_breach}` (Instant Zero) |
+| **6. Leniency** | **[FRONT_RUN_LENIENCY]**: `SL_HIT` occurred, but `final_decision` reasoning proves it was an aggressive `front-run` required by `Opportunity Denial` protocol AND `volume_t0` was expanding. | **Amnesty**: Reduce `point_penalty_logic_failure` by `{score_frontrun_leniency_pct}`%. |
 
 # INPUT_DATUM
 **[THE EVIDENCE]**
