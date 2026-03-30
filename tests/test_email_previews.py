@@ -74,8 +74,26 @@ def test_dashboard_notification():
     if os.path.exists(dummy_dashboard_path):
         os.remove(dummy_dashboard_path)
 
+def test_coach_notification():
+    # Use data/test as root for internal previews
+    notifier = StrategyNotifier(data_root="data/test")
+    symbol = "BTCUSDT"
+    
+    mock_analysis = {
+        "analysis": "The agent triad is showing systemic slippage in high-volatility regimes. Recommend expanding ATR-SL multipliers by 0.5x when trend_intensity > 2.0."
+    }
+    
+    mock_dataset = [
+        {"observation_time": "2026-03-30 01:00:00", "tp_sl_result": "TP_HIT", "estimated_pnl_pct": 1.5, "confidence": 85},
+        {"observation_time": "2026-03-30 05:00:00", "tp_sl_result": "SL_HIT", "estimated_pnl_pct": -0.8, "confidence": 72}
+    ]
+    
+    print(f"Generating Unitary Coach + Dashboard HTML for {symbol}...")
+    notifier.notify_coach(symbol, mock_analysis, mock_dataset)
+
 if __name__ == "__main__":
     print("--- Starting Email Preview Tests ---")
     test_notifications()
     test_dashboard_notification()
+    test_coach_notification()
     print("--- Tests Completed ---")

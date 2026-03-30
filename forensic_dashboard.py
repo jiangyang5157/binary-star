@@ -320,23 +320,26 @@ class ForensicDashboardGenerator:
         # To avoid confusion with relative pathing in notifier
         self.notifier = StrategyNotifier(data_root=data_root)
 
-    def generate(self, symbol: str):
+    def generate(self, symbol: str, notify: bool = False):
         """Main execution flow for report generation."""
         self.logger.info(f"Scanning for {symbol} forensic evidence in {self.data_root}...")
         
         dataset = self._extract_data(symbol)
         if not dataset:
             self.logger.warning(f"No valid forensic reports found for {symbol}. Sidestepping dashboard generation.")
-            return
+            return None, []
 
         self.logger.info(f"Analyzed {len(dataset)} forensic records. Assembling HTML Dashboard...")
         output_path = self._write_html(symbol, dataset)
         
         # 3. Dispatch automated notification
-        try:
-            self.notifier.notify_dashboard(symbol, dataset, dashboard_path=output_path)
-        except Exception as e:
-            self.logger.error(f"Failed to dispatch dashboard notification: {e}")
+        if notify:
+            try:
+                self.notifier.notify_dashboard(symbol, dataset, dashboard_path=output_path)
+            except Exception as e:
+                self.logger.error(f"Failed to dispatch dashboard notification: {e}")
+        
+        return output_path, dataset
 
     def _extract_data(self, symbol: str) -> List[Dict[str, Any]]:
         """Parses JSON review reports recursively and extracts normalized performance telemetry."""
@@ -438,6 +441,7 @@ class ForensicDashboardGenerator:
 def main():
     parser = argparse.ArgumentParser(description="Forensic Performance & Confidence Analyzer")
     parser.add_argument("--symbol", type=str, help="Symbol to filter")
+    parser.add_argument("--email", action="store_true", help="Dispatch email notification after generation.")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -455,7 +459,7 @@ def main():
     
     try:
         generator = ForensicDashboardGenerator(data_root=data_root)
-        generator.generate(symbol)
+        generator.generate(symbol, notify=args.email)
     except Exception as e:
         logger.error(f"Dashboard Generation Failed: {e}")
         sys.exit(1)

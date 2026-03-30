@@ -18,6 +18,8 @@ from src.utils.agent_utils import load_config, load_global_config
 from src.utils.json_utils import save_json, load_json
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
+from forensic_dashboard import ForensicDashboardGenerator
+from src.infrastructure.notifications.email_notifier import StrategyNotifier
 
 # Load environment variables
 load_dotenv()
@@ -69,7 +71,18 @@ class CoachOrchestrator:
         self.logger.info(f"Feeding {len(review_history)} valid reports to Coach for systemic diagnosis...")
         raw_analysis = self.coach.analyze(review_history)
 
-        # 4. Archive the Strategic Patch & Move Sources
+        # 4. Dashboard Generation (Sync the latest ledger before notifying)
+        dashboard_generator = ForensicDashboardGenerator(data_root=self.data_root)
+        # We pass notify=False because the Coach Orchestrator handles the consolidated email
+        dashboard_res = dashboard_generator.generate(symbol, notify=False)
+        dashboard_path, dashboard_dataset = dashboard_res if dashboard_res else (None, [])
+
+        # 5. Consolidated Notification (AI Analysis + Interactive Dashboard)
+        if raw_analysis and dashboard_dataset:
+            notifier = StrategyNotifier(data_root=self.data_root)
+            notifier.notify_coach(symbol, raw_analysis, dashboard_dataset, dashboard_path)
+
+        # 6. Archive the Strategic Patch & Move Sources
         if raw_analysis:
             # A. Save the patch proposal
             patch_path = self._archive_patch(symbol, raw_analysis, archive_dir)
