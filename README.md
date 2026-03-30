@@ -216,7 +216,7 @@ graph TD
     `python export_strategy.py prod --file [REVIEW_JSON_PATH]`
     > **💡 核心用例**: 
     > 1. **数据恢复**: 当本地原始策略 JSON 文件丢失，但存有对应的法医复盘报告时，还原交易会话证据。
-    > 2. **回测隔离**: 将法医报告中的某一特定策略片段剥离出来，生成标准的策略 JSON 文件，以便使用 `backtest.py` 进行逻辑重放或参数调优验证。
+    > 2. **回测隔离**: 将法医报告中的某一特定策略片段剥离出来，生成标准的策略 JSON 文件，以便进行逻辑重放。
 *   **可视化法医看板**: 启动本地 UI，可视化查看所有执行结果与 MAE/MFE 回撤。
     `python forensic_dashboard.py prod`
 
