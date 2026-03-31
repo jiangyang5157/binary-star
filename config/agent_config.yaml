@@ -71,6 +71,7 @@ strategist:
   score_confidence_base: 75
   score_confidence_decay_min: 5
   score_confidence_decay_max: 30
+  holding_time_modifier: 1.5
 critic:
   role_definition_prompt: src/agent/prompts/critic.md
   model: gemini-3.1-pro-preview

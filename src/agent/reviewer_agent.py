@@ -46,6 +46,7 @@ class ReviewerConfig:
     point_bonus_structural_insight: int
     score_mae_extra_buffer: float
     score_frontrun_leniency_pct: int
+    holding_time_modifier: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -87,7 +88,8 @@ class ReviewerConfig:
             point_penalty_stophunt_blindness=int(rev['point_penalty_stophunt_blindness']),
             point_bonus_structural_insight=int(rev['point_bonus_structural_insight']),
             score_mae_extra_buffer=float(rev['score_mae_extra_buffer']),
-            score_frontrun_leniency_pct=int(rev['score_frontrun_leniency_pct'])
+            score_frontrun_leniency_pct=int(rev['score_frontrun_leniency_pct']),
+            holding_time_modifier=float(strat['holding_time_modifier'])
         )
 
 class ReviewerAgent(BaseAgent):
@@ -206,7 +208,8 @@ class ReviewerAgent(BaseAgent):
             "point_penalty_stophunt_blindness": self.config.point_penalty_stophunt_blindness,
             "point_bonus_structural_insight": self.config.point_bonus_structural_insight,
             "score_mae_extra_buffer": self.config.score_mae_extra_buffer,
-            "score_frontrun_leniency_pct": self.config.score_frontrun_leniency_pct
+            "score_frontrun_leniency_pct": self.config.score_frontrun_leniency_pct,
+            "holding_time_modifier": self.config.holding_time_modifier
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

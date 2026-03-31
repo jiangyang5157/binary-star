@@ -149,7 +149,8 @@ graph TD
 ### 6. 执行与风险硬化 (Execution Law)
 | 变量名 | 大白话解释 | 执行逻辑 |
 | :--- | :--- | :--- |
-| `min_trade_velocity` | **跑得够不够快**。预期成交的斜率。 | 短线追求爆发 (0.5+)，长线可容忍阴跌/磨损 (0.1)。 |
+| `min_trade_velocity` | **成交预期斜率** | 决定了系统对“磨洋工”单子的容忍门槛。 |
+| `holding_time_modifier` | **时间冗余系数** | **(v1.2.13)** 给策略生成的时长增加 50%+ 额外生命，防止“黎明前”的中途撤单。 |
 | `stop_loss_buffer_min / max` | **物理冗余厚度**。基于 `volatility_ratio` 的动态缩放因子。 | 公式：`({min} to {max} * volatility_ratio) * ATR`。**硬顶封死在 4.0 ATR (Regime Gravity)。** |
 | `regime_balanced_atr_multiplier` | **平衡态探测半径** | 决定了系统界定“震荡区间”物理边界的范围。 |
 | `score_confidence_base` | **信心基准线**。策略生成的起始分数。 | 设定为 75。强制 AI 承认 25% 的不可知熵，建立“减法思维模型”。 |

@@ -68,7 +68,7 @@ Execute a chronological forensic autopsy:
     - DRAFTING (Pass-1): Isolate confirmation bias.
     - CRITIQUE (Pass-2): Did it identify the real threat?
     - SYNTHESIS (Pass-3): Did it structurally resolve the warnings or apply the Neutral/Fatal protocol correctly?
-4.  **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the `Ground Truth Execution` duration. Flag miscalculations.
+4.  **Temporal Diagnostic**: Cross-reference proposed `holding_time_hours` against the `Ground Truth Execution` duration. **Logic**: The target duration includes the `{holding_time_modifier}` multiplier for redundancy. Flag miscalculations or cases where the trade expired prematurely despite the buffer.
 5.  **Shadow Counter-Position**: Extract specific metrics or visual signals from T0 that contradicted the Final Decision. Prove negligence if the trade failed.
 6.  **Final Scoring**: Calculate `evaluation_score` by rigorously applying the `SCORING LAW` logic to the pre-calculated metrics in `Ground Truth Execution`. The primary result is defined by **`tp_sl_result`**. Do not infer or manually recalculate MAE. Apply The Neutrality Paradox rules.
 

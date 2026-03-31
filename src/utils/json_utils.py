@@ -75,30 +75,44 @@ def load_from_json_file(file_path: str) -> Any:
 def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
     """
     Extracts and parses a JSON object from a string, even if it contains 
-    conversational filler. It finds the substring between the first '{' 
-    and the last '}'.
+    conversational filler or trailing garbage characters (e.g. extra braces).
+    Uses JSONDecoder().raw_decode to find the logical end of the JSON structure.
     """
     if not text:
         return None
         
+    text = text.strip()
+    
+    # 1. Quick try: standard parse
+    try:
+        return json.loads(text)
+    except Exception:
+        pass
+        
+    # 2. Advanced try: Find first '{' and use raw_decode
     try:
         start_idx = text.find('{')
-        end_idx = text.rfind('}')
-        
-        if start_idx == -1 or end_idx == -1 or end_idx < start_idx:
-            # Maybe it's just raw JSON without extra text
-            return json.loads(text.strip())
-            
-        json_str = text[start_idx:end_idx + 1]
-        return json.loads(json_str)
+        if start_idx != -1:
+            json_text = text[start_idx:]
+            decoder = json.JSONDecoder()
+            # raw_decode returns the object and the byte index where it stopped
+            obj, index = decoder.raw_decode(json_text)
+            return obj
     except Exception as e:
-        logger.warning(f"Failed to extract JSON from text. Error: {e}")
-        # Final fallback: try cleaning common LLM artifacts
-        try:
-            cleaned = text.strip().replace('```json', '').replace('```', '').strip()
-            return json.loads(cleaned)
-        except Exception:
-            return None
+        logger.debug(f"JSON raw_decode failed: {e}")
+        
+    # 3. Fallback: Cleanup common LLM artifacts (markdown blocks)
+    try:
+        cleaned = text.replace('```json', '').replace('```', '').strip()
+        # Find first '{' and last '}'
+        start = cleaned.find('{')
+        end = cleaned.rfind('}')
+        if start != -1 and end != -1:
+            return json.loads(cleaned[start:end+1])
+    except Exception:
+        pass
+        
+    return None
 
 # Aliases for backward compatibility
 to_json = convert_to_json_string

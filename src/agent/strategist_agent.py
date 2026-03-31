@@ -49,6 +49,7 @@ class StrategistConfig:
     regime_poc_magnet_atr_threshold: float
     regime_gravity_volume_override_ratio: float
     regime_boundary_clipping_atr: float
+    holding_time_modifier: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -88,7 +89,8 @@ class StrategistConfig:
             regime_breakout_frontrun_atr=float(full_config['observer']['regime_breakout_frontrun_atr']),
             regime_poc_magnet_atr_threshold=float(full_config['observer']['regime_poc_magnet_atr_threshold']),
             regime_gravity_volume_override_ratio=float(full_config['observer']['regime_gravity_volume_override_ratio']),
-            regime_boundary_clipping_atr=float(full_config['observer']['regime_boundary_clipping_atr'])
+            regime_boundary_clipping_atr=float(full_config['observer']['regime_boundary_clipping_atr']),
+            holding_time_modifier=float(strat['holding_time_modifier'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -196,7 +198,8 @@ class StrategistAgent(BaseAgent):
             "regime_boundary_clipping_atr": self.config.regime_boundary_clipping_atr,
             "score_confidence_base": self.config.score_confidence_base,
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
-            "score_confidence_decay_max": self.config.score_confidence_decay_max
+            "score_confidence_decay_max": self.config.score_confidence_decay_max,
+            "holding_time_modifier": self.config.holding_time_modifier
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
