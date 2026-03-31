@@ -26,12 +26,12 @@ All systemic optimizations and logic patches must be calibrated to improve execu
 
 # INPUT_DATUM
 1. **THE FORENSIC EVIDENCE**
-  - **Batch Review Reports**: {batch_data} (JSON array of `strategy_session`, `market_outcome` and `audit_findings`).
+- **Batch Review Reports**: {batch_data} (JSON array of `strategy_session`, `market_outcome` and `audit_findings`).
 2. **THE SYSTEM LOGIC**
-  - **Current Strategist Prompt**: {strategist_prompt}
-  - **Current Critic Prompt**: {critic_prompt}
-  - **Current Reviewer Prompt**: {reviewer_prompt}
-  - **Current Configuration**: {current_config}
+- **Current Strategist Prompt**: {strategist_prompt}
+- **Current Critic Prompt**: {critic_prompt}
+- **Current Reviewer Prompt**: {reviewer_prompt}
+- **Current Configuration**: {current_config}
 
 # REASONING_CHAIN
 Execute a deep-dive systemic optimization sequence:
@@ -41,12 +41,12 @@ Execute a deep-dive systemic optimization sequence:
 3. **Critic Blindspot Audit**: Identify why the Critic's logic failed to intercept the risk.
 4. **Reviewer Logic Audit**: Is the Reviewer misjudging structural failures? Does the Scoring Law need recalibration?
 5. **Parameter Optimization**: Cross-reference the failures with the inputs of the `Current Configuration`.
-  - **Temporal Calibration**: Compare `actual_hours` with Tactical (`{order_flow_lookback_hours}`) and Structural (`{trend_intensity_duration_hours}`) windows.
-  - **Sensitivity Check**:  Determine if the failure aligns with a specific threshold in the **Current Configuration** (e.g., `{regime_volume_breakout_threshold}` was too high for the regime).
-  - **Safety Check**: DO NOT aggressively lower `{min_trade_velocity}` unless specific `SL_HIT` outcomes justify it.
+- **Temporal Calibration**: Compare `actual_hours` with Tactical (`{order_flow_lookback_hours}`) and Structural (`{trend_intensity_duration_hours}`) windows.
+- **Sensitivity Check**:  Determine if the failure aligns with a specific threshold in the **Current Configuration** (e.g., `{regime_volume_breakout_threshold}` was too high for the regime).
+- **Safety Check**: DO NOT aggressively lower `{min_trade_velocity}` unless specific `SL_HIT` outcomes justify it.
 6. **Systemic Impact Simulation**: Perform an internal "Anti-Deadlock" audit.
-  - **Scenario**: If I apply the proposed Strategist patch "Change A" and the Critic patch "Change B", does the system still reach a decision in a high-conviction regime?
-  - **Conflict Check**: Ensure the Strategist's "Permission to Expand" does not conflict with the Critic's "Restriction to Anchor".
+- **Scenario**: If I apply the proposed Strategist patch "Change A" and the Critic patch "Change B", does the system still reach a decision in a high-conviction regime?
+- **Conflict Check**: Ensure the Strategist's "Permission to Expand" does not conflict with the Critic's "Restriction to Anchor".
 7. **Logic Synchronization**: Ensure config updates and prompt patches are bi-directionally aligned.
 8. **Patch Synthesis**: Construct the JSON payload mapping your conclusions strictly via the `EVOLUTION LAW`.
 

@@ -43,12 +43,12 @@ This table defines the objective physical meaning for all telemetry fields. Use 
 # REASONING_CHAIN
 You must execute exactly 6 sequential mapping steps. **Actively search for "Logical Friction" (divergences between metrics)**:
 
-1.  **Temporal Confluence & Gravity Check**: Compare the Macro trend against the Micro movement. State explicitly if they are in **CONFLUENCE** or **CONFLICT**. Describe price as anchored or stranded relative to `POC`, `VAH`, and `VAL`. Cite `dist_atr` values.
-2.  **Topographical Friction Mapping**: Identify specific HVN clusters and `liquidation_clusters`. Note how price interacts with these physical magnets (Is it being drawn in or repelled?).
-3.  **Regime & Volatility Diagnostics**: Contrast `structural_state` with `volatility_intensity_index`. Determine explicitly if the state is "Standard Rotation," "Exhausted Range," or "Anomalous Structural Expansion."
-4.  **Sentiment & Flow Verification**: Detect **Logical Friction**. Highlight cases where `cvd_trend` diverges from price movement (e.g., Hidden Distribution or Passive Absorption).
-5.  **Micro-Interactive Forensic**: Analyze local boundaries using **Close-to-High Ratio** (`latest_wick_skew`: current candle) vs **Wick Extension Bias** (`wick_skewness_lookback`: structural exhaustion). Spot "Weak Breakouts" where price exceeds a level but `volatility_ratio` or `volume_breakout_ratio` fails to validate the move.
-6.  **Synthesized Execution Map**: A concise technical summary of the "As-Is" market map. You MUST identify the **Key Structural Conflict** currently governing the price action.
+1. **Temporal Confluence & Gravity Check**: Compare the Macro trend against the Micro movement. State explicitly if they are in **CONFLUENCE** or **CONFLICT**. Describe price as anchored or stranded relative to `POC`, `VAH`, and `VAL`. Cite `dist_atr` values.
+2. **Topographical Friction Mapping**: Identify specific HVN clusters and `liquidation_clusters`. Note how price interacts with these physical magnets (Is it being drawn in or repelled?).
+3. **Regime & Volatility Diagnostics**: Contrast `structural_state` with `volatility_intensity_index`. Determine explicitly if the state is "Standard Rotation," "Exhausted Range," or "Anomalous Structural Expansion."
+4. **Sentiment & Flow Verification**: Detect **Logical Friction**. Highlight cases where `cvd_trend` diverges from price movement (e.g., Hidden Distribution or Passive Absorption).
+5. **Micro-Interactive Forensic**: Analyze local boundaries using **Close-to-High Ratio** (`latest_wick_skew`: current candle) vs **Wick Extension Bias** (`wick_skewness_lookback`: structural exhaustion). Spot "Weak Breakouts" where price exceeds a level but `volatility_ratio` or `volume_breakout_ratio` fails to validate the move.
+6. **Synthesized Execution Map**: A concise technical summary of the "As-Is" market map. You MUST identify the **Key Structural Conflict** currently governing the price action.
 
 # OUTPUT_SCHEMA
 Output RAW JSON only. The first character of your response MUST be `{{` and the last character MUST be `}}`. 
