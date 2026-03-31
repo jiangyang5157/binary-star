@@ -18,7 +18,7 @@ All systemic optimizations and logic patches must be calibrated to improve execu
 # REFERENCE_DECODING
 **EVOLUTION LAW**: Use these strict operational codes when generating patches.
 
-| Action Code | Execution Mandate | Target Requirement                                                           |
+| Action Code | Execution Mandate | Target Requirement |
 | :--- | :--- | :--- |
 | `ADD` | Append a new rule to the end of a specific section. | `target` must specify a unique Section Name (e.g., "# OPERATING_PROTOCOLS"). |
 | `REPLACE` | Overwrite existing flawed logic or consolidate redundant rules. | `target` MUST be an exact, unique, raw substring from the prompt. |
