@@ -47,6 +47,8 @@ class ReviewerConfig:
     score_mae_extra_buffer: float
     score_frontrun_leniency_pct: int
     holding_time_modifier: float
+    point_bonus_optimal_capture: int
+    score_missed_opportunity_base: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -89,7 +91,9 @@ class ReviewerConfig:
             point_bonus_structural_insight=int(rev['point_bonus_structural_insight']),
             score_mae_extra_buffer=float(rev['score_mae_extra_buffer']),
             score_frontrun_leniency_pct=int(rev['score_frontrun_leniency_pct']),
-            holding_time_modifier=float(strat['holding_time_modifier'])
+            holding_time_modifier=float(strat['holding_time_modifier']),
+            point_bonus_optimal_capture=int(rev['point_bonus_optimal_capture']),
+            score_missed_opportunity_base=float(rev['score_missed_opportunity_base'])
         )
 
 class ReviewerAgent(BaseAgent):
@@ -209,7 +213,9 @@ class ReviewerAgent(BaseAgent):
             "point_bonus_structural_insight": self.config.point_bonus_structural_insight,
             "score_mae_extra_buffer": self.config.score_mae_extra_buffer,
             "score_frontrun_leniency_pct": self.config.score_frontrun_leniency_pct,
-            "holding_time_modifier": self.config.holding_time_modifier
+            "holding_time_modifier": self.config.holding_time_modifier,
+            "point_bonus_optimal_capture": self.config.point_bonus_optimal_capture,
+            "score_missed_opportunity_base": self.config.score_missed_opportunity_base
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

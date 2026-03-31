@@ -138,7 +138,8 @@ graph TD
 | `regime_wick_skewness_momentum_bullish/bearish` | **吸收陷阱/动力反转阈值** | 捕捉 V 型反转时的物理分界点。**Anti-Hardcode Patch (v1.2.2)**。 |
 | `regime_min_rr_ranging / trending` | **动态生存 RR** | 震荡市允许 1.2+，趋势市严求 1.8+。 |
 | `regime_cvd_slope_threshold` | **买卖意愿斜率** | 衡量 Taker 攻击的垂直烈度。 |
-| `regime_gravity_volume_override_ratio` | **引力突破量能限制** | 脱离 POC 引力范围后强行追涨所需的最小成交量倍率。**Anti-Hardcode Patch (v1.2.6)**。 |
+| `regime_gravity_volume_override_ratio` | **引力突破量能限制** | 脱离 POC 引力范围后强行追涨所需的最小成交量倍率。 |
+| `regime_participation_volume_threshold` | **激进成交量能阈值** | **(v1.2.14)** 超过此放量倍率后，系统将优先确保成交（缩小挂单深度）。 |
 | `regime_boundary_clipping_atr` | **物理边界安全缓冲** | 在触发边界剪裁式入场时，为了确保 Limit 属性而预留的微小 ATR 间距。 |
 | `regime_poc_magnet_atr_threshold` | **POC 利润锁定阈值** | 均值回归中，偏离度超过此值时 TP 强制锁定在 POC。 |
 | `regime_squeeze_threshold / audit_threshold` | **挤压临界/审计阈值** | 判定能量蓄积是否到达爆发临界，触发 Critic 的生存压力测试。 |
@@ -179,7 +180,9 @@ graph TD
 | `score_frontrun_leniency_pct` | **前瞻赦免比例** | 对于为了捕捉单边行情而执行的前瞻性止损，给予的分值减免比例。**Anti-Hardcode Patch (v1.2.5)**。 |
 | `score_mae_logic_failure_limit` | **逻辑崩溃线** | 超过此值认为策略方向与地形完全解构，直接判定为 Logic Failure。 |
 | `score_mfe_optimal_upper / lower` | **盈利补全比例** | 判断止盈是否发生在行情最高点附近。 |
+| `point_bonus_optimal_capture` | **极优退出奖励** | **(v1.2.15)** 当止盈精准捕捉到 MFE 最佳区间时的额外加分。 |
 | `score_opportunity_cost_limit` | **踏空惩罚门槛** | 衡量行情飞了而系统空仓时的逻辑失分。 |
+| `score_missed_opportunity_base` | **踏空判定基准** | **(v1.2.15)** 物理位移超过此 ATR 倍率即启动踏空审计。 |
 | `score_time_efficiency_limit` | **时间价值窗** | 判断单子在场内占压资金但无产出的效率。 |
 | `penalty_compliance_breach` | **协议死刑** | 违反写死的硬性法律（如 RR）直接归零 (-100)。 |
 | `point_penalty_logic_failure / temporal_failure` | **思维偏差处罚** | |

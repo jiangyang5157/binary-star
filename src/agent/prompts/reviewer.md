@@ -27,8 +27,8 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 | **1. Base Action** | **`tp_sl_result` is `TP_HIT`**: Core hypothesis validated. | Base: +`{point_base_tp_hit}` |
 | | **`tp_sl_result` is `SL_HIT`**: Hypothesis failed, but risk was defined. | Base: +`{point_base_sl_hit}` |
 | | **`NEITHER` (`is_filled: true`)**: (Expired/Flat) Entered but window closed. | Base: +`{point_base_neutral_valid}` (Capital preserved) |
-| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` < 1.0 (Valid Wait). | Base: +`{point_base_neutral_valid}` |
-| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` 1.0 - `{score_opportunity_cost_limit}` (Marginal). | Base: +0 |
+| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` < `{score_missed_opportunity_base}` (Valid Wait). | Base: +`{point_base_neutral_valid}` |
+| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` `{score_missed_opportunity_base}` - `{score_opportunity_cost_limit}` (Marginal). | Base: +0 |
 | | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` > `{score_opportunity_cost_limit}` (Missed Opportunity). | Penalty: `{point_penalty_opportunity_cost}` (Waived to +0 if `NEUTRAL` was Justified Surrender). |
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +`{point_base_tp_hit}` |
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
@@ -36,7 +36,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 | | **Logic Failure**: `mae_stress_level` > `{score_mae_logic_failure_limit}`% OR `mae_atr_ratio` > (`{stop_loss_buffer_max}` * `volatility_ratio` + `{score_mae_extra_buffer}`). *(Note: `mae_atr_ratio` is calculated using `max_atr_used` to account for volatility expansion).* | `{point_penalty_logic_failure}` (High-risk gamble) |
 | **3. Profit (MFE)** | **Premature Exit**: `mfe_efficiency` > `{score_mfe_acceptable_limit}`%. | Penalty: `{point_penalty_mfe_premature_base}` * `trend_intensity`. **(EXCEPTION: Penalty waived if TP was strictly capped by THE POC MAGNET RULE).** |
 | *(If TP_HIT)* | **Acceptable Capture**: `mfe_efficiency` `{score_mfe_optimal_upper}`% - `{score_mfe_acceptable_limit}`%. | Base: +0 (Standard exit) |
-| | **Optimal Capture**: `mfe_efficiency` `{score_mfe_optimal_lower}`% - `{score_mfe_optimal_upper}`%. | Bonus: +10 |
+| | **Optimal Capture**: `mfe_efficiency` `{score_mfe_optimal_lower}`% - `{score_mfe_optimal_upper}`%. | Bonus: +`{point_bonus_optimal_capture}` |
 | **4. Efficiency** | **Temporal Failure**: `time_efficiency_multiplier` > `{score_time_efficiency_limit}` (If entry triggered). | Penalty: `{point_penalty_temporal_failure}` (Dead capital) |
 | | **Stop-Hunt**: `SL_HIT` but `mfe_efficiency` > 100% later. | Penalty: `{point_penalty_stophunt_blindness}` (Blind to sweep) |
 | **5. Audit** | **Structural Insight**: Anticipated liquidity sweep perfectly with DLE. | Bonus: +`{point_bonus_structural_insight}` |
