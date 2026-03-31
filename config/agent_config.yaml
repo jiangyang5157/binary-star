@@ -58,7 +58,7 @@ observer:
   regime_balanced_atr_multiplier: 2.0
   regime_cvd_slope_threshold: 1.0
   regime_gravity_volume_override_ratio: 1.5
-  regime_participation_volume_threshold: 2.0
+  regime_participation_volume_threshold: 1.5
   regime_boundary_clipping_atr: 0.05
   regime_structural_proximity_threshold: 0.5
 strategist:
