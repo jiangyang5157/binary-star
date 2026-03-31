@@ -15,11 +15,12 @@ class OpportunityScanner:
         self.data_root = data_root
         self.logger = logger or setup_logger("OpportunityScanner", propagate = True)
         
+        self.config = load_config()
+
         # Use existing observer or initialize new one
         if observer:
             self.observer = observer
         else:
-            self.config = load_config()
             from dotenv import load_dotenv
             load_dotenv()
             api_key = os.environ.get("GEMINI_API_KEY")
