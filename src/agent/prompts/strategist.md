@@ -36,12 +36,12 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
   2. **[GRAVITY_FILTER]**: Check `abs(poc_dist_atr)` > `{regime_poc_gravity_atr_distance}`?
     - If YES for Momentum/Trend Continuation: ONLY proceed if `volume_breakout_ratio` > `{regime_gravity_volume_override_ratio}`. Otherwise, force `NEUTRAL` (Exit).
     - If YES for Mean-Reversion to POC: MANDATORY PROCEED. Do NOT force `NEUTRAL`.
-    - If NO: Proceed to Step 1.3.
+    - If NO: Proceed to **[OPPORTUNITY_STANCE]** below.
   3. **[OPPORTUNITY_STANCE]**: Determine if MANDATORY front-running is triggered:
     - **Condition A (Squeeze)**: `squeeze_factor` < `{regime_squeeze_threshold}` AND `volume_breakout_ratio` > `{regime_volume_baseline_ratio}`.
     - **Condition B (Hollow)**: `latest_wick_skew` is Extreme (> `{regime_wick_skewness_momentum_bullish}`/< `{regime_wick_skewness_momentum_bearish}`) with divergent CVD.
     - **Condition C (Panic)**: `volatility_ratio` > `{regime_volatility_extreme_ratio}`.
-    - **ACTION**: If A, B, or C is TRUE, you **MUST** front-run the boundary by `{regime_breakout_frontrun_atr} * ATR`. EXCEPTION: If `volume_breakout_ratio` > `{regime_gravity_volume_override_ratio}`, utilize Momentum Participation (Protocol 7 Exception) instead of distal DLE anchors to avoid missing the move.
+    - **ACTION**: If A, B, or C is TRUE, you **MUST** front-run the boundary by `{regime_breakout_frontrun_atr} * ATR`. EXCEPTION: If `volume_breakout_ratio` > `{regime_gravity_volume_override_ratio}`, you MUST abort the distal DLE plan and invoke **MOMENTUM PRIORITY** (`BREAKOUT PARTICIPATION PROTOCOL`) immediately to participation.
   4. **[STRUCTURAL_ALIGNMENT]**: If `cvd_trend` aligns with direction OR `volume_breakout_ratio` > {regime_participation_volume_threshold}, position at the **NEAREST** valid HVN or LVN entry point rather than retreating to the most distal anchor. Prioritize participation over strict RR; in this state, you are authorized to accept a lower RR or wider SL to ensure the order fills.
   5. **[BOUNDARY_CLIPPING]**: Apply **THE PHYSICAL BOUNDARY LAW**. If the calculated entry crosses `current_price`, you MUST clip strictly to `current_price +/- {regime_boundary_clipping_atr} * ATR` to ensure fill without violation.
 - **Step 2 (Inverse Risk)**: Define SL behind the new anchor -> Identify fixed TP -> Calculate Max Entry Price using: `Entry = SL +/- (abs(take_profit - stop_loss) / (Min_RR + 1))`. **(Use `{regime_min_rr_ranging}` or `{regime_min_rr_trending}` for Min_RR).**
