@@ -51,6 +51,7 @@ class ReviewerConfig:
     holding_time_modifier: float
     point_bonus_optimal_capture: int
     score_missed_opportunity_base: float
+    regime_anchor_drift_threshold: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
@@ -97,7 +98,8 @@ class ReviewerConfig:
             score_frontrun_leniency_pct=int(rev['score_frontrun_leniency_pct']),
             holding_time_modifier=float(strat['holding_time_modifier']),
             point_bonus_optimal_capture=int(rev['point_bonus_optimal_capture']),
-            score_missed_opportunity_base=float(rev['score_missed_opportunity_base'])
+            score_missed_opportunity_base=float(rev['score_missed_opportunity_base']),
+            regime_anchor_drift_threshold=float(obs['regime_anchor_drift_threshold'])
         )
 
 class ReviewerAgent(BaseAgent):
@@ -221,7 +223,8 @@ class ReviewerAgent(BaseAgent):
             "score_frontrun_leniency_pct": self.config.score_frontrun_leniency_pct,
             "holding_time_modifier": self.config.holding_time_modifier,
             "point_bonus_optimal_capture": self.config.point_bonus_optimal_capture,
-            "score_missed_opportunity_base": self.config.score_missed_opportunity_base
+            "score_missed_opportunity_base": self.config.score_missed_opportunity_base,
+            "regime_anchor_drift_threshold": self.config.regime_anchor_drift_threshold
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

@@ -45,6 +45,7 @@ class CriticConfig:
     threshold_skepticism_clear: int
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
+    regime_anchor_drift_threshold: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
@@ -80,7 +81,8 @@ class CriticConfig:
             regime_squeeze_audit_threshold=float(full_config['observer']['regime_squeeze_audit_threshold']),
             threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
-            threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive'])
+            threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
+            regime_anchor_drift_threshold=float(full_config['observer']['regime_anchor_drift_threshold'])
         )
 
 class CriticAgent(BaseAgent):
@@ -145,7 +147,8 @@ class CriticAgent(BaseAgent):
             "regime_squeeze_audit_threshold": self.config.regime_squeeze_audit_threshold,
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
             "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
-            "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive
+            "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive,
+            "regime_anchor_drift_threshold": self.config.regime_anchor_drift_threshold
         }
         
         prompt = self._prepare_prompt(self.config.role_prompt_path, **context)

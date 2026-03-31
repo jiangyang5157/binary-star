@@ -61,6 +61,7 @@ observer:
   regime_participation_volume_threshold: 1.5
   regime_boundary_clipping_atr: 0.05
   regime_structural_proximity_threshold: 0.5
+  regime_anchor_drift_threshold: 3.0
 strategist:
   role_definition_prompt: src/agent/prompts/strategist.md
   model: gemini-flash-latest

@@ -51,6 +51,7 @@ class StrategistConfig:
     regime_boundary_clipping_atr: float
     holding_time_modifier: float
     regime_participation_volume_threshold: float
+    regime_anchor_drift_threshold: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "StrategistConfig":
@@ -92,7 +93,8 @@ class StrategistConfig:
             regime_gravity_volume_override_ratio=float(full_config['observer']['regime_gravity_volume_override_ratio']),
             regime_boundary_clipping_atr=float(full_config['observer']['regime_boundary_clipping_atr']),
             holding_time_modifier=float(strat['holding_time_modifier']),
-            regime_participation_volume_threshold=float(full_config['observer']['regime_participation_volume_threshold'])
+            regime_participation_volume_threshold=float(full_config['observer']['regime_participation_volume_threshold']),
+            regime_anchor_drift_threshold=float(full_config['observer']['regime_anchor_drift_threshold'])
         )
 
 class StrategistAgent(BaseAgent):
@@ -202,7 +204,8 @@ class StrategistAgent(BaseAgent):
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
             "score_confidence_decay_max": self.config.score_confidence_decay_max,
             "holding_time_modifier": self.config.holding_time_modifier,
-            "regime_participation_volume_threshold": self.config.regime_participation_volume_threshold
+            "regime_participation_volume_threshold": self.config.regime_participation_volume_threshold,
+            "regime_anchor_drift_threshold": self.config.regime_anchor_drift_threshold
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
