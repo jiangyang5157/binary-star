@@ -32,6 +32,7 @@ class ReviewerConfig:
     score_mfe_optimal_upper: float
     score_mfe_optimal_lower: float
     score_mfe_acceptable_limit: float
+    score_opportunity_cost_limit: float
     score_opportunity_cost_catastrophe_limit: float
     score_opportunity_cost_catastrophe_floor: int
     score_time_efficiency_limit: float
