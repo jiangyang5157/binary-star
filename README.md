@@ -237,7 +237,6 @@ python coach.py backtest
     > 2. **回测隔离**: 将法医报告中的某一特定策略片段剥离出来，生成标准的策略 JSON 文件，以便进行逻辑重放。
 *   **可视化法医看板**: 可视化查看所有执行结果、MAE/MFE 回撤以及 **累计收益曲线 (v1.2.10)**。
     `python forensic_dashboard.py prod`
-    > **💡 核心更新 (v1.2.16)**: 引入了 **Calmar Ratio (系统信任指数)** 与 **Max Drawdown (最大回撤 %)** KPI 卡片，并改用 **指数增长净值曲线 (Equity Curve)** 以精确反映复利表现。
     > **💡 贴士**: 使用 **`-r / --recursive`** 开启全量扫描模式，自动合并所有 `archived` 文件夹中的历史数据，生成完整的资产增长曲线。
 
 
