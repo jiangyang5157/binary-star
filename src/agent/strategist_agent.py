@@ -89,6 +89,7 @@ class StrategistConfig:
             regime_breakout_buffer_atr=float(full_config['observer']['regime_breakout_buffer_atr']),
             regime_breakout_frontrun_atr=float(full_config['observer']['regime_breakout_frontrun_atr']),
             regime_poc_magnet_atr_threshold=float(full_config['observer']['regime_poc_magnet_atr_threshold']),
+            regime_gravity_volume_override_ratio=float(full_config['observer']['regime_gravity_volume_override_ratio']),
             regime_boundary_clipping_atr=float(full_config['observer']['regime_boundary_clipping_atr']),
             holding_time_modifier=float(strat['holding_time_modifier']),
             regime_participation_volume_threshold=float(full_config['observer']['regime_participation_volume_threshold'])
