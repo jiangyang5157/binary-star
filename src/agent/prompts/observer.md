@@ -17,23 +17,23 @@ This table defines the objective physical meaning for all telemetry fields. Use 
 
 | Domain | Parameter | Physical Meaning |
 | :--- | :--- | :--- |
-| **Price** | `latest_wick_skew` | **Close-to-High Ratio**: 0.0 to 1.0. (0.0: Close at Low/Rejection; 1.0: Close at High/Momentum). |
-| **Price** | `volatility_ratio` | 1.0 = Baseline. > 1.0 indicates Micro volatility is expanding relative to the Macro baseline. |
-| **Price** | `volatility_intensity_index` | > 1.0 = Current Macro volatility is expanding beyond its own average (Intensity signal). |
-| **Structure**| `*_dist_atr` | Distance from price to anchor point in ATR units. Negative = Price below level; Positive = Price above level. |
-| **Structure**| `structural_state` | `BALANCED` (Narrow range) vs `IMBALANCED` (Trend/Discovery). |
-| **Structure**| `strength` (HVN) | 0.0 to 1.0. (1.0 = Maximal volume concentration/Price Magnet). |
-| **Structure**| `vacuum_score` (LVN) | 0.0 to 1.0. (High score = Proximity to a low-volume gap/Liquidity vacuum). |
-| **Structure**| `liquidation_clusters` | High-density price zones where forced orders are concentrated. *(Note: `null` is the normal baseline indicating no anomalous cluster, not a missing data error).* |
-| **Regime** | `squeeze_factor` | < 1.0 = Bollinger Bands are inside Keltner Channels (A "Squeeze" state/Coiling). |
-| **Regime** | `trend_intensity` | 0.0 to 1.0. (High = Efficient trending move; Low = Mean-reverting range). |
-| **Regime** | `volume_breakout_ratio`| > 1.0 = Current volume is above the moving average baseline (Breakout validation). |
-| **Regime** | `wick_skewness_lookback`| **Wick Extension Bias**: -1.0 to 1.0. (-1.0 = Long Lower Wicks/Bullish; +1.0 = Long Upper Wicks/Bearish). |
-| **Flow** | `net_taker_delta` | Precise CVD increment. Positive = Aggressive Buys; Negative = Aggressive Sells. |
-| **Flow** | `cvd_trend` | `UPWARD`/`DOWNWARD`/`STABLE`. Detects sustained absorption or aggressive follow-through. |
-| **Flow** | `oi_delta_*` | Change in Open Interest. Positive = New positions; Negative = Liquidations/Closures. |
-| **Flow** | `long_short_ratio_*` | > 1.0 = Retail/Aggregated accounts are mostly Long. |
-| **Flow** | `funding_rate` | Current rate. Positive = Longs pay Shorts (Bullish crowd); Negative = Shorts pay Longs. |
+| **Price & Volatility** | `latest_wick_skew` | **Close-to-High Ratio**: 0.0 to 1.0. (0.0: Close at Low/Rejection; 1.0: Close at High/Momentum). |
+| | `volatility_ratio` | 1.0 = Baseline. > 1.0 indicates Micro volatility is expanding relative to the Macro baseline. |
+| | `volatility_intensity_index` | > 1.0 = Current Macro volatility is expanding beyond its own average (Intensity signal). |
+| **Structure & Topography**| `*_dist_atr` | Distance from price to anchor point in ATR units. Negative = Price below level; Positive = Price above level. |
+| | `structural_state` | `BALANCED` (Narrow range) vs `IMBALANCED` (Trend/Discovery). |
+| | `strength` (HVN) | 0.0 to 1.0. (1.0 = Maximal volume concentration/Price Magnet). |
+| | `vacuum_score` (LVN) | 0.0 to 1.0. (High score = Proximity to a low-volume gap/Liquidity vacuum). |
+| | `liquidation_clusters` | High-density price zones where forced orders are concentrated. *(Note: `null` is the normal baseline).* |
+| **Regime & Context** | `squeeze_factor` | < 1.0 = Bollinger Bands are inside Keltner Channels (A "Squeeze" state/Coiling). |
+| | `trend_intensity` | 0.0 to 1.0. (High = Efficient trending move; Low = Mean-reverting range). |
+| | `volume_breakout_ratio`| > 1.0 = Current volume is above the moving average baseline (Breakout validation). |
+| | `wick_skewness_lookback`| **Wick Extension Bias**: -1.0 to 1.0. (-1.0 = Long Lower Wicks/Bullish; +1.0 = Long Upper Wicks/Bearish). |
+| **Sentiment & Flow** | `net_taker_delta` | Precise CVD increment. Positive = Aggressive Buys; Negative = Aggressive Sells. |
+| | `cvd_trend` | `UPWARD`/`DOWNWARD`/`STABLE`. Detects sustained absorption or aggressive follow-through. |
+| | `oi_delta_*` | Change in Open Interest. Positive = New positions; Negative = Liquidations/Closures. |
+| | `long_short_ratio_*` | > 1.0 = Retail/Aggregated accounts are mostly Long. |
+| | `funding_rate` | Current rate. Positive = Longs pay Shorts (Bullish crowd); Negative = Shorts pay Longs. |
 
 # INPUT_DATUM
 - **Timestamp**: {timestamp} | **Macro Interval**: {macro_timeframe} | **Micro Interval**: {micro_timeframe}
@@ -55,11 +55,11 @@ Output RAW JSON only. The first character of your response MUST be `{{` and the 
 Do not include conversational filler or markdown markers. Every field must be a detailed paragraph (3-5 sentences) containing specific data citations.
 
 {{
-    "structural_gravity": "Analysis from Reasoning Chain Step 1...",
-    "topographical_friction": "Analysis from Reasoning Chain Step 2...",
-    "regime_volatility": "Analysis from Reasoning Chain Step 3...",
-    "sentiment_flow": "Analysis from Reasoning Chain Step 4...",
-    "micro_interactive": "Analysis from Reasoning Chain Step 5...",
-    "synthesized_topography": "Final forensic map summary including Key Structural Conflict (Step 6).",
-    "conviction_score": "0-100 integer representing the clarity and confluence of the topographical signals (High score = Uniform confluence; Low score = Extreme logical friction/chaos)."
+    "structural_gravity": "Analysis from `REASONING_CHAIN` Step 1... Pure observation of price relative to POC/VAH/VAL. ATR distances only. No bias.",
+    "topographical_friction": "Analysis from `REASONING_CHAIN` Step 2... Description of volume density zones (HVN/Clusters). Identify nodes of friction; no directional prognosis.",
+    "regime_volatility": "Analysis from `REASONING_CHAIN` Step 3... Audit of expansion/contraction via volatility metrics. Report binary state of EXHAUSTION AUDIT (PASS/FLAG).",
+    "sentiment_flow": "Analysis from `REASONING_CHAIN` Step 4... Observation of taker/maker delta and OI change. Identify mechanical divergence; no intent attribution.",
+    "micro_interactive": "Analysis from `REASONING_CHAIN` Step 5... Mapping of wick skew and short-term volatility intensity. No prediction of candle closure direction.",
+    "synthesized_topography": "Analysis from `REASONING_CHAIN` Step 6... Final mechanical map. Identify the primary Structural Conflict.",
+    "structural_clarity_score": "0-100 integer representing the clarity and confluence of the topographical signals (High score = Uniform confluence; Low score = Extreme logical friction/chaos)."
 }}
