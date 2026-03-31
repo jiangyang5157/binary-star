@@ -57,6 +57,9 @@ class StrategyEmailTemplate(BaseEmailTemplate):
         
         fmt = StrategyEmailTemplate.fmt
         
+        # 4. Extract Current Price (Synthetic Context)
+        current_price = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("current_price")
+        
         return f"""
         <html>
         <head>{StrategyEmailTemplate.get_styles()}</head>
@@ -105,24 +108,28 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     {f'''
                     <table class="responsive-metrics" style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
-                            <td style="width: 20%; vertical-align: top; border: none !important;">
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📥 Entry</div>
                                 <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
                             </td>
-                            <td style="width: 20%; vertical-align: top; border: none !important;">
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📍 Current</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(current_price)}</div>
+                            </td>
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Take Profit</div>
                                 <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('take_profit'))}</div>
                             </td>
-                            <td style="width: 20%; vertical-align: top; border: none !important;">
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🛡️ Stop Loss</div>
                                 <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('stop_loss'))}</div>
                             </td>
-                            <td style="width: 20%; vertical-align: top; border: none !important;">
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📊 RR Ratio</div>
                                 <div style="font-size: 18px; color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('rr_ratio'))}x</div>
                             </td>
-                            <td style="width: 20%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Temporal Window</div>
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Window</div>
                                 <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours') or 0)}</div>
                             </td>
                         </tr>
