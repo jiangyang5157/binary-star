@@ -32,7 +32,8 @@ class ReviewerConfig:
     score_mfe_optimal_upper: float
     score_mfe_optimal_lower: float
     score_mfe_acceptable_limit: float
-    score_opportunity_cost_limit: float
+    score_opportunity_cost_catastrophe_limit: float
+    score_opportunity_cost_catastrophe_floor: int
     score_time_efficiency_limit: float
     penalty_compliance_breach: float
     point_base_tp_hit: int
@@ -78,6 +79,8 @@ class ReviewerConfig:
             score_mfe_optimal_lower=float(rev['score_mfe_optimal_lower']),
             score_mfe_acceptable_limit=float(rev['score_mfe_acceptable_limit']),
             score_opportunity_cost_limit=float(rev['score_opportunity_cost_limit']),
+            score_opportunity_cost_catastrophe_limit=float(rev['score_opportunity_cost_catastrophe_limit']),
+            score_opportunity_cost_catastrophe_floor=int(rev['score_opportunity_cost_catastrophe_floor']),
             score_time_efficiency_limit=float(rev['score_time_efficiency_limit']),
             penalty_compliance_breach=float(rev['penalty_compliance_breach']),
             point_base_tp_hit=int(rev['point_base_tp_hit']),
@@ -200,6 +203,8 @@ class ReviewerAgent(BaseAgent):
             "score_mfe_optimal_lower": self.config.score_mfe_optimal_lower,
             "score_mfe_acceptable_limit": self.config.score_mfe_acceptable_limit,
             "score_opportunity_cost_limit": self.config.score_opportunity_cost_limit,
+            "score_opportunity_cost_catastrophe_limit": self.config.score_opportunity_cost_catastrophe_limit,
+            "score_opportunity_cost_catastrophe_floor": self.config.score_opportunity_cost_catastrophe_floor,
             "score_time_efficiency_limit": self.config.score_time_efficiency_limit,
             "penalty_compliance_breach": self.config.penalty_compliance_breach,
             "point_base_tp_hit": self.config.point_base_tp_hit,

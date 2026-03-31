@@ -92,6 +92,8 @@ reviewer:
   score_mfe_optimal_lower: 100
   score_mfe_acceptable_limit: 150
   score_opportunity_cost_limit: 1.5
+  score_opportunity_cost_catastrophe_limit: 5.0
+  score_opportunity_cost_catastrophe_floor: -10
   score_time_efficiency_limit: 2.5
   penalty_compliance_breach: -100
   point_base_tp_hit: 40

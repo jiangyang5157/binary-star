@@ -50,17 +50,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Filled / Total Orders</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Executed / Total</div>
                 <div class="text-3xl font-bold mt-1 text-slate-200" id="kpi-executed">0</div>
             </div>
-            <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Win Rate (TP / Filled)</div>
-                <div class="text-3xl font-bold mt-1 text-emerald-400" id="kpi-winrate">0%</div>
+            <div class="card border-l-4 border-emerald-500">
+                <div class="text-slate-400 text-xs font-semibold uppercase">Calmar Ratio (Trust)</div>
+                <div class="text-3xl font-bold mt-1 text-emerald-400" id="kpi-calmar">0.00</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-xs font-semibold uppercase">Cumulative Net PnL (%)</div>
+                <div class="text-slate-400 text-xs font-semibold uppercase">Max Drawdown (%)</div>
+                <div class="text-3xl font-bold mt-1 text-rose-400" id="kpi-mdd">0.00%</div>
+            </div>
+            <div class="card">
+                <div class="text-slate-400 text-xs font-semibold uppercase">Equity Growth (%)</div>
                 <div class="text-3xl font-bold mt-1 text-purple-400" id="kpi-pnl">0.00%</div>
             </div>
         </div>
@@ -141,20 +145,58 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         // 2. Render JSON Dump
         document.getElementById('json-dump').textContent = JSON.stringify(RAW_DATA, null, 2);
 
-        // 3. Compute KPIs (Win Rate calculated ONLY for trades that were actually filled)
-        const totalSamples = RAW_DATA.length;
-        const executedTrades = RAW_DATA.filter(d => d.is_filled);
-        const wins = executedTrades.filter(d => d.tp_sl_result === 'TP_HIT');
+        // 3. Compute KPIs & Risk Metrics
+        const sortedTrades = [...RAW_DATA].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
+        const executedTrades = sortedTrades.filter(d => d.is_filled);
         
-        let netPnl = 0;
-        executedTrades.forEach(t => netPnl += t.estimated_pnl_pct);
+        let equityMultiplier = 1.0;
+        let runningPeak = 1.0;
+        let maxDD = 0;
+        
+        const equityCurve = [];
+        executedTrades.forEach(t => {
+            const pnlDecimal = t.estimated_pnl_pct / 100.0;
+            equityMultiplier *= (1 + pnlDecimal);
+            
+            if (equityMultiplier > runningPeak) runningPeak = equityMultiplier;
+            const currentDD = (runningPeak - equityMultiplier) / runningPeak;
+            if (currentDD > maxDD) maxDD = currentDD;
+            
+            equityCurve.push({
+                x: t.observation_time,
+                y: (equityMultiplier - 1) * 100, // Show as % growth
+                pnl: t.estimated_pnl_pct,
+                name: t.name
+            });
+        });
 
-        document.getElementById('kpi-executed').innerText = `${executedTrades.length} / ${totalSamples}`;
-        document.getElementById('kpi-winrate').innerText = executedTrades.length > 0 ? ((wins.length / executedTrades.length) * 100).toFixed(1) + '%' : '0%';
+        // Annualized Return calculation
+        let calmar = 0;
+        if (sortedTrades.length > 1) {
+            const firstT = new Date(sortedTrades[0].observation_time);
+            const lastT = new Date(sortedTrades[sortedTrades.length-1].observation_time);
+            const durationDays = Math.max(1, (lastT - firstT) / (1000 * 60 * 60 * 24));
+            
+            const totalReturn = equityMultiplier - 1;
+            // Annualized Return formula: (1 + TR)^(365/days) - 1
+            const annualizedReturn = Math.pow(1 + totalReturn, 365 / durationDays) - 1;
+            
+            if (maxDD > 0) {
+                calmar = annualizedReturn / maxDD;
+            } else if (totalReturn > 0) {
+                calmar = 99; // Cap for infinite Calmar if no DD
+            }
+        }
+
+        document.getElementById('kpi-executed').innerText = `${executedTrades.length} / ${RAW_DATA.length}`;
+        document.getElementById('kpi-mdd').innerText = (maxDD * 100).toFixed(2) + '%';
+        document.getElementById('kpi-pnl').innerText = ((equityMultiplier - 1) * 100).toFixed(2) + '%';
         
-        const pnlEl = document.getElementById('kpi-pnl');
-        pnlEl.innerText = (netPnl > 0 ? '+' : '') + netPnl.toFixed(2) + '%';
-        pnlEl.className = netPnl >= 0 ? 'text-3xl font-bold mt-1 text-emerald-400' : 'text-3xl font-bold mt-1 text-rose-400';
+        const calmarEl = document.getElementById('kpi-calmar');
+        calmarEl.innerText = calmar.toFixed(2);
+        if (calmar >= 5) calmarEl.className = 'text-3xl font-bold mt-1 text-yellow-400';
+        else if (calmar >= 3) calmarEl.className = 'text-3xl font-bold mt-1 text-emerald-400';
+        else if (calmar < 1) calmarEl.className = 'text-3xl font-bold mt-1 text-rose-400';
 
         // 4. Timeline Bubble Chart (Temporal)
         const bubbleData = RAW_DATA.map((d) => {
@@ -221,26 +263,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         });
 
-        // 4.5 Cumulative PnL Curve Chart
-        let runningPnl = 0;
-        // Ensure sorted by time for the curve
-        const sortedExecuted = [...executedTrades].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
-        const equityData = sortedExecuted.map(t => {
-            runningPnl += t.estimated_pnl_pct;
-            return { 
-                x: t.observation_time, 
-                y: runningPnl,
-                tradePnl: t.estimated_pnl_pct,
-                name: t.name
-            };
-        });
-
+        // 4.5 Multiplicative Equity Curve Chart
         new Chart(document.getElementById('equityChart'), {
             type: 'line',
             data: {
                 datasets: [{
-                    label: 'Cumulative Net PnL (%)',
-                    data: equityData,
+                    label: 'Equity Growth (%)',
+                    data: equityCurve,
                     borderColor: '#a78bfa', // Purple-400
                     backgroundColor: 'rgba(167, 139, 250, 0.1)',
                     borderWidth: 2,
@@ -263,8 +292,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                             label: (ctx) => {
                                 const d = ctx.raw;
                                 return [
-                                    `Trade PnL: ${d.tradePnl > 0 ? '+' : ''}${d.tradePnl.toFixed(2)}%`,
-                                    `Cumulative: ${d.y.toFixed(2)}%`
+                                    `Trade PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%`,
+                                    `Equity Growth: ${d.y.toFixed(2)}%`
                                 ];
                             }
                         }
@@ -470,6 +499,7 @@ class ForensicDashboardGenerator:
             extracted_data.append({
                 "name": filename,
                 "observation_time": start_time,
+                "completion_time": market_outcome.get("trade_execution_metrics", {}).get("actual_hours", holding_time_hours),
                 "holding_time_hours": holding_time_hours,
                 "is_filled": is_filled,
                 "tp_sl_result": tp_sl_result,

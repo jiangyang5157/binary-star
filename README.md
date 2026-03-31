@@ -181,7 +181,9 @@ graph TD
 | `score_mae_logic_failure_limit` | **逻辑崩溃线** | 超过此值认为策略方向与地形完全解构，直接判定为 Logic Failure。 |
 | `score_mfe_optimal_upper / lower` | **盈利补全比例** | 判断止盈是否发生在行情最高点附近。 |
 | `point_bonus_optimal_capture` | **极优退出奖励** | **(v1.2.15)** 当止盈精准捕捉到 MFE 最佳区间时的额外加分。 |
-| `score_opportunity_cost_limit` | **踏空惩罚门槛** | 衡量行情飞了而系统空仓时的逻辑失分。 |
+| `score_opportunity_cost_limit` | **踏空惩罚开始线** | 衡量行情飞了而系统空仓时的逻辑失分起点。 |
+| `score_opportunity_cost_catastrophe_limit` | **踏空灾难限额** | **(v1.2.16)** 踏空位移达到此 ATR 时，惩罚达到最大底线。 |
+| `score_opportunity_cost_catastrophe_floor` | **踏空评分底线** | **(v1.2.16)** 发生灾难级踏空时的固定最高扣分。 |
 | `score_missed_opportunity_base` | **踏空判定基准** | **(v1.2.15)** 物理位移超过此 ATR 倍率即启动踏空审计。 |
 | `score_time_efficiency_limit` | **时间价值窗** | 判断单子在场内占压资金但无产出的效率。 |
 | `penalty_compliance_breach` | **协议死刑** | 违反写死的硬性法律（如 RR）直接归零 (-100)。 |
@@ -235,6 +237,7 @@ python coach.py backtest
     > 2. **回测隔离**: 将法医报告中的某一特定策略片段剥离出来，生成标准的策略 JSON 文件，以便进行逻辑重放。
 *   **可视化法医看板**: 可视化查看所有执行结果、MAE/MFE 回撤以及 **累计收益曲线 (v1.2.10)**。
     `python forensic_dashboard.py prod`
+    > **💡 核心更新 (v1.2.16)**: 引入了 **Calmar Ratio (系统信任指数)** 与 **Max Drawdown (最大回撤 %)** KPI 卡片，并改用 **指数增长净值曲线 (Equity Curve)** 以精确反映复利表现。
     > **💡 贴士**: 使用 **`-r / --recursive`** 开启全量扫描模式，自动合并所有 `archived` 文件夹中的历史数据，生成完整的资产增长曲线。
 
 

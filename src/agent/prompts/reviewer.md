@@ -11,7 +11,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 3. **HINDSIGHT BIAS SUPPRESSION**: Do not penalize agents for random market noise. Penalize strictly for ignoring structural warnings present in the T0 telemetry.
 4. **THE NEUTRALITY PARADOX**: 
    - If `NEUTRAL` was chosen and the market chopped, praise "Capital Preservation." 
-   - If `NEUTRAL` was chosen but a structurally sound move occurred (Check `missed_relative_range`), severely penalize "Opportunity Cost". 
+   - If `NEUTRAL` was chosen but a structurally sound move occurred (Check `missed_relative_range`), apply a **Linear Decay** penalty for "Opportunity Cost". 
    - **EXCEPTION (JUSTIFIED SURRENDER)**: A `NEUTRAL` stance is a Justified Surrender ONLY if core Topological data (`POC`, `VAH`, `VAL`, `atr_macro`) is 'Unavailable', OR if forced by a **FATAL** Veto Level (`is_veto: true`). Missing Flow data (`cvd_trend`, `long_short_ratio`) does NOT justify surrender. If Flow data is missing but a clear structural edge existed, you MUST penalize `NEUTRAL` as Opportunity Cost. *(Note: `liquidation_clusters: null` is the normal baseline).*
 5. **MATHEMATICAL & TEMPORAL VERIFICATION**: **Execute Independent Mathematical Verification.** Extract `entry_price`, `stop_loss`, and `take_profit` from **Pass-3 SYNTHESIS**.
    - **Planning Compliance**: Use **`atr_macro` from the `[T0 Environment]`** to manually re-verify the initial compliance of the Risk/Reward (RR) and structural buffers. Did the agents follow the laws using the facts available *at the time of decision*?
@@ -29,7 +29,7 @@ All forensic autopsies and scoring must be calibrated to evaluate how well the a
 | | **`NEITHER` (`is_filled: true`)**: (Expired/Flat) Entered but window closed. | Base: +`{point_base_neutral_valid}` (Capital preserved) |
 | | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` < `{score_missed_opportunity_base}` (Valid Wait). | Base: +`{point_base_neutral_valid}` |
 | | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` `{score_missed_opportunity_base}` - `{score_opportunity_cost_limit}` (Marginal). | Base: +0 |
-| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` > `{score_opportunity_cost_limit}` (Missed Opportunity). | Penalty: `{point_penalty_opportunity_cost}` (Waived to +0 if `NEUTRAL` was Justified Surrender). |
+| | **`NEITHER` (`is_filled: false`)**: `missed_relative_range` > `{score_opportunity_cost_limit}` (Missed Opportunity). | **Linear Decay**: Scaling from `{score_opportunity_cost_catastrophe_floor}` to `{point_penalty_opportunity_cost}` based on `missed_relative_range` approaching `{score_opportunity_cost_catastrophe_limit}` ATR. |
 | **2. Risk (MAE)** | **Pinpoint**: `mae_stress_level` is 0% - `{score_mae_pinpoint_limit}`%. | +`{point_base_tp_hit}` |
 | *(If entry triggered)*| **Standard**: `mae_stress_level` is `{score_mae_pinpoint_limit}`% - `{score_mae_standard_limit}`%. | Linear Decay (+`{point_base_tp_hit}` to +`{point_base_sl_hit}`) |
 | | **Luck**: `mae_stress_level` is `{score_mae_standard_limit}`% - `{score_mae_logic_failure_limit}`%. | +0 (Saved by noise) |
