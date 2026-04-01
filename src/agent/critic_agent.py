@@ -1,7 +1,7 @@
 import os
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional, Union
 from google import genai
 from google.genai import types
 
@@ -46,16 +46,20 @@ class CriticConfig:
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
     regime_anchor_drift_threshold: float
+    max_tool_iterations: int
+    min_trade_velocity: float
 
     @classmethod
     def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
         """Factory method to extract critic config from the global config dict."""
         critic = full_config['critic']
         strat = full_config['strategist']
+        shared = full_config.get('agent_model_shared_config', {})
         return cls(
             model=str(critic['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
             model_temperature=float(critic['model_temperature']),
+            min_trade_velocity=float(critic.get('min_trade_velocity', 0.5)),
             stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
             strategy_intent=str(full_config['strategy_intent']),
@@ -82,7 +86,8 @@ class CriticConfig:
             threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
-            regime_anchor_drift_threshold=float(full_config['observer']['regime_anchor_drift_threshold'])
+            regime_anchor_drift_threshold=float(full_config['observer']['regime_anchor_drift_threshold']),
+            max_tool_iterations=int(shared['max_tool_iterations'])
         )
 
 class CriticAgent(BaseAgent):
@@ -93,41 +98,93 @@ class CriticAgent(BaseAgent):
     It identifies hidden flaws, structural traps, and math violations by 
     contrasting the draft against 'Math Fact Check' telemetry and volume topography.
     """
-    def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
+    def __init__(
+        self, 
+        config: CriticConfig, 
+        api_timeout: int,
+        retry_count: int,
+        retry_multiplier: float,
+        retry_min: int,
+        retry_max: int,
+        ai_client: genai.Client
+    ):
         """
-        Initializes the Critic with configuration.
+        Initializes the Critic with a pre-assembled type-safe configuration.
         """
-        self.config = CriticConfig.from_dict(config_dict)
+        self.config = config
         super().__init__(
             model=self.config.model,
             temperature=self.config.model_temperature,
-            api_key=api_key,
-            ai_client=ai_client
+            ai_client=ai_client,
+            max_tool_iterations=self.config.max_tool_iterations,
+            api_timeout=api_timeout,
+            retry_count=retry_count,
+            retry_multiplier=retry_multiplier,
+            retry_min=retry_min,
+            retry_max=retry_max
         )
 
-    def audit(self, observation: Dict[str, Any], draft_plan: Dict[str, Any], math_fact_check: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def audit(
+        self, 
+        observation: Optional[Dict[str, Any]], 
+        draft_plan: Dict[str, Any], 
+        symbol: str, 
+        cache_id: Optional[str] = None,
+        tools: Optional[List[Any]] = None
+    ) -> Dict[str, Any]:
         """
-        Performs an adversarial audit of a proposed trading draft.
-        
-        Args:
-            observation: The forensic market map (Observer output).
-            draft_plan: The proposed strategy from Strategist (Phase A).
-            math_fact_check: Deterministic math facts (RR, ATR distances) to prevent LLM hallucination.
+        Unified adversarial audit method (The Phase 2 Challenge).
+        Supports both Truth Bus (Cache) and Debug (Direct JSON) modes.
+        """
+        try:
+            # Construct context with Truth Bus Matrix safety
+            context = self._build_context(observation, draft_plan, cache_id=cache_id)
+            prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
             
-        Returns:
-            A critique dictionary containing 'is_veto' status and risk tags (e.g., [CLEAR], [LIQUIDITY_VOID]).
+            logger.info(f"Critic: Auditing thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            
+            return self._execute_ai_cycle(
+                payload=prompt, 
+                temperature=self.config.model_temperature,
+                agent_name="Critic_Audit",
+                cached_content=cache_id,
+                tools=tools
+            )
+        except Exception as e:
+            logger.error(f"Critic: Audit failed for {symbol}: {e}")
+            raise
+
+    def _build_context(
+        self, 
+        observation: Optional[Dict[str, Any]], 
+        draft_plan: Dict[str, Any], 
+        math_fact_check: Optional[Dict[str, Any]] = None,
+        cache_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
-        # Prepare semantic context for the audit session
-        context = {
-            "observation_json": json.dumps(observation, indent=2, ensure_ascii=False),
+        Constructs the auditing context using the Truth Bus Decision Matrix:
+        1. Cache ID present -> Reference context, suppress JSON. (Production)
+        2. Observation present -> Embed raw JSON. (Debug / Fallback)
+        3. Both None -> Fuse / Raise ValueError. (Safety)
+        """
+        # --- The Truth Bus Matrix ---
+        if cache_id:
+            # Production: Optimization active. Refer to system context.
+            observation_json = "[CONTEXT_PROVIDED_VIA_CACHE]"
+        elif observation:
+            # Debug/Fallback: Manual data injection.
+            observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
+        else:
+            # Safety Fuse: Prevent auditing without topographic data
+            raise ValueError("Critic: Zero-Knowledge State. Neither observation nor cache_id provided.")
+
+        return {
+            "observation_json": observation_json,
             "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
-            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "Not provided by system.",
-            "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
-            "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
-            "strategy_intent": self.config.strategy_intent,
+            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "",
+            "min_trade_velocity": self.config.min_trade_velocity,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval,
-            "order_flow_lookback_hours": self.config.order_flow_lookback_hours,
             "regime_trend_intensity_threshold": self.config.regime_trend_intensity_threshold,
             "regime_volatility_baseline_ratio": self.config.regime_volatility_baseline_ratio,
             "regime_volatility_expansion_ratio": self.config.regime_volatility_expansion_ratio,
@@ -150,8 +207,27 @@ class CriticAgent(BaseAgent):
             "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive,
             "regime_anchor_drift_threshold": self.config.regime_anchor_drift_threshold
         }
-        
-        prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
-        
-        logger.info("Critic: Performing adversarial audit...")
-        return self._execute_ai_cycle(prompt, agent_name="Critic")
+
+    # --- Tool Delegate Methods (for Function Calling) ---
+    # We mirror these from StrategistAgent so the Critic can also audit the math
+    
+    def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> Dict[str, Any]:
+        from src.agent.tools.math_tools import MathTools
+        return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
+
+    def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: Optional[float] = None) -> Dict[str, Any]:
+        from src.agent.tools.math_tools import MathTools
+        return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
+
+    def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: Optional[float] = None, vah: Optional[float] = None, val: Optional[float] = None) -> Dict[str, Any]:
+        from src.agent.tools.math_tools import MathTools
+        return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
+
+    def project_holding_time(self, entry: float, take_profit: float, atr: float, 
+                             trend_intensity: float, macro_interval_minutes: int) -> Dict[str, Any]:
+        """[DELEGATE] Projects holding time using the config-driven velocity floor."""
+        from src.agent.tools.math_tools import MathTools
+        return MathTools.project_holding_time(
+            entry, take_profit, atr, trend_intensity, 
+            macro_interval_minutes, self.config.min_trade_velocity
+        )

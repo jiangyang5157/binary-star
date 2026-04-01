@@ -1,0 +1,8 @@
+- [ ] Refactor BaseAgent (Remove api_key, make ai_client mandatory)
+- [ ] Update BinaryStarOrchestrator (Stop passing api_key to agents)
+- [ ] Purge api_key from StrategistAgent
+- [ ] Purge api_key from CriticAgent
+- [ ] Purge api_key from SemanticSynthesizer (Observer)
+- [ ] Purge api_key from CoachAgent
+- [ ] Purge api_key from ReviewerAgent
+- [ ] Synchronize Regression Tests

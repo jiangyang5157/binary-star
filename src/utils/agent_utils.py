@@ -2,7 +2,19 @@ import os
 import yaml
 import re
 import argparse
+import hashlib
 from typing import Dict, Any, List, Optional
+
+
+def get_file_hash(file_path: str) -> str:
+    """Calculates a short MD5 hash of a file's content to track prompt/config versions."""
+    try:
+        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+            return "unavailable"
+        with open(file_path, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()[:8]
+    except Exception:
+        return "unavailable"
 
 
 def load_config(config_filepath: str = "config/agent_config.yaml") -> Dict[str, Any]:
@@ -146,4 +158,27 @@ def add_data_root_argument(parser: argparse.ArgumentParser):
         required=False, 
         help="Explicit data directory root. Overrides env_shortcut."
     )
+
+
+def archive_strategy_result(symbol: str, timestamp, result: Any, data_root: str, target_dir: str) -> str:
+    """
+    Standardized archival for all pipeline results.
+    Moved from legacy strategist.py to core utilities.
+    """
+    from src.utils.path_utils import resolve_project_root
+    from src.utils.datetime_utils import sanitize_timestamp
+    from src.utils.json_utils import save_json
+    
+    project_root = resolve_project_root()
+    output_dir = os.path.join(project_root, data_root, target_dir)
+    os.makedirs(output_dir, exist_ok=True)
+    
+    ts_str = timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
+    ts_suffix = sanitize_timestamp(ts_str)
+    
+    filename = f"{symbol}_{target_dir}_{ts_suffix}.json"
+    output_file = os.path.join(output_dir, filename)
+    
+    save_json(result, output_file)
+    return output_file
 

@@ -12,8 +12,12 @@ network:
     api_timeout_seconds: 60
     retry_count: 2
   gemini:
-    api_timeout_seconds: 480
+    api_timeout_seconds: 120
     retry_count: 2
+    retry_strategy:
+      multiplier: 1
+      min_seconds: 2
+      max_seconds: 10
 backtest:
   # Session anchor for regime sampling timestamps.
   # Shifts sampled daily candles to this UTC hour to capture real session dynamics.
@@ -21,3 +25,9 @@ backtest:
   # 8  = London open
   # 13 = New York open (recommended for max liquidity)
   session_hour_utc: 13
+
+# Binary Star Adversarial Reasoning Core Settings
+strategy_intent: "Scouting the Alpha in Topographical Friction."
+
+agent_model_shared_config:
+  max_tool_iterations: 10

@@ -16,7 +16,7 @@ from src.utils.logger_utils import setup_logger
 from src.utils.agent_utils import resolve_data_root, load_global_config
 
 def main():
-    parser = argparse.ArgumentParser(description="Pure Market Scanner Service (No Agents)")
+    parser = argparse.ArgumentParser(description="Pure Market Scanner (No Agents)")
     parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--pulse", type=float, required=True, help="Scan interval in minutes")
     
@@ -34,11 +34,11 @@ def main():
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
-    logger_name = "ScannerService"
-    log_path = os.path.join(data_root, "market_scanner_service.log")
+    logger_name = "MarketScanner"
+    log_path = os.path.join(data_root, "market_scanner.log")
     logger = setup_logger(logger_name, log_file=log_path)
     
-    logger.info(f"=== Starting Pure Market Scanner Service for {symbol} ===")
+    logger.info(f"=== Starting Pure Market Scanner for {symbol} ===")
     logger.info(f"Pulse: {args.pulse} minutes | Data Root: {data_root}")
 
     try:

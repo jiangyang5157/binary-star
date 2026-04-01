@@ -1,4 +1,7 @@
 strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess a forensic mathematical edge and absolute structural invalidation."
+agent_model_shared_config:
+  max_tool_iterations: 5
+
 observer:
   role_definition_prompt: src/agent/prompts/observer.md
   model: gemini-flash-latest
@@ -114,3 +117,10 @@ coach:
   role_definition_prompt: src/agent/prompts/coach.md
   model: gemini-flash-latest
   model_temperature: 0.5
+
+binary_star:
+  agent_model: gemini-flash-latest
+  agent_model_system_instruction: src/agent/prompts/binary_star.md
+  agent_model_cache_expiration_minutes: 10
+  agent_model_max_debate_rounds: 1
+  agent_model_debate_stop_threshold: 50

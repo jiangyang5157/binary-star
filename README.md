@@ -242,9 +242,9 @@ python coach.py backtest
 
 ### Phase 3: 自动化演化循环 (The Evolutionary Axis)
 *   **全自动化编排**: 开启循环扫描模式，自动执行从 Observer 到 Strategist 的全链路。
-    `python pipeline_orchestrator.py live --pulse 60 --mode scan`
+    `python agent_orchestrator.py live --pulse 60 --mode scan`
 *   **市场诊断服务 (静默监视)**: 仅在后台持续刷新真相总线，不消耗 Agent API 成本。
-    `python market_scanner_service.py live --pulse 30`
+    `python market_scanner.py live --pulse 30`
 *   **诊断与进化合成**: 开启系统“自我反思”模式，由 Coach 自动合成逻辑补丁。
     `python coach.py live`
 *   **应用逻辑补丁**: 将 Coach 生成的 `.patch` 物理硬化到 Prompt 或 Config 中。

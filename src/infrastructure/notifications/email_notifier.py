@@ -379,6 +379,57 @@ class ReviewEmailTemplate(BaseEmailTemplate):
         </html>
         """
 
+class AlertEmailTemplate(BaseEmailTemplate):
+    """
+    Handles the generation of professional HTML templates for System Critical Alerts.
+    Used for circuit breaker triggers, API failures, or resource depletion.
+    """
+    @staticmethod
+    def render(alert_name: str, symbol: str, error_message: str, metadata: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Renders a mission-critical alert into a clear HTML report.
+        """
+        display_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
+        
+        return f"""
+        <html>
+        <head>{AlertEmailTemplate.get_styles()}</head>
+        <body>
+            <div class="container" style="border-top: 6px solid #ef4444;">
+                <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
+                    <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: #ef444415; color: #ef4444; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid #ef444430;">
+                        🚨 SYSTEM ALERT
+                    </div>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{alert_name}</h1>
+                    <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
+                        Target: {symbol} | Detected: {display_time}
+                    </p>
+                </div>
+
+                <!-- ALERT CONTENT -->
+                <div style="background-color: #fef2f2; padding: 25px; border-radius: 12px; border: 1px solid #fee2e2; margin-bottom: 35px;">
+                    <h3 style="margin-top: 0; color: #b91c1c; font-size: 18px; margin-bottom: 15px;">🛑 Circuit Breaker Triggered</h3>
+                    <p style="font-size: 15px; line-height: 1.7; color: #991b1b; font-weight: 600; margin-bottom: 0;">
+                        {error_message}
+                    </p>
+                </div>
+
+                <!-- METADATA BOX -->
+                {f'''
+                <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                    <h4 style="margin-top: 0; color: #475569; font-size: 13px; margin-bottom: 12px; text-transform: uppercase;">📊 Forensic Context</h4>
+                    <pre style="font-size: 12px; color: #334155; line-height: 1.5; margin: 0; white-space: pre-wrap;"><code>{json.dumps(metadata, indent=2, ensure_ascii=False)}</code></pre>
+                </div>
+                ''' if metadata else ""}
+
+                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center; color: #94a3b8; font-size: 11px;">
+                    System automated notification | AG-7 Circuit Breaker Protocols Active
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
 class DashboardEmailTemplate(BaseEmailTemplate):
     """
     Handles the generation of professional HTML templates for Strategic Alpha Ledgers (Dashboards).
@@ -676,6 +727,22 @@ class StrategyNotifier:
         files = [dashboard_path] if dashboard_path and os.path.exists(dashboard_path) else None
         
         return self.dispatcher.dispatch(subject, html_body, files=files)
+
+    def notify_alert(self, alert_name: str, symbol: str, error_message: str, metadata: Optional[Dict[str, Any]] = None) -> bool:
+        """
+        Dispatches a high-priority system alert email.
+        Used for catastrophic failures or circuit breaker triggers.
+        """
+        html_body = AlertEmailTemplate.render(alert_name, symbol, error_message, metadata)
+        subject = f"🛑 {alert_name} | {symbol}"
+        
+        logger.error(f"Notifier: DISPATCHING CRITICAL ALERT: {subject}")
+        
+        if not self.enabled:
+            logger.warning("Notifier: Alert dispatch failed (Notifications disabled).")
+            return False
+            
+        return self.dispatcher.dispatch(subject, html_body)
 
 if __name__ == "__main__":
     import argparse

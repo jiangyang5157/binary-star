@@ -11,12 +11,15 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
+from dotenv import load_dotenv
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.utils.agent_utils import load_config, resolve_data_root, add_data_root_argument, load_global_config
 from src.analyzer.opportunity_scanner import OpportunityScanner
-from strategist import StrategistOrchestrator, run_full_triad_flow, archive_strategy_result
+from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
+from src.infrastructure.notifications.email_notifier import StrategyNotifier
+from src.utils.agent_utils import load_config, archive_strategy_result
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -91,36 +94,7 @@ class ProcessExecutor:
             self.logger.error(f"Execution ERROR: {display_name} - {str(e)}")
             return False
 
-# --- 2. Abstractions: Jobs & Tasks ---
-
-class Job(ABC):
-    """Abstract base class for a unit of work that can be scheduled."""
-    @abstractmethod
-    def run(self) -> None:
-        pass
-
-class SequentialPipelineJob(Job):
-    """
-    A job that runs a sequence of steps (Strategist -> Reviewer).
-    """
-    def __init__(self, symbol: str, data_root: str, executor: ProcessExecutor):
-        self.name = f"Pipeline-{symbol}"
-        self.symbol = symbol
-        self.data_root = data_root
-        self.executor = executor
-
-    def run(self) -> None:
-        """Executes the full pipeline cycle for a symbol."""
-        # Step 1: Execute Strategist
-        strat_args = ["--symbol", self.symbol, "--data_root", self.data_root]
-        strat_success = self.executor.run_script("strategist.py", strat_args)
-        
-        # Step 2: Trigger Reviewer (Checks for any pending reviews)
-        # We always trigger the reviewer after a strategy run
-        rev_args = ["--data_root", self.data_root]
-        self.executor.run_script("reviewer.py", rev_args)
-
-# --- 3. Validation & Management ---
+# --- 2. Abstractions: Scheduling & Management ---
 
 class ConfigValidator:
     """Validates the orchestrator settings against the global agent config."""
@@ -157,59 +131,71 @@ class ConfigValidator:
         return val * mapping.get(unit, 1)
 
 class JobScheduler:
-    """Manages the scheduling logic."""
+    """
+    Manages the scheduling logic.
+    Wraps the 'schedule' library to provide a standardized interface for pulse cycles.
+    """
     def __init__(self, logger: logging.Logger):
         self.logger = logger
         self.schedule = schedule
 
-    def add_job(self, job: Job, interval_hours: float):
-        self.logger.info(f"Scheduling '{job.name}' every {interval_hours} hours.")
-        self.schedule.every(interval_hours).hours.do(job.run)
-
     def run_pending(self):
+        """Executes all pending scheduled tasks."""
         self.schedule.run_pending()
+
 
 # --- 4. Orchestrator Service ---
 
-class PipelineOrchestrator:
+class AgentOrchestrator:
     def __init__(self, symbol: str, pulse_minutes: float, data_root: str, mode: str):
         self.data_root = data_root
         self.symbol = symbol
         self.mode = mode
         self.interval_hours = pulse_minutes / 60.0
-        log_path = os.path.join(data_root, "pipeline_orchestrator.log")
-        self.logger = setup_logger("PipelineOrchestrator", log_file=log_path)
+        log_path = os.path.join(data_root, "agent_orchestrator.log")
+        self.logger = setup_logger("AgentOrchestrator", log_file=log_path)
         self.executor = ProcessExecutor(self.logger)
         self.scheduler = JobScheduler(self.logger)
         self.validator = ConfigValidator(self.logger)
         
-        # Initialize the StrategistOrchestrator for in-process Triad execution
+        # Initialize the Modern Binary Star Orchestrator & Notifier
         try:
-            self.triad_orchestrator = StrategistOrchestrator(self.symbol, self.data_root)
-            self.logger.info("Internal StrategistOrchestrator initialized.")
+            self.config = load_config()
+            load_dotenv()
+            self.api_key = os.environ.get("GEMINI_API_KEY")
+            if not self.api_key:
+                raise ValueError("GEMINI_API_KEY not found in environment.")
+                
+            self.orchestrator = BinaryStarOrchestrator(
+                config_dict=self.config, 
+                api_key=self.api_key, 
+                data_root=self.data_root
+            )
+            self.notifier = StrategyNotifier(data_root=self.data_root)
+            self.logger.info("Production BinaryStar Orchestrator & Notifier initialized.")
             
-            # Use shared scanner
+            # Failure tracking for circuit breaker
+            self.consecutive_failures = 0
+            self.max_failures_threshold = 3
+            
+            # Use shared scanner (Shared observers mapping topography)
             self.scanner = OpportunityScanner(
                 self.symbol, 
                 self.data_root, 
                 logger=self.logger, 
-                observer=self.triad_orchestrator.observer
+                observer=self.orchestrator.observer
             )
         except Exception as e:
-            self.logger.error(f"Failed to initialize Triad Orchestrator or Scanner: {e}")
+            self.logger.error(f"Failed to initialize Agent Components: {e}", exc_info=True)
             sys.exit(1)
 
     def _run_cycle(self):
         """
-        Executes a single pulse cycle:
-        1. Observe (via Scanner)
-        2. Scan Filter (via Scanner)
-        3. Triad Execution (Shared data)
-        4. Reviewer Execution (Subprocess)
+        Executes a deterministic pulse cycle using the Binary Star Architecture.
         """
         try:
-            # Step 1: Observe & Step 2: Scan Check
-            self.logger.info("Cycle Start: Gathering market facts...")
+            # Step 1-2: Fact Gathering & Opportunity Check
+            self.logger.info("Cycle Start: Gathering market topography...")
             observation = self.scanner.scan()
             
             if "error" in observation:
@@ -220,18 +206,14 @@ class PipelineOrchestrator:
                 if not self.scanner.should_trigger(observation):
                     return
 
-            # Step 3: Triad Reasoning
-            self.logger.info("Cycle: Triggering Triad Reasoning Flow...")
-            session_result = run_full_triad_flow(
-                observation, 
-                self.triad_orchestrator.strategist, 
-                self.triad_orchestrator.critic
-            )
+            # Step 3: Dual-Star Adversarial Reasoning (Truth Bus active)
+            self.logger.info(f"Cycle: Triggering Adversarial Debate Flow for {self.symbol}...")
+            session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
-            # Step 4: Notifications
-            self.triad_orchestrator._handle_notifications(session_result)
+            # Step 4: Strategic Notifications
+            self.notifier.notify_strategy(self.symbol, session_result)
 
-            # Step 5: Archival
+            # Step 5: Decision Persistence (Forensic Archival)
             output_file = archive_strategy_result(
                 symbol=self.symbol,
                 timestamp=observation['timestamp'],
@@ -241,16 +223,39 @@ class PipelineOrchestrator:
             )
             self.logger.info(f"Strategy archived: {output_file}")
 
-            # Step 6: Reviewer (Independent Subprocess)
+            # Step 6: Trigger Post-Mortem (Independent Subprocess)
             rev_args = ["--data_root", self.data_root]
             self.executor.run_script("reviewer.py", rev_args)
+            
+            # Reset circuit breaker on success
+            self.consecutive_failures = 0
 
         except Exception as e:
-            self.logger.error(f"Cycle execution error: {e}", exc_info=True)
+            self.consecutive_failures += 1
+            err_msg = f"Cycle execution failed ({self.consecutive_failures}/{self.max_failures_threshold}): {e}"
+            self.logger.error(err_msg, exc_info=True)
+            
+            # Circuit Breaker: Dispatch email on critical failure threshold
+            if self.consecutive_failures >= self.max_failures_threshold:
+                self.logger.critical("CIRCUIT BREAKER TRIGGERED: Dispatching Emergency Alert.")
+                self.notifier.notify_alert(
+                    alert_name="PIPELINE_CIRCUIT_BREAKER",
+                    symbol=self.symbol,
+                    error_message=err_msg,
+                    metadata={"total_consecutive_failures": self.consecutive_failures, "symbol": self.symbol}
+                )
+
+        finally:
+            # Step 7: Resource Hygiene (Mandatory cleanup of Gemini Context Caches)
+            try:
+                self.orchestrator.cache_manager.delete_market_cache()
+                self.logger.info("Cycle Hygiene: Market context cache purged successfully.")
+            except Exception as cache_err:
+                self.logger.warning(f"Cycle Hygiene: Cache cleanup failed (non-critical): {cache_err}")
 
     def start(self):
         """Starts the service cycle."""
-        self.logger.info(f"=== Starting Pipeline Orchestrator [{self.mode}] for {self.symbol} ===")
+        self.logger.info(f"=== Starting Agent Orchestrator [{self.mode}] for {self.symbol} ===")
         
         if not self.validator.validate_interval(self.interval_hours):
             self.logger.error("Validation failed. Aborting startup.")
@@ -259,6 +264,10 @@ class PipelineOrchestrator:
         # Initial run
         self.logger.info("Executing initial startup run...")
         self._run_cycle()
+
+        if self.mode in ["dry_run", "once"]:
+            self.logger.info(f"Execution mode '{self.mode}' complete. Exiting requested.")
+            return
 
         # Schedule
         self.logger.info(f"Scheduling pulse every {self.interval_hours} hours.")
@@ -273,10 +282,10 @@ class PipelineOrchestrator:
             self.logger.info("Orchestrator received shutdown signal.")
 
 def main():
-    parser = argparse.ArgumentParser(description="SOLID Pipeline Orchestrator")
+    parser = argparse.ArgumentParser(description="SOLID Agent Orchestrator")
     parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
     parser.add_argument("--pulse", type=float, required=True, help="Pipeline interval in minutes")
-    parser.add_argument("--mode", type=str, choices=["fix", "scan"], default="fix", help="Execution mode (fix: run every pulse, scan: run only when market is interesting)")
+    parser.add_argument("--mode", type=str, choices=["fix", "scan", "dry_run", "once"], default="once", help="Execution mode (fix: run every pulse, scan: run only when market is interesting, dry_run: test run and exit, once: single production run and exit)")
     
     from src.utils.agent_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -297,7 +306,7 @@ def main():
         print("Error: Symbol not provided and no default found in global_config.yaml")
         sys.exit(1)
         
-    orchestrator = PipelineOrchestrator(
+    orchestrator = AgentOrchestrator(
         symbol=symbol, 
         pulse_minutes=args.pulse, 
         data_root=data_root,

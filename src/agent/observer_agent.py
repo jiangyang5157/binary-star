@@ -78,15 +78,18 @@ class ObserverConfig:
     regime_cvd_slope_threshold: float
     max_liquidation_clusters: int
     wick_skew_fallback: float
+    max_tool_iterations: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
         """Factory method to create config from a nested dictionary."""
+        shared = cfg.get('agent_model_shared_config', {})
         obs = cfg['observer']
         macro = obs['macro_analysis_context']
         micro = obs['micro_analysis_context']
         
         return cls(
+            max_tool_iterations=int(shared['max_tool_iterations']),
             role_definition_prompt=str(obs['role_definition_prompt']),
             model=str(obs['model']),
             model_temperature=float(obs['model_temperature']),
@@ -307,7 +310,7 @@ class MarketMetricsRefiner:
             "anchors_below": anchors_below
         }
 
-    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float = 0) -> Dict[str, Any]:
+    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float) -> Dict[str, Any]:
         cvd_current = 0.0
         cvd_prev = 0.0
         
@@ -348,7 +351,7 @@ class MarketMetricsRefiner:
             "liquidation_clusters": self._parse_liquidations_to_clusters(raw.liquidations, atr_macro)
         }
 
-    def _parse_liquidations_to_clusters(self, liqs: List[Dict], atr_macro: float = 0) -> Optional[Dict[str, Any]]:
+    def _parse_liquidations_to_clusters(self, liqs: List[Dict], atr_macro: float) -> Optional[Dict[str, Any]]:
         """Groups raw liquidations into price clusters for identifying liquidity magnets."""
         if not liqs: return None
         
@@ -379,25 +382,35 @@ class MarketMetricsRefiner:
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
         return {k: v for k, v in sorted_clusters[:self.config.max_liquidation_clusters]}
 
+
 class SemanticSynthesizer(BaseAgent):
     """
-    The Multimodal Forensic Observer.
-    
-    This agent synthesizes quantitative telemetry and qualitative visual assets 
-    (macro/micro snapshots) into a thematic topographical report. It generates 
-     the 'Single Source of Truth' used by the reasoning triad.
+    Observer's Reasoning Core: Synthesizes multi-source raw metrics into 
+    a forensic market map (The Single Source of Truth).
     """
-    def __init__(self, config: ObserverConfig, ai_client: genai.Client):
+    def __init__(
+        self, 
+        config: ObserverConfig, 
+        ai_client: genai.Client, 
+        api_timeout: int, 
+        retry_count: int,
+        retry_multiplier: float,
+        retry_min: int,
+        retry_max: int
+    ):
         """
-        Initializes the synthesizer with multimodal AI configuration.
+        Initializes the synthesizer with specialized observer config.
         """
-        self.config = config
-        self.prompt_path = os.path.join(resolve_project_root(), config.role_definition_prompt)
         super().__init__(
             model=config.model,
             temperature=config.model_temperature,
-            api_key="", # Client already provided via Dependency Injection
-            ai_client=ai_client
+            ai_client=ai_client,
+            max_tool_iterations=config.max_tool_iterations,
+            api_timeout=api_timeout,
+            retry_count=retry_count,
+            retry_multiplier=retry_multiplier,
+            retry_min=retry_min,
+            retry_max=retry_max
         )
 
     def synthesize(self, metrics: ProcessedMarketMetrics, snapshots: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
@@ -462,22 +475,42 @@ class ObserverAgent:
     Coordinates high-fidelity telemetry collection and AI processing to provide 
     a 'Single Source of Truth' for downstream strategy agents.
     """
-    def __init__(self, config_dict: Dict[str, Any], symbol: str, api_key: str, data_root: str):
+    def __init__(
+        self, 
+        config: ObserverConfig, 
+        symbol: str, 
+        data_root: str,
+        binance_client: BinanceFuturesClient,
+        chart_generator: ChartGenerator,
+        ai_client: genai.Client
+    ):
+        """
+        Initializes the Observer as a high-fidelity topographical engine.
+        Now uses Dependency Injection for production-grade testing and auth isolation.
+        """
         self.symbol = symbol
         self.data_root = data_root
-        self.config = ObserverConfig.from_dict(config_dict)
+        self.config = config
         
-        # Core Dependencies
-        self._binance = BinanceFuturesClient()
+        # Core Dependencies (Injected)
+        self._binance = binance_client
         self._vp_analyzer = self._init_vp()
         self._regime_analyzer = self._init_regime()
-        self._charting = ChartGenerator(output_dir=os.path.join(resolve_project_root(), data_root, "klines"))
-        self._ai_client = genai.Client(api_key=api_key) if api_key else None
+        self._charting = chart_generator
+        self._ai_client = ai_client
         
-        # SRP Sub-components
+        # Internal Sub-components
         self.loader = MarketDataLoader(self._binance, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._vp_analyzer, self._regime_analyzer)
-        self.synthesizer = SemanticSynthesizer(self.config, self._ai_client)
+        self.synthesizer = SemanticSynthesizer(
+            config=self.config, 
+            ai_client=self._ai_client,
+            api_timeout=60, # Standard production timeouts
+            retry_count=3,
+            retry_multiplier=2.0,
+            retry_min=2,
+            retry_max=10
+        )
 
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None) -> Dict[str, Any]:
         """Executes a full topographical observation cycle."""
@@ -486,8 +519,14 @@ class ObserverAgent:
 
         # 1. Data Collection
         raw = self.loader.collect(self.symbol, at_time)
-        if not raw.macro_klines or not raw.micro_klines:
-            return {"error": f"Insufficient data for {self.symbol}"}
+        
+        # --- Data Quality Fuse ---
+        # Production Hardening: Fail fast if data integrity is compromised.
+        # We require at least 90% of requested klines to maintain topographic accuracy.
+        macro_threshold = int(self.config.macro_context.historical_lookback_candles * 0.9)
+        if len(raw.macro_klines) < macro_threshold:
+            logger.error(f"Observer: Data Integrity Failure. Macro Klines count ({len(raw.macro_klines)}) < threshold ({macro_threshold})")
+            return {"error": "Data Integrity Failure", "details": "Insufficient macro market telemetry."}
 
         # 2. Metric Refinement
         metrics = self.refiner.refine(raw)
@@ -520,10 +559,12 @@ class ObserverAgent:
             "observation_specs": {
                 "macro": {
                     "interval": self.config.macro_context.time_interval,
+                    "interval_minutes": int(get_interval_seconds(self.config.macro_context.time_interval) / 60),
                     "limit": self.config.macro_context.historical_lookback_candles
                 },
                 "micro": {
                     "interval": self.config.micro_context.time_interval,
+                    "interval_minutes": int(get_interval_seconds(self.config.micro_context.time_interval) / 60),
                     "limit": self.config.micro_context.historical_lookback_candles
                 },
                 "logic": {

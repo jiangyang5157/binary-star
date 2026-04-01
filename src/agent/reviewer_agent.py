@@ -2,6 +2,7 @@ import os
 import json
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
+import datetime
 from google import genai
 from google.genai import types
 
@@ -13,7 +14,7 @@ from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
-@dataclass
+@dataclass(frozen=True)
 class ReviewerConfig:
     """Dataclass for type-safe Reviewer configuration."""
     model: str
@@ -23,7 +24,6 @@ class ReviewerConfig:
     critic_prompt_path: str
     macro_interval: str
     micro_interval: str
-    execution_timeframe_interval: str
     strategy_intent: str
     stop_loss_buffer_max: float
     score_mae_pinpoint_limit: float
@@ -52,75 +52,83 @@ class ReviewerConfig:
     point_bonus_optimal_capture: int
     score_missed_opportunity_base: float
     regime_anchor_drift_threshold: float
+    max_tool_iterations: int
 
     @classmethod
-    def from_dict(cls, full_config: Dict[str, Any]) -> "ReviewerConfig":
-        """Factory method to extract reviewer config from the global config dict."""
-        rev = full_config['reviewer']
-        obs = full_config['observer']
-        strat = full_config['strategist']
-        crit = full_config['critic']
-        
+    def from_dict(cls, rev_cfg: Dict[str, Any], strat_cfg: Dict[str, Any], crit_cfg: Dict[str, Any], obs_cfg: Dict[str, Any], shared_cfg: Dict[str, Any], strategy_intent: str) -> "ReviewerConfig":
+        """Factory method to extract reviewer config from decoupled components."""
         project_root = resolve_project_root()
-        
         return cls(
-            model=str(rev['model']),
-            model_temperature=float(rev['model_temperature']),
-            role_prompt_path=os.path.join(project_root, rev['role_definition_prompt']),
-            strategist_prompt_path=os.path.join(project_root, strat['role_definition_prompt']),
-            critic_prompt_path=os.path.join(project_root, crit['role_definition_prompt']),
-            macro_interval=str(obs['macro_analysis_context']['time_interval']),
-            micro_interval=str(obs['micro_analysis_context']['time_interval']),
-            execution_timeframe_interval=str(rev['execution_timeframe_interval']),
-            strategy_intent=str(full_config['strategy_intent']),
-            stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
-            score_mae_pinpoint_limit=float(rev['score_mae_pinpoint_limit']),
-            score_mae_standard_limit=float(rev['score_mae_standard_limit']),
-            score_mae_logic_failure_limit=float(rev['score_mae_logic_failure_limit']),
-            score_mfe_optimal_upper=float(rev['score_mfe_optimal_upper']),
-            score_mfe_optimal_lower=float(rev['score_mfe_optimal_lower']),
-            score_mfe_acceptable_limit=float(rev['score_mfe_acceptable_limit']),
-            score_opportunity_cost_limit=float(rev['score_opportunity_cost_limit']),
-            score_opportunity_cost_catastrophe_limit=float(rev['score_opportunity_cost_catastrophe_limit']),
-            score_opportunity_cost_catastrophe_floor=int(rev['score_opportunity_cost_catastrophe_floor']),
-            score_time_efficiency_limit=float(rev['score_time_efficiency_limit']),
-            penalty_compliance_breach=float(rev['penalty_compliance_breach']),
-            point_base_tp_hit=int(rev['point_base_tp_hit']),
-            point_base_sl_hit=int(rev['point_base_sl_hit']),
-            point_base_neutral_valid=int(rev['point_base_neutral_valid']),
-            point_penalty_opportunity_cost=int(rev['point_penalty_opportunity_cost']),
-            point_penalty_logic_failure=int(rev['point_penalty_logic_failure']),
-            point_penalty_mfe_premature_base=int(rev['point_penalty_mfe_premature_base']),
-            point_penalty_temporal_failure=int(rev['point_penalty_temporal_failure']),
-            point_penalty_stophunt_blindness=int(rev['point_penalty_stophunt_blindness']),
-            point_bonus_structural_insight=int(rev['point_bonus_structural_insight']),
-            score_mae_extra_buffer=float(rev['score_mae_extra_buffer']),
-            score_frontrun_leniency_pct=int(rev['score_frontrun_leniency_pct']),
-            holding_time_modifier=float(strat['holding_time_modifier']),
-            point_bonus_optimal_capture=int(rev['point_bonus_optimal_capture']),
-            score_missed_opportunity_base=float(rev['score_missed_opportunity_base']),
-            regime_anchor_drift_threshold=float(obs['regime_anchor_drift_threshold'])
+            model=str(rev_cfg['model']),
+            model_temperature=float(rev_cfg['model_temperature']),
+            role_prompt_path=os.path.join(project_root, rev_cfg['role_definition_prompt']),
+            strategist_prompt_path=os.path.join(project_root, strat_cfg['role_definition_prompt']),
+            critic_prompt_path=os.path.join(project_root, crit_cfg['role_definition_prompt']),
+            macro_interval=str(obs_cfg['macro_analysis_context']['time_interval']),
+            micro_interval=str(obs_cfg['micro_analysis_context']['time_interval']),
+            strategy_intent=strategy_intent,
+            stop_loss_buffer_max=float(strat_cfg['stop_loss_buffer_max']),
+            score_mae_pinpoint_limit=float(rev_cfg['score_mae_pinpoint_limit']),
+            score_mae_standard_limit=float(rev_cfg['score_mae_standard_limit']),
+            score_mae_logic_failure_limit=float(rev_cfg['score_mae_logic_failure_limit']),
+            score_mfe_optimal_upper=float(rev_cfg['score_mfe_optimal_upper']),
+            score_mfe_optimal_lower=float(rev_cfg['score_mfe_optimal_lower']),
+            score_mfe_acceptable_limit=float(rev_cfg['score_mfe_acceptable_limit']),
+            score_opportunity_cost_limit=float(rev_cfg['score_opportunity_cost_limit']),
+            score_opportunity_cost_catastrophe_limit=float(rev_cfg['score_opportunity_cost_catastrophe_limit']),
+            score_opportunity_cost_catastrophe_floor=int(rev_cfg['score_opportunity_cost_catastrophe_floor']),
+            score_time_efficiency_limit=float(rev_cfg['score_time_efficiency_limit']),
+            penalty_compliance_breach=float(rev_cfg['penalty_compliance_breach']),
+            point_base_tp_hit=int(rev_cfg['point_base_tp_hit']),
+            point_base_sl_hit=int(rev_cfg['point_base_sl_hit']),
+            point_base_neutral_valid=int(rev_cfg['point_base_neutral_valid']),
+            point_penalty_opportunity_cost=int(rev_cfg['point_penalty_opportunity_cost']),
+            point_penalty_logic_failure=int(rev_penalty_logic_failure := rev_cfg['point_penalty_logic_failure']),
+            point_penalty_mfe_premature_base=int(rev_cfg['point_penalty_mfe_premature_base']),
+            point_penalty_temporal_failure=int(rev_cfg['point_penalty_temporal_failure']),
+            point_penalty_stophunt_blindness=int(rev_cfg['point_penalty_stophunt_blindness']),
+            point_bonus_structural_insight=int(rev_cfg['point_bonus_structural_insight']),
+            score_mae_extra_buffer=float(rev_cfg['score_mae_extra_buffer']),
+            score_frontrun_leniency_pct=int(rev_cfg['score_frontrun_leniency_pct']),
+            holding_time_modifier=float(strat_cfg['holding_time_modifier']),
+            point_bonus_optimal_capture=int(rev_cfg['point_bonus_optimal_capture']),
+            score_missed_opportunity_base=float(rev_cfg['score_missed_opportunity_base']),
+            regime_anchor_drift_threshold=float(obs_cfg['regime_anchor_drift_threshold']),
+            max_tool_iterations=int(shared_cfg['max_tool_iterations'])
         )
 
 class ReviewerAgent(BaseAgent):
     """
-    The High-Fidelity Forensic Auditor (The Reviewer).
+    The Post-Execution Forensic Analyst (The Reviewer).
     
-    This agent performs post-mortem audits of historical trading sessions. 
-    It evaluates the 'Reasoning Triad' (Draft -> Audit -> Synthesis) against 
-    the actual market outcome to identify 'Delta Failures' and logic gaps.
+    This agent analyzes historical simulated trades, comparing the 
+    forecasted reasoning of the triad against the actual price action outcomes. 
+    It assigns scores and generates the 'Review Summary' for batch coaching.
     """
-    def __init__(self, config_dict: Dict[str, Any], api_key: str, ai_client: Optional[genai.Client] = None):
+    def __init__(
+        self, 
+        config: ReviewerConfig, 
+        api_timeout: int,
+        retry_count: int,
+        retry_multiplier: float,
+        retry_min: int,
+        retry_max: int,
+        ai_client: genai.Client
+    ):
         """
-        Initializes the Reviewer with multimodal configuration and dependencies.
+        Initializes the Reviewer with a pre-assembled type-safe configuration.
         """
-        self.config = ReviewerConfig.from_dict(config_dict)
-        self.raw_config = config_dict
+        self.config = config
         super().__init__(
             model=self.config.model,
             temperature=self.config.model_temperature,
-            api_key=api_key,
-            ai_client=ai_client
+            ai_client=ai_client,
+            max_tool_iterations=self.config.max_tool_iterations,
+            api_timeout=api_timeout,
+            retry_count=retry_count,
+            retry_multiplier=retry_multiplier,
+            retry_min=retry_min,
+            retry_max=retry_max
         )
 
     def review(self, historical_strategy: Dict[str, Any], 
@@ -173,7 +181,22 @@ class ReviewerAgent(BaseAgent):
                     contents.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
 
         # Execute high-fidelity review cycle via BaseAgent
-        return self._execute_ai_cycle(contents, agent_name="Reviewer")
+        review_result = self._execute_ai_cycle(contents, agent_name="Reviewer")
+        
+        # Inject Audit Fingerprint for Chain of Custody
+        from src.utils.agent_utils import get_file_hash
+        project_root = resolve_project_root()
+        config_path = os.path.join(project_root, 'config', 'agent_config.yaml')
+        observer_path = os.path.join(os.path.dirname(self.config.role_prompt_path), 'observer.md')
+        
+        review_result["audit_metadata"] = {
+            "reviewer_hash": get_file_hash(self.config.role_prompt_path),
+            "observer_hash": get_file_hash(observer_path),
+            "config_hash": get_file_hash(config_path),
+            "audit_timestamp": datetime.datetime.utcnow().isoformat()
+        }
+        
+        return review_result
 
     def _build_prompt(self, strategy: Dict[str, Any], 
                       outcome: Dict[str, Any], 
@@ -198,6 +221,7 @@ class ReviewerAgent(BaseAgent):
             "strategy_intent": self.config.strategy_intent,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval,
+            "execution_timeframe": self.config.micro_interval,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "score_mae_pinpoint_limit": self.config.score_mae_pinpoint_limit,
             "score_mae_standard_limit": self.config.score_mae_standard_limit,

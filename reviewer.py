@@ -12,10 +12,14 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from google import genai
+from google.genai import types
+
 from src.infrastructure.binance.client import BinanceFuturesClient
-from src.agent.reviewer_agent import ReviewerAgent
+from src.agent.reviewer_agent import ReviewerAgent, ReviewerConfig
 from src.agent.observer_agent import ObserverAgent
-from src.utils.agent_utils import load_config, add_data_root_argument, resolve_data_root
+from src.utils.agent_utils import load_config, add_data_root_argument, resolve_data_root, load_global_config
+from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc, sanitize_timestamp
@@ -172,8 +176,43 @@ class ReviewerOrchestrator:
         self.config = load_config()
         load_dotenv()
         self.api_key = os.environ.get("GEMINI_API_KEY")
-        self.reviewer = ReviewerAgent(self.config, api_key=self.api_key)
+        if not self.api_key:
+            raise ValueError("GEMINI_API_KEY not found in environment.")
+            
+        # 1. Standardize AI Client (Shared Resource)
+        self.client = genai.Client(api_key=self.api_key)
+        
+        # 2. Extract Type-Safe Configurations
+        global_cfg = load_global_config()
+        shared_meta = global_cfg['agent_model_shared_config']
+        max_tool_iterations = int(shared_meta['max_tool_iterations'])
+        strategy_intent = str(global_cfg['strategy_intent'])
+        
+        # Build Reviewer Config using the slice-and-dice factory
+        self.rev_config = ReviewerConfig.from_dict(
+            rev_cfg=self.config['reviewer'],
+            strat_cfg=self.config['strategist'],
+            crit_cfg=self.config['critic'],
+            obs_cfg=self.config['observer'],
+            shared_cfg=shared_meta,
+            strategy_intent=strategy_intent
+        )
+        
+        # 3. Initialize Shared Infrastructure
         self.fetcher = BinanceFuturesClient()
+        gemini_net = global_cfg['network']['gemini']
+        
+        # 4. Assemble Forensic Agents
+        self.reviewer = ReviewerAgent(
+            config=self.rev_config,
+            api_timeout=int(gemini_net['api_timeout_seconds']),
+            retry_count=int(gemini_net['retry_count']),
+            retry_multiplier=float(gemini_net['retry_strategy']['multiplier']),
+            retry_min=int(gemini_net['retry_strategy']['min_seconds']),
+            retry_max=int(gemini_net['retry_strategy']['max_seconds']),
+            ai_client=self.client
+        )
+        
         self.observers = {}
         self.notifier = StrategyNotifier(data_root=data_root)
 
@@ -284,7 +323,7 @@ class ReviewerOrchestrator:
             # 1. Fetch & Calculate Outcome
             # Use dynamic interval mapping to calculate how many klines we need
             # This ensures we get the exact history from T0 (dt_start) to T1 (now)
-            fetch_interval = self.reviewer.config.execution_timeframe_interval
+            fetch_interval = self.reviewer.config.micro_interval
             # Strict interval mapping for required history limit calculation
             interval_map = {
                 "1m": 60, "3m": 180, "5m": 300, "15m": 900, "30m": 1800,
@@ -323,7 +362,22 @@ class ReviewerOrchestrator:
             
             # Multimedia & Visual Forensic Context (T1 Data)
             if symbol not in self.observers:
-                self.observers[symbol] = ObserverAgent(self.config, symbol, self.api_key, self.data_root)
+                from src.agent.observer_agent import ObserverConfig
+                from src.analyzer.chart_generator import ChartGenerator
+                
+                obs_config = ObserverConfig.from_dict(self.config)
+                chart_gen = ChartGenerator(
+                    output_dir=os.path.join(resolve_project_root(), self.data_root, "klines")
+                )
+                
+                self.observers[symbol] = ObserverAgent(
+                    config=obs_config, 
+                    symbol=symbol, 
+                    data_root=self.data_root,
+                    binance_client=self.fetcher,
+                    chart_generator=chart_gen,
+                    ai_client=self.client
+                )
             current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
             
             current_metrics = current_obs.get("quantitative_metrics", {})

@@ -1,17 +1,12 @@
-import os
-import json
 import logging
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional, Union, Sequence
 from google import genai
 from google.genai import types
-import tenacity
-import time
+from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from src.utils.agent_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
-from src.utils.path_utils import resolve_project_root
-import yaml
 
 logger = setup_logger(__name__)
 
@@ -26,43 +21,34 @@ class BaseAgent:
     - Unified error handling and logging across the agent triad.
     """
     
-    def __init__(self, model: str, temperature: float, api_key: str, ai_client: Optional[genai.Client] = None):
+    def __init__(
+        self, 
+        model: str, 
+        temperature: float, 
+        ai_client: genai.Client, 
+        max_tool_iterations: int,
+        api_timeout: int,
+        retry_count: int,
+        retry_multiplier: float,
+        retry_min: int,
+        retry_max: int
+    ):
         """
         Initializes the agent with core AI configuration and dependencies.
-        
-        Args:
-            model: The Gemini model identifier (e.g., 'gemini-2.0-flash').
-            temperature: Creativity control (higher = more variance).
-            api_key: Gemini API key for standalone initialization.
-            ai_client: Optional pre-configured client for Dependency Injection.
         """
         self.model = model
         self.temperature = temperature
-        self.client = ai_client or genai.Client(api_key=api_key)
-        
-        # Load Global Network Configuration
-        self.network_cfg = self._load_network_config()
-        gemini_cfg = self.network_cfg.get('network', {}).get('gemini', {})
-        self.retry_count = int(gemini_cfg.get('retry_count', 2))
-        self.api_timeout = int(gemini_cfg.get('api_timeout_seconds', 30))
-
-    def _load_network_config(self) -> Dict[str, Any]:
-        """Loads the global configuration from YAML (for network settings)."""
-        try:
-            cfg_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
-            if os.path.exists(cfg_path):
-                with open(cfg_path, 'r') as f:
-                    return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"BaseAgent: Failed to load global_config.yaml: {e}")
-        return {}
+        self.client = ai_client
+        self.max_tool_iterations = max_tool_iterations
+        self.api_timeout = api_timeout
+        self.retry_count = retry_count
+        self.retry_multiplier = retry_multiplier
+        self.retry_min = retry_min
+        self.retry_max = retry_max
 
     def _prepare_prompt(self, template_path: str, **context) -> str:
         """
         Reads a requirement template and injects semantic context variables.
-        
-        Uses 'safe_format' to ensure missing placeholders don't crash the pipeline,
-        preserving the raw template tags for debugging.
         """
         try:
             template = read_prompt_template(template_path)
@@ -75,67 +61,113 @@ class BaseAgent:
         self, 
         payload: Union[str, List[Any]], 
         temperature: Optional[float] = None,
-        agent_name: str = "Agent"
+        agent_name: str = "Agent",
+        cached_content: Optional[str] = None,
+        tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
-        Orchestrates a single high-fidelity interaction with the AI model.
-        
-        Args:
-            payload: The input content (Markdown string or a list of multi-modal Parts).
-            temperature: Optional override for the model's creativity setting.
-            agent_name: Descriptive name for logging context.
-            
-        Returns:
-            A structured dictionary extracted from the AI's 'Strict JSON' response.
-            Returns an error dictionary if parsing or execution fails.
+        Orchestrates an automatic iterative cycle for tool usage and response generation.
         """
         try:
             temp = temperature if temperature is not None else self.temperature
+            contents = payload if isinstance(payload, list) else [payload]
+            iteration = 0
             
-            # Use dynamic retry strategy based on global_config.yaml
-            from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
-
-            retryer = Retrying(
-                stop=stop_after_attempt(self.retry_count),
-                wait=wait_exponential(multiplier=1, min=2, max=10),
-                retry=retry_if_exception_type(Exception),
-                before_sleep=lambda retry_state: logger.warning(
-                    f"{agent_name}: Network issues detected. Retrying ({retry_state.attempt_number}/{self.retry_count})..."
+            while iteration < self.max_tool_iterations:
+                iteration += 1
+                
+                # Use dynamic retry strategy based on global_config.yaml
+                retryer = Retrying(
+                    stop=stop_after_attempt(self.retry_count),
+                    wait=wait_exponential(
+                        multiplier=self.retry_multiplier, 
+                        min=self.retry_min, 
+                        max=self.retry_max
+                    ),
+                    retry=retry_if_exception_type(Exception)
                 )
-            )
-
-            def _call_genai():
-                # Note: GenAI SDK timeout is usually handled in the client config or http_options
-                # We apply it via http_options if supported, otherwise we rely on the SDK's internal timeouts.
-                return self.client.models.generate_content(
+                
+                logger.info(f"{agent_name}: [TURN {iteration}] Requesting model synthesis...")
+                response = retryer(
+                    self.client.models.generate_content,
                     model=self.model,
-                    contents=payload,
+                    contents=contents,
                     config=types.GenerateContentConfig(
                         temperature=temp,
                         response_mime_type="application/json",
-                        http_options={'timeout': self.api_timeout * 1000} # ms
+                        http_options={'timeout': self.api_timeout * 1000},
+                        cached_content=cached_content,
+                        tools=tools
                     )
                 )
+                
+                # Forensic Token Audit
+                if response and response.usage_metadata:
+                    m = response.usage_metadata
+                    logger.info(
+                        f"{agent_name}: Token Audit [Total={m.total_token_count}] "
+                        f"(Prompt={m.prompt_token_count}, Candidate={m.candidates_token_count}, "
+                        f"Cached={m.cached_content_token_count or 0})"
+                    )
 
-            for attempt in retryer:
-                with attempt:
-                    response = _call_genai()
-            
-            # Extract and validate structured output
-            parsed = extract_json_from_text(response.text)
-            if parsed is None:
-                logger.error(f"{agent_name}: Failed to parse JSON from response: {response.text}")
-                return {
-                    "error": "JSON_PARSE_FAILURE", 
-                    "raw_response": response.text,
-                    "agent": agent_name
-                }
-            
-            return parsed
+                if not response or not response.candidates:
+                    return {"error": "NO_RESPONSE", "agent": agent_name}
+
+                # Check for Function Calls (automatic tool loop)
+                parts = response.candidates[0].content.parts
+                tool_calls = [p.function_call for p in parts if p.function_call]
+                
+                if not tool_calls:
+                    # Final text response obtained
+                    return self._parse_and_validate_response(response, agent_name)
+                
+                # Execute Tools and feed back to the model
+                logger.info(f"{agent_name}: Found {len(tool_calls)} tool calls. Dispatching...")
+                contents.append(response.candidates[0].content) # Model needs history
+                
+                response_parts = []
+                for fc in tool_calls:
+                    result = self._dispatch_tool_call(fc)
+                    response_parts.append(
+                        types.Part.from_function_response(
+                            name=fc.name,
+                            response={'result': result}
+                        )
+                    )
+                
+                contents.append(types.Content(parts=response_parts, role='user'))
+                # Loop continues to next iteration to provide the tool response back to model
+
+            logger.error(f"{agent_name}: Max tool iterations ({self.max_tool_iterations}) reached without final answer.")
+            return {"error": "MAX_ITERATIONS_REACHED", "agent": agent_name}
+
         except Exception as e:
             logger.error(f"{agent_name} AI execution failed: {e}", exc_info=True)
-            return {
-                "error": f"{agent_name.upper()}_EXECUTION_FAILURE", 
-                "details": str(e),
-                "agent": agent_name
-            }
+            return {"error": f"{agent_name.upper()}_EXECUTION_FAILURE", "details": str(e), "agent": agent_name}
+
+    def _parse_and_validate_response(self, response: Any, agent_name: str) -> Dict[str, Any]:
+        """Extracts and validates structured output from the FINAL response."""
+        parsed = extract_json_from_text(response.text)
+        if parsed is None:
+            logger.error(f"{agent_name}: Failed to parse JSON: {response.text}")
+            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text, "agent": agent_name}
+        return parsed
+
+    def _dispatch_tool_call(self, fc: types.FunctionCall) -> Any:
+        """
+        Dynamically dispatches a function call to a local Python method.
+        """
+        method_name = fc.name
+        args = fc.args or {}
+        
+        try:
+            if hasattr(self, method_name):
+                method = getattr(self, method_name)
+                logger.info(f"BaseAgent: Executing tool '{method_name}' with args: {args}")
+                return method(**args)
+            else:
+                logger.error(f"BaseAgent: Tool '{method_name}' not found on {self.__class__.__name__}")
+                return f"Error: Tool '{method_name}' not found."
+        except Exception as e:
+            logger.error(f"BaseAgent: Tool '{method_name}' execution failed: {e}")
+            return f"Error: {str(e)}"
