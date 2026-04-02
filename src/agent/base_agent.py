@@ -143,7 +143,17 @@ class BaseAgent:
                 tool_calls = [p.function_call for p in parts if p.function_call]
                 
                 if not tool_calls:
-                    # Final text response obtained
+                    # Final text response obtained.
+                    # v5.10 Hardening: Early detection of empty/null text response.
+                    try:
+                        text = response.text
+                        if not text or not text.strip():
+                            logger.error(f"BaseAgent: {agent_name} model returned empty text candidate.")
+                            return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
+                    except Exception as e:
+                        logger.error(f"BaseAgent: Failed to extract text from {agent_name} response: {e}")
+                        return {"error": "TEXT_EXTRACTION_FAILURE", "details": str(e), "agent": agent_name}
+                        
                     return self._parse_and_validate_response(response, agent_name)
                 
                 # Execute Tools and feed back to the model
