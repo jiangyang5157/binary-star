@@ -90,7 +90,7 @@ class ChartStorageManager:
             # Fallback to current UTC if no timestamp provided
             ts_readable = format_timestamp_for_filename(get_current_utc_time().isoformat())
             
-        filename = f"{symbol}_{time_interval}_klines_{ts_readable}.png"
+        filename = f"{symbol}_klines_{time_interval}_{ts_readable}.png"
         return os.path.join(self.output_dir, filename)
 
 class ChartVisualRenderer:

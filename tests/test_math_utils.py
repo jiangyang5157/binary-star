@@ -7,7 +7,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.agent.tools.math_tools import MathTools
+from src.utils.math_utils import MathTools
 
 class TestMathTools(unittest.TestCase):
     def test_risk_reward_precision(self):

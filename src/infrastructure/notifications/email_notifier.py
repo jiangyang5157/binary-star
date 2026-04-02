@@ -17,18 +17,18 @@ logger = setup_logger(__name__)
 
 
 
-class StrategyEmailTemplate(BaseEmailTemplate):
+class SessionEmailTemplate(BaseEmailTemplate):
     """
     Handles the generation of professional HTML templates for trading strategies.
     Decouples the UI presentation from the data fetching/sending logic.
     """
     @staticmethod
-    def render(strategy_data: Dict[str, Any]) -> str:
+    def render(session_data: Dict[str, Any]) -> str:
         """
         Renders the final strategy JSON into a rich HTML report.
         """
-        obs = strategy_data.get("observation") or {}
-        decision = strategy_data.get("final_decision") or {}
+        obs = session_data.get("observation") or {}
+        decision = session_data.get("final_decision") or {}
         symbol = obs.get("symbol", "UNKNOWN")
         
         # 1. Local Time Conversion (Device Local)
@@ -41,7 +41,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
         # 2. Extract Data Suites
         semantics = obs.get("semantic_analysis") or {}
-        critique = strategy_data.get("critique") or {}
+        audit = session_data.get("audit") or {}
         
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
@@ -55,14 +55,14 @@ class StrategyEmailTemplate(BaseEmailTemplate):
         theme_icon = icons.get(opinion, "⚡")
         display_opinion = "STAND ASIDE" if opinion == "NEUTRAL" else opinion
         
-        fmt = StrategyEmailTemplate.fmt
+        fmt = SessionEmailTemplate.fmt
         
         # 4. Extract Current Price (Synthetic Context)
         current_price = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("current_price")
         
         return f"""
         <html>
-        <head>{StrategyEmailTemplate.get_styles()}</head>
+        <head>{SessionEmailTemplate.get_styles()}</head>
         <body>
             <div class="container">
                 <div style="text-align: center; margin-bottom: 35px; border-bottom: 2px solid #f1f5f9; padding-bottom: 25px;">
@@ -84,21 +84,21 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                                 <span>🛡️ Risk Assessment</span>
                             </td>
                             <td align="right" style="vertical-align: middle;">
-                                <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #9a3412; font-weight: bold;">Risk Level: {fmt((critique or {}).get('skepticism_score'))}%</span>
+                                <span style="background: #ffedd5; padding: 2px 8px; border-radius: 4px; font-size: 11px; color: #9a3412; font-weight: bold;">Audit Risk: {fmt((audit or {}).get('skepticism_score'))}%</span>
                             </td>
                         </tr>
                     </table>
-                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt((critique or {}).get('hidden_risk'))}</p>
+                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt((audit or {}).get('audit_review'))}</p>
                 </div>
-                ''' if critique else ""}
+                ''' if audit else ""}
 
-                <!-- Critic's Verdict -->
+                <!-- Audit Verdict -->
                 {f'''
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background_color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Critic's Verdict</h3>
-                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('critic_impact'))}</p>
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Audit Verdict</h3>
+                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('audit_impact'))}</p>
                 </div>
-                ''' if decision.get('critic_impact') else ""}
+                ''' if decision.get('audit_impact') else ""}
 
                 <!-- Reasoning -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
@@ -109,12 +109,12 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     <table class="responsive-metrics" style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📥 Entry</div>
-                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
-                            </td>
-                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📍 Current</div>
                                 <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(current_price)}</div>
+                            </td>
+                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📥 Entry</div>
+                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Take Profit</div>
@@ -130,7 +130,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{StrategyEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours') or 0)}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>
@@ -154,7 +154,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {StrategyEmailTemplate.render_footer(strategy_data, "This is an auto-generated email notification | Triggered by Crypto Strategy")}
+                {SessionEmailTemplate.render_footer(session_data, "This is an auto-generated email notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>
@@ -162,7 +162,7 @@ class StrategyEmailTemplate(BaseEmailTemplate):
 
 class ReviewEmailTemplate(BaseEmailTemplate):
     """
-    Handles the generation of professional HTML templates for Forensic Reviews.
+    Handles the generation of professional HTML templates for Audit Reviews.
     """
     @staticmethod
     def render(review_data: Dict[str, Any]) -> str:
@@ -209,7 +209,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
         
         fmt = ReviewEmailTemplate.fmt
         
-        # 4. Forensic Formatting
+        # 4. Audit Formatting
         shadow_list = audit.get('adversarial_audit', {}).get('shadow_evidence', [])
         if isinstance(shadow_list, list) and shadow_list:
             shadow_html = f'<ul style="margin: 0; padding-left: 18px;">' + "".join([f"<li>{fmt(item)}</li>" for item in shadow_list]) + "</ul>"
@@ -272,7 +272,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                <!-- Forensic Audit Findings -->
+                <!-- Audit Review Findings -->
                 <div style="background-color: #eff6ff; padding: 25px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 35px; border-left: 5px solid #3b82f6;">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 15px 0; border-bottom: 1px solid #dbeafe; padding-bottom: 10px;">
                         <tr>
@@ -286,7 +286,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     </table>
                     
                     <div style="margin-bottom: 20px;">
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Critical Audit</span>
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Audit Insight</span>
                         <div style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0; background: #ffffff66; padding: 12px; border-radius: 6px;">
                             {shadow_html}
                         </div>
@@ -337,7 +337,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {ReviewEmailTemplate.render_footer(review_data, "This is an auto-generated email notification | Triggered by Crypto Strategy")}
+                {ReviewEmailTemplate.render_footer(review_data, "This is an auto-generated email notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>
@@ -381,7 +381,7 @@ class AlertEmailTemplate(BaseEmailTemplate):
                 <!-- METADATA BOX -->
                 {f'''
                 <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
-                    <h4 style="margin-top: 0; color: #475569; font-size: 13px; margin-bottom: 12px; text-transform: uppercase;">📊 Forensic Context</h4>
+                    <h4 style="margin-top: 0; color: #475569; font-size: 13px; margin-bottom: 12px; text-transform: uppercase;">📊 Audit Context</h4>
                     <pre style="font-size: 12px; color: #334155; line-height: 1.5; margin: 0; white-space: pre-wrap;"><code>{json.dumps(metadata, indent=2, ensure_ascii=False)}</code></pre>
                 </div>
                 ''' if metadata else ""}
@@ -478,7 +478,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                     </p>
                 </div>
 
-                {DashboardEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Crypto Strategy")}
+                {DashboardEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>
@@ -486,7 +486,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
 
 
 
-class StrategyNotifier:
+class SessionNotifier:
     """
     High-level facade for dispatching trading strategy alerts.
     Orchestrates template rendering and email dispatching.
@@ -518,15 +518,15 @@ class StrategyNotifier:
     def enabled(self) -> bool:
         return self.config.enabled
 
-    def notify_strategy(self, symbol: str, strategy_data: Dict[str, Any], save_local: bool = False) -> bool:
+    def notify_session(self, symbol: str, session_data: Dict[str, Any], save_local: bool = False) -> bool:
         """
         Parses strategy result and dispatches an actionable email alert.
         """
         # Always generate HTML for potential preview even if email is disabled
-        html_body = StrategyEmailTemplate.render(strategy_data or {})
+        html_body = SessionEmailTemplate.render(session_data or {})
         
         # Collect Visual Attachments
-        obs = (strategy_data or {}).get("observation") or {}
+        obs = (session_data or {}).get("observation") or {}
         assets = obs.get("visual_assets") or {}
         attachments = {
             "macro_chart": str(assets.get("macro_snapshot") or ""),
@@ -535,12 +535,12 @@ class StrategyNotifier:
 
         # 1. Local Preview (Useful for debugging/UI verification)
         if save_local:
-            self.save_html_preview(f"{symbol}_strategy", html_body, attachments)
+            self.save_html_preview(f"{symbol}_session", html_body, attachments)
 
         if not self.enabled:
             return False
             
-        final_decision = (strategy_data or {}).get("final_decision") or {}
+        final_decision = (session_data or {}).get("final_decision") or {}
         opinion = final_decision.get("opinion") or "NEUTRAL"
         confidence = final_decision.get("confidence", 0)
         
@@ -568,7 +568,7 @@ class StrategyNotifier:
 
     def notify_review(self, symbol: str, review_data: Dict[str, Any], save_local: bool = False) -> bool:
         """
-        Parses review result and dispatches a forensic audit report.
+        Parses review result and dispatches an audit review report.
         """
         html_body = ReviewEmailTemplate.render(review_data or {})
         
@@ -587,7 +587,7 @@ class StrategyNotifier:
         }
 
         if save_local:
-            self.save_html_preview(f"{symbol}_review", html_body, attachments)
+            self.save_html_preview(f"{symbol}_audit", html_body, attachments)
 
         if not self.enabled:
             return False
@@ -643,7 +643,7 @@ class StrategyNotifier:
                         preview_html = str(preview_html).replace(f"cid:{cid}", f"file://{abs_path}")
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_name = f"{name_prefix}_preview_{timestamp}.html"
+            file_name = f"{name_prefix}_{timestamp}.html"
             file_path = os.path.join(output_dir, file_name)
             
             with open(file_path, "w", encoding="utf-8") as f:
@@ -739,13 +739,13 @@ if __name__ == "__main__":
             # We use a hacky way to support 'null', 'true', 'false' in case the file 
             # was copied from a Python representation, but primarily we expect standard JSON.
             # json.load handles standard JSON 'null' correctly.
-            strategy_data = json.load(f)
+            session_data = json.load(f)
             
-        symbol = strategy_data.get("observation", {}).get("symbol", "UNKNOWN")
-        notifier = StrategyNotifier(data_root=args.data_root)
+        symbol = session_data.get("observation", {}).get("symbol", "UNKNOWN")
+        notifier = SessionNotifier(data_root=args.data_root)
         
         print(f"--- Dispatching Test Email for {symbol} ---")
-        success = notifier.notify_strategy(symbol, strategy_data)
+        success = notifier.notify_session(symbol, session_data)
         
         if success:
             print("Successfully dispatched strategy alert!")

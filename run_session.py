@@ -21,19 +21,19 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from src.analyzer.opportunity_scanner import OpportunityScanner
 from src.analyzer.historical_sampler import MarketRegimeAnalyzer, SpacedSampler, RegimeSampler
-from src.infrastructure.notifications.email_notifier import StrategyNotifier
+from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, resolve_data_root, archive_strategy_result
 from src.utils.logger_utils import setup_logger
 from src.utils.json_utils import load_json
 
 # Initialize central engine logger
-logger = setup_logger("RunEngine")
+logger = setup_logger("SessionEngine")
 
-class UniversalExecutionEngine:
+class SessionEngine:
     """
-    Consolidated Execution Engine (v5.3).
+    The Singularity Session Engine (v5.10).
     Supports Live (Pulse/Scan) and Backtest (Historical Simulation) modes.
-    Ensures 100% logic parity across any temporal context.
+    Ensures 100% logic parity across any temporal context using the SessionAgent.
     """
     def __init__(self, symbol: str, data_root: str, args: Any = None):
         self.symbol = symbol
@@ -53,7 +53,7 @@ class UniversalExecutionEngine:
             api_key=self.api_key,
             data_root=self.data_root
         )
-        self.notifier = StrategyNotifier(data_root=self.data_root)
+        self.notifier = SessionNotifier(data_root=self.data_root)
         self.scanner = OpportunityScanner(
             self.symbol, 
             self.data_root, 
@@ -73,7 +73,7 @@ class UniversalExecutionEngine:
         """
         try:
             mode_label = "PROD" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
-            logger.info(f"--- Cycle Start [{mode_label}] ---")
+            logger.info(f"--- Session Cycle Start [{mode_label}] ---")
             
             # 1. Fact Gathering (Market Topography)
             # If timestamp_str is None, scanner uses current time.
@@ -81,38 +81,45 @@ class UniversalExecutionEngine:
             if "error" in observation:
                 raise ValueError(f"Observation failed: {observation['error']}")
 
+            # --- v5.10 OBSERVABILITY: Log Topographic Snapshot ---
+            metrics = observation.get('quantitative_metrics', {})
+            topo = metrics.get('volume_topography', {})
+            dyn = metrics.get('price_dynamics', {})
+            logger.info(f"Topography Snapshot: POC={topo.get('poc')} | VAH={topo.get('vah')} | VAL={topo.get('val')} | ATR={dyn.get('atr_macro')}")
+
             # 2. Defense-First Filter (Deterministic Scan)
             # We skip heavy inference if market topography doesn't warrant it.
             # Bypass this check if --force is provided.
             is_force = self.args and getattr(self.args, "force", False)
             if not is_force and not self.scanner.should_trigger(observation):
-                logger.info("Scanner: [PASS] Opportunity criteria not met. Skipping neural flow.")
+                logger.info(f"Scanner: [PASS] Opportunity criteria not met (ATR={dyn.get('atr_macro')}). Skipping neural flow.")
                 return {"status": "skipped", "reason": "low_probability_regime", "observation": observation}
 
             # 3. Binary Star Adversarial Debate
+            logger.info("Orchestrator: Initiating Binary Star Adversarial Reasoning [SessionAgent VS AuditAgent]...")
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
             # 4. Notification (Filtered)
             # We skip email notifications for backtests to avoid spamming the user.
             if not timestamp_str:
-                self.notifier.notify_strategy(self.symbol, session_result)
+                self.notifier.notify_session(self.symbol, session_result)
 
-            # 4. Forensic Archival
+            # 5. Audit Archival
             output_file = archive_strategy_result(
                 symbol=self.symbol,
                 timestamp=observation['timestamp'],
                 result=session_result,
                 data_root=self.data_root,
-                target_dir="strategies"
+                target_dir="sessions"
             )
-            logger.info(f"Pipeline Complete. Strategy archived: {os.path.basename(output_file)}")
+            logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
             
             self.consecutive_failures = 0
             return session_result
 
         except Exception as e:
             self.consecutive_failures += 1
-            logger.error(f"Cycle Failure ({self.consecutive_failures}/{self.max_failures_threshold}): {e}", exc_info=True)
+            logger.error(f"Session Cycle Failure ({self.consecutive_failures}/{self.max_failures_threshold}): {e}", exc_info=True)
             
             if self.consecutive_failures >= self.max_failures_threshold and not timestamp_str:
                 logger.critical("CIRCUIT BREAKER: Triggering emergency notification.")
@@ -126,15 +133,15 @@ class UniversalExecutionEngine:
                 self.orchestrator.cache_manager.delete_market_cache()
             except: pass
 
-class RunEngineController:
-    """Manages the lifecycle of the RunEngine according to user-specified modes."""
+class SessionController:
+    """Manages the lifecycle of the SessionEngine according to user-specified modes."""
     def __init__(self, args):
         self.args = args
         self.data_root = args.data_root or resolve_data_root(args.env_shortcut)
         self.global_cfg = load_global_config()
         self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
         
-        self.engine = UniversalExecutionEngine(self.symbol, self.data_root, args=args)
+        self.engine = SessionEngine(self.symbol, self.data_root, args=args)
         self._setup_signals()
 
     def _setup_signals(self):
@@ -150,7 +157,7 @@ class RunEngineController:
 
     def run(self):
         mode = self.args.mode
-        logger.info(f"Starting RunEngine: {mode} mode for {self.symbol}")
+        logger.info(f"Starting SessionEngine: {mode} mode for {self.symbol}")
         
         if mode == "once":
             self.engine.execute_cycle()
@@ -225,7 +232,7 @@ def parse_date(date_str: str) -> datetime:
     raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
 
 def main():
-    parser = argparse.ArgumentParser(description="The Singularity Engine (v5.5)")
+    parser = argparse.ArgumentParser(description="The Singularity Session Engine (v5.10)")
     parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode (default: once)")
     parser.add_argument("--symbol", type=str)
     parser.add_argument("--force", action="store_true", help="Bypass Python scanner and force neural inference")
@@ -250,7 +257,7 @@ def main():
     if args.mode == "backtest" and not args.start:
         parser.error("--start is required for backtest mode.")
 
-    controller = RunEngineController(args)
+    controller = SessionController(args)
     controller.run()
 
 if __name__ == "__main__":

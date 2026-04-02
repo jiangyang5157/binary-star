@@ -4,18 +4,18 @@ import sys
 import argparse
 
 # Setup absolute project paths
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path: sys.path.insert(0, PROJECT_ROOT)
 
-from src.analyzer.recon_controller import ReconController
+from src.analyzer.topography_recon import TopographyRecon
 from src.utils.pipeline_utils import load_config, resolve_data_root, load_global_config
 from src.utils.logger_utils import setup_logger
 
 # Initialize CLI-level logger
-logger = setup_logger("MarketObserver")
+logger = setup_logger("MarketRecon")
 
 def main():
-    parser = argparse.ArgumentParser(description="Thin CLI Wrapper for Market Reconnaissance (v5.3)")
+    parser = argparse.ArgumentParser(description="Singularity Market Recon Engine (v5.10)")
     parser.add_argument("--symbol", type=str, help="Symbol to observe (e.g., BTCUSDT)")
     from src.utils.pipeline_utils import add_data_root_argument
     add_data_root_argument(parser)
@@ -32,7 +32,7 @@ def main():
     
     # Delegate logic to controller
     try:
-        controller = ReconController(config_dict=config, data_root=data_root, logger=logger)
+        controller = TopographyRecon(config_dict=config, data_root=data_root, logger=logger)
         result = controller.observe_market(symbol)
         obs = result['observation']
         

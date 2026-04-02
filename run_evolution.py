@@ -20,14 +20,14 @@ from src.utils.pipeline_utils import load_config, resolve_data_root, add_data_ro
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 
-# Initialize symmetrical evolver logger
-logger = setup_logger("RunEvolver")
+# Initialize symmetrical evolution logger
+logger = setup_logger("EvolutionEngine")
 
-class EvolverEngine:
+class EvolutionEngine:
     """
-    Self-Evolution Control Engine (v5.3).
+    Self-Evolution Control Engine (v5.10).
     Implements the 'Meta-Optimization' loop: 
-    Ingest Forensics -> Generate Patch -> Sandbox Validation -> Atomic Commit.
+    Ingest Sessions -> Generate Patch -> Sandbox Validation -> Atomic Commit.
     """
     def __init__(self, data_root: str):
         self.data_root = os.path.join(PROJECT_ROOT, data_root)
@@ -53,23 +53,25 @@ class EvolverEngine:
 
     def run_cycle(self, sample_size: int = 5):
         """Standard Operating Procedure for the Universal Evolver."""
-        logger.info(f"--- Evolution Cycle Start: Analyzing last {sample_size} forensic reports ---")
+        logger.info(f"--- Evolution Cycle Start: Analyzing last {sample_size} session reports ---")
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # 1. Ingest Forensic Evidence
-        strategy_dir = os.path.join(self.data_root, "strategies")
-        if not os.path.exists(strategy_dir):
-            logger.warning(f"Strategy base not found: {strategy_dir}. Aborting cycle.")
+        # 1. Ingest Audit Evidence (Sessions)
+        session_dir = os.path.join(self.data_root, "sessions")
+        if not os.path.exists(session_dir):
+            logger.warning(f"Session base not found: {session_dir}. Aborting cycle.")
             return
 
-        files = sorted([f for f in os.listdir(strategy_dir) if f.endswith(".json")], reverse=True)
+        files = sorted([f for f in os.listdir(session_dir) if f.endswith(".json")], reverse=True)
         if not files:
-            logger.warning("No forensic evidence found. No evolutionary pressure detected.")
+            logger.warning("No audit evidence (sessions) found. No evolutionary pressure detected.")
             return
 
+        logger.info(f"Evolver: Found {len(files)} sessions. Ingesting top {min(len(files), sample_size)} candidates.")
         reports = []
         for f in files[:sample_size]:
-            report = load_json(os.path.join(strategy_dir, f))
+            logger.info(f"Evolver: [INGEST] -> {f}")
+            report = load_json(os.path.join(session_dir, f))
             if report: reports.append(report)
 
         # 2. Neural Meta-Optimization
@@ -95,13 +97,14 @@ class EvolverEngine:
         )
 
         prompts = {
-            "strategist_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/strategist.md"),
-            "critic_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/critic.md")
+            "session_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/session.md"),
+            "audit_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/audit.md")
         }
         
         # 3. Phase: Prototype Generation
+        logger.info("Evolver: Initiating Neural Meta-Optimization (LLM Analysis)...")
         evolution_result = evolver.evolve(
-            forensic_reports=reports,
+            audit_reports=reports,
             active_config=config,
             current_prompts=prompts
         )
@@ -112,6 +115,7 @@ class EvolverEngine:
         logger.info(f"Evolver: Mutated proposal generated -> {os.path.basename(proposal_file)}")
 
         # 4. Phase: The Shadow Sandbox
+        logger.info("Sandbox: Initiating validation of proposed mutations against failure cases...")
         sandbox = EvolverSandbox(self.api_key, self.data_root)
         validation = sandbox.validate_evolution(
             failure_case=reports[0],
@@ -136,11 +140,11 @@ class EvolverEngine:
             logger.warning(f"Sandbox: EVOLUTION REJECTED [{ev_id}]. Regression risk detected.")
             refused_file = os.path.join(self.dirs['refusals'], f"{ev_id}_refused.json")
             shutil.move(proposal_file, refused_file)
-            logger.info(f"Evolver: Proposal isolated for manual forensic review -> {os.path.basename(refused_file)}")
+            logger.info(f"Evolver: Proposal isolated for manual audit review -> {os.path.basename(refused_file)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="The Meta-Evolution Engine (v5.3)")
-    parser.add_argument("--samples", type=int, default=5, help="Number of forensic reports to ingest")
+    parser = argparse.ArgumentParser(description="The Singularity Meta-Evolution Engine (v5.12)")
+    parser.add_argument("--samples", type=int, default=5, help="Number of audit reports to ingest")
     add_data_root_argument(parser)
     
     args = parser.parse_args()

@@ -40,7 +40,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             <div class="card"><div class="text-slate-400 text-xs font-semibold uppercase">Equity Growth (%)</div><div class="text-3xl font-bold mt-1 text-purple-400" id="kpi-pnl">0.00%</div></div>
         </div>
         <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Forensic Timeline</h2>
+            <h2 class="text-lg font-semibold mb-4 text-slate-200">Audit Timeline</h2>
             <div class="relative h-[450px]"><canvas id="timelineChart"></canvas></div>
         </div>
         <div class="card">
@@ -93,7 +93,7 @@ class DashboardController:
         dataset = self._extract_data(symbol, recursive)
         
         if not dataset:
-            self.logger.warning("No forensic reports found. Skipping dashboard.")
+            self.logger.warning("No audit reports found. Skipping dashboard.")
             return None
 
         # 1. Inject Data -> 2. Write File
@@ -114,19 +114,19 @@ class DashboardController:
         return output_path
 
     def _extract_data(self, symbol: str, recursive: bool) -> List[Dict[str, Any]]:
-        """Parses JSON review reports and extracts normalized performance telemetry."""
-        reviewers_root = os.path.join(self.data_root, "reviewers")
-        if not os.path.exists(reviewers_root): return []
+        """Parses JSON audit reports and extracts normalized performance telemetry."""
+        audits_root = os.path.join(self.data_root, "audits")
+        if not os.path.exists(audits_root): return []
 
         extracted = []
-        prefix = f"{symbol}_reviewers_"
+        prefix = f"{symbol}_audit_"
         
         all_files = []
         if recursive:
-            for root, _, files in os.walk(reviewers_root):
+            for root, _, files in os.walk(audits_root):
                 for f in files: all_files.append((root, f))
         else:
-            all_files = [(reviewers_root, f) for f in os.listdir(reviewers_root) if os.path.isfile(os.path.join(reviewers_root, f))]
+            all_files = [(audits_root, f) for f in os.listdir(audits_root) if os.path.isfile(os.path.join(audits_root, f))]
 
         for root, filename in sorted(all_files, key=lambda x: x[1]):
             if not filename.endswith(".json") or not filename.startswith(prefix): continue

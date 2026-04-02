@@ -24,7 +24,7 @@ class AgentConfig:
 
 class BaseAgent:
     """
-    Abstract Base Class for all AI-driven agents in the forensic trading pipeline.
+    Abstract Base Class for all AI-driven agents in the audit-grade trading pipeline.
     """
     
     def __init__(
@@ -124,11 +124,11 @@ class BaseAgent:
                     config=gen_config
                 )
                 
-                # Forensic Token Audit
+                # Audit Token Tracking
                 if response and response.usage_metadata:
                     m = response.usage_metadata
                     logger.info(
-                        f"{agent_name}: Token Audit [Total={m.total_token_count}] "
+                        f"{agent_name}: Token Tracking [Total={m.total_token_count}] "
                         f"(Prompt={m.prompt_token_count}, Candidate={m.candidates_token_count}, "
                         f"Cached={m.cached_content_token_count or 0})"
                     )
@@ -166,7 +166,7 @@ class BaseAgent:
             return {"error": "MAX_ITERATIONS_REACHED", "agent": agent_name}
 
         except Exception as e:
-            # High-Fidelity Forensic Capture: Log the raw error body for ClientErrors (400/429/etc)
+            # High-Fidelity Error Capture: Log the raw error body for ClientErrors (400/429/etc)
             # If it's a RetryError, we need the last attempt's exception to see the real cause
             actual_error = e
             from tenacity import RetryError

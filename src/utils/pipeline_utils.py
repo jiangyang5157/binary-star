@@ -131,7 +131,7 @@ def safe_format(template: str, **kwargs) -> str:
 def resolve_data_root(data_root_arg: Optional[str]) -> str:
     """
     Resolves a data root path, checking against predefined mappings in global_config.
-    Example: 'prod' -> 'data/prod'
+    Example: 'once' -> 'data/once'
     """
     if not data_root_arg:
         return ""
@@ -149,7 +149,8 @@ def add_data_root_argument(parser: argparse.ArgumentParser):
     parser.add_argument(
         "env_shortcut", 
         nargs="?", 
-        help="Environment shortcut (e.g., prod, live, test). Maps to --data_root if provided."
+        default="once",
+        help="Environment shortcut (e.g., once, live, test). Maps to --data_root if provided."
     )
     parser.add_argument(
         "--data_root", 
@@ -175,7 +176,11 @@ def archive_strategy_result(symbol: str, timestamp, result: Any, data_root: str,
     ts_str = timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
     ts_suffix = sanitize_timestamp(ts_str)
     
-    filename = f"{symbol}_{target_dir}_{ts_suffix}.json"
+    # v5.10 PHYSICAL HARDENING: Final micro-alignment of professional prefixes
+    prefix_map = {"sessions": "session", "audits": "audit", "market": "market"}
+    file_prefix = prefix_map.get(target_dir, target_dir)
+    
+    filename = f"{symbol}_{file_prefix}_{ts_suffix}.json"
     output_file = os.path.join(output_dir, filename)
     
     save_json(result, output_file)

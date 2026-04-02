@@ -12,42 +12,42 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
-class ReviewerConfig:
-    """Dataclass for type-safe Reviewer configuration."""
+class AuditReviewConfig:
+    """Dataclass for type-safe Audit Review configuration."""
     macro_interval: str
     micro_interval: str
     strategy_intent: str
     regime_anchor_drift_threshold: float
-    audit_thresholds: Dict[str, Any]
-    forensic_parameters: Dict[str, Any]
+    audit_review_thresholds: Dict[str, Any]
+    audit_review_parameters: Dict[str, Any]
 
     @classmethod
-    def from_dict(cls, cfg: Dict[str, Any]) -> "ReviewerConfig":
+    def from_dict(cls, cfg: Dict[str, Any]) -> "AuditReviewConfig":
         """Factory method for strategic config."""
         sampling = cfg['sampling_parameters']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
-        audit_thresholds = cfg['forensic_audit_thresholds']
-        forensic = cfg['forensic_parameters']
+        audit_thresholds = cfg['audit_review_thresholds']
+        audit_params = cfg['audit_review_parameters']
         
         return cls(
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            audit_thresholds=audit_thresholds,
-            forensic_parameters=forensic
+            audit_review_thresholds=audit_thresholds,
+            audit_review_parameters=audit_params
         )
 
-class ForensicAuditAssembler:
+class AuditAssembler:
     """
-    The Post-Execution Forensic Data Reporter (The Reviewer).
+    The Post-Execution Audit Data Reporter (The Audit Reviewer).
     
     Now a purely deterministic component that aggregates trade execution 
     metrics and market snapshots. AI-driven audit reasoning is deferred 
     to the Batch Coaching/Evolver phase.
     """
-    def __init__(self, config: ReviewerConfig):
+    def __init__(self, config: AuditReviewConfig):
         """
         Initializes the Assembler with historical and tactical configurations.
         """
@@ -173,9 +173,9 @@ class ForensicAuditAssembler:
                current_observation: Optional[Dict[str, Any]] = None,
                visual_context: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """
-        Assembles a deterministic forensic audit of a trading session.
+        Assembles a deterministic audit of a trading session.
         """
-        logger.info(f"ForensicAuditAssembler: Packaging report for Evolver...")
+        logger.info(f"AuditAssembler: Packaging report for Evolver...")
         
         # [The Neutrality Paradox Logic]
         # Check if core topographic data was available in the historical observation
@@ -196,7 +196,7 @@ class ForensicAuditAssembler:
             
         review_result = {
             "evaluation_score": 0, # To be assigned by Evolver
-            "forensic_status": {
+            "audit_status": {
                 "is_justified_surrender": is_justified_surrender,
                 "data_availability_at_t0": "HIGH" if has_structural_data else "LOW",
                 "mae_stress_tier": actual_outcome.get("trade_execution_metrics", {}).get("mae_stress_tier", "N/A"),

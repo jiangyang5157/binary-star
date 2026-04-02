@@ -3,10 +3,9 @@ system:
   notification_confidence_floor: 50
   data_root_mapping:
     test: "data/test"
-    prod: "data/prod"
+    once: "data/once"
     live: "data/live"
     backtest: "data/backtest"
-    scan: "data/scan"
 network:
   binance:
     api_timeout_seconds: 60

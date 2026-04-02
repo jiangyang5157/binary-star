@@ -441,27 +441,41 @@ class ObserverAgent:
         return observation
 
     def _persist_observation(self, observation: Dict[str, Any], data_root: str):
-        """Saves the observation JSON to the forensics shelf."""
+        """Saves the market observation JSON and its HTML counterpart to the audits shelf."""
         try:
-            obs_dir = os.path.join(data_root, "observations")
+            obs_dir = os.path.join(data_root, "market")
             os.makedirs(obs_dir, exist_ok=True)
             
-            # Format: SYMBOL_observation_TIMESTAMP (match reviewer/strategy naming convention)
-            from src.utils.datetime_utils import parse_iso_to_utc
-            
-            # Extract YYYYMMDD_HHMMSS from timestamp string
+            # Format: SYMBOL_market_TIMESTAMP
             import re
             m = re.search(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", observation['timestamp'])
-            if m:
-                ts_str = f"{m.group(1)}{m.group(2)}{m.group(3)}_{m.group(4)}{m.group(5)}{m.group(6)}"
-            else:
-                ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+            ts_str = f"{m.group(1)}{m.group(2)}{m.group(3)}_{m.group(4)}{m.group(5)}{m.group(6)}" if m else datetime.now().strftime("%Y%m%d_%H%M%S")
                 
-            filename = f"{self.symbol}_observation_{ts_str}.json"
-            path = os.path.join(obs_dir, filename)
+            # 1. Save JSON Record
+            json_filename = f"{self.symbol}_market_{ts_str}.json"
+            json_path = os.path.join(obs_dir, json_filename)
+            save_json(observation, json_path)
             
-            save_json(observation, path)
-            logger.info(f"Observer: Observation persisted to {path}")
+            # 2. Save HTML Visual Report (v5.10 Hardening)
+            try:
+                from src.infrastructure.notifications.email_notifier import StrategyNotifier
+                # Mock a strategy wrapper for the observation data
+                strat_wrapper = {"observation": observation, "final_decision": {"opinion": "MARKET_SCAN"}}
+                
+                notifier = StrategyNotifier(data_root=data_root)
+                # We save it to 'market/' instead of default 'html/'
+                html_body = notifier.save_html_preview(f"{self.symbol}_market", strat_wrapper)
+                
+                # Relocate the generated preview to the market folder with exact naming
+                if html_body:
+                    html_filename = f"{self.symbol}_market_{ts_str}.html"
+                    final_html_path = os.path.join(obs_dir, html_filename)
+                    os.rename(html_body, final_html_path)
+                    logger.info(f"Observer: Market HTML Report persisted to {final_html_path}")
+            except Exception as he:
+                logger.warning(f"Observer: Market HTML Report generation skipped: {he}")
+
+            logger.info(f"Observer: Market JSON Record persisted to {json_path}")
         except Exception as e:
             logger.error(f"Observer: Failed to persist observation: {e}")
 

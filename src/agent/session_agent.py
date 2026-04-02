@@ -13,8 +13,8 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__, propagate = True)
 
 @dataclass(frozen=True)
-class StrategistConfig(AgentConfig):
-    """Encapsulates configuration for the StrategistAgent."""
+class SessionConfig(AgentConfig):
+    """Encapsulates configuration for the SessionAgent."""
     model: str
     model_temperature: float
     role_prompt_path: str
@@ -57,10 +57,10 @@ class StrategistConfig(AgentConfig):
     regime_anchor_drift_threshold: float
 
     @classmethod
-    def from_dict(cls, cfg: Dict[str, Any]) -> "StrategistConfig":
-        """Factory method to extract strategist config from unified config components."""
+    def from_dict(cls, cfg: Dict[str, Any]) -> "SessionConfig":
+        """Factory method to extract session config from unified config components."""
         bs = cfg['binary_star']
-        strat = bs['strategist']
+        strat = bs['session']
         regime = cfg['regime_parameters']
         sampling = cfg['sampling_parameters']
         shared = cfg.get('agent_model_shared_config', {})
@@ -107,20 +107,20 @@ class StrategistConfig(AgentConfig):
             max_tool_iterations=int(shared.get('max_tool_iterations', 5))
         )
 
-class StrategistAgent(BaseAgent):
+class SessionAgent(BaseAgent):
     """
-    The Strategist & Decision Engine.
+    The Session & Decision Engine.
     
     This agent coordinates the reasoning triad:
     1. PHASE A (DRAFTING): Transforms raw terminal telemetry into an initial 
        strategic execution plan (Limit Entry, TP, SL).
-    2. PHASE B (SYNTHESIS): Absorbs adversarial feedback from the Critic 
+    2. PHASE B (SYNTHESIS): Absorbs adversarial feedback from the Audit 
        to harden the plan, applying 'Deep Limit Entry' (DLE) mitigations 
        where structural risks are identified.
     """
     def __init__(
         self, 
-        config: StrategistConfig, 
+        config: SessionConfig, 
         ai_client: genai.Client,
         api_timeout: int,
         retry_count: int,
@@ -130,7 +130,7 @@ class StrategistAgent(BaseAgent):
         model: Optional[str] = None
     ):
         """
-        Initializes the Strategist with a pre-assembled type-safe configuration.
+        Initializes the SessionAgent with a pre-assembled type-safe configuration.
         """
         self.config = config
         super().__init__(
@@ -149,33 +149,32 @@ class StrategistAgent(BaseAgent):
         symbol: str, 
         cache_id: Optional[str] = None,
         tools: Optional[List[Any]] = None,
-        previous_critique: Optional[Dict[str, Any]] = None
+        previous_audit: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Unified drafting method (The Phase 1 Core).
         Supports both Truth Bus (Cache) and Debug (Direct JSON) modes.
         """
         try:
-            prompt = self._build_prompt(observation, critic_feedback=previous_critique, cache_id=cache_id)
-            logger.info(f"Strategist: Drafting thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            prompt = self._build_prompt(observation, audit_feedback=previous_audit, cache_id=cache_id)
+            logger.info(f"Session: Drafting thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
                 temperature=self.config.model_temperature_draft,
-                agent_name="Strategist_Draft",
+                agent_name="Session_Draft",
                 cached_content=cache_id,
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Strategist: Drafting failed for {symbol}: {e}")
+            logger.error(f"Session: Drafting failed for {symbol}: {e}")
             raise
 
-    def synthesize(
-        self, 
-        draft_plan: Dict[str, Any], 
-        critique: Dict[str, Any], 
-        cache_id: Optional[str] = None,
-        tools: Optional[List[Any]] = None
+    def synthesize(self, 
+                   draft_plan: Dict[str, Any], 
+                   audit_results: Dict[str, Any], 
+                   cache_id: Optional[str] = None,
+                   tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
         Unified synthesis method (The Phase 3 Hardening).
@@ -183,25 +182,25 @@ class StrategistAgent(BaseAgent):
         """
         try:
             # During synthesis, we typically rely on Cache for topographic data
-            prompt = self._build_prompt(None, draft_plan, critique, cache_id=cache_id)
-            logger.info(f"Strategist: Synthesizing final hardened decision (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            prompt = self._build_prompt(None, draft_plan, audit_results, cache_id=cache_id)
+            logger.info(f"Session: Synthesizing final hardened decision (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
                 temperature=self.config.model_temperature_synthesis,
-                agent_name="Strategist_Synthesis",
+                agent_name="Session_Synthesis",
                 cached_content=cache_id,
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Strategist: Synthesis failed: {e}")
+            logger.error(f"Session: Synthesis failed: {e}")
             raise
 
     def _build_prompt(
         self, 
         observation: Optional[Dict[str, Any]], 
         draft_plan: Optional[Dict[str, Any]] = None,
-        critic_feedback: Optional[Dict[str, Any]] = None,
+        audit_feedback: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> str:
         """
@@ -219,12 +218,12 @@ class StrategistAgent(BaseAgent):
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
         else:
             # Safety Fuse: Prevent reasoning without topographic data
-            raise ValueError("Strategist: Zero-Knowledge State. Neither observation nor cache_id provided.")
+            raise ValueError("Session: Zero-Knowledge State. Neither observation nor cache_id provided.")
 
         context = {
             "observation_json": observation_json,
             "draft_plan_json": json.dumps(draft_plan, indent=2, ensure_ascii=False) if draft_plan else "{}",
-            "critic_feedback_json": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "{}",
+            "audit_feedback": json.dumps(audit_feedback, indent=2, ensure_ascii=False) if audit_feedback else "{}",
             "min_trade_velocity": self.config.min_trade_velocity,
             "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,

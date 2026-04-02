@@ -23,7 +23,7 @@ class EvolverSandbox:
         Replays a historical failure case with new logic.
         
         Args:
-            failure_case: The original forensic strategy report (v3.5+ schema).
+            failure_case: The original audit session report (v3.5+ schema).
             proposed_patch: Potential strategy_config.yaml overrides.
             proposed_prompts: Potential prompt text overrides.
         """
@@ -45,10 +45,10 @@ class EvolverSandbox:
         
         # 3. Inject Distilled Prompts (Shadow Overrides)
         if proposed_prompts:
-            if 'strategist' in proposed_prompts:
-                orchestrator.strategist.config.role_prompt_path = proposed_prompts['strategist_path']
-            if 'critic' in proposed_prompts:
-                orchestrator.critic.config.role_prompt_path = proposed_prompts['critic_path']
+            if 'session' in proposed_prompts:
+                orchestrator.session_agent.config.role_prompt_path = proposed_prompts['session_path']
+            if 'audit' in proposed_prompts:
+                orchestrator.audit.config.role_prompt_path = proposed_prompts['audit_path']
 
         # 4. Physical Playback
         # We feed the EXACT historical observation back into the machine
@@ -63,7 +63,7 @@ class EvolverSandbox:
         
         survival_improvement = False
         # Logic: If original was a LOSS and shadow is NEUTRAL or better DLE -> Improvement
-        # This requires outcome context which should be in the forensic report
+        # This requires outcome context which should be in the audit report
         # For now, we compare structural differences
         if original_decision.get('opinion') != new_decision.get('opinion'):
             survival_improvement = True

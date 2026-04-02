@@ -7,7 +7,7 @@ from src.analyzer.topography_engine import ObserverAgent, ObserverConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.path_utils import resolve_project_root
 
-class ReconController:
+class TopographyRecon:
     """Orchestrates market reconnaissance and topography mapping."""
     def __init__(self, config_dict: Dict[str, Any], data_root: str, logger):
         self.config = config_dict
@@ -20,7 +20,7 @@ class ReconController:
 
     def observe_market(self, symbol: str) -> Dict[str, Any]:
         """Scans market topography and returns physical evidence (POC, VAH, VAL, CVD)."""
-        self.logger.info(f"ReconController: Mapping market topography for {symbol} at {datetime.now(timezone.utc)}...")
+        self.logger.info(f"TopographyRecon: Mapping market topography for {symbol} at {datetime.now(timezone.utc)}...")
         
         try:
             obs_config = ObserverConfig.from_dict(self.config)

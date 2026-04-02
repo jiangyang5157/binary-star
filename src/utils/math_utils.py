@@ -86,7 +86,7 @@ class MathTools:
     ) -> Dict[str, Any]:
         """
         Calculates the distance from the Stop Loss to key structural levels (POC, VAH, VAL) in ATR units.
-        Used by the Critic to verify if the SL is placed behind physical 'armor'.
+        Used by the Audit Agent to verify if the SL is placed behind physical 'armor'.
         """
         try:
             if atr <= 0:

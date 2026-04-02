@@ -11,10 +11,10 @@ from src.utils.path_utils import resolve_project_root
 def main():
     """
     Strategy Exporter - Reverse Engineering Utility.
-    Extracts the original strategy session from a forensic reviewer report and restores it to the strategies folder.
+    Extracts the original strategy session from a forensic report and restores it to the strategies folder.
     """
     parser = argparse.ArgumentParser(description="Strategy Exporter - Reverse Engineering Utility")
-    parser.add_argument("--file", required=True, help="Path to the reviewer JSON report")
+    parser.add_argument("--file", required=True, help="Path to the forensic JSON report")
     
     # Standardize data root arguments
     from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
@@ -29,19 +29,19 @@ def main():
         print(f"Error: Could not resolve data root for shortcut '{args.env_shortcut}'")
         sys.exit(1)
         
-    # 2. Load Reviewer Report
+    # 2. Load Forensic Report
     if not os.path.exists(args.file):
-        print(f"Error: Reviewer report not found at '{args.file}'")
+        print(f"Error: Forensic report not found at '{args.file}'")
         sys.exit(1)
         
-    reviewer_data = load_json(args.file)
-    if not reviewer_data:
-        print(f"Error: Could not load or parse reviewer report from '{args.file}'")
+    forensic_data = load_json(args.file)
+    if not forensic_data:
+        print(f"Error: Could not load or parse forensic report from '{args.file}'")
         sys.exit(1)
         
     # 3. Extract Strategy Session
     # The original strategy content is mirrored exactly in 'strategy_session'
-    strategy_session = reviewer_data.get("strategy_session")
+    strategy_session = forensic_data.get("strategy_session")
     if not strategy_session:
         print(f"Error: 'strategy_session' block not found in the report.")
         sys.exit(1)
