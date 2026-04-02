@@ -49,11 +49,11 @@ Use these objective definitions to transform metrics into tactical insights:
 | `volume_breakout_ratio`| > `{volume_baseline_ratio}` = Volume exploding above MA baseline. |
 
 # MATH_TOOLS
-To eliminate math hallucinations, you MUST use the following tools for ALL tactical calculations:
-1. `calculate_risk_reward(entry, take_profit, stop_loss)`: Verify RR >= `{min_rr_ranging}` (Ranging) or `{min_rr_trending}` (Trending).
-2. `calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)`: Translate distances to ATR.
-3. `calculate_structural_proximity(stop_loss, atr, poc, vah, val)`: Verify SL placement behind anchors.
-4. `project_holding_time(entry, take_profit, atr, trend_intensity, macro_interval_minutes)`: (Extract `macro_interval_minutes` from `observation_specs.macro.interval_minutes`).
+To eliminate math hallucinations and ensure physical survival, you MUST use these tools to validate your thesis:
+1. `calculate_risk_reward(entry, take_profit, stop_loss)`: **Mandatory**. Verify RR >= `{min_rr_ranging}` (Ranging) or `{min_rr_trending}` (Trending).
+2. `calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)`: **Mandatory**. Translate distances into ATR units to verify volatility scaling.
+3. `calculate_structural_proximity(stop_loss, atr, poc, vah, val)`: **Mandatory**. Confirm Stop Loss (SL) is correctly shielded by structural anchors.
+4. `project_holding_time(entry, take_profit, atr, trend_intensity, macro_interval_minutes)`: Verify if the projected trade life-cycle aligns with the market regime.
 
 # INPUT_DATUM
 - **Observation Content**: `{observation_json}` (Market Map from Observer).
@@ -62,10 +62,10 @@ To eliminate math hallucinations, you MUST use the following tools for ALL tacti
 - **Math Fact Check**: `{math_fact_check}` (Physical Truth calculated between rounds).
 
 # REASONING_CHAIN
-1. **Data Alignment**: Extract `current_price`, `atr_macro`, and primary anchors.
-2. **Path Identification**: Determine momentum vs absorption.
-3. **Execution Engineering**: Select entry anchor and call MathTools.
-4. **Hardening**: If Phase B, repair structural flaws via `math_fact_check`.
+1. **Topographical Case Study**: Identify the current structural mandate (e.g. Gravity vs Sequential).
+2. **Anchor Selection**: Define entry and SL based on physical high-density nodes.
+3. **Drafting**: Propose parameters and use native tools for math verification. 
+4. **Hardening**: If Phase B, incorporate `critic_feedback` and repair flaws via `math_fact_check`.
 
 # OUTPUT_SCHEMA
 Your response MUST be RAW JSON only.
@@ -82,7 +82,7 @@ Your response MUST be RAW JSON only.
         "rr_ratio": decimal,
         "holding_time_hours": decimal
     }},
-    "reasoning_chain": "Tool Call Logs: [RR: {rr}] [ATR Buffers: {atr}] | Logic Flow...",
+    "reasoning_chain": "Logic Flow: [Anchor Identification] -> [Risk Assessment] -> [Final Thesis]",
     "is_hardened": boolean,
     "critic_clearance": "PASS | WEAK | CONSTRUCTIVE | FATAL",
     "critic_impact": "Summary of hardening (Must be null in PHASE A)"
