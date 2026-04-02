@@ -122,14 +122,21 @@ class BinaryStarOrchestrator:
         4. Strategist Synthesis (Phase B)
         """
         # v5.10 Hardening: Session ID and Timestamp are anchored to the MARKET observation time
-        # This ensures forensic alignment across all system layers.
-        obs_ts = observation.get('timestamp', 'unknown')
-        try:
-            from datetime import datetime
-            dt = datetime.fromisoformat(obs_ts.replace('Z', '+00:00'))
-            timestamp = dt.strftime("%Y%m%d_%H%M%S")
-        except:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Standardized format: YYYYMMDD_HHMMSS
+        obs_ts = observation.get("timestamp", "")
+        
+        # If the timestamp already follows the compact standard (e.g. 20260402_113057), use it directly
+        if "_" in obs_ts and len(obs_ts) == 15:
+            timestamp = obs_ts
+        else:
+            # Fallback for ISO format or legacy data
+            try:
+                from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT
+                dt = parse_iso_to_utc(obs_ts)
+                timestamp = dt.strftime(FILE_TIMESTAMP_FORMAT)
+            except:
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         cache_name = f"market_topography_{symbol}_{timestamp}"
         
@@ -154,9 +161,79 @@ class BinaryStarOrchestrator:
             
             # Phase 0: Initialize Audit Context Bus (Shared Context Cache)
             logger.info(f"BinaryStar: [INIT] Requesting Truth Bus cache for {symbol} ({self.macro_interval})...")
-            # TEMPORARY DISABLE CACHE TO RESTORE RELIABILITY 
-            # We revisit the 400 INVALID_ARGUMENT (Cache vs Tools) in a separate engineering task.
-            cache_resource_name = None 
+            
+            # v5.10 Context Caching: Manual Tool Schema Injection.
+            # We bake the TOOLS and SYSTEM_INSTRUCTIONS into the cache resource.
+            # We define tools as explicit dictionaries to satisfy Pydantic requirements.
+            tool_declarations = [
+                {
+                    "name": "calculate_risk_reward",
+                    "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "entry": {"type": "NUMBER"},
+                            "take_profit": {"type": "NUMBER"},
+                            "stop_loss": {"type": "NUMBER"}
+                        },
+                        "required": ["entry", "take_profit", "stop_loss"]
+                    }
+                },
+                {
+                    "name": "calculate_atr_metrics",
+                    "description": "Standardizes entry/exit distances using ATR (Average True Range).",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "entry": {"type": "NUMBER"},
+                            "stop_loss": {"type": "NUMBER"},
+                            "take_profit": {"type": "NUMBER"},
+                            "atr": {"type": "NUMBER"}
+                        },
+                        "required": ["entry", "stop_loss", "take_profit", "atr"]
+                    }
+                },
+                {
+                    "name": "calculate_structural_proximity",
+                    "description": "Calculates distance from SL to structural levels (POC, VAH, VAL) in ATR units.",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "stop_loss": {"type": "NUMBER"},
+                            "atr": {"type": "NUMBER"},
+                            "poc": {"type": "NUMBER"},
+                            "vah": {"type": "NUMBER"},
+                            "val": {"type": "NUMBER"}
+                        },
+                        "required": ["stop_loss", "atr"]
+                    }
+                },
+                {
+                    "name": "project_holding_time",
+                    "description": "Predicts the time required to reach the Take Profit target.",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "entry": {"type": "NUMBER"},
+                            "take_profit": {"type": "NUMBER"},
+                            "atr": {"type": "NUMBER"},
+                            "trend_intensity": {"type": "NUMBER"},
+                            "macro_interval_minutes": {"type": "NUMBER"}
+                        },
+                        "required": ["entry", "take_profit", "atr", "trend_intensity", "macro_interval_minutes"]
+                    }
+                }
+            ]
+            
+            cache_resource_name = self.cache_manager.create_market_cache(
+                symbol=symbol,
+                interval=self.macro_interval,
+                contents=[observation_json] + visual_parts,
+                system_instruction=self.shared_instruction,
+                model=self.shared_model,
+                ttl_minutes=int(self.bs_config.get("cache_expiration_minutes", 10)),
+                tools=[types.Tool(function_declarations=tool_declarations)]
+            )
             
             # Phase 1 & 2: The Adversarial Debate Loop (With Trajectory Memory)
             # current_round starts at 1 for human-centric indexing (Round 1, Round 2...)
@@ -239,15 +316,13 @@ class BinaryStarOrchestrator:
             
             logger.info(f"BinaryStar: [COMPLETE] Decision synthesized for {symbol}. Session Result packaged.")
             
-            # v5.10 Hardening: Package the session result with forensic parity
+            # v5.10 Hardening: Package the session result with forensic parity.
+            # Session ID and redundant keys have been pruned for zero-entropy output.
             return {
-                "symbol": symbol,
-                "timestamp": timestamp,
                 "final_decision": final_decision,
                 "debate_history": debate_history,
                 "observation": observation,
                 "metadata": {
-                    "session_id": f"{symbol}_{timestamp}",
                     "config_snapshot": self.config,
                     "version_control": {
                         "session_hash": get_file_hash(self.session_agent.config.role_prompt_path),
@@ -274,10 +349,25 @@ class BinaryStarOrchestrator:
         Eliminates the need for LLM Tool Calling during Critic and Synthesis phases.
         """
         try:
+            # v5.10 Optimization: Handle AI execution errors or neutral stances
+            if draft.get("error"):
+                return {
+                    "status": "ERROR",
+                    "reason": f"Physical verification impossible: Draft failed with {draft.get('agent')} error."
+                }
+
+            # Corrected: SessionAgent uses "opinion", not "verdict"
+            opinion = draft.get("opinion", "NEUTRAL")
+            if opinion == "NEUTRAL":
+                return {
+                    "status": "SKIPPED",
+                    "reason": "Physical verification only required for active trade proposals."
+                }
+
             tactical = draft.get('tactical_parameters') or {}
-            entry = float(tactical.get('entry', 0))
-            sl = float(tactical.get('stop_loss', 0))
-            tp = float(tactical.get('take_profit', 0))
+            entry = float(tactical.get('entry', 0) or 0)
+            sl = float(tactical.get('stop_loss', 0) or 0)
+            tp = float(tactical.get('take_profit', 0) or 0)
             
             # Extract observation geometry (Truth Bus)
             metrics = observation.get('quantitative_metrics', {})

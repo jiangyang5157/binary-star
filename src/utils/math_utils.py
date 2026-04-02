@@ -154,7 +154,7 @@ class MathTools:
                 "projected_holding_candles": round(projected_candles, 1),
                 "projected_holding_hours": projected_hours,
                 "effective_velocity_per_candle": round(effective_velocity, 2),
-                "model_parameters": {
+                "calculation_inputs": {
                     "velocity_floor": min_velocity_floor,
                     "target_distance": round(dist, 2)
                 }

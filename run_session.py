@@ -79,7 +79,7 @@ class SessionEngine:
                 target_dt = parse_iso_to_utc(timestamp_str)
             
             logger.info(f"Observer: Commencing structural mapping for {self.symbol}...")
-            observation = self.orchestrator.observer.observe(timestamp=target_dt)
+            observation = self.orchestrator.observer.observe(timestamp=target_dt, persist=False)
             
             if "error" in observation:
                 raise ValueError(f"Observation failed: {observation['error']}")

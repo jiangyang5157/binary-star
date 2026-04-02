@@ -102,8 +102,7 @@ class BaseAgent:
                         "http_options": {"timeout": self.api_timeout * 1000},
                         "cached_content": cached_content,
                         "system_instruction": None,
-                        "tools": None,
-                        "tool_config": None
+                        "tools": None
                     }
                     # Note: We omit response_mime_type here too because the Cache might 
                     # have tools baked in.

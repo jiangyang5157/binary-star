@@ -63,6 +63,12 @@ def to_iso_zulu(dt_obj: datetime) -> str:
         dt_obj = dt_obj.replace(tzinfo=timezone.utc)
     return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
+def to_compact_timestamp(dt_obj: datetime) -> str:
+    """Returns a filename-friendly compact timestamp (YYYYMMDD_HHMMSS)."""
+    if dt_obj.tzinfo is None:
+        dt_obj = dt_obj.replace(tzinfo=timezone.utc)
+    return dt_obj.astimezone(timezone.utc).strftime(FILE_TIMESTAMP_FORMAT)
+
 def get_interval_seconds(interval: str) -> int:
     """
     Converts a Binance interval string (e.g., '1h', '15m', '1d') to seconds.

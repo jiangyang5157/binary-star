@@ -12,7 +12,10 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.pipeline_utils import safe_format
-from src.utils.datetime_utils import get_current_utc_time, to_iso_zulu, get_interval_seconds
+from src.utils.datetime_utils import (
+    get_current_utc_time, format_datetime, FILE_TIMESTAMP_FORMAT, 
+    to_iso_zulu, get_interval_seconds
+)
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string, save_json
 
@@ -412,7 +415,7 @@ class MarketObserver:
         self.loader = MarketDataLoader(self._binance, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._vp_analyzer, self._regime_analyzer)
 
-    def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None) -> Dict[str, Any]:
+    def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True) -> Dict[str, Any]:
         """Executes a full topographical observation cycle."""
         at_time = timestamp or get_current_utc_time()
         logger.info(f"MarketObserver: Starting mapping for {self.symbol} at {at_time}")
@@ -421,8 +424,6 @@ class MarketObserver:
         raw = self.loader.collect(self.symbol, at_time)
         
         # --- Data Quality Fuse ---
-        # Production Hardening: Fail fast if data integrity is compromised.
-        # We require at least 90% of requested klines to maintain topographic accuracy.
         macro_threshold = int(self.config.macro_context.lookback_candles * 0.9)
         if len(raw.macro_klines) < macro_threshold:
             logger.error(f"MarketObserver: Data Integrity Failure. Macro Klines count ({len(raw.macro_klines)}) < threshold ({macro_threshold})")
@@ -436,7 +437,9 @@ class MarketObserver:
             
         # 4. Packaging & Persistence
         observation = self._package_observation(metrics, snapshots, at_time)
-        self._persist_observation(observation, data_root or self.data_root)
+        
+        if persist:
+            self._persist_observation(observation, data_root or self.data_root)
         
         return observation
 
@@ -464,7 +467,7 @@ class MarketObserver:
         img_dir = os.path.join(data_root, "klines")
         self._charting.storage.output_dir = img_dir # Direct access to manager if needed or use Facade setter
         
-        ctx = {**metrics.volume_profile, "timestamp": at_time.isoformat()}
+        ctx = {**metrics.volume_profile, "timestamp": format_datetime(at_time, FILE_TIMESTAMP_FORMAT)}
         m_df = self._vp_analyzer.process_klines(raw.macro_klines)
         n_df = self._vp_analyzer.process_klines(raw.micro_klines)
         
@@ -476,7 +479,7 @@ class MarketObserver:
     def _package_observation(self, metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
         return {
             "symbol": self.symbol,
-            "timestamp": to_iso_zulu(at_time),
+            "timestamp": format_datetime(at_time, FILE_TIMESTAMP_FORMAT),
             "analytical_parameters": {
                 "macro_timeframe": {
                     "interval": self.config.macro_context.time_interval,
