@@ -137,42 +137,6 @@ class StrategyEmailTemplate(BaseEmailTemplate):
                     ''' if decision else ""}
                 </div>
 
-                <!-- Intelligence Briefing -->
-                <div style="margin-bottom: 35px; border-top: 1px solid #e2e8f0; padding-top: 25px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 20px;">🔬 Forensic Breakdown</h3>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 15px;">
-                        <div style="border-left: 4px solid #3b82f6; background-color: #eff6ff; padding: 15px; border-radius: 0 8px 8px 0; margin-bottom: 15px;">
-                            <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em;">Synthesized Topography</span>
-                            <p style="font-size: 13px; color: #1e3a8a; margin-top: 8px; line-height: 1.6; font-weight: 500;">{fmt(semantics.get('synthesized_topography'))}</p>
-                        </div>
-
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
-                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Structural Gravity</span>
-                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('structural_gravity'))}</p>
-                        </div>
-
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
-                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Topographical Friction</span>
-                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('topographical_friction'))}</p>
-                        </div>
-
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
-                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Sentiment Flow</span>
-                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('sentiment_flow'))}</p>
-                        </div>
-
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 12px;">
-                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Regime & Volatility</span>
-                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt(semantics.get('regime_volatility'))}</p>
-                        </div>
-
-                        <div style="border-left: 3px solid #cbd5e1; padding-left: 15px; margin-bottom: 10px;">
-                            <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase;">Micro-Interactive detail</span>
-                            <p style="font-size: 13px; color: #475569; margin-top: 5px; line-height: 1.5;">{fmt((semantics or {}).get('micro_interactive'))}</p>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Visual Assets -->
                 <div id="charts-root" style="text-align: center;">
                     <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">🖼️ Visual Snapshots</h4>
@@ -595,8 +559,12 @@ class StrategyNotifier:
         subject = f"{indicator} Signal | {symbol} | {opinion.upper()} ({confidence}%)"
         
         # 2. Dispatch Email
-        logger.info(f"Notifier: Dispatching alert: {subject}")
-        return self.dispatcher.dispatch(subject, html_body, attachments)
+        try:
+            logger.info(f"Notifier: Dispatching alert: {subject}")
+            return self.dispatcher.dispatch(subject, html_body, attachments)
+        except Exception as e:
+            logger.error(f"Notifier: Failed to dispatch strategy notification: {e}")
+            return False
 
     def notify_review(self, symbol: str, review_data: Dict[str, Any], save_local: bool = False) -> bool:
         """
@@ -645,10 +613,12 @@ class StrategyNotifier:
             logger.info(f"Notifier: Result is {result}. Skipping review dispatch (only TP_HIT/SL_HIT/NEITHER allowed).")
             return False
             
-        subject = f"📋 Audit | {symbol} | {result}"
-        
-        logger.info(f"Notifier: Dispatching forensic report: {subject}")
-        return self.dispatcher.dispatch(subject, html_body, attachments)
+        try:
+            logger.info(f"Notifier: Dispatching forensic report: {subject}")
+            return self.dispatcher.dispatch(subject, html_body, attachments)
+        except Exception as e:
+            logger.error(f"Notifier: Failed to dispatch review notification: {e}")
+            return False
 
     def save_html_preview(self, name_prefix: str, html_body: str, attachments: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
@@ -738,11 +708,11 @@ class StrategyNotifier:
         
         logger.error(f"Notifier: DISPATCHING CRITICAL ALERT: {subject}")
         
-        if not self.enabled:
-            logger.warning("Notifier: Alert dispatch failed (Notifications disabled).")
+        try:
+            return self.dispatcher.dispatch(subject, html_body)
+        except Exception as e:
+            logger.error(f"Notifier: Failed to dispatch critical alert: {e}")
             return False
-            
-        return self.dispatcher.dispatch(subject, html_body)
 
 if __name__ == "__main__":
     import argparse

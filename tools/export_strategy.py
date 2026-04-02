@@ -3,7 +3,7 @@ import os
 import sys
 import argparse
 import json
-from src.utils.agent_utils import resolve_data_root
+from src.utils.pipeline_utils import resolve_data_root
 from src.utils.json_utils import load_json, save_json
 from src.utils.datetime_utils import sanitize_timestamp
 from src.utils.path_utils import resolve_project_root
@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--file", required=True, help="Path to the reviewer JSON report")
     
     # Standardize data root arguments
-    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
     
     args = parser.parse_args()

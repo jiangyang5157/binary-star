@@ -5,7 +5,6 @@ import argparse
 import hashlib
 from typing import Dict, Any, List, Optional
 
-
 def get_file_hash(file_path: str) -> str:
     """Calculates a short MD5 hash of a file's content to track prompt/config versions."""
     try:
@@ -17,7 +16,7 @@ def get_file_hash(file_path: str) -> str:
         return "unavailable"
 
 
-def load_config(config_filepath: str = "config/agent_config.yaml") -> Dict[str, Any]:
+def load_config(config_filepath: str = "config/strategy_config.yaml") -> Dict[str, Any]:
     """
     Loads a YAML configuration file from the given path.
     If the path is relative, it is resolved against the project root.

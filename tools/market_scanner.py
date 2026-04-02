@@ -13,14 +13,14 @@ if PROJECT_ROOT not in sys.path:
 
 from src.analyzer.opportunity_scanner import OpportunityScanner
 from src.utils.logger_utils import setup_logger
-from src.utils.agent_utils import resolve_data_root, load_global_config
+from src.utils.pipeline_utils import resolve_data_root, load_global_config
 
 def main():
     parser = argparse.ArgumentParser(description="Pure Market Scanner (No Agents)")
     parser.add_argument("--symbol", type=str, help="Trading symbol (e.g., BTCUSDT)")
     parser.add_argument("--pulse", type=float, required=True, help="Scan interval in minutes")
     
-    from src.utils.agent_utils import add_data_root_argument
+    from src.utils.pipeline_utils import add_data_root_argument
     add_data_root_argument(parser)
     
     args = parser.parse_args()

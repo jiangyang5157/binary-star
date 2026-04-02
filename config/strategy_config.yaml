@@ -1,0 +1,147 @@
+strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess a forensic mathematical edge and absolute structural invalidation."
+
+agent_model_shared_config:
+  max_tool_iterations: 5
+
+regime_parameters:
+  # --- Trend & Momentum Knobs ---
+  trend_intensity_threshold: 0.4
+  trend_intensity_strong: 0.5
+  trend_intensity_duration_hours: 24.0
+  
+  # --- Volatility & Risk Knobs ---
+  volatility_baseline_ratio: 1.3
+  volatility_expansion_ratio: 1.5
+  volatility_extreme_ratio: 2.0
+  volatility_intensity_lookback: 24
+  
+  # --- Volume & Structure Knobs ---
+  volume_breakout_threshold: 1.5
+  volume_baseline_ratio: 1.0
+  participation_volume_threshold: 1.5
+  long_short_imbalance_ratio: 1.8
+  poc_confluence_strength: 0.9
+  poc_gravity_atr_distance: 3.0
+  poc_magnet_atr_threshold: 2.0
+  balanced_atr_multiplier: 2.0
+  gravity_volume_override_ratio: 1.5
+  boundary_clipping_atr: 0.05
+  structural_proximity_threshold: 0.5
+  anchor_drift_threshold: 3.0
+  
+  # --- Micro-Sentiment & Exhaustion Knobs ---
+  vacuum_risk_score: 0.3
+  wick_skewness_exhaustion: 0.6
+  wick_skewness_momentum_bullish: 0.8
+  wick_skewness_momentum_bearish: 0.2
+  cvd_slope_threshold: 1.0
+  squeeze_threshold: 1.0
+  squeeze_audit_threshold: 0.85
+  
+  # --- Execution Safety Knobs ---
+  breakout_buffer_atr: 0.2
+  breakout_frontrun_atr: 0.45
+  min_rr_ranging: 1.0
+  min_rr_trending: 1.5
+  order_flow_lookback_hours: 1.0
+
+performance_evaluation_knobs:
+  # Reviewer Scoring & Logic Limits
+  score_mae_pinpoint_limit: 15
+  score_mae_standard_limit: 50
+  score_mae_logic_failure_limit: 85
+  score_mfe_optimal_upper: 110
+  score_mfe_optimal_lower: 100
+  score_mfe_acceptable_limit: 150
+  score_opportunity_cost_limit: 1.5
+  score_opportunity_cost_catastrophe_limit: 5.0
+  score_opportunity_cost_catastrophe_floor: -10
+  score_time_efficiency_limit: 2.5
+  penalty_compliance_breach: -100
+  point_base_tp_hit: 40
+  point_base_sl_hit: 10
+  point_base_neutral_valid: 20
+  point_penalty_opportunity_cost: -40
+  point_penalty_logic_failure: -50
+  point_penalty_mfe_premature_base: -20
+  point_penalty_temporal_failure: -15
+  point_penalty_stophunt_blindness: -20
+  point_bonus_structural_insight: 20
+  point_bonus_optimal_capture: 10
+  score_missed_opportunity_base: 1.0
+  score_mae_extra_buffer: 0.5
+  score_frontrun_leniency_pct: 30
+
+sampling_parameters:
+  macro_context:
+    time_interval: 1h
+    historical_lookback_candles: 336
+  micro_context:
+    time_interval: 15m
+    historical_lookback_candles: 192
+  funding_rate_lookback_hours: 24.0
+
+topography_parameters:
+  # Volume Profile Engine
+  volume_profile_value_area_width: 0.75
+  volume_profile_price_bucket_count: 300
+  volume_moving_average_period: 21
+  
+  # Structural Node Detection
+  max_high_volume_node_count: 3
+  max_low_volume_node_count: 3
+  high_volume_node_detection_threshold: 0.15
+  low_volume_node_detection_threshold: 0.05
+  min_price_gap_between_nodes: 50
+  top_structural_node_count: 3
+  
+  # Technical Indicators (Sensor Math)
+  average_true_range_period: 21
+  bollinger_bands_period: 21
+  bollinger_bands_std_dev: 2.0
+  keltner_channels_period: 21
+  keltner_channels_multiplier: 1.5
+  wick_skewness_period: 3
+  wick_skew_fallback: 0.5
+  
+  # Liquidity Magnet Analysis
+  max_liquidation_clusters: 3
+  max_liquidation_events_to_fetch: 50
+  max_liquidation_events_for_context: 10
+  liquidation_cluster_atr_multiplier: 0.25
+  liquidation_cluster_fallback_percentage: 0.005
+
+forensic_parameters:
+  execution_timeframe_interval: 1m
+
+binary_star:
+  model: models/gemini-2.5-flash
+  system_instruction: src/agent/prompts/binary_star.md
+  cache_expiration_minutes: 10
+  max_rounds: 2
+  stop_threshold: 50
+  
+  strategist:
+    role_definition_prompt: src/agent/prompts/strategist.md
+    model_temperature_draft: 0.7
+    model_temperature_synthesis: 0.3
+    min_trade_velocity: 0.4
+    stop_loss_buffer_min: 0.3
+    stop_loss_buffer_max: 2.5
+    score_confidence_base: 75
+    score_confidence_decay_min: 5
+    score_confidence_decay_max: 30
+    holding_time_modifier: 1.5
+
+  critic:
+    role_definition_prompt: src/agent/prompts/critic.md
+    model_temperature: 0.3
+    threshold_skepticism_clear: 40
+    threshold_skepticism_weak: 69
+    threshold_skepticism_constructive: 89
+
+# The Meta-Optimizer (Self-Evolution Engine)
+evolver:
+  role_definition_prompt: src/agent/prompts/evolver.md
+  model_temperature: 0.0
+

@@ -87,9 +87,10 @@ class TestBinaryStarFlow(unittest.TestCase):
                 "threshold_skepticism_constructive": 60
             },
             "observer": {
-                "role_definition_prompt": "src/agent/prompts/observer.md",
-                "model": "gemini-flash-latest",
-                "model_temperature": 0.3,
+                "sampling": {
+                    "macro_context": {"time_interval": "1h"},
+                    "micro_context": {"time_interval": "15m"}
+                },
                 "macro_analysis_context": {
                     "time_interval": "1h",
                     "historical_lookback_candles": 100

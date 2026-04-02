@@ -10,7 +10,7 @@ def setup_logger(
     log_level: int = logging.INFO, 
     format_string: str = DEFAULT_LOG_FORMAT,
     log_file: Optional[str] = None,
-    propagate: bool = False
+    propagate: bool = True
 ) -> logging.Logger:
     """
     Standardizes logger configuration throughout the project.

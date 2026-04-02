@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from src.agent.base_agent import BaseAgent
-from src.utils.agent_utils import read_prompt_template, safe_format
+from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import extract_json_from_text
 
@@ -50,44 +50,48 @@ class CriticConfig:
     min_trade_velocity: float
 
     @classmethod
-    def from_dict(cls, full_config: Dict[str, Any]) -> "CriticConfig":
+    def from_dict(cls, cfg_dict: Dict[str, Any]) -> "CriticConfig":
         """Factory method to extract critic config from the global config dict."""
-        critic = full_config['critic']
-        strat = full_config['strategist']
-        shared = full_config.get('agent_model_shared_config', {})
+        bs = cfg_dict['binary_star']
+        critic = bs['critic']
+        strat = bs['strategist']
+        regime = cfg_dict['regime_parameters']
+        shared = cfg_dict.get('agent_model_shared_config', {})
+        sampling = cfg_dict['sampling_parameters']
+        
         return cls(
-            model=str(critic['model']),
+            model=str(bs['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
             model_temperature=float(critic['model_temperature']),
-            min_trade_velocity=float(critic.get('min_trade_velocity', 0.5)),
+            min_trade_velocity=float(strat.get('min_trade_velocity', 0.5)),
             stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
-            strategy_intent=str(full_config['strategy_intent']),
-            macro_interval=str(full_config['observer']['macro_analysis_context']['time_interval']),
-            micro_interval=str(full_config['observer']['micro_analysis_context']['time_interval']),
-            order_flow_lookback_hours=float(full_config['observer']['order_flow_lookback_hours']),
-            regime_trend_intensity_threshold=float(full_config['observer']['regime_trend_intensity_threshold']),
-            regime_volatility_baseline_ratio=float(full_config['observer']['regime_volatility_baseline_ratio']),
-            regime_volatility_expansion_ratio=float(full_config['observer']['regime_volatility_expansion_ratio']),
-            regime_volatility_extreme_ratio=float(full_config['observer']['regime_volatility_extreme_ratio']),
-            regime_volume_breakout_threshold=float(full_config['observer']['regime_volume_breakout_threshold']),
-            regime_long_short_imbalance_ratio=float(full_config['observer']['regime_long_short_imbalance_ratio']),
-            regime_poc_gravity_atr_distance=float(full_config['observer']['regime_poc_gravity_atr_distance']),
-            regime_vacuum_risk_score=float(full_config['observer']['regime_vacuum_risk_score']),
-            regime_wick_skewness_exhaustion=float(full_config['observer']['regime_wick_skewness_exhaustion']),
-            regime_wick_skewness_momentum_bullish=float(full_config['observer']['regime_wick_skewness_momentum_bullish']),
-            regime_wick_skewness_momentum_bearish=float(full_config['observer']['regime_wick_skewness_momentum_bearish']),
-            regime_trend_intensity_strong=float(full_config['observer']['regime_trend_intensity_strong']),
-            regime_min_rr_ranging=float(full_config['observer']['regime_min_rr_ranging']),
-            regime_min_rr_trending=float(full_config['observer']['regime_min_rr_trending']),
-            regime_volume_baseline_ratio=float(full_config['observer']['regime_volume_baseline_ratio']),
-            regime_squeeze_threshold=float(full_config['observer']['regime_squeeze_threshold']),
-            regime_squeeze_audit_threshold=float(full_config['observer']['regime_squeeze_audit_threshold']),
+            strategy_intent=str(cfg_dict['strategy_intent']),
+            macro_interval=str(sampling['macro_context']['time_interval']),
+            micro_interval=str(sampling['micro_context']['time_interval']),
+            order_flow_lookback_hours=float(regime['order_flow_lookback_hours']),
+            regime_trend_intensity_threshold=float(regime['trend_intensity_threshold']),
+            regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
+            regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
+            regime_volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
+            regime_volume_breakout_threshold=float(regime['volume_breakout_threshold']),
+            regime_long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
+            regime_poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
+            regime_vacuum_risk_score=float(regime['vacuum_risk_score']),
+            regime_wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
+            regime_wick_skewness_momentum_bullish=float(regime['wick_skewness_momentum_bullish']),
+            regime_wick_skewness_momentum_bearish=float(regime['wick_skewness_momentum_bearish']),
+            regime_trend_intensity_strong=float(regime['trend_intensity_strong']),
+            regime_min_rr_ranging=float(regime['min_rr_ranging']),
+            regime_min_rr_trending=float(regime['min_rr_trending']),
+            regime_volume_baseline_ratio=float(regime['volume_baseline_ratio']),
+            regime_squeeze_threshold=float(regime['squeeze_threshold']),
+            regime_squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
             threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
-            regime_anchor_drift_threshold=float(full_config['observer']['regime_anchor_drift_threshold']),
-            max_tool_iterations=int(shared['max_tool_iterations'])
+            regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
+            max_tool_iterations=int(shared.get('max_tool_iterations', 5))
         )
 
 class CriticAgent(BaseAgent):
@@ -106,14 +110,15 @@ class CriticAgent(BaseAgent):
         retry_multiplier: float,
         retry_min: int,
         retry_max: int,
-        ai_client: genai.Client
+        ai_client: genai.Client,
+        model: Optional[str] = None
     ):
         """
         Initializes the Critic with a pre-assembled type-safe configuration.
         """
         self.config = config
         super().__init__(
-            model=self.config.model,
+            model=model if model else self.config.model,
             temperature=self.config.model_temperature,
             ai_client=ai_client,
             max_tool_iterations=self.config.max_tool_iterations,
@@ -212,21 +217,21 @@ class CriticAgent(BaseAgent):
     # We mirror these from StrategistAgent so the Critic can also audit the math
     
     def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> Dict[str, Any]:
-        from src.agent.tools.math_tools import MathTools
+        from src.utils.math_utils import MathTools
         return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
 
     def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: Optional[float] = None) -> Dict[str, Any]:
-        from src.agent.tools.math_tools import MathTools
+        from src.utils.math_utils import MathTools
         return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
 
     def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: Optional[float] = None, vah: Optional[float] = None, val: Optional[float] = None) -> Dict[str, Any]:
-        from src.agent.tools.math_tools import MathTools
+        from src.utils.math_utils import MathTools
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, macro_interval_minutes: int) -> Dict[str, Any]:
         """[DELEGATE] Projects holding time using the config-driven velocity floor."""
-        from src.agent.tools.math_tools import MathTools
+        from src.utils.math_utils import MathTools
         return MathTools.project_holding_time(
             entry, take_profit, atr, trend_intensity, 
             macro_interval_minutes, self.config.min_trade_velocity

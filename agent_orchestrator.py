@@ -4,6 +4,7 @@ import sys
 import time
 import yaml
 import logging
+import signal
 import argparse
 import subprocess
 import schedule
@@ -15,11 +16,11 @@ from dotenv import load_dotenv
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
-from src.utils.agent_utils import load_config, resolve_data_root, add_data_root_argument, load_global_config
+from src.utils.pipeline_utils import load_config, resolve_data_root, add_data_root_argument, load_global_config
 from src.analyzer.opportunity_scanner import OpportunityScanner
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from src.infrastructure.notifications.email_notifier import StrategyNotifier
-from src.utils.agent_utils import load_config, archive_strategy_result
+from src.utils.pipeline_utils import load_config, archive_strategy_result
 
 # Setup paths
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -104,10 +105,10 @@ class ConfigValidator:
     def validate_interval(self, interval_hours: float) -> bool:
         """Ensures the requested interval is greater than the micro analysis timeframe."""
         try:
-            from src.utils.agent_utils import load_config
+            from src.utils.pipeline_utils import load_config
             config = load_config()
             
-            micro_interval_str = config['observer']['micro_analysis_context']['time_interval']
+            micro_interval_str = config['sampling_parameters']['micro_context']['time_interval']
             micro_hours = self._parse_time_to_hours(micro_interval_str)
             
             if interval_hours <= micro_hours:
@@ -162,6 +163,12 @@ class AgentOrchestrator:
         try:
             self.config = load_config()
             load_dotenv()
+            
+            # Ensure forensic directories are initialized
+            os.makedirs(os.path.join(self.data_root, "observations"), exist_ok=True)
+            os.makedirs(os.path.join(self.data_root, "klines"), exist_ok=True)
+            os.makedirs(os.path.join(self.data_root, "reviewers"), exist_ok=True)
+            os.makedirs(os.path.join(self.data_root, "html"), exist_ok=True)
             self.api_key = os.environ.get("GEMINI_API_KEY")
             if not self.api_key:
                 raise ValueError("GEMINI_API_KEY not found in environment.")
@@ -172,11 +179,11 @@ class AgentOrchestrator:
                 data_root=self.data_root
             )
             self.notifier = StrategyNotifier(data_root=self.data_root)
-            self.logger.info("Production BinaryStar Orchestrator & Notifier initialized.")
-            
-            # Failure tracking for circuit breaker
+            # Failure tracking for circuit breaker (Decoupled from global_config)
+            global_cfg = load_global_config()
             self.consecutive_failures = 0
-            self.max_failures_threshold = 3
+            self.max_failures_threshold = int(global_cfg['network']['gemini']['circuit_breaker_threshold'])
+            self.logger.info(f"Production BinaryStar Orchestrator initialized. Circuit Breaker Threshold: {self.max_failures_threshold}")
             
             # Use shared scanner (Shared observers mapping topography)
             self.scanner = OpportunityScanner(
@@ -185,6 +192,9 @@ class AgentOrchestrator:
                 logger=self.logger, 
                 observer=self.orchestrator.observer
             )
+            
+            # Setup Termination Signals for Hygiene
+            self._setup_signals()
         except Exception as e:
             self.logger.error(f"Failed to initialize Agent Components: {e}", exc_info=True)
             sys.exit(1)
@@ -253,6 +263,28 @@ class AgentOrchestrator:
             except Exception as cache_err:
                 self.logger.warning(f"Cycle Hygiene: Cache cleanup failed (non-critical): {cache_err}")
 
+    def _setup_signals(self):
+        """Registers handlers for termination signals to ensure cleanup."""
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, self._handle_termination)
+
+    def _handle_termination(self, signum, frame):
+        """Ensures context caches are purged when the orchestrator is killed."""
+        signame = signal.Signals(signum).name
+        self.logger.warning(f"Termination Signal ({signame}) received. Initiating Emergency Hygiene...")
+        self._cleanup()
+        self.logger.info("Emergency Hygiene complete. Exiting.")
+        sys.exit(0)
+
+    def _cleanup(self):
+        """Centralized cleanup logic for the orchestrator."""
+        try:
+            if hasattr(self, 'orchestrator') and hasattr(self.orchestrator, 'cache_manager'):
+                self.orchestrator.cache_manager.delete_market_cache()
+                self.logger.info("Cycle Hygiene: Market context cache purged successfully.")
+        except Exception as e:
+            self.logger.warning(f"Cycle Hygiene: Cache cleanup failed: {e}")
+
     def start(self):
         """Starts the service cycle."""
         self.logger.info(f"=== Starting Agent Orchestrator [{self.mode}] for {self.symbol} ===")
@@ -282,12 +314,15 @@ class AgentOrchestrator:
             self.logger.info("Orchestrator received shutdown signal.")
 
 def main():
+    # Production Logic: Centralize logging to ensure sub-agent forensics are captured in stdout
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    
     parser = argparse.ArgumentParser(description="SOLID Agent Orchestrator")
     parser.add_argument("--symbol", type=str, help="Symbol to oversee (e.g. BTCUSDT)")
     parser.add_argument("--pulse", type=float, required=True, help="Pipeline interval in minutes")
     parser.add_argument("--mode", type=str, choices=["fix", "scan", "dry_run", "once"], default="once", help="Execution mode (fix: run every pulse, scan: run only when market is interesting, dry_run: test run and exit, once: single production run and exit)")
     
-    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
     
     args = parser.parse_args()

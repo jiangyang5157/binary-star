@@ -1,7 +1,7 @@
 import pytest
 import os
 from unittest.mock import patch, mock_open
-from src.utils.agent_utils import load_config, read_prompt_template, apply_prompt_logic_filters
+from src.utils.pipeline_utils import load_config, read_prompt_template, apply_prompt_logic_filters
 
 def test_apply_prompt_logic_filters():
     """Verify the 'Sieve' algorithm for filtering prompt templates by PASS blocks."""

@@ -51,7 +51,8 @@ Output RAW JSON only. Do not include markdown.
     "is_veto": boolean,
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | FATAL",
     "skepticism_score": 0-100,
-    "adversarial_tone": "Forensic risk summary.",
-    "hidden_risk": "[TAG] reasoning + mitigation path.",
-    "math_check": "Tool Call Logs: [Verify RR: {rr}] [Verify SL: {sl}] (N/A if `NEUTRAL`)."
+    "forensic_audit": "Forensic risk summary.",
+    "invalidations": ["Tag - Error Reasoning"],
+    "suggested_mitigations": ["Specific repair path"],
+    "math_verify": "Tool Call Logs: [Verify RR: {rr}] [Verify SL: {sl}] (N/A if `NEUTRAL`)."
 }}

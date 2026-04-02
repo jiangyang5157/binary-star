@@ -31,7 +31,8 @@ class GeminiCacheManager:
         contents: List[Union[str, types.Part]],
         system_instruction: str, 
         model: str,
-        ttl_minutes: int
+        ttl_minutes: int,
+        tools: Optional[List[Any]] = None
     ) -> str:
         """
         Creates a new Context Cache as a 'Truth Bus' for a specific market snapshot.
@@ -43,6 +44,7 @@ class GeminiCacheManager:
             system_instruction: The shared instructions to bake into the cache.
             model: The base model (e.g., 'gemini-2.0-flash-001').
             ttl_minutes: Time-to-live in minutes.
+            tools: Optional tool definitions to bake into the cache.
             
         Returns:
             The unique resource name of the created cache.
@@ -53,13 +55,14 @@ class GeminiCacheManager:
         logger.info(f"GeminiCacheManager: Initializing Truth Bus cache '{display_name}' (TTL: {ttl_minutes}m)...")
         
         try:
-            # Create the cache with system instruction baked in
+            # Create the cache with system instruction and tools baked in
             cache = self.client.caches.create(
                 model=model,
                 config=types.CreateCachedContentConfig(
                     display_name=f"{symbol}_{display_name}",
                     system_instruction=system_instruction,
                     contents=contents,
+                    tools=tools, # Tools must be in cache if using cache
                     ttl=f"{ttl_minutes * 60}s",
                 ),
             )

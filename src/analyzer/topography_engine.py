@@ -6,18 +6,15 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List, Optional, Tuple, Union
 
 import pandas as pd
-from google import genai
-from google.genai import types
 
-from src.agent.base_agent import BaseAgent
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.agent_utils import read_prompt_template, safe_format
+from src.utils.pipeline_utils import safe_format
 from src.utils.datetime_utils import get_current_utc_time, to_iso_zulu, get_interval_seconds
 from src.utils.path_utils import resolve_project_root
-from src.utils.json_utils import convert_to_json_string, extract_json_from_text
+from src.utils.json_utils import convert_to_json_string, save_json
 
 # Initialize project-standard logger
 from src.utils.logger_utils import setup_logger
@@ -32,15 +29,11 @@ class TimeframeConfig:
 @dataclass(frozen=True)
 class ObserverConfig:
     """Type-safe configuration for the ObserverAgent."""
-    role_definition_prompt: str
-    model: str
-    model_temperature: float
     macro_context: TimeframeConfig
     micro_context: TimeframeConfig
     vp_value_area_width: float
     vp_price_bucket_count: int
     order_flow_lookback_hours: float
-    regime_trend_threshold: float
     atr_period: int
     bb_period: int
     bb_std_dev: float
@@ -61,6 +54,7 @@ class ObserverConfig:
     liquidation_cluster_fallback_percentage: float
     funding_rate_lookback_hours: float
     volatility_intensity_lookback: int
+    regime_trend_threshold: float
     regime_volatility_baseline_ratio: float
     regime_volatility_expansion_ratio: float
     regime_volatility_extreme_ratio: float
@@ -84,15 +78,15 @@ class ObserverConfig:
     def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
         """Factory method to create config from a nested dictionary."""
         shared = cfg.get('agent_model_shared_config', {})
-        obs = cfg['observer']
-        macro = obs['macro_analysis_context']
-        micro = obs['micro_analysis_context']
+        sampling = cfg['sampling_parameters']
+        topography = cfg['topography_parameters']
+        regime = cfg['regime_parameters']
+        
+        macro = sampling['macro_context']
+        micro = sampling['micro_context']
         
         return cls(
-            max_tool_iterations=int(shared['max_tool_iterations']),
-            role_definition_prompt=str(obs['role_definition_prompt']),
-            model=str(obs['model']),
-            model_temperature=float(obs['model_temperature']),
+            max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 
                 historical_lookback_candles=int(macro['historical_lookback_candles'])
@@ -101,47 +95,50 @@ class ObserverConfig:
                 time_interval=str(micro['time_interval']), 
                 historical_lookback_candles=int(micro['historical_lookback_candles'])
             ),
-            vp_value_area_width=float(obs['volume_profile_value_area_width']),
-            vp_price_bucket_count=int(obs['volume_profile_price_bucket_count']),
-            order_flow_lookback_hours=float(obs['order_flow_lookback_hours']),
-            regime_trend_threshold=float(obs['regime_trend_intensity_threshold']),
-            atr_period=int(obs['average_true_range_period']),
-            bb_period=int(obs['bollinger_bands_period']),
-            bb_std_dev=float(obs['bollinger_bands_std_dev']),
-            kc_period=int(obs['keltner_channels_period']),
-            kc_multiplier=float(obs['keltner_channels_multiplier']),
-            vol_ma_period=int(obs['volume_moving_average_period']),
-            max_liquidation_events_to_fetch=int(obs['max_liquidation_events_to_fetch']),
-            max_liquidation_events_for_context=int(obs['max_liquidation_events_for_context']),
-            max_high_volume_node_count=int(obs['max_high_volume_node_count']),
-            max_low_volume_node_count=int(obs['max_low_volume_node_count']),
-            high_volume_node_detection_threshold=float(obs['high_volume_node_detection_threshold']),
-            low_volume_node_detection_threshold=float(obs['low_volume_node_detection_threshold']),
-            min_node_gap_price=int(obs['min_price_gap_between_nodes']),
-            top_structural_node_count=int(obs['top_structural_node_count']),
-            trend_intensity_duration_hours=float(obs['trend_intensity_duration_hours']),
-            wick_skewness_period=int(obs['wick_skewness_period']),
-            liquidation_cluster_atr_multiplier=float(obs['liquidation_cluster_atr_multiplier']),
-            liquidation_cluster_fallback_percentage=float(obs['liquidation_cluster_fallback_percentage']),
-            funding_rate_lookback_hours=float(obs['funding_rate_lookback_hours']),
-            volatility_intensity_lookback=int(obs['volatility_intensity_lookback']),
-            regime_volatility_baseline_ratio=float(obs['regime_volatility_baseline_ratio']),
-            regime_volatility_expansion_ratio=float(obs['regime_volatility_expansion_ratio']),
-            regime_volatility_extreme_ratio=float(obs['regime_volatility_extreme_ratio']),
-            regime_volume_breakout_threshold=float(obs['regime_volume_breakout_threshold']),
-            regime_long_short_imbalance_ratio=float(obs['regime_long_short_imbalance_ratio']),
-            regime_poc_gravity_atr_distance=float(obs['regime_poc_gravity_atr_distance']),
-            regime_vacuum_risk_score=float(obs['regime_vacuum_risk_score']),
-            regime_wick_skewness_exhaustion=float(obs['regime_wick_skewness_exhaustion']),
-            regime_trend_intensity_strong=float(obs['regime_trend_intensity_strong']),
-            regime_min_rr_ranging=float(obs['regime_min_rr_ranging']),
-            regime_min_rr_trending=float(obs['regime_min_rr_trending']),
-            regime_volume_baseline_ratio=float(obs['regime_volume_baseline_ratio']),
-            regime_squeeze_threshold=float(obs['regime_squeeze_threshold']),
-            regime_balanced_atr_multiplier=float(obs['regime_balanced_atr_multiplier']),
-            regime_cvd_slope_threshold=float(obs['regime_cvd_slope_threshold']),
-            max_liquidation_clusters=int(obs['max_liquidation_clusters']),
-            wick_skew_fallback=float(obs['wick_skew_fallback'])
+            funding_rate_lookback_hours=float(sampling['funding_rate_lookback_hours']),
+            
+            vp_value_area_width=float(topography['volume_profile_value_area_width']),
+            vp_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
+            vol_ma_period=int(topography['volume_moving_average_period']),
+            max_high_volume_node_count=int(topography['max_high_volume_node_count']),
+            max_low_volume_node_count=int(topography['max_low_volume_node_count']),
+            high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
+            low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
+            min_node_gap_price=int(topography['min_price_gap_between_nodes']),
+            top_structural_node_count=int(topography['top_structural_node_count']),
+            atr_period=int(topography['average_true_range_period']),
+            bb_period=int(topography['bollinger_bands_period']),
+            bb_std_dev=float(topography['bollinger_bands_std_dev']),
+            kc_period=int(topography['keltner_channels_period']),
+            kc_multiplier=float(topography['keltner_channels_multiplier']),
+            wick_skewness_period=int(topography['wick_skewness_period']),
+            wick_skew_fallback=float(topography['wick_skew_fallback']),
+            max_liquidation_clusters=int(topography['max_liquidation_clusters']),
+            max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
+            max_liquidation_events_for_context=int(topography['max_liquidation_events_for_context']),
+            liquidation_cluster_atr_multiplier=float(topography['liquidation_cluster_atr_multiplier']),
+            liquidation_cluster_fallback_percentage=float(topography['liquidation_cluster_fallback_percentage']),
+            
+            # Regime Parameters (Strategic Knobs)
+            order_flow_lookback_hours=float(regime['order_flow_lookback_hours']),
+            trend_intensity_duration_hours=float(regime['trend_intensity_duration_hours']),
+            volatility_intensity_lookback=int(regime['volatility_intensity_lookback']),
+            regime_trend_threshold=float(regime['trend_intensity_threshold']),
+            regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
+            regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
+            regime_volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
+            regime_volume_breakout_threshold=float(regime['volume_breakout_threshold']),
+            regime_long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
+            regime_poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
+            regime_vacuum_risk_score=float(regime['vacuum_risk_score']),
+            regime_wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
+            regime_trend_intensity_strong=float(regime['trend_intensity_strong']),
+            regime_min_rr_ranging=float(regime['min_rr_ranging']),
+            regime_min_rr_trending=float(regime['min_rr_trending']),
+            regime_volume_baseline_ratio=float(regime['volume_baseline_ratio']),
+            regime_squeeze_threshold=float(regime['squeeze_threshold']),
+            regime_balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
+            regime_cvd_slope_threshold=float(regime['cvd_slope_threshold'])
         )
 
     @property
@@ -381,108 +378,21 @@ class MarketMetricsRefiner:
         # 2. Return top clusters by volume
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
         return {k: v for k, v in sorted_clusters[:self.config.max_liquidation_clusters]}
-
-
-class SemanticSynthesizer(BaseAgent):
-    """
-    Observer's Reasoning Core: Synthesizes multi-source raw metrics into 
-    a forensic market map (The Single Source of Truth).
-    """
-    def __init__(
-        self, 
-        config: ObserverConfig, 
-        ai_client: genai.Client, 
-        api_timeout: int, 
-        retry_count: int,
-        retry_multiplier: float,
-        retry_min: int,
-        retry_max: int
-    ):
-        """
-        Initializes the synthesizer with specialized observer config.
-        """
-        super().__init__(
-            model=config.model,
-            temperature=config.model_temperature,
-            ai_client=ai_client,
-            max_tool_iterations=config.max_tool_iterations,
-            api_timeout=api_timeout,
-            retry_count=retry_count,
-            retry_multiplier=retry_multiplier,
-            retry_min=retry_min,
-            retry_max=retry_max
-        )
-
-    def synthesize(self, metrics: ProcessedMarketMetrics, snapshots: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
-        """
-        Translates raw metrics and visuals into a semantic market map.
-        
-        Args:
-            metrics: Processed quantitative telemetry (price dynamics, volume profile, etc).
-            snapshots: Dictionary mapping 'macro_snapshot' and 'micro_snapshot' to file paths.
-            at_time: The timestamp of the observation.
-            
-        Returns:
-            A structured JSON-like dictionary containing the qualitative analysis.
-        """
-        try:
-            # Prepare metadata for prompt context
-            specs = {
-                "macro": {"interval": self.config.macro_context.time_interval, "limit": self.config.macro_context.historical_lookback_candles},
-                "micro": {"interval": self.config.micro_context.time_interval, "limit": self.config.micro_context.historical_lookback_candles}
-            }
-            
-            context = {
-                "timestamp": to_iso_zulu(at_time),
-                "macro_timeframe": json.dumps(specs["macro"]),
-                "micro_timeframe": json.dumps(specs["micro"]),
-                "metrics": json.dumps(metrics.__dict__)
-            }
-            
-            prompt_text = self._prepare_prompt(self.prompt_path, **context)
-            payload = self._build_payload(snapshots, prompt_text)
-            
-            logger.info("Observer: Synthesizing qualitative market report...")
-            # Execute multimodal AI cycle via BaseAgent
-            return self._execute_ai_cycle(payload, agent_name="Observer Synthesis")
-            
-        except Exception as e:
-            logger.error(f"Synthesis failed: {e}", exc_info=True)
-            return {"error": "Semantic mapping failed.", "details": str(e)}
-
-    def _build_payload(self, snapshots: Dict[str, str], text: str) -> List[Any]:
-        """
-        Constructs a multimodal payload for the Gemini model.
-        
-        Pairs visual assets (as Part bytes) with the primary analysis instructions.
-        """
-        payload = []
-        for label, path in [("Current Macro Snapshot", snapshots.get('macro_snapshot')), ("Current Micro Snapshot", snapshots.get('micro_snapshot'))]:
-            if path and os.path.exists(path):
-                payload.append(f"\n{label}")
-                with open(path, 'rb') as f:
-                    payload.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
-            else:
-                payload.append(f"\n[SYSTEM NOTICE: Forensic visual asset '{label}' missing from storage.]")
-        
-        payload.append(text)
-        return payload
-
 class ObserverAgent:
     """
-    Elite Market Topographer & Observer Facade.
+    Elite Market Topographer & Observer.
     
-    Coordinates high-fidelity telemetry collection and AI processing to provide 
-    a 'Single Source of Truth' for downstream strategy agents.
+    Coordinates high-fidelity telemetry collection without AI dependency.
+    Provides a 'Single Source of Truth' for downstream strategy agents.
     """
+
     def __init__(
         self, 
         config: ObserverConfig, 
         symbol: str, 
         data_root: str,
         binance_client: BinanceFuturesClient,
-        chart_generator: ChartGenerator,
-        ai_client: genai.Client
+        chart_generator: ChartGenerator
     ):
         """
         Initializes the Observer as a high-fidelity topographical engine.
@@ -497,20 +407,10 @@ class ObserverAgent:
         self._vp_analyzer = self._init_vp()
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
-        self._ai_client = ai_client
         
         # Internal Sub-components
         self.loader = MarketDataLoader(self._binance, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._vp_analyzer, self._regime_analyzer)
-        self.synthesizer = SemanticSynthesizer(
-            config=self.config, 
-            ai_client=self._ai_client,
-            api_timeout=60, # Standard production timeouts
-            retry_count=3,
-            retry_multiplier=2.0,
-            retry_min=2,
-            retry_max=10
-        )
 
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None) -> Dict[str, Any]:
         """Executes a full topographical observation cycle."""
@@ -534,10 +434,36 @@ class ObserverAgent:
         # 3. Visual Assets
         snapshots = self._generate_snapshots(raw, metrics, data_root or self.data_root, at_time)
             
-        # 4. AI Synthesis
-        semantic_report = self.synthesizer.synthesize(metrics, snapshots, at_time)
+        # 4. Packaging & Persistence
+        observation = self._package_observation(metrics, snapshots, at_time)
+        self._persist_observation(observation, data_root or self.data_root)
+        
+        return observation
 
-        return self._package_observation(semantic_report, metrics, snapshots, at_time)
+    def _persist_observation(self, observation: Dict[str, Any], data_root: str):
+        """Saves the observation JSON to the forensics shelf."""
+        try:
+            obs_dir = os.path.join(data_root, "observations")
+            os.makedirs(obs_dir, exist_ok=True)
+            
+            # Format: SYMBOL_observation_TIMESTAMP (match reviewer/strategy naming convention)
+            from src.utils.datetime_utils import parse_iso_to_utc
+            
+            # Extract YYYYMMDD_HHMMSS from timestamp string
+            import re
+            m = re.search(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})", observation['timestamp'])
+            if m:
+                ts_str = f"{m.group(1)}{m.group(2)}{m.group(3)}_{m.group(4)}{m.group(5)}{m.group(6)}"
+            else:
+                ts_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+            filename = f"{self.symbol}_observation_{ts_str}.json"
+            path = os.path.join(obs_dir, filename)
+            
+            save_json(observation, path)
+            logger.info(f"Observer: Observation persisted to {path}")
+        except Exception as e:
+            logger.error(f"Observer: Failed to persist observation: {e}")
 
     def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics, data_root: str, at_time: datetime) -> Dict[str, str]:
         img_dir = os.path.join(data_root, "klines")
@@ -552,30 +478,29 @@ class ObserverAgent:
             "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, ctx, raw.liquidations, time_interval=self.config.micro_context.time_interval)
         }
 
-    def _package_observation(self, report: Dict[str, Any], metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
+    def _package_observation(self, metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
         return {
             "symbol": self.symbol,
             "timestamp": to_iso_zulu(at_time),
-            "observation_specs": {
-                "macro": {
+            "analytical_parameters": {
+                "macro_timeframe": {
                     "interval": self.config.macro_context.time_interval,
                     "interval_minutes": int(get_interval_seconds(self.config.macro_context.time_interval) / 60),
                     "limit": self.config.macro_context.historical_lookback_candles
                 },
-                "micro": {
+                "micro_timeframe": {
                     "interval": self.config.micro_context.time_interval,
                     "interval_minutes": int(get_interval_seconds(self.config.micro_context.time_interval) / 60),
                     "limit": self.config.micro_context.historical_lookback_candles
                 },
-                "logic": {
+                "lookback_windows": {
                     "order_flow_lookback_hours": self.config.order_flow_lookback_hours,
                     "trend_intensity_duration_hours": self.config.trend_intensity_duration_hours,
                     "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.historical_lookback_candles) / 3600, 1)
                 }
             },
             "visual_assets": charts,
-            "quantitative_metrics": metrics.__dict__,
-            "semantic_analysis": report
+            "quantitative_metrics": metrics.__dict__
         }
 
     def _init_vp(self) -> VolumeProfileAnalyzer:

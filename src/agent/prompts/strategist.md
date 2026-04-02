@@ -78,21 +78,21 @@ To eliminate math hallucinations, you MUST use the following tools for ALL tacti
 Output RAW JSON only. Do not include markdown markers.
 
 **MANDATES:**
-1. If `opinion` is `NEUTRAL`, you MUST set the entire `limit_order` object strictly to `null`.
+1. If `opinion` is `NEUTRAL`, you MUST set the entire `tactical_parameters` object strictly to `null`.
 2. **Mathematical Scratchpad**: Explicitly state the output of the tool calls you performed.
 
 {{
     "opinion": "`BULLISH` / `BEARISH` / `NEUTRAL`",
-    "confidence": 0-100,
+    "logic_confidence": 0-100,
     "is_hardened": boolean,
     "accepted_veto_level": "PASS" | "WEAK" | "CONSTRUCTIVE" | "FATAL",
-    "limit_order": {{ 
+    "tactical_parameters": {{ 
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
         "rr_ratio": decimal,
         "holding_time_hours": decimal
     }},
-    "reasoning": "Tool Call Logs: [RR: {rr}] [ATR Buffers: {atr}] | Pivot Vectoring: [Entry] | Logic Flow...",
+    "thesis": "Tool Call Logs: [RR: {rr}] [ATR Buffers: {atr}] | Pivot Vectoring: [Entry] | Logic Flow...",
     "critic_impact": "Summary of hardening (Must be null in PHASE A)"
 }}

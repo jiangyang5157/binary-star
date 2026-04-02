@@ -1,8 +1,10 @@
 import os
 import logging
 from typing import Dict, Any, List, Optional
-from src.agent.observer_agent import ObserverAgent
-from src.utils.agent_utils import load_config
+from src.analyzer.topography_engine import ObserverAgent
+from src.infrastructure.binance.client import BinanceFuturesClient
+from src.analyzer.chart_generator import ChartGenerator
+from src.utils.pipeline_utils import load_config
 from src.utils.logger_utils import setup_logger
 
 class OpportunityScanner:
@@ -21,10 +23,7 @@ class OpportunityScanner:
         if observer:
             self.observer = observer
         else:
-            from dotenv import load_dotenv
-            load_dotenv()
-            api_key = os.environ.get("GEMINI_API_KEY")
-            self.observer = ObserverAgent(self.config, symbol, api_key, self.data_root)
+            self.observer = ObserverAgent(self.config, symbol, self.data_root, BinanceFuturesClient(), ChartGenerator(output_dir=os.path.join(self.data_root, "klines")))
 
     def scan(self) -> Dict[str, Any]:
         """
@@ -47,7 +46,7 @@ class OpportunityScanner:
         regime = metrics['market_regime']
         vol_regime = regime['volatility_regime']
         vol_breakout = float(regime['volume_breakout_ratio'])
-        vol_threshold = self.config['observer']['regime_volume_breakout_threshold']
+        vol_threshold = self.config['regime_parameters']['volume_breakout_threshold']
         
         self.logger.info("-" * 40)
         self.logger.info(f"SIGNAL AUDIT | {self.symbol}")
@@ -72,7 +71,7 @@ class OpportunityScanner:
         atr = metrics['price_dynamics']['atr_macro']
         
         struct_met = False
-        struct_threshold = self.config['observer']['regime_structural_proximity_threshold']
+        struct_threshold = self.config['regime_parameters']['structural_proximity_threshold']
         for anchor in anchors:
             dist_atr = abs(current_price - anchor['price']) / (atr + 1e-9)
             if dist_atr < struct_threshold:

@@ -12,7 +12,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.utils.agent_utils import load_global_config
+from src.utils.pipeline_utils import load_global_config
 from src.utils.json_utils import load_json
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
@@ -537,7 +537,7 @@ def main():
     parser.add_argument("--email", action="store_true", help="Dispatch email notification after generation.")
     parser.add_argument("--recursive", "-r", action="store_true", help="Perform recursive scan across archived directories.")
     
-    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
     
     args = parser.parse_args()

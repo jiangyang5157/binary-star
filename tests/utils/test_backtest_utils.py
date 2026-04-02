@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pytest
 from datetime import datetime, timezone, timedelta
-from src.utils.backtest_utils import MarketRegimeAnalyzer, SpacedSampler, RegimeSampler
+from src.analyzer.historical_sampler import MarketRegimeAnalyzer, SpacedSampler, RegimeSampler
 
 @pytest.fixture
 def mock_klines():

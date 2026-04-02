@@ -13,6 +13,7 @@ network:
     retry_count: 2
   gemini:
     api_timeout_seconds: 120
+    circuit_breaker_threshold: 3
     retry_count: 2
     retry_strategy:
       multiplier: 1
@@ -25,9 +26,3 @@ backtest:
   # 8  = London open
   # 13 = New York open (recommended for max liquidity)
   session_hour_utc: 13
-
-# Binary Star Adversarial Reasoning Core Settings
-strategy_intent: "Scouting the Alpha in Topographical Friction."
-
-agent_model_shared_config:
-  max_tool_iterations: 10

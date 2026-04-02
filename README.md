@@ -212,14 +212,14 @@ graph TD
 *   **实时生产执行**: 捕获当前时刻的物理视角并生成决策。
     `python strategist.py prod`
 *   **分层回测 (Regime-based Sampling)**: 在指定时间内按市场环境权重采样（过去24天到今天）。
-    `python backtest.py backtest --start T-24d --end now --sampling 12 --mode regime`
-    `python backtest.py backtest --start T-25d --end T-20d --sampling 5 --mode regime`
+    `python agent_backtest.py backtest --start T-24d --end now --sampling 12 --mode regime`
+    `python agent_backtest.py backtest --start T-25d --end T-20d --sampling 5 --mode regime`
 *   **等距回测 (Timeline Spaced)**: 在指定时间内按等距时间点均匀分布采样（过去24天到7天前）。
-    `python backtest.py backtest --start T-24d --end T-7d --sampling 12 --mode spaced`
+    `python agent_backtest.py backtest --start T-24d --end T-7d --sampling 12 --mode spaced`
 
 *   **Sample**:
 ```python
-python backtest.py backtest --start T-14d --end T-7d --sampling 7 --mode regime
+python agent_backtest.py backtest --start T-14d --end T-7d --sampling 7 --mode regime
 python reviewer.py backtest
 python coach.py backtest
 # tips: move dashboard from html/ to archived/ and renames archived/ to archived{n}

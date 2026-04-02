@@ -6,13 +6,13 @@ from google import genai
 from google.genai import types
 
 from src.infrastructure.gemini.cache_manager import GeminiCacheManager
-from src.agent.observer_agent import ObserverAgent, ObserverConfig
+from src.analyzer.topography_engine import ObserverAgent, ObserverConfig
 from src.agent.strategist_agent import StrategistAgent, StrategistConfig
 from src.agent.critic_agent import CriticAgent, CriticConfig
-from src.agent.tools.math_tools import MathTools
+from src.utils.math_utils import MathTools
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.agent_utils import load_config, get_file_hash, read_prompt_template
+from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
@@ -51,28 +51,23 @@ class BinaryStarOrchestrator:
         
         # 3. Binary Star Session Management
         self.bs_config = self.config['binary_star']
-        self.max_rounds = int(self.bs_config['agent_model_max_debate_rounds'])
-        self.stop_threshold = int(self.bs_config['agent_model_debate_stop_threshold'])
-        self.cache_expiration = int(self.bs_config['agent_model_cache_expiration_minutes'])
-        self.shared_model = self.bs_config['agent_model']
+        self.max_rounds = int(self.bs_config['max_rounds'])
+        self.stop_threshold = int(self.bs_config['stop_threshold'])
+        self.cache_expiration = int(self.bs_config['cache_expiration_minutes'])
+        self.shared_model = self.bs_config['model']
         
         # 4. Prompt & Instruction Assembly
-        instruction_path = self.bs_config.get('agent_model_system_instruction')
+        instruction_path = self.bs_config.get('system_instruction')
         self.shared_instruction = read_prompt_template(instruction_path)
         
         # 5. Type-Safe Configuration Slicing
         # Orchestrator handles the 'config mapping' responsibility for production-grade decoupling
-        shared_meta = self.global_config['agent_model_shared_config']
-        max_tool_iterations = int(shared_meta['max_tool_iterations'])
-        strategy_intent = str(self.global_config['strategy_intent'])
+        shared_meta = self.config.get('agent_model_shared_config', {})
+        max_tool_iterations = int(shared_meta.get('max_tool_iterations', 5))
+        strategy_intent = str(self.config.get('strategy_intent', ""))
         
         self.obs_config = ObserverConfig.from_dict(self.config)
-        self.strat_config = StrategistConfig.from_dict(
-            strategist_cfg=self.config['strategist'],
-            observer_cfg=self.config['observer'],
-            strategy_intent=strategy_intent,
-            max_tool_iterations=max_tool_iterations
-        )
+        self.strat_config = StrategistConfig.from_dict(self.config)
         self.critic_config = CriticConfig.from_dict(self.config)
         
         # 6. Specialized Visualization Assets Manager
@@ -87,8 +82,7 @@ class BinaryStarOrchestrator:
             symbol=self.global_config['system']['default_symbol'], 
             data_root=self.data_root,
             binance_client=self.binance_client,
-            chart_generator=self.chart_gen,
-            ai_client=self.client
+            chart_generator=self.chart_gen
         )
         
         self.strategist = StrategistAgent(
@@ -98,7 +92,8 @@ class BinaryStarOrchestrator:
             retry_multiplier=self.retry_multiplier,
             retry_min=self.retry_min,
             retry_max=self.retry_max,
-            ai_client=self.client
+            ai_client=self.client,
+            model=self.shared_model
         )
         
         self.critic = CriticAgent(
@@ -108,7 +103,8 @@ class BinaryStarOrchestrator:
             retry_multiplier=self.retry_multiplier,
             retry_min=self.retry_min,
             retry_max=self.retry_max,
-            ai_client=self.client
+            ai_client=self.client,
+            model=self.shared_model
         )
         
         # Logic Components
@@ -150,35 +146,44 @@ class BinaryStarOrchestrator:
             
             # Phase 0: Initialize Forensic Truth Bus (Shared Context Cache)
             logger.info(f"BinaryStar: [INIT] Requesting Truth Bus cache for {symbol} ({self.macro_interval})...")
-            cache_resource_name = self.cache_manager.create_market_cache(
-                symbol=symbol,
-                interval=self.macro_interval,
-                contents=contents,
-                system_instruction=self.shared_instruction,
-                ttl_minutes=self.cache_expiration,
-                model=self.shared_model
-            )
-
-            # Phase 1 & 2: The Adversarial Debate Loop
-            # The Strategist proposes, the Critic audits, and we loop if logical risk is high.
+            # TEMPORARY DISABLE CACHE TO RESTORE RELIABILITY 
+            # We revisit the 400 INVALID_ARGUMENT (Cache vs Tools) in a separate engineering task.
+            cache_resource_name = None 
+            
+            # Phase 1 & 2: The Adversarial Debate Loop (With Trajectory Memory)
             current_round = 0
             last_critique = None
             last_draft = None
-            
+            debate_history = []
+            convergence_path = []
             while current_round <= self.max_rounds:
                 # Drafting / Re-Drafting
                 logger.info(f"BinaryStar: [PHASE 1] Strategist generating thesis (Round {current_round})...")
                 last_draft = self.strategist.draft(
-                    None, symbol, cache_id=cache_resource_name, tools=tools, 
+                    observation, symbol, cache_id=cache_resource_name, tools=tools, 
                     previous_critique=last_critique
                 )
                 
                 # Adversarial Auditing
                 logger.info(f"BinaryStar: [PHASE 2] Critic performing adversarial audit (Round {current_round})...")
-                last_critique = self.critic.audit(None, last_draft, symbol, cache_id=cache_resource_name, tools=tools)
+                last_critique = self.critic.audit(observation, last_draft, symbol, cache_id=cache_resource_name, tools=tools)
                 
                 # Check for Early Stopping (The "Enough" Condition)
-                skepticism_score = int(last_critique.get('skepticism_score', 100))
+                try:
+                    raw_score = last_critique.get('skepticism_score', 100)
+                    skepticism_score = int(float(str(raw_score))) # Handle "40", 40, "40.0"
+                except (ValueError, TypeError):
+                    logger.warning(f"BinaryStar: Invalid skepticism_score format ({raw_score}). Falling back to 100.")
+                    skepticism_score = 100
+
+                # Track Audit Trail
+                debate_history.append({
+                    "round": current_round,
+                    "draft": last_draft,
+                    "critique": last_critique
+                })
+                convergence_path.append(skepticism_score)
+
                 if skepticism_score < self.stop_threshold:
                     logger.info(f"BinaryStar: Skepticism Score ({skepticism_score}) < Threshold ({self.stop_threshold}). Loop terminated early.")
                     break
@@ -188,46 +193,57 @@ class BinaryStarOrchestrator:
             # Phase 3: The Synthesis (Final Hardening)
             # The Strategist synthesizes the final consensus decision based on the LAST博弈 round.
             logger.info("BinaryStar: [PHASE 3] Strategist synthesizing final hardened decision...")
-            final_decision = self.strategist.synthesize(last_draft, last_critique, cache_id=cache_resource_name, tools=tools)
+            final_decision = self.strategist.synthesize(last_draft, last_critique, cache_id=cache_resource_name, tools=tools, observation=observation)
             
             # Phase 4: Metadata Fingerprinting & Session Closure
             # Records the 'Immutable DNA' of the logic that generated this decision.
-            from src.utils.agent_utils import get_file_hash
+            from src.utils.pipeline_utils import get_file_hash
             from src.utils.path_utils import resolve_project_root
             project_root = resolve_project_root()
-            config_path = os.path.join(project_root, 'config', 'agent_config.yaml')
+            config_path = os.path.join(project_root, 'config', 'strategy_config.yaml')
             
             metadata = {
                 "version_control": {
-                    "observer_hash": get_file_hash(self.strategist.config.role_prompt_path.replace('strategist.md', 'observer.md')),
                     "strategist_hash": get_file_hash(self.strategist.config.role_prompt_path),
                     "critic_hash": get_file_hash(self.critic.config.role_prompt_path),
                     "config_hash": get_file_hash(config_path),
                     "logic_timestamp": timestamp
-                },
-                "cache_info": {
-                    "resource_name": cache_resource_name,
-                    "ttl": self.cache_expiration
                 }
             }
             
             logger.info(f"BinaryStar: [COMPLETE] Decision synthesized for {symbol}. Session Result packaged.")
             
+            # Package the session result with full audit metadata
             return {
-                "observation": observation,
-                "cache_id": cache_resource_name,
-                "draft": last_draft,
-                "critique": last_critique,
+                "symbol": symbol,
+                "timestamp": timestamp,
                 "final_decision": final_decision,
-                "metadata": metadata
+                "debate_history": debate_history,
+                "observation": observation,
+                "regime_snapshot": self.config.get('regime_parameters', {}),
+                "metadata": {
+                    "session_id": f"{symbol}_{timestamp}",
+                    "total_rounds": current_round + 1,
+                    "convergence_path": convergence_path,
+                    "version_control": {
+                        "strategist_hash": get_file_hash(self.strategist.config.role_prompt_path),
+                        "critic_hash": get_file_hash(self.critic.config.role_prompt_path),
+                        "config_hash": get_file_hash(config_path),
+                        "logic_timestamp": timestamp
+                    }
+                }
             }
             
         except Exception as e:
             logger.error(f"BinaryStar Flow failed: {e}", exc_info=True)
             raise
         finally:
-            # Note: Cache naturally expires via TTL
-            pass
+            # Dual-Insurance: Proactively purge the Truth Bus cache.
+            # Fallback: The TTL from config handles system-level crashes.
+            try:
+                self.cache_manager.delete_market_cache()
+            except Exception as e:
+                logger.warning(f"BinaryStar: Non-fatal failure during cache cleanup: {e}")
 
     def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[types.Part]:
         """Extracts image data from visual assets into Gemini Parts."""

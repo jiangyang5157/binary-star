@@ -12,13 +12,10 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from google import genai
-from google.genai import types
-
 from src.infrastructure.binance.client import BinanceFuturesClient
-from src.agent.reviewer_agent import ReviewerAgent, ReviewerConfig
-from src.agent.observer_agent import ObserverAgent
-from src.utils.agent_utils import load_config, add_data_root_argument, resolve_data_root, load_global_config
+from src.analyzer.forensic_auditor import ReviewerAgent, ReviewerConfig
+from src.analyzer.topography_engine import ObserverAgent
+from src.utils.pipeline_utils import load_config, add_data_root_argument, resolve_data_root, load_global_config
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
@@ -83,11 +80,14 @@ class OutcomeCalculator:
             "trade_execution_metrics": {}
         }
         
-        opinion = strategy.get('opinion', '').upper()
+        # Evolution Support: Read from the new structured result or legacy fallback
+        final_decision = strategy.get('final_decision', {})
+        opinion = (final_decision.get('opinion', '') or strategy.get('opinion', '')).upper()
         
         # Only process execution metrics for Directional orders
         if opinion in ('BULLISH', 'BEARISH'):
-            limit_order = strategy.get('limit_order') or {}
+            # Path Mapping: strategy.final_decision.tactical_parameters (New) or strategy.limit_order (Legacy)
+            limit_order = final_decision.get('tactical_parameters') or strategy.get('limit_order') or {}
             target_entry = float(limit_order.get('entry') or entry_price)
             tp = float(limit_order.get('take_profit') or 0)
             sl = float(limit_order.get('stop_loss') or 0)
@@ -174,44 +174,18 @@ class ReviewerOrchestrator:
     def __init__(self, data_root: str):
         self.data_root = data_root
         self.config = load_config()
-        load_dotenv()
-        self.api_key = os.environ.get("GEMINI_API_KEY")
-        if not self.api_key:
-            raise ValueError("GEMINI_API_KEY not found in environment.")
-            
-        # 1. Standardize AI Client (Shared Resource)
-        self.client = genai.Client(api_key=self.api_key)
-        
-        # 2. Extract Type-Safe Configurations
+        # 1. Standardize Configurations
         global_cfg = load_global_config()
-        shared_meta = global_cfg['agent_model_shared_config']
-        max_tool_iterations = int(shared_meta['max_tool_iterations'])
-        strategy_intent = str(global_cfg['strategy_intent'])
         
-        # Build Reviewer Config using the slice-and-dice factory
-        self.rev_config = ReviewerConfig.from_dict(
-            rev_cfg=self.config['reviewer'],
-            strat_cfg=self.config['strategist'],
-            crit_cfg=self.config['critic'],
-            obs_cfg=self.config['observer'],
-            shared_cfg=shared_meta,
-            strategy_intent=strategy_intent
-        )
+        # Build Reviewer Config (Now deterministic/light)
+        self.rev_config = ReviewerConfig.from_dict(self.config)
         
         # 3. Initialize Shared Infrastructure
         self.fetcher = BinanceFuturesClient()
         gemini_net = global_cfg['network']['gemini']
         
-        # 4. Assemble Forensic Agents
-        self.reviewer = ReviewerAgent(
-            config=self.rev_config,
-            api_timeout=int(gemini_net['api_timeout_seconds']),
-            retry_count=int(gemini_net['retry_count']),
-            retry_multiplier=float(gemini_net['retry_strategy']['multiplier']),
-            retry_min=int(gemini_net['retry_strategy']['min_seconds']),
-            retry_max=int(gemini_net['retry_strategy']['max_seconds']),
-            ai_client=self.client
-        )
+        # 4. Assemble Forensic Agent (Now deterministic)
+        self.reviewer = ReviewerAgent(config=self.rev_config)
         
         self.observers = {}
         self.notifier = StrategyNotifier(data_root=data_root)
@@ -362,7 +336,7 @@ class ReviewerOrchestrator:
             
             # Multimedia & Visual Forensic Context (T1 Data)
             if symbol not in self.observers:
-                from src.agent.observer_agent import ObserverConfig
+                from src.analyzer.topography_engine import ObserverConfig
                 from src.analyzer.chart_generator import ChartGenerator
                 
                 obs_config = ObserverConfig.from_dict(self.config)
@@ -375,8 +349,7 @@ class ReviewerOrchestrator:
                     symbol=symbol, 
                     data_root=self.data_root,
                     binance_client=self.fetcher,
-                    chart_generator=chart_gen,
-                    ai_client=self.client
+                    chart_generator=chart_gen
                 )
             current_obs = self.observers[symbol].observe(timestamp=dt_fetch_end)
             
@@ -441,11 +414,12 @@ class ReviewerOrchestrator:
                 )
             # -------------------------------------------------------------------------
 
-            # 4. Archive results (No standalone visual_context or top-level ATRs)
+            # 4. Archive results (Both calculated outcome and full T1 snapshot)
             audit_archive = {
                 "audit_timestamp": dt_fetch_end.isoformat(),
                 "strategy_session": session,
-                "market_outcome": outcome,
+                "t1_observation": current_obs,  # Full forensic snapshot at T1
+                "market_outcome": outcome,      # Calculated PnL/MAE/MFE metrics
                 "audit_findings": audit_result
             }
             save_json(audit_archive, output_path)
@@ -467,9 +441,9 @@ class ReviewerOrchestrator:
         holding_time = float(limit_order.get("holding_time_hours", 24))
 
         # 2. Extract context parameters directly from config
-        obs_cfg = self.config['observer']
-        micro_cfg = obs_cfg['micro_analysis_context']
-        macro_cfg = obs_cfg['macro_analysis_context']
+        sampling = self.config['sampling_parameters']
+        micro_cfg = sampling['micro_context']
+        macro_cfg = sampling['macro_context']
 
         # Get interval seconds from standard utility
         from src.utils.datetime_utils import get_interval_seconds
@@ -503,7 +477,7 @@ def main():
     parser.add_argument("--file", type=str, help="Specific strategy JSON to review")
     parser.add_argument("--force", action="store_true", help="Bypass temporal checks")
     
-    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
     
     args = parser.parse_args()
@@ -513,7 +487,9 @@ def main():
     if not data_root:
         logger.error("Error: --data_root or environment shortcut (e.g., prod, live) must be provided.")
         sys.exit(1)
-    
+    logger.info(f"Environment Initialized. Path: {data_root}")
+
+
     orchestrator = ReviewerOrchestrator(data_root=data_root)
     orchestrator.run_review(target_file=args.file, force=args.force)
 

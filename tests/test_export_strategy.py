@@ -37,7 +37,7 @@ def test_strategy_export_logic(tmp_path):
     # 2. Orchestrate Mocks
     # We redirect the file system operations to our tmp_path
     with patch("sys.argv", ["export_strategy.py", "test", "--file", str(reviewer_file)]):
-        with patch("src.utils.agent_utils.resolve_data_root", return_value="data/test"):
+        with patch("src.utils.pipeline_utils.resolve_data_root", return_value="data/test"):
             with patch("export_strategy.resolve_project_root", return_value=str(tmp_path)):
                 
                 # Pre-create directory to simulate standard project structure

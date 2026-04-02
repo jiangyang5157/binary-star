@@ -12,10 +12,10 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from strategist import StrategistOrchestrator
-from src.utils.agent_utils import load_global_config
+from src.utils.pipeline_utils import load_global_config
 from src.utils.logger_utils import setup_logger
 from src.infrastructure.binance.client import BinanceFuturesClient
-from src.utils.backtest_utils import MarketRegimeAnalyzer, SpacedSampler, RegimeSampler
+from src.analyzer.historical_sampler import MarketRegimeAnalyzer, SpacedSampler, RegimeSampler
 
 class BacktestOrchestrator:
     """
@@ -130,7 +130,7 @@ def main():
     parser.add_argument("--start", type=parse_date, required=True, help="Start date (YYYY-MM-DD or T-30d)")
     parser.add_argument("--end", type=parse_date, required=True, help="End date (YYYY-MM-DD or now)")
     
-    from src.utils.agent_utils import add_data_root_argument, resolve_data_root
+    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
     
     parser.add_argument("--sampling", type=int, required=True, help="Total number of samples to backtest")

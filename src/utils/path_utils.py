@@ -5,7 +5,7 @@ def resolve_project_root() -> str:
     Dynamically finds the project root by searching for common markers:
     - .git directory
     - src directory
-    - config/agent_config.yaml
+    - config/strategy_config.yaml
     
     Starts from the current file's directory and traverses upward.
     """
@@ -15,7 +15,7 @@ def resolve_project_root() -> str:
         markers = [
             os.path.join(search_path, ".git"),
             os.path.join(search_path, "src"),
-            os.path.join(search_path, "config", "agent_config.yaml")
+            os.path.join(search_path, "config", "strategy_config.yaml")
         ]
         
         if any(os.path.exists(marker) for marker in markers):

@@ -1,10 +1,12 @@
 import logging
+import sys
+import os
 from typing import Dict, Any, List, Optional, Union, Sequence
 from google import genai
 from google.genai import types
 from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from src.utils.agent_utils import read_prompt_template, safe_format
+from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
 
@@ -87,18 +89,36 @@ class BaseAgent:
                     retry=retry_if_exception_type(Exception)
                 )
                 
-                logger.info(f"{agent_name}: [TURN {iteration}] Requesting model synthesis...")
+                # Rule 1: Tools and System Instructions must not be in GenerateContentConfig if using CachedContent.
+                # Rule 2: Function calling with response_mime_type='application/json' is unsupported.
+                
+                # Use a raw dictionary for the configuration to avoid SDK default overrides.
+                if cached_content:
+                    gen_config = {
+                        "temperature": temp,
+                        "http_options": {"timeout": self.api_timeout * 1000},
+                        "cached_content": cached_content,
+                        "system_instruction": None,
+                        "tools": None,
+                        "tool_config": None
+                    }
+                    # Note: We omit response_mime_type here too because the Cache might 
+                    # have tools baked in.
+                else:
+                    gen_config = {
+                        "temperature": temp,
+                        "http_options": {"timeout": self.api_timeout * 1000},
+                        "tools": tools
+                    }
+                    # Only enforce JSON if NO tools are present
+                    if not tools:
+                        gen_config["response_mime_type"] = "application/json"
+
                 response = retryer(
                     self.client.models.generate_content,
                     model=self.model,
                     contents=contents,
-                    config=types.GenerateContentConfig(
-                        temperature=temp,
-                        response_mime_type="application/json",
-                        http_options={'timeout': self.api_timeout * 1000},
-                        cached_content=cached_content,
-                        tools=tools
-                    )
+                    config=gen_config
                 )
                 
                 # Forensic Token Audit
@@ -114,7 +134,8 @@ class BaseAgent:
                     return {"error": "NO_RESPONSE", "agent": agent_name}
 
                 # Check for Function Calls (automatic tool loop)
-                parts = response.candidates[0].content.parts
+                content = response.candidates[0].content
+                parts = getattr(content, 'parts', []) or []
                 tool_calls = [p.function_call for p in parts if p.function_call]
                 
                 if not tool_calls:
@@ -142,8 +163,23 @@ class BaseAgent:
             return {"error": "MAX_ITERATIONS_REACHED", "agent": agent_name}
 
         except Exception as e:
-            logger.error(f"{agent_name} AI execution failed: {e}", exc_info=True)
-            return {"error": f"{agent_name.upper()}_EXECUTION_FAILURE", "details": str(e), "agent": agent_name}
+            # High-Fidelity Forensic Capture: Log the raw error body for ClientErrors (400/429/etc)
+            # If it's a RetryError, we need the last attempt's exception to see the real cause
+            actual_error = e
+            from tenacity import RetryError
+            if isinstance(e, RetryError) and e.last_attempt and e.last_attempt.failed:
+                actual_error = e.last_attempt.exception()
+
+            err_details = str(actual_error)
+            if hasattr(actual_error, 'response') and hasattr(actual_error.response, 'text'):
+                err_details = f"{err_details} | Raw Response: {actual_error.response.text}"
+            
+            logger.error(f"{agent_name} AI execution failed: {err_details}", exc_info=True)
+            return {
+                "error": f"{agent_name.upper()}_EXECUTION_FAILURE", 
+                "details": err_details, 
+                "agent": agent_name
+            }
 
     def _parse_and_validate_response(self, response: Any, agent_name: str) -> Dict[str, Any]:
         """Extracts and validates structured output from the FINAL response."""
