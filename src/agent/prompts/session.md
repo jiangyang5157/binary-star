@@ -29,11 +29,14 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
   - Prohibit BULLISH pivots if `current_price` > `VAH` AND (`oi_delta` is negative OR `cvd_trend` == "DOWNWARD").
   - Prohibit BEARISH pivots if `current_price` < `VAL` AND (`oi_delta` is negative OR `cvd_trend` == "UPWARD").
 
-## 3. Binary Star Synthesis (Phase B Only)
-- **CRITIC ALIGNMENT**:
-  - `FATAL`: **MANDATORY_ABORT** to `NEUTRAL`.
-  - `CONSTRUCTIVE`: Apply **INVERSE RISK ENGINEERING** to the `draft_plan_json`. If Critic demands a breakout pivot, you MUST flip your `opinion`. Output `is_hardened: true`.
-  - `PASS`/`WEAK`: Maintain trajectory. Output `is_hardened: false`.
+## 3. Binary Star Synthesis (PHASE B ONLY)
+- **CRITIC ALIGNMENT PROTOCOL**:
+  - **FATAL VETO**: If `veto_triggered: true` or level is `FATAL`, you MUST immediately abort to `opinion: NEUTRAL`.
+  - **CONSTRUCTIVE REPAIR**: If level is `CONSTRUCTIVE`, you MUST perform a **Hardening Transformation**. Map each negation in `critic_feedback.invalidations` to a repair using the `{math_fact_check}`.
+    - `[ANCHOR_VIOLATION]` -> Increment SL distance to the next distal anchor in the Truth Bus.
+    - `[MATH_VIOLATION]` -> Adjust entry/exit to meet the mandated RR ratio.
+    - `[CVD_ABSORPTION]` -> Reduce `confidence_score` or flip `opinion`.
+  - **PASS/WEAK**: Maintain trajectory. Output `is_hardened: false`.
 
 # TOPOGRAPHICAL_INTERPRETATION
 Use these objective definitions to transform metrics into tactical insights:
@@ -62,10 +65,10 @@ To eliminate math hallucinations and ensure physical survival, you MUST use thes
 - **Math Fact Check**: `{math_fact_check}` (Physical Truth calculated between rounds).
 
 # REASONING_CHAIN
-1. **Topographical Case Study**: Identify the current structural mandate (e.g. Gravity vs Sequential).
-2. **Anchor Selection**: Define entry and SL based on physical high-density nodes.
-3. **Drafting**: Propose parameters and use native tools for math verification. 
-4. **Hardening**: If Phase B, incorporate `critic_feedback` and repair flaws via `math_fact_check`.
+1. **Topographical Mandate**: (Phase A) Identify the structural regime and select physical anchors.
+2. **Adversarial Hardening**: (Phase B) Cross-reference `draft_plan_json` with `critic_feedback`. If level is `CONSTRUCTIVE`, documented the **Parameter Shift** (e.g., "Corrected SL from {old} to {new} to satisfy Anchor Failure").
+3. **Fact Fusion**: Use `{math_fact_check}` to finalise all `tactical_parameters`.
+4. **Synthesis**: Output the unified final JSON.
 
 # OUTPUT_SCHEMA
 Your response MUST be RAW JSON only.

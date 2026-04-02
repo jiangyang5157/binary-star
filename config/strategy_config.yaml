@@ -179,7 +179,8 @@ topography_parameters:
 
 binary_star:
   # The shared 'Sovereign Intelligence' model.
-  model: gemini-3.1-pro-preview
+  # gemini-3.1-pro-preview
+  model: gemini-2.5-flash
   # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
   # Shared Truth Bus expiration to minimize memory bloat.
@@ -215,7 +216,8 @@ binary_star:
 
 evolver:
   # The 'Architect' model responsible for rewriting laws.
-  model: gemini-3.1-pro-preview
+  # gemini-3.1-pro-preview
+  model: gemini-2.5-flash
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency (No hallucinations).
   model_temperature: 0.0
