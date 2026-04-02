@@ -12,13 +12,12 @@ class EvolverConfig(AgentConfig):
     """Configuration for the Evolver meta-agent."""
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
-        # Evolver doesn't have a dedicated sub-node yet, 
-        # using shared model/prompt paths for now.
-        bs = cfg.get('binary_star', {})
+        """Factory method to extract evolver config from the standalone evolver node."""
+        evo = cfg.get('evolver', {})
         return cls(
-            model=str(bs.get('model', "gemini-2.0-flash")),
-            role_prompt_path=os.path.join(resolve_project_root(), "src/agent/prompts/evolver.md"),
-            model_temperature=0.0 # Extreme determinism required for evolution
+            model=str(evo.get('model', 'gemini-2.5-flash')),
+            role_prompt_path=os.path.join(resolve_project_root(), evo.get('role_definition_prompt', '')),
+            model_temperature=float(evo.get('model_temperature', 0.0))
         )
 
 class EvolverAgent(BaseAgent):

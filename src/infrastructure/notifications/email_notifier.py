@@ -500,7 +500,7 @@ class StrategyNotifier:
         
         # Sourcing threshold from global_config.yaml (Strict enforcement)
         system_cfg = self.global_cfg['system']
-        self.min_confidence_threshold = int(system_cfg['min_confidence_for_notifier_threshold'])
+        self.notification_confidence_floor = int(system_cfg['notification_confidence_floor'])
 
 
     def _load_global_config(self) -> Dict[str, Any]:
@@ -545,8 +545,8 @@ class StrategyNotifier:
         confidence = final_decision.get("confidence", 0)
         
         # Only notify if confidence >= threshold
-        if confidence < self.min_confidence_threshold:
-            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.min_confidence_threshold}%). Skipping dispatch.")
+        if confidence < self.notification_confidence_floor:
+            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.notification_confidence_floor}%). Skipping dispatch.")
             return False
 
         # Only notify if opinion is BULLISH / BEARISH
@@ -596,7 +596,7 @@ class StrategyNotifier:
         final_decision = strat_session.get("final_decision") or {}
         confidence = final_decision.get("confidence", 0)
         
-        if confidence < self.min_confidence_threshold:
+        if confidence < self.notification_confidence_floor:
             logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping review dispatch.")
             return False
             

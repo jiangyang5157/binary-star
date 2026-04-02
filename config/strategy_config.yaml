@@ -1,8 +1,5 @@
 strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess a forensic mathematical edge and absolute structural invalidation."
 
-agent_model_shared_config:
-  max_tool_iterations: 5
-
 regime_parameters:
   # --- Trend & Momentum Knobs ---
   trend_intensity_threshold: 0.4
@@ -25,7 +22,7 @@ regime_parameters:
   poc_magnet_atr_threshold: 2.0
   balanced_atr_multiplier: 2.0
   gravity_volume_override_ratio: 1.5
-  boundary_clipping_atr: 0.05
+  structural_buffer_atr: 0.05
   structural_proximity_threshold: 0.5
   anchor_drift_threshold: 3.0
   
@@ -45,7 +42,7 @@ regime_parameters:
   min_rr_trending: 1.5
   order_flow_lookback_hours: 1.0
 
-performance_evaluation_knobs:
+forensic_audit_thresholds:
   # Reviewer Scoring & Logic Limits
   score_mae_pinpoint_limit: 15
   score_mae_standard_limit: 50
@@ -75,10 +72,10 @@ performance_evaluation_knobs:
 sampling_parameters:
   macro_context:
     time_interval: 1h
-    historical_lookback_candles: 336
+    lookback_candles: 336
   micro_context:
     time_interval: 15m
-    historical_lookback_candles: 192
+    lookback_candles: 192
   funding_rate_lookback_hours: 24.0
 
 topography_parameters:
@@ -115,11 +112,11 @@ forensic_parameters:
   execution_timeframe_interval: 1m
 
 binary_star:
-  model: models/gemini-2.5-flash
+  model: gemini-2.5-flash
   system_instruction: src/agent/prompts/binary_star.md
   cache_expiration_minutes: 10
   max_rounds: 2
-  stop_threshold: 50
+  skepticism_halt_limit: 50
   
   strategist:
     role_definition_prompt: src/agent/prompts/strategist.md
@@ -142,6 +139,7 @@ binary_star:
 
 # The Meta-Optimizer (Self-Evolution Engine)
 evolver:
+  model: gemini-2.5-flash
   role_definition_prompt: src/agent/prompts/evolver.md
   model_temperature: 0.0
 

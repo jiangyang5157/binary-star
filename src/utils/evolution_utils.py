@@ -1,48 +1,49 @@
 import os
 import re
-import yaml
-import json
 import logging
 from typing import Dict, Any, List, Optional
+from ruamel.yaml import YAML
 
 logger = logging.getLogger("EvolutionUtils")
 
 class ConfigPatcher:
-    """Handles deep YAML configuration merging for the Evolver."""
+    """Handles deep YAML configuration merging with comment preservation (Round-Trip)."""
     
     @staticmethod
     def apply_patch(target_path: str, patch_overlays: Dict[str, Any]) -> bool:
-        """Applies a specific parameter overlay to the strategy config."""
+        """Applies a specific parameter overlay while preserving comments and formatting."""
         if not patch_overlays or not os.path.exists(target_path):
             return False
 
         try:
+            # Initialize ruamel.yaml for Round-Trip editing
+            yaml = YAML()
+            yaml.preserve_quotes = True
+            yaml.indent(mapping=2, sequence=4, offset=2)
+            
             with open(target_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
+                config = yaml.load(f)
 
-            # Map evolution-friendly keys to their physical config nodes
-            # e.g., 'high_volatility' targets 'regime_parameters' with specific context
             modified = False
             
-            # Simple direct merge for now (v4.0 approach)
-            # The patch_overlays should target top-level keys like 'regime_parameters'
+            # Perform deep merge on the Round-Trip data structure
             for key, val in patch_overlays.items():
                 if key in config and isinstance(config[key], dict) and isinstance(val, dict):
                     config[key].update(val)
                     modified = True
                 else:
-                    # Top-level direct override
+                    # Top-level direct override/addition
                     config[key] = val
                     modified = True
 
             if modified:
                 with open(target_path, 'w', encoding='utf-8') as f:
-                    yaml.dump(config, f, sort_keys=False, default_flow_style=False)
+                    yaml.dump(config, f)
                 return True
             return False
             
         except Exception as e:
-            logger.error(f"ConfigPatcher: Failed to apply patch to {target_path}: {e}")
+            logger.error(f"ConfigPatcher: Failed to apply patch with preservation to {target_path}: {e}")
             return False
 
 class PromptDistiller:

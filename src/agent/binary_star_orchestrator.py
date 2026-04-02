@@ -52,7 +52,7 @@ class BinaryStarOrchestrator:
         # 3. Binary Star Session Management
         self.bs_config = self.config['binary_star']
         self.max_rounds = int(self.bs_config['max_rounds'])
-        self.stop_threshold = int(self.bs_config['stop_threshold'])
+        self.skepticism_halt_limit = int(self.bs_config['skepticism_halt_limit'])
         self.cache_expiration = int(self.bs_config['cache_expiration_minutes'])
         self.shared_model = self.bs_config['model']
         
@@ -62,8 +62,7 @@ class BinaryStarOrchestrator:
         
         # 5. Type-Safe Configuration Slicing
         # Orchestrator handles the 'config mapping' responsibility for production-grade decoupling
-        shared_meta = self.config.get('agent_model_shared_config', {})
-        max_tool_iterations = int(shared_meta.get('max_tool_iterations', 5))
+        max_tool_iterations = int(gemini_net.get('max_tool_iterations', 5))
         strategy_intent = str(self.config.get('strategy_intent', ""))
         
         self.obs_config = ObserverConfig.from_dict(self.config)

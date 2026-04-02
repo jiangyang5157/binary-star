@@ -17,7 +17,7 @@ class ReviewerConfig:
     micro_interval: str
     strategy_intent: str
     regime_anchor_drift_threshold: float
-    performance_knobs: Dict[str, Any]
+    audit_thresholds: Dict[str, Any]
     forensic_parameters: Dict[str, Any]
 
     @classmethod
@@ -26,7 +26,7 @@ class ReviewerConfig:
         sampling = cfg['sampling_parameters']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
-        perf_knobs = cfg['performance_evaluation_knobs']
+        audit_thresholds = cfg['forensic_audit_thresholds']
         forensic = cfg['forensic_parameters']
         
         return cls(
@@ -34,7 +34,7 @@ class ReviewerConfig:
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            performance_knobs=perf_knobs,
+            audit_thresholds=audit_thresholds,
             forensic_parameters=forensic
         )
 

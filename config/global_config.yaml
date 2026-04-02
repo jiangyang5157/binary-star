@@ -1,6 +1,6 @@
 system:
   default_symbol: "BTCUSDT"
-  min_confidence_for_notifier_threshold: 50
+  notification_confidence_floor: 50
   data_root_mapping:
     test: "data/test"
     prod: "data/prod"
@@ -12,9 +12,9 @@ network:
     api_timeout_seconds: 60
     retry_count: 2
   gemini:
-    api_timeout_seconds: 120
     circuit_breaker_threshold: 3
     retry_count: 2
+    max_tool_iterations: 5
     retry_strategy:
       multiplier: 1
       min_seconds: 2

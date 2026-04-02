@@ -24,7 +24,7 @@ logger = setup_logger(__name__)
 class TimeframeConfig:
     """Encapsulates timeframe parameters for market data fetching."""
     time_interval: str
-    historical_lookback_candles: int
+    lookback_candles: int
 
 @dataclass(frozen=True)
 class ObserverConfig:
@@ -89,11 +89,11 @@ class ObserverConfig:
             max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 
-                historical_lookback_candles=int(macro['historical_lookback_candles'])
+                lookback_candles=int(macro['lookback_candles'])
             ),
             micro_context=TimeframeConfig(
                 time_interval=str(micro['time_interval']), 
-                historical_lookback_candles=int(micro['historical_lookback_candles'])
+                lookback_candles=int(micro['lookback_candles'])
             ),
             funding_rate_lookback_hours=float(sampling['funding_rate_lookback_hours']),
             
@@ -192,12 +192,12 @@ class MarketDataLoader:
 
         # Calculate liquidation window based on micro analysis duration
         micro_delta = self._get_interval_delta(cfg.micro_context.time_interval)
-        liq_lookback_ms = int(micro_delta.total_seconds() * cfg.micro_context.historical_lookback_candles * 1000)
+        liq_lookback_ms = int(micro_delta.total_seconds() * cfg.micro_context.lookback_candles * 1000)
         liq_start_ts_ms = ts_ms - liq_lookback_ms
 
         return RawMarketData(
-            macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.historical_lookback_candles, endTime=ts_ms) or [],
-            micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.historical_lookback_candles, endTime=ts_ms) or [],
+            macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.lookback_candles, endTime=ts_ms) or [],
+            micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
             macro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=historical_ts_ms),
             micro_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=historical_ts_ms),
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
