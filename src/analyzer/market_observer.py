@@ -476,7 +476,69 @@ class MarketObserver:
             "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, ctx, raw.liquidations, time_interval=self.config.micro_context.time_interval)
         }
 
-    def _package_observation(self, metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
+    def _synthesize_topographic_summary(self, metrics: Any) -> str:
+        """Compresses complex price geometry into a single tactical summary string."""
+        try:
+            m = metrics.__dict__ if hasattr(metrics, "__dict__") else metrics
+            pd = m.get("price_dynamics", {})
+            vp = m.get("volume_profile", {})
+            atr = float(pd.get("atr_macro", 1.0))
+            price = float(pd.get("current_price", 0))
+            
+            summary = []
+            # 1. Structural Proximity
+            val = float(vp.get("val", 0))
+            vah = float(vp.get("vah", 0))
+            val_dist = (price - val) / atr if atr > 0 else 0
+            vah_dist = (price - vah) / atr if atr > 0 else 0
+            
+            if abs(val_dist) < 1.0: summary.append(f"Price pivoting at VAL ({val_dist:.2f} ATR).")
+            elif abs(vah_dist) < 1.0: summary.append(f"Price pivoting at VAH ({vah_dist:.2f} ATR).")
+            
+            # 2. Nearest Friction (HVN)
+            all_anchors = vp.get("anchors_above", []) + vp.get("anchors_below", [])
+            hvns = [a for a in all_anchors if a.get("type") == "HVN"]
+            if hvns:
+                nearest_hvn = min(hvns, key=lambda x: abs(x["price"] - price))
+                hvn_dist = (nearest_hvn["price"] - price) / atr if atr > 0 else 0
+                summary.append(f"Nearest Friction: HVN at {nearest_hvn["price"]:.2f} ({hvn_dist:.2f} ATR).")
+            
+            # 3. Nearest Vacuum (LVN)
+            lvns = [a for a in all_anchors if a.get("type") == "LVN"]
+            if lvns:
+                nearest_lvn = min(lvns, key=lambda x: abs(x["price"] - price))
+                lvn_dist = (nearest_lvn["price"] - price) / atr if atr > 0 else 0
+                summary.append(f"Nearest Vacuum: LVN at {nearest_lvn["price"]:.2f} ({lvn_dist:.2f} ATR).")
+
+            return " ".join(summary)
+        except Exception as e:
+            return f"Topography synthesis limited: {e}"
+
+    def _analyze_cvd_dynamics(self, metrics: Any) -> str:
+        """Analyzes CVD-Price correlation to detect passive absorption vs aggressive discovery."""
+        try:
+            m = metrics.__dict__ if hasattr(metrics, "__dict__") else metrics
+            sent = m.get("sentiment_signals", {})
+            regime = m.get("market_regime", {})
+            
+            cvd_trend = sent.get("cvd_trend", "UNKNOWN")
+            price_regime = regime.get("price_trend_regime", "UNKNOWN")
+            taker_delta = float(sent.get("net_taker_delta", 0))
+            
+            if cvd_trend == "DOWNWARD" and "BULLISH" in str(price_regime):
+                return "[PASSIVE_ABSORPTION]: Bids are absorbing aggressive selling. Bullish Divergence."
+            elif cvd_trend == "UPWARD" and "BEARISH" in str(price_regime):
+                return "[PASSIVE_ABSORPTION]: Offers are absorbing aggressive buying. Bearish Divergence."
+            elif (cvd_trend == "DOWNWARD" and "BEARISH" in str(price_regime)) and taker_delta < -500:
+                return "[AGGRESSIVE_DISCOVERY]: High-conviction selling confirmed by CVD slope."
+            elif (cvd_trend == "UPWARD" and "BULLISH" in str(price_regime)) and taker_delta > 500:
+                return "[AGGRESSIVE_DISCOVERY]: High-conviction buying confirmed by CVD slope."
+            
+            return f"CVD Sentiment is {cvd_trend}. No major divergence detected."
+        except Exception as e:
+            return f"CVD dynamics analysis limited: {e}"
+
+    def _package_observation(self, metrics: Any, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
         return {
             "symbol": self.symbol,
             "timestamp": format_datetime(at_time, FILE_TIMESTAMP_FORMAT),
@@ -498,6 +560,10 @@ class MarketObserver:
                 }
             },
             "visual_assets": charts,
+            "tactical_summary": {
+                "topography": self._synthesize_topographic_summary(metrics),
+                "cvd_dynamics": self._analyze_cvd_dynamics(metrics)
+            },
             "quantitative_metrics": metrics.__dict__
         }
 

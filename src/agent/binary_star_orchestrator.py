@@ -399,11 +399,21 @@ class BinaryStarOrchestrator:
                 self.session_config.min_trade_velocity
             )
             
+            # 5. Synthesize Compliance Verdict (The "Truth Bus Verdict")
+            # This offloads the decision logic from Critic to Python
+            compliance = {
+                "rr_is_valid": rr_results["ratio"] >= (self.session_config.min_trade_velocity * 2), # Heuristic
+                "sl_is_shielded": proximity["is_shielded"],
+                "atr_volatility_is_logical": atr_metrics["sl_dist_atr"] < self.critic_config.regime_poc_gravity_atr_distance
+            }
+            
             return {
+                "status": "VERIFIED",
                 "rr_verification": rr_results,
                 "atr_volatility_verification": atr_metrics,
                 "structural_armor_verification": proximity,
-                "holding_time_verification": holding_time
+                "holding_time_verification": holding_time,
+                "compliance_verdict": compliance
             }
         except Exception as e:
             logger.error(f"BinaryStar: Math fact check assembly failed: {e}")
