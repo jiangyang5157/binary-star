@@ -31,9 +31,11 @@ class EvolverConfig(AgentConfig):
         )
 
 class EvolverAgent(BaseAgent):
-    """
-    The Meta-Optimizer responsible for Darwinian evolution of the system.
-    Transforms audit failures into physical laws (Patches/Distillation).
+    """The Meta-Optimizer for the Singularity Engine.
+
+    Responsible for Darwinian evolution of the strategy and reasoning layers. 
+    Transforms forensic audit failures into 'Physical Laws' (Configuration 
+    Patches) and 'Semantic Refinements' (Prompt Distillation).
     """
     def __init__(
         self, 
@@ -45,6 +47,17 @@ class EvolverAgent(BaseAgent):
         retry_min: int,
         retry_max: int
     ):
+        """Initializes the EvolverAgent with a type-safe configuration.
+
+        Args:
+            config: Encapsulated evolver parameters.
+            ai_client: Authenticated Gemini client.
+            api_timeout: Request timeout in seconds.
+            retry_count: Maximum retry attempts.
+            retry_multiplier: Retrying backoff multiplier.
+            retry_min: Minimum retry delay.
+            retry_max: Maximum retry delay.
+        """
         super().__init__(
             config=config,
             ai_client=ai_client,
@@ -62,17 +75,21 @@ class EvolverAgent(BaseAgent):
         active_config: Dict[str, Any],
         current_prompts: Dict[str, str]
     ) -> Dict[str, Any]:
-        """
-        Executes the main evolution cycle.
-        
+        """Executes the neural meta-optimization cycle.
+
+        Analyzes recent forensic audit reports to identify systematic 
+        logic failures or edge cases, then generates a corrective mutation.
+
         Args:
             audit_reports: List of analyzed session results with outcomes.
-            active_config: Current strategy_config.yaml state.
-            current_prompts: Dict mapping 'session' and 'audit' to their prompt content.
+            active_config: Current active strategy_config.yaml state.
+            current_prompts: Mapping of agent names to their prompt source code.
+
+        Returns:
+            A dictionary containing the mutation proposal and rationale.
         """
         try:
-            # Batch audit reports for context
-            logger.info(f"Evolver: Preparing context for {len(audit_reports)} session reports.")
+            logger.info(f"Evolver: Preparing context for {len(audit_reports)} forensic reports.")
             reports_json = json.dumps(audit_reports, indent=2)
             config_json = json.dumps(active_config, indent=2)
             prompts_json = json.dumps(current_prompts, indent=2)
@@ -85,21 +102,20 @@ class EvolverAgent(BaseAgent):
                 strategy_intent=active_config.get('strategy_intent', "Market Survival")
             )
 
-            logger.info("Evolver: Initiating distillation/patching cycle (Neural Inference)...")
+            logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")
             
-            # Evolver always uses direct JSON (no Truth Bus needed for meta-analysis)
             evolution_result = self._execute_ai_cycle(
                 payload=prompt,
                 temperature=self.config.model_temperature,
                 agent_name="Evolver_Meta",
-                tools=None # Evolver is purely logical transformation for now
+                tools=None
             )
             
-            logger.info(f"Evolver: Neural analysis complete. Mutation Category: {evolution_result.get('evolution_type')}")
+            logger.info(f"Evolver: Mutation identified: {evolution_result.get('evolution_type')}")
             return evolution_result
             
         except Exception as e:
-            logger.error(f"Evolver: Evolution cycle failed: {e}")
+            logger.error(f"Evolver: Meta-optimization failed: {e}")
             raise
 
     def apply_patch(self, evolution_result: Dict[str, Any], config_path: str, symbol: str) -> bool:

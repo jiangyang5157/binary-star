@@ -1,30 +1,44 @@
 import logging
 import sys
 import os
-from typing import Dict, Any, List, Optional, Union, Sequence
+from typing import Dict, Any, List, Optional, Union, Sequence, Callable
 from google import genai
 from google.genai import types
 from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
+from dataclasses import dataclass
 
 from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
 
+# Initialize standard hardened logger for base agent telemetry
 logger = setup_logger(__name__)
-
-from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class AgentConfig:
-    """Base configuration for all neural agents."""
+    """Base configuration for neural agents.
+    
+    Attributes:
+        model: The Gemini model identifier (e.g., 'gemini-2.0-flash').
+        model_temperature: Model creativity override.
+        role_prompt_path: Absolute path to the system role template.
+        max_tool_iterations: Safety ceiling for autonomous tool-looping.
+    """
     model: str
     model_temperature: float
     role_prompt_path: str
     max_tool_iterations: int
 
 class BaseAgent:
-    """
-    Abstract Base Class for all AI-driven agents in the audit-grade trading pipeline.
+    """Abstract Base Class for all AI-driven agents in the Singularity pipeline.
+    
+    Provides standardized orchestration for multimodal neural inference, 
+    autonomous tool-call handshaking, and robust error recovery patterns.
+    
+    Attributes:
+        config: Standardized AgentConfig.
+        client: The high-level Gemini GenAI client.
+        api_timeout: HTTP timeout limit in seconds.
     """
     
     def __init__(
@@ -37,8 +51,16 @@ class BaseAgent:
         retry_min: int,
         retry_max: int
     ):
-        """
-        Initializes the agent with core AI configuration and dependencies.
+        """Initializes the agent with core AI configuration and dependencies.
+        
+        Args:
+            config: Type-safe AgentConfig object.
+            ai_client: The shared genai.Client instance.
+            api_timeout: Global timeout for neural inference.
+            retry_count: Number of retry attempts on transient failure.
+            retry_multiplier: Exponential backoff multiplier.
+            retry_min: Minimum backoff time (seconds).
+            retry_max: Maximum backoff time (seconds).
         """
         self.config = config
         self.model = config.model
@@ -51,9 +73,19 @@ class BaseAgent:
         self.retry_min = retry_min
         self.retry_max = retry_max
 
-    def _prepare_prompt(self, template_path: str, **context) -> str:
-        """
-        Reads a requirement template and injects semantic context variables.
+    def _prepare_prompt(self, template_path: str, **context: Any) -> str:
+        """Reads a prompt template and injects semantic context variables.
+        
+        Args:
+            template_path: Path to the markdown prompt template.
+            **context: Dynamic variables for placeholder injection.
+            
+        Returns:
+            The formatted prompt string with injected topography/metrics.
+            
+        Raises:
+            IOError: If template cannot be resolved.
+            KeyError: If mandatory context variables are missing.
         """
         try:
             template = read_prompt_template(template_path)
@@ -70,8 +102,21 @@ class BaseAgent:
         cached_content: Optional[str] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """
-        Orchestrates an automatic iterative cycle for tool usage and response generation.
+        """Orchestrates an autonomous iterative cycle for tool-use and inference.
+        
+        This logic implements the core 'Reasoning Loop', handling multi-turn 
+        handshaking between the Gemini model and local Python tool logic.
+        
+        Args:
+            payload: Initial prompt or multimodal content sequence.
+            temperature: Model creativity override. Defaults to config value.
+            agent_name: Logical identity for tracking and forensic logging.
+            cached_content: ID of the active context cache resource.
+            tools: List of function schemas available for dispatch.
+            
+        Returns:
+            A forensic dictionary containing either the parsed JSON output 
+            or a structured error trace.
         """
         try:
             temp = temperature if temperature is not None else self.temperature
@@ -81,7 +126,7 @@ class BaseAgent:
             while iteration < self.max_tool_iterations:
                 iteration += 1
                 
-                # Use dynamic retry strategy based on global_config.yaml
+                # Standardized retry strategy with exponential backoff
                 retryer = Retrying(
                     stop=stop_after_attempt(self.retry_count),
                     wait=wait_exponential(
@@ -92,11 +137,9 @@ class BaseAgent:
                     retry=retry_if_exception_type(Exception)
                 )
                 
-                # Rule 1: Tools and System Instructions must not be in GenerateContentConfig if using CachedContent.
-                # Rule 2: Function calling with response_mime_type='application/json' is unsupported.
-                
-                # Use a raw dictionary for the configuration to avoid SDK default overrides.
+                # Resolve Generation Configuration
                 if cached_content:
+                    # Note: Gemini rule - Tools/Instructions must be in cache, not in config.
                     gen_config = {
                         "temperature": temp,
                         "http_options": {"timeout": self.api_timeout * 1000},
@@ -104,16 +147,14 @@ class BaseAgent:
                         "system_instruction": None,
                         "tools": None
                     }
-                    # Note: We omit response_mime_type here too because the Cache might 
-                    # have tools baked in.
                 else:
                     gen_config = {
                         "temperature": temp,
                         "http_options": {"timeout": self.api_timeout * 1000},
                         "tools": tools
                     }
-                    # Only enforce JSON if NO tools are present
                     if not tools:
+                        # Fallback to direct JSON mode if no tools are allocated.
                         gen_config["response_mime_type"] = "application/json"
 
                 response = retryer(
@@ -123,42 +164,41 @@ class BaseAgent:
                     config=gen_config
                 )
                 
-                # Audit Token Tracking (v5.10 Hardening)
+                # Token Forensics
                 if response and response.usage_metadata:
                     m = response.usage_metadata
                     logger.info(
-                        f"[{agent_name}] 📊 Token Usage: "
-                        f"Total={m.total_token_count} | "
-                        f"Prompt={m.prompt_token_count} | "
-                        f"Candidate={m.candidates_token_count} | "
-                        f"Cached={m.cached_content_token_count or 0}"
+                        f"[{agent_name}] Usage: T={m.total_token_count} | "
+                        f"P={m.prompt_token_count} | "
+                        f"C={m.candidates_token_count} | "
+                        f"Cache={m.cached_content_token_count or 0}"
                     )
 
                 if not response or not response.candidates:
+                    logger.error(f"BaseAgent: {agent_name} received NO_RESPONSE.")
                     return {"error": "NO_RESPONSE", "agent": agent_name}
 
-                # Check for Function Calls (automatic tool loop)
+                # Evaluate for Tool Dispatch (Function Calls)
                 content = response.candidates[0].content
                 parts = getattr(content, 'parts', []) or []
                 tool_calls = [p.function_call for p in parts if p.function_call]
                 
                 if not tool_calls:
-                    # Final text response obtained.
-                    # v5.10 Hardening: Early detection of empty/null text response.
+                    # Termination Condition: No further tools needed.
                     try:
                         text = response.text
                         if not text or not text.strip():
-                            logger.error(f"BaseAgent: {agent_name} model returned empty text candidate.")
+                            logger.error(f"BaseAgent: {agent_name} returned empty text.")
                             return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
                     except Exception as e:
-                        logger.error(f"BaseAgent: Failed to extract text from {agent_name} response: {e}")
-                        return {"error": "TEXT_EXTRACTION_FAILURE", "details": str(e), "agent": agent_name}
+                        logger.error(f"BaseAgent: Text extraction failure for {agent_name}: {e}")
+                        return {"error": "TEXT_FAILURE", "details": str(e), "agent": agent_name}
                         
                     return self._parse_and_validate_response(response, agent_name)
                 
-                # Execute Tools and feed back to the model
-                logger.info(f"{agent_name}: Found {len(tool_calls)} tool calls. Dispatching...")
-                contents.append(response.candidates[0].content) # Model needs history
+                # Tool Execution Cycle
+                logger.info(f"{agent_name}: Found {len(tool_calls)} function calls. Executing...")
+                contents.append(response.candidates[0].content) 
                 
                 response_parts = []
                 for fc in tool_calls:
@@ -171,53 +211,64 @@ class BaseAgent:
                     )
                 
                 contents.append(types.Content(parts=response_parts, role='user'))
-                # Loop continues to next iteration to provide the tool response back to model
 
-            logger.error(f"{agent_name}: Max tool iterations ({self.max_tool_iterations}) reached without final answer.")
-            return {"error": "MAX_ITERATIONS_REACHED", "agent": agent_name}
+            logger.error(f"{agent_name}: Iteration safety floor reached ({self.max_tool_iterations}).")
+            return {"error": "MAX_ITERATIONS", "agent": agent_name}
 
         except Exception as e:
-            # High-Fidelity Error Capture: Log the raw error body for ClientErrors (400/429/etc)
-            # If it's a RetryError, we need the last attempt's exception to see the real cause
+            # Handle SDK or Connectivity errors
             actual_error = e
             from tenacity import RetryError
             if isinstance(e, RetryError) and e.last_attempt and e.last_attempt.failed:
                 actual_error = e.last_attempt.exception()
 
-            err_details = str(actual_error)
+            err_msg = str(actual_error)
             if hasattr(actual_error, 'response') and hasattr(actual_error.response, 'text'):
-                err_details = f"{err_details} | Raw Response: {actual_error.response.text}"
+                err_msg = f"{err_msg} | Body: {actual_error.response.text}"
             
-            logger.error(f"{agent_name} AI execution failed: {err_details}", exc_info=True)
+            logger.error(f"{agent_name} Inference Failure: {err_msg}")
             return {
-                "error": f"{agent_name.upper()}_EXECUTION_FAILURE", 
-                "details": err_details, 
+                "error": f"{agent_name.upper()}_FAILURE", 
+                "details": err_msg, 
                 "agent": agent_name
             }
 
     def _parse_and_validate_response(self, response: Any, agent_name: str) -> Dict[str, Any]:
-        """Extracts and validates structured output from the FINAL response."""
+        """Extracts and validates structured JSON output from model candidates.
+        
+        Args:
+            response: The raw response candidate.
+            agent_name: Identity for error attribution.
+            
+        Returns:
+            Extracted dictionary. Defaults to error object if malformed.
+        """
         parsed = extract_json_from_text(response.text)
         if parsed is None:
-            logger.error(f"{agent_name}: Failed to parse JSON: {response.text}")
-            return {"error": "JSON_PARSE_FAILURE", "raw_response": response.text, "agent": agent_name}
+            logger.error(f"BaseAgent: {agent_name} returned malformed JSON: {response.text[:200]}...")
+            return {"error": "MALFORMED_JSON", "raw": response.text, "agent": agent_name}
         return parsed
 
     def _dispatch_tool_call(self, fc: types.FunctionCall) -> Any:
+        """Dynamically dispatches a tool-call to the local agent instance.
+        
+        Args:
+            fc: Function call specification.
+            
+        Returns:
+            The execution result or error string.
         """
-        Dynamically dispatches a function call to a local Python method.
-        """
-        method_name = fc.name
+        name = fc.name
         args = fc.args or {}
         
         try:
-            if hasattr(self, method_name):
-                method = getattr(self, method_name)
-                logger.info(f"BaseAgent: Executing tool '{method_name}' with args: {args}")
+            if hasattr(self, name):
+                method = getattr(self, name)
+                logger.info(f"BaseAgent: Dispatching internal tool '{name}'...")
                 return method(**args)
             else:
-                logger.error(f"BaseAgent: Tool '{method_name}' not found on {self.__class__.__name__}")
-                return f"Error: Tool '{method_name}' not found."
+                logger.error(f"BaseAgent: Tool '{name}' is not integrated in {self.__name__}.")
+                return f"Error: Tool '{name}' missing."
         except Exception as e:
-            logger.error(f"BaseAgent: Tool '{method_name}' execution failed: {e}")
-            return f"Error: {str(e)}"
+            logger.error(f"BaseAgent: Tool '{name}' fatal error: {e}")
+            return f"Tool Error: {str(e)}"

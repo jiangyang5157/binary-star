@@ -24,10 +24,10 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger("EvolutionEngine")
 
 class EvolutionEngine:
-    """
-    Self-Evolution Control Engine (v5.10).
+    """Singularity Meta-Evolution Engine (v6.0).
+
     Implements the 'Meta-Optimization' loop: 
-    Ingest Sessions -> Generate Patch -> Sandbox Validation -> Atomic Commit.
+    Ingest Audit Data -> Neural Mutation -> Sandbox Validation -> Atomic Config Commit.
     """
     def __init__(self, data_root: str):
         self.data_root = os.path.join(PROJECT_ROOT, data_root)
@@ -128,7 +128,7 @@ class EvolutionEngine:
         
         # 5. Routing: Atomic Commit vs Rejection
         if validation.get('is_validated'):
-            logger.info(f"Sandbox: EVOLUTION VALIDATED [{ev_id}]. Committing to production...")
+            logger.info(f"Sandbox: EVOLUTION VALIDATED [{ev_id}]. Committing mutation...")
             applied_file = os.path.join(self.dirs['applied'], f"{ev_id}_applied.json")
             shutil.copy2(proposal_file, applied_file)
             
@@ -140,11 +140,11 @@ class EvolutionEngine:
             logger.warning(f"Sandbox: EVOLUTION REJECTED [{ev_id}]. Regression risk detected.")
             refused_file = os.path.join(self.dirs['refusals'], f"{ev_id}_refused.json")
             shutil.move(proposal_file, refused_file)
-            logger.info(f"Evolver: Proposal isolated for manual audit review -> {os.path.basename(refused_file)}")
+            logger.info(f"Evolver: Proposal isolated for forensic review -> {os.path.basename(refused_file)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="The Singularity Meta-Evolution Engine (v5.12)")
-    parser.add_argument("--samples", type=int, default=5, help="Number of audit reports to ingest")
+    parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.0)")
+    parser.add_argument("--samples", type=int, default=20, help="Number of forensic reports to ingest")
     add_data_root_argument(parser)
     
     args = parser.parse_args()

@@ -81,7 +81,10 @@ class TestAuditAssembler(unittest.TestCase):
         
         # Outcome has high missed range
         outcome = {
-            "market_context": {"is_catastrophic_miss": True}
+            "market_context": {
+                "is_catastrophic_miss": True,
+                "missed_relative_range": 3.0
+            }
         }
         
         report = self.assembler.review(strategy, outcome)

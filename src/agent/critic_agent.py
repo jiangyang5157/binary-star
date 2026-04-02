@@ -2,20 +2,27 @@ import os
 import json
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional, Union
-from google import genai
-from google.genai import types
 
+from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
-from src.utils.json_utils import extract_json_from_text
-
 from src.utils.logger_utils import setup_logger
+
+# Initialize critic-specific logger
 logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
 class CriticConfig(AgentConfig):
-    """Encapsulates configuration for the CriticAgent."""
+    """Encapsulates risk-centric configuration for the CriticAgent.
+    
+    Attributes:
+        threshold_skepticism_clear: Score threshold below which a plan is considered 'hardened'.
+        threshold_skepticism_weak: Score threshold for minor concerns.
+        threshold_skepticism_constructive: Score threshold for major logical gaps.
+        structural_buffer_atr: Safe ATR-distance for stop-loss shielding behind structures.
+        min_trade_velocity: Minimum required trade speed for directional validation.
+    """
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
     strategy_intent: str
@@ -48,7 +55,7 @@ class CriticConfig(AgentConfig):
 
     @classmethod
     def from_dict(cls, cfg_dict: Dict[str, Any]) -> "CriticConfig":
-        """Factory method to extract critic config from the global config dict."""
+        """Factory method to assemble a CriticConfig from the global strategy configuration."""
         bs = cfg_dict['binary_star']
         critic = bs['critic']
         session_node = bs['session']
@@ -60,10 +67,11 @@ class CriticConfig(AgentConfig):
             model=str(bs['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
             model_temperature=float(critic['model_temperature']),
+            max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             min_trade_velocity=float(session_node.get('min_trade_velocity', 0.5)),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(session_node['stop_loss_buffer_max']),
-            strategy_intent=str(cfg_dict['strategy_intent']),
+            strategy_intent=str(cfg_dict.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
             order_flow_lookback_hours=float(sampling['order_flow_lookback_hours']),
@@ -88,18 +96,17 @@ class CriticConfig(AgentConfig):
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             structural_buffer_atr=float(regime.get('structural_buffer_atr', 0.05))
         )
 
 class CriticAgent(BaseAgent):
-    """
-    The Skeptical Risk Critic (Adversarial Agent).
+    """The Skeptical Risk Auditor.
     
-    This agent performs a high-fidelity stress test on the Session draft.
-    It identifies hidden flaws, structural traps, and math violations by 
-    contrasting the draft against 'Math Fact Check' telemetry and volume topography.
+    Acts as the adversarial counterpart to the SessionAgent.
+    Standardized to identify logical lapses, directional bias, and geometric
+    violations in trade proposals by contrasting them against Math Truth.
     """
+    
     def __init__(
         self, 
         config: CriticConfig, 
@@ -108,12 +115,9 @@ class CriticAgent(BaseAgent):
         retry_multiplier: float,
         retry_min: int,
         retry_max: int,
-        ai_client: genai.Client,
-        model: Optional[str] = None
+        ai_client: genai.Client
     ):
-        """
-        Initializes the Critic with a pre-assembled type-safe configuration.
-        """
+        """Standard constructor with dependency injection."""
         self.config = config
         super().__init__(
             config=self.config,
@@ -134,16 +138,24 @@ class CriticAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """
-        Unified adversarial audit method (The Phase 2 Challenge).
-        Supports both Truth Bus (Cache) and Debug (Direct JSON) modes.
+        """Performs a comprehensive adversarial audit on a proposed draft.
+        
+        Args:
+            observation: Market topography (required if no cache_id).
+            draft_plan: The preliminary tactical proposal from SessionAgent.
+            symbol: Trading pair code.
+            cache_id: Semantic context identifier.
+            math_fact_check: Object truth verification from Python logic.
+            tools: Native tool schema definitions.
+            
+        Returns:
+            An audit report containing 'skepticism_score' and 'audit_findings'.
         """
         try:
-            # Construct context with Truth Bus Matrix safety
             context = self._build_context(observation, draft_plan, math_fact_check=math_fact_check, cache_id=cache_id)
             prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
             
-            logger.info(f"Critic: Evaluating thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            logger.info(f"Critic: Auditing {symbol} draft for hidden risks...")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
@@ -153,7 +165,7 @@ class CriticAgent(BaseAgent):
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Critic: Evaluation failed for {symbol}: {e}")
+            logger.error(f"Critic: Critical failure during evaluation of {symbol}: {e}")
             raise
 
     def _build_context(
@@ -163,27 +175,18 @@ class CriticAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Constructs the auditing context using the Truth Bus Decision Matrix:
-        1. Cache ID present -> Reference context, suppress JSON. (Production)
-        2. Observation present -> Embed raw JSON. (Debug / Fallback)
-        3. Both None -> Fuse / Raise ValueError. (Safety)
-        """
-        # --- The Truth Bus Matrix ---
+        """Internal logic for constructing the adversarial audit context."""
         if cache_id:
-            # Production: Optimization active. Refer to system context.
-            observation_json = "[CONTEXT_PROVIDED_VIA_CACHE]"
+            observation_json = "[CONTEXT_PROVIDED_VIA_GEMINI_CACHE]"
         elif observation:
-            # Debug/Fallback: Manual data injection.
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
         else:
-            # Safety Fuse: Prevent evaluation without topographic data
-            raise ValueError("Critic: Zero-Knowledge State. Neither observation nor cache_id provided.")
+            raise ValueError("Critic: Audit attempted without baseline telemetry.")
 
         return {
             "observation_json": observation_json,
             "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
-            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "",
+            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
             "min_trade_velocity": self.config.min_trade_velocity,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval,
@@ -210,24 +213,26 @@ class CriticAgent(BaseAgent):
             "anchor_drift_threshold": self.config.anchor_drift_threshold
         }
 
-    # --- Tool Delegate Methods (for Function Calling) ---
-    # We mirror these from SessionAgent so the Audit can also audit the math
+    # --- Tool Delegates (Function Calling Interfaces) ---
     
     def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> Dict[str, Any]:
+        """[TOOL] Calculates the Risk-Reward (RR) ratio for a trade geometry."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
 
     def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: Optional[float] = None) -> Dict[str, Any]:
+        """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
 
     def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: Optional[float] = None, vah: Optional[float] = None, val: Optional[float] = None) -> Dict[str, Any]:
+        """[TOOL] Measures isolation/shielding between SL and structural anchors (POC/VAH/VAL)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, macro_interval_minutes: int) -> Dict[str, Any]:
-        """[DELEGATE] Projects holding time using the config-driven velocity floor."""
+        """[TOOL] Estimates trade duration based on market velocity floors."""
         from src.utils.math_utils import MathTools
         return MathTools.project_holding_time(
             entry, take_profit, atr, trend_intensity, 

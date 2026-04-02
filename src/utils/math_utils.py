@@ -1,14 +1,19 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union
 
+# Initialize standard hardened logger for math telemetry
 logger = logging.getLogger(__name__)
 
 class MathTools:
-    """
-    Electronic Physicist for the Trading Triad.
+    """The Electronic Physicist for the Singularity Reasoning Triad.
     
-    Provides deterministic calculations for market topography to replace 
-    LLM heuristic math. All methods are static and idempotent.
+    Provides deterministic calculations for market topography and trade geometry
+    to replace LLM heuristic math. All methods are static and idempotent.
+    
+    Key Responsibilities:
+    1. Geometric Validation (RR, ATR Buffers, Structural Armor).
+    2. Velocity Projection (Predicted holding times).
+    3. Forensic Benchmarking (MAE Stress, Opportunity Cost).
     """
 
     @staticmethod
@@ -17,29 +22,41 @@ class MathTools:
         take_profit: float,
         stop_loss: float
     ) -> Dict[str, Any]:
-        """
-        Calculates the Risk-Reward (RR) ratio for a limit order.
+        """Calculates the Risk-Reward (RR) ratio for a limit order.
         
-        Logic: 
-        - Profit Potential = |TP - Entry|
-        - Risk Capital = |Entry - SL|
-        - RR Ratio = Profit / Risk
-        
-        The Break-even point is implicitly defined where Profit = Risk (RR=1.0).
-        A ratio > 2.0 is generally considered 'High Conviction' in trending markets.
+        Args:
+            entry: Entry price of the trade.
+            take_profit: Target exit price for profit.
+            stop_loss: Exit price for risk management.
+            
+        Returns:
+            A dictionary containing:
+                rr_ratio: The calculated reward vs risk.
+                profit_distance: Absolute difference between entry and TP.
+                risk_distance: Absolute difference between entry and SL.
+                error: (Optional) Error string if calculation fails.
         """
         try:
             sl_dist = abs(entry - stop_loss)
             tp_dist = abs(take_profit - entry)
             
-            rr = round(tp_dist / sl_dist, 2) if sl_dist > 0 else 0
+            # Defense: Zero-division safety for logic gaps
+            if sl_dist <= 0:
+                return {
+                    "rr_ratio": 0.0,
+                    "profit_distance": round(tp_dist, 2),
+                    "risk_distance": 0.0,
+                    "warning": "Zero stop-loss distance detected."
+                }
+            
+            rr = round(tp_dist / sl_dist, 2)
             return {
                 "rr_ratio": rr,
                 "profit_distance": round(tp_dist, 2),
                 "risk_distance": round(sl_dist, 2)
             }
         except Exception as e:
-            logger.error(f"MathTools: RR calculation failed: {e}")
+            logger.error(f"MathTools: RR calculation failure: {e}")
             return {"error": str(e)}
 
     @staticmethod
@@ -50,18 +67,25 @@ class MathTools:
         atr: float,
         current_price: Optional[float] = None
     ) -> Dict[str, Any]:
-        """
-        Standardizes entry/exit distances using ATR (Average True Range).
+        """Standardizes entry/exit distances using ATR (Average True Range).
         
-        Philosophy:
-        ATR represents the 'Market Noise' or 'Granularity'. By normalizing distances 
-        against ATR, we convert absolute price points into 'volatility units', 
-        allowing the agent to assess if a stop is placed within the noise floor 
-        or behind structural support/resistance.
+        Normalizing distances against ATR converts absolute price points into 
+        'volatility units', enabling the agent to assess risk relative to 
+        real-time market granularity.
+        
+        Args:
+            entry: Entry price.
+            stop_loss: Stop-loss price.
+            take_profit: Take-profit price.
+            atr: Current ATR value.
+            current_price: Optional market price for real-time drift assessment.
+            
+        Returns:
+            A dictionary of normalized ATR distances (e.g., SL is 1.5 ATR away).
         """
         try:
             if atr <= 0:
-                return {"error": "ATR must be greater than zero."}
+                return {"error": "ATR must be > 0 for topographical normalization."}
                 
             metrics = {
                 "entry_to_sl_atr": round(abs(entry - stop_loss) / atr, 2),
@@ -69,11 +93,12 @@ class MathTools:
             }
             
             if current_price is not None:
+                # Drift is signed: positive means market is above the entry.
                 metrics["entry_to_current_atr"] = round((entry - current_price) / atr, 2)
                 
             return metrics
         except Exception as e:
-            logger.error(f"MathTools: ATR metrics failed: {e}")
+            logger.error(f"MathTools: ATR metrics failure: {e}")
             return {"error": str(e)}
 
     @staticmethod
@@ -84,18 +109,28 @@ class MathTools:
         vah: Optional[float] = None,
         val: Optional[float] = None
     ) -> Dict[str, Any]:
-        """
-        Calculates the distance from the Stop Loss to key structural levels (POC, VAH, VAL) in ATR units.
-        Used by the Audit Agent to verify if the SL is placed behind physical 'armor'.
+        """Calculates the distance from SL to structural 'armor' (POC/VAH/VAL).
+        
+        This metric is utilized by the Critic Agent to verify if the Stop Loss 
+        is placed behind physical volume anchors.
+        
+        Args:
+            stop_loss: Target SL price.
+            atr: Market granularity unit.
+            poc: Point of Control (Volume Anchor).
+            vah: Value Area High.
+            val: Value Area Low.
+            
+        Returns:
+            A dictionary of relative distances in ATR units. 
+            Positive = SL is ABOVE anchor; Negative = SL is BELOW anchor.
         """
         try:
             if atr <= 0:
-                return {"error": "ATR must be greater than zero."}
+                return {"error": "ATR must be > 0."}
                 
-            def dist_to_atr(anchor):
+            def dist_to_atr(anchor: Optional[float]) -> Optional[float]:
                 if anchor is None: return None
-                # (SL - Anchor) / ATR. 
-                # Positive means SL is above anchor, Negative means SL is below.
                 return round((stop_loss - anchor) / atr, 2)
 
             return {
@@ -104,7 +139,7 @@ class MathTools:
                 "sl_to_val_atr": dist_to_atr(val)
             }
         except Exception as e:
-            logger.error(f"MathTools: Structural proximity failed: {e}")
+            logger.error(f"MathTools: Structural proximity failure: {e}")
             return {"error": str(e)}
 
     @staticmethod
@@ -116,36 +151,36 @@ class MathTools:
         interval_minutes: int,
         min_velocity_floor: float
     ) -> Dict[str, Any]:
-        """
-        Predicts the time required to reach the Take Profit target using Volatility Dynamics.
+        """Predicts the estimated holding time using a Synthetic Velocity Model.
         
-        Algorithm (Synthetic Velocity Model):
-        -------------------------------------
-        1. Base Engine Power = ATR (Market granularity/speed).
-        2. Efficiency Factor = |Trend_Intensity| (Directional momentum alignment).
-        3. Raw Velocity = ATR * Efficiency.
+        Logic:
+        1. Base Engine = ATR (Natural market speed).
+        2. Alignment = |Trend Intensity| (Momentum factor).
+        3. Effective Speed = MAX(ATR * Intensity, ATR * Velocity Floor).
         
-        The result is a 'Volatility-Adjusted Velocity'. High ATR + High Intensity 
-        projects rapid target hits; Low ATR or ranging markets project slow crawls.
+        The result converts price distance into time buckets (candles/hours).
         
-        Safety Logic (The Floor):
-        -------------------------
-        min_velocity_floor: Prevents division by zero in zero-momentum regimes.
-        Implies a minimum baseline 'drift' per candle (in ATR units), assumed 
-        to exist due to stochastic market noise even when trend intensity is zero.
-        This value is injected by the Strategist based on strategy specific tolerance.
+        Args:
+            entry: Proposed entry.
+            take_profit: Proposed target.
+            atr: Market ATR.
+            trend_intensity: 0.0 to 1.0 (Regime momentum).
+            interval_minutes: Chart time interval in minutes.
+            min_velocity_floor: Safety floor (drift) when momentum is zero.
+            
+        Returns:
+            A dictionary containing projected hours and candle counts.
         """
         try:
             if atr <= 0:
-                return {"error": "ATR must be greater than zero."}
+                return {"error": "ATR must be > 0."}
                 
             # effective_velocity = max(ATR * |intensity|, safety_floor)
             effective_velocity = max(atr * abs(trend_intensity), atr * min_velocity_floor)
             dist = abs(take_profit - entry)
             
-            # Prevent zero velocity if floor is somehow 0
             if effective_velocity <= 0:
-                return {"error": "Effective velocity is zero. Check trend_intensity or velocity_floor."}
+                return {"error": "Zero velocity detected. Check floor config."}
 
             projected_candles = dist / effective_velocity
             projected_hours = round((projected_candles * interval_minutes) / 60, 1)
@@ -156,37 +191,40 @@ class MathTools:
                 "effective_velocity_per_candle": round(effective_velocity, 2),
                 "calculation_inputs": {
                     "velocity_floor": min_velocity_floor,
-                    "target_distance": round(dist, 2)
+                    "target_dist": round(dist, 2)
                 }
             }
         except Exception as e:
-            logger.error(f"MathTools: Holding time projection failed: {e}")
+            logger.error(f"MathTools: Time projection failure: {e}")
             return {"error": str(e)}
+
     @staticmethod
     def calculate_opportunity_cost(
         missed_range: float,
         atr_macro: float
     ) -> Dict[str, Any]:
-        """
-        Quantifies the 'Cost of Cowardice' for Neutral decisions.
+        """Quantifies the 'Cost of Cowardice' for Neutral decisions.
         
-        Logic:
-        - missed_relative_range = missed_range / atr_macro
+        Used by the Evolver to penalize indecision during major structural moves.
         
-        This metric allows the Evolver to penalize agents for staying Neutral 
-        when the market moved significantly in a clear structural direction.
+        Args:
+            missed_range: Absolute price movement during the tracking window.
+            atr_macro: Market volatility unit.
+            
+        Returns:
+            A dictionary containing missed_relative_range (in ATRs).
         """
         try:
             if atr_macro <= 0:
-                return {"error": "ATR must be greater than zero."}
+                return {"error": "ATR must be > 0."}
             
             rel_range = round(missed_range / atr_macro, 2)
             return {
                 "missed_relative_range": rel_range,
-                "is_catastrophic_miss": rel_range > 2.0 # Standard threshold for logic failure
+                "is_catastrophic_miss": rel_range > 2.0
             }
         except Exception as e:
-            logger.error(f"MathTools: Opportunity cost calculation failed: {e}")
+            logger.error(f"MathTools: Opportunity cost failure: {e}")
             return {"error": str(e)}
 
     @staticmethod
@@ -194,22 +232,22 @@ class MathTools:
         mae_distance: float,
         max_atr_used: float
     ) -> Dict[str, Any]:
-        """
-        Evaluates the physical stress of a holding period.
+        """Evaluates the physical stress of a holding period relative to volatility.
         
-        Logic:
-        - mae_stress_level = (mae_distance / max_atr_used) * 100
-        
-        Using max_atr_used (the highest ATR recorded between T0 and T1) 
-        prevents the 'Lagging Indicator Paradox' during volatility expansion.
+        Args:
+            mae_distance: Maximum adverse price distance recorded.
+            max_atr_used: The peak ATR during the session (prevents lag).
+            
+        Returns:
+            A dictionary containing mae_stress_level_pct and tier classification.
         """
         try:
             if max_atr_used <= 0:
-                return {"error": "max_atr_used must be greater than zero."}
+                return {"error": "max_atr_used must be > 0."}
                 
             stress_level = round((mae_distance / max_atr_used) * 100, 1)
             
-            # Stress Tiers (derived from reviewer.md)
+            # Classification Tiers
             tier = "LOGIC_FAILURE"
             if stress_level <= 15: tier = "PINPOINT"
             elif stress_level <= 50: tier = "STANDARD"
@@ -220,5 +258,5 @@ class MathTools:
                 "stress_tier": tier
             }
         except Exception as e:
-            logger.error(f"MathTools: MAE stress calculation failed: {e}")
+            logger.error(f"MathTools: MAE stress failure: {e}")
             return {"error": str(e)}

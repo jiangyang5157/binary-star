@@ -29,10 +29,11 @@ from src.utils.json_utils import load_json
 logger = setup_logger("SessionEngine")
 
 class SessionEngine:
-    """
-    The Singularity Session Engine (v5.10).
-    Supports Live (Pulse/Scan) and Backtest (Historical Simulation) modes.
-    Ensures 100% logic parity across any temporal context using the SessionAgent.
+    """The Singularity Session Engine (v6.0).
+
+    Orchestrates real-time and historical market analysis using an 
+    adversarial reasoning triad. Supports Live and Backtest modes 
+    with complete logic parity.
     """
     def __init__(self, symbol: str, data_root: str, args: Any = None):
         self.symbol = symbol
@@ -71,29 +72,30 @@ class SessionEngine:
             mode_label = "PROD" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
             logger.info(f"--- Session Cycle Start [{mode_label}] ---")
             
-            # 1. Fact Gathering (Market Topography)
-            # We call the MarketObserver directly from the orchestrator hub.
+            # 1. Topographic Fact Gathering
             target_dt = None
             if timestamp_str:
                 from src.utils.datetime_utils import parse_iso_to_utc
                 target_dt = parse_iso_to_utc(timestamp_str)
             
-            logger.info(f"Observer: Commencing structural mapping for {self.symbol}...")
+            logger.info(f"Observer: Mapping structural topography for {self.symbol}...")
             observation = self.orchestrator.observer.observe(timestamp=target_dt, persist=False)
             
             if "error" in observation:
-                raise ValueError(f"Observation failed: {observation['error']}")
+                raise ValueError(f"Observer failure: {observation['error']}")
 
-            # --- v5.10 OBSERVABILITY: Log Topographic Snapshot ---
+            # Metric telemetry for forensic audit trail
             metrics = observation.get('quantitative_metrics', {})
             topo = metrics.get('volume_profile', {})
             dyn = metrics.get('price_dynamics', {})
-            logger.info(f"Topography Snapshot: POC={topo.get('poc')} | VAH={topo.get('vah')} | VAL={topo.get('val')} | ATR={dyn.get('atr_macro')}")
+            logger.info(
+                f"Topography Snapshot: POC={topo.get('poc')} | "
+                f"VAH={topo.get('vah')} | VAL={topo.get('val')} | "
+                f"ATR={dyn.get('atr_macro')}"
+            )
 
-            # 2. Binary Star Adversarial Debate
-            # The Singularity Engine always proceeds to neural inference in v5.10.
-            # Local scanner (topography) is used purely for fact gathering.
-            logger.info("Orchestrator: Initiating Binary Star Adversarial Reasoning [SessionAgent VS CriticAgent]...")
+            # 2. Adversarial Reasoning Triad
+            logger.info("BinaryStar: Initiating adversarial debate [Session Analyst VS Critic]...")
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
             # 4. Notification (Filtered)
@@ -234,10 +236,10 @@ def parse_date(date_str: str) -> datetime:
     raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
 
 def main():
-    parser = argparse.ArgumentParser(description="The Singularity Session Engine (v5.10)")
-    parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode (default: once)")
-    parser.add_argument("--symbol", type=str)
-    parser.add_argument("--email", action="store_true", help="Dispatches email alerts if confidence criteria are met")
+    parser = argparse.ArgumentParser(description="Singularity Session Engine (v6.0)")
+    parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode")
+    parser.add_argument("--symbol", type=str, help="Trading pair (e.g. BTCUSDT)")
+    parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     
     # 1. Live Configuration Group
     live_group = parser.add_argument_group("Live Options")

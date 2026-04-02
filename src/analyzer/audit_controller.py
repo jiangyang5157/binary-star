@@ -1,112 +1,175 @@
 import os
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Any
+import json
+import logging
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone
 
-from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.audit_assembler import AuditAssembler, AuditReviewConfig
-from src.utils.json_utils import load_json
-from src.utils.datetime_utils import parse_iso_to_utc
+from src.infrastructure.binance.client import BinanceFuturesClient
+from src.utils.pipeline_utils import get_file_hash, load_config
+from src.utils.path_utils import resolve_project_root
+from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
+from src.analyzer.chart_generator import ChartGenerator
+
+# Initialize standard hardened logger
+logger = logging.getLogger(__name__)
 
 class AuditController:
-    """Orchestrates the end-to-end audit review flow for a single session."""
-    def __init__(self, config_dict: Dict[str, Any], logger):
+    """The Audit Orchestrator (v6.1).
+    
+    Coordinates forensic analysis by fetching historical outcomes, 
+    triggering T1 visual capture, and assembling structural reports.
+    
+    Attributes:
+        config: The global strategy configuration dictionary.
+        data_root: The logical data repository (e.g., 'data/prod').
+    """
+    
+    def __init__(self, config_dict: Dict[str, Any], logger: Optional[logging.Logger] = None, data_root: str = "data/once"):
+        """Initializes the AuditController with required forensic components."""
         self.config = config_dict
-        self.logger = logger
-        self.audit_config = AuditReviewConfig.from_dict(config_dict)
-        self.assembler = AuditAssembler(config=self.audit_config)
-
-    def run_manual_audit(self, file_path: str) -> Dict[str, Any]:
-        """Loads a session from disk, fetches market data, and returns an audit report."""
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"Strategy file not found: {file_path}")
-
-        session = load_json(file_path)
-        obs = session.get("observation", {})
-        symbol = obs.get("symbol")
-        ts_start_str = obs.get("timestamp")
+        self.logger = logger or logging.getLogger(__name__)
+        self.data_root = data_root
         
-        if not symbol or not ts_start_str:
-            raise ValueError("Malformed session JSON: missing symbol or timestamp.")
+        # 1. Initialize Forensic Assembler
+        review_cfg = AuditReviewConfig.from_dict(config_dict)
+        self.assembler = AuditAssembler(review_cfg)
+        
+        # 2. Shared Infrastructure
+        self.binance_client = BinanceFuturesClient()
+        
+        # 3. Visual Forensic Observer (T1)
+        self.obs_config = MarketObserverConfig.from_dict(config_dict)
+        self.chart_gen = ChartGenerator(
+            output_dir=os.path.join(resolve_project_root(), self.data_root, "klines")
+        )
+        self.observer = MarketObserver(
+            config=self.obs_config,
+            symbol="BTCUSDT", # Default placeholder
+            data_root=self.data_root,
+            binance_client=self.binance_client,
+            chart_generator=self.chart_gen
+        )
 
-        dt_start = parse_iso_to_utc(ts_start_str)
-        limit_order = session.get("final_decision", {}).get("limit_order", {})
-        window_hours = float(limit_order.get("holding_time_hours", 24))
-        dt_fetch_end = min(dt_start + timedelta(hours=window_hours), datetime.now(timezone.utc))
-
-        self.logger.info(f"Auditing {symbol} from {ts_start_str} to {dt_fetch_end.isoformat()}")
-
-        client = BinanceFuturesClient()
+    def run_manual_audit(self, session_file_path: str) -> Dict[str, Any]:
+        """Performs a comprehensive forensic audit on a specific session.
+        
+        Args:
+            session_file_path: Absolute or relative path to the session JSON.
+            
+        Returns:
+            An audit result dictionary containing session, outcome, and report.
+            
+        Raises:
+            Exception: If the session file cannot be processed or analysis fails.
+        """
+        if not os.path.isabs(session_file_path):
+            session_file_path = os.path.join(resolve_project_root(), session_file_path)
+            
+        with open(session_file_path, 'r', encoding='utf-8') as f:
+            session = json.load(f)
+            
+        obs = session.get("observation", {})
+        symbol = obs.get("symbol", "BTCUSDT")
+        t0_str = obs.get("timestamp")
+        
+        # Update Observer for the correct symbol
+        self.observer.symbol = symbol
+        
+        from src.utils.datetime_utils import parse_iso_to_utc
+        t0_dt = parse_iso_to_utc(t0_str)
+        t1_dt = datetime.now(timezone.utc)
+        
+        self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to NOW ({t1_dt.isoformat()})")
+        
         try:
-            # 1. Fetch Market Data
-            interval = self.audit_config.micro_interval
-            interval_map = {"1m": 60, "3m": 180, "5m": 300, "15m": 900, "1h": 3600}
-            sec = interval_map.get(interval, 60)
-            limit = int((dt_fetch_end - dt_start).total_seconds() / sec) + 10
+            # 4. --- PHYSICAL FORENSIC: T1 Visual Capture ---
+            # Capture visuals FIRST to ensure a forensic snapshot even if klines are missing.
+            self.logger.info(f"Audit: Capturing T1 visual evidence (Macro/Micro) for {symbol}...")
+            t1_observation = self.observer.observe(persist=True)
+            t1_assets = t1_observation.get("visual_assets", {})
 
-            klines = client.fetch_historical_klines(
-                symbol=symbol,
-                interval=interval,
-                limit=limit,
-                startTime=int(dt_start.timestamp() * 1000),
-                endTime=int(dt_fetch_end.timestamp() * 1000)
-            )
+            # 5. Fetch Outcome Klines
+            client = self.binance_client
+            klines = []
+            try:
+                # We fetch 1h klines to determine the MAE/MFE outcome
+                klines = client.fetch_historical_klines(
+                    symbol=symbol,
+                    interval="1h",
+                    limit=1000,
+                    startTime=int(t0_dt.timestamp() * 1000),
+                    endTime=int(t1_dt.timestamp() * 1000)
+                )
+            except Exception as ke:
+                self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only audit.")
 
-            if not klines:
-                raise RuntimeError("No market data found for the requested audit window.")
-
-            # 2. Execute Deterministic Audit
-            price_dynamics = obs.get("quantitative_metrics", {}).get("price_dynamics", {})
-            atr_t0 = float(price_dynamics.get("atr_macro") or 0)
-            target_entry = float(limit_order.get("entry") or klines[0][1])
-
+            # 6. Assemble Forensic Outcome
+            metrics = obs.get("quantitative_metrics", {})
+            dynamics = metrics.get("price_dynamics", {})
+            atr_proto = dynamics.get("atr_macro", 0)
+            
+            # Fetch current ATR for peak-volatility normalization (T1)
+            atr_t1 = t1_observation.get("quantitative_metrics", {}).get("price_dynamics", {}).get("atr_macro", atr_proto)
+            
             outcome = self.assembler.calculate_outcome(
                 klines=klines,
-                entry_price=target_entry,
+                entry_price=dynamics.get("current_price", 0),
                 strategy=session,
-                atr_macro_t0=atr_t0,
-                atr_macro_t1=atr_t0,
-                interval_hours=sec/3600.0
+                atr_macro_t0=float(atr_proto),
+                atr_macro_t1=float(atr_t1),
+                interval_hours=1.0
             )
+            
+            # Inject T1 visual paths into the outcome for notification engine
+            outcome["visual_context"] = {
+                "t1_macro": t1_assets.get("macro_snapshot"),
+                "t1_micro": t1_assets.get("micro_snapshot")
+            }
 
-            report = self.assembler.review(session, outcome)
-            return {"outcome": outcome, "report": report, "symbol": symbol, "session": session}
-
-        finally:
-            client.close()
+            # 7. Final Review Analysis
+            report = self.assembler.review(session, outcome, t1_observation)
+            
+            return {
+                "symbol": symbol,
+                "session": session,
+                "outcome": outcome,
+                "report": report,
+                "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S")
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Audit: Forensic analysis failed for {symbol}: {e}", exc_info=True)
+            raise
 
     def save_report(self, audit_result: Dict[str, Any]) -> str:
-        """
-        Persists the audit review to a standardized JSON file.
-        Returns the absolute path to the saved report.
-        """
+        """Standardized archival for forensic audit bundles."""
         symbol = audit_result["symbol"]
         report = audit_result["report"]
         outcome = audit_result["outcome"]
         session = audit_result["session"]
+        audit_ts = audit_result.get("audit_timestamp_compact") or datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # Build the final audit bundle
+        # v6.1 Refined Structural Bundle
         bundle = {
             "strategy_session": session,
             "market_outcome": outcome,
             "audit_findings": report,
-            "audit_timestamp": datetime.now(timezone.utc).isoformat()
+            "audit_metadata": {
+                "config_hash": get_file_hash("config/strategy_config.yaml"),
+                "audit_timestamp": audit_ts,
+                "audit_version": "6.1"
+            }
         }
         
-        # Resolve paths via project standards
-        from src.utils.pipeline_utils import resolve_data_root
-        from src.utils.path_utils import resolve_project_root
-        from src.utils.json_utils import save_json
+        output_dir = os.path.join(resolve_project_root(), self.data_root, "audits")
+        os.makedirs(output_dir, exist_ok=True)
         
-        # Use 'once' as default data root for audit context if not provided
-        data_root = resolve_data_root("once")
-        output_dir = os.path.join(resolve_project_root(), data_root, "audits")
+        filename = f"{symbol}_audit_{audit_ts}.json"
+        output_file = os.path.join(output_dir, filename)
         
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"{symbol}_audit_{ts}.json"
-        path = os.path.join(output_dir, filename)
-        
-        if save_json(bundle, path):
-            self.logger.info(f"Audit: Report persisted to {path}")
-            return path
-        else:
-            raise RuntimeError(f"Audit: Failed to save report to {path}")
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(bundle, f, indent=2, ensure_ascii=False)
+            
+        self.logger.info(f"Audit: Forensic report archived: {os.path.basename(output_file)}")
+        return output_file

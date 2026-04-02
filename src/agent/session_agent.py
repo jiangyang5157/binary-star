@@ -1,27 +1,35 @@
 import os
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List
-from google import genai
-from google.genai import types
+from typing import Dict, Any, Optional, List, Union
 
+from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.pipeline_utils import read_prompt_template, safe_format
-from src.utils.datetime_utils import get_interval_seconds
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
-logger = setup_logger(__name__, propagate = True)
+
+# Initialize session-specific logger
+logger = setup_logger(__name__, propagate=True)
 
 @dataclass(frozen=True)
 class SessionConfig(AgentConfig):
-    """Encapsulates configuration for the SessionAgent."""
-    model: str
-    model_temperature: float
-    role_prompt_path: str
-    max_tool_iterations: int
+    """Encapsulates comprehensive strategic configuration for the SessionAgent.
+    
+    This config merges high-level neural parameters with specific tactical thresholds
+    defined in the global regime parameters.
+    
+    Attributes:
+        model_temperature_draft: Temperature for the initial thesis generation.
+        model_temperature_synthesis: Lower temperature for final defensive hardening.
+        min_trade_velocity: Minimum price speed (ATR/candle) required for entry.
+        stop_loss_buffer_min: Minimum ATR distance for SL placement.
+        strategy_intent: High-level tactical directive string.
+        poc_gravity_atr_distance: Maximum distance from POC for gravity-based entry.
+        vacuum_risk_score: Threshold for detecting liquidity gaps/vacuums.
+    """
     model_temperature_draft: float
     model_temperature_synthesis: float
-
     min_trade_velocity: float
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
@@ -63,7 +71,14 @@ class SessionConfig(AgentConfig):
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "SessionConfig":
-        """Factory method to extract session config from unified config components."""
+        """Factory method to assemble a SessionConfig from the global YAML structure.
+        
+        Args:
+            cfg: The unified dictionary from strategy_config.yaml.
+            
+        Returns:
+            A populated SessionConfig instance.
+        """
         bs = cfg['binary_star']
         strat = bs['session']
         regime = cfg['regime_parameters']
@@ -74,6 +89,7 @@ class SessionConfig(AgentConfig):
             model=str(bs['model']),
             model_temperature=float(strat['model_temperature_draft']),
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
+            max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             model_temperature_draft=float(strat['model_temperature_draft']),
             model_temperature_synthesis=float(strat['model_temperature_synthesis']),
             min_trade_velocity=float(strat['min_trade_velocity']),
@@ -82,7 +98,7 @@ class SessionConfig(AgentConfig):
             score_confidence_base=float(strat['score_confidence_base']),
             score_confidence_decay_min=float(strat['score_confidence_decay_min']),
             score_confidence_decay_max=float(strat['score_confidence_decay_max']),
-            strategy_intent=str(cfg['strategy_intent']),
+            strategy_intent=str(cfg.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
             trend_intensity_threshold=float(regime['trend_intensity_threshold']),
@@ -113,21 +129,18 @@ class SessionConfig(AgentConfig):
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
-            cvd_slope_threshold=float(regime['cvd_slope_threshold']),
-            max_tool_iterations=int(shared.get('max_tool_iterations', 5))
+            cvd_slope_threshold=float(regime['cvd_slope_threshold'])
         )
 
 class SessionAgent(BaseAgent):
-    """
-    The Session & Decision Engine.
+    """The Session Analyst & Decision Engine.
     
-    This agent coordinates the reasoning triad:
-    1. PHASE A (DRAFTING): Transforms raw terminal telemetry into an initial 
-       strategic execution plan (Limit Entry, TP, SL).
-    2. PHASE B (SYNTHESIS): Absorbs adversarial feedback from the Audit 
-       to harden the plan, applying 'Deep Limit Entry' (DLE) mitigations 
-       where structural risks are identified.
+    Responsible for transforming topographical telemetry into tactical trade blueprints.
+    Operates in two primary phases:
+    1. Drafting: Initial directional hypothesis and parameterization.
+    2. Synthesis: Hardening the draft plan against Critic adversarial feedback.
     """
+    
     def __init__(
         self, 
         config: SessionConfig, 
@@ -136,12 +149,9 @@ class SessionAgent(BaseAgent):
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
-        retry_max: int,
-        model: Optional[str] = None
+        retry_max: int
     ):
-        """
-        Initializes the SessionAgent with a pre-assembled type-safe configuration.
-        """
+        """Standard constructor with dependency injection."""
         self.config = config
         super().__init__(
             config=self.config,
@@ -161,13 +171,21 @@ class SessionAgent(BaseAgent):
         tools: Optional[List[Any]] = None,
         critic_feedback: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """
-        Unified drafting method (The Phase 1 Core).
-        Supports both Truth Bus (Cache) and Debug (Direct JSON) modes.
+        """Executes Phase 1 (Drafting) of the reasoning cycle.
+        
+        Args:
+            observation: Raw market telemetry (required if cache_id is None).
+            symbol: Trading pair code.
+            cache_id: Semantic context identifier for high-performance inference.
+            tools: Native Python tool schemas definitions.
+            critic_feedback: Optional rebuttal from a previous round for re-drafting.
+            
+        Returns:
+            A reasoning draft containing 'opinion' and 'tactical_parameters'.
         """
         try:
             prompt = self._build_prompt(observation, critic_feedback=critic_feedback, cache_id=cache_id)
-            logger.info(f"Session: Drafting thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            logger.info(f"Session: Generating initial thesis for {symbol}...")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
@@ -177,25 +195,40 @@ class SessionAgent(BaseAgent):
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Session: Drafting failed for {symbol}: {e}")
+            logger.error(f"Session: Critical failure during drafting for {symbol}: {e}")
             raise
 
-    def synthesize(self, 
-                   draft_plan: Dict[str, Any], 
-                   critic_results: Dict[str, Any], 
-                   cache_id: Optional[str] = None,
-                   math_fact_check: Optional[Dict[str, Any]] = None,
-                   observation: Optional[Dict[str, Any]] = None,
-                   tools: Optional[List[Any]] = None
+    def synthesize(
+        self, 
+        draft_plan: Dict[str, Any], 
+        critic_results: Dict[str, Any], 
+        cache_id: Optional[str] = None,
+        math_fact_check: Optional[Dict[str, Any]] = None,
+        observation: Optional[Dict[str, Any]] = None,
+        tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """
-        Unified synthesis method (The Phase 3 Hardening).
-        Integrates adversarial feedback into the final decision.
+        """Executes Phase 3 (Synthesis) for final plan hardening.
+        
+        Args:
+            draft_plan: The Phase 1 output.
+            critic_results: The adversarial audit results from the CriticAgent.
+            cache_id: Context identifier.
+            math_fact_check: Objective truth verification from Python utils.
+            observation: Market topography (if no cache).
+            tools: Tool definitions.
+            
+        Returns:
+            The finalized, hardened trading decision.
         """
         try:
-            # During synthesis, we typically rely on Cache for topographic data
-            prompt = self._build_prompt(observation, draft_plan, critic_results, math_fact_check=math_fact_check, cache_id=cache_id)
-            logger.info(f"Session: Synthesizing final hardened decision (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            prompt = self._build_prompt(
+                observation, 
+                draft_plan, 
+                critic_results, 
+                math_fact_check=math_fact_check, 
+                cache_id=cache_id
+            )
+            logger.info(f"Session: Hardening decision against adversarial audit...")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
@@ -205,7 +238,7 @@ class SessionAgent(BaseAgent):
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Session: Synthesis failed: {e}")
+            logger.error(f"Session: Critical failure during synthesis: {e}")
             raise
 
     def _build_prompt(
@@ -216,22 +249,17 @@ class SessionAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> str:
+        """Internal logic for constructing the multimodal reasoning context.
+        
+        Orchestrates variable injection for both zero-knowledge (direct) 
+        and high-context (cached) inference modes.
         """
-        Constructs the reasoning prompt using the Truth Bus Decision Matrix:
-        1. Cache ID present -> Reference context, suppress JSON. (Production)
-        2. Observation present -> Embed raw JSON. (Debug / Fallback)
-        3. Both None -> Fuse / Raise ValueError. (Safety)
-        """
-        # --- The Truth Bus Matrix ---
         if cache_id:
-            # Production: Optimization active. Refer to system context.
-            observation_json = "[CONTEXT_PROVIDED_VIA_CACHE]"
+            observation_json = "[CONTEXT_PROVIDED_VIA_GEMINI_CACHE]"
         elif observation:
-            # Debug/Fallback: Manual data injection.
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
         else:
-            # Safety Fuse: Prevent reasoning without topographic data
-            raise ValueError("Session: Zero-Knowledge State. Neither observation nor cache_id provided.")
+            raise ValueError("Session: Reasoning attempted without market telemetry.")
 
         context = {
             "observation_json": observation_json,
@@ -280,23 +308,26 @@ class SessionAgent(BaseAgent):
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)
 
-    # --- Tool Delegate Methods (for Function Calling) ---
+    # --- Tool Delegates (Function Calling Interfaces) ---
     
     def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> Dict[str, Any]:
+        """[TOOL] Calculates the Risk-Reward (RR) ratio for a trade geometry."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
 
     def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: Optional[float] = None) -> Dict[str, Any]:
+        """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
 
     def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: Optional[float] = None, vah: Optional[float] = None, val: Optional[float] = None) -> Dict[str, Any]:
+        """[TOOL] Measures isolation/shielding between SL and structural anchors (POC/VAH/VAL)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, macro_interval_minutes: int) -> Dict[str, Any]:
-        """[DELEGATE] Projects holding time using the config-driven velocity floor."""
+        """[TOOL] Estimates trade duration based on market velocity floors."""
         from src.utils.math_utils import MathTools
         return MathTools.project_holding_time(
             entry, take_profit, atr, trend_intensity, 

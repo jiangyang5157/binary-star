@@ -109,7 +109,7 @@ audit_review:
   
   # --- Opportunity Cost & Cowardice Penalties ---
   # ATR distance missed in 'Neutral' outcomes that triggers an audit.
-  score_opportunity_cost_limit: 1.5
+  score_opportunity_cost_limit: 2.0
   # Catastrophic miss threshold (missed massive trend while Neutral).
   score_opportunity_cost_catastrophe_limit: 5.0
   score_opportunity_cost_catastrophe_floor: -10

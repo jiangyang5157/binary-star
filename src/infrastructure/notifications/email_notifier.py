@@ -177,15 +177,20 @@ class AuditEmailTemplate(BaseEmailTemplate):
         strat_ts = obs.get("timestamp", "")
         audit_ts = audit_data.get("audit_timestamp", "")
         
-        # Local Time Conversion
-        try:
-            strat_dt = datetime.fromisoformat(strat_ts.replace("Z", "+00:00")).astimezone()
-            display_strat_time = strat_dt.strftime("%Y-%m-%d %H:%M:%S")
-            audit_dt = datetime.fromisoformat(audit_ts.replace("Z", "+00:00")).astimezone()
-            display_audit_time = audit_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-        except Exception:
-            display_strat_time = strat_ts
-            display_audit_time = audit_ts
+        # Local Time Conversion (Helper to handle multiple formats)
+        def parse_to_local(ts_str):
+            if not ts_str: return ts_str
+            try:
+                if "_" in ts_str and "-" not in ts_str:
+                    dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+                else:
+                    dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+            except:
+                return ts_str
+
+        display_strat_time = parse_to_local(strat_ts)
+        display_audit_time = parse_to_local(audit_ts)
 
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
@@ -626,7 +631,10 @@ class SessionNotifier:
         strat_session = (audit_data or {}).get("strategy_session") or {}
         t0_obs = strat_session.get("observation") or {}
         t0_assets = t0_obs.get("visual_assets") or {}
-        visual_ctx = audit_data.get("visual_context") or {}
+        
+        # v6.1 Structural alignment: visual_context is now within market_outcome
+        outcome = (audit_data or {}).get("market_outcome") or {}
+        visual_ctx = outcome.get("visual_context") or {}
         
         # Attach all 4 snapshots (Macro/Micro T0 vs T1)
         attachments = {
