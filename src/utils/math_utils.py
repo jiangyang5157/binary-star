@@ -162,3 +162,63 @@ class MathTools:
         except Exception as e:
             logger.error(f"MathTools: Holding time projection failed: {e}")
             return {"error": str(e)}
+    @staticmethod
+    def calculate_opportunity_cost(
+        missed_range: float,
+        atr_macro: float
+    ) -> Dict[str, Any]:
+        """
+        Quantifies the 'Cost of Cowardice' for Neutral decisions.
+        
+        Logic:
+        - missed_relative_range = missed_range / atr_macro
+        
+        This metric allows the Evolver to penalize agents for staying Neutral 
+        when the market moved significantly in a clear structural direction.
+        """
+        try:
+            if atr_macro <= 0:
+                return {"error": "ATR must be greater than zero."}
+            
+            rel_range = round(missed_range / atr_macro, 2)
+            return {
+                "missed_relative_range": rel_range,
+                "is_catastrophic_miss": rel_range > 2.0 # Standard threshold for logic failure
+            }
+        except Exception as e:
+            logger.error(f"MathTools: Opportunity cost calculation failed: {e}")
+            return {"error": str(e)}
+
+    @staticmethod
+    def calculate_mae_stress(
+        mae_distance: float,
+        max_atr_used: float
+    ) -> Dict[str, Any]:
+        """
+        Evaluates the physical stress of a holding period.
+        
+        Logic:
+        - mae_stress_level = (mae_distance / max_atr_used) * 100
+        
+        Using max_atr_used (the highest ATR recorded between T0 and T1) 
+        prevents the 'Lagging Indicator Paradox' during volatility expansion.
+        """
+        try:
+            if max_atr_used <= 0:
+                return {"error": "max_atr_used must be greater than zero."}
+                
+            stress_level = round((mae_distance / max_atr_used) * 100, 1)
+            
+            # Stress Tiers (derived from reviewer.md)
+            tier = "LOGIC_FAILURE"
+            if stress_level <= 15: tier = "PINPOINT"
+            elif stress_level <= 50: tier = "STANDARD"
+            elif stress_level <= 80: tier = "LUCK"
+            
+            return {
+                "mae_stress_level_pct": stress_level,
+                "stress_tier": tier
+            }
+        except Exception as e:
+            logger.error(f"MathTools: MAE stress calculation failed: {e}")
+            return {"error": str(e)}

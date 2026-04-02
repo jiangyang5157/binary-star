@@ -8,16 +8,24 @@ from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("EvolverAgent")
 
+@dataclass(frozen=True)
 class EvolverConfig(AgentConfig):
     """Configuration for the Evolver meta-agent."""
+    model: str
+    model_temperature: float
+    role_prompt_path: str
+    max_tool_iterations: int
+
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
         """Factory method to extract evolver config from the standalone evolver node."""
         evo = cfg.get('evolver', {})
+        shared = cfg.get('agent_model_shared_config', {})
         return cls(
             model=str(evo.get('model', 'gemini-2.5-flash')),
             role_prompt_path=os.path.join(resolve_project_root(), evo.get('role_definition_prompt', '')),
-            model_temperature=float(evo.get('model_temperature', 0.0))
+            model_temperature=float(evo.get('model_temperature', 0.0)),
+            max_tool_iterations=int(shared.get('max_tool_iterations', 5))
         )
 
 class EvolverAgent(BaseAgent):
@@ -25,8 +33,25 @@ class EvolverAgent(BaseAgent):
     The Meta-Optimizer responsible for Darwinian evolution of the system.
     Transforms forensic failures into physical laws (Patches/Distillation).
     """
-    def __init__(self, config: EvolverConfig, api_key: str):
-        super().__init__(config, api_key)
+    def __init__(
+        self, 
+        config: EvolverConfig, 
+        ai_client: genai.Client,
+        api_timeout: int,
+        retry_count: int,
+        retry_multiplier: float,
+        retry_min: int,
+        retry_max: int
+    ):
+        super().__init__(
+            config=config,
+            ai_client=ai_client,
+            api_timeout=api_timeout,
+            retry_count=retry_count,
+            retry_multiplier=retry_multiplier,
+            retry_min=retry_min,
+            retry_max=retry_max
+        )
         self.config = config
 
     def evolve(

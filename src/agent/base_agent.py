@@ -12,23 +12,25 @@ from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)
 
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class AgentConfig:
+    """Base configuration for all neural agents."""
+    model: str
+    model_temperature: float
+    role_prompt_path: str
+    max_tool_iterations: int
+
 class BaseAgent:
     """
     Abstract Base Class for all AI-driven agents in the forensic trading pipeline.
-    
-    This class centralizes common AI interaction patterns, including:
-    - Gemini client management and file API access.
-    - Standardized prompt template loading and context injection.
-    - Robust JSON extraction with 'Strict JSON' enforcement.
-    - Unified error handling and logging across the agent triad.
     """
     
     def __init__(
         self, 
-        model: str, 
-        temperature: float, 
+        config: AgentConfig,
         ai_client: genai.Client, 
-        max_tool_iterations: int,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
@@ -38,10 +40,11 @@ class BaseAgent:
         """
         Initializes the agent with core AI configuration and dependencies.
         """
-        self.model = model
-        self.temperature = temperature
+        self.config = config
+        self.model = config.model
+        self.temperature = config.model_temperature
+        self.max_tool_iterations = config.max_tool_iterations
         self.client = ai_client
-        self.max_tool_iterations = max_tool_iterations
         self.api_timeout = api_timeout
         self.retry_count = retry_count
         self.retry_multiplier = retry_multiplier

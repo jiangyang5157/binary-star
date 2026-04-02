@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, List
 from google import genai
 from google.genai import types
 
-from src.agent.base_agent import BaseAgent
+from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.datetime_utils import get_interval_seconds
 from src.utils.path_utils import resolve_project_root
@@ -13,12 +13,15 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__, propagate = True)
 
 @dataclass(frozen=True)
-class StrategistConfig:
+class StrategistConfig(AgentConfig):
     """Encapsulates configuration for the StrategistAgent."""
     model: str
+    model_temperature: float
     role_prompt_path: str
+    max_tool_iterations: int
     model_temperature_draft: float
     model_temperature_synthesis: float
+
     min_trade_velocity: float
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
@@ -52,7 +55,6 @@ class StrategistConfig:
     holding_time_modifier: float
     regime_participation_volume_threshold: float
     regime_anchor_drift_threshold: float
-    max_tool_iterations: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "StrategistConfig":
@@ -65,6 +67,7 @@ class StrategistConfig:
         
         return cls(
             model=str(bs['model']),
+            model_temperature=float(strat['model_temperature_draft']),
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
             model_temperature_draft=float(strat['model_temperature_draft']),
             model_temperature_synthesis=float(strat['model_temperature_synthesis']),
@@ -118,12 +121,12 @@ class StrategistAgent(BaseAgent):
     def __init__(
         self, 
         config: StrategistConfig, 
+        ai_client: genai.Client,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
         retry_max: int,
-        ai_client: genai.Client,
         model: Optional[str] = None
     ):
         """
@@ -131,10 +134,8 @@ class StrategistAgent(BaseAgent):
         """
         self.config = config
         super().__init__(
-            model=model if model else self.config.model,
-            temperature=self.config.model_temperature_draft,
+            config=self.config,
             ai_client=ai_client,
-            max_tool_iterations=self.config.max_tool_iterations,
             api_timeout=api_timeout,
             retry_count=retry_count,
             retry_multiplier=retry_multiplier,

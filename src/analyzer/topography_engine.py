@@ -423,7 +423,7 @@ class ObserverAgent:
         # --- Data Quality Fuse ---
         # Production Hardening: Fail fast if data integrity is compromised.
         # We require at least 90% of requested klines to maintain topographic accuracy.
-        macro_threshold = int(self.config.macro_context.historical_lookback_candles * 0.9)
+        macro_threshold = int(self.config.macro_context.lookback_candles * 0.9)
         if len(raw.macro_klines) < macro_threshold:
             logger.error(f"Observer: Data Integrity Failure. Macro Klines count ({len(raw.macro_klines)}) < threshold ({macro_threshold})")
             return {"error": "Data Integrity Failure", "details": "Insufficient macro market telemetry."}
@@ -486,17 +486,17 @@ class ObserverAgent:
                 "macro_timeframe": {
                     "interval": self.config.macro_context.time_interval,
                     "interval_minutes": int(get_interval_seconds(self.config.macro_context.time_interval) / 60),
-                    "limit": self.config.macro_context.historical_lookback_candles
+                    "limit": self.config.macro_context.lookback_candles
                 },
                 "micro_timeframe": {
                     "interval": self.config.micro_context.time_interval,
                     "interval_minutes": int(get_interval_seconds(self.config.micro_context.time_interval) / 60),
-                    "limit": self.config.micro_context.historical_lookback_candles
+                    "limit": self.config.micro_context.lookback_candles
                 },
                 "lookback_windows": {
                     "order_flow_lookback_hours": self.config.order_flow_lookback_hours,
                     "trend_intensity_duration_hours": self.config.trend_intensity_duration_hours,
-                    "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.historical_lookback_candles) / 3600, 1)
+                    "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.lookback_candles) / 3600, 1)
                 }
             },
             "visual_assets": charts,

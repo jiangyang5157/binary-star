@@ -12,9 +12,10 @@ network:
     api_timeout_seconds: 60
     retry_count: 2
   gemini:
+    api_timeout_seconds: 60
     circuit_breaker_threshold: 3
-    retry_count: 2
     max_tool_iterations: 5
+    retry_count: 2
     retry_strategy:
       multiplier: 1
       min_seconds: 2

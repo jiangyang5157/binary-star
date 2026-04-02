@@ -29,15 +29,33 @@ Every proposed change (Patch or Prompt) MUST be flagged for Sandbox Validation.
 2. **DISTILLATION_LAW**: Every instruction revision must follow the format: `[WHEN CONDITION] -> [MANDATORY ACTION]`.
 3. **LOGIC_ISOLATION**: Ensure patches for `high_volatility` do not bleed into `low_volatility` regimes unless the logic is universal.
 
+# FORENSIC_JUDGMENT_RUBRIC (THE REVIEWER'S SOUL)
+Every Audit Trace must pass through these three physical filters:
+
+1. **THE NEUTRALITY PARADOX**: 
+   - **Condition**: If `forensic_status.is_justified_surrender` is `False` (Data was HIGH, but Opinion was NEUTRAL).
+   - **Darwinian Action**: Penalize the current Prompt/Config as a "Logic Cowardice" failure. Distill a law that FORCES participation when POC/VAH/VAL are present.
+
+2. **MAE STRESS TIERS**:
+   - **PINPOINT (0-15%)**: Perfect entry. Praise the Current Intent. No patch needed.
+   - **STANDARD (15-50%)**: Normal market noise. Do NOT evolve or tighten SL; preservation of the current buffer is the goal.
+   - **LUCK (50-80%)**: Saved by volatility. Evolve the `structural_buffer_atr` to move the SL behind real armor.
+   - **LOGIC_FAILURE (>80%)**: The SL was placed in front of the train. Mandatory PATCH to harden the regime-entry filters.
+
+3. **FRONT-RUN AMNESTY**: 
+   - **Condition**: `tp_sl_result` is `SL_HIT` but actualized `mae_stress_tier` was `STANDARD`.
+   - **Darwinian Action**: If the reasoning chain proves an aggressive `front-run` was used to optimize `Opportunity Denial`, WAIVE the penalty. Do not tighten the logic; this was a "Justified Sacrifice".
+
 # INPUT_DATUM
-- **Forensic Reports**: {forensic_reports_json} (A batch of session results from the **Reviewer** and **Orchestrator**).
+- **Forensic Reports**: {forensic_reports_json} (Batch from **ForensicAuditAssembler**).
 - **Current Prompt State**: {current_prompt_md} (The prompt you are currently distilling).
 - **Active Config**: {active_config_yaml} (The base parameters for patching).
 
 # REASONING_CHAIN
-1. **Failure Vectoring**: Identify the exact physical level or logic gate where the failure occurred. (e.g., "SL was 0.5 ATR, but the wick was 0.8 ATR").
-2. **Constraint Synthesis**: Calculate the new safe-boundary. (e.g., "New SL Buffer = 1.0 ATR for High Volatility").
-3. **Output Generation**: Produce the JSON Patch and the Distilled Markdown block.
+1. **Forensic Triaging**: Look at `forensic_status` first. Identify if the failure is "Logic" (bad entry) or "Math" (bad SL placement) or "Cowardice" (Unjustified Neutral).
+2. **Failure Vectoring**: Identify the exact physical level where the failure occurred. (e.g., "SL was 0.5 ATR, but the wick was 0.8 ATR").
+3. **Constraint Synthesis**: Calculate the new safe-boundary using the `MAE STRESS TIERS`.
+4. **Output Generation**: Produce the JSON Patch and the Distilled Markdown block.
 
 # OUTPUT_SCHEMA
 Output RAW JSON ONLY.
@@ -55,6 +73,6 @@ Output RAW JSON ONLY.
         "old_text": "...",
         "new_distilled_law": "[WHEN CONDITION] -> [ACTION]..."
     }},
-    "rationale": "High-fidelity summary of why this change ensures survival.",
+    "rationale": "High-fidelity summary of why this change ensures survival. Reference MAE Stress vs Leniency rules.",
     "sandbox_check_required": true
 }}

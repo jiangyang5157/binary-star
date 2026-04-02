@@ -1,60 +1,115 @@
+# =============================================================================
+# STRATEGY OPERATING SYSTEM (v4.9 - Binary Star Edition)
+# =============================================================================
+# PRIME DIRECTIVE: Structural Convexity.
+# Small losses are acceptable, large wins are targeted, but 
+# LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED.
+# =============================================================================
+
 strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess a forensic mathematical edge and absolute structural invalidation."
 
 regime_parameters:
-  # --- Trend & Momentum Knobs ---
+  # --- Trend & Momentum Vectors (Regime Detection) ---
+  # Minimum vector strength to classify as 'Trending'. Range [0, 1].
   trend_intensity_threshold: 0.4
+  # Threshold for 'High Conviction' trends where aggressive participation is enabled.
   trend_intensity_strong: 0.5
+  # The lookback window for estimating structural momentum.
   trend_intensity_duration_hours: 24.0
+  # Clipping multiplier to filter noise in low-velocity regimes.
+  boundary_clipping_atr: 0.2
   
-  # --- Volatility & Risk Knobs ---
+  # --- Volatility & Risk Fractals (Noise Management) ---
+  # Ratio of current ATR vs Macro Baseline. >1.3 indicates volatility expansion.
   volatility_baseline_ratio: 1.3
+  # Threshold where the system switches to 'Defensive' buffers to avoid stop-hunts.
   volatility_expansion_ratio: 1.5
+  # Threshold for 'Chaos' regimes where market topography becomes unreliable.
   volatility_extreme_ratio: 2.0
+  # Lookback period for calculating relative volatility intensity.
   volatility_intensity_lookback: 24
   
-  # --- Volume & Structure Knobs ---
+  # --- Physical Topography & Volume Confluence ---
+  # Multiplier for volume breakout detection relative to moving average.
   volume_breakout_threshold: 1.5
+  # Baseline volume participation required for structural validation.
   volume_baseline_ratio: 1.0
+  # Minimum volume required to prove institutional presence at a level.
   participation_volume_threshold: 1.5
+  # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
   long_short_imbalance_ratio: 1.8
+  # Confluence power of POC (Point of Control) relative to other nodes.
   poc_confluence_strength: 0.9
+  # The 'Magnetic Field' range of the POC in ATR units.
   poc_gravity_atr_distance: 3.0
+  # Distance within which the POC acts as a hard exit target/magnet.
   poc_magnet_atr_threshold: 2.0
+  # Theoretical 'Balanced' range width in ATR units.
   balanced_atr_multiplier: 2.0
+  # Volume multiplier required to override the POC's gravitational pull.
   gravity_volume_override_ratio: 1.5
+  # Protective margin behind structural levels to filter 'Wick Exhaustion'.
   structural_buffer_atr: 0.05
+  # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
+  # Maximum allowed drift of the current price from the historical Anchor price.
   anchor_drift_threshold: 3.0
   
-  # --- Micro-Sentiment & Exhaustion Knobs ---
+  # --- Micro-Sentiment & Exhaustion Indicators ---
+  # Score threshold for 'Volume Vacuums' where liquidity is non-existent.
   vacuum_risk_score: 0.3
+  # Degree of wick skewness required to signal buyer/seller exhaustion.
   wick_skewness_exhaustion: 0.6
   wick_skewness_momentum_bullish: 0.8
   wick_skewness_momentum_bearish: 0.2
+  # Gradient of Cumulative Volume Delta slope for divergence detection.
   cvd_slope_threshold: 1.0
+  # Minimum compression required to signal an impending squeeze.
   squeeze_threshold: 1.0
+  # Probability floor for squeeze audit validation.
   squeeze_audit_threshold: 0.85
   
-  # --- Execution Safety Knobs ---
+  # --- Execution Safety & Friction Buffers ---
+  # Buffer added to breakout entries to filter 'False Breakouts'.
   breakout_buffer_atr: 0.2
+  # Aggressive offset for 'Front-Running' institutional liquidity clusters.
   breakout_frontrun_atr: 0.45
+  # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
   min_rr_ranging: 1.0
+  # Minimum acceptable Risk-Reward ratio for trending (Momentum) cycles.
   min_rr_trending: 1.5
+  # Lookback duration for analyzing fine-grained order flow dynamics.
   order_flow_lookback_hours: 1.0
 
 forensic_audit_thresholds:
-  # Reviewer Scoring & Logic Limits
+  # --- MAE Stress Tiers (% of SL distance) ---
+  # Maximum adverse excursion for a 'Pinpoint' perfect entry.
   score_mae_pinpoint_limit: 15
+  # Limit for a 'Standard' entry; within expected market noise.
   score_mae_standard_limit: 50
+  # Threshold marking 'Logic Failure'; the entry occurred before price stabilization.
   score_mae_logic_failure_limit: 85
+  
+  # --- MFE Efficiency (Captured Profit vs Potential) ---
   score_mfe_optimal_upper: 110
   score_mfe_optimal_lower: 100
+  # Threshold for 'Greed Trap'; trade was held too long past structural targets.
   score_mfe_acceptable_limit: 150
+  
+  # --- Opportunity Cost & Cowardice Penalties ---
+  # ATR distance missed in 'Neutral' outcomes that triggers an audit.
   score_opportunity_cost_limit: 1.5
+  # Catastrophic miss threshold (missed massive trend while Neutral).
   score_opportunity_cost_catastrophe_limit: 5.0
   score_opportunity_cost_catastrophe_floor: -10
+  
+  # --- Systemic & Temporal Efficiency ---
+  # Max multiplier of estimated holding time allowed before 'Dead Capital' penalty.
   score_time_efficiency_limit: 2.5
+  # Instant-Zero penalty for protocol breaches or data hallucinations.
   penalty_compliance_breach: -100
+  
+  # --- Scoring Matrix (Points) ---
   point_base_tp_hit: 40
   point_base_sl_hit: 10
   point_base_neutral_valid: 20
@@ -67,32 +122,43 @@ forensic_audit_thresholds:
   point_bonus_optimal_capture: 10
   score_missed_opportunity_base: 1.0
   score_mae_extra_buffer: 0.5
+  # Leniency granted for justified aggressive front-running to avoid Opportunity Denial.
   score_frontrun_leniency_pct: 30
 
 sampling_parameters:
+  # Macro Context: Structural landscape (Trend detection and Daily range).
   macro_context:
     time_interval: 1h
     lookback_candles: 336
+  # Micro Context: Tactical execution (Entry signals and Wick analysis).
   micro_context:
     time_interval: 15m
     lookback_candles: 192
   funding_rate_lookback_hours: 24.0
 
 topography_parameters:
-  # Volume Profile Engine
+  # --- Volume Profile Engine ---
+  # The % of volume defined as the 'Value Area' (Standard: 70%).
   volume_profile_value_area_width: 0.75
+  # Resolution of the price histogram.
   volume_profile_price_bucket_count: 300
+  # Period for smoothing volume participation.
   volume_moving_average_period: 21
   
-  # Structural Node Detection
+  # --- Structural Node Detection ---
+  # Max number of HVN (High Volume Nodes) to track as magnets.
   max_high_volume_node_count: 3
+  # Max number of LVN (Low Volume Nodes) to track as rejection barriers.
   max_low_volume_node_count: 3
+  # Probability threshold for detecting a structural High Volume Node.
   high_volume_node_detection_threshold: 0.15
+  # Probability threshold for detecting a structural Low Volume Node.
   low_volume_node_detection_threshold: 0.05
+  # Minimum gap required to distinguish two separate structural nodes.
   min_price_gap_between_nodes: 50
   top_structural_node_count: 3
   
-  # Technical Indicators (Sensor Math)
+  # --- Technical Sensors (Physics Math) ---
   average_true_range_period: 21
   bollinger_bands_period: 21
   bollinger_bands_std_dev: 2.0
@@ -101,45 +167,63 @@ topography_parameters:
   wick_skewness_period: 3
   wick_skew_fallback: 0.5
   
-  # Liquidity Magnet Analysis
+  # --- Liquidity Magnet (Liquidation Clusters) ---
+  # Number of forced-liquidation clusters to analyze simultaneously.
   max_liquidation_clusters: 3
+  # Max historical liquidation events to fetch per cycle.
   max_liquidation_events_to_fetch: 50
   max_liquidation_events_for_context: 10
+  # Proximity (in ATR units) required to treat a cluster as a single magnet.
   liquidation_cluster_atr_multiplier: 0.25
   liquidation_cluster_fallback_percentage: 0.005
 
 forensic_parameters:
+  # Precision interval for back-testing execution survival (1m recommended).
   execution_timeframe_interval: 1m
 
 binary_star:
+  # The shared 'Sovereign Intelligence' model.
   model: gemini-2.5-flash
+  # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
+  # Shared Truth Bus expiration to minimize memory bloat.
   cache_expiration_minutes: 10
+  # Maximum rounds of debate before forced consensus or surrender.
   max_rounds: 2
+  # Divergence Limit. If skepticism holds above this, the system refuses to trade.
   skepticism_halt_limit: 50
   
   strategist:
     role_definition_prompt: src/agent/prompts/strategist.md
     model_temperature_draft: 0.7
     model_temperature_synthesis: 0.3
+    # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
+    # Hard safety boundaries for stop-loss placements.
     stop_loss_buffer_min: 0.3
     stop_loss_buffer_max: 2.5
     score_confidence_base: 75
+    # Decay applied for every round of doubt from the Critic.
     score_confidence_decay_min: 5
     score_confidence_decay_max: 30
+    # Redundancy multiplier for estimated holding time.
     holding_time_modifier: 1.5
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
     model_temperature: 0.3
+    # Skepticism buckets for protocol compliance mapping.
     threshold_skepticism_clear: 40
     threshold_skepticism_weak: 69
     threshold_skepticism_constructive: 89
 
-# The Meta-Optimizer (Self-Evolution Engine)
+# =============================================================================
+# THE META-OPTIMIZER (Autonomous Evolution Engine)
+# =============================================================================
 evolver:
+  # The 'Architect' model responsible for rewriting laws.
   model: gemini-2.5-flash
   role_definition_prompt: src/agent/prompts/evolver.md
+  # Deterministic temperature to ensure logic consistency (No hallucinations).
   model_temperature: 0.0
 

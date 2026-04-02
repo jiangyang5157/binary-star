@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional, Union
 from google import genai
 from google.genai import types
 
-from src.agent.base_agent import BaseAgent
+from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import extract_json_from_text
@@ -14,11 +14,12 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
-class CriticConfig:
+class CriticConfig(AgentConfig):
     """Encapsulates configuration for the CriticAgent."""
     model: str
-    role_prompt_path: str
     model_temperature: float
+    role_prompt_path: str
+    max_tool_iterations: int
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
     strategy_intent: str
@@ -118,10 +119,8 @@ class CriticAgent(BaseAgent):
         """
         self.config = config
         super().__init__(
-            model=model if model else self.config.model,
-            temperature=self.config.model_temperature,
+            config=self.config,
             ai_client=ai_client,
-            max_tool_iterations=self.config.max_tool_iterations,
             api_timeout=api_timeout,
             retry_count=retry_count,
             retry_multiplier=retry_multiplier,

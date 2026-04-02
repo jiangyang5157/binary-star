@@ -25,12 +25,18 @@ class OpportunityScanner:
         else:
             self.observer = ObserverAgent(self.config, symbol, self.data_root, BinanceFuturesClient(), ChartGenerator(output_dir=os.path.join(self.data_root, "klines")))
 
-    def scan(self) -> Dict[str, Any]:
+    def scan(self, timestamp_str: Optional[str] = None) -> Dict[str, Any]:
         """
         Executes the observer to gather current market facts.
         """
         self.logger.info(f"Scanner: Commencing structural mapping for {self.symbol}...")
-        return self.observer.observe()
+        
+        target_dt = None
+        if timestamp_str:
+            from src.utils.datetime_utils import parse_iso_to_utc
+            target_dt = parse_iso_to_utc(timestamp_str)
+            
+        return self.observer.observe(timestamp=target_dt)
 
     def should_trigger(self, observation: Dict[str, Any]) -> bool:
         """
