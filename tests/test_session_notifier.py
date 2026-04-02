@@ -10,10 +10,11 @@ if PROJECT_ROOT not in sys.path:
 
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from tests.mock_factory import MockDataFactory
+from src.utils.pipeline_utils import resolve_data_root
 
 class TestSessionNotifier(unittest.TestCase):
     def setUp(self):
-        self.data_root = "data/test"
+        self.data_root = resolve_data_root("test")
         self.notifier = SessionNotifier(data_root=self.data_root)
         self.symbol = "BTCUSDT"
 

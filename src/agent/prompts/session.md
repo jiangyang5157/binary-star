@@ -55,8 +55,13 @@ To eliminate math hallucinations, you MUST use the following tools for ALL tacti
     - **ACTION**: If A, B, or C is TRUE, you **MUST** front-run the boundary by `{regime_breakout_frontrun_atr} * ATR`.
   4. **[STRUCTURAL_ALIGNMENT]**: Position at logical anchors. Use `calculate_structural_proximity` to verify safety.
   5. **[BOUNDARY_CLIPPING]**: Apply **THE PHYSICAL BOUNDARY LAW**. If entry crosses price, clip strictly to `current_price +/- {regime_boundary_clipping_atr} * ATR`.
-- **Step 2 (Inverse Risk)**: Define SL behind the new anchor -> Identify fixed TP -> Calculate Max Entry Price using: `Entry = SL +/- (abs(take_profit - stop_loss) / (Min_RR + 1))`. **(Use `calculate_risk_reward` to verify Result).**
+- **Step 2 (Structure-First Audit)**: Define SL behind the physical anchor -> Identify fixed TP -> Calculate RR. If RR < `{regime_min_rr_ranging}` (Ranging) or `{regime_min_rr_trending}` (Trending), you MUST apply **[DISTAL_SHIFT]**: Move your `entry` distal (away from TP) towards the SL until the RR threshold is met. **CRITICAL**: The entry MUST NOT cross the SL. If required RR cannot be met without crossing the SL, you MUST default to `NEUTRAL`.
+- **Step 3 (Vacuum Offensive)**: If topography is a vacuum and no anchors exist, OR if `long_short_ratio` > `{regime_long_short_imbalance_ratio}` against your direction (especially with divergent CVD at a major HVN), you MUST execute a **Vacuum Flip** (reverse opinion to short/long the void) to hunt the liquidation cascade. Do NOT default to `NEUTRAL` unless mathematically impossible.
 
+11. **THE SQUEEZE EXHAUSTION FILTER (ABSOLUTE)**:
+- This rule overrides all breakout participation protocols:
+  - Prohibit BULLISH pivots if `current_price` > `VAH` AND (`oi_delta` is negative OR `cvd_trend` == "DOWNWARD"). Negative OI during a pump is short-covering exhaustion.
+  - Prohibit BEARISH pivots if `current_price` < `VAL` AND (`oi_delta` is negative OR `cvd_trend` == "UPWARD"). Negative OI during a dump is long-liquidation exhaustion.
 # REFERENCE_DECODING
 **EXECUTION LAW**: Use these thresholds as mandatory tactical filters.
 
@@ -64,7 +69,7 @@ To eliminate math hallucinations, you MUST use the following tools for ALL tacti
 | :--- | :--- | :--- |
 | **Dynamic Min RR** | **>= `{regime_min_rr_ranging}`x** (`RANGING`) OR **>= `{regime_min_rr_trending}`x** (`TRENDING`) | Mean-reversion allows lower RR; Breakouts require higher RR. |
 | **SL Placement** | hidden behind a structural wall. Verify via `calculate_structural_proximity`. | Ensure survival. |
-| **TP Target** | Next Structural Node | Target nearest opposing HVN (friction) or LVN (vacuum). |
+| **TP Target** | Next Structural Node | Target nearest opposing HVN (friction) or LVN (vacuum). **EXCEPTION**: If in **Price Discovery** (no anchors exist in target direction), synthetically project TP using `{regime_poc_gravity_atr_distance} * ATR` as the minimum extension. |
 
 # INPUT_DATUM
 - **Observation Content**: {observation_json} (The Market Map from **Observer Agent**).

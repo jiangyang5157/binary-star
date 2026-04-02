@@ -11,6 +11,7 @@ if PROJECT_ROOT not in sys.path:
 
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from tests.mock_factory import MockDataFactory
+from src.utils.pipeline_utils import resolve_data_root
 
 class TestBinaryStarFlow(unittest.TestCase):
     def setUp(self):
@@ -36,7 +37,7 @@ class TestBinaryStarFlow(unittest.TestCase):
 
     def test_debate_convergence_and_metadata(self):
         """Tests that the orchestrator converges when skepticism score drops."""
-        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root="data/test")
+        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root=resolve_data_root("test"))
         
         # 1. Mock SessionAgent: Returns consistent draft
         orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "BULLISH", "limit_order": {"entry": 60000}})
@@ -68,7 +69,7 @@ class TestBinaryStarFlow(unittest.TestCase):
 
     def test_max_rounds_exhaustion(self):
         """Enforces max_rounds even if convergence fails."""
-        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root="data")
+        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root=resolve_data_root("test"))
         orchestrator.stop_threshold = 20
         
         orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "NEUTRAL"})
