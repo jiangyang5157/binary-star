@@ -33,7 +33,7 @@ class EvolverSandbox:
         # We clone the existing config and apply the patch overlay
         shadow_config = failure_case.get('regime_snapshot', {}).copy()
         if proposed_patch:
-            shadow_config.update(proposed_patch.get('patch_overlays', {}))
+            shadow_config.update(proposed_patch.get('parameter_overrides', {}))
         
         # 2. Instantiate Orchestrator (Injected with Shadow Logic)
         # Note: We use the same API key but a isolated data_root if needed

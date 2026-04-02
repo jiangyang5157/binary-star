@@ -39,23 +39,23 @@ class TestSessionNotifier(unittest.TestCase):
         }
         self.notifier.notify_review(self.symbol, mock_review, save_local=True)
         
-    def test_notify_dashboard_generation(self):
-        """Verifies aggregate dashboard notification."""
+    def test_notify_ledger_generation(self):
+        """Verifies aggregate ledger notification."""
         mock_dataset = [
             {"observation_time": "2026-04-01 10:00:00", "tp_sl_result": "TP_HIT", "pnl": 2.5},
             {"observation_time": "2026-04-01 11:00:00", "tp_sl_result": "SL_HIT", "pnl": -1.2}
         ]
         
-        dummy_dashboard = os.path.join(PROJECT_ROOT, self.data_root, "dummy_dash.html")
-        os.makedirs(os.path.dirname(dummy_dashboard), exist_ok=True)
-        with open(dummy_dashboard, "w") as f:
-            f.write("<html><body>MOCK DASHBOARD</body></html>")
+        dummy_ledger = os.path.join(PROJECT_ROOT, self.data_root, "dummy_ledger.html")
+        os.makedirs(os.path.dirname(dummy_ledger), exist_ok=True)
+        with open(dummy_ledger, "w") as f:
+            f.write("<html><body>MOCK LEDGER</body></html>")
             
         try:
-            self.notifier.notify_dashboard(self.symbol, mock_dataset, dashboard_path=dummy_dashboard)
+            self.notifier.notify_ledger(self.symbol, mock_dataset, ledger_path=dummy_ledger)
         finally:
-            if os.path.exists(dummy_dashboard):
-                os.remove(dummy_dashboard)
+            if os.path.exists(dummy_ledger):
+                os.remove(dummy_ledger)
 
 if __name__ == '__main__':
     unittest.main()

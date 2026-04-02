@@ -70,7 +70,7 @@ class AuditConfig(AgentConfig):
             strategy_intent=str(cfg_dict['strategy_intent']),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
-            order_flow_lookback_hours=float(regime['order_flow_lookback_hours']),
+            order_flow_lookback_hours=float(sampling['order_flow_lookback_hours']),
             regime_trend_intensity_threshold=float(regime['trend_intensity_threshold']),
             regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),

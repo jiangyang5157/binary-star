@@ -83,16 +83,17 @@ Output RAW JSON only. Do not include markdown markers.
 
 {{
     "opinion": "`BULLISH` / `BEARISH` / `NEUTRAL`",
-    "logic_confidence": 0-100,
+    "confidence_score": 0-100,
     "is_hardened": boolean,
-    "accepted_veto_level": "PASS" | "WEAK" | "CONSTRUCTIVE" | "FATAL",
+    "audit_clearance": "PASS" | "WEAK" | "CONSTRUCTIVE" | "FATAL",
     "tactical_parameters": {{ 
+        "current_price": decimal,
         "entry": decimal,
         "take_profit": decimal,
         "stop_loss": decimal,
         "rr_ratio": decimal,
         "holding_time_hours": decimal
     }},
-    "thesis": "Tool Call Logs: [RR: {rr}] [ATR Buffers: {atr}] | Pivot Vectoring: [Entry] | Logic Flow...",
+    "reasoning_chain": "Tool Call Logs: [RR: {rr}] [ATR Buffers: {atr}] | Pivot Vectoring: [Entry] | Logic Flow...",
     "audit_impact": "Summary of hardening (Must be null in PHASE A)"
 }}

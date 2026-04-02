@@ -44,12 +44,14 @@ class MockDataFactory:
                 "opinion": opinion,
                 "confidence_score": 85,
                 "tactical_parameters": {
+                    "current_price": 60100,
                     "entry": 60000,
                     "take_profit": 62000,
                     "stop_loss": 59000,
+                    "rr_ratio": 2.0,
                     "holding_time_hours": 24
                 },
-                "logic_reasoning": "Mocked structural breakout"
+                "reasoning_chain": "Mocked structural breakout"
             },
             "observation": {
                 "symbol": symbol,
@@ -110,10 +112,13 @@ class MockDataFactory:
                 }
             },
             "agent_model_shared_config": {"max_tool_iterations": 5},
-            "sampling_parameters": {
+            "analysis_window": {
                 "macro_context": {"time_interval": "1h", "lookback_candles": 100},
                 "micro_context": {"time_interval": "15m", "lookback_candles": 100},
-                "funding_rate_lookback_hours": 24.0
+                "funding_rate_lookback_hours": 24.0,
+                "order_flow_lookback_hours": 24.0,
+                "trend_intensity_lookback_hours": 24.0,
+                "volatility_intensity_lookback_hours": 100
             },
             "topography_parameters": {
                 "volume_profile_value_area_width": 0.7,
@@ -139,9 +144,6 @@ class MockDataFactory:
                 "liquidation_cluster_fallback_percentage": 0.005
             },
             "regime_parameters": {
-                "order_flow_lookback_hours": 24.0,
-                "trend_intensity_duration_hours": 24.0,
-                "volatility_intensity_lookback": 100,
                 "trend_intensity_threshold": 0.3,
                 "volatility_baseline_ratio": 1.0,
                 "volatility_expansion_ratio": 1.5,

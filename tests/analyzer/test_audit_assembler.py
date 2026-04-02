@@ -14,11 +14,13 @@ from tests.mock_factory import MockDataFactory
 class TestAuditAssembler(unittest.TestCase):
     def setUp(self):
         self.config = {
-            "sampling_parameters": {"macro_context": {"time_interval": "1h"}, "micro_context": {"time_interval": "15m"}},
+            "analysis_window": {"macro_context": {"time_interval": "1h"}, "micro_context": {"time_interval": "15m"}},
             "topography_parameters": {},
             "regime_parameters": {"anchor_drift_threshold": 0.5},
-            "audit_review_thresholds": {"mae_stress_tolerance": 0.5},
-            "audit_review_parameters": {"atr_period": 14},
+            "audit_review": {
+                "mae_stress_tolerance": 0.5,
+                "atr_period": 14
+            },
             "strategy_intent": "TEST"
         }
         self.rev_cfg = AuditReviewConfig.from_dict(self.config)

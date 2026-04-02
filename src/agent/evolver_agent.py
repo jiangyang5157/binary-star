@@ -95,7 +95,7 @@ class EvolverAgent(BaseAgent):
                 tools=None # Evolver is purely logical transformation for now
             )
             
-            logger.info(f"Evolver: Neural analysis complete. Mutation Type: {evolution_result.get('type')}")
+            logger.info(f"Evolver: Neural analysis complete. Mutation Category: {evolution_result.get('evolution_type')}")
             return evolution_result
             
         except Exception as e:
@@ -114,13 +114,13 @@ class EvolverAgent(BaseAgent):
         from src.utils.evolution_utils import ConfigPatcher, PromptDistiller
         
         success = False
-        evolution_type = evolution_result.get('type')
+        evolution_type = evolution_result.get('evolution_type')
         logger.info(f"Evolver: Applying mutation of type: {evolution_type}")
         
         # 1. Handle Configuration Overlays
         if evolution_type in ["PATCH", "FULL_UPGRADE"]:
-            patch = evolution_result.get('proposed_patch', {})
-            overlays = patch.get('patch_overlays', {})
+            patch = evolution_result.get('config_patch', {})
+            overlays = patch.get('parameter_overrides', {})
             
             # --- v5.10 PHYSICAL HARDENING: Save Atomic Patch Record (The "留底" logic) ---
             try:
@@ -149,11 +149,11 @@ class EvolverAgent(BaseAgent):
                 logger.info("Evolver: Configuration patch successfully merged into production.")
                 success = True
         
-        # 2. Handle Instruction Distillation
+        # 2. Handle Semantic Refinement
         if evolution_type in ["DISTILLATION", "FULL_UPGRADE"]:
-            distillation = evolution_result.get('distilled_instruction', {})
-            target = evolution_result.get('target_component', '')
-            logger.info(f"Evolver: Processing instruction distillation for target: {target}")
+            distillation = evolution_result.get('semantic_refinement', {})
+            target = evolution_result.get('optimization_target', '')
+            logger.info(f"Evolver: Processing semantic refinement for target: {target}")
             
             # Resolve target path from config
             from src.utils.pipeline_utils import load_config

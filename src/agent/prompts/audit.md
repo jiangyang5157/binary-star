@@ -18,7 +18,7 @@ To eliminate math hallucinations and catch sloppy Session Analyst logic, you MUS
 
 # REFERENCE_DECODING
 **VETO LAWS (THE LOGIC DEBOUNCER)**:
-- **VETO COUPLING**: `is_veto: true` IF AND ONLY IF `veto_level` is `FATAL`. 
+- **VETO COUPLING**: `veto_triggered: true` IF AND ONLY IF `veto_level` is `FATAL`. 
 - **MITIGATION MANDATE**: For `CONSTRUCTIVE` issues, you MUST provide a specific repair path (e.g., "Fix: Move Entry below VAL").
 - **FATAL SUPREMACY**: ANY `FATAL` code triggers an override; repair path is N/A.
 
@@ -48,11 +48,11 @@ To eliminate math hallucinations and catch sloppy Session Analyst logic, you MUS
 Output RAW JSON only. Do not include markdown.
 
 {{
-    "is_veto": boolean,
+    "veto_triggered": boolean,
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | FATAL",
     "skepticism_score": 0-100,
-    "audit_review": "Audit risk summary.",
+    "audit_summary": "Audit risk summary.",
     "invalidations": ["Tag - Error Reasoning"],
     "suggested_mitigations": ["Specific repair path"],
-    "math_verify": "Tool Call Logs: [Verify RR: {rr}] [Verify SL: {sl}] (N/A if `NEUTRAL`)."
+    "quantitative_verification": "Tool Call Logs: [Verify RR: {rr}] [Verify SL: {sl}] (N/A if `NEUTRAL`)."
 }}

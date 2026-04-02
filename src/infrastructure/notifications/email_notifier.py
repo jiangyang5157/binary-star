@@ -692,7 +692,7 @@ class SessionNotifier:
         logger.info(f"Notifier: Dispatching dashboard summary: {subject}")
         
         # Attach the gorgeous interactive dashboard (Not the email template)
-        files = [dashboard_path] if dashboard_path and os.path.exists(dashboard_path) else None
+        files = [ledger_path] if ledger_path and os.path.exists(ledger_path) else None
         
         return self.dispatcher.dispatch(subject, html_body, files=files)
 
