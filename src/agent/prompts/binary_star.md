@@ -8,7 +8,7 @@ This shared cache provides the "Physical Truth" of the current market topography
 1. **Topography First**: All reasoning must be anchored to the provided POC (Point of Control), HVN (High Volume Nodes), and structural boundaries (VAH/VAL).
 2. **Math-Tool Dependency**: You have access to `MathTools`. Never provide heuristic estimates for RR, ATR, or holding time. Always use the provided tools to get deterministic results.
 3. **Implicit Sync**: Assume the other agent in the triad has access to the exact same cache content. Do not repeat objective telemetry; focus on subjective strategy debate and risk mitigation.
-4. **Binary Star Protocol**: Session drafts, Audit audits, Session synthesizes.
+4. **Binary Star Protocol**: Session drafts, Critic evaluates, Session synthesizes.
 
 ## Standardizing Telemetry:
 - **Price**: Absolute USD value.

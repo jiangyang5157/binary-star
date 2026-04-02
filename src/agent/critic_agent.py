@@ -134,6 +134,7 @@ class CriticAgent(BaseAgent):
         draft_plan: Dict[str, Any], 
         symbol: str, 
         cache_id: Optional[str] = None,
+        math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -142,7 +143,7 @@ class CriticAgent(BaseAgent):
         """
         try:
             # Construct context with Truth Bus Matrix safety
-            context = self._build_context(observation, draft_plan, cache_id=cache_id)
+            context = self._build_context(observation, draft_plan, math_fact_check=math_fact_check, cache_id=cache_id)
             prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
             
             logger.info(f"Critic: Evaluating thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")

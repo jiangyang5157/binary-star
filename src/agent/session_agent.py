@@ -174,6 +174,7 @@ class SessionAgent(BaseAgent):
                    draft_plan: Dict[str, Any], 
                    critic_results: Dict[str, Any], 
                    cache_id: Optional[str] = None,
+                   math_fact_check: Optional[Dict[str, Any]] = None,
                    tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -182,7 +183,7 @@ class SessionAgent(BaseAgent):
         """
         try:
             # During synthesis, we typically rely on Cache for topographic data
-            prompt = self._build_prompt(None, draft_plan, critic_results, cache_id=cache_id)
+            prompt = self._build_prompt(None, draft_plan, critic_results, math_fact_check=math_fact_check, cache_id=cache_id)
             logger.info(f"Session: Synthesizing final hardened decision (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(
@@ -201,6 +202,7 @@ class SessionAgent(BaseAgent):
         observation: Optional[Dict[str, Any]], 
         draft_plan: Optional[Dict[str, Any]] = None,
         critic_feedback: Optional[Dict[str, Any]] = None,
+        math_fact_check: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> str:
         """
@@ -224,6 +226,7 @@ class SessionAgent(BaseAgent):
             "observation_json": observation_json,
             "draft_plan_json": json.dumps(draft_plan, indent=2, ensure_ascii=False) if draft_plan else "{}",
             "critic_feedback": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "{}",
+            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
             "min_trade_velocity": self.config.min_trade_velocity,
             "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,

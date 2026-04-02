@@ -109,7 +109,7 @@ class EvolutionEngine:
             current_prompts=prompts
         )
         
-        ev_id = evolution_result.get('evolution_id', f"evo_{timestamp}")
+        ev_id = evolution_result.get('evolution_id', f"evolution_{timestamp}")
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
         save_json(proposal_file, evolution_result)
         logger.info(f"Evolver: Mutated proposal generated -> {os.path.basename(proposal_file)}")

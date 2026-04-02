@@ -155,19 +155,35 @@ class BinaryStarOrchestrator:
             last_draft = None
             debate_history = []
             convergence_path = []
+            
+            # Static Truth Tracker
+            math_fact_check = None
+
             while current_round <= self.max_rounds:
-                # Drafting / Re-Drafting
+                # 1. Phase 1: Drafting / Re-Drafting
                 logger.info(f"BinaryStar: [PHASE 1] Session Agent generating thesis (Round {current_round})...")
                 last_draft = self.session_agent.draft(
                     observation, symbol, cache_id=cache_resource_name, tools=tools, 
                     critic_feedback=critic_results
                 )
                 
-                # Adversarial Critic Evaluation
+                # 2. Phase 2: Adversarial Critic Evaluation (Truth Injection: Python verifies LLM math)
                 logger.info(f"BinaryStar: [PHASE 2] Critic Agent performing adversarial evaluation (Round {current_round})...")
-                critic_results = self.critic.evaluate(observation, last_draft, symbol, cache_id=cache_resource_name, tools=tools)
                 
-                # Check for Early Stopping (The "Enough" Condition)
+                # 2a. Physical Verification (The "Fact Check" turn)
+                math_fact_check = self._assemble_math_fact_check(last_draft, observation)
+                
+                # 2b. Semantic Evaluation (Pass facts to Critic)
+                critic_results = self.critic.evaluate(
+                    observation=observation, 
+                    draft_plan=last_draft, 
+                    symbol=symbol,
+                    cache_id=cache_resource_name,
+                    math_fact_check=math_fact_check,
+                    tools=tools # Restore tools for Two-Phase Loop
+                )
+                
+                # 3. Decision Logic & Convergence Check
                 try:
                     raw_score = critic_results.get('skepticism_score', 100)
                     skepticism_score = int(float(str(raw_score))) # Handle "40", 40, "40.0"
@@ -179,20 +195,27 @@ class BinaryStarOrchestrator:
                 debate_history.append({
                     "round": current_round,
                     "draft": last_draft,
-                    "critic": critic_results
+                    "critic": critic_results,
+                    "math_fact_check": math_fact_check
                 })
                 convergence_path.append(skepticism_score)
 
-                if skepticism_score < self.stop_threshold:
-                    logger.info(f"BinaryStar: Skepticism Score ({skepticism_score}) < Threshold ({self.stop_threshold}). Loop terminated early.")
+                if skepticism_score < self.skepticism_halt_limit:
+                    logger.info(f"BinaryStar: Skepticism Score ({skepticism_score}) < Threshold ({self.skepticism_halt_limit}). Loop terminated early.")
                     break
                     
                 current_round += 1
                 
             # Phase 3: The Synthesis (Final Hardening)
-            # The Session Agent synthesizes the final consensus decision based on the LAST debate round.
+            # The Session Agent synthesizes the final consensus decision based on the LAST debate round + the Math Truth.
             logger.info("BinaryStar: [PHASE 3] Session Agent synthesizing final hardened decision...")
-            final_decision = self.session_agent.synthesize(last_draft, critic_results, cache_id=cache_resource_name, tools=tools)
+            final_decision = self.session_agent.synthesize(
+                last_draft, 
+                critic_results, 
+                cache_id=cache_resource_name, 
+                math_fact_check=math_fact_check,
+                tools=tools # Restore tools for Two-Phase Loop
+            )
             
             # Phase 4: Metadata Fingerprinting & Session Closure
             # Records the 'Immutable DNA' of the logic that generated this decision.
@@ -244,6 +267,56 @@ class BinaryStarOrchestrator:
                 self.cache_manager.delete_market_cache()
             except Exception as e:
                 logger.warning(f"BinaryStar: Non-fatal failure during cache cleanup: {e}")
+
+    def _assemble_math_fact_check(self, draft: Dict[str, Any], observation: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Assembles a deterministic 'Math Truth' package for the current draft.
+        Eliminates the need for LLM Tool Calling during Critic and Synthesis phases.
+        """
+        try:
+            tactical = draft.get('tactical_parameters') or {}
+            entry = float(tactical.get('entry', 0))
+            sl = float(tactical.get('stop_loss', 0))
+            tp = float(tactical.get('take_profit', 0))
+            
+            # Extract observation geometry
+            topography = observation.get('market_topography', {})
+            profile = topography.get('volume_profile', {})
+            atr = float(profile.get('atr_macro', 1.0))
+            poc = float(profile.get('poc', 0))
+            vah = float(profile.get('vah', 0))
+            val = float(profile.get('val', 0))
+            
+            # Extract regime context
+            regime = observation.get('regime_analysis', {})
+            trend_intensity = float(regime.get('trend_intensity', 0))
+            
+            # 1. Verify RR
+            rr_results = self.math_tools.calculate_risk_reward(entry, tp, sl)
+            
+            # 2. Verify ATR Buffers
+            atr_metrics = self.math_tools.calculate_atr_metrics(entry, sl, tp, atr)
+            
+            # 3. Verify Structural Proximity
+            proximity = self.math_tools.calculate_structural_proximity(sl, atr, poc, vah, val)
+            
+            # 4. Project Holding Time
+            holding_time = self.math_tools.project_holding_time(
+                entry, tp, atr, trend_intensity, 
+                int(self.global_config['analysis_window']['macro_context']['time_interval'].replace('h', '')) * 60, # Approximation for minutes
+                self.session_config.min_trade_velocity
+            )
+            
+            return {
+                "rr_verification": rr_results,
+                "atr_volatility_verification": atr_metrics,
+                "structural_armor_verification": proximity,
+                "holding_time_verification": holding_time,
+                "physical_truth_timestamp": observation.get('timestamp')
+            }
+        except Exception as e:
+            logger.error(f"BinaryStar: Math fact check assembly failed: {e}")
+            return {"error": f"Physical verification failed: {e}"}
 
     def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[types.Part]:
         """Extracts image data from visual assets into Gemini Parts."""
