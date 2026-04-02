@@ -512,6 +512,27 @@ class SessionNotifier:
             logger.error(f"Failed to load global_config.yaml: {e}")
         return {}
 
+    def _get_timestamp_suffix(self, obs: Dict[str, Any]) -> str:
+        """
+        Derives a filename-friendly timestamp from market observation data.
+        Prioritizes Audit-Grade UTC timestamps over local system time.
+        """
+        market_ts = obs.get("timestamp", "")
+        if not market_ts:
+            return datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+        # Detect if already in Compact format (YYYYMMDD_HHMMSS)
+        if "_" in market_ts and len(market_ts) >= 13 and "-" not in market_ts:
+            return market_ts
+            
+        # Try ISO parsing
+        try:
+            dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
+            return dt.strftime("%Y%m%d_%H%M%S")
+        except:
+            # Final fallback: Manual sanitization
+            return market_ts.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+
     @property
     def enabled(self) -> bool:
         return self.config.enabled
@@ -533,15 +554,7 @@ class SessionNotifier:
 
         # 1. Local Preview (Useful for debugging/UI verification)
         if save_local:
-            # Sync timestamp with market/klines event time
-            market_ts = obs.get("timestamp", "")
-            ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
-            if market_ts:
-                try:
-                    dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
-                    ts_suffix = dt.strftime("%Y%m%d_%H%M%S")
-                except:
-                    pass
+            ts_suffix = self._get_timestamp_suffix(obs)
             self.save_html_preview(f"{symbol}_session_{ts_suffix}.html", html_body, attachments)
 
         # Dispatch Check: Only send if BOTH are true
@@ -590,13 +603,7 @@ class SessionNotifier:
 
         # Local Preview
         if save_local:
-            market_ts = obs.get("timestamp", "")
-            ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
-            if market_ts:
-                try:
-                    dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
-                    ts_suffix = dt.strftime("%Y%m%d_%H%M%S")
-                except: pass
+            ts_suffix = self._get_timestamp_suffix(obs)
             self.save_html_preview(f"{symbol}_market_{ts_suffix}.html", html_body, attachments)
 
         if not self.enabled or not dispatch_email: return False
@@ -630,15 +637,7 @@ class SessionNotifier:
         }
 
         if save_local:
-            # Sync with format used in market/klines
-            market_ts = t0_obs.get("timestamp", "")
-            ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
-            if market_ts:
-                try:
-                    dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
-                    ts_suffix = dt.strftime("%Y%m%d_%H%M%S")
-                except:
-                    pass
+            ts_suffix = self._get_timestamp_suffix(t0_obs)
             self.save_html_preview(f"{symbol}_audit_{ts_suffix}.html", html_body, attachments)
 
         if not self.enabled or not dispatch_email: return False

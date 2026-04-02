@@ -58,7 +58,7 @@ Your response MUST be RAW JSON only.
     "veto_triggered": boolean,
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | FATAL",
     "skepticism_score": 0-100,
-    "quantitative_verification": "[RR: {rr_is_valid}] [SL: {sl_is_shielded}]",
+    "quantitative_verification": "Tool Call Logs: [RR: {rr_is_valid}] [SL: {sl_is_shielded}]",
     "invalidations": ["Tag - Error Reasoning"],
     "critic_summary": "Critic risk summary.",
     "suggested_mitigations": ["Specific repair path"]

@@ -44,6 +44,7 @@ class CriticConfig(AgentConfig):
     threshold_skepticism_constructive: int
     anchor_drift_threshold: float
     min_trade_velocity: float
+    structural_buffer_atr: float
 
     @classmethod
     def from_dict(cls, cfg_dict: Dict[str, Any]) -> "CriticConfig":
@@ -87,7 +88,8 @@ class CriticConfig(AgentConfig):
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            max_tool_iterations=int(shared.get('max_tool_iterations', 5))
+            max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
+            structural_buffer_atr=float(regime.get('structural_buffer_atr', 0.05))
         )
 
 class CriticAgent(BaseAgent):

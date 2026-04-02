@@ -401,10 +401,24 @@ class BinaryStarOrchestrator:
             
             # 5. Synthesize Compliance Verdict (The "Truth Bus Verdict")
             # This offloads the decision logic from Critic to Python
+            
+            # Shielding logic: SL must be behind a level relative to entry
+            is_shielded = False
+            prox_values = [v for v in proximity.values() if v is not None]
+            buffer = self.critic_config.structural_buffer_atr
+            if opinion == "BULLISH":
+                is_shielded = any(v < -buffer for v in prox_values)
+            elif opinion == "BEARISH":
+                is_shielded = any(v > buffer for v in prox_values)
+                
+            # RR Validation: Use explicit trending/ranging thresholds
+            is_trending = trend_intensity >= self.critic_config.trend_intensity_threshold
+            min_rr = self.critic_config.min_rr_trending if is_trending else self.critic_config.min_rr_ranging
+            
             compliance = {
-                "rr_is_valid": rr_results["ratio"] >= (self.session_config.min_trade_velocity * 2), # Heuristic
-                "sl_is_shielded": proximity["is_shielded"],
-                "atr_volatility_is_logical": atr_metrics["sl_dist_atr"] < self.critic_config.poc_gravity_atr_distance
+                "rr_is_valid": rr_results.get("rr_ratio", 0) >= min_rr,
+                "sl_is_shielded": is_shielded,
+                "atr_volatility_is_logical": atr_metrics.get("entry_to_sl_atr", 0) < self.critic_config.poc_gravity_atr_distance
             }
             
             return {
