@@ -8,15 +8,35 @@ from src.utils.json_utils import load_json
 from src.utils.path_utils import resolve_project_root
 from src.infrastructure.notifications.email_notifier import StrategyNotifier
 
-# ==========================================
-# 1. HTML/JS/CSS Template (Embedded Tailwind & Chart.js)
-# ==========================================
-HTML_TEMPLATE = """<!DOCTYPE html>
+
+class LedgerVisualizer:
+    """Consolidated Logic for Execution Monitoring & Visualization."""
+    def __init__(self, data_root: str, logger: logging.Logger):
+        self.data_root = os.path.join(resolve_project_root(), data_root)
+        self.logger = logger
+        self.notifier = StrategyNotifier(data_root=data_root)
+
+    def generate_html_report(self, symbol: str, notify: bool = False, recursive: bool = False):
+        """Orchestrates path scanning, data extraction, and HTML rendering."""
+        self.logger.info(f"Scanning for {symbol} evidence in {self.data_root}...")
+        dataset = self._extract_data(symbol, recursive)
+        
+        if not dataset:
+            self.logger.warning("No audit reports found. Skipping visualizer.")
+            return None
+
+        # 1. Inject Data -> 2. Write File
+        html_dir = os.path.join(self.data_root, "html")
+        os.makedirs(html_dir, exist_ok=True)
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(html_dir, f"{symbol}_ledger_{ts}.html")
+        
+        content = """<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Strategic Alpha Dashboard: {{SYMBOL}}</title>
+    <title>Strategic Dashboard: {{SYMBOL}}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -78,31 +98,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         new Chart(document.getElementById('timelineChart'), { type: 'bubble', data: { datasets: [{ data: bubble, backgroundColor: bubble.map(d => d.color) }] }, options: { responsive: true, maintainAspectRatio: false, scales: scales } });
         new Chart(document.getElementById('equityChart'), { type: 'line', data: { datasets: [{ data: curve, borderColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: scales } });
     </script>
-</body></html>"""
-
-class LedgerVisualizer:
-    """Consolidated Logic for Execution Monitoring & Visualization."""
-    def __init__(self, data_root: str, logger: logging.Logger):
-        self.data_root = os.path.join(resolve_project_root(), data_root)
-        self.logger = logger
-        self.notifier = StrategyNotifier(data_root=data_root)
-
-    def generate_html_report(self, symbol: str, notify: bool = False, recursive: bool = False):
-        """Orchestrates path scanning, data extraction, and HTML rendering."""
-        self.logger.info(f"Scanning for {symbol} evidence in {self.data_root}...")
-        dataset = self._extract_data(symbol, recursive)
-        
-        if not dataset:
-            self.logger.warning("No audit reports found. Skipping visualizer.")
-            return None
-
-        # 1. Inject Data -> 2. Write File
-        html_dir = os.path.join(self.data_root, "html")
-        os.makedirs(html_dir, exist_ok=True)
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        output_path = os.path.join(html_dir, f"{symbol}_ledger_{ts}.html")
-        
-        content = HTML_TEMPLATE.replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset))
+</body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset))
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 

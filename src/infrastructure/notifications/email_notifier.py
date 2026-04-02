@@ -207,7 +207,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
         
         fmt = AuditEmailTemplate.fmt
         
-        # 4. Audit Formatting
+        # Audit Formatting
         shadow_list = audit.get('adversarial_audit', {}).get('shadow_evidence', [])
         if isinstance(shadow_list, list) and shadow_list:
             shadow_html = f'<ul style="margin: 0; padding-left: 18px;">' + "".join([f"<li>{fmt(item)}</li>" for item in shadow_list]) + "</ul>"
@@ -392,9 +392,9 @@ class AlertEmailTemplate(BaseEmailTemplate):
         </html>
         """
 
-class DashboardEmailTemplate(BaseEmailTemplate):
+class LedgerEmailTemplate(BaseEmailTemplate):
     """
-    Handles the generation of professional HTML templates for Strategic Alpha Ledgers (Dashboards).
+    Handles the generation of professional HTML templates for Strategic Alpha Ledgers.
     """
     @staticmethod
     def render(symbol: str, stats: Dict[str, Any], dataset: List[Dict[str, Any]]) -> str:
@@ -425,7 +425,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
 
         return f"""
         <html>
-        <head>{DashboardEmailTemplate.get_styles()}</head>
+        <head>{LedgerEmailTemplate.get_styles()}</head>
         <body>
             <div class="container">
                 <!-- Header -->
@@ -472,11 +472,11 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                         </tbody>
                     </table>
                     <p style="font-size: 11px; color: #94a3b8; text-align: center;">
-                        Only showing the most recent {limit} records. View the full dashboard for complete trajectory.
+                        Only showing the most recent {limit} records. View the full ledger for complete trajectory.
                     </p>
                 </div>
 
-                {DashboardEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Singularity Session")}
+                {LedgerEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>
@@ -545,11 +545,8 @@ class SessionNotifier:
             self.save_html_preview(f"{symbol}_session_{ts_suffix}.html", html_body, attachments)
 
         # Dispatch Check: Only send if BOTH are true
-        if not self.enabled or not dispatch_email:
-            if not dispatch_email:
-                logger.info("Notifier: dispatch_email=False. Skipping SMTP flow.")
-            return False
-            
+        if not self.enabled or not dispatch_email: return False
+
         final_decision = (session_data or {}).get("final_decision") or {}
         opinion = final_decision.get("opinion") or "NEUTRAL"
         confidence = final_decision.get("confidence", 0)
@@ -591,7 +588,7 @@ class SessionNotifier:
             "micro_chart": str(assets.get("micro_snapshot") or "")
         }
 
-        # 1. Local Preview
+        # Local Preview
         if save_local:
             market_ts = obs.get("timestamp", "")
             ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -612,7 +609,7 @@ class SessionNotifier:
             logger.error(f"Notifier: Failed to dispatch market audit: {e}")
             return False
 
-    def notify_audit(self, symbol: str, audit_data: Dict[str, Any], save_local: bool = False) -> bool:
+    def notify_audit(self, symbol: str, audit_data: Dict[str, Any], save_local: bool = False, dispatch_email: bool = True) -> bool:
         """
         Parses audit result and dispatches an audit report.
         """
@@ -644,8 +641,7 @@ class SessionNotifier:
                     pass
             self.save_html_preview(f"{symbol}_audit_{ts_suffix}.html", html_body, attachments)
 
-        if not self.enabled:
-            return False
+        if not self.enabled or not dispatch_email: return False
             
         # We only notify audits for strategies that met our confidence threshold
         final_decision = strat_session.get("final_decision") or {}
@@ -734,7 +730,7 @@ class SessionNotifier:
         }
 
         # 2. Render Template
-        html_body = DashboardEmailTemplate.render(symbol, stats, dataset)
+        html_body = LedgerEmailTemplate.render(symbol, stats, dataset)
         
         # 3. Local Preview (Optional)
         if save_local:
@@ -747,9 +743,9 @@ class SessionNotifier:
         pnl_sign = "+" if net_pnl >= 0 else ""
         subject = f"🎯 Ledger | {symbol} | {win_rate}% WR | {pnl_sign}{float(f'{net_pnl:.2f}')}%"
         
-        logger.info(f"Notifier: Dispatching dashboard summary: {subject}")
+        logger.info(f"Notifier: Dispatching ledger summary: {subject}")
         
-        # Attach the gorgeous interactive dashboard (Not the email template)
+        # Attach the gorgeous interactive ledger (Not the email template)
         files = [ledger_path] if ledger_path and os.path.exists(ledger_path) else None
         
         return self.dispatcher.dispatch(subject, html_body, files=files)
@@ -769,45 +765,3 @@ class SessionNotifier:
         except Exception as e:
             logger.error(f"Notifier: Failed to dispatch critical alert: {e}")
             return False
-
-if __name__ == "__main__":
-    import argparse
-    import sys
-    
-    # Configure granular logging for CLI use
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
-    
-    parser = argparse.ArgumentParser(description="Crypto Strategy Email Notifier CLI")
-    parser.add_argument("--data-root", required=True, help="Root directory for visualizations/logs")
-    parser.add_argument("--file", required=True, help="Path to the strategy JSON file")
-    
-    args = parser.parse_args()
-    
-    if not os.path.exists(args.file):
-        print(f"Error: Strategy file not found at {args.file}")
-        sys.exit(1)
-        
-    try:
-        with open(args.file, 'r') as f:
-            # We use a hacky way to support 'null', 'true', 'false' in case the file 
-            # was copied from a Python representation, but primarily we expect standard JSON.
-            # json.load handles standard JSON 'null' correctly.
-            session_data = json.load(f)
-            
-        symbol = session_data.get("observation", {}).get("symbol", "UNKNOWN")
-        notifier = SessionNotifier(data_root=args.data_root)
-        
-        print(f"--- Dispatching Test Email for {symbol} ---")
-        success = notifier.notify_session(symbol, session_data)
-        
-        if success:
-            print("Successfully dispatched strategy alert!")
-        else:
-            print("Failed to dispatch alert. Check logs or check if credentials are set in .env")
-            
-    except Exception as e:
-        print(f"Critical error during execution: {e}")
-        sys.exit(1)

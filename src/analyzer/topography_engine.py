@@ -34,7 +34,6 @@ class TopographyEngine:
             
             observation = observer.observe()
             
-            # 5. Optional Notification (Audit Trail)
             if dispatch_email:
                 from src.infrastructure.notifications.email_notifier import SessionNotifier
                 notifier = SessionNotifier(data_root=self.data_root)

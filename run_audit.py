@@ -49,21 +49,18 @@ def main():
         report_path = controller.save_report(result)
         
         # 6. Optional Email Notification & HTML Preview
-        if args.email:
-            from src.infrastructure.notifications.email_notifier import SessionNotifier
-            from datetime import datetime, timezone
-            notifier = SessionNotifier(data_root=data_root)
-            
-            # Reconstruct bundle for notifier
-            bundle = {
-                "strategy_session": result["session"],
-                "market_outcome": result["outcome"],
-                "audit_findings": result["report"],
-                "audit_timestamp": datetime.now(timezone.utc).isoformat()
-            }
-            # notify_review internally calls save_html_preview with the new v5.10 naming
-            notifier.notify_review(result["symbol"], bundle, save_local=True)
-            print(f"Notifier: Audit email dispatched and HTML preview generated.")
+        from src.infrastructure.notifications.email_notifier import SessionNotifier
+        from datetime import datetime, timezone
+        notifier = SessionNotifier(data_root=data_root)
+        
+        # Reconstruct bundle for notifier
+        audit_result = {
+            "strategy_session": result["session"],
+            "market_outcome": result["outcome"],
+            "audit_findings": result["report"],
+            "audit_timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        notifier.notify_audit(result["symbol"], audit_result, save_local=True, dispatch_email=args.email)
 
         outcome = result.get('outcome', {})
         report = result.get('report', {})
