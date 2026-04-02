@@ -8,14 +8,26 @@
 
 strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess an audit-grade mathematical edge and absolute structural invalidation."
 
+analysis_window:
+  # Macro Context: Structural landscape (Trend detection and Daily range).
+  macro_context:
+    time_interval: 1h
+    lookback_candles: 336
+  # Micro Context: Tactical execution (Entry signals and Wick analysis).
+  micro_context:
+    time_interval: 15m
+    lookback_candles: 192
+  funding_rate_lookback_hours: 24.0
+  order_flow_lookback_hours: 1.0
+  trend_intensity_lookback_hours: 24.0
+  volatility_intensity_lookback_hours: 24
+
 regime_parameters:
   # --- Trend & Momentum Vectors (Regime Detection) ---
   # Minimum vector strength to classify as 'Trending'. Range [0, 1].
   trend_intensity_threshold: 0.4
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
   trend_intensity_strong: 0.5
-  # The lookback window for estimating structural momentum.
-  trend_intensity_duration_hours: 24.0
   # Clipping multiplier to filter noise in low-velocity regimes.
   boundary_clipping_atr: 0.2
   
@@ -26,8 +38,6 @@ regime_parameters:
   volatility_expansion_ratio: 1.5
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
   volatility_extreme_ratio: 2.0
-  # Lookback period for calculating relative volatility intensity.
-  volatility_intensity_lookback: 24
   
   # --- Physical Topography & Volume Confluence ---
   # Multiplier for volume breakout detection relative to moving average.
@@ -76,10 +86,7 @@ regime_parameters:
   breakout_frontrun_atr: 0.45
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
   min_rr_ranging: 1.0
-  # Minimum acceptable Risk-Reward ratio for trending (Momentum) cycles.
   min_rr_trending: 1.5
-  # Lookback duration for analyzing fine-grained order flow dynamics.
-  order_flow_lookback_hours: 1.0
 
 audit_review:
   # --- Execution Analysis Parameters ---
@@ -128,17 +135,6 @@ audit_review:
   score_mae_extra_buffer: 0.5
   # Leniency granted for justified aggressive front-running to avoid Opportunity Denial.
   score_frontrun_leniency_pct: 30
-
-analysis_window:
-  # Macro Context: Structural landscape (Trend detection and Daily range).
-  macro_context:
-    time_interval: 1h
-    lookback_candles: 336
-  # Micro Context: Tactical execution (Entry signals and Wick analysis).
-  micro_context:
-    time_interval: 15m
-    lookback_candles: 192
-  funding_rate_lookback_hours: 24.0
 
 topography_parameters:
   # --- Volume Profile Engine ---

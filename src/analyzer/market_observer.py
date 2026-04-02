@@ -48,12 +48,12 @@ class MarketObserverConfig:
     low_volume_node_detection_threshold: float
     min_node_gap_price: int
     top_structural_node_count: int
-    trend_intensity_duration_hours: float
+    trend_intensity_lookback_hours: float
     wick_skewness_period: int
     liquidation_cluster_atr_multiplier: float
     liquidation_cluster_fallback_percentage: float
     funding_rate_lookback_hours: float
-    volatility_intensity_lookback: int
+    volatility_intensity_lookback_hours: int
     regime_trend_threshold: float
     regime_volatility_baseline_ratio: float
     regime_volatility_expansion_ratio: float
@@ -96,6 +96,9 @@ class MarketObserverConfig:
                 lookback_candles=int(micro['lookback_candles'])
             ),
             funding_rate_lookback_hours=float(sampling['funding_rate_lookback_hours']),
+            order_flow_lookback_hours=float(sampling['order_flow_lookback_hours']),
+            trend_intensity_lookback_hours=float(sampling['trend_intensity_lookback_hours']),
+            volatility_intensity_lookback_hours=int(sampling['volatility_intensity_lookback_hours']),
             
             vp_value_area_width=float(topography['volume_profile_value_area_width']),
             vp_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
@@ -120,9 +123,6 @@ class MarketObserverConfig:
             liquidation_cluster_fallback_percentage=float(topography['liquidation_cluster_fallback_percentage']),
             
             # Regime Parameters (Strategic Knobs)
-            order_flow_lookback_hours=float(regime['order_flow_lookback_hours']),
-            trend_intensity_duration_hours=float(regime['trend_intensity_duration_hours']),
-            volatility_intensity_lookback=int(regime['volatility_intensity_lookback']),
             regime_trend_threshold=float(regime['trend_intensity_threshold']),
             regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
@@ -151,7 +151,7 @@ class MarketObserverConfig:
     def trend_lookback(self) -> int:
         """Calculates candle count for structural window (default 24h)."""
         secs = get_interval_seconds(self.macro_context.time_interval)
-        return max(1, int(self.trend_intensity_duration_hours * 3600 / secs))
+        return max(1, int(self.trend_intensity_lookback_hours * 3600 / secs))
 
 @dataclass
 class RawMarketData:
@@ -253,7 +253,7 @@ class MarketMetricsRefiner:
         
         # 2. Volatility Intensity (Current Macro ATR vs Historical Average)
         # We use a lookback from config for the average-of-average
-        avg_atr_lookback = min(self.config.volatility_intensity_lookback, len(m_df))
+        avg_atr_lookback = min(self.config.volatility_intensity_lookback_hours, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
         vol_intensity = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
@@ -509,7 +509,7 @@ class MarketObserver:
                 },
                 "lookback_windows": {
                     "order_flow_lookback_hours": self.config.order_flow_lookback_hours,
-                    "trend_intensity_duration_hours": self.config.trend_intensity_duration_hours,
+                    "trend_intensity_lookback_hours": self.config.trend_intensity_lookback_hours,
                     "liquidation_window_hours": round((get_interval_seconds(self.config.micro_context.time_interval) * self.config.micro_context.lookback_candles) / 3600, 1)
                 }
             },
