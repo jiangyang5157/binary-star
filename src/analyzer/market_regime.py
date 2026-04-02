@@ -27,9 +27,7 @@ class RegimeResult:
     """
     Structured output of the market regime analysis.
     """
-    volatility_regime: str            # SQUEEZE, EXPANSION, NORMAL, or UNKNOWN
     squeeze_factor: float             # Ratio of BB width to KC width
-    price_trend_regime: str           # TRENDING, RANGING, or UNKNOWN
     trend_intensity: float            # Quantitative score of trend strength
     wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
     volume_breakout_ratio: float      # Current volume relative to moving average
@@ -87,20 +85,10 @@ class RegimeClassifier:
         """
         latest = df.iloc[-1]
         
-        # 1. Squeeze Analysis (TTM Squeeze Logic)
-        is_squeeze = (latest['bb_upper'] < latest['kc_upper']) and (latest['bb_lower'] > latest['kc_lower'])
+        # 1. Squeeze Analysis (Ratio Based)
         squeeze_factor = latest['bb_width'] / (latest['kc_width'] + 1e-9)
         
-        if is_squeeze:
-            vol_regime = "SQUEEZE"
-        else:
-            prev_squeeze = (df.iloc[-2]['bb_upper'] < df.iloc[-2]['kc_upper']) if len(df) > 1 else False
-            vol_regime = "EXPANSION" if prev_squeeze else "NORMAL"
-
-        # 2. Trend vs Range
-        price_trend_regime = "TRENDING" if latest['trend_intensity'] > self.config.trend_intensity_threshold else "RANGING"
-
-        # 3. Wick Skewness (Bullish/Bearish Asymmetry)
+        # 2. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
         if all(col in df.columns for col in ['open', 'high', 'low', 'close']):
             recent = df.tail(self.config.wick_skewness_period)
@@ -108,19 +96,17 @@ class RegimeClassifier:
             lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
 
-        # 4. Volume Breakout
+        # 3. Volume Breakout
         volatility_ratio = 1.0
         if 'volume' in df.columns:
             vol_ma = df['volume'].rolling(window=self.config.volume_ma_window).mean()
             volatility_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
 
         return RegimeResult(
-            volatility_regime=vol_regime,
-            squeeze_factor=round(float(squeeze_factor), 4),
-            price_trend_regime=price_trend_regime,
-            trend_intensity=round(float(latest['trend_intensity']), 4),
-            wick_skewness_lookback=round(float(skewness), 4),
-            volume_breakout_ratio=round(float(volatility_ratio), 2)
+            squeeze_factor=float(squeeze_factor),
+            trend_intensity=float(latest['trend_intensity']),
+            wick_skewness_lookback=float(skewness),
+            volume_breakout_ratio=float(volatility_ratio)
         )
 
 class MarketRegimeAnalyzer:

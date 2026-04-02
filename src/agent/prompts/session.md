@@ -15,8 +15,8 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 - **THE SEQUENTIAL ANCHOR LAW**: Stop Loss (SL) MUST be placed behind a structural anchor. Use the pre-calculated `topography` vectors in `tactical_summary` to select the anchor via this strict Hierarchy:
   - **Hierarchy 1 (Distal)**: Prioritize `nearest_hvn_dist_atr` if it is > 1.0 ATR behind your `VAH`/`VAL` edge.
   - **Hierarchy 2 (Edge)**: Fallback to the physical `val_dist_atr` or `vah_dist_atr` boundaries. 
-  - **Hierarchy 3 (Inner)**: Use `POC` (`poc_dist_atr`) ONLY if `price_trend_regime` is `RANGING` AND `volatility_ratio` < `{volatility_baseline_ratio}`. **STRICTLY PROHIBITED** if `volatility_ratio` > `{volatility_expansion_ratio}`. Forbidden in `TRENDING` UNLESS CVD aligns with the reversal and POC strength is > `{poc_confluence_strength}`.
-  - **Hierarchy 4 (Shield)**: If `volatility_ratio` > `{volatility_extreme_ratio}` AND `long_short_ratio` > `{long_short_imbalance_ratio}`, you MUST bypass Hierarchy 2/3 and anchor behind Hierarchy 1 (Distal HVN).
+  - **Hierarchy 3 (Inner)**: Use `POC` (`poc_dist_atr`) ONLY if `trend_intensity` < (`{trend_intensity_threshold}` * 0.75) AND `volatility_ratio` < `{volatility_baseline_ratio}`. **STRICTLY PROHIBITED** if `volatility_ratio` > `{volatility_expansion_ratio}`. Forbidden in Trending markets (trend_intensity > `{trend_intensity_threshold}`) UNLESS `cvd_slope` * Price_Vector > 0 AND POC strength is > `{poc_confluence_strength}`.
+  - **Hierarchy 4 (Shield)**: If `volatility_ratio` > `{volatility_extreme_ratio}` AND `ls_ratio_micro` > `{long_short_imbalance_ratio}`, you MUST bypass Hierarchy 2/3 and anchor behind Hierarchy 1 (Distal HVN).
 
 ## 2. Regime & Participation Rules
 - **POC MAGNET RULE**: Absolute rule for Mean-Reversion trades: If absolute `poc_dist_atr` > `{poc_magnet_atr_threshold}`, your `take_profit` MUST be fixed to the `POC`.
@@ -26,17 +26,22 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
   - **ANOMALOUS EXPANSION OVERRIDE**: If `volume_breakout_ratio` < `{volume_baseline_ratio}`, the expansion is unconfirmed; you MUST NOT execute a momentum entry and MUST default to `NEUTRAL` or a deep mean-reversion DLE. If momentum is extreme (`trend_intensity` > `{trend_intensity_strong}`), prioritize speed over retests.
   - **ANCHOR DRIFT OVERRIDE**: If `volume_breakout_ratio` > `{anchor_drift_threshold}`, assume the POC is migrating to `current_price`. Mean-reversion to a distal POC is FORBIDDEN.
 - **THE SQUEEZE EXHAUSTION FILTER (ABSOLUTE)**:
-  - Prohibit BULLISH pivots if `current_price` > `VAH` AND (`oi_delta` is negative OR `cvd_trend` == "DOWNWARD").
-  - Prohibit BEARISH pivots if `current_price` < `VAL` AND (`oi_delta` is negative OR `cvd_trend` == "UPWARD").
+  - Prohibit BULLISH pivots if `current_price` > `VAH` AND (`oi_delta_micro` < 0 OR `cvd_slope` < 0).
+  - Prohibit BEARISH pivots if `current_price` < `VAL` AND (`oi_delta_micro` < 0 OR `cvd_slope` > 0).
 
 ## 3. Binary Star Synthesis (PHASE B ONLY)
 - **CRITIC ALIGNMENT PROTOCOL**:
-  - **FATAL VETO**: If `veto_triggered: true` or level is `FATAL`, you MUST immediately abort to `opinion: NEUTRAL`.
+  - **TERMINAL VETO**: If `veto_triggered: true` or level is `TERMINAL`, you MUST immediately abort to `opinion: NEUTRAL`.
   - **CONSTRUCTIVE REPAIR**: If level is `CONSTRUCTIVE`, you MUST perform a **Hardening Transformation**. Map each negation in `critic_feedback.invalidations` to a repair using the `{math_fact_check}`.
     - `[ANCHOR_VIOLATION]` -> Increment SL distance to the next distal anchor in the Truth Bus.
     - `[MATH_VIOLATION]` -> Adjust entry/exit to meet the mandated RR ratio.
     - `[CVD_ABSORPTION]` -> Reduce `confidence_score` or flip `opinion`.
   - **PASS/WEAK**: Maintain trajectory. Output `is_hardened: false`.
+
+# DEFINITIONS
+- **Price_Vector**: 1 (BULLISH) | -1 (BEARISH) | 0 (NEUTRAL).
+- **Order_Type**: `PASSIVE_LIMIT` (Price is moving towards entry) | `MOMENTUM_MARKET` (Price is moving away from entry).
+- **Entry_Zone**: `VALUE_AREA` (Between VAL and VAH) | `VACUUM` (Any LVN with `vacuum_score` < 0.1) | `EXTREME` (Beyond VA boundaries).
 
 # TOPOGRAPHICAL_INTERPRETATION
 Use these objective definitions to transform metrics into tactical insights:
@@ -44,12 +49,13 @@ Use these objective definitions to transform metrics into tactical insights:
 | :--- | :--- |
 | `latest_wick_skew` | **Close-to-High Ratio**: (0.0: Rejection/Weakness; 1.0: Pure Momentum/No Wick). |
 | `poc_dist_atr` | Distance (in ATR units) from current price to the POC. |
-| `nearest_hvn_dist_atr`| Distance to the closest high-volume resistance/support node. |
+| `va_width_atr` | < `{regime_balanced_atr_multiplier}` = BALANCED / RANGING; > `{regime_balanced_atr_multiplier}` = IMBALANCED. |
 | `volatility_ratio` | > `{volatility_baseline_ratio}` = Micro volatility is expanding. |
 | `volatility_intensity_index`| > 1.0 = Macro volatility is expanding beyond average. |
 | `squeeze_factor` | < `{squeeze_threshold}` = Bollinger Bands inside Keltner Channels (Squeeze). |
 | `trend_intensity` | > `{trend_intensity_threshold}` = Efficient Trending; < `{trend_intensity_threshold}` * 0.75 = Mean-reverting. |
-| `volume_breakout_ratio`| > `{volume_baseline_ratio}` = Volume exploding above MA baseline. |
+| `cvd_slope` | Current CVD minus previous window. Positive = Net Buying; Negative = Net Selling. |
+| `oi_delta_micro` | Change in Open Interest. Negative = Liquidation/Closing; Positive = New Participation. |
 
 # MATH_TOOLS
 To eliminate math hallucinations and ensure physical survival, you MUST use these tools to validate your thesis:
@@ -87,7 +93,7 @@ Your response MUST be RAW JSON only.
     }},
     "reasoning_chain": "Logic Flow: [Anchor Identification] -> [Risk Assessment] -> [Final Thesis]",
     "is_hardened": boolean,
-    "critic_clearance": "PASS | WEAK | CONSTRUCTIVE | FATAL",
+    "critic_clearance": "PASS | WEAK | CONSTRUCTIVE | TERMINAL",
     "critic_impact": "Summary of hardening (Must be null in PHASE A)"
 }}
 ```

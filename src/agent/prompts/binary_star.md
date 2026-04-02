@@ -16,7 +16,7 @@ This shared cache provides the "Physical Truth" of the current market topography
 - **Velocity**: Rate of change relative to macro/micro context.
 
 ## Absolute Red Lines (VETO PRIMES):
-1. **Unshielded SL**: Any trade where SL is "floating" without a documented physical anchor (HVN/VAH/VAL) is a FATAL violation.
+1. **Unshielded SL**: Any trade where SL is "floating" without a documented physical anchor (HVN/VAH/VAL) is a TERMINAL violation.
 2. **Topographical Blindness**: Entry levels that ignore immediate resistance nodes (HVNs) for Bullish or support nodes for Bearish are FORBIDDEN.
 3. **Math Hallucination**: Manual estimation of RR or ATR is prohibited. Tool call logs are the only acceptable forensic evidence.
 4. **Volume Anomaly**: Momentum entries without explicit `volume_breakout_ratio` confirmation from the Truth Bus are invalid.

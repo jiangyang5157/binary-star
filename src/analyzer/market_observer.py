@@ -299,24 +299,21 @@ class MarketMetricsRefiner:
         
         return {
             "current_price": c,
-            "atr_macro": round(atr_m, 2),
-            "atr_micro": round(atr_n, 2),
-            "latest_wick_skew": f"{wick_skew:.2f}",
-            "volatility_ratio": f"{volatility_ratio:.2f}",
-            "volatility_intensity_index": f"{vol_intensity:.2f}"
+            "atr_macro": atr_m,
+            "atr_micro": atr_n,
+            "latest_wick_skew": wick_skew,
+            "volatility_ratio": volatility_ratio,
+            "volatility_intensity_index": vol_intensity
         }
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:
         """Calculates distance to structural anchors (POC/VAH/VAL) in ATR units."""
         price = df['close'].iloc[-1]
         atr = df['atr'].iloc[-1]
-        def to_atr(val):
-            return f"{((price - val) / atr):.2f}" if val and atr else None
-
         return {
-            "poc_dist_atr": to_atr(profile.get('poc')),
-            "vah_dist_atr": to_atr(profile.get('vah')),
-            "val_dist_atr": to_atr(profile.get('val'))
+            "poc_dist_atr": (price - profile.get('poc', 0)) / atr if atr else 0,
+            "vah_dist_atr": (price - profile.get('vah', 0)) / atr if atr else 0,
+            "val_dist_atr": (price - profile.get('val', 0)) / atr if atr else 0
         }
 
     def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float, current_price: float) -> Dict[str, Any]:
@@ -329,15 +326,17 @@ class MarketMetricsRefiner:
         val = profile.get('val', 0)
         va_width = vah - val
         
-        state = "BALANCED" if va_width < (atr_macro * self.config.regime_balanced_atr_multiplier) else "IMBALANCED"
-        if va_width == 0: state = "INITIALIZING"
-        
         anchors_above = sorted([n for n in all_nodes if n['price'] > current_price], key=lambda x: x['price'])[:limit]
         anchors_below = sorted([n for n in all_nodes if n['price'] < current_price], key=lambda x: x['price'], reverse=True)[:limit]
+        
+        # Calculate tactical proximity for hard-predicate checks
+        proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes]
+        nearest_hvn_dist_atr = min(proximities) if proximities else 3.0 # Default to safe distance if vacuum
 
         return {
             "poc": poc, "vah": vah, "val": val,
-            "structural_state": state,
+            "va_width_atr": va_width / atr_macro if atr_macro > 0 else 0,
+            "nearest_hvn_dist_atr": nearest_hvn_dist_atr,
             "anchors_above": anchors_above,
             "anchors_below": anchors_below
         }
@@ -360,25 +359,23 @@ class MarketMetricsRefiner:
                     v, tb = float(k[5]), float(k[9])
                     cvd_prev += (tb - (v - tb))
         
-        cvd_slope = "STABLE"
-        if cvd_current > cvd_prev + self.config.regime_cvd_slope_threshold: cvd_slope = "UPWARD"
-        elif cvd_current < cvd_prev - self.config.regime_cvd_slope_threshold: cvd_slope = "DOWNWARD"
+        cvd_delta = cvd_current - cvd_prev
 
         cur_oi = float(raw.current_oi.get('openInterest', 0)) if raw.current_oi else 0
-        def oi_delta(hist):
-            if not hist: return None
+        def raw_oi_delta(hist):
+            if not hist: return 0.0
             h_val = float(hist.get('openInterest', 0))
-            return f"{(((cur_oi - h_val) / h_val) * 100):+.2f}%" if h_val > 0 else None
+            return (cur_oi - h_val) / h_val if h_val > 0 else 0.0
 
         return {
             "oi_nominal": cur_oi,
-            "oi_delta_macro": oi_delta(raw.macro_oi),
-            "oi_delta_micro": oi_delta(raw.micro_oi),
-            "long_short_ratio_macro": raw.macro_ls[0].get('longShortRatio') if raw.macro_ls else None,
-            "long_short_ratio_micro": raw.micro_ls[0].get('longShortRatio') if raw.micro_ls else None,
-            "net_taker_delta": f"{cvd_current:.4f}",
-            "cvd_trend": cvd_slope,
-            "funding_rate": raw.funding_rate[-1].get('fundingRate') if raw.funding_rate else None,
+            "oi_delta_macro": raw_oi_delta(raw.macro_oi),
+            "oi_delta_micro": raw_oi_delta(raw.micro_oi),
+            "ls_ratio_macro": float(raw.macro_ls[0].get('longShortRatio', 0)) if raw.macro_ls else 0,
+            "ls_ratio_micro": float(raw.micro_ls[0].get('longShortRatio', 0)) if raw.micro_ls else 0,
+            "net_taker_delta": cvd_current,
+            "cvd_slope": cvd_delta,
+            "funding_rate": float(raw.funding_rate[-1].get('fundingRate', 0)) if raw.funding_rate else 0,
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
 
