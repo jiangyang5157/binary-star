@@ -216,7 +216,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
 
         return f"""
         <html>
-        <head>{ReviewEmailTemplate.get_styles()}</head>
+        <head>{AuditEmailTemplate.get_styles()}</head>
         <body>
             <div class="container">
                 <!-- Header -->
@@ -264,7 +264,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>
-                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{ReviewEmailTemplate.format_duration(metrics.get('actual_hours') or 0)}</div>
+                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{AuditEmailTemplate.format_duration(metrics.get('actual_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>

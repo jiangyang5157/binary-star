@@ -501,14 +501,14 @@ class MarketObserver:
             if hvns:
                 nearest_hvn = min(hvns, key=lambda x: abs(x["price"] - price))
                 hvn_dist = (nearest_hvn["price"] - price) / atr if atr > 0 else 0
-                summary.append(f"Nearest Friction: HVN at {nearest_hvn["price"]:.2f} ({hvn_dist:.2f} ATR).")
+                summary.append(f"Nearest Friction: HVN at {nearest_hvn['price']:.2f} ({hvn_dist:.2f} ATR).")
             
             # 3. Nearest Vacuum (LVN)
             lvns = [a for a in all_anchors if a.get("type") == "LVN"]
             if lvns:
                 nearest_lvn = min(lvns, key=lambda x: abs(x["price"] - price))
                 lvn_dist = (nearest_lvn["price"] - price) / atr if atr > 0 else 0
-                summary.append(f"Nearest Vacuum: LVN at {nearest_lvn["price"]:.2f} ({lvn_dist:.2f} ATR).")
+                summary.append(f"Nearest Vacuum: LVN at {nearest_lvn['price']:.2f} ({lvn_dist:.2f} ATR).")
 
             return " ".join(summary)
         except Exception as e:

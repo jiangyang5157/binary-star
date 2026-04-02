@@ -74,7 +74,7 @@ class TestAuditAssembler(unittest.TestCase):
             "final_decision": {"opinion": "NEUTRAL"},
             "observation": {
                 "quantitative_metrics": {
-                    "volume_topography": {"poc": 60000} # Structural data was available
+                    "volume_profile": {"poc": 60000} # Structural data was available
                 }
             }
         }

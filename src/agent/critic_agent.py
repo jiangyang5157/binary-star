@@ -16,10 +16,6 @@ logger = setup_logger(__name__)
 @dataclass(frozen=True)
 class CriticConfig(AgentConfig):
     """Encapsulates configuration for the CriticAgent."""
-    model: str
-    model_temperature: float
-    role_prompt_path: str
-    max_tool_iterations: int
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
     strategy_intent: str
@@ -47,7 +43,6 @@ class CriticConfig(AgentConfig):
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
     anchor_drift_threshold: float
-    max_tool_iterations: int
     min_trade_velocity: float
 
     @classmethod
@@ -91,7 +86,7 @@ class CriticConfig(AgentConfig):
             threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
-            regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
+            anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             max_tool_iterations=int(shared.get('max_tool_iterations', 5))
         )
 

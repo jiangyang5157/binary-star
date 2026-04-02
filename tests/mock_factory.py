@@ -170,7 +170,9 @@ class MockDataFactory:
                 "gravity_volume_override_ratio": 1.5,
                 "boundary_clipping_atr": 0.3,
                 "participation_volume_threshold": 2.0,
-                "anchor_drift_threshold": 1.0
+                "anchor_drift_threshold": 1.0,
+                "poc_confluence_strength": 0.9,
+                "structural_buffer_atr": 0.05
             },
             "strategy_intent": "TEST"
         }

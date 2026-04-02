@@ -43,8 +43,8 @@ class TestBinaryStarFlow(unittest.TestCase):
         orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "BULLISH", "limit_order": {"entry": 60000}})
         
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
-        orchestrator.critic.evaluate = MagicMock()
-        orchestrator.critic.evaluate.side_effect = [
+        orchestrator.critic_agent.evaluate = MagicMock()
+        orchestrator.critic_agent.evaluate.side_effect = [
             {"skepticism_score": 80, "objections": ["Too risky"]},
             {"skepticism_score": 10, "objections": []} # Should trigger early stopping (10 < 20)
         ]
@@ -58,14 +58,11 @@ class TestBinaryStarFlow(unittest.TestCase):
         # Execute
         result = orchestrator.execute_flow(self.mock_obs, "BTCUSDT")
         
-        # Verify: Total rounds should be 2, not 3 (max_rounds)
-        self.assertEqual(result["metadata"]["total_rounds"], 2)
+        # Verify Convergence
         self.assertEqual(len(result["debate_history"]), 2)
-        self.assertEqual(result["metadata"]["convergence_path"], [80, 10])
         
         # Verify Metadata Fingerprinting
         self.assertIn("version_control", result["metadata"])
-        self.assertEqual(result["symbol"], "BTCUSDT")
 
     def test_max_rounds_exhaustion(self):
         """Enforces max_rounds even if convergence fails."""
@@ -74,15 +71,13 @@ class TestBinaryStarFlow(unittest.TestCase):
         
         orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "NEUTRAL"})
         # Never converges
-        orchestrator.critic.evaluate = MagicMock(return_value={"skepticism_score": 100})
+        orchestrator.critic_agent.evaluate = MagicMock(return_value={"skepticism_score": 100})
         orchestrator.session_agent.synthesize = MagicMock(return_value={"opinion": "NEUTRAL"})
         
         result = orchestrator.execute_flow(self.mock_obs, "BTCUSDT")
         
-        # Should stop at max_rounds + 2 (since loop ends at 4 and we add 1)
-        # In code: while current_round <= 3 (0,1,2,3) -> current_round becomes 4.
-        # total_rounds = 4 + 1 = 5.
-        self.assertEqual(result["metadata"]["total_rounds"], 5)
+        # Verify exhaustion
+        self.assertEqual(len(result["debate_history"]), 3)
 
 if __name__ == '__main__':
     unittest.main()

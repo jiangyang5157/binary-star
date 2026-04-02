@@ -31,14 +31,27 @@ class TestSessionNotifier(unittest.TestCase):
         self.assertTrue(os.path.exists(preview_dir))
 
     def test_notify_review_generation(self):
-        """Verifies that audit review notification logic runs."""
-        # Mock audit report structure
-        mock_review = {
-            "symbol": self.symbol,
-            "audit_status": {"mae_stress_level_pct": 12.5, "stress_tier": "PINPOINT", "tp_sl_result": "TP_HIT"},
-            "execution_logic": {"opinion": "BULLISH", "entry": 60000, "exit": 62000, "pnl_pct": 3.3}
+        """Verifies that audit review notification logic runs (renamed to notify_audit)."""
+        # Mock audit data compliant with AuditEmailTemplate
+        mock_audit_data = {
+            "strategy_session": {
+                "observation": {"symbol": self.symbol, "timestamp": "2026-04-02T12:00:00Z"},
+                "final_decision": {"opinion": "BULLISH", "confidence_score": 85, "reasoning_chain": "Test rationale"}
+            },
+            "market_outcome": {
+                "tp_sl_result": "TP_HIT",
+                "total_price_change_pct": 3.5,
+                "max_favorable_runup_pct": 4.1,
+                "max_adverse_drawdown_pct": 0.5,
+                "trade_execution_metrics": {"actual_hours": 2.5, "mfe_efficiency": "HIGH", "mae_stress_level": "LOW"}
+            },
+            "audit_findings": {
+                "evaluation_score": 92,
+                "adversarial_audit": {"shadow_evidence": ["Evidence A", "Evidence B"]},
+                "post_mortem": "Execution was clean."
+            }
         }
-        self.notifier.notify_review(self.symbol, mock_review, save_local=True)
+        self.notifier.notify_audit(self.symbol, mock_audit_data, save_local=True)
         
     def test_notify_ledger_generation(self):
         """Verifies aggregate ledger notification."""
