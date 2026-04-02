@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Dict, Any
 
 from src.infrastructure.binance.client import BinanceFuturesClient
-from src.analyzer.topography_engine import ObserverAgent, ObserverConfig
+from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.path_utils import resolve_project_root
 
@@ -23,8 +23,8 @@ class TopographyRecon:
         self.logger.info(f"TopographyRecon: Mapping market topography for {symbol} at {datetime.now(timezone.utc)}...")
         
         try:
-            obs_config = ObserverConfig.from_dict(self.config)
-            observer = ObserverAgent(
+            obs_config = MarketObserverConfig.from_dict(self.config)
+            observer = MarketObserver(
                 config=obs_config,
                 symbol=symbol,
                 data_root=self.data_root,

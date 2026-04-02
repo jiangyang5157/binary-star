@@ -1,7 +1,7 @@
 import os
 import logging
 from typing import Dict, Any, List, Optional
-from src.analyzer.topography_engine import ObserverAgent
+from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.pipeline_utils import load_config
@@ -12,7 +12,7 @@ class OpportunityScanner:
     Shared component for market opportunity detection.
     Analyzes 'Truth Bus' (Observation) to determine if a full strategy run is warranted.
     """
-    def __init__(self, symbol: str, data_root: str, logger: Optional[logging.Logger] = None, observer: Optional[ObserverAgent] = None):
+    def __init__(self, symbol: str, data_root: str, logger: Optional[logging.Logger] = None, observer: Optional[MarketObserver] = None):
         self.symbol = symbol
         self.data_root = data_root
         self.logger = logger or setup_logger("OpportunityScanner", propagate = True)
@@ -23,7 +23,8 @@ class OpportunityScanner:
         if observer:
             self.observer = observer
         else:
-            self.observer = ObserverAgent(self.config, symbol, self.data_root, BinanceFuturesClient(), ChartGenerator(output_dir=os.path.join(self.data_root, "klines")))
+            obs_cfg = MarketObserverConfig.from_dict(self.config)
+            self.observer = MarketObserver(obs_cfg, symbol, self.data_root, BinanceFuturesClient(), ChartGenerator(output_dir=os.path.join(self.data_root, "klines")))
 
     def scan(self, timestamp_str: Optional[str] = None) -> Dict[str, Any]:
         """

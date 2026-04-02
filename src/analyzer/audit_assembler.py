@@ -18,25 +18,22 @@ class AuditReviewConfig:
     micro_interval: str
     strategy_intent: str
     regime_anchor_drift_threshold: float
-    audit_review_thresholds: Dict[str, Any]
-    audit_review_parameters: Dict[str, Any]
+    audit_review: Dict[str, Any]
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "AuditReviewConfig":
         """Factory method for strategic config."""
-        sampling = cfg['sampling_parameters']
+        sampling = cfg['analysis_window']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
-        audit_thresholds = cfg['audit_review_thresholds']
-        audit_params = cfg['audit_review_parameters']
+        audit_node = cfg['audit_review']
         
         return cls(
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            audit_review_thresholds=audit_thresholds,
-            audit_review_parameters=audit_params
+            audit_review=audit_node
         )
 
 class AuditAssembler:

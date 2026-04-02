@@ -27,8 +27,8 @@ class TimeframeConfig:
     lookback_candles: int
 
 @dataclass(frozen=True)
-class ObserverConfig:
-    """Type-safe configuration for the ObserverAgent."""
+class MarketObserverConfig:
+    """Type-safe configuration for the MarketObserver."""
     macro_context: TimeframeConfig
     micro_context: TimeframeConfig
     vp_value_area_width: float
@@ -75,10 +75,10 @@ class ObserverConfig:
     max_tool_iterations: int
 
     @classmethod
-    def from_dict(cls, cfg: Dict[str, Any]) -> "ObserverConfig":
+    def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
         """Factory method to create config from a nested dictionary."""
         shared = cfg.get('agent_model_shared_config', {})
-        sampling = cfg['sampling_parameters']
+        sampling = cfg['analysis_window']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
         
@@ -177,7 +177,7 @@ class ProcessedMarketMetrics:
 
 class MarketDataLoader:
     """Handles high-fidelity data collection from remote exchange endpoints."""
-    def __init__(self, binance_client: BinanceFuturesClient, config: ObserverConfig):
+    def __init__(self, binance_client: BinanceFuturesClient, config: MarketObserverConfig):
         self.client = binance_client
         self.config = config
 
@@ -213,7 +213,7 @@ class MarketDataLoader:
 
 class MarketMetricsRefiner:
     """Processes raw data into actionable technical and semantic metrics."""
-    def __init__(self, config: ObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer):
+    def __init__(self, config: MarketObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer):
         self.config = config
         self.vp = vp_analyzer
         self.regime = regime_analyzer
@@ -378,7 +378,7 @@ class MarketMetricsRefiner:
         # 2. Return top clusters by volume
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
         return {k: v for k, v in sorted_clusters[:self.config.max_liquidation_clusters]}
-class ObserverAgent:
+class MarketObserver:
     """
     Elite Market Topographer & Observer.
     
@@ -388,7 +388,7 @@ class ObserverAgent:
 
     def __init__(
         self, 
-        config: ObserverConfig, 
+        config: MarketObserverConfig, 
         symbol: str, 
         data_root: str,
         binance_client: BinanceFuturesClient,
@@ -415,7 +415,7 @@ class ObserverAgent:
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None) -> Dict[str, Any]:
         """Executes a full topographical observation cycle."""
         at_time = timestamp or get_current_utc_time()
-        logger.info(f"Observer: Starting mapping for {self.symbol} at {at_time}")
+        logger.info(f"MarketObserver: Starting mapping for {self.symbol} at {at_time}")
 
         # 1. Data Collection
         raw = self.loader.collect(self.symbol, at_time)
@@ -425,7 +425,7 @@ class ObserverAgent:
         # We require at least 90% of requested klines to maintain topographic accuracy.
         macro_threshold = int(self.config.macro_context.lookback_candles * 0.9)
         if len(raw.macro_klines) < macro_threshold:
-            logger.error(f"Observer: Data Integrity Failure. Macro Klines count ({len(raw.macro_klines)}) < threshold ({macro_threshold})")
+            logger.error(f"MarketObserver: Data Integrity Failure. Macro Klines count ({len(raw.macro_klines)}) < threshold ({macro_threshold})")
             return {"error": "Data Integrity Failure", "details": "Insufficient macro market telemetry."}
 
         # 2. Metric Refinement
@@ -458,11 +458,11 @@ class ObserverAgent:
             
             # 2. Save HTML Visual Report (v5.10 Hardening)
             try:
-                from src.infrastructure.notifications.email_notifier import StrategyNotifier
+                from src.infrastructure.notifications.email_notifier import SessionNotifier
                 # Mock a strategy wrapper for the observation data
                 strat_wrapper = {"observation": observation, "final_decision": {"opinion": "MARKET_SCAN"}}
                 
-                notifier = StrategyNotifier(data_root=data_root)
+                notifier = SessionNotifier(data_root=data_root)
                 # We save it to 'market/' instead of default 'html/'
                 html_body = notifier.save_html_preview(f"{self.symbol}_market", strat_wrapper)
                 
@@ -471,13 +471,13 @@ class ObserverAgent:
                     html_filename = f"{self.symbol}_market_{ts_str}.html"
                     final_html_path = os.path.join(obs_dir, html_filename)
                     os.rename(html_body, final_html_path)
-                    logger.info(f"Observer: Market HTML Report persisted to {final_html_path}")
+                    logger.info(f"MarketObserver: Market HTML Report persisted to {final_html_path}")
             except Exception as he:
-                logger.warning(f"Observer: Market HTML Report generation skipped: {he}")
+                logger.warning(f"MarketObserver: Market HTML Report generation skipped: {he}")
 
-            logger.info(f"Observer: Market JSON Record persisted to {json_path}")
+            logger.info(f"MarketObserver: Market JSON Record persisted to {json_path}")
         except Exception as e:
-            logger.error(f"Observer: Failed to persist observation: {e}")
+            logger.error(f"MarketObserver: Failed to persist observation: {e}")
 
     def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics, data_root: str, at_time: datetime) -> Dict[str, str]:
         img_dir = os.path.join(data_root, "klines")

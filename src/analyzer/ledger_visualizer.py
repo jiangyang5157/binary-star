@@ -80,7 +80,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     </script>
 </body></html>"""
 
-class DashboardController:
+class LedgerVisualizer:
     """Consolidated Logic for Execution Monitoring & Visualization."""
     def __init__(self, data_root: str, logger: logging.Logger):
         self.data_root = os.path.join(resolve_project_root(), data_root)
@@ -93,20 +93,20 @@ class DashboardController:
         dataset = self._extract_data(symbol, recursive)
         
         if not dataset:
-            self.logger.warning("No audit reports found. Skipping dashboard.")
+            self.logger.warning("No audit reports found. Skipping visualizer.")
             return None
 
         # 1. Inject Data -> 2. Write File
         html_dir = os.path.join(self.data_root, "html")
         os.makedirs(html_dir, exist_ok=True)
         ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        output_path = os.path.join(html_dir, f"{symbol}_dashboard_{ts}.html")
+        output_path = os.path.join(html_dir, f"{symbol}_ledger_{ts}.html")
         
         content = HTML_TEMPLATE.replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset))
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
-        self.logger.info(f"Dashboard Controller: Report successfully rendered to {output_path}")
+        self.logger.info(f"Ledger Visualizer: Report successfully rendered to {output_path}")
         
         if notify:
             self.notifier.notify_dashboard(symbol, dataset, dashboard_path=output_path)

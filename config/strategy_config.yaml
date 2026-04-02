@@ -81,7 +81,11 @@ regime_parameters:
   # Lookback duration for analyzing fine-grained order flow dynamics.
   order_flow_lookback_hours: 1.0
 
-audit_review_thresholds:
+audit_review:
+  # --- Execution Analysis Parameters ---
+  # Precision interval for back-testing execution survival (1m recommended).
+  execution_timeframe_interval: 1m
+
   # --- MAE Stress Tiers (% of SL distance) ---
   # Maximum adverse excursion for a 'Pinpoint' perfect entry.
   score_mae_pinpoint_limit: 15
@@ -125,7 +129,7 @@ audit_review_thresholds:
   # Leniency granted for justified aggressive front-running to avoid Opportunity Denial.
   score_frontrun_leniency_pct: 30
 
-sampling_parameters:
+analysis_window:
   # Macro Context: Structural landscape (Trend detection and Daily range).
   macro_context:
     time_interval: 1h
@@ -177,10 +181,6 @@ topography_parameters:
   liquidation_cluster_atr_multiplier: 0.25
   liquidation_cluster_fallback_percentage: 0.005
 
-audit_review_parameters:
-  # Precision interval for back-testing execution survival (1m recommended).
-  execution_timeframe_interval: 1m
-
 binary_star:
   # The shared 'Sovereign Intelligence' model.
   model: gemini-2.5-flash
@@ -217,13 +217,9 @@ binary_star:
     threshold_skepticism_weak: 69
     threshold_skepticism_constructive: 89
 
-# =============================================================================
-# THE META-OPTIMIZER (Autonomous Evolution Engine)
-# =============================================================================
 evolver:
   # The 'Architect' model responsible for rewriting laws.
   model: gemini-2.5-flash
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency (No hallucinations).
   model_temperature: 0.0
-

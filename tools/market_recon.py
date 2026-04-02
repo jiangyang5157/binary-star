@@ -4,7 +4,8 @@ import sys
 import argparse
 
 # Setup absolute project paths
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(TOOLS_DIR, ".."))
 if PROJECT_ROOT not in sys.path: sys.path.insert(0, PROJECT_ROOT)
 
 from src.analyzer.topography_recon import TopographyRecon
@@ -15,7 +16,7 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger("MarketRecon")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Market Recon Engine (v5.10)")
+    parser = argparse.ArgumentParser(description="Singularity Market Recon Tool (v5.10)")
     parser.add_argument("--symbol", type=str, help="Symbol to observe (e.g., BTCUSDT)")
     from src.utils.pipeline_utils import add_data_root_argument
     add_data_root_argument(parser)

@@ -62,7 +62,7 @@ class SessionConfig(AgentConfig):
         bs = cfg['binary_star']
         strat = bs['session']
         regime = cfg['regime_parameters']
-        sampling = cfg['sampling_parameters']
+        sampling = cfg['analysis_window']
         shared = cfg.get('agent_model_shared_config', {})
         
         return cls(

@@ -9,7 +9,7 @@ from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)
 
-class MarketRegimeAnalyzer:
+class SimpleRegimeClassifier:
     """
     Analyzes historical price data to classify market conditions (regimes).
     Uses EMA and Volatility to distinguish between Bull/Bear and High/Low Volatility states.

@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from src.infrastructure.gemini.cache_manager import GeminiCacheManager
-from src.analyzer.topography_engine import ObserverAgent, ObserverConfig
+from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.agent.session_agent import SessionAgent, SessionConfig
 from src.agent.audit_agent import AuditAgent, AuditConfig
 from src.utils.math_utils import MathTools
@@ -65,7 +65,7 @@ class BinaryStarOrchestrator:
         max_tool_iterations = int(gemini_net.get('max_tool_iterations', 5))
         strategy_intent = str(self.config.get('strategy_intent', ""))
         
-        self.obs_config = ObserverConfig.from_dict(self.config)
+        self.obs_config = MarketObserverConfig.from_dict(self.config)
         self.session_config = SessionConfig.from_dict(self.config)
         self.audit_config = AuditConfig.from_dict(self.config)
         
@@ -76,7 +76,7 @@ class BinaryStarOrchestrator:
         
         # 7. Reasoner Triad Assembly (The Brain)
         # Full Dependency Injection ensures physical auth isolation and testability.
-        self.observer = ObserverAgent(
+        self.observer = MarketObserver(
             config=self.obs_config,
             symbol=self.global_config['system']['default_symbol'], 
             data_root=self.data_root,

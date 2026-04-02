@@ -58,7 +58,7 @@ class AuditConfig(AgentConfig):
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
         shared = cfg_dict.get('agent_model_shared_config', {})
-        sampling = cfg_dict['sampling_parameters']
+        sampling = cfg_dict['analysis_window']
         
         return cls(
             model=str(bs['model']),
