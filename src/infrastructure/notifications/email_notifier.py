@@ -15,8 +15,6 @@ from .base_notifier import (
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
-
-
 class SessionEmailTemplate(BaseEmailTemplate):
     """
     Handles the generation of professional HTML templates for trading strategies.
@@ -656,7 +654,7 @@ class SessionNotifier:
             return None
 
 
-    def notify_dashboard(self, symbol: str, dataset: List[Dict[str, Any]], dashboard_path: Optional[str] = None, save_local: bool = False) -> bool:
+    def notify_ledger(self, symbol: str, dataset: List[Dict[str, Any]], ledger_path: Optional[str] = None, save_local: bool = False) -> bool:
         """
         Calculates aggregate KPIs and sends a premium ledger summary.
         """

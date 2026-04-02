@@ -109,7 +109,7 @@ class LedgerVisualizer:
         self.logger.info(f"Ledger Visualizer: Report successfully rendered to {output_path}")
         
         if notify:
-            self.notifier.notify_dashboard(symbol, dataset, dashboard_path=output_path)
+            self.notifier.notify_ledger(symbol, dataset, ledger_path=output_path)
         
         return output_path
 
