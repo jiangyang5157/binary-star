@@ -26,27 +26,27 @@ class CriticConfig(AgentConfig):
     macro_interval: str
     micro_interval: str
     order_flow_lookback_hours: float
-    regime_trend_intensity_threshold: float
-    regime_volatility_baseline_ratio: float
-    regime_volatility_expansion_ratio: float
-    regime_volatility_extreme_ratio: float
-    regime_volume_breakout_threshold: float
-    regime_long_short_imbalance_ratio: float
-    regime_poc_gravity_atr_distance: float
-    regime_vacuum_risk_score: float
-    regime_wick_skewness_exhaustion: float
-    regime_wick_skewness_momentum_bullish: float
-    regime_wick_skewness_momentum_bearish: float
-    regime_trend_intensity_strong: float
-    regime_min_rr_ranging: float
-    regime_min_rr_trending: float
-    regime_volume_baseline_ratio: float
-    regime_squeeze_threshold: float
-    regime_squeeze_audit_threshold: float
+    trend_intensity_threshold: float
+    volatility_baseline_ratio: float
+    volatility_expansion_ratio: float
+    volatility_extreme_ratio: float
+    volume_breakout_threshold: float
+    long_short_imbalance_ratio: float
+    poc_gravity_atr_distance: float
+    vacuum_risk_score: float
+    wick_skewness_exhaustion: float
+    wick_skewness_momentum_bullish: float
+    wick_skewness_momentum_bearish: float
+    trend_intensity_strong: float
+    min_rr_ranging: float
+    min_rr_trending: float
+    volume_baseline_ratio: float
+    squeeze_threshold: float
+    squeeze_audit_threshold: float
     threshold_skepticism_clear: int
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
-    regime_anchor_drift_threshold: float
+    anchor_drift_threshold: float
     max_tool_iterations: int
     min_trade_velocity: float
 
@@ -71,23 +71,23 @@ class CriticConfig(AgentConfig):
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
             order_flow_lookback_hours=float(sampling['order_flow_lookback_hours']),
-            regime_trend_intensity_threshold=float(regime['trend_intensity_threshold']),
-            regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
-            regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
-            regime_volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-            regime_volume_breakout_threshold=float(regime['volume_breakout_threshold']),
-            regime_long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
-            regime_poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
-            regime_vacuum_risk_score=float(regime['vacuum_risk_score']),
-            regime_wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
-            regime_wick_skewness_momentum_bullish=float(regime['wick_skewness_momentum_bullish']),
-            regime_wick_skewness_momentum_bearish=float(regime['wick_skewness_momentum_bearish']),
-            regime_trend_intensity_strong=float(regime['trend_intensity_strong']),
-            regime_min_rr_ranging=float(regime['min_rr_ranging']),
-            regime_min_rr_trending=float(regime['min_rr_trending']),
-            regime_volume_baseline_ratio=float(regime['volume_baseline_ratio']),
-            regime_squeeze_threshold=float(regime['squeeze_threshold']),
-            regime_squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
+            trend_intensity_threshold=float(regime['trend_intensity_threshold']),
+            volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
+            volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
+            volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
+            volume_breakout_threshold=float(regime['volume_breakout_threshold']),
+            long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
+            poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
+            vacuum_risk_score=float(regime['vacuum_risk_score']),
+            wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
+            wick_skewness_momentum_bullish=float(regime['wick_skewness_momentum_bullish']),
+            wick_skewness_momentum_bearish=float(regime['wick_skewness_momentum_bearish']),
+            trend_intensity_strong=float(regime['trend_intensity_strong']),
+            min_rr_ranging=float(regime['min_rr_ranging']),
+            min_rr_trending=float(regime['min_rr_trending']),
+            volume_baseline_ratio=float(regime['volume_baseline_ratio']),
+            squeeze_threshold=float(regime['squeeze_threshold']),
+            squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
             threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
@@ -190,27 +190,27 @@ class CriticAgent(BaseAgent):
             "min_trade_velocity": self.config.min_trade_velocity,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval,
-            "regime_trend_intensity_threshold": self.config.regime_trend_intensity_threshold,
-            "regime_volatility_baseline_ratio": self.config.regime_volatility_baseline_ratio,
-            "regime_volatility_expansion_ratio": self.config.regime_volatility_expansion_ratio,
-            "regime_volatility_extreme_ratio": self.config.regime_volatility_extreme_ratio,
-            "regime_volume_breakout_threshold": self.config.regime_volume_breakout_threshold,
-            "regime_long_short_imbalance_ratio": self.config.regime_long_short_imbalance_ratio,
-            "regime_poc_gravity_atr_distance": self.config.regime_poc_gravity_atr_distance,
-            "regime_vacuum_risk_score": self.config.regime_vacuum_risk_score,
-            "regime_wick_skewness_exhaustion": self.config.regime_wick_skewness_exhaustion,
-            "regime_wick_skewness_momentum_bullish": self.config.regime_wick_skewness_momentum_bullish,
-            "regime_wick_skewness_momentum_bearish": self.config.regime_wick_skewness_momentum_bearish,
-            "regime_trend_intensity_strong": self.config.regime_trend_intensity_strong,
-            "regime_min_rr_ranging": self.config.regime_min_rr_ranging,
-            "regime_min_rr_trending": self.config.regime_min_rr_trending,
-            "regime_volume_baseline_ratio": self.config.regime_volume_baseline_ratio,
-            "regime_squeeze_threshold": self.config.regime_squeeze_threshold,
-            "regime_squeeze_audit_threshold": self.config.regime_squeeze_audit_threshold,
+            "trend_intensity_threshold": self.config.trend_intensity_threshold,
+            "volatility_baseline_ratio": self.config.volatility_baseline_ratio,
+            "volatility_expansion_ratio": self.config.volatility_expansion_ratio,
+            "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
+            "volume_breakout_threshold": self.config.volume_breakout_threshold,
+            "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
+            "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
+            "vacuum_risk_score": self.config.vacuum_risk_score,
+            "wick_skewness_exhaustion": self.config.wick_skewness_exhaustion,
+            "wick_skewness_momentum_bullish": self.config.wick_skewness_momentum_bullish,
+            "wick_skewness_momentum_bearish": self.config.wick_skewness_momentum_bearish,
+            "trend_intensity_strong": self.config.trend_intensity_strong,
+            "min_rr_ranging": self.config.min_rr_ranging,
+            "min_rr_trending": self.config.min_rr_trending,
+            "volume_baseline_ratio": self.config.volume_baseline_ratio,
+            "squeeze_threshold": self.config.squeeze_threshold,
+            "squeeze_audit_threshold": self.config.squeeze_audit_threshold,
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
             "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
             "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive,
-            "regime_anchor_drift_threshold": self.config.regime_anchor_drift_threshold
+            "anchor_drift_threshold": self.config.anchor_drift_threshold
         }
 
     # --- Tool Delegate Methods (for Function Calling) ---

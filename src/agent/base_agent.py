@@ -123,13 +123,15 @@ class BaseAgent:
                     config=gen_config
                 )
                 
-                # Audit Token Tracking
+                # Audit Token Tracking (v5.10 Hardening)
                 if response and response.usage_metadata:
                     m = response.usage_metadata
                     logger.info(
-                        f"{agent_name}: Token Tracking [Total={m.total_token_count}] "
-                        f"(Prompt={m.prompt_token_count}, Candidate={m.candidates_token_count}, "
-                        f"Cached={m.cached_content_token_count or 0})"
+                        f"[{agent_name}] 📊 Token Usage: "
+                        f"Total={m.total_token_count} | "
+                        f"Prompt={m.prompt_token_count} | "
+                        f"Candidate={m.candidates_token_count} | "
+                        f"Cached={m.cached_content_token_count or 0}"
                     )
 
                 if not response or not response.candidates:

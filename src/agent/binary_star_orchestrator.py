@@ -404,7 +404,7 @@ class BinaryStarOrchestrator:
             compliance = {
                 "rr_is_valid": rr_results["ratio"] >= (self.session_config.min_trade_velocity * 2), # Heuristic
                 "sl_is_shielded": proximity["is_shielded"],
-                "atr_volatility_is_logical": atr_metrics["sl_dist_atr"] < self.critic_config.regime_poc_gravity_atr_distance
+                "atr_volatility_is_logical": atr_metrics["sl_dist_atr"] < self.critic_config.poc_gravity_atr_distance
             }
             
             return {
