@@ -17,10 +17,15 @@ logger = setup_logger("MarketObserver")
 def main():
     parser = argparse.ArgumentParser(description="Thin CLI Wrapper for Market Reconnaissance (v5.3)")
     parser.add_argument("--symbol", type=str, help="Symbol to observe (e.g., BTCUSDT)")
-    parser.add_argument("--env", default="prod", help="Environment (prod/live)")
+    from src.utils.pipeline_utils import add_data_root_argument
+    add_data_root_argument(parser)
     args = parser.parse_args()
     
-    data_root = resolve_data_root(f"data/{args.env}")
+    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    if not data_root:
+        print("Error: --data_root or environment shortcut (e.g., prod, live) required.")
+        sys.exit(1)
+        
     config = load_config()
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']

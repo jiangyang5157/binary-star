@@ -35,9 +35,10 @@ class UniversalExecutionEngine:
     Supports Live (Pulse/Scan) and Backtest (Historical Simulation) modes.
     Ensures 100% logic parity across any temporal context.
     """
-    def __init__(self, symbol: str, data_root: str):
+    def __init__(self, symbol: str, data_root: str, args: Any = None):
         self.symbol = symbol
         self.data_root = data_root
+        self.args = args # Pass CLI args for control flags like --force
         self.config = load_config()
         self.global_cfg = load_global_config()
         
@@ -71,7 +72,7 @@ class UniversalExecutionEngine:
         If timestamp_str is provided, it acts as 'Simulation' (Historical).
         """
         try:
-            mode_label = "LIVE" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
+            mode_label = "PROD" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
             logger.info(f"--- Cycle Start [{mode_label}] ---")
             
             # 1. Fact Gathering (Market Topography)
@@ -80,10 +81,18 @@ class UniversalExecutionEngine:
             if "error" in observation:
                 raise ValueError(f"Observation failed: {observation['error']}")
 
-            # 2. Binary Star Adversarial Debate
+            # 2. Defense-First Filter (Deterministic Scan)
+            # We skip heavy inference if market topography doesn't warrant it.
+            # Bypass this check if --force is provided.
+            is_force = self.args and getattr(self.args, "force", False)
+            if not is_force and not self.scanner.should_trigger(observation):
+                logger.info("Scanner: [PASS] Opportunity criteria not met. Skipping neural flow.")
+                return {"status": "skipped", "reason": "low_probability_regime", "observation": observation}
+
+            # 3. Binary Star Adversarial Debate
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
-            # 3. Notification (Filtered)
+            # 4. Notification (Filtered)
             # We skip email notifications for backtests to avoid spamming the user.
             if not timestamp_str:
                 self.notifier.notify_strategy(self.symbol, session_result)
@@ -125,7 +134,7 @@ class RunEngineController:
         self.global_cfg = load_global_config()
         self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
         
-        self.engine = UniversalExecutionEngine(self.symbol, self.data_root)
+        self.engine = UniversalExecutionEngine(self.symbol, self.data_root, args=args)
         self._setup_signals()
 
     def _setup_signals(self):
@@ -216,18 +225,21 @@ def parse_date(date_str: str) -> datetime:
     raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
 
 def main():
-    parser = argparse.ArgumentParser(description="The Singularity Engine (v5.3)")
-    parser.add_argument("--mode", choices=["live", "backtest", "once", "scan"], required=True)
+    parser = argparse.ArgumentParser(description="The Singularity Engine (v5.5)")
+    parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode (default: once)")
     parser.add_argument("--symbol", type=str)
+    parser.add_argument("--force", action="store_true", help="Bypass Python scanner and force neural inference")
     
-    # Live params
-    parser.add_argument("--pulse", type=float, help="Pulse interval in minutes")
+    # 1. Live Configuration Group
+    live_group = parser.add_argument_group("Live Options")
+    live_group.add_argument("--pulse", type=float, help="Pulse interval in minutes")
     
-    # Backtest params
-    parser.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
-    parser.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
-    parser.add_argument("--sampling", type=int, default=10, help="Number of historical samples")
-    parser.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
+    # 2. Backtest Configuration Group
+    bt_group = parser.add_argument_group("Backtest Options")
+    bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
+    bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
+    bt_group.add_argument("--sampling", type=int, default=10, help="Number of historical samples")
+    bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
     
     from src.utils.pipeline_utils import add_data_root_argument
     add_data_root_argument(parser)

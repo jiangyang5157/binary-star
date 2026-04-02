@@ -4,6 +4,7 @@ import sys
 import time
 import argparse
 import logging
+import subprocess
 from typing import Dict, Any
 
 # Setup paths
@@ -47,7 +48,6 @@ def main():
         logger.error(f"Failed to initialize OpportunityScanner: {e}")
         sys.exit(1)
 
-    interval_hours = args.pulse / 60.0
     
     try:
         while True:
@@ -61,7 +61,21 @@ def main():
             is_triggered = scanner.should_trigger(observation)
             
             if is_triggered:
-                logger.info(">>> SIGNAL: CRITERIA MET. (Suggested to trigger agents)")
+                logger.info(">>> SIGNAL: CRITERIA MET. Triggering Universal Engine (once mode)...")
+                
+                # Construct trigger command
+                # We reuse the same environment shortcut and symbol
+                cmd = [sys.executable, "run_engine.py", "--mode", "once", "--symbol", symbol]
+                if args.env_shortcut:
+                    cmd.append(args.env_shortcut)
+                
+                try:
+                    # Resolve root directory for execution
+                    project_root = os.path.dirname(PROJECT_ROOT)
+                    subprocess.Popen(cmd, cwd=project_root)
+                    logger.info(f"Engine launched from {project_root}: {' '.join(cmd)}")
+                except Exception as e:
+                    logger.error(f"Failed to launch engine: {e}")
             else:
                 logger.info(">>> SIGNAL: NO OPPORTUNITY. (Waiting for next pulse)")
             
