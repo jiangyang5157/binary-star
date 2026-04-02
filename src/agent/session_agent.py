@@ -149,14 +149,14 @@ class SessionAgent(BaseAgent):
         symbol: str, 
         cache_id: Optional[str] = None,
         tools: Optional[List[Any]] = None,
-        previous_audit: Optional[Dict[str, Any]] = None
+        critic_feedback: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Unified drafting method (The Phase 1 Core).
         Supports both Truth Bus (Cache) and Debug (Direct JSON) modes.
         """
         try:
-            prompt = self._build_prompt(observation, audit_feedback=previous_audit, cache_id=cache_id)
+            prompt = self._build_prompt(observation, critic_feedback=critic_feedback, cache_id=cache_id)
             logger.info(f"Session: Drafting thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(
@@ -172,7 +172,7 @@ class SessionAgent(BaseAgent):
 
     def synthesize(self, 
                    draft_plan: Dict[str, Any], 
-                   audit_results: Dict[str, Any], 
+                   critic_results: Dict[str, Any], 
                    cache_id: Optional[str] = None,
                    tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
@@ -182,7 +182,7 @@ class SessionAgent(BaseAgent):
         """
         try:
             # During synthesis, we typically rely on Cache for topographic data
-            prompt = self._build_prompt(None, draft_plan, audit_results, cache_id=cache_id)
+            prompt = self._build_prompt(None, draft_plan, critic_results, cache_id=cache_id)
             logger.info(f"Session: Synthesizing final hardened decision (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(
@@ -200,7 +200,7 @@ class SessionAgent(BaseAgent):
         self, 
         observation: Optional[Dict[str, Any]], 
         draft_plan: Optional[Dict[str, Any]] = None,
-        audit_feedback: Optional[Dict[str, Any]] = None,
+        critic_feedback: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> str:
         """
@@ -223,7 +223,7 @@ class SessionAgent(BaseAgent):
         context = {
             "observation_json": observation_json,
             "draft_plan_json": json.dumps(draft_plan, indent=2, ensure_ascii=False) if draft_plan else "{}",
-            "audit_feedback": json.dumps(audit_feedback, indent=2, ensure_ascii=False) if audit_feedback else "{}",
+            "critic_feedback": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "{}",
             "min_trade_velocity": self.config.min_trade_velocity,
             "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,

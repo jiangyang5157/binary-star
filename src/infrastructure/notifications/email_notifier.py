@@ -43,8 +43,8 @@ class SessionEmailTemplate(BaseEmailTemplate):
         
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
-        confidence = decision.get("confidence", 0)
-        reasoning = decision.get("reasoning", "No description provided.")
+        confidence = decision.get("confidence_score", 0)
+        reasoning = decision.get("reasoning_chain", "No description provided.")
         
         # 3. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
@@ -67,7 +67,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
                         {theme_icon} {display_opinion}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Blueprint</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Session</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
@@ -86,7 +86,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
                             </td>
                         </tr>
                     </table>
-                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt((audit or {}).get('audit_review'))}</p>
+                    <p style="font-size: 14px; line-height: 1.6; color: #7c2d12; margin: 0;">{fmt((audit or {}).get('audit_summary'))}</p>
                 </div>
                 ''' if audit else ""}
 
@@ -100,7 +100,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
 
                 <!-- Reasoning -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">🧠 Logic & Reasoning</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">Reasoning</h3>
                     <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
                     
                     {f'''
@@ -108,27 +108,27 @@ class SessionEmailTemplate(BaseEmailTemplate):
                         <tr>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📍 Current</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(current_price)}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('current_price'))}</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📥 Entry</div>
-                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('entry'))}</div>
+                                <div style="font-size: 18px; color: #60a5fa; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('entry'))}</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">💰 Take Profit</div>
-                                <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('take_profit'))}</div>
+                                <div style="font-size: 18px; color: #34d399; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('take_profit'))}</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🛡️ Stop Loss</div>
-                                <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('stop_loss'))}</div>
+                                <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('stop_loss'))}</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📊 RR Ratio</div>
-                                <div style="font-size: 18px; color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('limit_order') or {}).get('rr_ratio'))}x</div>
+                                <div style="font-size: 18px; color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('rr_ratio'))}x</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration((decision.get('limit_order') or {}).get('holding_time_hours') or 0)}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration((decision.get('tactical_parameters') or {}).get('holding_time_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>
@@ -189,7 +189,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
 
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
-        confidence = decision.get("confidence", 0)
+        confidence = decision.get("confidence_score", 0)
         
         # Outcome styling
         metrics = outcome.get("trade_execution_metrics") or {}

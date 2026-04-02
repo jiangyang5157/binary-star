@@ -8,11 +8,11 @@ from google.genai import types
 from src.infrastructure.gemini.cache_manager import GeminiCacheManager
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.agent.session_agent import SessionAgent, SessionConfig
-from src.agent.audit_agent import AuditAgent, AuditConfig
+from src.agent.critic_agent import CriticAgent, CriticConfig
 from src.utils.math_utils import MathTools
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template
+from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, resolve_data_root
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
@@ -31,7 +31,7 @@ class BinaryStarOrchestrator:
         """
         self.config = config_dict
         self.api_key = api_key
-        self.data_root = data_root
+        self.data_root = resolve_data_root(data_root)
         
         # 1. Central Resource Hub: Shared Clients
         # We initialize these ONCE and share across the reasoning triad
@@ -67,7 +67,7 @@ class BinaryStarOrchestrator:
         
         self.obs_config = MarketObserverConfig.from_dict(self.config)
         self.session_config = SessionConfig.from_dict(self.config)
-        self.audit_config = AuditConfig.from_dict(self.config)
+        self.critic_config = CriticConfig.from_dict(self.config)
         
         # 6. Specialized Visualization Assets Manager
         self.chart_gen = ChartGenerator(
@@ -95,8 +95,8 @@ class BinaryStarOrchestrator:
             model=self.shared_model
         )
         
-        self.audit = AuditAgent(
-            config=self.audit_config, 
+        self.critic = CriticAgent(
+            config=self.critic_config, 
             api_timeout=self.api_timeout, 
             retry_count=self.retry_count,
             retry_multiplier=self.retry_multiplier,
@@ -151,7 +151,7 @@ class BinaryStarOrchestrator:
             
             # Phase 1 & 2: The Adversarial Debate Loop (With Trajectory Memory)
             current_round = 0
-            audit_results = None
+            critic_results = None
             last_draft = None
             debate_history = []
             convergence_path = []
@@ -160,26 +160,26 @@ class BinaryStarOrchestrator:
                 logger.info(f"BinaryStar: [PHASE 1] Session Agent generating thesis (Round {current_round})...")
                 last_draft = self.session_agent.draft(
                     observation, symbol, cache_id=cache_resource_name, tools=tools, 
-                    previous_audit=audit_results
+                    critic_feedback=critic_results
                 )
                 
-                # Adversarial Auditing
-                logger.info(f"BinaryStar: [PHASE 2] Audit Agent performing adversarial audit (Round {current_round})...")
-                audit_results = self.audit.audit(observation, last_draft, symbol, cache_id=cache_resource_name, tools=tools)
+                # Adversarial Critic Evaluation
+                logger.info(f"BinaryStar: [PHASE 2] Critic Agent performing adversarial evaluation (Round {current_round})...")
+                critic_results = self.critic.evaluate(observation, last_draft, symbol, cache_id=cache_resource_name, tools=tools)
                 
                 # Check for Early Stopping (The "Enough" Condition)
                 try:
-                    raw_score = audit_results.get('skepticism_score', 100)
+                    raw_score = critic_results.get('skepticism_score', 100)
                     skepticism_score = int(float(str(raw_score))) # Handle "40", 40, "40.0"
                 except (ValueError, TypeError):
                     logger.warning(f"BinaryStar: Invalid skepticism_score format ({raw_score}). Falling back to 100.")
                     skepticism_score = 100
 
-                # Track Audit Trail
+                # Track Critic Trail
                 debate_history.append({
                     "round": current_round,
                     "draft": last_draft,
-                    "audit": audit_results
+                    "critic": critic_results
                 })
                 convergence_path.append(skepticism_score)
 
@@ -192,7 +192,7 @@ class BinaryStarOrchestrator:
             # Phase 3: The Synthesis (Final Hardening)
             # The Session Agent synthesizes the final consensus decision based on the LAST debate round.
             logger.info("BinaryStar: [PHASE 3] Session Agent synthesizing final hardened decision...")
-            final_decision = self.session_agent.synthesize(last_draft, audit_results, cache_id=cache_resource_name, tools=tools)
+            final_decision = self.session_agent.synthesize(last_draft, critic_results, cache_id=cache_resource_name, tools=tools)
             
             # Phase 4: Metadata Fingerprinting & Session Closure
             # Records the 'Immutable DNA' of the logic that generated this decision.
@@ -204,7 +204,7 @@ class BinaryStarOrchestrator:
             metadata = {
                 "version_control": {
                     "session_agent_hash": get_file_hash(self.session_agent.config.role_prompt_path),
-                    "audit_hash": get_file_hash(self.audit.config.role_prompt_path),
+                    "critic_hash": get_file_hash(self.critic.config.role_prompt_path),
                     "config_hash": get_file_hash(config_path),
                     "logic_timestamp": timestamp
                 }
@@ -212,12 +212,12 @@ class BinaryStarOrchestrator:
             
             logger.info(f"BinaryStar: [COMPLETE] Decision synthesized for {symbol}. Session Result packaged.")
             
-            # Package the session result with full audit metadata
+            # Package the session result with full critic metadata
             return {
                 "symbol": symbol,
                 "timestamp": timestamp,
                 "final_decision": final_decision,
-                "audit": audit_results,
+                "critic": critic_results,
                 "debate_history": debate_history,
                 "observation": observation,
                 "regime_snapshot": self.config.get('regime_parameters', {}),
@@ -227,7 +227,7 @@ class BinaryStarOrchestrator:
                     "convergence_path": convergence_path,
                     "version_control": {
                         "session_agent_hash": get_file_hash(self.session_agent.config.role_prompt_path),
-                        "audit_hash": get_file_hash(self.audit.config.role_prompt_path),
+                        "critic_hash": get_file_hash(self.critic.config.role_prompt_path),
                         "config_hash": get_file_hash(config_path),
                         "logic_timestamp": timestamp
                     }

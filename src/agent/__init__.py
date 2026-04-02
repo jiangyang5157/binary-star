@@ -1,6 +1,6 @@
 """
 Agent Module:
-Contains the 'Reasoning Brains' of the system (Session, Audit).
+Contains the 'Reasoning Brains' of the system (Session, Critic).
 """
 from .session_agent import SessionAgent
-from .audit_agent import AuditAgent
+from .critic_agent import CriticAgent

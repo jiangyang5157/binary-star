@@ -14,8 +14,8 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
 @dataclass(frozen=True)
-class AuditConfig(AgentConfig):
-    """Encapsulates configuration for the AuditAgent."""
+class CriticConfig(AgentConfig):
+    """Encapsulates configuration for the CriticAgent."""
     model: str
     model_temperature: float
     role_prompt_path: str
@@ -51,10 +51,10 @@ class AuditConfig(AgentConfig):
     min_trade_velocity: float
 
     @classmethod
-    def from_dict(cls, cfg_dict: Dict[str, Any]) -> "AuditConfig":
-        """Factory method to extract audit config from the global config dict."""
+    def from_dict(cls, cfg_dict: Dict[str, Any]) -> "CriticConfig":
+        """Factory method to extract critic config from the global config dict."""
         bs = cfg_dict['binary_star']
-        audit = bs['audit']
+        critic = bs['critic']
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
         shared = cfg_dict.get('agent_model_shared_config', {})
@@ -62,8 +62,8 @@ class AuditConfig(AgentConfig):
         
         return cls(
             model=str(bs['model']),
-            role_prompt_path=os.path.join(resolve_project_root(), audit['role_definition_prompt']),
-            model_temperature=float(audit['model_temperature']),
+            role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
+            model_temperature=float(critic['model_temperature']),
             min_trade_velocity=float(session_node.get('min_trade_velocity', 0.5)),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(session_node['stop_loss_buffer_max']),
@@ -88,16 +88,16 @@ class AuditConfig(AgentConfig):
             regime_volume_baseline_ratio=float(regime['volume_baseline_ratio']),
             regime_squeeze_threshold=float(regime['squeeze_threshold']),
             regime_squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
-            threshold_skepticism_clear=int(audit['threshold_skepticism_clear']),
-            threshold_skepticism_weak=int(audit['threshold_skepticism_weak']),
-            threshold_skepticism_constructive=int(audit['threshold_skepticism_constructive']),
+            threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
+            threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
+            threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
             regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             max_tool_iterations=int(shared.get('max_tool_iterations', 5))
         )
 
-class AuditAgent(BaseAgent):
+class CriticAgent(BaseAgent):
     """
-    The Skeptical Risk Auditor (Adversarial Agent).
+    The Skeptical Risk Critic (Adversarial Agent).
     
     This agent performs a high-fidelity stress test on the Session draft.
     It identifies hidden flaws, structural traps, and math violations by 
@@ -105,7 +105,7 @@ class AuditAgent(BaseAgent):
     """
     def __init__(
         self, 
-        config: AuditConfig, 
+        config: CriticConfig, 
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
@@ -115,7 +115,7 @@ class AuditAgent(BaseAgent):
         model: Optional[str] = None
     ):
         """
-        Initializes the Audit with a pre-assembled type-safe configuration.
+        Initializes the Critic with a pre-assembled type-safe configuration.
         """
         self.config = config
         super().__init__(
@@ -128,7 +128,7 @@ class AuditAgent(BaseAgent):
             retry_max=retry_max
         )
 
-    def audit(
+    def evaluate(
         self, 
         observation: Optional[Dict[str, Any]], 
         draft_plan: Dict[str, Any], 
@@ -145,17 +145,17 @@ class AuditAgent(BaseAgent):
             context = self._build_context(observation, draft_plan, cache_id=cache_id)
             prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
             
-            logger.info(f"Audit: Auditing thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
+            logger.info(f"Critic: Evaluating thesis for {symbol} (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
                 temperature=self.config.model_temperature,
-                agent_name="Audit_Audit",
+                agent_name="Critic_Evaluation",
                 cached_content=cache_id,
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Audit: Audit failed for {symbol}: {e}")
+            logger.error(f"Critic: Evaluation failed for {symbol}: {e}")
             raise
 
     def _build_context(
@@ -179,8 +179,8 @@ class AuditAgent(BaseAgent):
             # Debug/Fallback: Manual data injection.
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
         else:
-            # Safety Fuse: Prevent auditing without topographic data
-            raise ValueError("Audit: Zero-Knowledge State. Neither observation nor cache_id provided.")
+            # Safety Fuse: Prevent evaluation without topographic data
+            raise ValueError("Critic: Zero-Knowledge State. Neither observation nor cache_id provided.")
 
         return {
             "observation_json": observation_json,

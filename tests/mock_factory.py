@@ -103,9 +103,9 @@ class MockDataFactory:
                     "score_confidence_decay_max": 10.0,
                     "holding_time_modifier": 1.0
                 },
-                "audit": {
+                "critic": {
                     "model_temperature": 0.2,
-                    "role_definition_prompt": "prompts/audit.md",
+                    "role_definition_prompt": "src/agent/prompts/critic.md",
                     "threshold_skepticism_clear": 20,
                     "threshold_skepticism_weak": 40,
                     "threshold_skepticism_constructive": 60

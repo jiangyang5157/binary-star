@@ -41,9 +41,9 @@ class TestBinaryStarFlow(unittest.TestCase):
         # 1. Mock SessionAgent: Returns consistent draft
         orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "BULLISH", "limit_order": {"entry": 60000}})
         
-        # 2. Mock Audit: Returns high skepticism then low skepticism (Convergence)
-        orchestrator.audit.audit = MagicMock()
-        orchestrator.audit.audit.side_effect = [
+        # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
+        orchestrator.critic.evaluate = MagicMock()
+        orchestrator.critic.evaluate.side_effect = [
             {"skepticism_score": 80, "objections": ["Too risky"]},
             {"skepticism_score": 10, "objections": []} # Should trigger early stopping (10 < 20)
         ]
@@ -73,7 +73,7 @@ class TestBinaryStarFlow(unittest.TestCase):
         
         orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "NEUTRAL"})
         # Never converges
-        orchestrator.audit.audit = MagicMock(return_value={"skepticism_score": 100})
+        orchestrator.critic.evaluate = MagicMock(return_value={"skepticism_score": 100})
         orchestrator.session_agent.synthesize = MagicMock(return_value={"opinion": "NEUTRAL"})
         
         result = orchestrator.execute_flow(self.mock_obs, "BTCUSDT")
