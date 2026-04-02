@@ -19,7 +19,6 @@ load_dotenv()
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
-from src.analyzer.opportunity_scanner import OpportunityScanner
 from src.analyzer.simulation_sampler import SimpleRegimeClassifier, SpacedSampler, RegimeSampler
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, resolve_data_root, archive_strategy_result
@@ -54,12 +53,6 @@ class SessionEngine:
             data_root=self.data_root
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
-        self.scanner = OpportunityScanner(
-            self.symbol, 
-            self.data_root, 
-            logger=logger, 
-            observer=self.orchestrator.observer
-        )
         
         # Failure tracking for circuit breaker
         self.consecutive_failures = 0
@@ -76,8 +69,15 @@ class SessionEngine:
             logger.info(f"--- Session Cycle Start [{mode_label}] ---")
             
             # 1. Fact Gathering (Market Topography)
-            # If timestamp_str is None, scanner uses current time.
-            observation = self.scanner.scan(timestamp_str=timestamp_str)
+            # We call the MarketObserver directly from the orchestrator hub.
+            target_dt = None
+            if timestamp_str:
+                from src.utils.datetime_utils import parse_iso_to_utc
+                target_dt = parse_iso_to_utc(timestamp_str)
+            
+            logger.info(f"Observer: Commencing structural mapping for {self.symbol}...")
+            observation = self.orchestrator.observer.observe(timestamp=target_dt)
+            
             if "error" in observation:
                 raise ValueError(f"Observation failed: {observation['error']}")
 
@@ -87,16 +87,10 @@ class SessionEngine:
             dyn = metrics.get('price_dynamics', {})
             logger.info(f"Topography Snapshot: POC={topo.get('poc')} | VAH={topo.get('vah')} | VAL={topo.get('val')} | ATR={dyn.get('atr_macro')}")
 
-            # 2. Defense-First Filter (Deterministic Scan)
-            # We skip heavy inference if market topography doesn't warrant it.
-            # Bypass this check if --force is provided.
-            is_force = self.args and getattr(self.args, "force", False)
-            if not is_force and not self.scanner.should_trigger(observation):
-                logger.info(f"Scanner: [PASS] Opportunity criteria not met (ATR={dyn.get('atr_macro')}). Skipping neural flow.")
-                return {"status": "skipped", "reason": "low_probability_regime", "observation": observation}
-
-            # 3. Binary Star Adversarial Debate
-            logger.info("Orchestrator: Initiating Binary Star Adversarial Reasoning [SessionAgent VS AuditAgent]...")
+            # 2. Binary Star Adversarial Debate
+            # The Singularity Engine always proceeds to neural inference in v5.10.
+            # Local scanner (topography) is used purely for fact gathering.
+            logger.info("Orchestrator: Initiating Binary Star Adversarial Reasoning [SessionAgent VS CriticAgent]...")
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
             # 4. Notification (Filtered)
@@ -235,7 +229,6 @@ def main():
     parser = argparse.ArgumentParser(description="The Singularity Session Engine (v5.10)")
     parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode (default: once)")
     parser.add_argument("--symbol", type=str)
-    parser.add_argument("--force", action="store_true", help="Bypass Python scanner and force neural inference")
     
     # 1. Live Configuration Group
     live_group = parser.add_argument_group("Live Options")
