@@ -158,24 +158,24 @@ class SessionEmailTemplate(BaseEmailTemplate):
         </html>
         """
 
-class ReviewEmailTemplate(BaseEmailTemplate):
+class AuditEmailTemplate(BaseEmailTemplate):
     """
-    Handles the generation of professional HTML templates for Audit Reviews.
+    Handles the generation of professional HTML templates for Forensic Audits.
     """
     @staticmethod
-    def render(review_data: Dict[str, Any]) -> str:
+    def render(audit_data: Dict[str, Any]) -> str:
         """
-        Renders the final review JSON into a rich HTML report.
+        Renders the final audit JSON into a rich HTML report.
         """
-        strat_session = review_data.get("strategy_session") or {}
+        strat_session = audit_data.get("strategy_session") or {}
         obs = strat_session.get("observation") or {}
         decision = strat_session.get("final_decision") or {}
-        outcome = review_data.get("market_outcome") or {}
-        audit = review_data.get("audit_findings") or {}
+        outcome = audit_data.get("market_outcome") or {}
+        audit = audit_data.get("audit_findings") or {}
         
         symbol = obs.get("symbol", "UNKNOWN")
         strat_ts = obs.get("timestamp", "")
-        audit_ts = review_data.get("audit_timestamp", "")
+        audit_ts = audit_data.get("audit_timestamp", "")
         
         # Local Time Conversion
         try:
@@ -205,7 +205,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
             res_color = result_colors.get(result_type, "#64748b")
             res_label = result_labels.get(result_type, "PENDING")
         
-        fmt = ReviewEmailTemplate.fmt
+        fmt = AuditEmailTemplate.fmt
         
         # 4. Audit Formatting
         shadow_list = audit.get('adversarial_audit', {}).get('shadow_evidence', [])
@@ -299,7 +299,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                 <!-- Original Strategy Summary (Context) -->
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
                     <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Context</h3>
-                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('reasoning'))}</p>
+                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('reasoning_chain'))}</p>
                 </div>
 
                 <!-- Visual Assets (Comparative Proof) -->
@@ -335,7 +335,7 @@ class ReviewEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {ReviewEmailTemplate.render_footer(review_data, "This is an auto-generated email notification | Triggered by Singularity Session")}
+                {AuditEmailTemplate.render_footer(audit_data, "This is an auto-generated forensic audit notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>
@@ -433,7 +433,7 @@ class DashboardEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: #3b82f615; color: #3b82f6; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid #3b82f630;">
                         💎 AGGREGATE PERFORMANCE
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Dashboard</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Ledger</h1>
                 </div>
 
                 <!-- KPI Panel (Dark Style) -->
@@ -516,7 +516,7 @@ class SessionNotifier:
     def enabled(self) -> bool:
         return self.config.enabled
 
-    def notify_session(self, symbol: str, session_data: Dict[str, Any], save_local: bool = False) -> bool:
+    def notify_session(self, symbol: str, session_data: Dict[str, Any], save_local: bool = False, dispatch_email: bool = True) -> bool:
         """
         Parses strategy result and dispatches an actionable email alert.
         """
@@ -533,9 +533,21 @@ class SessionNotifier:
 
         # 1. Local Preview (Useful for debugging/UI verification)
         if save_local:
-            self.save_html_preview(f"{symbol}_session", html_body, attachments)
+            # Sync timestamp with market/klines event time
+            market_ts = obs.get("timestamp", "")
+            ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if market_ts:
+                try:
+                    dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
+                    ts_suffix = dt.strftime("%Y%m%d_%H%M%S")
+                except:
+                    pass
+            self.save_html_preview(f"{symbol}_session_{ts_suffix}.html", html_body, attachments)
 
-        if not self.enabled:
+        # Dispatch Check: Only send if BOTH are true
+        if not self.enabled or not dispatch_email:
+            if not dispatch_email:
+                logger.info("Notifier: dispatch_email=False. Skipping SMTP flow.")
             return False
             
         final_decision = (session_data or {}).get("final_decision") or {}
@@ -564,17 +576,53 @@ class SessionNotifier:
             logger.error(f"Notifier: Failed to dispatch strategy notification: {e}")
             return False
 
-    def notify_review(self, symbol: str, review_data: Dict[str, Any], save_local: bool = False) -> bool:
+    def notify_market_recon(self, symbol: str, session_data: Dict[str, Any], save_local: bool = True, dispatch_email: bool = False):
         """
-        Parses review result and dispatches an audit review report.
+        Specialized notification for independent market reconnaissance audits.
+        Ensures clear nomenclature and skips signal-specific logic filters.
         """
-        html_body = ReviewEmailTemplate.render(review_data or {})
+        html_body = SessionEmailTemplate.render(session_data or {})
+        obs = (session_data or {}).get("observation") or {}
+        assets = obs.get("visual_assets") or {}
+        
+        # Collect context snapshots
+        attachments = {
+            "macro_chart": str(assets.get("macro_snapshot") or ""),
+            "micro_chart": str(assets.get("micro_snapshot") or "")
+        }
+
+        # 1. Local Preview
+        if save_local:
+            market_ts = obs.get("timestamp", "")
+            ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if market_ts:
+                try:
+                    dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
+                    ts_suffix = dt.strftime("%Y%m%d_%H%M%S")
+                except: pass
+            self.save_html_preview(f"{symbol}_market_{ts_suffix}.html", html_body, attachments)
+
+        if not self.enabled or not dispatch_email: return False
+        
+        subject = f"🔍 Market Audit | {symbol} | TOPOGRAPHY_RECON"
+        try:
+            logger.info(f"Notifier: Dispatching market audit: {subject}")
+            return self.dispatcher.dispatch(subject, html_body, attachments)
+        except Exception as e:
+            logger.error(f"Notifier: Failed to dispatch market audit: {e}")
+            return False
+
+    def notify_audit(self, symbol: str, audit_data: Dict[str, Any], save_local: bool = False) -> bool:
+        """
+        Parses audit result and dispatches an audit report.
+        """
+        html_body = AuditEmailTemplate.render(audit_data or {})
         
         # Collect Comparative Assets
-        strat_session = (review_data or {}).get("strategy_session") or {}
+        strat_session = (audit_data or {}).get("strategy_session") or {}
         t0_obs = strat_session.get("observation") or {}
         t0_assets = t0_obs.get("visual_assets") or {}
-        visual_ctx = review_data.get("visual_context") or {}
+        visual_ctx = audit_data.get("visual_context") or {}
         
         # Attach all 4 snapshots (Macro/Micro T0 vs T1)
         attachments = {
@@ -585,40 +633,52 @@ class SessionNotifier:
         }
 
         if save_local:
-            self.save_html_preview(f"{symbol}_audit", html_body, attachments)
+            # Sync with format used in market/klines
+            market_ts = t0_obs.get("timestamp", "")
+            ts_suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
+            if market_ts:
+                try:
+                    dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
+                    ts_suffix = dt.strftime("%Y%m%d_%H%M%S")
+                except:
+                    pass
+            self.save_html_preview(f"{symbol}_audit_{ts_suffix}.html", html_body, attachments)
 
         if not self.enabled:
             return False
             
-        # We only notify reviews for strategies that met our confidence threshold
+        # We only notify audits for strategies that met our confidence threshold
         final_decision = strat_session.get("final_decision") or {}
         confidence = final_decision.get("confidence", 0)
         
         if confidence < self.notification_confidence_floor:
-            logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping review dispatch.")
+            logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping audit dispatch.")
             return False
             
-        intercept = (review_data.get("market_outcome") or {}).get("intercept_status") or {}
+        intercept = (audit_data.get("market_outcome") or {}).get("intercept_status") or {}
         
         # [Cost Firewall] Skip notifications for intercepted reports to reduce noise.
         if intercept.get("is_intercepted", False):
-            logger.info(f"Notifier: Audit for {symbol} is intercepted ({intercept.get('reason')}). Skipping review dispatch.")
+            logger.info(f"Notifier: Audit for {symbol} is intercepted ({intercept.get('reason')}). Skipping audit dispatch.")
             return False
             
-        result = (review_data.get("market_outcome") or {}).get("tp_sl_result", "N/A")
+        result = (audit_data.get("market_outcome") or {}).get("tp_sl_result", "N/A")
 
         if result not in ["TP_HIT", "SL_HIT", "NEITHER"]:
-            logger.info(f"Notifier: Result is {result}. Skipping review dispatch (only TP_HIT/SL_HIT/NEITHER allowed).")
+            logger.info(f"Notifier: Result is {result}. Skipping audit dispatch (only TP_HIT/SL_HIT/NEITHER allowed).")
             return False
             
+        indicator = "✅" if result == "TP_HIT" else "❌" if result == "SL_HIT" else "⏸️"
+        subject = f"{indicator} Audit | {symbol} | {result} | Confidence: {confidence}%"
+
         try:
-            logger.info(f"Notifier: Dispatching forensic report: {subject}")
+            logger.info(f"Notifier: Dispatching forensic audit report: {subject}")
             return self.dispatcher.dispatch(subject, html_body, attachments)
         except Exception as e:
-            logger.error(f"Notifier: Failed to dispatch review notification: {e}")
+            logger.error(f"Notifier: Failed to dispatch audit notification: {e}")
             return False
 
-    def save_html_preview(self, name_prefix: str, html_body: str, attachments: Optional[Dict[str, str]] = None) -> Optional[str]:
+    def save_html_preview(self, filename: str, html_body: str, attachments: Optional[Dict[str, str]] = None) -> Optional[str]:
         """
         Saves the rendered HTML to a local file for visual inspection.
         Swaps CID references for local filesystem paths.
@@ -640,9 +700,7 @@ class SessionNotifier:
                             abs_path = file_path
                         preview_html = str(preview_html).replace(f"cid:{cid}", f"file://{abs_path}")
             
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            file_name = f"{name_prefix}_{timestamp}.html"
-            file_path = os.path.join(output_dir, file_name)
+            file_path = os.path.join(output_dir, filename)
             
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(preview_html)

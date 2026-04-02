@@ -178,7 +178,7 @@ class AuditAssembler:
         # Check if core topographic data was available in the historical observation
         hist_obs = historical_strategy.get("observation", {})
         metrics = hist_obs.get("quantitative_metrics", {})
-        topography = metrics.get("volume_topography", {})
+        topography = metrics.get("volume_profile", {})
         
         # If POC is present, it means core structural data was available
         has_structural_data = topography.get("poc") is not None

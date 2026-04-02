@@ -8,7 +8,7 @@ TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(TOOLS_DIR, ".."))
 if PROJECT_ROOT not in sys.path: sys.path.insert(0, PROJECT_ROOT)
 
-from src.analyzer.topography_recon import TopographyRecon
+from src.analyzer.topography_engine import TopographyEngine
 from src.utils.pipeline_utils import load_config, resolve_data_root, load_global_config
 from src.utils.logger_utils import setup_logger
 
@@ -18,6 +18,7 @@ logger = setup_logger("MarketRecon")
 def main():
     parser = argparse.ArgumentParser(description="Singularity Market Recon Tool (v5.10)")
     parser.add_argument("--symbol", type=str, help="Symbol to observe (e.g., BTCUSDT)")
+    parser.add_argument("--email", action="store_true", help="Dispatch email notification of the market scan.")
     from src.utils.pipeline_utils import add_data_root_argument
     add_data_root_argument(parser)
     args = parser.parse_args()
@@ -33,15 +34,15 @@ def main():
     
     # Delegate logic to controller
     try:
-        controller = TopographyRecon(config_dict=config, data_root=data_root, logger=logger)
-        result = controller.observe_market(symbol)
+        controller = TopographyEngine(config_dict=config, data_root=data_root, logger=logger)
+        result = controller.reconstruct(symbol, dispatch_email=args.email)
         obs = result['observation']
         
         print("\n" + "="*50)
         print(f"MARKET TOPOGRAPHY: {symbol}")
         print("="*50)
         metrics = obs.get("quantitative_metrics", {})
-        topo = metrics.get("volume_topography", {})
+        topo = metrics.get("volume_profile", {})
         dyn = metrics.get("price_dynamics", {})
         print(f"POC: {topo.get('poc')} | ATR: {dyn.get('atr_macro')}")
         print(f"VAH: {topo.get('vah')} | VAL: {topo.get('val')}")

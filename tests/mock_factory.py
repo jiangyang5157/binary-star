@@ -58,7 +58,7 @@ class MockDataFactory:
                 "timestamp": datetime.datetime.now().isoformat(),
                 "quantitative_metrics": {
                     "price_dynamics": {"current_price": 60100, "atr_macro": 500, "volatility_intensity_index": 1.0},
-                    "volume_topography": {"poc": 60000, "vah": 61000, "val": 59000, "anchors_above": [], "anchors_below": []},
+                    "volume_profile": {"poc": 60000, "vah": 61000, "val": 59000, "anchors_above": [], "anchors_below": []},
                     "market_regime": {"volatility_regime": "STABLE", "volume_breakout_ratio": 1.0},
                     "sentiment_signals": {"liquidation_clusters": []}
                 }

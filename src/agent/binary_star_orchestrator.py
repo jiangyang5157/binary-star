@@ -95,7 +95,7 @@ class BinaryStarOrchestrator:
             model=self.shared_model
         )
         
-        self.critic = CriticAgent(
+        self.critic_agent = CriticAgent(
             config=self.critic_config, 
             api_timeout=self.api_timeout, 
             retry_count=self.retry_count,
@@ -121,8 +121,17 @@ class BinaryStarOrchestrator:
         3. Audit Audit (Context-aware)
         4. Strategist Synthesis (Phase B)
         """
-        timestamp = observation.get('timestamp', 'unknown')
-        cache_name = f"market_topography_{symbol}_{timestamp.replace(':', '-')}"
+        # v5.10 Hardening: Session ID and Timestamp are anchored to the MARKET observation time
+        # This ensures forensic alignment across all system layers.
+        obs_ts = observation.get('timestamp', 'unknown')
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(obs_ts.replace('Z', '+00:00'))
+            timestamp = dt.strftime("%Y%m%d_%H%M%S")
+        except:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        cache_name = f"market_topography_{symbol}_{timestamp}"
         
         logger.info(f"BinaryStar: Creating context cache for {symbol} using model {self.shared_model}...")
         
@@ -150,13 +159,15 @@ class BinaryStarOrchestrator:
             cache_resource_name = None 
             
             # Phase 1 & 2: The Adversarial Debate Loop (With Trajectory Memory)
-            current_round = 0
+            # current_round starts at 1 for human-centric indexing (Round 1, Round 2...)
+            current_round = 1
             critic_results = None
             last_draft = None
             debate_history = []
-            convergence_path = []
             
             # Static Truth Tracker
+            # NOTE: math_fact_check is recalculated each round because it verifies the 
+            # UNIQUE tactical parameters (Entry/SL/TP) proposed in each specific reasoning draft.
             math_fact_check = None
 
             while current_round <= self.max_rounds:
@@ -174,7 +185,7 @@ class BinaryStarOrchestrator:
                 math_fact_check = self._assemble_math_fact_check(last_draft, observation)
                 
                 # 2b. Semantic Evaluation (Pass facts to Critic)
-                critic_results = self.critic.evaluate(
+                critic_results = self.critic_agent.evaluate(
                     observation=observation, 
                     draft_plan=last_draft, 
                     symbol=symbol,
@@ -191,6 +202,8 @@ class BinaryStarOrchestrator:
                     logger.warning(f"BinaryStar: Invalid skepticism_score format ({raw_score}). Falling back to 100.")
                     skepticism_score = 100
 
+                logger.info(f"BinaryStar [Critique]: Round {current_round} Score: {skepticism_score} | Verdict: {(critic_results or {}).get('audit_impact', 'N/A')}")
+                
                 # Track Critic Trail
                 debate_history.append({
                     "round": current_round,
@@ -198,7 +211,6 @@ class BinaryStarOrchestrator:
                     "critic": critic_results,
                     "math_fact_check": math_fact_check
                 })
-                convergence_path.append(skepticism_score)
 
                 if skepticism_score < self.skepticism_halt_limit:
                     logger.info(f"BinaryStar: Skepticism Score ({skepticism_score}) < Threshold ({self.skepticism_halt_limit}). Loop terminated early.")
@@ -206,14 +218,14 @@ class BinaryStarOrchestrator:
                     
                 current_round += 1
                 
-            # Phase 3: The Synthesis (Final Hardening)
             # The Session Agent synthesizes the final consensus decision based on the LAST debate round + the Math Truth.
             logger.info("BinaryStar: [PHASE 3] Session Agent synthesizing final hardened decision...")
             final_decision = self.session_agent.synthesize(
-                last_draft, 
-                critic_results, 
+                draft_plan=last_draft, 
+                critic_results=critic_results, 
                 cache_id=cache_resource_name, 
                 math_fact_check=math_fact_check,
+                observation=observation, # CRITICAL: Pass observation for Zero-Knowledge runs
                 tools=tools # Restore tools for Two-Phase Loop
             )
             
@@ -224,35 +236,23 @@ class BinaryStarOrchestrator:
             project_root = resolve_project_root()
             config_path = os.path.join(project_root, 'config', 'strategy_config.yaml')
             
-            metadata = {
-                "version_control": {
-                    "session_agent_hash": get_file_hash(self.session_agent.config.role_prompt_path),
-                    "critic_hash": get_file_hash(self.critic.config.role_prompt_path),
-                    "config_hash": get_file_hash(config_path),
-                    "logic_timestamp": timestamp
-                }
-            }
             
             logger.info(f"BinaryStar: [COMPLETE] Decision synthesized for {symbol}. Session Result packaged.")
             
-            # Package the session result with full critic metadata
+            # v5.10 Hardening: Package the session result with forensic parity
             return {
                 "symbol": symbol,
                 "timestamp": timestamp,
                 "final_decision": final_decision,
-                "critic": critic_results,
                 "debate_history": debate_history,
                 "observation": observation,
-                "regime_snapshot": self.config.get('regime_parameters', {}),
                 "metadata": {
                     "session_id": f"{symbol}_{timestamp}",
-                    "total_rounds": current_round + 1,
-                    "convergence_path": convergence_path,
+                    "config_snapshot": self.config,
                     "version_control": {
-                        "session_agent_hash": get_file_hash(self.session_agent.config.role_prompt_path),
-                        "critic_hash": get_file_hash(self.critic.config.role_prompt_path),
-                        "config_hash": get_file_hash(config_path),
-                        "logic_timestamp": timestamp
+                        "session_hash": get_file_hash(self.session_agent.config.role_prompt_path),
+                        "critic_hash": get_file_hash(self.critic_agent.config.role_prompt_path),
+                        "config_hash": get_file_hash(config_path)
                     }
                 }
             }
@@ -279,13 +279,15 @@ class BinaryStarOrchestrator:
             sl = float(tactical.get('stop_loss', 0))
             tp = float(tactical.get('take_profit', 0))
             
-            # Extract observation geometry
-            topography = observation.get('market_topography', {})
-            profile = topography.get('volume_profile', {})
-            atr = float(profile.get('atr_macro', 1.0))
-            poc = float(profile.get('poc', 0))
-            vah = float(profile.get('vah', 0))
-            val = float(profile.get('val', 0))
+            # Extract observation geometry (Truth Bus)
+            metrics = observation.get('quantitative_metrics', {})
+            dynamics = metrics.get('price_dynamics', {})
+            topo = metrics.get('volume_profile', {})
+            
+            atr = float(dynamics.get('atr_macro', 1.0))
+            poc = float(topo.get('poc', 0))
+            vah = float(topo.get('vah', 0))
+            val = float(topo.get('val', 0))
             
             # Extract regime context
             regime = observation.get('regime_analysis', {})
@@ -303,7 +305,7 @@ class BinaryStarOrchestrator:
             # 4. Project Holding Time
             holding_time = self.math_tools.project_holding_time(
                 entry, tp, atr, trend_intensity, 
-                int(self.global_config['analysis_window']['macro_context']['time_interval'].replace('h', '')) * 60, # Approximation for minutes
+                int(self.config['analysis_window']['macro_context']['time_interval'].replace('h', '')) * 60, # Approximation for minutes
                 self.session_config.min_trade_velocity
             )
             
@@ -311,8 +313,7 @@ class BinaryStarOrchestrator:
                 "rr_verification": rr_results,
                 "atr_volatility_verification": atr_metrics,
                 "structural_armor_verification": proximity,
-                "holding_time_verification": holding_time,
-                "physical_truth_timestamp": observation.get('timestamp')
+                "holding_time_verification": holding_time
             }
         except Exception as e:
             logger.error(f"BinaryStar: Math fact check assembly failed: {e}")

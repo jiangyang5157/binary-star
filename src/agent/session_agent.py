@@ -175,6 +175,7 @@ class SessionAgent(BaseAgent):
                    critic_results: Dict[str, Any], 
                    cache_id: Optional[str] = None,
                    math_fact_check: Optional[Dict[str, Any]] = None,
+                   observation: Optional[Dict[str, Any]] = None,
                    tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
         """
@@ -183,7 +184,7 @@ class SessionAgent(BaseAgent):
         """
         try:
             # During synthesis, we typically rely on Cache for topographic data
-            prompt = self._build_prompt(None, draft_plan, critic_results, math_fact_check=math_fact_check, cache_id=cache_id)
+            prompt = self._build_prompt(observation, draft_plan, critic_results, math_fact_check=math_fact_check, cache_id=cache_id)
             logger.info(f"Session: Synthesizing final hardened decision (Truth Bus: {'ACTIVE' if cache_id else 'Direct'})")
             
             return self._execute_ai_cycle(

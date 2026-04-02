@@ -171,7 +171,7 @@ class ProcessedMarketMetrics:
     """Container for calculated market indicators and topological profiles."""
     price_dynamics: Dict[str, Any]
     structural_anchors: Dict[str, Any]
-    volume_topography: Dict[str, Any]
+    volume_profile: Dict[str, Any]
     market_regime: Dict[str, Any]
     sentiment_signals: Dict[str, Any]
 
@@ -234,7 +234,7 @@ class MarketMetricsRefiner:
         return ProcessedMarketMetrics(
             price_dynamics=self._derive_price_dynamics(m_df, n_df),
             structural_anchors=self._derive_anchors(m_df, profile),
-            volume_topography=self._refine_topography(profile, nodes, atr_macro, current_price),
+            volume_profile=self._refine_topography(profile, nodes, atr_macro, current_price),
             market_regime=regime_data,
             sentiment_signals=self._derive_sentiment(raw, atr_macro)
         )
@@ -456,25 +456,6 @@ class MarketObserver:
             json_path = os.path.join(obs_dir, json_filename)
             save_json(observation, json_path)
             
-            # 2. Save HTML Visual Report (v5.10 Hardening)
-            try:
-                from src.infrastructure.notifications.email_notifier import SessionNotifier
-                # Mock a strategy wrapper for the observation data
-                strat_wrapper = {"observation": observation, "final_decision": {"opinion": "MARKET_SCAN"}}
-                
-                notifier = SessionNotifier(data_root=data_root)
-                # We save it to 'market/' instead of default 'html/'
-                html_body = notifier.save_html_preview(f"{self.symbol}_market", strat_wrapper)
-                
-                # Relocate the generated preview to the market folder with exact naming
-                if html_body:
-                    html_filename = f"{self.symbol}_market_{ts_str}.html"
-                    final_html_path = os.path.join(obs_dir, html_filename)
-                    os.rename(html_body, final_html_path)
-                    logger.info(f"MarketObserver: Market HTML Report persisted to {final_html_path}")
-            except Exception as he:
-                logger.warning(f"MarketObserver: Market HTML Report generation skipped: {he}")
-
             logger.info(f"MarketObserver: Market JSON Record persisted to {json_path}")
         except Exception as e:
             logger.error(f"MarketObserver: Failed to persist observation: {e}")
@@ -483,7 +464,7 @@ class MarketObserver:
         img_dir = os.path.join(data_root, "klines")
         self._charting.storage.output_dir = img_dir # Direct access to manager if needed or use Facade setter
         
-        ctx = {**metrics.volume_topography, "timestamp": at_time.isoformat()}
+        ctx = {**metrics.volume_profile, "timestamp": at_time.isoformat()}
         m_df = self._vp_analyzer.process_klines(raw.macro_klines)
         n_df = self._vp_analyzer.process_klines(raw.micro_klines)
         

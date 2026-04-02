@@ -54,6 +54,9 @@ class SessionEngine:
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         
+        # UI/Notification control
+        self.send_email = getattr(args, 'email', False)
+        
         # Failure tracking for circuit breaker
         self.consecutive_failures = 0
         self.max_failures_threshold = int(self.global_cfg.get('network', {}).get('gemini', {}).get('circuit_breaker_threshold', 3))
@@ -83,7 +86,7 @@ class SessionEngine:
 
             # --- v5.10 OBSERVABILITY: Log Topographic Snapshot ---
             metrics = observation.get('quantitative_metrics', {})
-            topo = metrics.get('volume_topography', {})
+            topo = metrics.get('volume_profile', {})
             dyn = metrics.get('price_dynamics', {})
             logger.info(f"Topography Snapshot: POC={topo.get('poc')} | VAH={topo.get('vah')} | VAL={topo.get('val')} | ATR={dyn.get('atr_macro')}")
 
@@ -94,9 +97,14 @@ class SessionEngine:
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
             # 4. Notification (Filtered)
-            # We skip email notifications for backtests to avoid spamming the user.
-            if not timestamp_str:
-                self.notifier.notify_session(self.symbol, session_result)
+            # We skip email notifications unless --email is explicitly provided.
+            # Local previews are ALWAYS generated for audit trails.
+            self.notifier.notify_session(
+                self.symbol, 
+                session_result, 
+                save_local=True, 
+                dispatch_email=self.send_email
+            )
 
             # 5. Audit Archival
             output_file = archive_strategy_result(
@@ -229,6 +237,7 @@ def main():
     parser = argparse.ArgumentParser(description="The Singularity Session Engine (v5.10)")
     parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode (default: once)")
     parser.add_argument("--symbol", type=str)
+    parser.add_argument("--email", action="store_true", help="Dispatches email alerts if confidence criteria are met")
     
     # 1. Live Configuration Group
     live_group = parser.add_argument_group("Live Options")
