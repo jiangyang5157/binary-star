@@ -476,8 +476,11 @@ class MarketObserver:
             "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, ctx, raw.liquidations, time_interval=self.config.micro_context.time_interval)
         }
 
-    def _synthesize_topographic_summary(self, metrics: Any) -> str:
-        """Compresses complex price geometry into a single tactical summary string."""
+    def _synthesize_topographic_summary(self, metrics: Any) -> Dict[str, Any]:
+        """
+        Extracts raw physical price geometry without metaphorical interpretation.
+        v5.10 Hardening: Pure Fact Protocol.
+        """
         try:
             m = metrics.__dict__ if hasattr(metrics, "__dict__") else metrics
             pd = m.get("price_dynamics", {})
@@ -485,58 +488,54 @@ class MarketObserver:
             atr = float(pd.get("atr_macro", 1.0))
             price = float(pd.get("current_price", 0))
             
-            summary = []
-            # 1. Structural Proximity
-            val = float(vp.get("val", 0))
+            # Structural Nodes
+            poc = float(vp.get("poc", 0))
             vah = float(vp.get("vah", 0))
-            val_dist = (price - val) / atr if atr > 0 else 0
-            vah_dist = (price - vah) / atr if atr > 0 else 0
+            val = float(vp.get("val", 0))
             
-            if abs(val_dist) < 1.0: summary.append(f"Price pivoting at VAL ({val_dist:.2f} ATR).")
-            elif abs(vah_dist) < 1.0: summary.append(f"Price pivoting at VAH ({vah_dist:.2f} ATR).")
-            
-            # 2. Nearest Friction (HVN)
+            # Nearest Anchors
             all_anchors = vp.get("anchors_above", []) + vp.get("anchors_below", [])
             hvns = [a for a in all_anchors if a.get("type") == "HVN"]
-            if hvns:
-                nearest_hvn = min(hvns, key=lambda x: abs(x["price"] - price))
-                hvn_dist = (nearest_hvn["price"] - price) / atr if atr > 0 else 0
-                summary.append(f"Nearest Friction: HVN at {nearest_hvn['price']:.2f} ({hvn_dist:.2f} ATR).")
-            
-            # 3. Nearest Vacuum (LVN)
             lvns = [a for a in all_anchors if a.get("type") == "LVN"]
-            if lvns:
-                nearest_lvn = min(lvns, key=lambda x: abs(x["price"] - price))
-                lvn_dist = (nearest_lvn["price"] - price) / atr if atr > 0 else 0
-                summary.append(f"Nearest Vacuum: LVN at {nearest_lvn['price']:.2f} ({lvn_dist:.2f} ATR).")
-
-            return " ".join(summary)
+            
+            nearest_hvn = min(hvns, key=lambda x: abs(x["price"] - price)) if hvns else None
+            nearest_lvn = min(lvns, key=lambda x: abs(x["price"] - price)) if lvns else None
+            
+            def safe_dist(target: float) -> float:
+                return round((target - price) / atr, 2) if atr > 0 else 0
+            
+            return {
+                "poc_dist_atr": safe_dist(poc),
+                "vah_dist_atr": safe_dist(vah),
+                "val_dist_atr": safe_dist(val),
+                "nearest_hvn_dist_atr": safe_dist(nearest_hvn["price"]) if nearest_hvn else None,
+                "nearest_lvn_dist_atr": safe_dist(nearest_lvn["price"]) if nearest_lvn else None,
+                "structural_state": vp.get("structural_state", "UNKNOWN")
+            }
         except Exception as e:
-            return f"Topography synthesis limited: {e}"
+            logger.error(f"Topography synthesis failed: {e}")
+            return {"error": str(e)}
 
-    def _analyze_cvd_dynamics(self, metrics: Any) -> str:
-        """Analyzes CVD-Price correlation to detect passive absorption vs aggressive discovery."""
+    def _analyze_cvd_dynamics(self, metrics: Any) -> Dict[str, Any]:
+        """
+        Extracts raw CVD-Price correlation data without semantic discovery or advice.
+        v5.10 Hardening: Pure Fact Protocol.
+        """
         try:
             m = metrics.__dict__ if hasattr(metrics, "__dict__") else metrics
             sent = m.get("sentiment_signals", {})
             regime = m.get("market_regime", {})
             
-            cvd_trend = sent.get("cvd_trend", "UNKNOWN")
-            price_regime = regime.get("price_trend_regime", "UNKNOWN")
-            taker_delta = float(sent.get("net_taker_delta", 0))
-            
-            if cvd_trend == "DOWNWARD" and "BULLISH" in str(price_regime):
-                return "[PASSIVE_ABSORPTION]: Bids are absorbing aggressive selling. Bullish Divergence."
-            elif cvd_trend == "UPWARD" and "BEARISH" in str(price_regime):
-                return "[PASSIVE_ABSORPTION]: Offers are absorbing aggressive buying. Bearish Divergence."
-            elif (cvd_trend == "DOWNWARD" and "BEARISH" in str(price_regime)) and taker_delta < -500:
-                return "[AGGRESSIVE_DISCOVERY]: High-conviction selling confirmed by CVD slope."
-            elif (cvd_trend == "UPWARD" and "BULLISH" in str(price_regime)) and taker_delta > 500:
-                return "[AGGRESSIVE_DISCOVERY]: High-conviction buying confirmed by CVD slope."
-            
-            return f"CVD Sentiment is {cvd_trend}. No major divergence detected."
+            return {
+                "cvd_trend": sent.get("cvd_trend", "UNKNOWN"),
+                "net_taker_delta": float(sent.get("net_taker_delta", 0)),
+                "price_trend_regime": regime.get("price_trend_regime", "UNKNOWN"),
+                "oi_delta_micro": sent.get("oi_delta_micro", "0.0%"),
+                "funding_rate": float(sent.get("funding_rate", 0))
+            }
         except Exception as e:
-            return f"CVD dynamics analysis limited: {e}"
+            logger.error(f"CVD dynamics extraction failed: {e}")
+            return {"error": str(e)}
 
     def _package_observation(self, metrics: Any, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
         return {

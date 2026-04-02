@@ -12,17 +12,17 @@ All phase drafting and synthesis must be calibrated to provide an edge specifica
 - **THE PHYSICAL BOUNDARY LAW**: Every limit order MUST be defensive relative to `current_price` (Bullish <= Price; Bearish >= Price). 
   - **Exception**: If `volatility_ratio` > `{volatility_expansion_ratio}`, bypass the defensive rule for Momentum Participation.
   - **Constraint**: If violated without exception, you MUST trigger **DEFENSIVE LIMIT ORDER PROTOCOL (DLE)** to find a valid level or stay `NEUTRAL`.
-- **THE SEQUENTIAL ANCHOR LAW**: Stop Loss (SL) MUST be placed behind a structural anchor. **MANDATORY**: Use `calculate_atr_metrics` to ensure your buffer scales with `volatility_ratio`, but the final `SL Distance` MUST NOT exceed `{poc_gravity_atr_distance}` ATR units. Select the anchor via this strict Hierarchy:
-  - **Hierarchy 1 (Distal)**: Prioritize HVNs behind `VAH`/`VAL` edges. 
-  - **Hierarchy 2 (Edge)**: Fallback to the physical `VAH`/`VAL` boundaries. 
-  - **Hierarchy 3 (Inner)**: Use `POC` ONLY if `price_trend_regime` is `RANGING` AND `volatility_ratio` < `{volatility_baseline_ratio}`. **STRICTLY PROHIBITED** if `volatility_ratio` > `{volatility_expansion_ratio}`. Forbidden in `TRENDING` UNLESS CVD aligns with the reversal and POC strength is > `{poc_confluence_strength}` (Confluence Override).
+- **THE SEQUENTIAL ANCHOR LAW**: Stop Loss (SL) MUST be placed behind a structural anchor. Use the pre-calculated `topography` vectors in `tactical_summary` to select the anchor via this strict Hierarchy:
+  - **Hierarchy 1 (Distal)**: Prioritize `nearest_hvn_dist_atr` if it is > 1.0 ATR behind your `VAH`/`VAL` edge.
+  - **Hierarchy 2 (Edge)**: Fallback to the physical `val_dist_atr` or `vah_dist_atr` boundaries. 
+  - **Hierarchy 3 (Inner)**: Use `POC` (`poc_dist_atr`) ONLY if `price_trend_regime` is `RANGING` AND `volatility_ratio` < `{volatility_baseline_ratio}`. **STRICTLY PROHIBITED** if `volatility_ratio` > `{volatility_expansion_ratio}`. Forbidden in `TRENDING` UNLESS CVD aligns with the reversal and POC strength is > `{poc_confluence_strength}`.
   - **Hierarchy 4 (Shield)**: If `volatility_ratio` > `{volatility_extreme_ratio}` AND `long_short_ratio` > `{long_short_imbalance_ratio}`, you MUST bypass Hierarchy 2/3 and anchor behind Hierarchy 1 (Distal HVN).
 
 ## 2. Regime & Participation Rules
 - **POC MAGNET RULE**: Absolute rule for Mean-Reversion trades: If absolute `poc_dist_atr` > `{poc_magnet_atr_threshold}`, your `take_profit` MUST be fixed to the `POC`.
 - **BREAKOUT PARTICIPATION PROTOCOL**:
   - **Prototyping**: If `squeeze_factor` < `{squeeze_threshold}` and `volatility_ratio` > `{volatility_expansion_ratio}`, project entry at `Boundary +/- ({breakout_buffer_atr} * ATR)`.
-  - **GRAVITY FILTER**: If `abs(poc_dist_atr)` > `{poc_gravity_atr_distance}`, momentum breakouts are ABSOLUTELY FORBIDDEN unless `volume_breakout_ratio` > `{gravity_volume_override_ratio}`. You MUST default to a mean-reversion DLE targeting the POC.
+  - **GRAVITY FILTER**: If absolute `poc_dist_atr` (from `tactical_summary.topography`) > `{poc_gravity_atr_distance}`, momentum breakouts are ABSOLUTELY FORBIDDEN unless `volume_breakout_ratio` > `{gravity_volume_override_ratio}`. You MUST default to a mean-reversion DLE targeting the POC.
   - **ANOMALOUS EXPANSION OVERRIDE**: If `volume_breakout_ratio` < `{volume_baseline_ratio}`, the expansion is unconfirmed; you MUST NOT execute a momentum entry and MUST default to `NEUTRAL` or a deep mean-reversion DLE. If momentum is extreme (`trend_intensity` > `{trend_intensity_strong}`), prioritize speed over retests.
   - **ANCHOR DRIFT OVERRIDE**: If `volume_breakout_ratio` > `{anchor_drift_threshold}`, assume the POC is migrating to `current_price`. Mean-reversion to a distal POC is FORBIDDEN.
 - **THE SQUEEZE EXHAUSTION FILTER (ABSOLUTE)**:
@@ -40,6 +40,8 @@ Use these objective definitions to transform metrics into tactical insights:
 | Parameter | Physical/Structural Meaning |
 | :--- | :--- |
 | `latest_wick_skew` | **Close-to-High Ratio**: (0.0: Rejection/Weakness; 1.0: Pure Momentum/No Wick). |
+| `poc_dist_atr` | Distance (in ATR units) from current price to the POC. |
+| `nearest_hvn_dist_atr`| Distance to the closest high-volume resistance/support node. |
 | `volatility_ratio` | > `{volatility_baseline_ratio}` = Micro volatility is expanding. |
 | `volatility_intensity_index`| > 1.0 = Macro volatility is expanding beyond average. |
 | `squeeze_factor` | < `{squeeze_threshold}` = Bollinger Bands inside Keltner Channels (Squeeze). |
