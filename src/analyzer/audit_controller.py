@@ -1,15 +1,19 @@
 import os
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from datetime import datetime, timezone, timedelta
 
 from src.analyzer.audit_assembler import AuditAssembler, AuditReviewConfig
 from src.infrastructure.binance.client import BinanceFuturesClient
-from src.utils.pipeline_utils import get_file_hash, load_config
+from src.utils.pipeline_utils import get_file_hash
 from src.utils.path_utils import resolve_project_root
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.chart_generator import ChartGenerator
+from src.utils.datetime_utils import (
+    parse_iso_to_utc, 
+    get_interval_hours
+)
 
 # Initialize standard hardened logger
 logger = logging.getLogger(__name__)
@@ -105,7 +109,6 @@ class AuditController:
             if "_" in t0_str and "-" not in t0_str:
                 t0_dt = datetime.strptime(t0_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
             else:
-                from src.utils.datetime_utils import parse_iso_to_utc, to_compact_timestamp, get_interval_hours
                 t0_dt = parse_iso_to_utc(t0_str)
         except Exception as te:
             self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
@@ -167,7 +170,6 @@ class AuditController:
                 self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only audit.")
 
             # 6. Assemble Forensic Outcome
-            from src.utils.datetime_utils import get_interval_seconds
             
             metrics_t0 = obs.get("quantitative_metrics", {})
             dynamics_t0 = metrics_t0.get("price_dynamics", {})
