@@ -66,6 +66,27 @@ Review a specific session to see exactly why it succeeded or failed.
 python run_audit.py --file data/once/sessions/BTCUSDT_session_TIMESTAMP.json
 ```
 
+### 3. Meta-Evolution (The Self-Correcting DNA)
+Analyze forensic audits to genetically mutate the system's logic and configuration.
+```bash
+python run_evolution.py --samples 20
+```
+*   **Default (Secure Mode)**: Activates the **Shadow Sandbox**. The proposed patch is replayed against the latest failure case. It only merges if it proves a **Survival Improvement** (avoiding SL_HIT) or **Efficiency Gain**.
+*   **`--force` (Tactical Override)**: Bypasses the Sandbox and performs a direct, atomic injection into `strategy_config.yaml`.
+*   **`--samples N`**: Number of historical audit reports to ingest for neural analysis.
+
+---
+
+## 🏗 Data Architecture: The Black Box
+
+| Directory | Purpose | Retention |
+| :--- | :--- | :--- |
+| `data/once/sessions` | Raw agent debate logs and final decisions. | 30 Days |
+| `data/once/audits` | High-fidelity forensic reports for SL_HIT or misses. | Permanent |
+| `data/once/evolution/proposals` | Generated neural mutation candidates (JSON). | Permanent |
+| `data/once/evolution/applied_patches` | Successfully merged and validated logic updates. | Versioned |
+| `data/once/evolution/refusals` | Mutations rejected by the Sandbox for regression risk. | For Review |
+
 ---
 
 ## 📖 Glossary for Non-Experts
