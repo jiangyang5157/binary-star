@@ -260,11 +260,11 @@ class AuditEmailTemplate(BaseEmailTemplate):
                         <tr>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⚡ Efficiency</div>
-                                <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency'))}</div>
+                                <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency_pct'))}</div>
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🌡️ MAE Stress</div>
-                                <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level'))}</div>
+                                <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level_pct'))}</div>
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>

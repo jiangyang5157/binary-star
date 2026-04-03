@@ -113,8 +113,7 @@ class AuditAssembler:
             "execution_forensics": {},
             "trade_execution_metrics": {
                 "duration_candles": len(klines),
-                "actual_hours": round(len(klines) * interval_hours, 2),
-                "mae_stress_tier": "N/A"
+                "actual_hours": round(len(klines) * interval_hours, 2)
             }
         }
         
@@ -202,8 +201,6 @@ class AuditAssembler:
                         "time_efficiency_multiplier": round(actual_hours / est_hours, 2) if est_hours > 0 else 0,
                         "highest_reached_price": max_after,
                         "lowest_reached_price": min_after,
-                        "mfe_efficiency": round(mfe_eff, 1), # Notification compatibility
-                        "mae_stress_level": mae_stress.get("mae_stress_level_pct", 0) # Notification compatibility
                     }
         
         return result
