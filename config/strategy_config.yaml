@@ -227,3 +227,8 @@ evolver:
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency (No hallucinations).
   model_temperature: 0.0
+  # --- Darwinian Evolution Thresholds ---
+  # Minimum repeated failures across sessions to trigger a systemic instruction patch.
+  min_failure_instances: 2
+  # Ratio of failed sessions in the current batch required to validate a config update.
+  failure_ratio_threshold: 0.2

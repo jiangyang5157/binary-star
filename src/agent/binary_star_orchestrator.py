@@ -72,7 +72,8 @@ class BinaryStarOrchestrator:
         
         # 4. Contextual Prompt Assembly
         self.bs_instruction_path = os.path.join(resolve_project_root(), self.bs_config.get('system_instruction', ''))
-        self.shared_instruction = read_prompt_template(self.bs_instruction_path)
+        raw_instruction = read_prompt_template(self.bs_instruction_path)
+        self.shared_instruction = safe_format(raw_instruction, max_rounds=self.max_rounds)
         
         # 5. Type-Safe Configuration Slicing (Production Isolation)
         self.obs_config = MarketObserverConfig.from_dict(self.config)

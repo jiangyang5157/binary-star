@@ -99,7 +99,10 @@ class EvolverAgent(BaseAgent):
                 audit_reports_json=reports_json,
                 active_config_yaml=config_json,
                 current_prompt_md=prompts_json,
-                strategy_intent=active_config.get('strategy_intent', "Market Survival")
+                strategy_intent=active_config.get('strategy_intent', "Market Survival"),
+                trend_intensity_threshold=active_config.get('regime_parameters', {})['trend_intensity_threshold'],
+                min_failure_instances=active_config.get('evolver', {})['min_failure_instances'],
+                failure_ratio_threshold=active_config.get('evolver', {})['failure_ratio_threshold']
             )
 
             logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")

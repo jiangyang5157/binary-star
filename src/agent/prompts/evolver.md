@@ -11,7 +11,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
 
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
-1. **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated failures. A failure is only "Systemic" if it repeats across **>= 2 instances** or represents **> 20% of the current batch** under similar parameters.
+1. **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated failures. A failure is only "Systemic" if it repeats across **>= {min_failure_instances} instances** or represents **> {failure_ratio_threshold} (expressed as a decimal, e.g., 0.2)** of the current batch under similar parameters.
 2. **SURFACE AREA MINIMIZATION**: A patch is a failure if it adds branching complexity ("if/then/else" chains). Prefer **Parameter Hardening** (adjusting numeric thresholds) over **Instruction Bloating** (adding new descriptive paragraphs).
 3. **REGRESSION VETO**: If a logic patch fixes a historical loss but would have invalidated >5% of previously successful "Pristine" trades, it is a **Overfit Poison** and must be discarded.
 4. **CONVERGENCE BIAS**: Prefer tightening existing filters over adding new ones. If a filter is bypassed, analyze why the current parameter failed before inventing a new one. Zero-Entropy is achieved by parameter hardening, not logic bloating.
