@@ -68,11 +68,8 @@ Your response MUST be RAW JSON only.
         {{
             "pathology_tag": "[REGIME_MISALIGNMENT]",
             "rationale": "WHY",
-            "parameter_overrides": {{
-                "config_name": "EXACT_EXISTING_KEY_NAME",
-                "original_value": "ORIGINAL_VALUE",
-                "new_value": "NEW_VALUE"
-            }}
+            "target_key": "EXACT_EXISTING_KEY_NAME",
+            "replaced_with": "NEW_VALUE"
         }}
     ],
     "semantic_refinement": [
@@ -80,10 +77,8 @@ Your response MUST be RAW JSON only.
             "target_module": "session | critic",
             "pathology_tag": "[STRUCTURAL_BLINDNESS]",
             "rationale": "WHY",
-            "distilled_logic": {{
-                "original_value": "EXACT_SUBSTRING",
-                "new_value": "NEW_LOGIC"
-            }}
+            "anchor_text": "EXACT_SUBSTRING_FROM_PROMPT",
+            "replaced_with": "NEW_LOGIC",
         }}
     ],
     "sandbox_check_required": true
