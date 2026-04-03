@@ -48,9 +48,9 @@ class BinaryStarOrchestrator:
         self.api_key = api_key
         self.data_root = resolve_data_root(data_root)
         
-        # 0. Global Configuration Merging (Injecting infrastructure into strategy)
+        # 0. Global Configuration Merging (Physical Split maintained for Snapshot Purity)
         self.global_config = load_config('config/global_config.yaml')
-        self.config.update(self.global_config)
+        # self.config.update(self.global_config)  # [DECOUPLED] Removed to keep strategy snapshot pure
         
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
         session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
@@ -61,8 +61,8 @@ class BinaryStarOrchestrator:
         self.client = genai.Client(api_key=api_key)
         self.binance_client = BinanceFuturesClient()
         
-        # 2. Global Environment Constants (Resolved from Merged Config)
-        gemini_net = self.config['network']['gemini']
+        # 2. Global Environment Constants (Resolved from Global Config)
+        gemini_net = self.global_config['network']['gemini']
         self.api_timeout = int(gemini_net['api_timeout_seconds'])
         self.retry_count = int(gemini_net['retry_count'])
         self.max_tool_iterations = int(gemini_net['max_tool_iterations'])
@@ -84,10 +84,11 @@ class BinaryStarOrchestrator:
         raw_instruction = read_prompt_template(self.bs_instruction_path)
         self.shared_instruction = safe_format(raw_instruction, max_rounds=self.max_rounds)
         
-        # 5. Type-Safe Configuration Slicing (Production Isolation)
-        self.obs_config = MarketObserverConfig.from_dict(self.config)
-        self.session_config = SessionConfig.from_dict(self.config)
-        self.critic_config = CriticConfig.from_dict(self.config)
+        # 5. Type-Safe Configuration Slicing (Local Merge for Initialization)
+        local_context = {**self.config, **self.global_config}
+        self.obs_config = MarketObserverConfig.from_dict(local_context)
+        self.session_config = SessionConfig.from_dict(local_context)
+        self.critic_config = CriticConfig.from_dict(local_context)
         
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(
