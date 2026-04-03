@@ -29,7 +29,7 @@ class EvolverSandbox:
         """
         logger.info(f"Sandbox: Replaying session {failure_case.get('session_id')} in shadow mode.")
         
-        # 1. TODO apply proposed_patch and proposed_prompts to validate
+        # 1. TODO yangj: apply proposed_patch and proposed_prompts to validate and revert if not PASS?
         
         # 2. Instantiate Orchestrator (Injected with Shadow Logic)
         orchestrator = BinaryStarOrchestrator(

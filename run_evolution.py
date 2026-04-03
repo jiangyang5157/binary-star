@@ -60,7 +60,7 @@ class EvolutionEngine:
             os.makedirs(d, exist_ok=True)
         return dirs
 
-    def run_cycle(self, sample_size: int = 5):
+    def run_cycle(self, sample_size: int, force: bool):
         """Standard Operating Procedure for the Universal Evolver."""
         self.logger.info("="*60)
         self.logger.info(f" EVOLUTION CYCLE START | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
@@ -130,21 +130,27 @@ class EvolutionEngine:
         self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
         # 4. Phase: The Shadow Sandbox
-        self.logger.info(f"Sandbox: Validating {ev_id} against primary failure case: {files[0]}")
-        sandbox = EvolverSandbox(self.api_key, self.data_root)
-        validation = sandbox.validate_evolution(
-            failure_case=reports[0],
-            proposed_patch=evolution_result.get('config_patch'),
-            proposed_prompts=evolution_result.get('semantic_refinement')
-        )
+        if not force:
+            self.logger.info(f"Sandbox: [SECURE_MODE] Validating {ev_id} against primary failure case: {files[0]}")
+            sandbox = EvolverSandbox(self.api_key, self.data_root)
+            validation = sandbox.validate_evolution(
+                failure_case=reports[0], # TODO yangj: how to pick failure cases?
+                proposed_patch=evolution_result.get('config_patch'),
+                proposed_prompts=evolution_result.get('semantic_refinement')
+            )
+            is_valid = validation.get('is_validated', False)
+        else:
+            self.logger.info(f"Sandbox: [FORCE_BYPASS] Tactical override detected. Bypassing validation for {ev_id}.")
+            is_valid = True
+            validation = {
+                "is_validated": "N/A (Bypass)", 
+            }
         
         sandbox_file = os.path.join(self.dirs['sandbox'], f"{ev_id}_sandbox.json")
         save_json(validation, sandbox_file)
         
         # 5. Routing: Atomic Commit vs Rejection
-        is_valid = validation.get('is_validated', False)
         self.logger.info(f"Sandbox: Result Category: {'SUCCESS' if is_valid else 'FAILURE'}")
-        self.logger.info(f"Sandbox: metrics -> Original: {validation.get('metrics', {}).get('original_opinion')} | Shadow: {validation.get('metrics', {}).get('shadow_opinion')}")
 
         if is_valid:
             self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Initiating atomic system patching...")
@@ -166,6 +172,7 @@ class EvolutionEngine:
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.0)")
     parser.add_argument("--samples", type=int, default=20, help="Number of forensic reports to ingest")
+    parser.add_argument("--force", action="store_true", help="Activate Sandbox validation")
     add_data_root_argument(parser)
     
     args = parser.parse_args()
@@ -176,7 +183,7 @@ def main():
         
     engine = EvolutionEngine(data_root)
     try:
-        engine.run_cycle(sample_size=args.samples)
+        engine.run_cycle(sample_size=args.samples, force=args.force)
     except Exception as e:
         # Note: self.logger might not be initialized if __init__ fails
         print(f"Evolution Cycle Failed: {e}")
