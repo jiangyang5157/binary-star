@@ -24,10 +24,7 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         # 1. Deduplication Gate: Skip if file already exists (unless forced)
         import json
         with open(file_path, 'r', encoding='utf-8') as f:
-            forensic_data = json.load(f)
-        
-        # If it's a forensic bundle, extract the session. Otherwise, it is the raw session itself.
-        session = forensic_data.get("session")
+            session = json.load(f)
         
         symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
         ts_compact = session.get("observation", {}).get("timestamp", "").replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
@@ -46,17 +43,16 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         from src.infrastructure.notifications.email_notifier import SessionNotifier
         notifier = SessionNotifier(data_root=data_root)
         
-        # Reconstruct structural bundle for notifier
+        # Reconstruct structural bundle for notifier (v6.12 alignment)
         audit_result = {
             "session": result["session"],
             "market_outcome": result["outcome"],
-            "audit_findings": result["report"],
             "metadata": result.get("metadata", {}),
             "audit_timestamp": result.get("audit_timestamp_compact")
         }
         
-        # Decision: Silence email for NEUTRAL signals (where findings/report are null)
-        should_dispatch = email if result.get("report") else False
+        # Decision: Notification control (只有当系统有交易意向时才发送邮件报告)
+        should_dispatch = email and session.get("final_decision", {}).get("opinion", "").upper() != "NEUTRAL"
         notifier.notify_audit(result["symbol"], audit_result, save_local=True, dispatch_email=should_dispatch)
 
         outcome = result.get('outcome', {})

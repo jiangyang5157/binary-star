@@ -128,7 +128,14 @@ class AuditController:
             return {
                 "symbol": symbol,
                 "session": session,
-                "outcome": {"tp_sl_result": "NEUTRAL", "market_outcome": "JUSTIFIED_SURRENDER"},
+                "outcome": {
+                    "tp_sl_result": "NEUTRAL", 
+                    "market_outcome": "JUSTIFIED_SURRENDER",
+                    "forensic_verdict": {
+                        "is_justified_surrender": True, 
+                        "is_catastrophic_miss": False
+                    }
+                },
                 "report": None, # audit_findings is null
                 "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
                 "session_timestamp_compact": ts_compact, 
@@ -205,11 +212,13 @@ class AuditController:
 
             report = self.assembler.review(session, outcome, t1_observation)
             
+            # Merge forensic findings into outcome (v6.12 flattening)
+            outcome["forensic_verdict"] = report.get("forensic_verdict", {})
+            
             return {
                 "symbol": symbol,
                 "session": session,
                 "outcome": outcome,
-                "report": report,
                 "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
                 "session_timestamp_compact": t0_str.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0],
                 "metadata": {
@@ -224,7 +233,6 @@ class AuditController:
     def save_report(self, audit_result: Dict[str, Any]) -> str:
         """Standardized archival for forensic audit bundles."""
         symbol = audit_result["symbol"]
-        report = audit_result["report"]
         outcome = audit_result["outcome"]
         session = audit_result["session"]
         audit_ts = audit_result.get("audit_timestamp_compact") or datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -236,7 +244,6 @@ class AuditController:
         bundle = {
             "session": session,
             "market_outcome": outcome,
-            "audit_findings": report,
             "metadata": {
                 "config_hash": get_file_hash("config/strategy_config.yaml")
             }

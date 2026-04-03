@@ -172,7 +172,8 @@ class AuditEmailTemplate(BaseEmailTemplate):
         obs = strat_session.get("observation") or {}
         decision = strat_session.get("final_decision") or {}
         outcome = audit_data.get("market_outcome") or {}
-        audit = audit_data.get("audit_findings") or {}
+        forensics = outcome.get("market_forensics") or {}
+        verdict = outcome.get("forensic_verdict") or {}
         
         symbol = obs.get("symbol", "UNKNOWN")
         strat_ts = obs.get("timestamp", "")
@@ -240,17 +241,17 @@ class AuditEmailTemplate(BaseEmailTemplate):
                         <tr>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">📐 Price Change</span>
-                                <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if (outcome.get('total_price_change_pct') or 0) >= 0 else '#ef4444'};">
-                                    {fmt(outcome.get('total_price_change_pct'))}%
+                                <div style="font-size: 18px; font-weight: 800; color: {'#10b981' if (forensics.get('total_price_change_pct') or 0) >= 0 else '#ef4444'};">
+                                    {fmt(forensics.get('total_price_change_pct'))}%
                                 </div>
                             </td>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">🔥 Max Favorable (MFE)</span>
-                                <div style="font-size: 18px; font-weight: 800; color: #10b981;">{fmt(outcome.get('max_favorable_runup_pct'))}%</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #10b981;">{fmt(forensics.get('max_favorable_runup_pct'))}%</div>
                             </td>
                             <td style="width: 33.33%; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; text-align: center; border-bottom: 1px solid #e2e8f0 !important;">
                                 <span style="font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 6px;">💧 Max Adverse (MAE)</span>
-                                <div style="font-size: 18px; font-weight: 800; color: #ef4444;">{fmt(outcome.get('max_adverse_drawdown_pct'))}%</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #ef4444;">{fmt(forensics.get('max_adverse_drawdown_pct'))}%</div>
                             </td>
                         </tr>
                     </table>
@@ -287,8 +288,11 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </table>
                     
                     <div>
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Insights</span>
-                        <p style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0;">{fmt(audit.get('post_mortem'))}</p>
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Forensic Verdict</span>
+                        <p style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0;">
+                            Justified Surrender: <b>{verdict.get('is_justified_surrender', 'N/A')}</b><br/>
+                            Catastrophic Miss: <b>{verdict.get('is_catastrophic_miss', 'N/A')}</b>
+                        </p>
                     </div>
                 </div>
 
