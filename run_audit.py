@@ -16,12 +16,12 @@ from src.utils.logger_utils import setup_logger
 # Initialize standard hardened logger
 logger = setup_logger("AuditEntry")
 
-def process_audit_file(file_path: str, controller: AuditController, email: bool, data_root: str):
-    """Executes the complete forensic audit pipeline for a single session file."""
+def process_audit_file(file_path: str, controller: AuditController, email: bool, data_root: str, force: bool = False) -> str:
+    """Handles the full lifecycle of a single session audit."""
     try:
         logger.info(f"--- Initiating Audit Review: {os.path.basename(file_path)} ---")
         
-        # 1. Deduplication Gate: Skip if file already exists
+        # 1. Deduplication Gate: Skip if file already exists (unless forced)
         import json
         with open(file_path, 'r', encoding='utf-8') as f:
             session_data = json.load(f)
@@ -29,12 +29,12 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         symbol = session_data.get("observation", {}).get("symbol", "UNKNOWN")
         ts_compact = session_data.get("observation", {}).get("timestamp", "").replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
         
-        if controller.is_already_audited(symbol, ts_compact):
+        if not force and controller.is_already_audited(symbol, ts_compact):
             logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
             return "EXISTS"
 
         # 2. Execute Analysis
-        result = controller.run_manual_audit(file_path)
+        result = controller.run_manual_audit(file_path, force=force)
         
         # 2. Automated Persistence
         report_path = controller.save_report(result)
@@ -72,6 +72,7 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Audit Review (v6.1)")
     parser.add_argument("--file", help="Optional: Path to a specific session JSON file")
     parser.add_argument("--email", action="store_true", help="Dispatch forensic reports via email")
+    parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")
     
     from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
     add_data_root_argument(parser)
@@ -117,7 +118,7 @@ def main():
     mature_count = 0
     
     for f in files_to_audit:
-        status = process_audit_file(f, controller, args.email, data_root)
+        status = process_audit_file(f, controller, args.email, data_root, force=args.force)
         if status == "SUCCESS": success_count += 1
         elif status == "EXISTS": skip_count += 1
         elif status == "MATURING": mature_count += 1

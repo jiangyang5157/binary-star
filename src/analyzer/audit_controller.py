@@ -59,11 +59,12 @@ class AuditController:
         filename = f"{symbol}_audit_{timestamp_compact}.json"
         return os.path.exists(os.path.join(output_dir, filename))
 
-    def run_manual_audit(self, session_file_path: str) -> Dict[str, Any]:
+    def run_manual_audit(self, session_file_path: str, force: bool = False) -> Dict[str, Any]:
         """Performs a comprehensive forensic audit on a specific session.
         
         Args:
-            session_file_path: Absolute or relative path to the session JSON.
+            session_file_path: Path to the target session JSON.
+            force: If True, bypasses maturity checks (waiting for TP/SL or expiration).
             
         Returns:
             An audit result dictionary containing session, outcome, and report.
@@ -186,7 +187,7 @@ class AuditController:
             holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0))
             is_expired = t1_dt > (t0_dt + timedelta(hours=holding_hours))
             
-            if res_type == "NEITHER" and not is_expired:
+            if not force and res_type == "NEITHER" and not is_expired:
                 # Still in position and haven't reached holding time limit
                 raise ValueError(f"SESSION_MATURING: {symbol} is still active (Result: NEITHER). Waiting for TP/SL or expiration (T0+{holding_hours}h).")
 
