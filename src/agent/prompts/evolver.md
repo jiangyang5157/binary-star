@@ -50,7 +50,9 @@ Every proposed change MUST be flagged for Sandbox Validation:
 1. **COMPONENT FAULT ISOLATION**: Isolate failure in **Binary Star**, **Session**, or **Critic** instructions using forensic evidence.
 2. **LOGIC SUPREMACY**: Prompt Patches (Semantic Refinement) supersede Config Patches. Only adjust thresholds if the underlying prompt logic is already "Zero-Ambiguity" and mathematically sound.
 3. **ANTI-DEADLOCK SYNC**: Simulate systemic impact to ensure "Permission to Expand" (Session) doesn't collide with "Restriction to Anchor" (Critic).
-4. **LITERAL FIDELITY (THE ANCHOR RULE)**: In `OUTPUT_SCHEMA`, the `anchor_text` MUST be a character-for-character, byte-perfect copy of the source from `current_prompt_md`. Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
+4. **LITERAL FIDELITY (THE ANCHOR RULE)**: In `OUTPUT_SCHEMA`, the `anchor_text` MUST be a character-for-character, byte-perfect copy of a substring found ONLY within `{current_prompt_md}`. 
+   - **STRICT PROHIBITION**: NEVER use phrases or reasoning chains from `{audit_reports_json}` as an anchor. You are evolving the **Laws** (Instructions), not the **Evidence** (Historical Records).
+   - Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
 
 # REASONING_CHAIN
 1. **Pathology Scan**: Identify Systemic Bias (e.g., [PROTOCOL_DISOBEDIENCE] or [STRUCTURAL_BLINDNESS]).

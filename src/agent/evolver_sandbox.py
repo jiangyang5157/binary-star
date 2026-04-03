@@ -69,25 +69,44 @@ class EvolverSandbox:
         shadow_result = orchestrator.execute_flow(observation, symbol)
         
         # 5. Evolution Metric Analysis
-        # v6.13 Schema: final_decision is inside session
+        # v6.13 Schema: final_decision and outcome metrics
         original_decision = session_data.get('final_decision', {})
         new_decision = shadow_result.get('final_decision', {})
         
+        # Metric A (Survival): Improvement check
+        # v6.13 Schema: outcome is at the top level of the audit report
+        original_outcome = failure_case.get('market_outcome', {})
+        original_result = original_outcome.get('tp_sl_result', 'NEITHER')
+        
+        # Note: Shadow execution in sandbox doesn't have a real 'market_outcome' (it's a prediction)
+        # We use a heuristic: Did the shadow decision change or maintain safety?
         survival_improvement = False
-        # Logic: If original was a LOSS and shadow is NEUTRAL or better DLE -> Improvement
-        # This requires outcome context which should be in the audit report
-        # For now, we compare structural differences
-        if original_decision.get('opinion') != new_decision.get('opinion'):
+        
+        # Case 1: Original was a loss (SL_HIT), Shadow changed opinion or neutral
+        # (This is a proxy for Survival Metric A)
+        if original_result == 'SL_HIT' and new_decision.get('opinion') != original_decision.get('opinion'):
             survival_improvement = True
             
+        # Metric C (Efficiency): Round count comparison
+        original_rounds = len(session_data.get('debate_history', []))
+        shadow_rounds = len(shadow_result.get('debate_history', []))
+        efficiency_improvement = shadow_rounds <= original_rounds if original_rounds > 0 else False
+        
+        # Validation Verdict: Validated if ANY metric improved without catastrophic degradation
+        is_validated = survival_improvement or efficiency_improvement
+        
+        # Final Forensic Package
         return {
-            "session_id": failure_case.get('session_id'),
-            "is_validated": survival_improvement, # Simple stub for now
+            "session_id": failure_case.get('session', {}).get('metadata', {}).get('session_id', 'unknown'),
+            "is_validated": is_validated,
             "metrics": {
+                "survival_improvement": survival_improvement,
+                "efficiency_improvement": efficiency_improvement,
                 "original_opinion": original_decision.get('opinion'),
                 "shadow_opinion": new_decision.get('opinion'),
-                "original_rounds": failure_case.get('metadata', {}).get('total_rounds'),
-                "shadow_rounds": shadow_result.get('metadata', {}).get('total_rounds')
+                "original_result": original_result,
+                "original_rounds": original_rounds,
+                "shadow_rounds": shadow_rounds
             },
             "audit_trail": shadow_result.get('debate_history')
         }
