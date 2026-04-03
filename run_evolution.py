@@ -20,8 +20,8 @@ from src.utils.pipeline_utils import load_config, resolve_data_root, add_data_ro
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 
-# Initialize symmetrical evolution logger
-logger = setup_logger("EvolutionEngine")
+# v6.10: Global logger reference (will be properly initialized in Engine.__init__)
+logger = None
 
 class EvolutionEngine:
     """Singularity Meta-Evolution Engine (v6.0).
@@ -34,9 +34,18 @@ class EvolutionEngine:
         self.dirs = self._setup_evolution_dirs()
         load_dotenv()
         self.api_key = os.environ.get("GEMINI_API_KEY")
+        
+        # v6.10: Setup system-wide logging with physical persistence in data_root
+        # Initializing the ROOT logger catches all child agents (Evolver, Sandbox, etc.)
+        log_path = os.path.join(self.data_root, "evolution.log")
+        setup_logger("", log_file=log_path) # Empty string means Root Logger
+        self.logger = logging.getLogger("EvolutionEngine")
+        
         if not self.api_key:
-            logger.critical("GEMINI_API_KEY not found. Evolution stalled.")
+            self.logger.critical("GEMINI_API_KEY-VET_FAILED: Evolution Oracle offline.")
             sys.exit(1)
+        
+        self.logger.info(f"Engine: Oracle online. Audit Trail Persistence: {log_path}")
 
     def _setup_evolution_dirs(self) -> Dict[str, str]:
         """Ensures the 'Evolution Black Box' directory hierarchy is initialized."""
@@ -53,24 +62,26 @@ class EvolutionEngine:
 
     def run_cycle(self, sample_size: int = 5):
         """Standard Operating Procedure for the Universal Evolver."""
-        logger.info(f"--- Evolution Cycle Start: Analyzing last {sample_size} session reports ---")
+        self.logger.info("="*60)
+        self.logger.info(f" EVOLUTION CYCLE START | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
+        self.logger.info("="*60)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # 1. Ingest Audit Evidence (Sessions)
         session_dir = os.path.join(self.data_root, "sessions")
         if not os.path.exists(session_dir):
-            logger.warning(f"Session base not found: {session_dir}. Aborting cycle.")
+            self.logger.warning(f"Session base not found: {session_dir}. Aborting cycle.")
             return
 
         files = sorted([f for f in os.listdir(session_dir) if f.endswith(".json")], reverse=True)
         if not files:
-            logger.warning("No audit evidence (sessions) found. No evolutionary pressure detected.")
+            self.logger.warning("No audit evidence (sessions) found. No evolutionary pressure detected.")
             return
 
-        logger.info(f"Evolver: Found {len(files)} sessions. Ingesting top {min(len(files), sample_size)} candidates.")
+        self.logger.info(f"Ingestion: Found {len(files)} sessions. Selecting top {min(len(files), sample_size)} for neural analysis.")
         reports = []
         for f in files[:sample_size]:
-            logger.info(f"Evolver: [INGEST] -> {f}")
+            self.logger.info(f"Ingestion: [INGEST] -> {f}")
             report = load_json(os.path.join(session_dir, f))
             if report: reports.append(report)
 
@@ -103,7 +114,7 @@ class EvolutionEngine:
         }
         
         # 3. Phase: Prototype Generation
-        logger.info("Evolver: Initiating Neural Meta-Optimization (LLM Analysis)...")
+        self.logger.info("Evolver: Initiating Neural Meta-Optimization (Gemini-Flash Inference)...")
         evolution_result = evolver.evolve(
             audit_reports=reports,
             active_config=config,
@@ -113,10 +124,13 @@ class EvolutionEngine:
         ev_id = evolution_result.get('evolution_id', f"evolution_{timestamp}")
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
         save_json(proposal_file, evolution_result)
-        logger.info(f"Evolver: Mutated proposal generated -> {os.path.basename(proposal_file)}")
+        
+        mutation_summary = evolution_result.get('evolution_type', 'UNKNOWN')
+        self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id} | Type: {mutation_summary}")
+        self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
         # 4. Phase: The Shadow Sandbox
-        logger.info("Sandbox: Initiating validation of proposed mutations against failure cases...")
+        self.logger.info(f"Sandbox: Validating {ev_id} against primary failure case: {files[0]}")
         sandbox = EvolverSandbox(self.api_key, self.data_root)
         validation = sandbox.validate_evolution(
             failure_case=reports[0],
@@ -128,20 +142,26 @@ class EvolutionEngine:
         save_json(sandbox_file, validation)
         
         # 5. Routing: Atomic Commit vs Rejection
-        if validation.get('is_validated'):
-            logger.info(f"Sandbox: EVOLUTION VALIDATED [{ev_id}]. Committing mutation...")
+        is_valid = validation.get('is_validated', False)
+        self.logger.info(f"Sandbox: Result Category: {'SUCCESS' if is_valid else 'FAILURE'}")
+        self.logger.info(f"Sandbox: metrics -> Original: {validation.get('metrics', {}).get('original_opinion')} | Shadow: {validation.get('metrics', {}).get('shadow_opinion')}")
+
+        if is_valid:
+            self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Initiating atomic system patching...")
             applied_file = os.path.join(self.dirs['applied'], f"{ev_id}_applied.json")
             shutil.copy2(proposal_file, applied_file)
             
-            if evolver.apply_patch(evolution_result, "config/strategy_config.yaml"):
-                logger.info("System: Strategic core logic successfully mutated and hardened.")
+            if evolver.apply_patch(evolution_result, "config/strategy_config.yaml", symbol=reports[0].get('symbol', 'BTCUSDT')):
+                self.logger.info(f"System: Mutation {ev_id} successfully merged into strategic core.")
             else:
-                logger.error("System: Critical failure during atomic configuration merge.")
+                self.logger.error(f"System: Critical failure during atomic merge of {ev_id}.")
         else:
-            logger.warning(f"Sandbox: EVOLUTION REJECTED [{ev_id}]. Regression risk detected.")
+            self.logger.warning(f"Routing: EVOLUTION REJECTED [{ev_id}]. Regression风险 detected.")
             refused_file = os.path.join(self.dirs['refusals'], f"{ev_id}_refused.json")
             shutil.move(proposal_file, refused_file)
-            logger.info(f"Evolver: Proposal isolated for forensic review -> {os.path.basename(refused_file)}")
+            self.logger.info(f"Evolver: Proposal isolated for review: {os.path.basename(refused_file)}")
+
+        self.logger.info(f"--- Evolution Cycle Complete | Duration: {datetime.now().strftime('%H:%M:%S')} ---")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.0)")
@@ -158,7 +178,8 @@ def main():
     try:
         engine.run_cycle(sample_size=args.samples)
     except Exception as e:
-        logger.error(f"Evolution Cycle Failed: {e}", exc_info=True)
+        # Note: self.logger might not be initialized if __init__ fails
+        print(f"Evolution Cycle Failed: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
