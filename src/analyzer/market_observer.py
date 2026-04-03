@@ -86,6 +86,7 @@ class MarketObserverConfig:
     regime_squeeze_threshold: float
     regime_balanced_atr_multiplier: float
     regime_cvd_slope_threshold: float
+    default_structural_distance: float
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
@@ -137,6 +138,7 @@ class MarketObserverConfig:
             max_liquidation_events_for_context=int(topography['max_liquidation_events_for_context']),
             liquidation_cluster_atr_multiplier=float(topography['liquidation_cluster_atr_multiplier']),
             liquidation_cluster_fallback_percentage=float(topography['liquidation_cluster_fallback_percentage']),
+            default_structural_distance=float(topography['default_structural_distance']),
             
             regime_trend_threshold=float(regime['trend_intensity_threshold']),
             regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
@@ -330,13 +332,17 @@ class MarketMetricsRefiner:
         anchors_below = sorted([n for n in all_nodes if n['price'] < current_price], key=lambda x: x['price'], reverse=True)[:limit]
         
         # Calculate tactical proximity for hard-predicate checks
-        proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes]
-        nearest_hvn_dist_atr = min(proximities) if proximities else 3.0 # Default to safe distance if vacuum
+        hvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "HVN"]
+        lvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "LVN"]
+        
+        nearest_hvn_dist_atr = min(hvn_proximities) if hvn_proximities else self.config.default_structural_distance
+        nearest_lvn_dist_atr = min(lvn_proximities) if lvn_proximities else self.config.default_structural_distance
 
         return {
             "poc": poc, "vah": vah, "val": val,
             "va_width_atr": va_width / atr_macro if atr_macro > 0 else 0,
             "nearest_hvn_dist_atr": nearest_hvn_dist_atr,
+            "nearest_lvn_dist_atr": nearest_lvn_dist_atr,
             "anchors_above": anchors_above,
             "anchors_below": anchors_below
         }

@@ -166,6 +166,8 @@ topography_parameters:
   keltner_channels_multiplier: 1.5
   wick_skewness_period: 3
   wick_skew_fallback: 0.5
+  # The fallback ATR distance used when no structural nodes are detected.
+  default_structural_distance: 5.0
   
   # --- Liquidity Magnet (Liquidation Clusters) ---
   # Number of forced-liquidation clusters to analyze simultaneously.
