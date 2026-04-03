@@ -166,7 +166,7 @@ class SessionController:
             self.engine.execute_cycle()
         
         elif mode == "live":
-            pulse_mins = self.args.pulse or self.global_cfg.get('system', {}).get('default_pulse_minutes', 15)
+            pulse_mins = self.args.pulse or self.global_cfg.get('session', {})['default_live_pulse_minutes']
             logger.info(f"Scheduled pulse: every {pulse_mins} minutes.")
             
             while True:

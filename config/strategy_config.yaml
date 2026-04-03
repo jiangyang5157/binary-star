@@ -147,7 +147,7 @@ topography_parameters:
 binary_star:
   # The shared 'Sovereign Intelligence' model.
   # gemini-3.1-pro-preview
-  model: gemini-flash-latest
+  model: gemini-3.1-pro-preview
   # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
   # Shared Truth Bus expiration to minimize memory bloat.

@@ -6,6 +6,7 @@ system:
     once: "data/once"
     live: "data/live"
     backtest: "data/backtest"
+
 network:
   binance:
     api_timeout_seconds: 60
@@ -19,6 +20,10 @@ network:
       multiplier: 1
       min_seconds: 2
       max_seconds: 10
+
+session:
+  default_live_pulse_minutes: 60
+
 backtest:
   # Session anchor for regime sampling timestamps.
   # Shifts sampled daily candles to this UTC hour to capture real session dynamics.
