@@ -49,12 +49,12 @@ Use these objective definitions to transform metrics into tactical insights:
 | :--- | :--- |
 | `latest_wick_skew` | **Close-to-High Ratio**: (0.0: Rejection/Weakness; 1.0: Pure Momentum/No Wick). |
 | `poc_dist_atr` | Distance (in ATR units) from current price to the POC. |
-| `va_width_atr` | < `{regime_balanced_atr_multiplier}` = BALANCED / RANGING; > `{regime_balanced_atr_multiplier}` = IMBALANCED. |
-| `volatility_ratio` | > `{volatility_baseline_ratio}` = Micro volatility is expanding. |
-| `volatility_intensity_index`| > 1.0 = Macro volatility is expanding beyond average. |
-| `squeeze_factor` | < `{squeeze_threshold}` = Bollinger Bands inside Keltner Channels (Squeeze). |
-| `trend_intensity` | > `{trend_intensity_threshold}` = Efficient Trending; < `{trend_intensity_threshold}` * 0.75 = Mean-reverting. |
-| `cvd_slope` | Current CVD minus previous window. Positive = Net Buying; Negative = Net Selling. |
+| `va_width_atr` | > `{regime_balanced_atr_multiplier}` = IMBALANCED (Trend-ready); < `{regime_balanced_atr_multiplier}` = CONGESTION. |
+| `volatility_ratio` | > `{volatility_baseline_ratio}` = Volatility Expansion detected. |
+| `volatility_intensity_index`| > 1.0 = Macro volatility is above average. |
+| `squeeze_factor` | < `{squeeze_threshold}` = Compression Squeeze active. |
+| `trend_intensity` | > `{trend_intensity_threshold}` = Efficient Trending; < (`{trend_intensity_threshold}` * 0.75) = Mean-reverting. |
+| `cvd_intensity_ratio` | Ratio of Net_Taker_Delta vs Total_Volume. Positive = Aggressive Buying; Negative = Aggressive Selling. |
 | `oi_delta_micro` | Change in Open Interest. Negative = Liquidation/Closing; Positive = New Participation. |
 
 # MATH_TOOLS

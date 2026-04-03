@@ -142,7 +142,7 @@ class MarketRegimeAnalyzer:
         """
         if df.empty or len(df) < self.config.bollinger_window:
             logger.warning("Insufficient data for Market Regime analysis.")
-            return asdict(RegimeResult("UNKNOWN", 1.0, "UNKNOWN", 0.0, 0.0, 1.0))
+            return asdict(RegimeResult(1.0, 0.0, 0.0, 1.0))
 
         processed_df = self.engine.calculate_indicators(df.copy())
         result = self.classifier.classify_regime(processed_df)

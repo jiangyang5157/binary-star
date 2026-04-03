@@ -52,6 +52,11 @@ class CriticConfig(AgentConfig):
     anchor_drift_threshold: float
     min_trade_velocity: float
     structural_buffer_atr: float
+    cvd_intensity_threshold: float
+    cvd_intensity_extreme: float
+    funding_extreme_threshold: float
+    structural_proximity_threshold: float
+    gravity_volume_override_ratio: float
 
     @classmethod
     def from_dict(cls, cfg_dict: Dict[str, Any]) -> "CriticConfig":
@@ -96,7 +101,12 @@ class CriticConfig(AgentConfig):
             threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            structural_buffer_atr=float(regime.get('structural_buffer_atr', 0.05))
+            structural_buffer_atr=float(regime['structural_buffer_atr']),
+            cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
+            cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
+            funding_extreme_threshold=float(regime['funding_extreme_threshold']),
+            structural_proximity_threshold=float(regime['structural_proximity_threshold']),
+            gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio'])
         )
 
 class CriticAgent(BaseAgent):
@@ -210,7 +220,13 @@ class CriticAgent(BaseAgent):
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
             "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
             "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive,
-            "anchor_drift_threshold": self.config.anchor_drift_threshold
+            "anchor_drift_threshold": self.config.anchor_drift_threshold,
+            "structural_buffer_atr": self.config.structural_buffer_atr,
+            "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
+            "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
+            "funding_extreme_threshold": self.config.funding_extreme_threshold,
+            "structural_proximity_threshold": self.config.structural_proximity_threshold,
+            "gravity_volume_override_ratio": self.config.gravity_volume_override_ratio
         }
 
     # --- Tool Delegates (Function Calling Interfaces) ---

@@ -226,8 +226,4 @@ class VolumeProfileAnalyzer:
         result = profile.copy()
         result.update(nodes)
         
-        # Determine a simple regime based on VA width vs ATR if needed, 
-        # but usually handled by MarketRegimeAnalyzer.
-        result["structural_state"] = "BALANCED" if (result["vah"] - result["val"]) < (df["atr"].iloc[-1] * self.config.balanced_atr_multiplier) else "IMBALANCED"
-        
         return result

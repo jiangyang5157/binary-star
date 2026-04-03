@@ -67,7 +67,7 @@ class SessionConfig(AgentConfig):
     structural_proximity_threshold: float
     balanced_atr_multiplier: float
     structural_buffer_atr: float
-    cvd_slope_threshold: float
+    cvd_intensity_threshold: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "SessionConfig":
@@ -129,7 +129,7 @@ class SessionConfig(AgentConfig):
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
-            cvd_slope_threshold=float(regime['cvd_slope_threshold'])
+            cvd_intensity_threshold=float(regime['cvd_intensity_threshold'])
         )
 
 class SessionAgent(BaseAgent):
@@ -301,9 +301,9 @@ class SessionAgent(BaseAgent):
             "anchor_drift_threshold": self.config.anchor_drift_threshold,
             "poc_confluence_strength": self.config.poc_confluence_strength,
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
-            "balanced_atr_multiplier": self.config.balanced_atr_multiplier,
+            "regime_balanced_atr_multiplier": self.config.balanced_atr_multiplier,
             "structural_buffer_atr": self.config.structural_buffer_atr,
-            "cvd_slope_threshold": self.config.cvd_slope_threshold
+            "cvd_intensity_threshold": self.config.cvd_intensity_threshold
         }
         
         return self._prepare_prompt(self.config.role_prompt_path, **context)

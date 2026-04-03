@@ -85,7 +85,9 @@ class MarketObserverConfig:
     regime_volume_baseline_ratio: float
     regime_squeeze_threshold: float
     regime_balanced_atr_multiplier: float
-    regime_cvd_slope_threshold: float
+    cvd_intensity_threshold: float
+    cvd_intensity_extreme: float
+    funding_extreme_threshold: float
     default_structural_distance: float
     max_liquidation_clusters: int
     wick_skew_fallback: float
@@ -155,7 +157,9 @@ class MarketObserverConfig:
             regime_volume_baseline_ratio=float(regime['volume_baseline_ratio']),
             regime_squeeze_threshold=float(regime['squeeze_threshold']),
             regime_balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
-            regime_cvd_slope_threshold=float(regime['cvd_slope_threshold'])
+            cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
+            cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
+            funding_extreme_threshold=float(regime['funding_extreme_threshold'])
         )
 
     @property
@@ -349,23 +353,25 @@ class MarketMetricsRefiner:
 
     def _derive_sentiment(self, raw: RawMarketData, atr_macro: float) -> Dict[str, Any]:
         """Calculates Order Flow, Open Interest delta, and Liquidation Clusters."""
-        cvd_current = 0.0
-        cvd_prev = 0.0
+        cvd_current_net = 0.0
+        cvd_current_total_vol = 0.0
+        cvd_prev_net = 0.0
         
         if raw.micro_klines:
             lookback = self.config.taker_vol_delta_lookback
             curr_window = raw.micro_klines[-lookback:]
             for k in curr_window:
                 v, tb = float(k[5]), float(k[9])
-                cvd_current += (tb - (v - tb))
+                cvd_current_net += (tb - (v - tb))
+                cvd_current_total_vol += v
             
             if len(raw.micro_klines) >= lookback * 2:
                 prev_window = raw.micro_klines[-(lookback*2):-lookback]
                 for k in prev_window:
                     v, tb = float(k[5]), float(k[9])
-                    cvd_prev += (tb - (v - tb))
+                    cvd_prev_net += (tb - (v - tb))
         
-        cvd_delta = cvd_current - cvd_prev
+        cvd_intensity_ratio = cvd_current_net / (cvd_current_total_vol + 1e-9)
 
         cur_oi = float(raw.current_oi.get('openInterest', 0)) if raw.current_oi else 0
         def raw_oi_delta(hist):
@@ -379,8 +385,8 @@ class MarketMetricsRefiner:
             "oi_delta_micro": raw_oi_delta(raw.micro_oi),
             "ls_ratio_macro": float(raw.macro_ls[0].get('longShortRatio', 0)) if raw.macro_ls else 0,
             "ls_ratio_micro": float(raw.micro_ls[0].get('longShortRatio', 0)) if raw.micro_ls else 0,
-            "net_taker_delta": cvd_current,
-            "cvd_slope": cvd_delta,
+            "cvd_intensity_ratio": cvd_intensity_ratio,
+            "net_taker_delta": cvd_current_net,
             "funding_rate": float(raw.funding_rate[-1].get('fundingRate', 0)) if raw.funding_rate else 0,
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
