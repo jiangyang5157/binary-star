@@ -12,7 +12,7 @@ from src.agent.critic_agent import CriticAgent, CriticConfig
 from src.utils.math_utils import MathTools
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, resolve_data_root
+from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, resolve_data_root, safe_format
 from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
@@ -47,6 +47,11 @@ class BinaryStarOrchestrator:
         self.config = config_dict
         self.api_key = api_key
         self.data_root = resolve_data_root(data_root)
+        
+        # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
+        session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
+        setup_logger("src", log_file=session_log_path)
+        logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)
