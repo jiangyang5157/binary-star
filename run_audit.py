@@ -37,7 +37,8 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
             "strategy_session": result["session"],
             "market_outcome": result["outcome"],
             "audit_findings": result["report"],
-            "audit_metadata": result.get("audit_metadata", {})
+            "metadata": result.get("metadata", {}),
+            "audit_timestamp": result.get("audit_timestamp_compact")
         }
         notifier.notify_audit(result["symbol"], audit_result, save_local=True, dispatch_email=email)
 

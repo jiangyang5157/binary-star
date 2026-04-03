@@ -41,8 +41,8 @@ class SessionEmailTemplate(BaseEmailTemplate):
                 dt = datetime.fromisoformat(utc_ts.replace("Z", "+00:00"))
             
             local_dt = dt.astimezone()
-            # User friendly format: "2026-04-03 20:58"
-            display_time = local_dt.strftime("%Y-%m-%d %H:%M")
+            # User friendly format: "2026-04-03 20:03:58 NZDT"
+            display_time = local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
         except Exception as e:
             logger.debug(f"Template: Time conversion failed for {utc_ts}: {e}")
 
@@ -194,18 +194,22 @@ class AuditEmailTemplate(BaseEmailTemplate):
         
         symbol = obs.get("symbol", "UNKNOWN")
         strat_ts = obs.get("timestamp", "")
+        
         audit_ts = audit_data.get("audit_timestamp", "")
         
         # Local Time Conversion (Helper to handle multiple formats)
         def parse_to_local(ts_str):
-            if not ts_str: return ts_str
+            if not ts_str: return "N/A"
             try:
+                # 1. Try Compact format YYYYMMDD_HHMMSS
                 if "_" in ts_str and "-" not in ts_str:
                     dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
                 else:
-                    dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                    # 2. Try ISO format
+                    dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
                 return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
-            except:
+            except Exception as e:
+                logger.warning(f"Notifier: Time parse failed for audit '{ts_str}': {e}")
                 return ts_str
 
         display_strat_time = parse_to_local(strat_ts)
@@ -231,13 +235,6 @@ class AuditEmailTemplate(BaseEmailTemplate):
         
         fmt = AuditEmailTemplate.fmt
         
-        # Audit Formatting
-        shadow_list = audit.get('adversarial_audit', {}).get('shadow_evidence', [])
-        if isinstance(shadow_list, list) and shadow_list:
-            shadow_html = f'<ul style="margin: 0; padding-left: 18px;">' + "".join([f"<li>{fmt(item)}</li>" for item in shadow_list]) + "</ul>"
-        else:
-            shadow_html = fmt(shadow_list or "None")
-
         return f"""
         <html>
         <head>{AuditEmailTemplate.get_styles()}</head>
@@ -248,7 +245,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {res_color}15; color: {res_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {res_color}30;">
                         🏁 {res_label}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Market Performance</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Performance</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Original Signal: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
                     </p>
@@ -294,28 +291,21 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                <!-- Audit Review Findings -->
+                <!-- Audit Post-Mortem -->
                 <div style="background-color: #eff6ff; padding: 25px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 35px; border-left: 5px solid #3b82f6;">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 15px 0; border-bottom: 1px solid #dbeafe; padding-bottom: 10px;">
                         <tr>
                             <td align="left" style="color: #1e40af; font-size: 18px; font-weight: bold;">
-                                📑 Audit Findings & Score
+                                📑 Audit Findings
                             </td>
                             <td align="right" style="vertical-align: middle;">
-                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Score: {audit.get('evaluation_score', 0)}/100</span>
+                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Rounds: {len((audit_data.get("strategy_session") or {}).get("debate_history", []))}</span>
                             </td>
                         </tr>
                     </table>
                     
-                    <div style="margin-bottom: 20px;">
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Audit Insight</span>
-                        <div style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0; background: #ffffff66; padding: 12px; border-radius: 6px;">
-                            {shadow_html}
-                        </div>
-                    </div>
-
                     <div>
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Execution Analysis</span>
+                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Insights</span>
                         <p style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0;">{fmt(audit.get('post_mortem'))}</p>
                     </div>
                 </div>
@@ -359,7 +349,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {AuditEmailTemplate.render_footer(audit_data, "This is an auto-generated forensic audit notification | Triggered by Singularity Session")}
+                {AuditEmailTemplate.render_footer(audit_data, "This is an auto-generated audit notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>
@@ -375,7 +365,7 @@ class AlertEmailTemplate(BaseEmailTemplate):
         """
         Renders a mission-critical alert into a clear HTML report.
         """
-        display_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S %Z")
+        display_time = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
         
         return f"""
         <html>
@@ -500,7 +490,7 @@ class LedgerEmailTemplate(BaseEmailTemplate):
                     </p>
                 </div>
 
-                {LedgerEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Singularity Session")}
+                {LedgerEmailTemplate.render_summary_footer("This is an auto-generated session notification | Triggered by Singularity Session")}
             </div>
         </body>
         </html>

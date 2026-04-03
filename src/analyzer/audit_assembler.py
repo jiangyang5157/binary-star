@@ -218,7 +218,6 @@ class AuditAssembler:
                 is_justified_surrender = True
 
         return {
-            "evaluation_score": 0, # Placeholder for Evolver
             "audit_status": {
                 "is_justified_surrender": is_justified_surrender,
                 "data_availability_at_t0": "HIGH" if has_structural_data else "LOW",

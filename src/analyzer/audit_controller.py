@@ -73,20 +73,43 @@ class AuditController:
         symbol = obs.get("symbol", "BTCUSDT")
         t0_str = obs.get("timestamp")
         
+        # Local Time Conversion (Helper to handle multiple formats)
+        def parse_to_local(ts_str):
+            if not ts_str: return "N/A"
+            try:
+                # 1. Try Compact format YYYYMMDD_HHMMSS
+                if "_" in ts_str and "-" not in ts_str:
+                    dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+                else:
+                    # 2. Try ISO format
+                    dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+            except Exception as e:
+                logger.warning(f"Notifier: Time parse failed for audit '{ts_str}': {e}")
+                return ts_str
+        
         # Update Observer for the correct symbol
         self.observer.symbol = symbol
         
-        from src.utils.datetime_utils import parse_iso_to_utc
-        t0_dt = parse_iso_to_utc(t0_str)
+        # Robust timestamp parsing (Handles both ISO and Compact formats)
+        try:
+            if "_" in t0_str and "-" not in t0_str:
+                t0_dt = datetime.strptime(t0_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+            else:
+                from src.utils.datetime_utils import parse_iso_to_utc
+                t0_dt = parse_iso_to_utc(t0_str)
+        except Exception as te:
+            self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
+            raise ValueError(f"Invalid timestamp format in session: {t0_str}")
+
         t1_dt = datetime.now(timezone.utc)
         
         self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to NOW ({t1_dt.isoformat()})")
         
         try:
             # 4. --- PHYSICAL FORENSIC: T1 Visual Capture ---
-            # Capture visuals FIRST to ensure a forensic snapshot even if klines are missing.
             self.logger.info(f"Audit: Capturing T1 visual evidence (Macro/Micro) for {symbol}...")
-            t1_observation = self.observer.observe(persist=True)
+            t1_observation = self.observer.observe(persist=False)
             t1_assets = t1_observation.get("visual_assets", {})
 
             # 5. Fetch Outcome Klines
@@ -135,7 +158,11 @@ class AuditController:
                 "session": session,
                 "outcome": outcome,
                 "report": report,
-                "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S")
+                "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
+                "session_timestamp_compact": t0_str.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0],
+                "metadata": {
+                    "config_hash": get_file_hash("config/strategy_config.yaml")
+                }
             }
             
         except Exception as e:
@@ -151,21 +178,22 @@ class AuditController:
         audit_ts = audit_result.get("audit_timestamp_compact") or datetime.now().strftime("%Y%m%d_%H%M%S")
         
         # v6.1 Refined Structural Bundle
+        # Use session_timestamp_compact if available for filename consistency
+        filename_ts = audit_result.get("session_timestamp_compact") or audit_ts
+        
         bundle = {
             "strategy_session": session,
             "market_outcome": outcome,
             "audit_findings": report,
-            "audit_metadata": {
-                "config_hash": get_file_hash("config/strategy_config.yaml"),
-                "audit_timestamp": audit_ts,
-                "audit_version": "6.1"
+            "metadata": {
+                "config_hash": get_file_hash("config/strategy_config.yaml")
             }
         }
         
         output_dir = os.path.join(resolve_project_root(), self.data_root, "audits")
         os.makedirs(output_dir, exist_ok=True)
         
-        filename = f"{symbol}_audit_{audit_ts}.json"
+        filename = f"{symbol}_audit_{filename_ts}.json"
         output_file = os.path.join(output_dir, filename)
         
         with open(output_file, 'w', encoding='utf-8') as f:
