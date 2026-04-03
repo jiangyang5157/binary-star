@@ -184,7 +184,12 @@ class SessionAgent(BaseAgent):
             A reasoning draft containing 'opinion' and 'tactical_parameters'.
         """
         try:
-            prompt = self._build_prompt(observation, critic_feedback=critic_feedback, cache_id=cache_id)
+            prompt = self._build_prompt(
+                observation, 
+                critic_feedback=critic_feedback, 
+                cache_id=cache_id,
+                current_phase="PHASE_A_DRAFTING"
+            )
             logger.info(f"Session: Generating initial thesis for {symbol}...")
             
             return self._execute_ai_cycle(
@@ -226,7 +231,8 @@ class SessionAgent(BaseAgent):
                 draft_plan, 
                 critic_results, 
                 math_fact_check=math_fact_check, 
-                cache_id=cache_id
+                cache_id=cache_id,
+                current_phase="PHASE_B_SYNTHESIS"
             )
             logger.info(f"Session: Hardening decision against adversarial audit...")
             
@@ -247,7 +253,8 @@ class SessionAgent(BaseAgent):
         draft_plan: Optional[Dict[str, Any]] = None,
         critic_feedback: Optional[Dict[str, Any]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
-        cache_id: Optional[str] = None
+        cache_id: Optional[str] = None,
+        current_phase: str = "PHASE_A_DRAFTING"
     ) -> str:
         """Internal logic for constructing the multimodal reasoning context.
         
@@ -263,6 +270,7 @@ class SessionAgent(BaseAgent):
 
         context = {
             "observation_json": observation_json,
+            "current_phase": current_phase,
             "draft_plan_json": json.dumps(draft_plan, indent=2, ensure_ascii=False) if draft_plan else "{}",
             "critic_feedback": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "{}",
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
