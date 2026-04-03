@@ -98,7 +98,8 @@ class EvolutionEngine:
 
         prompts = {
             "session_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/session.md"),
-            "audit_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/audit.md")
+            "critic_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/critic.md"),
+            "binary_star_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/binary_star.md")
         }
         
         # 3. Phase: Prototype Generation
