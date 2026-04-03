@@ -64,18 +64,28 @@ Your response MUST be RAW JSON only.
 {{
     "evolution_signature": "evolution_[timestamp]",
     "evolution_type": "PATCH | DISTILLATION",
-    "config_patch": {{
-        "parameter_overrides": {{
-            "existing_key_name": "new_value"
-        }},
-        "rationale": "WHY_THIS"
-    }},
-    "semantic_refinement": {{
-        "target_module": "session | critic",
-        "original_logic": "EXACT_SUBSTRING",
-        "distilled_logic": "NEW_LOGIC",
-        "rationale": "WHY_THIS"
-    }},
+    "config_patch": [
+        {{
+            "pathology_tag": "[REGIME_MISALIGNMENT]",
+            "rationale": "WHY",
+            "parameter_overrides": {{
+                "config_name": "EXACT_EXISTING_KEY_NAME",
+                "original_value": "ORIGINAL_VALUE",
+                "new_value": "NEW_VALUE"
+            }}
+        }}
+    ],
+    "semantic_refinement": [
+        {{
+            "target_module": "session | critic",
+            "pathology_tag": "[STRUCTURAL_BLINDNESS]",
+            "rationale": "WHY",
+            "distilled_logic": {{
+                "original_value": "EXACT_SUBSTRING",
+                "new_value": "NEW_LOGIC"
+            }}
+        }}
+    ],
     "sandbox_check_required": true
 }}
 ```
