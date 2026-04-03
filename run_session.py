@@ -23,7 +23,6 @@ from src.analyzer.simulation_sampler import SimpleRegimeClassifier, SpacedSample
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, resolve_data_root, archive_strategy_result
 from src.utils.logger_utils import setup_logger
-from src.utils.json_utils import load_json
 
 # Initialize central engine logger
 logger = setup_logger("SessionEngine")

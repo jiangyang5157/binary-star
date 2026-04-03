@@ -153,7 +153,7 @@ binary_star:
   # Shared Truth Bus expiration to minimize memory bloat.
   cache_expiration_minutes: 10
   # Maximum rounds of debate before forced consensus or surrender.
-  max_rounds: 3
+  max_rounds: 2
   # Divergence Limit. If skepticism holds above this, the system refuses to trade.
   skepticism_halt_limit: 50
   

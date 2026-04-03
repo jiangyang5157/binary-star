@@ -54,7 +54,7 @@ class BinaryStarOrchestrator:
         
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
         session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
-        setup_logger("src", log_file=session_log_path)
+        setup_logger("", log_file=session_log_path)
         logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
         
         # 1. Shared Infrastructure Clients

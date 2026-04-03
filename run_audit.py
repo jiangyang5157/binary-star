@@ -2,6 +2,7 @@
 import os
 import sys
 import argparse
+import logging
 from datetime import datetime, timezone
 
 # Ensure project root is in path
@@ -13,8 +14,8 @@ from src.analyzer.audit_controller import AuditController
 from src.utils.pipeline_utils import load_config
 from src.utils.logger_utils import setup_logger
 
-# Initialize standard hardened logger
-logger = setup_logger("AuditEntry")
+# v6.10: Global logger reference (will be properly initialized with file persistence)
+logger = None
 
 def process_audit_file(file_path: str, controller: AuditController, email: bool, data_root: str, force: bool = False) -> str:
     """Handles the full lifecycle of a single session audit."""
@@ -84,7 +85,14 @@ def main():
     # 2. Load context-aware configuration
     config = load_config()
     
-    # 3. Initialize the Audit Controller (The Orchestrator)
+    # 3. Setup system-wide logging with physical persistence in data_root
+    # Root-level configuration catches all sub-modules (Assembler, Observer, Notifier, etc.)
+    global logger
+    log_path = os.path.join(data_root, "audit.log")
+    setup_logger("", log_file=log_path)
+    logger = logging.getLogger("Audit")
+    
+    # 4. Initialize the Audit Controller (The Orchestrator)
     controller = AuditController(config_dict=config, logger=logger, data_root=data_root)
     
     # 4. Execution Branch: Batch vs Single

@@ -11,7 +11,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
 
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
-1. **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated failures. A failure is only "Systemic" if it repeats across **>= {min_failure_instances} instances** or represents **> {failure_ratio_threshold} (expressed as a decimal, e.g., 0.2)** of the current batch under similar parameters.
+1. **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated failures. A failure is only "Systemic" if it repeats across **>= `{min_failure_instances}` instances** or represents **> `{failure_ratio_threshold}` (expressed as a decimal, e.g., 0.2)** of the current batch under similar parameters.
 2. **SURFACE AREA MINIMIZATION**: A patch is a failure if it adds branching complexity ("if/then/else" chains). Prefer **Parameter Hardening** (adjusting numeric thresholds) over **Instruction Bloating** (adding new descriptive paragraphs).
 3. **REGRESSION VETO**: If a logic patch fixes a historical loss but would have invalidated >5% of previously successful "Pristine" trades, it is a **Overfit Poison** and must be discarded.
 4. **CONVERGENCE BIAS**: Prefer tightening existing filters over adding new ones. If a filter is bypassed, analyze why the current parameter failed before inventing a new one. Zero-Entropy is achieved by parameter hardening, not logic bloating.
@@ -40,7 +40,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
 Every proposed change MUST be flagged for Sandbox Validation:
 - **Metric A (Survival)**: New logic must NO-OP or safely steer the previously failed trade. 
 - **Metric B (Regression)**: New logic MUST NOT lose on previously profitable "Truth Mirrors".
-- **Metric C (Efficiency)**: The `total_rounds` (`len(debate_history)`) of the Binary Star debate must stay <= previous.
+- **Metric C (Efficiency)**: The `total_rounds` (calculated as`len(debate_history)`) of the Binary Star debate must stay <= previous.
 
 ## 4. De-sensitization Engine (DE-SENSITIZATION)
 - **Action**: If `max_rounds` of Binary Star was exceeded (Deadlock), identify the "Logical Friction Point".
@@ -50,7 +50,7 @@ Every proposed change MUST be flagged for Sandbox Validation:
 1. **COMPONENT FAULT ISOLATION**: Isolate failure in **Binary Star**, **Session**, or **Critic** instructions using forensic evidence.
 2. **LOGIC SUPREMACY**: Prompt Patches (Semantic Refinement) supersede Config Patches. Only adjust thresholds if the underlying prompt logic is already "Zero-Ambiguity" and mathematically sound.
 3. **ANTI-DEADLOCK SYNC**: Simulate systemic impact to ensure "Permission to Expand" (Session) doesn't collide with "Restriction to Anchor" (Critic).
-4. **LITERAL FIDELITY (THE ANCHOR RULE)**: In `OUTPUT_SCHEMA`, the `anchor_text` MUST be a character-for-character, byte-perfect copy of the source from `{current_prompt_md}`. Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
+4. **LITERAL FIDELITY (THE ANCHOR RULE)**: In `OUTPUT_SCHEMA`, the `anchor_text` MUST be a character-for-character, byte-perfect copy of the source from `current_prompt_md`. Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
 
 # REASONING_CHAIN
 1. **Pathology Scan**: Identify Systemic Bias (e.g., [PROTOCOL_DISOBEDIENCE] or [STRUCTURAL_BLINDNESS]).
