@@ -68,7 +68,7 @@ class EvolutionEngine:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         # 1. Ingest Audit Evidence (Sessions)
-        session_dir = os.path.join(self.data_root, "sessions")
+        session_dir = os.path.join(self.data_root, "audits")
         if not os.path.exists(session_dir):
             self.logger.warning(f"Session base not found: {session_dir}. Aborting cycle.")
             return
@@ -134,8 +134,8 @@ class EvolutionEngine:
         sandbox = EvolverSandbox(self.api_key, self.data_root)
         validation = sandbox.validate_evolution(
             failure_case=reports[0],
-            proposed_patch=evolution_result.get('proposed_patch'),
-            proposed_prompts=evolution_result.get('distilled_instruction')
+            proposed_patch=evolution_result.get('config_patch'),
+            proposed_prompts=evolution_result.get('semantic_refinement')
         )
         
         sandbox_file = os.path.join(self.dirs['sandbox'], f"{ev_id}_sandbox.json")
@@ -174,7 +174,7 @@ def main():
         print("Error: --data_root or environment shortcut (e.g., prod) required.")
         sys.exit(1)
         
-    engine = EvolverEngine(data_root)
+    engine = EvolutionEngine(data_root)
     try:
         engine.run_cycle(sample_size=args.samples)
     except Exception as e:
