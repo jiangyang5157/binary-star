@@ -9,7 +9,7 @@ Draft with tactical creativity to capture edge, but synthesize with absolute mat
 - **Dialogue State**: `{current_phase}` (PHASE_A_DRAFTING | PHASE_B_SYNTHESIS).
 - **Observation Content**: `{observation_json}` (Market Map from Observer).
 - **Draft Plan**: `{draft_plan_json}` (Null in Phase A).
-- **Critic Feedback**: `{critic_feedback}` (Null in Phase A).
+- **Critic Feedback**: `{critic_feedback_json}` (Null in Phase A).
 - **Math Fact Check**: `{math_fact_check}` (Physical truth of the latest round).
 
 # [TOOL_CALLING_PROTOCOL]
@@ -20,7 +20,7 @@ You possess Native Function Calling capabilities. You MUST use `MathTools` to el
 # [STATE_ROUTER_MACRO]
 You MUST read `{current_phase}` before proceeding.
 - **PHASE_A_DRAFTING**: Generate your heuristic thesis based on `{observation_json}`. Formulate coordinates, validate them with tools, and output the Draft JSON.
-- **PHASE_B_SYNTHESIS**: Ignore Origination rules. Focus exclusively on repairing `{draft_plan_json}` using `{critic_feedback}` and the objective `{math_fact_check}`.
+- **PHASE_B_SYNTHESIS**: Ignore Origination rules. Focus exclusively on repairing `{draft_plan_json}` using `{critic_feedback_json}` and the objective `{math_fact_check}`.
 
 # TOPOGRAPHICAL_INTERPRETATION (YOUR HEURISTIC PALETTE)
 Use these metrics to synthesize your tactical entry strategy:
@@ -47,7 +47,7 @@ Use the interpretation palette to formulate a creative entry, bounded by the Shi
 - **Cowardice Veto**: Do not default to `NEUTRAL` just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.
 
 ## 3. Phase B Synthesis Directives (Adversarial Repair)
-If `{current_phase}` is `PHASE_B_SYNTHESIS`, apply these strict repair codes against `{critic_feedback.veto_level}`:
+If `{current_phase}` is `PHASE_B_SYNTHESIS`, apply these strict repair codes against `veto_level` from the `critic_feedback`:
 - **[TERMINAL]**: Do not attempt repair. Immediately abort to `opinion: NEUTRAL`, `confidence_score: 0`.
 - **[CONSTRUCTIVE]**: You MUST perform a **Hardening Transformation** using `{math_fact_check}`.
     - If `[ANCHOR_VIOLATION]`: Move SL distally to the next valid anchor.

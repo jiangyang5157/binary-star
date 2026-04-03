@@ -48,6 +48,10 @@ class BinaryStarOrchestrator:
         self.api_key = api_key
         self.data_root = resolve_data_root(data_root)
         
+        # 0. Global Configuration Merging (Injecting infrastructure into strategy)
+        self.global_config = load_config('config/global_config.yaml')
+        self.config.update(self.global_config)
+        
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
         session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
         setup_logger("src", log_file=session_log_path)
@@ -57,11 +61,11 @@ class BinaryStarOrchestrator:
         self.client = genai.Client(api_key=api_key)
         self.binance_client = BinanceFuturesClient()
         
-        # 2. Global Environment Constants
-        self.global_config = load_config('config/global_config.yaml')
-        gemini_net = self.global_config['network']['gemini']
+        # 2. Global Environment Constants (Resolved from Merged Config)
+        gemini_net = self.config['network']['gemini']
         self.api_timeout = int(gemini_net['api_timeout_seconds'])
         self.retry_count = int(gemini_net['retry_count'])
+        self.max_tool_iterations = int(gemini_net['max_tool_iterations'])
         
         retry_strategy = gemini_net['retry_strategy']
         self.retry_multiplier = float(retry_strategy['multiplier'])

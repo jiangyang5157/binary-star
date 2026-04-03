@@ -72,7 +72,7 @@ class CriticConfig(AgentConfig):
             model=str(bs['model']),
             role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
             model_temperature=float(critic['model_temperature']),
-            max_tool_iterations=int(shared['max_tool_iterations']),
+            max_tool_iterations=int(cfg_dict['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_node['min_trade_velocity']),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(session_node['stop_loss_buffer_max']),
