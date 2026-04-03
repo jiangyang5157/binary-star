@@ -47,8 +47,8 @@ class EvolverSandbox:
         if proposed_prompts:
             if 'session' in proposed_prompts:
                 orchestrator.session_agent.config.role_prompt_path = proposed_prompts['session_path']
-            if 'audit' in proposed_prompts:
-                orchestrator.audit.config.role_prompt_path = proposed_prompts['audit_path']
+            if 'critic' in proposed_prompts:
+                orchestrator.critic_agent.config.role_prompt_path = proposed_prompts['critic_path']
 
         # 4. Physical Playback
         # We feed the EXACT historical observation back into the machine

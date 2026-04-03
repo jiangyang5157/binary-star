@@ -7,7 +7,7 @@ from ruamel.yaml import YAML
 logger = logging.getLogger("EvolutionUtils")
 
 class ConfigPatcher:
-    """Handles deep YAML configuration merging with comment preservation (Round-Trip)."""
+    """Handles deep YAML configuration merging with comment preservation."""
     
     @staticmethod
     def apply_patch(target_path: str, patch_overlays: Dict[str, Any]) -> bool:
@@ -16,7 +16,6 @@ class ConfigPatcher:
             return False
 
         try:
-            # Initialize ruamel.yaml for Round-Trip editing
             yaml = YAML()
             yaml.preserve_quotes = True
             yaml.indent(mapping=2, sequence=4, offset=2)
@@ -26,13 +25,11 @@ class ConfigPatcher:
 
             modified = False
             
-            # Perform deep merge on the Round-Trip data structure
             for key, val in patch_overlays.items():
                 if key in config and isinstance(config[key], dict) and isinstance(val, dict):
                     config[key].update(val)
                     modified = True
                 else:
-                    # Top-level direct override/addition
                     config[key] = val
                     modified = True
 
@@ -43,7 +40,7 @@ class ConfigPatcher:
             return False
             
         except Exception as e:
-            logger.error(f"ConfigPatcher: Failed to apply patch with preservation to {target_path}: {e}")
+            logger.error(f"ConfigPatcher: Failed to apply patch to {target_path}: {e}")
             return False
 
 class PromptDistiller:
