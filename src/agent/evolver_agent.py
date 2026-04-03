@@ -188,6 +188,8 @@ class EvolverAgent(BaseAgent):
                 target_path = cfg.get('binary_star', {}).get('session', {}).get('role_definition_prompt', '')
             elif "critic" in target.lower():
                 target_path = cfg.get('binary_star', {}).get('audit', {}).get('role_definition_prompt', '')
+            elif "binary_star" in target.lower():
+                target_path = cfg.get('binary_star', {}).get('system_instruction', '')
                 
             if target_path:
                 full_target_path = os.path.join(resolve_project_root(), target_path)

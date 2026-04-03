@@ -17,6 +17,7 @@ def mock_paths(tmp_path):
     prompts_dir.mkdir(parents=True)
     session_file = prompts_dir / "session.md"
     critic_file = prompts_dir / "critic.md"
+    bs_file = prompts_dir / "binary_star.md"
 
     # Initial Config
     initial_config = {
@@ -24,7 +25,8 @@ def mock_paths(tmp_path):
         "trend_intensity_threshold": 0.7,
         "binary_star": {
             "session": {"role_definition_prompt": "src/agent/prompts/session.md"},
-            "audit": {"role_definition_prompt": "src/agent/prompts/critic.md"}
+            "critic": {"role_definition_prompt": "src/agent/prompts/critic.md"},
+            "system_instruction": "src/agent/prompts/binary_star.md"
         }
     }
     with open(config_file, 'w') as f:
@@ -37,10 +39,14 @@ def mock_paths(tmp_path):
     with open(critic_file, 'w') as f:
         f.write("# CRITIC_LOGIC\nVeto all trades with ATR > 2.")
 
+    with open(bs_file, 'w') as f:
+        f.write("# PROTOCOL\nBinary Star Protocol")
+
     return {
         "config_path": str(config_file),
         "session_path": str(session_file),
         "critic_path": str(critic_file),
+        "bs_path": str(bs_file),
         "project_root": str(tmp_path)
     }
 
@@ -89,6 +95,13 @@ def test_evolver_v6_patching_flow(mock_paths, monkeypatch):
                 "rationale": "Parametric alignment",
                 "anchor_text": "ATR > 2",
                 "replaced_with": "ATR > {volatility_extreme_ratio}"
+            },
+            {
+                "target_module": "binary_star",
+                "pathology_tag": "[ADVERSARIAL_DEADLOCK]",
+                "rationale": "Protocol tightening",
+                "anchor_text": "Binary Star Protocol",
+                "replaced_with": "Hardened Binary Star Protocol"
             }
         ],
         "sandbox_check_required": True
@@ -114,6 +127,11 @@ def test_evolver_v6_patching_flow(mock_paths, monkeypatch):
         updated_critic = f.read()
     assert "ATR > {volatility_extreme_ratio}" in updated_critic
     assert "ATR > 2" not in updated_critic
+
+    # 8. Verify Markdown Changes (Binary Star)
+    with open(mock_paths["bs_path"], 'r') as f:
+        updated_bs = f.read()
+    assert "Hardened Binary Star Protocol" in updated_bs
 
 if __name__ == "__main__":
     # If run directly, we might need a different setup or just rely on pytest

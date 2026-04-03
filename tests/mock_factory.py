@@ -141,7 +141,8 @@ class MockDataFactory:
                 "max_liquidation_events_to_fetch": 100,
                 "max_liquidation_events_for_context": 50,
                 "liquidation_cluster_atr_multiplier": 0.25,
-                "liquidation_cluster_fallback_percentage": 0.005
+                "liquidation_cluster_fallback_percentage": 0.005,
+                "default_structural_distance": 2.0
             },
             "regime_parameters": {
                 "trend_intensity_threshold": 0.3,
@@ -163,6 +164,9 @@ class MockDataFactory:
                 "squeeze_audit_threshold": 0.2,
                 "balanced_atr_multiplier": 1.5,
                 "cvd_slope_threshold": 0.1,
+                "cvd_intensity_threshold": 0.05,
+                "cvd_intensity_extreme": 0.15,
+                "funding_extreme_threshold": 0.01,
                 "structural_proximity_threshold": 1.0,
                 "breakout_buffer_atr": 0.2,
                 "breakout_frontrun_atr": 0.1,
@@ -170,6 +174,7 @@ class MockDataFactory:
                 "gravity_volume_override_ratio": 1.5,
                 "boundary_clipping_atr": 0.3,
                 "participation_volume_threshold": 2.0,
+                "linear_reg_slope_lookback": 24,
                 "anchor_drift_threshold": 1.0,
                 "poc_confluence_strength": 0.9,
                 "structural_buffer_atr": 0.05

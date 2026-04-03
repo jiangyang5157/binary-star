@@ -71,8 +71,8 @@ class BinaryStarOrchestrator:
         self.shared_model = self.bs_config['model']
         
         # 4. Contextual Prompt Assembly
-        instruction_path = self.bs_config.get('system_instruction', "")
-        self.shared_instruction = read_prompt_template(instruction_path)
+        self.bs_instruction_path = os.path.join(resolve_project_root(), self.bs_config.get('system_instruction', ''))
+        self.shared_instruction = read_prompt_template(self.bs_instruction_path)
         
         # 5. Type-Safe Configuration Slicing (Production Isolation)
         self.obs_config = MarketObserverConfig.from_dict(self.config)
@@ -305,6 +305,7 @@ class BinaryStarOrchestrator:
                     "version_control": {
                         "session_hash": get_file_hash(self.session_agent.config.role_prompt_path),
                         "critic_hash": get_file_hash(self.critic_agent.config.role_prompt_path),
+                        "binary_star_hash": get_file_hash(self.bs_instruction_path),
                         "config_hash": get_file_hash(config_path)
                     }
                 }
