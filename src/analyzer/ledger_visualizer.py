@@ -134,7 +134,7 @@ class LedgerVisualizer:
             outcome = data.get("market_outcome", {})
             if outcome.get("intercept_status", {}).get("is_intercepted"): continue
 
-            session = data.get("strategy_session", {})
+            session = data.get("session", {})
             fd = session.get("final_decision", {})
             if fd.get("opinion") not in ["BULLISH", "BEARISH"]: continue
 

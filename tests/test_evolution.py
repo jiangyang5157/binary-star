@@ -50,7 +50,7 @@ def mock_paths(tmp_path):
         "project_root": str(tmp_path)
     }
 
-def test_evolver_v6_patching_flow(mock_paths, monkeypatch):
+def test_evolver_patching_flow(mock_paths, monkeypatch):
     """Verifies that the new array-based schema is correctly applied to files."""
     
     # 1. Mock the project root to our temp directory
@@ -69,7 +69,7 @@ def test_evolver_v6_patching_flow(mock_paths, monkeypatch):
     
     agent = EvolverAgent(config, MagicMock(), 30, 3, 2.0, 1, 5)
 
-    # 3. Define Final V6 Mock Output
+    # 3. Define Final Mock Output
     mock_evolution_result = {
         "evolution_signature": "evolution_20260403",
         "evolution_type": "PATCH",

@@ -40,15 +40,15 @@ def main():
         sys.exit(1)
         
     # 3. Extract Strategy Session
-    # The original strategy content is mirrored exactly in 'strategy_session'
-    strategy_session = forensic_data.get("strategy_session")
-    if not strategy_session:
-        print(f"Error: 'strategy_session' block not found in the report.")
+    # The original strategy content is mirrored exactly in 'session'
+    session = forensic_data.get("session")
+    if not session:
+        print(f"Error: 'session' block not found in the report.")
         sys.exit(1)
         
     # 4. Generate Filename from Metadata
     # We reconstruct the filename using the same logic as the strategist
-    observation = strategy_session.get("observation", {})
+    observation = session.get("observation", {})
     symbol = observation.get("symbol")
     timestamp = observation.get("timestamp")
     
@@ -65,7 +65,7 @@ def main():
     output_path = os.path.join(output_dir, filename)
     
     # save_json handles directory creation and pretty-printing
-    if save_json(strategy_session, output_path):
+    if save_json(session, output_path):
         print(f"--- Export Successful ---")
         print(f"Source: {args.file}")
         print(f"Exported: {output_path}")

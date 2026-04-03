@@ -24,10 +24,13 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         # 1. Deduplication Gate: Skip if file already exists (unless forced)
         import json
         with open(file_path, 'r', encoding='utf-8') as f:
-            session_data = json.load(f)
+            forensic_data = json.load(f)
         
-        symbol = session_data.get("observation", {}).get("symbol", "UNKNOWN")
-        ts_compact = session_data.get("observation", {}).get("timestamp", "").replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+        # If it's a forensic bundle, extract the session. Otherwise, it is the raw session itself.
+        session = forensic_data.get("session")
+        
+        symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
+        ts_compact = session.get("observation", {}).get("timestamp", "").replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
         
         if not force and controller.is_already_audited(symbol, ts_compact):
             logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
@@ -45,7 +48,7 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         
         # Reconstruct structural bundle for notifier
         audit_result = {
-            "strategy_session": result["session"],
+            "session": result["session"],
             "market_outcome": result["outcome"],
             "audit_findings": result["report"],
             "metadata": result.get("metadata", {}),

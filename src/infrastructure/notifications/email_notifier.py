@@ -168,7 +168,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
         """
         Renders the final audit JSON into a rich HTML report.
         """
-        strat_session = audit_data.get("strategy_session") or {}
+        strat_session = audit_data.get("session") or {}
         obs = strat_session.get("observation") or {}
         decision = strat_session.get("final_decision") or {}
         outcome = audit_data.get("market_outcome") or {}
@@ -281,7 +281,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                                 📑 Audit Findings
                             </td>
                             <td align="right" style="vertical-align: middle;">
-                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Rounds: {len((audit_data.get("strategy_session") or {}).get("debate_history", []))}</span>
+                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Rounds: {len((audit_data.get("session") or {}).get("debate_history", []))}</span>
                             </td>
                         </tr>
                     </table>
@@ -617,15 +617,15 @@ class SessionNotifier:
         """
         Parses audit result and dispatches an audit report.
         """
+        # Collect Outcome data safely
+        outcome = (audit_data or {}).get("market_outcome") or {}
         html_body = AuditEmailTemplate.render(audit_data or {})
         
         # Collect Comparative Assets
-        strat_session = (audit_data or {}).get("strategy_session") or {}
+        strat_session = (audit_data or {}).get("session")  or {}
         t0_obs = strat_session.get("observation") or {}
         t0_assets = t0_obs.get("visual_assets") or {}
         
-        # v6.1 Structural alignment: visual_context is now within market_outcome
-        outcome = (audit_data or {}).get("market_outcome") or {}
         visual_ctx = outcome.get("visual_context") or {}
         
         # Attach all 4 snapshots (Macro/Micro T0 vs T1)
@@ -653,6 +653,7 @@ class SessionNotifier:
         intercept = (audit_data.get("market_outcome") or {}).get("intercept_status") or {}
         
         # [Cost Firewall] Skip notifications for intercepted reports to reduce noise.
+        # Fallback to False if intercept_status is missing (v6.11 robustness)
         if intercept.get("is_intercepted", False):
             logger.info(f"Notifier: Audit for {symbol} is intercepted ({intercept.get('reason')}). Skipping audit dispatch.")
             return False

@@ -234,7 +234,7 @@ class AuditController:
         filename_ts = audit_result.get("session_timestamp_compact") or audit_ts
         
         bundle = {
-            "strategy_session": session,
+            "session": session,
             "market_outcome": outcome,
             "audit_findings": report,
             "metadata": {

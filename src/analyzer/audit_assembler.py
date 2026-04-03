@@ -132,13 +132,18 @@ class AuditAssembler:
             theoretical_mae = max(0, target_entry - min_price) if opinion == 'BULLISH' else max(0, max_price - target_entry)
             theoretical_mfe = max(0, max_price - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_price)
 
-            unfilled_proximity_atr_limit = float(self.config['audit_review']['unfilled_proximity_atr_limit'])
+            unfilled_proximity_atr_limit = float(self.config.audit_review['unfilled_proximity_atr_limit'])
             result["execution_forensics"] = {
                 "entry_drift_atr": entry_drift_atr,
                 "theoretical_mae_atr": round(theoretical_mae / max_atr, 4) if max_atr > 0 else 0,
                 "theoretical_mfe_atr": round(theoretical_mfe / max_atr, 4) if max_atr > 0 else 0,
                 "is_near_miss": 0 < entry_drift_atr < unfilled_proximity_atr_limit
             }
+
+            # v6.11 Schema Unification (Notification Alignment)
+            result["total_price_change_pct"] = market_forensics["price_move_pct"]
+            result["max_favorable_runup_pct"] = round((theoretical_mfe / entry_price) * 100, 2) if entry_price > 0 else 0
+            result["max_adverse_drawdown_pct"] = round((theoretical_mae / entry_price) * 100, 2) if entry_price > 0 else 0
 
             if tp > 0 and sl > 0:
                 entry_hit = False
@@ -181,6 +186,10 @@ class AuditAssembler:
                     
                     result["is_filled"] = True
                     result["tp_sl_result"] = hit_result
+                    
+                    # Update unified schema for filled orders
+                    result["max_favorable_runup_pct"] = round((mfe / entry_price) * 100, 2) if entry_price > 0 else 0
+                    result["max_adverse_drawdown_pct"] = round((mae / entry_price) * 100, 2) if entry_price > 0 else 0
                     result["trade_execution_metrics"] = {
                         "duration_candles": hit_index,
                         "actual_hours": round(actual_hours, 2),
@@ -189,7 +198,9 @@ class AuditAssembler:
                         "mfe_efficiency_pct": round(mfe_eff, 1),
                         "time_efficiency_multiplier": round(actual_hours / est_hours, 2) if est_hours > 0 else 0,
                         "highest_reached_price": max_after,
-                        "lowest_reached_price": min_after
+                        "lowest_reached_price": min_after,
+                        "mfe_efficiency": round(mfe_eff, 1), # Notification compatibility
+                        "mae_stress_level": mae_stress.get("mae_stress_level_pct", 0) # Notification compatibility
                     }
         
         return result
@@ -221,7 +232,7 @@ class AuditAssembler:
         # the market didn't move past the Opportunity Cost limit defined in config.
         market_context = actual_outcome.get("market_context", {})
         missed_range = market_context.get("missed_relative_range", 0)
-        missed_opportunity_atr_threshold = float(self.config['audit_review']['missed_opportunity_atr_threshold'])
+        missed_opportunity_atr_threshold = float(self.config.audit_review['missed_opportunity_atr_threshold'])
         is_justified_surrender = True
         
         if opinion == "NEUTRAL":
@@ -236,6 +247,6 @@ class AuditAssembler:
             "audit_status": {
                 "is_justified_surrender": is_justified_surrender,
                 "mae_stress_tier": actual_outcome.get("trade_execution_metrics", {}).get("mae_stress_tier", "N/A"),
-                "is_catastrophic_miss": market_context.get("is_catastrophic_miss", False)
+                "is_catastrophic_miss": actual_outcome.get("market_forensics", {}).get("is_catastrophic_miss", False)
             }
         }
