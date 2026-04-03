@@ -78,7 +78,8 @@ class MockDataFactory:
                         "multiplier": 1,
                         "min_seconds": 2,
                         "max_seconds": 10
-                    }
+                    },
+                    "max_tool_iterations": 5
                 }
             },
             "system": {
@@ -92,8 +93,7 @@ class MockDataFactory:
                 "cache_expiration_minutes": 10,
                 "system_instruction": "config/strategy_config.yaml",
                 "session": {
-                    "model_temperature_draft": 0.7,
-                    "model_temperature_synthesis": 0.3,
+                    "model_temperature": 0.7,
                     "role_definition_prompt": "prompts/session.md",
                     "min_trade_velocity": 0.5,
                     "stop_loss_buffer_min": 0.1,

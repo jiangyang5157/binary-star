@@ -1,11 +1,10 @@
 import os
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List
 
 from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
-from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.datetime_utils import get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
@@ -21,16 +20,12 @@ class SessionConfig(AgentConfig):
     defined in the global regime parameters.
     
     Attributes:
-        model_temperature_draft: Temperature for the initial thesis generation.
-        model_temperature_synthesis: Lower temperature for final defensive hardening.
         min_trade_velocity: Minimum price speed (ATR/candle) required for entry.
         stop_loss_buffer_min: Minimum ATR distance for SL placement.
         strategy_intent: High-level tactical directive string.
         poc_gravity_atr_distance: Maximum distance from POC for gravity-based entry.
         vacuum_risk_score: Threshold for detecting liquidity gaps/vacuums.
     """
-    model_temperature_draft: float
-    model_temperature_synthesis: float
     min_trade_velocity: float
     stop_loss_buffer_min: float
     stop_loss_buffer_max: float
@@ -84,15 +79,12 @@ class SessionConfig(AgentConfig):
         strat = bs['session']
         regime = cfg['regime_parameters']
         sampling = cfg['analysis_window']
-        shared = cfg.get('agent_model_shared_config', {})
         
         return cls(
             model=str(bs['model']),
-            model_temperature=float(strat['model_temperature_draft']),
+            model_temperature=float(strat['model_temperature']),
             role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
-            model_temperature_draft=float(strat['model_temperature_draft']),
-            model_temperature_synthesis=float(strat['model_temperature_synthesis']),
             min_trade_velocity=float(strat['min_trade_velocity']),
             stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
             stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
@@ -137,9 +129,9 @@ class SessionAgent(BaseAgent):
     """The Session Analyst & Decision Engine.
     
     Responsible for transforming topographical telemetry into tactical trade blueprints.
-    Operates in two primary phases:
-    1. Drafting: Initial directional hypothesis and parameterization.
-    2. Synthesis: Hardening the draft plan against Critic adversarial feedback.
+    Operates in an iterative cycle managed by the Orchestrator:
+    1. Planning: Generates/Refines directional hypotheses and parameterization.
+    2. Synthesis: Hardens the plan against Critic adversarial feedback in the final round.
     """
     
     def __init__(
@@ -164,80 +156,47 @@ class SessionAgent(BaseAgent):
             retry_max=retry_max
         )
 
-    def draft(self, observation: Optional[Dict[str, Any]], symbol: str, cache_id: Optional[str] = None, tools: Optional[List[Any]] = None, critic_feedback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """
-        [PHASE_A_DRAFTING]: Generates the initial heuristic thesis.
-        
-        This phase uses higher temperature to allow for tactical creativity.
-        If critic_feedback is provided, it acts as a 'Redraft' attempt to 
-        bypass earlier vetoes (e.g., relocating entry points).
-        """
-        logger.info(f"SessionAgent: Drafting strategic thesis for {symbol}...")
-        try:
-            prompt = self._build_prompt(
-                observation, 
-                critic_feedback=critic_feedback, 
-                cache_id=cache_id,
-                current_phase="PHASE_A_DRAFTING"
-            )
-            
-            return self._execute_ai_cycle(
-                payload=prompt, 
-                temperature=self.config.model_temperature_draft,
-                agent_name="Session_Draft",
-                cached_content=cache_id,
-                tools=tools
-            )
-        except Exception as e:
-            logger.error(f"Session: Critical failure during drafting for {symbol}: {e}")
-            raise
-
-    def synthesize(
-        self, 
-        draft_plan: Dict[str, Any], 
-        critic_results: Dict[str, Any], 
-        cache_id: Optional[str] = None,
+    def execute_session_cycle(
+        self,
+        observation: Optional[Dict[str, Any]],
+        symbol: str,
+        temperature: float,
+        agent_name: str,
+        last_plan: Optional[Dict[str, Any]] = None,
+        critic_feedback: Optional[Dict[str, Any]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
-        observation: Optional[Dict[str, Any]] = None,
+        cache_id: Optional[str] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """
-        [PHASE_B_SYNTHESIS]: Performs final defensive hardening.
-        
-        This phase uses lower temperature and strict protocol-following 
-        to reconcile the draft with adversarial feedback and physical truth. 
-        Supports 'Polarity Pivot' (flipping direction) and 'Terminal Abort'.
-        """
-        logger.info("SessionAgent: Synthesizing final survival-rated plan...")
+        """Core execution logic for a session reasoning step."""
+        logger.info(f"SessionAgent: {agent_name} for {symbol}...")
         try:
             prompt = self._build_prompt(
-                observation, 
-                draft_plan=draft_plan, 
-                critic_feedback=critic_results, 
-                math_fact_check=math_fact_check, 
-                cache_id=cache_id,
-                current_phase="PHASE_B_SYNTHESIS"
+                observation=observation, 
+                last_plan=last_plan,
+                critic_feedback=critic_feedback, 
+                math_fact_check=math_fact_check,
+                cache_id=cache_id
             )
             
             return self._execute_ai_cycle(
                 payload=prompt, 
-                temperature=self.config.model_temperature_synthesis,
-                agent_name="Session_Synthesis",
+                temperature=temperature,
+                agent_name=agent_name,
                 cached_content=cache_id,
                 tools=tools
             )
         except Exception as e:
-            logger.error(f"Session: Critical failure during synthesis: {e}")
+            logger.error(f"Session: failure during {agent_name} for {symbol}: {e}")
             raise
 
     def _build_prompt(
         self, 
         observation: Optional[Dict[str, Any]], 
-        draft_plan: Optional[Dict[str, Any]] = None,
+        last_plan: Optional[Dict[str, Any]] = None,
         critic_feedback: Optional[Dict[str, Any]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None,
-        current_phase: str = "PHASE_A_DRAFTING"
     ) -> str:
         """Internal logic for constructing the multimodal reasoning context.
         
@@ -253,10 +212,9 @@ class SessionAgent(BaseAgent):
 
         context = {
             "observation_json": observation_json,
-            "current_phase": current_phase,
-            "draft_plan_json": json.dumps(draft_plan, indent=2, ensure_ascii=False) if draft_plan else "{}",
-            "critic_feedback_json": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "{}",
-            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
+            "last_plan_json": json.dumps(last_plan, indent=2, ensure_ascii=False) if last_plan else "null",
+            "critic_feedback_json": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "null",
+            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "null",
             "min_trade_velocity": self.config.min_trade_velocity,
             "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,

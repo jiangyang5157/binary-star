@@ -39,8 +39,13 @@ class TestBinaryStarFlow(unittest.TestCase):
         """Tests that the orchestrator converges when skepticism score drops."""
         orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root=resolve_data_root("test"))
         
-        # 1. Mock SessionAgent: Returns consistent draft
-        orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "BULLISH", "limit_order": {"entry": 60000}})
+        # 1. Mock SessionAgent: Handles all phases through execute_session_cycle
+        orchestrator.session_agent.execute_session_cycle = MagicMock()
+        orchestrator.session_agent.execute_session_cycle.side_effect = [
+            {"opinion": "BULLISH", "limit_order": {"entry": 60000}}, # Round 1 Draft
+            {"opinion": "BULLISH", "limit_order": {"entry": 60050}}, # Round 2 Draft
+            {"opinion": "BULLISH", "final_score": 90}                # Final Synthesis
+        ]
         
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
         orchestrator.critic_agent.evaluate = MagicMock()
@@ -48,9 +53,6 @@ class TestBinaryStarFlow(unittest.TestCase):
             {"skepticism_score": 80, "objections": ["Too risky"]},
             {"skepticism_score": 10, "objections": []} # Should trigger early stopping (10 < 20)
         ]
-        
-        # 3. Mock Synthesis
-        orchestrator.session_agent.synthesize = MagicMock(return_value={"opinion": "BULLISH", "final_score": 90})
 
         # Set the threshold manually for the test
         orchestrator.stop_threshold = 20
@@ -69,10 +71,9 @@ class TestBinaryStarFlow(unittest.TestCase):
         orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root=resolve_data_root("test"))
         orchestrator.stop_threshold = 20
         
-        orchestrator.session_agent.draft = MagicMock(return_value={"opinion": "NEUTRAL"})
+        orchestrator.session_agent.execute_session_cycle = MagicMock(return_value={"opinion": "NEUTRAL"})
         # Never converges
         orchestrator.critic_agent.evaluate = MagicMock(return_value={"skepticism_score": 100})
-        orchestrator.session_agent.synthesize = MagicMock(return_value={"opinion": "NEUTRAL"})
         
         result = orchestrator.execute_flow(self.mock_obs, "BTCUSDT")
         

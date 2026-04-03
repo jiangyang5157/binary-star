@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, List
 from google import genai
 from google.genai import types
 
@@ -30,7 +30,7 @@ class BinaryStarOrchestrator:
     Key Innovations:
     1. Truth Bus (Shared Cache): Multimodal market topography is cached once and
        shared across the reasoning triad to eliminate context drift and cost.
-    2. Physical Verification: AI drafts are cross-referenced against Python-native
+    2. Physical Verification: AI proposals are cross-referenced against Python-native
        math fact-checks to prevent hallucination in trade geometry.
     3. Adversarial Hardening: Iterative debate rounds ensure the final trade
        blueprint is logically sound and structurally shielded.
@@ -50,7 +50,6 @@ class BinaryStarOrchestrator:
         
         # 0. Global Configuration Merging (Physical Split maintained for Snapshot Purity)
         self.global_config = load_config('config/global_config.yaml')
-        # self.config.update(self.global_config)  # [DECOUPLED] Removed to keep strategy snapshot pure
         
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
         session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
@@ -133,10 +132,10 @@ class BinaryStarOrchestrator:
         
         This cycle involves:
         1. Context Caching: Initializing the multimodal Truth Bus.
-        2. Drafting: The Session Agent proposes a thesis after reading the topography.
-        3. Audit: The Critic Agent performs an adversarial audit of the draft.
+        2. Planning: The Session Agent proposes a thesis plan after reading topography.
+        3. Audit: The Critic Agent performs an adversarial audit of the plan.
         4. Hardening: Loops through debate rounds until convergence or max_rounds.
-        5. Synthesis: Final decision delivery.
+        5. Finalization: Synthesis of the final decision under high mathematical discipline.
         
         Args:
             observation: Market topographical telemetry (Metrics + Visuals).
@@ -252,25 +251,32 @@ class BinaryStarOrchestrator:
             # 2. Adversarial Debate Loop
             current_round = 1
             critic_results = None
-            last_draft = None
+            last_plan = None
             debate_history = []
             math_fact_check = None
 
             while current_round <= self.max_rounds:
-                # Drafting / Re-Drafting
+                # Planning / Refinement
                 logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis...")
-                last_draft = self.session_agent.draft(
-                    observation, symbol, cache_id=cache_resource_name, tools=tools, 
-                    critic_feedback=critic_results
+                last_plan = self.session_agent.execute_session_cycle(
+                    observation=observation, 
+                    symbol=symbol,
+                    temperature=self.session_config.model_temperature,
+                    agent_name="Session_Planning",
+                    cache_id=cache_resource_name, 
+                    tools=tools, 
+                    critic_feedback=critic_results,
+                    last_plan=last_plan,
+                    math_fact_check=math_fact_check
                 )
                 
                 # Adversarial Audit (Math Fact Check Injection)
                 logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
-                math_fact_check = self._assemble_math_fact_check(last_draft, observation)
+                math_fact_check = self._assemble_math_fact_check(last_plan, observation)
                 
                 critic_results = self.critic_agent.evaluate(
                     observation=observation, 
-                    draft_plan=last_draft, 
+                    last_plan=last_plan, 
                     symbol=symbol,
                     cache_id=cache_resource_name,
                     math_fact_check=math_fact_check,
@@ -283,7 +289,7 @@ class BinaryStarOrchestrator:
                 
                 debate_history.append({
                     "round": current_round,
-                    "draft": last_draft,
+                    "plan": last_plan,
                     "critic": critic_results,
                     "math_fact_check": math_fact_check
                 })
@@ -294,15 +300,22 @@ class BinaryStarOrchestrator:
                     
                 current_round += 1
                 
-            # 3. Decision Synthesis (Final consensus hardened by Math Truth)
+            # 3. Decision Finalization (Convergent Synthesis)
+            # STRATEGIC ALPHA: We hijack the Auditor's cold temperature (0.3) for 
+            # the final synthesis. This forces the Session Agent to shift from 
+            # 'Creative Planning' (0.7) to 'Disciplined Execution' (0.3), ensuring 
+            # that the final technical parameters are deterministic and rigorous.
             logger.info("BinaryStar: Finalizing consensus decision...")
-            final_decision = self.session_agent.synthesize(
-                draft_plan=last_draft, 
-                critic_results=critic_results, 
-                cache_id=cache_resource_name, 
-                math_fact_check=math_fact_check,
+            final_decision = self.session_agent.execute_session_cycle(
                 observation=observation, 
-                tools=tools
+                symbol=symbol,
+                temperature=self.critic_config.model_temperature,
+                agent_name="Session_Synthesis",
+                cache_id=cache_resource_name, 
+                tools=tools, 
+                critic_feedback=critic_results,
+                last_plan=last_plan,
+                math_fact_check=math_fact_check
             )
             
             # 4. Forensic Packaging
@@ -334,29 +347,29 @@ class BinaryStarOrchestrator:
             except Exception as e:
                 logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
 
-    def _assemble_math_fact_check(self, draft: Dict[str, Any], observation: Dict[str, Any]) -> Dict[str, Any]:
-        """Calculates deterministic mathematical truth for an AI draft.
+    def _assemble_math_fact_check(self, plan: Dict[str, Any], observation: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculates deterministic mathematical truth for an AI proposal.
         
         This logic offloads complex trade geometry (RR, ATR, Isolation) to Python code, 
         ensuring the audit loop is anchored by physical market reality.
         
         Args:
-            draft: The current tactical proposal from the Session Analyst.
+            plan: The current tactical proposal from the Session Analyst.
             observation: Baseline topographical telemetry.
             
         Returns:
             A compliance dictionary containing verified metrics and a truth verdict.
         """
         try:
-            # Handle draft error or neutral stance
-            if draft.get("error"):
-                return {"status": "ERROR", "reason": "Draft execution failed."}
+            # Handle plan error or neutral stance
+            if plan.get("error"):
+                return {"status": "ERROR", "reason": "Proposal execution failed."}
 
-            opinion = draft.get("opinion", "NEUTRAL")
+            opinion = plan.get("opinion", "NEUTRAL")
             if opinion == "NEUTRAL":
                 return {"status": "SKIPPED", "reason": "Neutral proposal requires no math audit."}
 
-            tactical = draft.get('tactical_parameters', {})
+            tactical = plan.get('tactical_parameters', {})
             entry = float(tactical.get('entry', 0) or 0)
             sl = float(tactical.get('stop_loss', 0) or 0)
             tp = float(tactical.get('take_profit', 0) or 0)

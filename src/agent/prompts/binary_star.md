@@ -21,7 +21,7 @@ All data contained herein is the Absolute Physical Truth. Agents MUST NOT halluc
     - `volume_breakout_ratio`: Scalar ratio [0, n]. `1.0` = Baseline; `> 1.0` = Volume Expansion.
 
 ## 3. STATE MACHINE PROTOCOL (BINARY STAR)
-The current dialogue state is tracked via `current_debate_round` / `{max_rounds}`.
-- **[Drafting]**: Session originates the execution blueprint.
-- **[Auditing]**: Critic evaluates STRICTLY against its internal `CRITIC_CODES`.
-- **[Resolving]**: If Critic issues a `CONSTRUCTIVE` veto, Session MUST apply the `suggested_mitigations`. If rounds exhaust without consensus, the system automatically defaults to `NEUTRAL`.
+The logic unfolds in a deterministic sequence:
+- **[Planning]**: Session originates or refines the action blueprint.
+- **[Auditing]**: Critic evaluates STRICTLY against its internal `CRITIC_CODES` to identify logical or physical leaks.
+- **[Synthesis]**: The final convergent decision. Session MUST synthesize all preceding debate history and math fact-checks into a cold, deterministic verdict.

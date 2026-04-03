@@ -1,11 +1,10 @@
 import os
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Union
+from typing import Dict, Any, List, Optional
 
 from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
-from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
@@ -65,7 +64,6 @@ class CriticConfig(AgentConfig):
         critic = bs['critic']
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
-        shared = cfg_dict.get('agent_model_shared_config', {})
         sampling = cfg_dict['analysis_window']
         
         return cls(
@@ -142,7 +140,7 @@ class CriticAgent(BaseAgent):
     def evaluate(
         self, 
         observation: Optional[Dict[str, Any]], 
-        draft_plan: Dict[str, Any], 
+        last_plan: Dict[str, Any], 
         symbol: str, 
         cache_id: Optional[str] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
@@ -151,13 +149,13 @@ class CriticAgent(BaseAgent):
         """
         [ADVERSARIAL_AUDIT]: Performs a comprehensive risk assessment.
         
-        Evaluates the proposed draft against physical market topography 
+        Evaluates the proposed plan against physical market topography 
         and the mandatory CRITIC_CODES table. This is a cold, 
         deterministic audit designed to identify structural traps.
         """
-        logger.info(f"CriticAgent: Auditing {symbol} draft for hidden risks...")
+        logger.info(f"CriticAgent: Auditing {symbol} proposal for hidden risks...")
         try:
-            context = self._build_context(observation, draft_plan, math_fact_check=math_fact_check, cache_id=cache_id)
+            context = self._build_context(observation, last_plan, math_fact_check=math_fact_check, cache_id=cache_id)
             prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
             
             return self._execute_ai_cycle(
@@ -174,7 +172,7 @@ class CriticAgent(BaseAgent):
     def _build_context(
         self, 
         observation: Optional[Dict[str, Any]], 
-        draft_plan: Dict[str, Any], 
+        last_plan: Dict[str, Any], 
         math_fact_check: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -189,7 +187,7 @@ class CriticAgent(BaseAgent):
         return {
             "observation_json": observation_json,
             "strategy_intent": self.config.strategy_intent,
-            "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
+            "last_plan": json.dumps(last_plan, indent=2, ensure_ascii=False),
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
             "min_trade_velocity": self.config.min_trade_velocity,
             "macro_interval": self.config.macro_interval,
