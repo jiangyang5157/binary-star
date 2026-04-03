@@ -67,22 +67,22 @@ class EvolutionEngine:
         self.logger.info("="*60)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # 1. Ingest Audit Evidence (Sessions)
-        session_dir = os.path.join(self.data_root, "audits")
-        if not os.path.exists(session_dir):
-            self.logger.warning(f"Session base not found: {session_dir}. Aborting cycle.")
+        # 1. Ingest Audit Evidence
+        audit_dir = os.path.join(self.data_root, "audits")
+        if not os.path.exists(audit_dir):
+            self.logger.warning(f"Audit dir not found: {audit_dir}. Aborting cycle.")
             return
 
-        files = sorted([f for f in os.listdir(session_dir) if f.endswith(".json")], reverse=True)
+        files = sorted([f for f in os.listdir(audit_dir) if f.endswith(".json")], reverse=True)
         if not files:
-            self.logger.warning("No audit evidence (sessions) found. No evolutionary pressure detected.")
+            self.logger.warning("No audit reports found. No evolutionary pressure detected.")
             return
 
-        self.logger.info(f"Ingestion: Found {len(files)} sessions. Selecting top {min(len(files), sample_size)} for neural analysis.")
+        self.logger.info(f"Ingestion: Found {len(files)} audit reports. Selecting top {min(len(files), sample_size)} for neural analysis.")
         reports = []
         for f in files[:sample_size]:
             self.logger.info(f"Ingestion: [INGEST] -> {f}")
-            report = load_json(os.path.join(session_dir, f))
+            report = load_json(os.path.join(audit_dir, f))
             if report: reports.append(report)
 
         # 2. Neural Meta-Optimization
