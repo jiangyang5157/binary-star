@@ -147,10 +147,11 @@ class AuditController:
             client = self.binance_client
             klines = []
             try:
-                # We fetch 1h klines to determine the MAE/MFE outcome
+                # v6.10: Replaced legacy execution_timeframe_interval with forensic_resolution
+                forensic_resolution = self.config['audit_review']['forensic_resolution']
                 klines = client.fetch_historical_klines(
                     symbol=symbol,
-                    interval="1h",
+                    interval=forensic_resolution,
                     limit=1000,
                     startTime=int(t0_dt.timestamp() * 1000),
                     endTime=int(t1_dt.timestamp() * 1000)
@@ -159,20 +160,31 @@ class AuditController:
                 self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only audit.")
 
             # 6. Assemble Forensic Outcome
-            metrics = obs.get("quantitative_metrics", {})
-            dynamics = metrics.get("price_dynamics", {})
-            atr_proto = dynamics.get("atr_macro", 0)
+            from src.utils.datetime_utils import get_interval_seconds
             
-            # Fetch current ATR for peak-volatility normalization (T1)
-            atr_t1 = t1_observation.get("quantitative_metrics", {}).get("price_dynamics", {}).get("atr_macro", atr_proto)
+            metrics_t0 = obs.get("quantitative_metrics", {})
+            dynamics_t0 = metrics_t0.get("price_dynamics", {})
+            sentiment_t0 = metrics_t0.get("sentiment_signals", {})
+            atr_proto = dynamics_t0.get("atr_macro", 0)
+            long_short_ratio_proto = sentiment_t0.get("ls_ratio_macro", 0)
+            
+            # Fetch T1 Environment Metrics
+            metrics_t1 = t1_observation.get("quantitative_metrics", {})
+            atr_t1 = metrics_t1.get("price_dynamics", {}).get("atr_macro", atr_proto)
+            long_short_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", long_short_ratio_proto)
+            
+            # Dynamic interval calculation (Ensures accuracy for non-1h timeframes)
+            interval_macro_hours = get_interval_seconds(self.config['analysis_window']['macro_context']['time_interval']) / 3600.0
             
             outcome = self.assembler.calculate_outcome(
                 klines=klines,
-                entry_price=dynamics.get("current_price", 0),
+                entry_price=dynamics_t0.get("current_price", 0),
                 strategy=session,
                 atr_macro_t0=float(atr_proto),
                 atr_macro_t1=float(atr_t1),
-                interval_hours=1.0
+                long_short_ratio_macro_t0=float(long_short_ratio_proto),
+                long_short_ratio_macro_t1=float(long_short_ratio_t1),
+                interval_hours=interval_macro_hours
             )
             
             # Inject T1 visual paths into the outcome for notification engine

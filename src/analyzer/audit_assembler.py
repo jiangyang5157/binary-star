@@ -54,10 +54,12 @@ class AuditAssembler:
         self, 
         klines: List[List[Any]], 
         entry_price: float, 
-        strategy: Dict[str, Any], 
-        atr_macro_t0: float = 0, 
-        atr_macro_t1: float = 0, 
-        interval_hours: float = 0
+        strategy: Dict[str, Any],
+        atr_macro_t0: float, 
+        atr_macro_t1: float, 
+        long_short_ratio_macro_t0: float,
+        long_short_ratio_macro_t1: float,
+        interval_hours: float
     ) -> Dict[str, Any]:
         """Analyzes klines to determine the actual market outcome vs strategy hypothesis.
 
@@ -80,48 +82,64 @@ class AuditAssembler:
         lows = [float(k[3]) for k in klines]
         closes = [float(k[4]) for k in klines]
         
+        # v6.5 Optimization: Core Physical Snapshots
         max_price = max(highs)
         min_price = min(lows)
         final_close = closes[-1]
-        
-        # v6.0 Optimization: Use max ATR between T0 and T1 as the physical normalization baseline
         max_atr = max(atr_macro_t0, atr_macro_t1)
         
-        # 1. Market Context / Forensic Opportunity Cost
-        missed_range = max_price - min_price
-        opportunity_cost_analysis = MathTools.calculate_opportunity_cost(missed_range, max_atr)
-        
-        market_context = {
-            "highest_reached_at_t1": max_price,
-            "lowest_reached_at_t1": min_price,
-            "total_move_pct": round(((final_close - entry_price) / entry_price) * 100, 2),
-            "missed_relative_range": opportunity_cost_analysis.get("missed_relative_range", 0),
-            "audit_duration_candles": len(klines),
-            "max_atr_used": round(max_atr, 2),
-            "is_catastrophic_miss": opportunity_cost_analysis.get("is_catastrophic_miss", False)
+        market_forensics = {
+            "window_high_price": max_price,
+            "window_low_price": min_price,
+            "window_volatility_intensity_atr": round((max_price - min_price) / max_atr, 4) if max_atr > 0 else 0,
+            "price_move_pct": round(((final_close - entry_price) / entry_price) * 100, 2)
         }
 
-        # 2. Result Payload
+        # v6.5: Regime Drift Analysis
+        regime_forensics = {
+            "volatility_drift_pct": round(((atr_macro_t1 - atr_macro_t0) / atr_macro_t0 * 100), 2) if atr_macro_t0 > 0 else 0,
+            "sentiment_drift": round(long_short_ratio_macro_t1 - long_short_ratio_macro_t0, 4)
+        }
+
+        # 2. Result Payload Base
         result = {
             "tp_sl_result": "NEITHER",
             "is_filled": False,
-            "entry_price_requested": entry_price,
-            "highest_reached_price": None,
-            "lowest_reached_price": None,
+            "planned_entry_price": entry_price,
             "exit_price_at_t1": final_close,
-            "market_context": market_context,
-            "trade_execution_metrics": {}
+            "market_forensics": market_forensics,
+            "regime_forensics": regime_forensics,
+            "execution_forensics": {},
+            "trade_execution_metrics": {
+                "duration_candles": len(klines),
+                "actual_hours": round(len(klines) * interval_hours, 2)
+            }
         }
         
         final_decision = strategy.get('final_decision', {})
-        decision_opinion = (final_decision.get('opinion', '') or strategy.get('opinion', '')).upper()
+        opinion = final_decision.get('opinion', 'NEUTRAL').upper()
         
-        if decision_opinion in ('BULLISH', 'BEARISH'):
-            tactical = final_decision.get('tactical_parameters') or strategy.get('limit_order') or {}
-            target_entry = float(tactical.get('entry', entry_price) or entry_price)
-            tp = float(tactical.get('take_profit', 0) or 0)
-            sl = float(tactical.get('stop_loss', 0) or 0)
+        if opinion in ('BULLISH', 'BEARISH'):
+            tactical = final_decision.get('tactical_parameters', {})
+            target_entry = float(tactical.get('entry', entry_price))
+            tp = float(tactical.get('take_profit', 0))
+            sl = float(tactical.get('stop_loss', 0))
             
+            # Theoretical Drift Calculation (Physics vs Intent)
+            entry_drift = (min_price - target_entry) if opinion == 'BULLISH' else (target_entry - max_price)
+            entry_drift_atr = round(entry_drift / max_atr, 4) if max_atr > 0 else 0
+            
+            theoretical_mae = max(0, target_entry - min_price) if opinion == 'BULLISH' else max(0, max_price - target_entry)
+            theoretical_mfe = max(0, max_price - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_price)
+
+            unfilled_proximity_atr_limit = float(self.config['audit_review']['unfilled_proximity_atr_limit'])
+            result["execution_forensics"] = {
+                "entry_drift_atr": entry_drift_atr,
+                "theoretical_mae_atr": round(theoretical_mae / max_atr, 4) if max_atr > 0 else 0,
+                "theoretical_mfe_atr": round(theoretical_mfe / max_atr, 4) if max_atr > 0 else 0,
+                "is_near_miss": 0 < entry_drift_atr < unfilled_proximity_atr_limit
+            }
+
             if tp > 0 and sl > 0:
                 entry_hit = False
                 hit_result = "NEITHER"
@@ -131,15 +149,15 @@ class AuditAssembler:
                 for i, k in enumerate(klines):
                     high, low = float(k[2]), float(k[3])
                     if not entry_hit:
-                        if (decision_opinion == 'BULLISH' and low <= target_entry) or \
-                           (decision_opinion == 'BEARISH' and high >= target_entry):
+                        if (opinion == 'BULLISH' and low <= target_entry) or \
+                           (opinion == 'BEARISH' and high >= target_entry):
                             entry_hit = True
                             max_after, min_after = high, low
                     
                     if entry_hit:
                         max_after, min_after = max(max_after, high), min(min_after, low)
                         if hit_result == "NEITHER":
-                            if decision_opinion == 'BULLISH':
+                            if opinion == 'BULLISH':
                                 if low <= sl: hit_result = "SL_HIT"; hit_index = i + 1
                                 elif high >= tp: hit_result = "TP_HIT"; hit_index = i + 1
                             else: # BEARISH
@@ -148,33 +166,30 @@ class AuditAssembler:
                 
                 if entry_hit:
                     tp_dist = abs(tp - target_entry)
-                    mae = max(0, target_entry - min_after) if decision_opinion == 'BULLISH' else max(0, max_after - target_entry)
-                    mfe = max(0, max_after - target_entry) if decision_opinion == 'BULLISH' else max(0, target_entry - min_after)
+                    mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
+                    mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
                     
                     mae_stress = MathTools.calculate_mae_stress(mae, max_atr)
                     mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
                     
-                    est_hours = float(tactical.get('holding_time_hours', 1.0) or 1.0)
+                    # Explicitly extract estimated hours without fallback to avoid logic pollution
+                    est_hours = float(tactical.get('holding_time_hours', 0) or 0)
+                    if est_hours == 0:
+                        self.logger.warning("Forensics: 'holding_time_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
+                    
                     actual_hours = hit_index * interval_hours
-                    time_mult = round(actual_hours / est_hours, 2) if est_hours > 0 else 0
                     
                     result["is_filled"] = True
                     result["tp_sl_result"] = hit_result
-                    result["highest_reached_price"] = max_after
-                    result["lowest_reached_price"] = min_after
                     result["trade_execution_metrics"] = {
                         "duration_candles": hit_index,
                         "actual_hours": round(actual_hours, 2),
                         "mae_stress_level_pct": mae_stress.get("mae_stress_level_pct", 0),
                         "mae_stress_tier": mae_stress.get("stress_tier", "UNKNOWN"),
                         "mfe_efficiency_pct": round(mfe_eff, 1),
-                        "time_efficiency_multiplier": time_mult
-                    }
-                else:
-                    result["tp_sl_result"] = "NEITHER"
-                    result["trade_execution_metrics"] = {
-                        "duration_candles": len(klines),
-                        "actual_hours": round(len(klines) * interval_hours, 2)
+                        "time_efficiency_multiplier": round(actual_hours / est_hours, 2) if est_hours > 0 else 0,
+                        "highest_reached_price": max_after,
+                        "lowest_reached_price": min_after
                     }
         
         return result
@@ -206,11 +221,11 @@ class AuditAssembler:
         # the market didn't move past the Opportunity Cost limit defined in config.
         market_context = actual_outcome.get("market_context", {})
         missed_range = market_context.get("missed_relative_range", 0)
-        opportunity_cost_forensic_threshold = float(self.config.audit_review.get('score_opportunity_cost_limit', 1.5))
+        missed_opportunity_atr_threshold = float(self.config['audit_review']['missed_opportunity_atr_threshold'])
         is_justified_surrender = True
         
         if opinion == "NEUTRAL":
-            if missed_range > opportunity_cost_forensic_threshold:
+            if missed_range > missed_opportunity_atr_threshold:
                 # Opportunity Loss: Market moved significantly despite structural data availability
                 is_justified_surrender = False
             elif not has_structural_data:
@@ -220,10 +235,7 @@ class AuditAssembler:
         return {
             "audit_status": {
                 "is_justified_surrender": is_justified_surrender,
-                "data_availability_at_t0": "HIGH" if has_structural_data else "LOW",
                 "mae_stress_tier": actual_outcome.get("trade_execution_metrics", {}).get("mae_stress_tier", "N/A"),
                 "is_catastrophic_miss": market_context.get("is_catastrophic_miss", False)
-            },
-            "post_mortem": "Forensic data assembled.",
-            "metrics_summary": actual_outcome.get("trade_execution_metrics", {})
+            }
         }

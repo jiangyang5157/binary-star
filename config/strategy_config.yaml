@@ -93,52 +93,13 @@ regime_parameters:
   min_rr_trending: 1.5
 
 audit_review:
-  # --- Execution Analysis Parameters ---
-  # Precision interval for back-testing execution survival (1m recommended).
-  execution_timeframe_interval: 1m
-
-  # --- MAE Stress Tiers (% of SL distance) ---
-  # Maximum adverse excursion for a 'Pinpoint' perfect entry.
-  score_mae_pinpoint_limit: 15
-  # Limit for a 'Standard' entry; within expected market noise.
-  score_mae_standard_limit: 50
-  # Threshold marking 'Logic Failure'; the entry occurred before price stabilization.
-  score_mae_logic_failure_limit: 85
-  
-  # --- MFE Efficiency (Captured Profit vs Potential) ---
-  score_mfe_optimal_upper: 110
-  score_mfe_optimal_lower: 100
-  # Threshold for 'Greed Trap'; trade was held too long past structural targets.
-  score_mfe_acceptable_limit: 150
-  
-  # --- Opportunity Cost & Cowardice Penalties ---
-  # ATR distance missed in 'Neutral' outcomes that triggers an audit.
-  score_opportunity_cost_limit: 2.0
-  # Catastrophic miss threshold (missed massive trend while Neutral).
-  score_opportunity_cost_catastrophe_limit: 5.0
-  score_opportunity_cost_catastrophe_floor: -10
-  
-  # --- Systemic & Temporal Efficiency ---
-  # Max multiplier of estimated holding time allowed before 'Dead Capital' penalty.
-  score_time_efficiency_limit: 2.5
-  # Instant-Zero penalty for protocol breaches or data hallucinations.
-  penalty_compliance_breach: -100
-  
-  # --- Scoring Matrix (Points) ---
-  point_base_tp_hit: 40
-  point_base_sl_hit: 10
-  point_base_neutral_valid: 20
-  point_penalty_opportunity_cost: -40
-  point_penalty_logic_failure: -50
-  point_penalty_mfe_premature_base: -20
-  point_penalty_temporal_failure: -15
-  point_penalty_stophunt_blindness: -20
-  point_bonus_structural_insight: 20
-  point_bonus_optimal_capture: 10
-  score_missed_opportunity_base: 1.0
-  score_mae_extra_buffer: 0.5
-  # Leniency granted for justified aggressive front-running to avoid Opportunity Denial.
-  score_frontrun_leniency_pct: 30
+  # --- Forensic Evaluation Parameters (v6.11 Hardened) ---
+  # Fidelity of the sampling window for forensic replay (Forensic Resolution).
+  forensic_resolution: 1m
+  # ATR threshold to classify an unfilled order as a 'Near Miss' (Physical Redline).
+  unfilled_proximity_atr_limit: 0.1
+  # ATR threshold for missed moves that trigger a catastrophic failure audit.
+  missed_opportunity_atr_threshold: 2.0
 
 topography_parameters:
   # --- Volume Profile Engine ---
@@ -209,8 +170,6 @@ binary_star:
     # Decay applied for every round of doubt from the Audit.
     score_confidence_decay_min: 5
     score_confidence_decay_max: 30
-    # Redundancy multiplier for estimated holding time.
-    holding_time_modifier: 1.5
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
@@ -225,7 +184,7 @@ evolver:
   # gemini-3.1-pro-preview
   model: gemini-flash-latest
   role_definition_prompt: src/agent/prompts/evolver.md
-  # Deterministic temperature to ensure logic consistency (No hallucinations).
+  # Deterministic temperature to ensure logic consistency.
   model_temperature: 0.0
   # --- Darwinian Evolution Thresholds ---
   # Minimum repeated failures across sessions to trigger a systemic instruction patch.
