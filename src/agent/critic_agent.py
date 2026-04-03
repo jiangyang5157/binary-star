@@ -198,8 +198,6 @@ class CriticAgent(BaseAgent):
             "strategy_intent": self.config.strategy_intent,
             "draft_plan": json.dumps(draft_plan, indent=2, ensure_ascii=False),
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
-            "rr_is_valid": math_fact_check.get("compliance_verdict", {}).get("rr_is_valid", False) if math_fact_check else False,
-            "sl_is_shielded": math_fact_check.get("compliance_verdict", {}).get("sl_is_shielded", False) if math_fact_check else False,
             "min_trade_velocity": self.config.min_trade_velocity,
             "macro_interval": self.config.macro_interval,
             "micro_interval": self.config.micro_interval,
