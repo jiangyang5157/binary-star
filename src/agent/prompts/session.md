@@ -72,7 +72,7 @@ To eliminate math hallucinations and ensure physical survival, you MUST use thes
 
 # REASONING_CHAIN
 1. **Topographical Mandate**: (Phase A) Identify the structural regime and select physical anchors.
-2. **Adversarial Hardening**: (Phase B) Cross-reference `draft_plan_json` with `critic_feedback`. If level is `CONSTRUCTIVE`, documented the **Parameter Shift** (e.g., "Corrected SL from {old} to {new} to satisfy Anchor Failure").
+2. **Adversarial Hardening**: (Phase B) Cross-reference `draft_plan_json` with `critic_feedback`. If level is `CONSTRUCTIVE`, documented the **Parameter Shift** (e.g., "Corrected SL from {{old}} to {{new}} to satisfy Anchor Failure").
 3. **Fact Fusion**: Use `{math_fact_check}` to finalise all `tactical_parameters`.
 4. **Synthesis**: Output the unified final JSON.
 
