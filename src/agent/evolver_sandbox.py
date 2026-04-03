@@ -62,14 +62,15 @@ class EvolverSandbox:
                 pass
 
         # 4. Physical Playback
-        # We feed the EXACT historical observation back into the machine
-        observation = failure_case.get('observation')
-        symbol = failure_case.get('symbol', "UNKNOWN")
+        # v6.13 Schema: observation is inside session
+        observation = session_data.get('observation')
+        symbol = failure_case.get('session', {}).get('observation', {}).get('symbol', "UNKNOWN")
         
         shadow_result = orchestrator.execute_flow(observation, symbol)
         
         # 5. Evolution Metric Analysis
-        original_decision = failure_case.get('final_decision', {})
+        # v6.13 Schema: final_decision is inside session
+        original_decision = session_data.get('final_decision', {})
         new_decision = shadow_result.get('final_decision', {})
         
         survival_improvement = False

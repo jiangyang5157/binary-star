@@ -123,7 +123,7 @@ class EvolutionEngine:
         
         ev_id = evolution_result.get('evolution_id', f"evolution_{timestamp}")
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
-        save_json(proposal_file, evolution_result)
+        save_json(evolution_result, proposal_file)
         
         mutation_summary = evolution_result.get('evolution_type', 'UNKNOWN')
         self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id} | Type: {mutation_summary}")
@@ -139,7 +139,7 @@ class EvolutionEngine:
         )
         
         sandbox_file = os.path.join(self.dirs['sandbox'], f"{ev_id}_sandbox.json")
-        save_json(sandbox_file, validation)
+        save_json(validation, sandbox_file)
         
         # 5. Routing: Atomic Commit vs Rejection
         is_valid = validation.get('is_validated', False)
