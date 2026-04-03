@@ -78,7 +78,7 @@ Your response MUST be RAW JSON only.
             "pathology_tag": "[STRUCTURAL_BLINDNESS]",
             "rationale": "WHY",
             "anchor_text": "EXACT_SUBSTRING_FROM_PROMPT",
-            "replaced_with": "NEW_LOGIC",
+            "replaced_with": "NEW_LOGIC"
         }}
     ],
     "sandbox_check_required": true
