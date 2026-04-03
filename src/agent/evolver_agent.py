@@ -142,28 +142,6 @@ class EvolverAgent(BaseAgent):
             overlays = {p.get('target_key'): p.get('replaced_with') for p in config_patches if p.get('target_key')}
             
             if overlays:
-                # --- v5.10 PHYSICAL HARDENING: Save Atomic Patch Record (The "留底" logic) ---
-                try:
-                    from src.utils.pipeline_utils import resolve_data_root
-                    from src.utils.path_utils import resolve_project_root
-                    import yaml
-                    from datetime import datetime
-                    
-                    # Resolve Path via project standard
-                    data_root = resolve_data_root("once")
-                    patch_dir = os.path.join(resolve_project_root(), data_root, "patches")
-                    os.makedirs(patch_dir, exist_ok=True)
-                    
-                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    patch_filename = f"{symbol}_patch_{ts}.yaml"
-                    patch_path = os.path.join(patch_dir, patch_filename)
-                    
-                    with open(patch_path, 'w', encoding='utf-8') as f:
-                        yaml.dump(overlays, f, default_flow_style=False)
-                    logger.info(f"Evolver: Atomic patch (physical record) saved to {patch_path}")
-                except Exception as pe:
-                    logger.error(f"Evolver: Failed to save atomic patch record: {pe}")
-
                 # --- DIRECT OVERWRITE: Apply live config change ---
                 if ConfigPatcher.apply_patch(config_path, overlays):
                     logger.info(f"Evolver: {len(overlays)} configuration parameters successfully merged.")
