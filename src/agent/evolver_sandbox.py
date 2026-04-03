@@ -29,16 +29,7 @@ class EvolverSandbox:
         """
         logger.info(f"Sandbox: Replaying session {failure_case.get('session_id')} in shadow mode.")
         
-        # 1. Setup Shadow Orchestrator
-        # v6.13 Schema: Extract from session.metadata.config_snapshot
-        session_data = failure_case.get('session', {})
-        metadata = session_data.get('metadata', {})
-        shadow_config = metadata.get('config_snapshot', {}).copy()
-        
-        if proposed_patch:
-            # v5.10 Schema: Reduce list of dicts {target_key, replaced_with} into a flat overlay
-            overlays = {p.get('target_key'): p.get('replaced_with') for p in proposed_patch if p.get('target_key')}
-            shadow_config.update(overlays)
+        # 1. TODO apply proposed_patch and proposed_prompts to validate
         
         # 2. Instantiate Orchestrator (Injected with Shadow Logic)
         orchestrator = BinaryStarOrchestrator(
@@ -46,67 +37,43 @@ class EvolverSandbox:
             api_key=self.api_key,
             data_root=self.data_root
         )
-        
-        # 3. Inject Distilled Prompts (Shadow Overrides)
-        if proposed_prompts:
-            # v5.10 Schema: iterate through semantic_refinement list
-            for refinement in proposed_prompts:
-                target = refinement.get('target_module', '').lower()
-                new_logic_content = refinement.get('replaced_with', '')
-                anchor = refinement.get('anchor_text', '')
-                
-                # Note: For sandbox validation, we perform a temporary in-memory replacement 
-                # in the agent's prompt template if possible, or swap the path if it's a file.
-                # Since the orchestrator loads from path, we have to handle this carefully.
-                # For now, we assume the physical merit of the new logic is captured.
-                pass
 
-        # 4. Physical Playback
-        # v6.13 Schema: observation is inside session
-        observation = session_data.get('observation')
-        symbol = failure_case.get('session', {}).get('observation', {}).get('symbol', "UNKNOWN")
+        # 3. Replay
+        new_session = orchestrator.execute_flow(observation, symbol)
         
-        shadow_result = orchestrator.execute_flow(observation, symbol)
-        
-        # 5. Evolution Metric Analysis
-        # v6.13 Schema: final_decision and outcome metrics
-        original_decision = session_data.get('final_decision', {})
-        new_decision = shadow_result.get('final_decision', {})
-        
-        # Metric A (Survival): Improvement check
-        # v6.13 Schema: outcome is at the top level of the audit report
-        original_outcome = failure_case.get('market_outcome', {})
-        original_result = original_outcome.get('tp_sl_result', 'NEITHER')
-        
-        # Note: Shadow execution in sandbox doesn't have a real 'market_outcome' (it's a prediction)
-        # We use a heuristic: Did the shadow decision change or maintain safety?
+        case_metadata = failure_case.get('metadata', {})
+        case_market_outcome = failure_case.get('market_outcome', {})
+        case_tp_sl_result = case_market_outcome.get('tp_sl_result', "")
+        case_session = failure_case.get('session', {})
+        case_session_observation = case_session.get('observation', {})
+        case_session_final_decision = case_session.get('final_decision', {})
+        case_session_debate_history = case_session.get('debate_history', {})
+        case_session_metadata = case_session.get('metadata', {})
+        case_session__opinion = case_session_final_decision.get('opinion', "")
+
+        new_session_final_decision = new_session.get('final_decision', {})
+        new_session_debate_history = new_session.get('debate_history', {})
+        new_session_metadata = new_session.get('metadata', {})
+        new_session_opinion = new_session_final_decision.get('opinion', "")
+
+        # 4. Evolution Metric Analysis
         survival_improvement = False
-        
-        # Case 1: Original was a loss (SL_HIT), Shadow changed opinion or neutral
-        # (This is a proxy for Survival Metric A)
-        if original_result == 'SL_HIT' and new_decision.get('opinion') != original_decision.get('opinion'):
+
+        # Metric A
+        if case_tp_sl_result == 'SL_HIT' and new_session_opinion != case_session__opinion:
             survival_improvement = True
             
-        # Metric C (Efficiency): Round count comparison
-        original_rounds = len(session_data.get('debate_history', []))
-        shadow_rounds = len(shadow_result.get('debate_history', []))
-        efficiency_improvement = shadow_rounds <= original_rounds if original_rounds > 0 else False
-        
         # Validation Verdict: Validated if ANY metric improved without catastrophic degradation
-        is_validated = survival_improvement or efficiency_improvement
+        is_validated = survival_improvement
         
         # Final Forensic Package
         return {
-            "session_id": failure_case.get('session', {}).get('metadata', {}).get('session_id', 'unknown'),
+            "case_id": f"{case_session_observation['symbol']}_{case_session_observation['timestamp']}",
             "is_validated": is_validated,
             "metrics": {
-                "survival_improvement": survival_improvement,
-                "efficiency_improvement": efficiency_improvement,
-                "original_opinion": original_decision.get('opinion'),
-                "shadow_opinion": new_decision.get('opinion'),
-                "original_result": original_result,
-                "original_rounds": original_rounds,
-                "shadow_rounds": shadow_rounds
-            },
-            "audit_trail": shadow_result.get('debate_history')
+                "case_session_final_decision": case_session_final_decision,
+                "new_session_final_decision": new_session_final_decision,
+                "case_session_debate_history": case_session_debate_history,
+                "new_session_debate_history": new_session_debate_history,
+            }
         }
