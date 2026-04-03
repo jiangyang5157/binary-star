@@ -47,26 +47,23 @@ class PromptDistiller:
     """Handles granular distillation of agent instructions in Markdown files."""
     
     @staticmethod
-    def apply_distillation(target_path: str, distillation: Dict[str, str]) -> bool:
+    def apply_distillation(target_path: str, anchor: str, new_text: str) -> bool:
         """Replaces old high-entropy text with new distilled logic."""
-        old_text = distillation.get("old_text")
-        new_text = distillation.get("new_distilled_law")
-        
-        if not old_text or not new_text or not os.path.exists(target_path):
+        if not anchor or not new_text or not os.path.exists(target_path):
             return False
 
         try:
             with open(target_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            if old_text in content:
-                new_content = content.replace(old_text, new_text)
+            if anchor in content:
+                new_content = content.replace(anchor, new_text)
                 with open(target_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
                 return True
             
             # Flexible Match Recovery (Regex)
-            escaped_old = re.escape(old_text)
+            escaped_old = re.escape(anchor)
             flexible_pattern = re.sub(r'\\\s+', r'\\s+', escaped_old)
             if re.search(flexible_pattern, content):
                 new_content = re.sub(flexible_pattern, new_text, content, count=1)

@@ -133,56 +133,65 @@ class EvolverAgent(BaseAgent):
         evolution_type = evolution_result.get('evolution_type')
         logger.info(f"Evolver: Applying mutation of type: {evolution_type}")
         
-        # 1. Handle Configuration Overlays
-        if evolution_type in ["PATCH", "FULL_UPGRADE"]:
-            patch = evolution_result.get('config_patch', {})
-            overlays = patch.get('parameter_overrides', {})
+        # 1. Handle Configuration Overlays (v5.10 Final Array Schema)
+        config_patches = evolution_result.get('config_patch', [])
+        if config_patches:
+            overlays = {p.get('target_key'): p.get('replaced_with') for p in config_patches if p.get('target_key')}
             
-            # --- v5.10 PHYSICAL HARDENING: Save Atomic Patch Record (The "留底" logic) ---
-            try:
-                from src.utils.pipeline_utils import resolve_data_root
-                from src.utils.path_utils import resolve_project_root
-                import yaml
-                from datetime import datetime
-                
-                # Resolve Path via project standard
-                data_root = resolve_data_root("once")
-                patch_dir = os.path.join(resolve_project_root(), data_root, "patches")
-                os.makedirs(patch_dir, exist_ok=True)
-                
-                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-                patch_filename = f"{symbol}_patch_{ts}.yaml"
-                patch_path = os.path.join(patch_dir, patch_filename)
-                
-                with open(patch_path, 'w', encoding='utf-8') as f:
-                    yaml.dump(overlays, f, default_flow_style=False)
-                logger.info(f"Evolver: Atomic patch (physical record) saved to {patch_path}")
-            except Exception as pe:
-                logger.error(f"Evolver: Failed to save atomic patch record: {pe}")
+            if overlays:
+                # --- v5.10 PHYSICAL HARDENING: Save Atomic Patch Record (The "留底" logic) ---
+                try:
+                    from src.utils.pipeline_utils import resolve_data_root
+                    from src.utils.path_utils import resolve_project_root
+                    import yaml
+                    from datetime import datetime
+                    
+                    # Resolve Path via project standard
+                    data_root = resolve_data_root("once")
+                    patch_dir = os.path.join(resolve_project_root(), data_root, "patches")
+                    os.makedirs(patch_dir, exist_ok=True)
+                    
+                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    patch_filename = f"{symbol}_patch_{ts}.yaml"
+                    patch_path = os.path.join(patch_dir, patch_filename)
+                    
+                    with open(patch_path, 'w', encoding='utf-8') as f:
+                        yaml.dump(overlays, f, default_flow_style=False)
+                    logger.info(f"Evolver: Atomic patch (physical record) saved to {patch_path}")
+                except Exception as pe:
+                    logger.error(f"Evolver: Failed to save atomic patch record: {pe}")
 
-            # --- DIRECT OVERWRITE: Apply live config change ---
-            if ConfigPatcher.apply_patch(config_path, overlays):
-                logger.info("Evolver: Configuration patch successfully merged into production.")
-                success = True
+                # --- DIRECT OVERWRITE: Apply live config change ---
+                if ConfigPatcher.apply_patch(config_path, overlays):
+                    logger.info(f"Evolver: {len(overlays)} configuration parameters successfully merged.")
+                    success = True
         
-        # 2. Handle Semantic Refinement
-        if evolution_type in ["DISTILLATION", "FULL_UPGRADE"]:
-            distillation = evolution_result.get('semantic_refinement', {})
-            target = evolution_result.get('optimization_target', '')
+        # 2. Handle Semantic Refinement (v5.10 Final Array Schema)
+        refinements = evolution_result.get('semantic_refinement', [])
+        for refinement in refinements:
+            target = refinement.get('target_module', '')
+            anchor = refinement.get('anchor_text', '')
+            new_logic = refinement.get('replaced_with', '')
+            
+            if not target or not anchor:
+                continue
+
             logger.info(f"Evolver: Processing semantic refinement for target: {target}")
             
             # Resolve target path from config
             from src.utils.pipeline_utils import load_config
+            from src.utils.path_utils import resolve_project_root
             cfg = load_config()
             target_path = ""
+            
             if "session" in target.lower():
                 target_path = cfg.get('binary_star', {}).get('session', {}).get('role_definition_prompt', '')
-            elif "audit" in target.lower():
+            elif "critic" in target.lower():
                 target_path = cfg.get('binary_star', {}).get('audit', {}).get('role_definition_prompt', '')
                 
             if target_path:
                 full_target_path = os.path.join(resolve_project_root(), target_path)
-                if PromptDistiller.apply_distillation(full_target_path, distillation):
+                if PromptDistiller.apply_distillation(full_target_path, anchor, new_logic):
                     logger.info(f"Evolver: Prompt distillation successfully merged into {full_target_path}.")
                     success = True
             else:
