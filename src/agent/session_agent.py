@@ -6,6 +6,7 @@ from typing import Dict, Any, Optional, List, Union
 from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.pipeline_utils import read_prompt_template, safe_format
+from src.utils.datetime_utils import get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
@@ -288,6 +289,8 @@ class SessionAgent(BaseAgent):
             "score_confidence_decay_max": self.config.score_confidence_decay_max,
             "holding_time_modifier": self.config.holding_time_modifier,
             "participation_volume_threshold": self.config.participation_volume_threshold,
+            "macro_interval_minutes": get_interval_minutes(self.config.macro_interval),
+            "micro_interval_minutes": get_interval_minutes(self.config.micro_interval),
             "anchor_drift_threshold": self.config.anchor_drift_threshold,
             "poc_confluence_strength": self.config.poc_confluence_strength,
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
@@ -316,10 +319,18 @@ class SessionAgent(BaseAgent):
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
-                             trend_intensity: float, macro_interval_minutes: int) -> Dict[str, Any]:
+                             trend_intensity: float, 
+                             interval_minutes: int,
+                             min_velocity_floor: Optional[float] = None,
+                             holding_time_modifier: Optional[float] = None) -> Dict[str, Any]:
         """[TOOL] Estimates trade duration based on market velocity floors."""
         from src.utils.math_utils import MathTools
+        
+        # Fallback to config if AI omits optional buffers
+        floor = min_velocity_floor if min_velocity_floor is not None else self.config.min_trade_velocity
+        modifier = holding_time_modifier if holding_time_modifier is not None else self.config.holding_time_modifier
+        
         return MathTools.project_holding_time(
             entry, take_profit, atr, trend_intensity, 
-            macro_interval_minutes, self.config.min_trade_velocity
+            interval_minutes, floor, modifier
         )

@@ -88,6 +88,18 @@ def get_interval_seconds(interval: str) -> int:
     }
     return value * mapping.get(unit, 60)
 
+def get_interval_minutes(interval: str) -> int:
+    """
+    Converts a Binance interval string (e.g., '1h', '15m', '1d') to integer minutes.
+    """
+    return get_interval_seconds(interval) // 60
+
+def get_interval_hours(interval: str) -> float:
+    """
+    Converts a Binance interval string to float hours.
+    """
+    return get_interval_seconds(interval) / 3600.0
+
 # Aliases for backward compatibility
 get_utc_now = get_current_utc_time
 sanitize_timestamp = format_timestamp_for_filename

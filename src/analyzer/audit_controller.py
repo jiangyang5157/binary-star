@@ -105,7 +105,7 @@ class AuditController:
             if "_" in t0_str and "-" not in t0_str:
                 t0_dt = datetime.strptime(t0_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
             else:
-                from src.utils.datetime_utils import parse_iso_to_utc
+                from src.utils.datetime_utils import parse_iso_to_utc, to_compact_timestamp, get_interval_hours
                 t0_dt = parse_iso_to_utc(t0_str)
         except Exception as te:
             self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
@@ -181,7 +181,7 @@ class AuditController:
             long_short_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", long_short_ratio_proto)
             
             # Dynamic interval calculation (Ensures accuracy for non-1h timeframes)
-            interval_macro_hours = get_interval_seconds(self.config['analysis_window']['macro_context']['time_interval']) / 3600.0
+            interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
             
             outcome = self.assembler.calculate_outcome(
                 klines=klines,

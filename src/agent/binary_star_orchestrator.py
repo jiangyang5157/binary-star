@@ -13,7 +13,7 @@ from src.utils.math_utils import MathTools
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, resolve_data_root, safe_format
-from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT
+from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT, get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
@@ -222,9 +222,11 @@ class BinaryStarOrchestrator:
                             "take_profit": {"type": "NUMBER"},
                             "atr": {"type": "NUMBER"},
                             "trend_intensity": {"type": "NUMBER"},
-                            "macro_interval_minutes": {"type": "NUMBER"}
+                            "interval_minutes": {"type": "NUMBER"},
+                            "min_velocity_floor": {"type": "NUMBER"},
+                            "holding_time_modifier": {"type": "NUMBER"}
                         },
-                        "required": ["entry", "take_profit", "atr", "trend_intensity", "macro_interval_minutes"]
+                        "required": ["entry", "take_profit", "atr", "trend_intensity", "interval_minutes"]
                     }
                 }
             ]
@@ -379,8 +381,9 @@ class BinaryStarOrchestrator:
             
             holding_time = self.math_tools.project_holding_time(
                 entry, tp, atr, trend_intensity, 
-                int(self.macro_interval.replace('h', '')) * 60,
-                self.session_config.min_trade_velocity
+                get_interval_minutes(self.macro_interval),
+                self.session_config.min_trade_velocity,
+                self.session_config.holding_time_modifier
             )
             
             # Compliance Verdict Synthesis

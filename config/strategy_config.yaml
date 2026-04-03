@@ -170,6 +170,8 @@ binary_star:
     # Decay applied for every round of doubt from the Audit.
     score_confidence_decay_min: 5
     score_confidence_decay_max: 30
+    # Time buffer factor (redundancy). Accounts for zig-zag market noise (non-linear path).
+    holding_time_modifier: 1.5
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md

@@ -288,7 +288,6 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </table>
                     
                     <div>
-                        <span style="font-size: 11px; font-weight: 800; color: #1e40af; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">Forensic Verdict</span>
                         <p style="font-size: 14px; line-height: 1.6; color: #1e3a8a; margin: 0;">
                             Justified Surrender: <b>{verdict.get('is_justified_surrender', 'N/A')}</b><br/>
                             Catastrophic Miss: <b>{verdict.get('is_catastrophic_miss', 'N/A')}</b>

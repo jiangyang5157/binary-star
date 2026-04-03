@@ -149,7 +149,8 @@ class MathTools:
         atr: float,
         trend_intensity: float,
         interval_minutes: int,
-        min_velocity_floor: float
+        min_velocity_floor: float,
+        holding_time_modifier: float
     ) -> Dict[str, Any]:
         """Predicts the estimated holding time using a Synthetic Velocity Model.
         
@@ -157,6 +158,7 @@ class MathTools:
         1. Base Engine = ATR (Natural market speed).
         2. Alignment = |Trend Intensity| (Momentum factor).
         3. Effective Speed = MAX(ATR * Intensity, ATR * Velocity Floor).
+        4. Buffer = Apply holding_time_modifier to account for non-linear noise.
         
         The result converts price distance into time buckets (candles/hours).
         
@@ -167,6 +169,7 @@ class MathTools:
             trend_intensity: 0.0 to 1.0 (Regime momentum).
             interval_minutes: Chart time interval in minutes.
             min_velocity_floor: Safety floor (drift) when momentum is zero.
+            holding_time_modifier: Multiplier for zig-zag noise (e.g., 1.5).
             
         Returns:
             A dictionary containing projected hours and candle counts.
@@ -183,7 +186,7 @@ class MathTools:
                 return {"error": "Zero velocity detected. Check floor config."}
 
             projected_candles = dist / effective_velocity
-            projected_hours = round((projected_candles * interval_minutes) / 60, 1)
+            projected_hours = round((projected_candles * interval_minutes * holding_time_modifier) / 60, 1)
             
             return {
                 "projected_holding_candles": round(projected_candles, 1),
