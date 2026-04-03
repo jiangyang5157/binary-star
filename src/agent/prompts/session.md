@@ -70,7 +70,6 @@ Your final response MUST be RAW JSON only. Do not output JSON until all necessar
         "holding_time_hours": decimal
     }},
     "reasoning_chain": "Brief synthesis linking Heuristics (e.g., wick skew + cvd) to the Tactical Execution.",
-    "is_hardened": "boolean (PHASE_A: always false. PHASE_B: true ONLY if you physically modified parameters to address a veto; if maintaining the original draft, it remains false.)",
     "critic_impact": "Summary of Phase B repair (Null in PHASE_A_DRAFTING)."
 }}
 ```
