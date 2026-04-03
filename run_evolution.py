@@ -157,7 +157,7 @@ class EvolutionEngine:
             applied_file = os.path.join(self.dirs['applied'], f"{ev_id}_applied.json")
             shutil.copy2(proposal_file, applied_file)
             
-            # TODO yangj: bug, config patch added to end at root; no prompt patch why?
+            # TODO yangj: bug, config patch added to end at root; why modify intent?; no prompt patch why?
             if evolver.apply_patch(evolution_result, "config/strategy_config.yaml", symbol=reports[0].get('symbol', 'BTCUSDT')):
                 self.logger.info(f"System: Mutation {ev_id} successfully merged into strategic core.")
             else:
