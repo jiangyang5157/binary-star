@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from src.analyzer.audit_assembler import AuditAssembler, AuditReviewConfig
 from src.infrastructure.binance.client import BinanceFuturesClient
@@ -50,6 +50,14 @@ class AuditController:
             binance_client=self.binance_client,
             chart_generator=self.chart_gen
         )
+
+    def is_already_audited(self, symbol: str, timestamp_compact: str) -> bool:
+        """
+        Deduplication check: Verify if the audit JSON already exists on disk.
+        """
+        output_dir = os.path.join(resolve_project_root(), self.data_root, "audits")
+        filename = f"{symbol}_audit_{timestamp_compact}.json"
+        return os.path.exists(os.path.join(output_dir, filename))
 
     def run_manual_audit(self, session_file_path: str) -> Dict[str, Any]:
         """Performs a comprehensive forensic audit on a specific session.
@@ -104,6 +112,28 @@ class AuditController:
 
         t1_dt = datetime.now(timezone.utc)
         
+        # v6.2 Eligibility Gateway: Intent Check
+        final_decision = session.get("final_decision", {})
+        opinion = final_decision.get("opinion", "").upper()
+        
+        # 1. NEUTRAL SHORT-CIRCUIT: Mark as recorded result with null findings
+        if opinion == "NEUTRAL":
+            self.logger.info(f"Audit: Neutral signal detected for {symbol}. Short-circuiting to null-findings.")
+            # Use original session timestamp for consistent deduplication
+            ts_compact = t0_str.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+            if len(ts_compact) < 15: # Fallback if not standard format
+                ts_compact = t1_dt.strftime("%Y%m%d_%H%M%S")
+
+            return {
+                "symbol": symbol,
+                "session": session,
+                "outcome": {"tp_sl_result": "NEUTRAL", "market_outcome": "JUSTIFIED_SURRENDER"},
+                "report": None, # audit_findings is null
+                "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
+                "session_timestamp_compact": ts_compact, 
+                "metadata": {"config_hash": get_file_hash("config/strategy_config.yaml")}
+            }
+
         self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to NOW ({t1_dt.isoformat()})")
         
         try:
@@ -151,6 +181,15 @@ class AuditController:
             }
 
             # 7. Final Review Analysis
+            # v6.2 Eligibility Gateway: Maturity Filter
+            res_type = outcome.get("tp_sl_result", "NEITHER")
+            holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0))
+            is_expired = t1_dt > (t0_dt + timedelta(hours=holding_hours))
+            
+            if res_type == "NEITHER" and not is_expired:
+                # Still in position and haven't reached holding time limit
+                raise ValueError(f"SESSION_MATURING: {symbol} is still active (Result: NEITHER). Waiting for TP/SL or expiration (T0+{holding_hours}h).")
+
             report = self.assembler.review(session, outcome, t1_observation)
             
             return {

@@ -21,18 +21,29 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
     try:
         logger.info(f"--- Initiating Audit Review: {os.path.basename(file_path)} ---")
         
-        # 1. Execute Analysis
+        # 1. Deduplication Gate: Skip if file already exists
+        import json
+        with open(file_path, 'r', encoding='utf-8') as f:
+            session_data = json.load(f)
+        
+        symbol = session_data.get("observation", {}).get("symbol", "UNKNOWN")
+        ts_compact = session_data.get("observation", {}).get("timestamp", "").replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+        
+        if controller.is_already_audited(symbol, ts_compact):
+            logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
+            return "EXISTS"
+
+        # 2. Execute Analysis
         result = controller.run_manual_audit(file_path)
         
         # 2. Automated Persistence
         report_path = controller.save_report(result)
         
-        # 3. Email Notification & HTML Preview
+        # 3. Notification Logic
         from src.infrastructure.notifications.email_notifier import SessionNotifier
         notifier = SessionNotifier(data_root=data_root)
         
-        # Reconstruct high-fidelity bundle for notifier
-        # v6.1: Structural alignment - metadata is managed within AuditController
+        # Reconstruct structural bundle for notifier
         audit_result = {
             "strategy_session": result["session"],
             "market_outcome": result["outcome"],
@@ -40,16 +51,22 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
             "metadata": result.get("metadata", {}),
             "audit_timestamp": result.get("audit_timestamp_compact")
         }
-        notifier.notify_audit(result["symbol"], audit_result, save_local=True, dispatch_email=email)
+        
+        # Decision: Silence email for NEUTRAL signals (where findings/report are null)
+        should_dispatch = email if result.get("report") else False
+        notifier.notify_audit(result["symbol"], audit_result, save_local=True, dispatch_email=should_dispatch)
 
         outcome = result.get('outcome', {})
         
         # 4. Standardized Audit Output
         print(f"🔍 AUDIT COMPLETE | {result.get('symbol', 'UNKNOWN')} | {outcome.get('tp_sl_result', 'N/A')} | {report_path}")
-        return True
+        return "SUCCESS"
     except Exception as e:
+        if "SESSION_MATURING" in str(e):
+            logger.info(f"⏳ [WAITING] Skipped: {os.path.basename(file_path)} is still maturing. {e}")
+            return "MATURING"
         logger.error(f"Failed to audit {file_path}: {e}")
-        return False
+        return "FAILED"
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Audit Review (v6.1)")
@@ -95,16 +112,25 @@ def main():
     logger.info(f"Starting audit sequence for {len(files_to_audit)} session(s)...")
     
     success_count = 0
+    skip_count = 0
+    fail_count = 0
+    mature_count = 0
+    
     for f in files_to_audit:
-        if process_audit_file(f, controller, args.email, data_root):
-            success_count += 1
+        status = process_audit_file(f, controller, args.email, data_root)
+        if status == "SUCCESS": success_count += 1
+        elif status == "EXISTS": skip_count += 1
+        elif status == "MATURING": mature_count += 1
+        else: fail_count += 1
             
     print("\n" + "="*60)
     print(f" BATCH AUDIT SUMMARY")
     print("="*60)
     print(f" TOTAL SESSIONS : {len(files_to_audit)}")
-    print(f" SUCCESSFUL     : {success_count}")
-    print(f" FAILED         : {len(files_to_audit) - success_count}")
+    print(f" COMPLETED      : {success_count}")
+    print(f" ALREADY EXISTS : {skip_count}")
+    print(f" MATURING (WAIT): {mature_count}")
+    print(f" FAILED         : {fail_count}")
     print("="*60 + "\n")
 
 if __name__ == "__main__":
