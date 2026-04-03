@@ -197,15 +197,14 @@ class ProcessedMarketMetrics:
     sentiment_signals: Dict[str, Any]
 
 class MarketDataLoader:
-    """Handles high-fidelity telemetry harvesting from exchange API endpoints."""
+    """The Telemetry Harvester.
+    
+    Handles high-fidelity data acquisition from exchange API endpoints, 
+    ensuring synchronized snapshots across multiple timeframes.
+    """
     
     def __init__(self, binance_client: BinanceFuturesClient, config: MarketObserverConfig):
-        """Initializes the loader with shared infrastructure.
-        
-        Args:
-            binance_client: Authenticated Binance client instance.
-            config: MarketObserverConfig instance.
-        """
+        """Initializes the loader with shared exchange infrastructure."""
         self.client = binance_client
         self.config = config
 
@@ -246,16 +245,14 @@ class MarketDataLoader:
         return timedelta(seconds=get_interval_seconds(interval))
 
 class MarketMetricsRefiner:
-    """Transforms raw datum into actionable topographical and tactical metrics."""
+    """The Metric Distiller.
+    
+    Transforms raw telemetry into actionable topographical and tactical metrics 
+    using specialized Volume Profile and Market Regime analysis.
+    """
     
     def __init__(self, config: MarketObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer):
-        """Initializes specialized processing units.
-        
-        Args:
-            config: MarketObserverConfig instance.
-            vp_analyzer: Volume Profile processing component.
-            regime_analyzer: Market Regime processing component.
-        """
+        """Initializes specialized processing units for topography and dynamics."""
         self.config = config
         self.vp = vp_analyzer
         self.regime = regime_analyzer
@@ -432,50 +429,41 @@ class MarketObserver:
         binance_client: BinanceFuturesClient,
         chart_generator: ChartGenerator
     ):
-        """Initializes the observer with specialized processing units."""
+        """Initializes the observer with the full analytical stack."""
         self.symbol = symbol
         self.data_root = data_root
         self.config = config
         
-        # Injected Core Infrastructure
+        # [INFRASTRUCTURE INJECTION]
         self._binance = binance_client
         self._vp_analyzer = self._init_vp()
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
         
-        # Modularized Processing Stack
+        # [MODULARIZED PROCESSING STACK]
         self.loader = MarketDataLoader(self._binance, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._vp_analyzer, self._regime_analyzer)
 
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True) -> Dict[str, Any]:
-        """Executes a complete market mapping cycle.
-        
-        Args:
-            timestamp: Target observation time (None for real-time).
-            data_root: Persistence override for forensic review.
-            persist: Whether to archive the observation record.
-            
-        Returns:
-            A forensic dictionary containing the full market topography.
-        """
+        """Executes a complete market mapping cycle."""
         at_time = timestamp or get_current_utc_time()
         logger.info(f"MarketObserver: Capturing topography for {self.symbol}...")
 
-        # 1. Forensic Data Collection
+        # 1. [FORENSIC DATA COLLECTION]
         raw = self.loader.collect(self.symbol, at_time)
         
-        # 2. Quality Validation
+        # 2. [QUALITY VALIDATION]
         if len(raw.macro_klines) < int(self.config.macro_context.lookback_candles * 0.9):
             logger.error("MarketObserver: Insufficient market telemetry. Aborting observation.")
             return {"error": "DATA_INTEGRITY_FAILURE"}
 
-        # 3. Metric Distillation
+        # 3. [METRIC DISTILLATION]
         metrics = self.refiner.refine(raw)
 
-        # 4. Multimodal Asset Generation
+        # 4. [MULTIMODAL ASSET GENERATION]
         snapshots = self._generate_snapshots(raw, metrics, data_root or self.data_root, at_time)
             
-        # 5. Forensic Packaging
+        # 5. [FORENSIC PACKAGING]
         observation = self._package_observation(metrics, snapshots, at_time)
         
         if persist:

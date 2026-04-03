@@ -148,24 +148,17 @@ class CriticAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """Performs a comprehensive adversarial audit on a proposed draft.
-        
-        Args:
-            observation: Market topography (required if no cache_id).
-            draft_plan: The preliminary tactical proposal from SessionAgent.
-            symbol: Trading pair code.
-            cache_id: Semantic context identifier.
-            math_fact_check: Object truth verification from Python logic.
-            tools: Native tool schema definitions.
-            
-        Returns:
-            An audit report containing 'skepticism_score' and 'audit_findings'.
         """
+        [ADVERSARIAL_AUDIT]: Performs a comprehensive risk assessment.
+        
+        Evaluates the proposed draft against physical market topography 
+        and the mandatory CRITIC_CODES table. This is a cold, 
+        deterministic audit designed to identify structural traps.
+        """
+        logger.info(f"CriticAgent: Auditing {symbol} draft for hidden risks...")
         try:
             context = self._build_context(observation, draft_plan, math_fact_check=math_fact_check, cache_id=cache_id)
             prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
-            
-            logger.info(f"Critic: Auditing {symbol} draft for hidden risks...")
             
             return self._execute_ai_cycle(
                 payload=prompt, 

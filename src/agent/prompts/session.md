@@ -38,6 +38,7 @@ Use these metrics to synthesize your tactical entry strategy:
 ## 1. Topographical Anchoring (Absolute Law)
 - **THE SHIELD LAW**: Stop Loss (SL) MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). **Floating SLs are a Terminal Veto.**
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_ratio`) is missing, output `NEUTRAL`. Do not guess.
+- **DATA AMNESTY (NULL STATE)**: If `liquidation_clusters` is `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (Market API gap). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.
 
 ## 2. Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
@@ -53,6 +54,7 @@ If `{current_phase}` is `PHASE_B_SYNTHESIS`, apply these strict repair codes aga
     - If `[ANCHOR_VIOLATION]`: Move SL distally to the next valid anchor.
     - If `[MATH_VIOLATION]`: Recalculate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`.
     - If `[OPPORTUNITY_DENIAL]`: Your previous `NEUTRAL` was cowardly. Read the telemetry and execute a valid directional draft.
+    - If [RETAIL_SQUEEZE]: Perform a Polarity Pivot. If the risk of a retail flush is extreme, flip the original opinion to target the projected liquidation vacuum. You MUST use MathTools to completely recalculate the new Entry, TP, and distal SL for the reversed vector.
 - **[WEAK / PASS]**: Maintain trajectory.
 
 # OUTPUT_SCHEMA

@@ -163,26 +163,15 @@ class SessionAgent(BaseAgent):
             retry_max=retry_max
         )
 
-    def draft(
-        self, 
-        observation: Optional[Dict[str, Any]], 
-        symbol: str, 
-        cache_id: Optional[str] = None,
-        tools: Optional[List[Any]] = None,
-        critic_feedback: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
-        """Executes Phase 1 (Drafting) of the reasoning cycle.
-        
-        Args:
-            observation: Raw market telemetry (required if cache_id is None).
-            symbol: Trading pair code.
-            cache_id: Semantic context identifier for high-performance inference.
-            tools: Native Python tool schemas definitions.
-            critic_feedback: Optional rebuttal from a previous round for re-drafting.
-            
-        Returns:
-            A reasoning draft containing 'opinion' and 'tactical_parameters'.
+    def draft(self, observation: Optional[Dict[str, Any]], symbol: str, cache_id: Optional[str] = None, tools: Optional[List[Any]] = None, critic_feedback: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
+        [PHASE_A_DRAFTING]: Generates the initial heuristic thesis.
+        
+        This phase uses higher temperature to allow for tactical creativity.
+        If critic_feedback is provided, it acts as a 'Redraft' attempt to 
+        bypass earlier vetoes (e.g., relocating entry points).
+        """
+        logger.info(f"SessionAgent: Drafting strategic thesis for {symbol}...")
         try:
             prompt = self._build_prompt(
                 observation, 
@@ -190,7 +179,6 @@ class SessionAgent(BaseAgent):
                 cache_id=cache_id,
                 current_phase="PHASE_A_DRAFTING"
             )
-            logger.info(f"Session: Generating initial thesis for {symbol}...")
             
             return self._execute_ai_cycle(
                 payload=prompt, 
@@ -212,29 +200,23 @@ class SessionAgent(BaseAgent):
         observation: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """Executes Phase 3 (Synthesis) for final plan hardening.
-        
-        Args:
-            draft_plan: The Phase 1 output.
-            critic_results: The adversarial audit results from the CriticAgent.
-            cache_id: Context identifier.
-            math_fact_check: Objective truth verification from Python utils.
-            observation: Market topography (if no cache).
-            tools: Tool definitions.
-            
-        Returns:
-            The finalized, hardened trading decision.
         """
+        [PHASE_B_SYNTHESIS]: Performs final defensive hardening.
+        
+        This phase uses lower temperature and strict protocol-following 
+        to reconcile the draft with adversarial feedback and physical truth. 
+        Supports 'Polarity Pivot' (flipping direction) and 'Terminal Abort'.
+        """
+        logger.info("SessionAgent: Synthesizing final survival-rated plan...")
         try:
             prompt = self._build_prompt(
                 observation, 
-                draft_plan, 
-                critic_results, 
+                draft_plan=draft_plan, 
+                critic_feedback=critic_results, 
                 math_fact_check=math_fact_check, 
                 cache_id=cache_id,
                 current_phase="PHASE_B_SYNTHESIS"
             )
-            logger.info(f"Session: Hardening decision against adversarial audit...")
             
             return self._execute_ai_cycle(
                 payload=prompt, 

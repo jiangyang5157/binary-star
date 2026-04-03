@@ -22,6 +22,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 
 # LOGIC_MACROS
 To ensure Zero-Entropy convergence, evaluate these boolean states before the audit:
+- `NULL_AMNESTY_STATE`: If `liquidation_clusters` is `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (Market API gap). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.
 - `IS_OVEREXTENDING`: `(poc_dist_atr > {poc_gravity_atr_distance} AND draft_plan.opinion == "BULLISH") OR (poc_dist_atr < -{poc_gravity_atr_distance} AND draft_plan.opinion == "BEARISH")`
 - `FLOW_IS_REVERSING`: `(cvd_intensity_ratio > {cvd_intensity_threshold} AND draft_plan.opinion == "BEARISH") OR (cvd_intensity_ratio < -{cvd_intensity_threshold} AND draft_plan.opinion == "BULLISH")`
 - `ABSORPTION_RISK`: `oi_delta_micro < 0 AND abs(cvd_intensity_ratio) > {cvd_intensity_extreme}`

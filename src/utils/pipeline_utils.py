@@ -142,6 +142,9 @@ def resolve_data_root(data_root_arg: Optional[str]) -> str:
     # Return mapped value if exists, otherwise return original
     return mapping.get(data_root_arg, data_root_arg)
 
+
+# --- STRATEGIC ARCHIVAL & PERSISTENCE ---
+
 def add_data_root_argument(parser: argparse.ArgumentParser):
     """
     Standardizes the addition of data_root and env shortcut arguments.

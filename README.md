@@ -1,107 +1,80 @@
-# Singularity Session Engine (v6.1)
+# 🌌 Singularity Session Engine (v6.1)
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 [![Stability: Production Ready](https://img.shields.io/badge/Stability-Production--Ready-brightgreen.svg)]()
 
-> **The Singularity Session Engine** is an industrial-grade, multi-agent quantitative trading system designed for high-fidelity market topography analysis and self-evolving strategic execution. It achieves 100% mathematical determinism by anchoring neural reasoning to physical market reality.
+> **"Trading is not a game of predicting the future; it is a game of surviving the present."**
+> 
+> Singularity is a multi-agent quantitative architecture that eliminates human bias through **Adversarial Reasoning**. It doesn't just "guess" where the price goes—it puts every trade on trial before a single dollar is risked.
 
 ---
 
-## 🌌 Core Architecture: The Adversarial Triad
+## ⚖️ System Design: The Adversarial Courtroom
 
-Singularity eliminates "Black Box Hallucination" through a **Truth Bus** protocol, where all agents share a single, multimodal context cache derived from precise topographical telemetry.
+Singularity operates like a high-stakes courtroom trial. A trade only moves from an idea to an execution if it survives a rigorous cross-examination.
 
-```mermaid
-graph TD
-    Obs["Market Observer (Telemetry)"] --> TruthBus["Truth Bus (Gemini Cache)"]
-    TruthBus --> Session["Session Analyst (Thesis)"]
-    Session <-->|Binary Star Debate| Critic["Skeptical Critic (Antithesis)"]
-    Critic --> Math["Math Fact Check (Deterministic)"]
-    Math -.->|Verification| Critic
-    Session --> Audit["Forensic Audit (Post-Mortem)"]
-    Audit --> Evolver["Meta-Evolver (Learning)"]
-    Evolver --> Config["strategy_config.yaml"]
-```
+### 1. 📂 The Witness (Market Observer)
+*   **Role**: Gathers the physical facts.
+*   **Action**: Scans the market's "topography"—identifying where the big money is sitting (Volume Profile), how fast the price is moving (Volatility), and who is in control (CVD Sentiment).
+*   **The Truth**: It generates a "Market Map" which is the only source of truth for the entire session.
 
-### 1. The Session Analyst (Strategist)
-- **Role**: Primary Thesis Generator.
-- **Protocol**: Transforms topographical telemetry into a structured strategic plan (Limit Entry, TP, SL).
-- **Hardening**: Synthesizes adversarial feedback to refine "Deep Limit Entry" (DLE) placement.
+### 2. 🛡️ The Defense (Session Analyst)
+*   **Role**: Proposes a "Thesis" (The Trade).
+*   **Action**: Looks at the facts and argues: *"We should go Long at 66,500 because we are at a major support level."*
+*   **Creativity**: It uses tactical intelligence to find the best entry points (DLE) to maximize safety and profit.
 
-### 2. The Skeptical Critic (Adversarial Auditor)
-- **Role**: Risk Stress-Tester.
-- **Logic**: Performs a high-fidelity audit of the Session Analyst's thesis, identifying structural traps and directional bias.
-- **Truth Layer**: Contrasts all neural drafts against deterministic `MathTools` results (RR, ATR, Isolation).
+### 3. 🔍 The Prosecution (Skeptical Critic)
+*   **Role**: The Logical Auditor.
+*   **Action**: Its only job is to **find holes** in the Session Analyst's plan. It looks for "Structural Traps," "Retail Squeezes," and "Math Failures."
+*   **The Veto**: If the plan is unsafe, it issues a **TERMINAL VETO**, effectively killing the trade to protect capital.
 
-### 3. The Meta-Evolver (Darwinian Learning)
-- **Role**: System Architect.
-- **Logic**: Ingests forensic audit reports to identify systematic logic gaps between T0 (Plan) and T1 (Execution).
-- **Output**: Generates atomic configuration patches to harden the system's "Physical Laws."
+### 4. 📐 The Evidence (Math Fact Check)
+*   **Role**: The Immutable Law.
+*   **Action**: A cold, Python-based calculator that checks the agents' work. It verifies Risk-Reward ratios and support-level shielding with 100% mathematical precision.
+*   **The Verdict**: The agents CANNOT argue with the Math Fact Check. It is the final word on physical reality.
 
 ---
 
-## 🛠 Operational Manual (v6.1)
+## 🚀 Key Innovations
 
-### 1. Market Session (Real-time Analysis)
-Executes a full adversarial debate cycle for a specific symbol.
+### 🛰️ The Truth Bus (Context Caching)
+To prevent the AIs from "drifting" or seeing different realities, they are plugged into a shared **Truth Bus**. They share the exact same snapshot of the market, ensuring 100% logical convergence.
+
+### 🔄 Polarity Pivot (The Counter-Strike)
+If the Critic identifies a "Retail Squeeze" (everyone is going one way and a trap is set), the Session Analyst is instructed to perform a **Polarity Pivot**. Instead of just canceling the trade, it flips sides to hunt the very traders who are about to be trapped.
+
+### 🧬 Meta-Evolution (The Feedback Loop)
+After every session, the **Evolver** agent performs a forensic audit. It asks: *"Why did we lose?"* or *"Why did we hesitate?"* It then updates the system's "DNA" (Strategy Config) to ensure the system is smarter for the next market cycle.
+
+---
+
+## 🛠 Operation Manual
+
+### 1. Market Session (Live Analysis)
+Analyze a specific symbol in real-time.
 ```bash
-python run_session.py once --symbol BTCUSDT --data_root prod
+python run_session.py once --symbol BTCUSDT --data_root once
 ```
-*Options:*
-- `--mode live`: Continuous polling mode for autonomous discovery.
-- `--email`: Dispatches high-conviction alerts with local timezone localization.
+*   `--mode live`: Continuous polling mode for autonomous discovery.
+*   `--email`: Sends high-conviction alerts directly to your inbox.
 
-### 2. Forensic Audit (Multi-Session Review)
-Performs a physically deterministic review of completed sessions. Supports batch processing.
+### 2. Forensic Audit (Review)
+Review a specific session to see exactly why it succeeded or failed.
 ```bash
-# Batch mode: Audit all sessions in a specific environment
-python run_audit.py once --email
-
-# Single mode: Review a specific session record
-python run_audit.py --file data/prod/sessions/BTCUSDT_session_TIMESTAMP.json
-```
-*v6.1 Highlights:*
-- **T1 Visual Capture**: Automatically captures live Macro/Micro snapshots at audit time for visual proof.
-- **Justified Surrender**: Quantifies if neutrality was the mathematically correct path.
-
-### 3. Meta-Evolution (The Feedback Loop)
-Ingests recent forensic reports and mutates the system configuration.
-```bash
-python run_evolution.py --samples 5 --env once
+python run_audit.py --file data/once/sessions/BTCUSDT_session_TIMESTAMP.json
 ```
 
 ---
 
-## 🔬 Technical Protocols
+## 📖 Glossary for Non-Experts
 
-### 🛰 The Truth Bus (Context Caching)
-To achieve zero-entropy logic parity and minimize API overhead, Singularity utilizes **Semantic Context Caching**. 
-- Multimodal data (Images + Topography JSON) is cached once per session.
-- Both Session and Critic agents interact with the **exact same immutable data block**, ensuring no divergence in "The Truth."
-
-### 📐 Physical Determinism
-Singularity offloads all geometric calculations to the Python **MathTools** layer:
-- **Risk-Reward (RR)**: Deterministic calculation of potential efficiency.
-- **Structural Proximity**: Measures SL isolation behind Volume POC, VAH, and VAL in ATR units.
-- **Synthetic Velocity**: Predicts holding time based on Macro ATR and Regime Intensity.
-
-### 🖼 Visual Forensics (T0 vs T1)
-Forensic reports now include a **Comparative Visual Gallery**:
-- **T0 (The Plan)**: Snapshots of the market topography at the time of decision.
-- **T1 (The Result)**: Real-time snapshots captured during the audit.
-- *Ensures absolute traceability for "Logic Gap" detection.*
+| Term | In Plain English | Technical Meaning |
+| :--- | :--- | :--- |
+| **Topography** | The "Lay of the Land" | The relationship between price and volume levels. |
+| **POC (Point of Control)** | The fair price | The level where the most trading occurred. |
+| **HVN (High Volume Node)** | A "Fortress" | A price area with heavy historical trading (Support/Resistance). |
+| **ATR (Volatility)** | The "Wind Speed" | How much the price usually moves in a given time. |
+| **Squeeze** | A "Coiling Spring" | When the market is quiet, anticipating a violent breakout. |
+| **DLE (Deep Entry)** | Buying the "Dip" | Placing an entry deep into a support zone for safety. |
 
 ---
-
-## 📋 System Requirements
-
-- **Python**: 3.9+ (Python 3.11+ Recommended)
-- **API Access**: Google Gemini 1.5/2.0 API; Binance Futures API.
-- **Key Files**: 
-    - `config/global_config.yaml`: System architecture and API routing.
-    - `config/strategy_config.yaml`: The evolving tactical parameters.
-
----
-
-*© 2026 Singularity Quant Labs. All Rights Reserved. Engineered for 100% Logical Convergence.*
