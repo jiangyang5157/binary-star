@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 import yaml
 from src.utils.path_utils import find_project_root
@@ -31,11 +31,20 @@ class SessionEmailTemplate(BaseEmailTemplate):
         
         # 1. Local Time Conversion (Device Local)
         utc_ts = obs.get("timestamp", "")
+        display_time = utc_ts
         try:
-            local_dt = datetime.fromisoformat(utc_ts.replace("Z", "+00:00")).astimezone()
-            display_time = local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-        except Exception:
-            display_time = utc_ts
+            if "_" in utc_ts and "-" not in utc_ts:
+                # Custom compact format (UTC)
+                dt = datetime.strptime(utc_ts, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+            else:
+                # ISO format
+                dt = datetime.fromisoformat(utc_ts.replace("Z", "+00:00"))
+            
+            local_dt = dt.astimezone()
+            # User friendly format: "2026-04-03 20:58"
+            display_time = local_dt.strftime("%Y-%m-%d %H:%M")
+        except Exception as e:
+            logger.debug(f"Template: Time conversion failed for {utc_ts}: {e}")
 
         # 2. Extract Data Suites
         semantics = obs.get("semantic_analysis") or {}
@@ -46,7 +55,17 @@ class SessionEmailTemplate(BaseEmailTemplate):
         confidence = decision.get("confidence_score", 0)
         reasoning = decision.get("reasoning_chain", "No description provided.")
         
-        # 3. UI Styling & Formatting
+        # 4. RR Ratio Calculation Fallback
+        tactical = decision.get('tactical_parameters') or {}
+        entry = tactical.get('entry')
+        tp = tactical.get('take_profit')
+        sl = tactical.get('stop_loss')
+        if all(v is not None for v in [entry, tp, sl]):
+            from src.utils.math_utils import MathTools
+            rr_res = MathTools.calculate_risk_reward(float(entry), float(tp), float(sl))
+            rr_display = rr_res.get('rr_ratio', "N/A")
+
+        # 5. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
         icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
         theme_color = colors.get(opinion, "#64748b")
@@ -55,7 +74,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
         
         fmt = SessionEmailTemplate.fmt
         
-        # 4. Extract Current Price (Synthetic Context)
+        # 6. Extract Current Price (Synthetic Context)
         current_price = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("current_price")
         
         return f"""
@@ -124,7 +143,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📊 RR Ratio</div>
-                                <div style="font-size: 18px; color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('rr_ratio'))}x</div>
+                                <div style="font-size: 18px; color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(rr_display)}x</div>
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Window</div>
@@ -566,13 +585,14 @@ class SessionNotifier:
         if not self.enabled or not dispatch_email: return False
 
         final_decision = (session_data or {}).get("final_decision") or {}
-        opinion = final_decision.get("opinion") or "NEUTRAL"
-        confidence = final_decision.get("confidence", 0)
+        confidence = final_decision.get("confidence_score", 0)
         
         # Only notify if confidence >= threshold
         if confidence < self.notification_confidence_floor:
             logger.info(f"Notifier: Confidence too low ({confidence}% < {self.notification_confidence_floor}%). Skipping dispatch.")
             return False
+
+        opinion = final_decision.get("opinion") or "NEUTRAL"
 
         # Only notify if opinion is BULLISH / BEARISH
         if opinion.upper() not in ["BULLISH", "BEARISH"]:
@@ -652,7 +672,7 @@ class SessionNotifier:
             
         # We only notify audits for strategies that met our confidence threshold
         final_decision = strat_session.get("final_decision") or {}
-        confidence = final_decision.get("confidence", 0)
+        confidence = final_decision.get("confidence_score", 0)
         
         if confidence < self.notification_confidence_floor:
             logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping audit dispatch.")

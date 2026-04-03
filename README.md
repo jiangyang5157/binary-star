@@ -1,7 +1,6 @@
 # 🌌 Singularity Session Engine (v6.1)
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Stability: Production Ready](https://img.shields.io/badge/Stability-Production--Ready-brightgreen.svg)]()
 
 > **"Trading is not a game of predicting the future; it is a game of surviving the present."**
 > 
@@ -49,6 +48,9 @@ After every session, the **Evolver** agent performs a forensic audit. It asks: *
 ---
 
 ## 🛠 Operation Manual
+
+### 0.
+`source venv/bin/activate`
 
 ### 1. Market Session (Live Analysis)
 Analyze a specific symbol in real-time.
