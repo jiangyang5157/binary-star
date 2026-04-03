@@ -30,7 +30,7 @@ regime_parameters:
   trend_intensity_strong: 0.5
   # Clipping multiplier to filter noise in low-velocity regimes.
   boundary_clipping_atr: 0.2
-  
+
   # --- Volatility & Risk Fractals (Noise Management) ---
   # Ratio of current ATR vs Macro Baseline. >1.3 indicates volatility expansion.
   volatility_baseline_ratio: 1.3
@@ -38,7 +38,7 @@ regime_parameters:
   volatility_expansion_ratio: 1.5
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
   volatility_extreme_ratio: 2.0
-  
+
   # --- Physical Topography & Volume Confluence ---
   # Multiplier for volume breakout detection relative to moving average.
   volume_breakout_threshold: 1.5
@@ -64,7 +64,7 @@ regime_parameters:
   structural_proximity_threshold: 0.5
   # Maximum allowed drift of the current price from the historical Anchor price.
   anchor_drift_threshold: 3.0
-  
+
   # --- Micro-Sentiment & Exhaustion Indicators ---
   # Score threshold for 'Volume Vacuums' where liquidity is non-existent.
   vacuum_risk_score: 0.3
@@ -82,7 +82,7 @@ regime_parameters:
   squeeze_threshold: 1.0
   # Probability floor for squeeze audit validation.
   squeeze_audit_threshold: 0.85
-  
+
   # --- Execution Safety & Friction Buffers ---
   # Buffer added to breakout entries to filter 'False Breakouts'.
   breakout_buffer_atr: 0.2
@@ -109,7 +109,7 @@ topography_parameters:
   volume_profile_price_bucket_count: 300
   # Period for smoothing volume participation.
   volume_moving_average_period: 21
-  
+
   # --- Structural Node Detection ---
   # Max number of HVN (High Volume Nodes) to track as magnets.
   max_high_volume_node_count: 3
@@ -122,7 +122,7 @@ topography_parameters:
   # Minimum gap required to distinguish two separate structural nodes.
   min_price_gap_between_nodes: 50
   top_structural_node_count: 3
-  
+
   # --- Technical Sensors (Physics Math) ---
   average_true_range_period: 21
   bollinger_bands_period: 21
@@ -133,7 +133,7 @@ topography_parameters:
   wick_skew_fallback: 0.5
   # The fallback ATR distance used when no structural nodes are detected.
   default_structural_distance: 5.0
-  
+
   # --- Liquidity Magnet (Liquidation Clusters) ---
   # Number of forced-liquidation clusters to analyze simultaneously.
   max_liquidation_clusters: 3
@@ -156,7 +156,7 @@ binary_star:
   max_rounds: 2
   # Divergence Limit. If skepticism holds above this, the system refuses to trade.
   skepticism_halt_limit: 50
-  
+
   session:
     role_definition_prompt: src/agent/prompts/session.md
     model_temperature_draft: 0.7
