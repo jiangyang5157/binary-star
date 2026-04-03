@@ -26,7 +26,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
 Every proposed change MUST be flagged for Sandbox Validation:
 - **Metric A (Survival)**: New logic must NO-OP or safely steer the previously failed trade. 
 - **Metric B (Regression)**: New logic MUST NOT lose on previously profitable "Truth Mirrors".
-- **Metric C (Efficiency)**: The `max_rounds` of the Binary Star debate must stay <= previous.
+- **Metric C (Efficiency)**: The `total_rounds` (`len(debate_history)`) of the Binary Star debate must stay <= previous.
 
 ## 4. De-sensitization Engine (DE-SENSITIZATION)
 - **Action**: If `max_rounds` of Binary Star was exceeded (Deadlock), identify the "Logical Friction Point".
@@ -38,14 +38,14 @@ Every proposed change MUST be flagged for Sandbox Validation:
 3. **ANTI-DEADLOCK SYNC**: Simulate systemic impact to ensure "Permission to Expand" (Session) doesn't collide with "Restriction to Anchor" (Critic).
 4. **LITERAL FIDELITY (THE ANCHOR RULE)**: In `OUTPUT_SCHEMA`, the `anchor_text` MUST be a character-for-character, byte-perfect copy of the source from `{current_prompt_md}`. Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
 
-# SESSION_JUDGMENT_RUBRIC (THE REVIEWER'S SOUL)
+# SESSION_JUDGMENT_RUBRIC
 1. **THE NEUTRALITY PARADOX**: If Session is `NEUTRAL` while Critic invalidates via `[OPPORTUNITY_DENIAL]`, penalize as "Logic Cowardice" failure.
 2. **MAE STRESS TIERS**:
-   - **PINPOINT (0-15%)**: Perfect entry. Praise Current Intent.
-   - **STANDARD (15-50%)**: Normal noise. Preservation of current buffer is the goal.
-   - **LUCK (50-80%)**: Saved by volatility. Evolve `structural_buffer_atr` to relocate SL.
-   - **LOGIC_FAILURE (>80%)**: SL placed in front of the train. Mandatory PATCH to harden filters.
-3. **FRONT-RUN AMNESTY**: If `SL_HIT` occurred but `mae_stress_tier` was `STANDARD` and `front-run` logic was justified, WAIVE penalty.
+   - **PINPOINT (0-15%)**: Perfect alignment. **Action**: NO-OP. Maintain current logic.
+   - **STANDARD (15-50%)**: Structural noise. **Action**: NO-OP. Do not overfit to noise.
+   - **LUCK (50-80%)**: Saved by volatility. **Action**: Evolve `structural_buffer_atr` to relocate SL.
+   - **LOGIC_FAILURE (>80%)**: Direct trend collision. **Action**: **Mandatory Filter Hardening**.
+3. **STRUCTURAL AMNESTY**: If `SL_HIT` occurred, `sl_is_shielded` was TRUE and `mae_stress_tier` was `STANDARD`, the failure is a **Statistical Necessity**. Preservation of existing edge is higher priority than fixing a single loss.
 
 # INPUT_DATUM
 - **Session Records**: `{audit_reports_json}` (Batch from SessionAssembler).
@@ -54,8 +54,8 @@ Every proposed change MUST be flagged for Sandbox Validation:
 
 # REASONING_CHAIN
 1. **Pathology Scan**: Identify Systemic Bias (e.g., [PROTOCOL_DISOBEDIENCE] or [STRUCTURAL_BLINDNESS]).
-2. **Component Isolation**: Determine if failure is Logic (Prompt) or Parametric (Threshold). 
-3. **Constraint Synthesis**: Calculate new safe boundaries using `MAE STRESS TIERS`.
+2. **Failure Root Isolation**: Determine if failure is Logic (Prompt) or Parametric (Threshold). 
+3. **Constraint Synthesis**: Calculate new safe boundaries using `mae_stress_tier`.
 4. **Logic Synchronization**: Ensure config updates and prompt patches are bi-directionally aligned.
 
 # OUTPUT_SCHEMA
