@@ -282,7 +282,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                                 📑 Audit Findings
                             </td>
                             <td align="right" style="vertical-align: middle;">
-                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Rounds: {len((audit_data.get("session") or {}).get("debate_history", []))}</span>
+                                <span style="background: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 14px; color: #ffffff; font-weight: 800;">Debate Rounds: {len((audit_data.get("session") or {}).get("debate_history", []))}</span>
                             </td>
                         </tr>
                     </table>
