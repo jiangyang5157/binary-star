@@ -162,9 +162,7 @@ class SessionAgent(BaseAgent):
         symbol: str,
         temperature: float,
         agent_name: str,
-        last_plan: Optional[Dict[str, Any]] = None,
-        critic_feedback: Optional[Dict[str, Any]] = None,
-        math_fact_check: Optional[Dict[str, Any]] = None,
+        debate_history: Optional[List[Dict[str, Any]]] = None,
         cache_id: Optional[str] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
@@ -173,9 +171,7 @@ class SessionAgent(BaseAgent):
         try:
             prompt = self._build_prompt(
                 observation=observation, 
-                last_plan=last_plan,
-                critic_feedback=critic_feedback, 
-                math_fact_check=math_fact_check,
+                debate_history=debate_history,
                 cache_id=cache_id
             )
             
@@ -193,9 +189,7 @@ class SessionAgent(BaseAgent):
     def _build_prompt(
         self, 
         observation: Optional[Dict[str, Any]], 
-        last_plan: Optional[Dict[str, Any]] = None,
-        critic_feedback: Optional[Dict[str, Any]] = None,
-        math_fact_check: Optional[Dict[str, Any]] = None,
+        debate_history: Optional[List[Dict[str, Any]]] = None,
         cache_id: Optional[str] = None,
     ) -> str:
         """Internal logic for constructing the multimodal reasoning context.
@@ -212,9 +206,7 @@ class SessionAgent(BaseAgent):
 
         context = {
             "observation_json": observation_json,
-            "last_plan_json": json.dumps(last_plan, indent=2, ensure_ascii=False) if last_plan else "null",
-            "critic_feedback_json": json.dumps(critic_feedback, indent=2, ensure_ascii=False) if critic_feedback else "null",
-            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "null",
+            "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
             "min_trade_velocity": self.config.min_trade_velocity,
             "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
             "stop_loss_buffer_max": self.config.stop_loss_buffer_max,

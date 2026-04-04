@@ -265,9 +265,7 @@ class BinaryStarOrchestrator:
                     agent_name="Session_Planning",
                     cache_id=cache_resource_name, 
                     tools=tools, 
-                    critic_feedback=critic_results,
-                    last_plan=last_plan,
-                    math_fact_check=math_fact_check
+                    debate_history=debate_history
                 )
                 
                 # Adversarial Audit (Math Fact Check Injection)
@@ -278,6 +276,7 @@ class BinaryStarOrchestrator:
                     observation=observation, 
                     last_plan=last_plan, 
                     symbol=symbol,
+                    debate_history=debate_history,
                     cache_id=cache_resource_name,
                     math_fact_check=math_fact_check,
                     tools=tools
@@ -313,9 +312,7 @@ class BinaryStarOrchestrator:
                 agent_name="Session_Synthesis",
                 cache_id=cache_resource_name, 
                 tools=tools, 
-                critic_feedback=critic_results,
-                last_plan=last_plan,
-                math_fact_check=math_fact_check
+                debate_history=debate_history
             )
             
             # 4. Forensic Packaging

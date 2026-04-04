@@ -142,6 +142,7 @@ class CriticAgent(BaseAgent):
         observation: Optional[Dict[str, Any]], 
         last_plan: Dict[str, Any], 
         symbol: str, 
+        debate_history: Optional[List[Dict[str, Any]]] = None,
         cache_id: Optional[str] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None
@@ -155,7 +156,13 @@ class CriticAgent(BaseAgent):
         """
         logger.info(f"CriticAgent: Auditing {symbol} proposal for hidden risks...")
         try:
-            context = self._build_context(observation, last_plan, math_fact_check=math_fact_check, cache_id=cache_id)
+            context = self._build_context(
+                observation, 
+                last_plan, 
+                debate_history=debate_history,
+                math_fact_check=math_fact_check, 
+                cache_id=cache_id
+            )
             prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
             
             return self._execute_ai_cycle(
@@ -173,6 +180,7 @@ class CriticAgent(BaseAgent):
         self, 
         observation: Optional[Dict[str, Any]], 
         last_plan: Dict[str, Any], 
+        debate_history: Optional[List[Dict[str, Any]]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
         cache_id: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -188,6 +196,7 @@ class CriticAgent(BaseAgent):
             "observation_json": observation_json,
             "strategy_intent": self.config.strategy_intent,
             "last_plan": json.dumps(last_plan, indent=2, ensure_ascii=False),
+            "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
             "min_trade_velocity": self.config.min_trade_velocity,
             "macro_interval": self.config.macro_interval,
