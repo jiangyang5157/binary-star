@@ -40,7 +40,7 @@ regime_parameters:
   # Threshold where the system switches to 'Defensive' buffers to avoid stop-hunts.
   volatility_expansion_ratio: 1.5
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
-  volatility_extreme_ratio: 2.0
+  volatility_extreme_ratio: 1.6
 
   # --- Physical Topography & Volume Confluence ---
   # Multiplier for volume breakout detection relative to moving average.
@@ -168,7 +168,7 @@ binary_star:
     # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
     # Hard safety boundaries for stop-loss placements.
-    stop_loss_buffer_min: 0.3
+    stop_loss_buffer_min: 0.75
     stop_loss_buffer_max: 2.5
     score_confidence_base: 75
     # Decay applied for every round of doubt from the Audit.
