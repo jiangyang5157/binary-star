@@ -29,7 +29,7 @@ def main():
     data_root_rel = args.path
     data_root = os.path.join(PROJECT_ROOT, data_root_rel)
     
-    log_path = os.path.join(data_root, "sandbox_run.log")
+    log_path = os.path.join(data_root, "sandbox.log")
     setup_logger("", log_file=log_path)
     logger = logging.getLogger("SandboxRunner")
     

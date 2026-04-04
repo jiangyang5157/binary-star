@@ -40,7 +40,7 @@ Use these metrics to synthesize your tactical entry strategy:
 
 ## 2. Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum Riding**: If `volatility_ratio` and `trend_intensity` are high, do not wait for deep value. Front-run the nearest structural node.
+- **Momentum Riding**: If `volatility_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `trend_intensity` > `{trend_intensity_strong}`, execute Momentum Entries to front-run structural nodes. If `volatility_ratio` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `latest_wick_skew` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Sink your entry deep into an HVN to maximize RR.
 - **The Liquidity Hunt**: If `squeeze_factor` is low, target the vacuum beyond the VAH/VAL boundaries.
 - **Cowardice Veto**: Do not default to `NEUTRAL` just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.
@@ -58,7 +58,7 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
 - **[TACTICAL_REPAIR_PATTERNS]**: When history contains specific veto tags, apply these technical repair protocols:
     - `[ANCHOR_VIOLATION]`: Move SL distally to the next valid structural anchor (HVN/POC).
     - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`.
-        - `[RETAIL_SQUEEZE]`: Perform a **Polarity Pivot** to target the projected liquidation vacuum. To ensure execution: if `volatility_ratio` > `{volatility_expansion_ratio}`, execute a **Momentum Entry**; otherwise, sink into a deep **DLE**. You MUST use MathTools to completely recalculate coordinates for the reversed vector.
+        - `[RETAIL_SQUEEZE]`: Perform a **Polarity Pivot** to target the projected liquidation vacuum. To ensure execution: if `volatility_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, execute a **Momentum Entry**; otherwise, sink into a deep **DLE**. You MUST use `MathTools` to completely recalculate coordinates for the reversed vector.
     - `[OPPORTUNITY_DENIAL]`: Your previous `NEUTRAL` was a failure of confluence. Read the telemetry and execute a hardened directional proposal.
 
 # OUTPUT_SCHEMA
