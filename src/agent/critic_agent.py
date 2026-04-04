@@ -56,20 +56,21 @@ class CriticConfig(AgentConfig):
     funding_extreme_threshold: float
     structural_proximity_threshold: float
     gravity_volume_override_ratio: float
+    instruction_literal: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, cfg_dict: Dict[str, Any]) -> "CriticConfig":
+    def from_dict(cls, cfg_dict: Dict[str, Any], instruction_literal: Optional[str] = None) -> "CriticConfig":
         """Factory method to assemble a CriticConfig from the global strategy configuration."""
         bs = cfg_dict['binary_star']
-        critic = bs['critic']
+        critic_cfg = bs['critic']
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
         sampling = cfg_dict['analysis_window']
         
         return cls(
             model=str(bs['model']),
-            role_prompt_path=os.path.join(resolve_project_root(), critic['role_definition_prompt']),
-            model_temperature=float(critic['model_temperature']),
+            instruction_path=os.path.join(resolve_project_root(), critic_cfg['role_definition_prompt']),
+            model_temperature=float(critic_cfg['model_temperature']),
             max_tool_iterations=int(cfg_dict['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_node['min_trade_velocity']),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),
@@ -95,16 +96,17 @@ class CriticConfig(AgentConfig):
             volume_baseline_ratio=float(regime['volume_baseline_ratio']),
             squeeze_threshold=float(regime['squeeze_threshold']),
             squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
-            threshold_skepticism_clear=int(critic['threshold_skepticism_clear']),
-            threshold_skepticism_weak=int(critic['threshold_skepticism_weak']),
-            threshold_skepticism_constructive=int(critic['threshold_skepticism_constructive']),
+            threshold_skepticism_clear=int(critic_cfg['threshold_skepticism_clear']),
+            threshold_skepticism_weak=int(critic_cfg['threshold_skepticism_weak']),
+            threshold_skepticism_constructive=int(critic_cfg['threshold_skepticism_constructive']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
-            gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio'])
+            gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
+            instruction_literal=instruction_literal
         )
 
 class CriticAgent(BaseAgent):
@@ -163,7 +165,7 @@ class CriticAgent(BaseAgent):
                 math_fact_check=math_fact_check, 
                 cache_id=cache_id
             )
-            prompt = self._prepare_prompt(self.config.role_prompt_path, **context)
+            prompt = self._prepare_prompt(self.config.instruction_path, **context)
             
             return self._execute_ai_cycle(
                 payload=prompt, 

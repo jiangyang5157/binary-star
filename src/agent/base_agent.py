@@ -21,12 +21,12 @@ class AgentConfig:
     Attributes:
         model: The Gemini model identifier (e.g., 'gemini-2.0-flash').
         model_temperature: Model creativity override.
-        role_prompt_path: Absolute path to the system role template.
+        instruction_path: Absolute path to the system instruction template.
         max_tool_iterations: Safety ceiling for autonomous tool-looping.
     """
     model: str
     model_temperature: float
-    role_prompt_path: str
+    instruction_path: str
     max_tool_iterations: int
 
 class BaseAgent:
@@ -76,19 +76,18 @@ class BaseAgent:
     def _prepare_prompt(self, template_path: str, **context: Any) -> str:
         """Reads a prompt template and injects semantic context variables.
         
-        Args:
-            template_path: Path to the markdown prompt template.
-            **context: Dynamic variables for placeholder injection.
-            
-        Returns:
-            The formatted prompt string with injected topography/metrics.
-            
-        Raises:
-            IOError: If template cannot be resolved.
-            KeyError: If mandatory context variables are missing.
+        Prioritizes the in-memory instruction_literal if provided in the config,
+        otherwise falls back to reading from the template_path on disk.
         """
         try:
-            template = read_prompt_template(template_path)
+            # Phase 1: Context Retrieval (Literal vs. Disk)
+            # Prioritizing instruction_literal for sandbox/in-memory experiments
+            instruction_literal = getattr(self.config, 'instruction_literal', None)
+            
+            if instruction_literal:
+                template = instruction_literal
+            else:
+                template = read_prompt_template(template_path)
             return safe_format(template, **context)
         except Exception as e:
             logger.error(f"BaseAgent: Failed to prepare prompt from {template_path}: {e}")

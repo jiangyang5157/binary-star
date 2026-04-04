@@ -64,9 +64,10 @@ class SessionConfig(AgentConfig):
     balanced_atr_multiplier: float
     structural_buffer_atr: float
     cvd_intensity_threshold: float
+    instruction_literal: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, cfg: Dict[str, Any]) -> "SessionConfig":
+    def from_dict(cls, cfg: Dict[str, Any], instruction_literal: Optional[str] = None) -> "SessionConfig":
         """Factory method to assemble a SessionConfig from the global YAML structure.
         
         Args:
@@ -76,21 +77,21 @@ class SessionConfig(AgentConfig):
             A populated SessionConfig instance.
         """
         bs = cfg['binary_star']
-        strat = bs['session']
+        session_cfg = bs['session']
         regime = cfg['regime_parameters']
         sampling = cfg['analysis_window']
         
         return cls(
             model=str(bs['model']),
-            model_temperature=float(strat['model_temperature']),
-            role_prompt_path=os.path.join(resolve_project_root(), strat['role_definition_prompt']),
+            model_temperature=float(session_cfg['model_temperature']),
+            instruction_path=os.path.join(resolve_project_root(), session_cfg['role_definition_prompt']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
-            min_trade_velocity=float(strat['min_trade_velocity']),
-            stop_loss_buffer_min=float(strat['stop_loss_buffer_min']),
-            stop_loss_buffer_max=float(strat['stop_loss_buffer_max']),
-            score_confidence_base=float(strat['score_confidence_base']),
-            score_confidence_decay_min=float(strat['score_confidence_decay_min']),
-            score_confidence_decay_max=float(strat['score_confidence_decay_max']),
+            min_trade_velocity=float(session_cfg['min_trade_velocity']),
+            stop_loss_buffer_min=float(session_cfg['stop_loss_buffer_min']),
+            stop_loss_buffer_max=float(session_cfg['stop_loss_buffer_max']),
+            score_confidence_base=float(session_cfg['score_confidence_base']),
+            score_confidence_decay_min=float(session_cfg['score_confidence_decay_min']),
+            score_confidence_decay_max=float(session_cfg['score_confidence_decay_max']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
@@ -115,14 +116,15 @@ class SessionConfig(AgentConfig):
             poc_magnet_atr_threshold=float(regime['poc_magnet_atr_threshold']),
             gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
             boundary_clipping_atr=float(regime['boundary_clipping_atr']),
-            holding_time_modifier=float(strat['holding_time_modifier']),
+            holding_time_modifier=float(session_cfg['holding_time_modifier']),
             participation_volume_threshold=float(regime['participation_volume_threshold']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             poc_confluence_strength=float(regime['poc_confluence_strength']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
-            cvd_intensity_threshold=float(regime['cvd_intensity_threshold'])
+            cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
+            instruction_literal=instruction_literal
         )
 
 class SessionAgent(BaseAgent):
@@ -249,7 +251,7 @@ class SessionAgent(BaseAgent):
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold
         }
         
-        return self._prepare_prompt(self.config.role_prompt_path, **context)
+        return self._prepare_prompt(self.config.instruction_path, **context)
 
     # --- Tool Delegates (Function Calling Interfaces) ---
     

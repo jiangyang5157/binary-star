@@ -6,7 +6,10 @@
 # LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED.
 # =============================================================================
 
-strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must possess an audit-grade mathematical edge and absolute structural invalidation."
+strategy_intent: "Asymmetric Liquidity Hunting & Dynamic Regime Adaptation. PRIME
+  DIRECTIVE: Structural Convexity - Small losses are acceptable, small/large wins
+  are targeted, but LARGE DRAWDOWNS ARE ABSOLUTELY PROHIBITED. Every execution must
+  possess an audit-grade mathematical edge and absolute structural invalidation."
 
 analysis_window:
   # Macro Context: Structural landscape (Trend detection and Daily range).
@@ -25,7 +28,7 @@ analysis_window:
 regime_parameters:
   # --- Trend & Momentum Vectors (Regime Detection) ---
   # Minimum vector strength to classify as 'Trending'. Range [0, 1].
-  trend_intensity_threshold: 0.4
+  trend_intensity_threshold: 0.78
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
   trend_intensity_strong: 0.5
   # Clipping multiplier to filter noise in low-velocity regimes.

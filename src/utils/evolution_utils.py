@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import collections.abc
 from typing import Dict, Any, List, Optional
 from ruamel.yaml import YAML
 
@@ -29,14 +30,15 @@ class ConfigPatcher:
             def find_and_update_recursive(source, k, v):
                 count = 0
                 if k in source:
-                    if isinstance(source[k], dict) and isinstance(v, dict):
+                    # v6.11: Support both dict and CommentedMap (ruamel)
+                    if isinstance(source[k], (dict, collections.abc.Mapping)) and isinstance(v, (dict, collections.abc.Mapping)):
                         source[k].update(v)
                     else:
                         source[k] = v
                     count += 1
                 
                 for node_k, node_v in source.items():
-                    if isinstance(node_v, dict):
+                    if isinstance(node_v, (dict, collections.abc.Mapping)):
                         count += find_and_update_recursive(node_v, k, v)
                 return count
 
@@ -51,7 +53,7 @@ class ConfigPatcher:
                     return 1
                 
                 current_segment = path_parts[0]
-                if current_segment in source and isinstance(source[current_segment], dict):
+                if current_segment in source and isinstance(source[current_segment], (dict, collections.abc.Mapping)):
                     return navigate_and_update(source[current_segment], path_parts[1:], k, v)
                 return 0
 
@@ -99,15 +101,17 @@ class PromptDistiller:
                 content = f.read()
 
             # Strategy: Collapse all anchor whitespace into a flexible pattern
+            # 1. Clean the anchor of redundant whitespace
             clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
+            # 2. Escape regex characters (note: re.escape behavior depends on Python version)
             pattern = re.escape(clean_anchor)
-            # Match flexible whitespace clusters
+            # 3. Restore flexibility for whitespace: Replace literal spaces OR escaped spaces (\ ) 
+            # with a greedy whitespace matcher [\s\r\n\t]+
             pattern = pattern.replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
             
             # Count matches before substitution
             matches = len(re.findall(pattern, content))
             if matches > 0:
-                # v6.11: Exhaustive replacement (count=0 replaces all)
                 new_content = re.sub(pattern, new_text, content, count=0)
                 with open(target_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)

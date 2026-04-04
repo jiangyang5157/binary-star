@@ -36,17 +36,23 @@ class BinaryStarOrchestrator:
        blueprint is logically sound and structurally shielded.
     """
     
-    def __init__(self, config_dict: Dict[str, Any], api_key: str, data_root: str):
+    def __init__(self, 
+                 config_dict: Dict[str, Any], 
+                 api_key: str, 
+                 data_root: str,
+                 instruction_overrides: Optional[Dict[str, str]] = None):
         """Initializes the orchestrator as a central resource and configuration hub.
         
         Args:
             config_dict: The global strategy configuration (strategy_config.yaml).
             api_key: Authenticated Google GenAI API key.
             data_root: Logical root directory for forensic asset persistence.
+            instruction_overrides: In-memory mapping of agent names to logic templates.
         """
         self.config = config_dict
         self.api_key = api_key
         self.data_root = resolve_data_root(data_root)
+        self.instruction_overrides = instruction_overrides or {}
         
         # 0. Global Configuration Merging (Physical Split maintained for Snapshot Purity)
         self.global_config = load_config('config/global_config.yaml')
@@ -78,16 +84,22 @@ class BinaryStarOrchestrator:
         self.cache_expiration = int(self.bs_config['cache_expiration_minutes'])
         self.shared_model = self.bs_config['model']
         
-        # 4. Contextual Prompt Assembly
+        # 4. Contextual Prompt Assembly (Support for Sandbox Injection)
         self.bs_instruction_path = os.path.join(resolve_project_root(), self.bs_config.get('system_instruction', ''))
-        raw_instruction = read_prompt_template(self.bs_instruction_path)
+        raw_instruction = self.instruction_overrides.get('binary_star') or read_prompt_template(self.bs_instruction_path)
         self.shared_instruction = safe_format(raw_instruction, max_rounds=self.max_rounds)
         
-        # 5. Type-Safe Configuration Slicing (Local Merge for Initialization)
+        # 5. Type-Safe Configuration Slicing (Local Merge with Prompt Injection)
         local_context = {**self.config, **self.global_config}
         self.obs_config = MarketObserverConfig.from_dict(local_context)
-        self.session_config = SessionConfig.from_dict(local_context)
-        self.critic_config = CriticConfig.from_dict(local_context)
+        self.session_config = SessionConfig.from_dict(
+            local_context, 
+            instruction_literal=self.instruction_overrides.get('session')
+        )
+        self.critic_config = CriticConfig.from_dict(
+            local_context, 
+            instruction_literal=self.instruction_overrides.get('critic')
+        )
         
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(

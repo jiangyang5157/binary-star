@@ -15,19 +15,19 @@ class EvolverConfig(AgentConfig):
     """Configuration for the Evolver meta-agent."""
     model: str
     model_temperature: float
-    role_prompt_path: str
+    instruction_path: str
     max_tool_iterations: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
         """Factory method to extract evolver config from the standalone evolver node."""
-        evo = cfg.get('evolver', {})
+        evolver_cfg = cfg.get('evolver', {})
         shared = cfg.get('agent_model_shared_config', {})
         return cls(
-            model=str(evo.get('model', 'gemini-2.5-flash')),
-            role_prompt_path=os.path.join(resolve_project_root(), evo.get('role_definition_prompt', '')),
-            model_temperature=float(evo.get('model_temperature', 0.0)),
-            max_tool_iterations=int(shared.get('max_tool_iterations', 5))
+            model=str(evolver_cfg['model']),
+            instruction_path=os.path.join(resolve_project_root(), evolver_cfg['role_definition_prompt']),
+            model_temperature=float(evolver_cfg['model_temperature']),
+            max_tool_iterations=int(shared['max_tool_iterations'])
         )
 
 class EvolverAgent(BaseAgent):
@@ -73,7 +73,7 @@ class EvolverAgent(BaseAgent):
         self, 
         audit_reports: List[Dict[str, Any]], 
         active_config: Dict[str, Any],
-        current_prompts: Dict[str, str]
+        current_instructions: Dict[str, str]
     ) -> Dict[str, Any]:
         """Executes the neural meta-optimization cycle.
 
@@ -83,7 +83,7 @@ class EvolverAgent(BaseAgent):
         Args:
             audit_reports: List of analyzed session results with outcomes.
             active_config: Current active strategy_config.yaml state.
-            current_prompts: Mapping of agent names to their prompt source code.
+            current_instructions: Mapping of agent names to their instruction source code.
 
         Returns:
             A dictionary containing the mutation proposal and rationale.
@@ -95,7 +95,7 @@ class EvolverAgent(BaseAgent):
             
             # v6.11: Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
-            for module, content in current_prompts.items():
+            for module, content in current_instructions.items():
                 prompts_md += f"# {module.lower()}_PROMPT\n{content}\n\n"
 
             logger.info(
@@ -106,7 +106,7 @@ class EvolverAgent(BaseAgent):
             )
 
             prompt = self._prepare_prompt(
-                self.config.role_prompt_path,
+                self.config.instruction_path,
                 audit_reports_json=reports_json,
                 active_config_yaml=config_json,
                 current_prompt_md=prompts_md,
@@ -141,66 +141,3 @@ class EvolverAgent(BaseAgent):
             logger.error(f"Evolver: Meta-optimization failed: {e}")
             raise
 
-    def apply_patch(self, evolution_result: Dict[str, Any], config_path: str, symbol: str) -> bool:
-        """
-        Atomic Hardening of the system using the validated evolution result.
-        Returns True if at least one patch or refinement was successfully applied.
-        """
-        from src.utils.evolution_utils import ConfigPatcher, PromptDistiller
-        
-        applied_any = False
-        evolution_type = evolution_result.get('evolution_type')
-        logger.info(f"Evolver: Applying mutation of type: {evolution_type}")
-        
-        # 1. Handle Configuration Overlays
-        config_patches = evolution_result.get('config_patch', [])
-        for patch in config_patches:
-            key = patch.get('target_key')
-            val = patch.get('replaced_with')
-            path = patch.get('target_path', "")
-            tag = patch.get('pathology_tag', "UNTAGGED")
-            
-            if key and val is not None:
-                count = ConfigPatcher.apply_patch(config_path, key, val, parent_path=path)
-                if count > 0:
-                    logger.info(f"Evolver: [CONFIG_PATCH] Applied {count} update(s) for {tag} (Key: {key})")
-                    applied_any = True
-                else:
-                    logger.warning(f"Evolver: [CONFIG_PATCH] Failed to apply patch for {tag} (Key: {key})")
-        
-        # 2. Handle Semantic Refinement
-        refinements = evolution_result.get('semantic_refinement', [])
-        for refinement in refinements:
-            target = refinement.get('target_module', '')
-            anchor = refinement.get('anchor_text', '')
-            new_logic = refinement.get('replaced_with', '')
-            tag = refinement.get('pathology_tag', "UNTAGGED")
-            
-            if not target or not anchor:
-                continue
-
-            # Resolve target path from config
-            from src.utils.pipeline_utils import load_config
-            from src.utils.path_utils import resolve_project_root
-            cfg = load_config()
-            target_file_rel = ""
-            
-            if "session" in target.lower():
-                target_file_rel = cfg.get('binary_star', {}).get('session', {}).get('role_definition_prompt', '')
-            elif "critic" in target.lower():
-                target_file_rel = cfg.get('binary_star', {}).get('critic', {}).get('role_definition_prompt', '')
-            elif "binary_star" in target.lower():
-                target_file_rel = cfg.get('binary_star', {}).get('system_instruction', '')
-                
-            if target_file_rel:
-                full_target_path = os.path.join(resolve_project_root(), target_file_rel)
-                count = PromptDistiller.apply_distillation(full_target_path, anchor, new_logic)
-                if count > 0:
-                    logger.info(f"Evolver: [PROMPT_DISTILL] Applied {count} replacement(s) in {target} for {tag}")
-                    applied_any = True
-                else:
-                    logger.warning(f"Evolver: [PROMPT_DISTILL] Failed to distill {target} for {tag} (Anchor mismatch)")
-            else:
-                logger.warning(f"Evolver: Could not resolve physical path for target: {target}")
-                
-        return applied_any

@@ -14,7 +14,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.evolver_sandbox import EvolverSandbox
-from src.utils.pipeline_utils import resolve_data_root, add_data_root_argument
+from src.utils.pipeline_utils import resolve_data_root, add_data_root_argument, load_global_config
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 
@@ -41,20 +41,27 @@ def main():
     proposal = load_json(args.file)
     metadata = proposal.get("metadata", {})
     symbol = metadata.get("symbol", "BTCUSDT")
-    failure_case_filename = metadata.get("primary_failure_case")
+    audit_reports_list = metadata.get("audit_reports", [])
     
-    if not failure_case_filename:
-        logger.error(f"Proposal metadata missing 'primary_failure_case'. Cannot replay.")
+    if not audit_reports_list:
+        logger.error(f"Proposal metadata missing 'audit_reports' list. Cannot perform batch validation.")
         sys.exit(1)
         
-    # 3. Load Failure Case (The Audit Report)
-    audit_file = os.path.join(data_root, "audits", failure_case_filename)
-    if not os.path.exists(audit_file):
-        logger.error(f"Audit report not found at {audit_file}. Metadata reference may be stale.")
+    # 3. Load All Audit Reports
+    reports = []
+    for filename in audit_reports_list:
+        audit_file = os.path.join(data_root, "audits", filename)
+        if os.path.exists(audit_file):
+            report = load_json(audit_file)
+            if report:
+                reports.append(report)
+        else:
+            logger.warning(f"Audit report not found: {filename}. Skipping.")
+
+    if not reports:
+        logger.error("No valid audit reports found to validate against.")
         sys.exit(1)
         
-    failure_case = load_json(audit_file)
-    
     # 4. Setup Directories
     base_dir = os.path.join(data_root, "evolution")
     dirs = {
@@ -65,37 +72,49 @@ def main():
     for d in dirs.values():
         os.makedirs(d, exist_ok=True)
         
-    # 5. Run Sandbox Validation
+    # 5. Run Batch Sandbox Validation
     load_dotenv()
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         logger.critical("GEMINI_API_KEY Missing.")
         sys.exit(1)
         
-    logger.info(f"Sandbox: Initializing validation for {os.path.basename(args.file)}...")
-    sandbox = EvolverSandbox(api_key, data_root_rel) # EvolverSandbox expects relative data_root
+    logger.info(f"Sandbox: Initializing batch validation for {len(reports)} cases...")
+    g_cfg = load_global_config()
+    s_cfg = g_cfg.get('sandbox', {})
+    sandbox = EvolverSandbox(
+        api_key, 
+        data_root_rel, 
+        acceptance_threshold=float(s_cfg['acceptance_threshold'])
+    )
     
-    validation = sandbox.validate_evolution(
-        failure_case=failure_case,
+    validation = sandbox.run_batch_validation(
+        reports=reports,
         proposed_patch=proposal.get('config_patch'),
         proposed_prompts=proposal.get('semantic_refinement')
     )
     is_valid = validation.get('is_validated', False)
     
-    # 6. Save Sandbox Result
+    # 6. Inject Pass/Failure Cases into Proposal JSON (Persistence)
+    proposal['pass_cases'] = validation.get('pass_cases', [])
+    proposal['failure_cases'] = validation.get('failure_cases', [])
+    proposal['success_rate'] = validation.get('success_rate', 0.0)
+    save_json(proposal, args.file) # Overwrite with results
+    
+    # 7. Save Detailed Sandbox Result
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     sandbox_id = f"{symbol}_evolution_sandbox_{timestamp}"
     sandbox_file = os.path.join(dirs['sandbox'], f"{sandbox_id}.json")
     save_json(validation, sandbox_file)
     
-    # 7. Routing
+    # 8. Routing
     if is_valid:
-        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted'...")
+        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted' ({validation.get('success_rate')*100:.1f}% Success)")
         target_file = os.path.join(dirs['accepted'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
         print(f"✅ Sandbox Passed | Result: {sandbox_file} | Proposal moved to accepted.")
     else:
-        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected'...")
+        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected' ({validation.get('success_rate')*100:.1f}% Success)")
         target_file = os.path.join(dirs['rejected'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
         print(f"❌ Sandbox Failed | Result: {sandbox_file} | Proposal moved to rejected.")

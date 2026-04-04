@@ -82,8 +82,8 @@ Your response MUST be RAW JSON only.
 
 ```json
 {{
-    "evolution_signature": "evolution_[timestamp]",
     "evolution_type": "PATCH | DISTILLATION",
+    "rationale": "Fault: Root of failure. Mutation: Locus of change. Boundary: Deferrals dictated by risk and the unknown.",
     "config_patch": [
         {{
             "pathology_tag": "[REGIME_MISALIGNMENT]",

@@ -61,7 +61,7 @@ class EvolutionEngine:
             os.makedirs(d, exist_ok=True)
         return dirs
 
-    def run_cycle(self, sample_size: int, run_sandbox: bool, auto_patch: bool):
+    def run_cycle(self, sample_size: int, run_sandbox: bool):
         """Standard Operating Procedure for the Universal Evolver."""
         self.logger.info("="*60)
         self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
@@ -121,7 +121,7 @@ class EvolutionEngine:
             retry_max=int(gemini_net['retry_strategy']['max_seconds'])
         )
 
-        prompts = {
+        instruction_paths = {
             "session_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/session.md"),
             "critic_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/critic.md"),
             "binary_star_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/binary_star.md")
@@ -130,19 +130,18 @@ class EvolutionEngine:
         # 3. Phase: Prototype Generation
         self.logger.info("Evolver: Initiating Neural Meta-Optimization (Gemini-Flash Inference)...")
         
-        # v6.11: Inject RAW prompt contents to enable byte-perfect semantic refinement
-        # The model needs the actual logic text, not just the file paths, to perform patches.
+        # v6.11: Inject RAW instruction contents to enable byte-perfect semantic refinement
         from src.utils.pipeline_utils import read_prompt_template
-        prompt_contents = {
-            "session": read_prompt_template(prompts["session_path"]),
-            "critic": read_prompt_template(prompts["critic_path"]),
-            "binary_star": read_prompt_template(prompts["binary_star_path"])
+        instruction_contents = {
+            "session": read_prompt_template(instruction_paths["session_path"]),
+            "critic": read_prompt_template(instruction_paths["critic_path"]),
+            "binary_star": read_prompt_template(instruction_paths["binary_star_path"])
         }
 
         evolution_result = evolver.evolve(
             audit_reports=reports,
             active_config=config,
-            current_prompts=prompt_contents
+            current_instructions=instruction_contents
         )
         
         # v6.11: Standardized Naming: {symbol}_evolution_{timestamp}
@@ -152,8 +151,7 @@ class EvolutionEngine:
         evolution_result['metadata'] = {
             "symbol": self.symbol,
             "timestamp": timestamp,
-            "source_audit_reports": [reports[0].get('metadata', {}).get('audit_id', files[0]) for reports in [reports]], # Best effort mapping
-            "primary_failure_case": files[0]
+            "audit_reports": files[:sample_size]
         }
         
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
@@ -166,21 +164,31 @@ class EvolutionEngine:
         # 4. Phase: The Shadow Sandbox
         is_valid = None
         if run_sandbox:
-            self.logger.info(f"Sandbox: [SECURE_MODE] Validating {ev_id} against primary failure case: {files[0]}")
-            sandbox = EvolverSandbox(self.api_key, self.data_root)
-            validation = sandbox.validate_evolution(
-                failure_case=reports[0], # TODO yangj: how to pick failure cases?
-                proposed_patch=evolution_result.get('config_patch'),
-                proposed_prompts=evolution_result.get('semantic_refinement')
+            self.logger.info(f"Sandbox: [BATCH_MODE] Validating {ev_id} against {len(reports)} historical cases.")
+            s_cfg = g_cfg.get('sandbox', {})
+            sandbox = EvolverSandbox(
+                self.api_key, 
+                self.data_root, 
+                acceptance_threshold=float(s_cfg['acceptance_threshold'])
+            )
+            validation = sandbox.run_batch_validation(
+                audit_reports=reports,
+                config_patch=evolution_result.get('config_patch'),
+                instruction_patch=evolution_result.get('semantic_refinement')
             )
             is_valid = validation.get('is_validated', False)
+            
+            # Inject pass/failure cases into result
+            evolution_result['pass_cases'] = validation.get('pass_cases', [])
+            evolution_result['failure_cases'] = validation.get('failure_cases', [])
+            evolution_result['success_rate'] = validation.get('success_rate', 0.0)
             
             # v6.11: Sandbox Result Naming: {symbol}_evolution_sandbox_{timestamp}.json
             sandbox_id = f"{self.symbol}_evolution_sandbox_{timestamp}"
             sandbox_file = os.path.join(self.dirs['sandbox'], f"{sandbox_id}.json")
             save_json(validation, sandbox_file)
             
-            self.logger.info(f"Sandbox: Result Category: {'SUCCESS' if is_valid else 'FAILURE'}")
+            self.logger.info(f"Sandbox: Overall Result: {'ACCEPTED' if is_valid else 'REJECTED'} ({validation.get('success_rate')*100:.1f}% Success)")
         else:
             self.logger.info(f"Sandbox: [PASSIVE_MODE] Bypassing validation for {ev_id}. Proposal remains in 'proposals'.")
         
@@ -189,15 +197,6 @@ class EvolutionEngine:
             self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Moving to 'sandbox_accepted'...")
             accepted_file = os.path.join(self.dirs['sandbox_accepted'], f"{ev_id}.json")
             shutil.move(proposal_file, accepted_file)
-            
-            if auto_patch:
-                self.logger.info(f"System: [AUTO_PATCH] Initiating atomic system merge for {ev_id}...")
-                if evolver.apply_patch(evolution_result, "config/strategy_config.yaml", symbol=self.symbol):
-                    self.logger.info(f"System: Mutation {ev_id} successfully merged into strategic core.")
-                else:
-                    self.logger.error(f"System: Critical failure during atomic merge of {ev_id}.")
-            else:
-                self.logger.info(f"System: [MANUAL_MODE] Skipping atomic patch as requested.")
 
         elif is_valid is False:
             self.logger.warning(f"Routing: EVOLUTION REJECTED [{ev_id}]. Regression risk detected. Moving to 'sandbox_rejected'...")
@@ -214,7 +213,6 @@ def main():
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading symbol for analysis (default: BTCUSDT)")
     parser.add_argument("--samples", type=int, default=20, help="Number of forensic reports to ingest")
     parser.add_argument("--sandbox", action="store_true", help="Activate Sandbox validation")
-    parser.add_argument("--patch", action="store_true", help="Apply system patches automatically if sandbox passes")
     add_data_root_argument(parser)
     
     args = parser.parse_args()
@@ -225,7 +223,7 @@ def main():
         
     engine = EvolutionEngine(data_root, symbol=args.symbol)
     try:
-        engine.run_cycle(sample_size=args.samples, run_sandbox=args.sandbox, auto_patch=args.patch)
+        engine.run_cycle(sample_size=args.samples, run_sandbox=args.sandbox)
     except Exception as e:
         # Note: self.logger might not be initialized if __init__ fails
         print(f"Evolution Cycle Failed: {e}")
