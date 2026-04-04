@@ -6,6 +6,7 @@ from typing import List, Dict, Any
 
 from src.utils.json_utils import load_json
 from src.utils.path_utils import resolve_project_root
+from src.utils.datetime_utils import to_html_display
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 
 
@@ -50,7 +51,7 @@ class LedgerVisualizer:
         <div class="flex justify-between items-end border-b border-slate-700 pb-4">
             <div>
                 <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Execution Dashboard</h1>
-                <p class="text-slate-400 text-sm mt-1" id="gen-time-label">Generated: --</p>
+                <p class="text-slate-400 text-sm mt-1" id="gen-time-label">Report Cycle: {{GEN_TIME}}</p>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -74,7 +75,6 @@ class LedgerVisualizer:
     </div>
     <script>
         const RAW_DATA = {{JSON_DATA}};
-        document.getElementById('gen-time-label').innerText = `Generated: ${new Date().toLocaleString()}`;
         document.getElementById('json-dump').textContent = JSON.stringify(RAW_DATA, null, 2);
         const sortedTrades = [...RAW_DATA].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
         const executedTrades = sortedTrades.filter(d => d.is_filled);
@@ -98,7 +98,8 @@ class LedgerVisualizer:
         new Chart(document.getElementById('timelineChart'), { type: 'bubble', data: { datasets: [{ data: bubble, backgroundColor: bubble.map(d => d.color) }] }, options: { responsive: true, maintainAspectRatio: false, scales: scales } });
         new Chart(document.getElementById('equityChart'), { type: 'line', data: { datasets: [{ data: curve, borderColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: scales } });
     </script>
-</body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset))
+    </script>
+</body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset)).replace("{{GEN_TIME}}", to_html_display(datetime.now(timezone.utc).isoformat()))
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 

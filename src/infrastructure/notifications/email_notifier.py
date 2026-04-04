@@ -390,7 +390,7 @@ class LedgerEmailTemplate(BaseEmailTemplate):
             
             rows_html += f"""
                 <tr>
-                    <td style="font-family: monospace; font-size: 11px;">{item.get('observation_time', 'N/A')}</td>
+                    <td style="font-family: monospace; font-size: 11px;">{to_html_display(item.get('observation_time', 'N/A'))}</td>
                     <td><span style="font-weight: 700; color: {res_color};">{result_val}</span></td>
                     <td style="text-align: right; font-weight: 700;"><span class="{'metric_pnl_pos' if pnl_val > 0 else 'metric_pnl_neg' if pnl_val < 0 else ''}">{p_sign}{pnl_val}%</span></td>
                 </tr>
