@@ -253,7 +253,7 @@ def main():
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
     bt_group.add_argument("--sampling", type=int, default=1, help="Number of historical samples")
     bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
-    bt_group.add_argument("--session-hour", type=int, default=None, help="UTC hour to anchor sampling (default: from config)")
+    bt_group.add_argument("--session-hour", type=float, default=None, help="UTC hour to anchor sampling (default: from config)")
     
     from src.utils.pipeline_utils import add_data_path_argument
     add_data_path_argument(parser)

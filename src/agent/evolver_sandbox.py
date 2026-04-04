@@ -1,5 +1,6 @@
 import logging
 import os
+import copy
 from typing import Dict, Any, List, Optional
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from src.analyzer.audit_controller import AuditController
@@ -47,8 +48,10 @@ class EvolverSandbox:
         
         logger.info(f"Sandbox: Replaying session {session_id} in shadow.")
         
-        # 1. Prepare Proposed Configuration (Baseline + Patch)
-        proposed_config = audit_report.get('session', {}).get('metadata', {}).get('config_snapshot', {})
+        # 1. Prepare Proposed Configuration (Baseline + Patch) - DEEP COPY for In-Memory Isolation
+        baseline_config = audit_report.get('session', {}).get('metadata', {}).get('config_snapshot', {}) or {}
+        proposed_config = copy.deepcopy(baseline_config)
+        
         if config_patch:
             # Apply patches if available
             for patch in config_patch:

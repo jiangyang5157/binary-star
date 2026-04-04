@@ -59,7 +59,7 @@ class SimpleRegimeClassifier:
 
 class Sampler(ABC):
     """Abstract base class for sampling historical timestamps."""
-    def __init__(self, session_hour_utc: int):
+    def __init__(self, session_hour_utc: float):
         self.session_hour_utc = session_hour_utc
 
     @abstractmethod
@@ -67,11 +67,16 @@ class Sampler(ABC):
         pass
 
     def _apply_session_shift(self, dates: List[datetime]) -> List[datetime]:
-        """Helps child classes shift timestamps to the designated market hour."""
+        """Helps child classes shift timestamps to the designated market hour/minute."""
         if self.session_hour_utc == 0:
             return dates
+        
+        # Calculate hours and minutes from decimal (e.g., 15.5 -> 15:30)
+        hours = int(self.session_hour_utc)
+        minutes = int(round((self.session_hour_utc - hours) * 60))
+        
         return [
-            dt.replace(hour=self.session_hour_utc, minute=0, second=0, microsecond=0)
+            dt.replace(hour=hours, minute=minutes, second=0, microsecond=0)
             for dt in dates
         ]
 
@@ -97,10 +102,10 @@ class RegimeSampler(Sampler):
     After selecting days, shifts timestamps to session_hour_utc to capture
     real trading session dynamics instead of midnight snapshots.
     """
-    def __init__(self, session_hour_utc: int):
+    def __init__(self, session_hour_utc: float):
         """
         Args:
-            session_hour_utc: UTC hour to anchor sampling (e.g. 13 = NY open).
+            session_hour_utc: UTC hour/decimal to anchor sampling (e.g. 13 = NY open, 13.5 = 13:30).
                               0 means no shift (original daily candle open).
         """
         self.session_hour_utc = session_hour_utc
