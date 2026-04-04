@@ -59,7 +59,7 @@ class SimpleRegimeClassifier:
 
 class Sampler(ABC):
     """Abstract base class for sampling historical timestamps."""
-    def __init__(self, session_hour_utc: int = 0):
+    def __init__(self, session_hour_utc: int):
         self.session_hour_utc = session_hour_utc
 
     @abstractmethod
@@ -97,7 +97,7 @@ class RegimeSampler(Sampler):
     After selecting days, shifts timestamps to session_hour_utc to capture
     real trading session dynamics instead of midnight snapshots.
     """
-    def __init__(self, session_hour_utc: int = 0):
+    def __init__(self, session_hour_utc: int):
         """
         Args:
             session_hour_utc: UTC hour to anchor sampling (e.g. 13 = NY open).

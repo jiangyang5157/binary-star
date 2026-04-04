@@ -206,7 +206,10 @@ class SessionController:
         df = analyzer.classify_regimes(klines)
         df_range = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
         
-        session_hour = self.args.session_hour or 0
+        session_hour = self.args.session_hour
+        if session_hour is None:
+            session_hour = self.global_cfg.get('backtest', {}).get('session_hour_utc', 0)
+            
         if sample_mode == "regime":
             sampler = RegimeSampler(session_hour_utc=session_hour)
         else:
@@ -249,9 +252,9 @@ def main():
     bt_group = parser.add_argument_group("Backtest Options")
     bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
-    bt_group.add_argument("--sampling", type=int, default=10, help="Number of historical samples")
+    bt_group.add_argument("--sampling", type=int, default=1, help="Number of historical samples")
     bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
-    bt_group.add_argument("--session-hour", type=int, default=0, help="UTC hour to anchor sampling (default: 0)")
+    bt_group.add_argument("--session-hour", type=int, default=None, help="UTC hour to anchor sampling (default: from config)")
     
     from src.utils.pipeline_utils import add_data_root_argument
     add_data_root_argument(parser)
