@@ -82,8 +82,11 @@ def main():
     # 1. Resolve Data Root
     data_root = args.data_root or resolve_data_root(args.env_shortcut)
     
-    # 2. Load context-aware configuration
-    config = load_config()
+    # 2. Load context-aware configuration (Global + Strategy merge)
+    from src.utils.pipeline_utils import load_global_config
+    global_cfg = load_global_config()
+    strategy_cfg = load_config()
+    config = {**global_cfg, **strategy_cfg}
     
     # 3. Setup system-wide logging with physical persistence in data_root
     # Root-level configuration catches all sub-modules (Assembler, Observer, Notifier, etc.)
