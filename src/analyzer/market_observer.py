@@ -18,6 +18,7 @@ from src.utils.datetime_utils import (
 )
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string, save_json
+from src.utils.market_utils import parse_liquidation_data
 from src.utils.logger_utils import setup_logger
 
 # Initialize project-standard hardened logger
@@ -92,8 +93,17 @@ class MarketObserverConfig:
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
-    volume_chart_scaling: float
-    dpi: int
+    # --- Visual Rendering Tokens ---
+    vol_profile_width_ratio: float
+    render_dpi: int
+    up_color: str
+    down_color: str
+    bg_color: str
+    grid_color: str
+    poc_color: str
+    value_area_color: str
+    liq_buy_color: str
+    liq_sell_color: str
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -162,8 +172,18 @@ class MarketObserverConfig:
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
-            volume_chart_scaling=float(cfg['visual_parameters']['volume_chart_scaling']),
-            dpi=int(cfg['visual_parameters']['dpi'])
+            
+            # Visuals (from global_config.yaml 'visuals' section)
+            vol_profile_width_ratio=float(cfg['visuals']['vol_profile_width_ratio']),
+            render_dpi=int(cfg['visuals']['render_dpi']),
+            up_color=str(cfg['visuals']['up_color']),
+            down_color=str(cfg['visuals']['down_color']),
+            bg_color=str(cfg['visuals']['bg_color']),
+            grid_color=str(cfg['visuals']['grid_color']),
+            poc_color=str(cfg['visuals']['poc_color']),
+            value_area_color=str(cfg['visuals']['value_area_color']),
+            liq_buy_color=str(cfg['visuals']['liq_buy_color']),
+            liq_sell_color=str(cfg['visuals']['liq_sell_color'])
         )
 
     @property
@@ -236,7 +256,7 @@ class MarketDataLoader:
             macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.lookback_candles, endTime=ts_ms) or [],
             micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
             macro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=historical_ts_ms),
-            micro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=historical_ts_ms),
+            micro_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=historical_ts_ms),
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
@@ -388,27 +408,30 @@ class MarketMetricsRefiner:
             "ls_ratio_micro": float(raw.micro_ls[0].get('longShortRatio', 0)) if raw.micro_ls else 0,
             "cvd_intensity_ratio": cvd_intensity_ratio,
             "net_taker_delta": cvd_current_net,
-            "funding_rate": float(raw.funding_rate[-1].get('fundingRate', 0)) if raw.funding_rate else 0,
+            "funding_rate": float(raw.funding_rate[-1].get('fundingRate', 0)) if raw.funding_rate else 0.0,
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
 
     def _parse_to_clusters(self, liqs: List[Dict], atr_macro: float) -> Optional[Dict[str, Any]]:
         """Groups raw liquidations into high-conviction price clusters."""
         if not liqs: return None
-        prices = [float(l.get('price', 0)) for l in liqs]
+        # Handle multiple possible key formats for consistency (REST vs WebSocket)
+        parsed_liqs = [parse_liquidation_data(l) for l in liqs]
+        prices = [p['price'] for p in parsed_liqs if p['price'] > 0]
         if not prices: return None
         
         avg_p = sum(prices) / len(prices)
         bucket_size = atr_macro * self.config.liquidation_cluster_atr_multiplier if atr_macro > 0 else avg_p * self.config.liquidation_cluster_fallback_percentage
         
         clusters = {}
-        for l in liqs:
-            p = float(l.get('price', 0))
+        for l in parsed_liqs:
+            if l['price'] == 0: continue
+            p = l['price']
             bucket = round(p / bucket_size) * bucket_size
             key = f"{bucket:.2f}"
             if key not in clusters:
-                clusters[key] = {"total_qty": 0, "count": 0, "side": l.get('side')}
-            clusters[key]["total_qty"] += float(l.get('qty', 0))
+                clusters[key] = {"total_qty": 0, "count": 0, "side": l['side']}
+            clusters[key]["total_qty"] += l['qty']
             clusters[key]["count"] += 1
             
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
@@ -443,6 +466,20 @@ class MarketObserver:
         self._vp_analyzer = self._init_vp()
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
+        
+        # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
+        self._charting.config = self._charting.config.__class__(
+            vol_profile_width_ratio=self.config.vol_profile_width_ratio,
+            render_dpi=self.config.render_dpi,
+            up_color=self.config.up_color,
+            down_color=self.config.down_color,
+            bg_color=self.config.bg_color,
+            grid_color=self.config.grid_color,
+            poc_color=self.config.poc_color,
+            value_area_color=self.config.value_area_color,
+            liq_buy_color=self.config.liq_buy_color,
+            liq_sell_color=self.config.liq_sell_color
+        )
         
         # [MODULARIZED PROCESSING STACK]
         self.loader = MarketDataLoader(self._binance, self.config)

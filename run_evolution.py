@@ -30,7 +30,8 @@ class EvolutionEngine:
     Ingest Audit Data -> Neural Mutation -> Sandbox Validation -> Atomic Config Commit.
     """
     def __init__(self, data_root: str, symbol: str):
-        self.data_root = os.path.join(PROJECT_ROOT, data_root)
+        self.root = resolve_project_root()
+        self.data_root = os.path.join(self.root, data_root)
         self.symbol = symbol
         self.dirs = self._setup_evolution_dirs()
         load_dotenv()
@@ -127,9 +128,9 @@ class EvolutionEngine:
         )
 
         instruction_paths = {
-            "session_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/session.md"),
-            "critic_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/critic.md"),
-            "binary_star_path": os.path.join(PROJECT_ROOT, "src/agent/prompts/binary_star.md")
+            "session_path": os.path.join(self.root, "src/agent/prompts/session.md"),
+            "critic_path": os.path.join(self.root, "src/agent/prompts/critic.md"),
+            "binary_star_path": os.path.join(self.root, "src/agent/prompts/binary_star.md")
         }
         
         # 3. Phase: Prototype Generation
@@ -212,17 +213,23 @@ class EvolutionEngine:
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")
-    parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading symbol for analysis (default: BTCUSDT)")
-    parser.add_argument("--samples", type=int, default=42, help="Number of audit reports to ingest")
+    parser.add_argument("--symbol", type=str, default=None, help="Trading symbol for analysis (default: from config)")
+    parser.add_argument("--samples", type=int, default=None, help="Number of audit reports to ingest (default: from config)")
     parser.add_argument("--sandbox", action="store_true", help="Activate Sandbox validation")
     add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
     data_root = args.path
+    
+    from src.utils.pipeline_utils import load_global_config
+    g_cfg = load_global_config()
+    
+    symbol = args.symbol or g_cfg.get('system', {})['default_symbol']
+    samples = args.samples or g_cfg.get('evolution', {})['default_samples']
         
-    engine = EvolutionEngine(data_root, symbol=args.symbol)
+    engine = EvolutionEngine(data_root, symbol=symbol)
     try:
-        engine.run_cycle(sample_size=args.samples, run_sandbox=args.sandbox)
+        engine.run_cycle(sample_size=samples, run_sandbox=args.sandbox)
     except Exception as e:
         # Note: self.logger might not be initialized if __init__ fails
         print(f"Evolution Cycle Failed: {e}")

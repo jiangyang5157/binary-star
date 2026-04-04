@@ -20,14 +20,15 @@ from src.utils.logger_utils import setup_logger
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Standalone Shadow Sandbox (v6.1)")
-    parser.add_argument("--file", required=True, help="Path to the evolution proposal JSON file")
+    parser.add_argument("--file", "-f", required=True, help="Path to the evolution proposal JSON file")
     add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
     
-    # 1. Resolve Data Root and Setup Logging
+    # 1. Resolve Project Root and Data Root
+    root = resolve_project_root()
     data_root_rel = args.path
-    data_root = os.path.join(PROJECT_ROOT, data_root_rel)
+    data_root = os.path.join(root, data_root_rel)
     
     log_path = os.path.join(data_root, "sandbox.log")
     setup_logger("", log_file=log_path)

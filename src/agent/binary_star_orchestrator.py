@@ -104,8 +104,8 @@ class BinaryStarOrchestrator:
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(
             output_dir=os.path.join(resolve_project_root(), self.data_root, "klines"),
-            volume_chart_scaling=self.obs_config.volume_chart_scaling,
-            dpi=self.obs_config.dpi
+            vol_profile_width_ratio=self.obs_config.vol_profile_width_ratio,
+            render_dpi=self.obs_config.render_dpi
         )
         
         # 7. Reasoner Triad Assembly (Dependency Injection)

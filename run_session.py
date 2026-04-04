@@ -187,7 +187,7 @@ class SessionController:
         """Historical simulation orchestration."""
         start_dt = self.args.start
         end_dt = self.args.end
-        count = self.args.sampling
+        count = self.args.samples
         sample_mode = self.args.sampling_mode or "regime"
 
         logger.info(f"Backtest: Sampling {count} points from {start_dt} to {end_dt} ({sample_mode} mode)")
@@ -207,14 +207,15 @@ class SessionController:
         df = analyzer.classify_regimes(klines)
         df_range = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
         
-        session_hour = self.args.session_hour
-        if session_hour is None:
-            session_hour = self.global_cfg.get('backtest', {}).get('session_hour_utc', 0)
+        # v6.15: Backtest Sampling Architecture
+        self.sampling_mode = self.args.sampling_mode
+        self.sampling_count = self.args.samples
+        self.sampling_offset = self.args.utc_offset_hour or self.global_cfg.get('backtest', {})['sampling_utc_offset']
             
-        if sample_mode == "regime":
-            sampler = RegimeSampler(session_hour_utc=session_hour)
+        if self.sampling_mode == "regime":
+            sampler = RegimeSampler(sampling_utc_offset=self.sampling_offset)
         else:
-            sampler = SpacedSampler(session_hour_utc=session_hour)
+            sampler = SpacedSampler(sampling_utc_offset=self.sampling_offset)
             
         timestamps = sampler.sample(df_range, count)
         
@@ -246,21 +247,22 @@ def parse_date(date_str: str) -> datetime:
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine (v6.0)")
-    parser.add_argument("--symbol", type=str, help="Trading pair (e.g. BTCUSDT)")
+    parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     
     # 1. Live Configuration Group
     live_group = parser.add_argument_group("Live Options")
-    live_group.add_argument("--pulse", type=float, help="Pulse interval in minutes")
+    live_group.add_argument("--pulse", type=float, default=None, help="Pulse interval in minutes")
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")
     bt_group.add_argument("--timestamp", "-ts", type=str, help="Precise historical timestamp")
     bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
-    bt_group.add_argument("--sampling", type=int, default=1, help="Number of historical samples")
+    bt_group.add_argument("--samples", type=int, default=1, help="Number of historical samples")
     bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
-    bt_group.add_argument("--session-hour", type=float, default=None, help="UTC hour to anchor sampling (default: from config)")
+    bt_group.add_argument("--utc-offset-hour", type=float, default=None, help="UTC hour offset to anchor sampling (default: from config)")
+
     
     from src.utils.pipeline_utils import add_data_path_argument
     add_data_path_argument(parser)

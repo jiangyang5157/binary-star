@@ -32,7 +32,13 @@ def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock
     # Setup
     api_key = "test_key"
     data_root = "data/test"
-    config = {"evolver": {"sandbox_mae_significance_threshold": 5.0, "sandbox_mae_improvement_threshold": 5.0}}
+    config = {
+        "sandbox": {
+            "acceptance_rate_threshold": 0.5,
+            "mae_significance_threshold": 15.0,
+            "mae_improvement_threshold": 5.0
+        }
+    }
     
     sandbox = EvolverSandbox(api_key, data_root, config)
     
@@ -61,9 +67,10 @@ def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock
 def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
     config = {
-        "evolver": {
-            "sandbox_mae_significance_threshold": 5.0,
-            "sandbox_mae_improvement_threshold": 5.0
+        "sandbox": {
+            "acceptance_rate_threshold": 0.5,
+            "mae_significance_threshold": 15.0,
+            "mae_improvement_threshold": 5.0
         }
     }
     sandbox = EvolverSandbox("key", "root", config)
@@ -89,9 +96,10 @@ def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_
 def test_sandbox_rejection_logic(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
     config = {
-        "evolver": {
-            "sandbox_mae_significance_threshold": 5.0,
-            "sandbox_mae_improvement_threshold": 5.0
+        "sandbox": {
+            "acceptance_rate_threshold": 0.5,
+            "mae_significance_threshold": 15.0,
+            "mae_improvement_threshold": 5.0
         }
     }
     sandbox = EvolverSandbox("key", "root", config)

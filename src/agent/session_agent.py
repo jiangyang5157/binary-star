@@ -64,10 +64,10 @@ class SessionConfig(AgentConfig):
     balanced_atr_multiplier: float
     structural_buffer_atr: float
     cvd_intensity_threshold: float
+    vol_profile_width_ratio: float
     missed_opportunity_atr_threshold: float
     mae_stress_thresholds: Dict[str, float]
     volume_profile_value_area_width: float
-    volume_chart_scaling: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -86,7 +86,7 @@ class SessionConfig(AgentConfig):
         sampling = cfg['analysis_window']
         audit = cfg['audit_review']
         topography = cfg['topography_parameters']
-        visuals = cfg['visual_parameters']
+        visuals = cfg['visuals']
         
         return cls(
             model=str(bs['model']),
@@ -134,7 +134,7 @@ class SessionConfig(AgentConfig):
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
             mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
-            volume_chart_scaling=float(visuals['volume_chart_scaling']),
+            vol_profile_width_ratio=float(visuals['vol_profile_width_ratio']),
             instruction_literal=instruction_literal
         )
 

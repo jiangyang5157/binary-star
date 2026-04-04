@@ -83,7 +83,20 @@ class MockDataFactory:
                 }
             },
             "system": {
-                "default_symbol": "BTCUSDT"
+                "default_symbol": "BTCUSDT",
+                "notification_confidence_floor": 50
+            },
+            "visuals": {
+                "up_color": "#26a69a",
+                "down_color": "#ef5350",
+                "bg_color": "#131722",
+                "grid_color": "#333333",
+                "poc_color": "#ff9800",
+                "value_area_color": "#fbc02d",
+                "liq_buy_color": "#00ff88",
+                "liq_sell_color": "#ff3366",
+                "vol_profile_width_ratio": 0.20,
+                "render_dpi": 180
             },
             # 2. Strategy Config Keys
             "binary_star": {
@@ -178,6 +191,26 @@ class MockDataFactory:
                 "anchor_drift_threshold": 1.0,
                 "poc_confluence_strength": 0.9,
                 "structural_buffer_atr": 0.05
+            },
+            "sandbox": {
+                "acceptance_rate_threshold": 0.5,
+                "mae_significance_threshold": 15.0,
+                "mae_improvement_threshold": 5.0
+            },
+            "audit_review": {
+                "forensic_resolution": "1m",
+                "mae_stress_tolerance": 0.5,
+                "atr_period": 14,
+                "missed_opportunity_atr_threshold": 2.0,
+                "unfilled_proximity_atr_limit": 0.1,
+                "catastrophic_miss_pct_threshold": 3.0,
+                "mae_stress_thresholds": {
+                    "pinpoint": 15.0,
+                    "standard": 50.0,
+                    "luck": 80.0
+                },
+                "base_slippage_bps": 5.0,
+                "max_slippage_bps": 50.0
             },
             "strategy_intent": "TEST"
         }

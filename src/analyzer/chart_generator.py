@@ -10,6 +10,7 @@ import mplfinance as mpf
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional
 from src.utils.datetime_utils import format_timestamp_for_filename, get_current_utc_time
+from src.utils.market_utils import parse_liquidation_data
 
 # Initialize project-standard logger
 from src.utils.logger_utils import setup_logger
@@ -25,11 +26,12 @@ class ChartConfig:
     bg_color: str = '#131722'       # Dark TradingView style
     grid_color: str = '#333333'
     poc_color: str = '#ff9800'      # Orange
-    va_color: str = '#fbc02d'       # Gold
+    value_area_color: str = '#fbc02d' # Gold
     liq_buy_color: str = '#00ff88'  # Neon Green
     liq_sell_color: str = '#ff3366' # Neon Pink
-    volume_chart_scaling: float = 0.20 # 20% of axis width
-    dpi: int = 180
+    vol_profile_width_ratio: float = 0.20 # 20% of axis width
+    render_dpi: int = 180
+
 
 class TechnicalFeatureExtractor:
     """
@@ -98,8 +100,8 @@ class ChartVisualRenderer:
     """
     Core engine for rendering candlestick charts with logical overlays.
     """
-    def __init__(self, output_dir: str, volume_chart_scaling: float, dpi: int):
-        self.config = ChartConfig(volume_chart_scaling=volume_chart_scaling, dpi=dpi)
+    def __init__(self, output_dir: str, vol_profile_width_ratio: float, render_dpi: int):
+        self.config = ChartConfig(vol_profile_width_ratio=vol_profile_width_ratio, render_dpi=render_dpi)
         self.storage = ChartStorageManager(output_dir)
         self.extractor = TechnicalFeatureExtractor()
 
@@ -146,7 +148,7 @@ class ChartVisualRenderer:
         
         hlines = dict(
             hlines=[poc, vah, val], 
-            colors=[self.config.poc_color, self.config.va_color, self.config.va_color], 
+            colors=[self.config.poc_color, self.config.value_area_color, self.config.value_area_color], 
             linestyle=['-', '--', '--'], 
             linewidths=[2.5, 1.5, 1.5]
         )
@@ -163,7 +165,7 @@ class ChartVisualRenderer:
                 style=self._get_mpf_style(), 
                 title=f"{symbol} - {time_interval} (Volume Profile AR)",
                 hlines=hlines,
-                savefig=dict(fname=filepath, dpi=self.config.dpi, bbox_inches='tight'),
+                savefig=dict(fname=filepath, dpi=self.config.render_dpi, bbox_inches='tight'),
                 returnfig=True
             )
             
@@ -184,7 +186,7 @@ class ChartVisualRenderer:
                     main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.9)
     
                 # Finalize and Save
-                fig.savefig(filepath, dpi=self.config.dpi, bbox_inches='tight')
+                fig.savefig(filepath, dpi=self.config.render_dpi, bbox_inches='tight')
             finally:
                 # CRITICAL: Always close the figure to prevent memory accumulation
                 plt.close(fig)
@@ -202,7 +204,7 @@ class ChartVisualRenderer:
         
         if v_vals:
             max_v = max(v_vals)
-            norm_v = [(v / max_v) * (len(df) * self.config.volume_chart_scaling) for v in v_vals]
+            norm_v = [(v / max_v) * (len(df) * self.config.vol_profile_width_ratio) for v in v_vals]
             bin_height = (max_p - min_p) / 50 * 0.8
             ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.4, zorder=1)
 
@@ -213,16 +215,16 @@ class ChartVisualRenderer:
         
         for liq in liquidations:
             try:
-                # Handle both REST (price/side/qty) and WebSocket (p/S/q) keys
-                price = float(liq.get('price') or liq.get('p', 0))
+                parsed = parse_liquidation_data(liq)
+                price = parsed['price']
                 if not (min_p <= price <= max_p):
                     continue
                     
-                side = (liq.get('side') or liq.get('S', 'BUY')).upper()
+                side = parsed['side']
                 color = self.config.liq_buy_color if side == 'BUY' else self.config.liq_sell_color
                 
                 # Dynamic alpha based on quantity
-                qty = float(liq.get('qty') or liq.get('origQty') or liq.get('q', 1))
+                qty = parsed['qty']
                 alpha = min(max(qty / 5.0, 0.10), 0.40)
                 
                 rect = patches.Rectangle(

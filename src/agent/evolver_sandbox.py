@@ -157,10 +157,12 @@ class EvolverSandbox:
             old_mae = float(old_metrics.get('mae_stress_level_pct', 100))
             new_mae = float(new_metrics.get('mae_stress_level_pct', 100))
             
-            # Fetch Darwinian thresholds from config
-            evolver_cfg = self.config_dict.get('evolver', {})
-            mae_sig = float(evolver_cfg['sandbox_mae_significance_threshold'])
-            mae_imp = float(evolver_cfg['sandbox_mae_improvement_threshold'])
+            # Darwinian thresholds: Read from global 'sandbox' block (v6.12 Hardened)
+            # These are treated as immutable environment constants.
+            # Mutating the 'grading scale' is prohibited to ensure objective evolution.
+            sandbox_cfg = self.config_dict.get('sandbox', {})
+            mae_sig = float(sandbox_cfg['mae_significance_threshold'])
+            mae_imp = float(sandbox_cfg['mae_improvement_threshold'])
 
             # Improvement if MAE stress is significant and reduced by the threshold
             if old_mae > mae_sig and (old_mae - new_mae) > mae_imp:
@@ -212,8 +214,15 @@ class EvolverSandbox:
             except Exception as e:
                 logger.error(f"Sandbox: Fatal error validating case {session_id}: {e}", exc_info=True)
 
+        # v6.12 Hardening: Configuration-driven acceptance threshold
+        sandbox_cfg = self.config_dict.get('sandbox', {})
+        threshold = float(sandbox_cfg['acceptance_rate_threshold'])
+        
+        success_rate = len(accepted_cases) / total if total > 0 else 0
+        is_accepted = success_rate >= threshold
+
         return {
-            "is_accepted": len(accepted_cases) > len(rejected_cases),
+            "is_accepted": is_accepted,
             "accepted_cases": accepted_cases,
             "rejected_cases": rejected_cases
         }

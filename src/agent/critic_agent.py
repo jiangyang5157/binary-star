@@ -59,7 +59,7 @@ class CriticConfig(AgentConfig):
     missed_opportunity_atr_threshold: float
     mae_stress_thresholds: Dict[str, float]
     volume_profile_value_area_width: float
-    volume_chart_scaling: float
+    vol_profile_width_ratio: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -72,7 +72,7 @@ class CriticConfig(AgentConfig):
         sampling = cfg_dict['analysis_window']
         audit = cfg_dict['audit_review']
         topography = cfg_dict['topography_parameters']
-        visuals = cfg_dict['visual_parameters']
+        visuals = cfg_dict['visuals']
         
         return cls(
             model=str(bs['model']),
@@ -116,7 +116,7 @@ class CriticConfig(AgentConfig):
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
             mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
-            volume_chart_scaling=float(visuals['volume_chart_scaling']),
+            vol_profile_width_ratio=float(visuals['vol_profile_width_ratio']),
             instruction_literal=instruction_literal
         )
 

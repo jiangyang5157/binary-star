@@ -28,7 +28,7 @@ analysis_window:
 regime_parameters:
   # --- Trend & Momentum Vectors (Regime Detection) ---
   # Minimum vector strength to classify as 'Trending'. Range [0, 1].
-  trend_intensity_threshold: 0.78
+  trend_intensity_threshold: 0.95
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
   trend_intensity_strong: 0.5
   # Clipping multiplier to filter noise in low-velocity regimes.
@@ -159,14 +159,8 @@ topography_parameters:
   liquidation_cluster_atr_multiplier: 0.25
   liquidation_cluster_fallback_percentage: 0.005
 
-visual_parameters:
-  # --- Chart Rendering Metrics ---
-  # Scaling factor for volume profile bars relative to axis width.
-  volume_chart_scaling: 0.20
-  # Resolution/DPI for visual forensic artifacts.
-  dpi: 180
-
 binary_star:
+
   # The shared 'Sovereign Intelligence' model.
   # gemini-flash-latest, gemini-3.1-pro-preview
   model: gemini-flash-latest
@@ -214,8 +208,3 @@ evolver:
   min_failure_instances: 2
   # Ratio of failed sessions in the current batch required to validate a config update.
   failure_ratio_threshold: 0.2
-  # --- Darwinian Sandbox Thresholds ---
-  # Minimum original MAE required to trigger a risk-reduction optimization audit. (MAE %)
-  sandbox_mae_significance_threshold: 5.0
-  # Absolute percentage point improvement in MAE required to accept a patch. (MAE points %)
-  sandbox_mae_improvement_threshold: 5.0

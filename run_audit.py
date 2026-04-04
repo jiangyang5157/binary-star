@@ -88,7 +88,7 @@ def run_task(args_tuple):
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Audit Review (v6.1)")
-    parser.add_argument("--file", help="Optional: Path to a specific session JSON file")
+    parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
     parser.add_argument("--email", action="store_true", help="Dispatch forensic reports via email")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")
     
@@ -96,7 +96,8 @@ def main():
     
     args = parser.parse_args()
     
-    # 1. Resolve Data Root
+    # 1. Resolve Project Root and Data Root
+    root = resolve_project_root()
     data_root = args.path
     
     # 2. Load context-aware configuration (Unified merge)
@@ -113,7 +114,7 @@ def main():
     # 4. Initialize the Audit Controller (The Orchestrator)
     controller = AuditController(config_dict=config, logger=logger, data_root=data_root)
     
-    # 4. Execution Branch: Batch vs Single
+    # 5. Execution Branch: Batch vs Single
     files_to_audit = []
     if args.file:
         if not os.path.exists(args.file):
@@ -122,7 +123,7 @@ def main():
         files_to_audit.append(args.file)
     else:
         # Batch Mode: Scan data_root/sessions
-        sessions_dir = os.path.join(PROJECT_ROOT, data_root, "sessions")
+        sessions_dir = os.path.join(root, data_root, "sessions")
         if not os.path.exists(sessions_dir):
             logger.error(f"Sessions directory not found: {sessions_dir}")
             sys.exit(1)

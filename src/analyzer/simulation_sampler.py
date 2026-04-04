@@ -59,8 +59,8 @@ class SimpleRegimeClassifier:
 
 class Sampler(ABC):
     """Abstract base class for sampling historical timestamps."""
-    def __init__(self, session_hour_utc: float):
-        self.session_hour_utc = session_hour_utc
+    def __init__(self, sampling_utc_offset: float):
+        self.sampling_utc_offset = sampling_utc_offset
 
     @abstractmethod
     def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
@@ -68,12 +68,12 @@ class Sampler(ABC):
 
     def _apply_session_shift(self, dates: List[datetime]) -> List[datetime]:
         """Helps child classes shift timestamps to the designated market hour/minute."""
-        if self.session_hour_utc == 0:
+        if self.sampling_utc_offset == 0:
             return dates
         
         # Calculate hours and minutes from decimal (e.g., 15.7 -> 15:42)
-        hours = int(self.session_hour_utc)
-        minutes = int(round((self.session_hour_utc - hours) * 60))
+        hours = int(self.sampling_utc_offset)
+        minutes = int(round((self.sampling_utc_offset - hours) * 60))
         
         return [
             dt.replace(hour=hours, minute=minutes, second=0, microsecond=0)
@@ -99,16 +99,16 @@ class RegimeSampler(Sampler):
     """
     Performs stratified random sampling based on market regimes.
     Ensures proportional representation of different market conditions.
-    After selecting days, shifts timestamps to session_hour_utc to capture
+    After selecting days, shifts timestamps to sampling_utc_offset to capture
     real trading session dynamics instead of midnight snapshots.
     """
-    def __init__(self, session_hour_utc: float):
+    def __init__(self, sampling_utc_offset: float):
         """
         Args:
-            session_hour_utc: UTC hour/decimal to anchor sampling (e.g. 13 = NY open, 13.5 = 13:30).
+            sampling_utc_offset: UTC hour/decimal to anchor sampling (e.g. 13 = NY open, 13.5 = 13:30).
                               0 means no shift (original daily candle open).
         """
-        self.session_hour_utc = session_hour_utc
+        self.sampling_utc_offset = sampling_utc_offset
 
     def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
         if df.empty or count <= 0:

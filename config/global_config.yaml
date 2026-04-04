@@ -1,6 +1,5 @@
 system:
   default_symbol: "BTCUSDT"
-  notification_confidence_floor: 50
 
 network:
   binance:
@@ -16,15 +15,37 @@ network:
       min_seconds: 2
       max_seconds: 10
 
+visuals:
+  # --- Chart Rendering Tokens ---
+  up_color: "#26a69a"       # Teal
+  down_color: "#ef5350"     # Coral
+  bg_color: "#131722"       # Dark TradingView style
+  grid_color: "#333333"     # Secondary grid line color
+  poc_color: "#ff9800"      # Point of Control (POC) marker color
+  value_area_color: "#fbc02d" # Color for the Value Area (VAH/VAL) boundaries
+  liq_buy_color: "#00ff88"  # Buy-side liquidation marker color
+  liq_sell_color: "#ff3366" # Sell-side liquidation marker color
+  vol_profile_width_ratio: 0.20 # Scaling factor for volume profile bars relative to axis width
+  render_dpi: 180           # Resolution for visual artifacts (Higher = sharper images)
+
 session:
   default_live_pulse_minutes: 60
+  notification_confidence_threshold: 50
+
+evolution:
+  # Default sample size for audit ingestion
+  default_samples: 42
 
 backtest:
   # Session anchor for regime sampling timestamps. Shifts sampled daily candles to this UTC hour to capture real session dynamics.
   # 02:00 - 06:00 (NZDT) / 13:00 - 17:00 (UTC): Peak volatility period. Momentum Riding and Retail Squeeze (Polarity Pivot) are most frequent as Western institutional capital drives sharp CVD/OI shifts and Volume Breakouts.
   # 13:00 - 21:00 (NZDT) / 00:00 - 08:00 (UTC): Asian session dominance. Volume is typically flatter; Mean-Reversion and Exhaustion Fading (DLE) strategies are most effective.
-  session_hour_utc: 15.7
+  sampling_utc_offset: 0
 
 sandbox:
-  # Minimum success rate (0.0 to 1.0) for a proposal to be 'accepted'
-  acceptance_threshold: 0.8
+  # Minimum ratio of improved cases required to 'accept' a strategy patch (0.0 to 1.0)
+  acceptance_rate_threshold: 0.5
+  # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
+  mae_significance_threshold: 15.0
+  # Minimum reduction in MAE stress (pct) required to classify a case as 'improved'
+  mae_improvement_threshold: 5.0

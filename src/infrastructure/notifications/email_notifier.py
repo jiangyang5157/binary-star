@@ -468,8 +468,8 @@ class SessionNotifier:
         self.global_cfg = self._load_global_config()
         
         # Sourcing threshold from global_config.yaml (Strict enforcement)
-        system_cfg = self.global_cfg.get('system', {})
-        self.notification_confidence_floor = int(system_cfg.get('notification_confidence_floor', 0))
+        session_cfg = self.global_cfg.get('session', {})
+        self.notification_confidence_threshold = int(session_cfg.get('notification_confidence_threshold', 0))
 
 
     def _load_global_config(self) -> Dict[str, Any]:
@@ -525,8 +525,8 @@ class SessionNotifier:
         confidence = final_decision.get("confidence_score", 0)
         
         # Only notify if confidence >= threshold
-        if confidence < self.notification_confidence_floor:
-            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.notification_confidence_floor}%). Skipping dispatch.")
+        if confidence < self.notification_confidence_threshold:
+            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.notification_confidence_threshold}%). Skipping dispatch.")
             return False
 
         opinion = final_decision.get("opinion") or "NEUTRAL"
@@ -611,7 +611,7 @@ class SessionNotifier:
         final_decision = strat_session.get("final_decision") or {}
         confidence = final_decision.get("confidence_score", 0)
         
-        if confidence < self.notification_confidence_floor:
+        if confidence < self.notification_confidence_threshold:
             logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping audit dispatch.")
             return False
             

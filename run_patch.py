@@ -16,17 +16,20 @@ from src.utils.logger_utils import setup_logger
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Physical Evolution Synchronizer (v6.1)")
-    parser.add_argument("--file", required=True, help="Path to the validated evolution proposal JSON")
+    parser.add_argument("--file", "-f", required=True, help="Path to the validated evolution proposal JSON")
     
     args = parser.parse_args()
     
-    # 1. Initialize Logging
+    # 1. Dynamically resolve project root for testing compatibility
+    root = resolve_project_root()
+    
+    # 2. Initialize Logging
     setup_logger("PatchRunner")
     logger = logging.getLogger("PatchRunner")
     
-    # 2. Hardcoded Physical Targets
+    # 3. Hardcoded Physical Targets
     target_config = "config/strategy_config.yaml"
-    config_abs_path = os.path.join(PROJECT_ROOT, target_config)
+    config_abs_path = os.path.join(root, target_config)
 
     if not os.path.exists(args.file):
         logger.error(f"Proposal JSON NOT found: {args.file}")
@@ -71,7 +74,7 @@ def main():
                 logger.error(f"Patching:   (!) Unknown module: {module}. Skipping.")
                 continue
                 
-            abs_path = os.path.join(PROJECT_ROOT, rel_path)
+            abs_path = os.path.join(root, rel_path)
             replacements = PromptDistiller.apply_distillation(abs_path, anchor, logic)
             
             if replacements > 0:
