@@ -22,12 +22,12 @@ class EvolverConfig(AgentConfig):
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
         """Factory method to extract evolver config from the standalone evolver node."""
         evolver_cfg = cfg.get('evolver', {})
-        shared = cfg.get('agent_model_shared_config', {})
+        # Note: role_definition_prompt is the legacy key in strategy_config.yaml
         return cls(
             model=str(evolver_cfg['model']),
             instruction_path=os.path.join(resolve_project_root(), evolver_cfg['role_definition_prompt']),
             model_temperature=float(evolver_cfg['model_temperature']),
-            max_tool_iterations=int(shared['max_tool_iterations'])
+            max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations'])
         )
 
 class EvolverAgent(BaseAgent):
@@ -110,10 +110,10 @@ class EvolverAgent(BaseAgent):
                 audit_reports_json=reports_json,
                 active_config_yaml=config_json,
                 current_prompt_md=prompts_md,
-                strategy_intent=active_config.get('strategy_intent', "Market Survival"),
-                trend_intensity_threshold=active_config.get('regime_parameters', {})['trend_intensity_threshold'],
-                min_failure_instances=active_config.get('evolver', {})['min_failure_instances'],
-                failure_ratio_threshold=active_config.get('evolver', {})['failure_ratio_threshold']
+                strategy_intent=active_config['strategy_intent'],
+                trend_intensity_threshold=active_config['regime_parameters']['trend_intensity_threshold'],
+                min_failure_instances=active_config['evolver']['min_failure_instances'],
+                failure_ratio_threshold=active_config['evolver']['failure_ratio_threshold']
             )
 
             logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")
@@ -134,10 +134,8 @@ class EvolverAgent(BaseAgent):
                 logger.error(f"Evolver: AI returned non-dict result: {type(evolution_result)}")
                 raise ValueError("AI_RESULT_FORMAT_ERROR: Expected dict, got " + str(type(evolution_result)))
 
-            logger.info(f"Evolver: Mutation identified: {evolution_result.get('evolution_type')}")
             return evolution_result
             
         except Exception as e:
             logger.error(f"Evolver: Meta-optimization failed: {e}")
             raise
-

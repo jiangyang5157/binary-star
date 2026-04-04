@@ -100,8 +100,12 @@ class EvolutionEngine:
             if report: reports.append(report)
 
         # 2. Neural Meta-Optimization
-        config = load_config()
-        ev_cfg = EvolverConfig.from_dict(config)
+        from src.utils.pipeline_utils import load_global_config
+        global_cfg = load_global_config()
+        strategy_cfg = load_config()
+        full_config = {**global_cfg, **strategy_cfg}
+        
+        ev_cfg = EvolverConfig.from_dict(full_config)
         
         from google import genai
         from src.utils.pipeline_utils import load_global_config
@@ -140,7 +144,7 @@ class EvolutionEngine:
 
         evolution_result = evolver.evolve(
             audit_reports=reports,
-            active_config=config,
+            active_config=strategy_cfg,
             current_instructions=instruction_contents
         )
         
@@ -157,8 +161,7 @@ class EvolutionEngine:
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
         save_json(evolution_result, proposal_file)
         
-        mutation_summary = evolution_result.get('evolution_type', 'UNKNOWN')
-        self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id} | Type: {mutation_summary}")
+        self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id}")
         self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
         # 4. Phase: The Shadow Sandbox

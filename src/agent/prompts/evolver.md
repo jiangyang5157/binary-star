@@ -82,7 +82,6 @@ Your response MUST be RAW JSON only.
 
 ```json
 {{
-    "evolution_type": "PATCH | DISTILLATION",
     "rationale": "Fault: Root of failure. Mutation: Locus of change. Boundary: Deferrals dictated by risk and the unknown.",
     "config_patch": [
         {{
@@ -101,7 +100,6 @@ Your response MUST be RAW JSON only.
             "anchor_text": "EXACT_SUBSTRING_FROM_PROMPT",
             "replaced_with": "NEW_LOGIC"
         }}
-    ],
-    "sandbox_check_required": true
+    ]
 }}
 ```
