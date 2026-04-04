@@ -133,7 +133,7 @@ class EvolutionEngine:
         }
         
         # 3. Phase: Prototype Generation
-        self.logger.info("Evolver: Initiating Neural Meta-Optimization (Gemini-Flash Inference)...")
+        self.logger.info(f"Evolver: Initiating Neural Meta-Optimization ({ev_cfg.model} Inference)...")
         
         # v6.11: Inject RAW instruction contents to enable byte-perfect semantic refinement
         from src.utils.pipeline_utils import read_prompt_template
