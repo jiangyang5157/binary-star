@@ -22,38 +22,38 @@ class MathTools:
         take_profit: float,
         stop_loss: float
     ) -> Dict[str, Any]:
-        """Calculates the Risk-Reward (RR) ratio for a limit order.
+        """计算限价单的风险回报比 (RR)。
         
         Args:
-            entry: Entry price of the trade.
-            take_profit: Target exit price for profit.
-            stop_loss: Exit price for risk management.
+            entry: 入场价格。
+            take_profit: 止盈价格。
+            stop_loss: 止损价格。
             
         Returns:
-            A dictionary containing:
-                rr_ratio: The calculated reward vs risk.
-                profit_distance: Absolute difference between entry and TP.
-                risk_distance: Absolute difference between entry and SL.
-                error: (Optional) Error string if calculation fails.
+            包含 rr_ratio, profit_distance, risk_distance 的字典。
         """
         try:
+            # 基础验证：确保输入为正数
+            if entry <= 0 or take_profit <= 0 or stop_loss <= 0:
+                return {"error": "All price inputs must be positive numbers."}
+
             sl_dist = abs(entry - stop_loss)
             tp_dist = abs(take_profit - entry)
             
-            # Defense: Zero-division safety for logic gaps
-            if sl_dist <= 0:
+            # 零止损距离防御：防止除零错误
+            if sl_dist < 1e-8: # 使用极小值代替 0
                 return {
                     "rr_ratio": 0.0,
-                    "profit_distance": round(tp_dist, 2),
+                    "profit_distance": round(tp_dist, 4),
                     "risk_distance": 0.0,
-                    "warning": "Zero stop-loss distance detected."
+                    "warning": "Zero stop-loss distance detected. Logical trap."
                 }
             
             rr = round(tp_dist / sl_dist, 2)
             return {
                 "rr_ratio": rr,
-                "profit_distance": round(tp_dist, 2),
-                "risk_distance": round(sl_dist, 2)
+                "profit_distance": round(tp_dist, 4),
+                "risk_distance": round(sl_dist, 4)
             }
         except Exception as e:
             logger.error(f"MathTools: RR calculation failure: {e}")
@@ -67,34 +67,22 @@ class MathTools:
         atr: float,
         current_price: Optional[float] = None
     ) -> Dict[str, Any]:
-        """Standardizes entry/exit distances using ATR (Average True Range).
+        """使用 ATR (平均真实波幅) 对入场/止损/止盈距离进行标准化。
         
-        Normalizing distances against ATR converts absolute price points into 
-        'volatility units', enabling the agent to assess risk relative to 
-        real-time market granularity.
-        
-        Args:
-            entry: Entry price.
-            stop_loss: Stop-loss price.
-            take_profit: Take-profit price.
-            atr: Current ATR value.
-            current_price: Optional market price for real-time drift assessment.
-            
-        Returns:
-            A dictionary of normalized ATR distances (e.g., SL is 1.5 ATR away).
+        将绝对价格距离转换为“波动单位”，使智能体能评估相对于市场当前粒度的风险。
         """
         try:
             if atr <= 0:
                 return {"error": "ATR must be > 0 for topographical normalization."}
                 
             metrics = {
-                "entry_to_sl_atr": round(abs(entry - stop_loss) / atr, 2),
-                "entry_to_tp_atr": round(abs(take_profit - entry) / atr, 2),
+                "entry_to_sl_atr": round(abs(entry - stop_loss) / atr, 3),
+                "entry_to_tp_atr": round(abs(take_profit - entry) / atr, 3),
             }
             
-            if current_price is not None:
-                # Drift is signed: positive means market is above the entry.
-                metrics["entry_to_current_atr"] = round((entry - current_price) / atr, 2)
+            if current_price is not None and current_price > 0:
+                # Drift: 入场位相对于市场当前价格的偏移值 (符号位逻辑对齐原有系统)
+                metrics["entry_to_current_atr"] = round((entry - current_price) / atr, 3)
                 
             return metrics
         except Exception as e:
@@ -109,29 +97,17 @@ class MathTools:
         vah: Optional[float] = None,
         val: Optional[float] = None
     ) -> Dict[str, Any]:
-        """Calculates the distance from SL to structural 'armor' (POC/VAH/VAL).
+        """计算止损位到结构（POC/VAH/VAL）的距离，用于验证止损是否被“物理装甲”保护。
         
-        This metric is utilized by the Critic Agent to verify if the Stop Loss 
-        is placed behind physical volume anchors.
-        
-        Args:
-            stop_loss: Target SL price.
-            atr: Market granularity unit.
-            poc: Point of Control (Volume Anchor).
-            vah: Value Area High.
-            val: Value Area Low.
-            
-        Returns:
-            A dictionary of relative distances in ATR units. 
-            Positive = SL is ABOVE anchor; Negative = SL is BELOW anchor.
+        正值表示止损在锚点上方，负值表示在下方。
         """
         try:
             if atr <= 0:
                 return {"error": "ATR must be > 0."}
                 
             def dist_to_atr(anchor: Optional[float]) -> Optional[float]:
-                if anchor is None: return None
-                return round((stop_loss - anchor) / atr, 2)
+                if anchor is None or anchor <= 0: return None
+                return round((stop_loss - anchor) / atr, 3)
 
             return {
                 "sl_to_poc_atr": dist_to_atr(poc),
@@ -152,49 +128,33 @@ class MathTools:
         min_velocity_floor: float,
         holding_time_modifier: float
     ) -> Dict[str, Any]:
-        """Predicts the estimated holding time using a Synthetic Velocity Model.
+        """使用合成速度模型预测预计持仓时间。
         
-        Logic:
-        1. Base Engine = ATR (Natural market speed).
-        2. Alignment = |Trend Intensity| (Momentum factor).
-        3. Effective Speed = MAX(ATR * Intensity, ATR * Velocity Floor).
-        4. Buffer = Apply holding_time_modifier to account for non-linear noise.
-        
-        The result converts price distance into time buckets (candles/hours).
-        
-        Args:
-            entry: Proposed entry.
-            take_profit: Proposed target.
-            atr: Market ATR.
-            trend_intensity: 0.0 to 1.0 (Regime momentum).
-            interval_minutes: Chart time interval in minutes.
-            min_velocity_floor: Safety floor (drift) when momentum is zero.
-            holding_time_modifier: Multiplier for zig-zag noise (e.g., 1.5).
-            
-        Returns:
-            A dictionary containing projected hours and candle counts.
+        公式：Effective Speed = MAX(ATR * |Intensity|, ATR * Velocity Floor)。
         """
         try:
-            if atr <= 0:
-                return {"error": "ATR must be > 0."}
+            if atr <= 0 or interval_minutes <= 0:
+                return {"error": "ATR and interval_minutes must be > 0."}
                 
-            # effective_velocity = max(ATR * |intensity|, safety_floor)
+            # 有效速度 = max(波动率驱动速度, 最小漂移地板)
+            # 还原逻辑：移除 abs()，确保与原系统 floor 定义一致
             effective_velocity = max(atr * abs(trend_intensity), atr * min_velocity_floor)
             dist = abs(take_profit - entry)
             
-            if effective_velocity <= 0:
-                return {"error": "Zero velocity detected. Check floor config."}
+            if effective_velocity < 1e-8:
+                return {"error": "Zero effective velocity. Check drift configuration."}
 
             projected_candles = dist / effective_velocity
+            # 应用持仓时间调整系数（用于抵消非线性噪音）
             projected_hours = round((projected_candles * interval_minutes * holding_time_modifier) / 60, 1)
             
             return {
-                "projected_holding_candles": round(projected_candles, 1),
+                "projected_holding_candles": round(projected_candles, 2),
                 "projected_holding_hours": projected_hours,
-                "effective_velocity_per_candle": round(effective_velocity, 2),
+                "effective_velocity_per_candle": round(effective_velocity, 4),
                 "calculation_inputs": {
-                    "velocity_floor": min_velocity_floor,
-                    "target_dist": round(dist, 2)
+                    "velocity_floor_used": min_velocity_floor,
+                    "price_distance": round(dist, 4)
                 }
             }
         except Exception as e:
@@ -204,18 +164,10 @@ class MathTools:
     @staticmethod
     def calculate_opportunity_cost(
         missed_range: float,
-        atr_macro: float
+        atr_macro: float,
+        threshold: float
     ) -> Dict[str, Any]:
-        """Quantifies the 'Cost of Cowardice' for Neutral decisions.
-        
-        Used by the Evolver to penalize indecision during major structural moves.
-        
-        Args:
-            missed_range: Absolute price movement during the tracking window.
-            atr_macro: Market volatility unit.
-            
-        Returns:
-            A dictionary containing missed_relative_range (in ATRs).
+        """量化“懦弱成本”(Cost of Cowardice)，即在中性决策期间错过的波动。
         """
         try:
             if atr_macro <= 0:
@@ -224,7 +176,7 @@ class MathTools:
             rel_range = round(missed_range / atr_macro, 2)
             return {
                 "missed_relative_range": rel_range,
-                "is_catastrophic_miss": rel_range > 2.0
+                "is_catastrophic_miss": rel_range > threshold
             }
         except Exception as e:
             logger.error(f"MathTools: Opportunity cost failure: {e}")
@@ -233,16 +185,10 @@ class MathTools:
     @staticmethod
     def calculate_mae_stress(
         mae_distance: float,
-        max_atr_used: float
+        max_atr_used: float,
+        thresholds: Dict[str, float]
     ) -> Dict[str, Any]:
-        """Evaluates the physical stress of a holding period relative to volatility.
-        
-        Args:
-            mae_distance: Maximum adverse price distance recorded.
-            max_atr_used: The peak ATR during the session (prevents lag).
-            
-        Returns:
-            A dictionary containing mae_stress_level_pct and tier classification.
+        """评估持仓期间的最大浮亏 (MAE) 相对于波动的压力水平。
         """
         try:
             if max_atr_used <= 0:
@@ -250,11 +196,10 @@ class MathTools:
                 
             stress_level = round((mae_distance / max_atr_used) * 100, 1)
             
-            # Classification Tiers
             tier = "LOGIC_FAILURE"
-            if stress_level <= 15: tier = "PINPOINT"
-            elif stress_level <= 50: tier = "STANDARD"
-            elif stress_level <= 80: tier = "LUCK"
+            if stress_level <= thresholds["pinpoint"]: tier = "PINPOINT"
+            elif stress_level <= thresholds["standard"]: tier = "STANDARD"
+            elif stress_level <= thresholds["luck"]: tier = "LUCK"
             
             return {
                 "mae_stress_level_pct": stress_level,

@@ -181,3 +181,30 @@ class MockDataFactory:
             },
             "strategy_intent": "TEST"
         }
+    @staticmethod
+    def create_mock_ai_response(opinion: str = "BULLISH", confidence: int = 85) -> Dict[str, Any]:
+        """Simulates a raw JSON response from the Session or Critic agent."""
+        return {
+            "opinion": opinion,
+            "confidence_score": confidence,
+            "tactical_parameters": {
+                "current_price": 60100.0,
+                "entry": 60000.0,
+                "take_profit": 62000.0,
+                "stop_loss": 59000.0,
+                "holding_time_hours": 12.0
+            },
+            "reasoning_chain": "Mocked technical breakout across structural node.",
+            "critic_impact": None
+        }
+
+    @staticmethod
+    def create_mock_critic_response(score: int = 15, veto: bool = False) -> Dict[str, Any]:
+        """Simulates an adversarial audit response from the Critic agent."""
+        return {
+            "skepticism_score": score,
+            "veto_triggered": veto,
+            "critic_summary": "Structure is sound, but RR is slightly tight." if not veto else "TERMINAL: SL is unshielded.",
+            "suggested_mitigations": "None" if not veto else "Move SL behind 59000 POC.",
+            "codes": ["SAFE"] if not veto else ["ANCHOR_VIOLATION"]
+        }

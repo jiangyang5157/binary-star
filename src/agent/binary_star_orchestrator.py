@@ -103,7 +103,8 @@ class BinaryStarOrchestrator:
         
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(
-            output_dir=os.path.join(resolve_project_root(), self.data_root, "klines")
+            output_dir=os.path.join(resolve_project_root(), self.data_root, "klines"),
+            volume_chart_scaling=self.obs_config.volume_chart_scaling
         )
         
         # 7. Reasoner Triad Assembly (Dependency Injection)
@@ -144,10 +145,15 @@ class BinaryStarOrchestrator:
         
         This cycle involves:
         1. Context Caching: Initializing the multimodal Truth Bus.
+           (初始化真理总线：在 Gemini Cache 中锁定物理快照，防止 Agent 产生幻觉)
         2. Planning: The Session Agent proposes a thesis plan after reading topography.
+           (规划阶段：Session Agent 提出初步交易假设)
         3. Audit: The Critic Agent performs an adversarial audit of the plan.
+           (审计阶段：Critic Agent 针对数学和结构风险进行否定性盘问)
         4. Hardening: Loops through debate rounds until convergence or max_rounds.
+           (硬化循环：通过多轮辩论不断修正计划，直到质疑分低于阈值)
         5. Finalization: Synthesis of the final decision under high mathematical discipline.
+           (最终合成：在冷温度下执行最后一次合成，将共识固化为 JSON 指令)
         
         Args:
             observation: Market topographical telemetry (Metrics + Visuals).
@@ -239,6 +245,30 @@ class BinaryStarOrchestrator:
                         },
                         "required": ["entry", "take_profit", "atr", "trend_intensity", "interval_minutes"]
                     }
+                },
+                {
+                    "name": "calculate_opportunity_cost",
+                    "description": "Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance).",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "missed_range": {"type": "NUMBER", "description": "The price move delta that was missed."},
+                            "atr_macro": {"type": "NUMBER", "description": "Current market volatility for normalization."}
+                        },
+                        "required": ["missed_range", "atr_macro"]
+                    }
+                },
+                {
+                    "name": "calculate_mae_stress",
+                    "description": "Evaluates trade stress / MAE against move volatility.",
+                    "parameters": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "mae_distance": {"type": "NUMBER", "description": "The maximum adverse excursion recorded."},
+                            "max_atr_used": {"type": "NUMBER", "description": "Volatility benchmark used for stress calculation."}
+                        },
+                        "required": ["mae_distance", "max_atr_used"]
+                    }
                 }
             ]
             
@@ -269,12 +299,12 @@ class BinaryStarOrchestrator:
 
             while current_round <= self.max_rounds:
                 # Planning / Refinement
-                logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis...")
+                logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis (Planning State)...")
                 last_plan = self.session_agent.execute_session_cycle(
                     observation=observation, 
                     symbol=symbol,
                     temperature=self.session_config.model_temperature,
-                    agent_name="Session_Planning",
+                    agent_name=f"Session_Planning_R{current_round}",
                     cache_id=cache_resource_name, 
                     tools=tools, 
                     debate_history=debate_history
@@ -306,9 +336,10 @@ class BinaryStarOrchestrator:
                 })
 
                 if skepticism_score < self.skepticism_halt_limit:
-                    # TODO yangj: what to do?
-                    logger.info(f"BinaryStar: Skepticism resolved ({skepticism_score} < {self.skepticism_halt_limit}). Convergence achieved.")
+                    logger.info(f"BinaryStar: Skepticism resolved ({skepticism_score} < {self.skepticism_halt_limit}). Convergence achieved in Round {current_round}.")
                     break
+                else:
+                    logger.warning(f"BinaryStar: Skepticism remains high ({skepticism_score} >= {self.skepticism_halt_limit}). Proceeding to refinement.")
                     
                 current_round += 1
                 

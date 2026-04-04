@@ -8,14 +8,14 @@
 
 ---
 
-## ⚖️ 系统设计：对抗式法庭
+## ⚖️ 系统架构：对抗式辩论协议 (The Binary Star Protocol)
 
-Singularity 的运作逻辑类似于一场高风险的法庭审判。一个交易提案只有在通过严苛的“交叉盘问”后，才能从假设变为实际执行。
+Singularity 的内核是一个多智能体对抗系统，模拟了严苛的法庭审判过程。一个交易提案必须在“真理总线”的物理锚定下，通过多轮交叉盘问与逻辑硬化，最终收敛为执行指令。
 
 ### 🛡️ 推理三元组 (The Reasoning Triad)
-1.  **📂 证人 (Market Observer)**：负责收集“物理事实”（成交量分布、ATR 波动率、CVD 情绪）。
-2.  **🤺 辩方 (Session Analyst)**：提出“交易假设”（Temp 0.7 - 寻找创意 Alpha）。
-3.  **🔍 控方 (Skeptical Critic)**：执行“否定审计”（Temp 0.3 - 逻辑硬化与风险识别）。
+1.  **📂 证人 (Market Observer)**：**事实驱动**。负责实时捕捉市场拓扑结构（成交量分布、ATR 波动率、CVD 情绪），并生成不可篡改的多模态物理快照。
+2.  **🤺 辩方 (Session Analyst)**：**创意驱动**。基于观察快照提出交易假设（Temp 0.7）。它负责寻找隐藏在混沌中的 Alpha 机会。
+3.  **🔍 控方 (Skeptical Critic)**：**逻辑驱动**。执行“否定性审计”（Temp 0.3）。它以零信任态度搜索提案中的数学漏洞、结构性风险和情绪化偏见。
 
 ---
 
@@ -124,21 +124,21 @@ source venv/bin/activate
 ```
 
 ### 1. 市场分析会话 (Session Engine)
-系统会自动根据参数识别运行模式。
+系统会自动根据 CLI 参数识别运行模式（Once, Backtest, 或 Live）。
 
-*   **单次分析 (Once)**：对当前市场进行一站式对抗推理（默认存入 `data/once`）。
+*   **单次分析 (Once)**：对当前市场瞬时状态进行一站式对抗推理（默认结果存入 `data/once`）。
     ```bash
     python run_session.py
     ```
-*   **精确定时分析 (Timestamp)**：对历史上的特定时刻进行单次分析（支持指定路径）。
+*   **时间锚定分析 (Timestamp)**：对历史特定的时间点进行单次取证分析，支持自定义路径。
     ```bash
     python run_session.py -ts 2026-03-13T15:43:00Z --path data/backtest
     ```
-*   **回测模式 (Backtest)**：在历史样本点上进行批量分析（默认存入 `data/backtest`）。
+*   **批量回测模式 (Backtest)**：在历史样本点上进行高保真的批量推理循环。
     ```bash
     python run_session.py --start T-14d --sampling 12
     ```
-*   **实时监控 (Live)**：按固定频率持续运行（默认存入 `data/live`）。
+*   **实时生产监控 (Live)**：按固定脉冲频率（秒）持续运行，监控市场异动。
     ```bash
     python run_session.py --pulse 60
     ```

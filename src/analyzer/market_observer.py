@@ -92,6 +92,8 @@ class MarketObserverConfig:
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
+    volume_chart_scaling: float
+    dpi: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -159,7 +161,9 @@ class MarketObserverConfig:
             regime_balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
-            funding_extreme_threshold=float(regime['funding_extreme_threshold'])
+            funding_extreme_threshold=float(regime['funding_extreme_threshold']),
+            volume_chart_scaling=float(cfg['visual_parameters']['volume_chart_scaling']),
+            dpi=int(cfg['visual_parameters']['dpi'])
         )
 
     @property

@@ -48,7 +48,9 @@ class AuditController:
         # 3. Visual Forensic Observer (T1)
         self.obs_config = MarketObserverConfig.from_dict(config_dict)
         self.chart_gen = ChartGenerator(
-            output_dir=os.path.join(resolve_project_root(), self.data_root, "klines")
+            output_dir=os.path.join(resolve_project_root(), self.data_root, "klines"),
+            volume_chart_scaling=self.obs_config.volume_chart_scaling,
+            dpi=self.obs_config.dpi
         )
         
         default_symbol = config_dict['system']['default_symbol']

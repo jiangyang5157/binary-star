@@ -64,6 +64,10 @@ class SessionConfig(AgentConfig):
     balanced_atr_multiplier: float
     structural_buffer_atr: float
     cvd_intensity_threshold: float
+    missed_opportunity_atr_threshold: float
+    mae_stress_thresholds: Dict[str, float]
+    volume_profile_value_area_width: float
+    volume_chart_scaling: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -80,6 +84,9 @@ class SessionConfig(AgentConfig):
         session_cfg = bs['session']
         regime = cfg['regime_parameters']
         sampling = cfg['analysis_window']
+        audit = cfg['audit_review']
+        topography = cfg['topography_parameters']
+        visuals = cfg['visual_parameters']
         
         return cls(
             model=str(bs['model']),
@@ -124,6 +131,10 @@ class SessionConfig(AgentConfig):
             balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
+            missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
+            mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
+            volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
+            volume_chart_scaling=float(visuals['volume_chart_scaling']),
             instruction_literal=instruction_literal
         )
 
@@ -132,8 +143,10 @@ class SessionAgent(BaseAgent):
     
     Responsible for transforming topographical telemetry into tactical trade blueprints.
     Operates in an iterative cycle managed by the Orchestrator:
-    1. Planning: Generates/Refines directional hypotheses and parameterization.
-    2. Synthesis: Hardens the plan against Critic adversarial feedback in the final round.
+    1. Planning (Temp 0.7): Generates/Refines directional hypotheses and parameterization.
+       在规划阶段，智能体具有较高的“创意性”，用于探索潜在的 Alpha 收益。
+    2. Synthesis (Temp 0.3): Hardens the plan against Critic adversarial feedback in the final round.
+       在合成阶段，智能体进入“冷逻辑”模式，强制对齐所有物理约束，确保生存。
     """
     
     def __init__(
@@ -171,12 +184,14 @@ class SessionAgent(BaseAgent):
         """Core execution logic for a session reasoning step."""
         logger.info(f"SessionAgent: {agent_name} for {symbol}...")
         try:
+            # 构建多模态提示词：整合物理事实、辩论历史与全局参数
             prompt = self._build_prompt(
                 observation=observation, 
                 debate_history=debate_history,
                 cache_id=cache_id
             )
             
+            # 执行 AI 推理循环：支持 Gemini Cache 和 Function Calling (MathTools)
             return self._execute_ai_cycle(
                 payload=prompt, 
                 temperature=temperature,
@@ -285,4 +300,21 @@ class SessionAgent(BaseAgent):
         return MathTools.project_holding_time(
             entry, take_profit, atr, trend_intensity, 
             interval_minutes, floor, modifier
+        )
+    def calculate_opportunity_cost(self, missed_range: float, atr_macro: float) -> Dict[str, Any]:
+        """[TOOL] Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance)."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_opportunity_cost(
+            missed_range, 
+            atr_macro, 
+            threshold=self.config.missed_opportunity_atr_threshold
+        )
+
+    def calculate_mae_stress(self, mae_distance: float, max_atr_used: float) -> Dict[str, Any]:
+        """[TOOL] Evaluates the Maximum Adverse Excursion (MAE) stress against the move volatility."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_mae_stress(
+            mae_distance, 
+            max_atr_used, 
+            thresholds=self.config.mae_stress_thresholds
         )

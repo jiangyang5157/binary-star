@@ -30,27 +30,36 @@ def setup_logger(
     logger.setLevel(log_level)
     logger.propagate = propagate
 
-    # Prevent duplicate handlers if setup_logger is called multiple times for the same name
-    if not logger.handlers:
-        formatter = logging.Formatter(format_string)
-        
-        # Console Handler
+    # 1. Console Handler Management: Ensure uniqueness
+    has_console = any(isinstance(h, logging.StreamHandler) and h.stream == sys.stdout for h in logger.handlers)
+    formatter = logging.Formatter(format_string)
+    
+    if not has_console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
-        
-        # File Handler (Optional)
-        if log_file:
-            try:
-                # Ensure the directory exists
-                log_dir = os.path.dirname(os.path.abspath(log_file))
-                os.makedirs(log_dir, exist_ok=True)
+
+    # 2. File Handler Management: Support atomic updates for same logger name
+    if log_file:
+        try:
+            log_file_abs = os.path.abspath(log_file)
+            log_dir = os.path.dirname(log_file_abs)
+            os.makedirs(log_dir, exist_ok=True)
+
+            # Check if this specific file is already attached
+            is_active = any(isinstance(h, logging.FileHandler) and h.baseFilename == log_file_abs for h in logger.handlers)
+            
+            if not is_active:
+                # Remove stale FileHandlers to prevent resource accumulation
+                for h in logger.handlers[:]:
+                    if isinstance(h, logging.FileHandler):
+                        h.close()
+                        logger.removeHandler(h)
                 
-                file_handler = logging.FileHandler(log_file, encoding='utf-8')
+                file_handler = logging.FileHandler(log_file_abs, encoding='utf-8')
                 file_handler.setFormatter(formatter)
                 logger.addHandler(file_handler)
-            except Exception as e:
-                # Fallback to console if file logging fails, but notify
-                print(f"ERROR: Could not setup file logger at {log_file}: {e}", file=sys.stderr)
+        except Exception as e:
+            print(f"ERROR: Could not setup file logger at {log_file}: {e}", file=sys.stderr)
                 
     return logger

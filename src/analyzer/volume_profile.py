@@ -14,7 +14,7 @@ class VolumeProfileConfig:
     """
     Configuration parameters for Volume Profile analysis.
     """
-    value_area_ratio: float           # Percentage of volume to include in Value Area (e.g., 0.70)
+    value_area_ratio: float           # Percentage of volume to include in Value Area (configured via topography_parameters)
     resolution_bins: int              # Number of horizontal price buckets
     atr_period: int                   # Window for Average True Range calculation
     max_high_volume_node_count: int                # Maximum High Volume Nodes to return

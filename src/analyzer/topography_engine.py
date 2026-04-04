@@ -14,8 +14,12 @@ class TopographyEngine:
         self.data_root = os.path.join(resolve_project_root(), data_root)
         self.logger = logger
         self.binance_client = BinanceFuturesClient()
+        
+        # Parse config early to inject visual parameters
+        obs_config = MarketObserverConfig.from_dict(config_dict)
         self.chart_gen = ChartGenerator(
-            output_dir=os.path.join(self.data_root, "klines")
+            output_dir=os.path.join(self.data_root, "klines"),
+            volume_chart_scaling=obs_config.volume_chart_scaling
         )
 
     def reconstruct(self, symbol: str, dispatch_email: bool = False) -> Dict[str, Any]:

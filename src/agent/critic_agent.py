@@ -56,6 +56,10 @@ class CriticConfig(AgentConfig):
     funding_extreme_threshold: float
     structural_proximity_threshold: float
     gravity_volume_override_ratio: float
+    missed_opportunity_atr_threshold: float
+    mae_stress_thresholds: Dict[str, float]
+    volume_profile_value_area_width: float
+    volume_chart_scaling: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -66,6 +70,9 @@ class CriticConfig(AgentConfig):
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
         sampling = cfg_dict['analysis_window']
+        audit = cfg_dict['audit_review']
+        topography = cfg_dict['topography_parameters']
+        visuals = cfg_dict['visual_parameters']
         
         return cls(
             model=str(bs['model']),
@@ -106,15 +113,18 @@ class CriticConfig(AgentConfig):
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
+            missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
+            mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
+            volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
+            volume_chart_scaling=float(visuals['volume_chart_scaling']),
             instruction_literal=instruction_literal
         )
 
 class CriticAgent(BaseAgent):
-    """The Skeptical Risk Auditor.
-    
-    Acts as the adversarial counterpart to the SessionAgent.
+    """Acts as the adversarial counterpart to the SessionAgent.
     Standardized to identify logical lapses, directional bias, and geometric
     violations in trade proposals by contrasting them against Math Truth.
+    作为“控方”，其唯一任务是寻找提案中的漏洞。它不负责寻找机会，只负责“否定性审计”。
     """
     
     def __init__(
@@ -149,12 +159,11 @@ class CriticAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None
     ) -> Dict[str, Any]:
-        """
-        [ADVERSARIAL_AUDIT]: Performs a comprehensive risk assessment.
-        
-        Evaluates the proposed plan against physical market topography 
+        """Evaluates the proposed plan against physical market topography 
         and the mandatory CRITIC_CODES table. This is a cold, 
         deterministic audit designed to identify structural traps.
+        质疑分数 (Skepticism Score) 反映了计划的风险程度：分数越高，漏洞越多。
+        只有质疑分数低于阈值，计划才会被认为是“硬化”成功的。
         """
         logger.info(f"CriticAgent: Auditing {symbol} proposal for hidden risks...")
         try:
@@ -165,8 +174,10 @@ class CriticAgent(BaseAgent):
                 math_fact_check=math_fact_check, 
                 cache_id=cache_id
             )
+            # 注入物理真理 (Math Fact Check) 作为审计的绝对底线
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
             
+            # 使用“冷温度”(Temp 0.2) 执行审计，确保逻辑的严谨性和确定性
             return self._execute_ai_cycle(
                 payload=prompt, 
                 temperature=self.config.model_temperature,
@@ -256,4 +267,22 @@ class CriticAgent(BaseAgent):
         return MathTools.project_holding_time(
             entry, take_profit, atr, trend_intensity, 
             macro_interval_minutes, self.config.min_trade_velocity
+        )
+
+    def calculate_opportunity_cost(self, missed_range: float, atr_macro: float) -> Dict[str, Any]:
+        """[TOOL] Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance)."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_opportunity_cost(
+            missed_range, 
+            atr_macro, 
+            threshold=self.config.missed_opportunity_atr_threshold
+        )
+
+    def calculate_mae_stress(self, mae_distance: float, max_atr_used: float) -> Dict[str, Any]:
+        """[TOOL] Evaluates the Maximum Adverse Excursion (MAE) stress against the move volatility."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_mae_stress(
+            mae_distance, 
+            max_atr_used, 
+            thresholds=self.config.mae_stress_thresholds
         )

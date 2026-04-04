@@ -28,6 +28,7 @@ class ChartConfig:
     va_color: str = '#fbc02d'       # Gold
     liq_buy_color: str = '#00ff88'  # Neon Green
     liq_sell_color: str = '#ff3366' # Neon Pink
+    volume_chart_scaling: float = 0.20 # 20% of axis width
     dpi: int = 180
 
 class TechnicalFeatureExtractor:
@@ -97,8 +98,8 @@ class ChartVisualRenderer:
     """
     Core engine for rendering candlestick charts with logical overlays.
     """
-    def __init__(self, output_dir: str):
-        self.config = ChartConfig()
+    def __init__(self, output_dir: str, volume_chart_scaling: float = 0.20, dpi: int = 180):
+        self.config = ChartConfig(volume_chart_scaling=volume_chart_scaling, dpi=dpi)
         self.storage = ChartStorageManager(output_dir)
         self.extractor = TechnicalFeatureExtractor()
 
@@ -154,6 +155,7 @@ class ChartVisualRenderer:
             logger.info(f"Rendering chart: {symbol} [{time_interval}] -> {filepath}")
             
             # 2. Main Plot (Candles + Volume)
+            # returnfig=True creates a Matplotlib Figure that MUST be closed manually
             fig, axlist = mpf.plot(
                 plot_df, 
                 type='candle', 
@@ -165,26 +167,29 @@ class ChartVisualRenderer:
                 returnfig=True
             )
             
-            main_ax = axlist[0]
-            
-            # 3. Overlay Volume Profile Histogram
-            if "profile_data" in profile_data:
-                self._overlay_volume_profile(main_ax, plot_df, profile_data["profile_data"])
-
-            # 4. Overlay Liquidation Zones
-            if liquidations:
-                self._overlay_liquidations(main_ax, plot_df, liquidations)
-
-            # 5. Overlay Trendlines
-            trendlines = self.extractor.detect_trendlines(df) # Use original df with lowercase columns
-            for line in trendlines:
-                main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.9)
-
-            # Finalize and close
-            fig.savefig(filepath, dpi=self.config.dpi, bbox_inches='tight')
-            plt.close(fig)
+            try:
+                main_ax = axlist[0]
+                
+                # 3. Overlay Volume Profile Histogram
+                if "profile_data" in profile_data:
+                    self._overlay_volume_profile(main_ax, plot_df, profile_data["profile_data"])
+    
+                # 4. Overlay Liquidation Zones
+                if liquidations:
+                    self._overlay_liquidations(main_ax, plot_df, liquidations)
+    
+                # 5. Overlay Trendlines
+                trendlines = self.extractor.detect_trendlines(df) # Use original df with lowercase columns
+                for line in trendlines:
+                    main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.9)
+    
+                # Finalize and Save
+                fig.savefig(filepath, dpi=self.config.dpi, bbox_inches='tight')
+            finally:
+                # CRITICAL: Always close the figure to prevent memory accumulation
+                plt.close(fig)
+                
             return filepath
-
         except Exception as e:
             logger.error(f"Chart generation failed for {symbol}: {e}")
             return ""
@@ -197,7 +202,7 @@ class ChartVisualRenderer:
         
         if v_vals:
             max_v = max(v_vals)
-            norm_v = [(v / max_v) * (len(df) * 0.20) for v in v_vals]
+            norm_v = [(v / max_v) * (len(df) * self.config.volume_chart_scaling) for v in v_vals]
             bin_height = (max_p - min_p) / 50 * 0.8
             ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.4, zorder=1)
 

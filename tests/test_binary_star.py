@@ -1,83 +1,53 @@
-import unittest
-import sys
-import os
-import json
+import pytest
 from unittest.mock import MagicMock, patch
-
-# Setup paths
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from tests.mock_factory import MockDataFactory
 
-class TestBinaryStarFlow(unittest.TestCase):
-    def setUp(self):
-        self.api_key = "mock_key"
-        self.config = MockDataFactory.create_mock_config()
-        
-        # Patch external infrastructure to prevent real network calls
-        self.patchers = [
-            patch('google.genai.Client'),
-            patch('src.infrastructure.binance.client.BinanceFuturesClient'),
-            patch('src.analyzer.chart_generator.ChartGenerator'),
-            patch('src.infrastructure.gemini.cache_manager.GeminiCacheManager'),
-            patch('src.agent.binary_star_orchestrator.load_config', return_value=self.config),
-            patch('src.utils.pipeline_utils.read_prompt_template', return_value="Mock Instruction")
-        ]
-        for p in self.patchers:
-            p.start()
-            
-        self.mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
+class TestBinaryStarFlow:
+    @pytest.fixture
+    def orchestrator(self, mock_orchestrator_infrastructure, mock_config):
+        """Standardized orchestrator instantiation for testing."""
+        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test")
 
-    def tearDown(self):
-        patch.stopall()
-
-    def test_debate_convergence_and_metadata(self):
+    def test_debate_convergence_and_metadata(self, orchestrator):
         """Tests that the orchestrator converges when skepticism score drops."""
-        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root="data/test")
+        # Setup Mocks
+        mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
         
-        # 1. Mock SessionAgent: Handles all phases through execute_session_cycle
-        orchestrator.session_agent.execute_session_cycle = MagicMock()
-        orchestrator.session_agent.execute_session_cycle.side_effect = [
-            {"opinion": "BULLISH", "limit_order": {"entry": 60000}}, # Round 1 Draft
-            {"opinion": "BULLISH", "limit_order": {"entry": 60050}}, # Round 2 Draft
-            {"opinion": "BULLISH", "final_score": 90}                # Final Synthesis
-        ]
+        # 1. Mock SessionAgent: Planning Rounds + Final Synthesis
+        orchestrator.session_agent.execute_session_cycle = MagicMock(side_effect=[
+            MockDataFactory.create_mock_ai_response("BULLISH"), # R1
+            MockDataFactory.create_mock_ai_response("BULLISH"), # R2
+            MockDataFactory.create_mock_ai_response("BULLISH")  # Synthesis
+        ])
         
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
-        orchestrator.critic_agent.evaluate = MagicMock()
-        orchestrator.critic_agent.evaluate.side_effect = [
-            {"skepticism_score": 80, "objections": ["Too risky"]},
-            {"skepticism_score": 10, "objections": []} # Should trigger early stopping (10 < 20)
-        ]
+        orchestrator.critic_agent.evaluate = MagicMock(side_effect=[
+            MockDataFactory.create_mock_critic_response(score=80),
+            MockDataFactory.create_mock_critic_response(score=10) # 10 < 20 (Convergence)
+        ])
 
-        # Set the threshold manually for the test
-        orchestrator.stop_threshold = 20
-        
         # Execute
-        result = orchestrator.execute_flow(self.mock_obs, "BTCUSDT")
+        result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
         
-        # Verify Convergence
-        self.assertEqual(len(result["debate_history"]), 2)
-        
-        # Verify Metadata Fingerprinting
-        self.assertIn("version_control", result["metadata"])
+        # Verify Convergence (2 rounds of debate + 1 final synthesis call)
+        assert len(result["debate_history"]) == 2
+        assert result["final_decision"]["opinion"] == "BULLISH"
+        assert "version_control" in result["metadata"]
 
-    def test_max_rounds_exhaustion(self):
+    def test_max_rounds_exhaustion(self, orchestrator):
         """Enforces max_rounds even if convergence fails."""
-        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root="data/test")
-        orchestrator.stop_threshold = 20
+        mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
         
-        orchestrator.session_agent.execute_session_cycle = MagicMock(return_value={"opinion": "NEUTRAL"})
         # Never converges
-        orchestrator.critic_agent.evaluate = MagicMock(return_value={"skepticism_score": 100})
+        orchestrator.session_agent.execute_session_cycle = MagicMock(
+            return_value=MockDataFactory.create_mock_ai_response("NEUTRAL")
+        )
+        orchestrator.critic_agent.evaluate = MagicMock(
+            return_value=MockDataFactory.create_mock_critic_response(score=100)
+        )
         
-        result = orchestrator.execute_flow(self.mock_obs, "BTCUSDT")
+        result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
         
-        # Verify exhaustion
-        self.assertEqual(len(result["debate_history"]), 3)
-
-if __name__ == '__main__':
-    unittest.main()
+        # Verify exhaustion (Max rounds = 3 as per mock_config)
+        assert len(result["debate_history"]) == 3

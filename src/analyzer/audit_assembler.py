@@ -34,7 +34,7 @@ class AuditReviewConfig:
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            catastrophic_miss_pct_threshold=float(audit_node.get('catastrophic_miss_pct_threshold', 3.0)),
+            catastrophic_miss_pct_threshold=float(audit_node['catastrophic_miss_pct_threshold']),
             audit_review=audit_node
         )
 
@@ -180,7 +180,11 @@ class AuditAssembler:
                     mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                     mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
                     
-                    mae_stress = MathTools.calculate_mae_stress(mae, max_atr)
+                    mae_stress = MathTools.calculate_mae_stress(
+                        mae_distance=mae, 
+                        max_atr_used=max_atr,
+                        thresholds=self.config.audit_review['mae_stress_thresholds']
+                    )
                     mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
                     
                     # Explicitly extract estimated hours without fallback to avoid logic pollution
