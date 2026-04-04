@@ -18,7 +18,7 @@ class EvolverSandbox:
         self.data_root = data_root
         self.acceptance_threshold = acceptance_threshold
 
-    def validate_evolution(
+    def reply_audit_with_patch(
         self, 
         audit_report: Dict[str, Any], 
         config_patch: Optional[List[Dict[str, Any]]] = None,
@@ -101,39 +101,19 @@ class EvolverSandbox:
         # 4. Replay
         
         case_metadata = audit_report.get('metadata', {})
-        case_market_outcome = audit_report.get('market_outcome', {})
-        case_tp_sl_result = case_market_outcome.get('tp_sl_result', "")
         case_session = audit_report.get('session', {})
         case_session_symbol = case_session.get('symbol', 'UNKNOWN')
         case_session_observation = case_session.get('observation', {})
-        case_session_final_decision = case_session.get('final_decision', {})
-        case_session_debate_history = case_session.get('debate_history', {})
-        case_session_metadata = case_session.get('metadata', {})
-        case_session__opinion = case_session_final_decision.get('opinion', "")
 
         new_session = orchestrator.execute_flow(case_session_observation, case_session_symbol)
-        new_session_final_decision = new_session.get('final_decision', {})
-        new_session_debate_history = new_session.get('debate_history', {})
-        new_session_metadata = new_session.get('metadata', {})
-        new_session_opinion = new_session_final_decision.get('opinion', "")
 
         # 4. Evolution Metric Analysis: Did the new logic avoid the mistake?
-        survival_improvement = False
-        if case_tp_sl_result == 'SL_HIT' and new_session_opinion != case_session__opinion:
-            # The new logic at least made a DIFFERENT decision in a losing trade
-            survival_improvement = True
+        # TODO yangj: logic to determine if the new logic is better than the old logic
             
-        is_validated = survival_improvement
         
         # Final Forensic Package
         return {
-            "session_id": session_id,
-            "is_validated": is_validated,
-            "metrics": {
-                "old_opinion": case_session__opinion,
-                "new_opinion": new_session_opinion,
-                "improvement": survival_improvement
-            }
+            
         }
 
     def run_batch_validation(
@@ -145,33 +125,19 @@ class EvolverSandbox:
         """
         Executes a regression sweep across ALL provided audit reports.
         """
-        results = []
-        pass_cases = []
-        failure_cases = []
+        accepted_cases = []
+        rejected_cases = []
 
         logger.info(f"Sandbox: Initiating batch validation for {len(audit_reports)} cases.")
         
         for idx, report in enumerate(audit_reports):
-            case_id = report.get('metadata', {}).get('audit_id', f"case_{idx}")
-            try:
-                res = self.validate_evolution(report, config_patch, instruction_patch)
-                results.append(res)
-                if res.get('is_validated'):
-                    pass_cases.append(case_id)
-                else:
-                    failure_cases.append(case_id)
-            except Exception as e:
-                logger.error(f"Sandbox: Failed to validate case {case_id}: {e}")
-                failure_cases.append(case_id)
+            new_audit_report = self.reply_audit_with_patch(report, config_patch, instruction_patch)
+            results.append(new_audit_report)
 
-        success_count = len(pass_cases)
-        total_count = len(audit_reports)
-        success_rate = success_count / total_count if total_count > 0 else 0.0
-
+            # TODO yangj: logic to determine if the new logic is better than the old logic
+            rejected_cases.append(new_audit_report)
+            
         return {
-            "is_validated": success_rate >= self.acceptance_threshold, # Threshold for overall acceptance
-            "success_rate": success_rate,
-            "pass_cases": pass_cases,
-            "failure_cases": failure_cases,
-            "detailed_results": results
+            "accepted_cases": accepted_cases,
+            "rejected_cases": rejected_cases
         }
