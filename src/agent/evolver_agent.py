@@ -121,6 +121,15 @@ class EvolverAgent(BaseAgent):
                 tools=None
             )
             
+            # v6.11: Resilience - Handle cases where the model wraps the JSON in a list
+            if isinstance(evolution_result, list) and len(evolution_result) > 0:
+                logger.info("Evolver: AI returned a list. Extracting the first element.")
+                evolution_result = evolution_result[0]
+            
+            if not isinstance(evolution_result, dict):
+                logger.error(f"Evolver: AI returned non-dict result: {type(evolution_result)}")
+                raise ValueError("AI_RESULT_FORMAT_ERROR: Expected dict, got " + str(type(evolution_result)))
+
             logger.info(f"Evolver: Mutation identified: {evolution_result.get('evolution_type')}")
             return evolution_result
             

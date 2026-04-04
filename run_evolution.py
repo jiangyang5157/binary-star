@@ -24,13 +24,14 @@ from src.utils.logger_utils import setup_logger
 logger = None
 
 class EvolutionEngine:
-    """Singularity Meta-Evolution Engine (v6.0).
+    """Singularity Meta-Evolution Engine (v6.1).
 
     Implements the 'Meta-Optimization' loop: 
     Ingest Audit Data -> Neural Mutation -> Sandbox Validation -> Atomic Config Commit.
     """
-    def __init__(self, data_root: str):
+    def __init__(self, data_root: str, symbol: str):
         self.data_root = os.path.join(PROJECT_ROOT, data_root)
+        self.symbol = symbol
         self.dirs = self._setup_evolution_dirs()
         load_dotenv()
         self.api_key = os.environ.get("GEMINI_API_KEY")
@@ -45,7 +46,7 @@ class EvolutionEngine:
             self.logger.critical("GEMINI_API_KEY-VET_FAILED: Evolution Oracle offline.")
             sys.exit(1)
         
-        self.logger.info(f"Engine: Oracle online. Audit Trail Persistence: {log_path}")
+        self.logger.info(f"Engine: Oracle online [{self.symbol}]. Audit Trail Persistence: {log_path}")
 
     def _setup_evolution_dirs(self) -> Dict[str, str]:
         """Ensures the 'Evolution Black Box' directory hierarchy is initialized."""
@@ -53,17 +54,17 @@ class EvolutionEngine:
         dirs = {
             "proposals": os.path.join(base_dir, "proposals"),
             "sandbox": os.path.join(base_dir, "sandbox_results"),
-            "applied": os.path.join(base_dir, "applied_patches"),
-            "refusals": os.path.join(base_dir, "refusals")
+            "sandbox_accepted": os.path.join(base_dir, "sandbox_accepted"),
+            "sandbox_rejected": os.path.join(base_dir, "sandbox_rejected")
         }
         for d in dirs.values():
             os.makedirs(d, exist_ok=True)
         return dirs
 
-    def run_cycle(self, sample_size: int, force: bool):
+    def run_cycle(self, sample_size: int, run_sandbox: bool, auto_patch: bool):
         """Standard Operating Procedure for the Universal Evolver."""
         self.logger.info("="*60)
-        self.logger.info(f" EVOLUTION CYCLE START | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
+        self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
         self.logger.info("="*60)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -73,12 +74,25 @@ class EvolutionEngine:
             self.logger.warning(f"Audit dir not found: {audit_dir}. Aborting cycle.")
             return
 
-        files = sorted([f for f in os.listdir(audit_dir) if f.endswith(".json")], reverse=True)
+        # v6.11: Filter by symbol (Filename prefix + JSON validation)
+        all_files = sorted([f for f in os.listdir(audit_dir) if f.endswith(".json")], reverse=True)
+        files = []
+        for f in all_files:
+            if f.startswith(f"{self.symbol}_"):
+                files.append(f)
+            else:
+                # Secondary deep-check if filename doesn't match standard pattern
+                try:
+                    report_preview = load_json(os.path.join(audit_dir, f))
+                    if report_preview.get("symbol") == self.symbol:
+                        files.append(f)
+                except: continue
+
         if not files:
-            self.logger.warning("No audit reports found. No evolutionary pressure detected.")
+            self.logger.warning(f"No audit reports found for {self.symbol}. No evolutionary pressure detected.")
             return
 
-        self.logger.info(f"Ingestion: Found {len(files)} audit reports. Selecting top {min(len(files), sample_size)} for neural analysis.")
+        self.logger.info(f"Ingestion: Found {len(files)} reports for {self.symbol}. Selecting top {min(len(files), sample_size)} for analysis.")
         reports = []
         for f in files[:sample_size]:
             self.logger.info(f"Ingestion: [INGEST] -> {f}")
@@ -131,7 +145,17 @@ class EvolutionEngine:
             current_prompts=prompt_contents
         )
         
-        ev_id = evolution_result.get('evolution_id', f"evolution_{timestamp}")
+        # v6.11: Standardized Naming: {symbol}_evolution_{timestamp}
+        ev_id = f"{self.symbol}_evolution_{timestamp}"
+        
+        # Inject context for standalone sandbox/patch recovery
+        evolution_result['metadata'] = {
+            "symbol": self.symbol,
+            "timestamp": timestamp,
+            "source_audit_reports": [reports[0].get('metadata', {}).get('audit_id', files[0]) for reports in [reports]], # Best effort mapping
+            "primary_failure_case": files[0]
+        }
+        
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
         save_json(evolution_result, proposal_file)
         
@@ -140,50 +164,57 @@ class EvolutionEngine:
         self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
         # 4. Phase: The Shadow Sandbox
-        if not force:
+        is_valid = None
+        if run_sandbox:
             self.logger.info(f"Sandbox: [SECURE_MODE] Validating {ev_id} against primary failure case: {files[0]}")
             sandbox = EvolverSandbox(self.api_key, self.data_root)
             validation = sandbox.validate_evolution(
-                failure_case=reports[0], # TODO yangj: how to pick failure cases?
+                failure_case=reports[0], 
                 proposed_patch=evolution_result.get('config_patch'),
                 proposed_prompts=evolution_result.get('semantic_refinement')
             )
             is_valid = validation.get('is_validated', False)
-        else:
-            self.logger.info(f"Sandbox: [FORCE_BYPASS] Tactical override detected. Bypassing validation for {ev_id}.")
-            is_valid = True
-            validation = {
-                "is_validated": "N/A (Bypass)", 
-            }
-        
-        sandbox_file = os.path.join(self.dirs['sandbox'], f"{ev_id}_sandbox.json")
-        save_json(validation, sandbox_file)
-        
-        # 5. Routing: Atomic Commit vs Rejection
-        self.logger.info(f"Sandbox: Result Category: {'SUCCESS' if is_valid else 'FAILURE'}")
-
-        if is_valid:
-            self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Initiating atomic system patching...")
-            applied_file = os.path.join(self.dirs['applied'], f"{ev_id}_applied.json")
-            shutil.copy2(proposal_file, applied_file)
             
-            # TODO yangj: bug, config patch added to end at root; why modify intent?; no prompt patch why?
-            if evolver.apply_patch(evolution_result, "config/strategy_config.yaml", symbol=reports[0].get('symbol', 'BTCUSDT')):
-                self.logger.info(f"System: Mutation {ev_id} successfully merged into strategic core.")
-            else:
-                self.logger.error(f"System: Critical failure during atomic merge of {ev_id}.")
+            # v6.11: Sandbox Result Naming: {symbol}_evolution_sandbox_{timestamp}.json
+            sandbox_id = f"{self.symbol}_evolution_sandbox_{timestamp}"
+            sandbox_file = os.path.join(self.dirs['sandbox'], f"{sandbox_id}.json")
+            save_json(validation, sandbox_file)
+            
+            self.logger.info(f"Sandbox: Result Category: {'SUCCESS' if is_valid else 'FAILURE'}")
         else:
-            self.logger.warning(f"Routing: EVOLUTION REJECTED [{ev_id}]. Regression风险 detected.")
-            refused_file = os.path.join(self.dirs['refusals'], f"{ev_id}_refused.json")
-            shutil.move(proposal_file, refused_file)
-            self.logger.info(f"Evolver: Proposal isolated for review: {os.path.basename(refused_file)}")
+            self.logger.info(f"Sandbox: [PASSIVE_MODE] Bypassing validation for {ev_id}. Proposal remains in 'proposals'.")
+        
+        # 5. Routing: Atomic Commit vs Rejection vs Passive
+        if is_valid is True:
+            self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Moving to 'sandbox_accepted'...")
+            accepted_file = os.path.join(self.dirs['sandbox_accepted'], f"{ev_id}.json")
+            shutil.move(proposal_file, accepted_file)
+            
+            if auto_patch:
+                self.logger.info(f"System: [AUTO_PATCH] Initiating atomic system merge for {ev_id}...")
+                if evolver.apply_patch(evolution_result, "config/strategy_config.yaml", symbol=self.symbol):
+                    self.logger.info(f"System: Mutation {ev_id} successfully merged into strategic core.")
+                else:
+                    self.logger.error(f"System: Critical failure during atomic merge of {ev_id}.")
+            else:
+                self.logger.info(f"System: [MANUAL_MODE] Skipping atomic patch as requested.")
+
+        elif is_valid is False:
+            self.logger.warning(f"Routing: EVOLUTION REJECTED [{ev_id}]. Regression risk detected. Moving to 'sandbox_rejected'...")
+            rejected_file = os.path.join(self.dirs['sandbox_rejected'], f"{ev_id}.json")
+            shutil.move(proposal_file, rejected_file)
+        else:
+            # is_valid is None (Sandbox was not run)
+            self.logger.info(f"Routing: Passive completion. Proposal isolated for review: {os.path.basename(proposal_file)}")
 
         self.logger.info(f"--- Evolution Cycle Complete | Duration: {datetime.now().strftime('%H:%M:%S')} ---")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.0)")
+    parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")
+    parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading symbol for analysis (default: BTCUSDT)")
     parser.add_argument("--samples", type=int, default=20, help="Number of forensic reports to ingest")
-    parser.add_argument("--force", action="store_true", help="Activate Sandbox validation")
+    parser.add_argument("--sandbox", action="store_true", help="Activate Sandbox validation")
+    parser.add_argument("--patch", action="store_true", help="Apply system patches automatically if sandbox passes")
     add_data_root_argument(parser)
     
     args = parser.parse_args()
@@ -192,9 +223,9 @@ def main():
         print("Error: --data_root or environment shortcut (e.g., prod) required.")
         sys.exit(1)
         
-    engine = EvolutionEngine(data_root)
+    engine = EvolutionEngine(data_root, symbol=args.symbol)
     try:
-        engine.run_cycle(sample_size=args.samples, force=args.force)
+        engine.run_cycle(sample_size=args.samples, run_sandbox=args.sandbox, auto_patch=args.patch)
     except Exception as e:
         # Note: self.logger might not be initialized if __init__ fails
         print(f"Evolution Cycle Failed: {e}")
