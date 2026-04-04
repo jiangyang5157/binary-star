@@ -205,15 +205,12 @@ class AuditAssembler:
         
         return result
 
-    def review(self, historical_strategy: Dict[str, Any], 
-               actual_outcome: Dict[str, Any],
-               current_observation: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def review(self, historical_strategy: Dict[str, Any], actual_outcome: Dict[str, Any]) -> Dict[str, Any]:
         """Assembles a deterministic forensic audit of a trading session.
 
         Args:
             historical_strategy: The original session JSON.
             actual_outcome: The dictionary returned by calculate_outcome.
-            current_observation: Optional current market topography for reference.
 
         Returns:
             A summary dictionary containing audit status and metrics.
@@ -237,16 +234,14 @@ class AuditAssembler:
         else:
             # Neutral case
             forensics = actual_outcome.get("market_forensics", {})
-            vol_abs = abs(forensics.get("price_move_pct", 0))
-            # missed_opportunity_atr_threshold used as proxy for volatility baseline
+            # Logic: If price move intensity (ATR) exceeds the threshold, the surrender was NOT justified
+            move_intensity = forensics.get("window_volatility_intensity_atr", 0)
             missed_opportunity_atr_threshold = float(self.config.audit_review['missed_opportunity_atr_threshold'])
             
             is_justified = True
-            # Simple heuristic: if price move was small and no structural data, it's justified surrender.
-            # (Note: In a full implementation, we'd use ATR relative distance).
             if not has_structural_data:
                 is_justified = True
-            elif vol_abs > 1.0: # Simplification for now: >1% move vs neutral
+            elif move_intensity > missed_opportunity_atr_threshold:
                  is_justified = False
             
             forensic_verdict["is_justified_surrender"] = is_justified

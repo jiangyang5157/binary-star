@@ -168,30 +168,27 @@ class EvolutionEngine:
         is_valid = None
         if run_sandbox:
             self.logger.info(f"Sandbox: [BATCH_MODE] Validating {ev_id} against {len(reports)} historical cases.")
-            s_cfg = g_cfg.get('sandbox', {})
             sandbox = EvolverSandbox(
                 self.api_key, 
-                self.data_root, 
-                acceptance_threshold=float(s_cfg['acceptance_threshold'])
+                self.data_root,
+                config_dict=g_cfg
             )
             validation = sandbox.run_batch_validation(
                 audit_reports=reports,
                 config_patch=evolution_result.get('config_patch'),
                 instruction_patch=evolution_result.get('semantic_refinement')
             )
-            is_valid = validation.get('is_validated', False)
             
-            # Inject pass/failure cases into result
-            evolution_result['pass_cases'] = validation.get('pass_cases', [])
-            evolution_result['failure_cases'] = validation.get('failure_cases', [])
-            evolution_result['success_rate'] = validation.get('success_rate', 0.0)
+            accepted_total = len(validation.get('accepted_cases', []))
+            rejected_total = len(validation.get('rejected_cases', []))
+            is_valid = accepted_total > rejected_total
             
             # v6.11: Sandbox Result Naming: {symbol}_evolution_sandbox_{timestamp}.json
             sandbox_id = f"{self.symbol}_evolution_sandbox_{timestamp}"
             sandbox_file = os.path.join(self.dirs['sandbox'], f"{sandbox_id}.json")
             save_json(validation, sandbox_file)
             
-            self.logger.info(f"Sandbox: Overall Result: {'ACCEPTED' if is_valid else 'REJECTED'} ({validation.get('success_rate')*100:.1f}% Success)")
+            self.logger.info(f"Sandbox: Overall Result: {'ACCEPTED' if is_valid else 'REJECTED'} (Accepted: {accepted_total}, Rejected: {rejected_total})")
         else:
             self.logger.info(f"Sandbox: [PASSIVE_MODE] Bypassing validation for {ev_id}. Proposal remains in 'proposals'.")
         

@@ -40,7 +40,7 @@ def main():
         
     proposal = load_json(args.file)
     metadata = proposal.get("metadata", {})
-    symbol = metadata.get("symbol", "BTCUSDT")
+    symbol = metadata['symbol']
     audit_reports_list = metadata.get("audit_reports", [])
     
     if not audit_reports_list:

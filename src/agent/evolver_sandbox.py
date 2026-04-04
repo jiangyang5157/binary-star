@@ -2,6 +2,7 @@ import logging
 import os
 from typing import Dict, Any, List, Optional
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
+from src.analyzer.audit_controller import AuditController
 from src.utils.evolution_utils import PromptDistiller
 from src.utils.pipeline_utils import read_prompt_template
 from src.utils.path_utils import resolve_project_root
@@ -13,10 +14,17 @@ class EvolverSandbox:
     The 'Shadow Duelist' environment.
     Runs a parallel history recording against a proposed evolution patch.
     """
-    def __init__(self, api_key: str, data_root: str, acceptance_threshold: float = 0.8):
+    def __init__(self, api_key: str, data_root: str, config_dict: Dict[str, Any]):
         self.api_key = api_key
         self.data_root = data_root
-        self.acceptance_threshold = acceptance_threshold
+        self.config_dict = config_dict
+        
+        # Initialize the official Audit Controller for high-fidelity replay analysis
+        self.audit_controller = AuditController(
+            config_dict=config_dict,
+            logger=logger,
+            data_root=data_root
+        )
 
     def reply_audit_with_patch(
         self, 
@@ -32,7 +40,11 @@ class EvolverSandbox:
             config_patch: Potential strategy_config.yaml overrides.
             instruction_patch: Potential instruction text overrides.
         """
-        session_id = audit_report.get('metadata', {}).get('audit_id', 'UNKNOWN_SESSION')
+        observation = audit_report.get('session', {}).get('observation', {})
+        symbol = observation.get('symbol', 'UNKNOWN')
+        timestamp = observation.get('timestamp', '')
+        session_id = f"{symbol}_{timestamp}"
+        
         logger.info(f"Sandbox: Replaying session {session_id} in shadow.")
         
         # 1. Prepare Proposed Configuration (Baseline + Patch)
@@ -84,9 +96,6 @@ class EvolverSandbox:
                         patched_text = PromptDistiller.apply_distillation(baseline_text, agent_refinements)
                         instruction_overrides[agent_name] = patched_text
                         logger.info(f"Sandbox: Applied {len(agent_refinements)} refinements to {agent_name} logic.")
-                    else:
-                        # Even if no patch, we can still use the baseline or let it default to disk read
-                        pass
                 except Exception as e:
                     logger.warning(f"Sandbox: Could not load baseline for {agent_name} at {abs_path}: {e}")
 
@@ -98,23 +107,31 @@ class EvolverSandbox:
             instruction_overrides=instruction_overrides
         )
 
-        # 4. Replay
-        
-        case_metadata = audit_report.get('metadata', {})
-        case_session = audit_report.get('session', {})
-        case_session_symbol = case_session.get('symbol', 'UNKNOWN')
-        case_session_observation = case_session.get('observation', {})
+        # 4. Replay Decision Flow
+        new_session = orchestrator.execute_flow(observation, symbol)
 
-        new_session = orchestrator.execute_flow(case_session_observation, case_session_symbol)
+        # 5. Run Formal Audit Flow (High-Fidelity Replay Analysis)
+        # Directly anchor to the historical T1 timestamp (Assume presence per protocol hardening)
+        from datetime import datetime
+        metadata = audit_report.get('metadata', {})
+        historical_t1 = datetime.fromisoformat(metadata["audit_at"].replace('Z', '+00:00'))
+        logger.info(f"Sandbox: Anchoring audit to historical T1: {historical_t1.isoformat()}")
 
-        # 4. Evolution Metric Analysis: Did the new logic avoid the mistake?
-        # TODO yangj: logic to determine if the new logic is better than the old logic
-            
+        # We use force=True to bypass maturity since we are replaying a historical session
+        audit_bundle = self.audit_controller.audit_session_data(
+            session=new_session,
+            force=True,
+            end_time=historical_t1
+        )
         
-        # Final Forensic Package
-        return {
-            
+        # Standardized Archetype: Mapping bundle to the v6.12 forensic audit report schema
+        new_audit_report = {
+            "session": audit_bundle["session"],
+            "market_outcome": audit_bundle["outcome"],
+            "metadata": audit_bundle["metadata"]
         }
+        
+        return new_audit_report
 
     def run_batch_validation(
         self,
@@ -131,12 +148,19 @@ class EvolverSandbox:
         logger.info(f"Sandbox: Initiating batch validation for {len(audit_reports)} cases.")
         
         for idx, report in enumerate(audit_reports):
-            new_audit_report = self.reply_audit_with_patch(report, config_patch, instruction_patch)
-            results.append(new_audit_report)
-
-            # TODO yangj: logic to determine if the new logic is better than the old logic
-            rejected_cases.append(new_audit_report)
+            observation = report.get('session', {}).get('observation', {})
+            session_id = f"{observation.get('symbol', 'UNKNOWN')}_{observation.get('timestamp', '')}"
             
+            try:
+                new_audit_report = self.reply_audit_with_patch(report, config_patch, instruction_patch)
+                
+                # TODO yangj: logic to determine if the new logic is better than the old logic
+                # For now, following instructions to mark everything as rejected for verification
+                rejected_cases.append(new_audit_report)
+                
+            except Exception as e:
+                logger.error(f"Sandbox: Failed to validate case {session_id}: {e}")
+
         return {
             "accepted_cases": accepted_cases,
             "rejected_cases": rejected_cases

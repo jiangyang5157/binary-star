@@ -47,9 +47,11 @@ class AuditController:
         self.chart_gen = ChartGenerator(
             output_dir=os.path.join(resolve_project_root(), self.data_root, "klines")
         )
+        
+        default_symbol = config_dict['system']['default_symbol']
         self.observer = MarketObserver(
             config=self.obs_config,
-            symbol="BTCUSDT", # Default placeholder
+            symbol=default_symbol,
             data_root=self.data_root,
             binance_client=self.binance_client,
             chart_generator=self.chart_gen
@@ -72,9 +74,6 @@ class AuditController:
             
         Returns:
             An audit result dictionary containing session, outcome, and report.
-            
-        Raises:
-            Exception: If the session file cannot be processed or analysis fails.
         """
         if not os.path.isabs(session_file_path):
             session_file_path = os.path.join(resolve_project_root(), session_file_path)
@@ -82,24 +81,19 @@ class AuditController:
         with open(session_file_path, 'r', encoding='utf-8') as f:
             session = json.load(f)
             
-        obs = session.get("observation", {})
-        symbol = obs.get("symbol", "BTCUSDT")
-        t0_str = obs.get("timestamp")
+        return self.audit_session_data(session, force=force)
+
+    def audit_session_data(self, session: Dict[str, Any], force: bool = False, end_time: Optional[datetime] = None) -> Dict[str, Any]:
+        """Forensic audit logic adapted for both file-based and in-memory replay flows.
         
-        # Local Time Conversion (Helper to handle multiple formats)
-        def parse_to_local(ts_str):
-            if not ts_str: return "N/A"
-            try:
-                # 1. Try Compact format YYYYMMDD_HHMMSS
-                if "_" in ts_str and "-" not in ts_str:
-                    dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
-                else:
-                    # 2. Try ISO format
-                    dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
-            except Exception as e:
-                logger.warning(f"Notifier: Time parse failed for audit '{ts_str}': {e}")
-                return ts_str
+        Args:
+            session: The strategy/session dictionary.
+            force: If True, bypasses maturity checks.
+            end_time: Optional T1 boundary (historical audit time). Defaults to NOW.
+        """
+        obs = session.get("observation", {})
+        symbol = obs.get("symbol", "UNKNOWN")
+        t0_str = obs.get("timestamp")
         
         # Update Observer for the correct symbol
         self.observer.symbol = symbol
@@ -114,7 +108,8 @@ class AuditController:
             self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
             raise ValueError(f"Invalid timestamp format in session: {t0_str}")
 
-        t1_dt = datetime.now(timezone.utc)
+        # T1 Anchoring: Use explicit end_time or default to NOW
+        t1_dt = end_time.replace(tzinfo=timezone.utc) if end_time else datetime.now(timezone.utc)
         
         # v6.2 Eligibility Gateway: Intent Check
         final_decision = session.get("final_decision", {})
@@ -142,10 +137,13 @@ class AuditController:
                 "report": None, # audit_findings is null
                 "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
                 "session_timestamp_compact": ts_compact, 
-                "metadata": {"config_hash": get_file_hash("config/strategy_config.yaml")}
+                "metadata": {
+                    "config_hash": get_file_hash("config/strategy_config.yaml"),
+                    "audit_at": t1_dt.isoformat()
+                }
             }
 
-        self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to NOW ({t1_dt.isoformat()})")
+        self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to T1 ({t1_dt.isoformat()})")
         
         try:
             # 4. --- PHYSICAL FORENSIC: T1 Visual Capture ---
@@ -170,14 +168,13 @@ class AuditController:
                 self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only audit.")
 
             # 6. Assemble Forensic Outcome
-            
             metrics_t0 = obs.get("quantitative_metrics", {})
             dynamics_t0 = metrics_t0.get("price_dynamics", {})
             sentiment_t0 = metrics_t0.get("sentiment_signals", {})
             atr_proto = dynamics_t0.get("atr_macro", 0)
             long_short_ratio_proto = sentiment_t0.get("ls_ratio_macro", 0)
             
-            # Fetch T1 Environment Metrics
+            # Fetch T1 Environment Metrics from T1 observation or fallback to T0
             metrics_t1 = t1_observation.get("quantitative_metrics", {})
             atr_t1 = metrics_t1.get("price_dynamics", {}).get("atr_macro", atr_proto)
             long_short_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", long_short_ratio_proto)
@@ -196,7 +193,7 @@ class AuditController:
                 interval_hours=interval_macro_hours
             )
             
-            # Inject T1 visual paths into the outcome for notification engine
+            # Inject T1 visual paths into the outcome if available
             outcome["visual_context"] = {
                 "t1_macro": t1_assets.get("macro_snapshot"),
                 "t1_micro": t1_assets.get("micro_snapshot")
@@ -212,7 +209,7 @@ class AuditController:
                 # Still in position and haven't reached holding time limit
                 raise ValueError(f"SESSION_MATURING: {symbol} is still active (Result: NEITHER). Waiting for TP/SL or expiration (T0+{holding_hours}h).")
 
-            report = self.assembler.review(session, outcome, t1_observation)
+            report = self.assembler.review(session, outcome)
             
             # Merge forensic findings into outcome (v6.12 flattening)
             outcome["forensic_verdict"] = report.get("forensic_verdict", {})
@@ -224,7 +221,8 @@ class AuditController:
                 "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
                 "session_timestamp_compact": t0_str.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0],
                 "metadata": {
-                    "config_hash": get_file_hash("config/strategy_config.yaml")
+                    "config_hash": get_file_hash("config/strategy_config.yaml"),
+                    "audit_at": t1_dt.isoformat()
                 }
             }
             
@@ -246,9 +244,7 @@ class AuditController:
         bundle = {
             "session": session,
             "market_outcome": outcome,
-            "metadata": {
-                "config_hash": get_file_hash("config/strategy_config.yaml")
-            }
+            "metadata": audit_result.get("metadata", {})
         }
         
         output_dir = os.path.join(resolve_project_root(), self.data_root, "audits")
