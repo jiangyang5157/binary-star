@@ -94,19 +94,22 @@ def main():
     is_accepted = validation.get('is_accepted', False)
     
     # 6. Save Detailed Sandbox Result
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    sandbox_id = f"{symbol}_evolution_sandbox_{timestamp}"
+    evolver_at = metadata["evolver_at"]
+    # v6.12: Unified forensic timestamp conversion (ISO -> YYYYMMDD_HHMMSS)
+    ts_compact = evolver_at.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+    
+    sandbox_id = f"{symbol}_evolution_sandbox_{ts_compact}"
     sandbox_file = os.path.join(dirs['sandbox'], f"{sandbox_id}.json")
     save_json(validation, sandbox_file)
     
     # 8. Routing
     if is_accepted:
-        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted' ({validation.get('success_rate')*100:.1f}% Success)")
+        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted' ({len(validation.get('accepted_cases', []))}/{len(reports)} cases accepted)")
         target_file = os.path.join(dirs['accepted'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
         print(f"✅ Sandbox Passed | Result: {sandbox_file} | Proposal moved to accepted.")
     else:
-        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected' ({validation.get('success_rate')*100:.1f}% Success)")
+        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected' ({len(validation.get('rejected_cases', []))}/{len(reports)} cases rejected)")
         target_file = os.path.join(dirs['rejected'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
         print(f"❌ Sandbox Failed | Result: {sandbox_file} | Proposal moved to rejected.")
