@@ -25,9 +25,8 @@ def main():
     logger = logging.getLogger("PatchRunner")
     
     # 2. Hardcoded Physical Targets
-    project_root = resolve_project_root()
     target_config = "config/strategy_config.yaml"
-    config_abs_path = os.path.join(project_root, target_config)
+    config_abs_path = os.path.join(PROJECT_ROOT, target_config)
 
     if not os.path.exists(args.file):
         logger.error(f"Proposal JSON NOT found: {args.file}")
@@ -72,7 +71,7 @@ def main():
                 logger.error(f"Patching:   (!) Unknown module: {module}. Skipping.")
                 continue
                 
-            abs_path = os.path.join(resolve_project_root(), rel_path)
+            abs_path = os.path.join(PROJECT_ROOT, rel_path)
             replacements = PromptDistiller.apply_distillation(abs_path, anchor, logic)
             
             if replacements > 0:

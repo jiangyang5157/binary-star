@@ -132,6 +132,45 @@ class EvolverSandbox:
         }
         
         return new_audit_report
+    
+    def _is_superior(self, old_outcome: Dict[str, Any], new_outcome: Dict[str, Any]) -> bool:
+        """
+        Darwinian Comparison: Determines if the new strategy outcome is objectively 
+        better than the historical baseline.
+        """
+        old_res = str(old_outcome.get('tp_sl_result', 'N/A')).upper()
+        new_res = str(new_outcome.get('tp_sl_result', 'N/A')).upper()
+        
+        # 1. Outcome Hierarchy (Higher is better)
+        # TP_HIT (3) > NEITHER (2) > SL_HIT (1) > N/A (0)
+        rank = {"TP_HIT": 3, "NEITHER": 2, "SL_HIT": 1, "N/A": 0}
+        old_rank = rank.get(old_res, 0)
+        new_rank = rank.get(new_res, 0)
+        
+        if new_rank > old_rank:
+            logger.info(f"Sandbox: [IMPROVEMENT] Resolution upgrade: {old_res} -> {new_res}")
+            return True
+            
+        # 2. Stress Reduction (MAE Improvement)
+        # If the high-level outcome is the same, check if we reduced the risk/stress
+        if new_rank == old_rank and new_rank > 0:
+            old_metrics = old_outcome.get('trade_execution_metrics', {})
+            new_metrics = new_outcome.get('trade_execution_metrics', {})
+            
+            old_mae = float(old_metrics.get('mae_stress_level_pct', 100))
+            new_mae = float(new_metrics.get('mae_stress_level_pct', 100))
+            
+            # Fetch Darwinian thresholds from config
+            evolver_cfg = self.config_dict.get('evolver', {})
+            mae_sig = float(evolver_cfg['sandbox_mae_significance_threshold'])
+            mae_imp = float(evolver_cfg['sandbox_mae_improvement_threshold'])
+
+            # Improvement if MAE stress is significant and reduced by the threshold
+            if old_mae > mae_sig and (old_mae - new_mae) > mae_imp:
+                logger.info(f"Sandbox: [REFINEMENT] MAE Stress reduction: {old_mae}% -> {new_mae}% (Threshold: {mae_imp}%)")
+                return True
+                
+        return False
 
     def run_batch_validation(
         self,
@@ -160,9 +199,14 @@ class EvolverSandbox:
                 # 1. Execute Shadow Replay
                 new_audit_report = self.reply_audit_with_patch(report, config_patch, instruction_patch)
                 
-                # TODO yangj: logic to determine if the new logic is better than the old logic (e.g. SL_HIT -> TP_HIT)
-                # For now, following instructions to mark everything as rejected for verification
-                rejected_cases.append(new_audit_report)
+                # 2. Forensic Comparison
+                old_outcome = report.get('market_outcome', {})
+                new_outcome = new_audit_report.get('market_outcome', {})
+                
+                if self._is_superior(old_outcome, new_outcome):
+                    accepted_cases.append(new_audit_report)
+                else:
+                    rejected_cases.append(new_audit_report)
                 
             except Exception as e:
                 logger.error(f"Sandbox: Fatal error validating case {session_id}: {e}", exc_info=True)

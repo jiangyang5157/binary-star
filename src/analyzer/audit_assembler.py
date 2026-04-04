@@ -18,6 +18,7 @@ class AuditReviewConfig:
     micro_interval: str
     strategy_intent: str
     regime_anchor_drift_threshold: float
+    catastrophic_miss_pct_threshold: float
     audit_review: Dict[str, Any]
 
     @classmethod
@@ -33,6 +34,7 @@ class AuditReviewConfig:
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
+            catastrophic_miss_pct_threshold=float(audit_node.get('catastrophic_miss_pct_threshold', 3.0)),
             audit_review=audit_node
         )
 
@@ -252,8 +254,8 @@ class AuditAssembler:
         else:
             forensics = actual_outcome.get("market_forensics", {})
             mfe_pct = forensics.get("max_favorable_runup_pct", 0)
-            # Threshold for catastrophe (e.g. 5% or large ATR move)
-            threshold = 3.0 # % threshold for catastrophic miss
+            # Threshold for catastrophe (e.g. 3% or large ATR move)
+            threshold = self.config.catastrophic_miss_pct_threshold
             is_catastrophic = mfe_pct > threshold
             forensic_verdict["is_catastrophic_miss"] = is_catastrophic
 

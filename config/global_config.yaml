@@ -23,7 +23,7 @@ backtest:
   # Session anchor for regime sampling timestamps. Shifts sampled daily candles to this UTC hour to capture real session dynamics.
   # 02:00 - 06:00 (NZDT) / 13:00 - 17:00 (UTC): Peak volatility period. Momentum Riding and Retail Squeeze (Polarity Pivot) are most frequent as Western institutional capital drives sharp CVD/OI shifts and Volume Breakouts.
   # 13:00 - 21:00 (NZDT) / 00:00 - 08:00 (UTC): Asian session dominance. Volume is typically flatter; Mean-Reversion and Exhaustion Fading (DLE) strategies are most effective.
-  session_hour_utc: 5
+  session_hour_utc: 13
 
 sandbox:
   # Minimum success rate (0.0 to 1.0) for a proposal to be 'accepted'

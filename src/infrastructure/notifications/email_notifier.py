@@ -31,7 +31,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
         symbol = obs.get("symbol", "UNKNOWN")
         
         # 1. Standardized HTML Time Display (Dual UTC/Local)
-        display_time = to_html_display(utc_ts)
+        display_time = to_html_display(obs.get("observed_at", ""))
 
         # 2. Extract Data Suites
         
@@ -474,8 +474,8 @@ class SessionNotifier:
         self.global_cfg = self._load_global_config()
         
         # Sourcing threshold from global_config.yaml (Strict enforcement)
-        system_cfg = self.global_cfg['system']
-        self.notification_confidence_floor = int(system_cfg['notification_confidence_floor'])
+        system_cfg = self.global_cfg.get('system', {})
+        self.notification_confidence_floor = int(system_cfg.get('notification_confidence_floor', 0))
 
 
     def _load_global_config(self) -> Dict[str, Any]:
