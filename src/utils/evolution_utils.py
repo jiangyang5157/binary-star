@@ -11,7 +11,7 @@ class ConfigPatcher:
     
     @staticmethod
     def apply_patch(target_path: str, patch_overlays: Dict[str, Any]) -> bool:
-        """Applies a specific parameter overlay while preserving comments and formatting."""
+        """Applies a specific parameter overlay with deterministic nested search."""
         if not patch_overlays or not os.path.exists(target_path):
             return False
 
@@ -23,14 +23,28 @@ class ConfigPatcher:
             with open(target_path, 'r', encoding='utf-8') as f:
                 config = yaml.load(f)
 
+            def find_and_update_recursive(source, key, value):
+                """Search whole tree for a key and update it."""
+                if key in source:
+                    if isinstance(source[key], dict) and isinstance(value, dict):
+                        source[key].update(value)
+                    else:
+                        source[key] = value
+                    return True
+                
+                for k, v in source.items():
+                    if isinstance(v, dict):
+                        if find_and_update_recursive(v, key, value):
+                            return True
+                return False
+
             modified = False
-            
-            for key, val in patch_overlays.items():
-                if key in config and isinstance(config[key], dict) and isinstance(val, dict):
-                    config[key].update(val)
+            for k, v in patch_overlays.items():
+                if find_and_update_recursive(config, k, v):
                     modified = True
                 else:
-                    config[key] = val
+                    # Not found anywhere? Add to root.
+                    config[k] = v
                     modified = True
 
             if modified:
@@ -48,7 +62,7 @@ class PromptDistiller:
     
     @staticmethod
     def apply_distillation(target_path: str, anchor: str, new_text: str) -> bool:
-        """Replaces old high-entropy text with new distilled logic."""
+        """Replaces old high-entropy text with new distilled logic (Hardened)."""
         if not anchor or not new_text or not os.path.exists(target_path):
             return False
 
@@ -56,17 +70,17 @@ class PromptDistiller:
             with open(target_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            if anchor in content:
-                new_content = content.replace(anchor, new_text)
-                with open(target_path, 'w', encoding='utf-8') as f:
-                    f.write(new_content)
-                return True
+            # Strategy: Collapse all anchor whitespace into a flexible pattern
+            # 1. Simplify anchor whitespace
+            clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
+            # 2. Escape regex meta-characters
+            pattern = re.escape(clean_anchor)
+            # 3. Replace escaped spaces '\ ' (Python 3.9+) with [\s\r\n\t]+
+            # If for some reason re.escape didn't escape space, we handle that too
+            pattern = pattern.replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
             
-            # Flexible Match Recovery (Regex)
-            escaped_old = re.escape(anchor)
-            flexible_pattern = re.sub(r'\\\s+', r'\\s+', escaped_old)
-            if re.search(flexible_pattern, content):
-                new_content = re.sub(flexible_pattern, new_text, content, count=1)
+            if re.search(pattern, content):
+                new_content = re.sub(pattern, new_text, content, count=1)
                 with open(target_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
                 return True
