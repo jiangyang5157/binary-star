@@ -59,9 +59,21 @@ class SimpleRegimeClassifier:
 
 class Sampler(ABC):
     """Abstract base class for sampling historical timestamps."""
+    def __init__(self, session_hour_utc: int = 0):
+        self.session_hour_utc = session_hour_utc
+
     @abstractmethod
     def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
         pass
+
+    def _apply_session_shift(self, dates: List[datetime]) -> List[datetime]:
+        """Helps child classes shift timestamps to the designated market hour."""
+        if self.session_hour_utc == 0:
+            return dates
+        return [
+            dt.replace(hour=self.session_hour_utc, minute=0, second=0, microsecond=0)
+            for dt in dates
+        ]
 
 class SpacedSampler(Sampler):
     """Samples timestamps evenly across the provided date range."""
@@ -71,10 +83,12 @@ class SpacedSampler(Sampler):
         
         if len(df) <= count:
             logger.warning(f"Requested {count} samples but only {len(df)} available. Returning all.")
-            return df['timestamp'].tolist()
-
-        indices = np.linspace(0, len(df) - 1, count, dtype=int)
-        return df.iloc[indices]['timestamp'].tolist()
+            raw_dates = df['timestamp'].tolist()
+        else:
+            indices = np.linspace(0, len(df) - 1, count, dtype=int)
+            raw_dates = df.iloc[indices]['timestamp'].tolist()
+            
+        return self._apply_session_shift(raw_dates)
 
 class RegimeSampler(Sampler):
     """
@@ -134,12 +148,6 @@ class RegimeSampler(Sampler):
         # Sort chronologically for better simulation flow
         sorted_dates = sorted(target_dates)
 
-        # Shift timestamps to the configured session hour (e.g. 13:00 UTC = NY open)
-        if self.session_hour_utc != 0:
-            sorted_dates = [
-                dt.replace(hour=self.session_hour_utc, minute=0, second=0, microsecond=0)
-                for dt in sorted_dates
-            ]
-
-        return sorted_dates
+        # Shift timestamps to the configured session hour
+        return self._apply_session_shift(sorted_dates)
 
