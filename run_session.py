@@ -23,6 +23,7 @@ from src.analyzer.simulation_sampler import SimpleRegimeClassifier, SpacedSample
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, archive_strategy_result
 from src.utils.logger_utils import setup_logger
+from src.utils.datetime_utils import parse_iso_to_utc
 
 # Initialize central engine logger
 logger = setup_logger("SessionEngine")
@@ -163,7 +164,7 @@ class SessionController:
         logger.info(f"Starting SessionEngine: {mode} mode for {self.symbol}")
         
         if mode == "once":
-            self.engine.execute_cycle()
+            self.engine.execute_cycle(timestamp_str=getattr(self.args, 'timestamp', None))
         
         elif mode == "live":
             pulse_mins = self.args.pulse or self.global_cfg.get('session', {})['default_live_pulse_minutes']
@@ -233,6 +234,11 @@ def parse_date(date_str: str) -> datetime:
         if unit == 'd': return datetime.now(timezone.utc) - timedelta(days=val)
         if unit == 'h': return datetime.now(timezone.utc) - timedelta(hours=val)
     
+    try:
+        return parse_iso_to_utc(date_str)
+    except:
+        pass
+
     for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
         try: return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
         except: continue
@@ -249,6 +255,7 @@ def main():
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")
+    bt_group.add_argument("--timestamp", "-ts", type=str, help="Precise historical timestamp")
     bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
     bt_group.add_argument("--sampling", type=int, default=1, help="Number of historical samples")
