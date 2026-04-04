@@ -117,47 +117,68 @@ graph TD
 
 ## 🛠 安装与操作手册
 
-### 0. 环境准备
-在运行任何脚本之前，请确保你的虚拟环境已激活：
+### 0. 环境准备 (重要)
+在运行任何脚本之前，请确保你的虚拟环境已激活。这是保证依赖项正确加载的前提：
 ```bash
 source venv/bin/activate
 ```
 
-### 1. 市场分析会话 (Live Session)
-实时分析特定品种。
-```bash
-python run_session.py once --symbol BTCUSDT --data_root once
-```
+### 1. 市场分析会话 (Session Engine)
+系统会自动根据参数识别运行模式。
+
+*   **单次分析 (Once)**：对当前市场进行一站式对抗推理（默认存入 `data/once`）。
+    ```bash
+    python run_session.py
+    ```
+*   **回测模式 (Backtest)**：在历史样本点上进行批量分析（默认存入 `data/backtest`）。
+    ```bash
+    python run_session.py --start T-14d --sampling 12
+    ```
+*   **实时监控 (Live)**：按固定频率持续运行（默认存入 `data/live`）。
+    ```bash
+    python run_session.py --pulse 60
+    ```
 
 ### 2. 取证审计 (Forensic Audit)
-回顾特定会话，查明其成功或失败的深层原因。
+对会话日志进行深度取证，并将结果存入审计库以供进化学习。
 ```bash
-python run_audit.py --file data/once/sessions/BTCUSDT_session_时间戳.json
+# 审计特定文件 (需指定数据根目录 -p)
+python run_audit.py -p data/once --file data/once/sessions/BTCUSDT_session_时间戳.json
+
+# 批量分析整个目录
+python run_audit.py -p data/once
 ```
 
-### 3. 元进化 (DNA 进化)
-分析取证报告，对系统逻辑和参数进行“基因突变”更新。
+### 3. 元进化 DNA 引擎 (Meta-Evolution)
+基于审计报告，对系统的判定逻辑进行“基因突变”式优化。建议始终开启 `--sandbox` 以确保逻辑不退化。
 ```bash
-python run_evolution.py --samples 20
+python run_evolution.py -p data/once --samples 20 --sandbox
 ```
 
 ### 🏆 渐变式进化工作流 (The Triple Hardening Workflow)
-推荐的高保真策略进化路径，分为三个阶段：
+推荐的高保真策略进化路径，通过三个阶段不断“硬化”逻辑：
 
 *   **阶段 A：宏观基准训练 (Baseline)**
     *   **目标**：建立跨越 14 天的宏观稳定性。
-    *   **操作**：`python run_session.py backtest --start T-28d --end T-14d --sampling 12` -> 运行 `run_evolution.py`。
+    *   **操作**：
+        1. `python run_session.py --start T-28d --end T-14d --sampling 12` (默认存入 data/backtest)
+        2. `python run_audit.py -p data/backtest`
+        3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
 *   **阶段 B：近期律动适配 (Recency Adaptation)**
     *   **目标**：对齐最新的市场波动特性。
-    *   **操作**：`python run_session.py backtest --start T-14d --end now --sampling 12` -> 在阶段 A 补丁基础上再次进化。
+    *   **操作**：
+        1. `python run_session.py --start T-14d --end now --sampling 12` (默认存入 data/backtest)
+        2. `python run_audit.py -p data/backtest`
+        3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
 *   **阶段 C：极端案例加固 (Adversarial Hardening)**
-    *   **目标**：针对前两个阶段所有的 **失败审计 (Failures)** 进行专项逻辑闭合。
-    *   **操作**：筛选 `/audits` 中所有 `SL_HIT` 报告 -> 运行 `run_evolution.py --samples 10`。
+    *   **目标**：针对历史所有的 **失败审计 (Failures)** 进行专项逻辑闭合。
+    *   **操作**：
+        1. `python run_evolution.py -p data/backtest --samples 10 --sandbox` (Evolver 会自动优先处理失败案例)
 
 ### 4. 战术权益账本 (Strategy Ledger)
-生成特定品种的交互式 HTML 表现看板。
+生成特定品种的交互式 HTML 表现看板（通常用于回测结果展示）。
 ```bash
-python tools/session_ledger.py --symbol BTCUSDT --recursive
+python tools/session_ledger.py -p data/backtest --recursive
 ```
 
 ---
