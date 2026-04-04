@@ -169,7 +169,7 @@ class EvolutionEngine:
             self.logger.info(f"Sandbox: [SECURE_MODE] Validating {ev_id} against primary failure case: {files[0]}")
             sandbox = EvolverSandbox(self.api_key, self.data_root)
             validation = sandbox.validate_evolution(
-                failure_case=reports[0], 
+                failure_case=reports[0], # TODO yangj: how to pick failure cases?
                 proposed_patch=evolution_result.get('config_patch'),
                 proposed_prompts=evolution_result.get('semantic_refinement')
             )
