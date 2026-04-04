@@ -101,7 +101,7 @@ class AuditController:
         # Update Observer for the correct symbol
         self.observer.symbol = symbol
         
-        # Robust timestamp parsing (Handles both ISO and Compact formats)
+        # Robust timestamp parsing
         try:
             if "_" in t0_str and "-" not in t0_str:
                 t0_dt = datetime.strptime(t0_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
@@ -111,45 +111,25 @@ class AuditController:
             self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
             raise ValueError(f"Invalid timestamp format in session: {t0_str}")
 
-        # v6.15: Strategic T1 Anchoring (Hit-Aware)
+        # v6.16: Strategic T1 Anchoring
         final_decision = session.get("final_decision", {})
         opinion = final_decision.get("opinion", "").upper()
-        holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0) or 0)
+        
+        # If Neutral, we use a fixed macro window for forensic audit to detect missed opportunities
+        if opinion == "NEUTRAL":
+            interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
+            expiry_dt = t0_dt + timedelta(hours=interval_macro_hours)
+        else:
+            holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0) or 0)
+            expiry_dt = t0_dt + timedelta(hours=holding_hours)
         
         now_dt = datetime.now(timezone.utc)
-        expiry_dt = t0_dt + timedelta(hours=holding_hours)
         max_boundary = min(expiry_dt, now_dt)
         
-        # v6.2 Eligibility Gateway: Pre-check for Neutral
-        if opinion == "NEUTRAL":
-            self.logger.info(f"Audit: Neutral signal detected for {symbol}. Short-circuiting.")
-            t1_dt = max_boundary # Default for neutral analysis window
-            ts_compact = format_timestamp_for_filename(t0_str)
-
-            return {
-                "symbol": symbol,
-                "session": session,
-                "outcome": {
-                    "tp_sl_result": "NEUTRAL", 
-                    "market_outcome": "JUSTIFIED_SURRENDER",
-                    "forensic_verdict": {
-                        "is_justified_surrender": True, 
-                        "is_catastrophic_miss": False
-                    }
-                },
-                "report": None,
-                "audit_timestamp_compact": to_compact_timestamp(t1_dt),
-                "session_timestamp_compact": ts_compact, 
-                "metadata": {
-                    "config_hash": get_file_hash("config/strategy_config.yaml"),
-                    "audit_at": to_iso_zulu(t1_dt)
-                }
-            }
-
-        self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to Bound ({max_boundary.isoformat()})")
+        self.logger.info(f"Audit: Reviewing {symbol} ({opinion}) from {t0_str} to Bound ({max_boundary.isoformat()})")
         
         try:
-            # 1. Fetch Outcome Klines (Up to max boundary)
+            # 1. Fetch Outcome Klines
             client = self.binance_client
             forensic_resolution = self.config['audit_review']['forensic_resolution']
             klines = []
@@ -167,11 +147,10 @@ class AuditController:
             # 2. Extract Data Suites
             metrics_t0 = obs.get("quantitative_metrics", {})
             dynamics_t0 = metrics_t0.get("price_dynamics", {})
-            sentiment_t0 = metrics_t0.get("sentiment_signals", {})
             atr_proto = dynamics_t0.get("atr_macro", 0)
-            long_short_ratio_proto = sentiment_t0.get("ls_ratio_macro", 0)
+            ls_ratio_proto = metrics_t0.get("sentiment_signals", {}).get("ls_ratio_macro", 0)
             
-            # 3. Initial Outcome Calculation (To find TP/SL hit)
+            # 3. Initial Outcome Calculation
             interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
             
             outcome = self.assembler.calculate_outcome(
@@ -179,37 +158,28 @@ class AuditController:
                 entry_price=dynamics_t0.get("current_price", 0),
                 strategy=session,
                 atr_macro_t0=float(atr_proto),
-                atr_macro_t1=float(atr_proto), # Placeholder until final T1 is confirmed
-                long_short_ratio_macro_t0=float(long_short_ratio_proto),
-                long_short_ratio_macro_t1=float(long_short_ratio_proto), # Placeholder
+                atr_macro_t1=float(atr_proto),
+                long_short_ratio_macro_t0=float(ls_ratio_proto),
+                long_short_ratio_macro_t1=float(ls_ratio_proto),
                 interval_hours=interval_macro_hours
             )
 
             # 4. Final T1 Anchoring Logic
             res_type = outcome.get("tp_sl_result", "NEITHER")
             if res_type in ("TP_HIT", "SL_HIT"):
-                # Anchor audit exactly at the hit time
                 hit_index = outcome.get("trade_execution_metrics", {}).get("duration_candles", len(klines))
                 t1_dt = datetime.fromtimestamp(klines[hit_index - 1][0] / 1000, tz=timezone.utc)
-                self.logger.info(f"Audit: Trade {res_type} detected. Anchoring T1 to hit time: {to_iso_zulu(t1_dt)}")
             else:
-                # NEITHER case: Check maturity
-                if not force and now_dt < expiry_dt:
-                    raise ValueError(f"SESSION_MATURING: {symbol} is still active (Result: NEITHER). Waiting for expiry at {to_iso_zulu(expiry_dt)}.")
-                
-                # If forced or expired, anchor at expiry (or Now if forced early)
                 t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
-                self.logger.info(f"Audit: No hit detected. Anchoring T1 to {to_iso_zulu(t1_dt)}")
 
-            # 5. --- PHYSICAL FORENSIC: T1 Visual Capture at final t1_dt ---
-            self.logger.info(f"Audit: Capturing T1 visual evidence for {symbol} at {to_iso_zulu(t1_dt)}...")
+            # 5. --- PHYSICAL FORENSIC: T1 Visual Capture ---
             t1_observation = self.observer.observe(timestamp=t1_dt, persist=False)
             t1_assets = t1_observation.get("visual_assets", {})
 
             # 6. Re-calculate outcome with correct T1 metrics
             metrics_t1 = t1_observation.get("quantitative_metrics", {})
             atr_t1 = metrics_t1.get("price_dynamics", {}).get("atr_macro", atr_proto)
-            ls_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", long_short_ratio_proto)
+            ls_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", ls_ratio_proto)
             
             outcome = self.assembler.calculate_outcome(
                 klines=klines,
@@ -217,7 +187,7 @@ class AuditController:
                 strategy=session,
                 atr_macro_t0=float(atr_proto),
                 atr_macro_t1=float(atr_t1),
-                long_short_ratio_macro_t0=float(long_short_ratio_proto),
+                long_short_ratio_macro_t0=float(ls_ratio_proto),
                 long_short_ratio_macro_t1=float(ls_ratio_t1),
                 interval_hours=interval_macro_hours
             )
@@ -230,12 +200,10 @@ class AuditController:
             report = self.assembler.review(session, outcome)
             outcome["forensic_verdict"] = report.get("forensic_verdict", {})
             
+            # Standard Bundle Return (v6.12 schema parity)
             return {
-                "symbol": symbol,
                 "session": session,
-                "outcome": outcome,
-                "audit_timestamp_compact": to_compact_timestamp(t1_dt),
-                "session_timestamp_compact": format_timestamp_for_filename(t0_str),
+                "market_outcome": outcome,
                 "metadata": {
                     "config_hash": get_file_hash("config/strategy_config.yaml"),
                     "audit_at": to_iso_zulu(t1_dt)
@@ -249,18 +217,14 @@ class AuditController:
 
     def save_report(self, audit_result: Dict[str, Any]) -> str:
         """Standardized archival for forensic audit bundles."""
-        symbol = audit_result["symbol"]
-        outcome = audit_result["outcome"]
+        # Extract metadata from the standard bundle (Unified schema)
         session = audit_result["session"]
+        obs = session.get("observation", {})
+        symbol = obs.get("symbol", "UNKNOWN")
+        t0_str = obs.get("observed_at")
         
-        # Consistent filename TS generation (v6.12 Hardening)
-        filename_ts = audit_result.get("session_timestamp_compact")
-        
-        bundle = {
-            "session": session,
-            "market_outcome": outcome,
-            "metadata": audit_result.get("metadata", {})
-        }
+        # Consistent filename TS generation
+        filename_ts = format_timestamp_for_filename(t0_str)
         
         output_dir = os.path.join(resolve_project_root(), self.data_root, "audits")
         os.makedirs(output_dir, exist_ok=True)
@@ -269,7 +233,7 @@ class AuditController:
         output_file = os.path.join(output_dir, filename)
         
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(bundle, f, indent=2, ensure_ascii=False)
+            json.dump(audit_result, f, indent=2, ensure_ascii=False)
             
         self.logger.info(f"Audit: Forensic report archived: {os.path.basename(output_file)}")
         return output_file

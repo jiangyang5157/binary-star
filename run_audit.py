@@ -28,40 +28,37 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         with open(file_path, 'r', encoding='utf-8') as f:
             session = json.load(f)
         
-        symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
-        obs_ts = session["observation"]["observed_at"]
+        obs = session.get("observation", {})
+        symbol = obs.get("symbol", "UNKNOWN")
+        obs_ts = obs.get("observed_at")
         ts_compact = format_timestamp_for_filename(obs_ts)
         
         if not force and controller.is_already_audited(symbol, ts_compact):
             logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
             return "EXISTS"
 
-        # 2. Execute Analysis
-        result = controller.run_manual_audit(file_path, force=force)
+        # 2. Execute Analysis (Standardized 3-key Bundle: session, market_outcome, metadata)
+        audit_bundle = controller.run_manual_audit(file_path, force=force)
         
-        # 2. Automated Persistence
-        report_path = controller.save_report(result)
+        # 3. Automated Persistence
+        report_path = controller.save_report(audit_bundle)
         
-        # 3. Notification Logic
+        # 4. Notification Logic
         from src.infrastructure.notifications.email_notifier import SessionNotifier
         notifier = SessionNotifier(data_root=data_root)
         
-        # Reconstruct structural bundle for notifier (v6.12 alignment)
-        audit_result = {
-            "session": result["session"],
-            "market_outcome": result["outcome"],
-            "metadata": result.get("metadata", {}),
-            "audit_timestamp": result.get("audit_timestamp_compact")
-        }
+        # Decision: Notification control
+        opinion = session.get("final_decision", {}).get("opinion", "").upper()
+        should_dispatch = email and opinion != "NEUTRAL"
         
-        # Decision: Notification control (只有当系统有交易意向时才发送邮件报告)
-        should_dispatch = email and session.get("final_decision", {}).get("opinion", "").upper() != "NEUTRAL"
-        notifier.notify_audit(result["symbol"], audit_result, save_local=True, dispatch_email=should_dispatch)
+        # Dispatch notification using the standardized bundle
+        notifier.notify_audit(symbol, audit_bundle, save_local=True, dispatch_email=should_dispatch)
 
-        outcome = result.get('outcome', {})
+        outcome = audit_bundle.get('market_outcome', {})
+        result_str = outcome.get('tp_sl_result', 'N/A')
         
-        # 4. Standardized Audit Output
-        print(f"🔍 AUDIT COMPLETE | {result.get('symbol', 'UNKNOWN')} | {outcome.get('tp_sl_result', 'N/A')} | {report_path}")
+        # 5. Standardized Audit Output
+        print(f"🔍 AUDIT COMPLETE | {symbol} | {result_str} | {os.path.basename(report_path)}")
         return "SUCCESS"
     except Exception as e:
         if "SESSION_MATURING" in str(e):

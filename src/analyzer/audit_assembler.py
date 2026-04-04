@@ -106,9 +106,14 @@ class AuditAssembler:
             "sentiment_drift": round(long_short_ratio_macro_t1 - long_short_ratio_macro_t0, 4)
         }
 
+        # v6.16: Decision context extraction
+        final_decision = strategy.get('final_decision', {})
+        opinion = final_decision.get('opinion', 'NEUTRAL').upper()
+        default_result = "NEUTRAL" if opinion == "NEUTRAL" else "NEITHER"
+
         # 2. Result Payload Base
         result = {
-            "tp_sl_result": "NEITHER",
+            "tp_sl_result": default_result,
             "is_filled": False,
             "market_forensics": market_forensics,
             "regime_forensics": regime_forensics,
@@ -118,9 +123,6 @@ class AuditAssembler:
                 "actual_hours": round(len(klines) * interval_hours, 2)
             }
         }
-        
-        final_decision = strategy.get('final_decision', {})
-        opinion = final_decision.get('opinion', 'NEUTRAL').upper()
         
         if opinion in ('BULLISH', 'BEARISH'):
             tactical = final_decision.get('tactical_parameters', {})

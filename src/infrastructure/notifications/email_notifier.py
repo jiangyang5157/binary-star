@@ -615,14 +615,6 @@ class SessionNotifier:
             logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping audit dispatch.")
             return False
             
-        intercept = (audit_data.get("market_outcome") or {}).get("intercept_status") or {}
-        
-        # [Cost Firewall] Skip notifications for intercepted reports to reduce noise.
-        # Fallback to False if intercept_status is missing (v6.11 robustness)
-        if intercept.get("is_intercepted", False):
-            logger.info(f"Notifier: Audit for {symbol} is intercepted ({intercept.get('reason')}). Skipping audit dispatch.")
-            return False
-            
         result = (audit_data.get("market_outcome") or {}).get("tp_sl_result", "N/A")
 
         if result not in ["TP_HIT", "SL_HIT", "NEITHER"]:

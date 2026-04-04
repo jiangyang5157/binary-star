@@ -72,7 +72,7 @@ def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_
     mock_controller = mock_audit_controller_cls.return_value
     mock_controller.audit_session_data.return_value = {
         "session": {"observation": {"observed_at": "2026-04-04T10:00:00Z"}},
-        "outcome": {"tp_sl_result": "TP_HIT", "trade_execution_metrics": {"mae_stress_level_pct": 10.0}},
+        "market_outcome": {"tp_sl_result": "TP_HIT", "trade_execution_metrics": {"mae_stress_level_pct": 10.0}},
         "metadata": {"audit_at": "2026-04-04T12:00:00Z"} 
     }
     
@@ -100,7 +100,7 @@ def test_sandbox_rejection_logic(mock_audit_controller_cls, mock_orchestrator_cl
     mock_controller = mock_audit_controller_cls.return_value
     mock_controller.audit_session_data.return_value = {
         "session": {"observation": {"observed_at": "2026-04-04T10:00:00Z"}},
-        "outcome": {"tp_sl_result": "SL_HIT", "trade_execution_metrics": {"mae_stress_level_pct": 85.0}},
+        "market_outcome": {"tp_sl_result": "SL_HIT", "trade_execution_metrics": {"mae_stress_level_pct": 85.0}},
         "metadata": {"audit_at": "2026-04-04T12:00:00Z"}
     }
     

@@ -127,14 +127,8 @@ class EvolverSandbox:
             end_time=historical_t1
         )
         
-        # Standardized Archetype: Mapping bundle to the v6.12 forensic audit report schema
-        new_audit_report = {
-            "session": audit_bundle["session"],
-            "market_outcome": audit_bundle["outcome"],
-            "metadata": audit_bundle["metadata"]
-        }
-        
-        return new_audit_report
+        # Return the standardized Audit Bundle (Directly following v6.12 schema)
+        return audit_bundle
     
     def _is_superior(self, old_outcome: Dict[str, Any], new_outcome: Dict[str, Any]) -> bool:
         """

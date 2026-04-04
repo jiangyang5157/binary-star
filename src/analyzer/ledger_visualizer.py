@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from datetime import datetime, timezone
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from src.utils.json_utils import load_json
 from src.utils.path_utils import resolve_project_root
@@ -26,6 +26,33 @@ class LedgerVisualizer:
             self.logger.warning("No audit reports found. Skipping visualizer.")
             return None
 
+        return self._render_html(symbol, dataset, notify)
+
+    def generate_from_sandbox_file(self, file_path: str, symbol: str, notify: bool = False):
+        """Parses a Sandbox result JSON directly and renders a strategy/ledger dashboard."""
+        self.logger.info(f"Extracting forensic cases from sandbox: {file_path}")
+        data = load_json(file_path)
+        if not data:
+            self.logger.error(f"Failed to load sandbox file: {file_path}")
+            return None
+        
+        # Merge all cases (Accepted + Rejected) to see the full evolutionary spectrum
+        all_cases = data.get("accepted_cases", []) + data.get("rejected_cases", [])
+        dataset = []
+        for case in all_cases:
+            norm = self._normalize_audit_report(case)
+            if norm: dataset.append(norm)
+            
+        if not dataset:
+            self.logger.warning(f"No valid trading cases found in sandbox {file_path}")
+            return None
+
+        # Sort chronologically
+        dataset.sort(key=lambda x: x['observation_time'] or "")
+        return self._render_html(symbol, dataset, notify)
+
+    def _render_html(self, symbol, dataset, notify=False):
+        """Internal rendering engine for Ledger Dashboards."""
         # 1. Inject Data -> 2. Write File
         html_dir = os.path.join(self.data_root, "html")
         os.makedirs(html_dir, exist_ok=True)
@@ -196,14 +223,17 @@ class LedgerVisualizer:
         });
     </script>
 </body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset)).replace("{{GEN_TIME}}", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(content)
-
-        self.logger.info(f"Ledger Visualizer: Report successfully rendered to {output_path}")
         
+        # 2. Physical Persistence
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            
+        self.logger.info(f"Dashboard generated: {os.path.basename(output_path)}")
+
+        # 3. Notification (Optional)
         if notify:
             self.notifier.notify_ledger(symbol, dataset, ledger_path=output_path)
-        
+            
         return output_path
 
     def _extract_data(self, symbol: str, recursive: bool) -> List[Dict[str, Any]]:
@@ -227,32 +257,38 @@ class LedgerVisualizer:
             data = load_json(os.path.join(root, filename))
             if not data: continue
 
-            # Core filtering logic
-            outcome = data.get("market_outcome", {})
-            if outcome.get("intercept_status", {}).get("is_intercepted"): continue
-
-            session = data.get("session", {})
-            fd = session.get("final_decision", {})
-            if fd.get("opinion") not in ["BULLISH", "BEARISH"]: continue
-
-            lo = fd.get("tactical_parameters", {})
-            entry = float(lo.get("entry", 0))
-            res = outcome.get("tp_sl_result", "NEITHER")
-            pnl = 0.0
-            if entry > 0:
-                if res == "TP_HIT": 
-                    pnl = abs(float(lo.get("take_profit", 0)) - entry) / entry * 100
-                elif res == "SL_HIT": 
-                    pnl = -abs(entry - float(lo.get("stop_loss", 0))) / entry * 100
-
-            extracted.append({
-                "observation_time": (session.get("observation", {}).get("observed_at") or "")[:10],
-                "is_filled": outcome.get("is_filled", False),
-                "tp_sl_result": res,
-                "estimated_pnl_pct": round(pnl, 2),
-                "confidence": fd.get("confidence_score", 0),
-                "holding_time_hours": lo.get("holding_time_hours", 0)
-            })
+            norm = self._normalize_audit_report(data)
+            if norm: extracted.append(norm)
             
         extracted.sort(key=lambda x: x['observation_time'] or "")
         return extracted
+
+    def _normalize_audit_report(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Parses a single JSON audit report and extracts normalized performance telemetry."""
+        # v6.18: Unified Ledger Filtering (Including Neutral cases for full forensics)
+        outcome = data.get("market_outcome", {})
+
+        session = data.get("session", {})
+        fd = session.get("final_decision", {})
+        opinion = fd.get("opinion", "").upper()
+        
+        if opinion not in ["BULLISH", "BEARISH", "NEUTRAL"]: return None
+
+        lo = fd.get("tactical_parameters", {})
+        entry = float(lo.get("entry", 0))
+        res = outcome.get("tp_sl_result", "NEITHER")
+        pnl = 0.0
+        if entry > 0:
+            if res == "TP_HIT": 
+                pnl = abs(float(lo.get("take_profit", 0)) - entry) / entry * 100
+            elif res == "SL_HIT": 
+                pnl = -abs(entry - float(lo.get("stop_loss", 0))) / entry * 100
+
+        return {
+            "observation_time": (session.get("observation", {}).get("observed_at") or "")[:10],
+            "is_filled": outcome.get("is_filled", False),
+            "tp_sl_result": res,
+            "estimated_pnl_pct": round(pnl, 2),
+            "confidence": fd.get("confidence_score", 0),
+            "holding_time_hours": lo.get("holding_time_hours", 0)
+        }

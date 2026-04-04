@@ -71,7 +71,7 @@ class TestAuditAssembler(unittest.TestCase):
         self.assertEqual(outcome["tp_sl_result"], "SL_HIT")
 
     def test_opportunity_cost_neutral_paradox(self):
-        # Scenario: Agent chose NEUTRAL, but price moved 3 ATRs
+        # Scenario: Agent chose NEUTRAL, but price moved 3 ATRs (Missed Opportunity)
         strategy = {
             "final_decision": {"opinion": "NEUTRAL"},
             "observation": {
@@ -81,20 +81,19 @@ class TestAuditAssembler(unittest.TestCase):
             }
         }
         
-        # Outcome has high missed range
+        # Consistent with v6.16 Schema
         outcome = {
-            "market_context": {
-                "is_catastrophic_miss": True,
-                "missed_relative_range": 3.0
+            "market_forensics": {
+                "window_volatility_intensity_atr": 3.0,
+                "max_favorable_runup_pct": 1.5
             }
         }
         
         report = self.assembler.review(strategy, outcome)
         
-        # v6.13 Schema Check: forensic_verdict -> is_justified_surrender
+        # Result: With missed_opportunity_atr_threshold=2.0 (from setUp), 3.0 > 2.0 -> NOT justified
         self.assertIn("forensic_verdict", report)
-        # Assuming vol_abs is small or logic is justified
-        self.assertIn("is_justified_surrender", report["forensic_verdict"])
+        self.assertFalse(report["forensic_verdict"]["is_justified_surrender"])
 
 if __name__ == '__main__':
     unittest.main()
