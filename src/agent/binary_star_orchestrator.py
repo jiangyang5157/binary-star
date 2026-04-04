@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
 

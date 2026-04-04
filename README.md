@@ -87,7 +87,13 @@ After every session, the **Evolver** agent performs a forensic audit. It updates
 
 ---
 
-## 🛠 Operation Manual
+## 🛠 Setup & Operation Manual
+
+### 0. Environment Setup
+Before running any scripts, ensure your virtual environment is active:
+```bash
+source venv/bin/activate
+```
 
 ### 1. Market Session (Live Analysis)
 Analyze a specific symbol in real-time.
