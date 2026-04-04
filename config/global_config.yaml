@@ -20,12 +20,10 @@ session:
   default_live_pulse_minutes: 60
 
 backtest:
-  # Session anchor for regime sampling timestamps.
-  # Shifts sampled daily candles to this UTC hour to capture real session dynamics.
-  # 0  = Asia open (default daily candle)
-  # 8  = London open
-  # 13 = New York open (recommended for max liquidity)
-  session_hour_utc: 13
+  # Session anchor for regime sampling timestamps. Shifts sampled daily candles to this UTC hour to capture real session dynamics.
+  # 02:00 - 早上 06:00 (NZDT) / 13:00 - 17:00 (UTC): 这是 动能突破 (Momentum Riding) 和 散户挤压 (Retail Squeeze / Polarity Pivot) 最容易爆发的阶段。欧美机构资金的介入会导致 CVD 和 OI 出现急剧变化，成交量放大 (Volume Breakout)。
+  # 下午 13:00 - 晚上 21:00 (NZDT) / 00:00 - 08:00 (UTC): 这个阶段主要由亚洲盘主导，通常成交量较平缓。此时，均值回归 (Mean-Reversion) 和 衰竭衰退 (Exhaustion Fading / DLE) 策略最有效。
+  session_hour_utc: 2
 
 sandbox:
   # Minimum success rate (0.0 to 1.0) for a proposal to be 'accepted'
