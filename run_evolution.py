@@ -166,7 +166,7 @@ class EvolutionEngine:
         self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
         # 4. Phase: The Shadow Sandbox
-        is_valid = None
+        is_accepted = None
         if run_sandbox:
             self.logger.info(f"Sandbox: [BATCH_MODE] Validating {ev_id} against {len(reports)} historical cases.")
             sandbox = EvolverSandbox(
