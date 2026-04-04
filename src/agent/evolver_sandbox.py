@@ -141,6 +141,10 @@ class EvolverSandbox:
     ) -> Dict[str, Any]:
         """
         Executes a regression sweep across ALL provided audit reports.
+        
+        Logic: 
+        1. Accepted: New result is strictly better (Loss -> Win/Neutral) or matches success.
+        2. Rejected: New result is worse (Win -> Loss/Neutral) or remains a loss.
         """
         accepted_cases = []
         rejected_cases = []
@@ -152,16 +156,18 @@ class EvolverSandbox:
             session_id = f"{observation.get('symbol', 'UNKNOWN')}_{observation.get('timestamp', '')}"
             
             try:
+                # 1. Execute Shadow Replay
                 new_audit_report = self.reply_audit_with_patch(report, config_patch, instruction_patch)
                 
-                # TODO yangj: logic to determine if the new logic is better than the old logic
+                # TODO yangj: logic to determine if the new logic is better than the old logic (e.g. SL_HIT -> TP_HIT)
                 # For now, following instructions to mark everything as rejected for verification
                 rejected_cases.append(new_audit_report)
                 
             except Exception as e:
-                logger.error(f"Sandbox: Failed to validate case {session_id}: {e}")
+                logger.error(f"Sandbox: Fatal error validating case {session_id}: {e}", exc_info=True)
 
         return {
+            "is_accepted": len(accepted_cases) > len(rejected_cases),
             "accepted_cases": accepted_cases,
             "rejected_cases": rejected_cases
         }

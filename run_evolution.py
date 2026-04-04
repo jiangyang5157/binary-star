@@ -66,7 +66,10 @@ class EvolutionEngine:
         self.logger.info("="*60)
         self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
         self.logger.info("="*60)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        from datetime import timezone
+        evolver_at_dt = datetime.now(timezone.utc)
+        evolver_at = evolver_at_dt.isoformat()
+        ts_compact = evolver_at_dt.strftime("%Y%m%d_%H%M%S")
 
         # 1. Ingest Audit Evidence
         audit_dir = os.path.join(self.data_root, "audits")
@@ -100,10 +103,8 @@ class EvolutionEngine:
             if report: reports.append(report)
 
         # 2. Neural Meta-Optimization
-        from src.utils.pipeline_utils import load_global_config
-        global_cfg = load_global_config()
-        strategy_cfg = load_config()
-        full_config = {**global_cfg, **strategy_cfg}
+        from src.utils.pipeline_utils import load_combined_config
+        full_config = load_combined_config()
         
         ev_cfg = EvolverConfig.from_dict(full_config)
         
@@ -144,17 +145,17 @@ class EvolutionEngine:
 
         evolution_result = evolver.evolve(
             audit_reports=reports,
-            active_config=strategy_cfg,
+            active_config=full_config,
             current_instructions=instruction_contents
         )
         
         # v6.11: Standardized Naming: {symbol}_evolution_{timestamp}
-        ev_id = f"{self.symbol}_evolution_{timestamp}"
+        ev_id = f"{self.symbol}_evolution_{ts_compact}"
         
         # Inject context for standalone sandbox/patch recovery
         evolution_result['metadata'] = {
             "symbol": self.symbol,
-            "timestamp": timestamp,
+            "evolver_at": evolver_at,
             "audit_reports": files[:sample_size]
         }
         
@@ -171,7 +172,7 @@ class EvolutionEngine:
             sandbox = EvolverSandbox(
                 self.api_key, 
                 self.data_root,
-                config_dict=g_cfg
+                config_dict=full_config
             )
             validation = sandbox.run_batch_validation(
                 audit_reports=reports,
@@ -181,10 +182,10 @@ class EvolutionEngine:
             
             accepted_total = len(validation.get('accepted_cases', []))
             rejected_total = len(validation.get('rejected_cases', []))
-            is_valid = accepted_total > rejected_total
+            is_valid = validation.get('is_accepted', False)
             
             # v6.11: Sandbox Result Naming: {symbol}_evolution_sandbox_{timestamp}.json
-            sandbox_id = f"{self.symbol}_evolution_sandbox_{timestamp}"
+            sandbox_id = f"{self.symbol}_evolution_sandbox_{ts_compact}"
             sandbox_file = os.path.join(self.dirs['sandbox'], f"{sandbox_id}.json")
             save_json(validation, sandbox_file)
             
@@ -206,7 +207,8 @@ class EvolutionEngine:
             # is_valid is None (Sandbox was not run)
             self.logger.info(f"Routing: Passive completion. Proposal isolated for review: {os.path.basename(proposal_file)}")
 
-        self.logger.info(f"--- Evolution Cycle Complete | Duration: {datetime.now().strftime('%H:%M:%S')} ---")
+        timestamp_now = datetime.now().strftime("%H:%M:%S")
+        self.logger.info(f"--- Evolution Cycle Complete | Duration: {timestamp_now} ---")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")

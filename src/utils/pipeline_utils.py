@@ -48,6 +48,18 @@ def load_global_config(config_filepath: str = "config/global_config.yaml") -> Di
     except Exception:
         return {}
 
+
+def load_combined_config(global_path: str = "config/global_config.yaml", strategy_path: str = "config/strategy_config.yaml") -> Dict[str, Any]:
+    """
+    Loads and merges global and strategy configurations.
+    Priority: Strategy config values override Global config values if there's a conflict
+    at the top level, but typically they have distinct top-level keys.
+    """
+    global_cfg = load_global_config(global_path)
+    strategy_cfg = load_config(strategy_path)
+    # Shallow merge of top-level keys (system, network, analysis_window, etc.)
+    return {**global_cfg, **strategy_cfg}
+
 from functools import lru_cache
 
 @lru_cache(maxsize=32)

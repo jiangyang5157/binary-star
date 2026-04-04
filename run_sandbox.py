@@ -14,7 +14,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.evolver_sandbox import EvolverSandbox
-from src.utils.pipeline_utils import resolve_data_root, add_data_root_argument, load_global_config
+from src.utils.pipeline_utils import resolve_data_root, add_data_root_argument, load_combined_config
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 
@@ -79,36 +79,28 @@ def main():
         logger.critical("GEMINI_API_KEY Missing.")
         sys.exit(1)
         
-    logger.info(f"Sandbox: Initializing batch validation for {len(reports)} cases...")
-    g_cfg = load_global_config()
-    s_cfg = g_cfg.get('sandbox', {})
+    full_config = load_combined_config()
     sandbox = EvolverSandbox(
-        api_key, 
-        data_root_rel, 
-        acceptance_threshold=float(s_cfg['acceptance_threshold'])
+        api_key=api_key, 
+        data_root=data_root_rel, 
+        config_dict=full_config
     )
     
     validation = sandbox.run_batch_validation(
-        reports=reports,
-        proposed_patch=proposal.get('config_patch'),
-        proposed_prompts=proposal.get('semantic_refinement')
+        audit_reports=reports,
+        config_patch=proposal.get('config_patch'),
+        instruction_patch=proposal.get('semantic_refinement')
     )
-    is_valid = validation.get('is_validated', False)
+    is_accepted = validation.get('is_accepted', False)
     
-    # 6. Inject Pass/Failure Cases into Proposal JSON (Persistence)
-    proposal['pass_cases'] = validation.get('pass_cases', [])
-    proposal['failure_cases'] = validation.get('failure_cases', [])
-    proposal['success_rate'] = validation.get('success_rate', 0.0)
-    save_json(proposal, args.file) # Overwrite with results
-    
-    # 7. Save Detailed Sandbox Result
+    # 6. Save Detailed Sandbox Result
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     sandbox_id = f"{symbol}_evolution_sandbox_{timestamp}"
     sandbox_file = os.path.join(dirs['sandbox'], f"{sandbox_id}.json")
     save_json(validation, sandbox_file)
     
     # 8. Routing
-    if is_valid:
+    if is_accepted:
         logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted' ({validation.get('success_rate')*100:.1f}% Success)")
         target_file = os.path.join(dirs['accepted'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
