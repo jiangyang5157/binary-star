@@ -130,6 +130,10 @@ source venv/bin/activate
     ```bash
     python run_session.py
     ```
+*   **精确定时分析 (Timestamp)**：对历史上的特定时刻进行单次分析（支持指定路径）。
+    ```bash
+    python run_session.py -ts 2026-03-13T15:43:00Z --path data/backtest
+    ```
 *   **回测模式 (Backtest)**：在历史样本点上进行批量分析（默认存入 `data/backtest`）。
     ```bash
     python run_session.py --start T-14d --sampling 12
