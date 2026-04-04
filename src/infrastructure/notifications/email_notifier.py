@@ -58,10 +58,15 @@ class SessionEmailTemplate(BaseEmailTemplate):
         entry = tactical.get('entry')
         tp = tactical.get('take_profit')
         sl = tactical.get('stop_loss')
+        
+        rr_display = "N/A"
         if all(v is not None for v in [entry, tp, sl]):
-            from src.utils.math_utils import MathTools
-            rr_res = MathTools.calculate_risk_reward(float(entry), float(tp), float(sl))
-            rr_display = rr_res.get('rr_ratio', "N/A")
+            try:
+                from src.utils.math_utils import MathTools
+                rr_res = MathTools.calculate_risk_reward(float(entry), float(tp), float(sl))
+                rr_display = rr_res.get('rr_ratio', "N/A")
+            except Exception as e:
+                logger.warning(f"Template: RR calculation failed: {e}")
 
         # 5. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
@@ -93,7 +98,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
 
                 <!-- Audit Verdict -->
                 {f'''
-                <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background_color: #f8fafc;">
+                <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
                     <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Audit Verdict</h3>
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('audit_impact'))}</p>
                 </div>
@@ -406,14 +411,15 @@ class LedgerEmailTemplate(BaseEmailTemplate):
         limit = 100
         recent_items = dataset[max(0, len(dataset)-limit):] if len(dataset) > limit else dataset
         for item in recent_items:
-            res_color = "#10b981" if item['tp_sl_result'] == 'TP_HIT' else "#ef4444" if item['tp_sl_result'] == 'SL_HIT' else "#64748b"
+            result_val = item.get('tp_sl_result', 'NEITHER')
+            res_color = "#10b981" if result_val == 'TP_HIT' else "#ef4444" if result_val == 'SL_HIT' else "#64748b"
             pnl_val = float(item.get('estimated_pnl_pct') or 0.0)
             p_sign = "+" if pnl_val > 0 else ""
             
             rows_html += f"""
                 <tr>
-                    <td style="font-family: monospace; font-size: 11px;">{item['observation_time']}</td>
-                    <td><span style="font-weight: 700; color: {res_color};">{item['tp_sl_result']}</span></td>
+                    <td style="font-family: monospace; font-size: 11px;">{item.get('observation_time', 'N/A')}</td>
+                    <td><span style="font-weight: 700; color: {res_color};">{result_val}</span></td>
                     <td style="text-align: right; font-weight: 700;"><span class="{'metric_pnl_pos' if pnl_val > 0 else 'metric_pnl_neg' if pnl_val < 0 else ''}">{p_sign}{pnl_val}%</span></td>
                 </tr>
             """
@@ -571,7 +577,7 @@ class SessionNotifier:
 
         # Only notify if opinion is BULLISH / BEARISH
         if opinion.upper() not in ["BULLISH", "BEARISH"]:
-            logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH /。BEARISH allowed).")
+            logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH / BEARISH allowed).")
             return False
             
         icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}

@@ -306,6 +306,7 @@ class BinaryStarOrchestrator:
                 })
 
                 if skepticism_score < self.skepticism_halt_limit:
+                    # TODO yangj: what to do?
                     logger.info(f"BinaryStar: Skepticism resolved ({skepticism_score} < {self.skepticism_halt_limit}). Convergence achieved.")
                     break
                     
