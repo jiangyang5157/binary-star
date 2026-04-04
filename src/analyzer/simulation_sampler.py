@@ -71,7 +71,7 @@ class Sampler(ABC):
         if self.session_hour_utc == 0:
             return dates
         
-        # Calculate hours and minutes from decimal (e.g., 15.5 -> 15:30)
+        # Calculate hours and minutes from decimal (e.g., 15.7 -> 15:42)
         hours = int(self.session_hour_utc)
         minutes = int(round((self.session_hour_utc - hours) * 60))
         
