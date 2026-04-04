@@ -182,29 +182,29 @@ class EvolutionEngine:
             
             accepted_total = len(validation.get('accepted_cases', []))
             rejected_total = len(validation.get('rejected_cases', []))
-            is_valid = validation.get('is_accepted', False)
+            is_accepted = validation.get('is_accepted', False)
             
             # v6.11: Sandbox Result Naming: {symbol}_evolution_sandbox_{timestamp}.json
             sandbox_id = f"{self.symbol}_evolution_sandbox_{ts_compact}"
             sandbox_file = os.path.join(self.dirs['sandbox'], f"{sandbox_id}.json")
             save_json(validation, sandbox_file)
             
-            self.logger.info(f"Sandbox: Overall Result: {'ACCEPTED' if is_valid else 'REJECTED'} (Accepted: {accepted_total}, Rejected: {rejected_total})")
+            self.logger.info(f"Sandbox: Overall Result: {'ACCEPTED' if is_accepted else 'REJECTED'} (Accepted: {accepted_total}, Rejected: {rejected_total})")
         else:
             self.logger.info(f"Sandbox: [PASSIVE_MODE] Bypassing validation for {ev_id}. Proposal remains in 'proposals'.")
         
         # 5. Routing: Atomic Commit vs Rejection vs Passive
-        if is_valid is True:
+        if is_accepted is True:
             self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Moving to 'sandbox_accepted'...")
             accepted_file = os.path.join(self.dirs['sandbox_accepted'], f"{ev_id}.json")
             shutil.move(proposal_file, accepted_file)
 
-        elif is_valid is False:
+        elif is_accepted is False:
             self.logger.warning(f"Routing: EVOLUTION REJECTED [{ev_id}]. Regression risk detected. Moving to 'sandbox_rejected'...")
             rejected_file = os.path.join(self.dirs['sandbox_rejected'], f"{ev_id}.json")
             shutil.move(proposal_file, rejected_file)
         else:
-            # is_valid is None (Sandbox was not run)
+            # is_accepted is None (Sandbox was not run)
             self.logger.info(f"Routing: Passive completion. Proposal isolated for review: {os.path.basename(proposal_file)}")
 
         timestamp_now = datetime.now().strftime("%H:%M:%S")
