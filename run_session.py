@@ -240,7 +240,6 @@ def parse_date(date_str: str) -> datetime:
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine (v6.0)")
-    parser.add_argument("--mode", choices=["once", "live", "backtest"], default="once", help="Execution mode")
     parser.add_argument("--symbol", type=str, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     
@@ -261,6 +260,22 @@ def main():
     
     args = parser.parse_args()
     
+    # [v6.20] MODE INFERENCE: Determining execution mode based on flags
+    # 1. Backtest takes precedence if --start is provided.
+    # 2. Live (Pulse) takes precedence if --pulse is provided.
+    # 3. Default is "Once" (Immediate analysis).
+    if getattr(args, 'start', None):
+        args.mode = "backtest"
+        # Auto-align env to 'backtest' if not explicitly provided, to ensure correct archival
+        if getattr(args, 'env_shortcut', 'once') == "once":
+            args.env_shortcut = "backtest"
+    elif getattr(args, 'pulse', None):
+        if getattr(args, 'start', None):
+            parser.error("Contradictory flags: Cannot use --pulse in backtest mode.")
+        args.mode = "live"
+    else:
+        args.mode = "once"
+
     # Sanity checks
     if args.mode == "backtest" and not args.start:
         parser.error("--start is required for backtest mode.")

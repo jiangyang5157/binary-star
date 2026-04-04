@@ -162,8 +162,8 @@ def add_data_root_argument(parser: argparse.ArgumentParser):
     Standardizes the addition of data_root and env shortcut arguments.
     """
     parser.add_argument(
-        "env_shortcut", 
-        nargs="?", 
+        "--env", 
+        dest="env_shortcut",
         default="once",
         help="Environment shortcut (e.g., once, live, test). Maps to --data_root if provided."
     )
