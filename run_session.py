@@ -21,7 +21,7 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from src.analyzer.simulation_sampler import SimpleRegimeClassifier, SpacedSampler, RegimeSampler
 from src.infrastructure.notifications.email_notifier import SessionNotifier
-from src.utils.pipeline_utils import load_config, load_global_config, resolve_data_root, archive_strategy_result
+from src.utils.pipeline_utils import load_config, load_global_config, archive_strategy_result
 from src.utils.logger_utils import setup_logger
 
 # Initialize central engine logger
@@ -140,7 +140,7 @@ class SessionController:
     """Manages the lifecycle of the SessionEngine according to user-specified modes."""
     def __init__(self, args):
         self.args = args
-        self.data_root = args.data_root or resolve_data_root(args.env_shortcut)
+        self.data_root = args.path
         self.global_cfg = load_global_config()
         self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
         
@@ -255,26 +255,21 @@ def main():
     bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
     bt_group.add_argument("--session-hour", type=int, default=None, help="UTC hour to anchor sampling (default: from config)")
     
-    from src.utils.pipeline_utils import add_data_root_argument
-    add_data_root_argument(parser)
+    from src.utils.pipeline_utils import add_data_path_argument
+    add_data_path_argument(parser)
     
     args = parser.parse_args()
     
-    # [v6.20] MODE INFERENCE: Determining execution mode based on flags
-    # 1. Backtest takes precedence if --start is provided.
-    # 2. Live (Pulse) takes precedence if --pulse is provided.
-    # 3. Default is "Once" (Immediate analysis).
+    # [v6.20] UNIFIED INFERENCE: One-pass mode & path detection
     if getattr(args, 'start', None):
         args.mode = "backtest"
-        # Auto-align env to 'backtest' if not explicitly provided, to ensure correct archival
-        if getattr(args, 'env_shortcut', 'once') == "once":
-            args.env_shortcut = "backtest"
+        if not args.path: args.path = "data/backtest"
     elif getattr(args, 'pulse', None):
-        if getattr(args, 'start', None):
-            parser.error("Contradictory flags: Cannot use --pulse in backtest mode.")
         args.mode = "live"
+        if not args.path: args.path = "data/live"
     else:
         args.mode = "once"
+        if not args.path: args.path = "data/once"
 
     # Sanity checks
     if args.mode == "backtest" and not args.start:

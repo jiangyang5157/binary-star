@@ -12,7 +12,7 @@ from src.agent.critic_agent import CriticAgent, CriticConfig
 from src.utils.math_utils import MathTools
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
-from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, resolve_data_root, safe_format
+from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, safe_format
 from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT, get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
@@ -51,7 +51,7 @@ class BinaryStarOrchestrator:
         """
         self.config = config_dict
         self.api_key = api_key
-        self.data_root = resolve_data_root(data_root)
+        self.data_root = data_root
         self.instruction_overrides = instruction_overrides or {}
         
         # 0. Global Configuration Merging (Physical Split maintained for Snapshot Purity)

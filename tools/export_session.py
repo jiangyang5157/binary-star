@@ -3,7 +3,7 @@ import os
 import sys
 import argparse
 import json
-from src.utils.pipeline_utils import resolve_data_root
+# resolve_data_root removed
 from src.utils.json_utils import load_json, save_json
 from src.utils.datetime_utils import sanitize_timestamp
 from src.utils.path_utils import resolve_project_root
@@ -17,16 +17,16 @@ def main():
     parser.add_argument("--file", required=True, help="Path to the forensic JSON report")
     
     # Standardize data root arguments
-    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
-    add_data_root_argument(parser)
+    from src.utils.pipeline_utils import add_data_path_argument
+    add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
     
     # 1. Resolve Data Root: priority to --data_root, fallback to env_shortcut
-    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    data_root = args.path
     
     if not data_root:
-        print(f"Error: Could not resolve data root for shortcut '{args.env_shortcut}'")
+        print(f"Error: --path or -p is required.")
         sys.exit(1)
         
     # 2. Load Forensic Report

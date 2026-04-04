@@ -11,7 +11,6 @@ if PROJECT_ROOT not in sys.path:
 
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from tests.mock_factory import MockDataFactory
-from src.utils.pipeline_utils import resolve_data_root
 
 class TestBinaryStarFlow(unittest.TestCase):
     def setUp(self):
@@ -37,7 +36,7 @@ class TestBinaryStarFlow(unittest.TestCase):
 
     def test_debate_convergence_and_metadata(self):
         """Tests that the orchestrator converges when skepticism score drops."""
-        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root=resolve_data_root("test"))
+        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root="data/test")
         
         # 1. Mock SessionAgent: Handles all phases through execute_session_cycle
         orchestrator.session_agent.execute_session_cycle = MagicMock()

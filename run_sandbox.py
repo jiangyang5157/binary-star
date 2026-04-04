@@ -14,19 +14,19 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.evolver_sandbox import EvolverSandbox
-from src.utils.pipeline_utils import resolve_data_root, add_data_root_argument, load_combined_config
+from src.utils.pipeline_utils import add_data_path_argument, load_combined_config
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Standalone Shadow Sandbox (v6.1)")
     parser.add_argument("--file", required=True, help="Path to the evolution proposal JSON file")
-    add_data_root_argument(parser)
+    add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
     
     # 1. Resolve Data Root and Setup Logging
-    data_root_rel = args.data_root or resolve_data_root(args.env_shortcut)
+    data_root_rel = args.path
     data_root = os.path.join(PROJECT_ROOT, data_root_rel)
     
     log_path = os.path.join(data_root, "sandbox_run.log")

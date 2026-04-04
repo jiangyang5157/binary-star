@@ -16,7 +16,7 @@ if PROJECT_ROOT not in sys.path:
 
 from src.agent.evolver_agent import EvolverAgent, EvolverConfig
 from src.agent.evolver_sandbox import EvolverSandbox
-from src.utils.pipeline_utils import load_config, resolve_data_root, add_data_root_argument
+from src.utils.pipeline_utils import load_config, add_data_path_argument
 from src.utils.json_utils import load_json, save_json
 from src.utils.logger_utils import setup_logger
 
@@ -215,13 +215,10 @@ def main():
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading symbol for analysis (default: BTCUSDT)")
     parser.add_argument("--samples", type=int, default=20, help="Number of audit reports to ingest")
     parser.add_argument("--sandbox", action="store_true", help="Activate Sandbox validation")
-    add_data_root_argument(parser)
+    add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
-    data_root = args.data_root or resolve_data_root(args.env_shortcut)
-    if not data_root:
-        print("Error: --data_root or environment shortcut (e.g., prod) required.")
-        sys.exit(1)
+    data_root = args.path
         
     engine = EvolutionEngine(data_root, symbol=args.symbol)
     try:

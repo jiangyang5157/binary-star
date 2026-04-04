@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path: sys.path.insert(0, PROJECT_ROOT)
 
 from src.analyzer.ledger_visualizer import LedgerVisualizer
-from src.utils.pipeline_utils import load_global_config, add_data_root_argument, resolve_data_root
+from src.utils.pipeline_utils import load_global_config, add_data_path_argument
 from src.utils.logger_utils import setup_logger
 
 # Initialize CLI-level logger
@@ -20,13 +20,10 @@ def main():
     parser.add_argument("--symbol", type=str, help="Symbol to filter")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification.")
     parser.add_argument("--recursive", "-r", action="store_true", help="Perform recursive history scan.")
-    add_data_root_argument(parser)
+    add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
-    data_root = args.data_root or resolve_data_root(args.env_shortcut)
-    if not data_root:
-        logger.error("Data root resolution failed. Aborting.")
-        sys.exit(1)
+    data_root = args.path
         
     global_cfg = load_global_config()
     symbol = args.symbol or global_cfg['system']['default_symbol']

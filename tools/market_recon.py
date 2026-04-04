@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.abspath(os.path.join(TOOLS_DIR, ".."))
 if PROJECT_ROOT not in sys.path: sys.path.insert(0, PROJECT_ROOT)
 
 from src.analyzer.topography_engine import TopographyEngine
-from src.utils.pipeline_utils import load_config, resolve_data_root, load_global_config
+from src.utils.pipeline_utils import load_config, load_global_config
 from src.utils.logger_utils import setup_logger
 
 # Initialize CLI-level logger
@@ -19,14 +19,11 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Market Recon Tool (v5.10)")
     parser.add_argument("--symbol", type=str, help="Symbol to observe (e.g., BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification of the market scan.")
-    from src.utils.pipeline_utils import add_data_root_argument
-    add_data_root_argument(parser)
+    from src.utils.pipeline_utils import add_data_path_argument
+    add_data_path_argument(parser, required=True)
     args = parser.parse_args()
     
-    data_root = args.data_root or resolve_data_root(args.env_shortcut)
-    if not data_root:
-        print("Error: --data_root or environment shortcut (e.g., prod, live) required.")
-        sys.exit(1)
+    data_root = args.path
         
     config = load_config()
     global_cfg = load_global_config()

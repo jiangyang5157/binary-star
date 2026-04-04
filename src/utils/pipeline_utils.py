@@ -140,38 +140,20 @@ def safe_format(template: str, **kwargs) -> str:
     """
     return SafeFormatter().format(template, **kwargs)
 
-def resolve_data_root(data_root_arg: Optional[str]) -> str:
-    """
-    Resolves a data root path, checking against predefined mappings in global_config.
-    Example: 'once' -> 'data/once'
-    """
-    if not data_root_arg:
-        return ""
-        
-    global_cfg = load_global_config()
-    mapping = global_cfg.get('system', {}).get('data_root_mapping', {})
-    
-    # Return mapped value if exists, otherwise return original
-    return mapping.get(data_root_arg, data_root_arg)
 
 
 # --- STRATEGIC ARCHIVAL & PERSISTENCE ---
 
-def add_data_root_argument(parser: argparse.ArgumentParser):
+def add_data_path_argument(parser: argparse.ArgumentParser, required: bool = False):
     """
-    Standardizes the addition of data_root and env shortcut arguments.
+    Standardizes the addition of the physical data path argument.
+    Replaces legacy env_shortcut/data_root with unified --path/-p.
     """
     parser.add_argument(
-        "--env", 
-        dest="env_shortcut",
-        default="once",
-        help="Environment shortcut (e.g., once, live, test). Maps to --data_root if provided."
-    )
-    parser.add_argument(
-        "--data_root", 
+        "-p", "--path", 
         type=str, 
-        required=False, 
-        help="Explicit data directory root. Overrides env_shortcut."
+        required=required, 
+        help="Physical data directory path (e.g., data/once, data/backtest, my_dir)."
     )
 
 

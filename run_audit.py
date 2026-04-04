@@ -11,7 +11,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.analyzer.audit_controller import AuditController
-from src.utils.pipeline_utils import load_config
+from src.utils.pipeline_utils import load_config, add_data_path_argument
 from src.utils.logger_utils import setup_logger
 
 # v6.10: Global logger reference (will be properly initialized with file persistence)
@@ -75,13 +75,12 @@ def main():
     parser.add_argument("--email", action="store_true", help="Dispatch forensic reports via email")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")
     
-    from src.utils.pipeline_utils import add_data_root_argument, resolve_data_root
-    add_data_root_argument(parser)
+    add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
     
     # 1. Resolve Data Root
-    data_root = args.data_root or resolve_data_root(args.env_shortcut)
+    data_root = args.path
     
     # 2. Load context-aware configuration (Unified merge)
     from src.utils.pipeline_utils import load_combined_config
