@@ -32,6 +32,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | Risk Category | Condition / Detection | Tag & Mandatory Mitigation | Veto Level |
 | :--- | :--- | :--- | :--- |
 | **Pristine** | `compliance_verdict.sl_is_shielded` == TRUE AND `compliance_verdict.rr_is_valid` == TRUE. | **[PRISTINE]** (None). | **PASS** |
+| **Justified Inaction** | `last_plan.opinion` == NEUTRAL AND (`THE NEUTRALITY PARADOX` criteria met). | **[JUSTIFIED_INACTION]** (None). | **PASS** |
 | **Structural Violation** | `nearest_hvn_dist_atr` < `{structural_proximity_threshold}`. | **[STRUCTURAL_TRAP]** (Move Entry level to the next distal anchor). | **TERMINAL** |
 | **Anchor Failure** | `compliance_verdict.sl_is_shielded` == FALSE. | **[ANCHOR_VIOLATION]** (Stop). | **TERMINAL** |
 | **Logic Loop** | Proposal reverts to a state previously vetoed as TERMINAL in `{debate_history_json}`. | **[PROTOCOL_VIOLATION]** (Demand immediate Paradigm Shift or Neutral). | **TERMINAL** |
