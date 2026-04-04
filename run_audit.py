@@ -64,6 +64,9 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         if "SESSION_MATURING" in str(e):
             logger.info(f"⏳ [WAITING] Skipped: {os.path.basename(file_path)} is still maturing. {e}")
             return "MATURING"
+        if "EMPTY_KLINES" in str(e):
+            logger.info(f"🔍 [EMPTY DATA] Skipped: {os.path.basename(file_path)} has no market data. {e}")
+            return "EMPTY"
         logger.error(f"Failed to audit {file_path}: {e}")
         return "FAILED"
 
@@ -122,12 +125,14 @@ def main():
     skip_count = 0
     fail_count = 0
     mature_count = 0
+    empty_count = 0
     
     for f in files_to_audit:
         status = process_audit_file(f, controller, args.email, data_root, force=args.force)
         if status == "SUCCESS": success_count += 1
         elif status == "EXISTS": skip_count += 1
         elif status == "MATURING": mature_count += 1
+        elif status == "EMPTY": empty_count += 1
         else: fail_count += 1
             
     print("\n" + "="*60)
@@ -136,6 +141,7 @@ def main():
     print(f" TOTAL SESSIONS : {len(files_to_audit)}")
     print(f" COMPLETED      : {success_count}")
     print(f" ALREADY EXISTS : {skip_count}")
+    print(f" EMPTY (NO DATA): {empty_count}")
     print(f" MATURING (WAIT): {mature_count}")
     print(f" FAILED         : {fail_count}")
     print("="*60 + "\n")

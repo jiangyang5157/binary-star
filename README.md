@@ -161,19 +161,19 @@ python run_evolution.py -p data/once --samples 20 --sandbox
 *   **阶段 A：宏观基准训练 (Baseline)**
     *   **目标**：建立跨越 14 天的宏观稳定性。
     *   **操作**：
-        1. `python run_session.py --start T-28d --end T-14d --sampling 12` (默认存入 data/backtest)
+        1. `python run_session.py --start T-29d --end T-15d --sampling 12` (默认存入 data/backtest)
         2. `python run_audit.py -p data/backtest`
         3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
 *   **阶段 B：近期律动适配 (Recency Adaptation)**
     *   **目标**：对齐最新的市场波动特性。
     *   **操作**：
-        1. `python run_session.py --start T-14d --end now --sampling 12` (默认存入 data/backtest)
+        1. `python run_session.py --start T-15d --end T-1d --sampling 12` (默认存入 data/backtest)
         2. `python run_audit.py -p data/backtest`
         3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
 *   **阶段 C：极端案例加固 (Adversarial Hardening)**
     *   **目标**：针对历史所有的 **失败审计 (Failures)** 进行专项逻辑闭合。
     *   **操作**：
-        1. `python run_evolution.py -p data/backtest --samples 10 --sandbox` (Evolver 会自动优先处理失败案例)
+        1. `python run_evolution.py -p data/backtest --samples 12 --sandbox` (Evolver 会自动优先处理失败案例)
 
 ### 4. 战术权益账本 (Strategy Ledger)
 生成特定品种的交互式 HTML 表现看板（通常用于回测结果展示）。

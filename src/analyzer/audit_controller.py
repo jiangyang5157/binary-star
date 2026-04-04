@@ -142,7 +142,11 @@ class AuditController:
                     endTime=int(max_boundary.timestamp() * 1000)
                 )
             except Exception as ke:
-                self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only.")
+                self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}")
+
+            # v6.17 early exit: If no market data is available, skip expensive visual-only audit.
+            if not klines:
+                raise ValueError("EMPTY_KLINES: No market data available for the forensic window.")
 
             # 2. Extract Data Suites
             metrics_t0 = obs.get("quantitative_metrics", {})
