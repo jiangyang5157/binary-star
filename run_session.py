@@ -110,7 +110,7 @@ class SessionEngine:
             # 5. Audit Archival
             output_file = archive_strategy_result(
                 symbol=self.symbol,
-                timestamp=observation['timestamp'],
+                timestamp=observation['observed_at'],
                 result=session_result,
                 data_root=self.data_root,
                 target_dir="sessions"

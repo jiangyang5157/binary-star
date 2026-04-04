@@ -147,7 +147,7 @@ class LedgerVisualizer:
                 elif res == "SL_HIT": pnl = -abs(entry - float(lo.get("stop_loss", 0))) / entry * 100
 
             extracted.append({
-                "observation_time": session.get("observation", {}).get("timestamp"),
+                "observation_time": session.get("observation", {}).get("observed_at") or session.get("observation", {}).get("timestamp"),
                 "is_filled": outcome.get("is_filled", False),
                 "tp_sl_result": res,
                 "estimated_pnl_pct": round(pnl, 2),

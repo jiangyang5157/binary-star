@@ -28,7 +28,8 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
             session = json.load(f)
         
         symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
-        ts_compact = session.get("observation", {}).get("timestamp", "").replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+        obs_ts = session["observation"]["observed_at"]
+        ts_compact = obs_ts.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0].replace("Z", "")
         
         if not force and controller.is_already_audited(symbol, ts_compact):
             logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")

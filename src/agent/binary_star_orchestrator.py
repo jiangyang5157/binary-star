@@ -159,7 +159,7 @@ class BinaryStarOrchestrator:
         Raises:
             Exception: If cache creation or reasoning cycle fails fatally.
         """
-        obs_ts = observation.get("timestamp", "")
+        obs_ts = observation.get("observed_at") or observation.get("timestamp", "")
         
         # Standardize forensic timestamp (YYYYMMDD_HHMMSS)
         if "_" in obs_ts and len(obs_ts) == 15:

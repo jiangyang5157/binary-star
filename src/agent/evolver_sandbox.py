@@ -42,8 +42,8 @@ class EvolverSandbox:
         """
         observation = audit_report.get('session', {}).get('observation', {})
         symbol = observation.get('symbol', 'UNKNOWN')
-        timestamp = observation.get('timestamp', '')
-        session_id = f"{symbol}_{timestamp}"
+        obs_ts = observation["observed_at"]
+        session_id = f"{symbol}_{obs_ts}"
         
         logger.info(f"Sandbox: Replaying session {session_id} in shadow.")
         
@@ -153,7 +153,8 @@ class EvolverSandbox:
         
         for idx, report in enumerate(audit_reports):
             observation = report.get('session', {}).get('observation', {})
-            session_id = f"{observation.get('symbol', 'UNKNOWN')}_{observation.get('timestamp', '')}"
+            obs_ts = observation["observed_at"]
+            session_id = f"{observation.get('symbol', 'UNKNOWN')}_{obs_ts}"
             
             try:
                 # 1. Execute Shadow Replay

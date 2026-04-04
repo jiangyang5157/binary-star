@@ -467,23 +467,17 @@ class MarketObserver:
         observation = self._package_observation(metrics, snapshots, at_time)
         
         if persist:
-            self._persist_observation(observation, data_root or self.data_root)
+            self._persist_observation(observation, data_root or self.data_root, at_time)
         
         return observation
 
-    def _persist_observation(self, observation: Dict[str, Any], data_root: str):
+    def _persist_observation(self, observation: Dict[str, Any], data_root: str, at_time: datetime):
         """Archives the market snapshot into the forensic repository."""
         try:
             obs_dir = os.path.join(data_root, "market")
             os.makedirs(obs_dir, exist_ok=True)
             
-            ts_str = datetime.now().strftime(FILE_TIMESTAMP_FORMAT)
-            try:
-                import re
-                m = re.search(r"(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})", observation.get('timestamp', ''))
-                if m: ts_str = observation['timestamp']
-            except: pass
-                
+            ts_str = at_time.strftime(FILE_TIMESTAMP_FORMAT)
             json_filename = f"{self.symbol}_market_{ts_str}.json"
             json_path = os.path.join(obs_dir, json_filename)
             save_json(observation, json_path)
@@ -512,7 +506,7 @@ class MarketObserver:
         
         return {
             "symbol": self.symbol,
-            "timestamp": ts_compact,
+            "observed_at": to_iso_zulu(at_time),
             "analytical_parameters": {
                 "macro_timeframe": {
                     "interval": self.config.macro_context.time_interval,

@@ -93,7 +93,7 @@ class AuditController:
         """
         obs = session.get("observation", {})
         symbol = obs.get("symbol", "UNKNOWN")
-        t0_str = obs.get("timestamp")
+        t0_str = obs.get("observed_at")
         
         # Update Observer for the correct symbol
         self.observer.symbol = symbol
