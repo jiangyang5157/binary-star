@@ -52,7 +52,7 @@ def test_config_patcher_precise_path(temp_files):
     count = ConfigPatcher.apply_patch(
         temp_files["config_path"], 
         "time_interval", 15, 
-        parent_path="analysis_window.micro_context"
+        target_path="analysis_window.micro_context"
     )
     assert count == 1
     with open(temp_files["config_path"], 'r', encoding='utf-8') as f:
@@ -65,7 +65,7 @@ def test_config_patcher_root_only_strict(temp_files):
     count = ConfigPatcher.apply_patch(
         temp_files["config_path"], 
         "time_interval", 999, 
-        parent_path=""
+        target_path=""
     )
     # Should NOT find it, should NOT recurse.
     assert count == 0
@@ -78,7 +78,7 @@ def test_config_patcher_root_only_strict(temp_files):
 
 def test_config_patcher_root_match(temp_files):
     """Verifies success if key IS in root."""
-    count = ConfigPatcher.apply_patch(temp_files["config_path"], "global_param", 200, parent_path="")
+    count = ConfigPatcher.apply_patch(temp_files["config_path"], "global_param", 200, target_path="")
     assert count == 1
     with open(temp_files["config_path"], 'r', encoding='utf-8') as f:
         data = yaml.safe_load(f)

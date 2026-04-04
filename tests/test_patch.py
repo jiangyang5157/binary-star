@@ -33,7 +33,7 @@ def mock_project_env(tmp_path):
             {
                 "target_key": "trend_intensity_threshold",
                 "replaced_with": 0.95,
-                "parent_path": "regime_parameters"
+                "target_path": "regime_parameters"
             }
         ],
         "semantic_refinement": [

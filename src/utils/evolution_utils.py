@@ -11,12 +11,12 @@ class ConfigPatcher:
     """Handles deep YAML configuration merging with comment preservation."""
     
     @staticmethod
-    def apply_patch(target_path: str, key: str, value: Any, parent_path: str = "") -> int:
+    def apply_patch(target_config_path: str, key: str, value: Any, target_path: str = "") -> int:
         """
         Applies a parameter overlay with precise path targeting or recursive search.
         Returns the number of keys updated.
         """
-        if not key or not os.path.exists(target_path):
+        if not key or not os.path.exists(target_config_path):
             return 0
 
         try:
@@ -24,7 +24,7 @@ class ConfigPatcher:
             yaml.preserve_quotes = True
             yaml.indent(mapping=2, sequence=4, offset=2)
             
-            with open(target_path, 'r', encoding='utf-8') as f:
+            with open(target_config_path, 'r', encoding='utf-8') as f:
                 config = yaml.load(f)
 
             def find_and_update_recursive(source, k, v):
@@ -58,9 +58,9 @@ class ConfigPatcher:
                 return 0
 
             update_count = 0
-            if parent_path:
+            if target_path:
                 # 1. Path-specific update (Precise)
-                parts = parent_path.split('.')
+                parts = target_path.split('.')
                 update_count = navigate_and_update(config, parts, key, value)
             elif key in config:
                 # 2. Root Only (Strict)
@@ -75,7 +75,7 @@ class ConfigPatcher:
                 return 0
 
             if update_count > 0:
-                with open(target_path, 'w', encoding='utf-8') as f:
+                with open(target_config_path, 'w', encoding='utf-8') as f:
                     yaml.dump(config, f)
                 
             return update_count
