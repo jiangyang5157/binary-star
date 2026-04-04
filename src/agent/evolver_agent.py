@@ -94,6 +94,13 @@ class EvolverAgent(BaseAgent):
             config_json = json.dumps(active_config, indent=2)
             prompts_json = json.dumps(current_prompts, indent=2)
 
+            logger.info(
+                f"Evolver: Injected Context Size: "
+                f"Reports={len(reports_json)} chars | "
+                f"Config={len(config_json)} chars | "
+                f"Prompts={len(prompts_json)} chars"
+            )
+
             prompt = self._prepare_prompt(
                 self.config.role_prompt_path,
                 audit_reports_json=reports_json,

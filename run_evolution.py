@@ -115,10 +115,20 @@ class EvolutionEngine:
         
         # 3. Phase: Prototype Generation
         self.logger.info("Evolver: Initiating Neural Meta-Optimization (Gemini-Flash Inference)...")
+        
+        # v6.11: Inject RAW prompt contents to enable byte-perfect semantic refinement
+        # The model needs the actual logic text, not just the file paths, to perform patches.
+        from src.utils.pipeline_utils import read_prompt_template
+        prompt_contents = {
+            "session": read_prompt_template(prompts["session_path"]),
+            "critic": read_prompt_template(prompts["critic_path"]),
+            "binary_star": read_prompt_template(prompts["binary_star_path"])
+        }
+
         evolution_result = evolver.evolve(
             audit_reports=reports,
             active_config=config,
-            current_prompts=prompts
+            current_prompts=prompt_contents
         )
         
         ev_id = evolution_result.get('evolution_id', f"evolution_{timestamp}")
