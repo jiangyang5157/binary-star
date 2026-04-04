@@ -50,7 +50,7 @@ def main():
     # We reconstruct the filename using the same logic as the strategist
     observation = session.get("observation", {})
     symbol = observation.get("symbol")
-    timestamp = observation.get("timestamp")
+    timestamp = observation.get("observed_at")
     
     if not symbol or not timestamp:
         print("Error: Could not find 'symbol' or 'timestamp' in the strategy session observation.")

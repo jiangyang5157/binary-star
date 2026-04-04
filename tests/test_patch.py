@@ -40,7 +40,7 @@ def mock_project_env(tmp_path):
             {
                 "target_module": "session",
                 "anchor_text": "OLD_LOGIC: Wait for trend.",
-                "refined_logic": "NEW_LOGIC: Execute aggressive entry."
+                "replaced_with": "NEW_LOGIC: Execute aggressive entry."
             }
         ]
     }

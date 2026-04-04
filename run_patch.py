@@ -65,7 +65,7 @@ def main():
         for p in semantic_patches:
             module = p.get('target_module', '').lower()
             anchor = p.get('anchor_text')
-            logic = p.get('refined_logic')
+            logic = p.get('replaced_with')
             
             rel_path = PROMPT_MAP.get(module)
             if not rel_path:

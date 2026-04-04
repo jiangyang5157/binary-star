@@ -88,31 +88,55 @@ class PromptDistiller:
     """Handles granular distillation of agent instructions in Markdown files."""
     
     @staticmethod
+    def distill_content(content: str, anchor: str, new_text: str) -> str:
+        """
+        Pure function: Replaces anchor with new_text in the provided content string.
+        Utilizes flexible whitespace matching for robust distillation.
+        """
+        if not anchor or not content or new_text is None:
+            return content
+
+        try:
+            # 1. Clean the anchor of redundant whitespace
+            clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
+            # 2. Escape regex characters
+            pattern = re.escape(clean_anchor)
+            # 3. Restore flexibility for whitespace: Replace literal spaces OR escaped spaces (\ ) 
+            # with a greedy whitespace matcher [\s\r\n\t]+
+            pattern = pattern.replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
+            
+            # Count matches first for reporting
+            matches = len(re.findall(pattern, content))
+            if matches > 0:
+                # v6.12 Hardening: Ensure new_text is treated as a literal string to avoid backreference issues
+                return re.sub(pattern, lambda m: new_text, content, count=0)
+            
+            return content
+        except Exception as e:
+            logger.error(f"PromptDistiller: Internal distillation failure: {e}")
+            return content
+
+    @staticmethod
     def apply_distillation(target_path: str, anchor: str, new_text: str) -> int:
         """
-        Replaces ALL occurrences of old high-entropy text with new distilled logic.
-        Returns the number of replacements made.
+        Physical Update: Replaces ALL occurrences of anchor in a file.
+        Returns the number of matches replaced.
         """
-        if not anchor or not os.path.exists(target_path):
+        if not anchor or not os.path.exists(target_path) or new_text is None:
             return 0
 
         try:
             with open(target_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            # Strategy: Collapse all anchor whitespace into a flexible pattern
-            # 1. Clean the anchor of redundant whitespace
-            clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
-            # 2. Escape regex characters (note: re.escape behavior depends on Python version)
-            pattern = re.escape(clean_anchor)
-            # 3. Restore flexibility for whitespace: Replace literal spaces OR escaped spaces (\ ) 
-            # with a greedy whitespace matcher [\s\r\n\t]+
-            pattern = pattern.replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
+            new_content = PromptDistiller.distill_content(content, anchor, new_text)
             
-            # Count matches before substitution
-            matches = len(re.findall(pattern, content))
-            if matches > 0:
-                new_content = re.sub(pattern, new_text, content, count=0)
+            if new_content != content:
+                # Count matches manually for the return value
+                clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
+                pattern = re.escape(clean_anchor).replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
+                matches = len(re.findall(pattern, content))
+
                 with open(target_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
                 return matches
@@ -120,5 +144,24 @@ class PromptDistiller:
             return 0
             
         except Exception as e:
-            logger.error(f"PromptDistiller: Failed to distill {target_path}: {e}")
+            logger.error(f"PromptDistiller: Failed to distill file {target_path}: {e}")
             return 0
+
+    @staticmethod
+    def apply_batch_distillation(content: str, refinements: List[Dict[str, Any]]) -> str:
+        """
+        Batch Logic: Applies multiple refinements to a single string in-memory.
+        Useful for shadow replays in the sandbox.
+        """
+        if not refinements or not content:
+            return content
+
+        patched_content = content
+        for p in refinements:
+            anchor = p.get('anchor_text')
+            new_text = p.get('replaced_with')
+            
+            if anchor and new_text:
+                patched_content = PromptDistiller.distill_content(patched_content, anchor, new_text)
+        
+        return patched_content

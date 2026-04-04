@@ -93,7 +93,7 @@ class EvolverSandbox:
                     agent_refinements = [p for p in instruction_patch if p.get('target_module', '').lower() == agent_name]
                     
                     if agent_refinements:
-                        patched_text = PromptDistiller.apply_distillation(baseline_text, agent_refinements)
+                        patched_text = PromptDistiller.apply_batch_distillation(baseline_text, agent_refinements)
                         instruction_overrides[agent_name] = patched_text
                         logger.info(f"Sandbox: Applied {len(agent_refinements)} refinements to {agent_name} logic.")
                 except Exception as e:
