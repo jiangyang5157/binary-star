@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 import yaml
 from src.utils.path_utils import find_project_root
+from src.utils.datetime_utils import to_html_display, format_timestamp_for_filename
 
 from .base_notifier import (
     NotificationConfig, 
@@ -29,22 +30,8 @@ class SessionEmailTemplate(BaseEmailTemplate):
         decision = session_data.get("final_decision") or {}
         symbol = obs.get("symbol", "UNKNOWN")
         
-        # 1. Local Time Conversion (Device Local)
-        utc_ts = obs.get("observed_at", '')
-        display_time = utc_ts
-        try:
-            if "_" in utc_ts and "-" not in utc_ts:
-                # Custom compact format (UTC)
-                dt = datetime.strptime(utc_ts, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
-            else:
-                # ISO format
-                dt = datetime.fromisoformat(utc_ts.replace("Z", "+00:00"))
-            
-            local_dt = dt.astimezone()
-            # User friendly format: "2026-04-03 20:03:58 NZDT"
-            display_time = local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
-        except Exception as e:
-            logger.debug(f"Template: Time conversion failed for {utc_ts}: {e}")
+        # 1. Standardized HTML Time Display (Dual UTC/Local)
+        display_time = to_html_display(utc_ts)
 
         # 2. Extract Data Suites
         
@@ -185,23 +172,8 @@ class AuditEmailTemplate(BaseEmailTemplate):
         
         audit_ts = audit_data.get("audit_timestamp", "")
         
-        # Local Time Conversion (Helper to handle multiple formats)
-        def parse_to_local(ts_str):
-            if not ts_str: return "N/A"
-            try:
-                # 1. Try Compact format YYYYMMDD_HHMMSS
-                if "_" in ts_str and "-" not in ts_str:
-                    dt = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
-                else:
-                    # 2. Try ISO format
-                    dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
-                return dt.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
-            except Exception as e:
-                logger.warning(f"Notifier: Time parse failed for audit '{ts_str}': {e}")
-                return ts_str
-
-        display_strat_time = parse_to_local(strat_ts)
-        display_audit_time = parse_to_local(audit_ts)
+        display_strat_time = to_html_display(strat_ts)
+        display_audit_time = to_html_display(audit_ts)
 
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
@@ -355,7 +327,7 @@ class AlertEmailTemplate(BaseEmailTemplate):
         """
         Renders a mission-critical alert into a clear HTML report.
         """
-        display_time = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
+        display_time = to_html_display(datetime.now(timezone.utc).isoformat())
         
         return f"""
         <html>
@@ -520,23 +492,13 @@ class SessionNotifier:
     def _get_timestamp_suffix(self, obs: Dict[str, Any]) -> str:
         """
         Derives a filename-friendly timestamp from market observation data.
-        Prioritizes Audit-Grade UTC timestamps over local system time.
+        Uses standardized formatting (no 'Z').
         """
         market_ts = obs.get("observed_at", '')
         if not market_ts:
             return datetime.now().strftime("%Y%m%d_%H%M%S")
             
-        # Detect if already in Compact format (YYYYMMDD_HHMMSS)
-        if "_" in market_ts and len(market_ts) >= 13 and "-" not in market_ts:
-            return market_ts
-            
-        # Try ISO parsing
-        try:
-            dt = datetime.fromisoformat(market_ts.replace("Z", "+00:00"))
-            return dt.strftime("%Y%m%d_%H%M%S")
-        except:
-            # Final fallback: Manual sanitization
-            return market_ts.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
+        return format_timestamp_for_filename(market_ts)
 
     @property
     def enabled(self) -> bool:

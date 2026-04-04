@@ -37,7 +37,7 @@ class SessionEngine:
     def __init__(self, symbol: str, data_root: str, args: Any = None):
         self.symbol = symbol
         self.data_root = data_root
-        self.args = args # Pass CLI args for control flags like --force
+        self.args = args
         self.config = load_config()
         self.global_cfg = load_global_config()
         

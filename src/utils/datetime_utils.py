@@ -58,10 +58,41 @@ def parse_iso_string_to_utc(iso_timestamp: str) -> datetime:
         raise ValueError(f"Invalid ISO timestamp format: {iso_timestamp}") from e
 
 def to_iso_zulu(dt_obj: datetime) -> str:
-    """Returns a clean ISO-8601 string with 'Z' suffix (Zulu time)."""
+    """Returns a clean ISO-8601 string with 'Z' suffix (Zulu time).
+    Hardened v6.12: Strips microseconds for terminal consistency.
+    """
     if dt_obj.tzinfo is None:
         dt_obj = dt_obj.replace(tzinfo=timezone.utc)
-    return dt_obj.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    # Strip microseconds (.%f) for a cleaner "Audit-Grade" look
+    return dt_obj.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def to_html_display(ts_str: str) -> str:
+    """
+    Converts any timestamp string to a dual UTC/Local format for HTML reports.
+    Format: 2026-03-08 13:00:00Z (2026-03-08 21:00:00 NZDT)
+    """
+    if not ts_str:
+        return "N/A"
+    
+    try:
+        from src.utils.datetime_utils import parse_iso_to_utc, convert_utc_to_nz
+        
+        # 1. Parse to UTC
+        if "_" in ts_str and "-" not in ts_str:
+            dt_utc = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
+        else:
+            dt_utc = parse_iso_to_utc(ts_str)
+            
+        # 2. Format UTC Part
+        utc_part = dt_utc.strftime("%Y-%m-%d %H:%M:%S") + "Z"
+        
+        # 3. Format Local Part (Server/System Timezone)
+        local_dt = dt_utc.astimezone()
+        local_part = local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+        
+        return f"{utc_part} ({local_part})"
+    except Exception:
+        return ts_str
 
 def to_compact_timestamp(dt_obj: datetime) -> str:
     """Returns a filename-friendly compact timestamp (YYYYMMDD_HHMMSS)."""

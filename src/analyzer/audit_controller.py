@@ -12,7 +12,10 @@ from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.datetime_utils import (
     parse_iso_to_utc, 
-    get_interval_hours
+    get_interval_hours,
+    to_iso_zulu,
+    to_compact_timestamp,
+    format_timestamp_for_filename
 )
 
 # Initialize standard hardened logger
@@ -108,20 +111,20 @@ class AuditController:
             self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
             raise ValueError(f"Invalid timestamp format in session: {t0_str}")
 
-        # T1 Anchoring: Use explicit end_time or default to NOW
-        t1_dt = end_time.replace(tzinfo=timezone.utc) if end_time else datetime.now(timezone.utc)
-        
-        # v6.2 Eligibility Gateway: Intent Check
+        # v6.15: Strategic T1 Anchoring (Hit-Aware)
         final_decision = session.get("final_decision", {})
         opinion = final_decision.get("opinion", "").upper()
+        holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0) or 0)
         
-        # 1. NEUTRAL SHORT-CIRCUIT: Mark as recorded result with null findings
+        now_dt = datetime.now(timezone.utc)
+        expiry_dt = t0_dt + timedelta(hours=holding_hours)
+        max_boundary = min(expiry_dt, now_dt)
+        
+        # v6.2 Eligibility Gateway: Pre-check for Neutral
         if opinion == "NEUTRAL":
-            self.logger.info(f"Audit: Neutral signal detected for {symbol}. Short-circuiting to null-findings.")
-            # Use original session timestamp for consistent deduplication
-            ts_compact = t0_str.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
-            if len(ts_compact) < 15: # Fallback if not standard format
-                ts_compact = t1_dt.strftime("%Y%m%d_%H%M%S")
+            self.logger.info(f"Audit: Neutral signal detected for {symbol}. Short-circuiting.")
+            t1_dt = max_boundary # Default for neutral analysis window
+            ts_compact = format_timestamp_for_filename(t0_str)
 
             return {
                 "symbol": symbol,
@@ -134,53 +137,79 @@ class AuditController:
                         "is_catastrophic_miss": False
                     }
                 },
-                "report": None, # audit_findings is null
-                "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
+                "report": None,
+                "audit_timestamp_compact": to_compact_timestamp(t1_dt),
                 "session_timestamp_compact": ts_compact, 
                 "metadata": {
                     "config_hash": get_file_hash("config/strategy_config.yaml"),
-                    "audit_at": t1_dt.isoformat()
+                    "audit_at": to_iso_zulu(t1_dt)
                 }
             }
 
-        self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to T1 ({t1_dt.isoformat()})")
+        self.logger.info(f"Audit: Reviewing {symbol} from {t0_str} to Bound ({max_boundary.isoformat()})")
         
         try:
-            # 4. --- PHYSICAL FORENSIC: T1 Visual Capture ---
-            self.logger.info(f"Audit: Capturing T1 visual evidence (Macro/Micro) for {symbol}...")
-            t1_observation = self.observer.observe(persist=False)
-            t1_assets = t1_observation.get("visual_assets", {})
-
-            # 5. Fetch Outcome Klines
+            # 1. Fetch Outcome Klines (Up to max boundary)
             client = self.binance_client
+            forensic_resolution = self.config['audit_review']['forensic_resolution']
             klines = []
             try:
-                # v6.10: Replaced legacy execution_timeframe_interval with forensic_resolution
-                forensic_resolution = self.config['audit_review']['forensic_resolution']
                 klines = client.fetch_historical_klines(
                     symbol=symbol,
                     interval=forensic_resolution,
                     limit=1000,
                     startTime=int(t0_dt.timestamp() * 1000),
-                    endTime=int(t1_dt.timestamp() * 1000)
+                    endTime=int(max_boundary.timestamp() * 1000)
                 )
             except Exception as ke:
-                self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only audit.")
+                self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}. Proceeding with visual-only.")
 
-            # 6. Assemble Forensic Outcome
+            # 2. Extract Data Suites
             metrics_t0 = obs.get("quantitative_metrics", {})
             dynamics_t0 = metrics_t0.get("price_dynamics", {})
             sentiment_t0 = metrics_t0.get("sentiment_signals", {})
             atr_proto = dynamics_t0.get("atr_macro", 0)
             long_short_ratio_proto = sentiment_t0.get("ls_ratio_macro", 0)
             
-            # Fetch T1 Environment Metrics from T1 observation or fallback to T0
+            # 3. Initial Outcome Calculation (To find TP/SL hit)
+            interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
+            
+            outcome = self.assembler.calculate_outcome(
+                klines=klines,
+                entry_price=dynamics_t0.get("current_price", 0),
+                strategy=session,
+                atr_macro_t0=float(atr_proto),
+                atr_macro_t1=float(atr_proto), # Placeholder until final T1 is confirmed
+                long_short_ratio_macro_t0=float(long_short_ratio_proto),
+                long_short_ratio_macro_t1=float(long_short_ratio_proto), # Placeholder
+                interval_hours=interval_macro_hours
+            )
+
+            # 4. Final T1 Anchoring Logic
+            res_type = outcome.get("tp_sl_result", "NEITHER")
+            if res_type in ("TP_HIT", "SL_HIT"):
+                # Anchor audit exactly at the hit time
+                hit_index = outcome.get("trade_execution_metrics", {}).get("duration_candles", len(klines))
+                t1_dt = datetime.fromtimestamp(klines[hit_index - 1][0] / 1000, tz=timezone.utc)
+                self.logger.info(f"Audit: Trade {res_type} detected. Anchoring T1 to hit time: {to_iso_zulu(t1_dt)}")
+            else:
+                # NEITHER case: Check maturity
+                if not force and now_dt < expiry_dt:
+                    raise ValueError(f"SESSION_MATURING: {symbol} is still active (Result: NEITHER). Waiting for expiry at {to_iso_zulu(expiry_dt)}.")
+                
+                # If forced or expired, anchor at expiry (or Now if forced early)
+                t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
+                self.logger.info(f"Audit: No hit detected. Anchoring T1 to {to_iso_zulu(t1_dt)}")
+
+            # 5. --- PHYSICAL FORENSIC: T1 Visual Capture at final t1_dt ---
+            self.logger.info(f"Audit: Capturing T1 visual evidence for {symbol} at {to_iso_zulu(t1_dt)}...")
+            t1_observation = self.observer.observe(timestamp=t1_dt, persist=False)
+            t1_assets = t1_observation.get("visual_assets", {})
+
+            # 6. Re-calculate outcome with correct T1 metrics
             metrics_t1 = t1_observation.get("quantitative_metrics", {})
             atr_t1 = metrics_t1.get("price_dynamics", {}).get("atr_macro", atr_proto)
-            long_short_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", long_short_ratio_proto)
-            
-            # Dynamic interval calculation (Ensures accuracy for non-1h timeframes)
-            interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
+            ls_ratio_t1 = metrics_t1.get("sentiment_signals", {}).get("ls_ratio_macro", long_short_ratio_proto)
             
             outcome = self.assembler.calculate_outcome(
                 klines=klines,
@@ -189,45 +218,33 @@ class AuditController:
                 atr_macro_t0=float(atr_proto),
                 atr_macro_t1=float(atr_t1),
                 long_short_ratio_macro_t0=float(long_short_ratio_proto),
-                long_short_ratio_macro_t1=float(long_short_ratio_t1),
+                long_short_ratio_macro_t1=float(ls_ratio_t1),
                 interval_hours=interval_macro_hours
             )
             
-            # Inject T1 visual paths into the outcome if available
             outcome["visual_context"] = {
                 "t1_macro": t1_assets.get("macro_snapshot"),
                 "t1_micro": t1_assets.get("micro_snapshot")
             }
 
-            # 7. Final Review Analysis
-            # v6.2 Eligibility Gateway: Maturity Filter
-            res_type = outcome.get("tp_sl_result", "NEITHER")
-            holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0))
-            is_expired = t1_dt > (t0_dt + timedelta(hours=holding_hours))
-            
-            if not force and res_type == "NEITHER" and not is_expired:
-                # Still in position and haven't reached holding time limit
-                raise ValueError(f"SESSION_MATURING: {symbol} is still active (Result: NEITHER). Waiting for TP/SL or expiration (T0+{holding_hours}h).")
-
             report = self.assembler.review(session, outcome)
-            
-            # Merge forensic findings into outcome (v6.12 flattening)
             outcome["forensic_verdict"] = report.get("forensic_verdict", {})
             
             return {
                 "symbol": symbol,
                 "session": session,
                 "outcome": outcome,
-                "audit_timestamp_compact": t1_dt.strftime("%Y%m%d_%H%M%S"),
-                "session_timestamp_compact": t0_str.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0],
+                "audit_timestamp_compact": to_compact_timestamp(t1_dt),
+                "session_timestamp_compact": format_timestamp_for_filename(t0_str),
                 "metadata": {
                     "config_hash": get_file_hash("config/strategy_config.yaml"),
-                    "audit_at": t1_dt.isoformat()
+                    "audit_at": to_iso_zulu(t1_dt)
                 }
             }
             
         except Exception as e:
-            self.logger.error(f"Audit: Forensic analysis failed for {symbol}: {e}", exc_info=True)
+            if "SESSION_MATURING" not in str(e):
+                self.logger.error(f"Audit: Forensic analysis failed for {symbol}: {e}", exc_info=True)
             raise
 
     def save_report(self, audit_result: Dict[str, Any]) -> str:
@@ -235,11 +252,9 @@ class AuditController:
         symbol = audit_result["symbol"]
         outcome = audit_result["outcome"]
         session = audit_result["session"]
-        audit_ts = audit_result.get("audit_timestamp_compact") or datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # v6.1 Refined Structural Bundle
-        # Use session_timestamp_compact if available for filename consistency
-        filename_ts = audit_result.get("session_timestamp_compact") or audit_ts
+        # Consistent filename TS generation (v6.12 Hardening)
+        filename_ts = audit_result.get("session_timestamp_compact")
         
         bundle = {
             "session": session,

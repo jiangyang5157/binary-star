@@ -13,8 +13,9 @@ if PROJECT_ROOT not in sys.path:
 from src.analyzer.audit_controller import AuditController
 from src.utils.pipeline_utils import load_config, add_data_path_argument
 from src.utils.logger_utils import setup_logger
+from src.utils.datetime_utils import format_timestamp_for_filename
 
-# v6.10: Global logger reference (will be properly initialized with file persistence)
+# v6.10: Global logger reference
 logger = None
 
 def process_audit_file(file_path: str, controller: AuditController, email: bool, data_root: str, force: bool = False) -> str:
@@ -29,7 +30,7 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         
         symbol = session.get("observation", {}).get("symbol", "UNKNOWN")
         obs_ts = session["observation"]["observed_at"]
-        ts_compact = obs_ts.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0].replace("Z", "")
+        ts_compact = format_timestamp_for_filename(obs_ts)
         
         if not force and controller.is_already_audited(symbol, ts_compact):
             logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
