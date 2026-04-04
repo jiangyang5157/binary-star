@@ -92,20 +92,24 @@ class EvolverAgent(BaseAgent):
             logger.info(f"Evolver: Preparing context for {len(audit_reports)} forensic reports.")
             reports_json = json.dumps(audit_reports, indent=2)
             config_json = json.dumps(active_config, indent=2)
-            prompts_json = json.dumps(current_prompts, indent=2)
+            
+            # v6.11: Partitioned Markdown aggregation for precise semantic targeting
+            prompts_md = ""
+            for module, content in current_prompts.items():
+                prompts_md += f"# {module.lower()}_PROMPT\n{content}\n\n"
 
             logger.info(
                 f"Evolver: Injected Context Size: "
                 f"Reports={len(reports_json)} chars | "
                 f"Config={len(config_json)} chars | "
-                f"Prompts={len(prompts_json)} chars"
+                f"Prompts={len(prompts_md)} chars"
             )
 
             prompt = self._prepare_prompt(
                 self.config.role_prompt_path,
                 audit_reports_json=reports_json,
                 active_config_yaml=config_json,
-                current_prompt_md=prompts_json,
+                current_prompt_md=prompts_md,
                 strategy_intent=active_config.get('strategy_intent', "Market Survival"),
                 trend_intensity_threshold=active_config.get('regime_parameters', {})['trend_intensity_threshold'],
                 min_failure_instances=active_config.get('evolver', {})['min_failure_instances'],
@@ -140,60 +144,63 @@ class EvolverAgent(BaseAgent):
     def apply_patch(self, evolution_result: Dict[str, Any], config_path: str, symbol: str) -> bool:
         """
         Atomic Hardening of the system using the validated evolution result.
-        
-        Args:
-            evolution_result: The structured output from self.evolve().
-            config_path: Path to strategy_config.yaml.
-            symbol: The trading symbol context for this patch.
+        Returns True if at least one patch or refinement was successfully applied.
         """
         from src.utils.evolution_utils import ConfigPatcher, PromptDistiller
         
-        success = False
+        applied_any = False
         evolution_type = evolution_result.get('evolution_type')
         logger.info(f"Evolver: Applying mutation of type: {evolution_type}")
         
-        # 1. Handle Configuration Overlays (v5.10 Final Array Schema)
+        # 1. Handle Configuration Overlays
         config_patches = evolution_result.get('config_patch', [])
-        if config_patches:
-            overlays = {p.get('target_key'): p.get('replaced_with') for p in config_patches if p.get('target_key')}
+        for patch in config_patches:
+            key = patch.get('target_key')
+            val = patch.get('replaced_with')
+            path = patch.get('target_path', "")
+            tag = patch.get('pathology_tag', "UNTAGGED")
             
-            if overlays:
-                # --- DIRECT OVERWRITE: Apply live config change ---
-                if ConfigPatcher.apply_patch(config_path, overlays):
-                    logger.info(f"Evolver: {len(overlays)} configuration parameters successfully merged.")
-                    success = True
+            if key and val is not None:
+                count = ConfigPatcher.apply_patch(config_path, key, val, parent_path=path)
+                if count > 0:
+                    logger.info(f"Evolver: [CONFIG_PATCH] Applied {count} update(s) for {tag} (Key: {key})")
+                    applied_any = True
+                else:
+                    logger.warning(f"Evolver: [CONFIG_PATCH] Failed to apply patch for {tag} (Key: {key})")
         
-        # 2. Handle Semantic Refinement (v5.10 Final Array Schema)
+        # 2. Handle Semantic Refinement
         refinements = evolution_result.get('semantic_refinement', [])
         for refinement in refinements:
             target = refinement.get('target_module', '')
             anchor = refinement.get('anchor_text', '')
             new_logic = refinement.get('replaced_with', '')
+            tag = refinement.get('pathology_tag', "UNTAGGED")
             
             if not target or not anchor:
                 continue
 
-            logger.info(f"Evolver: Processing semantic refinement for target: {target}")
-            
             # Resolve target path from config
             from src.utils.pipeline_utils import load_config
             from src.utils.path_utils import resolve_project_root
             cfg = load_config()
-            target_path = ""
+            target_file_rel = ""
             
             if "session" in target.lower():
-                target_path = cfg.get('binary_star', {}).get('session', {}).get('role_definition_prompt', '')
+                target_file_rel = cfg.get('binary_star', {}).get('session', {}).get('role_definition_prompt', '')
             elif "critic" in target.lower():
-                target_path = cfg.get('binary_star', {}).get('critic', {}).get('role_definition_prompt', '')
+                target_file_rel = cfg.get('binary_star', {}).get('critic', {}).get('role_definition_prompt', '')
             elif "binary_star" in target.lower():
-                target_path = cfg.get('binary_star', {}).get('system_instruction', '')
+                target_file_rel = cfg.get('binary_star', {}).get('system_instruction', '')
                 
-            if target_path:
-                full_target_path = os.path.join(resolve_project_root(), target_path)
-                if PromptDistiller.apply_distillation(full_target_path, anchor, new_logic):
-                    logger.info(f"Evolver: Prompt distillation successfully merged into {full_target_path}.")
-                    success = True
+            if target_file_rel:
+                full_target_path = os.path.join(resolve_project_root(), target_file_rel)
+                count = PromptDistiller.apply_distillation(full_target_path, anchor, new_logic)
+                if count > 0:
+                    logger.info(f"Evolver: [PROMPT_DISTILL] Applied {count} replacement(s) in {target} for {tag}")
+                    applied_any = True
+                else:
+                    logger.warning(f"Evolver: [PROMPT_DISTILL] Failed to distill {target} for {tag} (Anchor mismatch)")
             else:
                 logger.warning(f"Evolver: Could not resolve physical path for target: {target}")
                 
-        return success
+        return applied_any

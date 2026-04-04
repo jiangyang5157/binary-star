@@ -19,10 +19,12 @@ def mock_paths(tmp_path):
     critic_file = prompts_dir / "critic.md"
     bs_file = prompts_dir / "binary_star.md"
 
-    # Initial Config
+    # Initial Config (Nested)
     initial_config = {
         "strategy_intent": "Test Intent",
-        "trend_intensity_threshold": 0.7,
+        "regime_parameters": {
+            "trend_intensity_threshold": 0.7
+        },
         "binary_star": {
             "session": {"role_definition_prompt": "src/agent/prompts/session.md"},
             "critic": {"role_definition_prompt": "src/agent/prompts/critic.md"},
@@ -32,9 +34,9 @@ def mock_paths(tmp_path):
     with open(config_file, 'w') as f:
         yaml.dump(initial_config, f)
 
-    # Initial Prompts
+    # Initial Prompts (Session has multiple occurrences)
     with open(session_file, 'w') as f:
-        f.write("# SESSION_LOGIC\nWait for a strong trend confirmation.")
+        f.write("# SESSION_LOGIC\nWait for a strong trend confirmation.\nWait for a strong trend confirmation.")
     
     with open(critic_file, 'w') as f:
         f.write("# CRITIC_LOGIC\nVeto all trades with ATR > 2.")
@@ -50,12 +52,11 @@ def mock_paths(tmp_path):
         "project_root": str(tmp_path)
     }
 
-def test_evolver_patching_flow(mock_paths, monkeypatch):
-    """Verifies that the new array-based schema is correctly applied to files."""
+def test_evolver_patching_flow_hardened(mock_paths, monkeypatch):
+    """Verifies precise path targeting and exhaustive prompt replacement."""
     
-    # 1. Mock the project root to our temp directory
+    # 1. Mock the project root and config loading
     monkeypatch.setattr("src.utils.path_utils.resolve_project_root", lambda: mock_paths["project_root"])
-    # We also need to monkeypatch load_config because it defaults to config/strategy_config.yaml
     from src.utils import pipeline_utils
     monkeypatch.setattr(pipeline_utils, "load_config", lambda *args, **kwargs: yaml.safe_load(open(mock_paths["config_path"])))
 
@@ -69,70 +70,60 @@ def test_evolver_patching_flow(mock_paths, monkeypatch):
     
     agent = EvolverAgent(config, MagicMock(), 30, 3, 2.0, 1, 5)
 
-    # 3. Define Final Mock Output
+    # 3. Define Patch Result with target_path and repeated anchor
     mock_evolution_result = {
-        "evolution_signature": "evolution_20260403",
+        "evolution_signature": "evolution_20260404",
         "evolution_type": "PATCH",
         "config_patch": [
             {
                 "pathology_tag": "[REGIME_MISALIGNMENT]",
-                "rationale": "Harden trend filter",
+                "target_path": "regime_parameters",
                 "target_key": "trend_intensity_threshold",
-                "replaced_with": 0.85
+                "replaced_with": 0.95
             }
         ],
         "semantic_refinement": [
             {
                 "target_module": "session",
-                "pathology_tag": "[SEMANTIC_DRIFT]",
-                "rationale": "Precision hardening",
-                "anchor_text": "Wait for a strong trend confirmation",
-                "replaced_with": "Wait for trend_intensity > {trend_intensity_threshold}"
-            },
-            {
-                "target_module": "critic",
-                "pathology_tag": "[PROTOCOL_DISOBEDIENCE]",
-                "rationale": "Parametric alignment",
-                "anchor_text": "ATR > 2",
-                "replaced_with": "ATR > {volatility_extreme_ratio}"
-            },
-            {
-                "target_module": "binary_star",
-                "pathology_tag": "[ADVERSARIAL_DEADLOCK]",
-                "rationale": "Protocol tightening",
-                "anchor_text": "Binary Star Protocol",
-                "replaced_with": "Hardened Binary Star Protocol"
+                "anchor_text": "Wait for a strong trend confirmation.",
+                "replaced_with": "Wait for trend_intensity > 0.8"
             }
-        ],
-        "sandbox_check_required": True
+        ]
     }
 
     # 4. Apply Patch
+    # Note: apply_patch should return True because it modifies files
     success = agent.apply_patch(mock_evolution_result, mock_paths["config_path"], "BTCUSDT")
     assert success is True
 
-    # 5. Verify YAML Changes
+    # 5. Verify Nested Config Update
     with open(mock_paths["config_path"], 'r') as f:
         updated_config = yaml.safe_load(f)
-    assert updated_config["trend_intensity_threshold"] == 0.85
+    assert updated_config["regime_parameters"]["trend_intensity_threshold"] == 0.95
 
-    # 6. Verify Markdown Changes (Session)
+    # 6. Verify Multi-Instance Prompt Replacement
     with open(mock_paths["session_path"], 'r') as f:
-        updated_session = f.read()
-    assert "Wait for trend_intensity > {trend_intensity_threshold}" in updated_session
-    assert "Wait for a strong trend confirmation" not in updated_session
+        content = f.read()
+        assert content.count("Wait for trend_intensity > 0.8") == 2
+        assert "Wait for a strong trend confirmation." not in content
 
-    # 7. Verify Markdown Changes (Critic)
-    with open(mock_paths["critic_path"], 'r') as f:
-        updated_critic = f.read()
-    assert "ATR > {volatility_extreme_ratio}" in updated_critic
-    assert "ATR > 2" not in updated_critic
+def test_evolver_patching_no_op(mock_paths, monkeypatch):
+    """Verifies that no changes are made if anchors don't match."""
+    monkeypatch.setattr("src.utils.path_utils.resolve_project_root", lambda: mock_paths["project_root"])
+    from src.utils import pipeline_utils
+    monkeypatch.setattr(pipeline_utils, "load_config", lambda *args, **kwargs: yaml.safe_load(open(mock_paths["config_path"])))
 
-    # 8. Verify Markdown Changes (Binary Star)
-    with open(mock_paths["bs_path"], 'r') as f:
-        updated_bs = f.read()
-    assert "Hardened Binary Star Protocol" in updated_bs
-
-if __name__ == "__main__":
-    # If run directly, we might need a different setup or just rely on pytest
-    pass
+    agent = EvolverAgent(
+        EvolverConfig(model="mock", model_temperature=0.0, role_prompt_path="mock", max_tool_iterations=1), 
+        MagicMock(), 1, 1, 1.0, 1, 1
+    )
+    
+    mock_result = {
+        "config_patch": [{"target_key": "non_existent_key", "target_path": "wrong_path", "replaced_with": 1}],
+        "semantic_refinement": [{"target_module": "session", "anchor_text": "WRONG_ANCHOR", "replaced_with": "FOO"}]
+    }
+    
+    # It should return False because nothing was applied (or it added to root if path was empty, 
+    # but here path is 'wrong_path' so navigate_and_update returns 0)
+    success = agent.apply_patch(mock_result, mock_paths["config_path"], "BTCUSDT")
+    assert success is False

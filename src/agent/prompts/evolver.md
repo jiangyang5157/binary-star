@@ -51,10 +51,25 @@ Every proposed change MUST be flagged for Sandbox Validation:
 2. **LOGIC SUPREMACY**: Prompt Patches (Semantic Refinement) supersede Config Patches. Only adjust thresholds if the underlying prompt logic is already "Zero-Ambiguity" and mathematically sound.
 3. **ANTI-DEADLOCK SYNC**: Simulate systemic impact to ensure "Permission to Expand" (Session) doesn't collide with "Restriction to Anchor" (Critic).
 4. **LITERAL FIDELITY (THE ANCHOR RULE)**:
-    - **config_patch**: Targets keys within `{active_config_yaml}`. You MUST provide the `target_key` for direct value replacement.
-    - **semantic_refinement**: Targets literal within `{current_prompt_md}`. You MUST found character-for-character, byte-perfect copy of a substring for replacement.
+    - **config_patch**: Targets keys within `{active_config_yaml}`. 
+        - **target_key**: The name of the parameter to replace.
+        - **target_path**: The dot-notation path to the parent segment (e.g., `analysis_window.micro_context`). Use `""` to search for the key at the root level ONLY. If not found at root, the patch will be skipped (no recursive search).
+    - **semantic_refinement**: Targets literal within `{current_prompt_md}`. You MUST find a character-for-character, byte-perfect copy of a substring for replacement. You MUST **preserve all markdown** formatting (`**`, `#`, etc.), whitespace, and punctuation exactly as provided. ALL occurrences of the anchor in the file will be replaced.
+        - **Scope Restriction**: A refinement ONLY applies to the file mapped to the `target_module`. The input `{current_prompt_md}` is partitioned by headers (e.g., `# session_PROMPT`). You must use these headers to identify the correct `target_module` for your patch (e.g., `# session_PROMPT` -> `target_module: "session"`).
     - Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
-    - **STRICT PROHIBITION**: NEVER use phrases or reasoning chains from `{audit_reports_json}` as an anchor. You are evolving the **Laws** (Instructions), not the **Evidence** (Historical Records).
+    - **STRICT PROHIBITION**: NEVER use phrases or reasoning chains from `{audit_reports_json}` as an anchor. You are evolving the **Laws** (Prompt Instructions), not the **Evidence** (Historical Records).
+
+# EVOLUTION_PATTERNS
+Use the following patterns to manipulate existing instructions:
+1. **MODIFICATION**: 
+    - `anchor_text`: "Old instruction sentence."
+    - `replaced_with`: "Improved instruction sentence."
+2. **DELETION**:
+    - `anchor_text`: "Instruction to be removed."
+    - `replaced_with`: "" (Empty string triggers physical removal).
+3. **ADDITION (Append/Prepend)**:
+    - `anchor_text`: "Existing Anchor Line."
+    - `replaced_with`: "Existing Anchor Line.\n\n**[NEW_LOGIC]** New distilled instruction."
 
 # REASONING_CHAIN
 1. **Pathology Scan**: Identify Systemic Bias (e.g., [PROTOCOL_DISOBEDIENCE] or [STRUCTURAL_BLINDNESS]).
@@ -73,6 +88,7 @@ Your response MUST be RAW JSON only.
         {{
             "pathology_tag": "[REGIME_MISALIGNMENT]",
             "rationale": "WHY",
+            "target_path": "path.to.parent (or empty string)",
             "target_key": "EXACT_EXISTING_KEY_NAME",
             "replaced_with": "NEW_VALUE"
         }}

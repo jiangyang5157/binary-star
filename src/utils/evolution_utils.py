@@ -10,10 +10,13 @@ class ConfigPatcher:
     """Handles deep YAML configuration merging with comment preservation."""
     
     @staticmethod
-    def apply_patch(target_path: str, patch_overlays: Dict[str, Any]) -> bool:
-        """Applies a specific parameter overlay with deterministic nested search."""
-        if not patch_overlays or not os.path.exists(target_path):
-            return False
+    def apply_patch(target_path: str, key: str, value: Any, parent_path: str = "") -> int:
+        """
+        Applies a parameter overlay with precise path targeting or recursive search.
+        Returns the number of keys updated.
+        """
+        if not key or not os.path.exists(target_path):
+            return 0
 
         try:
             yaml = YAML()
@@ -23,70 +26,95 @@ class ConfigPatcher:
             with open(target_path, 'r', encoding='utf-8') as f:
                 config = yaml.load(f)
 
-            def find_and_update_recursive(source, key, value):
-                """Search whole tree for a key and update it."""
-                if key in source:
-                    if isinstance(source[key], dict) and isinstance(value, dict):
-                        source[key].update(value)
+            def find_and_update_recursive(source, k, v):
+                count = 0
+                if k in source:
+                    if isinstance(source[k], dict) and isinstance(v, dict):
+                        source[k].update(v)
                     else:
-                        source[key] = value
-                    return True
+                        source[k] = v
+                    count += 1
                 
-                for k, v in source.items():
-                    if isinstance(v, dict):
-                        if find_and_update_recursive(v, key, value):
-                            return True
-                return False
+                for node_k, node_v in source.items():
+                    if isinstance(node_v, dict):
+                        count += find_and_update_recursive(node_v, k, v)
+                return count
 
-            modified = False
-            for k, v in patch_overlays.items():
-                if find_and_update_recursive(config, k, v):
-                    modified = True
+            def navigate_and_update(source, path_parts, k, v):
+                if not path_parts:
+                    # We reached the target segment
+                    if k in source:
+                        source[k] = v
+                        return 1
+                    # If key not in this segment, add it
+                    source[k] = v
+                    return 1
+                
+                current_segment = path_parts[0]
+                if current_segment in source and isinstance(source[current_segment], dict):
+                    return navigate_and_update(source[current_segment], path_parts[1:], k, v)
+                return 0
+
+            update_count = 0
+            if parent_path:
+                # 1. Path-specific update (Precise)
+                parts = parent_path.split('.')
+                update_count = navigate_and_update(config, parts, key, value)
+            elif key in config:
+                # 2. Root Only (Strict)
+                if isinstance(config[key], dict) and isinstance(value, dict):
+                    config[key].update(value)
                 else:
-                    # Not found anywhere? Add to root.
-                    config[k] = v
-                    modified = True
+                    config[key] = value
+                update_count = 1
+            else:
+                # 3. Key not in root and no path provided -> Skip and Warn
+                logger.warning(f"ConfigPatcher: Key '{key}' not found at root level. Skipping.")
+                return 0
 
-            if modified:
+            if update_count > 0:
                 with open(target_path, 'w', encoding='utf-8') as f:
                     yaml.dump(config, f)
-                return True
-            return False
+                
+            return update_count
             
         except Exception as e:
             logger.error(f"ConfigPatcher: Failed to apply patch to {target_path}: {e}")
-            return False
+            return 0
 
 class PromptDistiller:
     """Handles granular distillation of agent instructions in Markdown files."""
     
     @staticmethod
-    def apply_distillation(target_path: str, anchor: str, new_text: str) -> bool:
-        """Replaces old high-entropy text with new distilled logic (Hardened)."""
-        if not anchor or not new_text or not os.path.exists(target_path):
-            return False
+    def apply_distillation(target_path: str, anchor: str, new_text: str) -> int:
+        """
+        Replaces ALL occurrences of old high-entropy text with new distilled logic.
+        Returns the number of replacements made.
+        """
+        if not anchor or not os.path.exists(target_path):
+            return 0
 
         try:
             with open(target_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
             # Strategy: Collapse all anchor whitespace into a flexible pattern
-            # 1. Simplify anchor whitespace
             clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
-            # 2. Escape regex meta-characters
             pattern = re.escape(clean_anchor)
-            # 3. Replace escaped spaces '\ ' (Python 3.9+) with [\s\r\n\t]+
-            # If for some reason re.escape didn't escape space, we handle that too
+            # Match flexible whitespace clusters
             pattern = pattern.replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
             
-            if re.search(pattern, content):
-                new_content = re.sub(pattern, new_text, content, count=1)
+            # Count matches before substitution
+            matches = len(re.findall(pattern, content))
+            if matches > 0:
+                # v6.11: Exhaustive replacement (count=0 replaces all)
+                new_content = re.sub(pattern, new_text, content, count=0)
                 with open(target_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)
-                return True
+                return matches
                 
-            return False
+            return 0
             
         except Exception as e:
             logger.error(f"PromptDistiller: Failed to distill {target_path}: {e}")
-            return False
+            return 0
