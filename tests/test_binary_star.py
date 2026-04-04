@@ -67,7 +67,7 @@ class TestBinaryStarFlow(unittest.TestCase):
 
     def test_max_rounds_exhaustion(self):
         """Enforces max_rounds even if convergence fails."""
-        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root=resolve_data_root("test"))
+        orchestrator = BinaryStarOrchestrator(self.config, self.api_key, data_root="data/test")
         orchestrator.stop_threshold = 20
         
         orchestrator.session_agent.execute_session_cycle = MagicMock(return_value={"opinion": "NEUTRAL"})
