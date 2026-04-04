@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Dict, Any, List, Optional
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from src.utils.evolution_utils import PromptDistiller
@@ -32,7 +33,7 @@ class EvolverSandbox:
             instruction_patch: Potential instruction text overrides.
         """
         session_id = audit_report.get('metadata', {}).get('audit_id', 'UNKNOWN_SESSION')
-        logger.info(f"Sandbox: Replaying session {session_id} in shadow mode.")
+        logger.info(f"Sandbox: Replaying session {session_id} in shadow.")
         
         # 1. Prepare Proposed Configuration (Baseline + Patch)
         proposed_config = audit_report.get('session', {}).get('metadata', {}).get('config_snapshot', {})
@@ -126,7 +127,7 @@ class EvolverSandbox:
         
         # Final Forensic Package
         return {
-            "case_id": session_id,
+            "session_id": session_id,
             "is_validated": is_validated,
             "metrics": {
                 "old_opinion": case_session__opinion,

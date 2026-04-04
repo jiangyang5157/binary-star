@@ -338,8 +338,8 @@ class BinaryStarOrchestrator:
                 "metadata": {
                     "config_snapshot": self.config,
                     "version_control": {
-                        "session_hash": get_file_hash(self.session_agent.config.role_prompt_path),
-                        "critic_hash": get_file_hash(self.critic_agent.config.role_prompt_path),
+                        "session_hash": get_file_hash(self.session_agent.config.instruction_path),
+                        "critic_hash": get_file_hash(self.critic_agent.config.instruction_path),
                         "binary_star_hash": get_file_hash(self.bs_instruction_path),
                         "config_hash": get_file_hash(config_path)
                     }
