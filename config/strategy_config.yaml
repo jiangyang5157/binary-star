@@ -186,7 +186,7 @@ binary_star:
 evolver:
   # The 'Architect' model responsible for rewriting laws.
   # gemini-flash-latest, gemini-3.1-pro-preview
-  model: gemini-flash-latest
+  model: gemini-3.1-pro-preview
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency.
   model_temperature: 0.0

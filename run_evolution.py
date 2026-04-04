@@ -213,7 +213,7 @@ class EvolutionEngine:
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading symbol for analysis (default: BTCUSDT)")
-    parser.add_argument("--samples", type=int, default=20, help="Number of audit reports to ingest")
+    parser.add_argument("--samples", type=int, default=42, help="Number of audit reports to ingest")
     parser.add_argument("--sandbox", action="store_true", help="Activate Sandbox validation")
     add_data_path_argument(parser, required=True)
     
