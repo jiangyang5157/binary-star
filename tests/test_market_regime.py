@@ -55,9 +55,10 @@ class TestSemanticConsistency(unittest.TestCase):
         analyzer = VolumeProfileAnalyzer(config=self.vp_cfg)
         result = analyzer.analyze(klines)
         
-        self.assertIn('structural_state', result)
-        self.assertNotIn('market_regime', result) # Should be removed/renamed
-        self.assertIn(result['structural_state'], ["BALANCED", "IMBALANCED"])
+        self.assertIn('poc', result)
+        self.assertIn('vah', result)
+        self.assertIn('val', result)
+        self.assertGreater(result['poc'], 0)
 
 if __name__ == "__main__":
     unittest.main()

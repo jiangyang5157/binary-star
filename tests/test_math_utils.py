@@ -36,8 +36,8 @@ class TestMathTools(unittest.TestCase):
         # Case: TP dist 2000, ATR 200, Intensity 1.0, 1h macro (60 min)
         # effective_vel = 200 * 1.0 = 200 per macro candle
         # hours = (2000 / 200) * 1.0 = 10.0
-        # Use explicit floor 0.5
-        res = MathTools.project_holding_time(50000, 52000, 200, 1.0, 60, 0.5)
+        # Use explicit floor 0.5 and modifier 1.0
+        res = MathTools.project_holding_time(50000, 52000, 200, 1.0, 60, 0.5, 1.0)
         self.assertEqual(res['projected_holding_hours'], 10.0)
 
 if __name__ == '__main__':

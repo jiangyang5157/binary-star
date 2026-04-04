@@ -182,7 +182,7 @@ class AuditAssembler:
                     # Explicitly extract estimated hours without fallback to avoid logic pollution
                     est_hours = float(tactical.get('holding_time_hours', 0) or 0)
                     if est_hours == 0:
-                        self.logger.warning("Forensics: 'holding_time_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
+                        logger.warning("Forensics: 'holding_time_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
                     
                     actual_hours = hit_index * interval_hours
                     
