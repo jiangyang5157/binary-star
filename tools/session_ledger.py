@@ -8,12 +8,12 @@ from typing import Optional
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path: sys.path.insert(0, PROJECT_ROOT)
 
-from src.analyzer.dashboard_controller import DashboardController
+from src.analyzer.ledger_visualizer import LedgerVisualizer
 from src.utils.pipeline_utils import load_global_config, add_data_root_argument, resolve_data_root
 from src.utils.logger_utils import setup_logger
 
 # Initialize CLI-level logger
-logger = setup_logger("ExecutionDashboard")
+logger = setup_logger("LedgerDashboard")
 
 def main():
     parser = argparse.ArgumentParser(description="Thin UI Wrapper for Execution Visualization (v5.3)")
@@ -33,7 +33,7 @@ def main():
     
     # Delegate and Execute
     try:
-        controller = DashboardController(data_root=data_root, logger=logger)
+        controller = LedgerVisualizer(data_root=data_root, logger=logger)
         controller.generate_html_report(symbol, notify=args.email, recursive=args.recursive)
     except Exception as e:
         logger.error(f"Dashboard Generation Failed: {e}", exc_info=True)

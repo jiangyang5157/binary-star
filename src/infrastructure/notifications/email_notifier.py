@@ -30,7 +30,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
         symbol = obs.get("symbol", "UNKNOWN")
         
         # 1. Local Time Conversion (Device Local)
-        utc_ts = obs.get("timestamp", "")
+        utc_ts = obs.get("observed_at", '')
         display_time = utc_ts
         try:
             if "_" in utc_ts and "-" not in utc_ts:
@@ -176,7 +176,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
         verdict = outcome.get("forensic_verdict") or {}
         
         symbol = obs.get("symbol", "UNKNOWN")
-        strat_ts = obs.get("timestamp", "")
+        strat_ts = obs.get("observed_at") or obs.get("timestamp", "")
         
         audit_ts = audit_data.get("audit_timestamp", "")
         
@@ -412,7 +412,7 @@ class LedgerEmailTemplate(BaseEmailTemplate):
             
             rows_html += f"""
                 <tr>
-                    <td style="font-family: monospace; font-size: 11px;">{item['observation_time']}</td>
+                    <td style="font-family: monospace; font-size: 11px;">{item.get('observation_time') or item.get('observed_at', 'N/A')}</td>
                     <td><span style="font-weight: 700; color: {res_color};">{item['tp_sl_result']}</span></td>
                     <td style="text-align: right; font-weight: 700;"><span class="{'metric_pnl_pos' if pnl_val > 0 else 'metric_pnl_neg' if pnl_val < 0 else ''}">{p_sign}{pnl_val}%</span></td>
                 </tr>
@@ -516,7 +516,7 @@ class SessionNotifier:
         Derives a filename-friendly timestamp from market observation data.
         Prioritizes Audit-Grade UTC timestamps over local system time.
         """
-        market_ts = obs.get("timestamp", "")
+        market_ts = obs.get("observed_at") or obs.get("timestamp", "")
         if not market_ts:
             return datetime.now().strftime("%Y%m%d_%H%M%S")
             

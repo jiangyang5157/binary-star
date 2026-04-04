@@ -39,7 +39,7 @@ class MockDataFactory:
         """Creates a mock output from BinaryStarOrchestrator."""
         return {
             "symbol": symbol,
-            "timestamp": datetime.datetime.now().isoformat(),
+            "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
             "final_decision": {
                 "opinion": opinion,
                 "confidence_score": 85,
@@ -55,7 +55,7 @@ class MockDataFactory:
             },
             "observation": {
                 "symbol": symbol,
-                "timestamp": datetime.datetime.now().isoformat(),
+                "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
                 "quantitative_metrics": {
                     "price_dynamics": {"current_price": 60100, "atr_macro": 500, "volatility_intensity_index": 1.0},
                     "volume_profile": {"poc": 60000, "vah": 61000, "val": 59000, "anchors_above": [], "anchors_below": []},

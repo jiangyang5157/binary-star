@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 
 from src.utils.json_utils import load_json
 from src.utils.path_utils import resolve_project_root
-from src.infrastructure.notifications.email_notifier import StrategyNotifier
+from src.infrastructure.notifications.email_notifier import SessionNotifier
 
 
 class LedgerVisualizer:
@@ -14,7 +14,7 @@ class LedgerVisualizer:
     def __init__(self, data_root: str, logger: logging.Logger):
         self.data_root = os.path.join(resolve_project_root(), data_root)
         self.logger = logger
-        self.notifier = StrategyNotifier(data_root=data_root)
+        self.notifier = SessionNotifier(data_root=data_root)
 
     def generate_html_report(self, symbol: str, notify: bool = False, recursive: bool = False):
         """Orchestrates path scanning, data extraction, and HTML rendering."""
