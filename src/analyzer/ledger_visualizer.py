@@ -275,14 +275,17 @@ class LedgerVisualizer:
         if opinion not in ["BULLISH", "BEARISH", "NEUTRAL"]: return None
 
         lo = fd.get("tactical_parameters", {})
-        entry = float(lo.get("entry", 0))
+        # v6.21: Handle None values for NEUTRAL sessions to avoid float() TypeError
+        entry = float(lo.get("entry") or 0)
         res = outcome.get("tp_sl_result", "NEITHER")
         pnl = 0.0
         if entry > 0:
+            tp = float(lo.get("take_profit") or 0)
+            sl = float(lo.get("stop_loss") or 0)
             if res == "TP_HIT": 
-                pnl = abs(float(lo.get("take_profit", 0)) - entry) / entry * 100
+                pnl = abs(tp - entry) / entry * 100
             elif res == "SL_HIT": 
-                pnl = -abs(entry - float(lo.get("stop_loss", 0))) / entry * 100
+                pnl = -abs(entry - sl) / entry * 100
 
         return {
             "observation_time": session.get("observation", {}).get("observed_at") or "",
@@ -290,5 +293,5 @@ class LedgerVisualizer:
             "tp_sl_result": res,
             "estimated_pnl_pct": round(pnl, 2),
             "confidence": fd.get("confidence_score", 0),
-            "holding_time_hours": lo.get("holding_time_hours", 0)
+            "holding_time_hours": lo.get("holding_time_hours") or 0
         }

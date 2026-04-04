@@ -58,7 +58,7 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
 - **[TACTICAL_REPAIR_PATTERNS]**: When history contains specific veto tags, apply these technical repair protocols:
     - `[ANCHOR_VIOLATION]`: Move SL distally to the next valid structural anchor (HVN/POC).
     - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`.
-        - `[RETAIL_SQUEEZE]`: Perform a **Polarity Pivot** to target the projected liquidation vacuum. To ensure execution: if `volatility_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, execute a **Momentum Entry**; otherwise, sink into a deep **DLE**. You MUST use `MathTools` to completely recalculate coordinates for the reversed vector.
+        - `[RETAIL_SQUEEZE]`: Perform a **Polarity Pivot** to target the projected liquidation vacuum. To ensure execution: if `volatility_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, you MUST either abort to `NEUTRAL` or anchor the DLE behind a hyper-distal HVN to survive climax wick-outs. You MUST use `MathTools` to recalculate coordinates.
     - `[OPPORTUNITY_DENIAL]`: Your previous `NEUTRAL` was a failure of confluence. Read the telemetry and execute a hardened directional proposal.
 
 # OUTPUT_SCHEMA
