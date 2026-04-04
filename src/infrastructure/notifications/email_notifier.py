@@ -379,10 +379,7 @@ class LedgerEmailTemplate(BaseEmailTemplate):
         """
         # Build Rows
         rows_html = ""
-        # iterate safely
-        limit = 100
-        recent_items = dataset[max(0, len(dataset)-limit):] if len(dataset) > limit else dataset
-        for item in recent_items:
+        for item in dataset:
             result_val = item.get('tp_sl_result', 'NEITHER')
             res_color = "#10b981" if result_val == 'TP_HIT' else "#ef4444" if result_val == 'SL_HIT' else "#64748b"
             pnl_val = float(item.get('estimated_pnl_pct') or 0.0)
@@ -448,9 +445,6 @@ class LedgerEmailTemplate(BaseEmailTemplate):
                             {rows_html}
                         </tbody>
                     </table>
-                    <p style="font-size: 11px; color: #94a3b8; text-align: center;">
-                        Only showing the most recent {limit} records. View the full ledger for complete trajectory.
-                    </p>
                 </div>
 
                 {LedgerEmailTemplate.render_summary_footer("This is an auto-generated session notification | Triggered by Singularity Session")}

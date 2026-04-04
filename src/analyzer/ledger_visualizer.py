@@ -50,8 +50,8 @@ class LedgerVisualizer:
     <div class="max-w-7xl mx-auto space-y-6">
         <div class="flex justify-between items-end border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Execution Dashboard</h1>
-                <p class="text-slate-400 text-sm mt-1" id="gen-time-label">Report Cycle: {{GEN_TIME}}</p>
+                <h1 class="text-2xl font-bold text-slate-100">{{SYMBOL}} Ledger Dashboard</h1>
+                <p class="text-slate-400 text-sm mt-1" id="gen-time-label">Generated at: {{GEN_TIME}}</p>
             </div>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -61,22 +61,32 @@ class LedgerVisualizer:
             <div class="card"><div class="text-slate-400 text-xs font-semibold uppercase">Equity Growth (%)</div><div class="text-3xl font-bold mt-1 text-purple-400" id="kpi-pnl">0.00%</div></div>
         </div>
         <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Audit Timeline</h2>
+            <h2 class="text-lg font-semibold mb-4 text-slate-200">Decision Timeline</h2>
+            <p class="text-xs text-slate-400 mb-4">Y-axis = Confidence | Bubble Size = Abs(PnL %) | Color = Outcome</p>
             <div class="relative h-[450px]"><canvas id="timelineChart"></canvas></div>
         </div>
         <div class="card">
             <h2 class="text-lg font-semibold mb-4 text-slate-200">Equity Growth (%) Curve</h2>
             <div class="relative h-[350px]"><canvas id="equityChart"></canvas></div>
         </div>
-        <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Raw Summary</h2>
-            <div class="bg-slate-900 rounded-lg p-4 overflow-x-auto"><pre><code class="text-xs font-mono text-emerald-300" id="json-dump"></code></pre></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="card">
+                <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Threshold Optimizer</h2>
+                <p class="text-xs text-slate-400 mb-4">Simulated Cumulative PnL if only signals with Confidence >= X were executed.</p>
+                <div class="relative h-[350px]"><canvas id="optimizerChart"></canvas></div>
+            </div>
+            <div class="card">
+                <h2 class="text-lg font-semibold mb-4 text-slate-200">Confidence Score Distribution</h2>
+                <p class="text-xs text-slate-400 mb-4">Frequency of confidence scores across the period.</p>
+                <div class="relative h-[350px]"><canvas id="distChart"></canvas></div>
+            </div>
         </div>
     </div>
     <script>
         const RAW_DATA = {{JSON_DATA}};
-        document.getElementById('json-dump').textContent = JSON.stringify(RAW_DATA, null, 2);
         const sortedTrades = [...RAW_DATA].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
+        
+        // --- Metric Calculation ---
         const executedTrades = sortedTrades.filter(d => d.is_filled);
         let eq = 1.0, peak = 1.0, dd = 0;
         const curve = [];
@@ -86,20 +96,106 @@ class LedgerVisualizer:
             dd = Math.max(dd, (peak - eq) / peak);
             curve.push({ x: t.observation_time, y: (eq - 1) * 100 });
         });
+        
+        const netPnL = (eq - 1) * 100;
+        const mddPct = dd * 100;
+        const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
+
         document.getElementById('kpi-executed').innerText = `${executedTrades.length} / ${RAW_DATA.length}`;
-        document.getElementById('kpi-mdd').innerText = (dd * 100).toFixed(2) + '%';
-        document.getElementById('kpi-pnl').innerText = ((eq - 1) * 100).toFixed(2) + '%';
+        document.getElementById('kpi-mdd').innerText = mddPct.toFixed(2) + '%';
+        document.getElementById('kpi-pnl').innerText = netPnL.toFixed(2) + '%';
+        document.getElementById('kpi-calmar').innerText = calmar.toFixed(2);
+
+        // --- Chart Configuration ---
+        const scales = { 
+            x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM dd' } }, ticks: { color: '#64748b', maxRotation: 0 }, grid: { color: '#334155' } }, 
+            y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } 
+        };
+        const commonOptions = { responsive: true, maintainAspectRatio: false, scales: scales, plugins: { legend: { display: false } } };
+
+        // 1. Decision Timeline (Bubble)
         const bubble = RAW_DATA.map(d => ({
-            x: d.observation_time, y: d.confidence,
-            r: Math.max(5, Math.min(30, (d.holding_time_hours || 1) * 2)),
-            color: d.tp_sl_result === 'TP_HIT' ? 'rgba(52, 211, 153, 0.7)' : d.tp_sl_result === 'SL_HIT' ? 'rgba(251, 113, 133, 0.7)' : d.is_filled ? 'rgba(71, 85, 105, 0.6)' : 'rgba(148, 163, 184, 0.4)'
+            x: d.observation_time, 
+            y: d.confidence,
+            r: Math.max(8, Math.min(25, Math.abs(d.estimated_pnl_pct) * 8 + (d.confidence / 10))), // Balanced Size
+            pnl: d.estimated_pnl_pct,
+            res: d.tp_sl_result,
+            holding: d.holding_time_hours,
+            color: d.tp_sl_result === 'TP_HIT' ? 'rgba(52, 211, 153, 0.85)' : d.tp_sl_result === 'SL_HIT' ? 'rgba(251, 113, 133, 0.85)' : d.is_filled ? 'rgba(71, 85, 105, 0.7)' : 'rgba(148, 163, 184, 0.3)'
         }));
-        const scales = { x: { type: 'time', time: { unit: 'hour' }, ticks: { color: '#64748b' }, grid: { color: '#334155' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } };
-        new Chart(document.getElementById('timelineChart'), { type: 'bubble', data: { datasets: [{ data: bubble, backgroundColor: bubble.map(d => d.color) }] }, options: { responsive: true, maintainAspectRatio: false, scales: scales } });
-        new Chart(document.getElementById('equityChart'), { type: 'line', data: { datasets: [{ data: curve, borderColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.1)' }] }, options: { responsive: true, maintainAspectRatio: false, scales: scales } });
+        
+        new Chart(document.getElementById('timelineChart'), { 
+            type: 'bubble', 
+            data: { datasets: [{ data: bubble, backgroundColor: bubble.map(d => d.color) }] }, 
+            options: { 
+                ...commonOptions, 
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { 
+                        callbacks: { 
+                            label: (ctx) => {
+                                const d = ctx.raw;
+                                return [`PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h` ];
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        });
+
+        // 2. Equity Curve
+        new Chart(document.getElementById('equityChart'), { 
+            type: 'line', 
+            data: { datasets: [{ data: curve, borderColor: '#a78bfa', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.05)' }] }, 
+            options: commonOptions 
+        });
+
+        // 3. Confidence Threshold Optimizer
+        const thresholds = [], optimizerData = [];
+        for (let t = 40; t <= 100; t += 5) {
+            let pnlSum = 0;
+            executedTrades.forEach(trade => { if (trade.confidence >= t) pnlSum += trade.estimated_pnl_pct; });
+            thresholds.push(t);
+            optimizerData.push(pnlSum);
+        }
+        new Chart(document.getElementById('optimizerChart'), {
+            type: 'line',
+            data: { labels: thresholds, datasets: [{ data: optimizerData, borderColor: '#60a5fa', backgroundColor: 'rgba(96, 165, 250, 0.1)', borderWidth: 3, fill: true, tension: 0.3 }] },
+            options: { ...commonOptions, scales: { x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: '#94a3b8' }, ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } } }
+        });
+
+        // 4. Confidence Distribution
+        const bins = [];
+        for (let i = 40; i <= 95; i += 5) { bins.push({ label: `${i}-${i+4}`, min: i, max: i+4, count: 0, pnl_sum: 0 }); }
+        executedTrades.forEach(s => { 
+            bins.forEach(b => { 
+                if (s.confidence >= b.min && s.confidence <= b.max) {
+                    b.count++; 
+                    b.pnl_sum += s.estimated_pnl_pct;
+                }
+            }); 
+        });
+        new Chart(document.getElementById('distChart'), {
+            type: 'bar',
+            data: { labels: bins.map(b => b.label), datasets: [{ data: bins.map(b => b.count), backgroundColor: '#8b5cf6', borderRadius: 6 }] },
+            options: { 
+                ...commonOptions, 
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const b = bins[ctx.dataIndex];
+                                return [`PnL Sum: ${b.pnl_sum > 0 ? '+' : ''}${b.pnl_sum.toFixed(2)}%`];
+                            }
+                        }
+                    }
+                },
+                scales: { x: { ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b', stepSize: 1 } } } 
+            }
+        });
     </script>
-    </script>
-</body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset)).replace("{{GEN_TIME}}", to_html_display(datetime.now(timezone.utc).isoformat()))
+</body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset)).replace("{{GEN_TIME}}", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(content)
 
@@ -139,20 +235,22 @@ class LedgerVisualizer:
             fd = session.get("final_decision", {})
             if fd.get("opinion") not in ["BULLISH", "BEARISH"]: continue
 
-            lo = fd.get("limit_order", {})
+            lo = fd.get("tactical_parameters", {})
             entry = float(lo.get("entry", 0))
             res = outcome.get("tp_sl_result", "NEITHER")
             pnl = 0.0
             if entry > 0:
-                if res == "TP_HIT": pnl = abs(float(lo.get("take_profit", 0)) - entry) / entry * 100
-                elif res == "SL_HIT": pnl = -abs(entry - float(lo.get("stop_loss", 0))) / entry * 100
+                if res == "TP_HIT": 
+                    pnl = abs(float(lo.get("take_profit", 0)) - entry) / entry * 100
+                elif res == "SL_HIT": 
+                    pnl = -abs(entry - float(lo.get("stop_loss", 0))) / entry * 100
 
             extracted.append({
-                "observation_time": session.get("observation", {}).get("observed_at"),
+                "observation_time": (session.get("observation", {}).get("observed_at") or "")[:10],
                 "is_filled": outcome.get("is_filled", False),
                 "tp_sl_result": res,
                 "estimated_pnl_pct": round(pnl, 2),
-                "confidence": fd.get("confidence", 0),
+                "confidence": fd.get("confidence_score", 0),
                 "holding_time_hours": lo.get("holding_time_hours", 0)
             })
             
