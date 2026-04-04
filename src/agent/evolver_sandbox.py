@@ -20,12 +20,31 @@ class EvolverSandbox:
         self.data_root = data_root
         self.config_dict = config_dict
         
+        # v6.19: Initialize persistent Sandbox logging in data root
+        self._setup_file_logging()
+        
         # Initialize the official Audit Controller for high-fidelity replay analysis
         self.audit_controller = AuditController(
             config_dict=config_dict,
             logger=logger,
             data_root=data_root
         )
+
+    def _setup_file_logging(self):
+        """Configures a dedicated log file for the Sandbox session."""
+        log_file = os.path.join(self.data_root, "sandbox.log")
+        os.makedirs(os.path.dirname(log_file), exist_ok=True)
+        
+        # Skip if handler already exists (avoid duplication in same process)
+        if any(isinstance(h, logging.FileHandler) and h.baseFilename == os.path.abspath(log_file) for h in logger.handlers):
+            return
+
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        logger.info(f"Sandbox: Persistent logging initialized at {log_file}")
 
     def reply_audit_with_patch(
         self, 
@@ -184,13 +203,17 @@ class EvolverSandbox:
         """
         accepted_cases = []
         rejected_cases = []
+        total = len(audit_reports)
 
-        logger.info(f"Sandbox: Initiating batch validation for {len(audit_reports)} cases.")
+        logger.info(f"Sandbox: Initiating batch validation for {total} cases.")
         
         for idx, report in enumerate(audit_reports):
             observation = report.get('session', {}).get('observation', {})
-            obs_ts = observation["observed_at"]
-            session_id = f"{observation.get('symbol', 'UNKNOWN')}_{obs_ts}"
+            symbol = observation.get('symbol', 'UNKNOWN')
+            obs_ts = observation.get("observed_at", "N/A")
+            session_id = f"{symbol}_{obs_ts}"
+            
+            logger.info(f"Sandbox: [Case {idx+1}/{total}] Processing {session_id}...")
             
             try:
                 # 1. Execute Shadow Replay
