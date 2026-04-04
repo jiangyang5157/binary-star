@@ -114,6 +114,19 @@ python run_audit.py --file data/once/sessions/BTCUSDT_session_时间戳.json
 python run_evolution.py --samples 20
 ```
 
+### 🏆 渐变式进化工作流 (The Triple Hardening Workflow)
+推荐的高保真策略进化路径，分为三个阶段：
+
+*   **阶段 A：宏观基准训练 (Baseline)**
+    *   **目标**：建立跨越 14 天的宏观稳定性。
+    *   **操作**：`python run_session.py backtest --start T-28d --end T-14d --sampling 12` -> 运行 `run_evolution.py`。
+*   **阶段 B：近期律动适配 (Recency Adaptation)**
+    *   **目标**：对齐最新的市场波动特性。
+    *   **操作**：`python run_session.py backtest --start T-14d --end now --sampling 12` -> 在阶段 A 补丁基础上再次进化。
+*   **阶段 C：极端案例加固 (Adversarial Hardening)**
+    *   **目标**：针对前两个阶段所有的 **失败审计 (Failures)** 进行专项逻辑闭合。
+    *   **操作**：筛选 `/audits` 中所有 `SL_HIT` 报告 -> 运行 `run_evolution.py --samples 10`。
+
 ### 4. 战术权益账本 (Strategy Ledger)
 生成特定品种的交互式 HTML 表现看板。
 ```bash
