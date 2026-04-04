@@ -19,7 +19,8 @@ class TopographyEngine:
         obs_config = MarketObserverConfig.from_dict(config_dict)
         self.chart_gen = ChartGenerator(
             output_dir=os.path.join(self.data_root, "klines"),
-            volume_chart_scaling=obs_config.volume_chart_scaling
+            volume_chart_scaling=obs_config.volume_chart_scaling,
+            dpi=obs_config.dpi
         )
 
     def reconstruct(self, symbol: str, dispatch_email: bool = False) -> Dict[str, Any]:

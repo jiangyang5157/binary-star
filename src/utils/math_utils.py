@@ -1,5 +1,6 @@
 import logging
-from typing import Dict, Any, Optional, Union
+import numpy as np
+from typing import Dict, Any, Optional, Union, List
 
 # Initialize standard hardened logger for math telemetry
 logger = logging.getLogger(__name__)
@@ -208,3 +209,53 @@ class MathTools:
         except Exception as e:
             logger.error(f"MathTools: MAE stress failure: {e}")
             return {"error": str(e)}
+    @staticmethod
+    def calculate_liquidity_slippage(
+        price: float,
+        volume_profile: List[Dict[str, Any]],
+        atr: float,
+        base_slippage_bps: float,
+        max_slippage_bps: float
+    ) -> Dict[str, Any]:
+        """根据成交量分布（Volume Profile）计算流动性敏感型滑点。
+        
+        逻辑：
+        - 寻找离价格最近的成交量桶（Bin）。
+        - 归一化成交量：当前桶容量 / 最大桶容量。
+        - 滑点惩罚：在基础滑点之上，根据成交量真空度增加惩罚项。
+        """
+        try:
+            if not volume_profile or atr <= 0:
+                return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "warning": "Insufficient profile data."}
+
+            # 1. 寻找最近的 Price Bin
+            prices = np.array([float(d['price']) for d in volume_profile])
+            vols = np.array([float(d['volume']) for d in volume_profile])
+            
+            idx = (np.abs(prices - price)).argmin()
+            local_vol = vols[idx]
+            max_vol = vols.max() if vols.size > 0 else 1.0
+            
+            # 2. 计算流动性质量 (0.0 to 1.0)
+            liquidity_quality = local_vol / max_vol if max_vol > 0 else 0.0
+            
+            # 3. 动态滑点计算 (线性模型补偿真空区)
+            # 基础滑点 + (1 - 质量) * (最大额外惩罚)
+            extra_slippage = (1.0 - liquidity_quality) * (max_slippage_bps - base_slippage_bps)
+            total_slippage_bps = base_slippage_bps + extra_slippage
+            
+            # 4. 价格调整 (假设是入场推迟)
+            # 滑点 1 bps = 0.0001
+            adjustment_factor = 1.0 + (total_slippage_bps / 10000.0)
+            adjusted_price = round(price * adjustment_factor, 2)
+            
+            return {
+                "original_price": price,
+                "price_adjusted": adjusted_price,
+                "slippage_bps": round(total_slippage_bps, 2),
+                "liquidity_quality": round(liquidity_quality, 3),
+                "is_vacuum_zone": bool(liquidity_quality < 0.1)
+            }
+        except Exception as e:
+            logger.error(f"MathTools: Slippage calculation failure: {e}")
+            return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "error": str(e)}

@@ -251,6 +251,35 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
+                <!-- Slippage Analysis (v6.60 Logic) -->
+                {f'''
+                <div style="background-color: #fff7ed; padding: 20px; border-radius: 12px; border: 1px solid #ffedd5; margin-bottom: 35px; border-left: 5px solid #f97316;">
+                    <h3 style="margin-top: 0; color: #9a3412; font-size: 15px; margin-bottom: 15px;">🕯️ Slippage & Liquidity Hardening</h3>
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                        <tr>
+                            <td style="width: 25%;">
+                                <div style="font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700;">Planned Entry</div>
+                                <div style="font-size: 14px; font-weight: 800; font-family: monospace; color: #431407;">{fmt(outcome.get('execution_forensics', {}).get('planned_entry'))}</div>
+                            </td>
+                            <td style="width: 25%;">
+                                <div style="font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700;">Real Entry</div>
+                                <div style="font-size: 14px; font-weight: 800; font-family: monospace; color: #b91c1c;">{fmt(outcome.get('execution_forensics', {}).get('adjusted_entry'))}</div>
+                            </td>
+                            <td style="width: 25%;">
+                                <div style="font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700;">Penalty (bps)</div>
+                                <div style="font-size: 14px; font-weight: 800; color: #ea580c;">-{fmt(outcome.get('execution_forensics', {}).get('slippage_bps'))}</div>
+                            </td>
+                             <td style="width: 25%;">
+                                <div style="font-size: 10px; color: #c2410c; text-transform: uppercase; font-weight: 700;">Liq. Quality</div>
+                                <div style="font-size: 14px; font-weight: 800; color: {'#10b981' if (outcome.get('execution_forensics', {}).get('liquidity_quality', 0) or 0) > 0.5 else '#f59e0b'};">
+                                    {fmt(outcome.get('execution_forensics', {}).get('liquidity_quality'))}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                ''' if outcome.get('execution_forensics', {}).get('slippage_bps') else ""}
+
                 <!-- Audit Post-Mortem -->
                 <div style="background-color: #eff6ff; padding: 25px; border-radius: 12px; border: 1px solid #dbeafe; margin-bottom: 35px; border-left: 5px solid #3b82f6;">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 0 0 15px 0; border-bottom: 1px solid #dbeafe; padding-bottom: 10px;">

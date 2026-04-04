@@ -61,7 +61,8 @@ class AuditAssembler:
         atr_macro_t1: float, 
         long_short_ratio_macro_t0: float,
         long_short_ratio_macro_t1: float,
-        interval_hours: float
+        interval_hours: float,
+        volume_profile: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Analyzes klines to determine the actual market outcome vs strategy hypothesis.
 
@@ -126,7 +127,18 @@ class AuditAssembler:
         
         if opinion in ('BULLISH', 'BEARISH'):
             tactical = final_decision.get('tactical_parameters', {})
-            target_entry = float(tactical.get('entry', entry_price))
+            planned_entry = float(tactical.get('entry', entry_price))
+            
+            # --- Forensic Hardening: Apply Liquidity-Aware Slippage ---
+            slippage_metrics = MathTools.calculate_liquidity_slippage(
+                price=planned_entry,
+                volume_profile=volume_profile or [],
+                atr=max_atr,
+                base_slippage_bps=float(self.config.audit_review['base_slippage_bps']),
+                max_slippage_bps=float(self.config.audit_review['max_slippage_bps'])
+            )
+            target_entry = slippage_metrics["price_adjusted"]
+            
             tp = float(tactical.get('take_profit', 0))
             sl = float(tactical.get('stop_loss', 0))
             
@@ -139,6 +151,10 @@ class AuditAssembler:
 
             unfilled_proximity_atr_limit = float(self.config.audit_review['unfilled_proximity_atr_limit'])
             result["execution_forensics"] = {
+                "planned_entry": planned_entry,
+                "adjusted_entry": target_entry,
+                "slippage_bps": slippage_metrics.get("slippage_bps", 0),
+                "liquidity_quality": slippage_metrics.get("liquidity_quality", 0),
                 "entry_drift_atr": entry_drift_atr,
                 "theoretical_mae_atr": round(theoretical_mae / max_atr, 4) if max_atr > 0 else 0,
                 "theoretical_mfe_atr": round(theoretical_mfe / max_atr, 4) if max_atr > 0 else 0,

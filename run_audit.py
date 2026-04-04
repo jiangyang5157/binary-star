@@ -4,6 +4,8 @@ import sys
 import argparse
 import logging
 from datetime import datetime, timezone
+import concurrent.futures
+import multiprocessing
 
 # Ensure project root is in path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -70,6 +72,20 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         logger.error(f"Failed to audit {file_path}: {e}")
         return "FAILED"
 
+# --- Multiprocessing Glue ---
+controller = None
+def worker_init(log_path, config, data_root):
+    global logger, controller
+    setup_logger("", log_file=log_path)
+    logger = logging.getLogger("AuditWorker")
+    controller = AuditController(config_dict=config, logger=logger, data_root=data_root)
+
+def run_task(args_tuple):
+    """Wrapper to call process_audit_file with global controller."""
+    f, email, data_root, force = args_tuple
+    global controller
+    return process_audit_file(f, controller, email, data_root, force=force)
+
 def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Audit Review (v6.1)")
     parser.add_argument("--file", help="Optional: Path to a specific session JSON file")
@@ -119,16 +135,20 @@ def main():
         logger.warning(f"No sessions found to audit in {data_root}.")
         return
 
-    logger.info(f"Starting audit sequence for {len(files_to_audit)} session(s)...")
+    # 5. Parallel Execution Core
+    print(f"🚀 Launching Parallel Audit Pool (Workers: {multiprocessing.cpu_count() or 1})...")
     
-    success_count = 0
-    skip_count = 0
-    fail_count = 0
-    mature_count = 0
-    empty_count = 0
-    
-    for f in files_to_audit:
-        status = process_audit_file(f, controller, args.email, data_root, force=args.force)
+    # Pack arguments for top-level run_task
+    task_args = [(f, args.email, data_root, args.force) for f in files_to_audit]
+
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=multiprocessing.cpu_count(),
+        initializer=worker_init,
+        initargs=(log_path, config, data_root)
+    ) as executor:
+        results = list(executor.map(run_task, task_args))
+
+    for status in results:
         if status == "SUCCESS": success_count += 1
         elif status == "EXISTS": skip_count += 1
         elif status == "MATURING": mature_count += 1

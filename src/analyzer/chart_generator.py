@@ -98,7 +98,7 @@ class ChartVisualRenderer:
     """
     Core engine for rendering candlestick charts with logical overlays.
     """
-    def __init__(self, output_dir: str, volume_chart_scaling: float = 0.20, dpi: int = 180):
+    def __init__(self, output_dir: str, volume_chart_scaling: float, dpi: int):
         self.config = ChartConfig(volume_chart_scaling=volume_chart_scaling, dpi=dpi)
         self.storage = ChartStorageManager(output_dir)
         self.extractor = TechnicalFeatureExtractor()

@@ -110,6 +110,11 @@ audit_review:
     pinpoint: 15.0
     standard: 50.0
     luck: 80.0
+  # --- Market Friction Modeling ---
+  # Ideal floor for slippage (5.0 bps = 0.05%).
+  base_slippage_bps: 5.0
+  # Max penalty for liquidity vacuums (50.0 bps = 0.50%).
+  max_slippage_bps: 50.0
 
 topography_parameters:
   # --- Volume Profile Engine ---

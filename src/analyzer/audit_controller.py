@@ -167,7 +167,8 @@ class AuditController:
                 atr_macro_t1=float(atr_proto),
                 long_short_ratio_macro_t0=float(ls_ratio_proto),
                 long_short_ratio_macro_t1=float(ls_ratio_proto),
-                interval_hours=interval_macro_hours
+                interval_hours=interval_macro_hours,
+                volume_profile=metrics_t0.get("volume_profile", {}).get("profile_data", [])
             )
 
             # 4. Final T1 Anchoring Logic
@@ -195,7 +196,8 @@ class AuditController:
                 atr_macro_t1=float(atr_t1),
                 long_short_ratio_macro_t0=float(ls_ratio_proto),
                 long_short_ratio_macro_t1=float(ls_ratio_t1),
-                interval_hours=interval_macro_hours
+                interval_hours=interval_macro_hours,
+                volume_profile=metrics_t1.get("volume_profile", {}).get("profile_data", [])
             )
             
             outcome["visual_context"] = {
