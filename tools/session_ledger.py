@@ -20,7 +20,7 @@ def main():
     parser.add_argument("--symbol", type=str, help="Symbol to filter")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification.")
     parser.add_argument("--recursive", "-r", action="store_true", help="Perform recursive history scan.")
-    parser.add_argument("--file", type=str, help="Directly parse a sandbox result JSON file.")
+    parser.add_argument("--file", "-f", type=str, help="Directly parse a sandbox result JSON file.")
     add_data_path_argument(parser, required=False) # Make path optional if file is provided
     
     args = parser.parse_args()

@@ -2,6 +2,8 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
+---
+
 > **"交易不是预测未来的游戏，而是生存于当下的博弈。"**
 > 
 > Singularity 是一个高保真、多智能体的量化架构，旨在通过 **对抗式推理 (Adversarial Reasoning)** 消除人类偏见。它能将复杂的市场混沌状态转化为冷静、确定性的执行指令。
@@ -133,6 +135,7 @@ python run_session.py -ts 2026-01-24T15:42:00Z
 *   **批量回测 (Backtest)**：在历史样本点上进行保真的批量推理（默认结果存入 `data/backtest/sessions`）。
 ```bash
 python run_session.py --start T-29d --end T-15d --samples 12
+python run_session.py --start T-15d --end T-1d --samples 12
 ```
 
 *   **实时监控 (Live)**：按固定脉冲频率（分钟）持续运行（默认结果存入 `data/live/sessions`）。
@@ -143,72 +146,33 @@ python run_session.py --pulse 60
 ### 2. 取证审计 (Forensic Audit)
 对 Session(s) 日志进行深度取证，并将结果存入审计库以供进化学习。
 ```bash
-python run_audit.py -p data/once
-python run_audit.py -p data/once --file data/once/sessions/{symbol}_session_{timestamp}.json
+python run_audit.py -p data/backtest
+python run_audit.py -p data/backtest --file data/backtest/sessions/{symbol}_session_{timestamp}.json
 ```
 
 ### 3. DNA 引擎 (Meta-Evolution)
-基于 Audit(s) 报告，对系统的判定逻辑进行“基因突变”式优化（结果存入 `data/once/evolution/proposals`）。
+基于 Audit(s) 报告，对系统的判定逻辑进行“基因突变”式优化（补丁存入 `data/backtest/evolution/proposals`）。
 ```bash
-python run_evolution.py -p data/once
+python run_evolution.py -p data/backtest
 ```
 
-
-
-### 🏆 渐变式进化工作流 (The Triple Hardening Workflow)
-推荐的高保真策略进化路径，通过三个阶段不断“硬化”逻辑：
-
-*   **阶段 A：宏观基准训练 (Baseline)**
-    *   **目标**：建立跨越 14 天的宏观稳定性。
-    *   **操作**：
-        1. `python run_session.py --start T-29d --end T-15d --samples 12` (默认存入 data/backtest)
-        2. `python run_audit.py -p data/backtest`
-        3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
-*   **阶段 B：近期律动适配 (Recency Adaptation)**
-    *   **目标**：对齐最新的市场波动特性。
-    *   **操作**：
-        1. `python run_session.py --start T-15d --end T-1d --samples 12` (默认存入 data/backtest)
-        2. `python run_audit.py -p data/backtest`
-        3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
-*   **阶段 C：极端案例加固 (Adversarial Hardening)**
-    *   **目标**：针对历史所有的 **失败审计 (Failures)** 进行专项逻辑闭合。
-    *   **操作**：
-        1. `python run_evolution.py -p data/backtest --samples 12 --sandbox` (Evolver 会自动优先处理失败案例)
-
-### 4. 战术权益账本 (Strategy Ledger)
-生成特定品种的交互式 HTML 表现看板（通常用于回测结果展示）。
+### 4. 沙盒压测 (Sandbox Validation)
+对生成的进化提案进行“逻辑压测”。系统会临时应用补丁，并在历史审计案例上进行影子测试，通过横向比对确保新逻辑不会导致胜率退化或回归风险。分类补丁文件去`data/backtest/evolution/sandbox_{accepted/rejected}`（结果存入 `data/backtest/evolution/sandbox_results/{symbol}_evolution_sandbox_{timestamp}.json`）。
 ```bash
-python tools/session_ledger.py -p data/backtest --recursive
+python run_sandbox.py -p data/backtest -f .../{symbol}_evolution_{timestamp}.json
 ```
 
-### 5. 市场勘探 (Market Recon)
-生成特定品种的Market 数据以及 klines 图。
+### 5. 物理同步 (Patching)
+正式将补丁“硬化”到系统。它会自动同步更新系统的配置文件与提示词。
 ```bash
-python tools/market_recon.py --path data/test -ts 2026-04-05T00:00:00Z
+python run_patch.py -f .../{symbol}_evolution_{timestamp}.json
 ```
 
----
-
-## 🏗 数据架构：黑盒目录
-
-| 目录 | 用途 | 保留期限 |
-| :--- | :--- | :--- |
-| `data/once/sessions` | 原始智能体辩论日志及最终决策。 | 30 天 |
-| `data/once/audits` | 针对止损或未触发机会的高保真取证报告。 | 永久 |
-| `data/once/html` | 交互式表现仪表盘与权益曲线。 | 永久 |
-| `data/once/evolution/proposals` | 生成的逻辑更新候选项 (JSON)。 | 永久 |
-| `data/once/evolution/applied_patches` | 已成功合并并验证的逻辑补丁。 | 版本化 |
-
----
-
-## 📖 术语库 (非专家指南)
-
-| 术语 | 通俗解释 | 技术含义 |
-| :--- | :--- | :--- |
-| **拓扑 (Topography)** | “地形图” | 价格水平与成交量分布之间的空间关系。 |
-| **POC (Point of Control)** | “公允价值” | 特定时间内成交量最密集的价位。 |
-| **HVN (High Volume Node)** | “堡垒” | 具有重成交量支撑/阻力的价位区域。 |
-| **Squeeze (挤压)** | “蓄势待发” | 市场进入低波动期，预示着即将发生剧烈突破。 |
-| **DLE (Deep Entry)** | “黄金切入” | 在支撑区深处挂单，以提高安全边际。 |
+### 6. 账本看板 (Ledger Dashboard)
+系统的可视化看板。它支持对“Audit(s) 审计报告” 或 “Sandbox 报告”（解析里面包含的Audit(s) 审计报告）进行 HTML 渲染：
+```bash
+python tools/session_ledger.py -p data/backtest
+python tools/session_ledger.py -p data/backtest --f .../{symbol}_evolution_sandbox_{timestamp}.json
+```
 
 ---
