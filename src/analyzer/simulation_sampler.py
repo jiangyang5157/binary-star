@@ -14,25 +14,25 @@ class SimpleRegimeClassifier:
     Analyzes historical price data to classify market conditions (regimes).
     Uses EMA and Volatility to distinguish between Bull/Bear and High/Low Volatility states.
     """
-    def __init__(self, ema_period: int, volatility_period: int, warmup_multiplier: float):
+    def __init__(self, ema_period: int, volatility_period: int, warmup_multiplier: float, macro_lookback_candles):
         self.ema_period = ema_period
         self.volatility_period = volatility_period
         self.warmup_multiplier = warmup_multiplier
+        self.macro_lookback_candles = macro_lookback_candles
 
     def warmup_candles(self) -> int:
         """
-        Returns the required number of historical candles.
+        Returns the required number of historical candles for indicator stability.
         Separates IIR filters (require multiplier for convergence) from FIR filters (strict window).
         """
-        # 1. 必须经历预热收敛的指标 (EMA, RMA/ATR)
+        # 1. IIR Convergence (EMA, RMA/ATR)
         iir_max_period = max(self.ema_period, self.volatility_period)
         required_for_convergence = iir_max_period * self.warmup_multiplier
         
-        # 2. 只需要固定历史窗口的绝对宏观指标 (比如你的 336)
-        # 假设你从 config 中读取了最大的绝对 lookback
-        fir_max_period = self.macro_lookback_candles # 例如 336
+        # 2. FIR Fixed-Window (Macro Topography Lookback)
+        fir_max_period = self.macro_lookback_candles
         
-        # 3. 取两者中的绝对安全上限，并加上一定的物理容错 Buffer (比如多拉 2 根)
+        # 3. Final safety ceiling with a precise +2 buffer for shift/diff operations
         safe_warmup = max(required_for_convergence, fir_max_period) + 2
         
         return int(safe_warmup)

@@ -201,8 +201,9 @@ class SessionController:
         
         analyzer = SimpleRegimeClassifier(
             ema_period=topo_cfg['exponential_moving_average_period'],
-            volatility_period=topo_cfg['volume_moving_average_period'],
-            warmup_multiplier=bt_cfg['indicator_warmup_multiplier']
+            volatility_period=topo_cfg['average_true_range_period'],
+            warmup_multiplier=bt_cfg['indicator_warmup_multiplier'],
+            macro_lookback_candles=self.engine.config['analysis_window']['macro_context']['lookback_candles']
         )
         warmup = analyzer.warmup_candles()
         
