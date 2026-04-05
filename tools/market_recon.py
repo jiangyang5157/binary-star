@@ -27,11 +27,16 @@ def main():
         
     config = load_config()
     global_cfg = load_global_config()
+    
+    # v4.8+: Merge for full configuration awareness (visuals, network, etc.)
+    merged_config = config.copy()
+    merged_config.update(global_cfg)
+    
     symbol = args.symbol or global_cfg['system']['default_symbol']
     
     # Delegate logic to controller
     try:
-        controller = TopographyEngine(config_dict=config, data_root=data_root, logger=logger)
+        controller = TopographyEngine(config_dict=merged_config, data_root=data_root, logger=logger)
         result = controller.reconstruct(symbol, dispatch_email=args.email)
         obs = result['observation']
         
