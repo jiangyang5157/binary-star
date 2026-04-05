@@ -181,7 +181,7 @@ class VolumeProfileAnalyzer:
             # Map legacy names to new config structure (strictly)
             self.config = VolumeProfileConfig(
                 value_area_ratio=float(kwargs['value_area_pct']),
-                resolution_bins=int(kwargs['vol_profile_bins']),
+                resolution_bins=int(kwargs['volume_profile_price_bucket_count']),
                 atr_period=int(kwargs['atr_window']),
                 max_high_volume_node_count=int(kwargs['max_high_volume_node_count']),
                 max_low_volume_node_count=int(kwargs['max_low_volume_node_count']),

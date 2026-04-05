@@ -111,6 +111,7 @@ class FitnessEvaluator:
             return False
 
         # Dimension 2: Execution Efficiency Tie-Breakers (same score)
+        sandbox_cfg = self.config_dict.get('sandbox', {})
         old_filled = old_outcome.get('is_filled', False)
         new_filled = new_outcome.get('is_filled', False)
         old_metrics = old_outcome.get('trade_execution_metrics', {})
@@ -121,9 +122,8 @@ class FitnessEvaluator:
             old_mae = float(old_metrics.get('mae_stress_level_pct', 100.0))
             new_mae = float(new_metrics.get('mae_stress_level_pct', 100.0))
 
-            sandbox_cfg = self.config_dict.get('sandbox', {})
-            mae_sig = float(sandbox_cfg.get('mae_significance_threshold'))
-            mae_imp = float(sandbox_cfg.get('mae_improvement_threshold'))
+            mae_sig = float(sandbox_cfg.get('mae_significance_threshold', 15.0))
+            mae_imp = float(sandbox_cfg.get('mae_improvement_threshold', 5.0))
 
             if old_mae > mae_sig and (old_mae - new_mae) >= mae_imp:
                 logger.info(f"[REFINEMENT] MAE tiebreak: {old_mae}% -> {new_mae}%")

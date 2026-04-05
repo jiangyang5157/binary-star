@@ -30,7 +30,7 @@ class RegimeResult:
     squeeze_factor: float             # Ratio of BB width to KC width
     trend_intensity: float            # Signed Efficiency Ratio [-1, 1]. +ve = Bullish, -ve = Bearish
     wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
-    vol_participation_ratio: float      # Current volume relative to moving average
+    volume_participation_ratio: float      # Current volume relative to moving average
 
 class IndicatorEngine:
     """
@@ -97,16 +97,16 @@ class RegimeClassifier:
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
 
         # 3. Volume Participation (Relative to MA)
-        vol_participation_ratio = 1.0
+        volume_participation_ratio = 1.0
         if 'volume' in df.columns:
-            vol_ma = df['volume'].rolling(window=self.config.volume_ma_window).mean()
-            vol_participation_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
+            volume_ma = df['volume'].rolling(window=self.config.volume_ma_window).mean()
+            volume_participation_ratio = latest['volume'] / (volume_ma.iloc[-1] + 1e-9)
 
         return RegimeResult(
             squeeze_factor=float(squeeze_factor),
             trend_intensity=float(latest['trend_intensity']),
             wick_skewness_lookback=float(skewness),
-            vol_participation_ratio=float(vol_participation_ratio)
+            volume_participation_ratio=float(volume_participation_ratio)
         )
 
 class MarketRegimeAnalyzer:
@@ -127,7 +127,7 @@ class MarketRegimeAnalyzer:
                 bollinger_std_dev=float(kwargs['bb_std']),
                 keltner_window=int(kwargs['kc_window']),
                 keltner_multiplier=float(kwargs['kc_mult']),
-                volume_ma_window=int(kwargs['vol_ma_window']),
+                volume_ma_window=int(kwargs['volume_ma_window']),
                 trend_intensity_threshold=float(kwargs['trend_intensity_threshold']),
                 trend_lookback=int(kwargs['trend_lookback']),
                 wick_skewness_period=int(kwargs['wick_skewness_period'])

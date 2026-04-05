@@ -2,8 +2,11 @@ import pytest
 from unittest.mock import MagicMock, patch
 from src.agent.evolver_sandbox import EvolverSandbox
 
+from tests.mock_factory import MockDataFactory
+
 @pytest.fixture
 def mock_audit_report():
+    mock_cfg = MockDataFactory.create_mock_config()
     return {
         "session": {
             "observation": {
@@ -11,10 +14,7 @@ def mock_audit_report():
                 "observed_at": "2026-04-04T10:00:00Z"
             },
             "metadata": {
-                "config_snapshot": {
-                    "regime_parameters": {"trend_intensity_threshold": 0.5},
-                    "binary_star": {"model": "gemini-flash-latest"}
-                }
+                "config_snapshot": mock_cfg
             }
         },
         "market_outcome": {
@@ -60,19 +60,19 @@ def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock
     
     # Verification 2: The original audit report was NOT polluted (Deep Copy Check)
     original_val = mock_audit_report['session']['metadata']['config_snapshot']['regime_parameters']['trend_intensity_threshold']
-    assert original_val == 0.5
+    assert original_val == 0.95 # Aligned with MockDataFactory default
 
 @patch("src.agent.evolver_sandbox.BinaryStarOrchestrator")
 @patch("src.agent.evolver_sandbox.AuditController")
 def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
-    config = {
-        "sandbox": {
-            "acceptance_rate_threshold": 0.5,
-            "mae_significance_threshold": 15.0,
-            "mae_improvement_threshold": 5.0
-        }
-    }
+    config = MockDataFactory.create_mock_config()
+    config["sandbox"].update({
+        "acceptance_rate_threshold": 0.5,
+        "mae_significance_threshold": 15.0,
+        "mae_improvement_threshold": 5.0,
+        "time_improvement_threshold": 1.0
+    })
     sandbox = EvolverSandbox("key", "root", config)
     
     # Mock Audit Controller to return a WIN (TP_HIT)
@@ -95,13 +95,13 @@ def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_
 @patch("src.agent.evolver_sandbox.AuditController")
 def test_sandbox_rejection_logic(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
-    config = {
-        "sandbox": {
-            "acceptance_rate_threshold": 0.5,
-            "mae_significance_threshold": 15.0,
-            "mae_improvement_threshold": 5.0
-        }
-    }
+    config = MockDataFactory.create_mock_config()
+    config["sandbox"].update({
+        "acceptance_rate_threshold": 0.5,
+        "mae_significance_threshold": 15.0,
+        "mae_improvement_threshold": 5.0,
+        "time_improvement_threshold": 1.0
+    })
     sandbox = EvolverSandbox("key", "root", config)
     
     # Mock Audit Controller to return another LOSS (SL_HIT) with no MAE improvement
@@ -116,6 +116,8 @@ def test_sandbox_rejection_logic(mock_audit_controller_cls, mock_orchestrator_cl
     result = sandbox.run_batch_validation([mock_audit_report])
     
     # Verification
+    # If this fails, investigate result["unknown_cases"]
+    assert len(result["unknown_cases"]) == 0, f"Case drifted to unknown: {result['unknown_cases']}"
     assert result["is_accepted"] is False
     assert len(result["accepted_cases"]) == 0
     assert len(result["rejected_cases"]) == 1

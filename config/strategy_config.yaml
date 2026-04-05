@@ -46,11 +46,11 @@ regime_parameters:
 
   # --- Physical Topography & Volume Confluence ---
   # Volume surge multiplier relative to the 21-period Moving Average.
-  vol_surge_vs_ma_ratio: 1.5
+  volume_surge_vs_ma_ratio: 1.5
   # Minimum required volume participation ratio (Baseline).
-  min_vol_participation_ratio: 1.0
+  min_volume_participation_ratio: 1.0
   # Threshold to confirm institutional presence (High Participation).
-  vol_participation_threshold: 1.5
+  volume_participation_threshold: 1.5
   # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
   long_short_imbalance_ratio: 1.8
   # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).

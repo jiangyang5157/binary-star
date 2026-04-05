@@ -18,7 +18,7 @@ All data contained herein is the Absolute Physical Truth. Agents MUST NOT halluc
     - **-**: Price is BELOW the anchor (e.g., "-0.8 ATR").
 - **Flow & Momentum**: 
     - `cvd_intensity_ratio`: Signed ratio [-1, 1]. `+` = Buying Pressure; `-` = Selling Pressure.
-    - `vol_participation_ratio`: Scalar ratio [0, n]. `1.0` = Baseline; `> 1.0` = High Market Involvement.
+    - `volume_participation_ratio`: Scalar ratio [0, n]. `1.0` = Baseline; `> 1.0` = High Market Involvement.
 
 ## 3. STATE MACHINE PROTOCOL (BINARY STAR)
 The logic unfolds in a deterministic sequence:

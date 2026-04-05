@@ -32,7 +32,7 @@ class CriticConfig(AgentConfig):
     volatility_baseline_ratio: float
     volatility_expansion_ratio: float
     volatility_extreme_ratio: float
-    vol_surge_vs_ma_ratio: float
+    volume_surge_vs_ma_ratio: float
     long_short_imbalance_ratio: float
     short_heavy_imbalance_ratio: float
     poc_gravity_atr_distance: float
@@ -45,7 +45,7 @@ class CriticConfig(AgentConfig):
     trend_intensity_min_expansion: float
     min_rr_ranging: float
     min_rr_trending: float
-    min_vol_participation_ratio: float
+    min_volume_participation_ratio: float
     squeeze_threshold: float
     squeeze_audit_threshold: float
     threshold_skepticism_clear: int
@@ -66,7 +66,7 @@ class CriticConfig(AgentConfig):
     missed_opportunity_atr_threshold: float
     mae_stress_thresholds: Dict[str, float]
     volume_profile_value_area_width: float
-    vol_profile_width_ratio: float
+    volume_profile_width_ratio: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -97,7 +97,7 @@ class CriticConfig(AgentConfig):
             volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-            vol_surge_vs_ma_ratio=float(regime['vol_surge_vs_ma_ratio']),
+            volume_surge_vs_ma_ratio=float(regime['volume_surge_vs_ma_ratio']),
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             short_heavy_imbalance_ratio=float(regime['short_heavy_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
@@ -110,7 +110,7 @@ class CriticConfig(AgentConfig):
             trend_intensity_min_expansion=float(regime['trend_intensity_min_expansion']),
             min_rr_ranging=float(regime['min_rr_ranging']),
             min_rr_trending=float(regime['min_rr_trending']),
-            min_vol_participation_ratio=float(regime['min_vol_participation_ratio']),
+            min_volume_participation_ratio=float(regime['min_volume_participation_ratio']),
             squeeze_threshold=float(regime['squeeze_threshold']),
             squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
             threshold_skepticism_clear=int(critic_cfg['threshold_skepticism_clear']),
@@ -130,7 +130,7 @@ class CriticConfig(AgentConfig):
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
             mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
-            vol_profile_width_ratio=float(visuals['vol_profile_width_ratio']),
+            volume_profile_width_ratio=float(visuals['volume_profile_width_ratio']),
             instruction_literal=instruction_literal
         )
 
@@ -232,7 +232,7 @@ class CriticAgent(BaseAgent):
             "volatility_baseline_ratio": self.config.volatility_baseline_ratio,
             "volatility_expansion_ratio": self.config.volatility_expansion_ratio,
             "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
-            "vol_surge_vs_ma_ratio": self.config.vol_surge_vs_ma_ratio,
+            "volume_surge_vs_ma_ratio": self.config.volume_surge_vs_ma_ratio,
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
             "short_heavy_imbalance_ratio": self.config.short_heavy_imbalance_ratio,
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
@@ -245,7 +245,7 @@ class CriticAgent(BaseAgent):
             "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
             "min_rr_ranging": self.config.min_rr_ranging,
             "min_rr_trending": self.config.min_rr_trending,
-            "min_vol_participation_ratio": self.config.min_vol_participation_ratio,
+            "min_volume_participation_ratio": self.config.min_volume_participation_ratio,
             "squeeze_threshold": self.config.squeeze_threshold,
             "squeeze_audit_threshold": self.config.squeeze_audit_threshold,
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
@@ -278,13 +278,13 @@ class CriticAgent(BaseAgent):
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
-                             trend_intensity: float, vol_expansion_ratio: float, 
+                             trend_intensity: float, volatility_expansion_ratio: float, 
                              interval_minutes: int, min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
         """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
         from src.utils.math_utils import MathTools
         return MathTools.project_holding_time(
             entry=entry, take_profit=take_profit, atr=atr, 
-            trend_intensity=trend_intensity, vol_expansion_ratio=vol_expansion_ratio,
+            trend_intensity=trend_intensity, volatility_expansion_ratio=volatility_expansion_ratio,
             interval_minutes=interval_minutes, min_velocity_floor=min_velocity_floor,
             vr_base=self.config.volatility_baseline_ratio,
             vr_extreme=self.config.volatility_extreme_ratio,

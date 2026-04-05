@@ -29,10 +29,10 @@ class ChartConfig:
     value_area_color: str
     liq_buy_color: str
     liq_sell_color: str
-    vol_profile_width_ratio: float
-    vol_profile_smoothing_sigma: float
-    vol_profile_color: str
-    vol_profile_alpha: float
+    volume_profile_width_ratio: float
+    volume_profile_smoothing_sigma: float
+    volume_profile_color: str
+    volume_profile_alpha: float
     chart_main_panel_weight: int
     chart_volume_panel_weight: int
     render_dpi: int
@@ -107,9 +107,9 @@ class ChartVisualRenderer:
     """
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
                  grid_color: str, poc_color: str, value_area_color: str, 
-                 liq_buy_color: str, liq_sell_color: str, vol_profile_width_ratio: float, 
-                 render_dpi: int, vol_profile_smoothing_sigma: float, vol_profile_color: str,
-                 vol_profile_alpha: float,
+                 liq_buy_color: str, liq_sell_color: str, volume_profile_width_ratio: float, 
+                 render_dpi: int, volume_profile_smoothing_sigma: float, volume_profile_color: str,
+                 volume_profile_alpha: float,
                  chart_main_panel_weight: int, chart_volume_panel_weight: int):
         self.config = ChartConfig(
             up_color=up_color,
@@ -120,10 +120,10 @@ class ChartVisualRenderer:
             value_area_color=value_area_color,
             liq_buy_color=liq_buy_color,
             liq_sell_color=liq_sell_color,
-            vol_profile_width_ratio=vol_profile_width_ratio, 
-            vol_profile_smoothing_sigma=vol_profile_smoothing_sigma,
-            vol_profile_color=vol_profile_color,
-            vol_profile_alpha=vol_profile_alpha,
+            volume_profile_width_ratio=volume_profile_width_ratio, 
+            volume_profile_smoothing_sigma=volume_profile_smoothing_sigma,
+            volume_profile_color=volume_profile_color,
+            volume_profile_alpha=volume_profile_alpha,
             chart_main_panel_weight=chart_main_panel_weight,
             chart_volume_panel_weight=chart_volume_panel_weight,
             render_dpi=render_dpi
@@ -306,20 +306,20 @@ class ChartVisualRenderer:
         max_v = max(v_vals) if len(v_vals) > 0 else 1
 
         # Normalize width relative to total candle count
-        norm_v = (v_vals / max_v) * (len(df) * self.config.vol_profile_width_ratio)
+        norm_v = (v_vals / max_v) * (len(df) * self.config.volume_profile_width_ratio)
         
         # --- 高斯平滑视觉层 (Gaussian Smoothing Visual Layer) ---
         # sigma 控制平滑度。数值越大越平滑（抹平细节），数值越小越保留原始锯齿。
         # 对于 300 桶的分辨率，sigma 设为 2.0 到 3.0 是视觉呈现的黄金甜点。
-        smoothed_v = gaussian_filter1d(norm_v, sigma=self.config.vol_profile_smoothing_sigma)
+        smoothed_v = gaussian_filter1d(norm_v, sigma=self.config.volume_profile_smoothing_sigma)
         
         # 使用 fill_betweenx 画出一个完美的、毫无缝隙的平滑几何多边形
         ax.fill_betweenx(
             y=p_vals, 
             x1=0,                  # 多边形的左边界（贴紧 Y 轴）
             x2=smoothed_v,         # 多边形的右边界（经过高斯平滑的轮廓）
-            color=self.config.vol_profile_color, 
-            alpha=self.config.vol_profile_alpha, 
+            color=self.config.volume_profile_color, 
+            alpha=self.config.volume_profile_alpha, 
             zorder=1, 
             linewidth=0,           # 绝对禁止外边框，防止抗锯齿干扰
             edgecolor='none'       # 彻底关闭边缘颜色

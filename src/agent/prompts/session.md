@@ -25,25 +25,25 @@ Use these metrics to synthesize your tactical entry strategy:
 | Parameter | Heuristic Signal |
 | :--- | :--- |
 | `poc_dist_atr` | High absolute value = Extreme mean-reversion gravity. |
-| `vol_participation_ratio` | > `{min_vol_participation_ratio}` = High market involvement. Confirms breakout/reversals. |
-| `vol_expansion_ratio` | > `{volatility_baseline_ratio}` = Expansion. Momentum strategies unlock. |
+| `volume_participation_ratio` | > `{min_volume_participation_ratio}` = High market involvement. Confirms breakout/reversals. |
+| `volatility_expansion_ratio` | > `{volatility_baseline_ratio}` = Expansion. Momentum strategies unlock. |
 | `squeeze_factor` | < `{squeeze_threshold}` = Coiling spring. Anticipate violent breakout. |
 | `trend_intensity`| Signed `[-1, 1]`. Positive = Bullish trend, Negative = Bearish trend. `abs(trend_intensity)` > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
 | `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight CVD > `{cvd_intensity_threshold}` with BEARISH entries, or CVD < -`{cvd_intensity_threshold}` with BULLISH entries. |
 | `long_short_ratio_micro` | > `{long_short_imbalance_ratio}` = Retail Long Squeeze. < `{short_heavy_imbalance_ratio}` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is between these thresholds. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
-| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (`vol_expansion_ratio` < `{volatility_baseline_ratio}`, `abs(trend_intensity)` < `{trend_intensity_strong}`) = `{holding_friction_dead_water}`x penalty; **Highway** (`abs(trend_intensity)` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `vol_expansion_ratio` < `{volatility_extreme_ratio}`) = `{holding_friction_highway}`x speedup; **Chaos** (`vol_expansion_ratio` > `{volatility_extreme_ratio}`) = `{holding_friction_climax}`x redundancy; **Standard** (All other regimes) = `{holding_friction_standard}`x. |
+| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (`volatility_expansion_ratio` < `{volatility_baseline_ratio}`, `abs(trend_intensity)` < `{trend_intensity_strong}`) = `{holding_friction_dead_water}`x penalty; **Highway** (`abs(trend_intensity)` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `volatility_expansion_ratio` < `{volatility_extreme_ratio}`) = `{holding_friction_highway}`x speedup; **Chaos** (`volatility_expansion_ratio` > `{volatility_extreme_ratio}`) = `{holding_friction_climax}`x redundancy; **Standard** (All other regimes) = `{holding_friction_standard}`x. |
 
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
 ## 1. Topographical Anchoring (Absolute Law)
 - **THE SHIELD LAW**: Stop Loss (SL) MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). **Floating SLs are a Terminal Veto.**
-- **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `vol_expansion_ratio`) is missing, output `NEUTRAL`. Do not guess.
+- **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_ratio`) is missing, output `NEUTRAL`. Do not guess.
 - **DATA AMNESTY (NULL STATE)**: If `liquidation_clusters` is `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (Market API gap). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.
 
 ## 2. Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum Riding**: If `vol_expansion_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `abs(trend_intensity)` > `{trend_intensity_strong}`, execute Momentum Entries in the direction of `trend_intensity` sign to front-run structural nodes. If `vol_expansion_ratio` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
+- **Momentum Riding**: If `volatility_expansion_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `abs(trend_intensity)` > `{trend_intensity_strong}`, execute Momentum Entries in the direction of `trend_intensity` sign to front-run structural nodes. If `volatility_expansion_ratio` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `latest_wick_skew` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Sink your entry deep into an HVN to maximize RR.
 - **The Liquidity Hunt**: If `squeeze_factor` is low, target the vacuum beyond the VAH/VAL boundaries.
 - **Cowardice Veto**: Do not default to `NEUTRAL` just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.
@@ -63,7 +63,7 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
     - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`.
     - `[RETAIL_LONG_SQUEEZE]`: Retail is heavily long. `BULLISH` plans are suicide. You MUST perform a **Polarity Pivot** to a BEARISH stance to target the Liquidation Cascade, or abort to `NEUTRAL`. 
     - `[RETAIL_SHORT_SQUEEZE]`: Retail is heavily short. `BEARISH` plans are suicide. You MUST perform a **Polarity Pivot** to a BULLISH stance to target the Short-Squeeze upward cascade, or abort to `NEUTRAL`. 
-    - *(Execution Rules for Squeezes)*: When executing a **Polarity Pivot**, if `vol_expansion_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, execute a **Momentum Entry**. Otherwise, sink into a deep **DLE**. If `vol_expansion_ratio` > `{volatility_extreme_ratio}`, you MUST either abort to `NEUTRAL` or anchor the DLE behind a hyper-distal HVN to survive climax wick-outs. You MUST use `MathTools` to recalculate coordinates.
+    - *(Execution Rules for Squeezes)*: When executing a **Polarity Pivot**, if `volatility_expansion_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, execute a **Momentum Entry**. Otherwise, sink into a deep **DLE**. If `volatility_expansion_ratio` > `{volatility_extreme_ratio}`, you MUST either abort to `NEUTRAL` or anchor the DLE behind a hyper-distal HVN to survive climax wick-outs. You MUST use `MathTools` to recalculate coordinates.
     - `[VOLATILITY_CHOP]`: The market is in violent, directionless chop. You MUST immediately abort to `NEUTRAL`.
     - `[INACTION_BIAS]`: Your previous `NEUTRAL` was a failure of confluence in a structural or ranging environment. Read the telemetry and execute a Mean-Reversion DLE or Vacuum Flip.
     - `[TREND_STARVATION]`: You are missing the macro move. Shift to a shallow pullback or Momentum Entry. DO NOT force deep DLEs.
