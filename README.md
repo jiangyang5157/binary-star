@@ -135,7 +135,7 @@ python run_session.py -ts 2026-01-24T15:42:00Z
 *   **批量回测 (Backtest)**：在历史样本点上进行保真的批量推理（默认结果存入 `data/backtest/sessions`）。
 ```bash
 python run_session.py --start T-29d --end T-15d --samples 12
-python run_session.py --start T-15d --end T-1d --samples 12
+python run_session.py --start T-15d --end T-1d --samples 24
 ```
 
 *   **实时监控 (Live)**：按固定脉冲频率（分钟）持续运行（默认结果存入 `data/live/sessions`）。
