@@ -3,7 +3,6 @@ import os
 import sys
 import argparse
 import logging
-from datetime import datetime, timezone
 import concurrent.futures
 import multiprocessing
 
@@ -13,7 +12,8 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.analyzer.audit_controller import AuditController
-from src.utils.pipeline_utils import load_config, add_data_path_argument
+from src.utils.pipeline_utils import add_data_path_argument
+from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import format_timestamp_for_filename
 

@@ -190,7 +190,7 @@ class ChartVisualRenderer:
                 volume=True, 
                 panel_ratios=(self.config.chart_main_panel_weight, self.config.chart_volume_panel_weight),
                 style=self._get_mpf_style(), 
-                title=f"{symbol} - {time_interval}",
+                title=f"{symbol} - {time_interval} ({plot_df.index[0].strftime('%Y-%m-%d %H:%M')} -> {plot_df.index[-1].strftime('%Y-%m-%d %H:%M')})",
                 hlines=hlines,
                 savefig=dict(fname=filepath, dpi=self.config.render_dpi, bbox_inches='tight'),
                 returnfig=True,
@@ -198,12 +198,13 @@ class ChartVisualRenderer:
             )
             
             try:
-                # 3. Axis Cleanup & De-noising
-                for ax in axlist:
+                # 3. Axis Cleanup (Hide left/top spines for modern TradingView feel)
+                # axlist[0] = Price Panel, axlist[2] = Volume Panel (standard mpf stacking)
+                for i, ax in enumerate(axlist):
                     # v6.50 Hardening: Completely hide X-axis for zero-clutter focus
                     ax.xaxis.set_visible(False)
                     
-                    # Hide left/top spines for modern TradingView feel
+                    # Hide left/top spines
                     ax.spines['left'].set_visible(False)
                     ax.spines['top'].set_visible(False)
                     ax.spines['right'].set_color(self.config.grid_color)
@@ -211,6 +212,14 @@ class ChartVisualRenderer:
                     
                     # Force price ticks to right only
                     ax.yaxis.set_ticks_position('right')
+
+                    # v6.51 Hardening: Distinguish Price from Volume to prevent scale confusion
+                    if i == 0:
+                        ax.set_ylabel('Price', color=self.config.grid_color, fontsize=9, fontweight='bold')
+                        ax.yaxis.set_label_position('right')
+                    elif i == 2: # Volume panel usually at index 2
+                        ax.set_ylabel('Vol', color=self.config.grid_color, fontsize=9, fontweight='bold')
+                        ax.yaxis.set_label_position('right')
 
                 main_ax = axlist[0]
                 
@@ -227,6 +236,44 @@ class ChartVisualRenderer:
                 for line in trendlines:
                     main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.9)
     
+                # 6. OCR Text Hard Injection (Eliminating Spatial Estimation)
+                # Aligns text labels directly with the POC/VA/VAL levels at the right-most edge
+                x_pos = len(plot_df) - 1
+                bbox_alpha=0.8
+                
+                label_style = dict(
+                    fontsize=9, 
+                    fontweight='bold', 
+                    color='white',
+                    ha='right',
+                    va='center',
+                    zorder=10
+                )
+                
+                # Point of Control (POC)
+                if poc > 0:
+                    main_ax.text(
+                        x_pos, poc, f"POC: {poc:,.2f}", 
+                        bbox=dict(facecolor=self.config.poc_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
+                        **label_style
+                    )
+                
+                # Value Area High (VAH)
+                if vah > 0:
+                    main_ax.text(
+                        x_pos, vah, f"VAH: {vah:,.2f}", 
+                        bbox=dict(facecolor=self.config.value_area_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
+                        **label_style
+                    )
+                    
+                # Value Area Low (VAL)
+                if val > 0:
+                    main_ax.text(
+                        x_pos, val, f"VAL: {val:,.2f}", 
+                        bbox=dict(facecolor=self.config.value_area_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
+                        **label_style
+                    )
+
                 # Finalize and Save
                 fig.savefig(filepath, dpi=self.config.render_dpi, bbox_inches='tight')
             finally:

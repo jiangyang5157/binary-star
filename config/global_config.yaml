@@ -20,18 +20,18 @@ visuals:
   up_color: "#26a69a"       # Teal
   down_color: "#ef5350"     # Coral
   bg_color: "#131722"       # Dark TradingView style
-  grid_color: "#333333"     # Secondary grid line color
+  grid_color: "#1a1e29"     # Secondary grid line color
   poc_color: "#ff9800"      # Point of Control (POC) marker color
   value_area_color: "#fbc02d" # Color for the Value Area (VAH/VAL) boundaries
   liq_buy_color: "#00ff88"  # Buy-side liquidation marker color
   liq_sell_color: "#ff3366" # Sell-side liquidation marker color
-  vol_profile_width_ratio: 0.35 # Scaling factor for volume profile bars relative to axis width
+  vol_profile_width_ratio: 0.25 # Scaling factor for volume profile bars relative to axis width
   vol_profile_bar_height_ratio: 1.0 # Height scaling for VP bars. 1.0 = touch, < 1.0 = gap, > 1.0 = overlap
-  vol_profile_color: "#787b86"  # Base color for volume profile histogram
+  vol_profile_color: "#64b5f6"  # Base color for volume profile histogram (Sky Blue)
   vol_profile_alpha: 0.4        # Transparency of profile bars (0.0 to 1.0)
   chart_main_panel_weight: 4    # Height weight for price panel
   chart_volume_panel_weight: 1  # Height weight for bottom volume panel
-  render_dpi: 180               # Resolution for visual artifacts (Higher = sharper images)
+  render_dpi: 300               # Resolution for visual artifacts (Higher = sharper images)
 
 session:
   default_live_pulse_minutes: 60
