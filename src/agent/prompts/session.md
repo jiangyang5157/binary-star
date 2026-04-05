@@ -28,7 +28,8 @@ Use these metrics to synthesize your tactical entry strategy:
 | `volatility_ratio` | > `{volatility_baseline_ratio}` = Expansion. Momentum strategies unlock. |
 | `squeeze_factor` | < `{squeeze_threshold}` = Coiling spring. Anticipate violent breakout. |
 | `trend_intensity`| > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks. |
-| `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. |
+| `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight CVD > `{cvd_intensity_threshold}` with BEARISH entries, or CVD < -`{cvd_intensity_threshold}` with BULLISH entries. |
+| `long_short_ratio_micro` | > `{long_short_imbalance_ratio}` = Retail Long Squeeze. < `{short_heavy_imbalance_ratio}` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is between these thresholds. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
 | **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (`volatility_ratio` < `{volatility_baseline_ratio}`, `trend_intensity` < `{trend_intensity_strong}`) = `{holding_friction_dead_water}`x penalty; **Highway** (`trend_intensity` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `volatility_ratio` < `{volatility_extreme_ratio}`) = `{holding_friction_highway}`x speedup; **Chaos** (`volatility_ratio` > `{volatility_extreme_ratio}`) = `{holding_friction_climax}`x redundancy; **Standard** (All other regimes) = `{holding_friction_standard}`x. |
 

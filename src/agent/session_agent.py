@@ -41,6 +41,7 @@ class SessionConfig(AgentConfig):
     volatility_extreme_ratio: float
     vol_surge_vs_ma_ratio: float
     long_short_imbalance_ratio: float
+    short_heavy_imbalance_ratio: float
     poc_gravity_atr_distance: float
     vacuum_risk_score: float
     wick_skewness_exhaustion: float
@@ -112,6 +113,7 @@ class SessionConfig(AgentConfig):
             volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
             vol_surge_vs_ma_ratio=float(regime['vol_surge_vs_ma_ratio']),
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
+            short_heavy_imbalance_ratio=float(regime['short_heavy_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             vacuum_risk_score=float(regime['vacuum_risk_score']),
             wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
@@ -244,6 +246,7 @@ class SessionAgent(BaseAgent):
             "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
             "vol_surge_vs_ma_ratio": self.config.vol_surge_vs_ma_ratio,
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
+            "short_heavy_imbalance_ratio": self.config.short_heavy_imbalance_ratio,
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
             "vacuum_risk_score": self.config.vacuum_risk_score,
             "wick_skewness_exhaustion": self.config.wick_skewness_exhaustion,
