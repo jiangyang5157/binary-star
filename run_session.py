@@ -210,12 +210,11 @@ class SessionController:
         # v6.15: Backtest Sampling Architecture
         self.sampling_mode = self.args.sampling_mode
         self.sampling_count = self.args.samples
-        self.sampling_offset = self.args.utc_offset_hour or self.global_cfg.get('backtest', {})['sampling_utc_offset']
-            
+
         if self.sampling_mode == "regime":
-            sampler = RegimeSampler(sampling_utc_offset=self.sampling_offset)
+            sampler = RegimeSampler()
         else:
-            sampler = SpacedSampler(sampling_utc_offset=self.sampling_offset)
+            sampler = SpacedSampler()
             
         timestamps = sampler.sample(df_range, count)
         
@@ -261,7 +260,6 @@ def main():
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
     bt_group.add_argument("--samples", type=int, default=1, help="Number of historical samples")
     bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
-    bt_group.add_argument("--utc-offset-hour", type=float, default=None, help="UTC hour offset to anchor sampling (default: from config)")
 
     
     from src.utils.pipeline_utils import add_data_path_argument

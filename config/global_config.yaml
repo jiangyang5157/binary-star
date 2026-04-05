@@ -41,12 +41,6 @@ evolution:
   # Default sample size for audit ingestion
   default_samples: 42
 
-backtest:
-  # Session anchor for regime sampling timestamps. Shifts sampled daily candles to this UTC hour to capture real session dynamics.
-  # 02:00 - 06:00 (NZDT) / 13:00 - 17:00 (UTC): Peak volatility period. Momentum Riding and Retail Squeeze (Polarity Pivot) are most frequent as Western institutional capital drives sharp CVD/OI shifts and Volume Breakouts.
-  # 13:00 - 21:00 (NZDT) / 00:00 - 08:00 (UTC): Asian session dominance. Volume is typically flatter; Mean-Reversion and Exhaustion Fading (DLE) strategies are most effective.
-  sampling_utc_offset: 0
-
 sandbox:
   # Minimum ratio of improved cases required to 'accept' a strategy patch (0.0 to 1.0)
   acceptance_rate_threshold: 0.5

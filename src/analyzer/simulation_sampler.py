@@ -59,26 +59,14 @@ class SimpleRegimeClassifier:
 
 class Sampler(ABC):
     """Abstract base class for sampling historical timestamps."""
-    def __init__(self, sampling_utc_offset: float):
-        self.sampling_utc_offset = sampling_utc_offset
+    def __init__(self):
+        pass
 
     @abstractmethod
     def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
         pass
 
-    def _apply_session_shift(self, dates: List[datetime]) -> List[datetime]:
-        """Helps child classes shift timestamps to the designated market hour/minute."""
-        if self.sampling_utc_offset == 0:
-            return dates
-        
-        # Calculate hours and minutes from decimal (e.g., 15.7 -> 15:42)
-        hours = int(self.sampling_utc_offset)
-        minutes = int(round((self.sampling_utc_offset - hours) * 60))
-        
-        return [
-            dt.replace(hour=hours, minute=minutes, second=0, microsecond=0)
-            for dt in dates
-        ]
+
 
 class SpacedSampler(Sampler):
     """Samples timestamps evenly across the provided date range."""
@@ -93,22 +81,15 @@ class SpacedSampler(Sampler):
             indices = np.linspace(0, len(df) - 1, count, dtype=int)
             raw_dates = df.iloc[indices]['timestamp'].tolist()
             
-        return self._apply_session_shift(raw_dates)
+        return raw_dates
 
 class RegimeSampler(Sampler):
     """
     Performs stratified random sampling based on market regimes.
     Ensures proportional representation of different market conditions.
-    After selecting days, shifts timestamps to sampling_utc_offset to capture
-    real trading session dynamics instead of midnight snapshots.
     """
-    def __init__(self, sampling_utc_offset: float):
-        """
-        Args:
-            sampling_utc_offset: UTC hour/decimal to anchor sampling (e.g. 13 = NY open, 13.5 = 13:30).
-                              0 means no shift (original daily candle open).
-        """
-        self.sampling_utc_offset = sampling_utc_offset
+    def __init__(self):
+        pass
 
     def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
         if df.empty or count <= 0:
@@ -151,8 +132,4 @@ class RegimeSampler(Sampler):
             target_dates.extend(sampled['timestamp'].tolist())
 
         # Sort chronologically for better simulation flow
-        sorted_dates = sorted(target_dates)
-
-        # Shift timestamps to the configured session hour
-        return self._apply_session_shift(sorted_dates)
-
+        return sorted(target_dates)
