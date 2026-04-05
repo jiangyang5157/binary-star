@@ -20,8 +20,22 @@ class SimpleRegimeClassifier:
         self.warmup_multiplier = warmup_multiplier
 
     def warmup_candles(self) -> int:
-        """Returns the number of candles needed for indicator convergence."""
-        return int(max(self.ema_period, self.volatility_period) * self.warmup_multiplier)
+        """
+        Returns the required number of historical candles.
+        Separates IIR filters (require multiplier for convergence) from FIR filters (strict window).
+        """
+        # 1. 必须经历预热收敛的指标 (EMA, RMA/ATR)
+        iir_max_period = max(self.ema_period, self.volatility_period)
+        required_for_convergence = iir_max_period * self.warmup_multiplier
+        
+        # 2. 只需要固定历史窗口的绝对宏观指标 (比如你的 336)
+        # 假设你从 config 中读取了最大的绝对 lookback
+        fir_max_period = self.macro_lookback_candles # 例如 336
+        
+        # 3. 取两者中的绝对安全上限，并加上一定的物理容错 Buffer (比如多拉 2 根)
+        safe_warmup = max(required_for_convergence, fir_max_period) + 2
+        
+        return int(safe_warmup)
 
     def classify_regimes(self, klines: List[List[Any]]) -> pd.DataFrame:
         """
