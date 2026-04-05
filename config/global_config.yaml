@@ -54,3 +54,28 @@ sandbox:
   mae_significance_threshold: 15.0
   # Minimum reduction in MAE stress (pct) required to classify a case as 'improved'
   mae_improvement_threshold: 5.0
+  # Minimum reduction in trade duration (hours) required to classify a case as 'improved' (TP_HIT tie-breaker)
+  time_improvement_threshold: 4.0
+
+
+  # --- Fitness Scoring Ladder (Darwinian v3.1) ---
+  # Base scores for different market outcomes (TP/SL/Neutral/Neither)
+  base_scores:
+    tp_hit: 100.0
+    neutral: 60.0
+    neither: 40.0
+    sl_hit: 15.0
+    na: 0.0
+
+  # Forensic modifiers for execution quality and logic integrity
+  modifiers:
+    # Heavy penalty for MAE >= 100% or explicit LOGIC_FAILURE categorization
+    logic_failure_penalty: -40.0
+    # Penalty for execution categorized as LUCK
+    luck_penalty: -20.0
+    # Penalty for directional trades (TP/NEITHER) holding capital for >48h
+    slow_lock_penalty: -15.0
+    # Reward for disciplined inaction in dead/hostile market regimes
+    smart_surrender_bonus: 15.0
+    # Penalty for predicting the right direction but missing the fill
+    catastrophic_miss_penalty: -20.0
