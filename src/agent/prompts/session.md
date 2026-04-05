@@ -28,7 +28,7 @@ Use these metrics to synthesize your tactical entry strategy:
 | `vol_participation_ratio` | > `{min_vol_participation_ratio}` = High market involvement. Confirms breakout/reversals. |
 | `vol_expansion_ratio` | > `{volatility_baseline_ratio}` = Expansion. Momentum strategies unlock. |
 | `squeeze_factor` | < `{squeeze_threshold}` = Coiling spring. Anticipate violent breakout. |
-| `trend_intensity`| Signed [-1, 1]. Positive = Bullish trend, Negative = Bearish trend. `abs(trend_intensity)` > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
+| `trend_intensity`| Signed `[-1, 1]`. Positive = Bullish trend, Negative = Bearish trend. `abs(trend_intensity)` > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
 | `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight CVD > `{cvd_intensity_threshold}` with BEARISH entries, or CVD < -`{cvd_intensity_threshold}` with BULLISH entries. |
 | `long_short_ratio_micro` | > `{long_short_imbalance_ratio}` = Retail Long Squeeze. < `{short_heavy_imbalance_ratio}` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is between these thresholds. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
