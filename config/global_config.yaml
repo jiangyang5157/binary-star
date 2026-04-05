@@ -26,7 +26,9 @@ visuals:
   liq_buy_color: "#00ff88"  # Buy-side liquidation marker color
   liq_sell_color: "#ff3366" # Sell-side liquidation marker color
   vol_profile_width_ratio: 0.35 # Scaling factor for volume profile bars relative to axis width
-  vol_profile_bin_gap: 0.1      # Gap between profile bars (0.1 = 10% gap)
+  vol_profile_bar_height_ratio: 1.0 # Height scaling for VP bars. 1.0 = touch, < 1.0 = gap, > 1.0 = overlap
+  vol_profile_color: "#787b86"  # Base color for volume profile histogram
+  vol_profile_alpha: 0.4        # Transparency of profile bars (0.0 to 1.0)
   chart_main_panel_weight: 4    # Height weight for price panel
   chart_volume_panel_weight: 1  # Height weight for bottom volume panel
   render_dpi: 180               # Resolution for visual artifacts (Higher = sharper images)

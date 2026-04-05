@@ -113,7 +113,9 @@ class BinaryStarOrchestrator:
             liq_buy_color=self.obs_config.liq_buy_color,
             liq_sell_color=self.obs_config.liq_sell_color,
             vol_profile_width_ratio=self.obs_config.vol_profile_width_ratio,
-            vol_profile_bin_gap=self.obs_config.vol_profile_bin_gap,
+            vol_profile_bar_height_ratio=self.obs_config.vol_profile_bar_height_ratio,
+            vol_profile_color=self.obs_config.vol_profile_color,
+            vol_profile_alpha=self.obs_config.vol_profile_alpha,
             chart_main_panel_weight=self.obs_config.chart_main_panel_weight,
             chart_volume_panel_weight=self.obs_config.chart_volume_panel_weight,
             render_dpi=self.obs_config.render_dpi

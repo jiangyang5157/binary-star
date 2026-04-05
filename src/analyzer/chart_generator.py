@@ -30,7 +30,9 @@ class ChartConfig:
     liq_buy_color: str
     liq_sell_color: str
     vol_profile_width_ratio: float
-    vol_profile_bin_gap: float
+    vol_profile_bar_height_ratio: float
+    vol_profile_color: str
+    vol_profile_alpha: float
     chart_main_panel_weight: int
     chart_volume_panel_weight: int
     render_dpi: int
@@ -106,7 +108,8 @@ class ChartVisualRenderer:
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
                  grid_color: str, poc_color: str, value_area_color: str, 
                  liq_buy_color: str, liq_sell_color: str, vol_profile_width_ratio: float, 
-                 render_dpi: int, vol_profile_bin_gap: float, 
+                 render_dpi: int, vol_profile_bar_height_ratio: float, vol_profile_color: str,
+                 vol_profile_alpha: float,
                  chart_main_panel_weight: int, chart_volume_panel_weight: int):
         self.config = ChartConfig(
             up_color=up_color,
@@ -118,7 +121,9 @@ class ChartVisualRenderer:
             liq_buy_color=liq_buy_color,
             liq_sell_color=liq_sell_color,
             vol_profile_width_ratio=vol_profile_width_ratio, 
-            vol_profile_bin_gap=vol_profile_bin_gap,
+            vol_profile_bar_height_ratio=vol_profile_bar_height_ratio,
+            vol_profile_color=vol_profile_color,
+            vol_profile_alpha=vol_profile_alpha,
             chart_main_panel_weight=chart_main_panel_weight,
             chart_volume_panel_weight=chart_volume_panel_weight,
             render_dpi=render_dpi
@@ -245,16 +250,21 @@ class ChartVisualRenderer:
         # Normalize width relative to total candle count
         norm_v = [(v / max_v) * (len(df) * self.config.vol_profile_width_ratio) for v in v_vals]
         
-        # Adaptive bin height based on total profile bins to avoid overlap/gaps
+        # Adaptive bin height calculation (v6.20 Correction)
         num_bins = len(profile)
         if num_bins > 0:
-            total_range = profile[-1]['price'] - profile[0]['price'] if len(profile) > 1 else max_p - min_p
-            # Calculate theoretical height of one bin
-            base_height = total_range / num_bins
-            # Apply gap factor
-            bin_height = base_height * (1.0 - self.config.vol_profile_bin_gap)
+            # We must use the global max/min of the profile to ensure consistent bin sizes
+            profile_min = profile[0]['price']
+            profile_max = profile[-1]['price']
+            # Correct base_height: (LastPrice - FirstPrice) covers N-1 gaps. 
+            # We add one gap to cover the full width of all N buckets.
+            base_height = (profile_max - profile_min) / (num_bins - 1) if num_bins > 1 else 1.0
             
-            ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.4, zorder=1, align='center')
+            # Apply scaling ratio (1.0 = perfect touch, > 1.0 = overlap)
+            bin_height = base_height * self.config.vol_profile_bar_height_ratio
+            
+            ax.barh(p_vals, norm_v, height=bin_height, color=self.config.vol_profile_color, 
+                    alpha=self.config.vol_profile_alpha, zorder=1, align='center', linewidth=0)
 
     def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: List[Dict[str, Any]]):
         """Draws semi-transparent liquidation heat bands."""
