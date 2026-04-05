@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 import os
 import sys
-import json
 import shutil
 import logging
 import argparse
-from datetime import datetime
 from dotenv import load_dotenv
 
 # Setup absolute project paths
@@ -16,6 +14,7 @@ if PROJECT_ROOT not in sys.path:
 from src.agent.evolver_sandbox import EvolverSandbox
 from src.utils.pipeline_utils import add_data_path_argument, load_combined_config
 from src.utils.json_utils import load_json, save_json
+from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
 def main():

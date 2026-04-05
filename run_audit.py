@@ -116,6 +116,11 @@ def main():
     
     # 5. Execution Branch: Batch vs Single
     files_to_audit = []
+    success_count = 0
+    skip_count = 0
+    mature_count = 0
+    empty_count = 0
+    fail_count = 0
     if args.file:
         if not os.path.exists(args.file):
             logger.error(f"Target file not found: {args.file}")

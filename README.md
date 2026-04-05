@@ -82,31 +82,34 @@ graph TD
 
 ---
 
-### 🌀 收敛引擎：从混沌到精准 (The Convergence Engine)
+### 🔬 核心共识机制：收敛引擎 (The Convergence Engine)
 
-系统收敛是一个将庞大的市场熵提纯为单一、低风险执行点的过程，通过以下四层精密同步实现：
+收敛引擎是 Singularity 的“重型逻辑提纯仪”，通过物理与逻辑同步，将高熵的市场混沌转化为低熵的确定性结果：
 
-### 🔬 多模态视觉对齐 (Visual & Temporal Anchoring)
-系统不仅共享文本数据，还通过 **Shared Truth Bus** 缓存高保真的 **Macro/Micro K-line 图**。这意味着 Witness, Analyst 和 Critic 看到的是完全相同的“物理快照”，包括精确的时间戳、CVD 峰值和成交量节点。这种多模态的一致性杜绝了 AI 常见的“逻辑漂移”和“数据幻觉”。
+#### 1. 多模态视觉锚定 (Visual & Temporal Anchoring)
+通过 **Shared Truth Bus** 在内存中锁定高保真 **Forensic Charts**。所有博弈智能体共享同一秒的物理现实与视觉快照，从底层杜绝了 AI 常见的“逻辑漂移”与“数据幻觉”，确保所有推理都锚定在真实的 K 线拓扑之上。
 
-### 📐 物理真实性审计 (Zero-Trust Physics)
-系统对 AI 的数学计算实施 **零信任** 政策。每一轮提案中的盈亏比 (RR)、ATR 距离、止损缓冲区以及结构化隔离度（Structural Isolation）都会被 **Python 原生数学工具集 (MathTools)** 重新核算。逻辑推理只有在物理细节（Entry/SL/TP）与市场拓扑完全吻合时，才允许进入下一轮辩论。
+#### 2. 零信任物理审计 (Zero-Trust Physics)
+系统对所有数学推理实施“外部核验”。每一轮提案中的盈亏比 (RR)、ATR 距离及结构化隔离度，都会由 **MathTools (Python 原生工具集)** 进行无差别重核。逻辑只有在完全通过物理细节比对后，才被允许进入下一轮博弈。
 
-### 🛡️ 质疑一票否决权 (The Quality Floor)
-系统的目标不是“更多的交易”，而是“无可争议的交易”。Critic 智能体在 **Temp 0.3** 的冷逻辑模式下搜索提案中的破绽。如果在经过最大辩论轮次后，Critic 的 **质疑分 (Skepticism Score)** 仍高于阈值（通常为 50），系统将以 **Veto (否决)** 状态中止会话，拒绝在模糊地带冒险。
+#### 3. 动态收敛判定 (Logical Hardening & Convergence)
+收敛不仅是轮次的终点，更是逻辑强度的“压测终点”。系统动态驱动决策演化：
+- **瞬时锁定 (Early Alignment)**：若逻辑在早期环节即达成高度共识，系统将执行“瞬时锁定”，在确保精度的同时优化计算熵。
+- **强制对齐 (Adversarial Settlement)**：若对抗进入深度僵持，系统将强制终止“发散搜索”，驱动 Orchestrator 在所有历史质疑的“重围”中，寻找那条唯一符合所有物理约束的防御性生还路径。
 
-### ⛓️ 确定性纪律合成 (Convergent Synthesis)
-最终的执行方案不是简单的“总结”，而是一次 **状态降维**。Orchestrator 将 Analyst 的创意灵感与 Critic 的防御边界进行强行对齐，剔除所有形容词和不确定表述，最终输出符合生产环境要求的、纯粹的 JSON 指令集。
+#### 4. 结构化硬化：逻辑精馏与生存交集
+Singularity 的博弈是**具备状态记忆**的累积演化。每一轮新的提案都被强制要求在之前所有“失败”的废墟上进行重建，这是一场 **“搜索数学交集的生存游戏”**：
+- **累积性逻辑精馏**：系统不仅是总结历史，而是在利用之前的否决记录来不断裁剪错误的预测路径。
+  * **案例 A (结构安全锚定)**：若第一轮辩论确定了“止损位必须锚定在远端成交量堡垒”，那么后续所有提案的坐标都再也无法逃脱这个物理约束。
+  * **案例 B (数学盈亏比优化)**：若由于止损位移导致盈亏比不足，系统必须自动演化出更深的入场策略，在不破坏安全界限的前提下，强行抠出数学上的生存空间。
+- **最终形态**：通过不断剔除被证伪的假设，系统最终产出的不是一个“推测”，而是一个通过了所有压力测试的、唯一的“逻辑窄门”。
 
----
+#### 5. 确定性指令收敛：状态降维
+终局决策不是平平无奇的文字总结，而是一次逻辑上的 **高压状态降维**，负责把繁杂的脑暴瞬间提纯为冷直的执行代码：
+- **逻辑叠图与修剪**：这是决策的最后关头。Orchestrator 将 Analyst 的“进场蓝图”与 Critic 的“风险红线”进行强行叠图。它会毫不留情地切掉所有形容词，只保留经过原生数学工具集核算后的参数。
+- **纪律化收敛**：如果多方辩论无法找到那个“公约数交集”，系统将由 Orchestrator 输出 `NEUTRAL` (中立) 指令。这种“有纪律的放弃”远比一次模糊的冒险更具进化价值。
+- **物理指令对齐**：将多轮对抗记录，浓缩为一组极简、精准、直接对齐生产环境需求的 JSON 执行报文，实现从“逻辑博弈”到“机器指令”的质变。
 
-## 🚀 核心创新
-
-### 🛰️ 真理总线 (Context Caching)
-防止智能体产生逻辑“漂移”，通过共享真理总线确保所有参与博弈的 AI 观察到的是完全同一维度的市场现实。
-
-### 🧬 元进化反馈环 (Genetic Loop)
-交易不再是孤立的。Evolver 智能体通过对审计报告的深度学习，动态调整策略参数，确保系统在下一个市场周期中更加聪明。
 
 ---
 
@@ -118,41 +121,39 @@ graph TD
 source venv/bin/activate
 ```
 
-### 1. 市场分析会话 (Session Engine)
+### 1. 市场推理 (Session Engine)
 系统会自动根据 CLI 参数识别运行模式（Once, Backtest, 或 Live）。
 
-*   **单次分析 (Once)**：对当前市场瞬时状态进行一站式对抗推理（默认结果存入 `data/once`）。
-    ```bash
-    python run_session.py
-    ```
-*   **时间锚定分析 (Timestamp)**：对历史特定的时间点进行单次取证分析，支持自定义路径。
-    ```bash
-    python run_session.py -ts 2026-03-13T15:43:00Z --path data/backtest
-    ```
-*   **批量回测模式 (Backtest)**：在历史样本点上进行高保真的批量推理循环。
-    ```bash
-    python run_session.py --start T-14d --samples 12
-    ```
-*   **实时生产监控 (Live)**：按固定脉冲频率（秒）持续运行，监控市场异动。
-    ```bash
-    python run_session.py --pulse 60
-    ```
+*   **单次分析 (Once)**：对市场进行单次对抗推理（默认结果存入 `data/once/sessions`）。
+```bash
+python run_session.py
+python run_session.py -ts 2026-01-24T15:42:00Z
+```
+
+*   **批量回测 (Backtest)**：在历史样本点上进行保真的批量推理（默认结果存入 `data/backtest/sessions`）。
+```bash
+python run_session.py --start T-29d --end T-15d --samples 12
+```
+
+*   **实时监控 (Live)**：按固定脉冲频率（分钟）持续运行（默认结果存入 `data/live/sessions`）。
+```bash
+python run_session.py --pulse 60
+```
 
 ### 2. 取证审计 (Forensic Audit)
-对会话日志进行深度取证，并将结果存入审计库以供进化学习。
+对 Session(s) 日志进行深度取证，并将结果存入审计库以供进化学习。
 ```bash
-# 审计特定文件 (需指定数据根目录 -p)
-python run_audit.py -p data/once --file data/once/sessions/BTCUSDT_session_时间戳.json
-
-# 批量分析整个目录
 python run_audit.py -p data/once
+python run_audit.py -p data/once --file data/once/sessions/{symbol}_session_{timestamp}.json
 ```
 
-### 3. 元进化 DNA 引擎 (Meta-Evolution)
-基于审计报告，对系统的判定逻辑进行“基因突变”式优化。建议始终开启 `--sandbox` 以确保逻辑不退化。
+### 3. DNA 引擎 (Meta-Evolution)
+基于 Audit(s) 报告，对系统的判定逻辑进行“基因突变”式优化（结果存入 `data/once/evolution/proposals`）。
 ```bash
-python run_evolution.py -p data/once --samples 20 --sandbox
+python run_evolution.py -p data/once
 ```
+
+
 
 ### 🏆 渐变式进化工作流 (The Triple Hardening Workflow)
 推荐的高保真策略进化路径，通过三个阶段不断“硬化”逻辑：
