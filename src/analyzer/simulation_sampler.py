@@ -14,9 +14,15 @@ class SimpleRegimeClassifier:
     Analyzes historical price data to classify market conditions (regimes).
     Uses EMA and Volatility to distinguish between Bull/Bear and High/Low Volatility states.
     """
-    def __init__(self, ema_period: int = 21, vol_period: int = 21):
+    def __init__(self, ema_period: int, vol_period: int, warmup_multiplier: float):
         self.ema_period = ema_period
         self.vol_period = vol_period
+        self.warmup_multiplier = warmup_multiplier
+
+    @property
+    def warmup_candles(self) -> int:
+        """Returns the number of candles needed for indicator convergence."""
+        return int(max(self.ema_period, self.vol_period) * self.warmup_multiplier)
 
     def classify_regimes(self, klines: List[List[Any]]) -> pd.DataFrame:
         """

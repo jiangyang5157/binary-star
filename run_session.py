@@ -194,45 +194,48 @@ class SessionController:
         
         from src.utils.datetime_utils import get_interval_seconds
         
-        # 1. Fetch historical regime data using macro internal
-        # v6.20: Granular Sampling - Replace '1d' with strategy macro interval
         macro_interval = self.engine.config['analysis_window']['macro_context']['time_interval']
+        # 2. Analyze and Sample (v6.20: Dynamic Warmup Injection)
+        bt_cfg = self.engine.global_cfg.get('backtest', {})
+        analyzer = SimpleRegimeClassifier(
+            ema_period=bt_cfg['regime_ema_period'],
+            vol_period=bt_cfg['regime_vol_period'],
+            warmup_multiplier=bt_cfg['indicator_warmup_multiplier']
+        )
+        warmup = analyzer.warmup_candles
         
         # Calculate needed limit plus buffer for technical indicators (EMA/Vol)
         range_seconds = (end_dt - start_dt).total_seconds()
         interval_seconds = get_interval_seconds(macro_interval)
-        # We add 100 extra candles to ensure indicators like EMA21 have enough warmup data
-        limit = int(range_seconds / interval_seconds) + 100 
+        limit = int(range_seconds / interval_seconds) + warmup 
 
-        logger.info(f"Backtest Engine: Fetching {macro_interval} klines for regime classification (Limit: {limit})...")
+        logger.info(f"Backtest Engine: Fetching {macro_interval} klines for regime classification (Limit: {limit}, Warmup: {warmup})...")
         binance = BinanceFuturesClient()
         klines = binance.fetch_historical_klines(
             symbol=self.symbol,
             interval=macro_interval,
             limit=limit,
-            startTime=int(start_dt.timestamp() * 1000) - (100 * interval_seconds * 1000),
+            startTime=int(start_dt.timestamp() * 1000) - (warmup * interval_seconds * 1000),
             endTime=int(end_dt.timestamp() * 1000)
         )
         binance.close()
         
-        # 2. Analyze and Sample
-        analyzer = SimpleRegimeClassifier()
         df = analyzer.classify_regimes(klines)
         df_range = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
         
         # v6.15: Backtest Sampling Architecture
         self.sampling_mode = self.args.sampling_mode
-        self.sampling_count = self.args.samples
+        self.sampling_count = self.args.samples or self.engine.global_cfg.get('backtest', {})['default_samples']
 
         if self.sampling_mode == "regime":
             sampler = RegimeSampler()
         else:
             sampler = SpacedSampler()
             
-        timestamps = sampler.sample(df_range, count)
+        timestamps = sampler.sample(df_range, self.sampling_count)
         
         # 3. Execution Loop
-        logger.info(f"Simulating {len(timestamps)} temporal snapshots...")
+        logger.info(f"Simulating {len(timestamps)} temporal snapshots (Sample Count: {self.sampling_count})...")
         for i, dt in enumerate(timestamps, 1):
             logger.info(f"\n[BACKTEST PROGRESS: {i}/{len(timestamps)}]")
             self.engine.execute_cycle(timestamp_str=dt.isoformat())
@@ -271,7 +274,7 @@ def main():
     bt_group.add_argument("--timestamp", "-ts", type=str, help="Precise historical timestamp")
     bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
-    bt_group.add_argument("--samples", type=int, default=1, help="Number of historical samples")
+    bt_group.add_argument("--samples", type=int, default=None, help="Number of historical samples")
     bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
 
     
