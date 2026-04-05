@@ -572,6 +572,13 @@ class MarketObserver:
         """Assembles the final forensic JSON bundle."""
         ts_compact = at_time.strftime(FILE_TIMESTAMP_FORMAT)
         
+        # v6.25 Forensic Hardening: Slimming down the report for AI reasoning
+        # We strip the raw 300-bin histogram data from the final JSON bundle 
+        # while keeping the distilled anchors. This keeps session contexts lean.
+        metrics_dict = {k: (v.copy() if isinstance(v, dict) else v) for k, v in metrics.__dict__.items()}
+        if "volume_profile" in metrics_dict:
+            metrics_dict["volume_profile"].pop("profile_data", None)
+            
         return {
             "symbol": self.symbol,
             "observed_at": to_iso_zulu(at_time),
@@ -586,7 +593,7 @@ class MarketObserver:
                 }
             },
             "visual_assets": charts,
-            "quantitative_metrics": metrics.__dict__
+            "quantitative_metrics": metrics_dict
         }
 
     def _init_vp(self) -> VolumeProfileAnalyzer:
