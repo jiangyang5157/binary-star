@@ -192,12 +192,25 @@ class SessionController:
 
         logger.info(f"Backtest: Sampling {count} points from {start_dt} to {end_dt} ({sample_mode} mode)")
         
-        # 1. Fetch historical regime data
+        from src.utils.datetime_utils import get_interval_seconds
+        
+        # 1. Fetch historical regime data using macro internal
+        # v6.20: Granular Sampling - Replace '1d' with strategy macro interval
+        macro_interval = self.engine.config['analysis_window']['macro_context']['time_interval']
+        
+        # Calculate needed limit plus buffer for technical indicators (EMA/Vol)
+        range_seconds = (end_dt - start_dt).total_seconds()
+        interval_seconds = get_interval_seconds(macro_interval)
+        # We add 100 extra candles to ensure indicators like EMA21 have enough warmup data
+        limit = int(range_seconds / interval_seconds) + 100 
+
+        logger.info(f"Backtest Engine: Fetching {macro_interval} klines for regime classification (Limit: {limit})...")
         binance = BinanceFuturesClient()
         klines = binance.fetch_historical_klines(
             symbol=self.symbol,
-            interval="1d",
-            limit=500,
+            interval=macro_interval,
+            limit=limit,
+            startTime=int(start_dt.timestamp() * 1000) - (100 * interval_seconds * 1000),
             endTime=int(end_dt.timestamp() * 1000)
         )
         binance.close()
