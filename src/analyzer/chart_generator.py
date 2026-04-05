@@ -235,6 +235,9 @@ class ChartVisualRenderer:
 
     def _overlay_volume_profile(self, ax: plt.Axes, df: pd.DataFrame, profile: List[Dict[str, Any]]):
         """Draws the Volume-at-Price histogram on the price axis."""
+        if not profile:
+            return
+
         min_p, max_p = df['Low'].min(), df['High'].max()
         
         # Filter profile data to visible range
