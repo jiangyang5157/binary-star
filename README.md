@@ -150,29 +150,23 @@ python run_audit.py -p data/backtest
 python run_audit.py -p data/backtest --file data/backtest/sessions/{symbol}_session_{timestamp}.json
 ```
 
-### 3. DNA 引擎 (Meta-Evolution)
+### 3. 账本看板 (Ledger Dashboard)
+系统的可视化看板。它支持对“Audit(s) 审计报告” 或 “Sandbox 报告”（解析里面包含的Audit(s) 审计报告）进行 HTML 渲染：
+```bash
+python tools/session_ledger.py -p data/backtest
+python tools/session_ledger.py -p data/backtest --f .../{symbol}_evolution_sandbox_{timestamp}.json
+```
+
+### 4. DNA 引擎 (Meta-Evolution)
 基于 Audit(s) 报告，对系统的判定逻辑进行“基因突变”式优化（补丁存入 `data/backtest/evolution/proposals`）。
 ```bash
 python run_evolution.py -p data/backtest
-```
-
-### 4. 沙盒压测 (Sandbox Validation)
-对生成的进化提案进行“逻辑压测”。系统会临时应用补丁，并在历史审计案例上进行影子测试，通过横向比对确保新逻辑不会导致胜率退化或回归风险。分类补丁文件去`data/backtest/evolution/sandbox_{accepted/rejected}`（结果存入 `data/backtest/evolution/sandbox_results/{symbol}_evolution_sandbox_{timestamp}.json`）。
-```bash
-python run_sandbox.py -p data/backtest -f .../{symbol}_evolution_{timestamp}.json
 ```
 
 ### 5. 物理同步 (Patching)
 正式将补丁“硬化”到系统。它会自动同步更新系统的配置文件与提示词。
 ```bash
 python run_patch.py -f .../{symbol}_evolution_{timestamp}.json
-```
-
-### 6. 账本看板 (Ledger Dashboard)
-系统的可视化看板。它支持对“Audit(s) 审计报告” 或 “Sandbox 报告”（解析里面包含的Audit(s) 审计报告）进行 HTML 渲染：
-```bash
-python tools/session_ledger.py -p data/backtest
-python tools/session_ledger.py -p data/backtest --f .../{symbol}_evolution_sandbox_{timestamp}.json
 ```
 
 ---

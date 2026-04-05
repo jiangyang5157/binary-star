@@ -14,7 +14,6 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.agent.evolver_agent import EvolverAgent, EvolverConfig
-from src.agent.evolver_sandbox import EvolverSandbox
 from src.utils.pipeline_utils import add_data_path_argument
 from src.utils.json_utils import load_json, save_json
 from src.utils.path_utils import resolve_project_root
@@ -53,16 +52,13 @@ class EvolutionEngine:
         """Ensures the 'Evolution Black Box' directory hierarchy is initialized."""
         base_dir = os.path.join(self.data_root, "evolution")
         dirs = {
-            "proposals": os.path.join(base_dir, "proposals"),
-            "sandbox": os.path.join(base_dir, "sandbox_results"),
-            "sandbox_accepted": os.path.join(base_dir, "sandbox_accepted"),
-            "sandbox_rejected": os.path.join(base_dir, "sandbox_rejected")
+            "proposals": os.path.join(base_dir, "proposals")
         }
         for d in dirs.values():
             os.makedirs(d, exist_ok=True)
         return dirs
 
-    def run_cycle(self, sample_size: int, run_sandbox: bool):
+    def run_cycle(self, sample_size: int):
         """Standard Operating Procedure for the Universal Evolver."""
         self.logger.info("="*60)
         self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
@@ -166,48 +162,6 @@ class EvolutionEngine:
         self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id}")
         self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
-        # 4. Phase: The Shadow Sandbox
-        is_accepted = None
-        if run_sandbox:
-            self.logger.info(f"Sandbox: [BATCH_MODE] Validating {ev_id} against {len(reports)} historical cases.")
-            sandbox = EvolverSandbox(
-                self.api_key, 
-                self.data_root,
-                config_dict=full_config
-            )
-            validation = sandbox.run_batch_validation(
-                audit_reports=reports,
-                config_patch=evolution_result.get('config_patch'),
-                instruction_patch=evolution_result.get('semantic_refinement')
-            )
-            
-            accepted_total = len(validation.get('accepted_cases', []))
-            rejected_total = len(validation.get('rejected_cases', []))
-            is_accepted = validation.get('is_accepted', False)
-            
-            # v6.11: Sandbox Result Naming: {symbol}_evolution_sandbox_{timestamp}.json
-            sandbox_id = f"{self.symbol}_evolution_sandbox_{ts_compact}"
-            sandbox_file = os.path.join(self.dirs['sandbox'], f"{sandbox_id}.json")
-            save_json(validation, sandbox_file)
-            
-            self.logger.info(f"Sandbox: Overall Result: {'ACCEPTED' if is_accepted else 'REJECTED'} (Accepted: {accepted_total}, Rejected: {rejected_total})")
-        else:
-            self.logger.info(f"Sandbox: [PASSIVE_MODE] Bypassing validation for {ev_id}. Proposal remains in 'proposals'.")
-        
-        # 5. Routing: Atomic Commit vs Rejection vs Passive
-        if is_accepted is True:
-            self.logger.info(f"Routing: EVOLUTION VALIDATED [{ev_id}]. Moving to 'sandbox_accepted'...")
-            accepted_file = os.path.join(self.dirs['sandbox_accepted'], f"{ev_id}.json")
-            shutil.move(proposal_file, accepted_file)
-
-        elif is_accepted is False:
-            self.logger.warning(f"Routing: EVOLUTION REJECTED [{ev_id}]. Regression risk detected. Moving to 'sandbox_rejected'...")
-            rejected_file = os.path.join(self.dirs['sandbox_rejected'], f"{ev_id}.json")
-            shutil.move(proposal_file, rejected_file)
-        else:
-            # is_accepted is None (Sandbox was not run)
-            self.logger.info(f"Routing: Passive completion. Proposal isolated for review: {os.path.basename(proposal_file)}")
-
         timestamp_now = datetime.now().strftime("%H:%M:%S")
         self.logger.info(f"--- Evolution Cycle Complete | Duration: {timestamp_now} ---")
 
@@ -215,7 +169,6 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading symbol for analysis (default: from config)")
     parser.add_argument("--samples", type=int, default=None, help="Number of audit reports to ingest (default: from config)")
-    parser.add_argument("--sandbox", action="store_true", help="Activate Sandbox validation")
     add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
@@ -229,7 +182,7 @@ def main():
         
     engine = EvolutionEngine(data_root, symbol=symbol)
     try:
-        engine.run_cycle(sample_size=samples, run_sandbox=args.sandbox)
+        engine.run_cycle(sample_size=samples)
     except Exception as e:
         # Note: self.logger might not be initialized if __init__ fails
         print(f"Evolution Cycle Failed: {e}")
