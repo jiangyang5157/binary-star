@@ -5,11 +5,15 @@ import argparse
 import logging
 import concurrent.futures
 import multiprocessing
+from dotenv import load_dotenv
 
 # Ensure project root is in path
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
+
+# Load environment before any logic (v6.20)
+load_dotenv()
 
 from src.analyzer.audit_controller import AuditController
 from src.utils.pipeline_utils import add_data_path_argument

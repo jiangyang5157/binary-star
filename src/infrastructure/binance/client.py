@@ -47,8 +47,11 @@ class BinanceFuturesClient:
             logger.info("Initializing Binance client with authenticated access.")
             self.client = UMFutures(key=key, secret=secret)
         else:
-            logger.info("Initializing Binance client in public (unauthenticated) mode.")
+            logger.warning("Initializing Binance client in public (unauthenticated) mode. Some write endpoints will be unavailable.")
             self.client = UMFutures()
+        
+        # v6.20: Expose auth state for defensive calls
+        self.is_authenticated = bool(key and secret)
             
         self.network_cfg = self._load_network_config()
         # Strict sourcing from global_config.yaml (network section)
@@ -190,13 +193,19 @@ class BinanceFuturesClient:
             A list of liquidation order dictionaries.
         """
         try:
-            for attempt in self._get_retryer("force_orders"):
-                with attempt:
-                    return self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
+            # v6.21: Defensive check for authenticated state
+            if self.is_authenticated:
+                for attempt in self._get_retryer("force_orders"):
+                    with attempt:
+                        return self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
+            else:
+                logger.debug(f"Binance: Skipping SDK force_orders for {symbol} (Unauthenticated).")
         except Exception as e:
             logger.warning(f"Binance: SDK liquidation fetch failed for {symbol} (Trying public fallback): {e}")
             
         try:
+            # v6.22: Reverting to 'allForceOrders' as it is the correct public aggregator
+            # Note: This endpoint is prone to 400 "out of maintenance" if restricted by Binance
             params = f"symbol={symbol}&limit={limit}"
             if 'startTime' in kwargs: params += f"&startTime={kwargs['startTime']}"
             if 'endTime' in kwargs: params += f"&endTime={kwargs['endTime']}"
@@ -207,7 +216,12 @@ class BinanceFuturesClient:
                 resp = s.get(url, timeout=self.timeout)
                 if resp.status_code == 200:
                     return resp.json()
-                logger.error(f"Binance: Public liquidation fallback failed (HTTP {resp.status_code}): {resp.text}")
+                
+                # Check for 400 specifically to log the 'out of maintenance' issue
+                if resp.status_code == 400:
+                    logger.error(f"Binance: Public liquidation fallback rejected (HTTP 400): {resp.text}")
+                else:
+                    logger.error(f"Binance: Public liquidation fallback failed (HTTP {resp.status_code}): {resp.text}")
                 return []
         except Exception as e:
             logger.error(f"Binance: Public liquidation fallback crashed: {e}")
