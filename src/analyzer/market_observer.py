@@ -407,7 +407,7 @@ class MarketMetricsRefiner:
         cvd_prev_net = 0.0
         
         # 1. Calculate CVD Intensity using standardized volume lookback
-        lookback = self.taker_volume_delta_lookback
+        lookback = self.config.taker_volume_delta_lookback
         
         if len(raw.micro_klines) >= lookback:
             curr_window = raw.micro_klines[-lookback:]
