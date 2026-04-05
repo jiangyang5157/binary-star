@@ -28,7 +28,7 @@ class TopographyEngine:
             liq_buy_color=obs_config.liq_buy_color,
             liq_sell_color=obs_config.liq_sell_color,
             vol_profile_width_ratio=obs_config.vol_profile_width_ratio,
-            vol_profile_bar_height_ratio=obs_config.vol_profile_bar_height_ratio,
+            vol_profile_smoothing_sigma=obs_config.vol_profile_smoothing_sigma,
             vol_profile_color=obs_config.vol_profile_color,
             vol_profile_alpha=obs_config.vol_profile_alpha,
             chart_main_panel_weight=obs_config.chart_main_panel_weight,

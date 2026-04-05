@@ -95,7 +95,7 @@ class MarketObserverConfig:
     max_tool_iterations: int
     # Visuals (from global_config.yaml)
     vol_profile_width_ratio: float
-    vol_profile_bar_height_ratio: float
+    vol_profile_smoothing_sigma: float
     vol_profile_color: str
     vol_profile_alpha: float
     chart_main_panel_weight: int
@@ -180,7 +180,7 @@ class MarketObserverConfig:
             
             # Visuals (from global_config.yaml 'visuals' section)
             vol_profile_width_ratio=float(cfg['visuals']['vol_profile_width_ratio']),
-            vol_profile_bar_height_ratio=float(cfg['visuals']['vol_profile_bar_height_ratio']),
+            vol_profile_smoothing_sigma=float(cfg['visuals']['vol_profile_smoothing_sigma']),
             vol_profile_color=str(cfg['visuals']['vol_profile_color']),
             vol_profile_alpha=float(cfg['visuals']['vol_profile_alpha']),
             chart_main_panel_weight=int(cfg['visuals']['chart_main_panel_weight']),
@@ -496,7 +496,7 @@ class MarketObserver:
         # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
             vol_profile_width_ratio=self.config.vol_profile_width_ratio,
-            vol_profile_bar_height_ratio=self.config.vol_profile_bar_height_ratio,
+            vol_profile_smoothing_sigma=self.config.vol_profile_smoothing_sigma,
             vol_profile_color=self.config.vol_profile_color,
             vol_profile_alpha=self.config.vol_profile_alpha,
             chart_main_panel_weight=self.config.chart_main_panel_weight,

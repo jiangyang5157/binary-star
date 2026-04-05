@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 import matplotlib
 matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
@@ -29,7 +30,7 @@ class ChartConfig:
     liq_buy_color: str
     liq_sell_color: str
     vol_profile_width_ratio: float
-    vol_profile_bar_height_ratio: float
+    vol_profile_smoothing_sigma: float
     vol_profile_color: str
     vol_profile_alpha: float
     chart_main_panel_weight: int
@@ -107,7 +108,7 @@ class ChartVisualRenderer:
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
                  grid_color: str, poc_color: str, value_area_color: str, 
                  liq_buy_color: str, liq_sell_color: str, vol_profile_width_ratio: float, 
-                 render_dpi: int, vol_profile_bar_height_ratio: float, vol_profile_color: str,
+                 render_dpi: int, vol_profile_smoothing_sigma: float, vol_profile_color: str,
                  vol_profile_alpha: float,
                  chart_main_panel_weight: int, chart_volume_panel_weight: int):
         self.config = ChartConfig(
@@ -120,7 +121,7 @@ class ChartVisualRenderer:
             liq_buy_color=liq_buy_color,
             liq_sell_color=liq_sell_color,
             vol_profile_width_ratio=vol_profile_width_ratio, 
-            vol_profile_bar_height_ratio=vol_profile_bar_height_ratio,
+            vol_profile_smoothing_sigma=vol_profile_smoothing_sigma,
             vol_profile_color=vol_profile_color,
             vol_profile_alpha=vol_profile_alpha,
             chart_main_panel_weight=chart_main_panel_weight,
@@ -286,7 +287,7 @@ class ChartVisualRenderer:
             return ""
 
     def _overlay_volume_profile(self, ax: plt.Axes, df: pd.DataFrame, profile: List[Dict[str, Any]]):
-        """Draws the Volume-at-Price histogram on the price axis."""
+        """Draws the Volume-at-Price histogram as a smooth Gaussian area on the price axis."""
         if not profile:
             return
 
@@ -298,38 +299,31 @@ class ChartVisualRenderer:
         if not visible_profile:
             return
 
-        p_vals = [p['price'] for p in visible_profile]
-        v_vals = [p['volume'] for p in visible_profile]
+        # 转换为 numpy 数组以支持高效的向量化计算和滤波
+        p_vals = np.array([p['price'] for p in visible_profile])
+        v_vals = np.array([p['volume'] for p in visible_profile])
         
-        max_v = max(v_vals)
+        max_v = max(v_vals) if len(v_vals) > 0 else 1
+
         # Normalize width relative to total candle count
-        norm_v = [(v / max_v) * (len(df) * self.config.vol_profile_width_ratio) for v in v_vals]
+        norm_v = (v_vals / max_v) * (len(df) * self.config.vol_profile_width_ratio)
         
-        # Adaptive bin height calculation (v6.20 Correction)
-        num_bins = len(profile)
-        if num_bins > 0:
-            # We must use the global max/min of the profile to ensure consistent bin sizes
-            profile_min = profile[0]['price']
-            profile_max = profile[-1]['price']
-            # Correct base_height: (LastPrice - FirstPrice) covers N-1 gaps. 
-            # We add one gap to cover the full width of all N buckets.
-            base_height = (profile_max - profile_min) / (num_bins - 1) if num_bins > 1 else 1.0
-            
-            # Apply scaling ratio (1.0 = perfect touch, > 1.0 = overlap)
-            bin_height = base_height * self.config.vol_profile_bar_height_ratio
-            
-            ax.barh(
-                y=p_vals, 
-                width=norm_v, 
-                height=bin_height, 
-                color=self.config.vol_profile_color, 
-                alpha=self.config.vol_profile_alpha, 
-                zorder=1, 
-                linewidth=0,
-                edgecolor='none',
-                antialiased=True,
-                align='center'
-            )
+        # --- 高斯平滑视觉层 (Gaussian Smoothing Visual Layer) ---
+        # sigma 控制平滑度。数值越大越平滑（抹平细节），数值越小越保留原始锯齿。
+        # 对于 300 桶的分辨率，sigma 设为 2.0 到 3.0 是视觉呈现的黄金甜点。
+        smoothed_v = gaussian_filter1d(norm_v, sigma=self.config.vol_profile_smoothing_sigma)
+        
+        # 使用 fill_betweenx 画出一个完美的、毫无缝隙的平滑几何多边形
+        ax.fill_betweenx(
+            y=p_vals, 
+            x1=0,                  # 多边形的左边界（贴紧 Y 轴）
+            x2=smoothed_v,         # 多边形的右边界（经过高斯平滑的轮廓）
+            color=self.config.vol_profile_color, 
+            alpha=self.config.vol_profile_alpha, 
+            zorder=1, 
+            linewidth=0,           # 绝对禁止外边框，防止抗锯齿干扰
+            edgecolor='none'       # 彻底关闭边缘颜色
+        )
 
     def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: List[Dict[str, Any]]):
         """Draws semi-transparent liquidation heat bands."""

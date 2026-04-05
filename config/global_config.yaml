@@ -25,8 +25,8 @@ visuals:
   value_area_color: "#fbc02d" # Color for the Value Area (VAH/VAL) boundaries
   liq_buy_color: "#00ff88"  # Buy-side liquidation marker color
   liq_sell_color: "#ff3366" # Sell-side liquidation marker color
-  vol_profile_width_ratio: 0.25 # Scaling factor for volume profile bars relative to axis width
-  vol_profile_bar_height_ratio: 1.0 # Height scaling for VP bars. 1.0 = touch, < 1.0 = gap, > 1.0 = overlap
+  vol_profile_width_ratio: 0.34 # Scaling factor for volume profile bars relative to axis width
+  vol_profile_smoothing_sigma: 2.0 # Gaussian smoothing intensity for VP (2.0-3.0 is recommended)
   vol_profile_color: "#64b5f6"  # Base color for volume profile histogram (Sky Blue)
   vol_profile_alpha: 0.4        # Transparency of profile bars (0.0 to 1.0)
   chart_main_panel_weight: 4    # Height weight for price panel
