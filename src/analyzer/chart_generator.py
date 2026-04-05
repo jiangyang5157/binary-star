@@ -190,22 +190,27 @@ class ChartVisualRenderer:
                 volume=True, 
                 panel_ratios=(self.config.chart_main_panel_weight, self.config.chart_volume_panel_weight),
                 style=self._get_mpf_style(), 
-                title=f"{symbol} - {time_interval} (Volume Profile AR)",
+                title=f"{symbol} - {time_interval}",
                 hlines=hlines,
                 savefig=dict(fname=filepath, dpi=self.config.render_dpi, bbox_inches='tight'),
-                returnfig=True
+                returnfig=True,
+                show_nontrading=False          # Focus strictly on market periods
             )
             
             try:
-                # 3. Axis Cleanup (Hide left/top spines for modern TradingView feel)
+                # 3. Axis Cleanup & De-noising
                 for ax in axlist:
+                    # v6.50 Hardening: Completely hide X-axis for zero-clutter focus
+                    ax.xaxis.set_visible(False)
+                    
+                    # Hide left/top spines for modern TradingView feel
                     ax.spines['left'].set_visible(False)
                     ax.spines['top'].set_visible(False)
                     ax.spines['right'].set_color(self.config.grid_color)
                     ax.spines['bottom'].set_color(self.config.grid_color)
-                    # Force ticks to right/bottom only
+                    
+                    # Force price ticks to right only
                     ax.yaxis.set_ticks_position('right')
-                    ax.xaxis.set_ticks_position('bottom')
 
                 main_ax = axlist[0]
                 
