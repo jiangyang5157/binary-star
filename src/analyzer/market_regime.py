@@ -50,7 +50,7 @@ class IndicatorEngine:
         df['bb_lower'] = sma - (self.config.bollinger_std_dev * std)
         df['bb_width'] = df['bb_upper'] - df['bb_lower']
 
-        # 2. Keltner Channels (using ATR)
+        # 2. Keltner Channels (独立 EMA 中心线 + ATR 通道)
         if 'tr' not in df.columns:
             h_l = df['high'] - df['low']
             h_cp = np.abs(df['high'] - df['close'].shift())
@@ -58,8 +58,9 @@ class IndicatorEngine:
             df['tr'] = np.maximum(h_l, np.maximum(h_cp, l_cp))
         
         atr = df['tr'].rolling(window=self.config.keltner_window).mean()
-        df['kc_upper'] = sma + (self.config.keltner_multiplier * atr)
-        df['kc_lower'] = sma - (self.config.keltner_multiplier * atr)
+        kc_ema = df['close'].ewm(span=self.config.keltner_window, adjust=False).mean()
+        df['kc_upper'] = kc_ema + (self.config.keltner_multiplier * atr)
+        df['kc_lower'] = kc_ema - (self.config.keltner_multiplier * atr)
         df['kc_width'] = df['kc_upper'] - df['kc_lower']
 
         # 3. Efficiency Ratio (Trend Intensity)
