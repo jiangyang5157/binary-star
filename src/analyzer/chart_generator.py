@@ -168,23 +168,22 @@ class ChartVisualRenderer:
         plot_df = self._prepare_plot_df(df)
         filepath = self.storage.generate_filepath(symbol, time_interval, profile_data.get("timestamp"))
         
-        # 1. Prepare Horizontal Levels (Volume Profile)
-        poc = profile_data.get("poc", 0)
-        vah = profile_data.get("vah", 0)
-        val = profile_data.get("val", 0)
-        
-        hlines = dict(
-            hlines=[poc, vah, val], 
-            colors=[self.config.poc_color, self.config.value_area_color, self.config.value_area_color], 
-            linestyle=['-', '--', '--'], 
-            linewidths=[2.5, 1.5, 1.5]
-        )
-
         try:
             logger.info(f"Rendering chart: {symbol} [{time_interval}] -> {filepath}")
             
+            # 1. Prepare Horizontal Levels (v6.67: Reverted to native hlines API)
+            poc = profile_data.get("poc", 0)
+            vah = profile_data.get("vah", 0)
+            val = profile_data.get("val", 0)
+            
+            hlines = dict(
+                hlines=[poc, vah, val], 
+                colors=[self.config.poc_color, self.config.value_area_color, self.config.value_area_color], 
+                linestyle=['-', '--', '--'], 
+                linewidths=[1.5, 1.0, 1.0] # POC (1.5), VAH/VAL (1.0)
+            )
+
             # 2. Main Plot (Candles + Volume)
-            # returnfig=True creates a Matplotlib Figure that MUST be closed manually
             fig, axlist = mpf.plot(
                 plot_df, 
                 type='candle', 
@@ -223,8 +222,8 @@ class ChartVisualRenderer:
                         ax.yaxis.set_label_position('right')
 
                 main_ax = axlist[0]
-                
-                # 3. Overlay Volume Profile Histogram
+
+                # 4. Overlay Volume Profile Histogram
                 if "profile_data" in profile_data:
                     self._overlay_volume_profile(main_ax, plot_df, profile_data["profile_data"])
     
@@ -237,18 +236,19 @@ class ChartVisualRenderer:
                 for line in trendlines:
                     main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.9)
     
-                # 6. OCR Text Hard Injection (Eliminating Spatial Estimation)
-                # Aligns text labels directly with the POC/VA/VAL levels at the right-most edge
+                # 6. OCR Text Hard Injection (Minimalist Right-Side Identifier)
+                # v6.65: Labels are right-aligned to the last candle, but price numbers 
+                # are removed to keep the footprint extremely small and non-obstructive.
                 x_pos = len(plot_df) - 1
-                bbox_alpha=0.8
+                bbox_alpha = 0.8
                 
                 label_style = dict(
-                    fontsize=9, 
+                    fontsize=8, 
                     fontweight='bold', 
                     color='white',
-                    ha='right',
+                    ha='right',      # Right-aligned to price action
                     va='center',
-                    zorder=10
+                    zorder=2         # Background layer (candles draw on top)
                 )
                 
                 # Point of Control (POC)
