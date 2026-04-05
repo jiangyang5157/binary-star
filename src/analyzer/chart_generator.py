@@ -319,8 +319,18 @@ class ChartVisualRenderer:
             # Apply scaling ratio (1.0 = perfect touch, > 1.0 = overlap)
             bin_height = base_height * self.config.vol_profile_bar_height_ratio
             
-            ax.barh(p_vals, norm_v, height=bin_height, color=self.config.vol_profile_color, 
-                    alpha=self.config.vol_profile_alpha, zorder=1, align='center', linewidth=0)
+            ax.barh(
+                y=p_vals, 
+                width=norm_v, 
+                height=bin_height, 
+                color=self.config.vol_profile_color, 
+                alpha=self.config.vol_profile_alpha, 
+                zorder=1, 
+                linewidth=0,
+                edgecolor='none',
+                antialiased=True,
+                align='center'
+            )
 
     def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: List[Dict[str, Any]]):
         """Draws semi-transparent liquidation heat bands."""
