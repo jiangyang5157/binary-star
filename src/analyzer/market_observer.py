@@ -267,12 +267,16 @@ class MarketDataLoader:
         # v6.12: Dynamic funding limit to avoid hardcoded bloat
         funding_rate_limit = max(2, int(cfg.funding_rate_lookback_hours / 8) + 2)
 
+        # v6.30: Sentiment Window Anchoring (Macro at Start of Window, Micro at Current)
+        macro_ls_delta_ms = int(get_interval_seconds(cfg.macro_context.time_interval) * 1000)
+        macro_ls_ts_ms = ts_ms - macro_ls_delta_ms
+
         return RawMarketData(
             macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.lookback_candles, endTime=ts_ms) or [],
             micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
             macro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=macro_historical_ts_ms),
             micro_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=micro_historical_ts_ms),
-            macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
+            macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=macro_ls_ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
