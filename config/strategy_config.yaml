@@ -33,6 +33,8 @@ regime_parameters:
   trend_intensity_strong: 0.5
   # Noise filter (floor) in ATR units to ignore micro-volatility.
   noise_filter_atr_floor: 0.2
+  # Minimum trend intensity required to justify directional trades during volatility expansion.
+  trend_intensity_min_expansion: 0.15
 
   # --- Volatility & Risk Fractals (Noise Management) ---
   # Ratio of current ATR vs Macro Baseline. >1.3 indicates volatility expansion.
@@ -51,10 +53,14 @@ regime_parameters:
   vol_participation_threshold: 1.5
   # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
   long_short_imbalance_ratio: 1.8
+  # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).
+  short_heavy_imbalance_ratio: 0.55
   # Confluence power of POC (Point of Control) relative to other nodes.
   poc_confluence_strength: 0.9
   # The 'Magnetic Field' range of the POC in ATR units.
   poc_gravity_atr_distance: 3.0
+  # Absolute maximum ATR extension from POC before mean-reversion gravity becomes mandatory.
+  poc_extreme_extension_atr: 4.0
   # Distance within which the POC acts as a hard exit target/magnet.
   poc_magnet_atr_threshold: 2.0
   # Range width in ATR units used to classify 'Balanced' vs 'Trending' regimes.
