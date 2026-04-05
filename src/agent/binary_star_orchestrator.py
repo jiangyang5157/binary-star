@@ -253,11 +253,11 @@ class BinaryStarOrchestrator:
                             "take_profit": {"type": "NUMBER"},
                             "atr": {"type": "NUMBER"},
                             "trend_intensity": {"type": "NUMBER"},
-                            "volatility_ratio": {"type": "NUMBER"},
+                            "vol_expansion_ratio": {"type": "NUMBER"},
                             "interval_minutes": {"type": "NUMBER"},
                             "min_velocity_floor": {"type": "NUMBER"}
                         },
-                        "required": ["entry", "take_profit", "atr", "trend_intensity", "volatility_ratio", "interval_minutes"]
+                        "required": ["entry", "take_profit", "atr", "trend_intensity", "vol_expansion_ratio", "interval_minutes"]
                     }
                 },
                 {
@@ -450,7 +450,7 @@ class BinaryStarOrchestrator:
             holding_time = self.math_tools.project_holding_time(
                 entry=entry, take_profit=tp, atr=atr, 
                 trend_intensity=trend_intensity, 
-                volatility_ratio=float(dynamics.get('volatility_ratio', 1.0)),
+                vol_expansion_ratio=float(dynamics.get('vol_expansion_ratio', 1.0)),
                 interval_minutes=get_interval_minutes(self.macro_interval),
                 min_velocity_floor=self.session_config.min_trade_velocity,
                 vr_base=self.critic_config.volatility_baseline_ratio,

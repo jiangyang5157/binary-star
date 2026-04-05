@@ -125,7 +125,7 @@ class MathTools:
         take_profit: float,
         atr: float,
         trend_intensity: float,
-        volatility_ratio: float,
+        vol_expansion_ratio: float,
         interval_minutes: int,
         min_velocity_floor: float,
         # Thresholds
@@ -165,13 +165,13 @@ class MathTools:
             # 2. 状态路由 (State Routing) - 优先级排序平衡安全与效率
             ti_abs = abs(trend_intensity)
             
-            if volatility_ratio >= vr_extreme:
+            if vol_expansion_ratio >= vr_extreme:
                 # 场景：极端高潮，路径曲折
                 dynamic_modifier = friction_climax
-            elif volatility_ratio < vr_base and ti_abs < ti_strong:
+            elif vol_expansion_ratio < vr_base and ti_abs < ti_strong:
                 # 场景：死水区，极高时间惩罚
                 dynamic_modifier = friction_dead_water
-            elif ti_abs >= ti_thresh and vr_base <= volatility_ratio < vr_extreme:
+            elif ti_abs >= ti_thresh and vr_base <= vol_expansion_ratio < vr_extreme:
                 # 场景：单边直线暴走
                 dynamic_modifier = friction_highway
             else:
@@ -188,7 +188,7 @@ class MathTools:
                 "effective_velocity_per_candle": round(effective_velocity, 4),
                 "calculation_inputs": {
                     "trend_intensity": round(trend_intensity, 3),
-                    "volatility_ratio": round(volatility_ratio, 3),
+                    "vol_expansion_ratio": round(vol_expansion_ratio, 3),
                     "selected_friction": dynamic_modifier,
                     "thresholds_used": {
                         "vr_base": vr_base,

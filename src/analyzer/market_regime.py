@@ -30,7 +30,7 @@ class RegimeResult:
     squeeze_factor: float             # Ratio of BB width to KC width
     trend_intensity: float            # Quantitative score of trend strength
     wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
-    volume_breakout_ratio: float      # Current volume relative to moving average
+    vol_participation_ratio: float      # Current volume relative to moving average
 
 class IndicatorEngine:
     """
@@ -96,17 +96,17 @@ class RegimeClassifier:
             lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
 
-        # 3. Volume Breakout
-        volatility_ratio = 1.0
+        # 3. Volume Participation (Relative to MA)
+        vol_participation_ratio = 1.0
         if 'volume' in df.columns:
             vol_ma = df['volume'].rolling(window=self.config.volume_ma_window).mean()
-            volatility_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
+            vol_participation_ratio = latest['volume'] / (vol_ma.iloc[-1] + 1e-9)
 
         return RegimeResult(
             squeeze_factor=float(squeeze_factor),
             trend_intensity=float(latest['trend_intensity']),
             wick_skewness_lookback=float(skewness),
-            volume_breakout_ratio=float(volatility_ratio)
+            vol_participation_ratio=float(vol_participation_ratio)
         )
 
 class MarketRegimeAnalyzer:

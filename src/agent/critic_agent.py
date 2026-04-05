@@ -278,14 +278,14 @@ class CriticAgent(BaseAgent):
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
-                             trend_intensity: float, volatility_ratio: float, 
-                             macro_interval_minutes: int) -> Dict[str, Any]:
+                             trend_intensity: float, vol_expansion_ratio: float, 
+                             interval_minutes: int, min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
         """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
         from src.utils.math_utils import MathTools
         return MathTools.project_holding_time(
             entry=entry, take_profit=take_profit, atr=atr, 
-            trend_intensity=trend_intensity, volatility_ratio=volatility_ratio,
-            interval_minutes=macro_interval_minutes, min_velocity_floor=self.config.min_trade_velocity,
+            trend_intensity=trend_intensity, vol_expansion_ratio=vol_expansion_ratio,
+            interval_minutes=interval_minutes, min_velocity_floor=min_velocity_floor,
             vr_base=self.config.volatility_baseline_ratio,
             vr_extreme=self.config.volatility_extreme_ratio,
             ti_strong=self.config.trend_intensity_strong,

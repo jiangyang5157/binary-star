@@ -75,7 +75,7 @@ class MarketObserverConfig:
     regime_volatility_baseline_ratio: float
     regime_volatility_expansion_ratio: float
     regime_volatility_extreme_ratio: float
-    regime_vol_surge_vs_ma_ratio: float
+    regime_vol_participation_threshold_surge: float
     regime_long_short_imbalance_ratio: float
     regime_poc_gravity_atr_distance: float
     regime_vacuum_risk_score: float
@@ -125,9 +125,9 @@ class MarketObserverConfig:
         min_node_gap = topography.get('min_price_gap_between_nodes', topography.get('min_node_gap_price'))
         def_struct_dist = topography.get('default_structural_distance', topography.get('default_structural_distance_atr'))
         
-        vol_surge_ratio = regime.get('volume_breakout_threshold', regime.get('vol_surge_vs_ma_ratio'))
-        min_vol_part = regime.get('participation_volume_threshold', regime.get('min_vol_participation_ratio'))
-        balancing_width = regime.get('balanced_atr_multiplier', regime.get('ranging_width_atr'))
+        vol_part_surge = regime.get('vol_surge_vs_ma_ratio', regime.get('volume_breakout_threshold'))
+        min_vol_part = regime.get('min_vol_participation_ratio', regime.get('participation_volume_threshold'))
+        balancing_width = regime.get('ranging_width_atr', regime.get('balanced_atr_multiplier'))
 
         return cls(
             max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
@@ -171,7 +171,7 @@ class MarketObserverConfig:
             regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             regime_volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-            regime_vol_surge_vs_ma_ratio=float(vol_surge_ratio),
+            regime_vol_participation_threshold_surge=float(vol_part_surge),
             regime_long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             regime_poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             regime_vacuum_risk_score=float(regime['vacuum_risk_score']),
@@ -345,7 +345,7 @@ class MarketMetricsRefiner:
         atr_n = n_df['atr'].iloc[-1]
         
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
-        volatility_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
+        vol_expansion_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
         
         avg_atr_lookback = min(self.config.volatility_intensity_lookback_hours, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
@@ -356,7 +356,7 @@ class MarketMetricsRefiner:
             "atr_macro": atr_m,
             "atr_micro": atr_n,
             "latest_wick_skew": wick_skew,
-            "volatility_ratio": volatility_ratio,
+            "vol_expansion_ratio": vol_expansion_ratio,
             "volatility_intensity_index": vol_intensity
         }
 
