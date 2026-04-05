@@ -92,24 +92,64 @@ class PromptDistiller:
         """
         Pure function: Replaces anchor with new_text in the provided content string.
         Utilizes flexible whitespace matching for robust distillation.
+        v6.20: Enhanced with Indentation Awareness to align AI suggestions with target file.
         """
         if not anchor or not content or new_text is None:
             return content
 
         try:
-            # 1. Clean the anchor of redundant whitespace
+            # 1. Clean the anchor of redundant whitespace for robust matching
             clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
             # 2. Escape regex characters
             pattern = re.escape(clean_anchor)
-            # 3. Restore flexibility for whitespace: Replace literal spaces OR escaped spaces (\ ) 
-            # with a greedy whitespace matcher [\s\r\n\t]+
+            # 3. Restore flexibility for whitespace
             pattern = pattern.replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
             
+            def align_and_replace(match):
+                if not new_text:
+                    return ""
+                    
+                match_start = match.start()
+                
+                # A. Detect ambient indentation in the target file (preceding whitespace on the same line)
+                preceding_content = content[:match_start]
+                last_newline = preceding_content.rfind('\n')
+                ambient_prefix = preceding_content[last_newline + 1:] if last_newline != -1 else preceding_content
+                
+                # Only apply alignment if the match is at the start of a line (only whitespace precedes it)
+                if not ambient_prefix.isspace() and ambient_prefix != "":
+                    return new_text
+
+                ambient_indent = ambient_prefix
+                
+                # B. Detect provided base indentation of the AI's first line of replacement
+                lines = new_text.split('\n')
+                first_line = lines[0]
+                provided_indent_match = re.match(r'^\s*', first_line)
+                provided_base = provided_indent_match.group(0) if provided_indent_match else ""
+                
+                # C. Shift all lines in the replacement block to match ambient indentation
+                shifted_lines = []
+                for line in lines:
+                    if not line.strip():
+                        shifted_lines.append("") # Preserve blank lines
+                        continue
+                    
+                    if line.startswith(provided_base):
+                        # Swap the AI's guessed indentation with the ground truth from the file
+                        shifted_line = ambient_indent + line[len(provided_base):]
+                        shifted_lines.append(shifted_line)
+                    else:
+                        # Fallback for inconsistent indentation within the patch block
+                        shifted_lines.append(line)
+                
+                return '\n'.join(shifted_lines)
+
             # Count matches first for reporting
             matches = len(re.findall(pattern, content))
             if matches > 0:
-                # v6.12 Hardening: Ensure new_text is treated as a literal string to avoid backreference issues
-                return re.sub(pattern, lambda m: new_text, content, count=0)
+                # Use sub with callback to perform context-aware alignment for every instance
+                return re.sub(pattern, align_and_replace, content, count=0)
             
             return content
         except Exception as e:
