@@ -122,7 +122,10 @@ topography_parameters:
   volume_profile_value_area_width: 0.75
   # Resolution of the price histogram.
   volume_profile_price_bucket_count: 300
-  # Period for smoothing volume participation.
+  # --- Strategic Indicator Smoothing ---
+  # Period for trend detection (EMA).
+  exponential_moving_average_period: 21
+  # Period for smoothing volume and volatility participation.
   volume_moving_average_period: 21
 
   # --- Structural Node Detection ---

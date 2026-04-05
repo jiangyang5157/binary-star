@@ -38,9 +38,6 @@ session:
   notification_confidence_threshold: 50
 
 backtest:
-  # Parameters for market regime classification
-  regime_ema_period: 21
-  regime_vol_period: 21
   # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
   indicator_warmup_multiplier: 5.0
   # Default sample size for backtest simulation

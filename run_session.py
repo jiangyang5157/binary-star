@@ -195,11 +195,13 @@ class SessionController:
         from src.utils.datetime_utils import get_interval_seconds
         
         macro_interval = self.engine.config['analysis_window']['macro_context']['time_interval']
-        # 2. Analyze and Sample (v6.20: Dynamic Warmup Injection)
+        # 2. Analyze and Sample (v6.20: Strategic Parameter Injection)
+        topo_cfg = self.engine.config.get('topography_parameters', {})
         bt_cfg = self.engine.global_cfg.get('backtest', {})
+        
         analyzer = SimpleRegimeClassifier(
-            ema_period=bt_cfg['regime_ema_period'],
-            vol_period=bt_cfg['regime_vol_period'],
+            ema_period=topo_cfg['exponential_moving_average_period'],
+            vol_period=topo_cfg['volume_moving_average_period'],
             warmup_multiplier=bt_cfg['indicator_warmup_multiplier']
         )
         warmup = analyzer.warmup_candles

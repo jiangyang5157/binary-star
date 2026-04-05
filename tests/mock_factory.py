@@ -96,7 +96,16 @@ class MockDataFactory:
                 "liq_buy_color": "#00ff88",
                 "liq_sell_color": "#ff3366",
                 "vol_profile_width_ratio": 0.20,
+                "vol_profile_smoothing_sigma": 2.0,
+                "vol_profile_color": "#64b5f6",
+                "vol_profile_alpha": 0.4,
+                "chart_main_panel_weight": 4,
+                "chart_volume_panel_weight": 1,
                 "render_dpi": 180
+            },
+            "backtest": {
+                "indicator_warmup_multiplier": 5.0,
+                "default_samples": 1
             },
             # 2. Strategy Config Keys
             "binary_star": {
@@ -136,7 +145,8 @@ class MockDataFactory:
             "topography_parameters": {
                 "volume_profile_value_area_width": 0.7,
                 "volume_profile_price_bucket_count": 24,
-                "volume_moving_average_period": 20,
+                "exponential_moving_average_period": 21,
+                "volume_moving_average_period": 21,
                 "max_high_volume_node_count": 3,
                 "max_low_volume_node_count": 3,
                 "high_volume_node_detection_threshold": 1.2,
