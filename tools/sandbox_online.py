@@ -18,7 +18,7 @@ from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Standalone Shadow Sandbox (v6.1)")
+    parser = argparse.ArgumentParser(description="Singularity Online Shadow Sandbox (v6.12)")
     parser.add_argument("--file", "-f", required=True, help="Path to the evolution proposal JSON file")
     add_data_path_argument(parser, required=True)
     
@@ -29,9 +29,9 @@ def main():
     data_root_rel = args.path
     data_root = os.path.join(root, data_root_rel)
     
-    log_path = os.path.join(data_root, "sandbox.log")
+    log_path = os.path.join(data_root, "sandbox_online.log")
     setup_logger("", log_file=log_path)
-    logger = logging.getLogger("SandboxRunner")
+    logger = logging.getLogger("SandboxOnline")
     
     # 2. Load Proposal
     if not os.path.exists(args.file):
@@ -102,17 +102,39 @@ def main():
     sandbox_file = os.path.join(dirs['sandbox'], f"{sandbox_id}.json")
     save_json(validation, sandbox_file)
     
-    # 8. Routing
+    # 8. Summary & Routing
+    sandbox_cfg = full_config.get('sandbox', {})
+    threshold = float(sandbox_cfg['acceptance_rate_threshold'])
+    
+    accepted_cases = validation.get('accepted_cases', [])
+    rejected_cases = validation.get('rejected_cases', [])
+    unknown_cases = validation.get('unknown_cases', [])
+    total = len(reports)
+    
+    status_str = "✅ PASSED" if is_accepted else "❌ FAILED"
+    
+    print(f"\n{'='*60}")
+    print(f"  Sandbox Online Complete")
+    print(f"{'='*60}")
+    print(f"  Against Evolution: {os.path.relpath(args.file, root)}")
+    print(f"  Status: {status_str}")
+    print(f"  Threshold: {threshold*100:.0f}%")
+    print(f"  Improved: {len(accepted_cases)}/{total} ({len(accepted_cases)/total*100:.1f}%)" if total > 0 else "  Improved:  0/0")
+    print(f"  Stable/Worse: {len(rejected_cases)}/{total}")
+    print(f"  Unknown: {len(unknown_cases)}/{total}")
+    print(f"  Result: {sandbox_file}")
+    print(f"{'='*60}\n")
+
     if is_accepted:
-        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted' ({len(validation.get('accepted_cases', []))}/{len(reports)} cases accepted)")
+        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted'")
         target_file = os.path.join(dirs['accepted'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
-        print(f"✅ Sandbox Passed | Result: {sandbox_file} | Proposal moved to accepted.")
+        print(f"Proposal successfully moved to: {os.path.relpath(target_file, root)}")
     else:
-        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected' ({len(validation.get('rejected_cases', []))}/{len(reports)} cases rejected)")
+        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected'")
         target_file = os.path.join(dirs['rejected'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
-        print(f"❌ Sandbox Failed | Result: {sandbox_file} | Proposal moved to rejected.")
+        print(f"Proposal successfully moved to: {os.path.relpath(target_file, root)}")
 
 if __name__ == "__main__":
     main()
