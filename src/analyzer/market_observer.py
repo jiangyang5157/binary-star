@@ -121,6 +121,14 @@ class MarketObserverConfig:
         macro = sampling['macro_context']
         micro = sampling['micro_context']
         
+        # Backwards Compatibility: Handle renamed keys in historical audit reports
+        min_node_gap = topography.get('min_price_gap_between_nodes', topography.get('min_node_gap_price'))
+        def_struct_dist = topography.get('default_structural_distance', topography.get('default_structural_distance_atr'))
+        
+        vol_surge_ratio = regime.get('volume_breakout_threshold', regime.get('vol_surge_vs_ma_ratio'))
+        min_vol_part = regime.get('participation_volume_threshold', regime.get('min_vol_participation_ratio'))
+        balancing_width = regime.get('balanced_atr_multiplier', regime.get('ranging_width_atr'))
+
         return cls(
             max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             macro_context=TimeframeConfig(
@@ -143,7 +151,7 @@ class MarketObserverConfig:
             max_low_volume_node_count=int(topography['max_low_volume_node_count']),
             high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
             low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
-            min_node_gap_price=int(topography['min_price_gap_between_nodes']),
+            min_node_gap_price=int(min_node_gap),
             top_structural_node_count=int(topography['top_structural_node_count']),
             atr_period=int(topography['average_true_range_period']),
             bb_period=int(topography['bollinger_bands_period']),
@@ -157,13 +165,13 @@ class MarketObserverConfig:
             max_liquidation_events_for_context=int(topography['max_liquidation_events_for_context']),
             liquidation_cluster_atr_multiplier=float(topography['liquidation_cluster_atr_multiplier']),
             liquidation_cluster_fallback_percentage=float(topography['liquidation_cluster_fallback_percentage']),
-            default_structural_distance_atr=float(topography['default_structural_distance_atr']),
+            default_structural_distance_atr=float(def_struct_dist),
             
             regime_trend_threshold=float(regime['trend_intensity_threshold']),
             regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             regime_volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-            regime_vol_surge_vs_ma_ratio=float(regime['vol_surge_vs_ma_ratio']),
+            regime_vol_surge_vs_ma_ratio=float(vol_surge_ratio),
             regime_long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             regime_poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             regime_vacuum_risk_score=float(regime['vacuum_risk_score']),
@@ -171,9 +179,9 @@ class MarketObserverConfig:
             regime_trend_intensity_strong=float(regime['trend_intensity_strong']),
             regime_min_rr_ranging=float(regime['min_rr_ranging']),
             regime_min_rr_trending=float(regime['min_rr_trending']),
-            regime_min_vol_participation_ratio=float(regime['min_vol_participation_ratio']),
+            regime_min_vol_participation_ratio=float(min_vol_part),
             regime_squeeze_threshold=float(regime['squeeze_threshold']),
-            ranging_width_atr=float(regime['ranging_width_atr']),
+            ranging_width_atr=float(balancing_width),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
