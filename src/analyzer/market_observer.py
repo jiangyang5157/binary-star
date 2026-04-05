@@ -75,7 +75,7 @@ class MarketObserverConfig:
     regime_volatility_baseline_ratio: float
     regime_volatility_expansion_ratio: float
     regime_volatility_extreme_ratio: float
-    regime_volume_breakout_threshold: float
+    regime_vol_surge_vs_ma_ratio: float
     regime_long_short_imbalance_ratio: float
     regime_poc_gravity_atr_distance: float
     regime_vacuum_risk_score: float
@@ -83,13 +83,13 @@ class MarketObserverConfig:
     regime_trend_intensity_strong: float
     regime_min_rr_ranging: float
     regime_min_rr_trending: float
-    regime_volume_baseline_ratio: float
+    regime_min_vol_participation_ratio: float
     regime_squeeze_threshold: float
-    regime_balanced_atr_multiplier: float
+    ranging_width_atr: float
     cvd_intensity_threshold: float
     cvd_intensity_extreme: float
     funding_extreme_threshold: float
-    default_structural_distance: float
+    default_structural_distance_atr: float
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
@@ -157,13 +157,13 @@ class MarketObserverConfig:
             max_liquidation_events_for_context=int(topography['max_liquidation_events_for_context']),
             liquidation_cluster_atr_multiplier=float(topography['liquidation_cluster_atr_multiplier']),
             liquidation_cluster_fallback_percentage=float(topography['liquidation_cluster_fallback_percentage']),
-            default_structural_distance=float(topography['default_structural_distance']),
+            default_structural_distance_atr=float(topography['default_structural_distance_atr']),
             
             regime_trend_threshold=float(regime['trend_intensity_threshold']),
             regime_volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             regime_volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             regime_volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-            regime_volume_breakout_threshold=float(regime['volume_breakout_threshold']),
+            regime_vol_surge_vs_ma_ratio=float(regime['vol_surge_vs_ma_ratio']),
             regime_long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             regime_poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             regime_vacuum_risk_score=float(regime['vacuum_risk_score']),
@@ -171,9 +171,9 @@ class MarketObserverConfig:
             regime_trend_intensity_strong=float(regime['trend_intensity_strong']),
             regime_min_rr_ranging=float(regime['min_rr_ranging']),
             regime_min_rr_trending=float(regime['min_rr_trending']),
-            regime_volume_baseline_ratio=float(regime['volume_baseline_ratio']),
+            regime_min_vol_participation_ratio=float(regime['min_vol_participation_ratio']),
             regime_squeeze_threshold=float(regime['squeeze_threshold']),
-            regime_balanced_atr_multiplier=float(regime['balanced_atr_multiplier']),
+            ranging_width_atr=float(regime['ranging_width_atr']),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
@@ -379,8 +379,8 @@ class MarketMetricsRefiner:
         hvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "HVN"]
         lvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "LVN"]
         
-        nearest_hvn_dist_atr = min(hvn_proximities) if hvn_proximities else self.config.default_structural_distance
-        nearest_lvn_dist_atr = min(lvn_proximities) if lvn_proximities else self.config.default_structural_distance
+        nearest_hvn_dist_atr = min(hvn_proximities) if hvn_proximities else self.config.default_structural_distance_atr
+        nearest_lvn_dist_atr = min(lvn_proximities) if lvn_proximities else self.config.default_structural_distance_atr
 
         return {
             "poc": poc, "vah": vah, "val": val,
@@ -612,7 +612,7 @@ class MarketObserver:
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
             min_node_distance=cfg.min_node_gap_price,
-            balanced_atr_multiplier=cfg.regime_balanced_atr_multiplier
+            ranging_width_atr=cfg.ranging_width_atr
         )
         return VolumeProfileAnalyzer(config=vp_cfg)
 

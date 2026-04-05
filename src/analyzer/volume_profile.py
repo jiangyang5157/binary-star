@@ -22,7 +22,7 @@ class VolumeProfileConfig:
     high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
     low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
     min_node_distance: int            # Minimum bin separation between nodes
-    balanced_atr_multiplier: float    # ATR multiplier for state classification
+    ranging_width_atr: float          # ATR multiplier for state classification
 
 @dataclass(frozen=True)
 class VolumeNode:
@@ -188,7 +188,7 @@ class VolumeProfileAnalyzer:
                 high_volume_node_detection_threshold=float(kwargs['high_volume_node_detection_threshold']),
                 low_volume_node_detection_threshold=float(kwargs['low_volume_node_detection_threshold']),
                 min_node_distance=int(kwargs['node_min_separation']),
-                balanced_atr_multiplier=float(kwargs['balanced_atr_multiplier'])
+                ranging_width_atr=float(kwargs['ranging_width_atr'])
             )
             
         self.preprocessor = MarketDataPreprocessor()

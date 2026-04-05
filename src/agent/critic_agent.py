@@ -32,7 +32,7 @@ class CriticConfig(AgentConfig):
     volatility_baseline_ratio: float
     volatility_expansion_ratio: float
     volatility_extreme_ratio: float
-    volume_breakout_threshold: float
+    vol_surge_vs_ma_ratio: float
     long_short_imbalance_ratio: float
     poc_gravity_atr_distance: float
     vacuum_risk_score: float
@@ -42,7 +42,7 @@ class CriticConfig(AgentConfig):
     trend_intensity_strong: float
     min_rr_ranging: float
     min_rr_trending: float
-    volume_baseline_ratio: float
+    min_vol_participation_ratio: float
     squeeze_threshold: float
     squeeze_audit_threshold: float
     threshold_skepticism_clear: int
@@ -94,7 +94,7 @@ class CriticConfig(AgentConfig):
             volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-            volume_breakout_threshold=float(regime['volume_breakout_threshold']),
+            vol_surge_vs_ma_ratio=float(regime['vol_surge_vs_ma_ratio']),
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             vacuum_risk_score=float(regime['vacuum_risk_score']),
@@ -104,7 +104,7 @@ class CriticConfig(AgentConfig):
             trend_intensity_strong=float(regime['trend_intensity_strong']),
             min_rr_ranging=float(regime['min_rr_ranging']),
             min_rr_trending=float(regime['min_rr_trending']),
-            volume_baseline_ratio=float(regime['volume_baseline_ratio']),
+            min_vol_participation_ratio=float(regime['min_vol_participation_ratio']),
             squeeze_threshold=float(regime['squeeze_threshold']),
             squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
             threshold_skepticism_clear=int(critic_cfg['threshold_skepticism_clear']),
@@ -226,7 +226,7 @@ class CriticAgent(BaseAgent):
             "volatility_baseline_ratio": self.config.volatility_baseline_ratio,
             "volatility_expansion_ratio": self.config.volatility_expansion_ratio,
             "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
-            "volume_breakout_threshold": self.config.volume_breakout_threshold,
+            "vol_surge_vs_ma_ratio": self.config.vol_surge_vs_ma_ratio,
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
             "vacuum_risk_score": self.config.vacuum_risk_score,
@@ -236,7 +236,7 @@ class CriticAgent(BaseAgent):
             "trend_intensity_strong": self.config.trend_intensity_strong,
             "min_rr_ranging": self.config.min_rr_ranging,
             "min_rr_trending": self.config.min_rr_trending,
-            "volume_baseline_ratio": self.config.volume_baseline_ratio,
+            "min_vol_participation_ratio": self.config.min_vol_participation_ratio,
             "squeeze_threshold": self.config.squeeze_threshold,
             "squeeze_audit_threshold": self.config.squeeze_audit_threshold,
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,

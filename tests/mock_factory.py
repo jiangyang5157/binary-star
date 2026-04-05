@@ -123,7 +123,11 @@ class MockDataFactory:
                     "score_confidence_base": 80.0,
                     "score_confidence_decay_min": 2.0,
                     "score_confidence_decay_max": 10.0,
-                    "holding_time_modifier": 1.0
+                    "holding_time_modifier": 1.0,
+                    "holding_friction_highway": 1.1,
+                    "holding_friction_standard": 1.5,
+                    "holding_friction_climax": 2.0,
+                    "holding_friction_dead_water": 3.0
                 },
                 "critic": {
                     "model_temperature": 0.2,
@@ -165,14 +169,14 @@ class MockDataFactory:
                 "max_liquidation_events_for_context": 50,
                 "liquidation_cluster_atr_multiplier": 0.25,
                 "liquidation_cluster_fallback_percentage": 0.005,
-                "default_structural_distance": 2.0
+                "default_structural_distance_atr": 2.0
             },
             "regime_parameters": {
                 "trend_intensity_threshold": 0.3,
                 "volatility_baseline_ratio": 1.0,
                 "volatility_expansion_ratio": 1.5,
                 "volatility_extreme_ratio": 3.0,
-                "volume_breakout_threshold": 2.0,
+                "vol_surge_vs_ma_ratio": 2.0,
                 "long_short_imbalance_ratio": 1.5,
                 "poc_gravity_atr_distance": 1.0,
                 "vacuum_risk_score": 3.0,
@@ -182,10 +186,10 @@ class MockDataFactory:
                 "trend_intensity_strong": 0.8,
                 "min_rr_ranging": 1.5,
                 "min_rr_trending": 2.5,
-                "volume_baseline_ratio": 1.0,
+                "min_vol_participation_ratio": 1.0,
                 "squeeze_threshold": 0.1,
                 "squeeze_audit_threshold": 0.2,
-                "balanced_atr_multiplier": 1.5,
+                "ranging_width_atr": 1.5,
                 "cvd_slope_threshold": 0.1,
                 "cvd_intensity_threshold": 0.05,
                 "cvd_intensity_extreme": 0.15,
@@ -195,8 +199,8 @@ class MockDataFactory:
                 "breakout_frontrun_atr": 0.1,
                 "poc_magnet_atr_threshold": 0.5,
                 "gravity_volume_override_ratio": 1.5,
-                "boundary_clipping_atr": 0.3,
-                "participation_volume_threshold": 2.0,
+                "noise_filter_atr_floor": 0.3,
+                "vol_participation_threshold": 2.0,
                 "linear_reg_slope_lookback": 24,
                 "anchor_drift_threshold": 1.0,
                 "poc_confluence_strength": 0.9,
