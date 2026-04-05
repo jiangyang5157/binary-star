@@ -253,11 +253,11 @@ class BinaryStarOrchestrator:
                             "take_profit": {"type": "NUMBER"},
                             "atr": {"type": "NUMBER"},
                             "trend_intensity": {"type": "NUMBER"},
+                            "volatility_ratio": {"type": "NUMBER"},
                             "interval_minutes": {"type": "NUMBER"},
-                            "min_velocity_floor": {"type": "NUMBER"},
-                            "holding_time_modifier": {"type": "NUMBER"}
+                            "min_velocity_floor": {"type": "NUMBER"}
                         },
-                        "required": ["entry", "take_profit", "atr", "trend_intensity", "interval_minutes"]
+                        "required": ["entry", "take_profit", "atr", "trend_intensity", "volatility_ratio", "interval_minutes"]
                     }
                 },
                 {
@@ -448,10 +448,19 @@ class BinaryStarOrchestrator:
             proximity = self.math_tools.calculate_structural_proximity(sl, atr, poc, vah, val)
             
             holding_time = self.math_tools.project_holding_time(
-                entry, tp, atr, trend_intensity, 
-                get_interval_minutes(self.macro_interval),
-                self.session_config.min_trade_velocity,
-                self.session_config.holding_time_modifier
+                entry=entry, take_profit=tp, atr=atr, 
+                trend_intensity=trend_intensity, 
+                volatility_ratio=float(dynamics.get('volatility_ratio', 1.0)),
+                interval_minutes=get_interval_minutes(self.macro_interval),
+                min_velocity_floor=self.session_config.min_trade_velocity,
+                vr_base=self.critic_config.volatility_baseline_ratio,
+                vr_extreme=self.critic_config.volatility_extreme_ratio,
+                ti_strong=self.critic_config.trend_intensity_strong,
+                ti_thresh=self.critic_config.trend_intensity_threshold,
+                friction_dead_water=self.session_config.holding_friction_dead_water,
+                friction_highway=self.session_config.holding_friction_highway,
+                friction_climax=self.session_config.holding_friction_climax,
+                friction_standard=self.session_config.holding_friction_standard
             )
             
             # Compliance Verdict Synthesis

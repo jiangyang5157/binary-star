@@ -30,6 +30,7 @@ Use these metrics to synthesize your tactical entry strategy:
 | `trend_intensity`| > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks. |
 | `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
+| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (VR < 1.3, TI < 0.5) = 3.0x penalty; **Highway** (TI > 0.95, 1.3 < VR < 2.0) = 1.1x speedup; **Chaos** (VR > 2.0) = 2.0x redundancy. |
 
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 

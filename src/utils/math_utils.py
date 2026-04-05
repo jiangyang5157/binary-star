@@ -125,42 +125,84 @@ class MathTools:
         take_profit: float,
         atr: float,
         trend_intensity: float,
+        volatility_ratio: float,
         interval_minutes: int,
         min_velocity_floor: float,
-        holding_time_modifier: float
+        # Thresholds
+        vr_base: float,
+        vr_extreme: float,
+        ti_strong: float,
+        ti_thresh: float,
+        # Friction Modifiers
+        friction_dead_water: float,
+        friction_highway: float,
+        friction_climax: float,
+        friction_standard: float
     ) -> Dict[str, Any]:
-        """使用合成速度模型预测预计持仓时间。
+        """使用动态非线性修正模型 v3.0 (零熵物理引擎) 预测预计持仓时间。
         
-        公式：Effective Speed = MAX(ATR * |Intensity|, ATR * Velocity Floor)。
+        该逻辑通过完全参数化的“状态路由”实现。
+        
+        优先级路由：
+        1. 混沌/高潮 (Chaos): VR >= vr_extreme -> Modifier=friction_climax
+        2. 死水区 (Dead Water): VR < vr_base & TI < ti_strong -> Modifier=friction_dead_water
+        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= VR < vr_extreme -> Modifier=friction_highway
+        4. 标准 (Standard): Else -> Modifier=friction_standard
         """
         try:
             if atr <= 0 or interval_minutes <= 0:
                 return {"error": "ATR and interval_minutes must be > 0."}
                 
-            # 有效速度 = max(波动率驱动速度, 最小漂移地板)
-            # 还原逻辑：移除 abs()，确保与原系统 floor 定义一致
+            # 1. 基础物理速度计算
             effective_velocity = max(atr * abs(trend_intensity), atr * min_velocity_floor)
             dist = abs(take_profit - entry)
             
             if effective_velocity < 1e-8:
                 return {"error": "Zero effective velocity. Check drift configuration."}
 
-            projected_candles = dist / effective_velocity
-            # 应用持仓时间调整系数（用于抵消非线性噪音）
-            projected_hours = round((projected_candles * interval_minutes * holding_time_modifier) / 60, 1)
+            base_candles = dist / effective_velocity
+            
+            # 2. 状态路由 (State Routing) - 优先级排序平衡安全与效率
+            ti_abs = abs(trend_intensity)
+            
+            if volatility_ratio >= vr_extreme:
+                # 场景：极端高潮，路径曲折
+                dynamic_modifier = friction_climax
+            elif volatility_ratio < vr_base and ti_abs < ti_strong:
+                # 场景：死水区，极高时间惩罚
+                dynamic_modifier = friction_dead_water
+            elif ti_abs >= ti_thresh and vr_base <= volatility_ratio < vr_extreme:
+                # 场景：单边直线暴走
+                dynamic_modifier = friction_highway
+            else:
+                # 场景：常态扩张/移动
+                dynamic_modifier = friction_standard
+            
+            # 3. 最终时间计算
+            projected_hours = round((base_candles * interval_minutes * dynamic_modifier) / 60, 1)
             
             return {
-                "projected_holding_candles": round(projected_candles, 2),
+                "projected_holding_candles": round(base_candles, 2),
                 "projected_holding_hours": projected_hours,
+                "dynamic_modifier": dynamic_modifier,
                 "effective_velocity_per_candle": round(effective_velocity, 4),
                 "calculation_inputs": {
-                    "velocity_floor_used": min_velocity_floor,
-                    "price_distance": round(dist, 4)
+                    "trend_intensity": round(trend_intensity, 3),
+                    "volatility_ratio": round(volatility_ratio, 3),
+                    "selected_friction": dynamic_modifier,
+                    "thresholds_used": {
+                        "vr_base": vr_base,
+                        "vr_extreme": vr_extreme,
+                        "ti_strong": ti_strong,
+                        "ti_thresh": ti_thresh
+                    }
                 }
             }
         except Exception as e:
             logger.error(f"MathTools: Time projection failure: {e}")
             return {"error": str(e)}
+
+
 
     @staticmethod
     def calculate_opportunity_cost(

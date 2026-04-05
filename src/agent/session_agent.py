@@ -56,8 +56,11 @@ class SessionConfig(AgentConfig):
     poc_magnet_atr_threshold: float
     gravity_volume_override_ratio: float
     boundary_clipping_atr: float
-    holding_time_modifier: float
     participation_volume_threshold: float
+    holding_friction_dead_water: float
+    holding_friction_highway: float
+    holding_friction_climax: float
+    holding_friction_standard: float
     anchor_drift_threshold: float
     poc_confluence_strength: float
     structural_proximity_threshold: float
@@ -123,8 +126,11 @@ class SessionConfig(AgentConfig):
             poc_magnet_atr_threshold=float(regime['poc_magnet_atr_threshold']),
             gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
             boundary_clipping_atr=float(regime['boundary_clipping_atr']),
-            holding_time_modifier=float(session_cfg['holding_time_modifier']),
             participation_volume_threshold=float(regime['participation_volume_threshold']),
+            holding_friction_dead_water=float(session_cfg['holding_friction_dead_water']),
+            holding_friction_highway=float(session_cfg['holding_friction_highway']),
+            holding_friction_climax=float(session_cfg['holding_friction_climax']),
+            holding_friction_standard=float(session_cfg['holding_friction_standard']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             poc_confluence_strength=float(regime['poc_confluence_strength']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
@@ -254,7 +260,6 @@ class SessionAgent(BaseAgent):
             "score_confidence_base": self.config.score_confidence_base,
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
             "score_confidence_decay_max": self.config.score_confidence_decay_max,
-            "holding_time_modifier": self.config.holding_time_modifier,
             "participation_volume_threshold": self.config.participation_volume_threshold,
             "macro_interval_minutes": get_interval_minutes(self.config.macro_interval),
             "micro_interval_minutes": get_interval_minutes(self.config.micro_interval),
@@ -287,19 +292,27 @@ class SessionAgent(BaseAgent):
 
     def project_holding_time(self, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, 
+                             volatility_ratio: float,
                              interval_minutes: int,
-                             min_velocity_floor: Optional[float] = None,
-                             holding_time_modifier: Optional[float] = None) -> Dict[str, Any]:
-        """[TOOL] Estimates trade duration based on market velocity floors."""
+                             min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
+        """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
         from src.utils.math_utils import MathTools
         
-        # Fallback to config if AI omits optional buffers
+        # Fallback to config if AI omits optional floor
         floor = min_velocity_floor if min_velocity_floor is not None else self.config.min_trade_velocity
-        modifier = holding_time_modifier if holding_time_modifier is not None else self.config.holding_time_modifier
         
         return MathTools.project_holding_time(
-            entry, take_profit, atr, trend_intensity, 
-            interval_minutes, floor, modifier
+            entry=entry, take_profit=take_profit, atr=atr, 
+            trend_intensity=trend_intensity, volatility_ratio=volatility_ratio,
+            interval_minutes=interval_minutes, min_velocity_floor=floor,
+            vr_base=self.config.volatility_baseline_ratio,
+            vr_extreme=self.config.volatility_extreme_ratio,
+            ti_strong=self.config.trend_intensity_strong,
+            ti_thresh=self.config.trend_intensity_threshold,
+            friction_dead_water=self.config.holding_friction_dead_water,
+            friction_highway=self.config.holding_friction_highway,
+            friction_climax=self.config.holding_friction_climax,
+            friction_standard=self.config.holding_friction_standard
         )
     def calculate_opportunity_cost(self, missed_range: float, atr_macro: float) -> Dict[str, Any]:
         """[TOOL] Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance)."""
