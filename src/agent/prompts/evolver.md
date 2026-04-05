@@ -17,7 +17,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
 4. **CONVERGENCE BIAS**: Prefer tightening existing filters over adding new ones. If a filter is bypassed, analyze why the current parameter failed before inventing a new one. Zero-Entropy is achieved by parameter hardening, not logic bloating.
 
 # SESSION_JUDGMENT_RUBRIC
-1. **THE NEUTRALITY PARADOX**: If Session is `NEUTRAL` while Critic invalidates via `[OPPORTUNITY_DENIAL]`, penalize as "Logic Cowardice" failure.
+1. **THE NEUTRALITY PARADOX**: If Session is `NEUTRAL` while Critic invalidates via `[INACTION_BIAS]` or `[TREND_STARVATION]`, penalize as "Logic Cowardice" failure.
 2. **MAE STRESS TIERS**:
    - **PINPOINT (0-15%)**: Perfect alignment. **Action**: NO-OP. Maintain current logic.
    - **STANDARD (15-50%)**: Structural noise. **Action**: NO-OP. Do not overfit to noise.
