@@ -28,11 +28,11 @@ Use these metrics to synthesize your tactical entry strategy:
 | `vol_participation_ratio` | > `{min_vol_participation_ratio}` = High market involvement. Confirms breakout/reversals. |
 | `vol_expansion_ratio` | > `{volatility_baseline_ratio}` = Expansion. Momentum strategies unlock. |
 | `squeeze_factor` | < `{squeeze_threshold}` = Coiling spring. Anticipate violent breakout. |
-| `trend_intensity`| > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks. |
+| `trend_intensity`| Signed [-1, 1]. Positive = Bullish trend, Negative = Bearish trend. `abs(trend_intensity)` > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
 | `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight CVD > `{cvd_intensity_threshold}` with BEARISH entries, or CVD < -`{cvd_intensity_threshold}` with BULLISH entries. |
 | `long_short_ratio_micro` | > `{long_short_imbalance_ratio}` = Retail Long Squeeze. < `{short_heavy_imbalance_ratio}` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is between these thresholds. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
-| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (`vol_expansion_ratio` < `{volatility_baseline_ratio}`, `trend_intensity` < `{trend_intensity_strong}`) = `{holding_friction_dead_water}`x penalty; **Highway** (`trend_intensity` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `vol_expansion_ratio` < `{volatility_extreme_ratio}`) = `{holding_friction_highway}`x speedup; **Chaos** (`vol_expansion_ratio` > `{volatility_extreme_ratio}`) = `{holding_friction_climax}`x redundancy; **Standard** (All other regimes) = `{holding_friction_standard}`x. |
+| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (`vol_expansion_ratio` < `{volatility_baseline_ratio}`, `abs(trend_intensity)` < `{trend_intensity_strong}`) = `{holding_friction_dead_water}`x penalty; **Highway** (`abs(trend_intensity)` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `vol_expansion_ratio` < `{volatility_extreme_ratio}`) = `{holding_friction_highway}`x speedup; **Chaos** (`vol_expansion_ratio` > `{volatility_extreme_ratio}`) = `{holding_friction_climax}`x redundancy; **Standard** (All other regimes) = `{holding_friction_standard}`x. |
 
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
@@ -43,7 +43,7 @@ Use these metrics to synthesize your tactical entry strategy:
 
 ## 2. Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum Riding**: If `vol_expansion_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `trend_intensity` > `{trend_intensity_strong}`, execute Momentum Entries to front-run structural nodes. If `vol_expansion_ratio` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
+- **Momentum Riding**: If `vol_expansion_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `abs(trend_intensity)` > `{trend_intensity_strong}`, execute Momentum Entries in the direction of `trend_intensity` sign to front-run structural nodes. If `vol_expansion_ratio` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `latest_wick_skew` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Sink your entry deep into an HVN to maximize RR.
 - **The Liquidity Hunt**: If `squeeze_factor` is low, target the vacuum beyond the VAH/VAL boundaries.
 - **Cowardice Veto**: Do not default to `NEUTRAL` just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.

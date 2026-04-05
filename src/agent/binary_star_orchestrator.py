@@ -464,7 +464,7 @@ class BinaryStarOrchestrator:
             )
             
             # Compliance Verdict Synthesis
-            is_trending = trend_intensity >= self.critic_config.trend_intensity_threshold
+            is_trending = abs(trend_intensity) >= self.critic_config.trend_intensity_threshold
             min_rr = self.critic_config.min_rr_trending if is_trending else self.critic_config.min_rr_ranging
             
             # Shielding check

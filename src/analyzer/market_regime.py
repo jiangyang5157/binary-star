@@ -28,7 +28,7 @@ class RegimeResult:
     Structured output of the market regime analysis.
     """
     squeeze_factor: float             # Ratio of BB width to KC width
-    trend_intensity: float            # Quantitative score of trend strength
+    trend_intensity: float            # Signed Efficiency Ratio [-1, 1]. +ve = Bullish, -ve = Bearish
     wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
     vol_participation_ratio: float      # Current volume relative to moving average
 
@@ -63,13 +63,12 @@ class IndicatorEngine:
         df['kc_lower'] = kc_ema - (self.config.keltner_multiplier * atr)
         df['kc_width'] = df['kc_upper'] - df['kc_lower']
 
-        # 3. Efficiency Ratio (Trend Intensity)
-        # Abs(Total Price Change) / Sum(Abs(Individual Price Changes))
+        # 3. Efficiency Ratio (Trend Intensity) - Signed, Vectorized
+        # Net Displacement / Path Length. Positive = Bullish, Negative = Bearish.
         lookback = self.config.trend_lookback
-        price_diff = df['close'].diff()
-        total_change = df['close'].iloc[-1] - df['close'].iloc[-lookback] if len(df) >= lookback else 0
-        sum_abs_changes = price_diff.abs().rolling(window=lookback).sum().iloc[-1]
-        df['trend_intensity'] = abs(total_change) / (sum_abs_changes + 1e-9)
+        net_change = df['close'].diff(periods=lookback)
+        sum_abs_changes = df['close'].diff().abs().rolling(window=lookback).sum()
+        df['trend_intensity'] = net_change / (sum_abs_changes + 1e-9)
 
         return df
 

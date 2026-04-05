@@ -34,7 +34,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
 - **Standard**: Patches must be numerically grounded in audit evidence.
 
 ## 2. Semantic Distillation (SEMANTIC_REFINEMENT)
-- **Action**: Replace qualitative adjectives with quantitative conditions (e.g., `trend_intensity` > `{trend_intensity_threshold}`).
+- **Action**: Replace qualitative adjectives with quantitative conditions (e.g., `abs(trend_intensity)` > `{trend_intensity_threshold}`).
 - **Goal**: Zero Ambiguity. Simplify constraints to force absolute convergence in Binary Star debates.
 
 ## 3. Sandbox Validation Prerequisite (SHADOW_DUEL)
