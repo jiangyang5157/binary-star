@@ -82,7 +82,7 @@ regime_parameters:
   wick_skewness_momentum_bullish: 0.8
   wick_skewness_momentum_bearish: 0.2
   # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
-  cvd_intensity_threshold: 0.15
+  cvd_intensity_threshold: 0.1
   # Extreme single-sided imbalance that triggers immediate absorption audit.
   cvd_intensity_extreme: 0.35
   # Absolute funding threshold for Retail Squeeze detection.
