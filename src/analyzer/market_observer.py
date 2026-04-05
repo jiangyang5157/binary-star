@@ -245,23 +245,28 @@ class MarketDataLoader:
         ts_ms = int(at_time.timestamp() * 1000)
         cfg = self.config
         
-        oi_delta = self._get_interval_delta(cfg.macro_context.time_interval)
-        historical_ts_ms = ts_ms - int(oi_delta.total_seconds() * 1000)
+        macro_oi_delta = self._get_interval_delta(cfg.macro_context.time_interval)
+        macro_historical_ts_ms = ts_ms - int(macro_oi_delta.total_seconds() * 1000)
 
-        micro_delta = self._get_interval_delta(cfg.micro_context.time_interval)
-        liq_lookback_ms = int(micro_delta.total_seconds() * cfg.micro_context.lookback_candles * 1000)
+        micro_oi_delta = self._get_interval_delta(cfg.micro_context.time_interval)
+        micro_historical_ts_ms = ts_ms - int(micro_oi_delta.total_seconds() * 1000)
+
+        liq_lookback_ms = int(micro_oi_delta.total_seconds() * cfg.micro_context.lookback_candles * 1000)
         liq_start_ts_ms = ts_ms - liq_lookback_ms
+        
+        # v6.12: Dynamic funding limit to avoid hardcoded bloat
+        funding_rate_limit = max(2, int(cfg.funding_rate_lookback_hours / 8) + 2)
 
         return RawMarketData(
             macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.lookback_candles, endTime=ts_ms) or [],
             micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
-            macro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=historical_ts_ms),
-            micro_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=historical_ts_ms),
+            macro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=macro_historical_ts_ms),
+            micro_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=micro_historical_ts_ms),
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=100, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms) or []
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
@@ -369,7 +374,8 @@ class MarketMetricsRefiner:
             "nearest_hvn_dist_atr": nearest_hvn_dist_atr,
             "nearest_lvn_dist_atr": nearest_lvn_dist_atr,
             "anchors_above": anchors_above,
-            "anchors_below": anchors_below
+            "anchors_below": anchors_below,
+            "profile_data": profile.get("profile_data", [])
         }
 
     def _derive_sentiment(self, raw: RawMarketData, atr_macro: float) -> Dict[str, Any]:
@@ -400,6 +406,11 @@ class MarketMetricsRefiner:
             h_val = float(hist.get('openInterest', 0))
             return (cur_oi - h_val) / h_val if h_val > 0 else 0.0
 
+        # v6.12: Enhanced sentiment trending
+        funding_history = raw.funding_rate
+        f_rate = float(funding_history[-1].get('fundingRate', 0)) if funding_history else 0.0
+        f_delta = (f_rate - float(funding_history[-2].get('fundingRate', 0))) if len(funding_history) >= 2 else 0.0
+        
         return {
             "oi_nominal": cur_oi,
             "oi_delta_macro": raw_oi_delta(raw.macro_oi),
@@ -408,7 +419,8 @@ class MarketMetricsRefiner:
             "ls_ratio_micro": float(raw.micro_ls[0].get('longShortRatio', 0)) if raw.micro_ls else 0,
             "cvd_intensity_ratio": cvd_intensity_ratio,
             "net_taker_delta": cvd_current_net,
-            "funding_rate": float(raw.funding_rate[-1].get('fundingRate', 0)) if raw.funding_rate else 0.0,
+            "funding_rate": f_rate,
+            "funding_rate_delta": f_delta,
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
 
