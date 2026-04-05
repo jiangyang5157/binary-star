@@ -185,6 +185,12 @@ python run_evolution.py -p data/once --samples 20 --sandbox
 python tools/session_ledger.py -p data/backtest --recursive
 ```
 
+### 5. 市场勘探 (Market Recon)
+生成特定品种的Market 数据以及 klines 图。
+```bash
+python tools/market_recon.py --path data/test -ts 2026-04-05T00:00:00Z
+```
+
 ---
 
 ## 🏗 数据架构：黑盒目录

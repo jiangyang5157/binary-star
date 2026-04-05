@@ -19,7 +19,18 @@ class TopographyEngine:
         obs_config = MarketObserverConfig.from_dict(config_dict)
         self.chart_gen = ChartGenerator(
             output_dir=os.path.join(self.data_root, "klines"),
+            up_color=obs_config.up_color,
+            down_color=obs_config.down_color,
+            bg_color=obs_config.bg_color,
+            grid_color=obs_config.grid_color,
+            poc_color=obs_config.poc_color,
+            value_area_color=obs_config.value_area_color,
+            liq_buy_color=obs_config.liq_buy_color,
+            liq_sell_color=obs_config.liq_sell_color,
             vol_profile_width_ratio=obs_config.vol_profile_width_ratio,
+            vol_profile_bin_gap=obs_config.vol_profile_bin_gap,
+            chart_main_panel_weight=obs_config.chart_main_panel_weight,
+            chart_volume_panel_weight=obs_config.chart_volume_panel_weight,
             render_dpi=obs_config.render_dpi
         )
 

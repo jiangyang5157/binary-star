@@ -21,16 +21,19 @@ class ChartConfig:
     """
     Configuration and styling tokens for chart generation.
     """
-    up_color: str = '#26a69a'       # Teal
-    down_color: str = '#ef5350'     # Coral
-    bg_color: str = '#131722'       # Dark TradingView style
-    grid_color: str = '#333333'
-    poc_color: str = '#ff9800'      # Orange
-    value_area_color: str = '#fbc02d' # Gold
-    liq_buy_color: str = '#00ff88'  # Neon Green
-    liq_sell_color: str = '#ff3366' # Neon Pink
-    vol_profile_width_ratio: float = 0.20 # 20% of axis width
-    render_dpi: int = 180
+    up_color: str
+    down_color: str
+    bg_color: str
+    grid_color: str
+    poc_color: str
+    value_area_color: str
+    liq_buy_color: str
+    liq_sell_color: str
+    vol_profile_width_ratio: float
+    vol_profile_bin_gap: float
+    chart_main_panel_weight: int
+    chart_volume_panel_weight: int
+    render_dpi: int
 
 
 class TechnicalFeatureExtractor:
@@ -100,8 +103,26 @@ class ChartVisualRenderer:
     """
     Core engine for rendering candlestick charts with logical overlays.
     """
-    def __init__(self, output_dir: str, vol_profile_width_ratio: float, render_dpi: int):
-        self.config = ChartConfig(vol_profile_width_ratio=vol_profile_width_ratio, render_dpi=render_dpi)
+    def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
+                 grid_color: str, poc_color: str, value_area_color: str, 
+                 liq_buy_color: str, liq_sell_color: str, vol_profile_width_ratio: float, 
+                 render_dpi: int, vol_profile_bin_gap: float, 
+                 chart_main_panel_weight: int, chart_volume_panel_weight: int):
+        self.config = ChartConfig(
+            up_color=up_color,
+            down_color=down_color,
+            bg_color=bg_color,
+            grid_color=grid_color,
+            poc_color=poc_color,
+            value_area_color=value_area_color,
+            liq_buy_color=liq_buy_color,
+            liq_sell_color=liq_sell_color,
+            vol_profile_width_ratio=vol_profile_width_ratio, 
+            vol_profile_bin_gap=vol_profile_bin_gap,
+            chart_main_panel_weight=chart_main_panel_weight,
+            chart_volume_panel_weight=chart_volume_panel_weight,
+            render_dpi=render_dpi
+        )
         self.storage = ChartStorageManager(output_dir)
         self.extractor = TechnicalFeatureExtractor()
 
@@ -162,6 +183,7 @@ class ChartVisualRenderer:
                 plot_df, 
                 type='candle', 
                 volume=True, 
+                panel_ratios=(self.config.chart_main_panel_weight, self.config.chart_volume_panel_weight),
                 style=self._get_mpf_style(), 
                 title=f"{symbol} - {time_interval} (Volume Profile AR)",
                 hlines=hlines,
@@ -170,6 +192,16 @@ class ChartVisualRenderer:
             )
             
             try:
+                # 3. Axis Cleanup (Hide left/top spines for modern TradingView feel)
+                for ax in axlist:
+                    ax.spines['left'].set_visible(False)
+                    ax.spines['top'].set_visible(False)
+                    ax.spines['right'].set_color(self.config.grid_color)
+                    ax.spines['bottom'].set_color(self.config.grid_color)
+                    # Force ticks to right/bottom only
+                    ax.yaxis.set_ticks_position('right')
+                    ax.xaxis.set_ticks_position('bottom')
+
                 main_ax = axlist[0]
                 
                 # 3. Overlay Volume Profile Histogram
@@ -199,14 +231,30 @@ class ChartVisualRenderer:
     def _overlay_volume_profile(self, ax: plt.Axes, df: pd.DataFrame, profile: List[Dict[str, Any]]):
         """Draws the Volume-at-Price histogram on the price axis."""
         min_p, max_p = df['Low'].min(), df['High'].max()
-        p_vals = [p['price'] for p in profile if min_p <= p['price'] <= max_p]
-        v_vals = [p['volume'] for p in profile if min_p <= p['price'] <= max_p]
         
-        if v_vals:
-            max_v = max(v_vals)
-            norm_v = [(v / max_v) * (len(df) * self.config.vol_profile_width_ratio) for v in v_vals]
-            bin_height = (max_p - min_p) / 50 * 0.8
-            ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.4, zorder=1)
+        # Filter profile data to visible range
+        visible_profile = [p for p in profile if min_p <= p['price'] <= max_p]
+        
+        if not visible_profile:
+            return
+
+        p_vals = [p['price'] for p in visible_profile]
+        v_vals = [p['volume'] for p in visible_profile]
+        
+        max_v = max(v_vals)
+        # Normalize width relative to total candle count
+        norm_v = [(v / max_v) * (len(df) * self.config.vol_profile_width_ratio) for v in v_vals]
+        
+        # Adaptive bin height based on total profile bins to avoid overlap/gaps
+        num_bins = len(profile)
+        if num_bins > 0:
+            total_range = profile[-1]['price'] - profile[0]['price'] if len(profile) > 1 else max_p - min_p
+            # Calculate theoretical height of one bin
+            base_height = total_range / num_bins
+            # Apply gap factor
+            bin_height = base_height * (1.0 - self.config.vol_profile_bin_gap)
+            
+            ax.barh(p_vals, norm_v, height=bin_height, color='#787b86', alpha=0.4, zorder=1, align='center')
 
     def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: List[Dict[str, Any]]):
         """Draws semi-transparent liquidation heat bands."""

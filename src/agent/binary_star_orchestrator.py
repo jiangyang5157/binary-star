@@ -104,7 +104,18 @@ class BinaryStarOrchestrator:
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(
             output_dir=os.path.join(resolve_project_root(), self.data_root, "klines"),
+            up_color=self.obs_config.up_color,
+            down_color=self.obs_config.down_color,
+            bg_color=self.obs_config.bg_color,
+            grid_color=self.obs_config.grid_color,
+            poc_color=self.obs_config.poc_color,
+            value_area_color=self.obs_config.value_area_color,
+            liq_buy_color=self.obs_config.liq_buy_color,
+            liq_sell_color=self.obs_config.liq_sell_color,
             vol_profile_width_ratio=self.obs_config.vol_profile_width_ratio,
+            vol_profile_bin_gap=self.obs_config.vol_profile_bin_gap,
+            chart_main_panel_weight=self.obs_config.chart_main_panel_weight,
+            chart_volume_panel_weight=self.obs_config.chart_volume_panel_weight,
             render_dpi=self.obs_config.render_dpi
         )
         

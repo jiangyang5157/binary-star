@@ -93,8 +93,11 @@ class MarketObserverConfig:
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
-    # --- Visual Rendering Tokens ---
+    # Visuals (from global_config.yaml)
     vol_profile_width_ratio: float
+    vol_profile_bin_gap: float
+    chart_main_panel_weight: int
+    chart_volume_panel_weight: int
     render_dpi: int
     up_color: str
     down_color: str
@@ -175,6 +178,9 @@ class MarketObserverConfig:
             
             # Visuals (from global_config.yaml 'visuals' section)
             vol_profile_width_ratio=float(cfg['visuals']['vol_profile_width_ratio']),
+            vol_profile_bin_gap=float(cfg['visuals']['vol_profile_bin_gap']),
+            chart_main_panel_weight=int(cfg['visuals']['chart_main_panel_weight']),
+            chart_volume_panel_weight=int(cfg['visuals']['chart_volume_panel_weight']),
             render_dpi=int(cfg['visuals']['render_dpi']),
             up_color=str(cfg['visuals']['up_color']),
             down_color=str(cfg['visuals']['down_color']),
@@ -482,6 +488,9 @@ class MarketObserver:
         # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
             vol_profile_width_ratio=self.config.vol_profile_width_ratio,
+            vol_profile_bin_gap=self.config.vol_profile_bin_gap,
+            chart_main_panel_weight=self.config.chart_main_panel_weight,
+            chart_volume_panel_weight=self.config.chart_volume_panel_weight,
             render_dpi=self.config.render_dpi,
             up_color=self.config.up_color,
             down_color=self.config.down_color,
