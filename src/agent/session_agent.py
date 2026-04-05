@@ -47,6 +47,7 @@ class SessionConfig(AgentConfig):
     wick_skewness_momentum_bullish: float
     wick_skewness_momentum_bearish: float
     trend_intensity_strong: float
+    trend_intensity_min_expansion: float
     min_rr_ranging: float
     min_rr_trending: float
     min_vol_participation_ratio: float
@@ -117,6 +118,7 @@ class SessionConfig(AgentConfig):
             wick_skewness_momentum_bullish=float(regime['wick_skewness_momentum_bullish']),
             wick_skewness_momentum_bearish=float(regime['wick_skewness_momentum_bearish']),
             trend_intensity_strong=float(regime['trend_intensity_strong']),
+            trend_intensity_min_expansion=float(regime['trend_intensity_min_expansion']),
             min_rr_ranging=float(regime['min_rr_ranging']),
             min_rr_trending=float(regime['min_rr_trending']),
             min_vol_participation_ratio=float(regime['min_vol_participation_ratio']),
@@ -248,6 +250,7 @@ class SessionAgent(BaseAgent):
             "wick_skewness_momentum_bullish": self.config.wick_skewness_momentum_bullish,
             "wick_skewness_momentum_bearish": self.config.wick_skewness_momentum_bearish,
             "trend_intensity_strong": self.config.trend_intensity_strong,
+            "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
             "min_rr_ranging": self.config.min_rr_ranging,
             "min_rr_trending": self.config.min_rr_trending,
             "min_vol_participation_ratio": self.config.min_vol_participation_ratio,

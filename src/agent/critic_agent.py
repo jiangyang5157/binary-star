@@ -42,6 +42,7 @@ class CriticConfig(AgentConfig):
     wick_skewness_momentum_bullish: float
     wick_skewness_momentum_bearish: float
     trend_intensity_strong: float
+    trend_intensity_min_expansion: float
     min_rr_ranging: float
     min_rr_trending: float
     min_vol_participation_ratio: float
