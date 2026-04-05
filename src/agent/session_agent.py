@@ -268,7 +268,11 @@ class SessionAgent(BaseAgent):
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
             "regime_balanced_atr_multiplier": self.config.balanced_atr_multiplier,
             "structural_buffer_atr": self.config.structural_buffer_atr,
-            "cvd_intensity_threshold": self.config.cvd_intensity_threshold
+            "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
+            "holding_friction_dead_water": self.config.holding_friction_dead_water,
+            "holding_friction_highway": self.config.holding_friction_highway,
+            "holding_friction_climax": self.config.holding_friction_climax,
+            "holding_friction_standard": self.config.holding_friction_standard
         }
         
         return self._prepare_prompt(self.config.instruction_path, **context)

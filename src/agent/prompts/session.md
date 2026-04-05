@@ -30,7 +30,7 @@ Use these metrics to synthesize your tactical entry strategy:
 | `trend_intensity`| > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks. |
 | `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
-| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (VR < 1.3, TI < 0.5) = 3.0x penalty; **Highway** (TI > 0.95, 1.3 < VR < 2.0) = 1.1x speedup; **Chaos** (VR > 2.0) = 2.0x redundancy. |
+| **Dynamic Friction**| The system applies non-linear multipliers to `holding_time_hours`: **Dead Water** (`volatility_ratio` < `{volatility_baseline_ratio}`, `trend_intensity` < `{trend_intensity_strong}`) = `{holding_friction_dead_water}`x penalty; **Highway** (`trend_intensity` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `volatility_ratio` < `{volatility_extreme_ratio}`) = `{holding_friction_highway}`x speedup; **Chaos** (`volatility_ratio` > `{volatility_extreme_ratio}`) = `{holding_friction_climax}`x redundancy; **Standard** (All other regimes) = `{holding_friction_standard}`x. |
 
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
@@ -59,7 +59,7 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
 - **[TACTICAL_REPAIR_PATTERNS]**: When history contains specific veto tags, apply these technical repair protocols:
     - `[ANCHOR_VIOLATION]`: Move SL distally to the next valid structural anchor (HVN/POC).
     - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`.
-        - `[RETAIL_SQUEEZE]`: Perform a **Polarity Pivot** to target the projected liquidation vacuum. To ensure execution: if `volatility_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, you MUST either abort to `NEUTRAL` or anchor the DLE behind a hyper-distal HVN to survive climax wick-outs. You MUST use `MathTools` to recalculate coordinates.
+        - `[RETAIL_SQUEEZE]`: Perform a **Polarity Pivot** to target the projected liquidation vacuum. To ensure execution: if `volatility_ratio` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, execute a **Momentum Entry**. Otherwise, sink into a deep **DLE**. If `volatility_ratio` > `{volatility_extreme_ratio}`, you MUST either abort to `NEUTRAL` or anchor the DLE behind a hyper-distal HVN to survive climax wick-outs. You MUST use `MathTools` to recalculate coordinates.
     - `[OPPORTUNITY_DENIAL]`: Your previous `NEUTRAL` was a failure of confluence. Read the telemetry and execute a hardened directional proposal.
 
 # OUTPUT_SCHEMA
