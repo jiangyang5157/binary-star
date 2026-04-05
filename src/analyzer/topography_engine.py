@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timezone
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
@@ -23,9 +23,10 @@ class TopographyEngine:
             render_dpi=obs_config.render_dpi
         )
 
-    def reconstruct(self, symbol: str, dispatch_email: bool = False) -> Dict[str, Any]:
+    def reconstruct(self, symbol: str, at_time: Optional[datetime] = None, dispatch_email: bool = False) -> Dict[str, Any]:
         """Scans market topography and returns physical evidence (POC, VAH, VAL, CVD)."""
-        self.logger.info(f"TopographyEngine: Reconstructing market topography for {symbol} at {datetime.now(timezone.utc)}...")
+        at_time = at_time or datetime.now(timezone.utc)
+        self.logger.info(f"TopographyEngine: Reconstructing market topography for {symbol} at {at_time}...")
         
         try:
             obs_config = MarketObserverConfig.from_dict(self.config)
@@ -37,7 +38,7 @@ class TopographyEngine:
                 chart_generator=self.chart_gen
             )
             
-            observation = observer.observe()
+            observation = observer.observe(timestamp=at_time)
             
             if dispatch_email:
                 from src.infrastructure.notifications.email_notifier import SessionNotifier
