@@ -8,40 +8,42 @@
 
 ---
 
-## ⚖️ 系统架构：对抗式辩论协议 (The Binary Star Protocol)
+## ⚖️ 系统架构：双子星对抗协议 (The Binary Star Protocol)
 
-Singularity 的内核是一个多智能体对抗系统，模拟了严苛的法庭审判过程。一个交易提案必须在“真理总线”的物理锚定下，通过多轮交叉盘问与逻辑硬化，最终收敛为执行指令。
+Singularity 的内核是一个多智能体对抗系统，模拟了极高标准的法庭辩论与审判过程。每一笔交易提案都必须在 **真理总线 (Truth Bus)** 的物理锚定下，经历多轮“创意-审计-硬化”的迭代循环，最终将市场的高熵混沌提纯为低熵的、确定性的执行指令。
 
 ### 🛡️ 推理三元组 (The Reasoning Triad)
-1.  **📂 证人 (Market Observer)**：**事实驱动**。负责实时捕捉市场拓扑结构（成交量分布、ATR 波动率、CVD 情绪），并生成不可篡改的多模态物理快照。
-2.  **🤺 辩方 (Session Analyst)**：**创意驱动**。基于观察快照提出交易假设（Temp 0.7）。它负责寻找隐藏在混沌中的 Alpha 机会。
-3.  **🔍 控方 (Skeptical Critic)**：**逻辑驱动**。执行“否定性审计”（Temp 0.3）。它以零信任态度搜索提案中的数学漏洞、结构性风险和情绪化偏见。
+
+1.  **📂 证人 (Market Observer)**：**物理锚定 (The Anchor)**。事实驱动。负责实时捕捉市场拓扑结构（成交量分布、ATR 波动率、CVD 情绪），并生成不可篡改的多模态物理快照 (Forensic Charts)，为博弈各方提供绝对一致的物理观测基准，杜绝 AI 常见的数据幻觉。
+2.  **🤺 辩方 (Session Analyst)**：**启发演化 (The Thesis)**。创意驱动。基于观察快照提出具备不对称风险收益比的交易假设。它负责在复杂混沌中执行启发式搜索，捕捉隐藏在流动性失衡与波动率挤压中的 Alpha 机会。
+3.  **🔍 控方 (Skeptical Critic)**：**逻辑审计 (The Antithesis)**。负向驱动。执行零信任维度的“安全性审计”。它以极低温度 (Temperature) 的冷逻辑探测提案中的数学逻辑漏洞、结构性风险和情绪化偏见，拥有在收敛失败时的一票否决权 (Veto)。
 
 ---
 
-## 🛠 核心功能与技术模块
+## 🛡️ 核心能力：取证驱动的进化流水线 (Forensics-Driven Pipeline)
 
-该平台提供了一套完整的端到端取证与优化流水线：
+Singularity 提供了一套从物理取证到自我进化的全栈流水线，确保每一行执行指令都经过“实验室级”的压力测试：
 
-*   **⚡ 实时市场取证 (High-Fidelity Forensics)**：深度分析市场拓扑结构（支撑/阻力节点）和情绪强度（CVD/清算簇），构建确定性的分析语境。
-*   **🔄 对抗式博弈协议 (Adversarial Debate)**：通过 Critic 智能体自动识别 Analyst 提案中的数学逻辑漏洞、结构性风险和情绪化偏见。
-*   **🧪 自动化后期取证审计 (Post-Mortem)**：交易结束后，系统会自动比对“交易假设”与“实际市场物理走势”，识别是“合理的放弃”还是“灾难性的遗漏”。
-*   **🧬 元进化 DNA 引擎 (Meta-Evolution)**：基于后期审计的反馈，由 Evolver 智能体自动更新系统的“DNA”（配置参数与提示词逻辑），实现自我进化。
-*   **📊 专业级可视化报告**：生成交互式 HTML 仪表盘和执行账本，包含卡玛比率 (Calmar)、最大回撤 (MDD) 和权益增长曲线。
+*   **⚡ 高保真物理取证 (High-Fidelity Forensics)**：深度提取市场拓扑（支撑/阻力节点）与情绪流（CVD/清算簇），通过 **Forensic Charts** 为智能体构建具备物理一致性的分析语境，杜绝任何数据幻觉。
+*   **🔄 对抗式逻辑硬化 (Adversarial Hardening)**：基于 **Binary Star 协议**，利用 Critic 智能体对交易提案进行多轮否定性审计，强制识别并消除数学漏洞、结构风险及交易员的情绪偏见。
+*   **🧪 闭环回溯取证 (Post-Mortem Audit)**：在交易终点自动执行“物理对敲”，比对交易假设与市场实际走势，通过取证报告识别“逻辑偏差”与“关键遗漏”。
+*   **🧬 元进化 DNA 引擎 (Meta-Evolution)**：将审计日志转化为进化指令，由 Evolver 智能体自动迭代系统的配置参数（DNA）与 Prompt 逻辑，实现跨周期的自我硬化。
+*   **📊 交互式法庭账本 (Forensic Ledger)**：生成专业级 HTML 仪表盘，不仅展示权益增长曲线与最大回撤，更记录了每一笔交易从“提案”到“收敛”的全流程取证足迹。
 
 ---
 
-## 🌟 双子星系统 (Binary Star System): 深度逻辑与收敛机制
+## 🌟 双子星内核 (Binary Star Core): 逻辑收敛与熵减机制
 
-双子星系统是 Singularity 的心脏，旨在通过多智能体的对抗博弈，将模糊的市场状态收敛为高质量、高确定性的执行方案。
+双子星系统是 Singularity 的计算心脏，其核心职能是通过多智能体的高强度对抗博弈，将高熵的市场混沌态（模糊、嘈杂、不可预测）提纯为低熵的、可执行的精细指令。
 
-### 1. 核心架构：共享真理总线 (Shared Truth Bus)
-为了防止智能体在推理过程中产生“逻辑漂移”，系统引入了 **Truth Bus**：
-- **物理锚定**：基于 `observed_at` 的高精度时间戳（ISO-8601 Zulu），确保所有智能体共享同一秒的物理现实快照。
-- **视觉一致性**：所有智能体同时观察完全相同的 Macro/Micro K 线图资产，消除数据非对称性。
+### 1. 共享真理总线 (Shared Truth Bus): 消除认知漂移的“统一场”
+为了防止分布式智能体在推理过程中产生“幻觉”或“逻辑漂移”，系统建立了一份强制性的 **物理观测准则**：
+- **物理时间锚定 (Temporal Anchoring)**：基于 ISO-8601 高精度时间戳，锁定物理现实的某一个瞬间，确保所有智能体对“当下”这一秒拥有绝对共识。
+- **视觉一致性同步 (Visual Consistency)**：所有智能体共享完全一致的多模态 **Forensic Charts** 资产。这种视觉上的“原子级对齐”彻底排除了文本数据传输中可能存在的非对称性误读。
 
-### 2. 熵减过程：从混沌到高品质结果 (The Convergence Engine)
-系统的决策逻辑是一个通过迭代不断硬化（Hardening）的过程，将市场高熵状态提纯为低熵执行指令：
+### 2. 迭代硬化引擎 (The Convergence Engine): 从混沌假设到精密输出
+系统的决策过程本质上是一个 **逻辑熵减** 的过程。通过多轮对抗，将模糊的 Alpha 假设转化为坚固的执行方案：
+
 
 ```mermaid
 graph TD
@@ -56,9 +58,9 @@ graph TD
     end
 
     subgraph Reasoning_Triad ["3. 对抗推理环 (Adversarial Loop)"]
-        C[Analyst: 创意 Alpha 规划 - Temp 0.7]
+        C[Analyst: 创意 Alpha 规划 - High Temp]
         D[MathTools: 零信任物理验证 - Native Math]
-        E[Critic: 否定性审计 - Temp 0.3]
+        E[Critic: 否定性审计 - Low Temp]
     end
 
     subgraph Decision_Gate ["4. 质量门限 (Quality Gate)"]
@@ -66,7 +68,7 @@ graph TD
     end
 
     subgraph Output_Layer ["5. 确定性输出 (Execution)"]
-        G[Orchestrator: 纪律合成 - Temp 0.3]
+        G[Orchestrator: 纪律合成 - Low Temp]
         H[高质量执行 JSON: 物理对齐指令]
     end
 
