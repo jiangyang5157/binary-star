@@ -111,45 +111,59 @@ class PromptDistiller:
                     
                 match_start = match.start()
                 
-                # A. Detect ambient indentation in the target file (preceding whitespace on the same line)
-                preceding_content = content[:match_start]
-                last_newline = preceding_content.rfind('\n')
-                ambient_prefix = preceding_content[last_newline + 1:] if last_newline != -1 else preceding_content
-                
-                # Only apply alignment if the match is at the start of a line (only whitespace precedes it)
-                if not ambient_prefix.isspace() and ambient_prefix != "":
-                    return new_text
+                # A. Detect ground-truth indentation context
+                lines_before = content[:match_start].split('\n')
+                # Since the new pattern captures the leading whitespace, 
+                # the match_start is now the TRUE start of the line (or starts with \n).
+                # We look at the line ABOVE the match to find the list's baseline.
+                list_baseline_indent = ""
+                for prev_line in reversed(lines_before):
+                    stripped_prev = prev_line.strip()
+                    if stripped_prev:
+                        if stripped_prev.startswith('-'):
+                            m = re.match(r'^\s*', prev_line)
+                            list_baseline_indent = m.group(0) if m else ""
+                            break
+                        # Stop if we hit a different structure
+                        break
 
-                ambient_indent = ambient_prefix
+                ambient_prefix = list_baseline_indent
                 
-                # B. Detect provided base indentation of the AI's first line of replacement
-                lines = new_text.split('\n')
-                first_line = lines[0]
-                provided_indent_match = re.match(r'^\s*', first_line)
-                provided_base = provided_indent_match.group(0) if provided_indent_match else ""
+                # B. Forceful Re-alignment to the list baseline
+                patch_lines = new_text.split('\n')
+                final_output_lines = []
                 
-                # C. Shift all lines in the replacement block to match ambient indentation
-                shifted_lines = []
-                for line in lines:
-                    if not line.strip():
-                        shifted_lines.append("") # Preserve blank lines
+                non_empty_patch_lines = [l for l in patch_lines if l.strip()]
+                if not non_empty_patch_lines:
+                    return new_text
+                
+                def get_indent_len(l):
+                    m = re.match(r'^\s*', l)
+                    return len(m.group(0)) if m else 0
+                
+                min_patch_indent_len = min(get_indent_len(l) for l in non_empty_patch_lines)
+                
+                for line in patch_lines:
+                    stripped = line.lstrip()
+                    if not stripped:
+                        final_output_lines.append("")
                         continue
                     
-                    if line.startswith(provided_base):
-                        # Swap the AI's guessed indentation with the ground truth from the file
-                        shifted_line = ambient_indent + line[len(provided_base):]
-                        shifted_lines.append(shifted_line)
-                    else:
-                        # Fallback for inconsistent indentation within the patch block
-                        shifted_lines.append(line)
+                    rel_nesting = get_indent_len(line) - min_patch_indent_len
+                    final_output_lines.append(f"{ambient_prefix}{' ' * rel_nesting}{stripped}")
                 
-                return '\n'.join(shifted_lines)
+                return '\n'.join(final_output_lines)
 
-            # Count matches first for reporting
-            matches = len(re.findall(pattern, content))
+            # Build a pattern that captures the optional leading whitespace of the line
+            clean_anchor = re.sub(r'[\s\n\r\t]+', ' ', anchor).strip()
+            # The pattern now swallows any leading whitespace on the same line to prevent stacking
+            pattern = r'^[ \t]*' + re.escape(clean_anchor).replace(r'\ ', r'[\s\r\n\t]+').replace(' ', r'[\s\r\n\t]+')
+            
+            # Count matches using MULTILINE to make ^ work for each line
+            matches = len(re.findall(pattern, content, flags=re.MULTILINE))
             if matches > 0:
-                # Use sub with callback to perform context-aware alignment for every instance
-                return re.sub(pattern, align_and_replace, content, count=0)
+                # Apply replacement with MULTILINE
+                return re.sub(pattern, align_and_replace, content, count=0, flags=re.MULTILINE)
             
             return content
         except Exception as e:
