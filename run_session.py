@@ -201,10 +201,10 @@ class SessionController:
         
         analyzer = SimpleRegimeClassifier(
             ema_period=topo_cfg['exponential_moving_average_period'],
-            vol_period=topo_cfg['volume_moving_average_period'],
+            volatility_period=topo_cfg['volume_moving_average_period'],
             warmup_multiplier=bt_cfg['indicator_warmup_multiplier']
         )
-        warmup = analyzer.warmup_candles
+        warmup = analyzer.warmup_candles()
         
         # Calculate needed limit plus buffer for technical indicators (EMA/Vol)
         range_seconds = (end_dt - start_dt).total_seconds()
