@@ -288,13 +288,10 @@ class ChartVisualRenderer:
 
     def _overlay_volume_profile(self, ax: plt.Axes, df: pd.DataFrame, profile: List[Dict[str, Any]]):
         """Draws the Volume-at-Price histogram as a smooth Gaussian area on the price axis."""
-        if not profile:
-            return
-
-        min_p, max_p = df['Low'].min(), df['High'].max()
-        
-        # Filter profile data to visible range
-        visible_profile = [p for p in profile if min_p <= p['price'] <= max_p]
+        # v6.71 Experiment: Pure Unfiltered Profile
+        # User requested to see the effect of no clipping at all. 
+        # Note: This will cause auto-scaling of the Y-axis to the full profile range.
+        visible_profile = profile
         
         if not visible_profile:
             return
