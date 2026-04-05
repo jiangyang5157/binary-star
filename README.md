@@ -136,7 +136,7 @@ source venv/bin/activate
     ```
 *   **批量回测模式 (Backtest)**：在历史样本点上进行高保真的批量推理循环。
     ```bash
-    python run_session.py --start T-14d --sampling 12
+    python run_session.py --start T-14d --samples 12
     ```
 *   **实时生产监控 (Live)**：按固定脉冲频率（秒）持续运行，监控市场异动。
     ```bash
@@ -165,13 +165,13 @@ python run_evolution.py -p data/once --samples 20 --sandbox
 *   **阶段 A：宏观基准训练 (Baseline)**
     *   **目标**：建立跨越 14 天的宏观稳定性。
     *   **操作**：
-        1. `python run_session.py --start T-29d --end T-15d --sampling 12` (默认存入 data/backtest)
+        1. `python run_session.py --start T-29d --end T-15d --samples 12` (默认存入 data/backtest)
         2. `python run_audit.py -p data/backtest`
         3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
 *   **阶段 B：近期律动适配 (Recency Adaptation)**
     *   **目标**：对齐最新的市场波动特性。
     *   **操作**：
-        1. `python run_session.py --start T-15d --end T-1d --sampling 12` (默认存入 data/backtest)
+        1. `python run_session.py --start T-15d --end T-1d --samples 12` (默认存入 data/backtest)
         2. `python run_audit.py -p data/backtest`
         3. `python run_evolution.py -p data/backtest --samples 12 --sandbox`
 *   **阶段 C：极端案例加固 (Adversarial Hardening)**
