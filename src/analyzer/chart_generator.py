@@ -145,7 +145,8 @@ class ChartVisualRenderer:
             down=self.config.down_color, 
             edge='inherit', 
             wick='inherit', 
-            volume='in'
+            ohlc = 'inherit', 
+            volume='inherit'
         )
         return mpf.make_mpf_style(
             marketcolors=mc, 
