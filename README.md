@@ -3,8 +3,6 @@
 ![Singularity Hero](/Users/yangjiang/.gemini/antigravity/brain/60db8556-2c3e-4d5c-bf33-e744fc39920c/singularity_hero_branding_1775443880294.png)
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![Philosophy](https://img.shields.io/badge/Logic-Zero--Entropy-gold.svg)](#)
-[![Audit](https://img.shields.io/badge/Adversarial-Hardened-emerald.svg)](#)
 
 ---
 
@@ -200,8 +198,8 @@ python run_audit.py -p data/backtest --file data/backtest/sessions/{symbol}_sess
 ### 3. 账本看板 (Ledger Dashboard)
 系统的可视化看板。它支持对“Audit(s) 审计报告” 或 “Sandbox 报告”（解析里面包含的Audit(s) 审计报告）进行 HTML 渲染：
 ```bash
-python tools/session_ledger.py -p data/backtest
-python tools/session_ledger.py -p data/backtest --f .../{symbol}_evolution_sandbox_{timestamp}.json
+python scripts/session_ledger.py -p data/backtest
+python scripts/session_ledger.py -p data/backtest --f .../{symbol}_evolution_sandbox_{timestamp}.json
 ```
 
 ### 4. DNA 引擎 (Meta-Evolution)
