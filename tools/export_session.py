@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 import os
 import sys
+
+# Setup absolute project paths
+TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.abspath(os.path.join(TOOLS_DIR, ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 import argparse
 import json
 from src.utils.json_utils import load_json, save_json
@@ -13,7 +20,7 @@ def main():
     Extracts the original strategy session from a forensic report and restores it to the strategies folder.
     """
     parser = argparse.ArgumentParser(description="Strategy Exporter - Reverse Engineering Utility")
-    parser.add_argument("--file", required=True, help="Path to the forensic JSON report")
+    parser.add_argument("--file", "-f", required=True, help="Path to the forensic JSON report")
     
     # Standardize data root arguments
     from src.utils.pipeline_utils import add_data_path_argument
@@ -56,11 +63,11 @@ def main():
         sys.exit(1)
         
     ts_suffix = sanitize_timestamp(timestamp)
-    filename = f"{symbol}_strategies_{ts_suffix}.json"
+    filename = f"{symbol}_session_{ts_suffix}.json"
     
-    # 5. Save to the standardized Strategies Directory
+    # 5. Save to the standardized Sessions Directory
     project_root = resolve_project_root()
-    output_dir = os.path.join(project_root, data_root, "strategies")
+    output_dir = os.path.join(project_root, data_root, "sessions")
     output_path = os.path.join(output_dir, filename)
     
     # save_json handles directory creation and pretty-printing
