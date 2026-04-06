@@ -190,10 +190,10 @@ binary_star:
     # Hard safety boundaries for stop-loss placements.
     stop_loss_buffer_min: 1.25
     stop_loss_buffer_max: 2.5
-    score_confidence_base: 75
-    # Decay applied for every round of doubt from the Audit.
+    score_confidence_base: 80
+    # Linear decay per Critic veto. STRICT Formula: decay_min + (skepticism / 100) * (decay_max - decay_min)
     score_confidence_decay_min: 5
-    score_confidence_decay_max: 30
+    score_confidence_decay_max: 20
 
     # Dynamic Holding Friction Factors (Time Redundancy)
     holding_friction_highway: 1.4

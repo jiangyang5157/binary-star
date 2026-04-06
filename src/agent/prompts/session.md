@@ -68,13 +68,21 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
     - `[INACTION_BIAS]`: Your previous `NEUTRAL` was a failure of confluence in a structural or ranging environment. Read the telemetry and execute a Mean-Reversion DLE or Vacuum Flip.
     - `[TREND_STARVATION]`: You are missing the macro move. Shift to a shallow pullback or Momentum Entry. DO NOT force deep DLEs.
 
+## 4. Confidence Calculus (MANDATORY)
+Your `confidence_score` is NOT a subjective feeling. It is a **deterministic linear decay function** that you MUST compute exactly.
+- **Initial Round** (when `{debate_history_json}` is `[]` or `null`): Your `confidence_score` MUST start at `{score_confidence_base}`.
+- **Successive Rounds**: For EACH Critic veto found in `{debate_history_json}`, you MUST calculate the exact penalty using this strict algebraic formula:
+  `Decay = {score_confidence_decay_min} + (skepticism_score / 100) * ({score_confidence_decay_max} - {score_confidence_decay_min})`
+  Subtract `Decay` from your current score. You are FORBIDDEN from increasing confidence between debate rounds. **Show your math step-by-step in `reasoning_chain`.**
+- **Synthesis Bonus**: In the FINAL Synthesis round ONLY, you may add up to 10 points IF AND ONLY IF your new coordinates mathematically eliminate a previous `[TERMINAL]` veto. You MUST cite the specific `[TERMINAL]` veto tag that was resolved in `critic_impact`.
+
 # OUTPUT_SCHEMA
 Your final response MUST be RAW JSON only. Do not output JSON until all necessary Math Tools have returned valid results.
 
 ```json
 {{
     "opinion": "BULLISH | BEARISH | NEUTRAL",
-    "confidence_score": 0-100,
+    "confidence_score": decimal,
     "tactical_parameters": {{
         "current_price": decimal,
         "entry": decimal,
@@ -82,7 +90,7 @@ Your final response MUST be RAW JSON only. Do not output JSON until all necessar
         "stop_loss": decimal,
         "holding_time_hours": decimal
     }},
-    "reasoning_chain": "Brief synthesis linking Heuristics (e.g., wick skew + cvd) to the Tactical Execution.",
-    "critic_impact": "Summary of repairs based on {debate_history_json}. If history was null, MUST be JSON null. Otherwise, summarize how you addressed the historical intersection of vetoes."
+    "reasoning_chain": "Brief synthesis linking Heuristics (e.g., wick skew + cvd) to the Tactical Execution. MUST include the Confidence Calculus math step-by-step.",
+    "critic_impact": "Summary of repairs based on {debate_history_json}. If history was `[]` or `null`, MUST be JSON null. Otherwise, summarize how you addressed the historical intersection of vetoes."
 }}
 ```
