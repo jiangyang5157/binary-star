@@ -68,9 +68,22 @@ class SessionEmailTemplate(BaseEmailTemplate):
         current_price = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("current_price")
         
         # 7. Strategic Indicators (Ceremony Detection)
-        # 7.1. Detect Synthesis Bonus (Parameter-aligned) from reasoning text
+        # 7.1. Detect Synthesis Bonus (Hardened Engineering Matrix)
         bonus_marker = f"+{int(bonus_value)}"
-        has_bonus = any(ind in reasoning for ind in [bonus_marker, "Bonus", "Synthesis Bonus", "Logic Healing", "Healed"])
+        hardened_indicators = [
+            bonus_marker, 
+            "Bonus", 
+            "Synthesis Bonus", 
+            "mathematically eliminate", 
+            "resolved [TERMINAL]", 
+            "Hardened Evolution",
+            "Intersection of All Constraints",
+            "Logic Healing",
+            "Healed"
+        ]
+        
+        reasoning_lower = reasoning.lower()
+        has_bonus = any(ind.lower() in reasoning_lower for ind in hardened_indicators)
         
         # 7.2. Detect SL Shielding from the last round of debate
         history = session_data.get("debate_history", [])
