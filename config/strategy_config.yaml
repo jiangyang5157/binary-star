@@ -221,3 +221,5 @@ evolver:
   min_failure_instances: 2
   # Ratio of failed sessions in the current batch required to validate a config update.
   failure_ratio_threshold: 0.2
+  # Maximum tolerated Mean Absolute Error for time projections before recalibrating friction.
+  time_projection_mae_threshold: 0.2

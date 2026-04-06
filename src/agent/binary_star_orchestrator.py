@@ -490,9 +490,11 @@ class BinaryStarOrchestrator:
         """Converts observation visual assets into multimodal Gemini Parts."""
         parts = []
         assets = observation.get('visual_context', {})
-        for path in assets.values():
+        for key, path in assets.items():
             try:
                 if path and os.path.exists(path):
+                    # v6.15: Explicitly Label visual parts to harden AI spatial reasoning
+                    parts.append(types.Part.from_text(text=f"[VISUAL_CONTEXT: {key.upper()}]"))
                     with open(path, 'rb') as f:
                         parts.append(types.Part.from_bytes(data=f.read(), mime_type='image/png'))
             except Exception as e:

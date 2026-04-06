@@ -8,6 +8,7 @@ Pursue asymmetric alpha through heuristic planning, but enforce absolute mathema
 # INPUT_DATUM
 - **Observation Content**: `{observation_json}` (Market Map from Observer).
 - **Debate History**: `{debate_history_json}` (**Nullable**; Array of ALL previous rounds containing `plan`, `critic`, and the corresponding `math_fact_check` records).
+- **Visual Evidence**: Multi-timeframe charts are labeled as `[VISUAL_CONTEXT: MACRO_SNAPSHOT]` and `[VISUAL_CONTEXT: MICRO_SNAPSHOT]`.
 
 # [TOOL_CALLING_PROTOCOL]
 You possess Native Function Calling capabilities. You MUST use `MathTools` to eliminate mathematical hallucinations. 
