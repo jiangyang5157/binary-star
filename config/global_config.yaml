@@ -35,7 +35,7 @@ visuals:
   render_dpi: 300               # Resolution for visual artifacts (Higher = sharper images)
 
 session:
-  default_live_pulse_minutes: 15
+  default_live_pulse_minutes: 60
   notification_confidence_threshold: 65
 
 backtest:
