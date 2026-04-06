@@ -15,8 +15,8 @@ if PROJECT_ROOT not in sys.path:
 # Load environment
 load_dotenv()
 
-from src.tools.sniper.scout import SniperScout
-from src.tools.sniper.trigger import SniperTrigger
+from src.sniper.scout import SniperScout
+from src.sniper.trigger import SniperTrigger
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
 from src.utils.pipeline_utils import load_global_config

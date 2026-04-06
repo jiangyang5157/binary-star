@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import argparse
-import logging
 from datetime import datetime, timezone
 
 # Setup absolute project paths
@@ -11,8 +10,8 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(os.path.join(__file__, "../")))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.tools.sniper.scout import SniperScout
-from src.tools.sniper.trigger import SniperTrigger
+from src.sniper.scout import SniperScout
+from src.sniper.trigger import SniperTrigger
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger("SniperSandbox")
@@ -20,18 +19,16 @@ logger = setup_logger("SniperSandbox")
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Mode Sandbox (Independent Test)")
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading pair symbol")
-    parser.add_argument("--loop", action="store_true", help="Run in continuous monitoring loop")
-    parser.add_argument("--pulse", type=float, default=1.0, help="Wait time between scouts (minutes)")
-    parser.add_argument("--config", type=str, default="config/sniper_config.yaml", help="Path to sniper config")
+    parser.add_argument("--pulse", type=float, default=0.0, help="Wait time between scouts (minutes). 0 for one-shot.")
     
     args = parser.parse_args()
     
     scout = SniperScout(args.symbol)
-    trigger = SniperTrigger(args.config)
+    trigger = SniperTrigger()
     
     prev_metrics = None
     
-    logger.info(f"--- Sniper Sandbox Initialized: {args.symbol} ---")
+    logger.info(f"--- Sniper Sandbox Initialized: {args.symbol} (Pulse: {args.pulse}m) ---")
     
     try:
         while True:
@@ -43,16 +40,20 @@ def main():
             is_noteworthy, t_type, reason = trigger.evaluate(metrics, prev_metrics)
             
             # 3. Report
-            status_icon = "🔫 WAKE UP!" if is_noteworthy else "💤 SLEEPING"
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] {status_icon} | {t_type or 'NONE'} | {reason}")
-            
             if is_noteworthy:
+                print("\n" + "="*50)
+                print(f"       🔫 SNIPER WAKE UP! [{t_type}]")
+                print("="*50)
+                print(f"REASON: {reason}")
+                print("="*50 + "\n")
+                
                 logger.info(f"Trigger Detail: {reason}")
-                # In a real system, we would call orchestrator.execute_flow() here.
-                # Since this is a test script, we only mark it as triggered to start cooldown.
                 trigger.set_triggered(t_type)
+            else:
+                print(f"[{datetime.now().strftime('%H:%M:%S')}] 💤 SLEEPING | No actionable asymmetry.")
             
-            if not args.loop:
+            # 4. Loop Logic
+            if args.pulse <= 0:
                 break
                 
             prev_metrics = metrics

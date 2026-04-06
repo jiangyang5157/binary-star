@@ -35,8 +35,7 @@ visuals:
   render_dpi: 300               # Resolution for visual artifacts (Higher = sharper images)
 
 session:
-  default_live_pulse_minutes: 60
-  notification_confidence_threshold: 65
+  notification_confidence_threshold: 55
 
 backtest:
   # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
@@ -46,18 +45,15 @@ backtest:
 
 evolution:
   # Default sample size for audit ingestion
-  default_samples: 24
+  default_samples: 20
 
 sandbox:
-  # Minimum ratio of improved cases required to 'accept' a strategy patch (0.0 to 1.0)
-  acceptance_rate_threshold: 0.5
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
   mae_significance_threshold: 15.0
   # Minimum reduction in MAE stress (pct) required to classify a case as 'improved'
   mae_improvement_threshold: 5.0
   # Minimum reduction in trade duration (hours) required to classify a case as 'improved' (TP_HIT tie-breaker)
   time_improvement_threshold: 4.0
-
 
   # --- Fitness Scoring Ladder (Darwinian v3.1) ---
   # Base scores for different market outcomes (TP/SL/Neutral/Neither)

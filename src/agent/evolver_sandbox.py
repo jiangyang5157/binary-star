@@ -181,12 +181,8 @@ class EvolverSandbox:
                     "metadata": None
                 })
 
-        # Configuration-driven acceptance threshold
-        sandbox_cfg = self.config_dict.get('sandbox', {})
-        threshold = float(sandbox_cfg['acceptance_rate_threshold'])
-        
-        success_rate = len(accepted_cases) / total if total > 0 else 0
-        is_accepted = success_rate >= threshold
+        # Simple Majority Rule: New DNA must improve more cases than it breaks (Zero-Entropy)
+        is_accepted = len(accepted_cases) > len(rejected_cases)
 
         return {
             "is_accepted": is_accepted,

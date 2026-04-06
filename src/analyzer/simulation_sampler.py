@@ -44,8 +44,8 @@ class SniperSampler(Sampler):
         super().__init__()
         self.symbol = symbol
         # Lazy imports to avoid circular dependencies
-        from src.tools.sniper.scout import SniperScout
-        from src.tools.sniper.trigger import SniperTrigger
+        from src.sniper.scout import SniperScout
+        from src.sniper.trigger import SniperTrigger
         
         self.scout = SniperScout(symbol)
         self.trigger = SniperTrigger()
