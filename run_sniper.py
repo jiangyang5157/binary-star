@@ -45,11 +45,13 @@ class SniperDaemon:
         self.session_engine = None
         if args.trigger:
             # We pass the same args to SessionEngine for email/path parity
-            # We respect the --no-log flag to decide whether to persist the forensic session.log
-            enable_file_log = not getattr(args, "no_log", False)
-            self.session_engine = SessionEngine(self.symbol, args.path, args=args, enable_file_log=enable_file_log)
+            self.session_engine = SessionEngine(self.symbol, args.path, args=args)
         
         self.prev_metrics = None
+        
+        # v6.50: Sniper Quiet-Monitoring Protocol
+        # We default to CRITICAL level during pulsars to keep logs clean from Binance noise.
+        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
         pulse_mins = self.args.pulse
@@ -91,9 +93,15 @@ class SniperDaemon:
                     if self.session_engine:
                         # 4. Trigger Binary Star Protocol
                         logger.info("SniperDaemon: Activating Binary Star reasoning loop (Blocking Pulse)...")
+                        # v6.50: Restore Forensic Logging Level for Session Cycle
+                        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
+                        
                         # This is a blocking call (Synchronous/Serial)
                         # It will generate images, run AI, and send emails if --email is on.
                         self.session_engine.execute_cycle()
+                        
+                        # Restore Quiet Protocol after session completion
+                        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
                         logger.info("SniperDaemon: Session cycle complete. Returning to pulse monitoring.")
                     
                     # 5. Mark Triggered to start Cooldown (System Safety)
@@ -119,7 +127,6 @@ def main():
     parser.add_argument("--pulse", type=float, default=5.0, help="Sniper check interval in minutes")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
-    parser.add_argument("--no-log", action="store_true", help="Disable session.log file persistence")
     parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
 
     args = parser.parse_args()

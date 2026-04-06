@@ -39,8 +39,7 @@ class BinaryStarOrchestrator:
                  config_dict: Dict[str, Any], 
                  api_key: str, 
                  data_root: str,
-                 instruction_overrides: Optional[Dict[str, str]] = None,
-                 enable_file_log: bool = True):
+                 instruction_overrides: Optional[Dict[str, str]] = None):
         """Initializes the orchestrator as a central resource and configuration hub.
         
         Args:
@@ -58,12 +57,10 @@ class BinaryStarOrchestrator:
         self.global_config = load_config('config/global_config.yaml')
         
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
-        if enable_file_log:
-            session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
-            setup_logger("", log_file=session_log_path)
-            logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
-        else:
-            logger.info("--- Forensic Session Metadata Enabled (File Logging Disabled) ---")
+        # Always enable file logging for forensic audit trails (Reverted v6.50)
+        session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
+        setup_logger("", log_file=session_log_path)
+        logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)
