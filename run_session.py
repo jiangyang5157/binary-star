@@ -146,8 +146,8 @@ class SessionController:
         self.global_cfg = load_global_config()
         self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
         
-        enable_log = not getattr(args, 'no_log', False)
-        self.engine = SessionEngine(self.symbol, self.data_root, args=args, enable_file_log=enable_log)
+        enable_file_log = not getattr(args, 'no_log', False)
+        self.engine = SessionEngine(self.symbol, self.data_root, args=args, enable_file_log=enable_file_log)
         self._setup_signals()
 
     def _setup_signals(self):
@@ -263,7 +263,7 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine (v6.0)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
-    parser.add_argument("--no-log", action="store_true", help="Disable forensic session.log file persistence")
+    parser.add_argument("--no-log", action="store_true", help="Disable session.log file persistence")
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")
