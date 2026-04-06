@@ -104,7 +104,7 @@ class SessionEngine:
             self.notifier.notify_session(
                 self.symbol, 
                 session_result, 
-                save_local=True, 
+                save_local=self.send_email, 
                 dispatch_email=self.send_email
             )
 

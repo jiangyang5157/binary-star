@@ -58,7 +58,7 @@ def process_audit_file(file_path: str, controller: AuditController, email: bool,
         should_dispatch = email and opinion != "NEUTRAL"
         
         # Dispatch notification using the standardized bundle
-        notifier.notify_audit(symbol, audit_bundle, save_local=True, dispatch_email=should_dispatch)
+        notifier.notify_audit(symbol, audit_bundle, save_local=email, dispatch_email=should_dispatch)
 
         outcome = audit_bundle.get('market_outcome', {})
         result_str = outcome.get('tp_sl_result', 'N/A')
