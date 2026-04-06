@@ -108,7 +108,7 @@ def main():
     parser.add_argument("--pulse", type=float, default=5.0, help="Sniper check interval in minutes")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
-    parser.add_argument("--path", type=str, default="data/live", help="Path for session archival")
+    parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
 
     args = parser.parse_args()
     
