@@ -30,14 +30,15 @@ def setup_logger(
     logger.setLevel(log_level)
     logger.propagate = propagate
 
-    # 1. Console Handler Management: Ensure uniqueness
-    has_console = any(isinstance(h, logging.StreamHandler) and h.stream == sys.stdout for h in logger.handlers)
+    # 1. Console Handler Management: Centralized at root to prevent duplicates
+    target_for_console = logging.getLogger("") if propagate else logger
+    has_console = any(isinstance(h, logging.StreamHandler) and h.stream == sys.stdout for h in target_for_console.handlers)
     formatter = logging.Formatter(format_string)
     
     if not has_console:
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
-        logger.addHandler(console_handler)
+        target_for_console.addHandler(console_handler)
 
     # 2. File Handler Management: Support atomic updates for same logger name
     if log_file:
