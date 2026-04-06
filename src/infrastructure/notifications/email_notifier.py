@@ -200,27 +200,51 @@ class SessionEmailTemplate(BaseEmailTemplate):
 
                 <!-- Strategic Guidance: Sniper's Double-Check List -->
                 <div style="margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background: #ffffff;">
-                    <div style="display: table; width: 100%; border-collapse: collapse;">
-                        <div style="display: table-cell; width: 50%; vertical-align: top; padding-right: 20px;">
-                            <h3 style="margin-top: 0; color: #334155; font-size: 14px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em;">🔍 Sniper's Double-Check List</h3>
-                            <div style="margin-bottom: 12px;">
-                                <div class="status-pill {'pill-chaos' if is_chaos else 'pill-safe'}" style="margin-bottom: 8px;">
-                                    {'🔥 CHAOS' if is_chaos else '🌊 SAFE'} Regime
-                                </div>
-                                <div class="status-pill {'pill-shielded' if has_bonus else 'pill-exposed'}" style="margin-bottom: 8px; border-color: {('#bfdbfe' if has_bonus else '#e2e8f0')}; background-color: {('#eff6ff' if has_bonus else '#f8fafc')}; color: {('#1d4ed8' if has_bonus else '#64748b')};">
-                                    {'🧩 SYNERGY RESOLVED' if has_bonus else '⚪ NO BONUS'}
-                                </div>
-                                <div class="status-pill {'pill-shielded' if is_shielded else 'pill-exposed'}" style="margin-bottom: 8px;">
-                                    {'🛡️ SHIELDED' if is_shielded else '⚠️ EXPOSED'} Stop-Loss
-                                </div>
-                            </div>
-                            <p style="font-size: 11px; color: #64748b; line-height: 1.5; margin: 0; font-style: italic;">
-                                {f"<b>Logic Healing Detected:</b> This session successfully resolved a critical veto (+10 bonus)." if has_bonus else "<b>Raw Logic:</b> No synthesis bonus was awarded in this session."}
+                    <h3 style="margin-top: 0; color: #334155; font-size: 14px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">🔍 Sniper's Double-Check List</h3>
+                    
+                    <!-- 1. Full Width Matrix (Priority 1: Execution) -->
+                    <div style="margin-bottom: 25px;">
+                        {matrix_html}
+                    </div>
+
+                    <!-- 2. Horizontal Status Tags (Priority 2: Diagnostic) -->
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <div class="status-pill {'pill-chaos' if is_chaos else 'pill-safe'}">
+                            {'🔥 CHAOS' if is_chaos else '🌊 SAFE'} Regime
+                        </div>
+                        <div class="status-pill {'pill-shielded' if has_bonus else 'pill-exposed'}" style="border-color: {('#bfdbfe' if has_bonus else '#e2e8f0')}; background-color: {('#eff6ff' if has_bonus else '#f8fafc')}; color: {('#1d4ed8' if has_bonus else '#64748b')};">
+                            {'🧩 SYNERGY RESOLVED' if has_bonus else '⚪ NO BONUS'}
+                        </div>
+                        <div class="status-pill {'pill-shielded' if is_shielded else 'pill-exposed'}">
+                            {'🛡️ SHIELDED' if is_shielded else '⚠️ EXPOSED'} Armor
+                        </div>
+                    </div>
+
+                    <!-- 3. Guidance Details (Tactical Action Advice) -->
+                    <div style="margin-top: 15px;">
+                        {f'''
+                        <div style="text-align: center; padding: 10px; background-color: #fef2f2; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 10px;">
+                            <p style="font-size: 11px; color: #b91c1c; line-height: 1.5; margin: 0; font-weight: 600;">
+                                🔥 Chaos Regime: High physical friction. Slippage risk extreme. <b>DLE (Limit) execution mandatory.</b>
                             </p>
                         </div>
-                        <div style="display: table-cell; width: 50%; vertical-align: top;">
-                           {matrix_html}
+                        ''' if is_chaos else ""}
+
+                        {f'''
+                        <div style="text-align: center; padding: 10px; background-color: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; margin-bottom: 10px;">
+                            <p style="font-size: 11px; color: #b45309; line-height: 1.5; margin: 0; font-weight: 600;">
+                                🛡️ Exposed Armor: SL lacks structural shielding. Risk of liquidity wicks. <b>Reduce sizing (Check Abyss).</b>
+                            </p>
                         </div>
+                        ''' if not is_shielded else ""}
+
+                        {f'''
+                        <div style="text-align: center; padding: 10px; background-color: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+                            <p style="font-size: 11px; color: #1d4ed8; line-height: 1.5; margin: 0; font-weight: 600;">
+                                ✨ Logic Healing: Strategic convergence confirmed. Signal has survived rigorous logic audit (+{int(bonus_value)} bonus ALREADY).
+                            </p>
+                        </div>
+                        ''' if has_bonus else ""}
                     </div>
                 </div>
 
