@@ -450,13 +450,13 @@ class MarketMetricsRefiner:
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
 
-    def _parse_to_clusters(self, liqs: List[Dict], atr_macro: float) -> Optional[Dict[str, Any]]:
+    def _parse_to_clusters(self, liqs: List[Dict], atr_macro: float) -> Dict[str, Any]:
         """Groups raw liquidations into high-conviction price clusters."""
-        if not liqs: return None
+        if not liqs: return {}
         # Handle multiple possible key formats for consistency (REST vs WebSocket)
         parsed_liqs = [parse_liquidation_data(l) for l in liqs]
         prices = [p['price'] for p in parsed_liqs if p['price'] > 0]
-        if not prices: return None
+        if not prices: return {}
         
         avg_p = sum(prices) / len(prices)
         bucket_size = atr_macro * self.config.liquidation_cluster_atr_multiplier if atr_macro > 0 else avg_p * self.config.liquidation_cluster_fallback_percentage

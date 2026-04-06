@@ -153,7 +153,7 @@ def add_data_path_argument(parser: argparse.ArgumentParser, required: bool = Fal
         "-p", "--path", 
         type=str, 
         required=required, 
-        help="Physical data directory path (e.g., data/once, data/backtest, my_dir)."
+        help="Physical data directory path (e.g., data/prod, data/backtest, my_dir)."
     )
 
 

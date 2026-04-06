@@ -172,30 +172,28 @@ source venv/bin/activate
 ```
 
 ### 1. 市场推理 (Session Engine)
-系统会自动根据 CLI 参数识别运行模式（Once, Backtest, 或 Live）。
 
-*   **单次分析 (Once)**：对市场进行单次对抗推理（默认结果存入 `data/once/sessions`）。
+*   **单次/批量分析 (Prod)**：对当前市场或指定时间点进行对抗推理。结果存入 `data/prod/sessions`。
 ```bash
 python run_session.py
 python run_session.py -ts 2026-01-24T15:42:00Z
 ```
 
-*   **批量回测 (Backtest)**：在历史样本点上进行保真的批量推理（默认结果存入 `data/backtest/sessions`）。
+*   **智联回测 (Backtest)**：在历史样本点上进行采样推理。推荐使用 `--sampling-mode sniper` 以捕捉异动。
 ```bash
-python run_session.py --start T-30d --end T-16d --samples 20
-python run_session.py --start T-16d --end T-2d --samples 20
-python run_session.py --start T-30d --end T-2d --samples 20 --sampling-mode spaced
+python run_session.py --start T-30d --end T-16d --samples 20 --sampling-mode sniper
+python run_session.py --start T-16d --end T-2d --samples 20 --sampling-mode spaced
 ```
 
-*   **实时监控 (Live)**：按固定脉冲频率（分钟）持续运行（默认结果存入 `data/live/sessions`）。
+*   **实时监控 (Sniper Mode)**：基于“觉醒矩阵”探测异动，仅在捕捉到高不对称性机会时激活会话引擎。 `--pulse 0.1` 约等于6秒一次，`--trigger --email` 按需触发采样推理。 
 ```bash
-python run_session.py --pulse 15 --email
+python run_sniper.py --symbol BTCUSDT --pulse 0.1
 ```
 
 ### 2. 取证审计 (Forensic Audit)
-对 Session(s) 日志进行深度取证，并将结果存入审计库以供进化学习。
+对 Session(s) 进行深度审计并生成报告。同步更新 `data_root` 指向。
 ```bash
-python run_audit.py -p data/backtest
+python run_audit.py -p data/prod
 python run_audit.py -p data/backtest --file data/backtest/sessions/{symbol}_session_{timestamp}.json
 ```
 

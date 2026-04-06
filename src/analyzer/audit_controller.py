@@ -32,7 +32,7 @@ class AuditController:
         data_root: The logical data repository (e.g., 'data/prod').
     """
     
-    def __init__(self, config_dict: Dict[str, Any], logger: Optional[logging.Logger] = None, data_root: str = "data/once"):
+    def __init__(self, config_dict: Dict[str, Any], data_root: str, logger: Optional[logging.Logger] = None):
         """Initializes the AuditController with required forensic components."""
         self.config = config_dict
         self.logger = logger or logging.getLogger(__name__)

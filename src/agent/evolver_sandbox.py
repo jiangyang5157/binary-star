@@ -27,8 +27,8 @@ class EvolverSandbox:
         # Initialize the official Audit Controller for high-fidelity replay analysis
         self.audit_controller = AuditController(
             config_dict=config_dict,
-            logger=logger,
-            data_root=data_root
+            data_root=data_root,
+            logger=logger
         )
 
     def reply_audit_with_patch(

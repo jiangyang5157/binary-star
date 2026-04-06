@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 import os
 import sys
-import time
 import argparse
-import logging
 import signal
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
@@ -19,7 +17,7 @@ load_dotenv()
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
-from src.analyzer.simulation_sampler import SimpleRegimeClassifier, SpacedSampler, RegimeSampler
+from src.analyzer.simulation_sampler import SpacedSampler, SniperSampler
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, archive_strategy_result
 from src.utils.logger_utils import setup_logger
@@ -163,23 +161,9 @@ class SessionController:
         mode = self.args.mode
         logger.info(f"Starting SessionEngine: {mode} mode for {self.symbol}")
         
-        if mode == "once":
+        if mode == "prod":
             self.engine.execute_cycle(timestamp_str=getattr(self.args, 'timestamp', None))
         
-        elif mode == "live":
-            pulse_mins = self.args.pulse or self.global_cfg.get('session', {})['default_live_pulse_minutes']
-            logger.info(f"Scheduled pulse: every {pulse_mins} minutes.")
-            
-            while True:
-                next_run = datetime.now(timezone.utc) + timedelta(minutes=pulse_mins)
-                self.engine.execute_cycle()
-                
-                # Sleep until next pulse
-                sleep_sec = (next_run - datetime.now(timezone.utc)).total_seconds()
-                if sleep_sec > 0:
-                    logger.info(f"Pulse Complete. Sleeping for {int(sleep_sec/60)}m {int(sleep_sec%60)}s...")
-                    time.sleep(max(10, sleep_sec))
-
         elif mode == "backtest":
             self._run_backtest()
 
@@ -188,31 +172,29 @@ class SessionController:
         start_dt = self.args.start
         end_dt = self.args.end
         count = self.args.samples
-        sample_mode = self.args.sampling_mode or "regime"
+        sample_mode = self.args.sampling_mode or "sniper"
 
         logger.info(f"Backtest: Sampling {count} points from {start_dt} to {end_dt} ({sample_mode} mode)")
         
         from src.utils.datetime_utils import get_interval_seconds
         
         macro_interval = self.engine.config['analysis_window']['macro_context']['time_interval']
-        # 2. Analyze and Sample (v6.20: Strategic Parameter Injection)
+        
+        # 2. Preparation (v6.30: Sniper-Led Architecture)
         topo_cfg = self.engine.config.get('topography_parameters', {})
         bt_cfg = self.engine.global_cfg.get('backtest', {})
         
-        analyzer = SimpleRegimeClassifier(
-            ema_period=topo_cfg['exponential_moving_average_period'],
-            volatility_period=topo_cfg['average_true_range_period'],
-            warmup_multiplier=bt_cfg['indicator_warmup_multiplier'],
-            macro_lookback_candles=self.engine.config['analysis_window']['macro_context']['lookback_candles']
-        )
-        warmup = analyzer.warmup_candles()
+        # Calculate warmup needed for technical indicators
+        iir_period = max(topo_cfg['exponential_moving_average_period'], topo_cfg['average_true_range_period'])
+        fir_period = self.engine.config['analysis_window']['macro_context']['lookback_candles']
+        warmup = int(max(iir_period * bt_cfg['indicator_warmup_multiplier'], fir_period) + 2)
         
-        # Calculate needed limit plus buffer for technical indicators (EMA/Vol)
+        # Calculate needed limit plus buffer
         range_seconds = (end_dt - start_dt).total_seconds()
         interval_seconds = get_interval_seconds(macro_interval)
         limit = int(range_seconds / interval_seconds) + warmup 
 
-        logger.info(f"Backtest Engine: Fetching {macro_interval} klines for regime classification (Limit: {limit}, Warmup: {warmup})...")
+        logger.info(f"Backtest Engine: Fetching {macro_interval} klines for simulation (Limit: {limit}, Warmup: {warmup})...")
         binance = BinanceFuturesClient()
         klines = binance.fetch_historical_klines(
             symbol=self.symbol,
@@ -223,15 +205,22 @@ class SessionController:
         )
         binance.close()
         
-        df = analyzer.classify_regimes(klines)
+        # Prepare DataFrame for sampling
+        df = pd.DataFrame(klines, columns=[
+            'timestamp', 'open', 'high', 'low', 'close', 'volume',
+            'close_time', 'qav', 'num_trades', 'taker_base_vol', 'taker_quote_vol', 'ignore'
+        ])
+        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
+        df['close'] = df['close'].astype(float)
+        
         df_range = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
         
         # v6.15: Backtest Sampling Architecture
-        self.sampling_mode = self.args.sampling_mode
+        self.sampling_mode = self.args.sampling_mode or "sniper"
         self.sampling_count = self.args.samples or self.engine.global_cfg.get('backtest', {})['default_samples']
 
-        if self.sampling_mode == "regime":
-            sampler = RegimeSampler()
+        if self.sampling_mode == "sniper":
+            sampler = SniperSampler(self.symbol)
         else:
             sampler = SpacedSampler()
             
@@ -268,17 +257,13 @@ def main():
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     
-    # 1. Live Configuration Group
-    live_group = parser.add_argument_group("Live Options")
-    live_group.add_argument("--pulse", type=float, default=None, help="Pulse interval in minutes")
-    
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")
     bt_group.add_argument("--timestamp", "-ts", type=str, help="Precise historical timestamp")
     bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
     bt_group.add_argument("--samples", type=int, default=None, help="Number of historical samples")
-    bt_group.add_argument("--sampling-mode", choices=["regime", "spaced"], default="regime")
+    bt_group.add_argument("--sampling-mode", choices=["spaced", "sniper"], default="sniper")
 
     
     from src.utils.pipeline_utils import add_data_path_argument
@@ -286,16 +271,13 @@ def main():
     
     args = parser.parse_args()
     
-    # [v6.20] UNIFIED INFERENCE: One-pass mode & path detection
+    # Mode Detection
     if getattr(args, 'start', None):
         args.mode = "backtest"
         if not args.path: args.path = "data/backtest"
-    elif getattr(args, 'pulse', None):
-        args.mode = "live"
-        if not args.path: args.path = "data/live"
     else:
-        args.mode = "once"
-        if not args.path: args.path = "data/once"
+        args.mode = "prod"
+        if not args.path: args.path = "data/prod"
 
     # Sanity checks
     if args.mode == "backtest" and not args.start:

@@ -82,7 +82,7 @@ def worker_init(log_path, config, data_root):
     global logger, controller
     setup_logger("", log_file=log_path)
     logger = logging.getLogger("AuditWorker")
-    controller = AuditController(config_dict=config, logger=logger, data_root=data_root)
+    controller = AuditController(config_dict=config, data_root=data_root, logger=logger)
 
 def run_task(args_tuple):
     """Wrapper to call process_audit_file with global controller."""
@@ -116,7 +116,7 @@ def main():
     logger = logging.getLogger("Audit")
     
     # 4. Initialize the Audit Controller (The Orchestrator)
-    controller = AuditController(config_dict=config, logger=logger, data_root=data_root)
+    controller = AuditController(config_dict=config, data_root=data_root, logger=logger)
     
     # 5. Execution Branch: Batch vs Single
     files_to_audit = []
