@@ -132,7 +132,7 @@ class MarketObserverConfig:
         balancing_width = regime.get('ranging_width_atr', regime.get('balanced_atr_multiplier'))
 
         return cls(
-            indicator_warmup_multiplier=float(cfg.get('analytical', {}).get('indicator_warmup_multiplier', 5.0)),
+            indicator_warmup_multiplier=float(cfg.get('analytical', {}).get('indicator_warmup_multiplier')),
             max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 

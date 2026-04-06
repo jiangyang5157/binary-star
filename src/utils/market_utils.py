@@ -24,6 +24,7 @@ def parse_liquidation_data(liq: Dict[str, Any]) -> Dict[str, Any]:
         }
     except (ValueError, TypeError):
         return {"price": 0.0, "qty": 0.0, "side": "BUY"}
+
 def calculate_indicator_warmup(
     iir_periods: list[int], 
     fir_periods: list[int], 

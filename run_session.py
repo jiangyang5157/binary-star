@@ -191,7 +191,7 @@ class SessionController:
         warmup = calculate_indicator_warmup(
             iir_periods=[topo_cfg['exponential_moving_average_period'], topo_cfg['average_true_range_period']],
             fir_periods=[fir_period],
-            multiplier=self.engine.global_cfg.get('analytical', {}).get('indicator_warmup_multiplier', 5.0)
+            multiplier=self.engine.global_cfg.get('analytical', {}).get('indicator_warmup_multiplier')
         )
         
         # Calculate needed limit plus buffer
