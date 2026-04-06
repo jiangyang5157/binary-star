@@ -64,9 +64,6 @@ class SessionEmailTemplate(BaseEmailTemplate):
         
         fmt = SessionEmailTemplate.fmt
         
-        # 6. Extract Current Price (Synthetic Context)
-        current_price = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("current_price")
-        
         # 7. Strategic Indicators (Ceremony Detection)
         # 7.1. Detect Synthesis Bonus (Hardened Engineering Matrix)
         bonus_marker = f"+{int(bonus_value)}"
