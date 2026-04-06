@@ -70,6 +70,9 @@ class SniperDaemon:
                 
                 # 3. Report Status
                 now_str = datetime.now().strftime("%H:%M:%S")
+                if self.prev_metrics is None:
+                    logger.info(f"--- Sniper Monitoring Started: Initial Baseline Established ({self.symbol}) ---")
+
                 if not is_noteworthy:
                     # Low-entropy log for sleeping state
                     status = reason if "COOLDOWN" in reason else "SLEEPING"
@@ -86,10 +89,11 @@ class SniperDaemon:
                     
                     if self.session_engine:
                         # 4. Trigger Binary Star Protocol
-                        logger.info("SniperDaemon: Activating Binary Star reasoning loop...")
+                        logger.info("SniperDaemon: Activating Binary Star reasoning loop (Blocking Pulse)...")
                         # This is a blocking call (Synchronous/Serial)
                         # It will generate images, run AI, and send emails if --email is on.
                         self.session_engine.execute_cycle()
+                        logger.info("SniperDaemon: Session cycle complete. Returning to pulse monitoring.")
                     
                     # 5. Mark Triggered to start Cooldown (System Safety)
                     self.trigger.set_triggered(t_type)

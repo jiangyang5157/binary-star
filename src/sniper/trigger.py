@@ -90,11 +90,37 @@ class SniperTrigger:
         sent = curr.get('sentiment_signals', {})
         
         # 1. 存量/极值检测 (CVD & LS Ratio)
-        # DNA Mapping: cvd_intensity_ratio from sentiment_signals
         cvd = sent.get('cvd_intensity_ratio', 0.0)
-        if abs(cvd) > self.regime_cfg['cvd_intensity_threshold']:
-            return True, f"Institutional CVD flow (Intensity: {cvd:.3f})"
-            
+        cvd_threshold = self.regime_cfg['cvd_intensity_threshold']
+        
+        cvd_net = sent.get('cvd_net_delta', 0.0)
+        cvd_vol = sent.get('cvd_total_volume', 0.0)
+        cvd_lookback = sent.get('cvd_lookback_candles', 0)
+        micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
+        
+        if abs(cvd) > cvd_threshold:
+            # Momentum Locking: If we have previous metrics, only re-trigger if intensity is INCREASING or FLIPPED
+            should_trigger = True
+            if prev:
+                prev_sent = prev.get('sentiment_signals', {})
+                prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
+                
+                # Condition: Current Intensity is > 20% stronger than previous OR direction flipped
+                # This prevents 'stuck' triggers on a flat/fading state after the 15m cooldown expires.
+                is_increasing = abs(cvd) > abs(prev_cvd) * 1.2
+                is_flipped = (cvd > 0 and prev_cvd < 0) or (cvd < 0 and prev_cvd > 0)
+                
+                if not (is_increasing or is_flipped):
+                    return False, None, f"MOMENTUM_LOCK (Intensity stable: {cvd:.3f} vs {prev_cvd:.3f})"
+                    
+            if should_trigger:
+                reason = (
+                    f"Institutional CVD flow (Intensity: {cvd:.3f} | "
+                    f"Delta: {cvd_net:.1f} | Vol: {cvd_vol:.1f} | "
+                    f"Window: {cvd_lookback}k @ {micro_int} | Threshold: {cvd_threshold})"
+                )
+                return True, reason
+
         # DNA Mapping: ls_ratio_micro from sentiment_signals
         ls = sent.get('ls_ratio_micro', 1.0)
         if ls > self.regime_cfg['long_short_imbalance_ratio'] or \
@@ -113,8 +139,8 @@ class SniperTrigger:
             # 3. CVD 脉冲 (CVD Dynamic Impulse) - [NEW v2.0]
             # Trigger on sudden taker surge even if absolute threshold isn't hit
             cvd_delta = abs(cvd - prev_cvd)
-            if cvd_delta > (self.regime_cfg['cvd_intensity_threshold'] * 0.5):
-                return True, f"CVD Impulse Detected (Delta: {cvd_delta:.3f})"
+            if cvd_delta > (cvd_threshold * 0.5):
+                return True, f"CVD Impulse Detected (Delta: {cvd_delta:.3f} | Threshold: {cvd_threshold*0.5:.3f})"
 
             # 4. 吸筹/派发背离 (CVD Divergence Detection) - [NEW v2.0]
             curr_price = curr['price_dynamics']['current_price']

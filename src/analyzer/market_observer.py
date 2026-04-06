@@ -446,7 +446,9 @@ class MarketMetricsRefiner:
             "ls_ratio_macro": float(raw.macro_ls[0].get('longShortRatio', 0)) if raw.macro_ls else 0,
             "ls_ratio_micro": float(raw.micro_ls[0].get('longShortRatio', 0)) if raw.micro_ls else 0,
             "cvd_intensity_ratio": cvd_intensity_ratio,
-            "net_taker_delta": cvd_current_net,
+            "cvd_net_delta": cvd_current_net,
+            "cvd_total_volume": cvd_current_total_vol,
+            "cvd_lookback_candles": lookback,
             "funding_rate": f_rate,
             "funding_rate_delta": f_delta,
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
