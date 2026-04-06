@@ -23,6 +23,7 @@ visuals:
   grid_color: "#1a1e29"     # Secondary grid line color
   poc_color: "#ff9800"      # Point of Control (POC) marker color
   value_area_color: "#fbc02d" # Color for the Value Area (VAH/VAL) boundaries
+  current_price_color: "#ffffff" # Color for the Current Price tracking line
   liq_buy_color: "#00ff88"  # Buy-side liquidation marker color
   liq_sell_color: "#ff3366" # Sell-side liquidation marker color
   volume_profile_width_ratio: 0.8 # Scaling factor for volume profile bars relative to axis width

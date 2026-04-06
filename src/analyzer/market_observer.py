@@ -109,6 +109,7 @@ class MarketObserverConfig:
     value_area_color: str
     liq_buy_color: str
     liq_sell_color: str
+    current_price_color: str
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -201,7 +202,8 @@ class MarketObserverConfig:
             poc_color=str(cfg['visuals']['poc_color']),
             value_area_color=str(cfg['visuals']['value_area_color']),
             liq_buy_color=str(cfg['visuals']['liq_buy_color']),
-            liq_sell_color=str(cfg['visuals']['liq_sell_color'])
+            liq_sell_color=str(cfg['visuals']['liq_sell_color']),
+            current_price_color=str(cfg['visuals']['current_price_color'])
         )
 
     @property
@@ -519,7 +521,8 @@ class MarketObserver:
             bg_color=self.config.bg_color,
             grid_color=self.config.grid_color,
             poc_color=self.config.poc_color,
-            value_area_color=self.config.value_area_color
+            value_area_color=self.config.value_area_color,
+            current_price_color=self.config.current_price_color
         )
         
         # [MODULARIZED PROCESSING STACK]

@@ -29,6 +29,7 @@ class ChartConfig:
     value_area_color: str
     liq_buy_color: str
     liq_sell_color: str
+    current_price_color: str
     volume_profile_width_ratio: float
     volume_profile_smoothing_sigma: float
     volume_profile_color: str
@@ -107,7 +108,8 @@ class ChartVisualRenderer:
     """
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
                  grid_color: str, poc_color: str, value_area_color: str, 
-                 liq_buy_color: str, liq_sell_color: str, volume_profile_width_ratio: float, 
+                 liq_buy_color: str, liq_sell_color: str, current_price_color: str,
+                 volume_profile_width_ratio: float, 
                  render_dpi: int, volume_profile_smoothing_sigma: float, volume_profile_color: str,
                  volume_profile_alpha: float,
                  chart_main_panel_weight: int, chart_volume_panel_weight: int):
@@ -120,6 +122,7 @@ class ChartVisualRenderer:
             value_area_color=value_area_color,
             liq_buy_color=liq_buy_color,
             liq_sell_color=liq_sell_color,
+            current_price_color=current_price_color,
             volume_profile_width_ratio=volume_profile_width_ratio, 
             volume_profile_smoothing_sigma=volume_profile_smoothing_sigma,
             volume_profile_color=volume_profile_color,
@@ -222,6 +225,17 @@ class ChartVisualRenderer:
                         ax.yaxis.set_label_position('right')
 
                 main_ax = axlist[0]
+                
+                # 3. Current Price Tracker (v6.75: Thin dashed line for immediate context)
+                current_price = plot_df['Close'].iloc[-1]
+                main_ax.axhline(
+                    y=current_price, 
+                    color=self.config.current_price_color,      # Configurable via global_config.yaml
+                    linestyle='--',                             # Hardcoded v6.81
+                    linewidth=0.5,                              # Hardcoded v6.81
+                    alpha=0.8,                                  # Hardcoded v6.81
+                    zorder=3
+                )
 
                 # 4. Overlay Volume Profile Histogram
                 if "profile_data" in profile_data:
@@ -234,7 +248,7 @@ class ChartVisualRenderer:
                 # 5. Overlay Trendlines
                 trendlines = self.extractor.detect_trendlines(df) # Use original df with lowercase columns
                 for line in trendlines:
-                    main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.5, alpha=0.9)
+                    main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.0, alpha=0.8)
     
                 # 6. OCR Text Hard Injection (Minimalist Right-Side Identifier)
                 # v6.65: Labels are right-aligned to the last candle, but price numbers 

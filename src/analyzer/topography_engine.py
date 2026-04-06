@@ -27,6 +27,7 @@ class TopographyEngine:
             value_area_color=obs_config.value_area_color,
             liq_buy_color=obs_config.liq_buy_color,
             liq_sell_color=obs_config.liq_sell_color,
+            current_price_color=obs_config.current_price_color,
             volume_profile_width_ratio=obs_config.volume_profile_width_ratio,
             volume_profile_smoothing_sigma=obs_config.volume_profile_smoothing_sigma,
             volume_profile_color=obs_config.volume_profile_color,
