@@ -22,7 +22,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
     Decouples the UI presentation from the data fetching/sending logic.
     """
     @staticmethod
-    def render(session_data: Dict[str, Any]) -> str:
+    def render(session_data: Dict[str, Any], bonus_value: float) -> str:
         """
         Renders the final strategy JSON into a rich HTML report.
         """
@@ -67,6 +67,68 @@ class SessionEmailTemplate(BaseEmailTemplate):
         # 6. Extract Current Price (Synthetic Context)
         current_price = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("current_price")
         
+        # 7. Strategic Indicators (Ceremony Detection)
+        # 7.1. Detect Synthesis Bonus (Parameter-aligned) from reasoning text
+        bonus_marker = f"+{int(bonus_value)}"
+        has_bonus = any(ind in reasoning for ind in [bonus_marker, "Bonus", "Synthesis Bonus", "Logic Healing", "Healed"])
+        
+        # 7.2. Detect SL Shielding from the last round of debate
+        history = session_data.get("debate_history", [])
+        last_round = history[-1] if history else {}
+        is_shielded = last_round.get("math_fact_check", {}).get("compliance_verdict", {}).get("sl_is_shielded", False)
+        
+        # 7.3. Detect Volatility Regime (Dynamic Threshold from Config)
+        vr_val = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("volatility_expansion_ratio", 0)
+        
+        # Extract the 'extreme' threshold from the physics engine's fact check to avoid hardcoding 2.0
+        thresholds = last_round.get("math_fact_check", {}).get("holding_time_verification", {}).get("calculation_inputs", {}).get("thresholds_used", {})
+        vr_extreme = thresholds.get("vr_extreme")
+        
+        is_chaos = vr_val > vr_extreme  # Dynamic Chaos detection based on strategy_config
+        
+        # 8. Render Action Matrix (Highlight rows based on confidence)
+        def get_row_style(min_val, max_val):
+            return 'class="matrix-highlight"' if min_val <= confidence < max_val else ""
+
+        matrix_html = f"""
+        <table class="matrix-table">
+            <thead>
+                <tr>
+                    <th>Score</th>
+                    <th>Rating</th>
+                    <th>Action</th>
+                    <th>Sizing</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr {get_row_style(72, 81)}>
+                    <td>72-80</td>
+                    <td>Pristine</td>
+                    <td>Blind Execution</td>
+                    <td>100%</td>
+                </tr>
+                <tr {get_row_style(65, 72)}>
+                    <td>65-72</td>
+                    <td>Hardened</td>
+                    <td>Standard Entry</td>
+                    <td>80-100%</td>
+                </tr>
+                <tr {get_row_style(55, 65)}>
+                    <td>55-65</td>
+                    <td>Tactical</td>
+                    <td>Deep DLE</td>
+                    <td>50%</td>
+                </tr>
+                <tr {get_row_style(50, 55)}>
+                    <td>50-55</td>
+                    <td>Abyss</td>
+                    <td>Skip/Manual</td>
+                    <td>0-25%</td>
+                </tr>
+            </tbody>
+        </table>
+        """
+        
         return f"""
         <html>
         <head>{SessionEmailTemplate.get_styles()}</head>
@@ -90,7 +152,6 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('audit_impact'))}</p>
                 </div>
                 ''' if decision.get('audit_impact') else ""}
-
                 <!-- Reasoning -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
                     <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">Reasoning</h3>
@@ -126,6 +187,32 @@ class SessionEmailTemplate(BaseEmailTemplate):
                         </tr>
                     </table>
                     ''' if decision else ""}
+                </div>
+
+                <!-- Strategic Guidance: Sniper's Double-Check List -->
+                <div style="margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background: #ffffff;">
+                    <div style="display: table; width: 100%; border-collapse: collapse;">
+                        <div style="display: table-cell; width: 50%; vertical-align: top; padding-right: 20px;">
+                            <h3 style="margin-top: 0; color: #334155; font-size: 14px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.05em;">🔍 Sniper's Double-Check List</h3>
+                            <div style="margin-bottom: 12px;">
+                                <div class="status-pill {'pill-chaos' if is_chaos else 'pill-safe'}" style="margin-bottom: 8px;">
+                                    {'🔥 CHAOS' if is_chaos else '🌊 SAFE'} Regime
+                                </div>
+                                <div class="status-pill {'pill-shielded' if has_bonus else 'pill-exposed'}" style="margin-bottom: 8px; border-color: {('#bfdbfe' if has_bonus else '#e2e8f0')}; background-color: {('#eff6ff' if has_bonus else '#f8fafc')}; color: {('#1d4ed8' if has_bonus else '#64748b')};">
+                                    {'🧩 SYNERGY RESOLVED' if has_bonus else '⚪ NO BONUS'}
+                                </div>
+                                <div class="status-pill {'pill-shielded' if is_shielded else 'pill-exposed'}" style="margin-bottom: 8px;">
+                                    {'🛡️ SHIELDED' if is_shielded else '⚠️ EXPOSED'} Stop-Loss
+                                </div>
+                            </div>
+                            <p style="font-size: 11px; color: #64748b; line-height: 1.5; margin: 0; font-style: italic;">
+                                {f"<b>Logic Healing Detected:</b> This session successfully resolved a critical veto (+10 bonus)." if has_bonus else "<b>Raw Logic:</b> No synthesis bonus was awarded in this session."}
+                            </p>
+                        </div>
+                        <div style="display: table-cell; width: 50%; vertical-align: top;">
+                           {matrix_html}
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Visual Assets -->
@@ -468,8 +555,9 @@ class SessionNotifier:
         self.global_cfg = self._load_global_config()
         
         # Sourcing threshold from global_config.yaml (Strict enforcement)
-        session_cfg = self.global_cfg.get('session', {})
-        self.notification_confidence_threshold = int(session_cfg.get('notification_confidence_threshold', 0))
+        session_cfg = self.global_cfg.get('binary_star', {}).get('session', {})
+        self.notification_confidence_threshold = int(session_cfg['notification_confidence_threshold'])
+        self.score_confidence_bonus = float(session_cfg['score_confidence_bonus'])
 
 
     def _load_global_config(self) -> Dict[str, Any]:
@@ -503,7 +591,7 @@ class SessionNotifier:
         Parses strategy result and dispatches an actionable email alert.
         """
         # Always generate HTML for potential preview even if email is disabled
-        html_body = SessionEmailTemplate.render(session_data or {})
+        html_body = SessionEmailTemplate.render(session_data or {}, bonus_value=self.score_confidence_bonus)
         
         # Collect Visual Attachments
         obs = (session_data or {}).get("observation") or {}
@@ -553,7 +641,7 @@ class SessionNotifier:
         Specialized notification for independent market reconnaissance audits.
         Ensures clear nomenclature and skips signal-specific logic filters.
         """
-        html_body = SessionEmailTemplate.render(session_data or {})
+        html_body = SessionEmailTemplate.render(session_data or {}, bonus_value=self.score_confidence_bonus)
         obs = (session_data or {}).get("observation") or {}
         assets = obs.get("visual_assets") or {}
         

@@ -194,6 +194,8 @@ binary_star:
     # Linear decay per Critic veto. STRICT Formula: decay_min + (skepticism / 100) * (decay_max - decay_min)
     score_confidence_decay_min: 5
     score_confidence_decay_max: 20
+    # Bonus awarded for resolving [TERMINAL] or [CONSTRUCTIVE] logic violations in synthesis.
+    score_confidence_bonus: 10
 
     # Dynamic Holding Friction Factors (Time Redundancy)
     holding_friction_highway: 1.4

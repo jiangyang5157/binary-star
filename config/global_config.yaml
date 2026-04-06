@@ -35,8 +35,8 @@ visuals:
   render_dpi: 300               # Resolution for visual artifacts (Higher = sharper images)
 
 session:
-  default_live_pulse_minutes: 60
-  notification_confidence_threshold: 60
+  default_live_pulse_minutes: 15
+  notification_confidence_threshold: 65
 
 backtest:
   # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)

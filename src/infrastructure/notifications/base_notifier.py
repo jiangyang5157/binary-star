@@ -51,6 +51,20 @@ class BaseEmailTemplate:
                 .panel { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 15px; }
                 .panel-title { margin: 0 0 10px 0; color: #64748b; font-size: 10px; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; }
                 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 35px; }
+                
+                /* Strategic Guidance Styles */
+                .status-pill { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-right: 5px; border: 1px solid transparent; }
+                .pill-safe { background-color: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+                .pill-chaos { background-color: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+                .pill-shielded { background-color: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+                .pill-exposed { background-color: #fffbeb; color: #b45309; border-color: #fde68a; }
+                
+                .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; margin-top: 10px; }
+                .matrix-table th { background-color: #f1f5f9; color: #475569; font-size: 10px; padding: 8px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+                .matrix-table td { font-size: 11px; padding: 10px 8px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+                .matrix-table tr:last-child td { border-bottom: none; }
+                .matrix-highlight { background-color: #f8fafc; font-weight: 600; color: #0f172a; }
+
                 .metric-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
                 .metric-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
                 .metric-value { font-size: 16px; color: #0f172a; font-weight: 800; }

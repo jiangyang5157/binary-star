@@ -32,6 +32,7 @@ class SessionConfig(AgentConfig):
     score_confidence_base: float
     score_confidence_decay_min: float
     score_confidence_decay_max: float
+    score_confidence_bonus: float
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -108,6 +109,7 @@ class SessionConfig(AgentConfig):
             score_confidence_base=float(session_cfg['score_confidence_base']),
             score_confidence_decay_min=float(session_cfg['score_confidence_decay_min']),
             score_confidence_decay_max=float(session_cfg['score_confidence_decay_max']),
+            score_confidence_bonus=float(session_cfg['score_confidence_bonus']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
@@ -274,6 +276,7 @@ class SessionAgent(BaseAgent):
             "score_confidence_base": self.config.score_confidence_base,
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
             "score_confidence_decay_max": self.config.score_confidence_decay_max,
+            "score_confidence_bonus": self.config.score_confidence_bonus,
             "macro_interval_minutes": get_interval_minutes(self.config.macro_interval),
             "micro_interval_minutes": get_interval_minutes(self.config.micro_interval),
             "anchor_drift_threshold": self.config.anchor_drift_threshold,

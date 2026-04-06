@@ -74,7 +74,7 @@ Your `confidence_score` is NOT a subjective feeling. It is a **deterministic lin
 - **Successive Rounds**: For EACH Critic veto found in `{debate_history_json}`, you MUST calculate the exact penalty using this strict algebraic formula:
   `Decay = {score_confidence_decay_min} + (skepticism_score / 100) * ({score_confidence_decay_max} - {score_confidence_decay_min})`
   Subtract `Decay` from your current score. You are FORBIDDEN from increasing confidence between debate rounds. **Show your math step-by-step in `reasoning_chain`.**
-- **Synthesis Bonus**: In the FINAL Synthesis round ONLY, you may add up to 10 points IF AND ONLY IF your new coordinates mathematically eliminate a previous `[TERMINAL]` veto. You MUST cite the specific `[TERMINAL]` veto tag that was resolved in `critic_impact`.
+- **Synthesis Bonus**: In the FINAL Synthesis round ONLY, you may add up to `{score_confidence_bonus}` points IF AND ONLY IF your new coordinates mathematically eliminate a previous `[TERMINAL]` veto. You MUST cite the specific `[TERMINAL]` veto tag that was resolved in `critic_impact`.
 
 # OUTPUT_SCHEMA
 Your final response MUST be RAW JSON only. Do not output JSON until all necessary Math Tools have returned valid results.
