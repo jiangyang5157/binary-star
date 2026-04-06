@@ -36,7 +36,7 @@ visuals:
 
 session:
   default_live_pulse_minutes: 60
-  notification_confidence_threshold: 50
+  notification_confidence_threshold: 60
 
 backtest:
   # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
