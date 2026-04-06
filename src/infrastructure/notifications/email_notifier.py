@@ -72,14 +72,13 @@ class SessionEmailTemplate(BaseEmailTemplate):
         bonus_marker = f"+{int(bonus_value)}"
         hardened_indicators = [
             bonus_marker, 
-            "Bonus", 
             "Synthesis Bonus", 
             "mathematically eliminate", 
             "resolved [TERMINAL]", 
             "Hardened Evolution",
-            "Intersection of All Constraints",
-            "Logic Healing",
-            "Healed"
+            "Intersection of All",
+            "eliminated the risk",
+            "Logic Healing"
         ]
         
         reasoning_lower = reasoning.lower()
