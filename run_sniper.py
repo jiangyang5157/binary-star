@@ -45,8 +45,9 @@ class SniperDaemon:
         self.session_engine = None
         if args.trigger:
             # We pass the same args to SessionEngine for email/path parity
-            # Sniper mode always disables the forensic session.log to prevent pollution
-            self.session_engine = SessionEngine(self.symbol, args.path, args=args, enable_file_log=False)
+            # We respect the --no-log flag to decide whether to persist the forensic session.log
+            enable_file_log = not getattr(args, "no_log", False)
+            self.session_engine = SessionEngine(self.symbol, args.path, args=args, enable_file_log=enable_file_log)
         
         self.prev_metrics = None
 
@@ -118,6 +119,7 @@ def main():
     parser.add_argument("--pulse", type=float, default=5.0, help="Sniper check interval in minutes")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
+    parser.add_argument("--no-log", action="store_true", help="Disable session.log file persistence")
     parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
 
     args = parser.parse_args()
