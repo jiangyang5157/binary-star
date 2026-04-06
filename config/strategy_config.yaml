@@ -188,7 +188,7 @@ binary_star:
     # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
     # Hard safety boundaries for stop-loss placements.
-    stop_loss_buffer_min: 0.75
+    stop_loss_buffer_min: 1.25
     stop_loss_buffer_max: 2.5
     score_confidence_base: 75
     # Decay applied for every round of doubt from the Audit.
@@ -196,9 +196,9 @@ binary_star:
     score_confidence_decay_max: 30
 
     # Dynamic Holding Friction Factors (Time Redundancy)
-    holding_friction_highway: 1.1
-    holding_friction_standard: 1.5
-    holding_friction_climax: 2.0
+    holding_friction_highway: 1.4
+    holding_friction_standard: 1.8
+    holding_friction_climax: 2.2
     holding_friction_dead_water: 3.0
 
   critic:
