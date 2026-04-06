@@ -112,6 +112,7 @@ class BinaryStarOrchestrator:
             value_area_color=self.obs_config.value_area_color,
             liq_buy_color=self.obs_config.liq_buy_color,
             liq_sell_color=self.obs_config.liq_sell_color,
+            current_price_color=self.obs_config.current_price_color,
             volume_profile_width_ratio=self.obs_config.volume_profile_width_ratio,
             volume_profile_smoothing_sigma=self.obs_config.volume_profile_smoothing_sigma,
             volume_profile_color=self.obs_config.volume_profile_color,
