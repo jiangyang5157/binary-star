@@ -183,7 +183,7 @@ class ChartVisualRenderer:
                 hlines=[poc, vah, val], 
                 colors=[self.config.poc_color, self.config.value_area_color, self.config.value_area_color], 
                 linestyle=['-', '--', '--'], 
-                linewidths=[1.5, 1.0, 1.0] # POC (1.5), VAH/VAL (1.0)
+                linewidths=[1.0, 1.0, 1.0] # POC (1.5), VAH/VAL (1.0)
             )
 
             # 2. Main Plot (Candles + Volume)
@@ -234,7 +234,7 @@ class ChartVisualRenderer:
                     linestyle='--',                             # Hardcoded v6.81
                     linewidth=0.5,                              # Hardcoded v6.81
                     alpha=0.8,                                  # Hardcoded v6.81
-                    zorder=3
+                    zorder=11                                   # Above everything
                 )
 
                 # 4. Overlay Volume Profile Histogram
@@ -262,7 +262,7 @@ class ChartVisualRenderer:
                     color='white',
                     ha='right',      # Right-aligned to price action
                     va='center',
-                    zorder=2         # Background layer (candles draw on top)
+                    zorder=12         # Top layer for readability
                 )
                 
                 # Point of Control (POC)
@@ -331,7 +331,7 @@ class ChartVisualRenderer:
             x2=smoothed_v,         # 多边形的右边界（经过高斯平滑的轮廓）
             color=self.config.volume_profile_color, 
             alpha=self.config.volume_profile_alpha, 
-            zorder=1, 
+            zorder=10,             # v6.90: Elevated above POC/VAH/VAL lines per request
             linewidth=0,           # 绝对禁止外边框，防止抗锯齿干扰
             edgecolor='none'       # 彻底关闭边缘颜色
         )
