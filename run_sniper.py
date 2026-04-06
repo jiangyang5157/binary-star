@@ -75,8 +75,14 @@ class SniperDaemon:
                     status = reason if "COOLDOWN" in reason else "SLEEPING"
                     print(f"[{now_str}] 💤 {status} | No actionable asymmetry detected.")
                 else:
-                    # High-fidelity event logging
-                    logger.info(f"[{now_str}] 🔫 WAKE UP! [{t_type}] | {reason}")
+                    # High-fidelity event logging with prominent UI
+                    print("\n" + "!"*60)
+                    print(f"       🔫 SNIPER WAKE UP! [{t_type}]")
+                    print("!"*60)
+                    print(f"REASON: {reason}")
+                    print("!"*60 + "\n")
+                    
+                    logger.info(f"WAKE UP! [{t_type}] | {reason}")
                     
                     if self.session_engine:
                         # 4. Trigger Binary Star Protocol

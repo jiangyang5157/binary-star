@@ -187,7 +187,7 @@ python run_session.py --start T-16d --end T-2d --samples 20 --sampling-mode spac
 
 *   **实时监控 (Sniper Mode)**：基于“觉醒矩阵”探测异动，仅在捕捉到高不对称性机会时激活会话引擎。 `--pulse 0.1` 约等于6秒一次，`--trigger --email` 按需触发采样推理。 
 ```bash
-python run_sniper.py --symbol BTCUSDT --pulse 0.1
+python run_sniper.py --pulse 0.1
 ```
 
 ### 2. 取证审计 (Forensic Audit)
