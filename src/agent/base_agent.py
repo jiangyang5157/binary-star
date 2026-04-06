@@ -185,7 +185,9 @@ class BaseAgent:
                 if not tool_calls:
                     # Termination Condition: No further tools needed.
                     try:
-                        text = response.text
+                        # [v6.27] Simple Silence: Manually extract text to bypass SDK warnings for non-text parts
+                        text = "".join([p.text for p in parts if hasattr(p, 'text') and p.text])
+                        
                         if not text or not text.strip():
                             logger.error(f"BaseAgent: {agent_name} returned empty text.")
                             return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
@@ -193,7 +195,7 @@ class BaseAgent:
                         logger.error(f"BaseAgent: Text extraction failure for {agent_name}: {e}")
                         return {"error": "TEXT_FAILURE", "details": str(e), "agent": agent_name}
                         
-                    return self._parse_and_validate_response(response, agent_name)
+                    return self._parse_and_validate_response(text, agent_name)
                 
                 # Tool Execution Cycle
                 logger.info(f"{agent_name}: Found {len(tool_calls)} function calls. Executing...")
@@ -232,20 +234,20 @@ class BaseAgent:
                 "agent": agent_name
             }
 
-    def _parse_and_validate_response(self, response: Any, agent_name: str) -> Dict[str, Any]:
+    def _parse_and_validate_response(self, text: str, agent_name: str) -> Dict[str, Any]:
         """Extracts and validates structured JSON output from model candidates.
         
         Args:
-            response: The raw response candidate.
+            text: The raw text extracted from response parts.
             agent_name: Identity for error attribution.
             
         Returns:
             Extracted dictionary. Defaults to error object if malformed.
         """
-        parsed = extract_json_from_text(response.text)
+        parsed = extract_json_from_text(text)
         if parsed is None:
-            logger.error(f"BaseAgent: {agent_name} returned malformed JSON: {response.text[:200]}...")
-            return {"error": "MALFORMED_JSON", "raw": response.text, "agent": agent_name}
+            logger.error(f"BaseAgent: {agent_name} returned malformed JSON: {text[:200]}...")
+            return {"error": "MALFORMED_JSON", "raw": text, "agent": agent_name}
         return parsed
 
     def _dispatch_tool_call(self, fc: types.FunctionCall) -> Any:

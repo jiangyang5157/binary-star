@@ -80,7 +80,6 @@ class BinaryStarOrchestrator:
         # 3. Binary Star Protocol Parameters
         self.bs_config = self.config['binary_star']
         self.max_rounds = int(self.bs_config['max_rounds'])
-        self.skepticism_halt_limit = int(self.bs_config['skepticism_halt_limit'])
         self.cache_expiration = int(self.bs_config['cache_expiration_minutes'])
         self.shared_model = self.bs_config['model']
         
@@ -339,9 +338,10 @@ class BinaryStarOrchestrator:
                     tools=tools
                 )
                 
-                # Score Telemetry & Termination Check
+                # Score Telemetry
                 skepticism_score = int(float(str(critic_results.get('skepticism_score', 100))))
-                logger.info(f"BinaryStar [Critique]: Round {current_round} Score: {skepticism_score}")
+                veto_level = critic_results.get('veto_level', 'UNKNOWN')
+                logger.info(f"BinaryStar Audit [R{current_round}]: Score={skepticism_score} | Veto={veto_level}")
                 
                 debate_history.append({
                     "round": current_round,
@@ -349,12 +349,6 @@ class BinaryStarOrchestrator:
                     "critic": critic_results,
                     "math_fact_check": math_fact_check
                 })
-
-                if skepticism_score < self.skepticism_halt_limit:
-                    logger.info(f"BinaryStar: Skepticism resolved ({skepticism_score} < {self.skepticism_halt_limit}). Convergence achieved in Round {current_round}.")
-                    break
-                else:
-                    logger.warning(f"BinaryStar: Skepticism remains high ({skepticism_score} >= {self.skepticism_halt_limit}). Proceeding to refinement.")
                     
                 current_round += 1
                 

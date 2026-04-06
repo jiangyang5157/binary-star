@@ -179,8 +179,6 @@ binary_star:
   cache_expiration_minutes: 10
   # Maximum rounds of debate before forced consensus or surrender.
   max_rounds: 2
-  # Divergence Limit. If skepticism holds above this, the system refuses to trade.
-  skepticism_halt_limit: 50
 
   session:
     role_definition_prompt: src/agent/prompts/session.md

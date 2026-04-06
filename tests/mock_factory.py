@@ -113,7 +113,6 @@ class MockDataFactory:
             "binary_star": {
                 "model": "mock-model",
                 "max_rounds": 3,
-                "skepticism_halt_limit": 20,
                 "cache_expiration_minutes": 10,
                 "system_instruction": "config/strategy_config.yaml",
                 "session": {
@@ -125,6 +124,7 @@ class MockDataFactory:
                     "score_confidence_base": 80.0,
                     "score_confidence_decay_min": 5.0,
                     "score_confidence_decay_max": 20.0,
+                    "score_confidence_bonus": 10.0,
                     "holding_time_modifier": 1.0,
                     "holding_friction_highway": 1.1,
                     "holding_friction_standard": 1.5,

@@ -18,20 +18,22 @@ class TestBinaryStarFlow:
         orchestrator.session_agent.execute_session_cycle = MagicMock(side_effect=[
             MockDataFactory.create_mock_ai_response("BULLISH"), # R1
             MockDataFactory.create_mock_ai_response("BULLISH"), # R2
+            MockDataFactory.create_mock_ai_response("BULLISH"), # R3
             MockDataFactory.create_mock_ai_response("BULLISH")  # Synthesis
         ])
         
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
         orchestrator.critic_agent.evaluate = MagicMock(side_effect=[
-            MockDataFactory.create_mock_critic_response(score=80),
-            MockDataFactory.create_mock_critic_response(score=10) # 10 < 20 (Convergence)
+            MockDataFactory.create_mock_critic_response(score=80, veto=True),
+            MockDataFactory.create_mock_critic_response(score=10, veto=False),
+            MockDataFactory.create_mock_critic_response(score=5, veto=False)
         ])
 
         # Execute
         result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
         
-        # Verify Convergence (2 rounds of debate + 1 final synthesis call)
-        assert len(result["debate_history"]) == 2
+        # Verify execution (Always runs max_rounds = 3 in mock_config)
+        assert len(result["debate_history"]) == 3
         assert result["final_decision"]["opinion"] == "BULLISH"
         assert "version_control" in result["metadata"]
 
@@ -44,7 +46,7 @@ class TestBinaryStarFlow:
             return_value=MockDataFactory.create_mock_ai_response("NEUTRAL")
         )
         orchestrator.critic_agent.evaluate = MagicMock(
-            return_value=MockDataFactory.create_mock_critic_response(score=100)
+            return_value=MockDataFactory.create_mock_critic_response(score=100, veto=True)
         )
         
         result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
