@@ -24,9 +24,9 @@ class TestBinaryStarFlow:
         
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
         orchestrator.critic_agent.evaluate = MagicMock(side_effect=[
-            MockDataFactory.create_mock_critic_response(score=80, veto=True),
-            MockDataFactory.create_mock_critic_response(score=10, veto=False),
-            MockDataFactory.create_mock_critic_response(score=5, veto=False)
+            MockDataFactory.create_mock_critic_response(score=80, level="TERMINAL"),
+            MockDataFactory.create_mock_critic_response(score=10, level="PASS"),
+            MockDataFactory.create_mock_critic_response(score=5, level="PASS")
         ])
 
         # Execute
@@ -46,7 +46,7 @@ class TestBinaryStarFlow:
             return_value=MockDataFactory.create_mock_ai_response("NEUTRAL")
         )
         orchestrator.critic_agent.evaluate = MagicMock(
-            return_value=MockDataFactory.create_mock_critic_response(score=100, veto=True)
+            return_value=MockDataFactory.create_mock_critic_response(score=100, level="TERMINAL")
         )
         
         result = orchestrator.execute_flow(mock_obs, "BTCUSDT")

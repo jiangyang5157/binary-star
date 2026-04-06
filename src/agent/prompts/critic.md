@@ -66,17 +66,16 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 5. **Scoring & Boolean Synchronicity**:
     - **Step 1: Determine Veto Level**: Identify the highest Veto Level triggered from the `CRITIC_CODES` table (Hierarchy: TERMINAL > CONSTRUCTIVE > WEAK > PASS).
     - **Step 2: Score Mapping**: Assign a `skepticism_score` strictly within its corresponding bracket based on the Veto Level. Do NOT invent a score outside the dictated boundary:
-        - **PASS** (`veto_triggered: false`): [0, `{threshold_skepticism_clear}`]
-        - **WEAK** (`veto_triggered: false`): [`{threshold_skepticism_clear}`+1, `{threshold_skepticism_weak}`]
-        - **CONSTRUCTIVE** (`veto_triggered: true`): [`{threshold_skepticism_weak}`+1, `{threshold_skepticism_constructive}`]
-        - **TERMINAL** (`veto_triggered: true`): [`{threshold_skepticism_constructive}`+1, 100]
+        - **PASS**: [0, `{threshold_skepticism_clear}`]
+        - **WEAK**: [`{threshold_skepticism_clear}`+1, `{threshold_skepticism_weak}`]
+        - **CONSTRUCTIVE**: [`{threshold_skepticism_weak}`+1, `{threshold_skepticism_constructive}`]
+        - **TERMINAL**: [`{threshold_skepticism_constructive}`+1, 100]
 
 # OUTPUT_SCHEMA
 Your response MUST be RAW JSON only.
 
 ```json
 {{
-    "veto_triggered": boolean,
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | TERMINAL",
     "skepticism_score": integer,
     "quantitative_verification": "A concise qualitative summary focusing on physical facts (RR, SL, Structural proximity) from math_fact_check.",

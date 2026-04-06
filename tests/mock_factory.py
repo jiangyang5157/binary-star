@@ -249,12 +249,12 @@ class MockDataFactory:
         }
 
     @staticmethod
-    def create_mock_critic_response(score: int = 15, veto: bool = False) -> Dict[str, Any]:
+    def create_mock_critic_response(score: int = 15, level: str = "PASS") -> Dict[str, Any]:
         """Simulates an adversarial audit response from the Critic agent."""
         return {
             "skepticism_score": score,
-            "veto_triggered": veto,
-            "critic_summary": "Structure is sound, but RR is slightly tight." if not veto else "TERMINAL: SL is unshielded.",
-            "suggested_mitigations": "None" if not veto else "Move SL behind 59000 POC.",
-            "codes": ["SAFE"] if not veto else ["ANCHOR_VIOLATION"]
+            "veto_level": level,
+            "critic_summary": "Structure is sound, but RR is slightly tight." if level == "PASS" else f"{level}: SL is unshielded.",
+            "suggested_mitigations": "None" if level == "PASS" else "Move SL behind 59000 POC.",
+            "codes": ["SAFE"] if level == "PASS" else ["ANCHOR_VIOLATION"]
         }
