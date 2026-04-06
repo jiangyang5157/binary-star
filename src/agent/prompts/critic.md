@@ -78,7 +78,7 @@ Your response MUST be RAW JSON only.
 {{
     "veto_triggered": boolean,
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | TERMINAL",
-    "skepticism_score": 0-100,
+    "skepticism_score": integer,
     "quantitative_verification": "A concise qualitative summary focusing on physical facts (RR, SL, Structural proximity) from math_fact_check.",
     "invalidations": ["Tag - Error Reasoning"],
     "critic_summary": "Critic risk summary.",
