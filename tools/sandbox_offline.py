@@ -121,8 +121,8 @@ def main():
         old_outcome = old_report.get('market_outcome', {})
         new_outcome = new_case.get('market_outcome', {})
 
-        old_score = FitnessEvaluator.get_fitness_score(old_outcome)
-        new_score = FitnessEvaluator.get_fitness_score(new_outcome)
+        old_score = evaluator.get_fitness_score(old_outcome)
+        new_score = evaluator.get_fitness_score(new_outcome)
 
         if evaluator.is_superior(old_outcome, new_outcome):
             accepted_cases.append(new_case)

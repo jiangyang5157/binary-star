@@ -435,7 +435,7 @@ class BinaryStarOrchestrator:
             dynamics = metrics.get('price_dynamics', {})
             topo = metrics.get('volume_profile', {})
             
-            atr = float(dynamics.get('atr_macro', 1.0))
+            atr = float(dynamics['atr_macro'])
             poc = float(topo.get('poc', 0))
             vah = float(topo.get('vah', 0))
             val = float(topo.get('val', 0))
@@ -451,7 +451,7 @@ class BinaryStarOrchestrator:
             holding_time = self.math_tools.project_holding_time(
                 entry=entry, take_profit=tp, atr=atr, 
                 trend_intensity=trend_intensity, 
-                volatility_expansion_ratio=float(dynamics.get('volatility_expansion_ratio', 1.0)),
+                volatility_expansion_ratio=float(dynamics['volatility_expansion_ratio']),
                 interval_minutes=get_interval_minutes(self.macro_interval),
                 min_velocity_floor=self.session_config.min_trade_velocity,
                 vr_base=self.critic_config.volatility_baseline_ratio,

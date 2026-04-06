@@ -93,6 +93,7 @@ class MockDataFactory:
                 "grid_color": "#1f2937",
                 "poc_color": "#FF9800",
                 "value_area_color": "#2196F3",
+                "current_price_color": "#ffffff",
                 "liq_buy_color": "#ff00ff",
                 "liq_sell_color": "#ffff00",
                 "volume_profile_width_ratio": 0.2,
