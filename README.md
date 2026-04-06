@@ -1,7 +1,5 @@
 # 🌌 Singularity 跨代交易会话引擎 (v7.0)
 
-![Singularity Hero](/Users/yangjiang/.gemini/antigravity/brain/60db8556-2c3e-4d5c-bf33-e744fc39920c/singularity_hero_branding_1775443880294.png)
-
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 
 ---
