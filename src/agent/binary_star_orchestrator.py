@@ -35,12 +35,12 @@ class BinaryStarOrchestrator:
     3. Adversarial Hardening: Iterative debate rounds ensure the final trade
        blueprint is logically sound and structurally shielded.
     """
-    
     def __init__(self, 
                  config_dict: Dict[str, Any], 
                  api_key: str, 
                  data_root: str,
-                 instruction_overrides: Optional[Dict[str, str]] = None):
+                 instruction_overrides: Optional[Dict[str, str]] = None,
+                 enable_file_log: bool = True):
         """Initializes the orchestrator as a central resource and configuration hub.
         
         Args:
@@ -58,9 +58,12 @@ class BinaryStarOrchestrator:
         self.global_config = load_config('config/global_config.yaml')
         
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
-        session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
-        setup_logger("", log_file=session_log_path)
-        logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
+        if enable_file_log:
+            session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
+            setup_logger("", log_file=session_log_path)
+            logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
+        else:
+            logger.info("--- Forensic Session Metadata Enabled (File Logging Disabled) ---")
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)

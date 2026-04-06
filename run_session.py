@@ -35,7 +35,7 @@ class SessionEngine:
     adversarial reasoning triad. Supports Live and Backtest modes 
     with complete logic parity.
     """
-    def __init__(self, symbol: str, data_root: str, args: Any = None):
+    def __init__(self, symbol: str, data_root: str, args: Any = None, enable_file_log: bool = True):
         self.symbol = symbol
         self.data_root = data_root
         self.args = args
@@ -51,7 +51,8 @@ class SessionEngine:
         self.orchestrator = BinaryStarOrchestrator(
             config_dict=self.config,
             api_key=self.api_key,
-            data_root=self.data_root
+            data_root=self.data_root,
+            enable_file_log=enable_file_log
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         
@@ -145,7 +146,8 @@ class SessionController:
         self.global_cfg = load_global_config()
         self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
         
-        self.engine = SessionEngine(self.symbol, self.data_root, args=args)
+        enable_log = not getattr(args, 'no_log', False)
+        self.engine = SessionEngine(self.symbol, self.data_root, args=args, enable_file_log=enable_log)
         self._setup_signals()
 
     def _setup_signals(self):
@@ -261,6 +263,7 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine (v6.0)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
+    parser.add_argument("--no-log", action="store_true", help="Disable forensic session.log file persistence")
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")

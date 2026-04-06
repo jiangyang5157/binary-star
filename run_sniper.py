@@ -44,9 +44,9 @@ class SniperDaemon:
         # 2. Initialize Heavyweight Session Engine (Optional)
         self.session_engine = None
         if args.trigger:
-            logger.info("SniperDaemon: Full AI session activation ENABLED.")
             # We pass the same args to SessionEngine for email/path parity
-            self.session_engine = SessionEngine(self.symbol, args.path, args=args)
+            # Sniper mode always disables the forensic session.log to prevent pollution
+            self.session_engine = SessionEngine(self.symbol, args.path, args=args, enable_file_log=False)
         
         self.prev_metrics = None
 
