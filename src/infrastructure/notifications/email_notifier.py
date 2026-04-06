@@ -561,24 +561,35 @@ class SessionNotifier:
         self.config = NotificationConfig.from_env()
         self.dispatcher = EmailDispatcher(self.config)
         self.data_root = data_root
-        self.global_cfg = self._load_global_config()
         
-        # Sourcing threshold from global_config.yaml (Strict enforcement)
-        session_cfg = self.global_cfg.get('binary_star', {}).get('session', {})
-        self.notification_confidence_threshold = int(session_cfg['notification_confidence_threshold'])
+        # Load both configurations to maintain strict parameter isolation
+        self.global_cfg = self._load_config("global_config.yaml")
+        self.strategy_cfg = self._load_config("strategy_config.yaml")
+        
+        # 1. Source global system settings (Notification Threshold)
+        global_session = self.global_cfg.get('session', {})
+        self.notification_confidence_threshold = int(global_session['notification_confidence_threshold'])
+        
+        # 2. Source strategy-specific physics (Confidence Bonus)
+        # Sourced from binary_star -> session node in strategy_config.yaml
+        bs_cfg = self.strategy_cfg.get('binary_star', {})
+        session_cfg = bs_cfg.get('session', {})
         self.score_confidence_bonus = float(session_cfg['score_confidence_bonus'])
 
-
-    def _load_global_config(self) -> Dict[str, Any]:
-        """Loads global system settings."""
+    def _load_config(self, filename: str) -> Dict[str, Any]:
+        """Loads a YAML configuration file from the standardized config directory."""
         try:
-            cfg_path = os.path.join(find_project_root(), "config", "global_config.yaml")
+            cfg_path = os.path.join(find_project_root(), "config", filename)
             if os.path.exists(cfg_path):
                 with open(cfg_path, 'r') as f:
                     return yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Failed to load global_config.yaml: {e}")
+            logger.error(f"Failed to load {filename}: {e}")
         return {}
+
+    def _load_global_config(self) -> Dict[str, Any]:
+        # Deprecated: usage replaced by generic _load_config
+        return self._load_config("global_config.yaml")
 
     def _get_timestamp_suffix(self, obs: Dict[str, Any]) -> str:
         """
