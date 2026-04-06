@@ -195,7 +195,7 @@ class AuditController:
 
             # 5. --- PHYSICAL FORENSIC: T1 Visual Capture ---
             t1_observation = self.observer.observe(timestamp=t1_dt, persist=False)
-            t1_assets = t1_observation.get("visual_assets", {})
+            t1_assets = t1_observation.get("visual_context", {})
 
             # 6. Re-calculate outcome with correct T1 metrics
             metrics_t1 = t1_observation.get("quantitative_metrics", {})

@@ -489,7 +489,7 @@ class BinaryStarOrchestrator:
     def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[types.Part]:
         """Converts observation visual assets into multimodal Gemini Parts."""
         parts = []
-        assets = observation.get('visual_assets', {})
+        assets = observation.get('visual_context', {})
         for path in assets.values():
             try:
                 if path and os.path.exists(path):

@@ -609,7 +609,7 @@ class MarketObserver:
                     "limit": self.config.micro_context.lookback_candles
                 }
             },
-            "visual_assets": charts,
+            "visual_context": charts,
             "quantitative_metrics": metrics_dict
         }
 

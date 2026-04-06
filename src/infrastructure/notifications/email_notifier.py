@@ -254,18 +254,18 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     </div>
                 </div>
 
-                <!-- Visual Assets -->
+                <!-- Visual Context -->
                 <div id="charts-root" style="text-align: center;">
-                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">🖼️ Visual Snapshots</h4>
+                    <h4 style="color: #64748b; margin-bottom: 15px; font-size: 11px; text-transform: uppercase;">🖼️ Visual Context</h4>
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 25px; border-collapse: separate; border-spacing: 15px 0;">
                         <tr>
                             <td style="width: 50%; vertical-align: top;">
                                 <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Macro</span>
-                                <img src="cid:macro_chart" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                                <img src="cid:macro_snapshot" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                             </td>
                             <td style="width: 50%; vertical-align: top;">
                                 <span style="font-size: 10px; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 8px;">Micro</span>
-                                <img src="cid:micro_chart" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                                <img src="cid:micro_snapshot" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
                             </td>
                         </tr>
                     </table>
@@ -645,10 +645,10 @@ class SessionNotifier:
         
         # Collect Visual Attachments
         obs = (session_data or {}).get("observation") or {}
-        assets = obs.get("visual_assets") or {}
+        assets = obs.get("visual_context") or {}
         attachments = {
-            "macro_chart": str(assets.get("macro_snapshot") or ""),
-            "micro_chart": str(assets.get("micro_snapshot") or "")
+            "macro_snapshot": str(assets.get("macro_snapshot") or ""),
+            "micro_snapshot": str(assets.get("micro_snapshot") or "")
         }
 
         # 1. Local Preview (Useful for debugging/UI verification)
@@ -693,12 +693,12 @@ class SessionNotifier:
         """
         html_body = SessionEmailTemplate.render(session_data or {}, bonus_value=self.score_confidence_bonus)
         obs = (session_data or {}).get("observation") or {}
-        assets = obs.get("visual_assets") or {}
+        assets = obs.get("visual_context") or {}
         
         # Collect context snapshots
         attachments = {
-            "macro_chart": str(assets.get("macro_snapshot") or ""),
-            "micro_chart": str(assets.get("micro_snapshot") or "")
+            "macro_snapshot": str(assets.get("macro_snapshot") or ""),
+            "micro_snapshot": str(assets.get("micro_snapshot") or "")
         }
 
         # Local Preview
@@ -727,7 +727,7 @@ class SessionNotifier:
         # Collect Comparative Assets
         strat_session = (audit_data or {}).get("session")  or {}
         t0_obs = strat_session.get("observation") or {}
-        t0_assets = t0_obs.get("visual_assets") or {}
+        t0_assets = t0_obs.get("visual_context") or {}
         
         visual_ctx = outcome.get("visual_context") or {}
         
