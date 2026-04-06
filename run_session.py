@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import signal
+import pandas as pd
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from dotenv import load_dotenv
@@ -22,6 +23,7 @@ from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, archive_strategy_result
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc
+from src.utils.market_utils import calculate_indicator_warmup
 
 # Initialize central engine logger
 logger = setup_logger("SessionEngine")
@@ -185,9 +187,12 @@ class SessionController:
         bt_cfg = self.engine.global_cfg.get('backtest', {})
         
         # Calculate warmup needed for technical indicators
-        iir_period = max(topo_cfg['exponential_moving_average_period'], topo_cfg['average_true_range_period'])
         fir_period = self.engine.config['analysis_window']['macro_context']['lookback_candles']
-        warmup = int(max(iir_period * bt_cfg['indicator_warmup_multiplier'], fir_period) + 2)
+        warmup = calculate_indicator_warmup(
+            iir_periods=[topo_cfg['exponential_moving_average_period'], topo_cfg['average_true_range_period']],
+            fir_periods=[fir_period],
+            multiplier=self.engine.global_cfg.get('analytical', {}).get('indicator_warmup_multiplier', 5.0)
+        )
         
         # Calculate needed limit plus buffer
         range_seconds = (end_dt - start_dt).total_seconds()

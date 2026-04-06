@@ -34,12 +34,14 @@ visuals:
   chart_volume_panel_weight: 1  # Height weight for bottom volume panel
   render_dpi: 300               # Resolution for visual artifacts (Higher = sharper images)
 
+analytical:
+  # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
+  indicator_warmup_multiplier: 5.0
+
 session:
   notification_confidence_threshold: 55
 
 backtest:
-  # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
-  indicator_warmup_multiplier: 5.0
   # Default sample size for backtest simulation
   default_samples: 1
 

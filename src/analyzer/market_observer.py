@@ -18,7 +18,7 @@ from src.utils.datetime_utils import (
 )
 from src.utils.path_utils import resolve_project_root
 from src.utils.json_utils import convert_to_json_string, save_json
-from src.utils.market_utils import parse_liquidation_data
+from src.utils.market_utils import parse_liquidation_data, calculate_indicator_warmup
 from src.utils.logger_utils import setup_logger
 
 # Initialize project-standard hardened logger
@@ -110,6 +110,7 @@ class MarketObserverConfig:
     liq_buy_color: str
     liq_sell_color: str
     current_price_color: str
+    indicator_warmup_multiplier: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -131,6 +132,7 @@ class MarketObserverConfig:
         balancing_width = regime.get('ranging_width_atr', regime.get('balanced_atr_multiplier'))
 
         return cls(
+            indicator_warmup_multiplier=float(cfg.get('analytical', {}).get('indicator_warmup_multiplier', 5.0)),
             max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 
@@ -528,6 +530,26 @@ class MarketObserver:
         # [MODULARIZED PROCESSING STACK]
         self.loader = MarketDataLoader(self._binance, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer)
+        
+        # v6.32: Passive Indicator Warmup Quality Audit
+        self._validate_warmup_depth()
+
+    def _validate_warmup_depth(self):
+        """Passively audits if the configured lookback depth is sufficient for stability."""
+        try:
+            # Check Macro Context
+            macro_warmup = calculate_indicator_warmup(
+                iir_periods=[self.config.atr_period, self.config.bb_period, self.config.kc_period],
+                fir_periods=[int(self.config.trend_intensity_lookback_hours)], # Base lookback
+                multiplier=self.config.indicator_warmup_multiplier
+            )
+            if self.config.macro_context.lookback_candles < macro_warmup:
+                logger.warning(
+                    f"MarketObserver: Macro lookback ({self.config.macro_context.lookback_candles}) "
+                    f"is below recommended warmup ({macro_warmup}). Indicator drift possible."
+                )
+        except Exception as e:
+            logger.debug(f"Warmup audit skipped: {e}")
 
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True) -> Dict[str, Any]:
         """Executes a complete market mapping cycle."""

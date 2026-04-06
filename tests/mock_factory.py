@@ -105,8 +105,10 @@ class MockDataFactory:
                 "render_dpi": 100,
                 "default_structural_distance_atr": 2.0
             },
-            "backtest": {
+            "analytical": {
                 "indicator_warmup_multiplier": 5.0,
+            },
+            "backtest": {
                 "default_samples": 1
             },
             # 2. Strategy Config Keys
