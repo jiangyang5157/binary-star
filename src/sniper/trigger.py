@@ -59,46 +59,80 @@ class SniperTrigger:
         ]
 
         for check_fn, type_tag in checks:
-            is_hit, reason = check_fn(current_metrics)
+            is_hit, reason = check_fn(current_metrics, prev_metrics)
             if is_hit:
                 return True, type_tag, reason
 
         return False, None, "SLEEPING"
 
-    def _check_type_a(self, curr: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-        """势能破局: 波动率点火 or 极致挤压"""
+    def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
+        """势能破局: 波动率爆发 (势) OR 量能突增 (能) OR 极致挤压 (局)"""
         vol = curr['price_dynamics']['volatility_intensity_index']
         part = curr['market_regime']['volume_participation_ratio']
-        
-        # DNA Mapping: volatility_ignition -> volatility_baseline_ratio
-        if vol > self.regime_cfg['volatility_baseline_ratio'] and \
-           part > self.regime_cfg['volume_participation_threshold']:
-            return True, f"Volatility Ignition (Ratio: {vol:.2f})"
-        
-        # DNA Mapping: squeeze_factor -> squeeze_threshold
         squeeze = curr['market_regime'].get('squeeze_factor', 1.0)
+        
+        # 1. 势 (Volatility)
+        if vol > self.regime_cfg['volatility_baseline_ratio']:
+            return True, f"势能爆发 (Volatility: {vol:.2f})"
+        
+        # 2. 能 (Volume Participation)
+        if part > self.regime_cfg['volume_participation_threshold']:
+            return True, f"量能突增 (Volume Ratio: {part:.2f})"
+        
+        # 3. 局 (Squeeze)
         if squeeze < self.regime_cfg['squeeze_threshold']:
              return True, f"极致挤压 (Squeeze): Factor={squeeze:.2f}"
              
         return False, None
 
-    def _check_type_b(self, curr: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-        """动能失衡: CVD 机构流或多空比极值"""
-        cvd = abs(curr['market_regime'].get('cvd_intensity', 0.0))
+    def _check_type_b(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
+        """动能失衡: CVD 脉冲/背离、资金费极值或多空比极值"""
+        sent = curr.get('sentiment_signals', {})
         
-        # DNA Mapping: institutional_cvd -> cvd_intensity_threshold
-        if cvd > self.regime_cfg['cvd_intensity_threshold']:
+        # 1. 存量/极值检测 (CVD & LS Ratio)
+        # DNA Mapping: cvd_intensity_ratio from sentiment_signals
+        cvd = sent.get('cvd_intensity_ratio', 0.0)
+        if abs(cvd) > self.regime_cfg['cvd_intensity_threshold']:
             return True, f"Institutional CVD flow (Intensity: {cvd:.3f})"
             
-        # DNA Mapping: retail_ls -> long_short_imbalance_ratio
-        ls = curr['market_regime'].get('long_short_ratio', 1.0)
+        # DNA Mapping: ls_ratio_micro from sentiment_signals
+        ls = sent.get('ls_ratio_micro', 1.0)
         if ls > self.regime_cfg['long_short_imbalance_ratio'] or \
            ls < self.regime_cfg['short_heavy_imbalance_ratio']:
             return True, f"Retail Sentiment Over-extension (L/S: {ls:.2f})"
+
+        # 2. 资金费压力 (Funding Rate Pressure) - [NEW v2.0]
+        funding = sent.get('funding_rate', 0.0)
+        if abs(funding) > self.regime_cfg['funding_extreme_threshold']:
+            return True, f"Funding Rate Extreme (Rate: {funding:.5f})"
+
+        if prev:
+            prev_sent = prev.get('sentiment_signals', {})
+            prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
+            
+            # 3. CVD 脉冲 (CVD Dynamic Impulse) - [NEW v2.0]
+            # Trigger on sudden taker surge even if absolute threshold isn't hit
+            cvd_delta = abs(cvd - prev_cvd)
+            if cvd_delta > (self.regime_cfg['cvd_intensity_threshold'] * 0.5):
+                return True, f"CVD Impulse Detected (Delta: {cvd_delta:.3f})"
+
+            # 4. 吸筹/派发背离 (CVD Divergence Detection) - [NEW v2.0]
+            curr_price = curr['price_dynamics']['current_price']
+            prev_price = prev['price_dynamics']['current_price']
+            price_delta = curr_price - prev_price
+            cvd_delta_raw = cvd - prev_cvd
+
+            # Only trigger if CVD movement is non-trivial (0.25x of threshold)
+            if abs(cvd_delta_raw) > (self.regime_cfg['cvd_intensity_threshold'] * 0.25):
+                # Bullish Divergence: Price down, CVD up (Absorption)
+                # Bearish Divergence: Price up, CVD down (Distribution)
+                if (price_delta > 0 and cvd_delta_raw < 0) or \
+                   (price_delta < 0 and cvd_delta_raw > 0):
+                    return True, f"CVD/Price Divergence (Price:{price_delta:.1f}, CVD:{cvd_delta_raw:.3f})"
         
         return False, None
 
-    def _check_type_c(self, curr: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+    def _check_type_c(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
         """关键拓扑碰撞: 边界极压 or 清算磁吸"""
         topo = curr['volume_profile']
         atr = curr['price_dynamics']['atr_macro']
@@ -109,8 +143,9 @@ class SniperTrigger:
         dist_vh = abs(price - topo['vah']) / atr if atr > 0 else float('inf')
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
         
+        # DNA Mapping: boundary_dist -> min_volume_participation_ratio (Relaxed for Sniper)
         if min(dist_vh, dist_val) < self.regime_cfg['structural_proximity_threshold'] and \
-           part > self.regime_cfg['volume_participation_threshold']:
+           part > self.regime_cfg['min_volume_participation_ratio']:
             side = "VAH" if dist_vh < dist_val else "VAL"
             return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR"
 
