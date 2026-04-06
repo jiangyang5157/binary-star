@@ -189,7 +189,7 @@ python run_session.py --start T-30d --end T-2d --samples 20 --sampling-mode spac
 
 *   **实时监控 (Live)**：按固定脉冲频率（分钟）持续运行（默认结果存入 `data/live/sessions`）。
 ```bash
-python run_session.py --pulse 15
+python run_session.py --pulse 15 --email
 ```
 
 ### 2. 取证审计 (Forensic Audit)
