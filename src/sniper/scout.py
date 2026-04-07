@@ -74,7 +74,7 @@ class SniperScout:
     def scout(self, at_time: Optional[datetime] = None) -> ScoutResult:
         """Harvests market datum and distills it into trigger-ready metrics."""
         ts = at_time or datetime.now(timezone.utc)
-        logger.info(f"SniperScout: Harvester active for {self.symbol}...")
+        logger.debug(f"SniperScout: Harvester active for {self.symbol}...")
         
         # 1. Harvest raw telemetry (No cache, direct from Binance)
         raw = self.loader.collect(self.symbol, ts)

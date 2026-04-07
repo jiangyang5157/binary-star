@@ -66,6 +66,7 @@ class SniperTrigger:
         for check_fn, type_tag in checks:
             is_hit, reason = check_fn(current_metrics, prev_metrics)
             if is_hit:
+                logger.info(f"SNIPER WAKE UP! [{type_tag}] | {reason}")
                 return True, type_tag, reason
 
         return False, None, "SLEEPING"

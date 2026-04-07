@@ -89,9 +89,6 @@ class SniperDaemon:
                     print("!"*60)
                     print(f"REASON: {reason}")
                     print("!"*60 + "\n")
-                    
-                    logger.info(f"WAKE UP! [{t_type}] | {reason}")
-                    
                     if self.session_engine:
                         # 4. Trigger Binary Star Protocol
                         logger.info("SniperDaemon: Activating Binary Star reasoning loop (Blocking Pulse)...")
