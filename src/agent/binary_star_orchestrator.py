@@ -76,7 +76,8 @@ class BinaryStarOrchestrator:
         self.retry_multiplier = float(retry_strategy['multiplier'])
         self.retry_min = int(retry_strategy['min_seconds'])
         self.retry_max = int(retry_strategy['max_seconds'])
-        self.cache_expiration = int(gemini_net['cache_expiration_minutes'])
+        self.cache_expiration_minutes = int(gemini_net['cache_expiration_minutes'])
+        self.enable_context_cache = bool(gemini_net['enable_context_cache'])
         
         # 3. Binary Star Protocol Parameters
         self.bs_config = self.config['binary_star']
@@ -286,16 +287,21 @@ class BinaryStarOrchestrator:
                 }
             ]
             
-            cache_resource_name = self.cache_manager.create_market_cache(
-                symbol=symbol,
-                interval=self.macro_interval,
-                contents=[observation_json] + visual_parts,
-                system_instruction=self.shared_instruction,
-                model=self.shared_model,
-                ttl_minutes=self.cache_expiration,
-                tools=[types.Tool(function_declarations=tool_declarations)]
-            )
+            cache_resource_name = None
+            if self.enable_context_cache:
+                cache_resource_name = self.cache_manager.create_market_cache(
+                    symbol=symbol,
+                    interval=self.macro_interval,
+                    contents=[observation_json] + visual_parts,
+                    system_instruction=self.shared_instruction,
+                    model=self.shared_model,
+                    ttl_minutes=self.cache_expiration_minutes,
+                    tools=[types.Tool(function_declarations=tool_declarations)]
+                )
+            else:
+                logger.info(f"BinaryStar: Context Cache is DISABLED. Routing multimodal visual payload statelessly.")
             
+
             # Shared tools available across both agents
             tools = [
                 self.session_agent.calculate_risk_reward, 
@@ -321,8 +327,11 @@ class BinaryStarOrchestrator:
                     agent_name=f"Session_Planning_R{current_round}",
                     cache_id=cache_resource_name, 
                     tools=tools, 
-                    debate_history=debate_history
+                    debate_history=debate_history,
+                    visual_parts=visual_parts,
+                    system_instruction=self.shared_instruction
                 )
+
                 
                 # Adversarial Audit (Math Fact Check Injection)
                 logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
@@ -335,8 +344,11 @@ class BinaryStarOrchestrator:
                     debate_history=debate_history,
                     cache_id=cache_resource_name,
                     math_fact_check=math_fact_check,
-                    tools=tools
+                    tools=tools,
+                    visual_parts=visual_parts,
+                    system_instruction=self.shared_instruction
                 )
+
                 
                 # Score Telemetry
                 skepticism_score = int(float(str(critic_results.get('skepticism_score', 100))))
@@ -365,8 +377,11 @@ class BinaryStarOrchestrator:
                 agent_name="Session_Synthesis",
                 cache_id=cache_resource_name, 
                 tools=tools, 
-                debate_history=debate_history
+                debate_history=debate_history,
+                visual_parts=visual_parts,
+                system_instruction=self.shared_instruction
             )
+
             
             # 4. Forensic Packaging
             project_root = resolve_project_root()
@@ -393,9 +408,11 @@ class BinaryStarOrchestrator:
         finally:
             # Proactively purge session context cache
             try:
-                self.cache_manager.delete_market_cache()
+                if getattr(self, 'enable_context_cache', True) and self.cache_manager.active_cache_id:
+                    self.cache_manager.delete_market_cache()
             except Exception as e:
                 logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
+
 
     def _assemble_math_fact_check(self, plan: Dict[str, Any], observation: Dict[str, Any]) -> Dict[str, Any]:
         """Calculates deterministic mathematical truth for an AI proposal.

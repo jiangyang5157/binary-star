@@ -167,11 +167,13 @@ class CriticAgent(BaseAgent):
         self, 
         observation: Optional[Dict[str, Any]], 
         last_plan: Dict[str, Any], 
-        symbol: str, 
+        symbol: str,
         debate_history: Optional[List[Dict[str, Any]]] = None,
         cache_id: Optional[str] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
-        tools: Optional[List[Any]] = None
+        tools: Optional[List[Any]] = None,
+        visual_parts: Optional[List[Any]] = None,
+        system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """Evaluates the proposed plan against physical market topography 
         and the mandatory CRITIC_CODES table. This is a cold, 
@@ -191,13 +193,18 @@ class CriticAgent(BaseAgent):
             # 注入物理真理 (Math Fact Check) 作为审计的绝对底线
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
             
+            payload = [prompt]
+            if not cache_id and visual_parts:
+                payload.extend(visual_parts)
+                
             # 使用“冷温度”(Temp 0.2) 执行审计，确保逻辑的严谨性和确定性
             return self._execute_ai_cycle(
-                payload=prompt, 
+                payload=payload, 
                 temperature=self.config.model_temperature,
                 agent_name="Critic_Evaluation",
                 cached_content=cache_id,
-                tools=tools
+                tools=tools,
+                system_instruction=system_instruction
             )
         except Exception as e:
             logger.error(f"Critic: Critical failure during evaluation of {symbol}: {e}")

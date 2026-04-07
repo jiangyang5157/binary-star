@@ -99,7 +99,8 @@ class BaseAgent:
         temperature: Optional[float] = None,
         agent_name: str = "Agent",
         cached_content: Optional[str] = None,
-        tools: Optional[List[Any]] = None
+        tools: Optional[List[Any]] = None,
+        system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """Orchestrates an autonomous iterative cycle for tool-use and inference.
         
@@ -112,6 +113,7 @@ class BaseAgent:
             agent_name: Logical identity for tracking and forensic logging.
             cached_content: ID of the active context cache resource.
             tools: List of function schemas available for dispatch.
+            system_instruction: Shared intelligence prompt to bypass caching limits.
             
         Returns:
             A forensic dictionary containing either the parsed JSON output 
@@ -152,6 +154,9 @@ class BaseAgent:
                         "http_options": {"timeout": self.api_timeout * 1000},
                         "tools": tools
                     }
+                    if system_instruction is not None:
+                        gen_config["system_instruction"] = system_instruction
+                        
                     if not tools:
                         # Fallback to direct JSON mode if no tools are allocated.
                         gen_config["response_mime_type"] = "application/json"

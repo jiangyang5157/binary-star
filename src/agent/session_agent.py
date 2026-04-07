@@ -199,7 +199,9 @@ class SessionAgent(BaseAgent):
         agent_name: str,
         debate_history: Optional[List[Dict[str, Any]]] = None,
         cache_id: Optional[str] = None,
-        tools: Optional[List[Any]] = None
+        tools: Optional[List[Any]] = None,
+        visual_parts: Optional[List[Any]] = None,
+        system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """Core execution logic for a session reasoning step."""
         logger.info(f"SessionAgent: {agent_name} for {symbol}...")
@@ -211,13 +213,18 @@ class SessionAgent(BaseAgent):
                 cache_id=cache_id
             )
             
+            payload = [prompt]
+            if not cache_id and visual_parts:
+                payload.extend(visual_parts)
+                
             # 执行 AI 推理循环：支持 Gemini Cache 和 Function Calling (MathTools)
             return self._execute_ai_cycle(
-                payload=prompt, 
+                payload=payload, 
                 temperature=temperature,
                 agent_name=agent_name,
                 cached_content=cache_id,
-                tools=tools
+                tools=tools,
+                system_instruction=system_instruction
             )
         except Exception as e:
             logger.error(f"Session: failure during {agent_name} for {symbol}: {e}")
