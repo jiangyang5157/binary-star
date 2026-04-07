@@ -64,7 +64,7 @@ class TechnicalFeatureExtractor:
                     trendlines.append({
                         'x': [p1, p2], 
                         'y': [df['high'].iloc[p1], df['high'].iloc[p2]], 
-                        'color': '#2a9d8f'
+                        'type': 'resistance'
                     })
                 
             if len(valley_indices) >= 3:
@@ -73,7 +73,7 @@ class TechnicalFeatureExtractor:
                     trendlines.append({
                         'x': [v1, v2], 
                         'y': [df['low'].iloc[v1], df['low'].iloc[v2]], 
-                        'color': '#2a9d8f'
+                        'type': 'support'
                     })
             
             return trendlines
@@ -246,9 +246,10 @@ class ChartVisualRenderer:
                     self._overlay_liquidations(main_ax, plot_df, liquidations)
     
                 # 5. Overlay Trendlines
-                trendlines = self.extractor.detect_trendlines(df) # Use original df with lowercase columns
+                trendlines = self.extractor.detect_trendlines(df)
                 for line in trendlines:
-                    main_ax.plot(line['x'], line['y'], color=line['color'], linestyle='--', linewidth=1.0, alpha=0.8)
+                    color = self.config.down_color if line['type'] == 'resistance' else self.config.up_color
+                    main_ax.plot(line['x'], line['y'], color=color, linestyle='--', linewidth=1.0, alpha=0.8)
     
                 # 6. OCR Text Hard Injection (Minimalist Right-Side Identifier)
                 # v6.65: Labels are right-aligned to the last candle, but price numbers 
