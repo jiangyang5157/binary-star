@@ -4,19 +4,15 @@
 
 ---
 
-> Singularity 是一个高保真、多智能体量化架构，通过 **对抗式推理 (Adversarial Reasoning)** 消除人类偏见。它能将复杂的市场混沌状态转化为冷静、确定性的执行指令。
-
----
-
 ## ⚖️ 零熵架构：双子星对抗协议 (The Binary Star Protocol)
 
-Singularity 的内核是一个多智能体对抗系统，模拟了极高标准的法庭辩论与审判过程。每一次最终输出的交易指令，都必须在一场高压的生存游戏中，经历从高熵混沌到低熵参数的提纯。其核心机制如下：
+Singularity 是一个高保真、多智能体量化架构。它的内核模拟了极高标准的法庭辩论与审判过程，通过 **对抗式推理 (Adversarial Reasoning)** 来彻底消除人类交易员的主观偏见与 AI 智能体的数据幻觉。
+
+每一次最终输出的交易指令，都必须在这场高压的生存游戏中，经历从复杂的市场混沌状态，到冷静、确定性的低熵参数的提纯。其核心机制如下：
 
 - **统一场 (Truth Bus)**：**消除幻觉。** 将市场的多重维度（多模态图表、订单流、情绪极值）硬性锚定在同一秒的物理切片上，构建不可篡改的“法庭证据”，要求博弈各方“眼见为实”。
 - **物理挤压 (The Squeeze)**：**消除偏见。** 辩方 (Session Agent) 负责提出战略蓝图，而控方 (Critic Agent) 则执行致命的交叉盘问。收敛不是妥协，而是**强制逼近**。一旦发现结构破绽，系统会被强制放入“物理引擎”中进行逻辑重建（例如被“挤压”出极深的 DLE 限价单以满足盈亏比）。
 - **状态降维 (State Reduction)**：**固化指令。** 当对抗各方终于逼近狭窄的“数学交集”后，系统将抛弃大语言模型的“人文修饰词”，在绝对理性的低温度下，将共识瞬间冷凝为可直接执行的低熵机器参数 (JSON)。
-
-
 
 ```mermaid
 graph TD
@@ -26,7 +22,7 @@ graph TD
     classDef exec fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
     classDef halt fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#c62828
 
-    subgraph 熵减漏斗 ["🌪️ 零熵收敛漏斗 (Zero-Entropy Convergence Funnel)"]
+    subgraph 熵减漏斗 ["🌪️ 零熵收敛漏斗"]
         direction TB
         
         %% 阶段 1: 事实锚定
