@@ -250,6 +250,7 @@ class BinaryStarOrchestrator:
                     "parameters": {
                         "type": "OBJECT",
                         "properties": {
+                            "current_price": {"type": "NUMBER"},
                             "entry": {"type": "NUMBER"},
                             "take_profit": {"type": "NUMBER"},
                             "atr": {"type": "NUMBER"},
@@ -258,7 +259,7 @@ class BinaryStarOrchestrator:
                             "interval_minutes": {"type": "NUMBER"},
                             "min_velocity_floor": {"type": "NUMBER"}
                         },
-                        "required": ["entry", "take_profit", "atr", "trend_intensity", "volatility_expansion_ratio", "interval_minutes"]
+                        "required": ["current_price", "entry", "take_profit", "atr", "trend_intensity", "volatility_expansion_ratio", "interval_minutes"]
                     }
                 },
                 {
