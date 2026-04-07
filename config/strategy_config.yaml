@@ -113,7 +113,7 @@ audit_review:
   catastrophic_miss_pct_threshold: 3.0
   # MAE stress thresholds (percentage of ATR) for performance tiering.
   mae_stress_thresholds:
-    pinpoint: 15.0
+    pinpoint: 20.0
     standard: 50.0
     luck: 80.0
   # --- Market Friction Modeling ---
@@ -196,10 +196,10 @@ binary_star:
     score_confidence_bonus: 10
 
     # Dynamic Holding Friction Factors (Time Redundancy)
-    holding_friction_highway: 1.4
-    holding_friction_standard: 1.8
-    holding_friction_climax: 2.2
-    holding_friction_dead_water: 3.0
+    holding_friction_highway: 2
+    holding_friction_standard: 1
+    holding_friction_climax: 0.25
+    holding_friction_dead_water: 0.5
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md

@@ -133,27 +133,27 @@ class MathTools:
         vr_extreme: float,
         ti_strong: float,
         ti_thresh: float,
-        # Friction Modifiers
+        # Friction Modifiers (Loaded from YAML holding_friction_*)
         friction_dead_water: float,
         friction_highway: float,
         friction_climax: float,
         friction_standard: float
     ) -> Dict[str, Any]:
-        """使用动态非线性修正模型 v3.0 (零熵物理引擎) 预测预计持仓时间。
+        """使用动态时间止损模型 v4.0 (零熵物理引擎) 预测极限生存时间。
         
-        该逻辑通过完全参数化的“状态路由”实现。
+        该逻辑通过完全参数化的“状态路由”实现。将原始距离转换为安全暴露时间（Time-Stop）。
         
         优先级路由：
-        1. 混沌/高潮 (Chaos): VR >= vr_extreme -> Modifier=friction_climax
-        2. 死水区 (Dead Water): VR < vr_base & TI < ti_strong -> Modifier=friction_dead_water
-        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= VR < vr_extreme -> Modifier=friction_highway
-        4. 标准 (Standard): Else -> Modifier=friction_standard
+        1. 混沌/高潮 (Chaos): VR >= vr_extreme -> Hit-and-run, 极限压缩时间 (Climax)
+        2. 死水区 (Dead Water): VR < vr_base & TI < ti_strong -> 无序震荡，强制时间止损 (Dead Water)
+        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= VR < vr_extreme -> 让利润奔跑，放宽时间 (Highway)
+        4. 标准 (Standard): Else -> 常态暴露 (Standard)
         """
         try:
             if atr <= 0 or interval_minutes <= 0:
                 return {"error": "ATR and interval_minutes must be > 0."}
                 
-            # 1. 基础物理速度计算
+            # 1. 基础物理速度计算 (理想环境下的基准到达时间)
             effective_velocity = max(atr * abs(trend_intensity), atr * min_velocity_floor)
             dist = abs(take_profit - entry)
             
@@ -162,34 +162,34 @@ class MathTools:
 
             base_candles = dist / effective_velocity
             
-            # 2. 状态路由 (State Routing) - 优先级排序平衡安全与效率
+            # 2. 状态路由 (State Routing) - 映射至动态时间止损乘数 (Time-Stop Multiplier)
             ti_abs = abs(trend_intensity)
             
             if volatility_expansion_ratio >= vr_extreme:
-                # 场景：极端高潮，路径曲折
-                dynamic_modifier = friction_climax
+                # 场景：极度危险的绞肉机。执行 0.25x 压缩，秒级游击战。
+                time_stop_multiplier = friction_climax
             elif volatility_expansion_ratio < vr_base and ti_abs < ti_strong:
-                # 场景：死水区，极高时间惩罚
-                dynamic_modifier = friction_dead_water
+                # 场景：死水区随机游走。执行 0.5x 压缩，绝不在此过夜。
+                time_stop_multiplier = friction_dead_water
             elif ti_abs >= ti_thresh and vr_base <= volatility_expansion_ratio < vr_extreme:
-                # 场景：单边直线暴走
-                dynamic_modifier = friction_highway
+                # 场景：单边直线暴走。执行 2.0x 延伸，给予充分的时间让利润狂奔。
+                time_stop_multiplier = friction_highway
             else:
-                # 场景：常态扩张/移动
-                dynamic_modifier = friction_standard
+                # 场景：常态推进。给予 1.0x 标准时间。
+                time_stop_multiplier = friction_standard
             
-            # 3. 最终时间计算
-            projected_hours = round((base_candles * interval_minutes * dynamic_modifier) / 60, 1)
+            # 3. 最终生存时间计算 (基准时间 * 物理乘数)
+            projected_hours = round((base_candles * interval_minutes * time_stop_multiplier) / 60, 1)
             
             return {
                 "projected_holding_candles": round(base_candles, 2),
                 "projected_holding_hours": projected_hours,
-                "dynamic_modifier": dynamic_modifier,
+                "dynamic_modifier": time_stop_multiplier, # 保持返回键名兼容外层调用
                 "effective_velocity_per_candle": round(effective_velocity, 4),
                 "calculation_inputs": {
                     "trend_intensity": round(trend_intensity, 3),
                     "volatility_expansion_ratio": round(volatility_expansion_ratio, 3),
-                    "selected_friction": dynamic_modifier,
+                    "selected_time_stop_multiplier": time_stop_multiplier,
                     "thresholds_used": {
                         "vr_base": vr_base,
                         "vr_extreme": vr_extreme,
@@ -201,7 +201,6 @@ class MathTools:
         except Exception as e:
             logger.error(f"MathTools: Time projection failure: {e}")
             return {"error": str(e)}
-
 
 
     @staticmethod
