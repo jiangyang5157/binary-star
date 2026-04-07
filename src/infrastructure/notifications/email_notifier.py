@@ -115,25 +115,31 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     <td>72-80</td>
                     <td>Pristine</td>
                     <td>Blind Execution</td>
-                    <td>100%</td>
+                    <td>100% Sizing</td>
                 </tr>
                 <tr {get_row_style(65, 72)}>
                     <td>65-72</td>
                     <td>Hardened</td>
                     <td>Standard Entry</td>
-                    <td>80-100%</td>
+                    <td>80-100% Sizing</td>
                 </tr>
                 <tr {get_row_style(55, 65)}>
                     <td>55-65</td>
                     <td>Tactical</td>
-                    <td>Deep DLE</td>
-                    <td>50%</td>
+                    <td>Deep DLE (Limit)</td>
+                    <td>50% Sizing</td>
                 </tr>
                 <tr {get_row_style(50, 55)}>
                     <td>50-55</td>
                     <td>Abyss</td>
-                    <td>Skip/Manual</td>
-                    <td>0-25%</td>
+                    <td>Manual Skip / Recon</td>
+                    <td>0-25% Sizing</td>
+                </tr>
+                <tr {get_row_style(0, 50)}>
+                    <td>< 50</td>
+                    <td>Halt</td>
+                    <td>NEUTRAL (Shielded)</td>
+                    <td>0% Sizing</td>
                 </tr>
             </tbody>
         </table>

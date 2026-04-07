@@ -82,7 +82,7 @@ sandbox:
   # Minimum reduction in trade duration (hours) required to classify a case as 'improved' (TP_HIT tie-breaker)
   time_improvement_threshold: 4.0
 
-  # --- Fitness Scoring Ladder (Darwinian v3.1) ---
+  # --- Fitness Scoring Ladder (Darwinian v7.0) ---
   # Base scores for different market outcomes (TP/SL/Neutral/Neither)
   base_scores:
     tp_hit: 100.0
