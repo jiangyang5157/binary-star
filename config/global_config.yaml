@@ -71,11 +71,11 @@ sniper:
   
   # [Absorption/Distribution Divergence]: Requires price to move inversely against massive limit blocks.
   # REC: 0.4 - 0.5. This can be more sensitive because the inverse price action provides strong structural noise filtering.
-  cvd_divergence_intensity_ratio: 0.5
+  cvd_divergence_intensity_ratio: 0.4
   
   # [Whale Impulse]: Requires a pure, violent surge in taker volume (ignores price direction).
   # REC: 0.8 - 1.0. This MUST be kept high to prevent normal trend momentum from triggering false pulse alarms.
-  cvd_impulse_intensity_ratio: 1
+  cvd_impulse_intensity_ratio: 0.8
   
   # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
   # 1.0 = any increase, 1.1 = 10% growth required.

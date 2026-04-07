@@ -219,7 +219,7 @@ class BinanceFuturesClient:
                 
                 # Check for 400 specifically to log the 'out of maintenance' issue
                 if resp.status_code == 400:
-                    logger.error(f"Binance: Public liquidation fallback rejected (HTTP 400): {resp.text}")
+                    logger.debug(f"Binance: Public liquidation fallback rejected (HTTP 400): {resp.text}")
                 else:
                     logger.error(f"Binance: Public liquidation fallback failed (HTTP {resp.status_code}): {resp.text}")
                 return []
