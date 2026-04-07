@@ -198,8 +198,8 @@ binary_star:
     # Dynamic Holding Friction Factors (Time Redundancy)
     holding_friction_highway: 2
     holding_friction_standard: 1
-    holding_friction_climax: 0.25
-    holding_friction_dead_water: 0.5
+    holding_friction_climax: 0.3
+    holding_friction_dead_water: 0.7
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
