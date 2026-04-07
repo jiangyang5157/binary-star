@@ -61,28 +61,28 @@ class TestMathTools:
         # Expected: Dist 2000 / (ATR 200 * TI 1.0) = 10 candles.
         # Modifier 2.0. Hours = 10 * 60 * 2.0 / 60 = 20.0
         res = MathTools.project_holding_time(50000, 52000, 200, 1.0, 2.2, 60, 0.5, **cfg)
-        assert res['dynamic_modifier'] == 2.0
+        assert res['holding_friction_factor'] == 2.0
         assert res['projected_holding_hours'] == 20.0
 
         # 2. 场景：死水区 (Dead Water) - VR 1.0 (< 1.3), TI 0.2 (< 0.5)
         # Expected: Dist 2000 / (ATR 200 * Floor 0.5) = 20 candles. 
         # Modifier 3.0. Hours = 20 * 60 * 3.0 / 60 = 60.0
         res = MathTools.project_holding_time(50000, 52000, 200, 0.2, 1.0, 60, 0.5, **cfg)
-        assert res['dynamic_modifier'] == 3.0
+        assert res['holding_friction_factor'] == 3.0
         assert res['projected_holding_hours'] == 60.0
         
         # 3. 场景：高速公路 (Highway) - TI 0.96 (>= 0.95), VR 1.5 (1.3 <= 1.5 < 2.0)
         # Expected: Dist 2000 / (ATR 200 * TI 0.96) = 2000 / 192 = 10.416 candles.
         # Modifier 1.1. Hours = 10.416 * 60 * 1.1 / 60 = 11.458 -> 11.5
         res = MathTools.project_holding_time(50000, 52000, 200, 0.96, 1.5, 60, 0.5, **cfg)
-        assert res['dynamic_modifier'] == 1.1
+        assert res['holding_friction_factor'] == 1.1
         assert res['projected_holding_hours'] == 11.5
 
         # 4. 场景：标准扩张 (Standard) - VR 1.5, TI 0.6 (不满足 Highway 和 Dead Water)
         # Expected: Dist 2000 / (ATR 200 * TI 0.6) = 2000 / 120 = 16.666 candles.
         # Modifier 1.5. Hours = 16.666 * 60 * 1.5 / 60 = 25.0
         res = MathTools.project_holding_time(50000, 52000, 200, 0.6, 1.5, 60, 0.5, **cfg)
-        assert res['dynamic_modifier'] == 1.5
+        assert res['holding_friction_factor'] == 1.5
         assert res['projected_holding_hours'] == 25.0
 
     def test_mae_stress_tiers(self):

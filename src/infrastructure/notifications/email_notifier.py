@@ -89,15 +89,10 @@ class SessionEmailTemplate(BaseEmailTemplate):
         # 7.3. Detect Volatility Regime (Dynamic Threshold from Config)
         vr_val = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("volatility_expansion_ratio", 0)
         
-        # Extract the 'extreme' threshold from the physics engine's fact check to avoid hardcoding 2.0
-        # Fallback to the configuration snapshot if the math fact check is missing or incomplete (e.g. NEUTRAL stance)
-        thresholds = last_round.get("math_fact_check", {}).get("holding_time_verification", {}).get("calculation_inputs", {}).get("thresholds_used", {})
-        vr_extreme = thresholds.get("vr_extreme")
-        
-        if vr_extreme is None:
-            # Attempt fallback from strategy config snapshot if available in metadata
-            regime_cfg = session_data.get("metadata", {}).get("config_snapshot", {}).get("regime_parameters", {})
-            vr_extreme = regime_cfg['volatility_extreme_ratio']
+        # Extract the 'extreme' threshold from the configuration snapshot
+        # v6.51: Bypassing legacy math_fact_check traversal since calculation_inputs was simplified for zero-entropy.
+        regime_cfg = session_data.get("metadata", {}).get("config_snapshot", {}).get("regime_parameters", {})
+        vr_extreme = regime_cfg.get('volatility_extreme_ratio')
             
         is_chaos = float(vr_val or 0) > float(vr_extreme) if vr_extreme is not None else False
         
@@ -371,7 +366,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>
-                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{AuditEmailTemplate.format_duration(metrics.get('actual_hours') or 0)}</div>
+                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{AuditEmailTemplate.format_duration(metrics.get('actual_holding_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>

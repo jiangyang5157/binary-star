@@ -24,7 +24,7 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
    - **LUCK (50-80%)**: Saved by volatility. **Action**: Evolve `structural_buffer_atr` to relocate SL.
    - **LOGIC_FAILURE (>80%)**: Direct trend collision. **Action**: **Mandatory Filter Hardening**.
 3. **STRUCTURAL AMNESTY**: If `SL_HIT` occurred, `sl_is_shielded` was TRUE and `mae_stress_tier` was `STANDARD`, the failure is a **Statistical Necessity**. Preservation of existing edge is higher priority than fixing a single loss.
-4. **TIME_PROJECTION_AUDIT**: Analyze the delta between `projected_holding_hours` and `actual_duration_hours`. If the **MAE (Mean Absolute Error)** of time estimation in `highway` regimes consistently exceeds **`{time_projection_mae_threshold_pct}`%**, you are AUTHORIZED to propose a `config_patch` to recalibrate `holding_friction_highway`, bringing the physics model into alignment with ground-truth market velocity.
+4. **TIME_PROJECTION_AUDIT**: Analyze the delta between `projected_holding_hours` and `actual_holding_hours` across all market regimes. Use the `holding_friction_factor` from the session report to identify the active friction parameter (`holding_friction_climax`, `holding_friction_standard`, `holding_friction_dead_water`, or `holding_friction_highway`). If the **MAE (Mean Absolute Error)** of time estimation consistently exceeds **`{time_projection_mae_threshold_pct}`%**, you are AUTHORIZED to propose a `config_patch` to recalibrate the specific friction factor, ensuring the physics model aligns with ground-truth market velocity.
 
 # THE_EVOLUTIONARY_ENGINES
 

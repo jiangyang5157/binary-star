@@ -188,7 +188,7 @@ class AuditController:
             # 4. Final T1 Anchoring Logic
             res_type = outcome.get("tp_sl_result", "NEITHER")
             if res_type in ("TP_HIT", "SL_HIT"):
-                hit_index = outcome.get("trade_execution_metrics", {}).get("duration_candles", len(klines))
+                hit_index = outcome.get("trade_execution_metrics", {}).get("actual_holding_candles", len(klines))
                 t1_dt = datetime.fromtimestamp(klines[hit_index - 1][0] / 1000, tz=timezone.utc)
             else:
                 t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt

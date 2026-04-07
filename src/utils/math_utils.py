@@ -167,36 +167,24 @@ class MathTools:
             
             if volatility_expansion_ratio >= vr_extreme:
                 # 场景：极度危险的绞肉机。执行 0.25x 压缩，秒级游击战。
-                time_stop_multiplier = friction_climax
+                holding_friction_factor = friction_climax
             elif volatility_expansion_ratio < vr_base and ti_abs < ti_strong:
                 # 场景：死水区随机游走。执行 0.5x 压缩，绝不在此过夜。
-                time_stop_multiplier = friction_dead_water
+                holding_friction_factor = friction_dead_water
             elif ti_abs >= ti_thresh and vr_base <= volatility_expansion_ratio < vr_extreme:
                 # 场景：单边直线暴走。执行 2.0x 延伸，给予充分的时间让利润狂奔。
-                time_stop_multiplier = friction_highway
+                holding_friction_factor = friction_highway
             else:
                 # 场景：常态推进。给予 1.0x 标准时间。
-                time_stop_multiplier = friction_standard
+                holding_friction_factor = friction_standard
             
             # 3. 最终生存时间计算 (基准时间 * 物理乘数)
-            projected_hours = round((base_candles * interval_minutes * time_stop_multiplier) / 60, 1)
+            projected_hours = round((base_candles * interval_minutes * holding_friction_factor) / 60, 1)
             
             return {
                 "projected_holding_candles": round(base_candles, 2),
                 "projected_holding_hours": projected_hours,
-                "dynamic_modifier": time_stop_multiplier, # 保持返回键名兼容外层调用
-                "effective_velocity_per_candle": round(effective_velocity, 4),
-                "calculation_inputs": {
-                    "trend_intensity": round(trend_intensity, 3),
-                    "volatility_expansion_ratio": round(volatility_expansion_ratio, 3),
-                    "selected_time_stop_multiplier": time_stop_multiplier,
-                    "thresholds_used": {
-                        "vr_base": vr_base,
-                        "vr_extreme": vr_extreme,
-                        "ti_strong": ti_strong,
-                        "ti_thresh": ti_thresh
-                    }
-                }
+                "holding_friction_factor": holding_friction_factor
             }
         except Exception as e:
             logger.error(f"MathTools: Time projection failure: {e}")

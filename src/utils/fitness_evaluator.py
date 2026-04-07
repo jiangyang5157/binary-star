@@ -104,7 +104,7 @@ class FitnessEvaluator:
         if is_filled:
             mae_tier = str(metrics.get('mae_stress_tier', '')).upper()
             mae_pct = float(metrics.get('mae_stress_level_pct', 0.0))
-            hours = float(metrics.get('actual_hours', 0.0))
+            hours = float(metrics.get('actual_holding_hours', 0.0))
 
             # LOGIC_FAILURE or MAE >= 100%: Structural defense collapsed
             if mae_tier == "LOGIC_FAILURE" or mae_pct >= 100.0:
@@ -164,8 +164,8 @@ class FitnessEvaluator:
                 return True
 
         # Tie-breaker B: Capital Velocity (Time Efficiency)
-        old_time = float(old_metrics.get('actual_hours', 1000.0))
-        new_time = float(new_metrics.get('actual_hours', 1000.0))
+        old_time = float(old_metrics.get('actual_holding_hours', 1000.0))
+        new_time = float(new_metrics.get('actual_holding_hours', 1000.0))
         
         if new_res == "TP_HIT" and (old_time - new_time) >= self.cfg.time_improvement_threshold:
             logger.info(f"[REFINEMENT] Time efficiency: {old_time}h -> {new_time}h")

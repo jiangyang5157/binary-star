@@ -120,8 +120,8 @@ class AuditAssembler:
             "regime_forensics": regime_forensics,
             "execution_forensics": {},
             "trade_execution_metrics": {
-                "duration_candles": len(klines),
-                "actual_hours": round(len(klines) * interval_hours, 2)
+                "actual_holding_candles": len(klines),
+                "actual_holding_hours": round(len(klines) * interval_hours, 2)
             }
         }
         
@@ -208,7 +208,7 @@ class AuditAssembler:
                     if est_hours == 0:
                         logger.warning("Forensics: 'holding_time_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
                     
-                    actual_hours = hit_index * interval_hours
+                    actual_holding_hours = hit_index * interval_hours
                     
                     result["is_filled"] = True
                     result["tp_sl_result"] = hit_result
@@ -217,12 +217,12 @@ class AuditAssembler:
                     market_forensics["max_favorable_runup_pct"] = round((mfe / entry_price) * 100, 2) if entry_price > 0 else 0
                     market_forensics["max_adverse_drawdown_pct"] = round((mae / entry_price) * 100, 2) if entry_price > 0 else 0
                     result["trade_execution_metrics"] = {
-                        "duration_candles": hit_index,
-                        "actual_hours": round(actual_hours, 2),
+                        "actual_holding_candles": hit_index,
+                        "actual_holding_hours": round(actual_holding_hours, 2),
                         "mae_stress_level_pct": mae_stress.get("mae_stress_level_pct", 0),
                         "mae_stress_tier": mae_stress.get("stress_tier", "UNKNOWN"),
                         "mfe_efficiency_pct": round(mfe_eff, 1),
-                        "time_efficiency_multiplier": round(actual_hours / est_hours, 2) if est_hours > 0 else 0,
+                        "time_efficiency_multiplier": round(actual_holding_hours / est_hours, 2) if est_hours > 0 else 0,
                         "highest_reached_price": max_after,
                         "lowest_reached_price": min_after,
                     }
