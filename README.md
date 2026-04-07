@@ -4,136 +4,65 @@
 
 ---
 
-> **"交易不是预测未来的游戏，而是生存于当下的博弈。"**
-> 
 > Singularity 是一个高保真、多智能体量化架构，通过 **对抗式推理 (Adversarial Reasoning)** 消除人类偏见。它能将复杂的市场混沌状态转化为冷静、确定性的执行指令。
 
 ---
 
-## ⚖️ 系统架构：双子星对抗协议 (The Binary Star Protocol)
+## ⚖️ 零熵架构：双子星对抗协议 (The Binary Star Protocol)
 
-Singularity 的内核是一个多智能体对抗系统，模拟了极高标准的法庭辩论与审判过程。每一笔交易提案都必须在 **真理总线 (Truth Bus)** 的物理锚定下，经历多轮“创意-审计-硬化”的迭代循环。
+Singularity 的内核是一个多智能体对抗系统，模拟了极高标准的法庭辩论与审判过程。其核心哲学是通过引入强烈的“负向驱动”来消除 AI 常见的幻觉与交易员的情绪偏见。
 
-### 🛡️ 推理三元组：锤子与铁砧 (The Reasoning Triad)
-
-1.  **📂 证人 (Market Observer)**：**物理锚定 (The Anchor)**。事实驱动。为博弈各方提供绝对一致的物理观测基准。
-2.  **🤺 辩方 (Session Agent)**：**决策铁砧 (The Anvil)**。需求驱动。必须显式合并 `[VISUAL_CONTEXT]` 以确保所有提案锚定在真实结构之上。
-3.  **🔍 控方 (Skeptical Critic)**：**审计重锤 (The Hammer)**。负向驱动。执行零信任维度的“双重取证”审计，通过否决不符合视觉物理定律的逻辑。
+*   **📂 真理总线 (Truth Bus)**：系统底层建立的物理观测准则。通过锁定高精度的物理时间戳 (ISO-8601) 和多模态图表 (Forensic Charts)，为所有智能体提供绝对一致的、不可篡改的“法庭证据”。
+*   **🤺 辩方 (Session Agent)**：**决策铁砧 (The Anvil)**。需求驱动，负责在真理总线的基础上，提出具备战略潜力的交易策略。
+*   **🔍 控方 (Skeptical Critic)**：**审计重锤 (The Hammer)**。负向驱动，执行零信任维度的“双重取证”审计，专门负责寻找逻辑漏洞、结构破坏，并否决高风险动作。
 
 ---
 
-## 🪐 双子星损耗引擎 (Binary Star Attrition Engine)
+## 🪐 决策收敛：从混沌假设到机器指令 (The Convergence Engine)
 > `[GROUND_TRUTH]: config/strategy_config.yaml`
 
-这是系统的逻辑心脏。不同于常规 AI 简单的“给分”机制，Singularity 采用 **线性损耗模型 (Linear Attrition Decay)**，强制智能体在多轮博弈中“耗尽幻觉”，沉淀真理。
-
-### 1. 初始置信度 (Initial Round Base)
-每一笔新的提案起点最高为 **`80.0`**。剩下的 20% 空间预留给物理规律的先天缺失与不可知性。
-
-### 2. 线性损耗公式 (Decay Calculus)
-每一轮辩论中，Critic 的 **怀疑分 (Skepticism Score)** 将转化为对 Base 的物理损耗：
-$$Decay = Decay_{min} + \left( \frac{Skepticism}{100} \times (Decay_{max} - Decay_{min}) \right)$$
-*其中：$Decay_{min}=5.0$，$Decay_{max}=20.0$。*
-
-### 3. 熔断与收敛 (The 50.0 Halt Limit)
-如果经过多轮损耗，最终置信度跌破 **`50.0`**，系统将强制触发 **“NEUTRAL (中立回避)”**。这是一种纪律化的战略撤退，旨在保护资本免于低置信度的逻辑冒险。
-
----
-
-## 🛡️ 核心能力：取证驱动的进化流水线 (Forensics-Driven Pipeline)
-
-Singularity 提供了一套从物理取证到自我进化的全栈流水线，确保每一行执行指令都经过“实验室级”的压力测试：
-
-*   **⚡ 高保真物理取证 (High-Fidelity Forensics)**：深度提取市场拓扑（支撑/阻力节点）与情绪流（CVD/清算簇），通过 **Forensic Charts** 为智能体构建具备物理一致性的分析语境，杜绝任何数据幻觉。
-*   **🔄 对抗式逻辑硬化 (Adversarial Hardening)**：基于 **Binary Star 协议**，利用 Critic 智能体对交易提案进行多轮否定性审计，强制识别并消除数学漏洞、结构风险及交易员的情绪偏见。
-*   **👁️ 视觉神经链接 (Visual Neural Link)**：强制要求 AI 智能体在 `[VISUAL_CONTEXT]` 下进行“眼见为实”的物理核验，确保所有数字指标与图表拓扑保持原子级同步。
-*   **🧪 闭环回溯取证 (Post-Mortem Audit)**：在交易终点自动执行“物理对敲”，比对交易假设与市场实际走势，通过取证报告识别“逻辑偏差”与“关键遗漏”。
-*   **🧠 取证推理日志 (Forensic Reasoning)**：将 AI 的“内心想法”独立持久化为 `.json` 日志，确保决策过程透明、可审计，并为 Evolver 提供高质量的进化素材。
-*   **🧬 元进化 DNA 引擎 (Meta-Evolution)**：将审计日志转化为进化指令，由 Evolver 智能体自动迭代系统的配置参数（DNA）与 Prompt 逻辑，实现跨周期的自我硬化。
-
----
-
-## 🌟 双子星内核 (Binary Star Core): 逻辑收敛与熵减机制
-
-双子星系统是 Singularity 的计算心脏，其核心职能是通过多智能体的高强度对抗博弈，将高熵的市场混沌态（模糊、嘈杂、不可预测）提纯为低熵的、可执行的精细指令。
-
-### 1. 共享真理总线 (Shared Truth Bus): 消除认知漂移的“统一场”
-为了防止分布式智能体在推理过程中产生“幻觉”或“逻辑漂移”，系统建立了一份强制性的 **物理观测准则**：
-- **物理时间锚定 (Temporal Anchoring)**：基于 ISO-8601 高精度时间戳，锁定物理现实的某一个瞬间，确保所有智能体对“当下”这一秒拥有绝对共识。
-- **视觉一致性同步 (Visual Consistency)**：所有智能体共享完全一致的多模态 **Forensic Charts** 资产。这种视觉上的“原子级对齐”彻底排除了文本数据传输中可能存在的非对称性误读。
-
-### 2. 迭代硬化引擎 (The Convergence Engine): 从混沌假设到精密输出
-系统的决策过程本质上是一个 **逻辑熵减** 的过程。通过多轮对抗，将模糊的 Alpha 假设转化为坚固的执行方案：
-
+系统的决策过程本质上是一个 **“逻辑熵减”** 的过程。每一次最终输出的交易订单，都必须在一场高压的生存游戏中，经历从高熵假设到低熵指令的提纯。
 
 ```mermaid
 graph TD
-    %% 样式定义
-    classDef physical fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#01579b
-    classDef logic fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#f57f17
-    classDef exec fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
+    classDef physics fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#01579b
+    classDef analyst fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#f57f17
+    classDef critic fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#c2185b
+    classDef math fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#7b1fa2
+    classDef exec fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
+    classDef halt fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#c62828
 
-    subgraph Physical_Layer ["⚖️ 地表物理层 (Physical Ground)"]
-        A1["市场拓扑: HVN/LVN/POC"]:::physical
-        A2["情绪流: CVD/清算簇"]:::physical
-        A3["多模态视觉: Macro/Micro"]:::physical
+    TruthBus[/"📡 真理总线<br>(视觉快照 + 订单流物理拓扑)"/]:::physics
+    
+    subgraph Convergence_Engine ["⚙️ 零熵对抗收敛循环 (Adversarial Engine)"]
+        Thesis["🤺 Session Agent<br/>提出初始策略蓝图<br/>Base Score: 80.0"]:::analyst
+        Math["🧮 物理核验 (MathTools)<br/>RR校验 & 止损装甲探测"]:::math
+        AntiThesis["🔍 Critic Agent<br/>寻找逻辑漏洞与结构破绽"]:::critic
+        Decay{"📉 损耗引擎<br/>Score = Current - Skepticism"}:::exec
+        
+        Thesis --> Math --> AntiThesis --> Decay
+        Decay -- "质疑有效 (驳回重建)" --> Thesis
     end
-
-    subgraph Reasoning_Core ["🧠 脑暴对抗层 (Reasoning Core)"]
-        B{"Shared Truth Bus"}:::physical
-        C["Session: 决策铁砧"]:::logic
-        D["Native Math: 物理核验"]:::logic
-        E["Critic: 审计重锤"]:::logic
-    end
-
-    subgraph Deterministic_Execution ["⚙️ 判定执行层 (Execution)"]
-        F{"损耗引擎收敛判定"}:::exec
-        G["状态降维/最后纪律合成"]:::exec
-        H["最终冷指令报文 (JSON)"]:::exec
-    end
-
-    %% 显式连接以提高兼容性
-    A1 --> B
-    A2 --> B
-    A3 --> B
-    B  --> C
-    C  --> D
-    D  --> E
-    E  --> F
-    F  -- "驳回 (未收敛)" --> C
-    F  -- "通过 (逻辑提纯)" --> G
-    G  --> H
+    
+    TruthBus --> Thesis
+    
+    Synthesize["❄️ 冰点降维 (Synthesis)<br/>修剪修饰词，固化执行参数"]:::exec
+    Halt["🛑 终止/熔断 (NEUTRAL)<br/>纪律性撤退"]:::halt
+    Output[/"最终冷指令报文 (JSON)"/]:::exec
+    
+    Decay -- "共识达成" --> Synthesize
+    Decay -- "Score < 50.0" --> Halt
+    Synthesize --> Output
+    Halt --> Output
 ```
 
----
+### 收敛路径解析 (The Path to Execution)
 
-### 🔬 核心共识机制：收敛引擎 (The Convergence Engine)
-
-收敛引擎是 Singularity 的“重型逻辑提纯仪”，通过物理与逻辑同步，将高熵的市场混沌转化为低熵的确定性结果：
-
-#### 1. 多模态视觉锚定 (Visual & Temporal Anchoring)
-通过 **Shared Truth Bus** 在内存中锁定高保真 **Forensic Charts**。所有博弈智能体共享同一秒的物理现实与视觉快照，从底层杜绝了 AI 常见的“逻辑漂移”与“数据幻觉”，确保所有推理都锚定在真实的 K 线拓扑之上。
-
-#### 2. 零信任物理审计 (Zero-Trust Physics)
-系统对所有数学推理实施“外部核验”。每一轮提案中的盈亏比 (RR)、ATR 距离及结构化隔离度，都会由 **MathTools (Python 原生工具集)** 进行无差别重核。逻辑只有在完全通过物理细节比对后，才被允许进入下一轮博弈。
-
-#### 3. 动态收敛判定 (Logical Hardening & Convergence)
-收敛不仅是轮次的终点，更是逻辑强度的“压测终点”。系统动态驱动决策演化：
-- **瞬时锁定 (Early Alignment)**：若逻辑在早期环节即达成高度共识，系统将执行“瞬时锁定”，在确保精度的同时优化计算熵。
-- **强制对齐 (Adversarial Settlement)**：若对抗进入深度僵持，系统将强制终止“发散搜索”，驱动 Orchestrator 在所有历史质疑的“重围”中，寻找那条唯一符合所有物理约束的防御性生还路径。
-
-#### 4. 结构化硬化：逻辑精馏与生存交集
-Singularity 的博弈是**具备状态记忆**的累积演化。每一轮新的提案都被强制要求在之前所有“失败”的废墟上进行重建，这是一场 **“搜索数学交集的生存游戏”**：
-- **累积性逻辑精馏**：系统不仅是总结历史，而是在利用之前的否决记录来不断裁剪错误的预测路径。
-  * **案例 A (结构安全锚定)**：若第一轮辩论确定了“止损位必须锚定在远端成交量堡垒”，那么后续所有提案的坐标都再也无法逃脱这个物理约束。
-  * **案例 B (数学盈亏比优化)**：若由于止损位移导致盈亏比不足，系统必须自动演化出更深的入场策略，在不破坏安全界限的前提下，强行抠出数学上的生存空间。
-- **最终形态**：通过不断剔除被证伪的假设，系统最终产出的不是一个“推测”，而是一个通过了所有压力测试的、唯一的“逻辑窄门”。
-
-#### 5. 确定性指令收敛：状态降维
-终局决策不是平平无奇的文字总结，而是一次逻辑上的 **高压状态降维**，负责把繁杂的脑暴瞬间提纯为冷直的执行代码：
-- **逻辑叠图与修剪**：这是决策的最后关头。Orchestrator 将 Analyst 的“进场蓝图”与 Critic 的“风险红线”进行强行叠图。它会毫不留情地切掉所有形容词，只保留经过原生数学工具集核算后的参数。
-- **纪律化收敛**：如果多方辩论无法找到那个“公约数交集”，系统将由 Orchestrator 输出 `NEUTRAL` (中立) 指令。这种“有纪律的放弃”远比一次模糊的冒险更具进化价值。
-- **物理指令对齐**：将多轮对抗记录，浓缩为一组极简、精准、直接对齐生产环境需求的 JSON 执行报文，实现从“逻辑博弈”到“机器指令”的质变。
+1. **初始置信度 (Initial Hypothesis)**：每一笔新的提案起点最高为 **`80.0`** 分。剩下的 20% 空间预留给物理规律的先天缺失与不可知性。
+2. **零信任核验 (Zero-Trust Physics)**：AI 不负责计算。提案中的盈亏比 (RR) 和止损隔火层 (Structural Armor) 会由 **Python 原生工具集 (MathTools)** 进行无差别硬核算，失败则直接打回重写。
+3. **线性损耗 (Adversarial Attrition)**：每一次 Critic 提出的有效质疑 (Skepticism Score)，都会转化为对 Base 分数的物理损耗。
+4. **硬化与熔断 (Hardening or Halt)**：如果逻辑足够坚硬，系统会在多轮辩论中找到“数学交集”并存活下来；如果逻辑脆弱，历经损耗后置信度跌破 **`50.0`**，系统将无条件触发 **NEUTRAL (中立回避)**。
+5. **冰点降维 (Deterministic Synthesis)**：对于存活下来的策略，系统会执行最后的高压降维——切掉所有分析语言，将多轮对抗的战术共识，提纯为一组极简、可以直接写入交易所 API 的 JSON 指令。
 
 ---
 
