@@ -138,12 +138,10 @@ class SniperTrigger:
         if abs(cvd) > cvd_threshold:
             should_trigger = True
             if prev:
-                # 必须保持在增长（即当前必须比上一次强），否则进入静默，防止持续报警
-                # Note prev_cvd is already extracted above, but if block needs it if it skips above
-                prev_sent = prev.get('sentiment_signals', {})
-                prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
-                is_increasing = abs(cvd) > abs(prev_cvd)
-                if not is_increasing:
+                # 必须保持在显着增长（当前比上一次强 x 阻尼系数），否则进入静默，防止持续报警
+                growth_ratio = self.global_cfg.get('sniper', {}).get('cvd_growth_significance_ratio', 1.0)
+                is_significant = abs(cvd) > abs(prev_cvd) * growth_ratio
+                if not is_significant:
                     should_trigger = False
                     
             if should_trigger:

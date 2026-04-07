@@ -26,6 +26,10 @@ sniper:
   # [Whale Impulse]: Requires a pure, violent surge in taker volume (ignores price direction).
   # REC: 0.8 - 1.0. This MUST be kept high to prevent normal trend momentum from triggering false pulse alarms.
   cvd_impulse_intensity_ratio: 1
+  
+  # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
+  # 1.0 = any increase, 1.1 = 10% growth required.
+  cvd_growth_significance_ratio: 1.1
 
 network:
   binance:
