@@ -175,8 +175,6 @@ binary_star:
   model: gemini-flash-latest
   # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
-  # Shared Truth Bus expiration to minimize memory bloat.
-  cache_expiration_minutes: 10
   # Maximum rounds of debate before forced consensus or surrender.
   max_rounds: 2
 

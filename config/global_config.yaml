@@ -44,6 +44,7 @@ network:
       multiplier: 1
       min_seconds: 2
       max_seconds: 10
+    cache_expiration_minutes: 10
 
 visuals:
   # --- Chart Rendering Tokens ---

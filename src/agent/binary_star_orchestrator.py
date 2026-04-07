@@ -76,11 +76,11 @@ class BinaryStarOrchestrator:
         self.retry_multiplier = float(retry_strategy['multiplier'])
         self.retry_min = int(retry_strategy['min_seconds'])
         self.retry_max = int(retry_strategy['max_seconds'])
+        self.cache_expiration = int(gemini_net['cache_expiration_minutes'])
         
         # 3. Binary Star Protocol Parameters
         self.bs_config = self.config['binary_star']
         self.max_rounds = int(self.bs_config['max_rounds'])
-        self.cache_expiration = int(self.bs_config['cache_expiration_minutes'])
         self.shared_model = self.bs_config['model']
         
         # 4. Contextual Prompt Assembly (Support for Sandbox Injection)
@@ -292,7 +292,7 @@ class BinaryStarOrchestrator:
                 contents=[observation_json] + visual_parts,
                 system_instruction=self.shared_instruction,
                 model=self.shared_model,
-                ttl_minutes=int(self.bs_config.get("cache_expiration_minutes", 10)),
+                ttl_minutes=self.cache_expiration,
                 tools=[types.Tool(function_declarations=tool_declarations)]
             )
             
