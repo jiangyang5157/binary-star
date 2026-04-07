@@ -161,10 +161,13 @@ class SessionController:
 
     def run(self):
         mode = self.args.mode
-        logger.info(f"Starting SessionEngine: {mode} mode for {self.symbol}")
+        # Start logging handled by routing logic above
         
         if mode == "prod":
-            self.engine.execute_cycle(timestamp_str=getattr(self.args, 'timestamp', None))
+            self.engine.execute_cycle(timestamp_str=None)
+            
+        elif mode == "simulation":
+            self.engine.execute_cycle(timestamp_str=self.args.timestamp)
         
         elif mode == "backtest":
             self._run_backtest()
@@ -276,18 +279,45 @@ def main():
     
     args = parser.parse_args()
     
-    # Mode Detection
-    if getattr(args, 'start', None):
+    # --- Mode Resolution & Parameter Validation ---
+    if getattr(args, 'timestamp', None):
+        # Priority 1: Time-Machine (Single Historical Point)
+        args.mode = "simulation"
+        if not args.path: args.path = "data/backtest"
+        
+        ignored = [arg for arg in ['--start', '--end', '--samples', '--sampling-mode'] if any(a.startswith(arg) for a in sys.argv)]
+        logger.info(f"=== Mode Resolved: SIMULATION (One-Off Historical) ===")
+        logger.info(f" => ACTION: Replaying market cross-section at historical point")
+        logger.info(f" => ADOPTED: --timestamp '{args.timestamp}'")
+        if ignored: logger.warning(f" => IGNORED: {', '.join(ignored)} (Not applicable for single-point simulation)")
+        logger.info(f" => ARCHIVAL: {args.path}")
+        
+    elif getattr(args, 'start', None):
+        # Priority 2: Batch Backtest
         args.mode = "backtest"
         if not args.path: args.path = "data/backtest"
+        
+        from src.utils.pipeline_utils import load_global_config
+        if args.samples is None:
+            args.samples = load_global_config().get('backtest', {}).get('default_samples', 20)
+            
+        logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
+        logger.info(f" => ACTION: Simulating multiple historical data points")
+        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples} (Auto-resolved), --sampling-mode {args.sampling_mode}")
+        logger.info(f" => ARCHIVAL: {args.path}")
+        
     else:
+        # Priority 3: Live Production
         args.mode = "prod"
         if not args.path: args.path = "data/prod"
+        
+        ignored = [arg for arg in ['--end', '--samples', '--sampling-mode'] if any(a.startswith(arg) for a in sys.argv)]
+        logger.info(f"=== Mode Resolved: PROD (Live Execution) ===")
+        logger.info(f" => ACTION: Fetching current real-time market data")
+        if ignored: logger.warning(f" => IGNORED: {', '.join(ignored)} (Not applicable for live execution)")
+        logger.info(f" => ARCHIVAL: {args.path}")
 
-    # Sanity checks
-    if args.mode == "backtest" and not args.start:
-        parser.error("--start is required for backtest mode.")
-
+    print("\n") # formatting spacing before engine start
     controller = SessionController(args)
     controller.run()
 

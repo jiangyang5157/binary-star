@@ -14,10 +14,17 @@ sniper:
   pulse_cooldown_multiplier: 1.0
 
   # --- Micro-Probes (Detecting violent intra-tick action) ---
-  # [Whale Impulse]: Requires the 6-second surge in taker volume to equal a percentage of the total strategy threshold. (0.8 = 80% surge in 6s)
-  cvd_impulse_intensity_ratio: 0.8
-  # [Absorption/Distribution Divergence]: Requires price to move inversely against massive limit blocks, with the hidden taker intensity equaling a percentage of the strategy threshold.
-  cvd_divergence_intensity_ratio: 0.8
+  # WARNING: The ratios below are mathematically coupled to 'pulse_interval_minutes'. If you increase 
+  # the tick interval (e.g., from 0.1m to 1.0m), you MUST scale these ratios UP non-linearly to filter 
+  # out the natural background drift of CVD accumulated over the longer time window.
+  
+  # [Absorption/Distribution Divergence]: Requires price to move inversely against massive limit blocks.
+  # REC: 0.4 - 0.5. This can be more sensitive because the inverse price action provides strong structural noise filtering.
+  cvd_divergence_intensity_ratio: 0.5
+  
+  # [Whale Impulse]: Requires a pure, violent surge in taker volume (ignores price direction).
+  # REC: 0.8 - 1.0. This MUST be kept high to prevent normal trend momentum from triggering false pulse alarms.
+  cvd_impulse_intensity_ratio: 1.0
 
 network:
   binance:
