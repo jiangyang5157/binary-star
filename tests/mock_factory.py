@@ -49,7 +49,8 @@ class MockDataFactory:
                     "take_profit": 62000,
                     "stop_loss": 59000,
                     "rr_ratio": 2.0,
-                    "projected_holding_hours": 24
+                    "projected_holding_hours": 24,
+                    "projected_waiting_hours": 4
                 },
                 "reasoning_chain": "Mocked structural breakout"
             },
@@ -79,7 +80,9 @@ class MockDataFactory:
                         "min_seconds": 2,
                         "max_seconds": 10
                     },
-                    "max_tool_iterations": 5
+                    "max_tool_iterations": 5,
+                    "cache_expiration_minutes": 60,
+                    "enable_context_cache": True
                 }
             },
             "system": {
