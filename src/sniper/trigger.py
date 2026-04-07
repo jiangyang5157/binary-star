@@ -27,8 +27,7 @@ class SniperTrigger:
         self.regime_cfg = self.strat_cfg['regime_parameters']
         
         # v6.70: EXPLICIT CONFIG ENFORCEMENT
-        # If sniper_configuration is missing from global_config.yaml, this will fail intentionally.
-        self.sniper_cfg = self.global_cfg['sniper_configuration']
+        self.sniper_cfg = self.global_cfg['sniper']
         
         # Derive cooldown from micro-context (e.g., 15m) + Multiplier
         micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
@@ -100,77 +99,71 @@ class SniperTrigger:
         """动能失衡: CVD 脉冲/背离、资金费极值或多空比极值"""
         sent = curr.get('sentiment_signals', {})
         
-        # 1. 存量/极值检测 (CVD & LS Ratio)
+        # 1. 基准阈值直接对接 Agent，实现 1:1 无损映射 (零熵架构)
+        cvd_threshold = self.regime_cfg['cvd_intensity_threshold']
         cvd = sent.get('cvd_intensity_ratio', 0.0)
-        cvd_mult = self.sniper_cfg['cvd_threshold_multiplier']
-        cvd_threshold = self.regime_cfg['cvd_intensity_threshold'] * cvd_mult
         
-        cvd_net = sent.get('cvd_net_delta', 0.0)
-        cvd_vol = sent.get('cvd_total_volume', 0.0)
-        cvd_lookback = sent.get('cvd_lookback_candles', 0)
-        micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
-        
+        # --- [极高优] 动态微观事件探针 (Event-Driven Dynamics) ---
+        if prev:
+            prev_sent = prev.get('sentiment_signals', {})
+            prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
+            
+            cvd_delta_raw = cvd - prev_cvd
+            cvd_delta_abs = abs(cvd_delta_raw)
+            
+            # A. 吸筹/派发背离 (Divergence) - 最严苛的左侧信号，放于首位防止掩盖
+            div_ratio = self.sniper_cfg['cvd_divergence_intensity_ratio']
+            divergence_threshold = cvd_threshold * div_ratio
+            
+            if cvd_delta_abs > divergence_threshold:
+                curr_price = curr['price_dynamics']['current_price']
+                prev_price = prev['price_dynamics']['current_price']
+                price_delta = curr_price - prev_price
+                
+                # Bullish: Price down, CVD up | Bearish: Price up, CVD down
+                if (price_delta > 0 and cvd_delta_raw < 0) or (price_delta < 0 and cvd_delta_raw > 0):
+                    return True, f"CVD/Price Divergence (Price:{price_delta:.1f}, CVD:{cvd_delta_raw:.3f} | Ratio: {div_ratio})"
+
+            # B. 暴力大单脉冲 (Impulse) - 次严苛的右侧破局信号
+            pulse_ratio = self.sniper_cfg['cvd_impulse_intensity_ratio']
+            pulse_threshold = cvd_threshold * pulse_ratio
+            if cvd_delta_abs > pulse_threshold:
+                return True, f"CVD Impulse Detected (Delta: {cvd_delta_abs:.3f} | Ratio: {pulse_ratio} | Threshold: {pulse_threshold:.3f})"
+
+        # --- [高优] 全局绝对动量锁定 (Absolute Momentum) ---
         if abs(cvd) > cvd_threshold:
-            # Momentum Locking: If we have previous metrics, only re-trigger if intensity is INCREASING or FLIPPED
             should_trigger = True
             if prev:
+                # 必须保持在增长（即当前一秒必须比上一秒强），否则进入静默，防止持续报警
+                # Note prev_cvd is already extracted above, but if block needs it if it skips above
                 prev_sent = prev.get('sentiment_signals', {})
                 prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
-                
-                # Condition: Current Intensity is stronger than previous (Simplified: ANY increase) OR direction flipped
                 is_increasing = abs(cvd) > abs(prev_cvd)
                 is_flipped = (cvd > 0 and prev_cvd < 0) or (cvd < 0 and prev_cvd > 0)
-                
                 if not (is_increasing or is_flipped):
-                    return False, f"MOMENTUM_LOCK (Intensity stable: {cvd:.3f} vs {prev_cvd:.3f})"
+                    should_trigger = False
                     
             if should_trigger:
-                reason = (
+                cvd_net = sent.get('cvd_net_delta', 0.0)
+                cvd_vol = sent.get('cvd_total_volume', 0.0)
+                cvd_lookback = sent.get('cvd_lookback_candles', 0)
+                micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
+                return True, (
                     f"Institutional CVD flow (Intensity: {cvd:.3f} | "
                     f"Delta: {cvd_net:.1f} | Vol: {cvd_vol:.1f} | "
                     f"Window: {cvd_lookback}k @ {micro_int} | Threshold: {cvd_threshold:.2f})"
                 )
-                return True, reason
 
-        # DNA Mapping: ls_ratio_micro from sentiment_signals
+        # --- [常态保底] 散户情绪与资金环境极值 (Ambient Sentiment) ---
         ls = sent.get('ls_ratio_micro', 1.0)
         if ls > self.regime_cfg['long_short_imbalance_ratio'] or \
            ls < self.regime_cfg['short_heavy_imbalance_ratio']:
             return True, f"Retail Sentiment Over-extension (L/S: {ls:.2f})"
 
-        # 2. 资金费压力 (Funding Rate Pressure) - [NEW v2.0]
         funding = sent.get('funding_rate', 0.0)
         if abs(funding) > self.regime_cfg['funding_extreme_threshold']:
             return True, f"Funding Rate Extreme (Rate: {funding:.5f})"
 
-        if prev:
-            prev_sent = prev.get('sentiment_signals', {})
-            prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
-            
-            # 3. CVD 脉冲 (CVD Dynamic Impulse) - [NEW v2.0]
-            # Trigger on sudden taker surge even if absolute threshold isn't hit
-            cvd_delta = abs(cvd - prev_cvd)
-            pulse_ratio = self.sniper_cfg['cvd_impulse_intensity_ratio']
-            pulse_threshold = (self.regime_cfg['cvd_intensity_threshold'] * pulse_ratio) * cvd_mult
-            if cvd_delta > pulse_threshold:
-                return True, f"CVD Impulse Detected (Delta: {cvd_delta:.3f} | Ratio: {pulse_ratio} | Threshold: {pulse_threshold:.3f})"
-
-            # 4. 吸筹/派发背离 (CVD Divergence Detection) - [NEW v2.0]
-            curr_price = curr['price_dynamics']['current_price']
-            prev_price = prev['price_dynamics']['current_price']
-            price_delta = curr_price - prev_price
-            cvd_delta_raw = cvd - prev_cvd
-
-            # Only trigger if CVD movement is non-trivial (ratio x of strategy threshold * mult)
-            div_ratio = self.sniper_cfg['cvd_divergence_intensity_ratio']
-            divergence_threshold = (self.regime_cfg['cvd_intensity_threshold'] * div_ratio) * cvd_mult
-            if abs(cvd_delta_raw) > divergence_threshold:
-                # Bullish Divergence: Price down, CVD up (Absorption)
-                # Bearish Divergence: Price up, CVD down (Distribution)
-                if (price_delta > 0 and cvd_delta_raw < 0) or \
-                   (price_delta < 0 and cvd_delta_raw > 0):
-                    return True, f"CVD/Price Divergence (Price:{price_delta:.1f}, CVD:{cvd_delta_raw:.3f} | Ratio: {div_ratio})"
-        
         return False, None
 
     def _check_type_c(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:

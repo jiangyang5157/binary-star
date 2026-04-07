@@ -1,20 +1,22 @@
 system:
   default_symbol: "BTCUSDT"
 
-sniper_configuration:
-  # --- 脉冲策略 (基于 micro_context) ---
-  # 冷却时间倍率。1.0 表示与 micro_context (15m) 对齐。
+sniper:
+  # --- Engine Heartbeat & Tick Rate ---
+  # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
+  # WARNING: This is the physical baseline of the engine. It defines what "instantaneous" means 
+  # for the impulse/divergence probes. Do NOT change arbitrarily.
+  pulse_interval_minutes: 0.1
+
+  # --- Alert Muting (Cooldown) ---
+  # The duration the Sniper remains "muted" after successfully waking up the AI.
+  # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
   pulse_cooldown_multiplier: 1.0
 
-  # --- 粗筛滤网系数 (门槛抬高) ---
-  # 将 Agent CVD 基准阈值放大，过滤掉部分平庸的吸筹/派发噪音
-  # Sniper 1.2x 代表比 Agent 迟钝 20%
-  cvd_threshold_multiplier: 1.2
-
-  # --- 内部原子比例 (细微控制) ---
-  # CVD 脉冲检测相对于基准阈值的比例 (原硬编码 0.5)
+  # --- Micro-Probes (Detecting violent intra-tick action) ---
+  # [Whale Impulse]: Requires the 6-second surge in taker volume to equal a percentage of the total strategy threshold. (0.8 = 80% surge in 6s)
   cvd_impulse_intensity_ratio: 0.8
-  # CVD 背离检测相对于基准阈值的比例 (原硬编码 0.25)
+  # [Absorption/Distribution Divergence]: Requires price to move inversely against massive limit blocks, with the hidden taker intensity equaling a percentage of the strategy threshold.
   cvd_divergence_intensity_ratio: 0.8
 
 network:

@@ -19,16 +19,19 @@ logger = setup_logger("SniperSandbox")
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Mode Sandbox (Independent Test)")
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading pair symbol")
-    parser.add_argument("--pulse", type=float, default=0.0, help="Wait time between scouts (minutes). 0 for one-shot.")
+    parser.add_argument("--continuous", action="store_true", help="Run continuously using pulse_interval_minutes from config")
     
     args = parser.parse_args()
+    
+    from src.utils.pipeline_utils import load_global_config
+    pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
     
     scout = SniperScout(args.symbol)
     trigger = SniperTrigger()
     
     prev_metrics = None
     
-    logger.info(f"--- Sniper Sandbox Initialized: {args.symbol} (Pulse: {args.pulse}m) ---")
+    logger.info(f"--- Sniper Sandbox Initialized: {args.symbol} (Continuous: {args.continuous}) ---")
     
     try:
         while True:
@@ -53,12 +56,12 @@ def main():
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] 💤 SLEEPING | No actionable asymmetry.")
             
             # 4. Loop Logic
-            if args.pulse <= 0:
+            if not args.continuous:
                 break
                 
             prev_metrics = metrics
-            logger.info(f"Waiting {args.pulse}m for next scout...")
-            time.sleep(args.pulse * 60)
+            logger.info(f"Waiting {pulse_mins}m for next scout...")
+            time.sleep(pulse_mins * 60)
             
     except KeyboardInterrupt:
         logger.warning("Sniper Sandbox terminated by user.")

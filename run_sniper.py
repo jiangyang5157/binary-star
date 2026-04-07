@@ -56,7 +56,7 @@ class SniperDaemon:
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
-        pulse_mins = self.args.pulse
+        pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
         logger.info(f"--- Sniper Monitoring Started: {self.symbol} (Pulse: {pulse_mins}m) ---")
         
         while True:
@@ -126,7 +126,6 @@ class SniperDaemon:
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon (Intelligence-Led Execution)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
-    parser.add_argument("--pulse", type=float, default=5.0, help="Sniper check interval in minutes")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
     parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
