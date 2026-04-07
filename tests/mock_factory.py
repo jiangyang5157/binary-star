@@ -128,10 +128,10 @@ class MockDataFactory:
                     "score_confidence_decay_max": 20.0,
                     "score_confidence_bonus": 10.0,
                     "holding_time_modifier": 1.0,
-                    "holding_friction_highway": 1.1,
-                    "holding_friction_standard": 1.5,
-                    "holding_friction_climax": 2.0,
-                    "holding_friction_dead_water": 3.0
+                    "temporal_dilation_highway": 1.1,
+                    "temporal_dilation_standard": 1.5,
+                    "temporal_dilation_climax": 2.0,
+                    "temporal_dilation_dead_water": 3.0
                 },
                 "critic": {
                     "model_temperature": 0.2,
@@ -244,7 +244,8 @@ class MockDataFactory:
                 "entry": 60000.0,
                 "take_profit": 62000.0,
                 "stop_loss": 59000.0,
-                "projected_holding_hours": 12.0
+                "projected_holding_hours": 12.0,
+                "projected_waiting_hours": 0.5
             },
             "reasoning_chain": "Mocked technical breakout across structural node.",
             "critic_impact": None

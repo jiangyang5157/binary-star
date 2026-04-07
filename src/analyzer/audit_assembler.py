@@ -119,10 +119,7 @@ class AuditAssembler:
             "market_forensics": market_forensics,
             "regime_forensics": regime_forensics,
             "execution_forensics": {},
-            "trade_execution_metrics": {
-                "actual_holding_candles": len(klines),
-                "actual_holding_hours": round(len(klines) * interval_hours, 2)
-            }
+            "trade_execution_metrics": None # No entry, no execution.
         }
         
         if opinion in ('BULLISH', 'BEARISH'):
@@ -148,7 +145,7 @@ class AuditAssembler:
             
             theoretical_mae = max(0, target_entry - min_price) if opinion == 'BULLISH' else max(0, max_price - target_entry)
             theoretical_mfe = max(0, max_price - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_price)
-
+ 
             unfilled_proximity_atr_limit = float(self.config.audit_review['unfilled_proximity_atr_limit'])
             result["execution_forensics"] = {
                 "planned_entry": planned_entry,
@@ -160,15 +157,16 @@ class AuditAssembler:
                 "theoretical_mfe_atr": round(theoretical_mfe / max_atr, 4) if max_atr > 0 else 0,
                 "is_near_miss": 0 < entry_drift_atr < unfilled_proximity_atr_limit
             }
-
+ 
             # v6.13 Schema Relocation (Indicators now grouped in market_forensics)
             market_forensics["planned_entry_price"] = target_entry
             market_forensics["total_price_change_pct"] = market_forensics["price_move_pct"]
             market_forensics["max_favorable_runup_pct"] = round((theoretical_mfe / entry_price) * 100, 2) if entry_price > 0 else 0
             market_forensics["max_adverse_drawdown_pct"] = round((theoretical_mae / entry_price) * 100, 2) if entry_price > 0 else 0
-
+ 
             if tp > 0 and sl > 0:
                 entry_hit = False
+                entry_index = None
                 hit_result = "NEITHER"
                 hit_index = len(klines)
                 max_after, min_after = -float('inf'), float('inf')
@@ -179,6 +177,7 @@ class AuditAssembler:
                         if (opinion == 'BULLISH' and low <= target_entry) or \
                            (opinion == 'BEARISH' and high >= target_entry):
                             entry_hit = True
+                            entry_index = i + 1
                             max_after, min_after = high, low
                     
                     if entry_hit:
@@ -196,36 +195,51 @@ class AuditAssembler:
                     mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                     mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
                     
+                    # --- v7.0: Dynamic Temporal Forensic Logic ---
+                    # 1. Access Math Fact Check for dilation ground-truth
+                    last_round = strategy.get('debate_history', [{}])[-1]
+                    math_check = last_round.get('math_fact_check', {}).get('holding_time_verification', {})
+                    
+                    # 2. Extract Dilation Parameters (Support legacy keys for compatibility)
+                    dilation_factor = float(math_check.get('temporal_dilation_factor') or math_check.get('holding_friction_factor') or 1.0)
+                    dilation_regime = math_check.get('temporal_dilation_regime', 'temporal_dilation_standard')
+                    
+                    # 3. Calculate Actual ISOLATED Holding Duration (Holding = Exit - Entry)
+                    actual_holding_hours = round((hit_index - entry_index) * interval_hours, 2)
+                    proj_holding_hours = float(tactical.get('projected_holding_hours', 0) or 0)
+                    
+                    # 4. Stress and Efficiency Analytics (Physics of Execution Quality)
                     mae_stress = MathTools.calculate_mae_stress(
                         mae_distance=mae, 
                         max_atr_used=max_atr,
                         thresholds=self.config.audit_review['mae_stress_thresholds']
                     )
-                    mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
-                    
-                    # Explicitly extract estimated hours without fallback to avoid logic pollution
-                    est_hours = float(tactical.get('projected_holding_hours', 0) or 0)
-                    if est_hours <= 0:
-                        logger.warning("Forensics: 'projected_holding_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
-                    
-                    actual_holding_hours = hit_index * interval_hours
                     
                     result["is_filled"] = True
                     result["tp_sl_result"] = hit_result
                     
-                    # v6.13 Sync: Indicators still grouped in market_forensics for filled orders
-                    market_forensics["max_favorable_runup_pct"] = round((mfe / entry_price) * 100, 2) if entry_price > 0 else 0
-                    market_forensics["max_adverse_drawdown_pct"] = round((mae / entry_price) * 100, 2) if entry_price > 0 else 0
+                    # 5. Final Meta-Metric Assembly (The "Evolver-Facing" Segment + Forensic Ground-Truth)
                     result["trade_execution_metrics"] = {
-                        "actual_holding_candles": hit_index,
-                        "actual_holding_hours": round(actual_holding_hours, 2),
+                        "actual_holding_hours": actual_holding_hours,
+                        "projected_holding_hours": proj_holding_hours,
+                        "temporal_dilation_factor": dilation_factor,
+                        "temporal_dilation_regime": dilation_regime,
                         "mae_stress_level_pct": mae_stress.get("mae_stress_level_pct", 0),
                         "mae_stress_tier": mae_stress.get("stress_tier", "UNKNOWN"),
-                        "mfe_efficiency_pct": round(mfe_eff, 1),
-                        "time_efficiency_multiplier": round(actual_holding_hours / est_hours, 2) if est_hours > 0 else 0,
+                        "mfe_efficiency_pct": round((mfe / tp_dist * 100) if tp_dist > 0 else 0, 1),
                         "highest_reached_price": max_after,
-                        "lowest_reached_price": min_after,
+                        "lowest_reached_price": min_after
                     }
+                    
+                    # 6. Holistic Diagnostics (Moving drift data to forensics)
+                    result["execution_forensics"]["actual_waiting_hours"] = round(entry_index * interval_hours, 2)
+                    result["execution_forensics"]["actual_total_duration"] = round(hit_index * interval_hours, 2)
+                    result["execution_forensics"]["mfe_efficiency_pct"] = round((mfe / tp_dist * 100) if tp_dist > 0 else 0, 1)
+                    # result["execution_forensics"]["time_efficiency_multiplier"] = round(actual_holding_hours / proj_holding_hours, 2) if proj_holding_hours > 0 else 0
+                    
+                    # v6.13 Sync: TP/SL Outcomes
+                    market_forensics["max_favorable_runup_pct"] = round((mfe / entry_price) * 100, 2) if entry_price > 0 else 0
+                    market_forensics["max_adverse_drawdown_pct"] = round((mae / entry_price) * 100, 2) if entry_price > 0 else 0
         
         return result
 

@@ -114,7 +114,7 @@ class EvolverAgent(BaseAgent):
                 trend_intensity_threshold=active_config['regime_parameters']['trend_intensity_threshold'],
                 min_failure_instances=active_config['evolver']['min_failure_instances'],
                 failure_ratio_threshold=active_config['evolver']['failure_ratio_threshold'],
-                time_projection_mae_threshold_pct=int(active_config['evolver']['time_projection_mae_threshold'] * 100)
+                time_projection_mape_threshold_pct=int(active_config['evolver']['time_projection_mape_threshold'] * 100)
             )
 
             logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")

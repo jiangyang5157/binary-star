@@ -171,8 +171,8 @@ topography_parameters:
 binary_star:
 
   # The shared 'Sovereign Intelligence' model.
-  # gemini-3.1-pro-preview, gemini-3.1-flash-lite-prev
-  model: gemini-3.1-flash-lite-preview
+  # gemini-3.1-pro-preview, gemini-3.1-flash-lite-prev, gemini-2.5-flash, gemini-2.5-flash-lite
+  model: gemini-2.5-flash
   # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
   # Maximum rounds of debate before forced consensus or surrender.
@@ -193,11 +193,11 @@ binary_star:
     # Bonus awarded for resolving [TERMINAL] or [CONSTRUCTIVE] logic violations in synthesis.
     score_confidence_bonus: 10
 
-    # Dynamic Holding Friction Factors (Time Redundancy)
-    holding_friction_highway: 2
-    holding_friction_standard: 1
-    holding_friction_climax: 0.3
-    holding_friction_dead_water: 0.7
+    # Dynamic Temporal Dilation Factors (Time Redundancy)
+    temporal_dilation_highway: 2
+    temporal_dilation_standard: 1
+    temporal_dilation_climax: 0.3
+    temporal_dilation_dead_water: 0.7
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
@@ -219,5 +219,5 @@ evolver:
   min_failure_instances: 2
   # Ratio of failed sessions in the current batch required to validate a config update.
   failure_ratio_threshold: 0.2
-  # Maximum tolerated Mean Absolute Error for time projections before recalibrating friction.
-  time_projection_mae_threshold: 0.2
+  # Maximum tolerated Mean Absolute Percentage Error (MAPE) for time projections before recalibrating dilation.
+  time_projection_mape_threshold: 0.2

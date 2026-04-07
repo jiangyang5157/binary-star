@@ -55,7 +55,11 @@ class SessionEmailTemplate(BaseEmailTemplate):
             except Exception as e:
                 logger.warning(f"Template: RR calculation failed: {e}")
 
-        # 5. UI Styling & Formatting
+        # 5. Extract Projected Durations
+        proj_hold = tactical.get('projected_holding_hours') or 0
+        proj_wait = tactical.get('projected_waiting_hours') or 0
+
+        # 6. UI Styling & Formatting
         colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
         icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
         theme_color = colors.get(opinion, "#64748b")
@@ -192,13 +196,17 @@ class SessionEmailTemplate(BaseEmailTemplate):
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🛡️ Stop Loss</div>
                                 <div style="font-size: 18px; color: #fb7185; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt((decision.get('tactical_parameters') or {}).get('stop_loss'))}</div>
                             </td>
-                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
+                            <td style="width: 14.2%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">📊 RR Ratio</div>
                                 <div style="font-size: 18px; color: #f59e0b; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{fmt(rr_display)}x</div>
                             </td>
-                            <td style="width: 16.6%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration((decision.get('tactical_parameters') or {}).get('projected_holding_hours') or 0)}</div>
+                            <td style="width: 14.2%; vertical-align: top; border: none !important;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Wait</div>
+                                <div style="font-size: 18px; color: #94a3b8; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration(proj_wait)}</div>
+                            </td>
+                            <td style="width: 14.2%; vertical-align: top; border: none !important;">
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏳ Hold</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration(proj_hold)}</div>
                             </td>
                         </tr>
                     </table>
@@ -311,14 +319,25 @@ class AuditEmailTemplate(BaseEmailTemplate):
         is_filled = outcome.get("is_filled", False)
         result_type = outcome.get("tp_sl_result", "NEITHER")
         
+        # v7.0: Calculate Audit Boundary for Unfilled sessions
+        try:
+            from src.utils.math_utils import get_interval_hours
+            metadata = audit_data.get("session", {}).get("metadata", {})
+            micro_ctx = metadata.get("config_snapshot", {}).get("analysis_window", {}).get("micro_context", {})
+            audit_boundary_hours = get_interval_hours(micro_ctx.get('time_interval')) * int(micro_ctx.get('lookback_candles'))
+        except:
+            audit_boundary_hours = 0.0 # Strict failure fallback
+
         if not is_filled:
             res_color = "#94a3b8"  # Slate 400
             res_label = "UNFILLED"
+            display_duration_hours = audit_boundary_hours
         else:
             result_colors = {"TP_HIT": "#10b981", "SL_HIT": "#ef4444", "NEITHER": "#64748b"}
             result_labels = {"TP_HIT": "PROFIT (TP)", "SL_HIT": "LOSS (SL)", "NEITHER": "EXPIRED (FLAT)"}
             res_color = result_colors.get(result_type, "#64748b")
             res_label = result_labels.get(result_type, "PENDING")
+            display_duration_hours = metrics.get('actual_holding_hours', 0)
         
         fmt = AuditEmailTemplate.fmt
         
@@ -363,16 +382,16 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     <table class="responsive-metrics" style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 15px 20px; text-align: center; color: #ffffff;">
                         <tr>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⚡ Efficiency</div>
-                                <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency_pct'))}</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⚡ MFE Efficient</div>
+                                <div style="font-size: 16px; color: #34d399; font-weight: 800;">{fmt(metrics.get('mfe_efficiency_pct'))}%</div>
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">🌡️ MAE Stress</div>
-                                <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level_pct'))}</div>
+                                <div style="font-size: 16px; color: #fb7185; font-weight: 800;">{fmt(metrics.get('mae_stress_level_pct'))}%</div>
                             </td>
                             <td style="width: 33.33%; vertical-align: top; border: none !important;">
-                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Duration</div>
-                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{AuditEmailTemplate.format_duration(metrics.get('actual_holding_hours') or 0)}</div>
+                                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ { 'Actual' if is_filled else 'Audit' } Duration</div>
+                                <div style="font-size: 16px; color: #60a5fa; font-weight: 800;">{AuditEmailTemplate.format_duration(display_duration_hours)}</div>
                             </td>
                         </tr>
                     </table>

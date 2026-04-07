@@ -460,6 +460,7 @@ class BinaryStarOrchestrator:
             proximity = self.math_tools.calculate_structural_proximity(sl, atr, poc, vah, val)
             
             holding_time = self.math_tools.project_holding_time(
+                current_price=float(tactical.get('current_price', 0) or 0),
                 entry=entry, take_profit=tp, atr=atr, 
                 trend_intensity=trend_intensity, 
                 volatility_expansion_ratio=float(dynamics['volatility_expansion_ratio']),
@@ -469,10 +470,10 @@ class BinaryStarOrchestrator:
                 vr_extreme=self.critic_config.volatility_extreme_ratio,
                 ti_strong=self.critic_config.trend_intensity_strong,
                 ti_thresh=self.critic_config.trend_intensity_threshold,
-                friction_dead_water=self.session_config.holding_friction_dead_water,
-                friction_highway=self.session_config.holding_friction_highway,
-                friction_climax=self.session_config.holding_friction_climax,
-                friction_standard=self.session_config.holding_friction_standard
+                dilation_dead_water=self.session_config.temporal_dilation_dead_water,
+                dilation_highway=self.session_config.temporal_dilation_highway,
+                dilation_climax=self.session_config.temporal_dilation_climax,
+                dilation_standard=self.session_config.temporal_dilation_standard
             )
             
             # Compliance Verdict Synthesis

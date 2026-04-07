@@ -121,6 +121,7 @@ class MathTools:
 
     @staticmethod
     def project_holding_time(
+        current_price: float,
         entry: float,
         take_profit: float,
         atr: float,
@@ -133,20 +134,20 @@ class MathTools:
         vr_extreme: float,
         ti_strong: float,
         ti_thresh: float,
-        # Friction Modifiers (Loaded from YAML holding_friction_*)
-        friction_dead_water: float,
-        friction_highway: float,
-        friction_climax: float,
-        friction_standard: float
+        # Dilation Modifiers (Loaded from YAML temporal_dilation_*)
+        dilation_dead_water: float,
+        dilation_highway: float,
+        dilation_climax: float,
+        dilation_standard: float
     ) -> Dict[str, Any]:
         """使用动态时间止损模型 v4.0 (零熵物理引擎) 预测极限生存时间。
         
         该逻辑通过完全参数化的“状态路由”实现。将原始距离转换为安全暴露时间（Time-Stop）。
         
         优先级路由：
-        1. 混沌/高潮 (Chaos): VR >= vr_extreme -> Hit-and-run, 极限压缩时间 (Climax)
+        1. 混沌/高潮 (Chaos): VR >= vr_extreme -> Hit-and-run, 时间压缩 (Climax)
         2. 死水区 (Dead Water): VR < vr_base & TI < ti_strong -> 无序震荡，强制时间止损 (Dead Water)
-        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= VR < vr_extreme -> 让利润奔跑，放宽时间 (Highway)
+        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= VR < vr_extreme -> 让利润奔跑，时间膨胀 (Highway)
         4. 标准 (Standard): Else -> 常态暴露 (Standard)
         """
         try:
@@ -162,29 +163,41 @@ class MathTools:
 
             base_candles = dist / effective_velocity
             
-            # 2. 状态路由 (State Routing) - 映射至动态时间止损乘数 (Time-Stop Multiplier)
+            # 2. 状态路由 (State Routing) -> 映射至动态时间膨胀因子 (Temporal Dilation Factor)
             ti_abs = abs(trend_intensity)
             
             if volatility_expansion_ratio >= vr_extreme:
-                # 场景：极度危险的绞肉机。执行 0.25x 压缩，秒级游击战。
-                holding_friction_factor = friction_climax
+                # 场景：极致危险。时间压缩。
+                temporal_dilation_factor = dilation_climax
+                temporal_dilation_regime = "temporal_dilation_climax"
             elif volatility_expansion_ratio < vr_base and ti_abs < ti_strong:
-                # 场景：死水区随机游走。执行 0.5x 压缩，绝不在此过夜。
-                holding_friction_factor = friction_dead_water
+                # 场景：死水区。时间压缩。
+                temporal_dilation_factor = dilation_dead_water
+                temporal_dilation_regime = "temporal_dilation_dead_water"
             elif ti_abs >= ti_thresh and vr_base <= volatility_expansion_ratio < vr_extreme:
-                # 场景：单边直线暴走。执行 2.0x 延伸，给予充分的时间让利润狂奔。
-                holding_friction_factor = friction_highway
+                # 场景：高速公路。时间膨胀。
+                temporal_dilation_factor = dilation_highway
+                temporal_dilation_regime = "temporal_dilation_highway"
             else:
-                # 场景：常态推进。给予 1.0x 标准时间。
-                holding_friction_factor = friction_standard
+                # 场景：标准环境。
+                temporal_dilation_factor = dilation_standard
+                temporal_dilation_regime = "temporal_dilation_standard"
             
             # 3. 最终生存时间计算 (基准时间 * 物理乘数)
-            projected_hours = round((base_candles * interval_minutes * holding_friction_factor) / 60, 1)
+            projected_holding_hours = round((base_candles * interval_minutes * temporal_dilation_factor) / 60, 1)
             
+            # --- 入场等待时间 (Wait-Time Buffer) --- 
+            projected_waiting_hours = 0.0
+            if current_price is not None and current_price > 0:
+                wait_dist = abs(entry - current_price)
+                wait_candles = wait_dist / effective_velocity
+                projected_waiting_hours = round((wait_candles * interval_minutes) / 60, 1)
+
             return {
-                "projected_holding_candles": round(base_candles, 2),
-                "projected_holding_hours": projected_hours,
-                "holding_friction_factor": holding_friction_factor
+                "projected_holding_hours": projected_holding_hours,
+                "projected_waiting_hours": projected_waiting_hours,
+                "temporal_dilation_factor": temporal_dilation_factor,
+                "temporal_dilation_regime": temporal_dilation_regime
             }
         except Exception as e:
             logger.error(f"MathTools: Time projection failure: {e}")

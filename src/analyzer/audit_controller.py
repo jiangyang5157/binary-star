@@ -131,13 +131,17 @@ class AuditController:
         final_decision = session.get("final_decision", {})
         opinion = final_decision.get("opinion", "").upper()
         
-        # If Neutral, we use a fixed macro window for forensic audit to detect missed opportunities
+        # If Neutral, we use the micro-context profile length (e.g. 15m * 192 = 48h) for forensic audit
         if opinion == "NEUTRAL":
-            interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
-            expiry_dt = t0_dt + timedelta(hours=interval_macro_hours)
+            micro_ctx = self.config['analysis_window']['micro_context']
+            interval_micro_hours = get_interval_hours(micro_ctx['time_interval'])
+            lookback_candles = int(micro_ctx['lookback_candles'])
+            expiry_dt = t0_dt + timedelta(hours=(interval_micro_hours * lookback_candles))
         else:
-            holding_hours = float(final_decision.get("tactical_parameters", {}).get("projected_holding_hours", 0) or 0)
-            expiry_dt = t0_dt + timedelta(hours=holding_hours)
+            params = final_decision.get("tactical_parameters", {})
+            holding_hours = float(params.get("projected_holding_hours", 0) or 0)
+            waiting_hours = float(params.get("projected_waiting_hours", 0) or 0)
+            expiry_dt = t0_dt + timedelta(hours=(holding_hours + waiting_hours))
         
         now_dt = datetime.now(timezone.utc)
         max_boundary = min(expiry_dt, now_dt)

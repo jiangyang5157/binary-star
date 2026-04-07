@@ -59,10 +59,10 @@ class CriticConfig(AgentConfig):
     funding_extreme_threshold: float
     structural_proximity_threshold: float
     gravity_volume_override_ratio: float
-    holding_friction_dead_water: float
-    holding_friction_highway: float
-    holding_friction_climax: float
-    holding_friction_standard: float
+    temporal_dilation_dead_water: float
+    temporal_dilation_highway: float
+    temporal_dilation_climax: float
+    temporal_dilation_standard: float
     missed_opportunity_atr_threshold: float
     mae_stress_thresholds: Dict[str, float]
     volume_profile_value_area_width: float
@@ -123,10 +123,10 @@ class CriticConfig(AgentConfig):
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
-            holding_friction_dead_water=float(session_node['holding_friction_dead_water']),
-            holding_friction_highway=float(session_node['holding_friction_highway']),
-            holding_friction_climax=float(session_node['holding_friction_climax']),
-            holding_friction_standard=float(session_node['holding_friction_standard']),
+            temporal_dilation_dead_water=float(session_node['temporal_dilation_dead_water']),
+            temporal_dilation_highway=float(session_node['temporal_dilation_highway']),
+            temporal_dilation_climax=float(session_node['temporal_dilation_climax']),
+            temporal_dilation_standard=float(session_node['temporal_dilation_standard']),
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
             mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
@@ -284,12 +284,13 @@ class CriticAgent(BaseAgent):
         from src.utils.math_utils import MathTools
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
-    def project_holding_time(self, entry: float, take_profit: float, atr: float, 
+    def project_holding_time(self, current_price: float, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, volatility_expansion_ratio: float, 
                              interval_minutes: int, min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
         """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
         from src.utils.math_utils import MathTools
         return MathTools.project_holding_time(
+            current_price=current_price,
             entry=entry, take_profit=take_profit, atr=atr, 
             trend_intensity=trend_intensity, volatility_expansion_ratio=volatility_expansion_ratio,
             interval_minutes=interval_minutes, min_velocity_floor=min_velocity_floor,
@@ -297,10 +298,10 @@ class CriticAgent(BaseAgent):
             vr_extreme=self.config.volatility_extreme_ratio,
             ti_strong=self.config.trend_intensity_strong,
             ti_thresh=self.config.trend_intensity_threshold,
-            friction_dead_water=self.config.holding_friction_dead_water,
-            friction_highway=self.config.holding_friction_highway,
-            friction_climax=self.config.holding_friction_climax,
-            friction_standard=self.config.holding_friction_standard
+            dilation_dead_water=self.config.temporal_dilation_dead_water,
+            dilation_highway=self.config.temporal_dilation_highway,
+            dilation_climax=self.config.temporal_dilation_climax,
+            dilation_standard=self.config.temporal_dilation_standard
         )
 
     def calculate_opportunity_cost(self, missed_range: float, atr_macro: float) -> Dict[str, Any]:

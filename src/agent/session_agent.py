@@ -62,10 +62,10 @@ class SessionConfig(AgentConfig):
     gravity_volume_override_ratio: float
     noise_filter_atr_floor: float
     volume_participation_threshold: float
-    holding_friction_dead_water: float
-    holding_friction_highway: float
-    holding_friction_climax: float
-    holding_friction_standard: float
+    temporal_dilation_dead_water: float
+    temporal_dilation_highway: float
+    temporal_dilation_climax: float
+    temporal_dilation_standard: float
     anchor_drift_threshold: float
     poc_confluence_strength: float
     structural_proximity_threshold: float
@@ -139,10 +139,10 @@ class SessionConfig(AgentConfig):
             gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
             noise_filter_atr_floor=float(regime['noise_filter_atr_floor']),
             volume_participation_threshold=float(regime['volume_participation_threshold']),
-            holding_friction_dead_water=float(session_cfg['holding_friction_dead_water']),
-            holding_friction_highway=float(session_cfg['holding_friction_highway']),
-            holding_friction_climax=float(session_cfg['holding_friction_climax']),
-            holding_friction_standard=float(session_cfg['holding_friction_standard']),
+            temporal_dilation_dead_water=float(session_cfg['temporal_dilation_dead_water']),
+            temporal_dilation_highway=float(session_cfg['temporal_dilation_highway']),
+            temporal_dilation_climax=float(session_cfg['temporal_dilation_climax']),
+            temporal_dilation_standard=float(session_cfg['temporal_dilation_standard']),
             anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             poc_confluence_strength=float(regime['poc_confluence_strength']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
@@ -291,10 +291,10 @@ class SessionAgent(BaseAgent):
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
-            "holding_friction_dead_water": self.config.holding_friction_dead_water,
-            "holding_friction_highway": self.config.holding_friction_highway,
-            "holding_friction_climax": self.config.holding_friction_climax,
-            "holding_friction_standard": self.config.holding_friction_standard
+            "temporal_dilation_dead_water": self.config.temporal_dilation_dead_water,
+            "temporal_dilation_highway": self.config.temporal_dilation_highway,
+            "temporal_dilation_climax": self.config.temporal_dilation_climax,
+            "temporal_dilation_standard": self.config.temporal_dilation_standard
         }
         
         return self._prepare_prompt(self.config.instruction_path, **context)
@@ -316,7 +316,7 @@ class SessionAgent(BaseAgent):
         from src.utils.math_utils import MathTools
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
 
-    def project_holding_time(self, entry: float, take_profit: float, atr: float, 
+    def project_holding_time(self, current_price: float, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, 
                              volatility_expansion_ratio: float,
                              interval_minutes: int,
@@ -328,6 +328,7 @@ class SessionAgent(BaseAgent):
         floor = min_velocity_floor if min_velocity_floor is not None else self.config.min_trade_velocity
         
         return MathTools.project_holding_time(
+            current_price=current_price,
             entry=entry, take_profit=take_profit, atr=atr, 
             trend_intensity=trend_intensity, volatility_expansion_ratio=volatility_expansion_ratio,
             interval_minutes=interval_minutes, min_velocity_floor=floor,
@@ -335,10 +336,10 @@ class SessionAgent(BaseAgent):
             vr_extreme=self.config.volatility_extreme_ratio,
             ti_strong=self.config.trend_intensity_strong,
             ti_thresh=self.config.trend_intensity_threshold,
-            friction_dead_water=self.config.holding_friction_dead_water,
-            friction_highway=self.config.holding_friction_highway,
-            friction_climax=self.config.holding_friction_climax,
-            friction_standard=self.config.holding_friction_standard
+            dilation_dead_water=self.config.temporal_dilation_dead_water,
+            dilation_highway=self.config.temporal_dilation_highway,
+            dilation_climax=self.config.temporal_dilation_climax,
+            dilation_standard=self.config.temporal_dilation_standard
         )
     def calculate_opportunity_cost(self, missed_range: float, atr_macro: float) -> Dict[str, Any]:
         """[TOOL] Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance)."""
