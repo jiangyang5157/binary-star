@@ -71,26 +71,29 @@ class SniperTrigger:
         return False, None, "SLEEPING"
 
     def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """势能破局: [波动率爆发] AND ([量能突增] OR [极致挤压])"""
+        """势能破局: [波动率爆发+量能突增] OR [极致物理挤压]"""
         vol = curr['price_dynamics']['volatility_intensity_index']
         part = curr['market_regime']['volume_participation_ratio']
         squeeze = curr['market_regime'].get('squeeze_factor', 1.0)
         
-        # 1. 势 (Volatility) - Required for Confluence
+        # 1. 动能释放 (Volatility Expansion)
         vol_threshold = self.regime_cfg['volatility_baseline_ratio']
         is_vol_hit = vol > vol_threshold
         
-        # 2. 能 & 局 (Volume & Squeeze) - One of these must accompany Volatility
         part_threshold = self.regime_cfg['volume_participation_threshold']
         is_volume_hit = part > part_threshold
         
+        # 2. 势能蓄力 (Physical Squeeze)
         squeeze_threshold = self.regime_cfg['squeeze_threshold']
         is_squeeze_hit = squeeze < squeeze_threshold
         
-        if is_vol_hit and (is_volume_hit or is_squeeze_hit):
-            reason = f"势能共振 (Breakout): Vol={vol:.2f} (> {vol_threshold:.2f})"
-            if is_volume_hit: reason += f" | Volume Ratio={part:.2f}"
-            if is_squeeze_hit: reason += f" | Squeeze Factor={squeeze:.2f}"
+        # 逻辑分支：要么是携量暴走，要么是极致静音收缩
+        if (is_vol_hit and is_volume_hit) or is_squeeze_hit:
+            reason = "势能破局: "
+            if is_vol_hit and is_volume_hit:
+                reason += f"[暴走] Vol={vol:.2f}(>{vol_threshold:.2f}) | Vol_Ratio={part:.2f}"
+            elif is_squeeze_hit:
+                reason += f"[挤压] Squeeze={squeeze:.2f}(<{squeeze_threshold:.2f}) - Silent Coil"
             return True, reason
              
         return False, None
