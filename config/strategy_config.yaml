@@ -169,9 +169,9 @@ topography_parameters:
   liquidation_cluster_fallback_percentage: 0.005
 
 binary_star:
-
-  # The shared 'Sovereign Intelligence' model.
-  # gemini-3.1-flash-lite-preview (Free tier: RPD/500)
+  # gemini-3.1-pro-preview
+  # gemini-3-flash-preview
+  # gemini-3.1-flash-lite-preview
   model: gemini-3.1-flash-lite-preview
   # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
@@ -196,7 +196,7 @@ binary_star:
     # Dynamic Temporal Dilation Factors (Time Redundancy)
     temporal_dilation_highway: 2
     temporal_dilation_standard: 1
-    temporal_dilation_climax: 0.3
+    temporal_dilation_climax: 0.5
     temporal_dilation_dead_water: 0.7
 
   critic:
@@ -208,8 +208,9 @@ binary_star:
     threshold_skepticism_constructive: 89
 
 evolver:
-  # The 'Architect' model responsible for rewriting laws.
-  # gemini-3.1-pro-preview, gemini-3.1-flash-lite-preview (Free tier: RPD/500)
+  # gemini-3.1-pro-preview
+  # gemini-3-flash-preview
+  # gemini-3.1-flash-lite-preview
   model: gemini-3.1-pro-preview
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency.
