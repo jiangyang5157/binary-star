@@ -230,8 +230,8 @@ class RawMarketData:
     macro_ls: List[Dict[str, Any]] = field(default_factory=list)
     micro_ls: List[Dict[str, Any]] = field(default_factory=list)
     current_oi: Optional[Dict[str, Any]] = None
-    liquidations: List[Dict[str, Any]] = field(default_factory=list)
-    funding_rate: List[Dict[str, Any]] = field(default_factory=list)
+    liquidations: Optional[List[Dict[str, Any]]] = None
+    funding_rate: Optional[List[Dict[str, Any]]] = None
 
 @dataclass
 class ProcessedMarketMetrics:
@@ -291,8 +291,8 @@ class MarketDataLoader:
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=macro_ls_ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
             current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
-            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms) or [],
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms) or []
+            liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms),
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms)
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
@@ -437,7 +437,7 @@ class MarketMetricsRefiner:
         # v6.12: Enhanced sentiment trending
         funding_history = raw.funding_rate
         f_rate = float(funding_history[-1].get('fundingRate', 0)) if funding_history else 0.0
-        f_delta = (f_rate - float(funding_history[-2].get('fundingRate', 0))) if len(funding_history) >= 2 else 0.0
+        f_delta = (f_rate - float(funding_history[-2].get('fundingRate', 0))) if funding_history and len(funding_history) >= 2 else 0.0
         
         return {
             "oi_nominal": cur_oi,
@@ -454,8 +454,11 @@ class MarketMetricsRefiner:
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
 
-    def _parse_to_clusters(self, liqs: List[Dict], atr_macro: float) -> Dict[str, Any]:
+    def _parse_to_clusters(self, liqs: Optional[List[Dict]], atr_macro: float) -> Optional[Dict[str, Any]]:
         """Groups raw liquidations into high-conviction price clusters."""
+        # v6.52 Hardening: Return None specifically if API data is missing (limitation)
+        # Distinguishes from [] which means 'Zero Liquidations Found' -> {}
+        if liqs is None: return None
         if not liqs: return {}
         # Handle multiple possible key formats for consistency (REST vs WebSocket)
         parsed_liqs = [parse_liquidation_data(l) for l in liqs]
