@@ -39,8 +39,6 @@ $$Decay = Decay_{min} + \left( \frac{Skepticism}{100} \times (Decay_{max} - Deca
 
 ---
 
----
-
 ## 🛡️ 核心能力：取证驱动的进化流水线 (Forensics-Driven Pipeline)
 
 Singularity 提供了一套从物理取证到自我进化的全栈流水线，确保每一行执行指令都经过“实验室级”的压力测试：
