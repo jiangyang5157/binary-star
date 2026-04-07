@@ -307,7 +307,9 @@ class BinaryStarOrchestrator:
             tools = [
                 self.session_agent.calculate_risk_reward, 
                 self.session_agent.calculate_atr_metrics, 
-                self.session_agent.calculate_structural_proximity, 
+                self.session_agent.calculate_structural_proximity,
+                self.session_agent.calculate_opportunity_cost,
+                self.session_agent.calculate_mae_stress,
                 self.session_agent.project_holding_time
             ]
             
