@@ -29,7 +29,7 @@ from src.utils.market_utils import calculate_indicator_warmup
 logger = setup_logger("SessionEngine")
 
 class SessionEngine:
-    """The Singularity Session Engine (v7.0).
+    """The Singularity Session Engine.
 
     Orchestrates real-time and historical market analysis using an 
     adversarial reasoning triad. Supports Live and Backtest modes 
@@ -261,7 +261,7 @@ def parse_date(date_str: str) -> datetime:
     raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Session Engine (v7.0)")
+    parser = argparse.ArgumentParser(description="Singularity Session Engine")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     

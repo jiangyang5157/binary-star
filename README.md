@@ -1,4 +1,4 @@
-# Singularity 跨代交易会话引擎 (v7.0)
+# Singularity 跨代交易会话引擎
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
