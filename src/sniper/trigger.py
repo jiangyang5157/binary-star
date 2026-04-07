@@ -21,15 +21,21 @@ class SniperTrigger:
         
         # v6.40: Absolute DNA Convergence
         # All monitoring sensitivity is physically identical to strategy parameters.
-        from src.utils.pipeline_utils import load_combined_config
+        from src.utils.pipeline_utils import load_combined_config, load_global_config
         self.strat_cfg = load_combined_config()
+        self.global_cfg = load_global_config()
         self.regime_cfg = self.strat_cfg['regime_parameters']
         
-        # Derive cooldown from micro-context (e.g., 15m)
-        micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
-        self.cooldown_minutes = self._parse_interval_to_minutes(micro_interval)
+        # v6.70: EXPLICIT CONFIG ENFORCEMENT
+        # If sniper_configuration is missing from global_config.yaml, this will fail intentionally.
+        self.sniper_cfg = self.global_cfg['sniper_configuration']
         
-        logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m.")
+        # Derive cooldown from micro-context (e.g., 15m) + Multiplier
+        micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
+        base_cooldown = self._parse_interval_to_minutes(micro_interval)
+        self.cooldown_minutes = base_cooldown * self.sniper_cfg['pulse_cooldown_multiplier']
+        
+        logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m (Mult: {self.sniper_cfg['pulse_cooldown_multiplier']}).")
 
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
         """Parses '15m', '1h' etc. into float minutes."""
@@ -66,22 +72,27 @@ class SniperTrigger:
         return False, None, "SLEEPING"
 
     def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """势能破局: 波动率爆发 (势) OR 量能突增 (能) OR 极致挤压 (局)"""
+        """势能破局: [波动率爆发] AND ([量能突增] OR [极致挤压])"""
         vol = curr['price_dynamics']['volatility_intensity_index']
         part = curr['market_regime']['volume_participation_ratio']
         squeeze = curr['market_regime'].get('squeeze_factor', 1.0)
         
-        # 1. 势 (Volatility)
-        if vol > self.regime_cfg['volatility_baseline_ratio']:
-            return True, f"势能爆发 (Volatility: {vol:.2f})"
+        # 1. 势 (Volatility) - Required for Confluence
+        vol_threshold = self.regime_cfg['volatility_baseline_ratio']
+        is_vol_hit = vol > vol_threshold
         
-        # 2. 能 (Volume Participation)
-        if part > self.regime_cfg['volume_participation_threshold']:
-            return True, f"量能突增 (Volume Ratio: {part:.2f})"
+        # 2. 能 & 局 (Volume & Squeeze) - One of these must accompany Volatility
+        part_threshold = self.regime_cfg['volume_participation_threshold']
+        is_volume_hit = part > part_threshold
         
-        # 3. 局 (Squeeze)
-        if squeeze < self.regime_cfg['squeeze_threshold']:
-             return True, f"极致挤压 (Squeeze): Factor={squeeze:.2f}"
+        squeeze_threshold = self.regime_cfg['squeeze_threshold']
+        is_squeeze_hit = squeeze < squeeze_threshold
+        
+        if is_vol_hit and (is_volume_hit or is_squeeze_hit):
+            reason = f"势能共振 (Breakout): Vol={vol:.2f} (> {vol_threshold:.2f})"
+            if is_volume_hit: reason += f" | Volume Ratio={part:.2f}"
+            if is_squeeze_hit: reason += f" | Squeeze Factor={squeeze:.2f}"
+            return True, reason
              
         return False, None
 
@@ -91,7 +102,8 @@ class SniperTrigger:
         
         # 1. 存量/极值检测 (CVD & LS Ratio)
         cvd = sent.get('cvd_intensity_ratio', 0.0)
-        cvd_threshold = self.regime_cfg['cvd_intensity_threshold']
+        cvd_mult = self.sniper_cfg['cvd_threshold_multiplier']
+        cvd_threshold = self.regime_cfg['cvd_intensity_threshold'] * cvd_mult
         
         cvd_net = sent.get('cvd_net_delta', 0.0)
         cvd_vol = sent.get('cvd_total_volume', 0.0)
@@ -105,19 +117,18 @@ class SniperTrigger:
                 prev_sent = prev.get('sentiment_signals', {})
                 prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
                 
-                # Condition: Current Intensity is > 20% stronger than previous OR direction flipped
-                # This prevents 'stuck' triggers on a flat/fading state after the 15m cooldown expires.
-                is_increasing = abs(cvd) > abs(prev_cvd) * 1.2
+                # Condition: Current Intensity is stronger than previous (Simplified: ANY increase) OR direction flipped
+                is_increasing = abs(cvd) > abs(prev_cvd)
                 is_flipped = (cvd > 0 and prev_cvd < 0) or (cvd < 0 and prev_cvd > 0)
                 
                 if not (is_increasing or is_flipped):
-                    return False, None, f"MOMENTUM_LOCK (Intensity stable: {cvd:.3f} vs {prev_cvd:.3f})"
+                    return False, f"MOMENTUM_LOCK (Intensity stable: {cvd:.3f} vs {prev_cvd:.3f})"
                     
             if should_trigger:
                 reason = (
                     f"Institutional CVD flow (Intensity: {cvd:.3f} | "
                     f"Delta: {cvd_net:.1f} | Vol: {cvd_vol:.1f} | "
-                    f"Window: {cvd_lookback}k @ {micro_int} | Threshold: {cvd_threshold})"
+                    f"Window: {cvd_lookback}k @ {micro_int} | Threshold: {cvd_threshold:.2f})"
                 )
                 return True, reason
 
@@ -139,8 +150,10 @@ class SniperTrigger:
             # 3. CVD 脉冲 (CVD Dynamic Impulse) - [NEW v2.0]
             # Trigger on sudden taker surge even if absolute threshold isn't hit
             cvd_delta = abs(cvd - prev_cvd)
-            if cvd_delta > (cvd_threshold * 0.5):
-                return True, f"CVD Impulse Detected (Delta: {cvd_delta:.3f} | Threshold: {cvd_threshold*0.5:.3f})"
+            pulse_ratio = self.sniper_cfg['cvd_impulse_intensity_ratio']
+            pulse_threshold = (self.regime_cfg['cvd_intensity_threshold'] * pulse_ratio) * cvd_mult
+            if cvd_delta > pulse_threshold:
+                return True, f"CVD Impulse Detected (Delta: {cvd_delta:.3f} | Ratio: {pulse_ratio} | Threshold: {pulse_threshold:.3f})"
 
             # 4. 吸筹/派发背离 (CVD Divergence Detection) - [NEW v2.0]
             curr_price = curr['price_dynamics']['current_price']
@@ -148,13 +161,15 @@ class SniperTrigger:
             price_delta = curr_price - prev_price
             cvd_delta_raw = cvd - prev_cvd
 
-            # Only trigger if CVD movement is non-trivial (0.25x of threshold)
-            if abs(cvd_delta_raw) > (self.regime_cfg['cvd_intensity_threshold'] * 0.25):
+            # Only trigger if CVD movement is non-trivial (ratio x of strategy threshold * mult)
+            div_ratio = self.sniper_cfg['cvd_divergence_intensity_ratio']
+            divergence_threshold = (self.regime_cfg['cvd_intensity_threshold'] * div_ratio) * cvd_mult
+            if abs(cvd_delta_raw) > divergence_threshold:
                 # Bullish Divergence: Price down, CVD up (Absorption)
                 # Bearish Divergence: Price up, CVD down (Distribution)
                 if (price_delta > 0 and cvd_delta_raw < 0) or \
                    (price_delta < 0 and cvd_delta_raw > 0):
-                    return True, f"CVD/Price Divergence (Price:{price_delta:.1f}, CVD:{cvd_delta_raw:.3f})"
+                    return True, f"CVD/Price Divergence (Price:{price_delta:.1f}, CVD:{cvd_delta_raw:.3f} | Ratio: {div_ratio})"
         
         return False, None
 

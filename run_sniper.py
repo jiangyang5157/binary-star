@@ -41,6 +41,8 @@ class SniperDaemon:
         self.scout = SniperScout(self.symbol)
         self.trigger = SniperTrigger()
         
+        logger.info(f"SniperDaemon: Trigger Cooldown is active at {self.trigger.cooldown_minutes}m.")
+        
         # 2. Initialize Heavyweight Session Engine (Optional)
         self.session_engine = None
         if args.trigger:

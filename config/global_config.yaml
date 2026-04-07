@@ -1,6 +1,22 @@
 system:
   default_symbol: "BTCUSDT"
 
+sniper_configuration:
+  # --- 脉冲策略 (基于 micro_context) ---
+  # 冷却时间倍率。1.0 表示与 micro_context (15m) 对齐。
+  pulse_cooldown_multiplier: 1.0
+
+  # --- 粗筛滤网系数 (门槛抬高) ---
+  # 将 Agent CVD 基准阈值放大，过滤掉部分平庸的吸筹/派发噪音
+  # Sniper 1.2x 代表比 Agent 迟钝 20%
+  cvd_threshold_multiplier: 1.2
+
+  # --- 内部原子比例 (细微控制) ---
+  # CVD 脉冲检测相对于基准阈值的比例 (原硬编码 0.5)
+  cvd_impulse_intensity_ratio: 0.8
+  # CVD 背离检测相对于基准阈值的比例 (原硬编码 0.25)
+  cvd_divergence_intensity_ratio: 0.8
+
 network:
   binance:
     api_timeout_seconds: 60
