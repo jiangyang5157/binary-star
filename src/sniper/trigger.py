@@ -138,13 +138,12 @@ class SniperTrigger:
         if abs(cvd) > cvd_threshold:
             should_trigger = True
             if prev:
-                # 必须保持在增长（即当前一秒必须比上一秒强），否则进入静默，防止持续报警
+                # 必须保持在增长（即当前必须比上一次强），否则进入静默，防止持续报警
                 # Note prev_cvd is already extracted above, but if block needs it if it skips above
                 prev_sent = prev.get('sentiment_signals', {})
                 prev_cvd = prev_sent.get('cvd_intensity_ratio', 0.0)
                 is_increasing = abs(cvd) > abs(prev_cvd)
-                is_flipped = (cvd > 0 and prev_cvd < 0) or (cvd < 0 and prev_cvd > 0)
-                if not (is_increasing or is_flipped):
+                if not is_increasing:
                     should_trigger = False
                     
             if should_trigger:
