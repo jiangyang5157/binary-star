@@ -353,7 +353,7 @@ class MarketMetricsRefiner:
         
         avg_atr_lookback = min(self.config.volatility_intensity_lookback_hours, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
-        volatility_intensity = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
+        volatility_intensity_index = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
         return {
             "current_price": c,
@@ -361,7 +361,7 @@ class MarketMetricsRefiner:
             "atr_micro": atr_n,
             "latest_wick_skew": wick_skew,
             "volatility_expansion_ratio": volatility_expansion_ratio,
-            "volatility_intensity_index": volatility_intensity
+            "volatility_intensity_index": volatility_intensity_index
         }
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:
