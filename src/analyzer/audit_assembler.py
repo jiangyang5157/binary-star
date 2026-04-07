@@ -204,9 +204,9 @@ class AuditAssembler:
                     mfe_eff = (mfe / tp_dist * 100) if tp_dist > 0 else 0
                     
                     # Explicitly extract estimated hours without fallback to avoid logic pollution
-                    est_hours = float(tactical.get('holding_time_hours', 0) or 0)
-                    if est_hours == 0:
-                        logger.warning("Forensics: 'holding_time_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
+                    est_hours = float(tactical.get('projected_holding_hours', 0) or 0)
+                    if est_hours <= 0:
+                        logger.warning("Forensics: 'projected_holding_hours' missing in tactical parameters. Efficiency multiplier will be 0.")
                     
                     actual_holding_hours = hit_index * interval_hours
                     

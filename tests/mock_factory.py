@@ -49,7 +49,7 @@ class MockDataFactory:
                     "take_profit": 62000,
                     "stop_loss": 59000,
                     "rr_ratio": 2.0,
-                    "holding_time_hours": 24
+                    "projected_holding_hours": 24
                 },
                 "reasoning_chain": "Mocked structural breakout"
             },
@@ -60,7 +60,7 @@ class MockDataFactory:
                     "price_dynamics": {"current_price": 60100, "atr_macro": 500, "volatility_intensity_index": 1.0},
                     "volume_profile": {"poc": 60000, "vah": 61000, "val": 59000, "anchors_above": [], "anchors_below": []},
                     "market_regime": {"volatility_regime": "STABLE", "volume_participation_ratio": 1.0},
-                    "sentiment_signals": {"liquidation_clusters": {}}
+                    "sentiment_signals": {"liquidation_clusters": None}
                 }
             }
         }
@@ -244,7 +244,7 @@ class MockDataFactory:
                 "entry": 60000.0,
                 "take_profit": 62000.0,
                 "stop_loss": 59000.0,
-                "holding_time_hours": 12.0
+                "projected_holding_hours": 12.0
             },
             "reasoning_chain": "Mocked technical breakout across structural node.",
             "critic_impact": None

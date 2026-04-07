@@ -147,7 +147,7 @@ class LedgerVisualizer:
             r: Math.max(8, Math.min(25, Math.abs(d.estimated_pnl_pct) * 8 + (d.confidence / 10))), // Balanced Size
             pnl: d.estimated_pnl_pct,
             res: d.tp_sl_result,
-            holding: d.holding_time_hours,
+            holding: d.projected_holding_hours,
             color: d.tp_sl_result === 'TP_HIT' ? 'rgba(52, 211, 153, 0.85)' : d.tp_sl_result === 'SL_HIT' ? 'rgba(251, 113, 133, 0.85)' : d.is_filled ? 'rgba(71, 85, 105, 0.7)' : 'rgba(148, 163, 184, 0.3)'
         }));
         
@@ -293,5 +293,5 @@ class LedgerVisualizer:
             "tp_sl_result": res,
             "estimated_pnl_pct": round(pnl, 2),
             "confidence": fd.get("confidence_score", 0),
-            "holding_time_hours": lo.get("holding_time_hours") or 0
+            "projected_holding_hours": lo.get("projected_holding_hours") or 0
         }

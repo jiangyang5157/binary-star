@@ -192,7 +192,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
                             </td>
                             <td style="width: 16.6%; vertical-align: top; border: none !important;">
                                 <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">⏱️ Window</div>
-                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration((decision.get('tactical_parameters') or {}).get('holding_time_hours') or 0)}</div>
+                                <div style="font-size: 18px; color: #cbd5e1; font-weight: 800; font-family: 'SF Mono', 'Courier New', monospace;">{SessionEmailTemplate.format_duration((decision.get('tactical_parameters') or {}).get('projected_holding_hours') or 0)}</div>
                             </td>
                         </tr>
                     </table>

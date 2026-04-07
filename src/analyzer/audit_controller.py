@@ -136,7 +136,7 @@ class AuditController:
             interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
             expiry_dt = t0_dt + timedelta(hours=interval_macro_hours)
         else:
-            holding_hours = float(final_decision.get("tactical_parameters", {}).get("holding_time_hours", 0) or 0)
+            holding_hours = float(final_decision.get("tactical_parameters", {}).get("projected_holding_hours", 0) or 0)
             expiry_dt = t0_dt + timedelta(hours=holding_hours)
         
         now_dt = datetime.now(timezone.utc)
