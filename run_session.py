@@ -51,8 +51,7 @@ class SessionEngine:
         self.orchestrator = BinaryStarOrchestrator(
             config_dict=self.config,
             api_key=self.api_key,
-            data_root=self.data_root,
-            session_temp_override=getattr(self.args, 'session_temp', None)
+            data_root=self.data_root
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         
@@ -265,7 +264,6 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
-    parser.add_argument("--session-temp", "-st", type=float, default=None, help="Override Session Agent model temperature")
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")

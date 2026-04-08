@@ -2,7 +2,6 @@ import logging
 import json
 import os
 from typing import Dict, Any, List, Optional
-from dataclasses import replace
 from google import genai
 from google.genai import types
 
@@ -41,8 +40,7 @@ class BinaryStarOrchestrator:
                  config_dict: Dict[str, Any], 
                  api_key: str, 
                  data_root: str,
-                 instruction_overrides: Optional[Dict[str, str]] = None,
-                 session_temp_override: Optional[float] = None):
+                 instruction_overrides: Optional[Dict[str, str]] = None):
         """Initializes the orchestrator as a central resource and configuration hub.
         
         Args:
@@ -103,11 +101,6 @@ class BinaryStarOrchestrator:
             local_context, 
             instruction_literal=self.instruction_overrides.get('critic')
         )
-        
-        # 5.1 Dynamic Session Override (v6.60)
-        if session_temp_override is not None:
-            logger.info(f"BinaryStar: Overriding Session Temperature to {session_temp_override} (Config default: {self.session_config.model_temperature})")
-            self.session_config = replace(self.session_config, model_temperature=session_temp_override)
         
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(

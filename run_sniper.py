@@ -125,7 +125,6 @@ def main():
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
-    parser.add_argument("--session-temp", "-st", type=float, default=None, help="Override Session Agent model temperature")
     parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
 
     args = parser.parse_args()

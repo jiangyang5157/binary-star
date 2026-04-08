@@ -25,7 +25,7 @@ class TestBinaryStarFlow:
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
         orchestrator.critic_agent.evaluate = MagicMock(side_effect=[
             MockDataFactory.create_mock_critic_response(score=80, level="TERMINAL"),
-            MockDataFactory.create_mock_critic_response(score=10, level="PASS"),
+            MockDataFactory.create_mock_critic_response(score=45, level="CONSTRUCTIVE"),
             MockDataFactory.create_mock_critic_response(score=5, level="PASS")
         ])
 
