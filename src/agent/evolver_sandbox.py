@@ -107,13 +107,11 @@ class EvolverSandbox:
                     logger.warning(f"Sandbox: Could not load baseline for {agent_name} at {abs_path}: {e}")
 
         # 3. Instantiate Orchestrator (Injected with Proposed Logic)
-        # Sandbox mode disables the forensic session.log for I/O efficiency
         orchestrator = BinaryStarOrchestrator(
             config_dict=proposed_config,
             api_key=self.api_key,
             data_root=self.data_root,
-            instruction_overrides=instruction_overrides,
-            enable_file_log=False
+            instruction_overrides=instruction_overrides
         )
 
         # 4. Replay Decision Flow
