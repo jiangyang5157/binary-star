@@ -71,7 +71,7 @@ sniper:
   
   # [Absorption/Distribution Divergence]: Requires price to move inversely against massive limit blocks.
   # REC: 0.4 - 0.5. This can be more sensitive because the inverse price action provides strong structural noise filtering.
-  cvd_divergence_intensity_ratio: 0.4
+  cvd_divergence_intensity_ratio: 0.5
   
   # [Whale Impulse]: Requires a pure, violent surge in taker volume (ignores price direction).
   # REC: 0.8 - 1.0. This MUST be kept high to prevent normal trend momentum from triggering false pulse alarms.
@@ -79,7 +79,15 @@ sniper:
   
   # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
   # 1.0 = any increase, 1.1 = 10% growth required.
-  cvd_growth_significance_ratio: 1.1
+  cvd_growth_significance_ratio: 1.2
+
+  # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
+  # 0.8 = requires market to be 20% more 'silent' than the base strategy to trigger a sniper alert.
+  squeeze_trigger_multiplier: 0.8
+
+  # [Structural]: Multiplier for structural proximity (TYPE_C).
+  # 0.8 = requires price to be 20% closer to VAH/VAL to trigger a sniper alert.
+  structural_trigger_multiplier: 0.8
 
 sandbox:
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement

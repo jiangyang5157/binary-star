@@ -85,7 +85,8 @@ class SniperTrigger:
         is_volume_hit = part > part_threshold
         
         # 2. 势能蓄力 (Physical Squeeze)
-        squeeze_threshold = self.regime_cfg['squeeze_threshold']
+        squeeze_mult = self.sniper_cfg.get('squeeze_trigger_multiplier', 1.0)
+        squeeze_threshold = self.regime_cfg['squeeze_threshold'] * squeeze_mult
         is_squeeze_hit = squeeze < squeeze_threshold
         
         # 逻辑分支：要么是携量暴走，要么是极致静音收缩
@@ -94,7 +95,7 @@ class SniperTrigger:
             if is_vol_hit and is_volume_hit:
                 reason += f"[暴走] Vol={vol:.2f}(>{vol_threshold:.2f}) | Vol_Ratio={part:.2f}"
             elif is_squeeze_hit:
-                reason += f"[挤压] Squeeze={squeeze:.2f}(<{squeeze_threshold:.2f}) - Silent Coil"
+                reason += f"[挤压] Squeeze={squeeze:.2f}(<{squeeze_threshold:.2f}) | Multiplier={squeeze_mult}"
             return True, reason
              
         return False, None
@@ -178,11 +179,14 @@ class SniperTrigger:
         dist_vh = abs(price - topo['vah']) / atr if atr > 0 else float('inf')
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
         
-        # DNA Mapping: boundary_dist -> min_volume_participation_ratio (Relaxed for Sniper)
-        if min(dist_vh, dist_val) < self.regime_cfg['structural_proximity_threshold'] and \
+        # DNA Mapping: boundary_dist -> structural_proximity_threshold (v6.70 Aligned with multiplier)
+        struct_mult = self.sniper_cfg.get('structural_trigger_multiplier', 1.0)
+        struct_threshold = self.regime_cfg['structural_proximity_threshold'] * struct_mult
+
+        if min(dist_vh, dist_val) < struct_threshold and \
            part > self.regime_cfg['min_volume_participation_ratio']:
             side = "VAH" if dist_vh < dist_val else "VAL"
-            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR"
+            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {struct_threshold:.2f} | Mult: {struct_mult})"
 
         # DNA Mapping: liquidation_magnet -> structural_proximity_threshold
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
