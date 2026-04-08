@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_observer import MarketObserverConfig, MarketDataLoader, MarketMetricsRefiner
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
@@ -32,7 +33,7 @@ class SniperScout:
     
     def __init__(self, symbol: str):
         self.symbol = symbol
-        self.binance = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
         
         # Load core strategy configs to initialize analyzers (Option A: Full reuse)
         self.strategy_cfg = load_config()
@@ -68,7 +69,7 @@ class SniperScout:
         )
         self.regime_analyzer = MarketRegimeAnalyzer(config=rg_cfg)
         
-        self.loader = MarketDataLoader(self.binance, self.obs_config)
+        self.loader = MarketDataLoader(self.exchange_client, self.obs_config)
         self.refiner = MarketMetricsRefiner(self.obs_config, self.vp_analyzer, self.regime_analyzer)
 
     def scout(self, at_time: Optional[datetime] = None) -> ScoutResult:
@@ -104,4 +105,4 @@ class SniperScout:
         )
 
     def close(self):
-        self.binance.close()
+        self.exchange_client.close()

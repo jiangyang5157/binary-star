@@ -7,7 +7,8 @@ from typing import Dict, Any, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from src.infrastructure.binance.client import BinanceFuturesClient
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
+from src.infrastructure.exchange.models import KlineData, OpenInterestData, RatioData, LiquidationData, FundingRateData
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
@@ -223,15 +224,15 @@ class MarketObserverConfig:
 @dataclass
 class RawMarketData:
     """Holds raw datum collected during an observation cycle."""
-    macro_klines: List[List[Any]] = field(default_factory=list)
-    micro_klines: List[List[Any]] = field(default_factory=list)
-    macro_oi: Optional[Dict[str, Any]] = None
-    micro_oi: Optional[Dict[str, Any]] = None
-    macro_ls: List[Dict[str, Any]] = field(default_factory=list)
-    micro_ls: List[Dict[str, Any]] = field(default_factory=list)
-    current_oi: Optional[Dict[str, Any]] = None
-    liquidations: Optional[List[Dict[str, Any]]] = None
-    funding_rate: Optional[List[Dict[str, Any]]] = None
+    macro_klines: List[KlineData] = field(default_factory=list)
+    micro_klines: List[KlineData] = field(default_factory=list)
+    macro_oi: Optional[OpenInterestData] = None
+    micro_oi: Optional[OpenInterestData] = None
+    macro_ls: List[RatioData] = field(default_factory=list)
+    micro_ls: List[RatioData] = field(default_factory=list)
+    current_oi: Optional[OpenInterestData] = None
+    liquidations: Optional[List[LiquidationData]] = None
+    funding_rate: Optional[List[FundingRateData]] = None
 
 @dataclass
 class ProcessedMarketMetrics:
@@ -249,9 +250,9 @@ class MarketDataLoader:
     ensuring synchronized snapshots across multiple timeframes.
     """
     
-    def __init__(self, binance_client: BinanceFuturesClient, config: MarketObserverConfig):
+    def __init__(self, exchange_client: AbstractExchangeClient, config: MarketObserverConfig):
         """Initializes the loader with shared exchange infrastructure."""
-        self.client = binance_client
+        self.client = exchange_client
         self.config = config
 
     def collect(self, symbol: str, at_time: datetime) -> RawMarketData:
@@ -416,35 +417,39 @@ class MarketMetricsRefiner:
         if len(raw.micro_klines) >= lookback:
             curr_window = raw.micro_klines[-lookback:]
             for k in curr_window:
-                v, tb = float(k[5]), float(k[9])
-                cvd_current_net += (tb - (v - tb))
+                v = k.volume
+                tb = k.taker_buy_base
+                if tb is not None:
+                    cvd_current_net += (tb - (v - tb))
                 cvd_current_total_vol += v
             
         if len(raw.micro_klines) >= lookback * 2:
             prev_window = raw.micro_klines[-(lookback*2):-lookback]
             for k in prev_window:
-                v, tb = float(k[5]), float(k[9])
-                cvd_prev_net += (tb - (v - tb))
+                v = k.volume
+                tb = k.taker_buy_base
+                if tb is not None:
+                    cvd_prev_net += (tb - (v - tb))
         
         cvd_intensity_ratio = cvd_current_net / (cvd_current_total_vol + 1e-9)
 
-        cur_oi = float(raw.current_oi.get('openInterest', 0)) if raw.current_oi else 0
+        cur_oi = raw.current_oi.open_interest if raw.current_oi else 0.0
         def raw_oi_delta(hist):
             if not hist: return 0.0
-            h_val = float(hist.get('openInterest', 0))
+            h_val = hist.open_interest
             return (cur_oi - h_val) / h_val if h_val > 0 else 0.0
 
         # v6.12: Enhanced sentiment trending
         funding_history = raw.funding_rate
-        f_rate = float(funding_history[-1].get('fundingRate', 0)) if funding_history else 0.0
-        f_delta = (f_rate - float(funding_history[-2].get('fundingRate', 0))) if funding_history and len(funding_history) >= 2 else 0.0
+        f_rate = funding_history[-1].funding_rate if funding_history else 0.0
+        f_delta = (f_rate - funding_history[-2].funding_rate) if funding_history and len(funding_history) >= 2 else 0.0
         
         return {
             "oi_nominal": cur_oi,
             "oi_delta_macro": raw_oi_delta(raw.macro_oi),
             "oi_delta_micro": raw_oi_delta(raw.micro_oi),
-            "ls_ratio_macro": float(raw.macro_ls[0].get('longShortRatio', 0)) if raw.macro_ls else 0,
-            "ls_ratio_micro": float(raw.micro_ls[0].get('longShortRatio', 0)) if raw.micro_ls else 0,
+            "ls_ratio_macro": raw.macro_ls[0].long_short_ratio if raw.macro_ls else 0.0,
+            "ls_ratio_micro": raw.micro_ls[0].long_short_ratio if raw.micro_ls else 0.0,
             "cvd_intensity_ratio": cvd_intensity_ratio,
             "cvd_net_delta": cvd_current_net,
             "cvd_total_volume": cvd_current_total_vol,
@@ -454,29 +459,28 @@ class MarketMetricsRefiner:
             "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
         }
 
-    def _parse_to_clusters(self, liqs: Optional[List[Dict]], atr_macro: float) -> Optional[Dict[str, Any]]:
+    def _parse_to_clusters(self, liqs: Optional[List[LiquidationData]], atr_macro: float) -> Optional[Dict[str, Any]]:
         """Groups raw liquidations into high-conviction price clusters."""
         # v6.52 Hardening: Return None specifically if API data is missing (limitation)
         # Distinguishes from [] which means 'Zero Liquidations Found' -> {}
         if liqs is None: return None
         if not liqs: return {}
-        # Handle multiple possible key formats for consistency (REST vs WebSocket)
-        parsed_liqs = [parse_liquidation_data(l) for l in liqs]
-        prices = [p['price'] for p in parsed_liqs if p['price'] > 0]
+        # Domain objects are already typed correctly
+        prices = [l.price for l in liqs if l.price > 0]
         if not prices: return {}
         
         avg_p = sum(prices) / len(prices)
         bucket_size = atr_macro * self.config.liquidation_cluster_atr_multiplier if atr_macro > 0 else avg_p * self.config.liquidation_cluster_fallback_percentage
         
         clusters = {}
-        for l in parsed_liqs:
-            if l['price'] == 0: continue
-            p = l['price']
+        for l in liqs:
+            if l.price == 0: continue
+            p = l.price
             bucket = round(p / bucket_size) * bucket_size
             key = f"{bucket:.2f}"
             if key not in clusters:
-                clusters[key] = {"total_qty": 0, "count": 0, "side": l['side']}
-            clusters[key]["total_qty"] += l['qty']
+                clusters[key] = {"total_qty": 0, "count": 0, "side": l.side.upper()}
+            clusters[key]["total_qty"] += l.qty
             clusters[key]["count"] += 1
             
         sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
@@ -498,7 +502,7 @@ class MarketObserver:
         config: MarketObserverConfig, 
         symbol: str, 
         data_root: str,
-        binance_client: BinanceFuturesClient,
+        exchange_client: AbstractExchangeClient,
         chart_generator: ChartGenerator
     ):
         """Initializes the observer with the full analytical stack."""
@@ -507,7 +511,7 @@ class MarketObserver:
         self.config = config
         
         # [INFRASTRUCTURE INJECTION]
-        self._binance = binance_client
+        self._exchange = exchange_client
         self._volume_profile_analyzer = self._init_volume_profile()
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
@@ -533,7 +537,7 @@ class MarketObserver:
         )
         
         # [MODULARIZED PROCESSING STACK]
-        self.loader = MarketDataLoader(self._binance, self.config)
+        self.loader = MarketDataLoader(self._exchange, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer)
         
         # v6.32: Passive Indicator Warmup Quality Audit
@@ -673,5 +677,5 @@ class MarketObserver:
 
     def close(self):
         """Cleanly releases network adapters."""
-        if hasattr(self, '_binance'):
-            self._binance.close()
+        if hasattr(self, '_exchange'):
+            self._exchange.close()

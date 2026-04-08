@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
+from src.infrastructure.exchange.models import KlineData
 
 class TestSemanticConsistency(unittest.TestCase):
     def setUp(self):
@@ -49,7 +50,7 @@ class TestSemanticConsistency(unittest.TestCase):
     def test_volume_profile_structural_state_naming(self):
         """Verify that volume profile uses 'structural_state' and not 'market_regime'."""
         klines = [
-            [i, 100, 105, 95, 100, 1000, i+1, 10000, 100, 500, 5000, 0]
+            KlineData(i, 100.0, 105.0, 95.0, 100.0, 1000.0, i+1, 10000.0, 100, 500.0, 5000.0)
             for i in range(100)
         ]
         analyzer = VolumeProfileAnalyzer(config=self.vp_cfg)

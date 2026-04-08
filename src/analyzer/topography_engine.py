@@ -2,6 +2,7 @@ import os
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.chart_generator import ChartGenerator
@@ -13,7 +14,7 @@ class TopographyEngine:
         self.config = config_dict
         self.data_root = os.path.join(resolve_project_root(), data_root)
         self.logger = logger
-        self.binance_client = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
         
         # Parse config early to inject visual parameters
         obs_config = MarketObserverConfig.from_dict(config_dict)
@@ -48,7 +49,7 @@ class TopographyEngine:
                 config=obs_config,
                 symbol=symbol,
                 data_root=self.data_root,
-                binance_client=self.binance_client,
+                exchange_client=self.exchange_client,
                 chart_generator=self.chart_gen
             )
             
@@ -70,4 +71,4 @@ class TopographyEngine:
 
             return {"symbol": symbol, "observation": observation}
         finally:
-            self.binance_client.close()
+            self.exchange_client.close()

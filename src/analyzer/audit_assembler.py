@@ -2,9 +2,8 @@ import os
 import json
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
-import datetime
-
 from src.utils.pipeline_utils import safe_format
+from src.infrastructure.exchange.models import KlineData
 from src.utils.path_utils import resolve_project_root
 from src.utils.math_utils import MathTools
 
@@ -54,7 +53,7 @@ class AuditAssembler:
 
     def calculate_outcome(
         self, 
-        klines: List[List[Any]], 
+        klines: List[KlineData], 
         entry_price: float, 
         strategy: Dict[str, Any],
         atr_macro_t0: float, 
@@ -80,10 +79,9 @@ class AuditAssembler:
         if not klines:
             return {"error": "EMPTY_KLINES", "tp_sl_result": "N/A"}
         
-        # Structure: [OpenTime, Open, High, Low, Close, Volume, CloseTime, ...]
-        highs = [float(k[2]) for k in klines]
-        lows = [float(k[3]) for k in klines]
-        closes = [float(k[4]) for k in klines]
+        highs = [k.high for k in klines]
+        lows = [k.low for k in klines]
+        closes = [k.close for k in klines]
         
         # v6.5 Optimization: Core Physical Snapshots
         max_price = max(highs)
@@ -172,7 +170,8 @@ class AuditAssembler:
                 max_after, min_after = -float('inf'), float('inf')
                 
                 for i, k in enumerate(klines):
-                    high, low = float(k[2]), float(k[3])
+                    high = float(k.high)
+                    low = float(k.low)
                     if not entry_hit:
                         if (opinion == 'BULLISH' and low <= target_entry) or \
                            (opinion == 'BEARISH' and high >= target_entry):

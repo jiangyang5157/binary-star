@@ -1,15 +1,15 @@
 import datetime
 import random
 from typing import List, Dict, Any
+from src.infrastructure.exchange.models import KlineData
 
 class MockDataFactory:
     """Universal generator for deterministic test data."""
 
     @staticmethod
-    def create_mock_klines(symbol: str, count: int = 100, trend: str = "bullish") -> List[List[Any]]:
+    def create_mock_klines(symbol: str, count: int = 100, trend: str = "bullish") -> List[KlineData]:
         """
-        Generates simulated Binance klines.
-        Structure: [OpenTime, Open, High, Low, Close, Volume, CloseTime, ...]
+        Generates simulated Binance klines as Domain objects.
         """
         base_price = 60000.0
         klines = []
@@ -30,7 +30,17 @@ class MockDataFactory:
             low_p = min(open_p, close_p) - random.uniform(5, 15)
             
             # [OpenTime, Open, High, Low, Close, Volume, CloseTime]
-            klines.append([open_ts, open_p, high_p, low_p, close_p, 100.0, close_ts])
+            # Since we now map everything safely, other missing fields are automatically None
+            klines.append(KlineData(
+                open_time=open_ts,
+                open=open_p,
+                high=high_p,
+                low=low_p,
+                close=close_p,
+                volume=100.0,
+                close_time=close_ts,
+                taker_buy_base=50.0  # Optional fallback value for simulation
+            ))
         
         return klines
 

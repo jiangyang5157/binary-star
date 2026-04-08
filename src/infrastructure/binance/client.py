@@ -11,18 +11,25 @@ import tenacity
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
 
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
+from src.infrastructure.exchange.models import (
+    KlineData,
+    OpenInterestData,
+    RatioData,
+    LiquidationData,
+    FundingRateData,
+    GenericOrderBook
+)
+
 # Initialize project-standard logger
 logger = setup_logger(__name__)
 
-class BinanceFuturesClient:
+class BinanceFuturesClient(AbstractExchangeClient):
     """
     Unified Data Service for Binance USD-M Futures.
     
     Provides high-integrity access to both 'Technical' (Price/Volume) and 
     'Psychological' (OI, LS Ratio, Funding) market data.
-    
-    Attributes:
-        client (UMFutures): The underlying Binance SDK client.
     """
     
     # Standard Binance intervals in seconds
@@ -35,10 +42,6 @@ class BinanceFuturesClient:
     def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None):
         """
         Initializes the Binance client. Uses environment variables or explicit keys.
-        
-        Args:
-            api_key: Optional Binance API Key.
-            api_secret: Optional Binance API Secret.
         """
         key = api_key or os.environ.get("BINANCE_API_KEY")
         secret = api_secret or os.environ.get("BINANCE_API_SECRET")
@@ -56,18 +59,10 @@ class BinanceFuturesClient:
         self.network_cfg = self._load_network_config()
         # Strict sourcing from global_config.yaml (network section)
         binance_net = self.network_cfg.get('network', {}).get('binance', {})
-        self.timeout = int(binance_net['api_timeout_seconds'])
-        self.retry_count = int(binance_net['retry_count'])
+        self.timeout = int(binance_net.get('api_timeout_seconds', 10))
+        self.retry_count = int(binance_net.get('retry_count', 3))
 
     def _get_retryer(self, method_name: str) -> tenacity.Retrying:
-        """Returns a tenacity retrying object for Binance SDK methods.
-
-        Args:
-            method_name: Name of the operation being retried (for logging).
-
-        Returns:
-            A tenacity Retrying instance configured with exponential backoff and jitter.
-        """
         return tenacity.Retrying(
             stop=tenacity.stop_after_attempt(self.retry_count),
             wait=tenacity.wait_random_exponential(multiplier=1, max=10),
@@ -92,21 +87,7 @@ class BinanceFuturesClient:
 
     # --- Technical Market Data ---
 
-    def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs: Any) -> List[List[Any]]:
-        """Fetches historical candlestick (kline) data with automated pagination.
-
-        Handles Binance API limits (typically 1000-1500) by splitting large 
-        requests into sequential chunks and merging them chronologically.
-
-        Args:
-            symbol: Trading pair symbol (e.g., BTCUSDT).
-            interval: Kline interval (e.g., '1h', '15m').
-            limit: Total number of klines to fetch.
-            **kwargs: Additional Binance API parameters (startTime, endTime).
-
-        Returns:
-            A list of kline lists, sorted by open time.
-        """
+    def fetch_historical_klines(self, symbol: str, interval: str, limit: int, **kwargs: Any) -> List[KlineData]:
         try:
             MAX_CHUNK = 1000
             
@@ -114,7 +95,8 @@ class BinanceFuturesClient:
                 logger.debug(f"Binance: Fetching klines for {symbol} ({interval})")
                 for attempt in self._get_retryer("klines"):
                     with attempt:
-                        return self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
+                        raw_klines = self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
+                        return self._map_klines(raw_klines)
             
             all_klines: List[List[Any]] = []
             remaining = limit
@@ -150,7 +132,7 @@ class BinanceFuturesClient:
             sorted_unique = [unique_klines[ts] for ts in sorted(unique_klines.keys())]
             
             logger.info(f"Binance: Fetched {len(sorted_unique)} klines for {symbol}.")
-            return sorted_unique
+            return self._map_klines(sorted_unique)
             
         except ClientError as e:
             logger.error(f"Binance: Klines fetch failed for {symbol}: {e.error_message}")
@@ -159,125 +141,139 @@ class BinanceFuturesClient:
             logger.error(f"Binance: Unexpected error during kline pagination: {e}", exc_info=True)
             return []
 
-    def fetch_order_book(self, symbol: str, limit: int = 1000) -> Dict[str, Any]:
-        """Fetches order book depth for identifying liquidity pools.
-
-        Args:
-            symbol: Trading pair symbol.
-            limit: Depth limit (default 1000).
-
-        Returns:
-            The raw order book dictionary (bids, asks, lastUpdateId).
+    def _map_klines(self, raw_data: List[List[Any]]) -> List[KlineData]:
         """
+        Maps raw Binance API responses to domain KlineData objects.
+        
+        Binance API Original Kline/Candlestick payload schema:
+        [
+            0: Open time (开盘时间)
+            1: Open (开盘价)
+            2: High (最高价)
+            3: Low (最低价)
+            4: Close (收盘价)
+            5: Volume (成交量)
+            6: Close time (收盘时间)
+            7: Quote asset volume (成交额)
+            8: Number of trades (成交笔数)
+            9: Taker buy base asset volume (主动买入的成交量)
+            10: Taker buy quote asset volume (主动买入的成交额)
+            11: Ignore (忽略)
+        ]
+        """
+        return [
+            KlineData(
+                open_time=int(k[0]),
+                open=float(k[1]),
+                high=float(k[2]),
+                low=float(k[3]),
+                close=float(k[4]),
+                volume=float(k[5]),
+                close_time=int(k[6]),
+                quote_volume=float(k[7]),
+                trades=int(k[8]),
+                taker_buy_base=float(k[9]),
+                taker_buy_quote=float(k[10])
+            )
+            for k in raw_data
+        ]
+
+    def fetch_order_book(self, symbol: str, limit: int = 1000) -> GenericOrderBook:
         try:
             logger.debug(f"Binance: Fetching Order Book for {symbol} (Limit: {limit})")
+            raw_depth = {}
             for attempt in self._get_retryer("depth"):
                 with attempt:
-                    return self.client.depth(symbol=symbol, limit=limit)
+                    raw_depth = self.client.depth(symbol=symbol, limit=limit)
+            
+            return GenericOrderBook(
+                bids=[[float(p), float(q)] for p, q in raw_depth.get('bids', [])],
+                asks=[[float(p), float(q)] for p, q in raw_depth.get('asks', [])],
+                timestamp=int(datetime.now(timezone.utc).timestamp() * 1000)
+            )
         except ClientError as e:
             logger.error(f"Binance: Order book fetch failed for {symbol}: {e.error_message}")
-            return {}
+            return GenericOrderBook([], [], 0)
 
-    def fetch_liquidations(self, symbol: str, limit: int = 100, **kwargs: Any) -> List[Dict[str, Any]]:
-        """Fetches recent forced liquidation orders.
-
-        Uses the Binance SDK first. If it fails (e.g., 401/Invalid API Key), 
-        it falls back to the public REST endpoint which does not require authentication.
-
-        Args:
-            symbol: Trading pair symbol.
-            limit: Number of records (max 1000).
-            **kwargs: Additional parameters (startTime, endTime).
-
-        Returns:
-            A list of liquidation order dictionaries.
-        """
+    def fetch_liquidations(self, symbol: str, limit: int = 100, **kwargs: Any) -> Optional[List[LiquidationData]]:
+        raw_liqs = []
         try:
-            # v6.21: Defensive check for authenticated state
             if self.is_authenticated:
                 for attempt in self._get_retryer("force_orders"):
                     with attempt:
-                        return self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
+                        raw_liqs = self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
             else:
                 logger.debug(f"Binance: Skipping SDK force_orders for {symbol} (Unauthenticated).")
         except Exception as e:
             logger.warning(f"Binance: SDK liquidation fetch failed for {symbol} (Trying public fallback): {e}")
             
-        try:
-            # v6.22: Reverting to 'allForceOrders' as it is the correct public aggregator
-            # Note: This endpoint is prone to 400 "out of maintenance" if restricted by Binance
-            params = f"symbol={symbol}&limit={limit}"
-            if 'startTime' in kwargs: params += f"&startTime={kwargs['startTime']}"
-            if 'endTime' in kwargs: params += f"&endTime={kwargs['endTime']}"
-            
-            url = f"https://fapi.binance.com/fapi/v1/allForceOrders?{params}"
-            # Use a ephemeral session for one-off requests or shared session if scaled
-            with requests.Session() as s:
-                resp = s.get(url, timeout=self.timeout)
-                if resp.status_code == 200:
-                    return resp.json()
+        if not raw_liqs:
+            try:
+                params = f"symbol={symbol}&limit={limit}"
+                if 'startTime' in kwargs: params += f"&startTime={kwargs['startTime']}"
+                if 'endTime' in kwargs: params += f"&endTime={kwargs['endTime']}"
                 
-                # Check for 400 specifically to log the 'out of maintenance' issue
-                if resp.status_code == 400:
-                    logger.debug(f"Binance: Public liquidation fallback rejected (HTTP 400): {resp.text}")
-                else:
-                    logger.error(f"Binance: Public liquidation fallback failed (HTTP {resp.status_code}): {resp.text}")
-                return []
-        except Exception as e:
-            logger.error(f"Binance: Public liquidation fallback crashed: {e}")
-            return []
+                url = f"https://fapi.binance.com/fapi/v1/allForceOrders?{params}"
+                with requests.Session() as s:
+                    resp = s.get(url, timeout=self.timeout)
+                    if resp.status_code == 200:
+                        raw_liqs = resp.json()
+                    elif resp.status_code == 400:
+                        logger.debug(f"Binance: Public liquidation fallback rejected (HTTP 400): {resp.text}")
+                        return None
+                    else:
+                        logger.error(f"Binance: Public liquidation fallback failed (HTTP {resp.status_code}): {resp.text}")
+                        return None
+            except Exception as e:
+                logger.error(f"Binance: Public liquidation fallback crashed: {e}")
+                return None
+        
+        if not raw_liqs:
+            return None
+        
+        return [
+            LiquidationData(
+                price=float(l.get('price', l.get('p', 0))),
+                qty=float(l.get('origQty', l.get('q', 0))),
+                side=str(l.get('side', l.get('S', 'UNKNOWN'))),
+                timestamp=int(l.get('time', l.get('T', 0)))
+            )
+            for l in raw_liqs
+        ]
 
     # --- Sentiment & Psychology Data ---
 
-    def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs: Any) -> Dict[str, Any]:
-        """Fetches current or historical Open Interest.
-
-        Note: Historical data limit on Binance is 30 days.
-
-        Args:
-            symbol: Trading pair symbol.
-            period: Aggregation period ('1h', '5m', etc).
-            **kwargs: Additional parameters (startTime, endTime, limit).
-
-        Returns:
-            A dictionary containing the symbol, OI value, and timestamp.
-        """
+    def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs: Any) -> Optional[OpenInterestData]:
         try:
             if 'endTime' in kwargs and not self._is_within_30_days(kwargs['endTime']):
                 logger.debug(f"Binance: Historical OI for {symbol} skipped (30-day limit reached).")
-                return {}
+                return None
 
             if 'endTime' in kwargs:
                 for attempt in self._get_retryer("open_interest_hist"):
                     with attempt:
                         resp = self.client.open_interest_hist(symbol=symbol, period=period, limit=1, **kwargs)
                 if resp:
-                    return {
-                        "symbol": symbol,
-                        "openInterest": resp[-1].get('sumOpenInterest', '0'),
-                        "time": resp[-1].get('timestamp', 0)
-                    }
-                return {}
+                    return OpenInterestData(
+                        symbol=symbol,
+                        open_interest=float(resp[-1].get('sumOpenInterest', 0)),
+                        timestamp=int(resp[-1].get('timestamp', 0))
+                    )
+                return None
             
             for attempt in self._get_retryer("open_interest"):
                 with attempt:
-                    return self.client.open_interest(symbol=symbol)
+                    resp = self.client.open_interest(symbol=symbol)
+                    return OpenInterestData(
+                        symbol=symbol,
+                        open_interest=float(resp.get('openInterest', 0)),
+                        timestamp=int(resp.get('time', 0))
+                    )
         except ClientError as e:
             logger.error(f"Binance: Open Interest fetch failed for {symbol}: {e.error_message}")
-            return {}
+            return None
 
-    def fetch_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[Dict[str, Any]]:
-        """Fetches Account Long/Short Ratio.
-
-        Args:
-            symbol: Trading pair symbol.
-            period: Aggregation period.
-            limit: Number of records (default 1).
-            **kwargs: additional params (startTime, endTime).
-
-        Returns:
-            A list of L/S ratio records.
-        """
+    def fetch_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
         try:
             if 'endTime' in kwargs and not self._is_within_30_days(kwargs['endTime']):
                 logger.debug(f"Binance: Historical L/S ratio for {symbol} skipped (30-day limit).")
@@ -285,27 +281,43 @@ class BinanceFuturesClient:
             
             for attempt in self._get_retryer("long_short_account_ratio"):
                 with attempt:
-                    return self.client.long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+                    resp = self.client.long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+                    return [
+                        RatioData(
+                            long_short_ratio=float(r.get('longShortRatio', 1.0)),
+                            timestamp=int(r.get('timestamp', 0))
+                        ) for r in resp
+                    ]
         except ClientError as e:
             logger.error(f"Binance: L/S Ratio fetch failed for {symbol}: {e.error_message}")
             return []
 
-    def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[Dict[str, Any]]:
-        """Fetches the Top Trader Long/Short Ratio (Accounts)."""
+    def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
         try:
             for attempt in self._get_retryer("top_long_short_account_ratio"):
                 with attempt:
-                    return self.client.top_long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+                    resp = self.client.top_long_short_account_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+                    return [
+                        RatioData(
+                            long_short_ratio=float(r.get('longShortRatio', 1.0)),
+                            timestamp=int(r.get('timestamp', 0))
+                        ) for r in resp
+                    ]
         except ClientError as e:
             logger.error(f"Binance: Top L/S Ratio fetch failed for {symbol}: {e.error_message}")
             return []
 
-    def fetch_funding_rate(self, symbol: str, limit: int = 100, **kwargs: Any) -> List[Dict[str, Any]]:
-        """Fetches historical funding rate data."""
+    def fetch_funding_rate(self, symbol: str, limit: int = 100, **kwargs: Any) -> List[FundingRateData]:
         try:
             for attempt in self._get_retryer("funding_rate"):
                 with attempt:
-                    return self.client.funding_rate(symbol=symbol, limit=limit, **kwargs)
+                    resp = self.client.funding_rate(symbol=symbol, limit=limit, **kwargs)
+                    return [
+                        FundingRateData(
+                            funding_rate=float(r.get('fundingRate', 0)),
+                            timestamp=int(r.get('fundingTime', 0))
+                        ) for r in resp
+                    ]
         except ClientError as e:
             logger.error(f"Binance: Funding Rate fetch failed for {symbol}: {e.error_message}")
             return []
@@ -313,7 +325,6 @@ class BinanceFuturesClient:
     # --- Internal Utilities ---
 
     def _is_within_30_days(self, timestamp_ms: int) -> bool:
-        """Checks if a given millisecond timestamp is within the last 30 days."""
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         thirty_days_ms = 30 * 24 * 60 * 60 * 1000
         return (now_ms - timestamp_ms) <= thirty_days_ms
@@ -321,3 +332,4 @@ class BinanceFuturesClient:
     def close(self):
         """Closes the client connection (placeholder for session cleanup)."""
         pass
+

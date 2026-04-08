@@ -32,27 +32,21 @@ class VolumeNode:
     price: float
     strength: float                   # Relative strength/vacuum score (0.0 to 1.0)
 
+from src.infrastructure.exchange.models import KlineData
+
 class MarketDataPreprocessor:
     """
     Handles cleaning and enrichment of raw kline data.
     """
     @staticmethod
-    def prepare_dataframe(klines_data: List[List[Any]], atr_period: int) -> pd.DataFrame:
+    def prepare_dataframe(klines_data: List[KlineData], atr_period: int) -> pd.DataFrame:
         """
-        Converts raw Binance klines into a technical-ready DataFrame.
+        Converts domain KlineData objects into a technical-ready DataFrame.
         """
-        # Binance Kline format: [Time, O, H, L, C, V, CloseTime, QVol, Trades, TakerBase, TakerQuote, Ignore]
-        df = pd.DataFrame(klines_data, columns=[
-            "open_time", "open", "high", "low", "close", "volume", 
-            "close_time", "quote_volume", "trades", "taker_buy_base", 
-            "taker_buy_quote", "ignore"
-        ])
+        if not klines_data: return pd.DataFrame()
         
-        # Convert to numeric
-        numeric_cols = ["open", "high", "low", "close", "volume", "taker_buy_base"]
-        for col in numeric_cols:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-            
+        df = pd.DataFrame([vars(k) for k in klines_data])
+        
         df["open_time"] = pd.to_datetime(df["open_time"], unit="ms")
         df.set_index("open_time", inplace=True)
         
@@ -195,7 +189,7 @@ class VolumeProfileAnalyzer:
         self.engine = VolumeProfileEngine(self.config)
         self.node_finder = SignificantNodeFinder(self.config)
 
-    def process_klines(self, klines_data: List[List[Any]]) -> pd.DataFrame:
+    def process_klines(self, klines_data: List[KlineData]) -> pd.DataFrame:
         """Entry point for data cleaning and feature engineering."""
         return self.preprocessor.prepare_dataframe(klines_data, self.config.atr_period)
 
@@ -207,7 +201,7 @@ class VolumeProfileAnalyzer:
         """Entry point for identifying structural support/resistance levels."""
         return self.node_finder.find_nodes(profile_result)
 
-    def analyze(self, klines_data: List[List[Any]]) -> Dict[str, Any]:
+    def analyze(self, klines_data: List[KlineData]) -> Dict[str, Any]:
         """
         Full analysis pipeline: Preprocessing -> Profile calculation -> Node discovery.
         """

@@ -9,6 +9,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.analyzer.audit_assembler import AuditAssembler, AuditReviewConfig
+from src.infrastructure.exchange.models import KlineData
 from tests.mock_factory import MockDataFactory
 
 class TestAuditAssembler(unittest.TestCase):
@@ -48,10 +49,11 @@ class TestAuditAssembler(unittest.TestCase):
         }
         
         # Open, High, Low, Close
+        # klines now expected as KlineData objects
         klines = [
-            [0, 60000, 60500, 59900, 60200], # Entry hit (Low 59900 <= 60000)
-            [0, 60200, 61000, 60100, 60800],
-            [0, 60800, 62500, 60700, 62100], # TP hit (High 62500 >= 62000)
+            KlineData(0, 60000, 60500, 59900, 60200, 100.0, 60000), # Entry hit (Low 59900 <= 60000)
+            KlineData(0, 60200, 61000, 60100, 60800, 100.0, 60000),
+            KlineData(0, 60800, 62500, 60700, 62100, 100.0, 60000), # TP hit (High 62500 >= 62000)
         ]
         
         outcome = self.assembler.calculate_outcome(klines, 60000, strategy, 500, 500, 1.5, 1.5, 1.0)
@@ -70,8 +72,8 @@ class TestAuditAssembler(unittest.TestCase):
         }
         
         klines = [
-            [0, 60000, 60100, 59900, 59950], # Entry hit
-            [0, 59950, 60000, 58000, 58500], # SL hit (Low 58000 <= 59000)
+            KlineData(0, 60000, 60100, 59900, 59950, 100.0, 60000), # Entry hit
+            KlineData(0, 59950, 60000, 58000, 58500, 100.0, 60000), # SL hit (Low 58000 <= 59000)
         ]
         
         outcome = self.assembler.calculate_outcome(klines, 60000, strategy, 500, 500, 1.5, 1.5, 1.0)

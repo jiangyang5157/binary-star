@@ -10,6 +10,7 @@ from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.agent.session_agent import SessionAgent, SessionConfig
 from src.agent.critic_agent import CriticAgent, CriticConfig
 from src.utils.math_utils import MathTools
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, safe_format
@@ -64,7 +65,7 @@ class BinaryStarOrchestrator:
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)
-        self.binance_client = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
         
         # 2. Global Environment Constants (Resolved from Global Config)
         gemini_net = self.global_config['network']['gemini']
@@ -127,7 +128,7 @@ class BinaryStarOrchestrator:
             config=self.obs_config,
             symbol=self.global_config['system']['default_symbol'], 
             data_root=self.data_root,
-            binance_client=self.binance_client,
+            exchange_client=self.exchange_client,
             chart_generator=self.chart_gen
         )
         

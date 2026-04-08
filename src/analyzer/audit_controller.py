@@ -9,6 +9,8 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.utils.pipeline_utils import get_file_hash
 from src.utils.path_utils import resolve_project_root
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
+from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.datetime_utils import (
     parse_iso_to_utc, 
@@ -42,8 +44,8 @@ class AuditController:
         review_cfg = AuditReviewConfig.from_dict(config_dict)
         self.assembler = AuditAssembler(review_cfg)
         
-        # 2. Shared Infrastructure
-        self.binance_client = BinanceFuturesClient()
+        # 2. Shared Infrastructure (Dynamic interface)
+        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
         
         # 3. Visual Forensic Observer (T1)
         self.obs_config = MarketObserverConfig.from_dict(config_dict)
@@ -72,7 +74,7 @@ class AuditController:
             config=self.obs_config,
             symbol=default_symbol,
             data_root=self.data_root,
-            binance_client=self.binance_client,
+            exchange_client=self.exchange_client,
             chart_generator=self.chart_gen
         )
 
@@ -150,7 +152,7 @@ class AuditController:
         
         try:
             # 1. Fetch Outcome Klines
-            client = self.binance_client
+            client = self.exchange_client
             forensic_resolution = self.config['audit_review']['forensic_resolution']
             klines = []
             try:
@@ -193,7 +195,9 @@ class AuditController:
             res_type = outcome.get("tp_sl_result", "NEITHER")
             if res_type in ("TP_HIT", "SL_HIT"):
                 hit_index = outcome.get("trade_execution_metrics", {}).get("actual_holding_candles", len(klines))
-                t1_dt = datetime.fromtimestamp(klines[hit_index - 1][0] / 1000, tz=timezone.utc)
+                kline_item = klines[hit_index - 1]
+                ts = kline_item.open_time if hasattr(kline_item, 'open_time') else kline_item[0]
+                t1_dt = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
             else:
                 t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
 
