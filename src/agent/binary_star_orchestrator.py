@@ -320,6 +320,7 @@ class BinaryStarOrchestrator:
             last_plan = None
             debate_history = []
             math_fact_check = None
+            early_exit = False
 
             while current_round <= self.max_rounds:
                 # Planning / Refinement
@@ -356,7 +357,7 @@ class BinaryStarOrchestrator:
                 
                 # Score Telemetry
                 skepticism_score = int(float(str(critic_results.get('skepticism_score', 100))))
-                veto_level = critic_results.get('veto_level', 'UNKNOWN')
+                veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
                 logger.info(f"BinaryStar Audit [R{current_round}]: Score={skepticism_score} | Veto={veto_level}")
                 
                 debate_history.append({
@@ -365,26 +366,36 @@ class BinaryStarOrchestrator:
                     "critic": critic_results,
                     "math_fact_check": math_fact_check
                 })
+                
+                # Early Exit Check: If Critic issues a PASS, the plan is hardened.
+                if veto_level == "PASS":
+                    logger.info(f"BinaryStar: Pristine plan detected in Round {current_round}. Triggering early exit.")
+                    early_exit = True
+                    break
                     
                 current_round += 1
                 
             # 3. Decision Finalization (Convergent Synthesis)
-            # STRATEGIC ALPHA: We hijack the Auditor's cold temperature (0.3) for 
-            # the final synthesis. This forces the Session Agent to shift from 
-            # 'Creative Planning' (0.7) to 'Disciplined Execution' (0.3), ensuring 
-            # that the final technical parameters are deterministic and rigorous.
-            logger.info("BinaryStar: Finalizing consensus decision...")
-            final_decision = self.session_agent.execute_session_cycle(
-                observation=observation, 
-                symbol=symbol,
-                temperature=self.critic_config.model_temperature,
-                agent_name="Session_Synthesis",
-                cache_id=cache_resource_name, 
-                tools=tools, 
-                debate_history=debate_history,
-                visual_parts=visual_parts,
-                system_instruction=self.shared_instruction
-            )
+            if early_exit:
+                logger.info("BinaryStar: Using early-exit plan as final decision.")
+                final_decision = last_plan
+            else:
+                # STRATEGIC ALPHA: We hijack the Auditor's cold temperature (0.3) for 
+                # the final synthesis. This forces the Session Agent to shift from 
+                # 'Creative Planning' (0.7) to 'Disciplined Execution' (0.3), ensuring 
+                # that the final technical parameters are deterministic and rigorous.
+                logger.info("BinaryStar: Finalizing consensus decision...")
+                final_decision = self.session_agent.execute_session_cycle(
+                    observation=observation, 
+                    symbol=symbol,
+                    temperature=self.critic_config.model_temperature,
+                    agent_name="Session_Synthesis",
+                    cache_id=cache_resource_name, 
+                    tools=tools, 
+                    debate_history=debate_history,
+                    visual_parts=visual_parts,
+                    system_instruction=self.shared_instruction
+                )
 
             
             # 4. Forensic Packaging
