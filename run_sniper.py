@@ -19,7 +19,7 @@ from src.sniper.scout import SniperScout
 from src.sniper.trigger import SniperTrigger
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
-from src.utils.pipeline_utils import load_global_config, load_config
+from src.utils.pipeline_utils import load_global_config
 
 logger = setup_logger("SniperDaemon")
 
@@ -56,16 +56,8 @@ class SniperDaemon:
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
-        # v6.61: Pre-resolve Session Temperature for deterministic logging
         pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
-        try:
-            _cfg = load_config()
-            _default_temp = _cfg['binary_star']['session']['model_temperature']
-        except:
-            _default_temp = "Unknown"
-        temp_report = f"{self.args.session_temp} (Override)" if getattr(self.args, 'session_temp', None) is not None else f"{_default_temp} (Default)"
-        
-        logger.info(f"--- Sniper Monitoring Started: {self.symbol} (Pulse: {pulse_mins}m) | Session Temp: {temp_report} ---")
+        logger.info(f"--- Sniper Monitoring Started: {self.symbol} (Pulse: {pulse_mins}m) ---")
         
         while True:
             try:
