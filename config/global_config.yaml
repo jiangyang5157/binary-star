@@ -58,6 +58,10 @@ sniper:
   # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
   pulse_cooldown_multiplier: 1.0
 
+  # [Mute]: Multiplier for cooldown during extreme volatility expansion.
+  # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
+  chaos_cooldown_multiplier: 2.0
+
   # --- Engine Heartbeat & Tick Rate ---
   # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
   # WARNING: This is the physical baseline of the engine. It defines what "instantaneous" means 
@@ -65,25 +69,20 @@ sniper:
   pulse_interval_minutes: 0.25
 
   # --- Micro-Probes (Detecting violent intra-tick action) ---
-  # WARNING: The ratios below are mathematically coupled to 'pulse_interval_minutes'. If you increase 
-  # the tick interval (e.g., from 0.1m to 1.0m), you MUST scale these ratios UP non-linearly to filter 
-  # out the natural background drift of CVD accumulated over the longer time window.
-  
-  # [Absorption/Distribution Divergence]: Requires price to move inversely against massive limit blocks.
-  # REC: 0.4 - 0.5. This can be more sensitive because the inverse price action provides strong structural noise filtering.
-  cvd_divergence_intensity_ratio: 0.5
-  
-  # [Whale Impulse]: Requires a pure, violent surge in taker volume (ignores price direction).
-  # REC: 0.8 - 1.0. This MUST be kept high to prevent normal trend momentum from triggering false pulse alarms.
-  cvd_impulse_intensity_ratio: 0.8
+  # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
+
+  # [Tick-Scale Probes]: Micro-sensitivity for 15s heartbeats.
+  # 0.02 = 2% net flow change in 15 seconds.
+  cvd_divergence_tick_delta: 0.02
+  cvd_impulse_tick_delta: 0.05
   
   # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
   # 1.0 = any increase, 1.1 = 10% growth required.
   cvd_growth_significance_ratio: 1.2
 
   # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
-  # 0.8 = requires market to be 20% more 'silent' than the base strategy to trigger a sniper alert.
-  squeeze_trigger_multiplier: 0.8
+  # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
+  squeeze_trigger_multiplier: 0.65
 
   # [Structural]: Multiplier for structural proximity (TYPE_C).
   # 0.8 = requires price to be 20% closer to VAH/VAL to trigger a sniper alert.

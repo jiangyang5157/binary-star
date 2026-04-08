@@ -57,6 +57,15 @@ class SniperTrigger:
                 return False, None, f"GLOBAL_COOLDOWN (Aligned: {elapsed:.1f}m/{self.cooldown_minutes}m)"
 
         # 1. Evaluate DNA Traps (Type A -> B -> C)
+        # v6.71: CHAOS_MUTE (Extreme Volatility Protection)
+        vol = current_metrics['price_dynamics']['volatility_intensity_index']
+        if vol > self.regime_cfg['volatility_extreme_ratio']:
+            if self.last_trigger_time:
+                elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
+                chaos_mult = self.sniper_cfg['chaos_cooldown_multiplier']
+                if elapsed < (self.cooldown_minutes * chaos_mult):
+                    return False, None, f"CHAOS_MUTE (Extreme Volatility: {vol:.2f} | Cooldown x{chaos_mult})"
+
         checks = [
             (self._check_type_a, "TYPE_A (Breakout)"),
             (self._check_type_b, "TYPE_B (Asymmetry)"),
@@ -75,7 +84,7 @@ class SniperTrigger:
         """势能破局: [波动率爆发+量能突增] OR [极致物理挤压]"""
         vol = curr['price_dynamics']['volatility_intensity_index']
         part = curr['market_regime']['volume_participation_ratio']
-        squeeze = curr['market_regime'].get('squeeze_factor', 1.0)
+        squeeze = curr['market_regime']['squeeze_factor']
         
         # 1. 动能释放 (Volatility Expansion)
         vol_threshold = self.regime_cfg['volatility_baseline_ratio']
@@ -85,7 +94,7 @@ class SniperTrigger:
         is_volume_hit = part > part_threshold
         
         # 2. 势能蓄力 (Physical Squeeze)
-        squeeze_mult = self.sniper_cfg.get('squeeze_trigger_multiplier', 1.0)
+        squeeze_mult = self.sniper_cfg['squeeze_trigger_multiplier']
         squeeze_threshold = self.regime_cfg['squeeze_threshold'] * squeeze_mult
         is_squeeze_hit = squeeze < squeeze_threshold
         
@@ -116,9 +125,8 @@ class SniperTrigger:
             cvd_delta_raw = cvd - prev_cvd
             cvd_delta_abs = abs(cvd_delta_raw)
             
-            # A. 吸筹/派发背离 (Divergence) - 最严苛的左侧信号，放于首位防止掩盖
-            div_ratio = self.sniper_cfg['cvd_divergence_intensity_ratio']
-            divergence_threshold = cvd_threshold * div_ratio
+            # A. 吸筹/派发背离 (Divergence) - v6.71: Tick Delta Acceleration
+            divergence_threshold = self.sniper_cfg['cvd_divergence_tick_delta']
             
             if cvd_delta_abs > divergence_threshold:
                 curr_price = curr['price_dynamics']['current_price']
@@ -127,20 +135,19 @@ class SniperTrigger:
                 
                 # Bullish: Price down, CVD up | Bearish: Price up, CVD down
                 if (price_delta > 0 and cvd_delta_raw < 0) or (price_delta < 0 and cvd_delta_raw > 0):
-                    return True, f"CVD/Price Divergence (Price:{price_delta:.1f}, CVD:{cvd_delta_raw:.3f} | Ratio: {div_ratio})"
+                    return True, f"CVD Acceleration Divergence (Price:{price_delta:.1f}, CVD Delta:{cvd_delta_raw:.3f} | Threshold: {divergence_threshold})"
 
-            # B. 暴力大单脉冲 (Impulse) - 次严苛的右侧破局信号
-            pulse_ratio = self.sniper_cfg['cvd_impulse_intensity_ratio']
-            pulse_threshold = cvd_threshold * pulse_ratio
+            # B. 暴力大单脉冲 (Impulse) - v6.71: Tick Delta Acceleration
+            pulse_threshold = self.sniper_cfg['cvd_impulse_tick_delta']
             if cvd_delta_abs > pulse_threshold:
-                return True, f"CVD Impulse Detected (Delta: {cvd_delta_abs:.3f} | Ratio: {pulse_ratio} | Threshold: {pulse_threshold:.3f})"
+                return True, f"CVD Impulse Detected (Delta: {cvd_delta_abs:.3f} | Threshold: {pulse_threshold})"
 
         # --- [高优] 全局绝对动量锁定 (Absolute Momentum) ---
         if abs(cvd) > cvd_threshold:
             should_trigger = True
             if prev:
                 # 必须保持在显着增长（当前比上一次强 x 阻尼系数），否则进入静默，防止持续报警
-                growth_ratio = self.global_cfg.get('sniper', {}).get('cvd_growth_significance_ratio', 1.0)
+                growth_ratio = self.sniper_cfg['cvd_growth_significance_ratio']
                 is_significant = abs(cvd) > abs(prev_cvd) * growth_ratio
                 if not is_significant:
                     should_trigger = False
@@ -175,18 +182,24 @@ class SniperTrigger:
         price = curr['price_dynamics']['current_price']
         part = curr['market_regime']['volume_participation_ratio']
         
-        # DNA Mapping: boundary_dist -> structural_proximity_threshold
+        # DNA Mapping: boundary_dist -> structural_proximity_threshold (v6.70 Aligned with multiplier)
         dist_vh = abs(price - topo['vah']) / atr if atr > 0 else float('inf')
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
+        dist_poc = abs(price - topo['poc']) / atr if atr > 0 else float('inf')
         
-        # DNA Mapping: boundary_dist -> structural_proximity_threshold (v6.70 Aligned with multiplier)
-        struct_mult = self.sniper_cfg.get('structural_trigger_multiplier')
+        struct_mult = self.sniper_cfg['structural_trigger_multiplier']
         struct_threshold = self.regime_cfg['structural_proximity_threshold'] * struct_mult
+        
+        # v6.71: POC Gravity Engine (Dedicated Awareness for Deep DLE)
+        poc_trigger_threshold = struct_threshold * 1.5 
 
         if min(dist_vh, dist_val) < struct_threshold and \
            part > self.regime_cfg['min_volume_participation_ratio']:
             side = "VAH" if dist_vh < dist_val else "VAL"
-            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {struct_threshold:.2f} | Mult: {struct_mult})"
+            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {struct_threshold:.2f})"
+
+        if dist_poc < poc_trigger_threshold:
+            return True, f"POC 磁吸/回踩 (Gravity Test): Dist to POC={dist_poc:.2f} ATR (Threshold: {poc_trigger_threshold:.2f})"
 
         # DNA Mapping: liquidation_magnet -> structural_proximity_threshold
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
