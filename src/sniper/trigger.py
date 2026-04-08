@@ -180,7 +180,7 @@ class SniperTrigger:
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
         
         # DNA Mapping: boundary_dist -> structural_proximity_threshold (v6.70 Aligned with multiplier)
-        struct_mult = self.sniper_cfg.get('structural_trigger_multiplier', 1.0)
+        struct_mult = self.sniper_cfg.get('structural_trigger_multiplier')
         struct_threshold = self.regime_cfg['structural_proximity_threshold'] * struct_mult
 
         if min(dist_vh, dist_val) < struct_threshold and \
