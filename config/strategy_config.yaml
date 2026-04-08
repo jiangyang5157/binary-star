@@ -180,7 +180,7 @@ binary_star:
 
   session:
     role_definition_prompt: src/agent/prompts/session.md
-    model_temperature: 0.7
+    model_temperature: 0.4
     # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
     # Hard safety boundaries for stop-loss placements.
