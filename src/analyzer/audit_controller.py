@@ -193,6 +193,15 @@ class AuditController:
 
             # 4. Final T1 Anchoring Logic
             res_type = outcome.get("tp_sl_result", "NEITHER")
+
+            # v6.18: Maturity Guard (Logic: Hit Target OR Window Expired)
+            if not force:
+                if res_type not in ("TP_HIT", "SL_HIT") and now_dt < expiry_dt:
+                    time_left = expiry_dt - now_dt
+                    raise ValueError(f"SESSION_MATURING: {symbol} ({opinion}) has not hit target nor expired. "
+                                     f"Current boundary: {now_dt.isoformat()}, "
+                                     f"Final review scheduled at {expiry_dt.isoformat()} (In {time_left})")
+
             if res_type in ("TP_HIT", "SL_HIT"):
                 hit_index = outcome.get("trade_execution_metrics", {}).get("actual_holding_candles", len(klines))
                 kline_item = klines[hit_index - 1]
