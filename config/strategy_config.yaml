@@ -201,7 +201,7 @@ binary_star:
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
-    model_temperature: 0.3
+    model_temperature: 0.0
     # Skepticism buckets for protocol compliance mapping.
     threshold_skepticism_clear: 40
     threshold_skepticism_weak: 69

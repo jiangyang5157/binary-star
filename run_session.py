@@ -51,7 +51,8 @@ class SessionEngine:
         self.orchestrator = BinaryStarOrchestrator(
             config_dict=self.config,
             api_key=self.api_key,
-            data_root=self.data_root
+            data_root=self.data_root,
+            session_temp_override=getattr(self.args, 'session_temp', None)
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         
@@ -264,6 +265,7 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
+    parser.add_argument("--session-temp", "-st", type=float, default=None, help="Override Session Agent model temperature")
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")
@@ -280,15 +282,23 @@ def main():
     args = parser.parse_args()
     
     # --- Mode Resolution & Parameter Validation ---
+    # v6.61: Pre-resolve Session Temperature for deterministic logging
+    try:
+        _cfg = load_config()
+        _default_temp = _cfg['binary_star']['session']['model_temperature']
+    except:
+        _default_temp = "Unknown"
+    temp_report = f"{args.session_temp} (Override)" if args.session_temp is not None else f"{_default_temp} (Default)"
+
     if getattr(args, 'timestamp', None):
         # Priority 1: Time-Machine (Single Historical Point)
         args.mode = "simulation"
         if not args.path: args.path = "data/backtest"
         
         ignored = [arg for arg in ['--start', '--end', '--samples', '--sampling-mode'] if any(a.startswith(arg) for a in sys.argv)]
-        logger.info(f"=== Mode Resolved: SIMULATION (One-Off Historical) ===")
-        logger.info(f" => ACTION: Replaying market cross-section at historical point")
-        logger.info(f" => ADOPTED: --timestamp '{args.timestamp}'")
+        logger.info(f" === Mode Resolved: SIMULATION (One-Off Historical) ===")
+        logger.info(f"  => ACTION: Replaying market cross-section at historical point")
+        logger.info(f"  => ADOPTED: --timestamp '{args.timestamp}', --session-temp {temp_report}")
         if ignored: logger.warning(f" => IGNORED: {', '.join(ignored)} (Not applicable for single-point simulation)")
         logger.info(f" => ARCHIVAL: {args.path}")
         
@@ -301,9 +311,9 @@ def main():
         if args.samples is None:
             args.samples = load_global_config().get('backtest', {}).get('default_samples', 20)
             
-        logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
-        logger.info(f" => ACTION: Simulating multiple historical data points")
-        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples} (Auto-resolved), --sampling-mode {args.sampling_mode}")
+        logger.info(f" === Mode Resolved: BACKTEST (Batch Historical) ===")
+        logger.info(f"  => ACTION: Simulating multiple historical data points")
+        logger.info(f"  => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples} (Auto-resolved), --sampling-mode {args.sampling_mode}, --session-temp {temp_report}")
         logger.info(f" => ARCHIVAL: {args.path}")
         
     else:
@@ -312,8 +322,9 @@ def main():
         if not args.path: args.path = "data/prod"
         
         ignored = [arg for arg in ['--end', '--samples', '--sampling-mode'] if any(a.startswith(arg) for a in sys.argv)]
-        logger.info(f"=== Mode Resolved: PROD (Live Execution) ===")
-        logger.info(f" => ACTION: Fetching current real-time market data")
+        logger.info(f" === Mode Resolved: PROD (Live Execution) ===")
+        logger.info(f"  => ACTION: Fetching current real-time market data")
+        logger.info(f"  => ADOPTED: --session-temp {temp_report}")
         if ignored: logger.warning(f" => IGNORED: {', '.join(ignored)} (Not applicable for live execution)")
         logger.info(f" => ARCHIVAL: {args.path}")
 

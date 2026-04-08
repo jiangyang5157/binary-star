@@ -19,7 +19,7 @@ from src.sniper.scout import SniperScout
 from src.sniper.trigger import SniperTrigger
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
-from src.utils.pipeline_utils import load_global_config
+from src.utils.pipeline_utils import load_global_config, load_config
 
 logger = setup_logger("SniperDaemon")
 
@@ -56,8 +56,16 @@ class SniperDaemon:
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
+        # v6.61: Pre-resolve Session Temperature for deterministic logging
         pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
-        logger.info(f"--- Sniper Monitoring Started: {self.symbol} (Pulse: {pulse_mins}m) ---")
+        try:
+            _cfg = load_config()
+            _default_temp = _cfg['binary_star']['session']['model_temperature']
+        except:
+            _default_temp = "Unknown"
+        temp_report = f"{self.args.session_temp} (Override)" if getattr(self.args, 'session_temp', None) is not None else f"{_default_temp} (Default)"
+        
+        logger.info(f"--- Sniper Monitoring Started: {self.symbol} (Pulse: {pulse_mins}m) | Session Temp: {temp_report} ---")
         
         while True:
             try:
@@ -125,6 +133,7 @@ def main():
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
+    parser.add_argument("--session-temp", "-st", type=float, default=None, help="Override Session Agent model temperature")
     parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
 
     args = parser.parse_args()
