@@ -30,7 +30,7 @@ regime_parameters:
   # Minimum vector strength to classify as 'Trending'. Range [0, 1].
   trend_intensity_threshold: 0.95
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
-  trend_intensity_strong: 0.5
+  trend_intensity_strong: 0.6
   # Noise filter (floor) in ATR units to ignore micro-volatility.
   noise_filter_atr_floor: 0.2
   # Minimum trend intensity required to justify directional trades during volatility expansion.
@@ -84,7 +84,7 @@ regime_parameters:
   # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
   cvd_intensity_threshold: 0.1
   # Extreme single-sided imbalance that triggers immediate absorption audit.
-  cvd_intensity_extreme: 0.35
+  cvd_intensity_extreme: 0.25
   # Absolute funding threshold for Retail Squeeze detection.
   funding_extreme_threshold: 0.0005
   # Minimum compression required to signal an impending squeeze.
@@ -195,9 +195,9 @@ binary_star:
 
     # Dynamic Temporal Dilation Factors (Time Redundancy)
     temporal_dilation_highway: 2
-    temporal_dilation_standard: 1
+    temporal_dilation_standard: 3.0
     temporal_dilation_climax: 0.5
-    temporal_dilation_dead_water: 0.7
+    temporal_dilation_dead_water: 2.0
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
