@@ -70,7 +70,7 @@ sniper:
 
   # [Mute]: Multiplier for cooldown during extreme volatility expansion.
   # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
-  chaos_cooldown_multiplier: 2.0
+  chaos_cooldown_multiplier: 2.5
 
   # --- Engine Heartbeat & Tick Rate ---
   # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
@@ -99,7 +99,7 @@ sniper:
   # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
   vah_val_trigger_multiplier: 1
   poc_trigger_multiplier: 1.2
-  liq_trigger_multiplier: 1.5
+  liq_trigger_multiplier: 1.25
 
 sandbox:
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
