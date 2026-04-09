@@ -258,7 +258,7 @@ def parse_date(date_str: str) -> datetime:
     raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Session Engine")
+    parser = argparse.ArgumentParser(description="Singularity Session Engine v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     

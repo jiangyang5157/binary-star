@@ -24,7 +24,7 @@ from src.utils.datetime_utils import (
 logger = logging.getLogger(__name__)
 
 class AuditController:
-    """The Audit Orchestrator (v6.1).
+    """The Audit Orchestrator (v7.1).
     
     Coordinates forensic analysis by fetching historical outcomes, 
     triggering T1 visual capture, and assembling structural reports.

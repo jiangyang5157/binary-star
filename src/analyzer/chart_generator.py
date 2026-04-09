@@ -34,7 +34,7 @@ class ChartConfig:
     chart_main_panel_weight: int
     chart_volume_panel_weight: int
     render_dpi: int
-    # v7.0 Synthetic Radar Aesthetics
+    # v7.1 Synthetic Radar Aesthetics
     liquidation_cluster_atr_multiplier: float
     liq_max_alpha: float
     liq_min_alpha: float
@@ -413,7 +413,7 @@ class ChartVisualRenderer:
         
         # Determine format
         if isinstance(liquidations, dict):
-            # v7.0: Synthetic Bifurcated Format (Radar Output)
+            # v7.1: Synthetic Bifurcated Format (Radar Output)
             long_targets = liquidations.get('long_liquidation', [])
             short_targets = liquidations.get('short_liquidation', [])
             

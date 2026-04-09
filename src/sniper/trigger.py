@@ -9,7 +9,7 @@ logger = setup_logger(__name__)
 
 class SniperTrigger:
     """
-    The Decision Node of the 'Sniper Mode' (v6.40).
+    The Decision Node of the 'Sniper Mode' (v7.1).
     
     ZERO-ENTROPY: This class is now completely standalone. 
     It no longer loads its own config file. Instead, it extracts 
@@ -19,14 +19,14 @@ class SniperTrigger:
     def __init__(self):
         self.last_trigger_time: Optional[datetime] = None
         
-        # v6.40: Absolute DNA Convergence
+        # v7.1: Absolute DNA Convergence
         # All monitoring sensitivity is physically identical to strategy parameters.
         from src.utils.pipeline_utils import load_combined_config, load_global_config
         self.strat_cfg = load_combined_config()
         self.global_cfg = load_global_config()
         self.regime_cfg = self.strat_cfg['regime_parameters']
         
-        # v6.70: EXPLICIT CONFIG ENFORCEMENT
+        # v7.1: EXPLICIT CONFIG ENFORCEMENT
         self.sniper_cfg = self.global_cfg['sniper']
         
         # Derive cooldown from micro-context (e.g., 15m) + Multiplier

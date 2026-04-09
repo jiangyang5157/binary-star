@@ -319,7 +319,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
         is_filled = outcome.get("is_filled", False)
         result_type = outcome.get("tp_sl_result", "NEITHER")
         
-        # v7.0: Calculate Audit Boundary for Unfilled sessions
+        # v7.1: Calculate Audit Boundary for Unfilled sessions
         try:
             from src.utils.math_utils import get_interval_hours
             metadata = audit_data.get("session", {}).get("metadata", {})

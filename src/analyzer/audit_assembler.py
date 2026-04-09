@@ -194,7 +194,7 @@ class AuditAssembler:
                     mae = max(0, target_entry - min_after) if opinion == 'BULLISH' else max(0, max_after - target_entry)
                     mfe = max(0, max_after - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_after)
                     
-                    # --- v7.0: Dynamic Temporal Forensic Logic ---
+                    # --- v7.1: Dynamic Temporal Forensic Logic ---
                     # 1. Access Math Fact Check for dilation ground-truth
                     last_round = strategy.get('debate_history', [{}])[-1]
                     math_check = last_round.get('math_fact_check', {}).get('holding_time_verification', {})

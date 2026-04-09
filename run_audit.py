@@ -91,7 +91,7 @@ def run_task(args_tuple):
     return process_audit_file(f, controller, email, data_root, force=force)
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Forensic Audit Review (v6.1)")
+    parser = argparse.ArgumentParser(description="Singularity Forensic Auditor v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
     parser.add_argument("--email", action="store_true", help="Dispatch forensic reports via email")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")

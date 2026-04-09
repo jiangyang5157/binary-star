@@ -121,7 +121,7 @@ class SniperDaemon:
                 time.sleep(60) # Wait a minute before retrying on error
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon (Intelligence-Led Execution)")
+    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")

@@ -116,13 +116,13 @@ class MarketObserverConfig:
     liq_legacy_alpha_factor: float
     liq_legacy_min_alpha: float
     liq_legacy_max_alpha: float
-    # v7.0 Synthetic Radar Physics
+    # v7.1 Synthetic Radar Physics
     liq_radar_long_threshold: float
     liq_radar_short_threshold: float
     liq_radar_projection_50x: float
     liq_radar_projection_25x: float
     liq_radar_weight_25x: float
-    # v7.0 Analytical Engine (Calculated Hyperparameters)
+    # v7.1 Analytical Engine (Calculated Hyperparameters)
     liq_radar_gaussian_sigma: float
     liq_radar_grid_bins: int
     liq_radar_grid_padding_ratio: float
@@ -233,7 +233,7 @@ class MarketObserverConfig:
             liq_legacy_min_alpha=float(visuals['liq_legacy_min_alpha']),
             liq_legacy_max_alpha=float(visuals['liq_legacy_max_alpha']),
             
-            # v7.0 Synthetic Radar Physics & Calibration
+            # v7.1 Synthetic Radar Physics & Calibration
             liq_radar_long_threshold=float(regime['liq_radar_long_threshold']),
             liq_radar_short_threshold=float(regime['liq_radar_short_threshold']),
             liq_radar_projection_50x=float(regime['liq_radar_projection_50x']),
