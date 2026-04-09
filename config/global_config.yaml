@@ -24,7 +24,7 @@ visuals:
   bg_color: "#0d1117"       # GitHub Dark Deep (v7.2 standard)
   poc_color: "#B0B0B0"      # Silver-Neutral (v9.1: Subtle Structural Axis)
   vah_val_color: "#A0A0A0"    # Silver-Gray (VAH/VAL)
-  current_price_color: "#ffffff" # Color for the Current Price tracking line
+  current_price_color: "#000000" # Bright Yellow/Gold for distinct price tracking
   chart_trendline_peak_count: 7  # v8.7 Structural Persistence
   chart_trendline_window: 14      # v10.0 Fractal Sensitivity (standard: 5)
   volume_profile_width_ratio: 0.3 # Wide, confident profile

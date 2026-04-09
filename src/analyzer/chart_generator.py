@@ -7,6 +7,7 @@ matplotlib.use('Agg')  # Non-interactive backend
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import mplfinance as mpf
+import matplotlib.collections as mcoll
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional, Union
 from src.utils.datetime_utils import format_timestamp_for_filename, get_current_utc_time
@@ -265,11 +266,22 @@ class ChartVisualRenderer:
                         ax.set_ylabel('Vol', color=self.config.vah_val_color, fontsize=9, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                         
-                        # v11.5 Hardening: Manual override to purge unwanted borders in dense charts
+                        # v11.8 Logic: Surgical targeting to only affect data bars (EXCLUDING axis background)
                         for child in ax.get_children():
-                            # Remove edges from volume bars (patches or lines)
-                            if hasattr(child, 'set_edgecolor'):
-                                child.set_edgecolor('none')
+                            # Skip the axis background patch itself
+                            if child is ax.patch:
+                                continue
+                                
+                            # target only Rectangles (standard bars) or Collections (dense clusters)
+                            if isinstance(child, (patches.Rectangle, mcoll.PolyCollection, mcoll.LineCollection)):
+                                if hasattr(child, 'set_linewidth'):
+                                    child.set_linewidth(0)
+                                if hasattr(child, 'set_edgecolor'):
+                                    child.set_edgecolor('none')
+                                if hasattr(child, 'set_alpha'):
+                                    child.set_alpha(0.8) # Mute pillar brightness only
+                                if hasattr(child, 'set_antialiased'):
+                                    child.set_antialiased(False)
 
                 main_ax = axlist[0]
                 
@@ -279,8 +291,8 @@ class ChartVisualRenderer:
                     y=current_price, 
                     color=self.config.current_price_color,      # Configurable via global_config.yaml
                     linestyle='--',                             # Hardcoded v6.81
-                    linewidth=0.5,                              # Hardcoded v6.81
-                    alpha=0.8,                                  # Hardcoded v6.81
+                    linewidth=0.5,                              # Increased v11.7 for visibility
+                    alpha=0.8,                                  # Increased v11.7
                     zorder=11                                   # Above everything
                 )
 
