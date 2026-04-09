@@ -260,11 +260,14 @@ class ChartVisualRenderer:
                     ax.yaxis.set_ticks_position('right')
 
                     # v6.51 Hardening: Distinguish Price from Volume to prevent scale confusion
+                    # v11.9 Aesthetic: Inherit tick color for panel labels to maintain structural consistency
+                    tick_label_color = ax.yaxis.get_ticklabels()[0].get_color() if ax.yaxis.get_ticklabels() else self.config.vah_val_color
+                    
                     if i == 0:
-                        ax.set_ylabel('Price', color=self.config.vah_val_color, fontsize=10, fontweight='bold')
+                        ax.set_ylabel('Price', color=tick_label_color, fontsize=10, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                     elif i == 2: # Volume panel usually at index 2
-                        ax.set_ylabel('Vol', color=self.config.vah_val_color, fontsize=10, fontweight='bold')
+                        ax.set_ylabel('Vol', color=tick_label_color, fontsize=10, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                         
                         # v11.8 Logic: Surgical targeting to only affect data bars (EXCLUDING axis background)
