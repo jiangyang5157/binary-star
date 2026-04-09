@@ -261,11 +261,11 @@ class BinaryStarOrchestrator:
                             "take_profit": {"type": "NUMBER"},
                             "atr": {"type": "NUMBER"},
                             "trend_intensity": {"type": "NUMBER"},
-                            "volatility_expansion_ratio": {"type": "NUMBER"},
+                            "volatility_expansion_index": {"type": "NUMBER"},
                             "interval_minutes": {"type": "NUMBER"},
                             "min_velocity_floor": {"type": "NUMBER"}
                         },
-                        "required": ["current_price", "entry", "take_profit", "atr", "trend_intensity", "volatility_expansion_ratio", "interval_minutes"]
+                        "required": ["current_price", "entry", "take_profit", "atr", "trend_intensity", "volatility_expansion_index", "interval_minutes"]
                     }
                 },
                 {
