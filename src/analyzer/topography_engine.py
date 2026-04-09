@@ -23,7 +23,6 @@ class TopographyEngine:
             up_color=obs_config.up_color,
             down_color=obs_config.down_color,
             bg_color=obs_config.bg_color,
-            grid_color=obs_config.grid_color,
             poc_color=obs_config.poc_color,
             value_area_color=obs_config.value_area_color,
             liq_long_color=obs_config.liq_long_color,
