@@ -421,7 +421,8 @@ class ChartVisualRenderer:
                 alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
                 ax.add_patch(patches.Rectangle(
                     (0, p - (band_height / 2)), len(df), band_height, 
-                    color=self.config.up_color, alpha=alpha, zorder=0
+                    facecolor=self.config.up_color, alpha=alpha, zorder=0,
+                    linewidth=0, edgecolor='none'
                 ))
             
             # Draw Shorts (Squeezes)
@@ -431,7 +432,8 @@ class ChartVisualRenderer:
                 alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
                 ax.add_patch(patches.Rectangle(
                     (0, p - (band_height / 2)), len(df), band_height, 
-                    color=self.config.down_color, alpha=alpha, zorder=0
+                    facecolor=self.config.down_color, alpha=alpha, zorder=0,
+                    linewidth=0, edgecolor='none'
                 ))
 
 # Alias for backward compatibility if needed, though agents should use the Facade.
