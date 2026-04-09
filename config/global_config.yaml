@@ -36,8 +36,8 @@ visuals:
   render_dpi: 300
 
   # --- Liquidation Heatmap Aesthetics ---
-  liq_band_height_ratio: 0.02   # Thick bands for intensity judging
-  liq_max_alpha: 0.6            # High peak intensity
+  liq_band_height_ratio: 0.03   # v10.8 Thick 'Zone Control' (2x baseline)
+  liq_max_alpha: 0.3           # High peak intensity
   liq_min_alpha: 0.1
   liq_legacy_alpha_factor: 5.0  # Denominator for legacy event scaling (v5.0 default)
   liq_legacy_min_alpha: 0.10    # Minimum opacity for legacy raw orders
