@@ -182,7 +182,8 @@ class AuditController:
             ls_ratio_proto = metrics_t0.get("sentiment_signals", {}).get("ls_ratio_macro", 0)
             
             # 3. Initial Outcome Calculation
-            interval_macro_hours = get_interval_hours(self.config['analysis_window']['macro_context']['time_interval'])
+            forensic_res = self.config['audit_review']['forensic_resolution']
+            interval_forensic_hours = get_interval_hours(forensic_res)
             
             outcome = self.assembler.calculate_outcome(
                 klines=klines,
@@ -192,7 +193,7 @@ class AuditController:
                 atr_macro_t1=float(atr_proto),
                 long_short_ratio_macro_t0=float(ls_ratio_proto),
                 long_short_ratio_macro_t1=float(ls_ratio_proto),
-                interval_hours=interval_macro_hours,
+                interval_hours=interval_forensic_hours,
                 volume_profile=metrics_t0.get("volume_profile", {}).get("profile_data", [])
             )
 
@@ -232,7 +233,7 @@ class AuditController:
                 atr_macro_t1=float(atr_t1),
                 long_short_ratio_macro_t0=float(ls_ratio_proto),
                 long_short_ratio_macro_t1=float(ls_ratio_t1),
-                interval_hours=interval_macro_hours,
+                interval_hours=interval_forensic_hours,
                 volume_profile=metrics_t1.get("volume_profile", {}).get("profile_data", [])
             )
             
