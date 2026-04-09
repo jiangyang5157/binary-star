@@ -108,19 +108,24 @@ class BinaryStarOrchestrator:
             up_color=self.obs_config.up_color,
             down_color=self.obs_config.down_color,
             bg_color=self.obs_config.bg_color,
-            grid_color=self.obs_config.grid_color,
             poc_color=self.obs_config.poc_color,
             vah_val_color=self.obs_config.vah_val_color,
-            liq_buy_color=self.obs_config.liq_buy_color,
-            liq_sell_color=self.obs_config.liq_sell_color,
             current_price_color=self.obs_config.current_price_color,
             volume_profile_width_ratio=self.obs_config.volume_profile_width_ratio,
+            render_dpi=self.obs_config.render_dpi,
             volume_profile_smoothing_sigma=self.obs_config.volume_profile_smoothing_sigma,
             volume_profile_color=self.obs_config.volume_profile_color,
             volume_profile_alpha=self.obs_config.volume_profile_alpha,
             chart_main_panel_weight=self.obs_config.chart_main_panel_weight,
             chart_volume_panel_weight=self.obs_config.chart_volume_panel_weight,
-            render_dpi=self.obs_config.render_dpi
+            liquidation_cluster_atr_multiplier=self.obs_config.liquidation_cluster_atr_multiplier,
+            liq_max_alpha=self.obs_config.liq_max_alpha,
+            liq_min_alpha=self.obs_config.liq_min_alpha,
+            liq_legacy_alpha_factor=self.obs_config.liq_legacy_alpha_factor,
+            liq_legacy_min_alpha=self.obs_config.liq_legacy_min_alpha,
+            liq_legacy_max_alpha=self.obs_config.liq_legacy_max_alpha,
+            chart_trendline_peak_count=self.obs_config.chart_trendline_peak_count,
+            chart_trendline_window=self.obs_config.chart_trendline_window
         )
         
         # 7. Reasoner Triad Assembly (Dependency Injection)
