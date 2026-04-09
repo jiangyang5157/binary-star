@@ -196,50 +196,14 @@ class BinanceFuturesClient(AbstractExchangeClient):
             return GenericOrderBook([], [], 0)
 
     def fetch_liquidations(self, symbol: str, limit: int = 100, **kwargs: Any) -> Optional[List[LiquidationData]]:
-        raw_liqs = []
-        try:
-            if self.is_authenticated:
-                for attempt in self._get_retryer("force_orders"):
-                    with attempt:
-                        raw_liqs = self.client.force_orders(symbol=symbol, limit=limit, **kwargs)
-            else:
-                logger.debug(f"Binance: Skipping SDK force_orders for {symbol} (Unauthenticated).")
-        except Exception as e:
-            logger.warning(f"Binance: SDK liquidation fetch failed for {symbol} (Trying public fallback): {e}")
-            
-        if not raw_liqs:
-            try:
-                params = f"symbol={symbol}&limit={limit}"
-                if 'startTime' in kwargs: params += f"&startTime={kwargs['startTime']}"
-                if 'endTime' in kwargs: params += f"&endTime={kwargs['endTime']}"
-                
-                url = f"https://fapi.binance.com/fapi/v1/allForceOrders?{params}"
-                with requests.Session() as s:
-                    resp = s.get(url, timeout=self.timeout)
-                    if resp.status_code == 200:
-                        raw_liqs = resp.json()
-                    elif resp.status_code == 400:
-                        logger.debug(f"Binance: Public liquidation fallback rejected (HTTP 400): {resp.text}")
-                        return None
-                    else:
-                        logger.error(f"Binance: Public liquidation fallback failed (HTTP {resp.status_code}): {resp.text}")
-                        return None
-            except Exception as e:
-                logger.error(f"Binance: Public liquidation fallback crashed: {e}")
-                return None
+        """
+        Fetches recent forced liquidation orders.
         
-        if not raw_liqs:
-            return None
-        
-        return [
-            LiquidationData(
-                price=float(l.get('price', l.get('p', 0))),
-                qty=float(l.get('origQty', l.get('q', 0))),
-                side=str(l.get('side', l.get('S', 'UNKNOWN'))),
-                timestamp=int(l.get('time', l.get('T', 0)))
-            )
-            for l in raw_liqs
-        ]
+        v6.85: Polling-based force_orders and allForceOrders are disabled 
+        due to infrastructure mismatch and API weight/permission restrictions.
+        Returning None to allow downstream metrics to gracefully handle data absence.
+        """
+        return None
 
     # --- Sentiment & Psychology Data ---
 
