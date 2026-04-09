@@ -130,7 +130,7 @@ class CriticConfig(AgentConfig):
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
             mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
-            volume_profile_width_ratio=float(visuals['volume_profile_width_ratio']),
+            volume_profile_width_ratio=float(visuals['volume_profile']['width_ratio']),
             instruction_literal=instruction_literal
         )
 
