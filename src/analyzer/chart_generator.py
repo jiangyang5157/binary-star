@@ -264,6 +264,12 @@ class ChartVisualRenderer:
                     elif i == 2: # Volume panel usually at index 2
                         ax.set_ylabel('Vol', color=self.config.vah_val_color, fontsize=9, fontweight='bold')
                         ax.yaxis.set_label_position('right')
+                        
+                        # v11.5 Hardening: Manual override to purge unwanted borders in dense charts
+                        for child in ax.get_children():
+                            # Remove edges from volume bars (patches or lines)
+                            if hasattr(child, 'set_edgecolor'):
+                                child.set_edgecolor('none')
 
                 main_ax = axlist[0]
                 
