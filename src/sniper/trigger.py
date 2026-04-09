@@ -182,29 +182,26 @@ class SniperTrigger:
         price = curr['price_dynamics']['current_price']
         part = curr['market_regime']['volume_participation_ratio']
         
-        # DNA Mapping: boundary_dist -> structural_proximity_threshold (v6.70 Aligned with multiplier)
+        # DNA Mapping: boundary_dist -> structural_proximity_threshold (v6.80 Granular Multipliers)
         dist_vh = abs(price - topo['vah']) / atr if atr > 0 else float('inf')
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
         dist_poc = abs(price - topo['poc']) / atr if atr > 0 else float('inf')
-        
-        struct_mult = self.sniper_cfg['structural_trigger_multiplier']
-        struct_threshold = self.regime_cfg['structural_proximity_threshold'] * struct_mult
-        
-        # v6.71: POC Gravity Engine (Dedicated Awareness for Deep DLE)
-        poc_trigger_threshold = struct_threshold * 1.5 
 
-        if min(dist_vh, dist_val) < struct_threshold and \
+        base_struct_threshold = self.regime_cfg['structural_proximity_threshold']
+        
+        vah_val_threshold = base_struct_threshold * self.sniper_cfg['vah_val_trigger_multiplier']
+        poc_trigger_threshold = base_struct_threshold * self.sniper_cfg['poc_trigger_multiplier']
+        liq_trigger_threshold = base_struct_threshold * self.sniper_cfg['liq_trigger_multiplier']
+
+        if min(dist_vh, dist_val) < vah_val_threshold and \
            part > self.regime_cfg['min_volume_participation_ratio']:
             side = "VAH" if dist_vh < dist_val else "VAL"
-            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {struct_threshold:.2f})"
+            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {vah_val_threshold:.2f})"
 
         if dist_poc < poc_trigger_threshold:
             return True, f"POC 磁吸/回踩 (Gravity Test): Dist to POC={dist_poc:.2f} ATR (Threshold: {poc_trigger_threshold:.2f})"
 
-        # [独立增压]：爆仓极速插针的物理特性，要求雷达具有更远的预警探测半径 (例如扩大 1.5 倍)
-        liq_trigger_threshold = struct_threshold * 1.5
-
-        # DNA Mapping: liquidation_magnet -> struct_threshold (v7.0 Aligned with multiplier)
+        # DNA Mapping: liquidation_magnet -> liq_trigger_threshold (v7.0 Aligned with granular multiplier)
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
         if liq_clusters and isinstance(liq_clusters, dict):
             # Process Long Liquidations (Support magnets)

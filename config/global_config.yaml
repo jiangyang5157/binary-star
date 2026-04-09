@@ -91,9 +91,12 @@ sniper:
   # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
   squeeze_trigger_multiplier: 0.65
 
-  # [Structural]: Multiplier for structural proximity (TYPE_C).
-  # 0.8 = requires price to be 20% closer to VAH/VAL to trigger a sniper alert.
-  structural_trigger_multiplier: 0.8
+  # [Structural]: Multipliers for structural proximity (TYPE_C).
+  # VAH/VAL: 0.8 = requires price to be 20% closer to boundary.
+  # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
+  vah_vol_trigger_multiplier: 0.8
+  poc_trigger_multiplier: 1.2
+  liq_trigger_multiplier: 1.2
 
 sandbox:
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement

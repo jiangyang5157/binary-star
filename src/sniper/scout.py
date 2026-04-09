@@ -9,6 +9,7 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_observer import MarketObserverConfig, MarketDataLoader, MarketMetricsRefiner
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
+from src.analyzer.liquidation_radar import LiquidationRadar
 from src.utils.pipeline_utils import load_config, load_global_config
 from src.utils.logger_utils import setup_logger
 
@@ -68,8 +69,21 @@ class SniperScout:
         )
         self.regime_analyzer = MarketRegimeAnalyzer(config=rg_cfg)
         
+        self.radar = LiquidationRadar(
+            volume_moving_average_period=self.obs_config.volume_ma_period,
+            volume_surge_vs_ma_ratio=self.obs_config.volume_surge_vs_ma_ratio,
+            max_liquidation_clusters=self.obs_config.max_liquidation_clusters,
+            long_taker_threshold=self.obs_config.liq_radar_long_threshold,
+            short_taker_threshold=self.obs_config.liq_radar_short_threshold,
+            liquid_projection_50x=self.obs_config.liq_radar_projection_50x,
+            liquid_projection_25x=self.obs_config.liq_radar_projection_25x,
+            weight_25x=self.obs_config.liq_radar_weight_25x,
+            gaussian_sigma=self.obs_config.liq_radar_gaussian_sigma,
+            grid_bins=self.obs_config.liq_radar_grid_bins,
+            grid_padding_ratio=self.obs_config.liq_radar_grid_padding_ratio
+        )
         self.loader = MarketDataLoader(self.exchange_client, self.obs_config)
-        self.refiner = MarketMetricsRefiner(self.obs_config, self.vp_analyzer, self.regime_analyzer)
+        self.refiner = MarketMetricsRefiner(self.obs_config, self.vp_analyzer, self.regime_analyzer, self.radar)
 
     def scout(self, at_time: Optional[datetime] = None) -> ScoutResult:
         """Harvests market datum and distills it into trigger-ready metrics."""
