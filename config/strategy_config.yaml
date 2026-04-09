@@ -174,7 +174,7 @@ topography_parameters:
 
   # --- Liquidity Magnet (Liquidation Clusters) ---
   # Number of forced-liquidation clusters to analyze simultaneously.
-  max_liquidation_clusters: 3
+  max_liquidation_clusters: 2
   # Max historical liquidation events to fetch per cycle.
   max_liquidation_events_to_fetch: 50
   max_liquidation_events_for_context: 10

@@ -24,9 +24,7 @@ class ChartConfig:
     down_color: str
     bg_color: str
     poc_color: str
-    value_area_color: str
-    liq_long_color: str
-    liq_short_color: str
+    vah_val_color: str
     current_price_color: str
     volume_profile_width_ratio: float
     volume_profile_smoothing_sigma: float
@@ -42,6 +40,8 @@ class ChartConfig:
     liq_legacy_alpha_factor: float
     liq_legacy_min_alpha: float
     liq_legacy_max_alpha: float
+    chart_trendline_peak_count: int # v8.7 Structural Persistence
+    chart_trendline_window: int     # v10.0 Fractal Sensitivity
 
 
 class TechnicalFeatureExtractor:
@@ -49,9 +49,10 @@ class TechnicalFeatureExtractor:
     Handles detection of visual technical structures (e.g., Trendlines).
     """
     @staticmethod
-    def detect_trendlines(df: pd.DataFrame, window: int = 5) -> List[Dict[str, Any]]:
+    def detect_trendlines(df: pd.DataFrame, peak_count: int, window: int) -> List[Dict[str, Any]]:
         """
         Detects fractal highs and lows to generate trendline segments.
+        v8.7: peak_count is now configurable from global_config.
         """
         try:
             # Detect local peaks (highs) and valleys (lows)
@@ -62,9 +63,9 @@ class TechnicalFeatureExtractor:
             valley_indices = np.where(lows)[0]
             
             trendlines = []
-            # Use last 3 peaks/valleys to draw recent structure
-            if len(peak_indices) >= 3:
-                for i in range(1, 3):
+            # Use last peak_count peaks/valleys to draw historical structure
+            if len(peak_indices) >= peak_count:
+                for i in range(1, peak_count):
                     p1, p2 = peak_indices[-(i+1)], peak_indices[-i]
                     trendlines.append({
                         'x': [p1, p2], 
@@ -72,8 +73,8 @@ class TechnicalFeatureExtractor:
                         'type': 'resistance'
                     })
                 
-            if len(valley_indices) >= 3:
-                for i in range(1, 3):
+            if len(valley_indices) >= peak_count:
+                for i in range(1, peak_count):
                     v1, v2 = valley_indices[-(i+1)], valley_indices[-i]
                     trendlines.append({
                         'x': [v1, v2], 
@@ -112,22 +113,22 @@ class ChartVisualRenderer:
     Core engine for rendering candlestick charts with logical overlays.
     """
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
-                 poc_color: str, value_area_color: str, 
-                 liq_long_color: str, liq_short_color: str, current_price_color: str,
+                 poc_color: str, vah_val_color: str, 
+                 current_price_color: str,
                  volume_profile_width_ratio: float,
                  render_dpi: int, volume_profile_smoothing_sigma: float, volume_profile_color: str,
                  volume_profile_alpha: float,
                  chart_main_panel_weight: int, chart_volume_panel_weight: int,
                  liq_band_height_ratio: float, liq_max_alpha: float, liq_min_alpha: float,
-                 liq_legacy_alpha_factor: float, liq_legacy_min_alpha: float, liq_legacy_max_alpha: float):
+                 liq_legacy_alpha_factor: float, liq_legacy_min_alpha: float, liq_legacy_max_alpha: float,
+                 chart_trendline_peak_count: int,
+                 chart_trendline_window: int):
         self.config = ChartConfig(
             up_color=up_color,
             down_color=down_color,
             bg_color=bg_color,
             poc_color=poc_color,
-            value_area_color=value_area_color,
-            liq_long_color=liq_long_color,
-            liq_short_color=liq_short_color,
+            vah_val_color=vah_val_color,
             current_price_color=current_price_color,
             volume_profile_width_ratio=volume_profile_width_ratio, 
             volume_profile_smoothing_sigma=volume_profile_smoothing_sigma,
@@ -141,7 +142,9 @@ class ChartVisualRenderer:
             liq_min_alpha=liq_min_alpha,
             liq_legacy_alpha_factor=liq_legacy_alpha_factor,
             liq_legacy_min_alpha=liq_legacy_min_alpha,
-            liq_legacy_max_alpha=liq_legacy_max_alpha
+            liq_legacy_max_alpha=liq_legacy_max_alpha,
+            chart_trendline_peak_count=chart_trendline_peak_count,
+            chart_trendline_window=chart_trendline_window
         )
         self.storage = ChartStorageManager(output_dir)
         self.extractor = TechnicalFeatureExtractor()
@@ -192,12 +195,38 @@ class ChartVisualRenderer:
             
             hlines = dict(
                 hlines=[poc, vah, val], 
-                colors=[self.config.poc_color, self.config.value_area_color, self.config.value_area_color], 
+                colors=[self.config.poc_color, self.config.vah_val_color, self.config.vah_val_color], 
                 linestyle=['-', '--', '--'], 
                 linewidths=[1.0, 1.0, 1.0] # POC (1.5), VAH/VAL (1.0)
             )
 
-            # 2. Main Plot (Candles + Volume)
+            # 2. Calculate Adaptive Y-Limits (v8.4 Scheme B: Active Visibility)
+            candle_min = plot_df['Low'].min()
+            candle_max = plot_df['High'].max()
+            y_min, y_max = candle_min, candle_max
+            
+            # v8.5: Collect ALL structural targets that MUST be visible (Topography + Liquidations)
+            targets = [poc, vah, val]
+            if isinstance(liquidations, dict):
+                for side in ['long_liquidation', 'short_liquidation']:
+                    targets.extend([l['price'] for l in liquidations.get(side, [])])
+            
+            # v8.5 Sanity Guard & Scale Expansion
+            curr_p = plot_df['Close'].iloc[-1]
+            # Filter for valid, non-zero prices and within 20% relative distance to prevent warping
+            valid_targets = [p for p in targets if p > 0 and abs(p - curr_p) / curr_p < 0.2]
+            
+            if valid_targets:
+                y_min = min(y_min, min(valid_targets))
+                y_max = max(y_max, max(valid_targets))
+            
+            # Apply Structural Padding (5% buffer) so bands don't touch the chart border
+            y_range = y_max - y_min
+            if y_range > 0:
+                y_min -= y_range * 0.05
+                y_max += y_range * 0.05
+
+            # 3. Main Plot (Candles + Volume + Dynamic Scaling)
             fig, axlist = mpf.plot(
                 plot_df, 
                 type='candle', 
@@ -206,6 +235,7 @@ class ChartVisualRenderer:
                 style=self._get_mpf_style(), 
                 title=f"{symbol} - {time_interval} ({plot_df.index[0].strftime('%Y-%m-%d %H:%M')} -> {plot_df.index[-1].strftime('%Y-%m-%d %H:%M')})",
                 hlines=hlines,
+                ylim=(y_min, y_max),           # Enforce the adaptive topographical range
                 savefig=dict(fname=filepath, dpi=self.config.render_dpi, bbox_inches='tight'),
                 returnfig=True,
                 show_nontrading=False          # Focus strictly on market periods
@@ -221,18 +251,18 @@ class ChartVisualRenderer:
                     # Hide left/top spines
                     ax.spines['left'].set_visible(False)
                     ax.spines['top'].set_visible(False)
-                    ax.spines['right'].set_color(self.config.value_area_color)
-                    ax.spines['bottom'].set_color(self.config.value_area_color)
+                    ax.spines['right'].set_color(self.config.vah_val_color)
+                    ax.spines['bottom'].set_color(self.config.vah_val_color)
                     
                     # Force price ticks to right only
                     ax.yaxis.set_ticks_position('right')
 
                     # v6.51 Hardening: Distinguish Price from Volume to prevent scale confusion
                     if i == 0:
-                        ax.set_ylabel('Price', color=self.config.value_area_color, fontsize=9, fontweight='bold')
+                        ax.set_ylabel('Price', color=self.config.vah_val_color, fontsize=9, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                     elif i == 2: # Volume panel usually at index 2
-                        ax.set_ylabel('Vol', color=self.config.value_area_color, fontsize=9, fontweight='bold')
+                        ax.set_ylabel('Vol', color=self.config.vah_val_color, fontsize=9, fontweight='bold')
                         ax.yaxis.set_label_position('right')
 
                 main_ax = axlist[0]
@@ -256,8 +286,12 @@ class ChartVisualRenderer:
                 if liquidations:
                     self._overlay_liquidations(main_ax, plot_df, liquidations)
     
-                # 5. Overlay Trendlines
-                trendlines = self.extractor.detect_trendlines(df)
+                # 5. Overlay Trendlines (v8.7: Configurable Persistence, v10.0: Configurable window)
+                trendlines = self.extractor.detect_trendlines(
+                    df, 
+                    peak_count=self.config.chart_trendline_peak_count,
+                    window=self.config.chart_trendline_window
+                )
                 for line in trendlines:
                     color = self.config.down_color if line['type'] == 'resistance' else self.config.up_color
                     main_ax.plot(line['x'], line['y'], color=color, linestyle='--', linewidth=1.0, alpha=0.8)
@@ -288,7 +322,7 @@ class ChartVisualRenderer:
                 if vah > 0:
                     main_ax.text(
                         x_pos, vah, "VAH", 
-                        color=self.config.value_area_color,
+                        color=self.config.vah_val_color,
                         **label_style
                     )
                     
@@ -296,7 +330,7 @@ class ChartVisualRenderer:
                 if val > 0:
                     main_ax.text(
                         x_pos, val, "VAL", 
-                        color=self.config.value_area_color,
+                        color=self.config.vah_val_color,
                         **label_style
                     )
 
@@ -365,24 +399,22 @@ class ChartVisualRenderer:
             # Draw Longs (Traps)
             for liq in long_targets:
                 p = liq['price']
-                if min_p <= p <= max_p:
-                    # v7.0 Parametric Alpha Scaling
-                    alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
-                    ax.add_patch(patches.Rectangle(
-                        (0, p - (band_height / 2)), len(df), band_height, 
-                        color=self.config.liq_long_color, alpha=alpha, zorder=0
-                    ))
+                # v8.8: Reusing up_color for Long Traps (Support)
+                alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
+                ax.add_patch(patches.Rectangle(
+                    (0, p - (band_height / 2)), len(df), band_height, 
+                    color=self.config.up_color, alpha=alpha, zorder=0
+                ))
             
             # Draw Shorts (Squeezes)
             for liq in short_targets:
                 p = liq['price']
-                if min_p <= p <= max_p:
-                    # v7.0 Parametric Alpha Scaling
-                    alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
-                    ax.add_patch(patches.Rectangle(
-                        (0, p - (band_height / 2)), len(df), band_height, 
-                        color=self.config.liq_short_color, alpha=alpha, zorder=0
-                    ))
+                # v8.8: Reusing down_color for Short Squeezes (Resistance)
+                alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
+                ax.add_patch(patches.Rectangle(
+                    (0, p - (band_height / 2)), len(df), band_height, 
+                    color=self.config.down_color, alpha=alpha, zorder=0
+                ))
 
 # Alias for backward compatibility if needed, though agents should use the Facade.
 ChartGenerator = ChartVisualRenderer

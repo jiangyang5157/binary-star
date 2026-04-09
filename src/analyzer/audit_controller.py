@@ -56,7 +56,7 @@ class AuditController:
             bg_color=self.obs_config.bg_color,
             grid_color=self.obs_config.grid_color,
             poc_color=self.obs_config.poc_color,
-            value_area_color=self.obs_config.value_area_color,
+            vah_val_color=self.obs_config.vah_val_color,
             liq_buy_color=self.obs_config.liq_buy_color,
             liq_sell_color=self.obs_config.liq_sell_color,
             current_price_color=self.obs_config.current_price_color,

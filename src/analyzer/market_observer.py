@@ -106,10 +106,10 @@ class MarketObserverConfig:
     down_color: str
     bg_color: str
     poc_color: str
-    value_area_color: str
-    liq_long_color: str
-    liq_short_color: str
+    vah_val_color: str
     current_price_color: str
+    chart_trendline_peak_count: int
+    chart_trendline_window: int
     indicator_warmup_multiplier: float
     # v7.0 Synthetic Radar Aesthetics
     liq_band_height_ratio: float
@@ -148,9 +148,12 @@ class MarketObserverConfig:
         min_volume_part = regime.get('min_volume_participation_ratio', regime.get('participation_volume_threshold'))
         balancing_width = regime.get('ranging_width_atr', regime.get('balanced_atr_multiplier'))
 
+        visuals = cfg.get('visuals', {})
+        analytical = cfg.get('analytical', {})
+        
         return cls(
-            indicator_warmup_multiplier=float(cfg.get('analytical', {}).get('indicator_warmup_multiplier')),
-            max_tool_iterations=int(shared.get('max_tool_iterations', 5)),
+            indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
+            max_tool_iterations=int(shared['max_tool_iterations']),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 
                 lookback_candles=int(macro['lookback_candles'])
@@ -204,29 +207,29 @@ class MarketObserverConfig:
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
-            
-            # Visuals (from global_config.yaml 'visuals' section)
-            volume_profile_width_ratio=float(cfg['visuals']['volume_profile_width_ratio']),
-            volume_profile_smoothing_sigma=float(cfg['visuals']['volume_profile_smoothing_sigma']),
-            volume_profile_color=str(cfg['visuals']['volume_profile_color']),
-            volume_profile_alpha=float(cfg['visuals']['volume_profile_alpha']),
-            chart_main_panel_weight=int(cfg['visuals']['chart_main_panel_weight']),
-            chart_volume_panel_weight=int(cfg['visuals']['chart_volume_panel_weight']),
-            render_dpi=int(cfg['visuals']['render_dpi']),
-            up_color=str(cfg['visuals']['up_color']),
-            down_color=str(cfg['visuals']['down_color']),
-            bg_color=str(cfg['visuals']['bg_color']),
-            poc_color=str(cfg['visuals']['poc_color']),
-            value_area_color=str(cfg['visuals']['value_area_color']),
-            liq_long_color=str(cfg['visuals']['liq_long_color']),
-            liq_short_color=str(cfg['visuals']['liq_short_color']),
-            current_price_color=str(cfg['visuals']['current_price_color']),
-            liq_band_height_ratio=float(cfg['visuals']['liq_band_height_ratio']),
-            liq_max_alpha=float(cfg['visuals']['liq_max_alpha']),
-            liq_min_alpha=float(cfg['visuals']['liq_min_alpha']),
-            liq_legacy_alpha_factor=float(cfg['visuals']['liq_legacy_alpha_factor']),
-            liq_legacy_min_alpha=float(cfg['visuals']['liq_legacy_min_alpha']),
-            liq_legacy_max_alpha=float(cfg['visuals']['liq_legacy_max_alpha']),
+
+            # v8.98: Visuals (Optimized lookups using local 'visuals' variable)
+            volume_profile_width_ratio=float(visuals['volume_profile_width_ratio']),
+            volume_profile_smoothing_sigma=float(visuals['volume_profile_smoothing_sigma']),
+            volume_profile_color=str(visuals['volume_profile_color']),
+            volume_profile_alpha=float(visuals['volume_profile_alpha']),
+            chart_main_panel_weight=int(visuals['chart_main_panel_weight']),
+            chart_volume_panel_weight=int(visuals['chart_volume_panel_weight']),
+            render_dpi=int(visuals['render_dpi']),
+            up_color=str(visuals['up_color']),
+            down_color=str(visuals['down_color']),
+            bg_color=str(visuals['bg_color']),
+            poc_color=str(visuals['poc_color']),
+            vah_val_color=str(visuals['vah_val_color']),
+            current_price_color=str(visuals['current_price_color']),
+            chart_trendline_peak_count=int(visuals['chart_trendline_peak_count']),
+            chart_trendline_window=int(visuals['chart_trendline_window']),
+            liq_band_height_ratio=float(visuals['liq_band_height_ratio']),
+            liq_max_alpha=float(visuals['liq_max_alpha']),
+            liq_min_alpha=float(visuals['liq_min_alpha']),
+            liq_legacy_alpha_factor=float(visuals['liq_legacy_alpha_factor']),
+            liq_legacy_min_alpha=float(visuals['liq_legacy_min_alpha']),
+            liq_legacy_max_alpha=float(visuals['liq_legacy_max_alpha']),
             
             # v7.0 Synthetic Radar Physics & Calibration
             liq_radar_long_threshold=float(regime['liq_radar_long_threshold']),
@@ -532,8 +535,12 @@ class MarketObserver:
         
         # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
-            liq_long_color=self.config.liq_long_color,
-            liq_short_color=self.config.liq_short_color,
+            up_color=self.config.up_color,
+            down_color=self.config.down_color,
+            bg_color=self.config.bg_color,
+            poc_color=self.config.poc_color,
+            vah_val_color=self.config.vah_val_color,
+            current_price_color=self.config.current_price_color,
             volume_profile_width_ratio=self.config.volume_profile_width_ratio,
             volume_profile_smoothing_sigma=self.config.volume_profile_smoothing_sigma,
             volume_profile_color=self.config.volume_profile_color,
@@ -541,18 +548,14 @@ class MarketObserver:
             chart_main_panel_weight=self.config.chart_main_panel_weight,
             chart_volume_panel_weight=self.config.chart_volume_panel_weight,
             render_dpi=self.config.render_dpi,
-            up_color=self.config.up_color,
-            down_color=self.config.down_color,
-            bg_color=self.config.bg_color,
-            poc_color=self.config.poc_color,
-            value_area_color=self.config.value_area_color,
-            current_price_color=self.config.current_price_color,
             liq_band_height_ratio=self.config.liq_band_height_ratio,
             liq_max_alpha=self.config.liq_max_alpha,
             liq_min_alpha=self.config.liq_min_alpha,
             liq_legacy_alpha_factor=self.config.liq_legacy_alpha_factor,
             liq_legacy_min_alpha=self.config.liq_legacy_min_alpha,
-            liq_legacy_max_alpha=self.config.liq_legacy_max_alpha
+            liq_legacy_max_alpha=self.config.liq_legacy_max_alpha,
+            chart_trendline_peak_count=self.config.chart_trendline_peak_count,
+            chart_trendline_window=self.config.chart_trendline_window
         )
         
         # [MODULARIZED PROCESSING STACK]
