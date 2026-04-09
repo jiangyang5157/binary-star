@@ -43,60 +43,84 @@ class LiquidationRadar:
     def synthesize_clusters(self, 
                              klines: List[KlineData], 
                              oi_history: List[OpenInterestData], 
-                             taker_history: List[RatioData]) -> Dict[str, List[Dict[str, Any]]]:
+                             taker_history: List[RatioData],
+                             current_price: float) -> Dict[str, List[Dict[str, Any]]]:
         """
-        Synthesizes theoretical long and short liquidation clusters from order flow proxies.
+        Synthesizes active long and short liquidation clusters based on order flow proxies.
+        v8.2 Hardening: Syncs filtering with global current_price.
         """
         try:
             if not klines or not oi_history or not taker_history:
                 return {"long_liquidation": [], "short_liquidation": []}
 
-            # 1. 提取数值序列并对齐时间 (假设输入已经按时间排序)
-            volumes = np.array([k.volume for k in klines])
-            closes = np.array([k.close for k in klines])
-            
-            # 对齐 OI 和 Taker 数据 (简单基于索引对齐，因为 collect 逻辑保证了窗口一致性)
+            # 1. Align time series
             min_len = min(len(klines), len(oi_history), len(taker_history))
-            volumes = volumes[-min_len:]
-            closes = closes[-min_len:]
+            volumes = np.array([k.volume for k in klines])[-min_len:]
+            closes = np.array([k.close for k in klines])[-min_len:]
             oi_vals = np.array([o.open_interest for o in oi_history])[-min_len:]
             taker_ratios = np.array([t.long_short_ratio for t in taker_history])[-min_len:]
+            
+            logger.debug(f"LiquidationRadar (v8.2): Anchored to current_price: {current_price:.2f}")
 
-            # 2. 计算派生指标
+            # 2. Derived metrics (SMA for surge detection, OI Delta for intent)
             vol_ma = self._calculate_sma(volumes, self.volume_moving_average_period)
-            # OI Delta (当前值 - 前一值)
             oi_deltas = np.diff(oi_vals, prepend=oi_vals[0])
             
-            # 3. 识别累积节点 (Accumulation Nodes)
-            # 条件：成交量激增且 OI 增加 (意味着新的对手盘正在入场并被锁定)
+            # 3. Dynamic Accumulation Detection
             accumulation_mask = (volumes > vol_ma * self.volume_surge_vs_ma_ratio) & (oi_deltas > 0)
             
-            long_points = []
-            short_points = []
+            active_above = [] # Targeted for Short Squeeze (Purple)
+            active_below = [] # Targeted for Long Trap (Green)
             
             for i in range(min_len):
                 if not accumulation_mask[i]:
                     continue
                 
-                entry_price = closes[i]
+                entry_p = closes[i]
                 weight = oi_deltas[i]
+                ratio = taker_ratios[i]
                 
-                # 方向判定 (Dominant Taker)
-                if taker_ratios[i] > self.long_taker_threshold: # 多头主动性强
-                    # 投影做多者的爆仓位
-                    long_points.append({"price": entry_price * (1.0 - self.liquid_projection_50x), "weight": weight}) # 50x
-                    long_points.append({"price": entry_price * (1.0 - self.liquid_projection_25x), "weight": weight * self.weight_25x}) # 25x
-                elif taker_ratios[i] < self.short_taker_threshold: # 空头主动性强
-                    short_points.append({"price": entry_price * (1.0 + self.liquid_projection_50x), "weight": weight}) # 50x
-                    short_points.append({"price": entry_price * (1.0 + self.liquid_projection_25x), "weight": weight * self.weight_25x}) # 25x
+                # Rule-Based Projection (Based on Taker Dominance)
+                if ratio > self.long_taker_threshold: # Taker Long Aggression
+                    # Project potential Long Liquidations (Stops are below entry)
+                    stops = [entry_p * (1.0 - self.liquid_projection_50x), entry_p * (1.0 - self.liquid_projection_25x)]
+                    for s in stops:
+                        if s < current_price: # ACTIVE: Still below current price
+                            active_below.append({"price": s, "weight": weight})
+                        else: # STALE: Price has already dropped through this level
+                            logger.debug(f"Radar: Skipping stale LONG stop {s:.2f} (above price {current_price:.2f})")
+                            
+                elif ratio < self.short_taker_threshold: # Taker Short Aggression
+                    # Project potential Short Liquidations (Stops are above entry)
+                    stops = [entry_p * (1.0 + self.liquid_projection_50x), entry_p * (1.0 + self.liquid_projection_25x)]
+                    for s in stops:
+                        if s > current_price: # ACTIVE: Still above current price
+                            active_above.append({"price": s, "weight": weight})
+                        else: # STALE: Price has already squeezed through this level
+                            logger.debug(f"Radar: Skipping stale SHORT stop {s:.2f} (below price {current_price:.2f})")
+
+            # 4. Final Semantic Consolidation (Trigger-Based)
+            # v8.1: Regardless of origin, categorize by current market potential
+            # to prevent 'Green above Red' visual paradox.
+            final_long = []  # To be colored Green (Below price)
+            final_short = [] # To be colored Purple (Above price)
+            
+            # Combine all active points to re-evaluate their role
+            all_active = active_above + active_below
+            
+            for p in all_active:
+                if p["price"] > current_price:
+                    final_short.append(p)
+                elif p["price"] < current_price:
+                    final_long.append(p)
 
             return {
-                "long_liquidation": self._cluster_points(long_points),
-                "short_liquidation": self._cluster_points(short_points)
+                "long_liquidation": self._cluster_points(final_long),
+                "short_liquidation": self._cluster_points(final_short)
             }
 
         except Exception as e:
-            logger.error(f"LiquidationRadar synthesis failed: {e}", exc_info=True)
+            logger.error(f"LiquidationRadar v8.1 synthesis failed: {e}", exc_info=True)
             return {"long_liquidation": [], "short_liquidation": []}
 
     def _calculate_sma(self, data: np.ndarray, period: int) -> np.ndarray:

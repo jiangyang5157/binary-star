@@ -10,7 +10,6 @@ import mplfinance as mpf
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional, Union
 from src.utils.datetime_utils import format_timestamp_for_filename, get_current_utc_time
-from src.utils.market_utils import parse_liquidation_data
 
 # Initialize project-standard logger
 from src.utils.logger_utils import setup_logger
@@ -381,25 +380,6 @@ class ChartVisualRenderer:
                         (0, p - (band_height / 2)), len(df), band_height, 
                         color=self.config.liq_short_color, alpha=alpha, zorder=0
                     ))
-        else:
-            # v6.x: Legacy Raw List Format (Fallback)
-            for liq in liquidations:
-                try:
-                    parsed = parse_liquidation_data(liq)
-                    price = parsed['price']
-                    if not (min_p <= price <= max_p):
-                        continue
-                    side = parsed['side']
-                    color = self.config.liq_short_color if side == 'BUY' else self.config.liq_long_color
-                    qty = parsed['qty']
-                    # v7.0 Parametric Legacy Alpha Scaling
-                    alpha = min(max(qty / self.config.liq_legacy_alpha_factor, self.config.liq_legacy_min_alpha), self.config.liq_legacy_max_alpha)
-                    ax.add_patch(patches.Rectangle(
-                        (0, price - (band_height / 2)), len(df), band_height, 
-                        color=color, alpha=alpha, zorder=0
-                    ))
-                except (ValueError, TypeError, KeyError):
-                    continue
 
 # Alias for backward compatibility if needed, though agents should use the Facade.
 ChartGenerator = ChartVisualRenderer

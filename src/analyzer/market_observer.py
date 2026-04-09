@@ -372,7 +372,7 @@ class MarketMetricsRefiner:
             structural_anchors=self._derive_anchors(m_df, profile),
             volume_profile=self._refine_topography(profile, nodes, atr_macro, current_price),
             market_regime=regime_data,
-            sentiment_signals=self._derive_sentiment(raw, atr_macro)
+            sentiment_signals=self._derive_sentiment(raw, atr_macro, current_price)
         )
 
     def _derive_price_dynamics(self, m_df: pd.DataFrame, n_df: pd.DataFrame) -> Dict[str, Any]:
@@ -440,7 +440,7 @@ class MarketMetricsRefiner:
             "profile_data": profile.get("profile_data", [])
         }
 
-    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float) -> Dict[str, Any]:
+    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float, current_price: float) -> Dict[str, Any]:
         """Calculates Order Flow, Open Interest delta, and Liquidation Clusters."""
         cvd_current_net = 0.0
         cvd_current_total_vol = 0.0
@@ -494,7 +494,8 @@ class MarketMetricsRefiner:
             "liquidation_clusters": self.radar.synthesize_clusters(
                 raw.micro_klines, 
                 raw.oi_history, 
-                raw.taker_ratio_history
+                raw.taker_ratio_history,
+                current_price=current_price
             )
         }
 
