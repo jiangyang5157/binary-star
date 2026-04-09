@@ -31,8 +31,13 @@ class AbstractExchangeClient(ABC):
         pass
 
     @abstractmethod
-    def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs) -> Optional[OpenInterestData]:
-        """Fetches current or historical Open Interest."""
+    def fetch_open_interest(self, symbol: str, period: str = "1h", limit: int = 1, **kwargs) -> List[OpenInterestData]:
+        """Fetches current or historical Open Interest (Batch-first contract)."""
+        pass
+
+    @abstractmethod
+    def fetch_taker_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs) -> List[RatioData]:
+        """Fetches Taker Buy/Sell Volume Ratio (Order Flow Sentiment)."""
         pass
 
     @abstractmethod

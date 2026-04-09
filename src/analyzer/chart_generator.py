@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import mplfinance as mpf
 from dataclasses import dataclass
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Union
 from src.utils.datetime_utils import format_timestamp_for_filename, get_current_utc_time
 from src.utils.market_utils import parse_liquidation_data
 
@@ -27,8 +27,8 @@ class ChartConfig:
     grid_color: str
     poc_color: str
     value_area_color: str
-    liq_buy_color: str
-    liq_sell_color: str
+    liq_long_color: str
+    liq_short_color: str
     current_price_color: str
     volume_profile_width_ratio: float
     volume_profile_smoothing_sigma: float
@@ -37,6 +37,13 @@ class ChartConfig:
     chart_main_panel_weight: int
     chart_volume_panel_weight: int
     render_dpi: int
+    # v7.0 Synthetic Radar Aesthetics
+    liq_band_height_ratio: float
+    liq_max_alpha: float
+    liq_min_alpha: float
+    liq_legacy_alpha_factor: float
+    liq_legacy_min_alpha: float
+    liq_legacy_max_alpha: float
 
 
 class TechnicalFeatureExtractor:
@@ -108,11 +115,13 @@ class ChartVisualRenderer:
     """
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
                  grid_color: str, poc_color: str, value_area_color: str, 
-                 liq_buy_color: str, liq_sell_color: str, current_price_color: str,
-                 volume_profile_width_ratio: float, 
+                 liq_long_color: str, liq_short_color: str, current_price_color: str,
+                 volume_profile_width_ratio: float,
                  render_dpi: int, volume_profile_smoothing_sigma: float, volume_profile_color: str,
                  volume_profile_alpha: float,
-                 chart_main_panel_weight: int, chart_volume_panel_weight: int):
+                 chart_main_panel_weight: int, chart_volume_panel_weight: int,
+                 liq_band_height_ratio: float, liq_max_alpha: float, liq_min_alpha: float,
+                 liq_legacy_alpha_factor: float, liq_legacy_min_alpha: float, liq_legacy_max_alpha: float):
         self.config = ChartConfig(
             up_color=up_color,
             down_color=down_color,
@@ -120,8 +129,8 @@ class ChartVisualRenderer:
             grid_color=grid_color,
             poc_color=poc_color,
             value_area_color=value_area_color,
-            liq_buy_color=liq_buy_color,
-            liq_sell_color=liq_sell_color,
+            liq_long_color=liq_long_color,
+            liq_short_color=liq_short_color,
             current_price_color=current_price_color,
             volume_profile_width_ratio=volume_profile_width_ratio, 
             volume_profile_smoothing_sigma=volume_profile_smoothing_sigma,
@@ -129,7 +138,13 @@ class ChartVisualRenderer:
             volume_profile_alpha=volume_profile_alpha,
             chart_main_panel_weight=chart_main_panel_weight,
             chart_volume_panel_weight=chart_volume_panel_weight,
-            render_dpi=render_dpi
+            render_dpi=render_dpi,
+            liq_band_height_ratio=liq_band_height_ratio,
+            liq_max_alpha=liq_max_alpha,
+            liq_min_alpha=liq_min_alpha,
+            liq_legacy_alpha_factor=liq_legacy_alpha_factor,
+            liq_legacy_min_alpha=liq_legacy_min_alpha,
+            liq_legacy_max_alpha=liq_legacy_max_alpha
         )
         self.storage = ChartStorageManager(output_dir)
         self.extractor = TechnicalFeatureExtractor()
@@ -160,7 +175,7 @@ class ChartVisualRenderer:
         )
 
     def generate_chart(self, symbol: str, df: pd.DataFrame, profile_data: Dict[str, Any], 
-                       liquidations: Optional[List[Dict[str, Any]]] = None, time_interval: str = "1h") -> str:
+                       liquidations: Union[List, Dict], time_interval: str) -> str:
         """
         Orchestrates the generation of an enhanced candlestick chart.
         """
@@ -269,7 +284,7 @@ class ChartVisualRenderer:
                 # Point of Control (POC)
                 if poc > 0:
                     main_ax.text(
-                        x_pos, poc, f"POC: {poc:,.2f}", 
+                        x_pos, poc, "POC", 
                         bbox=dict(facecolor=self.config.poc_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
                         **label_style
                     )
@@ -277,7 +292,7 @@ class ChartVisualRenderer:
                 # Value Area High (VAH)
                 if vah > 0:
                     main_ax.text(
-                        x_pos, vah, f"VAH: {vah:,.2f}", 
+                        x_pos, vah, "VAH", 
                         bbox=dict(facecolor=self.config.value_area_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
                         **label_style
                     )
@@ -285,7 +300,7 @@ class ChartVisualRenderer:
                 # Value Area Low (VAL)
                 if val > 0:
                     main_ax.text(
-                        x_pos, val, f"VAL: {val:,.2f}", 
+                        x_pos, val, "VAL", 
                         bbox=dict(facecolor=self.config.value_area_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
                         **label_style
                     )
@@ -337,36 +352,58 @@ class ChartVisualRenderer:
             edgecolor='none'       # 彻底关闭边缘颜色
         )
 
-    def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: List[Dict[str, Any]]):
-        """Draws semi-transparent liquidation heat bands."""
+    def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: Union[List, Dict]):
+        """Draws semi-transparent liquidation heat bands (Supports both raw lists and synthetic dicts)."""
         min_p, max_p = df['Low'].min(), df['High'].max()
-        band_height = (max_p - min_p) * 0.015
+        # v7.0 Visual Hardening: Parametric band height
+        band_height = (max_p - min_p) * self.config.liq_band_height_ratio
         
-        for liq in liquidations:
-            try:
-                parsed = parse_liquidation_data(liq)
-                price = parsed['price']
-                if not (min_p <= price <= max_p):
+        # Determine format
+        if isinstance(liquidations, dict):
+            # v7.0: Synthetic Bifurcated Format (Radar Output)
+            long_targets = liquidations.get('long_liquidation', [])
+            short_targets = liquidations.get('short_liquidation', [])
+            
+            # Draw Longs (Traps)
+            for liq in long_targets:
+                p = liq['price']
+                if min_p <= p <= max_p:
+                    # v7.0 Parametric Alpha Scaling
+                    alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
+                    ax.add_patch(patches.Rectangle(
+                        (0, p - (band_height / 2)), len(df), band_height, 
+                        color=self.config.liq_long_color, alpha=alpha, zorder=0
+                    ))
+            
+            # Draw Shorts (Squeezes)
+            for liq in short_targets:
+                p = liq['price']
+                if min_p <= p <= max_p:
+                    # v7.0 Parametric Alpha Scaling
+                    alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
+                    ax.add_patch(patches.Rectangle(
+                        (0, p - (band_height / 2)), len(df), band_height, 
+                        color=self.config.liq_short_color, alpha=alpha, zorder=0
+                    ))
+        else:
+            # v6.x: Legacy Raw List Format (Fallback)
+            for liq in liquidations:
+                try:
+                    parsed = parse_liquidation_data(liq)
+                    price = parsed['price']
+                    if not (min_p <= price <= max_p):
+                        continue
+                    side = parsed['side']
+                    color = self.config.liq_long_color if side == 'BUY' else self.config.liq_short_color
+                    qty = parsed['qty']
+                    # v7.0 Parametric Legacy Alpha Scaling
+                    alpha = min(max(qty / self.config.liq_legacy_alpha_factor, self.config.liq_legacy_min_alpha), self.config.liq_legacy_max_alpha)
+                    ax.add_patch(patches.Rectangle(
+                        (0, price - (band_height / 2)), len(df), band_height, 
+                        color=color, alpha=alpha, zorder=0
+                    ))
+                except (ValueError, TypeError, KeyError):
                     continue
-                    
-                side = parsed['side']
-                color = self.config.liq_buy_color if side == 'BUY' else self.config.liq_sell_color
-                
-                # Dynamic alpha based on quantity
-                qty = parsed['qty']
-                alpha = min(max(qty / 5.0, 0.10), 0.40)
-                
-                rect = patches.Rectangle(
-                    (0, price - (band_height / 2)), 
-                    len(df), 
-                    band_height, 
-                    color=color, 
-                    alpha=alpha, 
-                    zorder=0
-                )
-                ax.add_patch(rect)
-            except (ValueError, TypeError):
-                continue
 
 # Alias for backward compatibility if needed, though agents should use the Facade.
 ChartGenerator = ChartVisualRenderer

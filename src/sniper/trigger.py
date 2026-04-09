@@ -201,15 +201,23 @@ class SniperTrigger:
         if dist_poc < poc_trigger_threshold:
             return True, f"POC 磁吸/回踩 (Gravity Test): Dist to POC={dist_poc:.2f} ATR (Threshold: {poc_trigger_threshold:.2f})"
 
-        # DNA Mapping: liquidation_magnet -> structural_proximity_threshold
+        # DNA Mapping: liquidation_magnet -> struct_threshold (v7.0 Aligned with multiplier)
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
-        if liq_clusters:
-            for p_str, c_data in liq_clusters.items():
-                p = float(p_str)
+        if liq_clusters and isinstance(liq_clusters, dict):
+            # Process Long Liquidations (Support magnets)
+            for cluster in liq_clusters.get('long_liquidation', []):
+                p = float(cluster['price'])
                 dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
-                if dist_atr < self.regime_cfg['structural_proximity_threshold']:
-                    return True, f"爆仓簇磁吸 (Liquidation Magnet): Price={p_str}, Dist={dist_atr:.2f} ATR"
-                    
+                if dist_atr < struct_threshold:
+                    return True, f"多头爆仓磁吸 (Long Liq Magnet - Support Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {struct_threshold:.2f})"
+            
+            # Process Short Liquidations (Squeeze magnets)
+            for cluster in liq_clusters.get('short_liquidation', []):
+                p = float(cluster['price'])
+                dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
+                if dist_atr < struct_threshold:
+                    return True, f"空头爆仓磁吸 (Short Liq Magnet - Squeeze Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {struct_threshold:.2f})"
+
         return False, None
 
     def set_triggered(self, t_type: str):

@@ -32,6 +32,7 @@ Use these metrics to synthesize your tactical entry strategy:
 | `trend_intensity`| Signed `[-1, 1]`. Positive = Bullish trend, Negative = Bearish trend. `abs(trend_intensity)` > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
 | `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight CVD > `{cvd_intensity_threshold}` with BEARISH entries, or CVD < -`{cvd_intensity_threshold}` with BULLISH entries. |
 | `long_short_ratio_micro` | > `{long_short_imbalance_ratio}` = Retail Long Squeeze. < `{short_heavy_imbalance_ratio}` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is between these thresholds. |
+| `liquidation_clusters` | Contains `long_liquidation` (coordinates where over-leveraged longs will be force-sold) and `short_liquidation` (coordinates where shorts will be force-bought). **Tactical Weaponization**: When planning a Defensive Limit Entry (DLE), you MUST actively seek to place your `entry` near the highest intensity liquidation coordinate in the direction of the correction, using the nearest `HVN` or `POC` behind it as your `stop_loss` shield. This converts retail capitulation into our zero-slippage entry. |
 | `latest_wick_skew` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
 **Dynamic Time-Stop**| The system scales `projected_holding_hours` to manage temporal risk. **Dead Water** (`volatility_expansion_ratio` < `{volatility_baseline_ratio}`, `abs(trend_intensity)` < `{trend_intensity_strong}`) = `{temporal_dilation_dead_water}`x multiplier (Strict time-stop, cut trades short); **Highway** (`abs(trend_intensity)` > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `volatility_expansion_ratio` < `{volatility_extreme_ratio}`) = `{temporal_dilation_highway}`x multiplier (Let profits run, expand time horizon); **Chaos** (`volatility_expansion_ratio` > `{volatility_extreme_ratio}`) = `{temporal_dilation_climax}`x multiplier (Hit-and-run, extreme danger, compress time); **Standard** (All other regimes) = `{temporal_dilation_standard}`x multiplier. |
 
@@ -40,7 +41,7 @@ Use these metrics to synthesize your tactical entry strategy:
 ## 1. Topographical Anchoring (Absolute Law)
 - **THE SHIELD LAW**: Stop Loss (SL) MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). **Floating SLs are a Terminal Veto.**
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_ratio`) is missing, output `NEUTRAL`. Do not guess.
-- **DATA AMNESTY (NULL STATE)**: If `liquidation_clusters` is `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (Market API gap). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.
+- **DATA HARDENING (EMPTY STATE)**: If BOTH `long_liquidation` AND `short_liquidation` arrays inside `liquidation_clusters` are empty or `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (No leverage concentration detected). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.
 
 ## 2. Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:

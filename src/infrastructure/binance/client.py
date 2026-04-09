@@ -1,4 +1,3 @@
-import logging
 import os
 import requests
 from datetime import datetime, timezone
@@ -207,35 +206,47 @@ class BinanceFuturesClient(AbstractExchangeClient):
 
     # --- Sentiment & Psychology Data ---
 
-    def fetch_open_interest(self, symbol: str, period: str = "1h", **kwargs: Any) -> Optional[OpenInterestData]:
+    def fetch_open_interest(self, symbol: str, period: str = "1h", limit: int = 1, **kwargs: Any) -> List[OpenInterestData]:
         try:
-            if 'endTime' in kwargs and not self._is_within_30_days(kwargs['endTime']):
-                logger.debug(f"Binance: Historical OI for {symbol} skipped (30-day limit reached).")
-                return None
-
             if 'endTime' in kwargs:
+                # 1. Forensic Boundary Check (Binance limit: 30 days)
+                if not self._is_within_30_days(kwargs['endTime']):
+                    logger.debug(f"Binance: Historical OI for {symbol} skipped (30-day limit reached).")
+                    return []
+                
+                # 2. Historical Sequence Fetch (Requires Period)
                 for attempt in self._get_retryer("open_interest_hist"):
                     with attempt:
-                        resp = self.client.open_interest_hist(symbol=symbol, period=period, limit=1, **kwargs)
-                if resp:
-                    return OpenInterestData(
+                        resp = self.client.open_interest_hist(symbol=symbol, period=period, limit=limit, **kwargs)
+                
+                if not resp:
+                    return []
+                
+                return [
+                    OpenInterestData(
                         symbol=symbol,
-                        open_interest=float(resp[-1].get('sumOpenInterest', 0)),
-                        timestamp=int(resp[-1].get('timestamp', 0))
-                    )
-                return None
+                        open_interest=float(r.get('sumOpenInterest', 0)),
+                        timestamp=int(r.get('timestamp', 0))
+                    ) for r in resp
+                ]
             
+            # 3. Real-time Snapshot Fetch (No Period Required)
             for attempt in self._get_retryer("open_interest"):
                 with attempt:
                     resp = self.client.open_interest(symbol=symbol)
-                    return OpenInterestData(
-                        symbol=symbol,
-                        open_interest=float(resp.get('openInterest', 0)),
-                        timestamp=int(resp.get('time', 0))
-                    )
+                    return [
+                        OpenInterestData(
+                            symbol=symbol,
+                            open_interest=float(resp.get('openInterest', 0)),
+                            timestamp=int(resp.get('time', 0))
+                        )
+                    ]
         except ClientError as e:
             logger.error(f"Binance: Open Interest fetch failed for {symbol}: {e.error_message}")
-            return None
+            return []
+        except Exception as e:
+            logger.error(f"Binance: Unexpected error in OI fetch for {symbol}: {e}")
+            return []
 
     def fetch_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
         try:
@@ -254,6 +265,25 @@ class BinanceFuturesClient(AbstractExchangeClient):
                     ]
         except ClientError as e:
             logger.error(f"Binance: L/S Ratio fetch failed for {symbol}: {e.error_message}")
+            return []
+
+    def fetch_taker_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
+        try:
+            for attempt in self._get_retryer("taker_long_short_ratio"):
+                with attempt:
+                    # SDK method: taker_long_short_ratio
+                    resp = self.client.taker_long_short_ratio(symbol=symbol, period=period, limit=limit, **kwargs)
+                    return [
+                        RatioData(
+                            long_short_ratio=float(r.get('buySellRatio', 1.0)),
+                            timestamp=int(r.get('timestamp', 0))
+                        ) for r in resp
+                    ]
+        except ClientError as e:
+            logger.error(f"Binance: Taker L/S Ratio fetch failed for {symbol}: {e.error_message}")
+            return []
+        except Exception as e:
+            logger.error(f"Binance: Unexpected error in Taker L/S Ratio fetch: {e}")
             return []
 
     def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:

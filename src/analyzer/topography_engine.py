@@ -26,8 +26,8 @@ class TopographyEngine:
             grid_color=obs_config.grid_color,
             poc_color=obs_config.poc_color,
             value_area_color=obs_config.value_area_color,
-            liq_buy_color=obs_config.liq_buy_color,
-            liq_sell_color=obs_config.liq_sell_color,
+            liq_long_color=obs_config.liq_long_color,
+            liq_short_color=obs_config.liq_short_color,
             current_price_color=obs_config.current_price_color,
             volume_profile_width_ratio=obs_config.volume_profile_width_ratio,
             volume_profile_smoothing_sigma=obs_config.volume_profile_smoothing_sigma,
@@ -35,7 +35,13 @@ class TopographyEngine:
             volume_profile_alpha=obs_config.volume_profile_alpha,
             chart_main_panel_weight=obs_config.chart_main_panel_weight,
             chart_volume_panel_weight=obs_config.chart_volume_panel_weight,
-            render_dpi=obs_config.render_dpi
+            render_dpi=obs_config.render_dpi,
+            liq_band_height_ratio=obs_config.liq_band_height_ratio,
+            liq_max_alpha=obs_config.liq_max_alpha,
+            liq_min_alpha=obs_config.liq_min_alpha,
+            liq_legacy_alpha_factor=obs_config.liq_legacy_alpha_factor,
+            liq_legacy_min_alpha=obs_config.liq_legacy_min_alpha,
+            liq_legacy_max_alpha=obs_config.liq_legacy_max_alpha
         )
 
     def reconstruct(self, symbol: str, at_time: Optional[datetime] = None, dispatch_email: bool = False) -> Dict[str, Any]:

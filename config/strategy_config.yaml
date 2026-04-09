@@ -92,6 +92,22 @@ regime_parameters:
   # Probability floor for squeeze audit validation.
   squeeze_audit_threshold: 0.85
 
+  # --- Liquidity Radar Physics (v7.0) ---
+  # [Sensitivity]: Thresholds for detecting retail dominance traps.
+  liq_radar_long_threshold: 1.05  # Taker Long/Short ratio above which longs are considered crowded.
+  liq_radar_short_threshold: 0.95 # Taker Long/Short ratio below which shorts are considered crowded.
+  
+  # [Physics]: Theoretical liquidation distances projected from the entry event.
+  liq_radar_projection_50x: 0.02 # Expected price distance (2%) for 50x leverage liquidation.
+  liq_radar_projection_25x: 0.04 # Expected price distance (4%) for 25x leverage liquidation.
+  liq_radar_weight_25x: 0.6      # Intensity multiplier for secondary (25x) magnets compared to 50x.
+
+  # --- Liquidity Radar Calibration (v7.0) ---
+  # [Resolution]: Analytical hyperparameters that define node granularity.
+  liq_radar_gaussian_sigma: 2.0     # Smoothing intensity for heatmap peaks (Physical resolution).
+  liq_radar_grid_bins: 500          # Number of price bins for liquidation density calculation.
+  liq_radar_grid_padding_ratio: 0.05 # Buffer around price extremes for grid calculation.
+
   # --- Execution Safety & Friction Buffers ---
   # Buffer added to breakout entries to filter 'False Breakouts'.
   breakout_buffer_atr: 0.2

@@ -12,6 +12,7 @@ from src.infrastructure.exchange.models import KlineData, OpenInterestData, Rati
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
+from src.analyzer.liquidation_radar import LiquidationRadar
 from src.utils.pipeline_utils import safe_format
 from src.utils.datetime_utils import (
     get_current_utc_time, format_datetime, FILE_TIMESTAMP_FORMAT, 
@@ -108,10 +109,27 @@ class MarketObserverConfig:
     grid_color: str
     poc_color: str
     value_area_color: str
-    liq_buy_color: str
-    liq_sell_color: str
+    liq_long_color: str
+    liq_short_color: str
     current_price_color: str
     indicator_warmup_multiplier: float
+    # v7.0 Synthetic Radar Aesthetics
+    liq_band_height_ratio: float
+    liq_max_alpha: float
+    liq_min_alpha: float
+    liq_legacy_alpha_factor: float
+    liq_legacy_min_alpha: float
+    liq_legacy_max_alpha: float
+    # v7.0 Synthetic Radar Physics
+    liq_radar_long_threshold: float
+    liq_radar_short_threshold: float
+    liq_radar_projection_50x: float
+    liq_radar_projection_25x: float
+    liq_radar_weight_25x: float
+    # v7.0 Analytical Engine (Calculated Hyperparameters)
+    liq_radar_gaussian_sigma: float
+    liq_radar_grid_bins: int
+    liq_radar_grid_padding_ratio: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -204,9 +222,25 @@ class MarketObserverConfig:
             grid_color=str(cfg['visuals']['grid_color']),
             poc_color=str(cfg['visuals']['poc_color']),
             value_area_color=str(cfg['visuals']['value_area_color']),
-            liq_buy_color=str(cfg['visuals']['liq_buy_color']),
-            liq_sell_color=str(cfg['visuals']['liq_sell_color']),
-            current_price_color=str(cfg['visuals']['current_price_color'])
+            liq_long_color=str(cfg['visuals']['liq_long_color']),
+            liq_short_color=str(cfg['visuals']['liq_short_color']),
+            current_price_color=str(cfg['visuals']['current_price_color']),
+            liq_band_height_ratio=float(cfg['visuals']['liq_band_height_ratio']),
+            liq_max_alpha=float(cfg['visuals']['liq_max_alpha']),
+            liq_min_alpha=float(cfg['visuals']['liq_min_alpha']),
+            liq_legacy_alpha_factor=float(cfg['visuals']['liq_legacy_alpha_factor']),
+            liq_legacy_min_alpha=float(cfg['visuals']['liq_legacy_min_alpha']),
+            liq_legacy_max_alpha=float(cfg['visuals']['liq_legacy_max_alpha']),
+            
+            # v7.0 Synthetic Radar Physics & Calibration
+            liq_radar_long_threshold=float(regime['liq_radar_long_threshold']),
+            liq_radar_short_threshold=float(regime['liq_radar_short_threshold']),
+            liq_radar_projection_50x=float(regime['liq_radar_projection_50x']),
+            liq_radar_projection_25x=float(regime['liq_radar_projection_25x']),
+            liq_radar_weight_25x=float(regime['liq_radar_weight_25x']),
+            liq_radar_gaussian_sigma=float(regime['liq_radar_gaussian_sigma']),
+            liq_radar_grid_bins=int(regime['liq_radar_grid_bins']),
+            liq_radar_grid_padding_ratio=float(regime['liq_radar_grid_padding_ratio'])
         )
 
     @property
@@ -233,6 +267,8 @@ class RawMarketData:
     current_oi: Optional[OpenInterestData] = None
     liquidations: Optional[List[LiquidationData]] = None
     funding_rate: Optional[List[FundingRateData]] = None
+    oi_history: List[OpenInterestData] = field(default_factory=list)
+    taker_ratio_history: List[RatioData] = field(default_factory=list)
 
 @dataclass
 class ProcessedMarketMetrics:
@@ -287,13 +323,15 @@ class MarketDataLoader:
         return RawMarketData(
             macro_klines=self.client.fetch_historical_klines(symbol, cfg.macro_context.time_interval, cfg.macro_context.lookback_candles, endTime=ts_ms) or [],
             micro_klines=self.client.fetch_historical_klines(symbol, cfg.micro_context.time_interval, cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
-            macro_oi=self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=macro_historical_ts_ms),
-            micro_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=micro_historical_ts_ms),
+            macro_oi=(res[0] if (res := self.client.fetch_open_interest(symbol, cfg.macro_context.time_interval, endTime=macro_historical_ts_ms)) else None),
+            micro_oi=(res[0] if (res := self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=micro_historical_ts_ms)) else None),
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=macro_ls_ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
-            current_oi=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms),
+            current_oi=(res[0] if (res := self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms)) else None),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms),
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms)
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms),
+            oi_history=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, limit=cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
+            taker_ratio_history=self.client.fetch_taker_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=cfg.micro_context.lookback_candles, endTime=ts_ms) or []
         )
 
     def _get_interval_delta(self, interval: str) -> timedelta:
@@ -307,11 +345,12 @@ class MarketMetricsRefiner:
     using specialized Volume Profile and Market Regime analysis.
     """
     
-    def __init__(self, config: MarketObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer):
+    def __init__(self, config: MarketObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer, radar: LiquidationRadar):
         """Initializes specialized processing units for topography and dynamics."""
         self.config = config
         self.vp = vp_analyzer
         self.regime = regime_analyzer
+        self.radar = radar
 
     def refine(self, raw: RawMarketData) -> ProcessedMarketMetrics:
         """Orchestrates comprehensive metric distillation.
@@ -456,35 +495,13 @@ class MarketMetricsRefiner:
             "cvd_lookback_candles": lookback,
             "funding_rate": f_rate,
             "funding_rate_delta": f_delta,
-            "liquidation_clusters": self._parse_to_clusters(raw.liquidations, atr_macro)
+            "liquidation_clusters": self.radar.synthesize_clusters(
+                raw.micro_klines, 
+                raw.oi_history, 
+                raw.taker_ratio_history
+            )
         }
 
-    def _parse_to_clusters(self, liqs: Optional[List[LiquidationData]], atr_macro: float) -> Optional[Dict[str, Any]]:
-        """Groups raw liquidations into high-conviction price clusters."""
-        # v6.52 Hardening: Return None specifically if API data is missing (limitation)
-        # Distinguishes from [] which means 'Zero Liquidations Found' -> {}
-        if liqs is None: return None
-        if not liqs: return {}
-        # Domain objects are already typed correctly
-        prices = [l.price for l in liqs if l.price > 0]
-        if not prices: return {}
-        
-        avg_p = sum(prices) / len(prices)
-        bucket_size = atr_macro * self.config.liquidation_cluster_atr_multiplier if atr_macro > 0 else avg_p * self.config.liquidation_cluster_fallback_percentage
-        
-        clusters = {}
-        for l in liqs:
-            if l.price == 0: continue
-            p = l.price
-            bucket = round(p / bucket_size) * bucket_size
-            key = f"{bucket:.2f}"
-            if key not in clusters:
-                clusters[key] = {"total_qty": 0, "count": 0, "side": l.side.upper()}
-            clusters[key]["total_qty"] += l.qty
-            clusters[key]["count"] += 1
-            
-        sorted_clusters = sorted(clusters.items(), key=lambda x: x[1]['total_qty'], reverse=True)
-        return {k: v for k, v in sorted_clusters[:self.config.max_liquidation_clusters]}
 
 class MarketObserver:
     """The Elite Market Topographer & Data Orchestrator.
@@ -518,8 +535,8 @@ class MarketObserver:
         
         # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
-            liq_buy_color=self.config.liq_buy_color,
-            liq_sell_color=self.config.liq_sell_color,
+            liq_long_color=self.config.liq_long_color,
+            liq_short_color=self.config.liq_short_color,
             volume_profile_width_ratio=self.config.volume_profile_width_ratio,
             volume_profile_smoothing_sigma=self.config.volume_profile_smoothing_sigma,
             volume_profile_color=self.config.volume_profile_color,
@@ -533,12 +550,31 @@ class MarketObserver:
             grid_color=self.config.grid_color,
             poc_color=self.config.poc_color,
             value_area_color=self.config.value_area_color,
-            current_price_color=self.config.current_price_color
+            current_price_color=self.config.current_price_color,
+            liq_band_height_ratio=self.config.liq_band_height_ratio,
+            liq_max_alpha=self.config.liq_max_alpha,
+            liq_min_alpha=self.config.liq_min_alpha,
+            liq_legacy_alpha_factor=self.config.liq_legacy_alpha_factor,
+            liq_legacy_min_alpha=self.config.liq_legacy_min_alpha,
+            liq_legacy_max_alpha=self.config.liq_legacy_max_alpha
         )
         
         # [MODULARIZED PROCESSING STACK]
+        self.radar = LiquidationRadar(
+            volume_moving_average_period=self.config.volume_ma_period,
+            volume_surge_vs_ma_ratio=self.config.volume_surge_vs_ma_ratio,
+            max_liquidation_clusters=self.config.max_liquidation_clusters,
+            long_taker_threshold=self.config.liq_radar_long_threshold,
+            short_taker_threshold=self.config.liq_radar_short_threshold,
+            liquid_projection_50x=self.config.liq_radar_projection_50x,
+            liquid_projection_25x=self.config.liq_radar_projection_25x,
+            weight_25x=self.config.liq_radar_weight_25x,
+            gaussian_sigma=self.config.liq_radar_gaussian_sigma,
+            grid_bins=self.config.liq_radar_grid_bins,
+            grid_padding_ratio=self.config.liq_radar_grid_padding_ratio
+        )
         self.loader = MarketDataLoader(self._exchange, self.config)
-        self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer)
+        self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer, self.radar)
         
         # v6.32: Passive Indicator Warmup Quality Audit
         self._validate_warmup_depth()
@@ -611,9 +647,11 @@ class MarketObserver:
         m_df = self._volume_profile_analyzer.process_klines(raw.macro_klines)
         n_df = self._volume_profile_analyzer.process_klines(raw.micro_klines)
         
+        liq_clusters = metrics.sentiment_signals.get("liquidation_clusters")
+        
         return {
-            "macro_snapshot": self._charting.generate_chart(self.symbol, m_df, ctx, raw.liquidations, time_interval=self.config.macro_context.time_interval),
-            "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, ctx, raw.liquidations, time_interval=self.config.micro_context.time_interval)
+            "macro_snapshot": self._charting.generate_chart(self.symbol, m_df, ctx, liq_clusters, time_interval=self.config.macro_context.time_interval),
+            "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, ctx, liq_clusters, time_interval=self.config.micro_context.time_interval)
         }
 
     def _package_observation(self, metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
