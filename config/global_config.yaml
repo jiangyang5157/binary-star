@@ -25,8 +25,8 @@ visuals:
   poc_color: "#B0B0B0"      # Silver-Neutral (v9.1: Subtle Structural Axis)
   vah_val_color: "#A0A0A0"    # Silver-Gray (VAH/VAL)
   current_price_color: "#ffffff" # Color for the Current Price tracking line
-  chart_trendline_peak_count: 5  # v8.7 Structural Persistence
-  chart_trendline_window: 9      # v10.0 Fractal Sensitivity (standard: 5)
+  chart_trendline_peak_count: 7  # v8.7 Structural Persistence
+  chart_trendline_window: 21      # v10.0 Fractal Sensitivity (standard: 5)
   volume_profile_width_ratio: 0.3 # Wide, confident profile
   volume_profile_smoothing_sigma: 1.5
   volume_profile_color: "#B0BEC5"  # High-Contrast Blue-Silver (v7.6)

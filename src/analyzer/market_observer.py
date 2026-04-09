@@ -132,7 +132,7 @@ class MarketObserverConfig:
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
         """Factory method to transform a raw configuration dict into a type-safe object."""
-        shared = cfg.get('agent_model_shared_config', {})
+        gemini_cfg = cfg.get('network', {}).get('gemini', {})
         sampling = cfg['analysis_window']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
@@ -153,7 +153,7 @@ class MarketObserverConfig:
         
         return cls(
             indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
-            max_tool_iterations=int(shared['max_tool_iterations']),
+            max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']), 
                 lookback_candles=int(macro['lookback_candles'])
