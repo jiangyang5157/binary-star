@@ -33,7 +33,7 @@ class TopographyEngine:
             chart_main_panel_weight=obs_config.chart_main_panel_weight,
             chart_volume_panel_weight=obs_config.chart_volume_panel_weight,
             render_dpi=obs_config.render_dpi,
-            liq_band_height_ratio=obs_config.liq_band_height_ratio,
+            liquidation_cluster_atr_multiplier=obs_config.liquidation_cluster_atr_multiplier,
             liq_max_alpha=obs_config.liq_max_alpha,
             liq_min_alpha=obs_config.liq_min_alpha,
             liq_legacy_alpha_factor=obs_config.liq_legacy_alpha_factor,

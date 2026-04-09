@@ -318,9 +318,10 @@ class SessionAgent(BaseAgent):
 
     def project_holding_time(self, current_price: float, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, 
-                             volatility_expansion_ratio: float,
+                             volatility_expansion_index: float,
                              interval_minutes: int,
                              min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
+
         """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
         from src.utils.math_utils import MathTools
         
@@ -330,8 +331,9 @@ class SessionAgent(BaseAgent):
         return MathTools.project_holding_time(
             current_price=current_price,
             entry=entry, take_profit=take_profit, atr=atr, 
-            trend_intensity=trend_intensity, volatility_expansion_ratio=volatility_expansion_ratio,
+            trend_intensity=trend_intensity, volatility_expansion_index=volatility_expansion_index,
             interval_minutes=interval_minutes, min_velocity_floor=floor,
+
             vr_base=self.config.volatility_baseline_ratio,
             vr_extreme=self.config.volatility_extreme_ratio,
             ti_strong=self.config.trend_intensity_strong,

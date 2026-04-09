@@ -126,7 +126,7 @@ class MathTools:
         take_profit: float,
         atr: float,
         trend_intensity: float,
-        volatility_expansion_ratio: float,
+        volatility_expansion_index: float,
         interval_minutes: int,
         min_velocity_floor: float,
         # Thresholds
@@ -140,16 +140,18 @@ class MathTools:
         dilation_climax: float,
         dilation_standard: float
     ) -> Dict[str, Any]:
+
         """使用动态时间止损模型 v4.0 (零熵物理引擎) 预测极限生存时间。
         
         该逻辑通过完全参数化的“状态路由”实现。将原始距离转换为安全暴露时间（Time-Stop）。
         
         优先级路由：
-        1. 混沌/高潮 (Chaos): VR >= vr_extreme -> Hit-and-run, 时间压缩 (Climax)
-        2. 死水区 (Dead Water): VR < vr_base & TI < ti_strong -> 无序震荡，强制时间止损 (Dead Water)
-        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= VR < vr_extreme -> 让利润奔跑，时间膨胀 (Highway)
+        1. 混沌/高潮 (Chaos): index >= vr_extreme -> Hit-and-run, 时间压缩 (Climax)
+        2. 死水区 (Dead Water): index < vr_base & TI < ti_strong -> 无序震荡，强制时间止损 (Dead Water)
+        3. 高速公路 (Highway): TI >= ti_thresh & vr_base <= index < vr_extreme -> 让利润奔跑，时间膨胀 (Highway)
         4. 标准 (Standard): Else -> 常态暴露 (Standard)
         """
+
         try:
             if atr <= 0 or interval_minutes <= 0:
                 return {"error": "ATR and interval_minutes must be > 0."}
@@ -166,15 +168,16 @@ class MathTools:
             # 2. 状态路由 (State Routing) -> 映射至动态时间膨胀因子 (Temporal Dilation Factor)
             ti_abs = abs(trend_intensity)
             
-            if volatility_expansion_ratio >= vr_extreme:
+            if volatility_expansion_index >= vr_extreme:
                 # 场景：极致危险。时间压缩。
                 temporal_dilation_factor = dilation_climax
                 temporal_dilation_regime = "temporal_dilation_climax"
-            elif volatility_expansion_ratio < vr_base and ti_abs < ti_strong:
+            elif volatility_expansion_index < vr_base and ti_abs < ti_strong:
                 # 场景：死水区。时间压缩。
                 temporal_dilation_factor = dilation_dead_water
                 temporal_dilation_regime = "temporal_dilation_dead_water"
-            elif ti_abs >= ti_thresh and vr_base <= volatility_expansion_ratio < vr_extreme:
+            elif ti_abs >= ti_thresh and vr_base <= volatility_expansion_index < vr_extreme:
+
                 # 场景：高速公路。时间膨胀。
                 temporal_dilation_factor = dilation_highway
                 temporal_dilation_regime = "temporal_dilation_highway"

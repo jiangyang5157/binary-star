@@ -26,7 +26,7 @@ visuals:
   vah_val_color: "#A0A0A0"    # Silver-Gray (VAH/VAL)
   current_price_color: "#ffffff" # Color for the Current Price tracking line
   chart_trendline_peak_count: 7  # v8.7 Structural Persistence
-  chart_trendline_window: 21      # v10.0 Fractal Sensitivity (standard: 5)
+  chart_trendline_window: 14      # v10.0 Fractal Sensitivity (standard: 5)
   volume_profile_width_ratio: 0.3 # Wide, confident profile
   volume_profile_smoothing_sigma: 1.5
   volume_profile_color: "#B0BEC5"  # High-Contrast Blue-Silver (v7.6)
@@ -36,12 +36,12 @@ visuals:
   render_dpi: 300
 
   # --- Liquidation Heatmap Aesthetics ---
-  liq_band_height_ratio: 0.03   # v10.8 Thick 'Zone Control' (2x baseline)
   liq_max_alpha: 0.3           # High peak intensity
   liq_min_alpha: 0.1
   liq_legacy_alpha_factor: 5.0  # Denominator for legacy event scaling (v5.0 default)
   liq_legacy_min_alpha: 0.10    # Minimum opacity for legacy raw orders
   liq_legacy_max_alpha: 0.30    # Maximum opacity for legacy raw orders
+  liq_radar_atr_multiplier: 0.25   # v11.1: Visual scaling for liquidation heatmap bands
 
 analytical:
   # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)

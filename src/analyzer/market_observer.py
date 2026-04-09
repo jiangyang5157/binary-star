@@ -69,7 +69,6 @@ class MarketObserverConfig:
     trend_intensity_lookback_hours: float
     wick_skewness_period: int
     liquidation_cluster_atr_multiplier: float
-    liquidation_cluster_fallback_percentage: float
     funding_rate_lookback_hours: float
     volatility_intensity_lookback_hours: int
     trend_intensity_threshold: float
@@ -94,6 +93,7 @@ class MarketObserverConfig:
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
+
     # Visuals (from global_config.yaml)
     volume_profile_width_ratio: float
     volume_profile_smoothing_sigma: float
@@ -111,8 +111,6 @@ class MarketObserverConfig:
     chart_trendline_peak_count: int
     chart_trendline_window: int
     indicator_warmup_multiplier: float
-    # v7.0 Synthetic Radar Aesthetics
-    liq_band_height_ratio: float
     liq_max_alpha: float
     liq_min_alpha: float
     liq_legacy_alpha_factor: float
@@ -185,14 +183,15 @@ class MarketObserverConfig:
             max_liquidation_clusters=int(topography['max_liquidation_clusters']),
             max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
             max_liquidation_events_for_context=int(topography['max_liquidation_events_for_context']),
-            liquidation_cluster_atr_multiplier=float(topography['liquidation_cluster_atr_multiplier']),
-            liquidation_cluster_fallback_percentage=float(topography['liquidation_cluster_fallback_percentage']),
+            liquidation_cluster_atr_multiplier=float(visuals['liq_radar_atr_multiplier']),
             default_structural_distance_atr=float(def_struct_dist),
+
             
             trend_intensity_threshold=float(regime['trend_intensity_threshold']),
             volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
+
             volume_surge_vs_ma_ratio=float(volume_part_surge),
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
@@ -224,7 +223,6 @@ class MarketObserverConfig:
             current_price_color=str(visuals['current_price_color']),
             chart_trendline_peak_count=int(visuals['chart_trendline_peak_count']),
             chart_trendline_window=int(visuals['chart_trendline_window']),
-            liq_band_height_ratio=float(visuals['liq_band_height_ratio']),
             liq_max_alpha=float(visuals['liq_max_alpha']),
             liq_min_alpha=float(visuals['liq_min_alpha']),
             liq_legacy_alpha_factor=float(visuals['liq_legacy_alpha_factor']),
@@ -326,6 +324,7 @@ class MarketDataLoader:
             micro_oi=(res[0] if (res := self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=micro_historical_ts_ms)) else None),
             macro_ls=self.client.fetch_long_short_ratio(symbol, cfg.macro_context.time_interval, limit=1, endTime=macro_ls_ts_ms) or [],
             micro_ls=self.client.fetch_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=1, endTime=ts_ms) or [],
+
             current_oi=(res[0] if (res := self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms)) else None),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms),
             funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms),
@@ -388,7 +387,7 @@ class MarketMetricsRefiner:
         atr_n = n_df['atr'].iloc[-1]
         
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
-        volatility_expansion_ratio = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
+        volatility_expansion_index = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
         
         avg_atr_lookback = min(self.config.volatility_intensity_lookback_hours, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
@@ -399,9 +398,10 @@ class MarketMetricsRefiner:
             "atr_macro": atr_m,
             "atr_micro": atr_n,
             "latest_wick_skew": wick_skew,
-            "volatility_expansion_ratio": volatility_expansion_ratio,
+            "volatility_expansion_index": volatility_expansion_index,
             "volatility_intensity_index": volatility_intensity_index
         }
+
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:
         """Calculates distance to structural anchors (POC/VAH/VAL) in ATR units."""
@@ -548,7 +548,7 @@ class MarketObserver:
             chart_main_panel_weight=self.config.chart_main_panel_weight,
             chart_volume_panel_weight=self.config.chart_volume_panel_weight,
             render_dpi=self.config.render_dpi,
-            liq_band_height_ratio=self.config.liq_band_height_ratio,
+            liquidation_cluster_atr_multiplier=self.config.liquidation_cluster_atr_multiplier,
             liq_max_alpha=self.config.liq_max_alpha,
             liq_min_alpha=self.config.liq_min_alpha,
             liq_legacy_alpha_factor=self.config.liq_legacy_alpha_factor,
@@ -649,8 +649,16 @@ class MarketObserver:
         liq_clusters = metrics.sentiment_signals.get("liquidation_clusters")
         
         return {
-            "macro_snapshot": self._charting.generate_chart(self.symbol, m_df, ctx, liq_clusters, time_interval=self.config.macro_context.time_interval),
-            "micro_snapshot": self._charting.generate_chart(self.symbol, n_df, ctx, liq_clusters, time_interval=self.config.micro_context.time_interval)
+            "macro_snapshot": self._charting.generate_chart(
+                self.symbol, m_df, ctx, liq_clusters, 
+                time_interval=self.config.macro_context.time_interval,
+                atr=metrics.price_dynamics['atr_macro']
+            ),
+            "micro_snapshot": self._charting.generate_chart(
+                self.symbol, n_df, ctx, liq_clusters, 
+                time_interval=self.config.micro_context.time_interval,
+                atr=metrics.price_dynamics['atr_macro']
+            )
         }
 
     def _package_observation(self, metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:

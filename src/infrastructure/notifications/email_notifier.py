@@ -91,7 +91,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
         is_shielded = last_round.get("math_fact_check", {}).get("compliance_verdict", {}).get("sl_is_shielded", False)
         
         # 7.3. Detect Volatility Regime (Dynamic Threshold from Config)
-        vr_val = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("volatility_expansion_ratio", 0)
+        vr_val = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("volatility_expansion_index", 0)
         
         # Extract the 'extreme' threshold from the configuration snapshot
         # v6.51: Bypassing legacy math_fact_check traversal since calculation_inputs was simplified for zero-entropy.

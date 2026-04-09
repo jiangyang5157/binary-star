@@ -34,7 +34,7 @@ class ChartConfig:
     chart_volume_panel_weight: int
     render_dpi: int
     # v7.0 Synthetic Radar Aesthetics
-    liq_band_height_ratio: float
+    liquidation_cluster_atr_multiplier: float
     liq_max_alpha: float
     liq_min_alpha: float
     liq_legacy_alpha_factor: float
@@ -119,7 +119,7 @@ class ChartVisualRenderer:
                  render_dpi: int, volume_profile_smoothing_sigma: float, volume_profile_color: str,
                  volume_profile_alpha: float,
                  chart_main_panel_weight: int, chart_volume_panel_weight: int,
-                 liq_band_height_ratio: float, liq_max_alpha: float, liq_min_alpha: float,
+                 liquidation_cluster_atr_multiplier: float, liq_max_alpha: float, liq_min_alpha: float,
                  liq_legacy_alpha_factor: float, liq_legacy_min_alpha: float, liq_legacy_max_alpha: float,
                  chart_trendline_peak_count: int,
                  chart_trendline_window: int):
@@ -137,7 +137,7 @@ class ChartVisualRenderer:
             chart_main_panel_weight=chart_main_panel_weight,
             chart_volume_panel_weight=chart_volume_panel_weight,
             render_dpi=render_dpi,
-            liq_band_height_ratio=liq_band_height_ratio,
+            liquidation_cluster_atr_multiplier=liquidation_cluster_atr_multiplier,
             liq_max_alpha=liq_max_alpha,
             liq_min_alpha=liq_min_alpha,
             liq_legacy_alpha_factor=liq_legacy_alpha_factor,
@@ -174,7 +174,7 @@ class ChartVisualRenderer:
         )
 
     def generate_chart(self, symbol: str, df: pd.DataFrame, profile_data: Dict[str, Any], 
-                       liquidations: Union[List, Dict], time_interval: str) -> str:
+                       liquidations: Union[List, Dict], time_interval: str, atr: Optional[float] = None) -> str:
         """
         Orchestrates the generation of an enhanced candlestick chart.
         """
@@ -284,7 +284,7 @@ class ChartVisualRenderer:
     
                 # 4. Overlay Liquidation Zones
                 if liquidations:
-                    self._overlay_liquidations(main_ax, plot_df, liquidations)
+                    self._overlay_liquidations(main_ax, plot_df, liquidations, atr=atr)
     
                 # 5. Overlay Trendlines (v8.7: Configurable Persistence, v10.0: Configurable window)
                 trendlines = self.extractor.detect_trendlines(
@@ -384,11 +384,10 @@ class ChartVisualRenderer:
             edgecolor='none'       # 彻底关闭边缘颜色
         )
 
-    def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: Union[List, Dict]):
-        """Draws semi-transparent liquidation heat bands (Supports both raw lists and synthetic dicts)."""
-        min_p, max_p = df['Low'].min(), df['High'].max()
-        # v7.0 Visual Hardening: Parametric band height
-        band_height = (max_p - min_p) * self.config.liq_band_height_ratio
+    def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: Union[List, Dict], atr: Optional[float] = None):
+        """Draws semi-transparent liquidation heat bands based on ATR physics."""
+        # v11.4 Visual Hardening: Strict ATR-only logic (Zero-Default Fallback)
+        band_height = atr * self.config.liquidation_cluster_atr_multiplier
         
         # Determine format
         if isinstance(liquidations, dict):

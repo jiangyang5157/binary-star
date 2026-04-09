@@ -478,7 +478,8 @@ class BinaryStarOrchestrator:
                 current_price=float(tactical.get('current_price', 0) or 0),
                 entry=entry, take_profit=tp, atr=atr, 
                 trend_intensity=trend_intensity, 
-                volatility_expansion_ratio=float(dynamics['volatility_expansion_ratio']),
+                volatility_expansion_index=float(dynamics['volatility_expansion_index']),
+
                 interval_minutes=get_interval_minutes(self.macro_interval),
                 min_velocity_floor=self.session_config.min_trade_velocity,
                 vr_base=self.critic_config.volatility_baseline_ratio,
