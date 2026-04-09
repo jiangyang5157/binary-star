@@ -48,7 +48,7 @@ analytical:
   indicator_warmup_multiplier: 5.0
 
 session:
-  notification_confidence_threshold: 60
+  notification_confidence_threshold: 65
 
 backtest:
   # Default sample size for backtest simulation
