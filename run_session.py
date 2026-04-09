@@ -213,12 +213,9 @@ class SessionController:
         )
         binance.close()
         
-        # Prepare DataFrame for sampling
-        df = pd.DataFrame(klines, columns=[
-            'timestamp', 'open', 'high', 'low', 'close', 'volume',
-            'close_time', 'qav', 'num_trades', 'taker_base_vol', 'taker_quote_vol', 'ignore'
-        ])
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True)
+        # Prepare DataFrame for sampling (v6.86 Fix: Correctly handle KlineData objects)
+        df = pd.DataFrame(klines)
+        df['timestamp'] = pd.to_datetime(df['open_time'], unit='ms', utc=True)
         df['close'] = df['close'].astype(float)
         
         df_range = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
