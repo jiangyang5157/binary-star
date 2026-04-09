@@ -105,7 +105,6 @@ class MarketObserverConfig:
     up_color: str
     down_color: str
     bg_color: str
-    grid_color: str
     poc_color: str
     value_area_color: str
     liq_long_color: str
@@ -217,7 +216,6 @@ class MarketObserverConfig:
             up_color=str(cfg['visuals']['up_color']),
             down_color=str(cfg['visuals']['down_color']),
             bg_color=str(cfg['visuals']['bg_color']),
-            grid_color=str(cfg['visuals']['grid_color']),
             poc_color=str(cfg['visuals']['poc_color']),
             value_area_color=str(cfg['visuals']['value_area_color']),
             liq_long_color=str(cfg['visuals']['liq_long_color']),
@@ -545,7 +543,6 @@ class MarketObserver:
             up_color=self.config.up_color,
             down_color=self.config.down_color,
             bg_color=self.config.bg_color,
-            grid_color=self.config.grid_color,
             poc_color=self.config.poc_color,
             value_area_color=self.config.value_area_color,
             current_price_color=self.config.current_price_color,
