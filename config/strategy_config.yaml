@@ -141,7 +141,7 @@ audit_review:
 topography_parameters:
   # --- Volume Profile Engine ---
   # The % of volume defined as the 'Value Area' (Standard: 70%).
-  volume_profile_value_area_width: 0.75
+  volume_profile_value_area_width: 0.86
   # Resolution of the price histogram.
   volume_profile_price_bucket_count: 300
   # --- Strategic Indicator Smoothing ---
