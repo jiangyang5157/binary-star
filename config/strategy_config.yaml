@@ -43,7 +43,7 @@ regime_parameters:
   volatility_expansion_ratio: 1.7
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
 
-  volatility_extreme_ratio: 2.2
+  volatility_extreme_ratio: 2.5
 
   # --- Physical Topography & Volume Confluence ---
   # Volume surge multiplier relative to the 21-period Moving Average.
