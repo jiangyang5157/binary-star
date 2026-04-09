@@ -30,7 +30,7 @@ regime_parameters:
   # Minimum vector strength to classify as 'Trending'. Range [0, 1].
   trend_intensity_threshold: 0.95
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
-  trend_intensity_strong: 0.6
+  trend_intensity_strong: 0.35
   # Noise filter (floor) in ATR units to ignore micro-volatility.
   noise_filter_atr_floor: 0.2
   # Minimum trend intensity required to justify directional trades during volatility expansion.
@@ -43,7 +43,7 @@ regime_parameters:
   volatility_expansion_ratio: 1.7
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
 
-  volatility_extreme_ratio: 2.0
+  volatility_extreme_ratio: 2.2
 
   # --- Physical Topography & Volume Confluence ---
   # Volume surge multiplier relative to the 21-period Moving Average.
@@ -113,10 +113,10 @@ regime_parameters:
   # Buffer added to breakout entries to filter 'False Breakouts'.
   breakout_buffer_atr: 0.2
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
-  breakout_frontrun_atr: 0.5
+  breakout_frontrun_atr: 0.75
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
   min_rr_ranging: 1.0
-  min_rr_trending: 1.2
+  min_rr_trending: 1.0
 
 audit_review:
   # --- Forensic Evaluation Parameters (v6.11 Hardened) ---
