@@ -325,15 +325,18 @@ class ChartVisualRenderer:
         p_vals = np.array([p['price'] for p in visible_profile])
         v_vals = np.array([p['volume'] for p in visible_profile])
         
-        max_v = max(v_vals) if len(v_vals) > 0 else 1
+        # v8.3 Hardening: Prevent division by zero if all visible volumes are zero
+        max_v = max(v_vals) if len(v_vals) > 0 and max(v_vals) > 0 else 1
 
         # Normalize width relative to total candle count
         norm_v = (v_vals / max_v) * (len(df) * self.config.volume_profile_width_ratio)
         
-        # --- 高斯平滑视觉层 (Gaussian Smoothing Visual Layer) ---
-        # sigma 控制平滑度。数值越大越平滑（抹平细节），数值越小越保留原始锯齿。
-        # 对于 300 桶的分辨率，sigma 设为 2.0 到 3.0 是视觉呈现的黄金甜点。
-        smoothed_v = gaussian_filter1d(norm_v, sigma=self.config.volume_profile_smoothing_sigma)
+        # --- Gaussian Smoothing Visual Layer ---
+        # v8.3: Conditionally apply smoothing. Setting sigma=0 now bypasses the filter to show 'Raw Profile'.
+        if self.config.volume_profile_smoothing_sigma > 0:
+            smoothed_v = gaussian_filter1d(norm_v, sigma=self.config.volume_profile_smoothing_sigma)
+        else:
+            smoothed_v = norm_v
         
         # 使用 fill_betweenx 画出一个完美的、毫无缝隙的平滑几何多边形
         ax.fill_betweenx(
