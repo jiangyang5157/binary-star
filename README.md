@@ -93,8 +93,8 @@ python run_session.py -ts 2026-01-24T15:42:00Z
 
 *   **智联回测 (Backtest)**：在历史样本点上进行采样推理。推荐使用 `--sampling-mode sniper` 以捕捉异动。
 ```bash
-python run_session.py --start T-30d --end T-16d --samples 20 --sampling-mode sniper
-python run_session.py --start T-16d --end T-2d --samples 20 --sampling-mode spaced
+python run_session.py --start T-30d --end T-16d --samples 14 --sampling-mode sniper
+python run_session.py --start T-16d --end T-2d --samples 14 --sampling-mode spaced
 ```
 
 *   **实时监控 (Sniper Mode)**：基于 **v6.70 零熵三类觉醒探测器**（TYPE_A 势能 / TYPE_B 动能 / TYPE_C 结构）捕捉异动。系统参数已在 `global_config.yaml` 中实现垂直硬化，实现 1:1 的工程映射。
