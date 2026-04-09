@@ -65,7 +65,12 @@ Use the interpretation palette to formulate a creative entry, bounded by the Shi
 - **Momentum Riding**: If `volatility_expansion_index` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `abs(trend_intensity)` > `{trend_intensity_strong}`, execute Momentum Entries in the direction of `trend_intensity` sign to front-run structural nodes. If `volatility_expansion_index` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
 
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `latest_wick_skew` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Sink your entry deep into an HVN to maximize RR.
-- **The Liquidity Hunt**: If `squeeze_factor` is low, target the vacuum beyond the VAH/VAL boundaries.
+- **The Sweep & Fade (Counter-Trend Reversal)**: You are authorized to execute a counter-trend trade (e.g., `BEARISH` in an uptrend, or `BULLISH` in a downtrend) IF AND ONLY IF the following physical conditions intersect:
+    1. **The Target is Destroyed**: Current price has just hit or pierced a high-intensity `liquidation_cluster` (e.g., hitting short_liquidations during a pump).
+    2. **Momentum Death**: `latest_wick_skew` confirms extreme rejection (e.g., massive upper wick after hitting the cluster) OR `oi_delta_micro` is sharply negative (open interest collapsing, meaning the move was purely stop-loss driven, not fresh buying).
+    3. **Execution**: Anchor your `entry` at the pierced liquidation cluster. Anchor your `stop_loss` tightly just beyond the extreme wick. Map your `take_profit` aggressively back to the nearest VAH/VAL or HVN (mean-reversion target).
+
+- **The Liquidity Hunt**: If `squeeze_factor` < `{squeeze_threshold}`, target the vacuum beyond the VAH/VAL boundaries.
 - **Cowardice Veto**: Do not default to `NEUTRAL` just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.
 
 ## 3. Synthesis Directives (Adversarial Repair)
