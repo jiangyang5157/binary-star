@@ -141,9 +141,9 @@ class LiquidationRadar:
                 "intensity": float(peak_heights[i])
             })
             
-        # 排序并取前 N 个
+        # 排序并取前 N 个 (按配置中的最大集群数限制)
         results.sort(key=lambda x: x["intensity"], reverse=True)
-        top_results = results[:self.volume_moving_average_period] # 这里限制数量
+        top_results = results[:self.max_liquidation_clusters]
         
         # 归一化强度
         if top_results:
