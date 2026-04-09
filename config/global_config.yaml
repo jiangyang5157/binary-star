@@ -94,7 +94,7 @@ sniper:
   # [Structural]: Multipliers for structural proximity (TYPE_C).
   # VAH/VAL: 0.8 = requires price to be 20% closer to boundary.
   # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
-  vah_vol_trigger_multiplier: 0.8
+  vah_val_trigger_multiplier: 0.8
   poc_trigger_multiplier: 1.2
   liq_trigger_multiplier: 1.2
 
