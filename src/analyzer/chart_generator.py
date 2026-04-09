@@ -239,7 +239,8 @@ class ChartVisualRenderer:
                 ylim=(y_min, y_max),           # Enforce the adaptive topographical range
                 savefig=dict(fname=filepath, dpi=self.config.render_dpi, bbox_inches='tight'),
                 returnfig=True,
-                show_nontrading=False          # Focus strictly on market periods
+                show_nontrading=False,          # Focus strictly on market periods
+                scale_width_adjustment=dict(volume=0.7) # Thinner pillars for better separation
             )
             
             try:
@@ -285,7 +286,7 @@ class ChartVisualRenderer:
 
                 main_ax = axlist[0]
                 
-                # 3. Current Price Tracker (v6.75: Thin dashed line for immediate context)
+                # 4. Current Price Tracker (v6.75: Thin dashed line for immediate context)
                 current_price = plot_df['Close'].iloc[-1]
                 main_ax.axhline(
                     y=current_price, 
@@ -312,7 +313,7 @@ class ChartVisualRenderer:
                 )
                 for line in trendlines:
                     color = self.config.down_color if line['type'] == 'resistance' else self.config.up_color
-                    main_ax.plot(line['x'], line['y'], color=color, linestyle='--', linewidth=1.0, alpha=0.8)
+                    main_ax.plot(line['x'], line['y'], color=color, linestyle='--', linewidth=1.0, alpha=0.8, zorder=4)
     
                 # 6. OCR Text Hard Injection (Minimalist Right-Side Identifier)
                 # v6.65: Labels are right-aligned to the last candle, but price numbers 
@@ -397,7 +398,7 @@ class ChartVisualRenderer:
             x2=smoothed_v,         # 多边形的右边界（经过高斯平滑的轮廓）
             color=self.config.volume_profile_color, 
             alpha=self.config.volume_profile_alpha, 
-            zorder=3,              # Middle layer: Above Liquidations, below Candles
+            zorder=1,              # Bottom layer: Just above Liquidations (z=0)
             linewidth=0,           # 绝对禁止外边框，防止抗锯齿干扰
             edgecolor='none'       # 彻底关闭边缘颜色
         )

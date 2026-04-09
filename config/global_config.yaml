@@ -39,8 +39,8 @@ visuals:
   liq_max_alpha: 0.3           # High peak intensity
   liq_min_alpha: 0.1
   liq_legacy_alpha_factor: 5.0  # Denominator for legacy event scaling (v5.0 default)
-  liq_legacy_min_alpha: 0.10    # Minimum opacity for legacy raw orders
-  liq_legacy_max_alpha: 0.30    # Maximum opacity for legacy raw orders
+  liq_legacy_min_alpha: 0.2    # Minimum opacity for legacy raw orders
+  liq_legacy_max_alpha: 0.6    # Maximum opacity for legacy raw orders
   liq_radar_atr_multiplier: 0.5   # v11.1: Visual scaling for liquidation heatmap bands
 
 analytical:
