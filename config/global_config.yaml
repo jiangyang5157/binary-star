@@ -28,7 +28,7 @@ visuals:
   liq_long_color: "#00FF00"  # Neon Green (Long Trap - Below)
   liq_short_color: "#FF00FF" # Neon Purple (Short Squeeze - Above)
   volume_profile_width_ratio: 0.3 # Wide, confident profile
-  volume_profile_smoothing_sigma: 0
+  volume_profile_smoothing_sigma: 1.5
   volume_profile_color: "#B0BEC5"  # High-Contrast Blue-Silver (v7.6)
   volume_profile_alpha: 0.38         # Balanced visibility (v7.7 Tuning)
   chart_main_panel_weight: 4
