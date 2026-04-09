@@ -71,47 +71,90 @@ class VolumeProfileEngine:
     def compute_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
         Computes the volume profile distribution and key fair-value benchmarks.
+        v7.2: Uses Range-Based Distribution and Contiguous Value Area Expansion.
         """
         if df.empty:
             return {}
 
         min_p, max_p = df['low'].min(), df['high'].max()
-        price_bins = np.linspace(min_p, max_p, self.config.resolution_bins + 1)
+        num_bins = self.config.resolution_bins
+        price_bins = np.linspace(min_p, max_p, num_bins + 1)
+        v_profile = np.zeros(num_bins)
         
-        # Binning and aggregation
-        df['bin'] = np.digitize(df['typical_price'], price_bins)
-        profile = df.groupby('bin')['volume'].sum().reset_index()
-        profile['price'] = profile['bin'].apply(lambda x: price_bins[x-1] if x > 0 else price_bins[0])
+        # 1. Range-Based Volume Distribution (Fixes Wick Cut-off)
+        for _, row in df.iterrows():
+            low, high, vol = row['low'], row['high'], row['volume']
+            # Find which bins the candle covers
+            bin_start = np.digitize(low, price_bins) - 1
+            bin_end = np.digitize(high, price_bins) - 1
+            
+            # Clip to valid range
+            bin_start = max(0, min(num_bins - 1, bin_start))
+            bin_end = max(0, min(num_bins - 1, bin_end))
+            
+            num_covered = bin_end - bin_start + 1
+            vol_per_bin = vol / num_covered
+            v_profile[bin_start : bin_end + 1] += vol_per_bin
+
+        # 2. Point of Control (POC)
+        poc_idx = np.argmax(v_profile)
+        poc_price = price_bins[poc_idx]
         
-        # Point of Control (POC) - Peak Activity
-        poc_idx = profile['volume'].idxmax()
-        poc_price = profile.loc[poc_idx, 'price']
-        
-        # Value Area (VA) - Core Trading Range (e.g., 70% of volume)
-        total_vol = profile['volume'].sum()
+        # 3. Contiguous Value Area (VA) Expansion from POC
+        total_vol = v_profile.sum()
         target_va_vol = total_vol * self.config.value_area_ratio
         
-        sorted_profile = profile.sort_values(by='volume', ascending=False)
-        cumulative_vol = 0
-        va_prices = []
-        for _, row in sorted_profile.iterrows():
-            cumulative_vol += row['volume']
-            va_prices.append(row['price'])
-            if cumulative_vol >= target_va_vol:
-                break
+        va_idx_min = poc_idx
+        va_idx_max = poc_idx
+        current_va_vol = v_profile[poc_idx]
+        
+        # Expand until target volume reached
+        while current_va_vol < target_va_vol:
+            # Check neighbors
+            vol_above = 0
+            if va_idx_max + 1 < num_bins:
+                vol_above = v_profile[va_idx_max + 1]
+                # Look 2 bins ahead for smoother expansion if available
+                if va_idx_max + 2 < num_bins:
+                    vol_above += v_profile[va_idx_max + 2]
+            
+            vol_below = 0
+            if va_idx_min - 1 >= 0:
+                vol_below = v_profile[va_idx_min - 1]
+                if va_idx_min - 2 >= 0:
+                    vol_below += v_profile[va_idx_min - 2]
+            
+            if vol_above >= vol_below and va_idx_max + 1 < num_bins:
+                va_idx_max += 1
+                current_va_vol += v_profile[va_idx_max]
+            elif va_idx_min - 1 >= 0:
+                va_idx_min -= 1
+                current_va_vol += v_profile[va_idx_min]
+            else:
+                break # No more bins to expand into
                 
-        vah = max(va_prices) if va_prices else poc_price
-        val = min(va_prices) if va_prices else poc_price
+        vah = price_bins[va_idx_max]
+        val = price_bins[va_idx_min]
         
-        # Balanced/Imbalanced State (VA Width vs ATR-Macro)
-        # Note: We assume the profile's 'atr' for the latest bar is passed or accessible.
-        # But since we are in the engine, we just return the anchors and let the facade handle regime.
+        # v7.2 Audit log to trace VP data generation
+        logger.debug(
+            f"VolumeProfileEngine: Distribution Complete. "
+            f"Bins: {num_bins}, Total Vol: {total_vol:.2f}, "
+            f"Max Vol/Bin: {v_profile.max():.2f}, "
+            f"VA Bins: {va_idx_max - va_idx_min + 1}"
+        )
         
+        # Prepare profile data for reporting
+        profile_data = []
+        for i in range(num_bins):
+            if v_profile[i] > 0:
+                profile_data.append({"price": float(price_bins[i]), "volume": float(v_profile[i])})
+                
         return {
-            "poc": poc_price,
-            "vah": vah,
-            "val": val,
-            "profile_data": profile[['price', 'volume']].to_dict('records')
+            "poc": float(poc_price),
+            "vah": float(vah),
+            "val": float(val),
+            "profile_data": profile_data
         }
 
 class SignificantNodeFinder:
