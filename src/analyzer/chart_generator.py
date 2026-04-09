@@ -261,10 +261,10 @@ class ChartVisualRenderer:
 
                     # v6.51 Hardening: Distinguish Price from Volume to prevent scale confusion
                     if i == 0:
-                        ax.set_ylabel('Price', color=self.config.vah_val_color, fontsize=9, fontweight='bold')
+                        ax.set_ylabel('Price', color=self.config.vah_val_color, fontsize=10, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                     elif i == 2: # Volume panel usually at index 2
-                        ax.set_ylabel('Vol', color=self.config.vah_val_color, fontsize=9, fontweight='bold')
+                        ax.set_ylabel('Vol', color=self.config.vah_val_color, fontsize=10, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                         
                         # v11.8 Logic: Surgical targeting to only affect data bars (EXCLUDING axis background)
@@ -322,7 +322,7 @@ class ChartVisualRenderer:
                 
                 
                 label_style = dict(
-                    fontsize=8, 
+                    fontsize=6, 
                     fontweight='bold', 
                     ha='left',      # Move to the right margin (outside candles)
                     va='center',
