@@ -149,6 +149,10 @@ class MarketObserverConfig:
         visuals = cfg.get('visuals', {})
         analytical = cfg.get('analytical', {})
         
+        # v12.0: Unified Grouping for Profile and Trendline
+        vp_cfg = visuals.get('volume_profile', {})
+        ct_cfg = visuals.get('chart_trendline', {})
+        
         return cls(
             indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
             max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
@@ -207,11 +211,11 @@ class MarketObserverConfig:
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
 
-            # v8.98: Visuals (Optimized lookups using local 'visuals' variable)
-            volume_profile_width_ratio=float(visuals['volume_profile_width_ratio']),
-            volume_profile_smoothing_sigma=float(visuals['volume_profile_smoothing_sigma']),
-            volume_profile_color=str(visuals['volume_profile_color']),
-            volume_profile_alpha=float(visuals['volume_profile_alpha']),
+            # v12.0: Visuals (Optimized for nested groupings)
+            volume_profile_width_ratio=float(vp_cfg['width_ratio']),
+            volume_profile_smoothing_sigma=float(vp_cfg['smoothing_sigma']),
+            volume_profile_color=str(vp_cfg['color']),
+            volume_profile_alpha=float(vp_cfg['alpha']),
             chart_main_panel_weight=int(visuals['chart_main_panel_weight']),
             chart_volume_panel_weight=int(visuals['chart_volume_panel_weight']),
             render_dpi=int(visuals['render_dpi']),
@@ -221,8 +225,8 @@ class MarketObserverConfig:
             poc_color=str(visuals['poc_color']),
             vah_val_color=str(visuals['vah_val_color']),
             current_price_color=str(visuals['current_price_color']),
-            chart_trendline_peak_count=int(visuals['chart_trendline_peak_count']),
-            chart_trendline_window=int(visuals['chart_trendline_window']),
+            chart_trendline_peak_count=int(ct_cfg['peak_count']),
+            chart_trendline_window=int(ct_cfg['window']),
             liq_max_alpha=float(visuals['liq_max_alpha']),
             liq_min_alpha=float(visuals['liq_min_alpha']),
             liq_legacy_alpha_factor=float(visuals['liq_legacy_alpha_factor']),

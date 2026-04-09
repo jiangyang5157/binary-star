@@ -19,21 +19,23 @@ network:
 
 visuals:
   # --- Chart Rendering Tokens ---
+  render_dpi: 300
+  bg_color: "#0d1117"       # GitHub Dark Deep (v7.2 standard)
   up_color: "#26a69a"       # Teal
   down_color: "#ef5350"     # Coral
-  bg_color: "#0d1117"       # GitHub Dark Deep (v7.2 standard)
+  current_price_color: "#000000" # Bright Yellow/Gold for distinct price tracking
   poc_color: "#B0B0B0"      # Silver-Neutral (v9.1: Subtle Structural Axis)
   vah_val_color: "#A0A0A0"    # Silver-Gray (VAH/VAL)
-  current_price_color: "#000000" # Bright Yellow/Gold for distinct price tracking
-  chart_trendline_peak_count: 7  # v8.7 Structural Persistence
-  chart_trendline_window: 14      # v10.0 Fractal Sensitivity (standard: 5)
-  volume_profile_width_ratio: 0.3 # Wide, confident profile
-  volume_profile_smoothing_sigma: 1.5
-  volume_profile_color: "#B0BEC5"  # High-Contrast Blue-Silver (v7.6)
-  volume_profile_alpha: 0.3         # Balanced visibility (v7.7 Tuning)
+  volume_profile:
+    width_ratio: 0.3 # Wide, confident profile
+    smoothing_sigma: 1.5
+    color: "#B0BEC5"  # High-Contrast Blue-Silver (v7.6)
+    alpha: 0.3         # Balanced visibility (v7.7 Tuning)
+  chart_trendline:
+    peak_count: 7  # v8.7 Structural Persistence
+    window: 14      # v10.0 Fractal Sensitivity (standard: 5)
   chart_main_panel_weight: 4
   chart_volume_panel_weight: 1
-  render_dpi: 300
 
   # --- Liquidation Heatmap Aesthetics ---
   liq_max_alpha: 0.3           # High peak intensity
