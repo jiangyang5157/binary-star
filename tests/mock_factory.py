@@ -91,8 +91,10 @@ class MockDataFactory:
                         "max_seconds": 10
                     },
                     "max_tool_iterations": 5,
-                    "cache_expiration_minutes": 60,
-                    "enable_context_cache": True
+                    "context_cache": {
+                        "enable": True,
+                        "expiration_minutes": 60
+                    }
                 }
             },
             "system": {
@@ -107,15 +109,19 @@ class MockDataFactory:
                 "vah_val_color": "#2196F3",
                 "current_price_color": "#ffffff",
                 "liq_radar_atr_multiplier": 0.5,
-                "volume_profile_width_ratio": 0.2,
-                "volume_profile_smoothing_sigma": 1.0,
-                "volume_profile_color": "#787b86",
-                "volume_profile_alpha": 0.4,
+                "volume_profile": {
+                    "width_ratio": 0.2,
+                    "smoothing_sigma": 1.0,
+                    "color": "#787b86",
+                    "alpha": 0.4
+                },
                 "chart_main_panel_weight": 4,
                 "chart_volume_panel_weight": 1,
                 "render_dpi": 100,
-                "chart_trendline_peak_count": 5,
-                "chart_trendline_window": 10,
+                "chart_trendline": {
+                    "peak_count": 5,
+                    "window": 10
+                },
                 "liq_max_alpha": 0.3,
                 "liq_min_alpha": 0.1,
                 "liq_legacy_alpha_factor": 5.0,

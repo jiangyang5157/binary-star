@@ -77,8 +77,9 @@ class BinaryStarOrchestrator:
         self.retry_multiplier = float(retry_strategy['multiplier'])
         self.retry_min = int(retry_strategy['min_seconds'])
         self.retry_max = int(retry_strategy['max_seconds'])
-        self.cache_expiration_minutes = int(gemini_net['cache_expiration_minutes'])
-        self.enable_context_cache = bool(gemini_net['enable_context_cache'])
+        cache_cfg = gemini_net['context_cache']
+        self.cache_expiration_minutes = int(cache_cfg['expiration_minutes'])
+        self.enable_context_cache = bool(cache_cfg['enable'])
         
         # 3. Binary Star Protocol Parameters
         self.bs_config = self.config['binary_star']

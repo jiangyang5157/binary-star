@@ -31,8 +31,6 @@ regime_parameters:
   trend_intensity_threshold: 0.95
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
   trend_intensity_strong: 0.35
-  # Noise filter (floor) in ATR units to ignore micro-volatility.
-  noise_filter_atr_floor: 0.2
   # Minimum trend intensity required to justify directional trades during volatility expansion.
   trend_intensity_min_expansion: 0.1
 
@@ -52,10 +50,12 @@ regime_parameters:
   # Threshold to confirm institutional presence (High Participation).
   volume_participation_threshold: 1.5
   # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
+
   long_short_imbalance_ratio: 1.8
   # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).
   short_heavy_imbalance_ratio: 0.55
   # Confluence power of POC (Point of Control) relative to other nodes.
+
   poc_confluence_strength: 0.9
   # The 'Magnetic Field' range of the POC in ATR units.
   poc_gravity_atr_distance: 3.0
@@ -63,30 +63,38 @@ regime_parameters:
   poc_extreme_extension_atr: 4.0
   # Distance within which the POC acts as a hard exit target/magnet.
   poc_magnet_atr_threshold: 2.0
-  # Range width in ATR units used to classify 'Balanced' vs 'Trending' regimes.
-  ranging_width_atr: 2.0
-  # Volume multiplier required to override the POC's gravitational pull.
-  gravity_volume_override_ratio: 1.5
+
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
   structural_buffer_atr: 0.05
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
+
+  # Noise filter (floor) in ATR units to ignore micro-volatility.
+  noise_filter_atr_floor: 0.2
+  # Range width in ATR units used to classify 'Balanced' vs 'Trending' regimes.
+  ranging_width_atr: 2.0
+  # Volume multiplier required to override the POC's gravitational pull.
+  gravity_volume_override_ratio: 1.5
   # Maximum allowed drift of the current price from the historical Anchor price.
   anchor_drift_threshold: 3.0
 
   # --- Micro-Sentiment & Exhaustion Indicators ---
   # Score threshold for 'Volume Vacuums' where liquidity is non-existent.
   vacuum_risk_score: 0.3
+
   # Degree of wick skewness required to signal buyer/seller exhaustion.
   wick_skewness_exhaustion: 0.6
   wick_skewness_momentum_bullish: 0.8
   wick_skewness_momentum_bearish: 0.2
+
   # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
   cvd_intensity_threshold: 0.15
   # Extreme single-sided imbalance that triggers immediate absorption audit.
   cvd_intensity_extreme: 0.25
+
   # Absolute funding threshold for Retail Squeeze detection.
   funding_extreme_threshold: 0.0005
+
   # Minimum compression required to signal an impending squeeze.
   squeeze_threshold: 1.0
   # Probability floor for squeeze audit validation.
@@ -114,6 +122,7 @@ regime_parameters:
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
   breakout_frontrun_atr: 0.75
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
+
   min_rr_ranging: 1.0
   min_rr_trending: 1.0
 
@@ -127,6 +136,7 @@ audit_review:
   missed_opportunity_atr_threshold: 2.0
   # Price % move threshold for catastrophic missed opportunities.
   catastrophic_miss_pct_threshold: 3.0
+
   # MAE stress thresholds (percentage of ATR) for performance tiering.
   mae_stress_thresholds:
     pinpoint: 20.0
@@ -144,6 +154,7 @@ topography_parameters:
   volume_profile_value_area_width: 0.86
   # Resolution of the price histogram.
   volume_profile_price_bucket_count: 300
+
   # --- Strategic Indicator Smoothing ---
   # Period for trend detection (EMA).
   exponential_moving_average_period: 21
@@ -179,7 +190,6 @@ topography_parameters:
   max_liquidation_events_to_fetch: 50
   max_liquidation_events_for_context: 10
 
-
 binary_star:
   # gemini-3.1-pro-preview
   # gemini-3-flash-preview
@@ -193,8 +203,10 @@ binary_star:
   session:
     role_definition_prompt: src/agent/prompts/session.md
     model_temperature: 0.4
+
     # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
+
     # Hard safety boundaries for stop-loss placements.
     stop_loss_buffer_min: 1.25
     stop_loss_buffer_max: 2.5
@@ -214,6 +226,7 @@ binary_star:
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
     model_temperature: 0.0
+
     # Skepticism buckets for protocol compliance mapping.
     threshold_skepticism_clear: 40
     threshold_skepticism_weak: 69
@@ -227,6 +240,7 @@ evolver:
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency.
   model_temperature: 0.0
+  
   # --- Darwinian Evolution Thresholds ---
   # Minimum repeated failures across sessions to trigger a systemic instruction patch.
   min_failure_instances: 2

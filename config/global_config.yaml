@@ -14,8 +14,9 @@ network:
       multiplier: 1
       min_seconds: 2
       max_seconds: 10
-    enable_context_cache: true
-    cache_expiration_minutes: 10
+    context_cache:
+      enable: true
+      expiration_minutes: 10
 
 visuals:
   # --- Chart Rendering Tokens ---
