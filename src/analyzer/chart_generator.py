@@ -24,7 +24,6 @@ class ChartConfig:
     up_color: str
     down_color: str
     bg_color: str
-    grid_color: str
     poc_color: str
     value_area_color: str
     liq_long_color: str
@@ -114,7 +113,7 @@ class ChartVisualRenderer:
     Core engine for rendering candlestick charts with logical overlays.
     """
     def __init__(self, output_dir: str, up_color: str, down_color: str, bg_color: str, 
-                 grid_color: str, poc_color: str, value_area_color: str, 
+                 poc_color: str, value_area_color: str, 
                  liq_long_color: str, liq_short_color: str, current_price_color: str,
                  volume_profile_width_ratio: float,
                  render_dpi: int, volume_profile_smoothing_sigma: float, volume_profile_color: str,
@@ -126,7 +125,6 @@ class ChartVisualRenderer:
             up_color=up_color,
             down_color=down_color,
             bg_color=bg_color,
-            grid_color=grid_color,
             poc_color=poc_color,
             value_area_color=value_area_color,
             liq_long_color=liq_long_color,
@@ -168,8 +166,7 @@ class ChartVisualRenderer:
         )
         return mpf.make_mpf_style(
             marketcolors=mc, 
-            gridstyle='--', 
-            gridcolor=self.config.grid_color, 
+            gridstyle='none', 
             y_on_right=True, 
             facecolor=self.config.bg_color
         )
@@ -225,18 +222,18 @@ class ChartVisualRenderer:
                     # Hide left/top spines
                     ax.spines['left'].set_visible(False)
                     ax.spines['top'].set_visible(False)
-                    ax.spines['right'].set_color(self.config.grid_color)
-                    ax.spines['bottom'].set_color(self.config.grid_color)
+                    ax.spines['right'].set_color(self.config.value_area_color)
+                    ax.spines['bottom'].set_color(self.config.value_area_color)
                     
                     # Force price ticks to right only
                     ax.yaxis.set_ticks_position('right')
 
                     # v6.51 Hardening: Distinguish Price from Volume to prevent scale confusion
                     if i == 0:
-                        ax.set_ylabel('Price', color=self.config.grid_color, fontsize=9, fontweight='bold')
+                        ax.set_ylabel('Price', color=self.config.value_area_color, fontsize=9, fontweight='bold')
                         ax.yaxis.set_label_position('right')
                     elif i == 2: # Volume panel usually at index 2
-                        ax.set_ylabel('Vol', color=self.config.grid_color, fontsize=9, fontweight='bold')
+                        ax.set_ylabel('Vol', color=self.config.value_area_color, fontsize=9, fontweight='bold')
                         ax.yaxis.set_label_position('right')
 
                 main_ax = axlist[0]
@@ -269,23 +266,22 @@ class ChartVisualRenderer:
                 # 6. OCR Text Hard Injection (Minimalist Right-Side Identifier)
                 # v6.65: Labels are right-aligned to the last candle, but price numbers 
                 # are removed to keep the footprint extremely small and non-obstructive.
-                x_pos = len(plot_df) - 1
-                bbox_alpha = 0.8
+                x_pos = len(plot_df) + 1  # Standard shift to the right of the price action
+                
                 
                 label_style = dict(
                     fontsize=8, 
                     fontweight='bold', 
-                    color='white',
-                    ha='right',      # Right-aligned to price action
+                    ha='left',      # Move to the right margin (outside candles)
                     va='center',
-                    zorder=12         # Top layer for readability
+                    zorder=12        # Top layer for readability
                 )
                 
                 # Point of Control (POC)
                 if poc > 0:
                     main_ax.text(
                         x_pos, poc, "POC", 
-                        bbox=dict(facecolor=self.config.poc_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
+                        color=self.config.poc_color,
                         **label_style
                     )
                 
@@ -293,7 +289,7 @@ class ChartVisualRenderer:
                 if vah > 0:
                     main_ax.text(
                         x_pos, vah, "VAH", 
-                        bbox=dict(facecolor=self.config.value_area_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
+                        color=self.config.value_area_color,
                         **label_style
                     )
                     
@@ -301,7 +297,7 @@ class ChartVisualRenderer:
                 if val > 0:
                     main_ax.text(
                         x_pos, val, "VAL", 
-                        bbox=dict(facecolor=self.config.value_area_color, alpha=bbox_alpha, edgecolor='none', boxstyle='round,pad=0.2'),
+                        color=self.config.value_area_color,
                         **label_style
                     )
 
@@ -347,7 +343,7 @@ class ChartVisualRenderer:
             x2=smoothed_v,         # 多边形的右边界（经过高斯平滑的轮廓）
             color=self.config.volume_profile_color, 
             alpha=self.config.volume_profile_alpha, 
-            zorder=10,             # v6.90: Elevated above POC/VAH/VAL lines per request
+            zorder=3,              # Middle layer: Above Liquidations, below Candles
             linewidth=0,           # 绝对禁止外边框，防止抗锯齿干扰
             edgecolor='none'       # 彻底关闭边缘颜色
         )
@@ -394,7 +390,7 @@ class ChartVisualRenderer:
                     if not (min_p <= price <= max_p):
                         continue
                     side = parsed['side']
-                    color = self.config.liq_long_color if side == 'BUY' else self.config.liq_short_color
+                    color = self.config.liq_short_color if side == 'BUY' else self.config.liq_long_color
                     qty = parsed['qty']
                     # v7.0 Parametric Legacy Alpha Scaling
                     alpha = min(max(qty / self.config.liq_legacy_alpha_factor, self.config.liq_legacy_min_alpha), self.config.liq_legacy_max_alpha)
