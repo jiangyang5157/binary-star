@@ -30,8 +30,8 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
    - **Active Order**: If `last_plan.opinion` is `BULLISH` or `BEARISH`, directly compare the proposed `last_plan` against the `compliance_verdict` in `{math_fact_check}`.
    - **Neutral Bypass**: If `last_plan.opinion` is `NEUTRAL`, you MUST skip all `compliance_verdict` checks and route directly to Protocol `THE NEUTRALITY PARADOX`.
 4. **THE NEUTRALITY PARADOX**: If the Session Analyst surrenders to `NEUTRAL`, verify if the telemetry justifies it.
-   - **Amnesty Clause**: If the current `NEUTRAL` stance is the result of a **TERMINAL** veto in ANY previous round of the current session (check `{debate_history_json}`), you **MUST NOT** trigger `[INACTION_BIAS]` or `[TREND_STARVATION]`.
-   - **Confluence Audit**: If no previous TERMINAL exists, you MUST strictly check the `Inaction Bias` and `Trend Starvation` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
+    - **Amnesty Clause**: If the current `NEUTRAL` stance is the result of a **TERMINAL** veto in ANY previous round of the current session (check `{debate_history_json}`), you **MUST NOT** trigger `[INACTION_BIAS]`, `[TREND_STARVATION]`, or `[OPPORTUNITY_DENIAL]`.
+    - **Confluence Audit**: If no previous TERMINAL exists, you MUST strictly check the `Inaction Bias`, `Trend Starvation`, and `Opportunity Denial` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
 5. **[THE PHYSICAL TRUST LAW]**: The tactical parameters in `{last_plan}` (`projected_holding_hours`, `rr_ratio`, distances) have been hard-verified by the underlying Python physical engine. **You MUST ASSUME these numbers are 100% mathematically accurate.** Do not waste computing power recalculating them. Your job is NOT to check the arithmetic. Your job is to judge if the *strategic implications* of these numbers are safe. For example, do not verify *how* the engine calculated a 48-hour holding time; instead, judge: "Is it safe to hold a position for 48 hours during a `[VOLATILITY_CLIMAX]`?" If not, VETO it using `[OVER_EXTENSION]`.
 
 # LOGIC_MACROS
