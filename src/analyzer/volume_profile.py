@@ -17,8 +17,7 @@ class VolumeProfileConfig:
     value_area_ratio: float           # Percentage of volume to include in Value Area (configured via topography_parameters)
     resolution_bins: int              # Number of horizontal price buckets
     atr_period: int                   # Window for Average True Range calculation
-    max_high_volume_node_count: int                # Maximum High Volume Nodes to return
-    max_low_volume_node_count: int                # Maximum Low Volume Nodes to return
+    max_volume_node_count: int                # Maximum structural nodes (HVN/LVN) to return
     high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
     low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
     min_node_distance: int            # Minimum bin separation between nodes
@@ -155,8 +154,8 @@ class SignificantNodeFinder:
         ], key=lambda x: x['vacuum_score'])
         
         return {
-            "hvn": hvns[:self.config.max_high_volume_node_count],
-            "lvn": lvns[:self.config.max_low_volume_node_count]
+            "hvn": hvns[:self.config.max_volume_node_count],
+            "lvn": lvns[:self.config.max_volume_node_count]
         }
 
 class VolumeProfileAnalyzer:
@@ -177,8 +176,7 @@ class VolumeProfileAnalyzer:
                 value_area_ratio=float(kwargs['value_area_pct']),
                 resolution_bins=int(kwargs['volume_profile_price_bucket_count']),
                 atr_period=int(kwargs['atr_window']),
-                max_high_volume_node_count=int(kwargs['max_high_volume_node_count']),
-                max_low_volume_node_count=int(kwargs['max_low_volume_node_count']),
+                max_volume_node_count=int(kwargs['max_volume_node_count']),
                 high_volume_node_detection_threshold=float(kwargs['high_volume_node_detection_threshold']),
                 low_volume_node_detection_threshold=float(kwargs['low_volume_node_detection_threshold']),
                 min_node_distance=int(kwargs['node_min_separation']),

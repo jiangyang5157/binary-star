@@ -61,8 +61,7 @@ class MarketObserverConfig:
     volume_ma_period: int
     max_liquidation_events_to_fetch: int
     max_liquidation_events_for_context: int
-    max_high_volume_node_count: int
-    max_low_volume_node_count: int
+    max_volume_node_count: int
     high_volume_node_detection_threshold: float
     low_volume_node_detection_threshold: float
     min_node_gap_price: int
@@ -169,8 +168,7 @@ class MarketObserverConfig:
             volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
             volume_profile_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
             volume_ma_period=int(topography['volume_moving_average_period']),
-            max_high_volume_node_count=int(topography['max_high_volume_node_count']),
-            max_low_volume_node_count=int(topography['max_low_volume_node_count']),
+            max_volume_node_count=int(topography['max_volume_node_count']),
             high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
             low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
             min_node_gap_price=int(min_node_gap),
@@ -689,8 +687,7 @@ class MarketObserver:
             value_area_ratio=cfg.volume_profile_area_ratio, 
             resolution_bins=cfg.volume_profile_price_bucket_count,
             atr_period=cfg.atr_period, 
-            max_high_volume_node_count=cfg.max_high_volume_node_count, 
-            max_low_volume_node_count=cfg.max_low_volume_node_count,
+            max_volume_node_count=cfg.max_volume_node_count, 
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
             min_node_distance=cfg.min_node_gap_price,

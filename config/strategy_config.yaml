@@ -151,10 +151,8 @@ topography_parameters:
   volume_moving_average_period: 21
 
   # --- Structural Node Detection ---
-  # Max number of HVN (High Volume Nodes) to track as magnets.
-  max_high_volume_node_count: 3
-  # Max number of LVN (Low Volume Nodes) to track as rejection barriers.
-  max_low_volume_node_count: 3
+  # Max number of structural nodes (HVN/LVN) to track.
+  max_volume_node_count: 3
   # Probability threshold for detecting a structural High Volume Node.
   high_volume_node_detection_threshold: 0.15
   # Probability threshold for detecting a structural Low Volume Node.
