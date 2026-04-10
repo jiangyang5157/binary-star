@@ -170,7 +170,7 @@ class MockDataFactory:
                 "macro_context": {"time_interval": "1h", "lookback_candles": 100},
                 "micro_context": {"time_interval": "15m", "lookback_candles": 100},
                 "funding_rate_macro_lookback_candles": 24,
-                "order_flow_micro_lookback_candles": 4,
+                "cvd_micro_lookback_candles": 4,
                 "trend_intensity_macro_lookback_candles": 24,
                 "volatility_intensity_macro_lookback_candles": 100
             },

@@ -25,7 +25,7 @@ analysis_window:
   trend_intensity_macro_lookback_candles: 24
   volatility_intensity_macro_lookback_candles: 24
   # --- 微观张量 (Micro Tensors) ---
-  order_flow_micro_lookback_candles: 4
+  cvd_micro_lookback_candles: 4
 
 regime_parameters:
   # --- Trend & Momentum Vectors (Regime Detection) ---

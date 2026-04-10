@@ -52,7 +52,7 @@ class MarketObserverConfig:
     micro_context: TimeframeConfig
     volume_profile_area_ratio: float
     volume_profile_price_bucket_count: int
-    order_flow_micro_lookback_candles: int
+    cvd_micro_lookback_candles: int
     atr_period: int
     bb_period: int
     bb_std_dev: float
@@ -164,7 +164,7 @@ class MarketObserverConfig:
                 lookback_candles=int(micro['lookback_candles'])
             ),
             funding_rate_macro_lookback_candles=int(sampling['funding_rate_macro_lookback_candles']),
-            order_flow_micro_lookback_candles=int(sampling['order_flow_micro_lookback_candles']),
+            cvd_micro_lookback_candles=int(sampling['cvd_micro_lookback_candles']),
             trend_intensity_macro_lookback_candles=int(sampling['trend_intensity_macro_lookback_candles']),
             volatility_intensity_macro_lookback_candles=int(sampling['volatility_intensity_macro_lookback_candles']),
             
@@ -261,13 +261,6 @@ class MarketObserverConfig:
         """Reverse calculates the temporal duration of the volatility lookback window."""
         secs = get_interval_seconds(self.macro_context.time_interval)
         return (self.volatility_intensity_macro_lookback_candles * secs) / 3600.0
-
-
-    @property
-    def order_flow_lookback_hours(self) -> float:
-        """Reverse calculates the temporal duration of the order flow window."""
-        secs = get_interval_seconds(self.micro_context.time_interval)
-        return (self.order_flow_micro_lookback_candles * secs) / 3600.0
 
 @dataclass
 class RawMarketData:
@@ -468,7 +461,7 @@ class MarketMetricsRefiner:
         cvd_total_vol = 0.0
         
         # 1. Calculate CVD Intensity using standardized volume lookback candles
-        lookback_candles = self.config.order_flow_micro_lookback_candles
+        lookback_candles = self.config.cvd_micro_lookback_candles
         
         if len(raw.micro_klines) >= lookback_candles:
             curr_window = raw.micro_klines[-lookback_candles:]

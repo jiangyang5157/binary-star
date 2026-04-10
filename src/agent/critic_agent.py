@@ -27,7 +27,7 @@ class CriticConfig(AgentConfig):
     strategy_intent: str
     macro_interval: str
     micro_interval: str
-    order_flow_micro_lookback_candles: int
+    cvd_micro_lookback_candles: int
     trend_intensity_threshold: float
     volatility_baseline_ratio: float
     volatility_expansion_ratio: float
@@ -92,7 +92,7 @@ class CriticConfig(AgentConfig):
             strategy_intent=str(cfg_dict.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
-            order_flow_micro_lookback_candles=int(sampling['order_flow_micro_lookback_candles']),
+            cvd_micro_lookback_candles=int(sampling['cvd_micro_lookback_candles']),
             trend_intensity_threshold=float(regime['trend_intensity_threshold']),
             volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
             volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
