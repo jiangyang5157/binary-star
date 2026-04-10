@@ -53,7 +53,7 @@ regime_parameters:
   # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
   long_short_imbalance_ratio: 1.5
   # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).
-  short_heavy_imbalance_ratio: 0.55
+  short_heavy_imbalance_ratio: 0.6
   # Confluence power of POC (Point of Control) relative to other nodes.
 
   poc_confluence_strength: 0.9
@@ -65,7 +65,7 @@ regime_parameters:
   poc_magnet_atr_threshold: 2.0
 
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
-  structural_buffer_atr: 0.25
+  structural_buffer_atr: 0.5
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
 

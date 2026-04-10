@@ -72,7 +72,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
     - **Neutrality Audit (NEUTRAL)**: Verify if the Flow Data justifies inaction. If `cvd_intensity_ratio` > `{cvd_intensity_threshold}` AND `ABSORPTION_RISK` == FALSE, the Strategist is ignoring a high-conviction breakout; you MUST trigger **[OPPORTUNITY_DENIAL]**.
 3. **Structural & Temporal Integrity (The Shield Audit)**: (**SKIP IF OPINION IS NEUTRAL**). Directly audit the physical safety of the plan using snapshots and `math_fact_check`.
     - **Shield Integrity**: If `sl_is_shielded: False`, trigger **[ANCHOR_VIOLATION]**.
-    - **PHYSICAL POSITION CHECK**: You MUST visually verify that the designated structural anchor (HVN/POC/Boundary) is physically located **BETWEEN** the `entry` and the `stop_loss`. If both Entry and SL are on the same side of the anchor, the shield is an illusion; you MUST trigger **[ANCHOR_VIOLATION]**.
+    - **PHYSICAL POSITION CHECK**: You MUST visually verify that the designated structural anchor (HVN/POC/Boundary) is physically located **BETWEEN** the `entry` and the `stop_loss`. If the anchor is above both (for longs) or below both (for shorts), the shield is an illusion; you MUST trigger **[ANCHOR_VIOLATION]**.
     - **Temporal Sustainability**: Evaluate if `projected_holding_hours` is suicidal given current volatility. (e.g. holding 48h during a `[VOLATILITY_CLIMAX]`). If so, trigger **[OVER_EXTENSION]**.
     - **Physical Compliance**: If `compliance_verdict` flags any math error, trigger **[MATH_VIOLATION]**. Do not recalculate.
 4. **Global Consistency Audit**: Compare the current `last_plan` against `{debate_history_json}`.
