@@ -510,6 +510,7 @@ class MarketMetricsRefiner:
             "cvd_lookback_candles": lookback_candles,
             "funding_rate": f_rate,
             "funding_rate_delta": f_delta,
+            "funding_rate_lookback_candles": self.config.funding_rate_macro_lookback_candles,
             "liquidation_clusters": self.radar.synthesize_clusters(
                 raw.micro_klines, 
                 raw.oi_history, 
