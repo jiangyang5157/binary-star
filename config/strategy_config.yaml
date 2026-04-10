@@ -49,9 +49,9 @@ regime_parameters:
   min_volume_participation_ratio: 1.0
   # Threshold to confirm institutional presence (High Participation).
   volume_participation_threshold: 1.5
-  # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
 
-  long_short_imbalance_ratio: 1.8
+  # Required ratio of Long/Short liquidation or volume delta for bias confirmation.
+  long_short_imbalance_ratio: 1.5
   # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).
   short_heavy_imbalance_ratio: 0.55
   # Confluence power of POC (Point of Control) relative to other nodes.
@@ -104,7 +104,6 @@ regime_parameters:
   # [Sensitivity]: Thresholds for detecting retail dominance traps.
   liq_radar_long_threshold: 1.05  # Taker Long/Short ratio above which longs are considered crowded.
   liq_radar_short_threshold: 0.95 # Taker Long/Short ratio below which shorts are considered crowded.
-  
   # [Physics]: Theoretical liquidation distances projected from the entry event.
   liq_radar_projection_50x: 0.02 # Expected price distance (2%) for 50x leverage liquidation.
   liq_radar_projection_25x: 0.04 # Expected price distance (4%) for 25x leverage liquidation.
@@ -240,7 +239,7 @@ evolver:
   role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency.
   model_temperature: 0.0
-  
+
   # --- Darwinian Evolution Thresholds ---
   # Minimum repeated failures across sessions to trigger a systemic instruction patch.
   min_failure_instances: 2
