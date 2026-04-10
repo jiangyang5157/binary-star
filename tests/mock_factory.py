@@ -182,7 +182,7 @@ class MockDataFactory:
                 "max_volume_node_count": 3,
                 "high_volume_node_detection_threshold": 1.2,
                 "low_volume_node_detection_threshold": 0.8,
-                "min_price_gap_between_nodes": 10,
+                "min_node_gap_atr": 1.2,
                 "top_structural_node_count": 3,
                 "average_true_range_period": 14,
                 "bollinger_bands_period": 20,

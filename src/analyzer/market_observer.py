@@ -64,7 +64,7 @@ class MarketObserverConfig:
     max_volume_node_count: int
     high_volume_node_detection_threshold: float
     low_volume_node_detection_threshold: float
-    min_node_gap_price: int
+    min_node_gap_atr: float
     top_structural_node_count: int
     trend_intensity_lookback_hours: float
     wick_skewness_period: int
@@ -138,13 +138,12 @@ class MarketObserverConfig:
         macro = sampling['macro_context']
         micro = sampling['micro_context']
         
-        # Backwards Compatibility: Handle renamed keys in historical audit reports
-        min_node_gap = topography.get('min_price_gap_between_nodes', topography.get('min_node_gap_price'))
-        def_struct_dist = topography.get('default_structural_distance', topography.get('default_structural_distance_atr'))
+        min_node_gap_atr = topography['min_node_gap_atr']
+        def_struct_dist = topography['default_structural_distance_atr']
         
-        volume_part_surge = regime.get('volume_surge_vs_ma_ratio', regime.get('volume_breakout_threshold'))
-        min_volume_part = regime.get('min_volume_participation_ratio', regime.get('participation_volume_threshold'))
-        balancing_width = regime.get('ranging_width_atr', regime.get('balanced_atr_multiplier'))
+        volume_part_surge = regime['volume_surge_vs_ma_ratio']
+        min_volume_part = regime['min_volume_participation_ratio']
+        balancing_width = regime['ranging_width_atr']
 
         visuals = cfg.get('visuals', {})
         analytical = cfg.get('analytical', {})
@@ -175,7 +174,7 @@ class MarketObserverConfig:
             max_volume_node_count=int(topography['max_volume_node_count']),
             high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
             low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
-            min_node_gap_price=int(min_node_gap),
+            min_node_gap_atr=float(min_node_gap_atr),
             top_structural_node_count=int(topography['top_structural_node_count']),
             atr_period=int(topography['average_true_range_period']),
             bb_period=int(topography['bollinger_bands_period']),
@@ -370,7 +369,7 @@ class MarketMetricsRefiner:
         current_price = m_df['close'].iloc[-1] if not m_df.empty else 0
         
         profile = self.vp.calculate_profile(m_df)
-        nodes = self.vp.find_significant_nodes(profile)
+        nodes = self.vp.find_significant_nodes(profile, atr=atr_macro)
         regime_data = self.regime.analyze(m_df)
         
         return ProcessedMarketMetrics(
@@ -703,7 +702,7 @@ class MarketObserver:
             max_volume_node_count=cfg.max_volume_node_count, 
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
-            min_node_distance=cfg.min_node_gap_price,
+            min_node_gap_atr=cfg.min_node_gap_atr,
             ranging_width_atr=cfg.ranging_width_atr
         )
         return VolumeProfileAnalyzer(config=vp_cfg)

@@ -173,7 +173,7 @@ topography_parameters:
   # Probability threshold for detecting a structural Low Volume Node.
   low_volume_node_detection_threshold: 0.05
   # [analysis_window] Minimum gap required to distinguish two separate structural nodes.
-  min_price_gap_between_nodes: 100
+  min_node_gap_atr: 1.2
   top_structural_node_count: 3
 
   # --- Technical Sensors (Physics Math) ---

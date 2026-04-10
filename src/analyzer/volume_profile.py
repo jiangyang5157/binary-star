@@ -20,7 +20,7 @@ class VolumeProfileConfig:
     max_volume_node_count: int                # Maximum structural nodes (HVN/LVN) to return
     high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
     low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
-    min_node_distance: int            # Minimum bin separation between nodes
+    min_node_gap_atr: float           # ATR multiplier for dynamic node separation (v12.0)
     ranging_width_atr: float          # ATR multiplier for state classification
 
 @dataclass(frozen=True)
@@ -164,22 +164,35 @@ class SignificantNodeFinder:
     def __init__(self, config: VolumeProfileConfig):
         self.config = config
 
-    def find_nodes(self, profile_result: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    def find_nodes(self, profile_result: Dict[str, Any], atr: float) -> Dict[str, List[Dict[str, Any]]]:
         """
         Identifies High Volume Nodes (peaks) and Low Volume Nodes (valleys).
+        Uses dynamic ATR-based distancing for cross-asset scale invariance.
         """
         data = profile_result.get("profile_data", [])
-        if not data:
+        if not data or atr <= 0:
             return {"hvn": [], "lvn": []}
             
         vols = np.array([float(d['volume']) for d in data])
         prices = np.array([float(d['price']) for d in data])
         max_v = vols.max() if vols.size > 0 else 1.0
         
+        # Calculate Dynamic Bin Distance
+        # bin_width = (max_p - min_p) / num_bins
+        # However, we can also derive it from the price array if it's evenly spaced
+        price_range = prices.max() - prices.min()
+        if price_range <= 0:
+            bin_dist = 1
+        else:
+            bin_width = price_range / len(prices)
+            bin_dist = max(1, int((atr * self.config.min_node_gap_atr) / bin_width))
+
+        logger.debug(f"SignificantNodeFinder: ATR={atr:.2f} | Gap_ATR={self.config.min_node_gap_atr} | Bin_Dist={bin_dist}")
+
         # Detect HVNs (Local Maxima)
         h_peaks, _ = find_peaks(vols, 
                                 prominence=max_v * self.config.high_volume_node_detection_threshold, 
-                                distance=self.config.min_node_distance)
+                                distance=bin_dist)
         
         hvns = sorted([
             {"price": round(float(prices[i]), 2), "strength": round(float(vols[i] / max_v), 3)}
@@ -189,7 +202,7 @@ class SignificantNodeFinder:
         # Detect LVNs (Local Minima / Liquid Vacuums)
         l_valleys, _ = find_peaks(-vols, 
                                   prominence=max_v * self.config.low_volume_node_detection_threshold, 
-                                  distance=self.config.min_node_distance)
+                                  distance=bin_dist)
         
         lvns = sorted([
             {"price": round(float(prices[i]), 2), "vacuum_score": round(float(vols[i] / max_v), 3)}
@@ -208,23 +221,12 @@ class VolumeProfileAnalyzer:
     """
     def __init__(self, **kwargs):
         """
-        Initializes the analyzer. Supports individual arguments for backward compatibility
-        with agents, or a VolumeProfileConfig object.
+        Initializes the analyzer. Strictly requires a VolumeProfileConfig object.
         """
-        if len(kwargs) == 1 and isinstance(next(iter(kwargs.values())), VolumeProfileConfig):
-            self.config = next(iter(kwargs.values()))
+        if "config" in kwargs and isinstance(kwargs["config"], VolumeProfileConfig):
+            self.config = kwargs["config"]
         else:
-            # Map legacy names to new config structure (strictly)
-            self.config = VolumeProfileConfig(
-                value_area_ratio=float(kwargs['value_area_pct']),
-                resolution_bins=int(kwargs['volume_profile_price_bucket_count']),
-                atr_period=int(kwargs['atr_window']),
-                max_volume_node_count=int(kwargs['max_volume_node_count']),
-                high_volume_node_detection_threshold=float(kwargs['high_volume_node_detection_threshold']),
-                low_volume_node_detection_threshold=float(kwargs['low_volume_node_detection_threshold']),
-                min_node_distance=int(kwargs['node_min_separation']),
-                ranging_width_atr=float(kwargs['ranging_width_atr'])
-            )
+            raise ValueError("VolumeProfileAnalyzer: 'config' argument must be a VolumeProfileConfig instance.")
             
         self.preprocessor = MarketDataPreprocessor()
         self.engine = VolumeProfileEngine(self.config)
@@ -238,9 +240,9 @@ class VolumeProfileAnalyzer:
         """Entry point for volume distribution analysis."""
         return self.engine.compute_profile(df)
 
-    def find_significant_nodes(self, profile_result: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
+    def find_significant_nodes(self, profile_result: Dict[str, Any], atr: float) -> Dict[str, List[Dict[str, Any]]]:
         """Entry point for identifying structural support/resistance levels."""
-        return self.node_finder.find_nodes(profile_result)
+        return self.node_finder.find_nodes(profile_result, atr=atr)
 
     def analyze(self, klines_data: List[KlineData]) -> Dict[str, Any]:
         """
@@ -254,8 +256,9 @@ class VolumeProfileAnalyzer:
             }
             
         df = self.process_klines(klines_data)
+        atr = df['atr'].iloc[-1] if not df.empty and 'atr' in df.columns else 0.0
         profile = self.calculate_profile(df)
-        nodes = self.find_significant_nodes(profile)
+        nodes = self.find_significant_nodes(profile, atr=atr)
         
         # Merge results
         result = profile.copy()

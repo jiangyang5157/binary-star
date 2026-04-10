@@ -52,7 +52,7 @@ class SniperScout:
             max_volume_node_count=self.obs_config.max_volume_node_count,
             high_volume_node_detection_threshold=self.obs_config.high_volume_node_detection_threshold,
             low_volume_node_detection_threshold=self.obs_config.low_volume_node_detection_threshold,
-            min_node_distance=self.obs_config.min_node_gap_price,
+            min_node_gap_atr=self.obs_config.min_node_gap_atr,
             ranging_width_atr=self.obs_config.ranging_width_atr
         )
         self.vp_analyzer = VolumeProfileAnalyzer(config=vp_cfg)
