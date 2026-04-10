@@ -85,9 +85,9 @@ regime_parameters:
   vacuum_risk_score: 0.3
 
   # Degree of wick skewness required to signal buyer/seller exhaustion.
-  wick_skewness_exhaustion: 0.6
-  wick_skewness_momentum_bullish: 0.8
-  wick_skewness_momentum_bearish: 0.2
+  wick_skew_exhaustion: 0.6
+  wick_skew_momentum_bullish: 0.8
+  wick_skew_momentum_bearish: 0.2
 
   # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
   cvd_intensity_threshold: 0.15

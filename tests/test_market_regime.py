@@ -28,7 +28,7 @@ class TestSemanticConsistency(unittest.TestCase):
             ranging_width_atr=1.5
         )
 
-    def test_wick_skewness_directionality(self):
+    def test_wick_skew_directionality(self):
         """Verify that upper wicks result in positive skewness (selling pressure)."""
         # Create 30 candles with long upper wicks to satisfy 20-period BB window
         data = {

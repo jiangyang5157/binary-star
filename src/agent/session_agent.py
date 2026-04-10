@@ -46,9 +46,9 @@ class SessionConfig(AgentConfig):
     poc_gravity_atr_distance: float
     poc_extreme_extension_atr: float
     vacuum_risk_score: float
-    wick_skewness_exhaustion: float
-    wick_skewness_momentum_bullish: float
-    wick_skewness_momentum_bearish: float
+    wick_skew_exhaustion: float
+    wick_skew_momentum_bullish: float
+    wick_skew_momentum_bearish: float
     trend_intensity_strong: float
     trend_intensity_min_expansion: float
     min_rr_ranging: float
@@ -123,9 +123,9 @@ class SessionConfig(AgentConfig):
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             poc_extreme_extension_atr=float(regime['poc_extreme_extension_atr']),
             vacuum_risk_score=float(regime['vacuum_risk_score']),
-            wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
-            wick_skewness_momentum_bullish=float(regime['wick_skewness_momentum_bullish']),
-            wick_skewness_momentum_bearish=float(regime['wick_skewness_momentum_bearish']),
+            wick_skew_exhaustion=float(regime['wick_skew_exhaustion']),
+            wick_skew_momentum_bullish=float(regime['wick_skew_momentum_bullish']),
+            wick_skew_momentum_bearish=float(regime['wick_skew_momentum_bearish']),
             trend_intensity_strong=float(regime['trend_intensity_strong']),
             trend_intensity_min_expansion=float(regime['trend_intensity_min_expansion']),
             min_rr_ranging=float(regime['min_rr_ranging']),
@@ -266,9 +266,9 @@ class SessionAgent(BaseAgent):
             "short_heavy_imbalance_ratio": self.config.short_heavy_imbalance_ratio,
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
             "vacuum_risk_score": self.config.vacuum_risk_score,
-            "wick_skewness_exhaustion": self.config.wick_skewness_exhaustion,
-            "wick_skewness_momentum_bullish": self.config.wick_skewness_momentum_bullish,
-            "wick_skewness_momentum_bearish": self.config.wick_skewness_momentum_bearish,
+            "wick_skew_exhaustion": self.config.wick_skew_exhaustion,
+            "wick_skew_momentum_bullish": self.config.wick_skew_momentum_bullish,
+            "wick_skew_momentum_bearish": self.config.wick_skew_momentum_bearish,
             "trend_intensity_strong": self.config.trend_intensity_strong,
             "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
             "min_volume_participation_ratio": self.config.min_volume_participation_ratio,

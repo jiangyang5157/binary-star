@@ -89,12 +89,12 @@ class RegimeClassifier:
         squeeze_factor = latest['bb_width'] / (latest['kc_width'] + 1e-9)
         
         # 2. Wick Skewness (Bullish/Bearish Asymmetry)
-        skewness = 0.0
+        wick_skew_regime = 0.0
         if all(col in df.columns for col in ['open', 'high', 'low', 'close']):
             recent = df.tail(self.config.wick_skew_lookback_candles)
             up_wicks = (recent['high'] - np.maximum(recent['open'], recent['close'])).sum()
             lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
-            skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
+            wick_skew_regime = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
 
         # 3. Volume Participation (Relative to MA)
         volume_participation_ratio = 1.0
@@ -105,7 +105,7 @@ class RegimeClassifier:
         return RegimeResult(
             squeeze_factor=float(squeeze_factor),
             trend_intensity=float(latest['trend_intensity']),
-            wick_skew_regime=float(skewness),
+            wick_skew_regime=float(wick_skew_regime),
             volume_participation_ratio=float(volume_participation_ratio)
         )
 

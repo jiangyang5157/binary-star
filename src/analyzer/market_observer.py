@@ -79,7 +79,7 @@ class MarketObserverConfig:
     long_short_imbalance_ratio: float
     poc_gravity_atr_distance: float
     vacuum_risk_score: float
-    wick_skewness_exhaustion: float
+    wick_skew_exhaustion: float
     trend_intensity_strong: float
     min_rr_ranging: float
     min_rr_trending: float
@@ -199,7 +199,7 @@ class MarketObserverConfig:
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
             vacuum_risk_score=float(regime['vacuum_risk_score']),
-            wick_skewness_exhaustion=float(regime['wick_skewness_exhaustion']),
+            wick_skew_exhaustion=float(regime['wick_skew_exhaustion']),
             trend_intensity_strong=float(regime['trend_intensity_strong']),
             min_rr_ranging=float(regime['min_rr_ranging']),
             min_rr_trending=float(regime['min_rr_trending']),
