@@ -158,6 +158,7 @@ class MathTools:
                 
             # 1. 基础物理速度计算 (理想环境下的基准到达时间)
             effective_velocity = max(atr * abs(trend_intensity), atr * min_velocity_floor)
+            
             dist = abs(take_profit - entry)
             
             if effective_velocity < 1e-8:

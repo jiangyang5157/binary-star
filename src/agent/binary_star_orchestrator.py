@@ -415,6 +415,12 @@ class BinaryStarOrchestrator:
                 if holding_v:
                     tactical["projected_holding_hours"] = holding_v.get("projected_holding_hours", 0)
                     tactical["projected_waiting_hours"] = holding_v.get("projected_waiting_hours", 0)
+            else:
+                # v7.2 Hardening: Force-Zero temporal parameters for non-directional stances
+                # to prevent AI artifacts from leaking into forensic sessions.
+                tactical = final_decision.get("tactical_parameters", {})
+                tactical["projected_holding_hours"] = 0.0
+                tactical["projected_waiting_hours"] = 0.0
                 
                 # Align Risk-Reward Metrics (Optional: Hardening the JSON output)
                 rr_v = final_math.get("rr_verification", {})
@@ -492,7 +498,7 @@ class BinaryStarOrchestrator:
             vah = float(topo.get('vah', 0))
             val = float(topo.get('val', 0))
             
-            regime = observation.get('regime_analysis', {})
+            regime = metrics.get('market_regime', {})
             trend_intensity = float(regime.get('trend_intensity', 0))
             
             # Verified Metrics Calculation
