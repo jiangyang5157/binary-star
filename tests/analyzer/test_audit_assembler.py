@@ -24,7 +24,7 @@ class TestAuditAssembler(unittest.TestCase):
                 "atr_period": 14,
                 "missed_opportunity_atr_threshold": 2.0,
                 "unfilled_proximity_atr_limit": 0.1,
-                "catastrophic_miss_pct_threshold": 3.0,
+                "catastrophic_miss_atr_threshold": 3.0,
                 "mae_stress_thresholds": {
                     "pinpoint": 15.0,
                     "standard": 50.0,
@@ -96,6 +96,7 @@ class TestAuditAssembler(unittest.TestCase):
         outcome = {
             "market_forensics": {
                 "window_volatility_intensity_atr": 3.0,
+                "max_favorable_runup_atr": 1.5,
                 "max_favorable_runup_pct": 1.5
             }
         }
@@ -105,6 +106,25 @@ class TestAuditAssembler(unittest.TestCase):
         # Result: With missed_opportunity_atr_threshold=2.0 (from setUp), 3.0 > 2.0 -> NOT justified
         self.assertIn("forensic_verdict", report)
         self.assertFalse(report["forensic_verdict"]["is_justified_surrender"])
+
+    def test_catastrophic_miss_detection(self):
+        # Scenario: Trade NOT filled, but price moved 4 ATRs (Catastrophic Miss)
+        strategy = {
+            "final_decision": {"opinion": "BULLISH", "tactical_parameters": {"entry": 60000}},
+            "observation": {"quantitative_metrics": {"volume_profile": {}}}
+        }
+        
+        outcome = {
+            "is_filled": False,
+            "market_forensics": {
+                "max_favorable_runup_atr": 4.0, # 4 > threshold 3.0
+                "max_favorable_runup_pct": 1.0 # This should be ignored now
+            }
+        }
+        
+        report = self.assembler.review(strategy, outcome)
+        
+        self.assertTrue(report["forensic_verdict"]["is_catastrophic_miss"])
 
 if __name__ == '__main__':
     unittest.main()

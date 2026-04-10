@@ -253,7 +253,7 @@ class MockDataFactory:
                 "atr_period": 14,
                 "missed_opportunity_atr_threshold": 2.0,
                 "unfilled_proximity_atr_limit": 0.1,
-                "catastrophic_miss_pct_threshold": 3.0,
+                "catastrophic_miss_atr_threshold": 3.0,
                 "mae_stress_thresholds": {
                     "pinpoint": 15.0,
                     "standard": 50.0,
