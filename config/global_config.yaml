@@ -85,7 +85,7 @@ sniper:
   # [Tick-Scale Probes]: Micro-sensitivity for 15s heartbeats.
   # 0.02 = 2% net flow change in 15 seconds.
   cvd_divergence_tick_delta: 0.04
-  cvd_impulse_tick_delta: 0.08
+  cvd_impulse_tick_delta: 0.12
   
   # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
   # 1.0 = any increase, 1.1 = 10% growth required.
