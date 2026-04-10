@@ -130,7 +130,7 @@ class MarketRegimeAnalyzer:
                 volume_ma_window=int(kwargs['volume_ma_window']),
                 trend_intensity_threshold=float(kwargs['trend_intensity_threshold']),
                 trend_lookback=int(kwargs['trend_lookback']),
-                wick_skewness_period=int(kwargs['wick_skewness_period'])
+                wick_skew_lookback_candles=int(kwargs['wick_skew_lookback_candles'])
             )
             
         self.engine = IndicatorEngine(self.config)
