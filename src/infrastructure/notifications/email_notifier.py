@@ -122,33 +122,33 @@ class SessionEmailTemplate(BaseEmailTemplate):
             <tbody>
                 <tr {get_row_style(72, 81)}>
                     <td>72-80</td>
-                    <td>Pristine</td>
+                    <td>ELITE</td>
                     <td>Blind Execution</td>
-                    <td>100% Sizing</td>
+                    <td>100%</td>
                 </tr>
                 <tr {get_row_style(65, 72)}>
                     <td>65-72</td>
-                    <td>Hardened</td>
+                    <td>SOLID</td>
                     <td>Standard Entry</td>
-                    <td>80-100% Sizing</td>
+                    <td>80-100%</td>
                 </tr>
                 <tr {get_row_style(55, 65)}>
                     <td>55-65</td>
-                    <td>Tactical</td>
+                    <td>SPEC</td>
                     <td>Deep DLE (Limit)</td>
-                    <td>50% Sizing</td>
+                    <td>50%</td>
                 </tr>
                 <tr {get_row_style(50, 55)}>
                     <td>50-55</td>
-                    <td>Abyss</td>
+                    <td>PROBE</td>
                     <td>Manual Skip / Recon</td>
-                    <td>0-25% Sizing</td>
+                    <td>0-25%</td>
                 </tr>
                 <tr {get_row_style(0, 50)}>
                     <td>< 50</td>
-                    <td>Halt</td>
+                    <td>HALT</td>
                     <td>NEUTRAL (Shielded)</td>
-                    <td>0% Sizing</td>
+                    <td>0%</td>
                 </tr>
             </tbody>
         </table>
@@ -218,9 +218,9 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     ''' if decision else ""}
                 </div>
 
-                <!-- Strategic Guidance: Sniper's Double-Check List -->
+                <!-- Strategic Guidance: Execution Guardrails -->
                 <div style="margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background: #ffffff;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 14px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">🔍 Sniper's Double-Check List</h3>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 14px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">🔍 Execution Guardrails</h3>
                     
                     <!-- 1. Full Width Matrix (Priority 1: Execution) -->
                     <div style="margin-bottom: 25px;">
