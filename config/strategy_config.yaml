@@ -156,7 +156,7 @@ topography_parameters:
   # --- Volume Profile Engine ---
   # The % of volume defined as the 'Value Area' (Standard: 70%).
   volume_profile_value_area_width: 0.86
-  # [analysis_window] Resolution of the price histogram.
+  # Resolution of the price histogram.
   volume_profile_price_bucket_count: 300
 
   # --- Strategic Indicator Smoothing ---
@@ -172,7 +172,7 @@ topography_parameters:
   high_volume_node_detection_threshold: 0.15
   # Probability threshold for detecting a structural Low Volume Node.
   low_volume_node_detection_threshold: 0.05
-  # [analysis_window] Minimum gap required to distinguish two separate structural nodes.
+  # Minimum gap required to distinguish two separate structural nodes.
   min_node_gap_atr: 1.2
   top_structural_node_count: 3
 
