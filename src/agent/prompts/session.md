@@ -56,6 +56,7 @@ Use these metrics to synthesize your tactical entry strategy:
 
 ## 1. Topographical Anchoring (Absolute Law)
 - **THE SHIELD LAW**: Stop Loss (SL) MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). **Floating SLs are a Terminal Veto.**
+- **LIMIT ORDER PHYSICS**: You are placing Limit Orders. A `BULLISH` entry MUST be `<= current_price`. A `BEARISH` entry MUST be `>= current_price`. Placing a buy limit above current price or a sell limit below current price causes an immediate adverse market fill and is a TERMINAL VETO.
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_index`) is missing, output `NEUTRAL`. Do not guess.
 
 - **DATA HARDENING (EMPTY STATE)**: If BOTH `long_liquidation` AND `short_liquidation` arrays inside `liquidation_clusters` are empty or `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (No leverage concentration detected). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.

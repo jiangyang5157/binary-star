@@ -65,7 +65,7 @@ regime_parameters:
   poc_magnet_atr_threshold: 2.0
 
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
-  structural_buffer_atr: 0.05
+  structural_buffer_atr: 0.25
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
 

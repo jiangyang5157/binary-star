@@ -45,6 +45,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 # CRITIC_CODES
 | Risk Category | Condition / Detection | Tag & Mandatory Mitigation | Veto Level |
 | :--- | :--- | :--- | :--- |
+| **Order Physics** | (`last_plan.opinion` == "BULLISH" AND `last_plan.tactical_parameters.entry` > `current_price`) OR (`last_plan.opinion` == "BEARISH" AND `last_plan.tactical_parameters.entry` < `current_price`). | **[ORDER_PHYSICS]** (Limit orders must be placed correctly relative to current price. Adjust entry). | **TERMINAL** |
 | **Pristine** | `compliance_verdict.sl_is_shielded` == TRUE AND `compliance_verdict.rr_is_valid` == TRUE. | **[PRISTINE]** (None). | **PASS** |
 | **Justified Inaction** | `last_plan.opinion` == NEUTRAL AND (`THE NEUTRALITY PARADOX` criteria met). | **[JUSTIFIED_INACTION]** (None). | **PASS** |
 | **Structural Violation** | `nearest_hvn_dist_atr` < `{structural_proximity_threshold}`. | **[STRUCTURAL_TRAP]** (Move Entry level to the next distal anchor). | **TERMINAL** |
