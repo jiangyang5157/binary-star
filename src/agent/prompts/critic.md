@@ -37,9 +37,9 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 # LOGIC_MACROS
 To ensure Zero-Entropy convergence, evaluate these boolean states before the audit:
 - `DATA HARDENING (EMPTY STATE)`: If BOTH `long_liquidation` AND `short_liquidation` arrays inside `liquidation_clusters` are empty or `null` in `{observation_json}`, treat it as a valid `ZERO_EVENT` state (No leverage concentration detected). You MUST NOT hallucinate targets; fallback to using `cvd_intensity_ratio` and `oi_delta_micro` to proxy retail behavior.
-- `IS_OVEREXTENDING`: `(poc_dist_atr > {poc_gravity_atr_distance} AND last_plan.opinion == "BULLISH") OR (poc_dist_atr < -{poc_gravity_atr_distance} AND last_plan.opinion == "BEARISH")`
-- `FLOW_IS_REVERSING`: `(cvd_intensity_ratio > {cvd_intensity_threshold} AND last_plan.opinion == "BEARISH") OR (cvd_intensity_ratio < -{cvd_intensity_threshold} AND last_plan.opinion == "BULLISH")`
-- `ABSORPTION_RISK`: `oi_delta_micro < 0 AND abs(cvd_intensity_ratio) > {cvd_intensity_extreme}`
+- `IS_OVEREXTENDING`: (`poc_dist_atr` > `{poc_gravity_atr_distance}` AND `last_plan.opinion` == "BULLISH") OR (`poc_dist_atr` < -`{poc_gravity_atr_distance}` AND `last_plan.opinion` == "BEARISH")
+- `FLOW_IS_REVERSING`: (`cvd_intensity_ratio` > `{cvd_intensity_threshold}` AND `last_plan.opinion` == "BEARISH") OR (`cvd_intensity_ratio` < -`{cvd_intensity_threshold}` AND `last_plan.opinion` == "BULLISH")
+- `ABSORPTION_RISK`: `oi_delta_micro` < 0 AND abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`
 
 # CRITIC_CODES
 | Risk Category | Condition / Detection | Tag & Mandatory Mitigation | Veto Level |
