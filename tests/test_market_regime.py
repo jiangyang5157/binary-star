@@ -24,7 +24,7 @@ class TestSemanticConsistency(unittest.TestCase):
             max_volume_node_count=3, 
             high_volume_node_detection_threshold=0.1, 
             low_volume_node_detection_threshold=0.1,
-            min_node_distance=1,
+            min_node_gap_atr=1.2,
             ranging_width_atr=1.5
         )
 
