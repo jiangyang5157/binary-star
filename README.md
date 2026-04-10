@@ -85,6 +85,8 @@ conda activate crypto
 # pip install -r requirements.txt
 ```
 
+<!-- pytest -vs ./tests -->
+
 ### 1. 市场推理 (Session Engine)
 
 *   **单次/批量分析 (Prod)**：对当前市场或指定时间点进行对抗推理。结果存入 `data/prod/sessions`。
