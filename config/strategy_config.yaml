@@ -23,7 +23,8 @@ analysis_window:
   funding_rate_lookback_hours: 24.0
   trend_intensity_lookback_hours: 24.0
   volatility_intensity_lookback_hours: 24
-  order_flow_lookback_hours: 1.0
+  # --- 微观张量 (Micro Tensors) ---
+  order_flow_micro_lookback_candles: 4
 
 regime_parameters:
   # --- Trend & Momentum Vectors (Regime Detection) ---
