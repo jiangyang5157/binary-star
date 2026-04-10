@@ -464,9 +464,8 @@ class MarketMetricsRefiner:
 
     def _derive_sentiment(self, raw: RawMarketData, atr_macro: float, atr_micro: float, current_price: float) -> Dict[str, Any]:
         """Calculates Order Flow, Open Interest delta, and Liquidation Clusters."""
-        cvd_current_net = 0.0
-        cvd_current_total_vol = 0.0
-        cvd_prev_net = 0.0
+        cvd_vol_delta = 0.0
+        cvd_total_vol = 0.0
         
         # 1. Calculate CVD Intensity using standardized volume lookback candles
         lookback_candles = self.config.order_flow_micro_lookback_candles
@@ -477,18 +476,16 @@ class MarketMetricsRefiner:
                 v = k.volume
                 tb = k.taker_buy_base
                 if tb is not None:
-                    cvd_current_net += (tb - (v - tb))
-                cvd_current_total_vol += v
+                    cvd_vol_delta += (tb - (v - tb))
+                cvd_total_vol += v
             
         if len(raw.micro_klines) >= lookback_candles * 2:
             prev_window = raw.micro_klines[-(lookback_candles*2):-lookback_candles]
             for k in prev_window:
                 v = k.volume
                 tb = k.taker_buy_base
-                if tb is not None:
-                    cvd_prev_net += (tb - (v - tb))
         
-        cvd_intensity_ratio = cvd_current_net / (cvd_current_total_vol + 1e-9)
+        cvd_intensity_ratio = cvd_vol_delta / (cvd_total_vol + 1e-9)
 
         cur_oi = raw.current_oi.open_interest if raw.current_oi else 0.0
         def raw_oi_delta(hist):
@@ -508,8 +505,8 @@ class MarketMetricsRefiner:
             "ls_ratio_macro": raw.macro_ls[0].long_short_ratio if raw.macro_ls else 0.0,
             "ls_ratio_micro": raw.micro_ls[0].long_short_ratio if raw.micro_ls else 0.0,
             "cvd_intensity_ratio": cvd_intensity_ratio,
-            "cvd_net_delta": cvd_current_net,
-            "cvd_total_volume": cvd_current_total_vol,
+            "cvd_volume_delta": cvd_vol_delta,
+            "cvd_total_volume": cvd_total_vol,
             "cvd_lookback_candles": lookback_candles,
             "funding_rate": f_rate,
             "funding_rate_delta": f_delta,
