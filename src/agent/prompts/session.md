@@ -62,7 +62,7 @@ Use these metrics to synthesize your tactical entry strategy:
 
 ## 2. Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum Riding**: If `volatility_expansion_index` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}` AND `abs(trend_intensity)` > `{trend_intensity_strong}`, execute Momentum Entries in the direction of `trend_intensity` sign to front-run structural nodes. If `volatility_expansion_index` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
+- **Momentum & Flow Riding**: If `abs(trend_intensity)` > `{trend_intensity_strong}` OR `abs(cvd_intensity_ratio)` > `{cvd_intensity_threshold}`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. If `volatility_expansion_index` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or `NEUTRAL`.
 
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `latest_wick_skew` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Sink your entry deep into an HVN to maximize RR.
 - **The Sweep & Fade (Counter-Trend Reversal)**: You are authorized to execute a counter-trend trade (e.g., `BEARISH` in an uptrend, or `BULLISH` in a downtrend) IF AND ONLY IF the following physical conditions intersect:
