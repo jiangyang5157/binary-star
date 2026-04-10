@@ -20,6 +20,7 @@ analysis_window:
   micro_context:
     time_interval: 15m
     lookback_candles: 192
+  # --- 宏观张量 (Macro Tensors) ---
   funding_rate_macro_lookback_candles: 24
   trend_intensity_macro_lookback_candles: 24
   volatility_intensity_macro_lookback_candles: 24
@@ -123,7 +124,6 @@ regime_parameters:
   breakout_frontrun_atr: 0.75
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
   max_entry_distance_atr: 1.0
-  # [MOMENTUM]: Maximum allowed pullback for momentum-based entries.
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
   chaos_rr_discount: 0.35
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.

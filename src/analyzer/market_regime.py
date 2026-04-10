@@ -65,9 +65,9 @@ class IndicatorEngine:
 
         # 3. Efficiency Ratio (Trend Intensity) - Signed, Vectorized
         # Net Displacement / Path Length. Positive = Bullish, Negative = Bearish.
-        lookback = self.config.trend_lookback_candles
-        net_change = df['close'].diff(periods=lookback)
-        sum_abs_changes = df['close'].diff().abs().rolling(window=lookback).sum()
+        lookback_candles = self.config.trend_lookback_candles
+        net_change = df['close'].diff(periods=lookback_candles)
+        sum_abs_changes = df['close'].diff().abs().rolling(window=lookback_candles).sum()
         df['trend_intensity'] = net_change / (sum_abs_changes + 1e-9)
 
         return df
