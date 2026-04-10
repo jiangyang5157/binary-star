@@ -95,6 +95,7 @@ python run_session.py -ts 2026-01-24T15:42:00Z
 *   **智联回测 (Backtest)**：在历史样本点上进行采样推理。推荐使用 `--sampling-mode sniper` 以捕捉异动。
 ```bash
 python run_session.py --start T-30d --end T-2d --samples 7 --sampling-mode sniper
+python run_session.py --start T-30d --end T-2d --samples 7 --sampling-mode spaced
 python run_session.py --start T-30d --end T-23d --samples 7 --sampling-mode sniper
 python run_session.py --start T-23d --end T-16d --samples 7 --sampling-mode sniper
 python run_session.py --start T-16d --end T-9d --samples 7 --sampling-mode sniper

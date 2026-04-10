@@ -40,7 +40,7 @@ regime_parameters:
   # [THRESHOLD]: The line where the system switches to 'Defensive' buffers to avoid stop-hunts.
   volatility_expansion_ratio: 1.7
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
-  volatility_extreme_ratio: 2.5
+  volatility_extreme_ratio: 2.2
 
   # --- Physical Topography & Volume Confluence ---
   # Volume surge multiplier relative to the 21-period Moving Average.

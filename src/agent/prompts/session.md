@@ -55,7 +55,9 @@ Use these metrics to synthesize your tactical entry strategy:
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
 ## 1. Topographical Anchoring (Absolute Law)
-- **THE SHIELD LAW**: Stop Loss (SL) MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). **Floating SLs are a Terminal Veto.**
+- **THE SHIELD LAW**: Stop Loss (SL) MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). NEVER place a stop loss at or just in front of a `liquidation_cluster`, as these act as magnetic sweep targets. If a cluster is near your intended SL, you MUST place the SL **beyond the distal extreme** of the cluster (below it for Longs, above it for Shorts).
+    - For `BULLISH`: SL must be lower than the anchor's lowest edge.
+    - For `BEARISH`: SL must be higher than the anchor's highest edge.
 - **VOLATILITY ADAPTIVE SHIELDING**: If `volatility_expansion_index` > `volatility_extreme_ratio`, the environment is in a Chaos regime. You MUST expand the `structural_buffer_atr` applied to your SL placement using the `{chaos_rr_discount}` percentage increase. Survival in high-volatility regimes is a higher priority than the `min_rr` threshold.
 - **LIMIT ORDER PHYSICS**: You are placing Limit Orders. A `BULLISH` entry MUST be `<= current_price`, `take_profit` > `entry`, and `stop_loss` < `entry`. A `BEARISH` entry MUST be `>= current_price`, `take_profit` < `entry`, and `stop_loss` > `entry`. Violating these directional physics causes immediate adverse market fill and is a TERMINAL VETO.
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_index`) is missing, output `NEUTRAL`. Do not guess.
@@ -91,11 +93,11 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
         - **ENTRY SURVIVAL BOUNDARY**: When widening your `stop_loss` to survive volatility, you MUST preserve the structural integrity of your `entry`.
         - **THE `{max_entry_distance_atr}` ATR LAW**: NEVER sink your `entry` into an LVN vacuum OR place it > `{max_entry_distance_atr}` ATR away from current price just to manipulate the risk-reward ratio. If no safe entry exists within `{max_entry_distance_atr}` ATR that satisfies RR, you MUST abort to `NEUTRAL` rather than creating a non-executable order.
     - `[RETAIL_LONG_SQUEEZE]`: Retail is heavily long. BULLISH is suicide. You MUST perform a **Polarity Pivot** to a `BEARISH` stance. 
-        - **MOMENTUM EXECUTION**: You MUST execute a Momentum Entry (at current price) or a very shallow pullback (within `{momentum_pullback_cap_atr}` ATR) to capture the cascade. Placing deep DLEs at distal short liquidations is PROHIBITED.
+        - **EXECUTION**: You MUST dynamically select your entry depth according to the *(Execution Rules for Squeezes)* below.
         - **RR COMPENSATION**: To balance the wider SL, you MUST anchor `take_profit` at the absolute deepest `long_liquidation` cascade below.
     - `[RETAIL_SHORT_SQUEEZE]`: Retail is heavily short. BEARISH is suicide. You MUST perform a **Polarity Pivot** to a `BULLISH` stance. 
-        - **MOMENTUM EXECUTION**: You MUST execute a Momentum Entry (at current price) or a very shallow pullback (within `{momentum_pullback_cap_atr}` ATR) to capture the squeeze. Placing deep DLEs at distal long liquidations is PROHIBITED.
-        - **RR COMPENSATION**: To balance the wider SL, you MUST anchor `take_profit` at the absolute deepest `long_liquidation` cascade below.
+        - **EXECUTION**: You MUST dynamically select your entry depth according to the *(Execution Rules for Squeezes)* below.
+        - **RR COMPENSATION**: To balance the wider SL, you MUST anchor `take_profit` at the absolute highest `short_liquidation` cascade above.
     - *(Execution Rules for Squeezes)*: When executing a **Polarity Pivot**:
         - **Momentum Phase**: If `volatility_expansion_index` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, strictly follow the **MOMENTUM EXECUTION** protocol (Current Price/Shallow Entry + Deep TP).
         - **Deep DLE Phase**: If `volatility_expansion_index` < `{volatility_expansion_ratio}`, the cascade is not yet violent; sink into a deep **DLE** at a distal HVN to maximize RR.
