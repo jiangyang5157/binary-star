@@ -87,14 +87,15 @@ If `{debate_history_json}` is present, trace the Forensic Evolution within `{deb
     - If no mathematical solution exists that satisfies all past vetoes, you MUST abort to opinion `NEUTRAL`.
 - **[TACTICAL_REPAIR_PATTERNS]**: When history contains specific veto tags, apply these technical repair protocols:
     - `[ANCHOR_VIOLATION]`: Move SL distally to the next valid structural anchor (HVN/POC).
-    - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`.
-    - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`. **CRITICAL ANCHOR RULE**: When widening your `stop_loss` to survive a Volatility Climax, you MUST preserve the structural integrity of your `entry` (keep it anchored at a verified HVN or POC). To balance the RR math, you MUST mathematically extend your `take_profit` to the next distal liquidity cluster. **NEVER sink your `entry` into an LVN vacuum just to manipulate the risk-reward ratio.**
+    - `[MATH_VIOLATION]`: Use `MathTools` to recalibrate Entry or TP to satisfy RR >= `{min_rr_ranging}` or `{min_rr_trending}`. 
+        - **ENTRY SURVIVAL BOUNDARY**: When widening your `stop_loss` to survive volatility, you MUST preserve the structural integrity of your `entry`.
+        - **THE 1.0 ATR LAW**: NEVER sink your `entry` into an LVN vacuum OR place it > 1.0 ATR away from current price just to manipulate the risk-reward ratio. If no safe entry exists within 1.0 ATR that satisfies RR, you MUST abort to `NEUTRAL` rather than creating a non-executable order.
     - `[RETAIL_LONG_SQUEEZE]`: Retail is heavily long. BULLISH is suicide. You MUST perform a **Polarity Pivot** to a `BEARISH` stance. 
-        - **MOMENTUM EXECUTION**: You are AUTHORIZED to execute a Momentum Entry (at current price or shallow pullback) to capture the cascade. Do NOT wait for distal short liquidations. 
-        - **RR COMPENSATION**: To balance the wider SL required for safety, you MUST anchor `take_profit` at the absolute deepest `long_liquidation` cascade below.
-    - `[RETAIL_SHORT_SQUEEZE]`: Retail is heavily short. BEARISH is suicide. You MUST perform a **Polarity Pivot** to a `BULLISH` stance. 
-        - **MOMENTUM EXECUTION**: You are AUTHORIZED to execute a Momentum Entry (at current price or shallow pullback) to capture the squeeze. Do NOT wait for distal long liquidations. 
-        - **RR COMPENSATION**: To balance the wider SL required for safety, you MUST anchor `take_profit` at the absolute deepest `short_liquidation` cascade above.
+        - **MOMENTUM EXECUTION**: You MUST execute a Momentum Entry (at current price) or a very shallow pullback (within 0.5 ATR) to capture the cascade. Placing deep DLEs at distal short liquidations is PROHIBITED.
+        - **RR COMPENSATION**: To balance the wider SL, you MUST anchor `take_profit` at the absolute deepest `long_liquidation` cascade below.
+        - `[RETAIL_SHORT_SQUEEZE]`: Retail is heavily short. BEARISH is suicide. You MUST perform a **Polarity Pivot** to a `BULLISH` stance. 
+            - **MOMENTUM EXECUTION**: You MUST execute a Momentum Entry (at current price) or a very shallow pullback (within 0.5 ATR) to capture the squeeze. Placing deep DLEs at distal long liquidations is PROHIBITED.
+            - **RR COMPENSATION**: To balance the wider SL, you MUST anchor `take_profit` at the absolute deepest `long_liquidation` cascade below.
     - *(Execution Rules for Squeezes)*: When executing a **Polarity Pivot**:
         - **Momentum Phase**: If `volatility_expansion_index` is between `{volatility_expansion_ratio}` and `{volatility_extreme_ratio}`, strictly follow the **MOMENTUM EXECUTION** protocol (Current Price/Shallow Entry + Deep TP).
         - **Deep DLE Phase**: If `volatility_expansion_index` < `{volatility_expansion_ratio}`, the cascade is not yet violent; sink into a deep **DLE** at a distal HVN to maximize RR.
