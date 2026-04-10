@@ -155,12 +155,12 @@ class SniperTrigger:
             if should_trigger:
                 cvd_net = sent.get('cvd_net_delta', 0.0)
                 cvd_vol = sent.get('cvd_total_volume', 0.0)
-                cvd_lookback = sent.get('cvd_lookback_candles', 0)
+                cvd_lookback_candles = sent.get('cvd_lookback_candles', 0)
                 micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
                 return True, (
                     f"Institutional CVD flow (Intensity: {cvd:.3f} | "
                     f"Delta: {cvd_net:.1f} | Vol: {cvd_vol:.1f} | "
-                    f"Window: {cvd_lookback}k @ {micro_int} | Threshold: {cvd_threshold:.2f})"
+                    f"Window: {cvd_lookback_candles}k @ {micro_int} | Threshold: {cvd_threshold:.2f})"
                 )
 
         # --- [常态保底] 散户情绪与资金环境极值 (Ambient Sentiment) ---

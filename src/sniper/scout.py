@@ -64,7 +64,7 @@ class SniperScout:
             keltner_multiplier=self.obs_config.kc_multiplier,
             volume_ma_window=self.obs_config.volume_ma_period,
             trend_intensity_threshold=self.obs_config.trend_intensity_threshold,
-            trend_lookback=self.obs_config.trend_lookback,
+            trend_lookback_candles=self.obs_config.trend_intensity_macro_lookback_candles,
             wick_skew_lookback_candles=self.obs_config.wick_skew_lookback_candles
         )
         self.regime_analyzer = MarketRegimeAnalyzer(config=rg_cfg)

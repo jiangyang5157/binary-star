@@ -14,7 +14,7 @@ class TestSemanticConsistency(unittest.TestCase):
             keltner_multiplier=1.5,
             volume_ma_window=20, 
             trend_intensity_threshold=0.35,
-            trend_lookback=14, 
+            trend_lookback_candles=14, 
             wick_skew_lookback_candles=5
         )
         self.vp_cfg = VolumeProfileConfig(

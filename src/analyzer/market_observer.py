@@ -66,11 +66,11 @@ class MarketObserverConfig:
     low_volume_node_detection_threshold: float
     min_node_gap_atr: float
     top_structural_node_count: int
-    trend_intensity_lookback_hours: float
+    trend_intensity_macro_lookback_candles: int
     wick_skew_lookback_candles: int
     liquidation_cluster_atr_multiplier: float
-    funding_rate_lookback_hours: float
-    volatility_intensity_lookback_hours: int
+    funding_rate_macro_lookback_candles: int
+    volatility_intensity_macro_lookback_candles: int
     trend_intensity_threshold: float
     volatility_baseline_ratio: float
     volatility_expansion_ratio: float
@@ -163,10 +163,10 @@ class MarketObserverConfig:
                 time_interval=str(micro['time_interval']), 
                 lookback_candles=int(micro['lookback_candles'])
             ),
-            funding_rate_lookback_hours=float(sampling['funding_rate_lookback_hours']),
+            funding_rate_macro_lookback_candles=int(sampling['funding_rate_macro_lookback_candles']),
             order_flow_micro_lookback_candles=int(sampling['order_flow_micro_lookback_candles']),
-            trend_intensity_lookback_hours=float(sampling['trend_intensity_lookback_hours']),
-            volatility_intensity_lookback_hours=int(sampling['volatility_intensity_lookback_hours']),
+            trend_intensity_macro_lookback_candles=int(sampling['trend_intensity_macro_lookback_candles']),
+            volatility_intensity_macro_lookback_candles=int(sampling['volatility_intensity_macro_lookback_candles']),
             
             volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
             volume_profile_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
@@ -245,16 +245,29 @@ class MarketObserverConfig:
 
 
     @property
+    def funding_rate_lookback_hours(self) -> float:
+        """Reverse calculates the temporal duration of the funding lookback window."""
+        secs = get_interval_seconds(self.macro_context.time_interval)
+        return (self.funding_rate_macro_lookback_candles * secs) / 3600.0
+
+    @property
+    def trend_intensity_lookback_hours(self) -> float:
+        """Reverse calculates the temporal duration of the trend lookback window."""
+        secs = get_interval_seconds(self.macro_context.time_interval)
+        return (self.trend_intensity_macro_lookback_candles * secs) / 3600.0
+
+    @property
+    def volatility_intensity_lookback_hours(self) -> float:
+        """Reverse calculates the temporal duration of the volatility lookback window."""
+        secs = get_interval_seconds(self.macro_context.time_interval)
+        return (self.volatility_intensity_macro_lookback_candles * secs) / 3600.0
+
+
+    @property
     def order_flow_lookback_hours(self) -> float:
         """Reverse calculates the temporal duration of the order flow window."""
         secs = get_interval_seconds(self.micro_context.time_interval)
         return (self.order_flow_micro_lookback_candles * secs) / 3600.0
-
-    @property
-    def trend_lookback(self) -> int:
-        """Calculates current candle count for trend analysis."""
-        secs = get_interval_seconds(self.macro_context.time_interval)
-        return max(1, int(self.trend_intensity_lookback_hours * 3600 / secs))
 
 @dataclass
 class RawMarketData:
@@ -395,8 +408,8 @@ class MarketMetricsRefiner:
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
         volatility_expansion_index = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
         
-        avg_atr_lookback = min(self.config.volatility_intensity_lookback_hours, len(m_df))
-        mean_historical_atr = m_df['atr'].tail(avg_atr_lookback).mean()
+        avg_atr_lookback_candles = min(self.config.volatility_intensity_macro_lookback_candles, len(m_df))
+        mean_historical_atr = m_df['atr'].tail(avg_atr_lookback_candles).mean()
         volatility_intensity_index = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
         return {
@@ -455,11 +468,11 @@ class MarketMetricsRefiner:
         cvd_current_total_vol = 0.0
         cvd_prev_net = 0.0
         
-        # 1. Calculate CVD Intensity using standardized volume lookback
-        lookback = self.config.order_flow_micro_lookback_candles
+        # 1. Calculate CVD Intensity using standardized volume lookback candles
+        lookback_candles = self.config.order_flow_micro_lookback_candles
         
-        if len(raw.micro_klines) >= lookback:
-            curr_window = raw.micro_klines[-lookback:]
+        if len(raw.micro_klines) >= lookback_candles:
+            curr_window = raw.micro_klines[-lookback_candles:]
             for k in curr_window:
                 v = k.volume
                 tb = k.taker_buy_base
@@ -467,8 +480,8 @@ class MarketMetricsRefiner:
                     cvd_current_net += (tb - (v - tb))
                 cvd_current_total_vol += v
             
-        if len(raw.micro_klines) >= lookback * 2:
-            prev_window = raw.micro_klines[-(lookback*2):-lookback]
+        if len(raw.micro_klines) >= lookback_candles * 2:
+            prev_window = raw.micro_klines[-(lookback_candles*2):-lookback_candles]
             for k in prev_window:
                 v = k.volume
                 tb = k.taker_buy_base
@@ -497,7 +510,7 @@ class MarketMetricsRefiner:
             "cvd_intensity_ratio": cvd_intensity_ratio,
             "cvd_net_delta": cvd_current_net,
             "cvd_total_volume": cvd_current_total_vol,
-            "cvd_lookback_candles": lookback,
+            "cvd_lookback_candles": lookback_candles,
             "funding_rate": f_rate,
             "funding_rate_delta": f_delta,
             "liquidation_clusters": self.radar.synthesize_clusters(
@@ -721,7 +734,7 @@ class MarketObserver:
             keltner_multiplier=cfg.kc_multiplier,
             volume_ma_window=cfg.volume_ma_period, 
             trend_intensity_threshold=self.config.trend_intensity_threshold,
-            trend_lookback=self.config.trend_lookback,
+            trend_lookback_candles=cfg.trend_intensity_macro_lookback_candles,
             wick_skew_lookback_candles=self.config.wick_skew_lookback_candles
         )
         return MarketRegimeAnalyzer(config=rg_cfg)

@@ -19,7 +19,7 @@ class MarketRegimeConfig:
     keltner_multiplier: float          # ATR multiplier for Keltner Channels
     volume_ma_window: int              # Window for volume moving average
     trend_intensity_threshold: float            # Threshold for trend intensity classification
-    trend_lookback: int                      # Lookback for efficiency ratio
+    trend_lookback_candles: int              # Lookback for efficiency ratio
     wick_skew_lookback_candles: int                # Lookback for wick analysis
 
 @dataclass(frozen=True)
@@ -65,7 +65,7 @@ class IndicatorEngine:
 
         # 3. Efficiency Ratio (Trend Intensity) - Signed, Vectorized
         # Net Displacement / Path Length. Positive = Bullish, Negative = Bearish.
-        lookback = self.config.trend_lookback
+        lookback = self.config.trend_lookback_candles
         net_change = df['close'].diff(periods=lookback)
         sum_abs_changes = df['close'].diff().abs().rolling(window=lookback).sum()
         df['trend_intensity'] = net_change / (sum_abs_changes + 1e-9)
@@ -129,7 +129,7 @@ class MarketRegimeAnalyzer:
                 keltner_multiplier=float(kwargs['kc_mult']),
                 volume_ma_window=int(kwargs['volume_ma_window']),
                 trend_intensity_threshold=float(kwargs['trend_intensity_threshold']),
-                trend_lookback=int(kwargs['trend_lookback']),
+                trend_lookback_candles=int(kwargs['trend_lookback_candles']),
                 wick_skew_lookback_candles=int(kwargs['wick_skew_lookback_candles'])
             )
             
