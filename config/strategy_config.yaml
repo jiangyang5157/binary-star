@@ -183,7 +183,7 @@ topography_parameters:
   bollinger_bands_std_dev: 2.0
   keltner_channels_period: 21
   keltner_channels_multiplier: 1.5
-  wick_skewness_period: 3
+  wick_skew_lookback_candles: 3
   wick_skew_fallback: 0.5
   # Fallback distance in ATR units used when no structural nodes are detected.
   default_structural_distance_atr: 5.0

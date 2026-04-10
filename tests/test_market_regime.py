@@ -15,7 +15,7 @@ class TestSemanticConsistency(unittest.TestCase):
             volume_ma_window=20, 
             trend_intensity_threshold=0.35,
             trend_lookback=14, 
-            wick_skewness_period=5
+            wick_skew_lookback_candles=5
         )
         self.vp_cfg = VolumeProfileConfig(
             value_area_ratio=0.7, 
@@ -43,8 +43,8 @@ class TestSemanticConsistency(unittest.TestCase):
         result = analyzer.analyze(df)
         
         # Upper wicks (10) > Lower wicks (1) => Positive Skewness
-        self.assertIn('wick_skew_lookback', result)
-        self.assertGreater(result['wick_skew_lookback'], 0.5)
+        self.assertIn('wick_skew_regime', result)
+        self.assertGreater(result['wick_skew_regime'], 0.5)
 
     def test_volume_profile_structural_state_naming(self):
         """Verify that volume profile uses 'structural_state' and not 'market_regime'."""

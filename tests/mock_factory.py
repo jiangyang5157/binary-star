@@ -189,7 +189,7 @@ class MockDataFactory:
                 "bollinger_bands_std_dev": 2.0,
                 "keltner_channels_period": 20,
                 "keltner_channels_multiplier": 1.5,
-                "wick_skewness_period": 24,
+                "wick_skew_lookback_candles": 24,
                 "wick_skew_fallback": 0.5,
                 "max_liquidation_clusters": 5,
                 "max_liquidation_events_to_fetch": 100,

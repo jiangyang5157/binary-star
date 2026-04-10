@@ -67,7 +67,7 @@ class MarketObserverConfig:
     min_node_gap_atr: float
     top_structural_node_count: int
     trend_intensity_lookback_hours: float
-    wick_skewness_period: int
+    wick_skew_lookback_candles: int
     liquidation_cluster_atr_multiplier: float
     funding_rate_lookback_hours: float
     volatility_intensity_lookback_hours: int
@@ -181,7 +181,7 @@ class MarketObserverConfig:
             bb_std_dev=float(topography['bollinger_bands_std_dev']),
             kc_period=int(topography['keltner_channels_period']),
             kc_multiplier=float(topography['keltner_channels_multiplier']),
-            wick_skewness_period=int(topography['wick_skewness_period']),
+            wick_skew_lookback_candles=int(topography['wick_skew_lookback_candles']),
             wick_skew_fallback=float(topography['wick_skew_fallback']),
             max_liquidation_clusters=int(topography['max_liquidation_clusters']),
             max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
@@ -722,7 +722,7 @@ class MarketObserver:
             volume_ma_window=cfg.volume_ma_period, 
             trend_intensity_threshold=self.config.trend_intensity_threshold,
             trend_lookback=self.config.trend_lookback,
-            wick_skewness_period=self.config.wick_skewness_period
+            wick_skew_lookback_candles=self.config.wick_skew_lookback_candles
         )
         return MarketRegimeAnalyzer(config=rg_cfg)
 

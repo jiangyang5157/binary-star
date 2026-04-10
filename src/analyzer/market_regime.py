@@ -20,7 +20,7 @@ class MarketRegimeConfig:
     volume_ma_window: int              # Window for volume moving average
     trend_intensity_threshold: float            # Threshold for trend intensity classification
     trend_lookback: int                      # Lookback for efficiency ratio
-    wick_skewness_period: int                # Lookback for wick analysis
+    wick_skew_lookback_candles: int                # Lookback for wick analysis
 
 @dataclass(frozen=True)
 class RegimeResult:
@@ -29,7 +29,7 @@ class RegimeResult:
     """
     squeeze_factor: float             # Ratio of BB width to KC width
     trend_intensity: float            # Signed Efficiency Ratio [-1, 1]. +ve = Bullish, -ve = Bearish
-    wick_skew_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
+    wick_skew_regime: float     # Bias in candle wicks (bullish/bearish asymmetry)
     volume_participation_ratio: float      # Current volume relative to moving average
 
 class IndicatorEngine:
@@ -91,7 +91,7 @@ class RegimeClassifier:
         # 2. Wick Skewness (Bullish/Bearish Asymmetry)
         skewness = 0.0
         if all(col in df.columns for col in ['open', 'high', 'low', 'close']):
-            recent = df.tail(self.config.wick_skewness_period)
+            recent = df.tail(self.config.wick_skew_lookback_candles)
             up_wicks = (recent['high'] - np.maximum(recent['open'], recent['close'])).sum()
             lo_wicks = (np.minimum(recent['open'], recent['close']) - recent['low']).sum()
             skewness = (up_wicks - lo_wicks) / (up_wicks + lo_wicks + 1e-9)
@@ -105,7 +105,7 @@ class RegimeClassifier:
         return RegimeResult(
             squeeze_factor=float(squeeze_factor),
             trend_intensity=float(latest['trend_intensity']),
-            wick_skew_lookback=float(skewness),
+            wick_skew_regime=float(skewness),
             volume_participation_ratio=float(volume_participation_ratio)
         )
 
