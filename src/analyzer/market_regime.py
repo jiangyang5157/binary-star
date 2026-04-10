@@ -29,7 +29,7 @@ class RegimeResult:
     """
     squeeze_factor: float             # Ratio of BB width to KC width
     trend_intensity: float            # Signed Efficiency Ratio [-1, 1]. +ve = Bullish, -ve = Bearish
-    wick_skewness_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
+    wick_skew_lookback: float     # Bias in candle wicks (bullish/bearish asymmetry)
     volume_participation_ratio: float      # Current volume relative to moving average
 
 class IndicatorEngine:
@@ -105,7 +105,7 @@ class RegimeClassifier:
         return RegimeResult(
             squeeze_factor=float(squeeze_factor),
             trend_intensity=float(latest['trend_intensity']),
-            wick_skewness_lookback=float(skewness),
+            wick_skew_lookback=float(skewness),
             volume_participation_ratio=float(volume_participation_ratio)
         )
 

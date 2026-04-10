@@ -402,7 +402,7 @@ class MarketMetricsRefiner:
             "current_price": c,
             "atr_macro": atr_m,
             "atr_micro": atr_n,
-            "latest_wick_skew": wick_skew,
+            "wick_skew_instant": wick_skew,
             "volatility_expansion_index": volatility_expansion_index,
             "volatility_intensity_index": volatility_intensity_index
         }

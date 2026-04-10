@@ -43,8 +43,8 @@ class TestSemanticConsistency(unittest.TestCase):
         result = analyzer.analyze(df)
         
         # Upper wicks (10) > Lower wicks (1) => Positive Skewness
-        self.assertIn('wick_skewness_lookback', result)
-        self.assertGreater(result['wick_skewness_lookback'], 0.5)
+        self.assertIn('wick_skew_lookback', result)
+        self.assertGreater(result['wick_skew_lookback'], 0.5)
 
     def test_volume_profile_structural_state_naming(self):
         """Verify that volume profile uses 'structural_state' and not 'market_regime'."""
