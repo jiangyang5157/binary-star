@@ -71,7 +71,7 @@ sniper:
 
   # [Mute]: Multiplier for cooldown during extreme volatility expansion.
   # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
-  chaos_cooldown_multiplier: 2.5
+  chaos_cooldown_multiplier: 2.0
 
   # --- Engine Heartbeat & Tick Rate ---
   # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
@@ -89,7 +89,7 @@ sniper:
   
   # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
   # 1.0 = any increase, 1.1 = 10% growth required.
-  cvd_growth_significance_ratio: 1.2
+  cvd_growth_significance_ratio: 1.5
 
   # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
   # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
