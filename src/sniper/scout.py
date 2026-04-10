@@ -80,7 +80,7 @@ class SniperScout:
             weight_25x=self.obs_config.liq_radar_weight_25x,
             gaussian_sigma=self.obs_config.liq_radar_gaussian_sigma,
             grid_bins=self.obs_config.liq_radar_grid_bins,
-            grid_padding_ratio=self.obs_config.liq_radar_grid_padding_ratio
+            grid_padding_atr=self.obs_config.liq_radar_grid_padding_atr
         )
         self.loader = MarketDataLoader(self.exchange_client, self.obs_config)
         self.refiner = MarketMetricsRefiner(self.obs_config, self.vp_analyzer, self.regime_analyzer, self.radar)

@@ -240,7 +240,7 @@ class MockDataFactory:
                 "liq_radar_weight_25x": 0.6,
                 "liq_radar_gaussian_sigma": 2.0,
                 "liq_radar_grid_bins": 500,
-                "liq_radar_grid_padding_ratio": 0.05
+                "liq_radar_grid_padding_atr": 5.0
             },
             "sandbox": {
                 "acceptance_rate_threshold": 0.5,

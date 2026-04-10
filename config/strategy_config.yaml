@@ -113,7 +113,7 @@ regime_parameters:
   # [Resolution]: Analytical hyperparameters that define node granularity.
   liq_radar_gaussian_sigma: 2.0     # Smoothing intensity for heatmap peaks (Physical resolution).
   liq_radar_grid_bins: 500          # Number of price bins for liquidation density calculation.
-  liq_radar_grid_padding_ratio: 0.05 # Buffer around price extremes for grid calculation.
+  liq_radar_grid_padding_atr: 5.0    # Buffer around price extremes in Micro ATR units.
 
   # --- Execution Safety & Friction Buffers ---
   # Buffer added to breakout entries to filter 'False Breakouts'.

@@ -27,7 +27,7 @@ class LiquidationRadar:
                  weight_25x: float,
                  gaussian_sigma: float,
                  grid_bins: int,
-                 grid_padding_ratio: float):
+                 grid_padding_atr: float):
         self.volume_moving_average_period = volume_moving_average_period
         self.volume_surge_vs_ma_ratio = volume_surge_vs_ma_ratio
         self.max_liquidation_clusters = max_liquidation_clusters
@@ -38,13 +38,14 @@ class LiquidationRadar:
         self.weight_25x = weight_25x
         self.gaussian_sigma = gaussian_sigma
         self.grid_bins = grid_bins
-        self.grid_padding_ratio = grid_padding_ratio
+        self.grid_padding_atr = grid_padding_atr
 
     def synthesize_clusters(self, 
                              klines: List[KlineData], 
                              oi_history: List[OpenInterestData], 
                              taker_history: List[RatioData],
-                             current_price: float) -> Dict[str, List[Dict[str, Any]]]:
+                             current_price: float,
+                             atr: float) -> Dict[str, List[Dict[str, Any]]]:
         """
         Synthesizes active long and short liquidation clusters based on order flow proxies.
         v8.2 Hardening: Syncs filtering with global current_price.
@@ -52,6 +53,12 @@ class LiquidationRadar:
         try:
             if not klines or not oi_history or not taker_history:
                 return {"long_liquidation": [], "short_liquidation": []}
+
+            # 0. Define current High/Low range for grid anchoring
+            k_highs = [k.high for k in klines]
+            k_lows = [k.low for k in klines]
+            range_min = min(k_lows)
+            range_max = max(k_highs)
 
             # 1. Align time series
             min_len = min(len(klines), len(oi_history), len(taker_history))
@@ -115,8 +122,8 @@ class LiquidationRadar:
                     final_long.append(p)
 
             return {
-                "long_liquidation": self._cluster_points(final_long),
-                "short_liquidation": self._cluster_points(final_short)
+                "long_liquidation": self._cluster_points(final_long, atr, range_min, range_max),
+                "short_liquidation": self._cluster_points(final_short, atr, range_min, range_max)
             }
 
         except Exception as e:
@@ -130,7 +137,7 @@ class LiquidationRadar:
         ret[period:] = ret[period:] - ret[:-period]
         return ret / period
 
-    def _cluster_points(self, points: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _cluster_points(self, points: List[Dict[str, Any]], atr: float, range_min: float, range_max: float) -> List[Dict[str, Any]]:
         """使用高斯平滑对离散的爆仓点进行密度聚合。"""
         if not points:
             return []
@@ -139,9 +146,12 @@ class LiquidationRadar:
         weights = [p["weight"] for p in points]
         
         # 定义价格网格 (粒度由 grid_bins 决定)
-        # 使用 grid_padding_ratio (默认 0.05) 来定义边界，防止平滑截断
-        min_p = min(prices) * (1.0 - self.grid_padding_ratio)
-        max_p = max(prices) * (1.0 + self.grid_padding_ratio)
+        # 使用 grid_padding_atr 而不是 ratio，确保尺度无关性
+        grid_min = min(min(prices), range_min)
+        grid_max = max(max(prices), range_max)
+        
+        min_p = grid_min - (self.grid_padding_atr * atr)
+        max_p = grid_max + (self.grid_padding_atr * atr)
         grid = np.linspace(min_p, max_p, self.grid_bins)
         density = np.zeros_like(grid)
         

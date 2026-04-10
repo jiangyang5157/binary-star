@@ -125,7 +125,7 @@ class MarketObserverConfig:
     # v7.1 Analytical Engine (Calculated Hyperparameters)
     liq_radar_gaussian_sigma: float
     liq_radar_grid_bins: int
-    liq_radar_grid_padding_ratio: float
+    liq_radar_grid_padding_atr: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -240,7 +240,7 @@ class MarketObserverConfig:
             liq_radar_weight_25x=float(regime['liq_radar_weight_25x']),
             liq_radar_gaussian_sigma=float(regime['liq_radar_gaussian_sigma']),
             liq_radar_grid_bins=int(regime['liq_radar_grid_bins']),
-            liq_radar_grid_padding_ratio=float(regime['liq_radar_grid_padding_ratio'])
+            liq_radar_grid_padding_atr=float(regime['liq_radar_grid_padding_atr'])
         )
 
     @property
@@ -372,12 +372,14 @@ class MarketMetricsRefiner:
         nodes = self.vp.find_significant_nodes(profile, atr=atr_macro)
         regime_data = self.regime.analyze(m_df)
         
+        atr_micro = n_df['atr'].iloc[-1] if 'atr' in n_df.columns and not n_df.empty else 0
+
         return ProcessedMarketMetrics(
             price_dynamics=self._derive_price_dynamics(m_df, n_df),
             structural_anchors=self._derive_anchors(m_df, profile),
             volume_profile=self._refine_topography(profile, nodes, atr_macro, current_price),
             market_regime=regime_data,
-            sentiment_signals=self._derive_sentiment(raw, atr_macro, current_price)
+            sentiment_signals=self._derive_sentiment(raw, atr_macro, atr_micro, current_price)
         )
 
     def _derive_price_dynamics(self, m_df: pd.DataFrame, n_df: pd.DataFrame) -> Dict[str, Any]:
@@ -446,7 +448,7 @@ class MarketMetricsRefiner:
             "profile_data": profile.get("profile_data", [])
         }
 
-    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float, current_price: float) -> Dict[str, Any]:
+    def _derive_sentiment(self, raw: RawMarketData, atr_macro: float, atr_micro: float, current_price: float) -> Dict[str, Any]:
         """Calculates Order Flow, Open Interest delta, and Liquidation Clusters."""
         cvd_current_net = 0.0
         cvd_current_total_vol = 0.0
@@ -501,7 +503,8 @@ class MarketMetricsRefiner:
                 raw.micro_klines, 
                 raw.oi_history, 
                 raw.taker_ratio_history,
-                current_price=current_price
+                current_price=current_price,
+                atr=atr_micro
             )
         }
 
@@ -573,7 +576,7 @@ class MarketObserver:
             weight_25x=self.config.liq_radar_weight_25x,
             gaussian_sigma=self.config.liq_radar_gaussian_sigma,
             grid_bins=self.config.liq_radar_grid_bins,
-            grid_padding_ratio=self.config.liq_radar_grid_padding_ratio
+            grid_padding_atr=self.config.liq_radar_grid_padding_atr
         )
         self.loader = MarketDataLoader(self._exchange, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer, self.radar)
