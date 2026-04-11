@@ -294,7 +294,6 @@ class CriticAgent(BaseAgent):
             current_price=current_price,
             entry=entry, take_profit=take_profit, atr=atr, 
             trend_intensity=trend_intensity, volatility_expansion_index=volatility_expansion_index,
-
             interval_minutes=interval_minutes, min_velocity_floor=min_velocity_floor,
             vr_base=self.config.volatility_baseline_ratio,
             vr_extreme=self.config.volatility_extreme_ratio,
