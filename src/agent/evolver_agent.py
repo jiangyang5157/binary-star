@@ -111,9 +111,15 @@ class EvolverAgent(BaseAgent):
                 active_config_yaml=config_json,
                 current_prompt_md=prompts_md,
                 strategy_intent=active_config['strategy_intent'],
+                audit_review=active_config['audit_review'],
+                regime_parameters=active_config['regime_parameters'],
+                binary_star=active_config['binary_star'],
                 trend_intensity_threshold=active_config['regime_parameters']['trend_intensity_threshold'],
+                volatility_extreme_ratio=active_config['regime_parameters']['volatility_extreme_ratio'],
                 min_failure_instances=active_config['evolver']['min_failure_instances'],
                 failure_ratio_threshold=active_config['evolver']['failure_ratio_threshold'],
+                regression_veto_threshold=active_config['evolver']['regression_veto_threshold'],
+                max_rounds=active_config['binary_star']['max_rounds'],
                 time_projection_mape_threshold_pct=int(active_config['evolver']['time_projection_mape_threshold'] * 100)
             )
 

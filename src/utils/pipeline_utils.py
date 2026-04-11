@@ -125,13 +125,20 @@ import string
 class SafeFormatter(string.Formatter):
     """
     A custom formatter that returns the key itself (surrounded by braces) 
-    if the key is missing from the format arguments.
+    if the key is missing from the format arguments or if attribute access fails.
     """
     def get_value(self, key: Any, args: Any, kwargs: Any) -> Any:
         try:
             return super().get_value(key, args, kwargs)
         except (KeyError, IndexError):
             return f"{{{key}}}"
+
+    def get_field(self, field_name: str, args: Any, kwargs: Any) -> Any:
+        try:
+            return super().get_field(field_name, args, kwargs)
+        except (AttributeError, KeyError, IndexError, TypeError):
+            # v6.11 RESILIENCE: If any part of the path fails, return the full placeholder
+            return f"{{{field_name}}}", field_name
 
 def safe_format(template: str, **kwargs) -> str:
     """
