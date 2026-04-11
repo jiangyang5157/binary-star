@@ -103,8 +103,7 @@ def main():
     save_json(validation, sandbox_file)
     
     # 8. Summary & Routing
-    sandbox_cfg = full_config.get('sandbox', {})
-    threshold = float(sandbox_cfg['acceptance_rate_threshold'])
+    # v6.12: Simplified Selection Rule - New logic is accepted if IMPROVED > BROKEN (Net Improvement)
     
     accepted_cases = validation.get('accepted_cases', [])
     rejected_cases = validation.get('rejected_cases', [])
@@ -118,7 +117,7 @@ def main():
     print(f"{'='*60}")
     print(f"  Against Evolution: {os.path.relpath(args.file, root)}")
     print(f"  Status: {status_str}")
-    print(f"  Threshold: {threshold*100:.0f}%")
+    print(f"  Selection Rule: Net Improvement (Improved > Broken)")
     print(f"  Improved: {len(accepted_cases)}/{total} ({len(accepted_cases)/total*100:.1f}%)" if total > 0 else "  Improved:  0/0")
     print(f"  Stable/Worse: {len(rejected_cases)}/{total}")
     print(f"  Unknown: {len(unknown_cases)}/{total}")

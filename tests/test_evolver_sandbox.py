@@ -34,7 +34,6 @@ def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock
     data_root = "data/test"
     config = {
         "sandbox": {
-            "acceptance_rate_threshold": 0.5,
             "mae_significance_threshold": 15.0,
             "mae_improvement_threshold": 5.0
         }
@@ -68,7 +67,6 @@ def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_
     # Setup
     config = MockDataFactory.create_mock_config()
     config["sandbox"].update({
-        "acceptance_rate_threshold": 0.5,
         "mae_significance_threshold": 15.0,
         "mae_improvement_threshold": 5.0,
         "time_improvement_threshold": 1.0
@@ -97,7 +95,6 @@ def test_sandbox_rejection_logic(mock_audit_controller_cls, mock_orchestrator_cl
     # Setup
     config = MockDataFactory.create_mock_config()
     config["sandbox"].update({
-        "acceptance_rate_threshold": 0.5,
         "mae_significance_threshold": 15.0,
         "mae_improvement_threshold": 5.0,
         "time_improvement_threshold": 1.0

@@ -253,7 +253,6 @@ class MockDataFactory:
                 "liq_radar_grid_padding_atr": 5.0
             },
             "sandbox": {
-                "acceptance_rate_threshold": 0.5,
                 "mae_significance_threshold": 15.0,
                 "mae_improvement_threshold": 5.0
             },

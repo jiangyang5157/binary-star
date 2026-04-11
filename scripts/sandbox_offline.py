@@ -133,15 +133,11 @@ def main():
 
     # 8. Calculate acceptance
     total = len(all_new_cases)
-    sandbox_cfg = full_config.get('sandbox', {})
-    threshold = float(sandbox_cfg['acceptance_rate_threshold'])
-
-    success_rate = len(accepted_cases) / total if total > 0 else 0
-    is_accepted = success_rate >= threshold
+    # v6.12: Simplified Selection Rule - New logic is accepted if IMPROVED > BROKEN (Net Improvement)
+    is_accepted = len(accepted_cases) > len(rejected_cases)
 
     # 9. Build result
     result = {
-        "is_accepted": is_accepted,
         "accepted_cases": accepted_cases,
         "rejected_cases": rejected_cases,
         "unknown_cases": unknown_cases
@@ -166,7 +162,7 @@ def main():
     print(f"{'='*60}")
     print(f"  Against Sandbox: {os.path.relpath(args.file, root)}")
     print(f"  Status: {status}")
-    print(f"  Threshold: {threshold*100:.0f}%")
+    print(f"  Selection Rule: Net Improvement (Improved > Broken)")
     print(f"  Improved: {len(accepted_cases)}/{total} ({len(accepted_cases)/total*100:.1f}%)" if total > 0 else "  Improved:  0/0")
     print(f"  Stable/Worse: {len(rejected_cases)}/{total}")
     print(f"  Unknown: {len(unknown_cases)}/{total}")
