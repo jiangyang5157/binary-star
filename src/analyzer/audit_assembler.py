@@ -108,7 +108,7 @@ class AuditAssembler:
         # v6.16: Decision context extraction
         final_decision = strategy.get('final_decision', {})
         opinion = final_decision.get('opinion', 'NEUTRAL').upper()
-        default_result = "NEUTRAL" if opinion == "NEUTRAL" else "NEITHER"
+        default_result = "NEITHER" if opinion == "NEUTRAL" else "NEITHER"
 
         # 2. Result Payload Base
         result = {
