@@ -100,11 +100,10 @@ class ChartStorageManager:
         """
         Generates a standard filename: {symbol}_{time_interval}_klines_{ts_readable}.png
         """
-        if timestamp:
-            ts_readable = format_timestamp_for_filename(timestamp)
-        else:
-            # Fallback to current UTC if no timestamp provided
-            ts_readable = format_timestamp_for_filename(get_current_utc_time().isoformat())
+        if not timestamp:
+            raise ValueError("ChartStorage: Timestamp is mandatory for deterministic filename generation.")
+        
+        ts_readable = format_timestamp_for_filename(timestamp)
             
         filename = f"{symbol}_klines_{time_interval}_{ts_readable}.png"
         return os.path.join(self.output_dir, filename)

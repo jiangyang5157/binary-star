@@ -214,8 +214,7 @@ class AuditController:
                 if hit_ts:
                     t1_dt = datetime.fromtimestamp(hit_ts / 1000, tz=timezone.utc)
                 else:
-                    # Fallback to last candle if timestamp missing (should not happen in v7.1+)
-                    t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
+                    raise ValueError(f"CRITICAL_FORENSIC_FAILURE: {res_type} detected but hit_timestamp is NULL.")
             else:
                 t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
 

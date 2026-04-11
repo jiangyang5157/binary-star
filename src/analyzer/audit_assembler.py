@@ -213,8 +213,8 @@ class AuditAssembler:
                     last_round = strategy.get('debate_history', [{}])[-1]
                     math_check = last_round.get('math_fact_check', {}).get('holding_time_verification', {})
                     
-                    # 2. Extract Dilation Parameters (Support legacy keys for compatibility)
-                    dilation_factor = float(math_check.get('temporal_dilation_factor') or math_check.get('holding_friction_factor') or 1.0)
+                    # 2. Extract Dilation Parameters
+                    dilation_factor = float(math_check.get('temporal_dilation_factor') or 1.0)
                     dilation_regime = math_check.get('temporal_dilation_regime', 'temporal_dilation_standard')
                     
                     # 3. Calculate Actual ISOLATED Holding Duration (Holding = Exit - Entry)

@@ -324,14 +324,11 @@ class SessionAgent(BaseAgent):
         """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
         from src.utils.math_utils import MathTools
         
-        # Fallback to config if AI omits optional floor
-        floor = min_velocity_floor if min_velocity_floor is not None else self.config.min_trade_velocity
-        
         return MathTools.project_holding_time(
             current_price=current_price,
             entry=entry, take_profit=take_profit, atr=atr, 
             trend_intensity=trend_intensity, volatility_intensity_index=volatility_intensity_index,
-            interval_minutes=interval_minutes, min_velocity_floor=floor,
+            interval_minutes=interval_minutes, min_velocity_floor=min_velocity_floor,
             vr_base=self.config.volatility_baseline_ratio,
             vr_extreme=self.config.volatility_extreme_ratio,
             ti_strong=self.config.trend_intensity_strong,
