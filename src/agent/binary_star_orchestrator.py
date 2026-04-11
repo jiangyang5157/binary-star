@@ -403,6 +403,7 @@ class BinaryStarOrchestrator:
                     system_instruction=self.shared_instruction
                 )
 
+# TODO Yang: do we need this
             # v7.1: Physical Parameter Sanitization (Zero-Entropy Alignment)
             # We re-run the math fact check on the final decision to ensure 
             # that tactical parameters (Time, RR) are 100% physically accurate.
