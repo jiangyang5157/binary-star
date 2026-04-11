@@ -168,6 +168,7 @@ class AuditAssembler:
                 entry_index = None
                 hit_result = "NEITHER"
                 hit_index = len(klines)
+                hit_time = None
                 max_after, min_after = -float('inf'), float('inf')
                 
                 for i, k in enumerate(klines):
@@ -184,11 +185,23 @@ class AuditAssembler:
                         max_after, min_after = max(max_after, high), min(min_after, low)
                         if hit_result == "NEITHER":
                             if opinion == 'BULLISH':
-                                if low <= sl: hit_result = "SL_HIT"; hit_index = i + 1
-                                elif high >= tp: hit_result = "TP_HIT"; hit_index = i + 1
+                                if low <= sl: 
+                                    hit_result = "SL_HIT"
+                                    hit_index = i + 1
+                                    hit_time = k.open_time
+                                elif high >= tp: 
+                                    hit_result = "TP_HIT"
+                                    hit_index = i + 1
+                                    hit_time = k.open_time
                             else: # BEARISH
-                                if high >= sl: hit_result = "SL_HIT"; hit_index = i + 1
-                                elif low <= tp: hit_result = "TP_HIT"; hit_index = i + 1
+                                if high >= sl: 
+                                    hit_result = "SL_HIT"
+                                    hit_index = i + 1
+                                    hit_time = k.open_time
+                                elif low <= tp: 
+                                    hit_result = "TP_HIT"
+                                    hit_index = i + 1
+                                    hit_time = k.open_time
                 
                 if entry_hit:
                     tp_dist = abs(tp - target_entry)
@@ -228,7 +241,8 @@ class AuditAssembler:
                         "mae_stress_tier": mae_stress.get("stress_tier", "UNKNOWN"),
                         "mfe_efficiency_pct": round((mfe / tp_dist * 100) if tp_dist > 0 else 0, 1),
                         "highest_reached_price": max_after,
-                        "lowest_reached_price": min_after
+                        "lowest_reached_price": min_after,
+                        "actual_hit_timestamp": hit_time
                     }
                     
                     # 6. Holistic Diagnostics (Moving drift data to forensics)

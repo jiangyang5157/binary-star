@@ -209,10 +209,13 @@ class AuditController:
                                      f"Final review scheduled at {expiry_dt.isoformat()} (In {time_left})")
 
             if res_type in ("TP_HIT", "SL_HIT"):
-                hit_index = outcome.get("trade_execution_metrics", {}).get("actual_holding_candles", len(klines))
-                kline_item = klines[hit_index - 1]
-                ts = kline_item.open_time if hasattr(kline_item, 'open_time') else kline_item[0]
-                t1_dt = datetime.fromtimestamp(ts / 1000, tz=timezone.utc)
+                metrics = outcome.get("trade_execution_metrics", {})
+                hit_ts = metrics.get("actual_hit_timestamp")
+                if hit_ts:
+                    t1_dt = datetime.fromtimestamp(hit_ts / 1000, tz=timezone.utc)
+                else:
+                    # Fallback to last candle if timestamp missing (should not happen in v7.1+)
+                    t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
             else:
                 t1_dt = expiry_dt if expiry_dt <= now_dt else now_dt
 
