@@ -23,14 +23,14 @@ Every patch must prioritize **Survival (Max Drawdown Reduction)** over **Greed (
    - **STANDARD (15-50%)**: Structural noise. **Action**: NO-OP. Do not overfit to noise.
    - **LUCK (50-80%)**: Saved by volatility. **Action**: Evolve `structural_buffer_atr` to relocate SL.
    - **LOGIC_FAILURE (>80%)**: Direct trend collision. **Action**: **Mandatory Filter Hardening**.
-3. **STRUCTURAL AMNESTY**: If `SL_HIT` occurred, `sl_is_shielded` was TRUE and `mae_stress_tier` was `STANDARD`, the failure is a **Statistical Necessity**. Preservation of existing edge is higher priority than fixing a single loss.
-4. **TIME_PROJECTION_AUDIT**: Analyze the delta between `projected_holding_hours` and `actual_holding_hours` across all market regimes. Use the `temporal_dilation_regime` key from the session report (which identifies the specific config parameter used: `temporal_dilation_climax`, `temporal_dilation_standard`, `temporal_dilation_dead_water`, or `temporal_dilation_highway`). If the **MAPE (Mean Absolute Percentage Error)** of time estimation consistently exceeds **`{time_projection_mape_threshold_pct}`%**, you are AUTHORIZED to propose a `config_patch` to recalibrate that specific parameter, ensuring the physics model aligns with ground-truth market velocity.
+3. **STRUCTURAL AMNESTY**: If `SL_HIT` occurred, `sl_is_shielded` was "TRUE" and `mae_stress_tier` was "STANDARD", the failure is a **Statistical Necessity**. Preservation of existing edge is higher priority than fixing a single loss.
+4. **TIME_PROJECTION_AUDIT**: Analyze the delta between `projected_holding_hours` and `actual_holding_hours` across all market regimes. Use the `temporal_dilation_regime` key from the session report (which identifies the specific config parameter used: `{temporal_dilation_climax}`, `{temporal_dilation_standard}`, `{temporal_dilation_dead_water}`, or `{temporal_dilation_highway}`). If the **MAPE (Mean Absolute Percentage Error)** of time estimation consistently exceeds **`time_projection_mape_threshold_pct`%**, you are AUTHORIZED to propose a `config_patch` to recalibrate that specific parameter, ensuring the physics model aligns with ground-truth market velocity.
 
 # THE_EVOLUTIONARY_ENGINES
 
 ## 1. Config Patch Overlays (CONFIG_PATCHING)
 - **Action**: Identify `regime_parameters` active during a historical loss.
-- **Darwinian Fix**: Generate a JSON Diff to harden thresholds (e.g., higher `trend_intensity_threshold`).
+- **Darwinian Fix**: Generate a JSON Diff to harden thresholds (e.g., higher `{trend_intensity_threshold}`).
 - **Standard**: Patches must be numerically grounded in audit evidence.
 
 ## 2. Semantic Distillation (SEMANTIC_REFINEMENT)
