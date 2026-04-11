@@ -403,26 +403,25 @@ class BinaryStarOrchestrator:
                     system_instruction=self.shared_instruction
                 )
 
-# TODO Yang: do we need this
             # v7.1: Physical Parameter Sanitization (Zero-Entropy Alignment)
             # We re-run the math fact check on the final decision to ensure 
             # that tactical parameters (Time, RR) are 100% physically accurate.
-            # final_math = self._assemble_math_fact_check(final_decision, observation)
-            # if final_math.get("status") == "VERIFIED":
-            #     tactical = final_decision.get("tactical_parameters", {})
+            final_math = self._assemble_math_fact_check(final_decision, observation)
+            if final_math.get("status") == "VERIFIED":
+                tactical = final_decision.get("tactical_parameters", {})
                 
-            #     # Align Projected Times
-            #     holding_v = final_math.get("holding_time_verification", {})
-            #     if holding_v:
-            #         tactical["projected_holding_hours"] = holding_v.get("projected_holding_hours", 0)
-            #         tactical["projected_waiting_hours"] = holding_v.get("projected_waiting_hours", 0)
+                # Align Projected Times
+                holding_v = final_math.get("holding_time_verification", {})
+                if holding_v:
+                    tactical["projected_holding_hours"] = holding_v.get("projected_holding_hours", 0)
+                    tactical["projected_waiting_hours"] = holding_v.get("projected_waiting_hours", 0)
                 
-            #     # Align Risk-Reward Metrics (Mathematical Truth)
-            #     rr_v = final_math.get("rr_verification", {})
-            #     if rr_v and "rr_ratio" in rr_v:
-            #         tactical["rr_ratio"] = rr_v["rr_ratio"]
+                # Align Risk-Reward Metrics (Mathematical Truth)
+                rr_v = final_math.get("rr_verification", {})
+                if rr_v and "rr_ratio" in rr_v:
+                    tactical["rr_ratio"] = rr_v["rr_ratio"]
             
-            # logger.info("BinaryStar: Final decision sanitized against physical truth.")
+            logger.info("BinaryStar: Final decision sanitized against physical truth.")
 
             
             # 4. Forensic Packaging

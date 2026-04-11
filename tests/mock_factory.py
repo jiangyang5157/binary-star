@@ -45,8 +45,17 @@ class MockDataFactory:
         return klines
 
     @staticmethod
-    def create_mock_session_result(symbol: str, opinion: str = "BULLISH") -> Dict[str, Any]:
-        """Creates a mock output from BinaryStarOrchestrator."""
+    def create_mock_session_result(
+        symbol: str, 
+        opinion: str = "BULLISH", 
+        current_price: float = 60100.0,
+        poc: float = 60000.0,
+        vah: float = 61000.0,
+        val: float = 59000.0,
+        atr: float = 500.0,
+        trend_intensity: float = 0.8
+    ) -> Dict[str, Any]:
+        """Creates a mock output from BinaryStarOrchestrator with customizable topography."""
         return {
             "symbol": symbol,
             "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -54,11 +63,11 @@ class MockDataFactory:
                 "opinion": opinion,
                 "confidence_score": 85,
                 "tactical_parameters": {
-                    "current_price": 60100,
-                    "entry": 60000,
-                    "take_profit": 62000,
-                    "stop_loss": 59000,
-                    "rr_ratio": 2.0,
+                    "current_price": current_price,
+                    "entry": current_price - (atr * 0.1),
+                    "take_profit": current_price + (atr * 2.0),
+                    "stop_loss": current_price - (atr * 1.0),
+                    "rr_ratio": 2.1,
                     "projected_holding_hours": 24,
                     "projected_waiting_hours": 4
                 },
@@ -68,11 +77,12 @@ class MockDataFactory:
                 "symbol": symbol,
                 "observed_at": datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z"),
                 "quantitative_metrics": {
-                    "price_dynamics": {"current_price": 60100, "atr_macro": 500, "volatility_intensity_index": 1.0},
-                    "volume_profile": {"poc": 60000, "vah": 61000, "val": 59000, "anchors_above": [], "anchors_below": []},
-                    "market_regime": {"volatility_regime": "STABLE", "volume_participation_ratio": 1.0},
+                    "price_dynamics": {"current_price": current_price, "atr_macro": atr, "volatility_intensity_index": 1.5},
+                    "volume_profile": {"poc": poc, "vah": vah, "val": val, "anchors_above": [], "anchors_below": []},
+                    "market_regime": {"volatility_regime": "STABLE", "volume_participation_ratio": 1.0, "trend_intensity": trend_intensity},
                     "sentiment_signals": {"liquidation_clusters": None}
-                }
+                },
+                "visual_context": {}
             }
         }
 
@@ -291,4 +301,20 @@ class MockDataFactory:
             "critic_summary": "Structure is sound, but RR is slightly tight." if level == "PASS" else f"{level}: SL is unshielded.",
             "suggested_mitigations": "None" if level == "PASS" else "Move SL behind 59000 POC.",
             "codes": ["SAFE"] if level == "PASS" else ["ANCHOR_VIOLATION"]
+        }
+
+    @staticmethod
+    def create_mock_math_fact_check(status: str = "VERIFIED", is_valid_rr: bool = True, is_shielded: bool = True) -> Dict[str, Any]:
+        """Generates a mock outcome from the math fact check engine."""
+        return {
+            "status": status,
+            "rr_verification": {"rr_ratio": 2.5 if is_valid_rr else 0.8},
+            "atr_volatility_verification": {"entry_to_sl_atr": 1.2},
+            "structural_armor_verification": {"sl_to_poc_atr": -0.5 if is_shielded else 0.5},
+            "holding_time_verification": {"projected_holding_hours": 12.0},
+            "compliance_verdict": {
+                "rr_is_valid": is_valid_rr,
+                "sl_is_shielded": is_shielded,
+                "atr_volatility_is_logical": True
+            }
         }

@@ -42,22 +42,9 @@ class SessionEmailTemplate(BaseEmailTemplate):
         
         # 4. RR Ratio Extraction (v7.1: Prioritize Sanitized Ground-Truth)
         tactical = decision.get('tactical_parameters') or {}
-        entry = tactical.get('entry')
-        tp = tactical.get('take_profit')
-        sl = tactical.get('stop_loss')
         
-        # Try to read the pre-calculated/sanitized RR first
+        # Strictly use the pre-calculated/sanitized RR (Physical Truth)
         rr_display = tactical.get("rr_ratio")
-        
-        # Fallback to calculation if missing (Legacy support)
-        if rr_display is None and all(v is not None for v in [entry, tp, sl]):
-            try:
-                from src.utils.math_utils import MathTools
-                rr_res = MathTools.calculate_risk_reward(float(entry), float(tp), float(sl))
-                rr_display = rr_res.get('rr_ratio', "N/A")
-            except Exception as e:
-                logger.warning(f"Template: RR calculation fallback failed: {e}")
-        
         rr_display = rr_display if rr_display is not None else "N/A"
 
         # 5. Extract Projected Durations

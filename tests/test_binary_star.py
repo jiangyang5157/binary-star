@@ -41,7 +41,7 @@ class TestBinaryStarFlow:
         """Enforces max_rounds even if convergence fails."""
         mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
         
-        # Never converges
+        # Never converges (Always returns high skepticism)
         orchestrator.session_agent.execute_session_cycle = MagicMock(
             return_value=MockDataFactory.create_mock_ai_response("NEUTRAL")
         )
@@ -53,3 +53,88 @@ class TestBinaryStarFlow:
         
         # Verify exhaustion (Max rounds = 3 as per mock_config)
         assert len(result["debate_history"]) == 3
+        # Ensure it went through the loop 3 times
+        assert orchestrator.critic_agent.evaluate.call_count == 3
+
+    def test_early_exit_on_pass(self, orchestrator):
+        """Tests that the orchestrator exits early if the Critic issues a PASS."""
+        mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
+        
+        # R1 returns a perfect plan
+        orchestrator.session_agent.execute_session_cycle = MagicMock(
+            return_value=MockDataFactory.create_mock_ai_response("BULLISH")
+        )
+        # Critic returns PASS in Round 1
+        orchestrator.critic_agent.evaluate = MagicMock(
+            return_value=MockDataFactory.create_mock_critic_response(score=5, level="PASS")
+        )
+        
+        result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
+        
+        # Verify early exit (Only 1 round in history)
+        assert len(result["debate_history"]) == 1
+        assert orchestrator.critic_agent.evaluate.call_count == 1
+        assert orchestrator.session_agent.execute_session_cycle.call_count == 1 # Only 1 planning call
+
+    def test_synthesis_temperature_shift(self, orchestrator):
+        """Verifies that final synthesis uses the Critic's cold temperature (Strategic Alpha)."""
+        mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
+        
+        # Mock responses to ensure it reaches synthesis (no early exit)
+        orchestrator.session_agent.execute_session_cycle = MagicMock(
+            return_value=MockDataFactory.create_mock_ai_response("BULLISH")
+        )
+        orchestrator.critic_agent.evaluate = MagicMock(
+            return_value=MockDataFactory.create_mock_critic_response(score=30, level="CONSTRUCTIVE")
+        )
+        
+        orchestrator.execute_flow(mock_obs, "BTCUSDT")
+        
+        # Check call arguments for the synthesis round (last call)
+        # Round 1, 2, 3 planning calls use session_config.model_temperature (0.7)
+        # Synthesis call uses critic_config.model_temperature (0.2)
+        calls = orchestrator.session_agent.execute_session_cycle.call_args_list
+        
+        # Planning Rounds (R1, R2, R3)
+        for i in range(3):
+            assert calls[i].kwargs["temperature"] == 0.7
+            assert "Planning" in calls[i].kwargs["agent_name"]
+            
+        # Final Synthesis Round
+        assert calls[-1].kwargs["temperature"] == 0.2
+        assert calls[-1].kwargs["agent_name"] == "Session_Synthesis"
+
+    def test_final_decision_sanitization(self, orchestrator):
+        """Verifies that the final decision is sanitized with math-verified parameters."""
+        mock_obs = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
+        
+        # 1. Mock synthesis response WITHOUT rr_ratio
+        raw_response = MockDataFactory.create_mock_ai_response("BULLISH")
+        raw_response["tactical_parameters"] = {
+            "entry": 50000.0,
+            "take_profit": 55000.0,
+            "stop_loss": 48000.0,
+            "projected_holding_hours": 999.0, # Incorrect value
+            "projected_waiting_hours": 999.0  # Incorrect value
+        }
+        
+        orchestrator.session_agent.execute_session_cycle = MagicMock(return_value=raw_response)
+        
+        # 2. Mock Critic to PASS Round 1 (Early Exit)
+        orchestrator.critic_agent.evaluate = MagicMock(
+            return_value=MockDataFactory.create_mock_critic_response(score=5, level="PASS")
+        )
+
+        # 3. Execution
+        result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
+        
+        # 4. Verification
+        tactical = result["final_decision"]["tactical_parameters"]
+        
+        # Verify that parameters were updated from the initial '999.0' placeholders
+        # and that the rr_ratio was successfully injected.
+        assert tactical["rr_ratio"] == 2.5
+        assert tactical["projected_holding_hours"] != 999.0
+        assert tactical["projected_waiting_hours"] != 999.0
+        assert tactical["projected_holding_hours"] > 0
+        assert tactical["entry"] == 50000.0 # Unchanged
