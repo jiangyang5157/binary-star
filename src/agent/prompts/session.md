@@ -30,8 +30,6 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before draftin
 - `IS_CHAOS`: `volatility_expansion_index` > `{volatility_extreme_ratio}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
 - `IS_VOLATILE`: `volatility_expansion_index` > `{volatility_extreme_ratio}` OR abs(`trend_intensity`) > `{trend_intensity_strong}`
-- `HAS_BEAR_SENTIMENT`: (`long_short_ratio_micro` > `{long_short_imbalance_ratio}` OR `funding_rate` > `{funding_extreme_threshold}`)
-- `HAS_BULL_SENTIMENT`: (`long_short_ratio_micro` < `{short_heavy_imbalance_ratio}` OR `funding_rate` < -`{funding_extreme_threshold}`)
 - `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
 - `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)
 - `IS_OVEREXTENDING`: (abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`)
@@ -46,7 +44,7 @@ You possess Native Function Calling capabilities. You MUST use `MathTools` to el
     2. **CRITICAL:** If you adjust your `entry`, `take_profit`, or `stop_loss` during the Synthesis round to resolve a veto, **YOU MUST CALL `MathTools` AGAIN** with the new coordinates to get the updated time projections. 
     3. DO NOT attempt to manually calculate time projections under any circumstances. Manual calculation will lead to mathematically invalid asymptote errors and a terminal system crash.
 
-# [LOGIC_GATEWAY_PROTOCOL]
+# LOGIC_GATEWAY_PROTOCOL
 - **IF `IS_PLANNING`**: Generate your initial directional hypothesis. Formulate coordinates, validate them with `MathTools`, and output the Proposal JSON.
 - **IF `IS_SYNTHESIS`**: You MUST perform a **Structural Hardening**. Your mission is to find the **Mathematical Intersection of All Constraints** identified in the `{debate_history_json}`. Use the latest `math_fact_check` as your physical floor, and re-engineer the coordinates to eliminate every historical Critic Veto (`invalidations` tags) simultaneously. If no such intersection exists, you MUST abort to "NEUTRAL".
 

@@ -252,3 +252,5 @@ evolver:
   failure_ratio_threshold: 0.2
   # Maximum tolerated Mean Absolute Percentage Error (MAPE) for time projections before recalibrating dilation.
   time_projection_mape_threshold: 0.2
+  # Maximum allowed regression percentage (e.g., 0.05 for 5%) before a mutation is vetoed.
+  regression_veto_threshold: 0.05
