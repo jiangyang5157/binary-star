@@ -206,7 +206,7 @@ binary_star:
 
   session:
     role_definition_prompt: src/agent/prompts/session.md
-    model_temperature: 0.4
+    model_temperature: 0.5
 
     # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
@@ -229,7 +229,7 @@ binary_star:
 
   critic:
     role_definition_prompt: src/agent/prompts/critic.md
-    model_temperature: 0.0
+    model_temperature: 0.1
 
     # Skepticism buckets for protocol compliance mapping.
     threshold_skepticism_clear: 40
