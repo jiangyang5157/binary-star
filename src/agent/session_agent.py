@@ -318,7 +318,7 @@ class SessionAgent(BaseAgent):
 
     def project_holding_time(self, current_price: float, entry: float, take_profit: float, atr: float, 
                              trend_intensity: float, 
-                             volatility_expansion_index: float,
+                             volatility_intensity_index: float,
                              interval_minutes: int,
                              min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
 
@@ -331,7 +331,7 @@ class SessionAgent(BaseAgent):
         return MathTools.project_holding_time(
             current_price=current_price,
             entry=entry, take_profit=take_profit, atr=atr, 
-            trend_intensity=trend_intensity, volatility_expansion_index=volatility_expansion_index,
+            trend_intensity=trend_intensity, volatility_intensity_index=volatility_intensity_index,
             interval_minutes=interval_minutes, min_velocity_floor=floor,
 
             vr_base=self.config.volatility_baseline_ratio,

@@ -262,11 +262,11 @@ class BinaryStarOrchestrator:
                             "take_profit": {"type": "NUMBER"},
                             "atr": {"type": "NUMBER"},
                             "trend_intensity": {"type": "NUMBER"},
-                            "volatility_expansion_index": {"type": "NUMBER"},
+                            "volatility_intensity_index": {"type": "NUMBER"},
                             "interval_minutes": {"type": "NUMBER"},
                             "min_velocity_floor": {"type": "NUMBER"}
                         },
-                        "required": ["current_price", "entry", "take_profit", "atr", "trend_intensity", "volatility_expansion_index", "interval_minutes"]
+                        "required": ["current_price", "entry", "take_profit", "atr", "trend_intensity", "volatility_intensity_index", "interval_minutes"]
                     }
                 },
                 {
@@ -504,7 +504,7 @@ class BinaryStarOrchestrator:
                 current_price=float(tactical.get('current_price', 0) or 0),
                 entry=entry, take_profit=tp, atr=atr, 
                 trend_intensity=trend_intensity, 
-                volatility_expansion_index=float(dynamics['volatility_expansion_index']),
+                volatility_intensity_index=float(dynamics['volatility_intensity_index']),
 
                 interval_minutes=get_interval_minutes(self.macro_interval),
                 min_velocity_floor=self.session_config.min_trade_velocity,

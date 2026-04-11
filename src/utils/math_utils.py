@@ -126,7 +126,7 @@ class MathTools:
         take_profit: float,
         atr: float,
         trend_intensity: float,
-        volatility_expansion_index: float,
+        volatility_intensity_index: float,
         interval_minutes: int,
         min_velocity_floor: float,
         # Thresholds
@@ -169,15 +169,15 @@ class MathTools:
             # 2. 状态路由 (State Routing) -> 映射至动态时间膨胀因子 (Temporal Dilation Factor)
             ti_abs = abs(trend_intensity)
             
-            if volatility_expansion_index >= vr_extreme:
+            if volatility_intensity_index >= vr_extreme:
                 # 场景：极致危险。时间压缩。
                 temporal_dilation_factor = dilation_climax
                 temporal_dilation_regime = "temporal_dilation_climax"
-            elif volatility_expansion_index < vr_base and ti_abs < ti_strong:
+            elif volatility_intensity_index < vr_base and ti_abs < ti_strong:
                 # 场景：死水区。时间压缩。
                 temporal_dilation_factor = dilation_dead_water
                 temporal_dilation_regime = "temporal_dilation_dead_water"
-            elif ti_abs >= ti_thresh and vr_base <= volatility_expansion_index < vr_extreme:
+            elif ti_abs >= ti_thresh and vr_base <= volatility_intensity_index < vr_extreme:
 
                 # 场景：高速公路。时间膨胀。
                 temporal_dilation_factor = dilation_highway
