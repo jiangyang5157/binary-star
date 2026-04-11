@@ -28,8 +28,8 @@ def parse_liquidation_data(liq: Dict[str, Any]) -> Dict[str, Any]:
 def calculate_indicator_warmup(
     iir_periods: list[int], 
     fir_periods: list[int], 
-    multiplier: float = 5.0, 
-    min_buffer: int = 2
+    multiplier: float,
+    min_buffer: int
 ) -> int:
     """
     Calculates the required 'warmup' period to ensure technical indicators 

@@ -60,7 +60,7 @@ backtest:
 
 evolution:
   # Default sample size for audit ingestion
-  default_samples: 20
+  default_samples: 10
 
 sniper:
 

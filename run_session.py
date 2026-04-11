@@ -213,12 +213,11 @@ class SessionController:
         )
         binance.close()
         
-        # Prepare DataFrame for sampling (v6.86 Fix: Correctly handle KlineData objects)
-        df = pd.DataFrame(klines)
-        df['timestamp'] = pd.to_datetime(df['open_time'], unit='ms', utc=True)
-        df['close'] = df['close'].astype(float)
-        
-        df_range = df[(df['timestamp'] >= start_dt) & (df['timestamp'] <= end_dt)]
+        # Prepare KlineData range for sampling (v7.1: Zero-Entropy Refactor)
+        klines_range = [
+            k for k in klines 
+            if start_dt <= datetime.fromtimestamp(k.open_time / 1000, tz=timezone.utc) <= end_dt
+        ]
         
         # v6.15: Backtest Sampling Architecture
         self.sampling_mode = self.args.sampling_mode or "sniper"
@@ -229,7 +228,7 @@ class SessionController:
         else:
             sampler = SpacedSampler()
             
-        timestamps = sampler.sample(df_range, self.sampling_count)
+        timestamps = sampler.sample(klines_range, self.sampling_count)
         
         # 3. Execution Loop
         logger.info(f"Simulating {len(timestamps)} temporal snapshots (Sample Count: {self.sampling_count})...")

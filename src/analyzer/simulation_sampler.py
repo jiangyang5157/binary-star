@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Tuple
 from abc import ABC, abstractmethod
 
+from src.infrastructure.exchange.models import KlineData
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)
@@ -14,23 +15,22 @@ class Sampler(ABC):
         pass
 
     @abstractmethod
-    def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
+    def sample(self, klines: List[KlineData], count: int) -> List[datetime]:
         pass
 
 class SpacedSampler(Sampler):
     """Samples timestamps evenly across the provided date range."""
-    def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
-        if df.empty or count <= 0:
+    def sample(self, klines: List[KlineData], count: int) -> List[datetime]:
+        if not klines or count <= 0:
             return []
         
-        if len(df) <= count:
-            logger.warning(f"Requested {count} samples but only {len(df)} available. Returning all.")
-            raw_dates = df['timestamp'].tolist()
+        if len(klines) <= count:
+            logger.warning(f"Requested {count} samples but only {len(klines)} available. Returning all.")
+            indices = range(len(klines))
         else:
-            indices = np.linspace(0, len(df) - 1, count, dtype=int)
-            raw_dates = df.iloc[indices]['timestamp'].tolist()
+            indices = np.linspace(0, len(klines) - 1, count, dtype=int)
             
-        return raw_dates
+        return [datetime.fromtimestamp(klines[i].open_time / 1000, tz=timezone.utc) for i in indices]
 
 class SniperSampler(Sampler):
     """
@@ -50,20 +50,20 @@ class SniperSampler(Sampler):
         self.scout = SniperScout(symbol)
         self.trigger = SniperTrigger()
 
-    def sample(self, df: pd.DataFrame, count: int) -> List[datetime]:
+    def sample(self, klines: List[KlineData], count: int) -> List[datetime]:
         """
         Scans the historical timeline for asymmetry and picks the most noteworthy points.
         """
-        if df.empty or count <= 0:
+        if not klines or count <= 0:
             return []
 
-        logger.info(f"SniperSampler: Scanning {len(df)} candidate points for noteworthy events...")
+        logger.info(f"SniperSampler: Scanning {len(klines)} candidate points for noteworthy events...")
         
         noteworthy_points: List[Tuple[datetime, str, str]] = []
         prev_metrics = None
         
-        for index, row in df.iterrows():
-            dt = row['timestamp']
+        for kline in klines:
+            dt = datetime.fromtimestamp(kline.open_time / 1000, tz=timezone.utc)
             
             try:
                 # 1. Scout the historical moment
@@ -88,7 +88,7 @@ class SniperSampler(Sampler):
 
         if not noteworthy_points:
             logger.warning("SniperSampler: No noteworthy events found in range. Falling back to spaced sampling.")
-            return SpacedSampler().sample(df, count)
+            return SpacedSampler().sample(klines, count)
 
         # Proportional Sampling across event types
         event_df = pd.DataFrame(noteworthy_points, columns=['timestamp', 'type', 'reason'])
@@ -108,3 +108,4 @@ class SniperSampler(Sampler):
                 sampled_rows = pd.concat([sampled_rows, remaining.sample(fill_count)])
 
         return sorted(sampled_rows['timestamp'].tolist())
+

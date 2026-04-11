@@ -58,8 +58,8 @@ class BinanceFuturesClient(AbstractExchangeClient):
         self.network_cfg = self._load_network_config()
         # Strict sourcing from global_config.yaml (network section)
         binance_net = self.network_cfg.get('network', {}).get('binance', {})
-        self.timeout = int(binance_net.get('api_timeout_seconds', 10))
-        self.retry_count = int(binance_net.get('retry_count', 3))
+        self.timeout = int(binance_net['api_timeout_seconds'])
+        self.retry_count = int(binance_net['retry_count'])
 
     def _get_retryer(self, method_name: str) -> tenacity.Retrying:
         return tenacity.Retrying(
@@ -326,4 +326,3 @@ class BinanceFuturesClient(AbstractExchangeClient):
     def close(self):
         """Closes the client connection (placeholder for session cleanup)."""
         pass
-
