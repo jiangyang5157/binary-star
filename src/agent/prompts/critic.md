@@ -64,30 +64,30 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | Category | Condition | Tag | Veto Level |
 | :--- | :--- | :--- | :--- |
 | **Pristine** | `IS_SL_SHIELDED` AND `IS_RR_VALID` | `[PRISTINE]` | `PASS` |
-| **Justified Inaction** | `IN_NEUTRAL` AND (**THE NEUTRALITY PARADOX** criteria met). | `[JUSTIFIED_INACTION]` | `PASS` |
+| **Justified Inaction** | `IN_NEUTRAL` AND (**THE NEUTRALITY PARADOX** criteria met) | `[JUSTIFIED_INACTION]` | `PASS` |
 | **Order Physics** | NOT `IS_ENTRY_SAFE` OR NOT `IS_SL_LOGICAL` | `[ORDER_PHYSICS]` | `TERMINAL` |
 | **Structural Violation** | `IS_STRUCTURAL_TRAP` | `[STRUCTURAL_TRAP]` | `TERMINAL` |
 | **Anchor/Shield Failure** | `HAS_ANCHOR_VIOLATION` | `[ANCHOR_VIOLATION]` | `TERMINAL` |
 | **Logic Loop** | `HAS_PROTOCOL_VIOLATION` | `[PROTOCOL_VIOLATION]` | `TERMINAL` |
-| **Math Violation** | NOT `IS_RR_VALID` OR `compliance_verdict.atr_volatility_is_logical` == FALSE. | `[MATH_VIOLATION]` | `CONSTRUCTIVE` |
-| **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `volume_participation_ratio` > `{min_volume_participation_ratio}` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`). | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
-| **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_FLOW_DOMINANCE` AND NOT `HAS_ABSORPTION_RISK`. | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
-| **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND NOT `IN_NEUTRAL`. | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
-| **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH`. | `[RETAIL_LONG_SQUEEZE]` | `TERMINAL` |
-| **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH`. | `[RETAIL_SHORT_SQUEEZE]` | `TERMINAL` |
-| **Absorption Trap** | `HAS_ABSORPTION_RISK` AND `HAS_FLOW_OPPOSITION`. | `[CVD_ABSORPTION]` | `WEAK` |
-| **Gravity Exhaustion**| `IS_OVEREXTENDING`. | `[GRAVITY_EXHAUSTION]` | `CONSTRUCTIVE` |
-| **Volatility Chop** | `IS_VOLATILITY_CHOP` AND NOT `IN_NEUTRAL`. | `[VOLATILITY_CHOP]` | `TERMINAL` |
-| **Flow Violation** | `HAS_FLOW_OPPOSITION` AND NOT `HAS_ABSORPTION_RISK`. | `[FLOW_VIOLATION]` | `CONSTRUCTIVE` |
+| **Math Violation** | NOT `IS_RR_VALID` OR `compliance_verdict.atr_volatility_is_logical` == FALSE | `[MATH_VIOLATION]` | `CONSTRUCTIVE` |
+| **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `volume_participation_ratio` > `{min_volume_participation_ratio}` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
+| **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_FLOW_DOMINANCE` AND NOT `HAS_ABSORPTION_RISK` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
+| **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND NOT `IN_NEUTRAL` | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
+| **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH` | `[RETAIL_LONG_SQUEEZE]` | `TERMINAL` |
+| **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `TERMINAL` |
+| **Absorption Trap** | `HAS_ABSORPTION_RISK` AND `HAS_FLOW_OPPOSITION` | `[CVD_ABSORPTION]` | `WEAK` |
+| **Gravity Exhaustion**| `IS_OVEREXTENDING` | `[GRAVITY_EXHAUSTION]` | `CONSTRUCTIVE` |
+| **Volatility Chop** | `IS_VOLATILITY_CHOP` AND NOT `IN_NEUTRAL` | `[VOLATILITY_CHOP]` | `TERMINAL` |
+| **Flow Violation** | (`HAS_FLOW_OPPOSITION` AND NOT `HAS_ABSORPTION_RISK`) AND NOT `IS_SQUEEZING` | `[FLOW_VIOLATION]` | `CONSTRUCTIVE` |
 | **Expansion Anomaly** | `IS_HOLDING_TOO_LONG` AND NOT `IN_NEUTRAL` | `[OVER_EXTENSION]` | `CONSTRUCTIVE` |
-| **Volatility Climax** | `IS_CHAOS` AND NOT `IN_NEUTRAL`. | `[VOLATILITY_CLIMAX]` | `TERMINAL` |
-| **Liquidity Void** | `HAS_LIQUIDITY_VOID`. | `[LIQUIDITY_VOID]` | `CONSTRUCTIVE` |
+| **Volatility Climax** | `IS_CHAOS` AND NOT `IN_NEUTRAL` | `[VOLATILITY_CLIMAX]` | `TERMINAL` |
+| **Liquidity Void** | `HAS_LIQUIDITY_VOID` | `[LIQUIDITY_VOID]` | `CONSTRUCTIVE` |
 
 # REASONING_CHAIN
 - **Multimodal Synthesis**: Cross-reference `{observation_json}` metrics with visual snapshots (`VISUAL_CONTEXT`). Identify structural nuances or momentum cues.
 - **Deterministic Veto Audit**: Evaluate the `{last_plan}` strictly against the `CRITIC_CODES` table.
   - For "BULLISH" and "BEARISH": Audit `[ORDER_PHYSICS]`, `[ANCHOR_VIOLATION]`, `[MATH_VIOLATION]`, and Volatility Regime/Flow direction alignment.
-  - For "NEUTRAL": Audit `[INACTION_BIAS]`, `[OPPORTUNITY_DENIAL]`, and `[TREND_STARVATION]`.
+  - For "NEUTRAL": Audit `[INACTION_BIAS]`, `[TREND_STARVATION]` and `[OPPORTUNITY_DENIAL]`.
 - **Global Consistency Audit**: Compare the current `{last_plan}` against `{debate_history_json}`. Identify if Session is repeating failed plans without a Paradigm Shift.
 - **Veto Determination**:
   - If multiple codes trigger, the most severe Veto Level (`TERMINAL` > `CONSTRUCTIVE` > `WEAK` > `PASS`) dictates the final state.
