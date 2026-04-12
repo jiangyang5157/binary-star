@@ -57,7 +57,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - `IS_VOLATILITY_CHOP`: `IS_EXPANDING` AND abs(`trend_intensity`) < `{trend_intensity_min_expansion}`
 - `HAS_LIQUIDITY_VOID`: `nearest_lvn_dist_atr` < `{structural_buffer_atr}`
 - `IS_STRUCTURAL_TRAP`: `last_plan.tactical_parameters.entry` hits a volume vacuum (`vacuum_score` > `{vacuum_risk_score}`)
-- `HAS_ANCHOR_VIOLATION`: NOT `IS_SL_SHIELDED` OR (The structural anchor is NOT physically BETWEEN `entry` and `SL`) OR (The `stop_loss` is placed at or in front of a `liquidation_cluster`)
+- `HAS_ANCHOR_VIOLATION`: (NOT `IS_TREND_STRONG` AND (NOT `IS_SL_SHIELDED` OR Anchor is NOT BETWEEN `entry` and `stop_loss`)) OR (Near `liquidation_cluster` AND ((`IS_BULLISH` AND `stop_loss` >= cluster) OR (`IS_BEARISH` AND `stop_loss` <= cluster)))
 - `HAS_PROTOCOL_VIOLATION`: State Reversion detected in `{debate_history_json}`
 
 # CRITIC_CODES

@@ -31,7 +31,6 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before draftin
 - `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
 - `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
-- `IS_VOLATILE`: `IS_CHAOS` OR `IS_TREND_STRONG`
 - `HAS_VOLUME_SURGE`: `volatility_participation_ratio` > `{min_volume_participation_ratio}`
 - `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
 - `HAS_BULL_FLOW`: `cvd_intensity_ratio` > `{cvd_intensity_threshold}`
@@ -69,9 +68,9 @@ Use these metrics to synthesize your tactical entry strategy:
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
 ## Topographical Anchoring (Absolute Law)
-- **THE SHIELD LAW (The Betweenness Law)**: `stop_loss` MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). The anchor MUST sit strictly **BETWEEN** your `entry` and `stop_loss`. NEVER place a stop loss at or just in front of a `liquidation_cluster`, as these act as magnetic sweep targets. If a cluster is near your intended `stop_loss`, you MUST place the `stop_loss` beyond the distal extreme of the cluster (below it for Longs, above it for Shorts).
-  - For "BULLISH": `entry` > `anchor` > `stop_loss` (stop_loss must be lower than the anchor's lowest edge).
-  - For "BEARISH": `entry` < `anchor` < `stop_loss` (stop_loss must be higher than the anchor's highest edge).
+- **THE SHIELD LAW (The Betweenness Law)**: `stop_loss` MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). NEVER place a stop loss at or just in front of a `liquidation_cluster`, as these act as magnetic sweep targets. If a cluster is near your intended `stop_loss`, you MUST place the `stop_loss` beyond the distal extreme of the cluster (below it for Longs, above it for Shorts). 
+  - **Standard Anchor**: The anchor MUST sit strictly **BETWEEN** your `entry` and `stop_loss`. For "BULLISH": `entry` > `anchor` > `stop_loss` (stop_loss must be lower than the anchor's lowest edge). For "BEARISH": `entry` < `anchor` < `stop_loss`.
+  - **[MOMENTUM EXEMPTION]**: If a valid structural anchor (HVN/POC) is further than `{poc_gravity_atr_distance}` ATR, and `IS_TREND_STRONG` is TRUE, you are AUTHORIZED to deploy a **Dynamic Kinetic Shield**. Instead of using a distant physical anchor, you MUST dynamically calculate an ATR-based stop-loss distance that optimally balances a survival buffer with the strict `{min_rr_trending}` mathematical requirement. The strict "Betweenness" rule is relaxed to capture runaway trends.
 - **VOLATILITY ADAPTIVE SHIELDING**: If `IS_CHAOS`, the environment is in a Chaos regime. You MUST expand the `{structural_buffer_atr}` applied to your `stop_loss` placement using the `{chaos_rr_discount}` percentage increase. Survival in high-volatility regimes is a higher priority than the `min_rr` threshold.
 - **LIMIT ORDER PHYSICS**: You are placing Limit Orders. A "BULLISH" entry MUST be `<= current_price`, `take_profit` > `entry`, and `stop_loss` < `entry`. A "BEARISH" entry MUST be `>= current_price`, `take_profit` < `entry`, and `stop_loss` > `entry`. Violating these directional physics causes immediate adverse market fill and is a `TERMINAL` VETO.
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_index`) is missing, output "NEUTRAL". Do not guess.
@@ -79,7 +78,8 @@ Use these metrics to synthesize your tactical entry strategy:
 
 ## Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum & Flow Riding**: If `IS_TREND_STRONG` OR `HAS_CVD_MOMENTUM`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. **MANDATORY**: To prevent catastrophic misses in strong trends, your `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`. If `IS_CHAOS`, the market is climaxing; directional execution is PROHIBITED. You MUST abort to "NEUTRAL".
+- **Momentum & Flow Riding**: If `IS_TREND_STRONG` OR `HAS_CVD_MOMENTUM`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. **MANDATORY**: To prevent catastrophic misses in strong trends, your `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`.
+  - **[CHAOS OVERRIDE]**: If `IS_CHAOS`, the market is climaxing. Directional momentum execution is STRICTLY PROHIBITED. You are restricted exclusively to hyper-deep Exhaustion Fading targeting distal liquidation clusters. **CRITICAL**: Because this system lacks partial `take-profit` capabilities, you MUST execute a "Hit-and-Run" strategy. Compress your `take_profit` aggressively to the nearest immediate structural node or wick edge. DO NOT aim for a full mean-reversion to the distal POC. Secure the survival profit and exit.
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `wick_skew_instant` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Anchor your entry at a proximal HVN. **MANDATORY**: To prevent Phantom Orders, your `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`.
 - **The Sweep & Fade (Counter-Trend Reversal)**: You are authorized to execute a counter-trend trade (e.g., "BEARISH" in an uptrend, or "BULLISH" in a downtrend) IF AND ONLY IF the following physical conditions intersect:
   - **The Target is Destroyed**: Current price has just hit or pierced a high-intensity `liquidation_cluster` (e.g., hitting short_liquidations during a pump).
