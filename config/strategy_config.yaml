@@ -145,15 +145,16 @@ topography_parameters:
   volume_moving_average_period: 21
 
   # --- Structural Node Detection ---
-  # Max number of structural nodes (HVN/LVN) to track.
+  # Max structural nodes (HVN/LVN) to extract from profile.
   max_volume_node_count: 3
+  # Max structural nodes to report in topography and context.
+  top_structural_node_count: 3
   # Probability threshold for detecting a structural High Volume Node.
   high_volume_node_detection_threshold: 0.15
   # Probability threshold for detecting a structural Low Volume Node.
   low_volume_node_detection_threshold: 0.05
   # Minimum gap required to distinguish two separate structural nodes.
   min_node_gap_atr: 1.2
-  top_structural_node_count: 3
 
   # --- Technical Sensors (Physics Math) ---
   average_true_range_period: 21
@@ -191,7 +192,6 @@ binary_star:
 
     # Hard safety boundaries for stop-loss placements.
     stop_loss_buffer_min: 1.25
-    stop_loss_buffer_max: 2.5
     score_confidence_base: 80
     # Linear decay per Critic veto. STRICT Formula: decay_min + (skepticism / 100) * (decay_max - decay_min)
     score_confidence_decay_min: 5

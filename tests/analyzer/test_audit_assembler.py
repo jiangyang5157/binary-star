@@ -20,7 +20,6 @@ class TestAuditAssembler(unittest.TestCase):
             "regime_parameters": {},
             "audit_review": {
                 "forensic_resolution": "1m",
-                "mae_stress_tolerance": 0.5,
                 "atr_period": 14,
                 "missed_opportunity_atr_threshold": 2.0,
                 "unfilled_proximity_atr_limit": 0.1,

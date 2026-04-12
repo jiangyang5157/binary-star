@@ -26,7 +26,6 @@ class SessionConfig(AgentConfig):
     """
     min_trade_velocity: float
     stop_loss_buffer_min: float
-    stop_loss_buffer_max: float
     score_confidence_base: float
     score_confidence_decay_min: float
     score_confidence_decay_max: float
@@ -97,7 +96,6 @@ class SessionConfig(AgentConfig):
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_cfg['min_trade_velocity']),
             stop_loss_buffer_min=float(session_cfg['stop_loss_buffer_min']),
-            stop_loss_buffer_max=float(session_cfg['stop_loss_buffer_max']),
             score_confidence_base=float(session_cfg['score_confidence_base']),
             score_confidence_decay_min=float(session_cfg['score_confidence_decay_min']),
             score_confidence_decay_max=float(session_cfg['score_confidence_decay_max']),

@@ -60,11 +60,11 @@ class MarketObserverConfig:
     kc_multiplier: float
     volume_ma_period: int
     max_liquidation_events_to_fetch: int
-    max_volume_node_count: int
     high_volume_node_detection_threshold: float
     low_volume_node_detection_threshold: float
-    min_node_gap_atr: float
+    max_volume_node_count: int
     top_structural_node_count: int
+    min_node_gap_atr: float
     trend_intensity_macro_lookback_candles: int
     wick_skew_lookback_candles: int
     liquidation_cluster_atr_multiplier: float
@@ -169,11 +169,11 @@ class MarketObserverConfig:
             volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
             volume_profile_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
             volume_ma_period=int(topography['volume_moving_average_period']),
-            max_volume_node_count=int(topography['max_volume_node_count']),
             high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
             low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
-            min_node_gap_atr=float(min_node_gap_atr),
+            max_volume_node_count=int(topography['max_volume_node_count']),
             top_structural_node_count=int(topography['top_structural_node_count']),
+            min_node_gap_atr=float(min_node_gap_atr),
             atr_period=int(topography['average_true_range_period']),
             bb_period=int(topography['bollinger_bands_period']),
             bb_std_dev=float(topography['bollinger_bands_std_dev']),
@@ -714,7 +714,7 @@ class MarketObserver:
             value_area_ratio=cfg.volume_profile_area_ratio, 
             resolution_bins=cfg.volume_profile_price_bucket_count,
             atr_period=cfg.atr_period, 
-            max_volume_node_count=cfg.max_volume_node_count, 
+            max_volume_node_count=self.config.max_volume_node_count, 
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
             min_node_gap_atr=cfg.min_node_gap_atr,

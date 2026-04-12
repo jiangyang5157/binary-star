@@ -23,7 +23,6 @@ class CriticConfig(AgentConfig):
         min_trade_velocity: Minimum required trade speed for directional validation.
     """
     stop_loss_buffer_min: float
-    stop_loss_buffer_max: float
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -84,7 +83,6 @@ class CriticConfig(AgentConfig):
             max_tool_iterations=int(cfg_dict['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_node['min_trade_velocity']),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),
-            stop_loss_buffer_max=float(session_node['stop_loss_buffer_max']),
             strategy_intent=str(cfg_dict.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),

@@ -25,3 +25,6 @@ The logic unfolds in a deterministic sequence:
 - **[Planning]**: Session originates or refines the action blueprint by deconstructing the `{debate_history_json}` Forensic Stack.
 - **[Auditing]**: Critic evaluates STRICTLY against its internal `CRITIC_CODES` and the iterative evolution in `{debate_history_json}` to identify logical or physical leaks.
 - **[Synthesis]**: The final convergent decision. Session MUST synthesize the entire `{debate_history_json}` Forensic Stack and the latest `math_fact_check` into a cold, deterministic verdict representing the **Intersection of All Constraints**.
+
+## 4. TERMINATION_DYNAMICS
+- **Hard Limit**: The convergence process MUST NOT exceed `{max_rounds}` rounds. If no consensus is reached, the system will force a synthesis of the latest refined plan vs current risk metrics.
