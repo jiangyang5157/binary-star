@@ -253,5 +253,9 @@ class CriticAgent(BaseAgent):
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
             "funding_extreme_threshold": self.config.funding_extreme_threshold,
-            "max_holding_hours": self.config.max_holding_hours
+            "max_holding_hours": self.config.max_holding_hours,
+            "temporal_dilation_dead_water": self.config.temporal_dilation_dead_water,
+            "temporal_dilation_highway": self.config.temporal_dilation_highway,
+            "temporal_dilation_climax": self.config.temporal_dilation_climax,
+            "temporal_dilation_standard": self.config.temporal_dilation_standard
         }

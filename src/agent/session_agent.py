@@ -263,11 +263,7 @@ class SessionAgent(BaseAgent):
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "breakout_frontrun_atr": self.config.breakout_frontrun_atr,
             "max_entry_distance_atr": self.config.max_entry_distance_atr,
-            "chaos_rr_discount": self.config.chaos_rr_discount,
-            "temporal_dilation_dead_water": self.config.temporal_dilation_dead_water,
-            "temporal_dilation_highway": self.config.temporal_dilation_highway,
-            "temporal_dilation_climax": self.config.temporal_dilation_climax,
-            "temporal_dilation_standard": self.config.temporal_dilation_standard
+            "chaos_rr_discount": self.config.chaos_rr_discount
         }
         
         return self._prepare_prompt(self.config.instruction_path, **context)
