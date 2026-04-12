@@ -238,8 +238,6 @@ class BinaryStarOrchestrator:
             # 2. Derive Benchmarks
             unit_atr_holding_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins * scalars["temporal_dilation_factor"]) / 60, 1)
             unit_atr_waiting_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins) / 60, 1)
-
-
             
             # Inject into observation (Only complex physical scalars that AI cannot mental-math)
             regime['regime_benchmarks'] = {
@@ -247,7 +245,6 @@ class BinaryStarOrchestrator:
                 "unit_atr_waiting_hours": unit_atr_waiting_hours
             }
 
-            
             logger.info(f"BinaryStar: Injected Regime Benchmarks [Holding: {unit_atr_holding_hours}h/ATR, Waiting: {unit_atr_waiting_hours}h/ATR]")
         except Exception as e:
             logger.warning(f"BinaryStar: Failed to inject regime benchmarks: {e}")
@@ -350,7 +347,6 @@ class BinaryStarOrchestrator:
                     visual_parts=visual_parts,
                     system_instruction=self.shared_instruction
                 )
-
                 
                 # Score Telemetry
                 skepticism_score = int(float(str(critic_results.get('skepticism_score', 100))))
@@ -413,7 +409,6 @@ class BinaryStarOrchestrator:
                     tactical["rr_ratio"] = rr_v["rr_ratio"]
             
             logger.info("BinaryStar: Final decision sanitized against physical truth.")
-
             
             # 4. Forensic Packaging
             project_root = resolve_project_root()

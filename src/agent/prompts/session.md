@@ -75,7 +75,7 @@ Use these metrics to synthesize your tactical entry strategy:
 - **VOLATILITY ADAPTIVE SHIELDING**: If `IS_CHAOS`, the environment is in a Chaos regime. You MUST expand the `{structural_buffer_atr}` applied to your `stop_loss` placement using the `{chaos_rr_discount}` percentage increase. Survival in high-volatility regimes is a higher priority than the `min_rr` threshold.
 - **LIMIT ORDER PHYSICS**: You are placing Limit Orders. A "BULLISH" entry MUST be `<= current_price`, `take_profit` > `entry`, and `stop_loss` < `entry`. A "BEARISH" entry MUST be `>= current_price`, `take_profit` < `entry`, and `stop_loss` > `entry`. Violating these directional physics causes immediate adverse market fill and is a `TERMINAL` VETO.
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_index`) is missing, output "NEUTRAL". Do not guess.
-- **TEMPORAL PHYSICS (Time-Stop Calibration)**: Because `regime_benchmarks` provides physical speed scalars, you MUST calculate exact durations using: `projected_holding_hours` = abs(`take_profit` - `entry`) / `atr_macro` * `unit_atr_holding_hours`. (Note: `projected_waiting_hours` uses `unit_atr_waiting_hours`).
+- **TEMPORAL PHYSICS (Time-Stop Calibration)**: `regime_benchmarks` provides physically-dilated speed scalars, you MUST calculate exact durations using: `projected_holding_hours` = abs(`take_profit` - `entry`) / `atr_macro` * `unit_atr_holding_hours`. (Note: `projected_waiting_hours` uses `unit_atr_waiting_hours`).
 
 ## Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
