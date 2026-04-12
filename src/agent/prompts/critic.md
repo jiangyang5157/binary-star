@@ -81,7 +81,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | **Volatility Chop** | `IS_VOLATILITY_CHOP` AND NOT `IN_NEUTRAL`. | `[VOLATILITY_CHOP]` | `TERMINAL` |
 | **Flow Violation** | `HAS_FLOW_OPPOSITION` AND NOT `HAS_ABSORPTION_RISK`. | `[FLOW_VIOLATION]` | `CONSTRUCTIVE` |
 | **Expansion Anomaly** | (`IS_EXPANDING` AND NOT `IS_CHAOS` AND abs(`trend_intensity`) >= `{trend_intensity_min_expansion}` AND NOT `IN_NEUTRAL`) OR (`IS_HOLDING_TOO_LONG` AND `IS_EXPANDING`). | `[OVER_EXTENSION]` | `CONSTRUCTIVE` |
-| **Volatility Climax** | `IS_CHAOS` AND NOT `IN_NEUTRAL`. | `[VOLATILITY_CLIMAX]` | `CONSTRUCTIVE` |
+| **Volatility Climax** | `IS_CHAOS` AND NOT `IN_NEUTRAL`. | `[VOLATILITY_CLIMAX]` | `TERMINAL` |
 | **Liquidity Void** | `HAS_LIQUIDITY_VOID`. | `[LIQUIDITY_VOID]` | `CONSTRUCTIVE` |
 
 # REASONING_CHAIN
