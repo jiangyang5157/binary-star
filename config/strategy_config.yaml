@@ -177,7 +177,7 @@ binary_star:
   # gemini-3.1-pro-preview
   # gemini-3-flash-preview
   # gemini-3.1-flash-lite-preview
-  model: gemini-3.1-flash-lite-preview
+  model: gemini-3-flash-preview
   # Root instructions for the adversarial debate.
   system_instruction: src/agent/prompts/binary_star.md
   # Maximum rounds of debate before forced consensus or surrender.
