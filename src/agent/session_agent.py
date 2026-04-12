@@ -57,6 +57,10 @@ class SessionConfig(AgentConfig):
     temporal_dilation_highway: float
     temporal_dilation_climax: float
     temporal_dilation_standard: float
+    temporal_weight_dead_water: float
+    temporal_weight_highway: float
+    temporal_weight_climax: float
+    temporal_weight_standard: float
     structural_proximity_threshold: float
     ranging_width_atr: float
     structural_buffer_atr: float
@@ -127,6 +131,10 @@ class SessionConfig(AgentConfig):
             temporal_dilation_highway=float(session_cfg['temporal_dilation_highway']),
             temporal_dilation_climax=float(session_cfg['temporal_dilation_climax']),
             temporal_dilation_standard=float(session_cfg['temporal_dilation_standard']),
+            temporal_weight_dead_water=float(session_cfg['temporal_weight_dead_water']),
+            temporal_weight_highway=float(session_cfg['temporal_weight_highway']),
+            temporal_weight_climax=float(session_cfg['temporal_weight_climax']),
+            temporal_weight_standard=float(session_cfg['temporal_weight_standard']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             ranging_width_atr=float(regime['ranging_width_atr']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),

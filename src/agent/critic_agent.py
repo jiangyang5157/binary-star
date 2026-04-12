@@ -56,6 +56,10 @@ class CriticConfig(AgentConfig):
     temporal_dilation_highway: float
     temporal_dilation_climax: float
     temporal_dilation_standard: float
+    temporal_weight_dead_water: float
+    temporal_weight_highway: float
+    temporal_weight_climax: float
+    temporal_weight_standard: float
     missed_opportunity_atr_threshold: float
     mae_threshold_pinpoint: float
     mae_threshold_standard: float
@@ -116,6 +120,10 @@ class CriticConfig(AgentConfig):
             temporal_dilation_highway=float(session_node['temporal_dilation_highway']),
             temporal_dilation_climax=float(session_node['temporal_dilation_climax']),
             temporal_dilation_standard=float(session_node['temporal_dilation_standard']),
+            temporal_weight_dead_water=float(session_node['temporal_weight_dead_water']),
+            temporal_weight_highway=float(session_node['temporal_weight_highway']),
+            temporal_weight_climax=float(session_node['temporal_weight_climax']),
+            temporal_weight_standard=float(session_node['temporal_weight_standard']),
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
             mae_threshold_pinpoint=float(audit['mae_threshold_pinpoint']),
             mae_threshold_standard=float(audit['mae_threshold_standard']),

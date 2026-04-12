@@ -218,6 +218,7 @@ class BinaryStarOrchestrator:
                 trend_intensity=float(regime.get('trend_intensity', 0)),
                 volatility_intensity_index=float(dynamics.get('volatility_intensity_index', 0)),
                 normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
+                min_velocity_floor=self.session_config.min_trade_velocity,
                 ti_thresh=self.critic_config.trend_intensity_threshold,
                 ti_strong=self.critic_config.trend_intensity_strong,
                 vr_base=self.critic_config.volatility_baseline_ratio,
@@ -226,7 +227,10 @@ class BinaryStarOrchestrator:
                 dilation_highway=self.session_config.temporal_dilation_highway,
                 dilation_climax=self.session_config.temporal_dilation_climax,
                 dilation_standard=self.session_config.temporal_dilation_standard,
-                min_velocity_floor=self.session_config.min_trade_velocity
+                weight_dead_water=self.session_config.temporal_weight_dead_water,
+                weight_highway=self.session_config.temporal_weight_highway,
+                weight_climax=self.session_config.temporal_weight_climax,
+                weight_standard=self.session_config.temporal_weight_standard
             )
             
             macro_interval_mins = get_interval_minutes(self.macro_interval)
@@ -502,7 +506,11 @@ class BinaryStarOrchestrator:
                 dilation_dead_water=self.session_config.temporal_dilation_dead_water,
                 dilation_highway=self.session_config.temporal_dilation_highway,
                 dilation_climax=self.session_config.temporal_dilation_climax,
-                dilation_standard=self.session_config.temporal_dilation_standard
+                dilation_standard=self.session_config.temporal_dilation_standard,
+                weight_dead_water=self.session_config.temporal_weight_dead_water,
+                weight_highway=self.session_config.temporal_weight_highway,
+                weight_climax=self.session_config.temporal_weight_climax,
+                weight_standard=self.session_config.temporal_weight_standard
             )
 
             

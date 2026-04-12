@@ -124,47 +124,64 @@ class MathTools:
         trend_intensity: float,
         volatility_intensity_index: float,
         normalized_velocity: float,
+        min_velocity_floor: float,
+        # Thresholds
         ti_thresh: float,
         ti_strong: float,
         vr_base: float,
         vr_extreme: float,
+        # Dilation Modifiers (Loaded from YAML temporal_dilation_*)
         dilation_dead_water: float,
         dilation_highway: float,
         dilation_climax: float,
         dilation_standard: float,
-        min_velocity_floor: float
+        # Weight Modifiers (Loaded from YAML temporal_weight_*)
+        weight_dead_water: float,
+        weight_highway: float,
+        weight_climax: float,
+        weight_standard: float
     ) -> Dict[str, Any]:
         """Calculates primary physics scalars for a given market regime.
-        
+
         Args:
             trend_intensity: Efficiency Ratio [-1, 1] for regime triggers.
             volatility_intensity_index: Current vs mean ATR ratio.
             normalized_velocity: Physical ATR/Bar speed for time projection.
         """
         ti_abs = abs(trend_intensity)
-        
+
         # Final Velocity is the higher of observed speed or the protocol floor.
-        # Added 1e-9 epsilon to prevent DivisionByZero in catastrophic config failure scenarios.
+        # Added 1e-9 epsilon to prevent DivisionByZero.
         effective_velocity_per_atr = max(normalized_velocity, min_velocity_floor, 1e-9)
-        
+
         # Regime Detection (Logic gates remain on trend_intensity)
         if volatility_intensity_index >= vr_extreme:
             factor = dilation_climax
-            regime = "temporal_dilation_climax"
+            weight = weight_climax
+            dilation_variable = "temporal_dilation_climax"
+            weight_variable = "temporal_weight_climax"
+        elif ti_abs >= ti_thresh:
+            factor = dilation_highway
+            weight = weight_highway
+            dilation_variable = "temporal_dilation_highway"
+            weight_variable = "temporal_weight_highway"
         elif volatility_intensity_index < vr_base and ti_abs < ti_strong:
             factor = dilation_dead_water
-            regime = "temporal_dilation_dead_water"
-        elif ti_abs >= ti_thresh and vr_base <= volatility_intensity_index < vr_extreme:
-            factor = dilation_highway
-            regime = "temporal_dilation_highway"
+            weight = weight_dead_water
+            dilation_variable = "temporal_dilation_dead_water"
+            weight_variable = "temporal_weight_dead_water"
         else:
             factor = dilation_standard
-            regime = "temporal_dilation_standard"
-            
+            weight = weight_standard
+            dilation_variable = "temporal_dilation_standard"
+            weight_variable = "temporal_weight_standard"
+
         return {
             "effective_velocity_per_atr": effective_velocity_per_atr,
             "temporal_dilation_factor": factor,
-            "temporal_dilation_regime": regime
+            "temporal_dilation_variable": dilation_variable,
+            "temporal_weight_factor": weight,
+            "temporal_weight_variable": weight_variable
         }
 
     @staticmethod
@@ -187,7 +204,12 @@ class MathTools:
         dilation_dead_water: float,
         dilation_highway: float,
         dilation_climax: float,
-        dilation_standard: float
+        dilation_standard: float,
+        # Weight Modifiers (Loaded from YAML temporal_weight_*)
+        weight_dead_water: float,
+        weight_highway: float,
+        weight_climax: float,
+        weight_standard: float
     ) -> Dict[str, Any]:
         """使用静态标量引擎计算精确持仓与等待时间。"""
         try:
@@ -198,24 +220,29 @@ class MathTools:
                 trend_intensity=trend_intensity,
                 volatility_intensity_index=volatility_intensity_index,
                 normalized_velocity=normalized_velocity,
+                min_velocity_floor=min_velocity_floor,
                 ti_thresh=ti_thresh, ti_strong=ti_strong,
                 vr_base=vr_base, vr_extreme=vr_extreme,
                 dilation_dead_water=dilation_dead_water,
                 dilation_highway=dilation_highway,
                 dilation_climax=dilation_climax,
                 dilation_standard=dilation_standard,
-                min_velocity_floor=min_velocity_floor
+                weight_dead_water=weight_dead_water,
+                weight_highway=weight_highway,
+                weight_climax=weight_climax,
+                weight_standard=weight_standard
             )
             
             # 使用还原后的物理速度 (有效标量 * ATR)
             effective_velocity = scalars["effective_velocity_per_atr"] * atr
             
-            # 1. 持仓时间 (受膨胀影响)
+            # 1. 物理持仓时间 (注入执行冗余 Execution Buffer)
+            # 公式 = (纯物理飞行时间) * 物理摩擦力冗余系数 (例如 1.15)
+            # 算出的 projected_holding_hours 将直接作为复盘脚本 (Audit Script) 的硬性追踪截止线。
             dist = abs(take_profit - entry)
             projected_holding_hours = round((dist / effective_velocity * interval_minutes * scalars["temporal_dilation_factor"]) / 60, 1)
-
             
-            # 2. 等待时间 (不受膨胀影响)
+            # 2. 等待时间 (不受冗余影响，保持纯物理速度)
             projected_waiting_hours = 0.0
             if current_price is not None and current_price > 0:
                 wait_dist = abs(entry - current_price)
@@ -224,8 +251,8 @@ class MathTools:
             return {
                 "projected_holding_hours": projected_holding_hours,
                 "projected_waiting_hours": projected_waiting_hours,
-                "temporal_dilation_factor": scalars["temporal_dilation_factor"],
-                "temporal_dilation_regime": scalars["temporal_dilation_regime"]
+                "temporal_weight_factor": scalars["temporal_weight_factor"],
+                "temporal_weight_variable": scalars["temporal_weight_variable"]
             }
 
         except Exception as e:
