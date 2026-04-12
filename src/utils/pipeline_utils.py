@@ -49,16 +49,31 @@ def load_global_config(config_filepath: str = "config/global_config.yaml") -> Di
         return {}
 
 
+def deep_merge(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Recursively merges two dictionaries. 
+    Keys in 'overlay' take precedence over 'base'.
+    """
+    merged = base.copy()
+    for key, value in overlay.items():
+        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
+            merged[key] = deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def load_combined_config(global_path: str = "config/global_config.yaml", strategy_path: str = "config/strategy_config.yaml") -> Dict[str, Any]:
     """
     Loads and merges global and strategy configurations.
-    Priority: Strategy config values override Global config values if there's a conflict
-    at the top level, but typically they have distinct top-level keys.
+    Priority: Strategy config values override Global config values if there's a conflict.
+    Uses deep_merge to ensure nested structures coexist correctly.
     """
     global_cfg = load_global_config(global_path)
     strategy_cfg = load_config(strategy_path)
-    # Shallow merge of top-level keys (system, network, analysis_window, etc.)
-    return {**global_cfg, **strategy_cfg}
+    
+    # deep_merge ensures nested keys (like regime_parameters) from both files are preserved.
+    return deep_merge(global_cfg, strategy_cfg)
 
 from functools import lru_cache
 

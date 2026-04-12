@@ -184,7 +184,6 @@ binary_star:
   max_rounds: 2
 
   session:
-    role_definition_prompt: src/agent/prompts/session.md
     model_temperature: 0.5
 
     # Minimum required ATR drift to justify an entry.
@@ -206,7 +205,6 @@ binary_star:
     temporal_dilation_dead_water: 3
 
   critic:
-    role_definition_prompt: src/agent/prompts/critic.md
     model_temperature: 0.1
 
     # Skepticism buckets for protocol compliance mapping.
@@ -219,7 +217,6 @@ evolver:
   # gemini-3-flash-preview
   # gemini-3.1-flash-lite-preview
   model: gemini-3.1-pro-preview
-  role_definition_prompt: src/agent/prompts/evolver.md
   # Deterministic temperature to ensure logic consistency.
   model_temperature: 0.0
 

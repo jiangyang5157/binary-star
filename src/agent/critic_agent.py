@@ -78,7 +78,7 @@ class CriticConfig(AgentConfig):
         
         return cls(
             model=str(bs['model']),
-            instruction_path=os.path.join(resolve_project_root(), critic_cfg['role_definition_prompt']),
+            instruction_path=os.path.join(resolve_project_root(), cfg_dict['critic']['role_definition_prompt']),
             model_temperature=float(critic_cfg['model_temperature']),
             max_tool_iterations=int(cfg_dict['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_node['min_trade_velocity']),

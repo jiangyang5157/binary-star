@@ -25,7 +25,7 @@ class EvolverConfig(AgentConfig):
         # Note: role_definition_prompt is the legacy key in strategy_config.yaml
         return cls(
             model=str(evolver_cfg['model']),
-            instruction_path=os.path.join(resolve_project_root(), evolver_cfg['role_definition_prompt']),
+            instruction_path=os.path.join(resolve_project_root(), cfg['evolution']['role_definition_prompt']),
             model_temperature=float(evolver_cfg['model_temperature']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations'])
         )

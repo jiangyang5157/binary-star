@@ -92,7 +92,7 @@ class SessionConfig(AgentConfig):
         return cls(
             model=str(bs['model']),
             model_temperature=float(session_cfg['model_temperature']),
-            instruction_path=os.path.join(resolve_project_root(), session_cfg['role_definition_prompt']),
+            instruction_path=os.path.join(resolve_project_root(), cfg['session']['role_definition_prompt']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_cfg['min_trade_velocity']),
             stop_loss_buffer_min=float(session_cfg['stop_loss_buffer_min']),
