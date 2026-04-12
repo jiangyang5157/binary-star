@@ -104,7 +104,6 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[OPPORTUNITY_DENIAL]`: Execute **Momentum Entry** aligned with CVD or shallow **DLE**. **MANDATORY**: `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`.
 - `[TREND_STARVATION]`: Shift to shallow pullback or Momentum Entry. No deep DLEs.
 - `[OVER_EXTENSION]`: Compress `take_profit` closer to `entry` to reduce temporal risk. DO NOT sink `entry` excessively deep, as this causes Phantom Orders.
-- `[VOLATILITY_CLIMAX]`: Strictly use hyper-deep **DLEs**. Momentum entries PROHIBITED.
 - `[LIQUIDITY_VOID]`: Move `stop_loss` distal to clear the vacuum; anchor behind solid `HVN`.
 - `[PROTOCOL_VIOLATION]`: Immediate **Paradigm Shift**. Radically change anchor, target, or stance.
 - `[PRISTINE]`: Maintain current trajectory. No repair required.
