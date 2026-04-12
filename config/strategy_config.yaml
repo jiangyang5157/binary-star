@@ -198,15 +198,20 @@ binary_star:
     # Bonus awarded for resolving [TERMINAL] or [CONSTRUCTIVE] logic violations in synthesis.
     score_confidence_bonus: 10
 
-    # Dynamic Temporal Dilation Factors (Time Redundancy)
-    temporal_dilation_standard: 2
-    temporal_dilation_highway: 3
-    temporal_dilation_dead_water: 4
-    temporal_dilation_climax: 1
-
-    # [MAX_DURATION]: Hard limit for projected holding hours (Red Line).
     max_holding_hours: 48.0
 
+    # 时空权重矩阵 (Weight)
+    temporal_weight_highway: 2.0     # [放权] 额度: 96小时。主升浪中，趋势是最好的护城河，允许4天长跑。
+    temporal_weight_standard: 1.0    # [基准] 额度: 48小时。常规波段，遵守两日轮动定律。
+    temporal_weight_dead_water: 0.5  # [高压] 额度: 24小时。死水区无趋势，隔夜风险剧增，强制日内结清。
+    temporal_weight_climax: 0.25     # [极控] 额度: 12小时。混沌期只有插针，拔剑必须见血，不见血即刻撤退。
+
+    # 动态时间膨胀系数 (Dilation)
+    temporal_dilation_highway: 1.2 # [冗余 20%]：动能极强，价格走直线。只需极小缓冲来覆盖回踩和滑点。
+    temporal_dilation_standard: 1.5 # [冗余 50%]：常态市场进三退二。物理时间 20 小时，脚本追踪 30 小时，给足结构发育的时间。
+    temporal_dilation_dead_water: 2.0 # [冗余 100%]：死水区价格黏性极大，全是毛刺。物理上 10 小时的路程，需要 20 小时才能“磨”到。
+    temporal_dilation_climax: 1.0 # [冗余 0%]：极端波动，非生即死。不需要缓冲，如果物理预期时间内没打到目标，说明逻辑已经破产。
+    
   critic:
     model_temperature: 0.1
 
