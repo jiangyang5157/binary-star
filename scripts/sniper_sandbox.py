@@ -21,7 +21,18 @@ def main():
     parser.add_argument("--symbol", type=str, default="BTCUSDT", help="Trading pair symbol")
     parser.add_argument("--continuous", action="store_true", help="Run continuously using pulse_interval_minutes from config")
     
+    from src.utils.pipeline_utils import load_combined_config, add_data_path_argument
+    add_data_path_argument(parser)
+    
     args = parser.parse_args()
+    
+    # v7.1: ZERO-ENTROPY PATH RESOLUTION
+    # Use the standardized path if provided, otherwise default to config-level prod.
+    data_root = args.path or "data/prod"
+    
+    # Re-initialize logger with file support relative to data_root
+    log_file = os.path.join(data_root, "sniper.log")
+    setup_logger("SniperSandbox", log_file=log_file)
     
     from src.utils.pipeline_utils import load_global_config
     pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
@@ -31,7 +42,7 @@ def main():
     
     prev_metrics = None
     
-    logger.info(f"--- Sniper Sandbox Initialized: {args.symbol} (Continuous: {args.continuous}) ---")
+    logger.info(f"--- Sniper Sandbox Initialized: {args.symbol} (Path: {data_root}, Continuous: {args.continuous}) ---")
     
     try:
         while True:

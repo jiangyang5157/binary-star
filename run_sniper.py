@@ -125,9 +125,14 @@ def main():
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
-    parser.add_argument("--path", type=str, default="data/prod", help="Path for session archival")
+    from src.utils.pipeline_utils import add_data_path_argument
+    add_data_path_argument(parser)
 
     args = parser.parse_args()
+    
+    # v7.1: Zero-Entropy Path Resolution
+    data_root = args.path or "data/prod"
+
     
     daemon = SniperDaemon(args)
     daemon.run_forever()
