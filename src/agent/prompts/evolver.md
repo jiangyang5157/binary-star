@@ -17,7 +17,7 @@ To ensure Zero-Entropy convergence, evaluate these batch-level boolean states be
 - `HAS_SYSTEMIC_PATHOLOGY`: `IS_BATCH_SIGNIFICANT` AND `IS_FAILURE_RATIO_ALARM`
 - `IS_OVERFIT_RISK`: Historical fix would invalidate > 5% of "Pristine" success records.
 - `REQUIRES_TIME_RECALIBRATION`: Average MAPE across batches > 20%
-- `IS_LOGIC_COWARDICE`: Session is "NEUTRAL" while Critic invalidates via `[INACTION_BIAS]` or `[TREND_STARVATION]`.
+- `IS_LOGIC_COWARDICE`: Session is "NEUTRAL" while Critic invalidates via `[INACTION_BIAS]`, `[TREND_STARVATION]` OR `[OPPORTUNITY_DENIAL]`.
 - `HAS_STRUCTURAL_AMNESTY`: `sl_is_shielded` == TRUE AND `mae_stress_tier` == "STANDARD". (Treat as Statistical Necessity).
 - `IS_PROFIT_EVAPORATION`: Trade outcome is "NEITHER" AND Maximum Favorable Excursion (MFE) was >= 60% of the take_profit target distance.
 - `IS_CATASTROPHIC_MISS`: Trade outcome is "NEUTRAL" or unfilled Limit Order AND the market subsequently moved in the predicted direction beyond the target distance.
