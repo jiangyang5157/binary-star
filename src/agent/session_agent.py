@@ -65,7 +65,9 @@ class SessionConfig(AgentConfig):
     cvd_intensity_extreme: float
     funding_extreme_threshold: float
     missed_opportunity_atr_threshold: float
-    mae_stress_thresholds: Dict[str, float]
+    mae_threshold_pinpoint: float
+    mae_threshold_standard: float
+    mae_threshold_luck: float
     volume_profile_value_area_width: float
     volume_profile_width_ratio: float
     instruction_literal: Optional[str] = None
@@ -134,7 +136,9 @@ class SessionConfig(AgentConfig):
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
-            mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
+            mae_threshold_pinpoint=float(audit['mae_threshold_pinpoint']),
+            mae_threshold_standard=float(audit['mae_threshold_standard']),
+            mae_threshold_luck=float(audit['mae_threshold_luck']),
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
             volume_profile_width_ratio=float(visuals['volume_profile']['width_ratio']),
             instruction_literal=instruction_literal
@@ -233,41 +237,24 @@ class SessionAgent(BaseAgent):
         context = {
             "observation_json": observation_json,
             "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
-            "min_trade_velocity": self.config.min_trade_velocity,
-            "stop_loss_buffer_min": self.config.stop_loss_buffer_min,
-            "stop_loss_buffer_max": self.config.stop_loss_buffer_max,
             "strategy_intent": self.config.strategy_intent,
-            "macro_interval": self.config.macro_interval,
-            "micro_interval": self.config.micro_interval,
             "trend_intensity_threshold": self.config.trend_intensity_threshold,
             "volatility_baseline_ratio": self.config.volatility_baseline_ratio,
             "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
-            "volume_surge_vs_ma_ratio": self.config.volume_surge_vs_ma_ratio,
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
             "short_heavy_imbalance_ratio": self.config.short_heavy_imbalance_ratio,
-            "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
-            "vacuum_risk_score": self.config.vacuum_risk_score,
-            "wick_skew_exhaustion": self.config.wick_skew_exhaustion,
             "trend_intensity_strong": self.config.trend_intensity_strong,
-            "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
             "min_rr_ranging": self.config.min_rr_ranging,
             "min_rr_trending": self.config.min_rr_trending,
             "min_volume_participation_ratio": self.config.min_volume_participation_ratio,
-            "volume_participation_threshold": self.config.volume_participation_threshold,
             "squeeze_threshold": self.config.squeeze_threshold,
-            "squeeze_audit_threshold": self.config.squeeze_audit_threshold,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
-            "funding_extreme_threshold": self.config.funding_extreme_threshold,
             "score_confidence_base": self.config.score_confidence_base,
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
             "score_confidence_decay_max": self.config.score_confidence_decay_max,
             "score_confidence_bonus": self.config.score_confidence_bonus,
-            "macro_interval_minutes": get_interval_minutes(self.config.macro_interval),
-            "micro_interval_minutes": get_interval_minutes(self.config.micro_interval),
-            "structural_proximity_threshold": self.config.structural_proximity_threshold,
             "structural_buffer_atr": self.config.structural_buffer_atr,
-            "ranging_width_atr": self.config.ranging_width_atr,
             "breakout_frontrun_atr": self.config.breakout_frontrun_atr,
             "max_entry_distance_atr": self.config.max_entry_distance_atr,
             "chaos_rr_discount": self.config.chaos_rr_discount,

@@ -58,7 +58,9 @@ class CriticConfig(AgentConfig):
     temporal_dilation_climax: float
     temporal_dilation_standard: float
     missed_opportunity_atr_threshold: float
-    mae_stress_thresholds: Dict[str, float]
+    mae_threshold_pinpoint: float
+    mae_threshold_standard: float
+    mae_threshold_luck: float
     volume_profile_value_area_width: float
     volume_profile_width_ratio: float
     instruction_literal: Optional[str] = None
@@ -116,7 +118,9 @@ class CriticConfig(AgentConfig):
             temporal_dilation_climax=float(session_node['temporal_dilation_climax']),
             temporal_dilation_standard=float(session_node['temporal_dilation_standard']),
             missed_opportunity_atr_threshold=float(audit['missed_opportunity_atr_threshold']),
-            mae_stress_thresholds={str(k): float(v) for k, v in audit['mae_stress_thresholds'].items()},
+            mae_threshold_pinpoint=float(audit['mae_threshold_pinpoint']),
+            mae_threshold_standard=float(audit['mae_threshold_standard']),
+            mae_threshold_luck=float(audit['mae_threshold_luck']),
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
             volume_profile_width_ratio=float(visuals['volume_profile']['width_ratio']),
             instruction_literal=instruction_literal
@@ -220,18 +224,13 @@ class CriticAgent(BaseAgent):
             "last_plan": json.dumps(last_plan, indent=2, ensure_ascii=False),
             "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
-            "min_trade_velocity": self.config.min_trade_velocity,
-            "macro_interval": self.config.macro_interval,
-            "micro_interval": self.config.micro_interval,
             "trend_intensity_threshold": self.config.trend_intensity_threshold,
             "volatility_baseline_ratio": self.config.volatility_baseline_ratio,
             "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
-            "volume_surge_vs_ma_ratio": self.config.volume_surge_vs_ma_ratio,
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
             "short_heavy_imbalance_ratio": self.config.short_heavy_imbalance_ratio,
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
             "vacuum_risk_score": self.config.vacuum_risk_score,
-            "wick_skew_exhaustion": self.config.wick_skew_exhaustion,
             "trend_intensity_strong": self.config.trend_intensity_strong,
             "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
             "min_rr_ranging": self.config.min_rr_ranging,
@@ -245,6 +244,5 @@ class CriticAgent(BaseAgent):
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
-            "funding_extreme_threshold": self.config.funding_extreme_threshold,
-            "structural_proximity_threshold": self.config.structural_proximity_threshold
+            "funding_extreme_threshold": self.config.funding_extreme_threshold
         }

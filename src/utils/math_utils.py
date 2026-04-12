@@ -258,7 +258,9 @@ class MathTools:
     def calculate_mae_stress(
         mae_distance: float,
         max_atr_used: float,
-        thresholds: Dict[str, float]
+        pinpoint: float,
+        standard: float,
+        luck: float
     ) -> Dict[str, Any]:
         """评估持仓期间的最大浮亏 (MAE) 相对于波动的压力水平。
         """
@@ -269,9 +271,9 @@ class MathTools:
             stress_level = round((mae_distance / max_atr_used) * 100, 1)
             
             tier = "LOGIC_FAILURE"
-            if stress_level <= thresholds["pinpoint"]: tier = "PINPOINT"
-            elif stress_level <= thresholds["standard"]: tier = "STANDARD"
-            elif stress_level <= thresholds["luck"]: tier = "LUCK"
+            if stress_level <= pinpoint: tier = "PINPOINT"
+            elif stress_level <= standard: tier = "STANDARD"
+            elif stress_level <= luck: tier = "LUCK"
             
             return {
                 "mae_stress_level_pct": stress_level,

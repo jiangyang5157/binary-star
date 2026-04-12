@@ -115,18 +115,18 @@ class TestMathTools:
 
     def test_mae_stress_tiers(self):
         # 定义测试用的阈值
-        t = {"pinpoint": 15.0, "standard": 50.0, "luck": 80.0}
+        pinpoint, standard, luck = 15.0, 50.0, 80.0
         
         # PINPOINT (MAE 10, ATR 100 => 10%)
-        res = MathTools.calculate_mae_stress(10, 100, t)
+        res = MathTools.calculate_mae_stress(10, 100, pinpoint, standard, luck)
         assert res['stress_tier'] == "PINPOINT"
         
         # LUCK (MAE 75, ATR 100 => 75%)
-        res = MathTools.calculate_mae_stress(75, 100, t)
+        res = MathTools.calculate_mae_stress(75, 100, pinpoint, standard, luck)
         assert res['stress_tier'] == "LUCK"
 
         # LOGIC_FAILURE (MAE 90, ATR 100 => 90%)
-        res = MathTools.calculate_mae_stress(90, 100, t)
+        res = MathTools.calculate_mae_stress(90, 100, pinpoint, standard, luck)
         assert res['stress_tier'] == "LOGIC_FAILURE"
 
     def test_opportunity_cost(self):

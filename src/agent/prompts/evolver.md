@@ -29,21 +29,20 @@ To ensure Zero-Entropy convergence, evaluate these batch-level boolean states be
 # JUDGMENT_RUBRIC
 Determine the Mutation Vector based on MAE stress and telemetry forensics:
 
-- **TIER_PINPOINT** (0 - `{audit_review.mae_stress_thresholds.pinpoint}`%):
-  - **Diagnosis**: Logic Perfection.
+- **TIER_PINPOINT** (0 - `{mae_threshold_pinpoint}`%):
+  - **Diagnosis**: High-Precision Strike. Logical execution was flawless.
   - **Action**: `NO-OP`. DO NOT mutate. Preserve the existing mathematical edge.
-
-- **TIER_STANDARD** (`{audit_review.mae_stress_thresholds.pinpoint}` - `{audit_review.mae_stress_thresholds.standard}`%):
+- **TIER_STANDARD** (`{mae_threshold_pinpoint}` - `{mae_threshold_standard}`%):
   - **Diagnosis**: Structural Noise or Routine Market Testing.
   - **Action**: `NO-OP`. Logic must remain resilient to fluctuations within this bound. Avoid over-fitting to noise.
 
-- **TIER_LUCK** (`{audit_review.mae_stress_thresholds.standard}` - `{audit_review.mae_stress_thresholds.luck}`%):
+- **TIER_LUCK** (`{mae_threshold_standard}` - `{mae_threshold_luck}`%):
   - **Diagnosis**: Survival via Deep Defense. Physical buffers were pushed to the limit.
   - **Action**: `EXPAND_DEFENSE`.
-    - **Targets**: Increase `{regime_parameters.structural_buffer_atr}` or `{binary_star.session.stop_loss_buffer_min}`.
+    - **Targets**: Increase `{structural_buffer_atr}` or `{stop_loss_buffer_min}`.
     - **Goal**: Relocate anchor points distal to volatility to increase survival probability.
 
-- **TIER_FAILURE** (> `{audit_review.mae_stress_thresholds.luck}`%):
+- **TIER_FAILURE** (> `{mae_threshold_luck}`%):
   - **Diagnosis**: Garbage In, Garbage Out. Logic failed to filter high-risk regime characteristics.
   - **Action**: `HARDEN_FILTER`.
     - **Targets**: Tighten `{regime_parameters}` entry thresholds (e.g., increase `{trend_intensity_threshold}` or decrease `{volatility_extreme_ratio}`).

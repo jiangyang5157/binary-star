@@ -17,14 +17,18 @@ class AuditReviewConfig:
     micro_interval: str
     strategy_intent: str
     catastrophic_miss_atr_threshold: float
-    audit_review: Dict[str, Any]
+    unfilled_proximity_atr_limit: float
+    missed_opportunity_atr_threshold: float
+    mae_threshold_pinpoint: float
+    mae_threshold_standard: float
+    mae_threshold_luck: float
+    base_slippage_bps: float
+    max_slippage_bps: float
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "AuditReviewConfig":
         """Factory method for strategic config."""
         sampling = cfg['analysis_window']
-        topography = cfg['topography_parameters']
-        regime = cfg['regime_parameters']
         audit_node = cfg['audit_review']
         
         return cls(
@@ -32,7 +36,13 @@ class AuditReviewConfig:
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             catastrophic_miss_atr_threshold=float(audit_node['catastrophic_miss_atr_threshold']),
-            audit_review=audit_node
+            unfilled_proximity_atr_limit=float(audit_node['unfilled_proximity_atr_limit']),
+            missed_opportunity_atr_threshold=float(audit_node['missed_opportunity_atr_threshold']),
+            mae_threshold_pinpoint=float(audit_node['mae_threshold_pinpoint']),
+            mae_threshold_standard=float(audit_node['mae_threshold_standard']),
+            mae_threshold_luck=float(audit_node['mae_threshold_luck']),
+            base_slippage_bps=float(audit_node['base_slippage_bps']),
+            max_slippage_bps=float(audit_node['max_slippage_bps'])
         )
 
 class AuditAssembler:
@@ -127,8 +137,8 @@ class AuditAssembler:
                 price=planned_entry,
                 volume_profile=volume_profile or [],
                 atr=max_atr,
-                base_slippage_bps=float(self.config.audit_review['base_slippage_bps']),
-                max_slippage_bps=float(self.config.audit_review['max_slippage_bps'])
+                base_slippage_bps=self.config.base_slippage_bps,
+                max_slippage_bps=self.config.max_slippage_bps
             )
             target_entry = slippage_metrics["price_adjusted"]
             
@@ -142,7 +152,7 @@ class AuditAssembler:
             theoretical_mae = max(0, target_entry - min_price) if opinion == 'BULLISH' else max(0, max_price - target_entry)
             theoretical_mfe = max(0, max_price - target_entry) if opinion == 'BULLISH' else max(0, target_entry - min_price)
  
-            unfilled_proximity_atr_limit = float(self.config.audit_review['unfilled_proximity_atr_limit'])
+            unfilled_proximity_atr_limit = self.config.unfilled_proximity_atr_limit
             result["execution_forensics"] = {
                 "planned_entry": planned_entry,
                 "adjusted_entry": target_entry,
@@ -223,7 +233,9 @@ class AuditAssembler:
                     mae_stress = MathTools.calculate_mae_stress(
                         mae_distance=mae, 
                         max_atr_used=max_atr,
-                        thresholds=self.config.audit_review['mae_stress_thresholds']
+                        pinpoint=self.config.mae_threshold_pinpoint,
+                        standard=self.config.mae_threshold_standard,
+                        luck=self.config.mae_threshold_luck
                     )
                     
                     result["is_filled"] = True
@@ -287,7 +299,7 @@ class AuditAssembler:
             forensics = actual_outcome.get("market_forensics", {})
             # Logic: If price move intensity (ATR) exceeds the threshold, the surrender was NOT justified
             move_intensity = forensics.get("window_volatility_intensity_atr", 0)
-            missed_opportunity_atr_threshold = float(self.config.audit_review['missed_opportunity_atr_threshold'])
+            missed_opportunity_atr_threshold = self.config.missed_opportunity_atr_threshold
             
             is_justified = True
             if not has_structural_data:
