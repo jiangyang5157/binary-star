@@ -35,7 +35,6 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before draftin
 - `IS_VOLATILE`: `volatility_expansion_index` > `{volatility_extreme_ratio}` OR abs(`trend_intensity`) > `{trend_intensity_strong}`
 - `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
 - `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)
-- `IS_OVEREXTENDING`: (abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`)
 
 # ALGEBRAIC_PHYSICS_LAWS
 To ensure zero-entropy execution, you MUST derive your tactical timing and shielding using these deterministic formulas. Do not guess.

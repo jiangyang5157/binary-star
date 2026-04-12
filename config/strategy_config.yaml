@@ -54,29 +54,16 @@ regime_parameters:
   long_short_imbalance_ratio: 1.5
   # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).
   short_heavy_imbalance_ratio: 0.6
-  # Confluence power of POC (Point of Control) relative to other nodes.
-
-  poc_confluence_strength: 0.9
   # The 'Magnetic Field' range of the POC in ATR units.
   poc_gravity_atr_distance: 3.0
-  # Absolute maximum ATR extension from POC before mean-reversion gravity becomes mandatory.
-  poc_extreme_extension_atr: 4.0
-  # Distance within which the POC acts as a hard exit target/magnet.
-  poc_magnet_atr_threshold: 2.0
 
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
   structural_buffer_atr: 0.5
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
 
-  # Noise filter (floor) in ATR units to ignore micro-volatility.
-  noise_filter_atr_floor: 0.2
   # Range width in ATR units used to classify 'Balanced' vs 'Trending' regimes.
   ranging_width_atr: 2.0
-  # Volume multiplier required to override the POC's gravitational pull.
-  gravity_volume_override_ratio: 1.5
-  # Maximum allowed drift of the current price from the historical Anchor price.
-  anchor_drift_threshold: 3.0
 
   # --- Micro-Sentiment & Exhaustion Indicators ---
   # Score threshold for 'Volume Vacuums' where liquidity is non-existent.
@@ -84,8 +71,6 @@ regime_parameters:
 
   # Degree of wick skewness required to signal buyer/seller exhaustion.
   wick_skew_exhaustion: 0.6
-  wick_skew_momentum_bullish: 0.8
-  wick_skew_momentum_bearish: 0.2
 
   # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
   cvd_intensity_threshold: 0.15

@@ -35,11 +35,8 @@ class CriticConfig(AgentConfig):
     long_short_imbalance_ratio: float
     short_heavy_imbalance_ratio: float
     poc_gravity_atr_distance: float
-    poc_extreme_extension_atr: float
     vacuum_risk_score: float
     wick_skew_exhaustion: float
-    wick_skew_momentum_bullish: float
-    wick_skew_momentum_bearish: float
     trend_intensity_strong: float
     trend_intensity_min_expansion: float
     min_rr_ranging: float
@@ -50,14 +47,12 @@ class CriticConfig(AgentConfig):
     threshold_skepticism_clear: int
     threshold_skepticism_weak: int
     threshold_skepticism_constructive: int
-    anchor_drift_threshold: float
     min_trade_velocity: float
     structural_buffer_atr: float
     cvd_intensity_threshold: float
     cvd_intensity_extreme: float
     funding_extreme_threshold: float
     structural_proximity_threshold: float
-    gravity_volume_override_ratio: float
     temporal_dilation_dead_water: float
     temporal_dilation_highway: float
     temporal_dilation_climax: float
@@ -99,11 +94,8 @@ class CriticConfig(AgentConfig):
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             short_heavy_imbalance_ratio=float(regime['short_heavy_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
-            poc_extreme_extension_atr=float(regime['poc_extreme_extension_atr']),
             vacuum_risk_score=float(regime['vacuum_risk_score']),
             wick_skew_exhaustion=float(regime['wick_skew_exhaustion']),
-            wick_skew_momentum_bullish=float(regime['wick_skew_momentum_bullish']),
-            wick_skew_momentum_bearish=float(regime['wick_skew_momentum_bearish']),
             trend_intensity_strong=float(regime['trend_intensity_strong']),
             trend_intensity_min_expansion=float(regime['trend_intensity_min_expansion']),
             min_rr_ranging=float(regime['min_rr_ranging']),
@@ -114,13 +106,11 @@ class CriticConfig(AgentConfig):
             threshold_skepticism_clear=int(critic_cfg['threshold_skepticism_clear']),
             threshold_skepticism_weak=int(critic_cfg['threshold_skepticism_weak']),
             threshold_skepticism_constructive=int(critic_cfg['threshold_skepticism_constructive']),
-            anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
             funding_extreme_threshold=float(regime['funding_extreme_threshold']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
-            gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
             temporal_dilation_dead_water=float(session_node['temporal_dilation_dead_water']),
             temporal_dilation_highway=float(session_node['temporal_dilation_highway']),
             temporal_dilation_climax=float(session_node['temporal_dilation_climax']),
@@ -240,11 +230,8 @@ class CriticAgent(BaseAgent):
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
             "short_heavy_imbalance_ratio": self.config.short_heavy_imbalance_ratio,
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
-            "poc_extreme_extension_atr": self.config.poc_extreme_extension_atr,
             "vacuum_risk_score": self.config.vacuum_risk_score,
             "wick_skew_exhaustion": self.config.wick_skew_exhaustion,
-            "wick_skew_momentum_bullish": self.config.wick_skew_momentum_bullish,
-            "wick_skew_momentum_bearish": self.config.wick_skew_momentum_bearish,
             "trend_intensity_strong": self.config.trend_intensity_strong,
             "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
             "min_rr_ranging": self.config.min_rr_ranging,
@@ -255,11 +242,9 @@ class CriticAgent(BaseAgent):
             "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
             "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
             "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive,
-            "anchor_drift_threshold": self.config.anchor_drift_threshold,
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
             "funding_extreme_threshold": self.config.funding_extreme_threshold,
-            "structural_proximity_threshold": self.config.structural_proximity_threshold,
-            "gravity_volume_override_ratio": self.config.gravity_volume_override_ratio
+            "structural_proximity_threshold": self.config.structural_proximity_threshold
         }

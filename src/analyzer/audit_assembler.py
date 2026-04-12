@@ -16,7 +16,6 @@ class AuditReviewConfig:
     macro_interval: str
     micro_interval: str
     strategy_intent: str
-    regime_anchor_drift_threshold: float
     catastrophic_miss_atr_threshold: float
     audit_review: Dict[str, Any]
 
@@ -32,7 +31,6 @@ class AuditReviewConfig:
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
-            regime_anchor_drift_threshold=float(regime['anchor_drift_threshold']),
             catastrophic_miss_atr_threshold=float(audit_node['catastrophic_miss_atr_threshold']),
             audit_review=audit_node
         )

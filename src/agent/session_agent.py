@@ -16,15 +16,13 @@ logger = setup_logger(__name__, propagate=True)
 class SessionConfig(AgentConfig):
     """Encapsulates comprehensive strategic configuration for the SessionAgent.
     
-    This config merges high-level neural parameters with specific tactical thresholds
-    defined in the global regime parameters.
-    
     Attributes:
         min_trade_velocity: Minimum price speed (ATR/candle) required for entry.
         stop_loss_buffer_min: Minimum ATR distance for SL placement.
-        strategy_intent: High-level tactical directive string.
-        poc_gravity_atr_distance: Maximum distance from POC for gravity-based entry.
-        vacuum_risk_score: Threshold for detecting liquidity gaps/vacuums.
+        volatility_baseline_ratio: Ratio above which regime shifts to 'Volatile'.
+        poc_gravity_atr_distance: Maximum distance from POC for gravity entry.
+        unit_atr_holding_hours: (Calculated) Estimated hours to clear 1 ATR in current regime.
+        unit_atr_waiting_hours: (Calculated) Estimated hours to fill 1 ATR in current regime.
     """
     min_trade_velocity: float
     stop_loss_buffer_min: float
@@ -43,11 +41,8 @@ class SessionConfig(AgentConfig):
     long_short_imbalance_ratio: float
     short_heavy_imbalance_ratio: float
     poc_gravity_atr_distance: float
-    poc_extreme_extension_atr: float
     vacuum_risk_score: float
     wick_skew_exhaustion: float
-    wick_skew_momentum_bullish: float
-    wick_skew_momentum_bearish: float
     trend_intensity_strong: float
     trend_intensity_min_expansion: float
     min_rr_ranging: float
@@ -58,26 +53,21 @@ class SessionConfig(AgentConfig):
     breakout_frontrun_atr: float
     max_entry_distance_atr: float
     chaos_rr_discount: float
-    poc_magnet_atr_threshold: float
-    gravity_volume_override_ratio: float
-    noise_filter_atr_floor: float
     volume_participation_threshold: float
     temporal_dilation_dead_water: float
     temporal_dilation_highway: float
     temporal_dilation_climax: float
     temporal_dilation_standard: float
-    anchor_drift_threshold: float
-    poc_confluence_strength: float
     structural_proximity_threshold: float
     ranging_width_atr: float
     structural_buffer_atr: float
     cvd_intensity_threshold: float
     cvd_intensity_extreme: float
     funding_extreme_threshold: float
-    volume_profile_width_ratio: float
     missed_opportunity_atr_threshold: float
     mae_stress_thresholds: Dict[str, float]
     volume_profile_value_area_width: float
+    volume_profile_width_ratio: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -120,11 +110,8 @@ class SessionConfig(AgentConfig):
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
             short_heavy_imbalance_ratio=float(regime['short_heavy_imbalance_ratio']),
             poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
-            poc_extreme_extension_atr=float(regime['poc_extreme_extension_atr']),
             vacuum_risk_score=float(regime['vacuum_risk_score']),
             wick_skew_exhaustion=float(regime['wick_skew_exhaustion']),
-            wick_skew_momentum_bullish=float(regime['wick_skew_momentum_bullish']),
-            wick_skew_momentum_bearish=float(regime['wick_skew_momentum_bearish']),
             trend_intensity_strong=float(regime['trend_intensity_strong']),
             trend_intensity_min_expansion=float(regime['trend_intensity_min_expansion']),
             min_rr_ranging=float(regime['min_rr_ranging']),
@@ -135,16 +122,11 @@ class SessionConfig(AgentConfig):
             breakout_frontrun_atr=float(regime['breakout_frontrun_atr']),
             max_entry_distance_atr=float(regime['max_entry_distance_atr']),
             chaos_rr_discount=float(regime['chaos_rr_discount']),
-            poc_magnet_atr_threshold=float(regime['poc_magnet_atr_threshold']),
-            gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
-            noise_filter_atr_floor=float(regime['noise_filter_atr_floor']),
             volume_participation_threshold=float(regime['volume_participation_threshold']),
             temporal_dilation_dead_water=float(session_cfg['temporal_dilation_dead_water']),
             temporal_dilation_highway=float(session_cfg['temporal_dilation_highway']),
             temporal_dilation_climax=float(session_cfg['temporal_dilation_climax']),
             temporal_dilation_standard=float(session_cfg['temporal_dilation_standard']),
-            anchor_drift_threshold=float(regime['anchor_drift_threshold']),
-            poc_confluence_strength=float(regime['poc_confluence_strength']),
             structural_proximity_threshold=float(regime['structural_proximity_threshold']),
             ranging_width_atr=float(regime['ranging_width_atr']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
@@ -266,30 +248,26 @@ class SessionAgent(BaseAgent):
             "poc_gravity_atr_distance": self.config.poc_gravity_atr_distance,
             "vacuum_risk_score": self.config.vacuum_risk_score,
             "wick_skew_exhaustion": self.config.wick_skew_exhaustion,
-            "wick_skew_momentum_bullish": self.config.wick_skew_momentum_bullish,
-            "wick_skew_momentum_bearish": self.config.wick_skew_momentum_bearish,
             "trend_intensity_strong": self.config.trend_intensity_strong,
             "trend_intensity_min_expansion": self.config.trend_intensity_min_expansion,
-            "min_volume_participation_ratio": self.config.min_volume_participation_ratio,
-            "volume_participation_threshold": self.config.volume_participation_threshold,
             "min_rr_ranging": self.config.min_rr_ranging,
             "min_rr_trending": self.config.min_rr_trending,
+            "min_volume_participation_ratio": self.config.min_volume_participation_ratio,
+            "volume_participation_threshold": self.config.volume_participation_threshold,
             "squeeze_threshold": self.config.squeeze_threshold,
-            "ranging_width_atr": self.config.ranging_width_atr,
+            "squeeze_audit_threshold": self.config.squeeze_audit_threshold,
+            "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
+            "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
             "funding_extreme_threshold": self.config.funding_extreme_threshold,
-            "gravity_volume_override_ratio": self.config.gravity_volume_override_ratio,
-            "noise_filter_atr_floor": self.config.noise_filter_atr_floor,
             "score_confidence_base": self.config.score_confidence_base,
             "score_confidence_decay_min": self.config.score_confidence_decay_min,
             "score_confidence_decay_max": self.config.score_confidence_decay_max,
             "score_confidence_bonus": self.config.score_confidence_bonus,
             "macro_interval_minutes": get_interval_minutes(self.config.macro_interval),
             "micro_interval_minutes": get_interval_minutes(self.config.micro_interval),
-            "anchor_drift_threshold": self.config.anchor_drift_threshold,
-            "poc_confluence_strength": self.config.poc_confluence_strength,
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
             "structural_buffer_atr": self.config.structural_buffer_atr,
-            "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
+            "ranging_width_atr": self.config.ranging_width_atr,
             "breakout_frontrun_atr": self.config.breakout_frontrun_atr,
             "max_entry_distance_atr": self.config.max_entry_distance_atr,
             "chaos_rr_discount": self.config.chaos_rr_discount,

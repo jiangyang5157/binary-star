@@ -17,7 +17,7 @@ class TestAuditAssembler(unittest.TestCase):
         self.config = {
             "analysis_window": {"macro_context": {"time_interval": "1h"}, "micro_context": {"time_interval": "15m"}},
             "topography_parameters": {},
-            "regime_parameters": {"anchor_drift_threshold": 0.5},
+            "regime_parameters": {},
             "audit_review": {
                 "forensic_resolution": "1m",
                 "mae_stress_tolerance": 0.5,
