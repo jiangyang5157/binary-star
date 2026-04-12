@@ -47,11 +47,6 @@ To ensure zero-entropy execution, you MUST derive your tactical timing and shiel
     - **Causality**: Because `regime_benchmarks` provides physical speed scalars, you can calculate exact durations using:
     - `projected_holding_hours` = abs(`take_profit` - `entry`) / `atr_macro` * `unit_atr_holding_hours``
     - `projected_waiting_hours` = abs(`entry` - `current_price`) / `atr_macro` * `unit_atr_waiting_hours``
-- **Structural Armor (The Betweenness Law)**: 
-    - **Causality**: Use `{observation_json}` (prices) and `structural_anchors` (ATR distances) to ensure your chosen anchor acts as a physical shield.
-    - **Shielding Rule**: The anchor MUST sit strictly **BETWEEN** your `entry` and `stop_loss`.
-        - **IF "BULLISH"**: Validate `entry` > `support (val/poc)` > `stop_loss`.
-        - **IF "BEARISH"**: Validate `entry` < `resistance (vah/poc)` < `stop_loss`.
 - **SYNTHESIS OVERWRITE**: If `IS_SYNTHESIS`, these formulas are your internal reasoning foundation. The physical engine will automatically overwrite your JSON estimates with 100% precise truth.
 
 # TOOL_CALLING_PROTOCOL
@@ -79,14 +74,14 @@ Use these metrics to synthesize your tactical entry strategy:
 | `long_short_ratio_micro` | IF `HAS_RETAIL_LONG_IMBALANCE` = Retail Long Squeeze. IF `HAS_RETAIL_SHORT_IMBALANCE` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is balanced. |
 | `liquidation_clusters` | Contains `long_liquidation` (coordinates where over-leveraged longs will be force-sold) and `short_liquidation` (coordinates where shorts will be force-bought). **Tactical Weaponization**: When planning a Defensive Limit Entry (DLE), you MUST actively seek to anchor your `entry` near these coordinates. **THE FRONT-RUN RULE**: Do not place the entry exactly on the cluster or HVN price, as smart money will front-run it. You MUST front-run the target by adding (for longs) or subtracting (for shorts) a `{breakout_frontrun_atr}` ATR buffer to the exact coordinate to guarantee a fill, while still using the nearest `HVN` or `POC` behind it as your hard `stop_loss` shield. |
 | `wick_skew_instant` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
-**Dynamic Time-Stop**| The system scales `projected_holding_hours` to manage temporal risk. **Dead Water** (NOT `IS_EXPANDING`, NOT `IS_TREND_STRONG`) = `{temporal_dilation_dead_water}`x multiplier (Strict time-stop, cut trades short); **Highway** (`IS_TREND` AND `IS_EXPANDING` AND NOT `IS_CHAOS`) = `{temporal_dilation_highway}`x multiplier (Let profits run, expand time horizon); **Chaos** (`IS_CHAOS`) = `{temporal_dilation_climax}`x multiplier (Hit-and-run, extreme danger, compress time); **Standard** (All other regimes) = `{temporal_dilation_standard}`x multiplier. |
+| **Dynamic Time-Stop** | The system scales `projected_holding_hours` to manage temporal risk. **Dead Water** (NOT `IS_EXPANDING`, NOT `IS_TREND_STRONG`) = `{temporal_dilation_dead_water}`x multiplier (Strict time-stop, cut trades short); **Highway** (`IS_TREND` AND `IS_EXPANDING` AND NOT `IS_CHAOS`) = `{temporal_dilation_highway}`x multiplier (Let profits run, expand time horizon); **Chaos** (`IS_CHAOS`) = `{temporal_dilation_climax}`x multiplier (Hit-and-run, extreme danger, compress time); **Standard** (All other regimes) = `{temporal_dilation_standard}`x multiplier. |
 
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
 ## Topographical Anchoring (Absolute Law)
-- **THE SHIELD LAW**: `stop_loss` MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). NEVER place a stop loss at or just in front of a `liquidation_cluster`, as these act as magnetic sweep targets. If a cluster is near your intended `stop_loss`, you MUST place the `stop_loss` beyond the distal extreme of the cluster (below it for Longs, above it for Shorts).
-  - For "BULLISH": `stop_loss` must be lower than the anchor's lowest edge.
-  - For "BEARISH": `stop_loss` must be higher than the anchor's highest edge.
+- **THE SHIELD LAW (The Betweenness Law)**: `stop_loss` MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). The anchor MUST sit strictly **BETWEEN** your `entry` and `stop_loss`. NEVER place a stop loss at or just in front of a `liquidation_cluster`, as these act as magnetic sweep targets. If a cluster is near your intended `stop_loss`, you MUST place the `stop_loss` beyond the distal extreme of the cluster (below it for Longs, above it for Shorts).
+  - For "BULLISH": `entry` > `anchor` > `stop_loss` (stop_loss must be lower than the anchor's lowest edge).
+  - For "BEARISH": `entry` < `anchor` < `stop_loss` (stop_loss must be higher than the anchor's highest edge).
 - **VOLATILITY ADAPTIVE SHIELDING**: If `IS_CHAOS`, the environment is in a Chaos regime. You MUST expand the `{structural_buffer_atr}` applied to your `stop_loss` placement using the `{chaos_rr_discount}` percentage increase. Survival in high-volatility regimes is a higher priority than the `min_rr` threshold.
 - **LIMIT ORDER PHYSICS**: You are placing Limit Orders. A "BULLISH" entry MUST be `<= current_price`, `take_profit` > `entry`, and `stop_loss` < `entry`. A "BEARISH" entry MUST be `>= current_price`, `take_profit` < `entry`, and `stop_loss` > `entry`. Violating these directional physics causes immediate adverse market fill and is a `TERMINAL` VETO.
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_index`) is missing, output "NEUTRAL". Do not guess.
