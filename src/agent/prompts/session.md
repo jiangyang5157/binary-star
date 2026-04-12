@@ -48,7 +48,6 @@ To ensure zero-entropy execution, you MUST derive your tactical timing and shiel
     - **Causality**: Because `regime_benchmarks` provides physical speed scalars, you can calculate exact durations using:
     - `projected_holding_hours` = abs(`take_profit` - `entry`) / `atr_macro` * `unit_atr_holding_hours``
     - `projected_waiting_hours` = abs(`entry` - `current_price`) / `atr_macro` * `unit_atr_waiting_hours``
-- **Structural Armor (Geometric Shielding)**:
 - **Structural Armor (The Betweenness Law)**: 
     - **Causality**: Use `{observation_json}` (prices) and `structural_anchors` (ATR distances) to ensure your chosen anchor acts as a physical shield.
     - **Shielding Rule**: The anchor MUST sit strictly **BETWEEN** your `entry` and `stop_loss`.

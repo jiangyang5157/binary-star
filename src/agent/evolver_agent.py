@@ -119,11 +119,7 @@ class EvolverAgent(BaseAgent):
                 mae_threshold_pinpoint=active_config['audit_review']['mae_threshold_pinpoint'],
                 mae_threshold_standard=active_config['audit_review']['mae_threshold_standard'],
                 mae_threshold_luck=active_config['audit_review']['mae_threshold_luck'],
-                min_failure_instances=active_config['evolver']['min_failure_instances'],
-                failure_ratio_threshold=active_config['evolver']['failure_ratio_threshold'],
-                regression_veto_threshold=active_config['evolver']['regression_veto_threshold'],
                 max_rounds=active_config['binary_star']['max_rounds'],
-                time_projection_mape_threshold_pct=int(active_config['evolver']['time_projection_mape_threshold'] * 100)
             )
 
             logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")

@@ -219,13 +219,3 @@ evolver:
   model: gemini-3.1-pro-preview
   # Deterministic temperature to ensure logic consistency.
   model_temperature: 0.0
-
-  # --- Darwinian Evolution Thresholds ---
-  # Minimum repeated failures across sessions to trigger a systemic instruction patch.
-  min_failure_instances: 2
-  # Ratio of failed sessions in the current batch required to validate a config update.
-  failure_ratio_threshold: 0.2
-  # Maximum tolerated Mean Absolute Percentage Error (MAPE) for time projections before recalibrating dilation.
-  time_projection_mape_threshold: 0.2
-  # Maximum allowed regression percentage (e.g., 0.05 for 5%) before a mutation is vetoed.
-  regression_veto_threshold: 0.05
