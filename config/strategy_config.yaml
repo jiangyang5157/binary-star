@@ -107,7 +107,7 @@ regime_parameters:
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
   chaos_rr_discount: 0.35
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
-  min_rr_ranging: 1.0
+  min_rr_ranging: 0.8
   min_rr_trending: 1.0
 
 audit_review:
