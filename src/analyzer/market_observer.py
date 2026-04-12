@@ -714,7 +714,7 @@ class MarketObserver:
             value_area_ratio=cfg.volume_profile_area_ratio, 
             resolution_bins=cfg.volume_profile_price_bucket_count,
             atr_period=cfg.atr_period, 
-            max_volume_node_count=self.config.max_volume_node_count, 
+            max_volume_node_count=cfg.max_volume_node_count, 
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
             min_node_gap_atr=cfg.min_node_gap_atr,

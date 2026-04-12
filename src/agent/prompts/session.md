@@ -32,8 +32,13 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before draftin
 - `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
 - `REQUIRED_MIN_RR`: (`IS_TREND` ? `{min_rr_trending}` : `{min_rr_ranging}`)
-- `IS_VOLATILE`: `volatility_expansion_index` > `{volatility_extreme_ratio}` OR abs(`trend_intensity`) > `{trend_intensity_strong}`
+- `IS_VOLATILE`: `IS_CHAOS` OR `IS_TREND_STRONG`
+- `HAS_VOLUME_SURGE`: `volatility_participation_ratio` > `{min_volume_participation_ratio}`
 - `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
+- `HAS_BULL_FLOW`: `cvd_intensity_ratio` > `{cvd_intensity_threshold}`
+- `HAS_BEAR_FLOW`: `cvd_intensity_ratio` < -`{cvd_intensity_threshold}`
+- `HAS_RETAIL_LONG_IMBALANCE`: `long_short_ratio_micro` > `{long_short_imbalance_ratio}`
+- `HAS_RETAIL_SHORT_IMBALANCE`: `long_short_ratio_micro` < `{short_heavy_imbalance_ratio}`
 - `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)
 
 # ALGEBRAIC_PHYSICS_LAWS
@@ -68,15 +73,15 @@ Use these metrics to synthesize your tactical entry strategy:
 | Parameter | Heuristic Signal |
 | :--- | :--- |
 | `poc_dist_atr` | High absolute value = Extreme mean-reversion gravity. |
-| `volatility_participation_ratio` | IF > `{min_volume_participation_ratio}` = High market involvement. Confirms breakout/reversals. |
-| `volatility_expansion_index` | IF > `{volatility_baseline_ratio}` = Expansion. Momentum strategies unlock. |
-| `squeeze_factor` | IF < `{squeeze_threshold}` = Coiling spring. Anticipate violent breakout. |
-| `trend_intensity`| Signed `[-1, 1]`. Positive = Bullish trend, Negative = Bearish trend. abs(`trend_intensity`) > `{trend_intensity_strong}` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
-| `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight CVD > `{cvd_intensity_threshold}` with "BEARISH" entries, or CVD < -`{cvd_intensity_threshold}` with BULLISH entries. |
-| `long_short_ratio_micro` | IF > `{long_short_imbalance_ratio}` = Retail Long Squeeze. IF < `{short_heavy_imbalance_ratio}` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is between these thresholds. |
+| `volatility_participation_ratio` | IF `HAS_VOLUME_SURGE` = High market involvement. Confirms breakout/reversals. |
+| `volatility_expansion_index` | IF `IS_EXPANDING` = Momentum strategies unlock. |
+| `squeeze_factor` | IF `IS_SQUEEZING` = Coiling spring. Anticipate violent breakout. |
+| `trend_intensity`| Signed `[-1, 1]`. Positive = Bullish trend, Negative = Bearish trend. `IS_TREND_STRONG` = Institutional backing. Prioritize shallow pullbacks in the trend direction. |
+| `cvd_intensity_ratio`| Positive = Aggressive Taker Buy; Negative = Aggressive Taker Sell. DO NOT fight `HAS_BULL_FLOW` with "BEARISH" entries, or `HAS_BEAR_FLOW` with "BULLISH" entries. |
+| `long_short_ratio_micro` | IF `HAS_RETAIL_LONG_IMBALANCE` = Retail Long Squeeze. IF `HAS_RETAIL_SHORT_IMBALANCE` = Retail Short Squeeze. DO NOT front-run squeezes if the ratio is balanced. |
 | `liquidation_clusters` | Contains `long_liquidation` (coordinates where over-leveraged longs will be force-sold) and `short_liquidation` (coordinates where shorts will be force-bought). **Tactical Weaponization**: When planning a Defensive Limit Entry (DLE), you MUST actively seek to anchor your `entry` near these coordinates. **THE FRONT-RUN RULE**: Do not place the entry exactly on the cluster or HVN price, as smart money will front-run it. You MUST front-run the target by adding (for longs) or subtracting (for shorts) a `{breakout_frontrun_atr}` ATR buffer to the exact coordinate to guarantee a fill, while still using the nearest `HVN` or `POC` behind it as your hard `stop_loss` shield. |
 | `wick_skew_instant` | Identifies local exhaustion. (0.0: Extreme Rejection; 1.0: Pure Momentum). |
-**Dynamic Time-Stop**| The system scales `projected_holding_hours` to manage temporal risk. **Dead Water** (`volatility_expansion_index` < `{volatility_baseline_ratio}`, abs(`trend_intensity`) < `{trend_intensity_strong}`) = `{temporal_dilation_dead_water}`x multiplier (Strict time-stop, cut trades short); **Highway** (abs(`trend_intensity`) > `{trend_intensity_threshold}`, `{volatility_baseline_ratio}` < `volatility_expansion_index` < `{volatility_extreme_ratio}`) = `{temporal_dilation_highway}`x multiplier (Let profits run, expand time horizon); **Chaos** (`volatility_expansion_index` > `{volatility_extreme_ratio}`) = `{temporal_dilation_climax}`x multiplier (Hit-and-run, extreme danger, compress time); **Standard** (All other regimes) = `{temporal_dilation_standard}`x multiplier. |
+**Dynamic Time-Stop**| The system scales `projected_holding_hours` to manage temporal risk. **Dead Water** (NOT `IS_EXPANDING`, NOT `IS_TREND_STRONG`) = `{temporal_dilation_dead_water}`x multiplier (Strict time-stop, cut trades short); **Highway** (`IS_TREND` AND `IS_EXPANDING` AND NOT `IS_CHAOS`) = `{temporal_dilation_highway}`x multiplier (Let profits run, expand time horizon); **Chaos** (`IS_CHAOS`) = `{temporal_dilation_climax}`x multiplier (Hit-and-run, extreme danger, compress time); **Standard** (All other regimes) = `{temporal_dilation_standard}`x multiplier. |
 
 # OPERATING_PROTOCOLS (THE PHYSICS OF EXECUTION)
 
@@ -84,19 +89,19 @@ Use these metrics to synthesize your tactical entry strategy:
 - **THE SHIELD LAW**: `stop_loss` MUST be placed distally behind a verified physical anchor (HVN, VAH, or VAL). NEVER place a stop loss at or just in front of a `liquidation_cluster`, as these act as magnetic sweep targets. If a cluster is near your intended `stop_loss`, you MUST place the `stop_loss` beyond the distal extreme of the cluster (below it for Longs, above it for Shorts).
   - For "BULLISH": `stop_loss` must be lower than the anchor's lowest edge.
   - For "BEARISH": `stop_loss` must be higher than the anchor's highest edge.
-- **VOLATILITY ADAPTIVE SHIELDING**: If `volatility_expansion_index` > `{volatility_extreme_ratio}`, the environment is in a Chaos regime. You MUST expand the `{structural_buffer_atr}` applied to your `stop_loss` placement using the `{chaos_rr_discount}` percentage increase. Survival in high-volatility regimes is a higher priority than the `min_rr` threshold.
+- **VOLATILITY ADAPTIVE SHIELDING**: If `IS_CHAOS`, the environment is in a Chaos regime. You MUST expand the `{structural_buffer_atr}` applied to your `stop_loss` placement using the `{chaos_rr_discount}` percentage increase. Survival in high-volatility regimes is a higher priority than the `min_rr` threshold.
 - **LIMIT ORDER PHYSICS**: You are placing Limit Orders. A "BULLISH" entry MUST be `<= current_price`, `take_profit` > `entry`, and `stop_loss` < `entry`. A "BEARISH" entry MUST be `>= current_price`, `take_profit` < `entry`, and `stop_loss` > `entry`. Violating these directional physics causes immediate adverse market fill and is a `TERMINAL` VETO.
 - **DEGRADED EXECUTION**: If core telemetry (`poc`, `atr`, `volatility_expansion_index`) is missing, output "NEUTRAL". Do not guess.
 
 ## Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum & Flow Riding**: If abs(`trend_intensity`) > `{trend_intensity_strong}` OR abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. **MANDATORY**: To prevent catastrophic misses in strong trends, your `entry` MUST be within `{max_entry_distance_atr}` ATR of the `current_price`. If `volatility_expansion_index` > `{volatility_extreme_ratio}`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or "NEUTRAL".
+- **Momentum & Flow Riding**: If `IS_TREND_STRONG` OR `HAS_CVD_MOMENTUM`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. **MANDATORY**: To prevent catastrophic misses in strong trends, your `entry` MUST be within `{max_entry_distance_atr}` ATR of the `current_price`. If `IS_CHAOS`, the market is climaxing; momentum entries are PROHIBITED, prefer deep DLEs or "NEUTRAL".
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `wick_skew_instant` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Sink your entry deep into an HVN to maximize RR.
 - **The Sweep & Fade (Counter-Trend Reversal)**: You are authorized to execute a counter-trend trade (e.g., "BEARISH" in an uptrend, or "BULLISH" in a downtrend) IF AND ONLY IF the following physical conditions intersect:
   - **The Target is Destroyed**: Current price has just hit or pierced a high-intensity `liquidation_cluster` (e.g., hitting short_liquidations during a pump).
   - **Momentum Death**: `wick_skew_instant` confirms extreme rejection (e.g., massive upper wick after hitting the cluster) OR `oi_delta_micro` is sharply negative (open interest collapsing, meaning the move was purely stop-loss driven, not fresh buying).
   - **Execution**: Anchor your `entry` at the pierced liquidation cluster. Anchor your `stop_loss` tightly just beyond the extreme wick. Map your `take_profit` aggressively back to the nearest VAH/VAL or HVN (mean-reversion target).
-- **The Liquidity Hunt**: If `squeeze_factor` < `{squeeze_threshold}`, target the vacuum beyond the VAH/VAL boundaries.
+- **The Liquidity Hunt**: If `IS_SQUEEZING`, target the vacuum beyond the VAH/VAL boundaries.
 - **Cowardice Veto**: Do not default to "NEUTRAL" just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.
 
 # TACTICAL_REPAIR_PATTERNS
@@ -108,7 +113,7 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[RETAIL_LONG_SQUEEZE]`: Polarity Pivot to "BEARISH". Target distal `long_liquidation` cascade.
 - `[RETAIL_SHORT_SQUEEZE]`: Polarity Pivot to "BULLISH". Target distal `short_liquidation` cascade.
 - `[CVD_ABSORPTION]`: Abort Momentum. Move to deep **DLE** at nearest `HVN/POC`.
-- `[GRAVITY_EXHAUSTION]`: Mean-Reversion **DLE** targeting `POC`. Do not chase extension.
+- `[GRAVITY_EXHAUSTION]`: IF lacks momentum, execute Mean-Reversion **DLE** targeting `POC`. IF institutional flow is confirmed (`IS_TREND_STRONG`), execute **Shallow Pullback DLE** aligned with flow; DO NOT force a return to the distal `POC`.
 - `[FLOW_VIOLATION]`: Polarity Pivot to align with `cvd_intensity_ratio` or abort to "NEUTRAL".
 - `[VOLATILITY_CHOP]`: Immediately abort to "NEUTRAL".
 - `[INACTION_BIAS]`: Re-read telemetry; execute Mean-Reversion DLE or Vacuum Flip.
