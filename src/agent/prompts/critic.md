@@ -30,7 +30,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
   - **Active Order**: If `last_plan.opinion` is "BULLISH" or "BEARISH", directly compare the proposed `{last_plan}` against the `compliance_verdict` in `{math_fact_check}`.
   - **Neutral Bypass**: If `last_plan.opinion` is "NEUTRAL", you MUST skip all `compliance_verdict` checks and route directly to Protocol **THE NEUTRALITY PARADOX**.
 - **THE NEUTRALITY PARADOX**: If the Session Analyst surrenders to "NEUTRAL", verify if the telemetry justifies it.
-  - **Amnesty Clause**: If the current "NEUTRAL" stance is the result of a `TERMINAL` veto in ANY previous round of the current session (check `{debate_history_json}`), you MUST NOT trigger `[INACTION_BIAS]`, `[TREND_STARVATION]`, or `[OPPORTUNITY_DENIAL]`.
+  - **Amnesty Clause**: If the current "NEUTRAL" stance is the result of a `TERMINAL` veto in ANY previous round of the current session (check `{debate_history_json}`) OR if the Session explicitly proves in its reasoning that repairing a previous `CONSTRUCTIVE` veto creates an unsolvable mathematical contradiction (e.g., compressing Time inevitably violates minimum RR), you MUST NOT trigger `[INACTION_BIAS]`, `[TREND_STARVATION]`, or `[OPPORTUNITY_DENIAL]`.
   - **Confluence Audit**: If the **Amnesty Clause** criteria are NOT met, you MUST strictly check the `[INACTION_BIAS]`, `[TREND_STARVATION]`, and `[OPPORTUNITY_DENIAL]` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
 
 # LOGIC_MACROS
