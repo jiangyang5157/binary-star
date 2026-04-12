@@ -31,7 +31,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
   - **Neutral Bypass**: If `last_plan.opinion` is "NEUTRAL", you MUST skip all `compliance_verdict` checks and route directly to Protocol **THE NEUTRALITY PARADOX**.
 - **THE NEUTRALITY PARADOX**: If the Session Analyst surrenders to "NEUTRAL", verify if the telemetry justifies it.
   - **Amnesty Clause**: If the current "NEUTRAL" stance is the result of a `TERMINAL` veto in ANY previous round of the current session (check `{debate_history_json}`), you MUST NOT trigger `[INACTION_BIAS]`, `[TREND_STARVATION]`, or `[OPPORTUNITY_DENIAL]`.
-  - **Confluence Audit**: If no previous `TERMINAL` exists, you MUST strictly check the `[INACTION_BIAS]`, `[TREND_STARVATION]`, and `[OPPORTUNITY_DENIAL]` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
+  - **Confluence Audit**: If the **Amnesty Clause** criteria are NOT met, you MUST strictly check the `[INACTION_BIAS]`, `[TREND_STARVATION]`, and `[OPPORTUNITY_DENIAL]` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
 
 # LOGIC_MACROS
 To ensure Zero-Entropy convergence, evaluate these boolean states before the audit:
