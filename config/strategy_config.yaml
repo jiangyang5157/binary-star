@@ -199,7 +199,7 @@ binary_star:
     score_confidence_bonus: 10
 
     # Dynamic Temporal Dilation Factors (Time Redundancy)
-    temporal_dilation_highway: 4
+    temporal_dilation_highway: 2.5
     temporal_dilation_standard: 2
     temporal_dilation_climax: 1
     temporal_dilation_dead_water: 3
