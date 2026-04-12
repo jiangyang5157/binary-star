@@ -199,10 +199,10 @@ binary_star:
     score_confidence_bonus: 10
 
     # Dynamic Temporal Dilation Factors (Time Redundancy)
-    temporal_dilation_highway: 3
     temporal_dilation_standard: 2
-    temporal_dilation_climax: 1
+    temporal_dilation_highway: 3
     temporal_dilation_dead_water: 4
+    temporal_dilation_climax: 1
 
   critic:
     model_temperature: 0.1
@@ -211,6 +211,9 @@ binary_star:
     threshold_skepticism_clear: 40
     threshold_skepticism_weak: 69
     threshold_skepticism_constructive: 89
+
+    # [RISK]: Threshold for 'IS_HOLDING_TOO_LONG' audit (Projected Hours).
+    max_holding_hours: 48.0
 
 evolver:
   # gemini-3.1-pro-preview

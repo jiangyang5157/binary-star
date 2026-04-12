@@ -62,6 +62,7 @@ class CriticConfig(AgentConfig):
     mae_threshold_luck: float
     volume_profile_value_area_width: float
     volume_profile_width_ratio: float
+    max_holding_hours: float
     instruction_literal: Optional[str] = None
 
     @classmethod
@@ -121,6 +122,7 @@ class CriticConfig(AgentConfig):
             mae_threshold_luck=float(audit['mae_threshold_luck']),
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
             volume_profile_width_ratio=float(visuals['volume_profile']['width_ratio']),
+            max_holding_hours=float(critic_cfg['max_holding_hours']),
             instruction_literal=instruction_literal
         )
 
@@ -242,5 +244,6 @@ class CriticAgent(BaseAgent):
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
-            "funding_extreme_threshold": self.config.funding_extreme_threshold
+            "funding_extreme_threshold": self.config.funding_extreme_threshold,
+            "max_holding_hours": self.config.max_holding_hours
         }
