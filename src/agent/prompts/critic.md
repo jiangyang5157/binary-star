@@ -44,7 +44,6 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
 - `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
-- `REQUIRED_MIN_RR`: (`IS_TREND` ? `{min_rr_trending}` : `{min_rr_ranging}`)
 - `HAS_BEAR_SENTIMENT`: (`long_short_ratio_micro` > `{long_short_imbalance_ratio}` OR `funding_rate` > `{funding_extreme_threshold}`)
 - `HAS_BULL_SENTIMENT`: (`long_short_ratio_micro` < `{short_heavy_imbalance_ratio}` OR `funding_rate` < -`{funding_extreme_threshold}`)
 - `IS_SL_SHIELDED`: `compliance_verdict.sl_is_shielded` == TRUE
@@ -58,6 +57,9 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)
 - `IS_VOLATILITY_CHOP`: `IS_EXPANDING` AND abs(`trend_intensity`) < `{trend_intensity_min_expansion}`
 - `HAS_LIQUIDITY_VOID`: `nearest_lvn_dist_atr` < `{structural_buffer_atr}`
+- `IS_STRUCTURAL_TRAP`: `last_plan.tactical_parameters.entry` hits a volume vacuum (`vacuum_score` > `{vacuum_risk_score}`)
+- `HAS_ANCHOR_VIOLATION`: NOT `IS_SL_SHIELDED` OR (The structural anchor is NOT physically BETWEEN `entry` and `SL`) OR (The `stop_loss` is placed at or in front of a `liquidation_cluster`)
+- `HAS_PROTOCOL_VIOLATION`: State Reversion detected in `{debate_history_json}`
 
 # CRITIC_CODES
 | Category | Condition | Tag | Veto Level |
@@ -65,9 +67,9 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | **Pristine** | `IS_SL_SHIELDED` AND `IS_RR_VALID` | `[PRISTINE]` | `PASS` |
 | **Justified Inaction** | `IN_NEUTRAL` AND (**THE NEUTRALITY PARADOX** criteria met). | `[JUSTIFIED_INACTION]` | `PASS` |
 | **Order Physics** | NOT `IS_ENTRY_SAFE` OR NOT `IS_SL_LOGICAL` | `[ORDER_PHYSICS]` | `TERMINAL` |
-| **Structural Violation** | `last_plan.tactical_parameters.entry` hits a volume vacuum (`vacuum_score` > `{vacuum_risk_score}`). | `[STRUCTURAL_TRAP]` | `TERMINAL` |
-| **Anchor/Shield Failure** | NOT `IS_SL_SHIELDED` OR (The structural anchor is NOT physically BETWEEN `entry` and `SL`) OR (The `stop_loss` is placed at or in front of a `liquidation_cluster`). | `[ANCHOR_VIOLATION]` | `TERMINAL` |
-| **Logic Loop** | Protocol Violation (State Reversion detected in `{debate_history_json}`). | `[PROTOCOL_VIOLATION]` | `TERMINAL` |
+| **Structural Violation** | `IS_STRUCTURAL_TRAP` | `[STRUCTURAL_TRAP]` | `TERMINAL` |
+| **Anchor/Shield Failure** | `HAS_ANCHOR_VIOLATION` | `[ANCHOR_VIOLATION]` | `TERMINAL` |
+| **Logic Loop** | `HAS_PROTOCOL_VIOLATION` | `[PROTOCOL_VIOLATION]` | `TERMINAL` |
 | **Math Violation** | NOT `IS_RR_VALID` OR `compliance_verdict.atr_volatility_is_logical` == FALSE. | `[MATH_VIOLATION]` | `CONSTRUCTIVE` |
 | **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `volume_participation_ratio` > `{min_volume_participation_ratio}` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`). | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
 | **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_FLOW_DOMINANCE` AND NOT `HAS_ABSORPTION_RISK`. | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |

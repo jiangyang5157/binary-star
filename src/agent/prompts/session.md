@@ -31,7 +31,6 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before draftin
 - `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
 - `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
-- `REQUIRED_MIN_RR`: (`IS_TREND` ? `{min_rr_trending}` : `{min_rr_ranging}`)
 - `IS_VOLATILE`: `IS_CHAOS` OR `IS_TREND_STRONG`
 - `HAS_VOLUME_SURGE`: `volatility_participation_ratio` > `{min_volume_participation_ratio}`
 - `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
