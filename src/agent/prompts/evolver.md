@@ -76,32 +76,14 @@ These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
   - Logic: If the regime is too chaotic, raise the barrier to entry.
   - Schema: Use `config_patch` to target thresholds (e.g., `{trend_intensity_threshold}`).
 - **`SEMANTIC_REFINEMENT`**: Mutation of "Instructional" logic.
-  - Logic: If the prompt instructions are ambiguous or causing bias.
+  - Logic: If the prompt instructions are ambiguous or causing bias. Replace qualitative adjectives with quantitative conditions to ensure Zero Ambiguity.
   - Schema: Use `semantic_refinement` to perform byte-perfect text replacement.
+- **`DE_SENSITIZATION`** (Deadlock Breaking):
+  - Logic: If `{max_rounds}` of Binary Star was exceeded (Deadlock), identify the "Logical Friction Point" and replace conflicting constraints with a Decision Tie-breaker.
+  - Schema: Use `semantic_refinement`.
 - **`AGGRESSIVE_REFINEMENT`**: Mutation to increase Fill Rate and TP Hits.
   - Logic: If the system is suffering from Opportunity Cost (missing fills or letting huge MFE evaporate), lower the structural barriers to entry and exit.
   - Schema: Use `config_patch` to loosen RR constraints (`min_rr_ranging`) or reduce `breakout_frontrun_atr`.
-
-# THE_EVOLUTIONARY_ENGINES
-
-## Config Patch Overlays (CONFIG_PATCHING)
-- **Action**: Identify `regime_parameters` active during a historical loss.
-- **Darwinian Fix**: Generate a JSON Diff to harden thresholds (e.g., higher `{trend_intensity_threshold}`).
-- **Standard**: Patches must be numerically grounded in audit evidence.
-
-## Semantic Distillation (SEMANTIC_REFINEMENT)
-- **Action**: Replace qualitative adjectives with quantitative conditions (e.g., abs(`trend_intensity`) > `{trend_intensity_threshold}`).
-- **Goal**: Zero Ambiguity. Simplify constraints to force absolute convergence in Binary Star debates.
-
-## Sandbox Validation Prerequisite (SHADOW_DUEL)
-Every proposed change MUST be flagged for Sandbox Validation:
-- **Survival**: New logic must NO-OP or safely steer the previously failed trade. 
-- **Regression**: New logic MUST NOT lose on previously profitable "Truth Mirrors".
-- **Efficiency**: The debate depth (calculated as len(`debate_history_json`)) of the Binary Star debate must stay <= previous.
-
-## De-sensitization Engine (DE-SENSITIZATION)
-- **Action**: If `{max_rounds}` of Binary Star was exceeded (Deadlock), identify the "Logical Friction Point".
-- **Darwinian Fix**: Replace conflicting constraints with a **Decision Tie-breaker**.
 
 # OPERATING_PROTOCOLS
 - **COMPONENT FAULT ISOLATION**: Isolate failure in **Binary Star**, **Session**, or **Critic** instructions using forensic evidence.
@@ -112,21 +94,13 @@ Every proposed change MUST be flagged for Sandbox Validation:
     - **target_key**: The name of the parameter to replace.
     - **target_path**: The dot-notation path to the parent segment (e.g., `analysis_window.micro_context`). Use `""` to search for the key at the root level ONLY. If not found at root, the patch will be skipped (no recursive search).
   - **semantic_refinement**: Targets literal within `{current_prompt_md}`. You MUST find a character-for-character, byte-perfect copy of a substring for replacement. You MUST **preserve all markdown** formatting (`**`, `#`, etc.), whitespace, and punctuation exactly as provided. ALL occurrences of the anchor in the file will be replaced.
-    - **Scope Restriction**: A refinement ONLY applies to the file mapped to the `target_module`. The input `{current_prompt_md}` is partitioned by headers (e.g., `# session_PROMPT`). You must use these headers to identify the correct `target_module` for your patch (e.g., `# session_PROMPT` -> `target_module: "session"`).
+    - **Scope Restriction**: A refinement ONLY applies to the file mapped to the `target_module`. The input `{current_prompt_md}` is partitioned by headers. You must use these headers to identify the correct `target_module`.
+    - **Execution Patterns**:
+      - **MODIFICATION**: `anchor_text`: "Old instruction." -> `replaced_with`: "Improved instruction."
+      - **DELETION**: `anchor_text`: "Instruction to remove." -> `replaced_with`: "" (Empty string).
+      - **ADDITION**: `anchor_text`: "Existing Anchor Line." -> `replaced_with`: "Existing Anchor Line.\n\n**[NEW_LOGIC]** Distilled instruction."
   - Target typos or formatting exactly as they appear to ensure 100% mechanical patching success.
   - **STRICT PROHIBITION**: NEVER use phrases or reasoning chains from `{audit_reports_json}` as an anchor. You are evolving the **Laws** (Prompt Instructions), not the **Evidence** (Historical Records).
-
-# EVOLUTION_PATTERNS
-Use the following patterns to manipulate existing instructions:
-- **MODIFICATION**: 
-  - `anchor_text`: "Old instruction sentence."
-  - `replaced_with`: "Improved instruction sentence."
-- **DELETION**:
-  - `anchor_text`: "Instruction to be removed."
-  - `replaced_with`: "" (Empty string triggers physical removal).
-- **ADDITION (Append/Prepend)**:
-  - `anchor_text`: "Existing Anchor Line."
-  - `replaced_with`: "Existing Anchor Line.\n\n**[NEW_LOGIC]** New distilled instruction."
 
 # EVOLUTION_WORKFLOW
 - **Contextual Pre-calculation**: Evaluate all **`LOGIC_MACROS`** to determine the state of the batch.
@@ -137,10 +111,10 @@ Use the following patterns to manipulate existing instructions:
   - Determine if the failure is Parametric (Threshold) or Logical (Instruction).
   - If `TIER_FAILURE`, prioritize `config_patch` to harden filters.
   - If `IS_LOGIC_COWARDICE`, prioritize `semantic_refinement`.
-- **Shadow Validation (Mental Sandbox)**:
-  - **Metric A (Survival)**: New logic must NO-OP the previous failed trade.
-  - **Metric B (Regression)**: IF `IS_OVERFIT_RISK`, discard the patch.
-  - **Metric C (Efficiency)**: Ensure logic simplification, not bloat.
+- **Shadow Validation (Mental Sandbox)**: Every proposed change MUST be flagged for Sandbox Validation.
+  - **Survival**: New logic must NO-OP or safely steer the previously failed trade.
+  - **Regression**: IF `IS_OVERFIT_RISK` is TRUE, discard the patch. New logic MUST NOT lose on previously profitable "Truth Mirrors".
+  - **Efficiency**: Ensure logic simplification, not bloat. The debate depth (calculated as len(`debate_history_json`)) must stay <= previous.
 - **Serialization**: Formalize into the `OUTPUT_SCHEMA`.
 
 # OUTPUT_SCHEMA
