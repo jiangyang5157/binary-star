@@ -1,7 +1,5 @@
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from typing import Optional
-
 
 DEFAULT_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 FILE_TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"

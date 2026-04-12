@@ -173,7 +173,12 @@ class MockDataFactory:
                     "temporal_dilation_highway": 1.1,
                     "temporal_dilation_standard": 1.5,
                     "temporal_dilation_climax": 2.0,
-                    "temporal_dilation_dead_water": 3.0
+                    "temporal_dilation_dead_water": 3.0,
+                    "temporal_weight_highway": 2.0,
+                    "temporal_weight_standard": 1.0,
+                    "temporal_weight_dead_water": 0.5,
+                    "temporal_weight_climax": 0.25,
+                    "max_holding_hours": 48.0
                 },
                 "critic": {
                     "model_temperature": 0.2,

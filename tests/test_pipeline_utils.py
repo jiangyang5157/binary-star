@@ -1,4 +1,3 @@
-import pytest
 from src.utils.pipeline_utils import deep_merge
 
 def test_deep_merge_simple():

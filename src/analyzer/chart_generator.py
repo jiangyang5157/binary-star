@@ -10,7 +10,7 @@ import mplfinance as mpf
 import matplotlib.collections as mcoll
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional, Union
-from src.utils.datetime_utils import format_timestamp_for_filename, get_current_utc_time
+from src.utils.datetime_utils import format_timestamp_for_filename
 
 # Initialize project-standard logger
 from src.utils.logger_utils import setup_logger

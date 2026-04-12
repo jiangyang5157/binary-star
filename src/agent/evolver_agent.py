@@ -2,11 +2,10 @@ import os
 import json
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
-from src.utils.json_utils import load_json, save_json
 
 logger = logging.getLogger("EvolverAgent")
 

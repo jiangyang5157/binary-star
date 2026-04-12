@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, List
 
 # Initialize standard hardened logger for math telemetry
 logger = logging.getLogger(__name__)

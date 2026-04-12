@@ -1,4 +1,3 @@
-import logging
 import json
 import os
 from typing import Dict, Any, List, Optional
@@ -513,8 +512,6 @@ class BinaryStarOrchestrator:
             is_trending = abs(trend_intensity) >= self.critic_config.trend_intensity_threshold
             min_rr = self.session_config.min_rr_trending if is_trending else self.session_config.min_rr_ranging
 
-
-            
             # Shielding check
             buffer = self.critic_config.structural_buffer_atr
             prox_values = [v for v in proximity.values() if v is not None]

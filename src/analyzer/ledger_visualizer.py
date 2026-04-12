@@ -6,7 +6,6 @@ from typing import List, Dict, Any, Optional
 
 from src.utils.json_utils import load_json
 from src.utils.path_utils import resolve_project_root
-from src.utils.datetime_utils import to_html_display
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 
 

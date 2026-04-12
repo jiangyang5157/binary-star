@@ -2,7 +2,7 @@ import os
 import re
 import logging
 import collections.abc
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from ruamel.yaml import YAML
 
 logger = logging.getLogger("EvolutionUtils")

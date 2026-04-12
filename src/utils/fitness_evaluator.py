@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 # Initialize standard logger for forensic fitness tracking
 logger = logging.getLogger("FitnessEvaluator")

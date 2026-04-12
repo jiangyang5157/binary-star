@@ -4,7 +4,7 @@ import sys
 import time
 import argparse
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Setup absolute project paths

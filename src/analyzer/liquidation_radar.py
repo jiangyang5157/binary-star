@@ -1,6 +1,5 @@
 import numpy as np
-import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 from src.infrastructure.exchange.models import KlineData, OpenInterestData, RatioData

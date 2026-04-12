@@ -1,7 +1,5 @@
-import os
 import pytest
 import yaml
-from ruamel.yaml import YAML
 from src.utils.evolution_utils import ConfigPatcher, PromptDistiller
 
 @pytest.fixture

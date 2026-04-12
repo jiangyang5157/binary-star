@@ -5,7 +5,6 @@ from typing import Dict, Any, Optional, List
 
 from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
-from src.utils.datetime_utils import get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 

@@ -52,7 +52,8 @@ class TestMathTools:
     def test_projected_holding_time(self):
         # Full Configuration from strategy_config.yaml (Thresholds + Modifiers)
         cfg = {
-            "dilation_dead_water": 3.0, "dilation_highway": 1.1, "dilation_climax": 2.0, "dilation_standard": 1.5
+            "dilation_dead_water": 3.0, "dilation_highway": 1.1, "dilation_climax": 2.0, "dilation_standard": 1.5,
+            "weight_dead_water": 0.5, "weight_highway": 2.0, "weight_climax": 0.25, "weight_standard": 1.0
         }
         # Thresholds (Moved to positional to match hardened signature if needed, or kept in kwargs)
         thresholds = {
@@ -67,7 +68,7 @@ class TestMathTools:
             trend_intensity=1.0, volatility_intensity_index=2.2, normalized_velocity=1.0, 
             interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
         )
-        assert res['temporal_dilation_factor'] == 2.0
+        assert res['temporal_weight_factor'] == 0.25
         assert res['projected_holding_hours'] == 20.0
 
         # 2. 场景：死水区 (Dead Water) - VR 1.0 (< 1.3), TI 0.2 (< 0.5)
@@ -78,7 +79,7 @@ class TestMathTools:
             trend_intensity=0.2, volatility_intensity_index=1.0, normalized_velocity=0.2, 
             interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
         )
-        assert res['temporal_dilation_factor'] == 3.0
+        assert res['temporal_weight_factor'] == 0.5
         assert res['projected_holding_hours'] == 60.0
         
         # 3. 场景：高速公路 (Highway) - TI 0.96 (>= 0.95), VR 1.5 (1.3 <= 1.5 < 2.0)
@@ -89,7 +90,7 @@ class TestMathTools:
             trend_intensity=0.96, volatility_intensity_index=1.5, normalized_velocity=0.96, 
             interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
         )
-        assert res['temporal_dilation_factor'] == 1.1
+        assert res['temporal_weight_factor'] == 2.0
         assert res['projected_holding_hours'] == 11.5
 
         # 4. 场景：标准扩张 (Standard) - VR 1.5, TI 0.6 (不满足 Highway 和 Dead Water)
@@ -100,7 +101,7 @@ class TestMathTools:
             trend_intensity=0.6, volatility_intensity_index=1.5, normalized_velocity=0.6, 
             interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
         )
-        assert res['temporal_dilation_factor'] == 1.5
+        assert res['temporal_weight_factor'] == 1.0
         assert res['projected_holding_hours'] == 25.0
 
         # 5. 等待时间校验 (Wait time test)

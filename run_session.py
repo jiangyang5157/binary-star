@@ -3,9 +3,8 @@ import os
 import sys
 import argparse
 import signal
-import pandas as pd
 from datetime import datetime, timezone, timedelta
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
 # Setup absolute project paths

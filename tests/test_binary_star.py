@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from tests.mock_factory import MockDataFactory
 

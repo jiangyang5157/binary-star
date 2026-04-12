@@ -1,6 +1,5 @@
 import unittest
 import pandas as pd
-import numpy as np
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.infrastructure.exchange.models import KlineData

@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
-import logging
 from dataclasses import dataclass
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from scipy.signal import find_peaks
 
 # Initialize project-standard logger

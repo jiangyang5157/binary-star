@@ -1,6 +1,5 @@
 import json
 import os
-import logging
 import numpy as np
 from datetime import datetime
 from enum import Enum

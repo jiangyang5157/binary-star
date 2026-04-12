@@ -1,4 +1,4 @@
-from typing import Dict, Any, Union
+from typing import Dict, Any
 
 def parse_liquidation_data(liq: Dict[str, Any]) -> Dict[str, Any]:
     """
