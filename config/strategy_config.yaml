@@ -115,9 +115,6 @@ regime_parameters:
   liq_radar_grid_bins: 500          # Number of price bins for liquidation density calculation.
   liq_radar_grid_padding_atr: 5.0    # Buffer around price extremes in Micro ATR units.
 
-  # --- Execution Safety & Friction Buffers ---
-  # Buffer added to breakout entries to filter 'False Breakouts'.
-  breakout_buffer_atr: 0.2
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
   breakout_frontrun_atr: 0.25
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
@@ -190,7 +187,6 @@ topography_parameters:
   max_liquidation_clusters: 2
   # Max historical liquidation events to fetch per cycle.
   max_liquidation_events_to_fetch: 50
-  max_liquidation_events_for_context: 10
 
 binary_star:
   # gemini-3.1-pro-preview

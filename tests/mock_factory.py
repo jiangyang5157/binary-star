@@ -203,7 +203,6 @@ class MockDataFactory:
                 "wick_skew_fallback": 0.5,
                 "max_liquidation_clusters": 5,
                 "max_liquidation_events_to_fetch": 100,
-                "max_liquidation_events_for_context": 50,
                 "liquidation_cluster_atr_multiplier": 0.25,
                 "liquidation_cluster_fallback_percentage": 0.005,
                 "default_structural_distance_atr": 2.0
@@ -238,7 +237,6 @@ class MockDataFactory:
                 "funding_extreme_threshold": 0.0005,
                 "squeeze_threshold": 1.0,
                 "squeeze_audit_threshold": 0.85,
-                "breakout_buffer_atr": 0.2,
                 "breakout_frontrun_atr": 0.45,
                 "min_rr_ranging": 1.0,
                 "min_rr_trending": 1.2,

@@ -55,7 +55,6 @@ class SessionConfig(AgentConfig):
     min_volume_participation_ratio: float
     squeeze_threshold: float
     squeeze_audit_threshold: float
-    breakout_buffer_atr: float
     breakout_frontrun_atr: float
     max_entry_distance_atr: float
     chaos_rr_discount: float
@@ -133,7 +132,6 @@ class SessionConfig(AgentConfig):
             min_volume_participation_ratio=float(regime['min_volume_participation_ratio']),
             squeeze_threshold=float(regime['squeeze_threshold']),
             squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
-            breakout_buffer_atr=float(regime['breakout_buffer_atr']),
             breakout_frontrun_atr=float(regime['breakout_frontrun_atr']),
             max_entry_distance_atr=float(regime['max_entry_distance_atr']),
             chaos_rr_discount=float(regime['chaos_rr_discount']),
@@ -292,7 +290,6 @@ class SessionAgent(BaseAgent):
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
-            "breakout_buffer_atr": self.config.breakout_buffer_atr,
             "breakout_frontrun_atr": self.config.breakout_frontrun_atr,
             "max_entry_distance_atr": self.config.max_entry_distance_atr,
             "chaos_rr_discount": self.config.chaos_rr_discount,

@@ -60,7 +60,6 @@ class MarketObserverConfig:
     kc_multiplier: float
     volume_ma_period: int
     max_liquidation_events_to_fetch: int
-    max_liquidation_events_for_context: int
     max_volume_node_count: int
     high_volume_node_detection_threshold: float
     low_volume_node_detection_threshold: float
@@ -184,7 +183,6 @@ class MarketObserverConfig:
             wick_skew_fallback=float(topography['wick_skew_fallback']),
             max_liquidation_clusters=int(topography['max_liquidation_clusters']),
             max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
-            max_liquidation_events_for_context=int(topography['max_liquidation_events_for_context']),
             liquidation_cluster_atr_multiplier=float(visuals['liq_radar_atr_multiplier']),
             default_structural_distance_atr=float(def_struct_dist),
 
