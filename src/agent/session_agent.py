@@ -57,6 +57,8 @@ class SessionConfig(AgentConfig):
     squeeze_audit_threshold: float
     breakout_buffer_atr: float
     breakout_frontrun_atr: float
+    max_entry_distance_atr: float
+    chaos_rr_discount: float
     poc_magnet_atr_threshold: float
     gravity_volume_override_ratio: float
     noise_filter_atr_floor: float
@@ -133,6 +135,8 @@ class SessionConfig(AgentConfig):
             squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
             breakout_buffer_atr=float(regime['breakout_buffer_atr']),
             breakout_frontrun_atr=float(regime['breakout_frontrun_atr']),
+            max_entry_distance_atr=float(regime['max_entry_distance_atr']),
+            chaos_rr_discount=float(regime['chaos_rr_discount']),
             poc_magnet_atr_threshold=float(regime['poc_magnet_atr_threshold']),
             gravity_volume_override_ratio=float(regime['gravity_volume_override_ratio']),
             noise_filter_atr_floor=float(regime['noise_filter_atr_floor']),
@@ -288,6 +292,10 @@ class SessionAgent(BaseAgent):
             "structural_proximity_threshold": self.config.structural_proximity_threshold,
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
+            "breakout_buffer_atr": self.config.breakout_buffer_atr,
+            "breakout_frontrun_atr": self.config.breakout_frontrun_atr,
+            "max_entry_distance_atr": self.config.max_entry_distance_atr,
+            "chaos_rr_discount": self.config.chaos_rr_discount,
             "temporal_dilation_dead_water": self.config.temporal_dilation_dead_water,
             "temporal_dilation_highway": self.config.temporal_dilation_highway,
             "temporal_dilation_climax": self.config.temporal_dilation_climax,
