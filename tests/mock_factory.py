@@ -214,7 +214,6 @@ class MockDataFactory:
                 "noise_filter_atr_floor": 0.2,
                 "trend_intensity_min_expansion": 0.15,
                 "volatility_baseline_ratio": 1.3,
-                "volatility_expansion_ratio": 1.5,
                 "volatility_extreme_ratio": 2.0,
                 "volume_surge_vs_ma_ratio": 1.5,
                 "min_volume_participation_ratio": 1.0,

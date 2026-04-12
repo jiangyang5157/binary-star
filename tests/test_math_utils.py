@@ -52,42 +52,66 @@ class TestMathTools:
     def test_projected_holding_time(self):
         # Full Configuration from strategy_config.yaml (Thresholds + Modifiers)
         cfg = {
-            "vr_base": 1.3, "vr_extreme": 2.0, "ti_strong": 0.5, "ti_thresh": 0.95,
             "dilation_dead_water": 3.0, "dilation_highway": 1.1, "dilation_climax": 2.0, "dilation_standard": 1.5
+        }
+        # Thresholds (Moved to positional to match hardened signature if needed, or kept in kwargs)
+        thresholds = {
+            "vr_base": 1.3, "vr_extreme": 2.0, "ti_strong": 0.5, "ti_thresh": 0.95
         }
 
         # 1. 场景：极度高潮 (Chaos) - VR 2.2 (>= 2.0)
-        # 优先级：Chaos 覆盖其他。
-        # Expected: Dist 2000 / (ATR 200 * TI 1.0) = 10 candles.
+        # Expected: Dist 2000 / (ATR 200 * Velocity 1.0) = 10 candles.
         # Modifier 2.0. Hours = 10 * 60 * 2.0 / 60 = 20.0
-        res = MathTools.project_holding_time(60000, 50000, 52000, 200, 1.0, 2.2, 60, 0.5, **cfg)
+        res = MathTools.project_holding_time(
+            current_price=60000, entry=50000, take_profit=52000, atr=200, 
+            trend_intensity=1.0, volatility_intensity_index=2.2, normalized_velocity=1.0, 
+            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+        )
         assert res['temporal_dilation_factor'] == 2.0
         assert res['projected_holding_hours'] == 20.0
 
         # 2. 场景：死水区 (Dead Water) - VR 1.0 (< 1.3), TI 0.2 (< 0.5)
         # Expected: Dist 2000 / (ATR 200 * Floor 0.5) = 20 candles. 
         # Modifier 3.0. Hours = 20 * 60 * 3.0 / 60 = 60.0
-        res = MathTools.project_holding_time(60000, 50000, 52000, 200, 0.2, 1.0, 60, 0.5, **cfg)
+        res = MathTools.project_holding_time(
+            current_price=60000, entry=50000, take_profit=52000, atr=200, 
+            trend_intensity=0.2, volatility_intensity_index=1.0, normalized_velocity=0.2, 
+            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+        )
         assert res['temporal_dilation_factor'] == 3.0
         assert res['projected_holding_hours'] == 60.0
         
         # 3. 场景：高速公路 (Highway) - TI 0.96 (>= 0.95), VR 1.5 (1.3 <= 1.5 < 2.0)
-        # Expected: Dist 2000 / (ATR 200 * TI 0.96) = 2000 / 192 = 10.416 candles.
+        # Expected: Dist 2000 / (ATR 200 * Velocity 0.96) = 2000 / 192 = 10.416 candles.
         # Modifier 1.1. Hours = 10.416 * 60 * 1.1 / 60 = 11.458 -> 11.5
-        res = MathTools.project_holding_time(60000, 50000, 52000, 200, 0.96, 1.5, 60, 0.5, **cfg)
+        res = MathTools.project_holding_time(
+            current_price=60000, entry=50000, take_profit=52000, atr=200, 
+            trend_intensity=0.96, volatility_intensity_index=1.5, normalized_velocity=0.96, 
+            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+        )
         assert res['temporal_dilation_factor'] == 1.1
         assert res['projected_holding_hours'] == 11.5
 
         # 4. 场景：标准扩张 (Standard) - VR 1.5, TI 0.6 (不满足 Highway 和 Dead Water)
-        # Expected: Dist 2000 / (ATR 200 * TI 0.6) = 2000 / 120 = 16.666 candles.
+        # Expected: Dist 2000 / (ATR 200 * Velocity 0.6) = 2000 / 120 = 16.666 candles.
         # Modifier 1.5. Hours = 16.666 * 60 * 1.5 / 60 = 25.0
-        res = MathTools.project_holding_time(60000, 50000, 52000, 200, 0.6, 1.5, 60, 0.5, **cfg)
+        res = MathTools.project_holding_time(
+            current_price=60000, entry=50000, take_profit=52000, atr=200, 
+            trend_intensity=0.6, volatility_intensity_index=1.5, normalized_velocity=0.6, 
+            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+        )
         assert res['temporal_dilation_factor'] == 1.5
         assert res['projected_holding_hours'] == 25.0
-        # Wait time test
-        # current_price=59000, entry=60000, take_profit=62000...
-        res_wait = MathTools.project_holding_time(59000, 60000, 62000, 200, 1.0, 2.2, 60, 0.5, **cfg)
-        assert res_wait['projected_waiting_hours'] == 5.0 # (60000-59000)/200 = 5 candles = 5 hours
+
+        # 5. 等待时间校验 (Wait time test)
+        # current_price=59000, entry=60000, TP=62000. Dist=1000. ATR=200. Velocity=1.0.
+        # Expected: 1000 / (200 * 1.0) = 5 candles = 5 hours (at 60m interval).
+        res_wait = MathTools.project_holding_time(
+            current_price=59000, entry=60000, take_profit=62000, atr=200, 
+            trend_intensity=1.0, volatility_intensity_index=2.2, normalized_velocity=1.0, 
+            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+        )
+        assert res_wait['projected_waiting_hours'] == 5.0
 
     def test_mae_stress_tiers(self):
         # 定义测试用的阈值

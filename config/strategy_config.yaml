@@ -39,8 +39,6 @@ regime_parameters:
   # --- Volatility & Risk Fractals (Noise Management) ---
   # Ratio of current ATR vs Macro Baseline. >1.3 indicates volatility expansion.
   volatility_baseline_ratio: 1.3
-  # [THRESHOLD]: The line where the system switches to 'Defensive' buffers to avoid stop-hunts.
-  volatility_expansion_ratio: 1.7
   # Threshold for 'Chaos' regimes where market topography becomes unreliable.
   volatility_extreme_ratio: 2.2
 

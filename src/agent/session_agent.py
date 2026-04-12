@@ -38,7 +38,6 @@ class SessionConfig(AgentConfig):
     micro_interval: str
     trend_intensity_threshold: float
     volatility_baseline_ratio: float
-    volatility_expansion_ratio: float
     volatility_extreme_ratio: float
     volume_surge_vs_ma_ratio: float
     long_short_imbalance_ratio: float
@@ -115,7 +114,6 @@ class SessionConfig(AgentConfig):
             micro_interval=str(sampling['micro_context']['time_interval']),
             trend_intensity_threshold=float(regime['trend_intensity_threshold']),
             volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
-            volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
             volume_surge_vs_ma_ratio=float(regime['volume_surge_vs_ma_ratio']),
             long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
@@ -259,7 +257,6 @@ class SessionAgent(BaseAgent):
             "micro_interval": self.config.micro_interval,
             "trend_intensity_threshold": self.config.trend_intensity_threshold,
             "volatility_baseline_ratio": self.config.volatility_baseline_ratio,
-            "volatility_expansion_ratio": self.config.volatility_expansion_ratio,
             "volatility_extreme_ratio": self.config.volatility_extreme_ratio,
             "volume_surge_vs_ma_ratio": self.config.volume_surge_vs_ma_ratio,
             "long_short_imbalance_ratio": self.config.long_short_imbalance_ratio,
@@ -310,48 +307,3 @@ class SessionAgent(BaseAgent):
         """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
-
-    def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: Optional[float] = None, vah: Optional[float] = None, val: Optional[float] = None) -> Dict[str, Any]:
-        """[TOOL] Measures isolation/shielding between SL and structural anchors (POC/VAH/VAL)."""
-        from src.utils.math_utils import MathTools
-        return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
-
-    def project_holding_time(self, current_price: float, entry: float, take_profit: float, atr: float, 
-                             trend_intensity: float, 
-                             volatility_intensity_index: float,
-                             interval_minutes: int,
-                             min_velocity_floor: Optional[float] = None) -> Dict[str, Any]:
-        """[TOOL] Estimates trade duration based on market velocity floors with dynamic modifier v3.0."""
-        from src.utils.math_utils import MathTools
-        
-        return MathTools.project_holding_time(
-            current_price=current_price,
-            entry=entry, take_profit=take_profit, atr=atr, 
-            trend_intensity=trend_intensity, volatility_intensity_index=volatility_intensity_index,
-            interval_minutes=interval_minutes, min_velocity_floor=min_velocity_floor,
-            vr_base=self.config.volatility_baseline_ratio,
-            vr_extreme=self.config.volatility_extreme_ratio,
-            ti_strong=self.config.trend_intensity_strong,
-            ti_thresh=self.config.trend_intensity_threshold,
-            dilation_dead_water=self.config.temporal_dilation_dead_water,
-            dilation_highway=self.config.temporal_dilation_highway,
-            dilation_climax=self.config.temporal_dilation_climax,
-            dilation_standard=self.config.temporal_dilation_standard
-        )
-    def calculate_opportunity_cost(self, missed_range: float, atr_macro: float) -> Dict[str, Any]:
-        """[TOOL] Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance)."""
-        from src.utils.math_utils import MathTools
-        return MathTools.calculate_opportunity_cost(
-            missed_range, 
-            atr_macro, 
-            threshold=self.config.missed_opportunity_atr_threshold
-        )
-
-    def calculate_mae_stress(self, mae_distance: float, max_atr_used: float) -> Dict[str, Any]:
-        """[TOOL] Evaluates the Maximum Adverse Excursion (MAE) stress against the move volatility."""
-        from src.utils.math_utils import MathTools
-        return MathTools.calculate_mae_stress(
-            mae_distance, 
-            max_atr_used, 
-            thresholds=self.config.mae_stress_thresholds
-        )

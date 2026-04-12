@@ -39,10 +39,12 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - `IS_BULLISH`: `last_plan.opinion` == "BULLISH"
 - `IS_BEARISH`: `last_plan.opinion` == "BEARISH"
 - `IN_NEUTRAL`: `last_plan.opinion` == "NEUTRAL"
-- `IS_EXPANDING`: `volatility_expansion_index` > `{volatility_expansion_ratio}`
+- `IS_EXPANDING`: `volatility_expansion_index` > `{volatility_baseline_ratio}`
 - `IS_CHAOS`: `volatility_expansion_index` > `{volatility_extreme_ratio}`
 - `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
+- `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
+- `REQUIRED_MIN_RR`: (`IS_TREND` ? `{min_rr_trending}` : `{min_rr_ranging}`)
 - `HAS_BEAR_SENTIMENT`: (`long_short_ratio_micro` > `{long_short_imbalance_ratio}` OR `funding_rate` > `{funding_extreme_threshold}`)
 - `HAS_BULL_SENTIMENT`: (`long_short_ratio_micro` < `{short_heavy_imbalance_ratio}` OR `funding_rate` < -`{funding_extreme_threshold}`)
 - `IS_SL_SHIELDED`: `compliance_verdict.sl_is_shielded` == TRUE

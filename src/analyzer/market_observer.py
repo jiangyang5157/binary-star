@@ -73,7 +73,6 @@ class MarketObserverConfig:
     volatility_intensity_macro_lookback_candles: int
     trend_intensity_threshold: float
     volatility_baseline_ratio: float
-    volatility_expansion_ratio: float
     volatility_extreme_ratio: float
     volume_surge_vs_ma_ratio: float
     long_short_imbalance_ratio: float
@@ -192,7 +191,6 @@ class MarketObserverConfig:
             
             trend_intensity_threshold=float(regime['trend_intensity_threshold']),
             volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
-            volatility_expansion_ratio=float(regime['volatility_expansion_ratio']),
             volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
 
             volume_surge_vs_ma_ratio=float(volume_part_surge),
@@ -405,14 +403,25 @@ class MarketMetricsRefiner:
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback_candles).mean()
         volatility_intensity_index = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
+        # v12.1: Physics Engine Correction - Normalized Velocity (ATR/Bar)
+        # Calculates the actual physical speed of the trend for Zero-Entropy time projections.
+        trend_lookback = self.config.trend_intensity_macro_lookback_candles
+        normalized_velocity = 0.0
+        if len(m_df) >= trend_lookback and atr_m > 0:
+            net_displacement = abs(m_df['close'].iloc[-1] - m_df['close'].iloc[-trend_lookback])
+            # Velocity = Total ATRs moved / Total candles
+            normalized_velocity = (net_displacement / atr_m) / trend_lookback
+
         return {
             "current_price": c,
             "atr_macro": atr_m,
             "atr_micro": atr_n,
             "wick_skew_instant": wick_skew,
             "volatility_expansion_index": volatility_expansion_index,
-            "volatility_intensity_index": volatility_intensity_index
+            "volatility_intensity_index": volatility_intensity_index,
+            "normalized_velocity": normalized_velocity
         }
+
 
 
     def _derive_anchors(self, df: pd.DataFrame, profile: Dict[str, Any]) -> Dict[str, Any]:

@@ -36,6 +36,10 @@ class BinaryStarOrchestrator:
     3. Adversarial Hardening: Iterative debate rounds ensure the final trade
        blueprint is logically sound and structurally shielded.
     """
+    obs_config: MarketObserverConfig
+    session_config: SessionConfig
+    critic_config: CriticConfig
+
     def __init__(self, 
                  config_dict: Dict[str, Any], 
                  api_key: str, 
@@ -202,7 +206,51 @@ class BinaryStarOrchestrator:
 
         logger.info(f"BinaryStar: Beginning cycle for {symbol} at {timestamp}...")
         
+        # v7.5 Optimization: Regime Benchmark Injection (Physical Pre-calculation)
+        # We pre-calculate static market constants for this session to reduce Agent tool calls.
+        try:
+            metrics = observation.get('quantitative_metrics', {})
+            dynamics = metrics.get('price_dynamics', {})
+            regime = metrics.get('market_regime', {})
+            
+            # 1. Fetch Shared Physics Scalars
+            scalars = MathTools.get_regime_scalars(
+                trend_intensity=float(regime.get('trend_intensity', 0)),
+                volatility_intensity_index=float(dynamics.get('volatility_intensity_index', 0)),
+                normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
+                ti_thresh=self.critic_config.trend_intensity_threshold,
+                ti_strong=self.critic_config.trend_intensity_strong,
+                vr_base=self.critic_config.volatility_baseline_ratio,
+                vr_extreme=self.critic_config.volatility_extreme_ratio,
+                dilation_dead_water=self.session_config.temporal_dilation_dead_water,
+                dilation_highway=self.session_config.temporal_dilation_highway,
+                dilation_climax=self.session_config.temporal_dilation_climax,
+                dilation_standard=self.session_config.temporal_dilation_standard,
+                min_velocity_floor=self.session_config.min_trade_velocity
+            )
+            
+            macro_interval_mins = get_interval_minutes(self.macro_interval)
+            
+            # 2. Derive Benchmarks
+            unit_atr_holding_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins * scalars["temporal_dilation_factor"]) / 60, 1)
+            unit_atr_waiting_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins) / 60, 1)
+
+
+            
+            # Inject into observation (Only complex physical scalars that AI cannot mental-math)
+            regime['regime_benchmarks'] = {
+                "unit_atr_holding_hours": unit_atr_holding_hours,
+                "unit_atr_waiting_hours": unit_atr_waiting_hours
+            }
+
+            
+            logger.info(f"BinaryStar: Injected Regime Benchmarks [Holding: {unit_atr_holding_hours}h/ATR, Waiting: {unit_atr_waiting_hours}h/ATR]")
+        except Exception as e:
+            logger.warning(f"BinaryStar: Failed to inject regime benchmarks: {e}")
+
+
         # 1. Truth Bus Initialization (Context Caching)
+
         observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
         visual_parts = self._extract_visual_parts(observation)
         
@@ -235,63 +283,6 @@ class BinaryStarOrchestrator:
                         },
                         "required": ["entry", "stop_loss", "take_profit", "atr"]
                     }
-                },
-                {
-                    "name": "calculate_structural_proximity",
-                    "description": "Measures SL-to-structure isolation in ATR units.",
-                    "parameters": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "stop_loss": {"type": "NUMBER"},
-                            "atr": {"type": "NUMBER"},
-                            "poc": {"type": "NUMBER"},
-                            "vah": {"type": "NUMBER"},
-                            "val": {"type": "NUMBER"}
-                        },
-                        "required": ["stop_loss", "atr"]
-                    }
-                },
-                {
-                    "name": "project_holding_time",
-                    "description": "Predicts trade duration based on market velocity floor.",
-                    "parameters": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "current_price": {"type": "NUMBER"},
-                            "entry": {"type": "NUMBER"},
-                            "take_profit": {"type": "NUMBER"},
-                            "atr": {"type": "NUMBER"},
-                            "trend_intensity": {"type": "NUMBER"},
-                            "volatility_intensity_index": {"type": "NUMBER"},
-                            "interval_minutes": {"type": "NUMBER"},
-                            "min_velocity_floor": {"type": "NUMBER"}
-                        },
-                        "required": ["current_price", "entry", "take_profit", "atr", "trend_intensity", "volatility_intensity_index", "interval_minutes"]
-                    }
-                },
-                {
-                    "name": "calculate_opportunity_cost",
-                    "description": "Quantifies the 'Cost of Cowardice' (volatility missed during neutral stance).",
-                    "parameters": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "missed_range": {"type": "NUMBER", "description": "The price move delta that was missed."},
-                            "atr_macro": {"type": "NUMBER", "description": "Current market volatility for normalization."}
-                        },
-                        "required": ["missed_range", "atr_macro"]
-                    }
-                },
-                {
-                    "name": "calculate_mae_stress",
-                    "description": "Evaluates trade stress / MAE against move volatility.",
-                    "parameters": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "mae_distance": {"type": "NUMBER", "description": "The maximum adverse excursion recorded."},
-                            "max_atr_used": {"type": "NUMBER", "description": "Volatility benchmark used for stress calculation."}
-                        },
-                        "required": ["mae_distance", "max_atr_used"]
-                    }
                 }
             ]
             
@@ -310,14 +301,10 @@ class BinaryStarOrchestrator:
                 logger.info(f"BinaryStar: Context Cache is DISABLED. Routing multimodal visual payload statelessly.")
             
 
-            # Shared tools available across both agents
+            # tools available for agent
             tools = [
                 self.session_agent.calculate_risk_reward, 
-                self.session_agent.calculate_atr_metrics, 
-                self.session_agent.calculate_structural_proximity,
-                self.session_agent.calculate_opportunity_cost,
-                self.session_agent.calculate_mae_stress,
-                self.session_agent.project_holding_time
+                self.session_agent.calculate_atr_metrics
             ]
             
             # 2. Adversarial Debate Loop
@@ -355,7 +342,7 @@ class BinaryStarOrchestrator:
                     debate_history=debate_history,
                     cache_id=cache_resource_name,
                     math_fact_check=math_fact_check,
-                    tools=tools,
+                    tools=None,
                     visual_parts=visual_parts,
                     system_instruction=self.shared_instruction
                 )
@@ -505,7 +492,7 @@ class BinaryStarOrchestrator:
                 entry=entry, take_profit=tp, atr=atr, 
                 trend_intensity=trend_intensity, 
                 volatility_intensity_index=float(dynamics['volatility_intensity_index']),
-
+                normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
                 interval_minutes=get_interval_minutes(self.macro_interval),
                 min_velocity_floor=self.session_config.min_trade_velocity,
                 vr_base=self.critic_config.volatility_baseline_ratio,
@@ -517,10 +504,13 @@ class BinaryStarOrchestrator:
                 dilation_climax=self.session_config.temporal_dilation_climax,
                 dilation_standard=self.session_config.temporal_dilation_standard
             )
+
             
-            # Compliance Verdict Synthesis
+            # Compliance Verdict Synthesis (Aligned with Highway Threshold)
             is_trending = abs(trend_intensity) >= self.critic_config.trend_intensity_threshold
-            min_rr = self.critic_config.min_rr_trending if is_trending else self.critic_config.min_rr_ranging
+            min_rr = self.session_config.min_rr_trending if is_trending else self.session_config.min_rr_ranging
+
+
             
             # Shielding check
             buffer = self.critic_config.structural_buffer_atr
