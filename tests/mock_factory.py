@@ -111,6 +111,15 @@ class MockDataFactory:
                 "default_symbol": "BTCUSDT",
                 "notification_confidence_floor": 50
             },
+            "session": {
+                "role_definition_prompt": "src/agent/prompts/session.md"
+            },
+            "critic": {
+                "role_definition_prompt": "src/agent/prompts/critic.md"
+            },
+            "evolution": {
+                "role_definition_prompt": "src/agent/prompts/evolver.md"
+            },
             "visuals": {
                 "up_color": "#089981",
                 "down_color": "#F23645",
