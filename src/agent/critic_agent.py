@@ -122,7 +122,7 @@ class CriticConfig(AgentConfig):
             mae_threshold_luck=float(audit['mae_threshold_luck']),
             volume_profile_value_area_width=float(topography['volume_profile_value_area_width']),
             volume_profile_width_ratio=float(visuals['volume_profile']['width_ratio']),
-            max_holding_hours=float(critic_cfg['max_holding_hours']),
+            max_holding_hours=float(session_node['max_holding_hours']),
             instruction_literal=instruction_literal
         )
 
