@@ -73,7 +73,7 @@ regime_parameters:
   wick_skew_exhaustion: 0.6
 
   # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
-  cvd_intensity_threshold: 0.15
+  cvd_intensity_threshold: 0.1
   # Extreme single-sided imbalance that triggers immediate absorption audit.
   cvd_intensity_extreme: 0.25
 
@@ -103,7 +103,7 @@ regime_parameters:
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
   breakout_frontrun_atr: 0.35
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
-  max_entry_distance_atr: 0.8
+  max_entry_distance_atr: 1.0
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
   chaos_rr_discount: 0.35
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
