@@ -131,7 +131,9 @@ def main():
     args = parser.parse_args()
     
     # v7.1: Zero-Entropy Path Resolution
-    data_root = args.path or "data/prod"
+    if not args.path:
+        args.path = "data/prod"
+    data_root = args.path
 
     
     daemon = SniperDaemon(args)

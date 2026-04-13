@@ -28,7 +28,9 @@ def main():
     
     # v7.1: ZERO-ENTROPY PATH RESOLUTION
     # Use the standardized path if provided, otherwise default to config-level prod.
-    data_root = args.path or "data/prod"
+    if not args.path:
+        args.path = "data/prod"
+    data_root = args.path
     
     # Re-initialize logger with file support relative to data_root
     log_file = os.path.join(data_root, "sniper.log")
