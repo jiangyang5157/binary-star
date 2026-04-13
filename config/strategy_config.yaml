@@ -191,11 +191,6 @@ binary_star:
 
     # Hard safety boundaries for stop-loss placements.
     stop_loss_buffer_min: 1.25
-    score_confidence_base: 80
-    # Categorical decay per Critic veto. Logic defined in session.md instructions.
-    # Score is adjusted based on [WEAK], [CONSTRUCTIVE], or [TERMINAL] tags.
-    # Bonus awarded for resolving [TERMINAL] or [CONSTRUCTIVE] logic violations in synthesis.
-    score_confidence_bonus: 10
 
     max_holding_hours: 48.0
 

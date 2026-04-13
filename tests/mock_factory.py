@@ -165,10 +165,6 @@ class MockDataFactory:
                     "role_definition_prompt": "prompts/session.md",
                     "min_trade_velocity": 0.5,
                     "stop_loss_buffer_min": 0.1,
-                    "score_confidence_base": 80.0,
-                    "score_confidence_decay_min": 5.0,
-                    "score_confidence_decay_max": 20.0,
-                    "score_confidence_bonus": 10.0,
                     "holding_time_modifier": 1.0,
                     "temporal_dilation_highway": 1.1,
                     "temporal_dilation_standard": 1.5,
@@ -290,7 +286,7 @@ class MockDataFactory:
         }
 
     @staticmethod
-    def create_mock_critic_response(score: int = 15, level: str = "PASS") -> Dict[str, Any]:
+    def create_mock_critic_response(level: str = "PASS") -> Dict[str, Any]:
         """Simulates an adversarial audit response from the Critic agent."""
         return {
             "veto_level": level,

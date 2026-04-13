@@ -25,8 +25,6 @@ class SessionConfig(AgentConfig):
     """
     min_trade_velocity: float
     stop_loss_buffer_min: float
-    score_confidence_base: float
-    score_confidence_bonus: float
     strategy_intent: str
     macro_interval: str
     micro_interval: str
@@ -97,8 +95,6 @@ class SessionConfig(AgentConfig):
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_cfg['min_trade_velocity']),
             stop_loss_buffer_min=float(session_cfg['stop_loss_buffer_min']),
-            score_confidence_base=float(session_cfg['score_confidence_base']),
-            score_confidence_bonus=float(session_cfg['score_confidence_bonus']),
             strategy_intent=str(cfg.get('strategy_intent', "")),
             macro_interval=str(sampling['macro_context']['time_interval']),
             micro_interval=str(sampling['micro_context']['time_interval']),
@@ -251,8 +247,6 @@ class SessionAgent(BaseAgent):
             "squeeze_threshold": self.config.squeeze_threshold,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,
-            "score_confidence_base": self.config.score_confidence_base,
-            "score_confidence_bonus": self.config.score_confidence_bonus,
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "breakout_frontrun_atr": self.config.breakout_frontrun_atr,
             "max_entry_distance_atr": self.config.max_entry_distance_atr,
