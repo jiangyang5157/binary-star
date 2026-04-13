@@ -94,8 +94,8 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[STRUCTURAL_TRAP]`: Relocate `entry` to nearest `HVN`, `POC`, or `VAH/VAL`. Avoid LVN vacuums.
 - `[ANCHOR_VIOLATION]`: Move `stop_loss` distally behind the next valid structural anchor (HVN/POC). Ensure anchor is BETWEEN `entry` and `stop_loss`.
 - `[MATH_VIOLATION]`: Recalibrate coordinates via `MathTools` to balance risk/ATR scaling. Adhere to minimum RR.
-- `[RETAIL_LONG_SQUEEZE]`: Polarity Pivot to "BEARISH". Target distal `long_liquidation` cascade.
-- `[RETAIL_SHORT_SQUEEZE]`: Polarity Pivot to "BULLISH". Target distal `short_liquidation` cascade.
+- `[RETAIL_LONG_SQUEEZE]`: Polarity Pivot to "BEARISH". ONLY IF `current_price` is actively testing or rejecting the VAH / distal resistance. Target distal `long_liquidation` cascade. DO NOT attempt to squeeze against a macro trend from the middle of the value area.
+- `[RETAIL_SHORT_SQUEEZE]`: Polarity Pivot to "BULLISH". ONLY IF `current_price` is actively testing or rejecting the VAL / distal support. Target distal `short_liquidation` cascade. DO NOT attempt to squeeze against a macro trend from the middle of the value area.
 - `[CVD_ABSORPTION]`: Abort Momentum. Move to deep **DLE** at nearest `HVN/POC`.
 - `[GRAVITY_EXHAUSTION]`: IF lacks momentum, execute Mean-Reversion **DLE** targeting `POC`. IF institutional flow is confirmed (`IS_TREND_STRONG`), execute **Shallow Pullback DLE** aligned with flow; DO NOT force a return to the distal `POC`.
 - `[FLOW_VIOLATION]`: Polarity Pivot to align with `cvd_intensity_ratio` or abort to "NEUTRAL".
