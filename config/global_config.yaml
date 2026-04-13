@@ -10,7 +10,7 @@ network:
     api_timeout_seconds: 240
     circuit_breaker_threshold: 3
     max_tool_iterations: 3
-    retry_count: 5
+    retry_count: 8
     retry_strategy:
       multiplier: 2
       min_seconds: 5
