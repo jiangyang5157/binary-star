@@ -8,15 +8,16 @@ network:
     retry_count: 2
   gemini:
     api_timeout_seconds: 240
+    api_pacing_seconds: 5
     circuit_breaker_threshold: 3
     max_tool_iterations: 3
-    retry_count: 2
+    retry_count: 5
     retry_strategy:
-      multiplier: 1
-      min_seconds: 2
-      max_seconds: 10
+      multiplier: 2
+      min_seconds: 5
+      max_seconds: 80
     context_cache:
-      enable: true
+      enable: false
       expiration_minutes: 10
 
 visuals:

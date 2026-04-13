@@ -7,6 +7,7 @@ from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
+from src.utils.rate_limiter import CongestionController
 
 # Initialize session-specific logger
 logger = setup_logger(__name__, propagate=True)
@@ -160,7 +161,8 @@ class SessionAgent(BaseAgent):
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
-        retry_max: int
+        retry_max: int,
+        congestion_controller: Optional[CongestionController] = None
     ):
         """Standard constructor with dependency injection."""
         self.config = config
@@ -171,7 +173,8 @@ class SessionAgent(BaseAgent):
             retry_count=retry_count,
             retry_multiplier=retry_multiplier,
             retry_min=retry_min,
-            retry_max=retry_max
+            retry_max=retry_max,
+            congestion_controller=congestion_controller
         )
 
     def execute_session_cycle(

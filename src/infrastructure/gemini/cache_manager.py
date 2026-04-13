@@ -6,6 +6,7 @@ from google import genai
 from google.genai import types
 
 from src.utils.logger_utils import setup_logger
+from src.utils.rate_limiter import CongestionController
 
 logger = setup_logger(__name__)
 
@@ -20,8 +21,9 @@ class GeminiCacheManager:
     4. Auto-expiration handling via TTL.
     """
     
-    def __init__(self, client: genai.Client):
+    def __init__(self, client: genai.Client, congestion_controller: Optional[CongestionController] = None):
         self.client = client
+        self.congestion_controller = congestion_controller
         self.active_cache_id = None
 
     def create_market_cache(
@@ -55,6 +57,10 @@ class GeminiCacheManager:
         logger.info(f"GeminiCacheManager: Initializing Truth Bus cache '{display_name}' (TTL: {ttl_minutes}m)...")
         
         try:
+            # v7.7: Congestion Control (RPM Pacing)
+            if self.congestion_controller:
+                self.congestion_controller.pace(agent_name="CacheManager")
+
             # Create the cache with system instruction and tools baked in
             cache = self.client.caches.create(
                 model=model,
@@ -108,6 +114,8 @@ class GeminiCacheManager:
     def list_caches(self) -> List[types.CachedContent]:
         """Lists active caches for the current API key."""
         try:
+            if self.congestion_controller:
+                self.congestion_controller.pace(agent_name="CacheManager_List")
             return list(self.client.caches.list())
         except Exception as e:
             logger.error(f"CacheManager: Failed to list caches: {e}")

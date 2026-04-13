@@ -12,6 +12,7 @@ from src.utils.math_utils import MathTools
 from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
+from src.utils.rate_limiter import CongestionController
 from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, safe_format
 from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT, get_interval_minutes
 from src.utils.path_utils import resolve_project_root
@@ -161,8 +162,20 @@ class BinaryStarOrchestrator:
             retry_max=self.retry_max
         )
         
-        self.cache_manager = GeminiCacheManager(self.client)
         self.math_tools = MathTools()
+        
+        # v7.7: Congestion Control Implementation (RPM Pacing)
+        pacing_seconds = float(gemini_net.get('api_pacing_seconds', 0.0))
+        self.congestion_controller = CongestionController(pacing_seconds)
+        
+        # Inject Congestion Controller into shared components
+        self.session_agent.congestion_controller = self.congestion_controller
+        self.critic_agent.congestion_controller = self.congestion_controller
+        
+        self.cache_manager = GeminiCacheManager(
+            client=self.client, 
+            congestion_controller=self.congestion_controller
+        )
         self.macro_interval = self.obs_config.macro_context.time_interval
 
     def execute_flow(self, observation: Dict[str, Any], symbol: str) -> Dict[str, Any]:

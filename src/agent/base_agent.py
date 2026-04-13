@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
+from src.utils.rate_limiter import CongestionController
 
 # Initialize standard hardened logger for base agent telemetry
 logger = setup_logger(__name__)
@@ -46,7 +47,8 @@ class BaseAgent:
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
-        retry_max: int
+        retry_max: int,
+        congestion_controller: Optional[CongestionController] = None
     ):
         """Initializes the agent with core AI configuration and dependencies.
         
@@ -58,6 +60,7 @@ class BaseAgent:
             retry_multiplier: Exponential backoff multiplier.
             retry_min: Minimum backoff time (seconds).
             retry_max: Maximum backoff time (seconds).
+            congestion_controller: Pacing manager for RPM compliance.
         """
         self.config = config
         self.model = config.model
@@ -69,6 +72,7 @@ class BaseAgent:
         self.retry_multiplier = retry_multiplier
         self.retry_min = retry_min
         self.retry_max = retry_max
+        self.congestion_controller = congestion_controller
 
     def _prepare_prompt(self, template_path: str, **context: Any) -> str:
         """Reads a prompt template and injects semantic context variables.
@@ -157,6 +161,10 @@ class BaseAgent:
                     if not tools:
                         # Fallback to direct JSON mode if no tools are allocated.
                         gen_config["response_mime_type"] = "application/json"
+
+                # v7.7: Congestion Control (RPM Pacing)
+                if self.congestion_controller:
+                    self.congestion_controller.pace(agent_name=agent_name)
 
                 response = retryer(
                     self.client.models.generate_content,

@@ -2,10 +2,11 @@ import os
 import json
 import logging
 from dataclasses import dataclass
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from google import genai
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
+from src.utils.rate_limiter import CongestionController
 
 logger = logging.getLogger("EvolverAgent")
 
@@ -44,7 +45,8 @@ class EvolverAgent(BaseAgent):
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
-        retry_max: int
+        retry_max: int,
+        congestion_controller: Optional[CongestionController] = None
     ):
         """Initializes the EvolverAgent with a type-safe configuration.
 
@@ -56,6 +58,7 @@ class EvolverAgent(BaseAgent):
             retry_multiplier: Retrying backoff multiplier.
             retry_min: Minimum retry delay.
             retry_max: Maximum retry delay.
+            congestion_controller: Pacing manager for RPM compliance.
         """
         super().__init__(
             config=config,
@@ -64,7 +67,8 @@ class EvolverAgent(BaseAgent):
             retry_count=retry_count,
             retry_multiplier=retry_multiplier,
             retry_min=retry_min,
-            retry_max=retry_max
+            retry_max=retry_max,
+            congestion_controller=congestion_controller
         )
         self.config = config
 
