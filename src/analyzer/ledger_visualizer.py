@@ -139,16 +139,31 @@ class LedgerVisualizer:
         };
         const commonOptions = { responsive: true, maintainAspectRatio: false, scales: scales, plugins: { legend: { display: false } } };
 
-        // 1. Decision Timeline (Bubble)
-        const bubble = RAW_DATA.map(d => ({
-            x: d.observation_time, 
-            y: d.confidence,
-            r: Math.max(8, Math.min(25, Math.abs(d.estimated_pnl_pct) * 8 + (d.confidence / 10))), // Balanced Size
-            pnl: d.estimated_pnl_pct,
-            res: d.tp_sl_result,
-            holding: d.projected_holding_hours,
-            color: d.tp_sl_result === 'TP_HIT' ? 'rgba(52, 211, 153, 0.85)' : d.tp_sl_result === 'SL_HIT' ? 'rgba(251, 113, 133, 0.85)' : d.is_filled ? 'rgba(71, 85, 105, 0.7)' : 'rgba(148, 163, 184, 0.3)'
-        }));
+        const bubble = RAW_DATA.map(d => {
+            let color = 'rgba(148, 163, 184, 0.1)'; // Default Neutral
+            if (d.opinion !== 'NEUTRAL') {
+                if (d.is_filled) {
+                    if (d.tp_sl_result === 'TP_HIT') color = 'rgba(52, 211, 153, 0.9)'; // Solid Emerald
+                    else if (d.tp_sl_result === 'SL_HIT') color = 'rgba(251, 113, 133, 0.9)'; // Solid Rose
+                    else if (d.estimated_pnl_pct > 0) color = 'rgba(52, 211, 153, 0.35)'; // Light Emerald
+                    else if (d.estimated_pnl_pct < 0) color = 'rgba(251, 113, 133, 0.35)'; // Light Rose
+                    else color = 'rgba(100, 116, 139, 0.6)'; // Flat Slate
+                } else {
+                    color = 'rgba(148, 163, 184, 0.5)'; // Missed Opportunity (Gray)
+                }
+            }
+            return {
+                x: d.observation_time, 
+                y: d.confidence,
+                r: Math.max(8, Math.min(25, Math.abs(d.estimated_pnl_pct) * 8 + (d.confidence / 10))),
+                pnl: d.estimated_pnl_pct,
+                res: d.tp_sl_result,
+                op: d.opinion,
+                filled: d.is_filled,
+                holding: d.projected_holding_hours,
+                color: color
+            };
+        });
         
         new Chart(document.getElementById('timelineChart'), { 
             type: 'bubble', 
@@ -161,7 +176,8 @@ class LedgerVisualizer:
                         callbacks: { 
                             label: (ctx) => {
                                 const d = ctx.raw;
-                                return [`PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h` ];
+                                const status = d.op === 'NEUTRAL' ? 'Neutral' : d.filled ? d.res : 'Missed';
+                                return [`Bias: ${d.op}`, `Result: ${status}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h` ];
                             } 
                         } 
                     } 
@@ -190,16 +206,26 @@ class LedgerVisualizer:
             options: { ...commonOptions, scales: { x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: '#94a3b8' }, ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } } }
         });
 
-        // 4. Confidence Distribution
+        // 4. Confidence Distribution (Continuous float binning)
         const bins = [];
-        for (let i = 40; i <= 95; i += 5) { bins.push({ label: `${i}-${i+4}`, min: i, max: i+4, count: 0, pnl_sum: 0 }); }
+        const step = 5;
+        for (let i = 40; i <= 95; i += step) { 
+            bins.push({ label: `${i}-${i+step-1}`, min: i, max: i + step, count: 0, pnl_sum: 0 }); 
+        }
         executedTrades.forEach(s => { 
+            const conf = parseFloat(s.confidence);
             bins.forEach(b => { 
-                if (s.confidence >= b.min && s.confidence <= b.max) {
+                if (conf >= b.min && conf < b.max) {
                     b.count++; 
                     b.pnl_sum += s.estimated_pnl_pct;
                 }
             }); 
+            // Handle edge case for exactly 100.0 if present
+            if (conf === 100 && bins.length > 0) {
+                const last = bins[bins.length - 1];
+                last.count++;
+                last.pnl_sum += s.estimated_pnl_pct;
+            }
         });
         new Chart(document.getElementById('distChart'), {
             type: 'bar',
@@ -274,20 +300,35 @@ class LedgerVisualizer:
         if opinion not in ["BULLISH", "BEARISH", "NEUTRAL"]: return None
 
         lo = fd.get("tactical_parameters", {})
-        # v6.21: Handle None values for NEUTRAL sessions to avoid float() TypeError
-        entry = float(lo.get("entry") or 0)
         res = outcome.get("tp_sl_result", "NEITHER")
+        entry_price = float(lo.get("entry") or 0)
         pnl = 0.0
-        if entry > 0:
-            tp = float(lo.get("take_profit") or 0)
-            sl = float(lo.get("stop_loss") or 0)
-            if res == "TP_HIT": 
-                pnl = abs(tp - entry) / entry * 100
-            elif res == "SL_HIT": 
-                pnl = -abs(entry - sl) / entry * 100
+        
+        # v6.25: Holistic PnL Calculation (TP, SL, or Time-based Exit)
+        if outcome.get("is_filled", False) and entry_price > 0:
+            forensics = outcome.get("market_forensics", {})
+            # Use market exit price if available, fallback to TP/SL logic if needed
+            exit_price = forensics.get("price_at_t1") or entry_price
+            
+            if res == "TP_HIT":
+                # Static distance for TP (always positive edge)
+                tp_price = float(lo.get("take_profit") or entry_price)
+                pnl = abs(tp_price - entry_price) / entry_price * 100
+            elif res == "SL_HIT":
+                # Static distance for SL (always negative edge)
+                sl_price = float(lo.get("stop_loss") or entry_price)
+                pnl = -abs(entry_price - sl_price) / entry_price * 100
+            else:
+                # NEITHER case: Directional delta from entry to exit (Price at T1)
+                price_delta = exit_price - entry_price
+                if opinion == "BULLISH":
+                    pnl = (price_delta / entry_price) * 100
+                elif opinion == "BEARISH":
+                    pnl = (-price_delta / entry_price) * 100
 
         return {
             "observation_time": session.get("observation", {}).get("observed_at") or "",
+            "opinion": opinion,
             "is_filled": outcome.get("is_filled", False),
             "tp_sl_result": res,
             "estimated_pnl_pct": round(pnl, 2),
