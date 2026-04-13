@@ -119,44 +119,25 @@ class LedgerVisualizer:
         const RAW_DATA = {{JSON_DATA}};
         const sortedTrades = [...RAW_DATA].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
         
-        // --- Metric Calculation ---
-        const executedTrades = sortedTrades.filter(d => d.is_filled);
-        let eq = 1.0, peak = 1.0, dd = 0;
-        const curve = [];
-        executedTrades.forEach(t => {
-            eq *= (1 + t.estimated_pnl_pct / 100.0);
-            if (eq > peak) peak = eq;
-            dd = Math.max(dd, (peak - eq) / peak);
-            curve.push({ x: t.observation_time, y: (eq - 1) * 100 });
-        });
-        
-        const netPnL = (eq - 1) * 100;
-        const mddPct = dd * 100;
-        const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
-
-        document.getElementById('kpi-executed').innerText = `${executedTrades.length} / ${RAW_DATA.length}`;
-        document.getElementById('kpi-mdd').innerText = mddPct.toFixed(2) + '%';
-        document.getElementById('kpi-pnl').innerText = netPnL.toFixed(2) + '%';
-        document.getElementById('kpi-calmar').innerText = calmar.toFixed(2);
-
-        // --- Chart Configuration ---
+        // --- Shared Scales & Options ---
         const scales = { 
             x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM dd' } }, ticks: { color: '#64748b', maxRotation: 0 }, grid: { color: '#334155' } }, 
             y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } 
         };
         const commonOptions = { responsive: true, maintainAspectRatio: false, scales: scales, plugins: { legend: { display: false } } };
 
-        const bubble = RAW_DATA.map(d => {
-            let color = 'rgba(148, 163, 184, 0.1)'; // Default Neutral
+        // --- Data Preparation ---
+        const bubbleDataOriginal = RAW_DATA.map(d => {
+            let color = 'rgba(148, 163, 184, 0.1)'; 
             if (d.opinion !== 'NEUTRAL') {
                 if (d.is_filled) {
-                    if (d.tp_sl_result === 'TP_HIT') color = 'rgba(52, 211, 153, 0.9)'; // Solid Emerald
-                    else if (d.tp_sl_result === 'SL_HIT') color = 'rgba(251, 113, 133, 0.9)'; // Solid Rose
-                    else if (d.estimated_pnl_pct > 0) color = 'rgba(52, 211, 153, 0.35)'; // Light Emerald
-                    else if (d.estimated_pnl_pct < 0) color = 'rgba(251, 113, 133, 0.35)'; // Light Rose
-                    else color = 'rgba(100, 116, 139, 0.6)'; // Flat Slate
+                    if (d.tp_sl_result === 'TP_HIT') color = 'rgba(52, 211, 153, 0.9)';
+                    else if (d.tp_sl_result === 'SL_HIT') color = 'rgba(251, 113, 133, 0.9)';
+                    else if (d.estimated_pnl_pct > 0) color = 'rgba(52, 211, 153, 0.35)';
+                    else if (d.estimated_pnl_pct < 0) color = 'rgba(251, 113, 133, 0.35)';
+                    else color = 'rgba(100, 116, 139, 0.6)';
                 } else {
-                    color = 'rgba(148, 163, 184, 0.5)'; // Missed Opportunity (Gray)
+                    color = 'rgba(148, 163, 184, 0.5)';
                 }
             }
             return {
@@ -171,17 +152,11 @@ class LedgerVisualizer:
                 color: color
             };
         });
-        
+
+        // --- Chart Initialization ---
         const timelineChart = new Chart(document.getElementById('timelineChart'), { 
             type: 'bubble', 
-            data: { 
-                datasets: [{ 
-                    data: bubble, 
-                    backgroundColor: bubble.map(d => d.color),
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    borderWidth: 1
-                }] 
-            }, 
+            data: { datasets: [{ data: bubbleDataOriginal, backgroundColor: bubbleDataOriginal.map(d => d.color), borderColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1 }] }, 
             options: { 
                 ...commonOptions, 
                 plugins: { 
@@ -199,83 +174,90 @@ class LedgerVisualizer:
             } 
         });
 
-        // --- Interactive Filter Logic ---
-        document.getElementById('confSlider').addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            document.getElementById('confVal').innerText = val;
-            
-            // Filter visibility via dataset manipulation
-            const filtered = bubble.map(d => ({
-                ...d,
-                backgroundColor: d.y >= val ? d.color : 'rgba(0,0,0,0)',
-                borderColor: d.y >= val ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0,0,0,0)'
-            }));
-            
-            timelineChart.data.datasets[0].backgroundColor = filtered.map(d => d.backgroundColor);
-            timelineChart.data.datasets[0].borderColor = filtered.map(d => d.borderColor);
-            timelineChart.update('none'); // 'none' for instant update without animation lag
-        });
-
-        // 2. Equity Curve
-        new Chart(document.getElementById('equityChart'), { 
+        const equityChart = new Chart(document.getElementById('equityChart'), { 
             type: 'line', 
-            data: { datasets: [{ data: curve, borderColor: '#a78bfa', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.05)' }] }, 
+            data: { datasets: [{ data: [], borderColor: '#a78bfa', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.05)' }] }, 
             options: commonOptions 
         });
 
+        // --- Core Update Logic ---
+        function updateDashboard(threshold) {
+            // 1. Update Decision Timeline Visibility
+            const filteredBubbles = bubbleDataOriginal.map(d => ({
+                ...d,
+                backgroundColor: d.y >= threshold ? d.color : 'rgba(0,0,0,0)',
+                borderColor: d.y >= threshold ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0,0,0,0)'
+            }));
+            timelineChart.data.datasets[0].backgroundColor = filteredBubbles.map(d => d.backgroundColor);
+            timelineChart.data.datasets[0].borderColor = filteredBubbles.map(d => d.borderColor);
+            timelineChart.update('none');
+
+            // 2. Metrics Calculation
+            const activeTrades = sortedTrades.filter(d => d.confidence >= threshold);
+            const executedTrades = activeTrades.filter(d => d.is_filled);
+            
+            let eq = 1.0, peak = 1.0, dd = 0;
+            const curve = [];
+            executedTrades.forEach(t => {
+                eq *= (1 + t.estimated_pnl_pct / 100.0);
+                if (eq > peak) peak = eq;
+                dd = Math.max(dd, (peak - eq) / peak);
+                curve.push({ x: t.observation_time, y: (eq - 1) * 100 });
+            });
+
+            const netPnL = (eq - 1) * 100;
+            const mddPct = dd * 100;
+            const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
+
+            // 3. Update DOM
+            document.getElementById('kpi-executed').innerText = `${executedTrades.length} / ${activeTrades.length}`;
+            document.getElementById('kpi-mdd').innerText = mddPct.toFixed(2) + '%';
+            document.getElementById('kpi-pnl').innerText = netPnL.toFixed(2) + '%';
+            document.getElementById('kpi-calmar').innerText = calmar.toFixed(2);
+            document.getElementById('confVal').innerText = threshold;
+
+            // 4. Update Equity Chart
+            equityChart.data.datasets[0].data = curve;
+            equityChart.update('none');
+        }
+
+        // --- Interactive Filter Logic ---
+        document.getElementById('confSlider').addEventListener('input', (e) => {
+            updateDashboard(parseInt(e.target.value));
+        });
+
+        // Initial Run
+        updateDashboard(40);
+
+        // --- Static Charts (Logic unchanged but moved down) ---
+        const commonStaticOptions = { ...commonOptions, plugins: { legend: { display: false } } };
+        
         // 3. Confidence Threshold Optimizer
-        const thresholds = [], optimizerData = [];
+        const optThresholds = [], optimizerData = [];
+        const fullExecuted = sortedTrades.filter(d => d.is_filled);
         for (let t = 40; t <= 100; t += 5) {
             let pnlSum = 0;
-            executedTrades.forEach(trade => { if (trade.confidence >= t) pnlSum += trade.estimated_pnl_pct; });
-            thresholds.push(t);
+            fullExecuted.forEach(trade => { if (trade.confidence >= t) pnlSum += trade.estimated_pnl_pct; });
+            optThresholds.push(t);
             optimizerData.push(pnlSum);
         }
         new Chart(document.getElementById('optimizerChart'), {
             type: 'line',
-            data: { labels: thresholds, datasets: [{ data: optimizerData, borderColor: '#60a5fa', backgroundColor: 'rgba(96, 165, 250, 0.1)', borderWidth: 3, fill: true, tension: 0.3 }] },
+            data: { labels: optThresholds, datasets: [{ data: optimizerData, borderColor: '#60a5fa', backgroundColor: 'rgba(96, 165, 250, 0.1)', borderWidth: 3, fill: true, tension: 0.3 }] },
             options: { ...commonOptions, scales: { x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: '#94a3b8' }, ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } } }
         });
 
-        // 4. Confidence Distribution (Continuous float binning)
+        // 4. Confidence Distribution
         const bins = [];
-        const step = 5;
-        for (let i = 40; i <= 95; i += step) { 
-            bins.push({ label: `${i}-${i+step-1}`, min: i, max: i + step, count: 0, pnl_sum: 0 }); 
-        }
-        executedTrades.forEach(s => { 
+        for (let i = 40; i <= 95; i += 5) { bins.push({ label: `${i}-${i+4}`, min: i, max: i + 5, count: 0, pnl_sum: 0 }); }
+        fullExecuted.forEach(s => { 
             const conf = parseFloat(s.confidence);
-            bins.forEach(b => { 
-                if (conf >= b.min && conf < b.max) {
-                    b.count++; 
-                    b.pnl_sum += s.estimated_pnl_pct;
-                }
-            }); 
-            // Handle edge case for exactly 100.0 if present
-            if (conf === 100 && bins.length > 0) {
-                const last = bins[bins.length - 1];
-                last.count++;
-                last.pnl_sum += s.estimated_pnl_pct;
-            }
+            bins.forEach(b => { if (conf >= b.min && conf < b.max) { b.count++; b.pnl_sum += s.estimated_pnl_pct; } }); 
         });
         new Chart(document.getElementById('distChart'), {
             type: 'bar',
             data: { labels: bins.map(b => b.label), datasets: [{ data: bins.map(b => b.count), backgroundColor: '#8b5cf6', borderRadius: 6 }] },
-            options: { 
-                ...commonOptions, 
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => {
-                                const b = bins[ctx.dataIndex];
-                                return [`PnL Sum: ${b.pnl_sum > 0 ? '+' : ''}${b.pnl_sum.toFixed(2)}%`];
-                            }
-                        }
-                    }
-                },
-                scales: { x: { ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b', stepSize: 1 } } } 
-            }
+            options: { ...commonOptions, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => { const b = bins[ctx.dataIndex]; return [`PnL Sum: ${b.pnl_sum > 0 ? '+' : ''}${b.pnl_sum.toFixed(2)}%`]; } } } }, scales: { x: { ticks: { color: '#64748b' } }, y: { ticks: { color: '#64748b', stepSize: 1 } } } }
         });
     </script>
 </body></html>""".replace("{{SYMBOL}}", symbol).replace("{{JSON_DATA}}", json.dumps(dataset)).replace("{{GEN_TIME}}", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"))
