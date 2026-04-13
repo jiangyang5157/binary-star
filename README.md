@@ -96,7 +96,7 @@ python run_session.py --start T-30d --end T-23d --samples 7 --sampling-mode snip
 python run_session.py --start T-23d --end T-16d --samples 7 --sampling-mode sniper
 python run_session.py --start T-16d --end T-9d --samples 7 --sampling-mode sniper
 python run_session.py --start T-9d --end T-2d --samples 7 --sampling-mode spaced
-python run_session.py --start T-30d --end T-2d --samples 100 --sampling-mode sniper
+python run_session.py --start T-30d --end T-2d --samples 50 --sampling-mode sniper
 ```
 
 *   **实时监控 (Sniper Mode)**：基于 **v15 零熵三类觉醒探测器**（TYPE_A 势能 / TYPE_B 动能 / TYPE_C 结构）捕捉异动。系统参数已在 `global_config.yaml` 中实现垂直硬化，实现 1:1 的工程映射备份。
