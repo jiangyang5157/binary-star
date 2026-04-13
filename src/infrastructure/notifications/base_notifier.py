@@ -107,6 +107,31 @@ class BaseEmailTemplate:
         return f"{days:.1f}d"
 
     @staticmethod
+    def render_md(text: str) -> str:
+        """
+        Lightweight markdown-ish to HTML converter (no external deps).
+        Handles bolding, newlines, and basic lists for readability.
+        """
+        if not text:
+            return ""
+        
+        # 1. Standardize line endings
+        text = text.replace("\r\n", "\n")
+        
+        # 2. Convert Bold (**text** -> <b>text</b>)
+        import re
+        text = re.sub(r"\*\*([^\*]+)\*\*", r"<b>\1</b>", text)
+        
+        # 3. Convert Newlines to Breaks
+        text = text.replace("\n", "<br/>")
+        
+        # 4. Handle Paragraph Breaks (Standardize spacing without breaking parent styles)
+        # Use a spacer div instead of closing the tag to prevent font style leakage
+        text = text.replace("<br/><br/>", '<div style="margin-top: 12px;"></div>')
+        
+        return text
+
+    @staticmethod
     def render_footer(full_json: Dict[str, Any], trigger_info: str) -> str:
         return f"""
                 <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">

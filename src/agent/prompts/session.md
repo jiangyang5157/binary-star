@@ -120,7 +120,7 @@ When history contains specific veto tags, apply these technical repair protocols
   - Generate `entry`, `take_profit`, `stop_loss`.
   - Apply **THE SHIELD LAW** and **LIMIT ORDER PHYSICS**.
 - **Physical Validation**: Invoke `MathTools` protocols. Recalibrate if tool returns valid but suboptimal results.
-- **Confidence Calculus (MANDATORY)**: Compute the **Structural Hardness Score (SHS)** `confidence_score`. The score strictly ranges from **[0, 100]** and evaluates the ultimate defensive depth of the final plan.
+- **Confidence Calculus (MANDATORY)**: Compute the **Structural Hardness Score** `confidence_score`. The score strictly ranges from **[0, 100]** and evaluates the ultimate defensive depth of the final plan.
   - **Prerequisite**: If `math_fact_check` fails (`rr_is_valid: false` or any physical error), the score is unconditionally **0**.
   - **Dimension 1: Topographical Armor (Max 30 pts)**:
     - `stop_loss` is distally shielded behind a verified structural `HVN` or extreme wick: **+15**.

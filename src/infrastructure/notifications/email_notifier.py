@@ -22,7 +22,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
     Decouples the UI presentation from the data fetching/sending logic.
     """
     @staticmethod
-    def render(session_data: Dict[str, Any], bonus_value: float) -> str:
+    def render(session_data: Dict[str, Any]) -> str:
         """
         Renders the final strategy JSON into a rich HTML report.
         """
@@ -60,27 +60,13 @@ class SessionEmailTemplate(BaseEmailTemplate):
         
         fmt = SessionEmailTemplate.fmt
         
-        # 7. Strategic Indicators (Ceremony Detection)
-        # 7.1. Detect Synthesis Bonus (Hardened Engineering Matrix)
-        bonus_marker = f"+{int(bonus_value)}"
-        hardened_indicators = [
-            bonus_marker, 
-            "Synthesis Bonus", 
-            "mathematically eliminate", 
-            "resolved [TERMINAL]", 
-            "Hardened Evolution",
-            "Intersection of All",
-            "eliminated the risk",
-            "Logic Healing"
-        ]
-        
-        reasoning_lower = reasoning.lower()
-        has_bonus = any(ind.lower() in reasoning_lower for ind in hardened_indicators)
-        
-        # 7.2. Detect SL Shielding from the last round of debate
+        # 7. Strategic Indicators (Physical Truth Extraction)
+        # 7.1. Extract Compliance Verdict from the latest available math audit
         history = session_data.get("debate_history", [])
         last_round = history[-1] if history else {}
-        is_shielded = last_round.get("math_fact_check", {}).get("compliance_verdict", {}).get("sl_is_shielded", False)
+        verdict = last_round.get("math_fact_check", {}).get("compliance_verdict", {})
+        
+        sl_shielded = verdict.get("sl_is_shielded", False)
         
         # 7.3. Detect Volatility Regime (Dynamic Threshold from Config)
         vr_val = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("volatility_expansion_index", 0)
@@ -92,7 +78,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
             
         is_chaos = float(vr_val or 0) > float(vr_extreme) if vr_extreme is not None else False
         
-        # 8. Render Action Matrix (Highlight rows based on confidence)
+        # 8. Render SHS Action Matrix (100-Point Hardness Scale)
         def get_row_style(min_val, max_val):
             return 'class="matrix-highlight"' if min_val <= confidence < max_val else ""
 
@@ -100,42 +86,31 @@ class SessionEmailTemplate(BaseEmailTemplate):
         <table class="matrix-table">
             <thead>
                 <tr>
-                    <th>Score</th>
+                    <th>Confidence</th>
                     <th>Rating</th>
                     <th>Action</th>
-                    <th>Sizing</th>
                 </tr>
             </thead>
             <tbody>
-                <tr {get_row_style(72, 81)}>
-                    <td>72-80</td>
-                    <td>ELITE</td>
-                    <td>Blind Execution</td>
-                    <td>100%</td>
+                <tr {get_row_style(90, 101)}>
+                    <td>90-100</td>
+                    <td>💎 DIAMOND</td>
+                    <td>Precision Deployment</td>
                 </tr>
-                <tr {get_row_style(65, 72)}>
-                    <td>65-72</td>
-                    <td>SOLID</td>
-                    <td>Standard Entry</td>
-                    <td>80-100%</td>
+                <tr {get_row_style(70, 90)}>
+                    <td>70-90</td>
+                    <td>🛡️ HARDENED</td>
+                    <td>Reinforced Entry</td>
                 </tr>
-                <tr {get_row_style(55, 65)}>
-                    <td>55-65</td>
-                    <td>SPEC</td>
-                    <td>Deep DLE (Limit)</td>
-                    <td>50%</td>
-                </tr>
-                <tr {get_row_style(50, 55)}>
-                    <td>50-55</td>
-                    <td>PROBE</td>
-                    <td>Manual Skip / Recon</td>
-                    <td>0-25%</td>
+                <tr {get_row_style(50, 70)}>
+                    <td>50-70</td>
+                    <td>⚖️ SHIELDED</td>
+                    <td>Defensive Buffer (DLE)</td>
                 </tr>
                 <tr {get_row_style(0, 50)}>
-                    <td>< 50</td>
-                    <td>HALT</td>
-                    <td>NEUTRAL (Shielded)</td>
-                    <td>0%</td>
+                    <td>0-50</td>
+                    <td>⚠️ FRAGILE</td>
+                    <td>Systemic Halt</td>
                 </tr>
             </tbody>
         </table>
@@ -150,7 +125,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     <div style="display: inline-block; padding: 6px 14px; border-radius: 50px; background-color: {theme_color}15; color: {theme_color}; font-weight: 700; font-size: 13px; margin-bottom: 12px; border: 1px solid {theme_color}30;">
                         {theme_icon} {display_opinion}
                     </div>
-                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Session</h1>
+                    <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Signal</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
                         Confidence: <span style="color: {theme_color}; font-weight: 700;">{confidence}%</span> | 🕒 {display_time}
                     </p>
@@ -164,10 +139,12 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('audit_impact'))}</p>
                 </div>
                 ''' if decision.get('audit_impact') else ""}
-                <!-- Reasoning -->
+                <!-- Strategic Rationale -->
                 <div style="background-color: #f8fafc; padding: 25px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 35px;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">Reasoning</h3>
-                    <p style="font-size: 15px; line-height: 1.7; color: #1e293b; margin-bottom: 20px;">{reasoning}</p>
+                    <h3 style="margin-top: 0; color: #334155; font-size: 18px; margin-bottom: 15px;">Strategic Rationale</h3>
+                    <div style="font-size: 14px; line-height: 1.7; color: #1e293b; padding-bottom: 10px;">
+                        {BaseEmailTemplate.render_md(reasoning)}
+                    </div>
                     
                     {f'''
                     <table class="responsive-metrics" style="width: 100%; background: #1e293b; border-radius: 8px; border-collapse: separate; border-spacing: 10px 10px; text-align: center; color: #ffffff;">
@@ -205,54 +182,45 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     ''' if decision else ""}
                 </div>
 
-                <!-- Strategic Guidance: Execution Guardrails -->
+                <!-- Strategic Guidance: Audit Matrix -->
                 <div style="margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; background: #ffffff;">
-                    <h3 style="margin-top: 0; color: #334155; font-size: 14px; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">🔍 Execution Guardrails</h3>
-                    
-                    <!-- 1. Full Width Matrix (Priority 1: Execution) -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px;">
+                        <tr>
+                            <td align="left" style="vertical-align: middle;">
+                                <h3 style="margin: 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">🔍 Audit Matrix</h3>
+                            </td>
+                            <td align="right" style="vertical-align: middle;">
+                                <div class="status-pill {'pill-chaos' if is_chaos else 'pill-safe'}">
+                                    {'🔥 CHAOS' if is_chaos else '🌊 SAFE'} Regime
+                                </div>
+                                <div class="status-pill {'pill-shielded' if sl_shielded else 'pill-exposed'}">
+                                    {'🛡️ SHIELDED' if sl_shielded else '⚠️ EXPOSED'} Armor
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <!-- 2. Matrix (Execution Tiers) -->
                     <div style="margin-bottom: 25px;">
                         {matrix_html}
                     </div>
 
-                    <!-- 2. Horizontal Status Tags (Priority 2: Diagnostic) -->
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <div class="status-pill {'pill-chaos' if is_chaos else 'pill-safe'}">
-                            {'🔥 CHAOS' if is_chaos else '🌊 SAFE'} Regime
-                        </div>
-                        <div class="status-pill {'pill-shielded' if has_bonus else 'pill-exposed'}" style="border-color: {('#bfdbfe' if has_bonus else '#e2e8f0')}; background-color: {('#eff6ff' if has_bonus else '#f8fafc')}; color: {('#1d4ed8' if has_bonus else '#64748b')};">
-                            {'🧩 SYNERGY RESOLVED' if has_bonus else '⚪ NO BONUS'}
-                        </div>
-                        <div class="status-pill {'pill-shielded' if is_shielded else 'pill-exposed'}">
-                            {'🛡️ SHIELDED' if is_shielded else '⚠️ EXPOSED'} Armor
-                        </div>
+                    <!-- 3. Guidance Details -->
+                    {f'''
+                    <div style="text-align: center; padding: 10px; background-color: #fef2f2; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 10px;">
+                        <p style="font-size: 11px; color: #b91c1c; line-height: 1.5; margin: 0; font-weight: 600;">
+                            🔥 Chaos Regime: Extreme physical friction. Slippage risk detected. <b>Manual audit required.</b>
+                        </p>
                     </div>
+                    ''' if is_chaos else ""}
 
-                    <!-- 3. Guidance Details (Tactical Action Advice) -->
-                    <div style="margin-top: 15px;">
-                        {f'''
-                        <div style="text-align: center; padding: 10px; background-color: #fef2f2; border-radius: 8px; border: 1px solid #fecaca; margin-bottom: 10px;">
-                            <p style="font-size: 11px; color: #b91c1c; line-height: 1.5; margin: 0; font-weight: 600;">
-                                🔥 Chaos Regime: High physical friction. Slippage risk extreme. <b>DLE (Limit) execution mandatory.</b>
-                            </p>
-                        </div>
-                        ''' if is_chaos else ""}
-
-                        {f'''
-                        <div style="text-align: center; padding: 10px; background-color: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; margin-bottom: 10px;">
-                            <p style="font-size: 11px; color: #b45309; line-height: 1.5; margin: 0; font-weight: 600;">
-                                🛡️ Exposed Armor: SL lacks structural shielding. Risk of liquidity wicks. <b>Reduce sizing (Check Abyss).</b>
-                            </p>
-                        </div>
-                        ''' if not is_shielded else ""}
-
-                        {f'''
-                        <div style="text-align: center; padding: 10px; background-color: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
-                            <p style="font-size: 11px; color: #1d4ed8; line-height: 1.5; margin: 0; font-weight: 600;">
-                                ✨ Logic Healing: Strategic convergence confirmed. Signal has survived rigorous logic audit (+{int(bonus_value)} bonus ALREADY).
-                            </p>
-                        </div>
-                        ''' if has_bonus else ""}
+                    {f'''
+                    <div style="text-align: center; padding: 10px; background-color: #fffbeb; border-radius: 8px; border: 1px solid #fde68a; margin-bottom: 10px;">
+                        <p style="font-size: 11px; color: #b45309; line-height: 1.5; margin: 0; font-weight: 600;">
+                            🛡️ Exposed Armor: SL lacks structural shielding. Risk of liquidity wicks. <b>Reduce sizing.</b>
+                        </p>
                     </div>
+                    ''' if not sl_shielded else ""}
                 </div>
 
                 <!-- Visual Context -->
@@ -272,7 +240,7 @@ class SessionEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {SessionEmailTemplate.render_footer(session_data, "This is an auto-generated email notification | Triggered by Singularity Session")}
+                {SessionEmailTemplate.render_footer(session_data, "This is an auto-generated email notification | Triggered by Singularity")}
             </div>
         </body>
         </html>
@@ -305,6 +273,12 @@ class AuditEmailTemplate(BaseEmailTemplate):
         opinion = decision.get("opinion", "NEUTRAL") or "NEUTRAL"
         opinion = str(opinion).upper()
         confidence = decision.get("confidence_score", 0)
+        
+        # Determine SHS Rating for the original signal
+        if confidence >= 90: shs_rating, shs_icon = "DIAMOND", "💎"
+        elif confidence >= 70: shs_rating, shs_icon = "HARDENED", "🛡️"
+        elif confidence >= 50: shs_rating, shs_icon = "SHIELDED", "⚖️"
+        else: shs_rating, shs_icon = "FRAGILE", "⚠️"
         
         # Outcome styling
         metrics = outcome.get("trade_execution_metrics") or {}
@@ -345,8 +319,9 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </div>
                     <h1 style="color: #0f172a; margin: 0; font-size: 32px; letter-spacing: -0.025em;">{symbol} Performance</h1>
                     <p style="color: #64748b; margin-top: 8px; font-size: 14px; font-weight: 500;">
-                        Original Signal: {opinion} ({confidence}%) at {display_strat_time} | Audit: {display_audit_time}
+                        Original Signal: <b>{opinion}</b> | Confidence: <b>({confidence}%)</b> at {display_strat_time}
                     </p>
+                    <p style="color: #94a3b8; margin-top: 4px; font-size: 12px; font-weight: 500;">Audit Completed: {display_audit_time}</p>
                 </div>
 
                 <!-- Outcome Summary -->
@@ -410,10 +385,12 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </div>
                 </div>
 
-                <!-- Original Strategy Summary (Context) -->
+                <!-- Original Strategic Rationale (Context) -->
                 <div style="margin-bottom: 35px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 12px; background-color: #f8fafc;">
-                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Context</h3>
-                    <p style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0; font-style: italic;">{fmt(decision.get('reasoning_chain'))}</p>
+                    <h3 style="margin-top: 0; color: #475569; font-size: 15px; margin-bottom: 12px;">🧐 Strategic Rationale</h3>
+                    <div style="font-size: 13px; line-height: 1.6; color: #334155; margin: 0;">
+                        {BaseEmailTemplate.render_md(decision.get('reasoning_chain'))}
+                    </div>
                 </div>
 
                 <!-- Visual Assets (Comparative Proof) -->
@@ -449,7 +426,7 @@ class AuditEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {AuditEmailTemplate.render_footer(audit_data, "This is an auto-generated audit notification | Triggered by Singularity Session")}
+                {AuditEmailTemplate.render_footer(audit_data, "This is an auto-generated email notification | Triggered by Singularity")}
             </div>
         </body>
         </html>
@@ -585,7 +562,7 @@ class LedgerEmailTemplate(BaseEmailTemplate):
                     </table>
                 </div>
 
-                {LedgerEmailTemplate.render_summary_footer("This is an auto-generated session notification | Triggered by Singularity Session")}
+                {LedgerEmailTemplate.render_summary_footer("This is an auto-generated email notification | Triggered by Singularity")}
             </div>
         </body>
         </html>
@@ -612,11 +589,8 @@ class SessionNotifier:
         global_session = self.global_cfg.get('session', {})
         self.notification_confidence_threshold = int(global_session['notification_confidence_threshold'])
         
-        # 2. Source strategy-specific physics (Confidence Bonus)
+        # 2. Source strategy-specific physics
         # Sourced from binary_star -> session node in strategy_config.yaml
-        bs_cfg = self.strategy_cfg.get('binary_star', {})
-        session_cfg = bs_cfg.get('session', {})
-        self.score_confidence_bonus = float(session_cfg['score_confidence_bonus'])
 
     def _load_config(self, filename: str) -> Dict[str, Any]:
         """Loads a YAML configuration file from the standardized config directory."""
@@ -653,7 +627,7 @@ class SessionNotifier:
         Parses strategy result and dispatches an actionable email alert.
         """
         # Always generate HTML for potential preview even if email is disabled
-        html_body = SessionEmailTemplate.render(session_data or {}, bonus_value=self.score_confidence_bonus)
+        html_body = SessionEmailTemplate.render(session_data or {})
         
         # Collect Visual Attachments
         obs = (session_data or {}).get("observation") or {}
@@ -703,7 +677,7 @@ class SessionNotifier:
         Specialized notification for independent market reconnaissance audits.
         Ensures clear nomenclature and skips signal-specific logic filters.
         """
-        html_body = SessionEmailTemplate.render(session_data or {}, bonus_value=self.score_confidence_bonus)
+        html_body = SessionEmailTemplate.render(session_data or {})
         obs = (session_data or {}).get("observation") or {}
         assets = obs.get("visual_context") or {}
         
