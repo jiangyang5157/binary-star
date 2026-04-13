@@ -58,7 +58,7 @@ regime_parameters:
   poc_gravity_atr_distance: 3.0
 
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
-  structural_buffer_atr: 0.6
+  structural_buffer_atr: 0.65
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
 
@@ -101,7 +101,7 @@ regime_parameters:
   liq_radar_grid_padding_atr: 5.0    # Buffer around price extremes in Micro ATR units.
 
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
-  breakout_frontrun_atr: 0.4
+  breakout_frontrun_atr: 0.35
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
   max_entry_distance_atr: 1.0
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
