@@ -52,7 +52,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - `HAS_FLOW_DOMINANCE`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
 - `IS_OVEREXTENDING`: (abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) AND ((`poc_dist_atr` > 0 AND `IS_BULLISH`) OR (`poc_dist_atr` < 0 AND `IS_BEARISH`)) AND NOT (`IS_TREND_STRONG` AND `HAS_FLOW_DOMINANCE`)
 - `IS_HOLDING_TOO_LONG`: `last_plan.tactical_parameters.projected_holding_hours` > (`{max_holding_hours}` * `math_fact_check.holding_time_verification.temporal_weight_factor`)
-- `HAS_FLOW_OPPOSITION`: (`cvd_intensity_ratio` > `{cvd_intensity_threshold}` AND `IS_BEARISH`) OR (`cvd_intensity_ratio` < -`{cvd_intensity_threshold}` AND `IS_BULLISH`)
+- `HAS_FLOW_OPPOSITION`: (`cvd_intensity_ratio` > `{cvd_intensity_threshold}` AND `IS_BEARISH`) OR (`cvd_intensity_ratio` < -`{cvd_intensity_threshold}` AND `IS_BULLISH`) OR (`trend_intensity` > `{trend_intensity_strong}` AND `IS_BEARISH`) OR (`trend_intensity` < -`{trend_intensity_strong}` AND `IS_BULLISH`)
 - `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)
 - `IS_VOLATILITY_CHOP`: `IS_EXPANDING` AND abs(`trend_intensity`) < `{trend_intensity_min_expansion}`
 - `HAS_LIQUIDITY_VOID`: `nearest_lvn_dist_atr` < `{structural_buffer_atr}`

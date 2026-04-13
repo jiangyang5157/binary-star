@@ -58,7 +58,7 @@ regime_parameters:
   poc_gravity_atr_distance: 3.0
 
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
-  structural_buffer_atr: 0.5
+  structural_buffer_atr: 0.65
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
 
