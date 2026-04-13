@@ -510,7 +510,18 @@ class BinaryStarOrchestrator:
             
             # Compliance Verdict Synthesis (Aligned with Highway Threshold)
             is_trending = abs(trend_intensity) >= self.critic_config.trend_intensity_threshold
+            
+            # v7.6: Chaos-Aware Math Audit
+            # In 'IS_CHAOS' regimes, survival (shielding) takes precedence over standard RR hulls.
+            # We apply the chaos_rr_discount to the threshold to allow low-RR survival plans to pass.
+            vol_expansion = dynamics.get('volatility_expansion_index', 1.0)
+            is_chaos = vol_expansion > self.critic_config.volatility_extreme_ratio
+            
             min_rr = self.session_config.min_rr_trending if is_trending else self.session_config.min_rr_ranging
+            
+            if is_chaos:
+                min_rr *= (1.0 - self.session_config.chaos_rr_discount)
+                logger.info(f"BinaryStar: IS_CHAOS detected. Applying {self.session_config.chaos_rr_discount*100}% RR discount. New min_rr={min_rr:.2f}")
 
             # Shielding check
             buffer = self.critic_config.structural_buffer_atr

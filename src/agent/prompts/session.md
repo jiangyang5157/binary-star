@@ -93,7 +93,7 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[ORDER_PHYSICS]`: Reset coordinates. "BULLISH": Entry <= `current_price`, `stop_loss` < Entry, `take_profit` > Entry. "BEARISH": Entry >= `current_price`, `stop_loss` > Entry, `take_profit` < Entry.
 - `[STRUCTURAL_TRAP]`: Relocate `entry` to nearest `HVN`, `POC`, or `VAH/VAL`. Avoid LVN vacuums.
 - `[ANCHOR_VIOLATION]`: Move `stop_loss` distally behind the next valid structural anchor (HVN/POC). Ensure anchor is BETWEEN `entry` and `stop_loss`.
-- `[MATH_VIOLATION]`: Recalibrate coordinates via `MathTools` to balance risk/ATR scaling. Adhere to `min_rr`.
+- `[MATH_VIOLATION]`: Recalibrate coordinates via `MathTools` to balance risk/ATR scaling. Adhere to minimum RR.
 - `[RETAIL_LONG_SQUEEZE]`: Polarity Pivot to "BEARISH". Target distal `long_liquidation` cascade.
 - `[RETAIL_SHORT_SQUEEZE]`: Polarity Pivot to "BULLISH". Target distal `short_liquidation` cascade.
 - `[CVD_ABSORPTION]`: Abort Momentum. Move to deep **DLE** at nearest `HVN/POC`.
