@@ -88,14 +88,15 @@ conda activate crypto
 ### 1. 市场推理 (Session Engine)
 
 *   **单次/批量分析 (Prod)**：对当前市场或指定时间点进行对抗推理。结果存入 `data/prod/sessions`。
-ash
+```bash
 python run_session.py
 python run_session.py -ts 2026-01-24T15:42:00Z
+python run_session.py --start T-30d --end T-2d --samples 14 --sampling-mode sniper
 python run_session.py --start T-30d --end T-23d --samples 7 --sampling-mode sniper
 python run_session.py --start T-23d --end T-16d --samples 7 --sampling-mode sniper
 python run_session.py --start T-16d --end T-9d --samples 7 --sampling-mode sniper
 python run_session.py --start T-9d --end T-2d --samples 7 --sampling-mode spaced
-
+```
 
 *   **实时监控 (Sniper Mode)**：基于 **v15 零熵三类觉醒探测器**（TYPE_A 势能 / TYPE_B 动能 / TYPE_C 结构）捕捉异动。系统参数已在 `global_config.yaml` 中实现垂直硬化，实现 1:1 的工程映射备份。
 ```bash
