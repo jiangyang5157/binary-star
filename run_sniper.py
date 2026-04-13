@@ -133,8 +133,6 @@ def main():
     # v7.1: Zero-Entropy Path Resolution
     if not args.path:
         args.path = "data/prod"
-    data_root = args.path
-
     
     daemon = SniperDaemon(args)
     daemon.run_forever()
