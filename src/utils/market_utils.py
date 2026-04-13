@@ -29,7 +29,7 @@ def calculate_indicator_warmup(
     iir_periods: list[int], 
     fir_periods: list[int], 
     multiplier: float,
-    min_buffer: int
+    extra_buffer: int = 2
 ) -> int:
     """
     Calculates the required 'warmup' period to ensure technical indicators 
@@ -39,11 +39,11 @@ def calculate_indicator_warmup(
         iir_periods: List of periods for IIR indicators (e.g. [21, 50]).
         fir_periods: List of periods for FIR/Lookback indicators (e.g. [336]).
         multiplier: Multiplier for IIR convergence (Industry standard: 5.0).
-        min_buffer: Small additive safety buffer.
+        extra_buffer: Small additive safety buffer (default: 0).
         
     Returns:
         The total warmup candle count (int).
     """
     max_iir = max(iir_periods) if iir_periods else 0
     max_fir = max(fir_periods) if fir_periods else 0
-    return int(max(max_iir * multiplier, max_fir) + min_buffer)
+    return int(max(max_iir * multiplier, max_fir) + extra_buffer)
