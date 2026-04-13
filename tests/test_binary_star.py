@@ -24,9 +24,9 @@ class TestBinaryStarFlow:
         
         # 2. Mock Critic: Returns high skepticism then low skepticism (Convergence)
         orchestrator.critic_agent.evaluate = MagicMock(side_effect=[
-            MockDataFactory.create_mock_critic_response(score=80, level="TERMINAL"),
-            MockDataFactory.create_mock_critic_response(score=45, level="CONSTRUCTIVE"),
-            MockDataFactory.create_mock_critic_response(score=5, level="PASS")
+            MockDataFactory.create_mock_critic_response(level="TERMINAL"),
+            MockDataFactory.create_mock_critic_response(level="CONSTRUCTIVE"),
+            MockDataFactory.create_mock_critic_response(level="PASS")
         ])
 
         # Execute
@@ -46,7 +46,7 @@ class TestBinaryStarFlow:
             return_value=MockDataFactory.create_mock_ai_response("NEUTRAL")
         )
         orchestrator.critic_agent.evaluate = MagicMock(
-            return_value=MockDataFactory.create_mock_critic_response(score=100, level="TERMINAL")
+            return_value=MockDataFactory.create_mock_critic_response(level="TERMINAL")
         )
         
         result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
@@ -66,7 +66,7 @@ class TestBinaryStarFlow:
         )
         # Critic returns PASS in Round 1
         orchestrator.critic_agent.evaluate = MagicMock(
-            return_value=MockDataFactory.create_mock_critic_response(score=5, level="PASS")
+            return_value=MockDataFactory.create_mock_critic_response(level="PASS")
         )
         
         result = orchestrator.execute_flow(mock_obs, "BTCUSDT")
@@ -85,7 +85,7 @@ class TestBinaryStarFlow:
             return_value=MockDataFactory.create_mock_ai_response("BULLISH")
         )
         orchestrator.critic_agent.evaluate = MagicMock(
-            return_value=MockDataFactory.create_mock_critic_response(score=30, level="CONSTRUCTIVE")
+            return_value=MockDataFactory.create_mock_critic_response(level="CONSTRUCTIVE")
         )
         
         orchestrator.execute_flow(mock_obs, "BTCUSDT")
@@ -122,7 +122,7 @@ class TestBinaryStarFlow:
         
         # 2. Mock Critic to PASS Round 1 (Early Exit)
         orchestrator.critic_agent.evaluate = MagicMock(
-            return_value=MockDataFactory.create_mock_critic_response(score=5, level="PASS")
+            return_value=MockDataFactory.create_mock_critic_response(level="PASS")
         )
 
         # 3. Execution
