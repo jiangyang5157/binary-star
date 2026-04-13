@@ -53,7 +53,7 @@ analytical:
 
 session:
   role_definition_prompt: "src/agent/prompts/session.md"
-  notification_confidence_threshold: 45
+  notification_confidence_threshold: 1
 
 critic:
   role_definition_prompt: "src/agent/prompts/critic.md"
