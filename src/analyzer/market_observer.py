@@ -450,7 +450,7 @@ class MarketMetricsRefiner:
 
         return {
             "poc": poc, "vah": vah, "val": val,
-            "va_width_atr": va_width / atr_macro if atr_macro > 0 else 0,
+            "volume_span_atr": va_width / atr_macro if atr_macro > 0 else 0,
             "nearest_hvn_dist_atr": nearest_hvn_dist_atr,
             "nearest_lvn_dist_atr": nearest_lvn_dist_atr,
             "anchors_above": anchors_above,

@@ -239,7 +239,7 @@ class BinaryStarOrchestrator:
             unit_atr_waiting_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins) / 60, 1)
             
             # Inject into observation (Only complex physical scalars that AI cannot mental-math)
-            regime['regime_benchmarks'] = {
+            regime['temporal_physics'] = {
                 "unit_atr_holding_hours": unit_atr_holding_hours,
                 "unit_atr_waiting_hours": unit_atr_waiting_hours
             }
@@ -348,9 +348,8 @@ class BinaryStarOrchestrator:
                 )
                 
                 # Score Telemetry
-                skepticism_score = int(float(str(critic_results.get('skepticism_score', 100))))
                 veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
-                logger.info(f"BinaryStar Audit [R{current_round}]: Score={skepticism_score} | Veto={veto_level}")
+                logger.info(f"BinaryStar Audit [R{current_round}]: Veto={veto_level}")
                 
                 debate_history.append({
                     "round": current_round,

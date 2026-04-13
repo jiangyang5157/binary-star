@@ -43,9 +43,6 @@ class CriticConfig(AgentConfig):
     min_volume_participation_ratio: float
     squeeze_threshold: float
     squeeze_audit_threshold: float
-    threshold_skepticism_clear: int
-    threshold_skepticism_weak: int
-    threshold_skepticism_constructive: int
     min_trade_velocity: float
     structural_buffer_atr: float
     cvd_intensity_threshold: float
@@ -108,9 +105,6 @@ class CriticConfig(AgentConfig):
             min_volume_participation_ratio=float(regime['min_volume_participation_ratio']),
             squeeze_threshold=float(regime['squeeze_threshold']),
             squeeze_audit_threshold=float(regime['squeeze_audit_threshold']),
-            threshold_skepticism_clear=int(critic_cfg['threshold_skepticism_clear']),
-            threshold_skepticism_weak=int(critic_cfg['threshold_skepticism_weak']),
-            threshold_skepticism_constructive=int(critic_cfg['threshold_skepticism_constructive']),
             structural_buffer_atr=float(regime['structural_buffer_atr']),
             cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
             cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
@@ -246,9 +240,6 @@ class CriticAgent(BaseAgent):
             "min_volume_participation_ratio": self.config.min_volume_participation_ratio,
             "squeeze_threshold": self.config.squeeze_threshold,
             "squeeze_audit_threshold": self.config.squeeze_audit_threshold,
-            "threshold_skepticism_clear": self.config.threshold_skepticism_clear,
-            "threshold_skepticism_weak": self.config.threshold_skepticism_weak,
-            "threshold_skepticism_constructive": self.config.threshold_skepticism_constructive,
             "structural_buffer_atr": self.config.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.cvd_intensity_threshold,
             "cvd_intensity_extreme": self.config.cvd_intensity_extreme,

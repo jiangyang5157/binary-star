@@ -90,23 +90,15 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - **Global Consistency Audit**: Compare the current `{last_plan}` against `{debate_history_json}`. Identify if Session is repeating failed plans without a Paradigm Shift.
 - **Veto Determination**:
   - If multiple codes trigger, the most severe Veto Level (`TERMINAL` > `CONSTRUCTIVE` > `WEAK` > `PASS`) dictates the final state.
-- **Scoring & Boolean Synchronicity**:
-  - Determine Veto Level: Identify the highest Veto Level triggered from the `CRITIC_CODES` table.
-  - Score Mapping: Assign `skepticism_score` strictly within its corresponding bracket:
-    - `PASS`: [0, `{threshold_skepticism_clear}`]
-    - `WEAK`: [`{threshold_skepticism_clear}`+1, `{threshold_skepticism_weak}`]
-    - `CONSTRUCTIVE`: [`{threshold_skepticism_weak}`+1, `{threshold_skepticism_constructive}`]
-    - `TERMINAL`: [`{threshold_skepticism_constructive}`+1, 100]
 
 # OUTPUT_SCHEMA
 Your response MUST be RAW JSON only.
 
 ```json
-{{
+{
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | TERMINAL",
     "invalidations": ["Tag - Error Reasoning"],
     "audit_evidence": "A deterministic cross-verification of physical facts from math_fact_check and structural anomalies observed in the VISUAL_CONTEXT (e.g., precise wick locations, slippage voids, or chart-based resistance clusters) that justify the veto.",
-    "skepticism_score": integer,
     "critic_summary": "Critic risk summary."
-}}
+}
 ```

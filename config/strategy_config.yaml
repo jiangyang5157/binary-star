@@ -192,9 +192,8 @@ binary_star:
     # Hard safety boundaries for stop-loss placements.
     stop_loss_buffer_min: 1.25
     score_confidence_base: 80
-    # Linear decay per Critic veto. STRICT Formula: decay_min + (skepticism / 100) * (decay_max - decay_min)
-    score_confidence_decay_min: 5
-    score_confidence_decay_max: 20
+    # Categorical decay per Critic veto. Logic defined in session.md instructions.
+    # Score is adjusted based on [WEAK], [CONSTRUCTIVE], or [TERMINAL] tags.
     # Bonus awarded for resolving [TERMINAL] or [CONSTRUCTIVE] logic violations in synthesis.
     score_confidence_bonus: 10
 
@@ -214,11 +213,6 @@ binary_star:
     
   critic:
     model_temperature: 0.1
-
-    # Skepticism buckets for protocol compliance mapping.
-    threshold_skepticism_clear: 40
-    threshold_skepticism_weak: 69
-    threshold_skepticism_constructive: 89
 
 evolver:
   # gemini-3.1-pro-preview
