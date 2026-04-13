@@ -105,7 +105,7 @@ sniper:
   # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
   vah_val_trigger_multiplier: 1
   poc_trigger_multiplier: 1.2
-  liq_trigger_multiplier: 1.25
+  liq_trigger_multiplier: 1
 
 sandbox:
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
