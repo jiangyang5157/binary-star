@@ -95,10 +95,10 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 Your response MUST be RAW JSON only.
 
 ```json
-{
+{{
     "veto_level": "PASS | WEAK | CONSTRUCTIVE | TERMINAL",
     "invalidations": ["Tag - Error Reasoning"],
     "audit_evidence": "A deterministic cross-verification of physical facts from math_fact_check and structural anomalies observed in the VISUAL_CONTEXT (e.g., precise wick locations, slippage voids, or chart-based resistance clusters) that justify the veto.",
     "critic_summary": "Critic risk summary."
-}
+}}
 ```

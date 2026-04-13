@@ -183,9 +183,6 @@ class MockDataFactory:
                 "critic": {
                     "model_temperature": 0.2,
                     "role_definition_prompt": "src/agent/prompts/critic.md",
-                    "threshold_skepticism_clear": 20,
-                    "threshold_skepticism_weak": 40,
-                    "threshold_skepticism_constructive": 60
                 }
             },
             "agent_model_shared_config": {"max_tool_iterations": 5},

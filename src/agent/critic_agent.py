@@ -16,9 +16,6 @@ class CriticConfig(AgentConfig):
     """Encapsulates risk-centric configuration for the CriticAgent.
     
     Attributes:
-        threshold_skepticism_clear: Score threshold below which a plan is considered 'hardened'.
-        threshold_skepticism_weak: Score threshold for minor concerns.
-        threshold_skepticism_constructive: Score threshold for major logical gaps.
         structural_buffer_atr: Safe ATR-distance for stop-loss shielding behind structures.
         min_trade_velocity: Minimum required trade speed for directional validation.
     """
@@ -172,8 +169,6 @@ class CriticAgent(BaseAgent):
         """Evaluates the proposed plan against physical market topography 
         and the mandatory CRITIC_CODES table. This is a cold, 
         deterministic audit designed to identify structural traps.
-        质疑分数 (Skepticism Score) 反映了计划的风险程度：分数越高，漏洞越多。
-        只有质疑分数低于阈值，计划才会被认为是“硬化”成功的。
         """
         logger.info(f"CriticAgent: Auditing {symbol} proposal for hidden risks...")
         try:
