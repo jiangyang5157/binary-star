@@ -121,9 +121,9 @@ sandbox:
   # Base scores for different market outcomes (TP/SL/Neutral/Neither)
   base_scores:
     tp_hit: 100.0
-    neutral: 60.0
+    neutral: 70.0
     neither: 40.0
-    sl_hit: 15.0
+    sl_hit: 5.0
     na: 0.0
 
   # Forensic modifiers for execution quality and logic integrity
