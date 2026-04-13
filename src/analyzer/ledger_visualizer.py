@@ -87,7 +87,14 @@ class LedgerVisualizer:
             <div class="card"><div class="text-slate-400 text-xs font-semibold uppercase">Equity Growth (%)</div><div class="text-3xl font-bold mt-1 text-purple-400" id="kpi-pnl">0.00%</div></div>
         </div>
         <div class="card">
-            <h2 class="text-lg font-semibold mb-4 text-slate-200">Decision Timeline</h2>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-slate-200">Decision Timeline</h2>
+                <div class="flex items-center space-x-3 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <label class="text-xs font-medium text-slate-400 uppercase tracking-wider">Min Confidence:</label>
+                    <input type="range" id="confSlider" min="40" max="100" value="40" class="w-32 h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                    <span id="confVal" class="text-sm font-mono text-emerald-400 w-8 text-center font-bold">40</span>
+                </div>
+            </div>
             <p class="text-xs text-slate-400 mb-4">Y-axis = Confidence | Bubble Size = Abs(PnL %) | Color = Outcome</p>
             <div class="relative h-[450px]"><canvas id="timelineChart"></canvas></div>
         </div>
@@ -165,9 +172,16 @@ class LedgerVisualizer:
             };
         });
         
-        new Chart(document.getElementById('timelineChart'), { 
+        const timelineChart = new Chart(document.getElementById('timelineChart'), { 
             type: 'bubble', 
-            data: { datasets: [{ data: bubble, backgroundColor: bubble.map(d => d.color) }] }, 
+            data: { 
+                datasets: [{ 
+                    data: bubble, 
+                    backgroundColor: bubble.map(d => d.color),
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                    borderWidth: 1
+                }] 
+            }, 
             options: { 
                 ...commonOptions, 
                 plugins: { 
@@ -183,6 +197,23 @@ class LedgerVisualizer:
                     } 
                 } 
             } 
+        });
+
+        // --- Interactive Filter Logic ---
+        document.getElementById('confSlider').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            document.getElementById('confVal').innerText = val;
+            
+            // Filter visibility via dataset manipulation
+            const filtered = bubble.map(d => ({
+                ...d,
+                backgroundColor: d.y >= val ? d.color : 'rgba(0,0,0,0)',
+                borderColor: d.y >= val ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0,0,0,0)'
+            }));
+            
+            timelineChart.data.datasets[0].backgroundColor = filtered.map(d => d.backgroundColor);
+            timelineChart.data.datasets[0].borderColor = filtered.map(d => d.borderColor);
+            timelineChart.update('none'); // 'none' for instant update without animation lag
         });
 
         // 2. Equity Curve
