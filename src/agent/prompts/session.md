@@ -78,14 +78,14 @@ Use these metrics to synthesize your tactical entry strategy:
 
 ## Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
-- **Momentum & Flow Riding**: If `IS_TREND_STRONG` OR `HAS_CVD_MOMENTUM`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. **MANDATORY**: To prevent catastrophic misses in strong trends, your `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`. Do not demand deep pullbacks; prioritize immediate fill probability over theoretical RR.
+- **Momentum & Flow Riding**: If `IS_TREND_STRONG` OR `HAS_CVD_MOMENTUM`, institutional backing is confirmed. You are authorized to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. **MANDATORY**: To prevent catastrophic misses in strong trends, your `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`.
   - **CHAOS OVERRIDE**: If `IS_CHAOS`, the market is climaxing. Directional momentum execution is STRICTLY PROHIBITED. You are restricted exclusively to hyper-deep Exhaustion Fading targeting distal liquidation clusters. **CRITICAL**: You MUST execute a "Hit-and-Run" strategy. Compress your `take_profit` aggressively to the nearest immediate structural node or wick edge. AND THEN front-run that target by an additional `{breakout_frontrun_atr}` ATR buffer to guarantee a fill before the dead-cat bounce fails. DO NOT aim for a full mean-reversion to the distal POC. Secure the survival profit and exit.
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `wick_skew_instant` shows rejection near a boundary, execute a Defensive Limit Entry (DLE). Anchor your entry at a proximal HVN. **MANDATORY**: To prevent Phantom Orders, your `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price` (UNLESS `IS_CHAOS` is TRUE, in which case hyper-deep entries beyond this limit are AUTHORIZED).
 - **The Sweep & Fade (Counter-Trend Reversal)**: You are authorized to execute a counter-trend trade (e.g., "BEARISH" in an uptrend, or "BULLISH" in a downtrend) IF AND ONLY IF the following physical conditions intersect:
   - **The Target is Destroyed**: Current price has just hit or pierced a high-intensity `liquidation_cluster` (e.g., hitting short_liquidations during a pump).
   - **Momentum Death**: `wick_skew_instant` confirms extreme rejection (e.g., massive upper wick after hitting the cluster) OR `oi_delta_micro` is sharply negative (open interest collapsing, meaning the move was purely stop-loss driven, not fresh buying).
   - **Execution**: Anchor your `entry` at the pierced liquidation cluster. Anchor your `stop_loss` tightly just beyond the extreme wick. Map your `take_profit` aggressively back to the nearest VAH/VAL or HVN (mean-reversion target).
-- **The Liquidity Hunt**: If `IS_SQUEEZING`, target the vacuum beyond the VAH/VAL boundaries. **MANDATORY**: Compress your `take_profit` to the nearest proximal node rather than the distal extreme to prevent profit evaporation.
+- **The Liquidity Hunt**: If `IS_SQUEEZING`, target the vacuum beyond the VAH/VAL boundaries. **HEURISTIC**: Consider compressing your `take_profit` to a proximal node to prevent profit evaporation, **BUT ONLY IF** it maintains healthy RR. If compressing the target forces you to sink your entry excessively deep (risking a Phantom Order), you are AUTHORIZED to maintain a distal target to prioritize fill probability.
 - **Cowardice Veto**: Do not default to "NEUTRAL" just because the setup is imperfect. If there is a clear directional imbalance, construct a trade with a wider structural buffer.
 
 # TACTICAL_REPAIR_PATTERNS
@@ -103,7 +103,7 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[INACTION_BIAS]`: Re-read telemetry; execute Mean-Reversion DLE or Vacuum Flip.
 - `[OPPORTUNITY_DENIAL]`: Execute **Momentum Entry** aligned with CVD or shallow **DLE**. **MANDATORY**: `entry` MUST be within `{max_entry_distance_atr}` ATR of `current_price`.
 - `[TREND_STARVATION]`: Shift to shallow pullback or Momentum Entry. No deep DLEs.
-- `[OVER_EXTENSION]`: Compress `take_profit` closer to `entry` to reduce temporal risk. DO NOT sink `entry` excessively deep, as this causes Phantom Orders.
+- `[OVER_EXTENSION]`: Compress `take_profit` closer to `entry` to reduce temporal risk. **CRITICAL**: Prioritize `entry` fill probability. If compressing your target reduces the RR ratio, you are **AUTHORIZED to accept the lower RR**. You MUST NOT lower your `entry` coordinate simply to artificially inflate the RR.
 - `[LIQUIDITY_VOID]`: Move `stop_loss` distal to clear the vacuum; anchor behind solid `HVN`.
 - `[PROTOCOL_VIOLATION]`: Immediate **Paradigm Shift**. Radically change anchor, target, or stance.
 - `[PRISTINE]`: Maintain current trajectory. No repair required.
