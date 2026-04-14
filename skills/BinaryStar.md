@@ -10,8 +10,8 @@ This protocol defines how the Antigravity Agent replicates the Binary Star reaso
 - **send_email**: Boolean to trigger email dispatch. Default: `False`.
 - **symbol**: Trading pair. Default: taken from `global_config.yaml`.
 - **timestamp**: ISO string or `None`.
-    - If `None`: Agent will run a "Live Scout" using `scripts/sniper_sandbox.py` to get the current state.
-    - If string: Agent will locate the corresponding `observation` in `data_root/sessions/` or logs.
+    - If `None`: Agent will perform a Live Recon for "Now" using `scripts/market_recon.py`.
+    - If string: Agent will perform a Forensic Recon for that timestamp using `scripts/market_recon.py --timestamp <ts>`.
 
 ## Logic Anchoring (Absolute Law)
 - **Shared Truth**: Data units and the debate structure MUST align with `src/agent/prompts/binary_star.md`.
@@ -21,8 +21,8 @@ This protocol defines how the Antigravity Agent replicates the Binary Star reaso
 ## Agent Execution Logic
 1.  **Initialize Context**: Load `strategy_config.yaml` and `global_config.yaml`. Reference the core prompts mentioned above as the "Instructional Ground Truth."
 2.  **Data Acquisition**:
-    - If `NOW`: Run `/Users/yangjiang/miniforge3/envs/crypto/bin/python scripts/sniper_sandbox.py` to get current metrics.
-    - If `Forensic`: Load telemetry from the specified timestamp session JSON.
+    - **ACTION**: Run `python scripts/market_recon.py` to capture the current market topography.
+    - **FORENSIC**: Use the `--timestamp` flag if a specific historical moment is requested.
 3.  **Adversarial Loop**:
     - **Round 1 (Analyst)**: Follow `src/agent/prompts/session.md`.
     - **Round 1 (Critic)**: Follow `src/agent/prompts/critic.md`.
