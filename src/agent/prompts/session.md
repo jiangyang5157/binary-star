@@ -120,22 +120,19 @@ When history contains specific veto tags, apply these technical repair protocols
   - Generate `entry`, `take_profit`, `stop_loss`.
   - Apply **THE SHIELD LAW** and **LIMIT ORDER PHYSICS**.
 - **Physical Validation**: Invoke `MathTools` protocols. Recalibrate if tool returns valid but suboptimal results.
-- **Confidence Calculus (MANDATORY)**: Compute the **Structural Hardness Score** `confidence_score`. The score strictly ranges from **[0, 100]** and evaluates the ultimate defensive depth of the final plan.
-  - **Prerequisite**: If `math_fact_check` fails (`rr_is_valid: false` or any physical error), the score is unconditionally **0**.
-  - **Dimension 1: Topographical Armor (Max 30 pts)**:
-    - `stop_loss` is distally shielded behind a verified structural `HVN` or extreme wick: **+15**.
-    - `entry` optimally front-runs a `liquidation_cluster` or structural vacuum without diving into a `[LIQUIDITY_VOID]`: **+15**.
-  - **Dimension 2: Regime & Gravity Synchronization (Max 30 pts)**:
-    - **+30** IF the plan contains structural mitigations for the current regime (e.g., compressing `take_profit` in `IS_CHAOS`, widening SL in high expansion, or avoiding targets beyond `[GRAVITY_EXHAUSTION]`).
-    - **0** IF the plan is mathematically correct but "dogmatic" (ignores macro regime risks or extreme POC extensions).
-  - **Dimension 3: Temporal & Sentiment Convexity (Max 20 pts)**:
-    - `projected_holding_hours` strictly respects the current regime's `temporal_physics`: **+10**.
-    - Directional polarity correctly aligns with or fades the `ls_ratio` (Retail Squeeze) and CVD flow: **+10**.
-  - **Dimension 4: The Critic's Crucible (Max 20 pts)**:
-    - **+20 (Absolute Clearance)**: The final synthesized plan contains NO lingering weak gaps. Adversarial risks are explicitly neutralized by coordinate changes.
-    - **+10 (Marginal Survival)**: The Critic issued a `PASS`, but noted minor structural/mathematical friction.
-    - **0**: A `CONSTRUCTIVE` or `TERMINAL` gap remains unresolved.
-  - **Constraint**: The final score represents the "Logical Hardness" of the proposal. The `confidence_score` MUST be within the range **[0, 100]**. Perform the dimensional audit in your `reasoning_chain`.
+- **Confidence Calculus (MANDATORY)**: Compute the **Structural Hardness Score** `confidence_score`. The score strictly ranges from **[0, 100]** and evaluates the ultimate defensive depth of the final plan. You MUST start at 0 and strictly build your score. You MUST perform this exact calculation in your `reasoning_chain`.
+  - **Zero-Score Overrides**:
+    - If your `opinion` is **NEUTRAL**, the score MUST unconditionally be **0** (it is a non-trade, therefore structural hardness of the trade is 0).
+    - If `math_fact_check` fails (`rr_is_valid: false` or any physical error), the score MUST unconditionally be **0**.
+  - **Dimension 1: Topographical Armor (0 to 30 pts)**:
+    - Base: `0`. Add `15` ONLY IF `stop_loss` is perfectly shielded distally behind a verified structural `HVN` or extreme wick. Add `15` ONLY IF `entry` effectively front-runs a `liquidation_cluster` or structural vacuum without diving into a `[LIQUIDITY_VOID]`.
+  - **Dimension 2: Regime & Gravity Synchronization (0 to 30 pts)**:
+    - Base: `0`. Add `30` ONLY IF the plan contains explicit defensive modifications directly combatting the current regime (e.g., compressing `take_profit` in `IS_CHAOS`, widening SL in high expansion). Add `0` if the plan is standard or dogmatic.
+  - **Dimension 3: Temporal & Sentiment Convexity (0 to 20 pts)**:
+    - Base: `0`. Add `10` IF AND ONLY IF `projected_holding_hours` strictly aligned with the current regime's `temporal_physics`. Add `10` IF AND ONLY IF directional polarity actively aligns with or fades the `ls_ratio` (Retail Squeeze) and CVD flow.
+  - **Dimension 4: The Critic's Crucible (0 to 20 pts)**:
+    - Base: `0`. Add `20` ONLY IF the `debate_history_json` shows the Critic issued a `PASS` with zero reservations. Add `10` for Marginal Survival (Critic issued `PASS`, but noted minor friction). Add `0` if it's the first round (`IS_PLANNING`) or a `CONSTRUCTIVE`/`TERMINAL` gap remained.
+  - **Constraint**: The final score represents the "Logical Hardness" of the proposal. Do not artificially inflate this score. A score of 100 represents a mythical, flawless setup and should be extraordinarily rare. The `confidence_score` MUST be within the range **[0, 100]**. Perform the dimensional audit in your `reasoning_chain`.
 - **Finalization**: Output JSON.
 
 # OUTPUT_SCHEMA
