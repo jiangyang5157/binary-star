@@ -80,6 +80,19 @@ class SniperTrigger:
 
         return False, None, "SLEEPING"
 
+    def _check_state_lock(self, lock_key: str, now: datetime) -> bool:
+        """Returns True if permitted to trigger, False if muted by state lock."""
+        if not hasattr(self, 'state_locks'):
+            self.state_locks = {}
+        cooldown_hours = self.sniper_cfg['state_lockout_hours']
+        
+        if lock_key in self.state_locks:
+            elapsed_hours = (now - self.state_locks[lock_key]).total_seconds() / 3600.0
+            if elapsed_hours < cooldown_hours:
+                return False
+        self.state_locks[lock_key] = now
+        return True
+
     def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
         """势能破局: [波动率爆发+量能突增] OR [极致物理挤压]"""
         vol = curr['price_dynamics']['volatility_intensity_index']
@@ -104,6 +117,9 @@ class SniperTrigger:
             if is_vol_hit and is_volume_hit:
                 reason += f"[暴走] Vol={vol:.2f}(>{vol_threshold:.2f}) | Vol_Ratio={part:.2f}"
             elif is_squeeze_hit:
+                now = datetime.now(timezone.utc)
+                if not self._check_state_lock("SQUEEZE_STATE", now):
+                    return False, None
                 reason += f"[挤压] Squeeze={squeeze:.2f}(<{squeeze_threshold:.2f}) | Multiplier={squeeze_mult}"
             return True, reason
              
@@ -167,16 +183,21 @@ class SniperTrigger:
         ls = sent.get('ls_ratio_micro', 1.0)
         if ls > self.regime_cfg['long_short_imbalance_ratio'] or \
            ls < self.regime_cfg['short_heavy_imbalance_ratio']:
-            return True, f"Retail Sentiment Over-extension (L/S: {ls:.2f})"
+            now = datetime.now(timezone.utc)
+            if self._check_state_lock("AMBIENT_LS_RATIO", now):
+                return True, f"Retail Sentiment Over-extension (L/S: {ls:.2f})"
 
         funding = sent.get('funding_rate', 0.0)
         if abs(funding) > self.regime_cfg['funding_extreme_threshold']:
-            return True, f"Funding Rate Extreme (Rate: {funding:.5f})"
+            now = datetime.now(timezone.utc)
+            if self._check_state_lock("AMBIENT_FUNDING", now):
+                return True, f"Funding Rate Extreme (Rate: {funding:.5f})"
 
         return False, None
 
     def _check_type_c(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
         """关键拓扑碰撞: 边界极压 or 清算磁吸"""
+        now = datetime.now(timezone.utc)
         topo = curr['volume_profile']
         atr = curr['price_dynamics']['atr_macro']
         price = curr['price_dynamics']['current_price']
@@ -196,10 +217,12 @@ class SniperTrigger:
         if min(dist_vh, dist_val) < vah_val_threshold and \
            part > self.regime_cfg['min_volume_participation_ratio']:
             side = "VAH" if dist_vh < dist_val else "VAL"
-            return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {vah_val_threshold:.2f})"
+            if self._check_state_lock(f"BOUNDARY_{side}", now):
+                return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {vah_val_threshold:.2f})"
 
         if dist_poc < poc_trigger_threshold:
-            return True, f"POC 磁吸/回踩 (Gravity Test): Dist to POC={dist_poc:.2f} ATR (Threshold: {poc_trigger_threshold:.2f})"
+            if self._check_state_lock("POC_MAGNET", now):
+                return True, f"POC 磁吸/回踩 (Gravity Test): Dist to POC={dist_poc:.2f} ATR (Threshold: {poc_trigger_threshold:.2f})"
 
         # DNA Mapping: liquidation_magnet -> liq_trigger_threshold (v7.0 Aligned with granular multiplier)
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
@@ -209,14 +232,16 @@ class SniperTrigger:
                 p = float(cluster['price'])
                 dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
                 if dist_atr < liq_trigger_threshold:
-                    return True, f"多头爆仓磁吸 (Long Liq Magnet - Support Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {liq_trigger_threshold:.2f})"
+                    if self._check_state_lock(f"LONG_LIQ_{int(p/100)*100}", now):
+                        return True, f"多头爆仓磁吸 (Long Liq Magnet - Support Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {liq_trigger_threshold:.2f})"
             
             # Process Short Liquidations (Squeeze magnets)
             for cluster in liq_clusters.get('short_liquidation', []):
                 p = float(cluster['price'])
                 dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
                 if dist_atr < liq_trigger_threshold:
-                    return True, f"空头爆仓磁吸 (Short Liq Magnet - Squeeze Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {liq_trigger_threshold:.2f})"
+                    if self._check_state_lock(f"SHORT_LIQ_{int(p/100)*100}", now):
+                        return True, f"空头爆仓磁吸 (Short Liq Magnet - Squeeze Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {liq_trigger_threshold:.2f})"
 
         return False, None
 

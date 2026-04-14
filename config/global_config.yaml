@@ -75,6 +75,10 @@ sniper:
   # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
   pulse_cooldown_multiplier: 1.0
 
+  # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
+  # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
+  state_lockout_hours: 4.0
+
   # [Mute]: Multiplier for cooldown during extreme volatility expansion.
   # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
   chaos_cooldown_multiplier: 2.0
