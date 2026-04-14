@@ -120,19 +120,19 @@ When history contains specific veto tags, apply these technical repair protocols
   - Generate `entry`, `take_profit`, `stop_loss`.
   - Apply **THE SHIELD LAW** and **LIMIT ORDER PHYSICS**.
 - **Physical Validation**: Invoke `MathTools` protocols. Recalibrate if tool returns valid but suboptimal results.
-- **Confidence Calculus (MANDATORY)**: Compute the **Structural Hardness Score** `confidence_score`. The score strictly ranges from **[0, 100]** and evaluates the ultimate defensive depth of the final plan. You MUST start at 0 and strictly build your score. You MUST perform this exact calculation in your `reasoning_chain`.
+- **Confidence Calculus (MANDATORY)**: Compute the **Structural Hardness Score** `confidence_score`. The score strictly ranges from **[0, 100]** and evaluates the ultimate defensive depth of the final plan. You MUST explicitly perform this penalty-based calculation in your `reasoning_chain`.
   - **Zero-Score Overrides**:
     - If your `opinion` is **NEUTRAL**, the score MUST unconditionally be **0** (it is a non-trade, therefore structural hardness of the trade is 0).
     - If `math_fact_check` fails (`rr_is_valid: false` or any physical error), the score MUST unconditionally be **0**.
-  - **Dimension 1: Topographical Armor (0 to 30 pts)**:
-    - Base: `0`. Add `15` ONLY IF `stop_loss` is perfectly shielded distally behind a verified structural `HVN` or extreme wick. Add `15` ONLY IF `entry` effectively front-runs a `liquidation_cluster` or structural vacuum without diving into a `[LIQUIDITY_VOID]`.
-  - **Dimension 2: Regime & Gravity Synchronization (0 to 30 pts)**:
-    - Base: `0`. Add `30` ONLY IF the plan contains explicit defensive modifications directly combatting the current regime (e.g., compressing `take_profit` in `IS_CHAOS`, widening SL in high expansion). Add `0` if the plan is standard or dogmatic.
-  - **Dimension 3: Temporal & Sentiment Convexity (0 to 20 pts)**:
-    - Base: `0`. Add `10` IF AND ONLY IF `projected_holding_hours` strictly aligned with the current regime's `temporal_physics`. Add `10` IF AND ONLY IF directional polarity actively aligns with or fades the `ls_ratio` (Retail Squeeze) and CVD flow.
-  - **Dimension 4: The Critic's Crucible (0 to 20 pts)**:
-    - Base: `0`. Add `20` ONLY IF the `debate_history_json` shows the Critic issued a `PASS` with zero reservations. Add `10` for Marginal Survival (Critic issued `PASS`, but noted minor friction). Add `0` if it's the first round (`IS_PLANNING`) or a `CONSTRUCTIVE`/`TERMINAL` gap remained.
-  - **Constraint**: The final score represents the "Logical Hardness" of the proposal. Do not artificially inflate this score. A score of 100 represents a mythical, flawless setup and should be extraordinarily rare. The `confidence_score` MUST be within the range **[0, 100]**. Perform the dimensional audit in your `reasoning_chain`.
+  - **Dimension 1: Topographical Armor (Up to 30 pts)**:
+    - Evaluate subjective hardness. Award `0 to 30 pts`. Start at `30`. Subtract points for friction: e.g., `-5 to -10` if the anchor is structurally weak (e.g., mid-range LVN instead of HVN); `-10` if `entry` does not effectively front-run liquidity or sits in a minor vacuum. Award `0` if completely unshielded.
+  - **Dimension 2: Regime & Gravity Synchronization (Up to 30 pts)**:
+    - Evaluate adaptation. Award `0 to 30 pts`. Start at `30`. Subtract `-10 to -20` if the plan acknowledges the regime but its tactical mitigations are weak. Subtract `-30` (award 0) if the plan is completely dogmatic or ignores macro risks like [GRAVITY_EXHAUSTION].
+  - **Dimension 3: Temporal & Sentiment Convexity (Up to 20 pts)**:
+    - Evaluate alignment. Award `0 to 20 pts`. Start at `20`. Subtract `-5 to -10` for misalignment with `temporal_physics` (e.g., hold time too long for the current regime). Subtract `-5 to -10` if directional polarity fights the CVD flow or ignores clear retail imbalances.
+  - **Dimension 4: The Critic's Crucible (Up to 20 pts)**:
+    - Start at `20` ONLY IF the Critic issued a `PASS` with zero reservations. If `PASS` with minor structural/mathematical friction, award `5 to 15 pts` depending on friction severity. If the current state is the first round (`IS_PLANNING`) or a `CONSTRUCTIVE`/`TERMINAL` challenge remains, score MUST be `0`.
+  - **Constraint**: The final score represents the "Logical Hardness" of the proposal. By using this penalty paradigm, fractional or intermediate scores (e.g., 82.5 or 68.0) are expected and encouraged, allowing nuance without rampant inflation. A raw score of 100 represents a flawless setup and should be exceedingly rare.
 - **Finalization**: Output JSON.
 
 # OUTPUT_SCHEMA
