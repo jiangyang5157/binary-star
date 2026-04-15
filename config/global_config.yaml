@@ -95,7 +95,7 @@ sniper:
   # [Tick-Scale Probes]: Micro-sensitivity for 15s heartbeats.
   # 0.02 = 2% net flow change in 15 seconds.
   #  TYPE_B (CVD 背离) 
-  cvd_divergence_tick_delta: 0.08 
+  cvd_divergence_tick_delta: 0.12
   #  TYPE_B (CVD 强度) 
   cvd_impulse_tick_delta: 0.18
   
@@ -111,8 +111,8 @@ sniper:
   # VAH/VAL: 0.8 = requires price to be 20% closer to boundary.
   # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
   vah_val_trigger_multiplier: 1.2
-  poc_trigger_multiplier: 1
-  liq_trigger_multiplier: 1.2
+  poc_trigger_multiplier: 0.8
+  liq_trigger_multiplier: 0.8
 
 sandbox:
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
