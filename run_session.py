@@ -58,16 +58,6 @@ class SessionEngine:
         # UI/Notification control
         self.send_email = getattr(args, 'email', False)
         
-        # Trade Execution (Optional: --trade flag)
-        self.trade_enabled = getattr(args, 'trade', False)
-        self.executor = None
-        if self.trade_enabled:
-            from src.infrastructure.binance.margin_client import BinanceMarginClient
-            from src.agent.order_executor import MarginOrderExecutor
-            margin_client = BinanceMarginClient()
-            self.executor = MarginOrderExecutor(client=margin_client)
-            logger.info(f"SessionEngine: Trade execution ENABLED.")
-        
         # Failure tracking for circuit breaker
         self.consecutive_failures = 0
         self.max_failures_threshold = int(self.global_cfg.get('network', {}).get('gemini', {}).get('circuit_breaker_threshold', 3))
@@ -128,10 +118,6 @@ class SessionEngine:
             )
             logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
             
-            # 6. Trade Execution (Gated: --trade + PROD mode + confidence + direction)
-            if self.trade_enabled and self.executor and not timestamp_str:
-                self._attempt_trade_execution(session_result)
-            
             self.consecutive_failures = 0
             return session_result
 
@@ -151,48 +137,6 @@ class SessionEngine:
                 self.orchestrator.cache_manager.delete_market_cache()
             except: pass
 
-    def _attempt_trade_execution(self, session_result: Dict[str, Any]):
-        """Evaluates session result against confidence threshold and triggers trade execution."""
-        try:
-            final_decision = session_result.get('final_decision', {})
-            opinion = str(final_decision.get('opinion', 'NEUTRAL')).upper()
-            confidence = float(final_decision.get('confidence_score', 0))
-            tactical = final_decision.get('tactical_parameters', {})
-            
-            logger.info(f"TradeGate: Evaluating session -> Opinion={opinion}, Confidence={confidence}%")
-            
-            # Gate 1: Directional opinion required
-            if opinion not in ('BULLISH', 'BEARISH'):
-                logger.info(f"TradeGate: Opinion is {opinion}. No trade action.")
-                return
-            
-            # Gate 2: Confidence threshold (direct read, no default)
-            threshold = int(self.global_cfg['session']['confidence_threshold'])
-            if confidence < threshold:
-                logger.info(f"TradeGate: Confidence {confidence}% < threshold {threshold}%. Skipping trade.")
-                return
-            
-            # Gate 3: Tactical parameters must be present
-            entry = tactical.get('entry')
-            tp = tactical.get('take_profit')
-            sl = tactical.get('stop_loss')
-            if not all([entry, tp, sl]):
-                logger.warning(f"TradeGate: Missing tactical parameters (Entry={entry}, TP={tp}, SL={sl}). Skipping trade.")
-                return
-            
-            # Map AI opinion to executor direction
-            direction = 'LONG' if opinion == 'BULLISH' else 'SHORT'
-            
-            logger.info(f"TradeGate: ALL GATES PASSED. Executing {direction} for {self.symbol} (Confidence: {confidence}%, Entry: {entry}, TP: {tp}, SL: {sl})")
-            self.executor.sync_with_opinion(
-                symbol=self.symbol,
-                opinion_direction=direction,
-                entry_price=float(entry),
-                tp_price=float(tp),
-                sl_price=float(sl)
-            )
-        except Exception as e:
-            logger.error(f"TradeGate: Trade execution failed: {e}", exc_info=True)
 
 class SessionController:
     """Manages the lifecycle of the SessionEngine according to user-specified modes."""
@@ -317,7 +261,6 @@ def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
-    parser.add_argument("--trade", action="store_true", help="Enable automated margin trading execution")
     
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")

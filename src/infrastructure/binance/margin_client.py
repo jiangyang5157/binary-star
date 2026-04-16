@@ -199,6 +199,39 @@ class BinanceMarginClient:
             logger.error(f"BinanceMarginClient: Failed to market close {symbol}: {e.error_message}")
             return False
 
+    def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
+        """Places a standard LIMIT order on cross-margin. Returns order_id or None on failure."""
+        p_qty, p_price, _ = self._get_precisions(symbol)
+        try:
+            resp = self.client.new_margin_order(
+                symbol=symbol,
+                side=side,
+                type="LIMIT",
+                quantity=round(qty, p_qty),
+                price=round(price, p_price),
+                timeInForce="GTC",
+                sideEffectType="MARGIN_BUY"
+            )
+            order_id = resp.get('orderId')
+            logger.info(f"BinanceMarginClient: Placed LIMIT {side} for {symbol}. OrderId: {order_id}, Price: {price}, Qty: {qty}")
+            return order_id
+        except ClientError as e:
+            logger.error(f"BinanceMarginClient: Failed to place LIMIT order for {symbol}: {e.error_message}")
+            return None
+
+    def cancel_order(self, symbol: str, order_id: int) -> bool:
+        """Cancels a specific margin order by ID."""
+        try:
+            self.client.cancel_margin_order(symbol=symbol, orderId=order_id)
+            logger.info(f"BinanceMarginClient: Cancelled order {order_id} for {symbol}.")
+            return True
+        except ClientError as e:
+            if e.error_code == -2011:  # Unknown order (already filled/cancelled)
+                logger.info(f"BinanceMarginClient: Order {order_id} already gone (likely filled/cancelled).")
+                return True
+            logger.error(f"BinanceMarginClient: Failed to cancel order {order_id}: {e.error_message}")
+            return False
+
     def place_oco_order(self, symbol: str, side: str, qty: float, price: float, stop_price: float, stop_limit_price: float) -> bool:
         """Places a standard OCO order to manage an existing position's exit."""
         p_qty, p_price, _ = self._get_precisions(symbol)
