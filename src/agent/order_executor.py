@@ -1,8 +1,8 @@
 import logging
 import os
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 from src.infrastructure.binance.margin_client import BinanceMarginClient
-from src.infrastructure.exchange.models import MarginPosition, MarginOrder
+from src.infrastructure.exchange.models import MarginOrder
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)

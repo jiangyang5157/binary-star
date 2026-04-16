@@ -125,6 +125,7 @@ def main():
     parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
+    parser.add_argument("--trade", action="store_true", help="Enable automated margin trading execution")
     from src.utils.pipeline_utils import add_data_path_argument
     add_data_path_argument(parser)
 
