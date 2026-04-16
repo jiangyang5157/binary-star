@@ -123,9 +123,11 @@ class MarginOrderExecutor:
         """
         from datetime import datetime, timezone
 
-        if not trade_state or not trade_state.get("direction"):
-            return trade_state  # Nothing to guard
-
+        # --- STEP 0: Heartbeat Reporting (Always runs if called) ---
+        pos = self.client.get_symbol_position(symbol)
+        net_qty = pos.net_qty if pos else 0.0
+        active_orders = self.client.get_active_orders(symbol)
+        
         try:
             cfg = self._get_trade_config(symbol)
             tolerance = cfg["net_qty_tolerance"]
@@ -133,16 +135,13 @@ class MarginOrderExecutor:
             logger.error(f"Guardian: [ABORT] Configuration error: {e}")
             return trade_state
 
-        pos = self.client.get_symbol_position(symbol)
-        net_qty = pos.net_qty if pos else 0.0
-        active_orders = self.client.get_active_orders(symbol)
-        
         has_position = abs(net_qty) > tolerance
-        direction = trade_state["direction"]
+        logger.info(f"Guardian Pulse: Symbol={symbol}, NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
+
+        # --- STEP 1: Intent Check (Early exit if robot has no skin in the game) ---
+        if not trade_state or not trade_state.get("direction"):
+            return trade_state  # Nothing to protect for now
         
-        logger.info(f"Guardian: State -> Direction={direction}, NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
-        
-        has_position = abs(net_qty) > tolerance
         direction = trade_state["direction"]
         
         # Determine if OCO protection exists

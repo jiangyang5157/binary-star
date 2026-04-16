@@ -40,6 +40,12 @@ class SniperDaemon:
         self.global_cfg = load_global_config()
         self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
         
+        # 0. Global Forensic Logging Initialization (Standardized v7.1)
+        # Ensure all pulse and guardian telemetry is persistent from startup
+        from src.utils.path_utils import resolve_project_root
+        session_log_path = os.path.join(resolve_project_root(), args.path, 'session.log')
+        setup_logger("", log_file=session_log_path)
+        
         # 1. Initialize Lightweight Sniper Tools
         self.scout = SniperScout(self.symbol)
         self.trigger = SniperTrigger()
@@ -76,7 +82,7 @@ class SniperDaemon:
         while True:
             try:
                 # 0. [GUARDIAN] Position protection check (every pulse, regardless of trigger state)
-                if self.trade_enabled and self.executor and self.trade_state:
+                if self.trade_enabled and self.executor:
                     self._guardian_check()
 
                 # 1. Capture Topography (No Images, No AI)
