@@ -2,7 +2,6 @@
 import os
 import sys
 import argparse
-import logging
 import signal
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
@@ -62,26 +61,12 @@ class SessionEngine:
         # Trade Execution (Optional: --trade flag)
         self.trade_enabled = getattr(args, 'trade', False)
         self.executor = None
-        self.trade_logger = None
         if self.trade_enabled:
             from src.infrastructure.binance.margin_client import BinanceMarginClient
             from src.agent.order_executor import MarginOrderExecutor
-            trade_log_path = os.path.join(resolve_project_root(), self.data_root, 'trade.log')
-            
-            # Full-Chain Trade Log Isolation:
-            # Route ALL trade-related telemetry (gate decisions, executor actions,
-            # Binance Margin API calls) into a single forensic trade.log.
-            self.trade_logger = setup_logger("TradeEngine", log_file=trade_log_path)
-            
-            # Route BinanceMarginClient API telemetry into trade.log
-            _margin_log = logging.getLogger("src.infrastructure.binance.margin_client")
-            _trade_fh = logging.FileHandler(trade_log_path)
-            _trade_fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-            _margin_log.addHandler(_trade_fh)
-            
             margin_client = BinanceMarginClient()
-            self.executor = MarginOrderExecutor(client=margin_client, trade_log_file=trade_log_path)
-            self.trade_logger.info(f"TradeEngine: Full-chain trade logging ENABLED -> {trade_log_path}")
+            self.executor = MarginOrderExecutor(client=margin_client)
+            logger.info(f"SessionEngine: Trade execution ENABLED.")
         
         # Failure tracking for circuit breaker
         self.consecutive_failures = 0
@@ -167,28 +152,24 @@ class SessionEngine:
             except: pass
 
     def _attempt_trade_execution(self, session_result: Dict[str, Any]):
-        """Evaluates session result against confidence threshold and triggers trade execution.
-        
-        All telemetry is routed to the dedicated trade_logger (trade.log) for forensic isolation.
-        """
-        tlog = self.trade_logger or logger
+        """Evaluates session result against confidence threshold and triggers trade execution."""
         try:
             final_decision = session_result.get('final_decision', {})
             opinion = str(final_decision.get('opinion', 'NEUTRAL')).upper()
             confidence = float(final_decision.get('confidence_score', 0))
             tactical = final_decision.get('tactical_parameters', {})
             
-            tlog.info(f"TradeGate: Evaluating session -> Opinion={opinion}, Confidence={confidence}%")
+            logger.info(f"TradeGate: Evaluating session -> Opinion={opinion}, Confidence={confidence}%")
             
             # Gate 1: Directional opinion required
             if opinion not in ('BULLISH', 'BEARISH'):
-                tlog.info(f"TradeGate: Opinion is {opinion}. No trade action.")
+                logger.info(f"TradeGate: Opinion is {opinion}. No trade action.")
                 return
             
             # Gate 2: Confidence threshold (direct read, no default)
             threshold = int(self.global_cfg['session']['confidence_threshold'])
             if confidence < threshold:
-                tlog.info(f"TradeGate: Confidence {confidence}% < threshold {threshold}%. Skipping trade.")
+                logger.info(f"TradeGate: Confidence {confidence}% < threshold {threshold}%. Skipping trade.")
                 return
             
             # Gate 3: Tactical parameters must be present
@@ -196,13 +177,13 @@ class SessionEngine:
             tp = tactical.get('take_profit')
             sl = tactical.get('stop_loss')
             if not all([entry, tp, sl]):
-                tlog.warning(f"TradeGate: Missing tactical parameters (Entry={entry}, TP={tp}, SL={sl}). Skipping trade.")
+                logger.warning(f"TradeGate: Missing tactical parameters (Entry={entry}, TP={tp}, SL={sl}). Skipping trade.")
                 return
             
             # Map AI opinion to executor direction
             direction = 'LONG' if opinion == 'BULLISH' else 'SHORT'
             
-            tlog.info(f"TradeGate: ALL GATES PASSED. Executing {direction} for {self.symbol} (Confidence: {confidence}%, Entry: {entry}, TP: {tp}, SL: {sl})")
+            logger.info(f"TradeGate: ALL GATES PASSED. Executing {direction} for {self.symbol} (Confidence: {confidence}%, Entry: {entry}, TP: {tp}, SL: {sl})")
             self.executor.sync_with_opinion(
                 symbol=self.symbol,
                 opinion_direction=direction,
@@ -211,7 +192,7 @@ class SessionEngine:
                 sl_price=float(sl)
             )
         except Exception as e:
-            tlog.error(f"TradeGate: Trade execution failed: {e}", exc_info=True)
+            logger.error(f"TradeGate: Trade execution failed: {e}", exc_info=True)
 
 class SessionController:
     """Manages the lifecycle of the SessionEngine according to user-specified modes."""

@@ -13,24 +13,8 @@ class MarginOrderExecutor:
     Implements the "Conflict Decider" logic to protect Net Qty, pivot positions,
     and handle OCO/OTOCO executions.
     """
-
-    def __init__(self, client: Optional[BinanceMarginClient] = None, trade_log_file: Optional[str] = None):
+    def __init__(self, client: Optional[BinanceMarginClient] = None):
         self.client = client or BinanceMarginClient()
-        
-        # Isolated Trade Logging: If a trade_log_file path is provided,
-        # add a dedicated FileHandler so all executor telemetry is captured
-        # in a separate forensic log (e.g., data/prod/trade.log).
-        if trade_log_file:
-            try:
-                os.makedirs(os.path.dirname(trade_log_file), exist_ok=True)
-                file_handler = logging.FileHandler(trade_log_file)
-                file_handler.setLevel(logging.DEBUG)
-                formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-                file_handler.setFormatter(formatter)
-                logger.addHandler(file_handler)
-                logger.info(f"Executor: Trade log initialized -> {trade_log_file}")
-            except Exception as e:
-                logger.warning(f"Executor: Failed to initialize trade log at {trade_log_file}: {e}")
 
     def _is_symbol_whitelisted(self, symbol: str) -> bool:
         """Checks if the symbol is explicitly defined in global_config.yaml's trade_management block."""
@@ -239,4 +223,3 @@ class MarginOrderExecutor:
         
         side = "BUY" if direction == "LONG" else "SELL"
         self.client.place_otoco_order(symbol, side, dynamic_qty, entry_price, tp_price, sl_price)
-
