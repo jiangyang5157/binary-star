@@ -218,7 +218,7 @@ class BinanceMarginClient:
             logger.error(f"BinanceMarginClient: Failed to place OCO for {symbol}: {e.error_message}")
             return False
 
-    def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_price: float) -> bool:
+    def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_trigger_price: float, sl_limit_price: float) -> bool:
         """Places an OTOCO order specifying entry, and nested TP/SL."""
         p_qty, p_price, _ = self._get_precisions(symbol)
         try:
@@ -242,16 +242,16 @@ class BinanceMarginClient:
                 params["pendingBelowType"] = "STOP_LOSS_LIMIT"
                 
                 params["pendingAbovePrice"] = round(tp_price, p_price)
-                params["pendingBelowStopPrice"] = round(sl_price, p_price)
-                params["pendingBelowPrice"] = round(sl_price, p_price)
+                params["pendingBelowStopPrice"] = round(sl_trigger_price, p_price)
+                params["pendingBelowPrice"] = round(sl_limit_price, p_price)
             else:
                 # Entry higher -> TP is lower(BELOW), SL is higher(ABOVE)
                 params["pendingAboveType"] = "STOP_LOSS_LIMIT"
                 params["pendingBelowType"] = "LIMIT_MAKER"
                 
                 params["pendingBelowPrice"] = round(tp_price, p_price)
-                params["pendingAboveStopPrice"] = round(sl_price, p_price)
-                params["pendingAbovePrice"] = round(sl_price, p_price)
+                params["pendingAboveStopPrice"] = round(sl_trigger_price, p_price)
+                params["pendingAbovePrice"] = round(sl_limit_price, p_price)
             
             resp = self.client.send_request("POST", "/sapi/v1/margin/order/otoco", params)
             logger.info(f"BinanceMarginClient: Placed OTOCO for {symbol}. Resp: {resp.get('orderListId')}")

@@ -140,6 +140,12 @@ class MarginOrderExecutor:
             logger.error("Executor: [ABORT OPTIMIZATION] Failed to cancel existing OCOs. Original protection remains active.")
             return
 
+        # Calculate buffered SL Limit (Slippage protection)
+        trade_cfg = self._get_trade_config(symbol)
+        buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
+        # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
+        buffered_sl = best_sl + (buffer if direction == "SHORT" else -buffer)
+
         # Place the OCO for the full position
         success = self.client.place_oco_order(
             symbol=symbol,
@@ -147,7 +153,7 @@ class MarginOrderExecutor:
             qty=abs(net_qty),
             price=best_tp,
             stop_price=best_sl,
-            stop_limit_price=best_sl # Kept same as stop_price to trigger immediately as a limit
+            stop_limit_price=buffered_sl 
         )
         if not success:
              logger.error("Executor: [CRITICAL] Cancelled old OCO but failed to place new OCO. Position may be unprotected!")
@@ -176,6 +182,7 @@ class MarginOrderExecutor:
         cfg["precision_qty"] = sym_cfg["precision_qty"]
         cfg["precision_price"] = sym_cfg["precision_price"]
         cfg["min_order_qty"] = sym_cfg["min_order_qty"]
+        cfg["sl_slippage_buffer"] = sym_cfg.get("sl_slippage_buffer", 0.0)
         
         return cfg
 
@@ -221,5 +228,19 @@ class MarginOrderExecutor:
     def _place_otoco(self, symbol: str, direction: str, entry_price: float, tp_price: float, sl_price: float):
         dynamic_qty = self._calculate_target_qty(symbol, entry_price, sl_price)
         
+        # Calculate buffered SL Limit
+        trade_cfg = self._get_trade_config(symbol)
+        buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
+        # LONG SL: Limit < Trigger | SHORT SL: Limit > Trigger
+        buffered_sl = sl_price + (buffer if direction == "SHORT" else -buffer)
+        
         side = "BUY" if direction == "LONG" else "SELL"
-        self.client.place_otoco_order(symbol, side, dynamic_qty, entry_price, tp_price, sl_price)
+        self.client.place_otoco_order(
+            symbol=symbol, 
+            side=side, 
+            qty=dynamic_qty, 
+            entry_price=entry_price, 
+            tp_price=tp_price, 
+            sl_trigger_price=sl_price,
+            sl_limit_price=buffered_sl
+        )

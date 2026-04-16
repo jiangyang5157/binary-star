@@ -1,6 +1,6 @@
 import os
 import sys
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, ANY
 
 # Ensure the project root is in the path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,7 +34,13 @@ def test_flat_to_long():
     # Assertions
     client.cancel_all_symbol_orders.assert_not_called()
     client.execute_market_close.assert_not_called()
-    print("✅ Result: Correctly placed OTOCO order.")
+    # 73000 (Trigger) - 1.0 (Buffer) = 72999.0
+    client.place_otoco_order.assert_called_once_with(
+        symbol="BTCUSDT", side="BUY", qty=ANY, # Qty is dynamic
+        entry_price=74000, tp_price=76000, 
+        sl_trigger_price=73000, sl_limit_price=72999.0
+    )
+    print("✅ Result: Correctly placed OTOCO order with SL buffer.")
 
 def test_flat_with_stale_orders_to_long():
     print_separator("SCENARIO: FLAT WITH STALE ORDERS -> NEW OTOCO")
@@ -58,7 +64,12 @@ def test_flat_with_stale_orders_to_long():
     # Assertions
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     client.execute_market_close.assert_not_called()
-    print("✅ Result: Cleared stale orders and placed new OTOCO.")
+    client.place_otoco_order.assert_called_once_with(
+        symbol="BTCUSDT", side="BUY", qty=ANY, 
+        entry_price=74000, tp_price=76000, 
+        sl_trigger_price=73000, sl_limit_price=72999.0
+    )
+    print("✅ Result: Cleared stale orders and placed new OTOCO with SL buffer.")
 
 def test_pivot_short_to_long():
     print_separator("SCENARIO: HOLDING SHORT -> LONG OPINION (PIVOT)")
@@ -78,7 +89,12 @@ def test_pivot_short_to_long():
     
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     client.execute_market_close.assert_called_once_with("BTCUSDT")
-    print("✅ Result: Cancelled old orders, Market Closed Short, placed new OTOCO Long.")
+    client.place_otoco_order.assert_called_once_with(
+        symbol="BTCUSDT", side="BUY", qty=ANY, 
+        entry_price=74000, tp_price=76000, 
+        sl_trigger_price=73000, sl_limit_price=72999.0
+    )
+    print("✅ Result: Cancelled old orders, Market Closed Short, placed new OTOCO Long with SL buffer.")
 
 def test_same_direction_optimization():
     print_separator("SCENARIO: HOLDING LONG -> LONG OPINION (OPTIMIZATION)")
@@ -103,7 +119,7 @@ def test_same_direction_optimization():
     client.execute_market_close.assert_not_called()
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="SELL", qty=2.0,  # Note it protects the FULL 2.0 position
-        price=76000, stop_price=73000, stop_limit_price=73000
+        price=76000, stop_price=73000, stop_limit_price=72999.0
     )
     print("✅ Result: Protected Net Qty (2.0) with optimized TP (76000) and SL (73000).")
 

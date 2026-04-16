@@ -9,6 +9,7 @@ trade_management:
     precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
     precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
     min_order_qty: 0.001       # Fallback safety quantity if delta is zero
+    sl_slippage_buffer: 1.0    # SL Limit offset from Trigger (e.g., -1.0 for LONG SL)
 
 network:
   binance:
