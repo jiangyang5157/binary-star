@@ -117,14 +117,36 @@ class LedgerVisualizer:
     </div>
     <script>
         const RAW_DATA = {{JSON_DATA}};
-        const sortedTrades = [...RAW_DATA].sort((a, b) => new Date(a.observation_time) - new Date(b.observation_time));
+        const sortedTrades = [...RAW_DATA].sort((a, b) => new Date(a.observation_time.replace('Z', '')) - new Date(b.observation_time.replace('Z', '')));
         
         // --- Shared Scales & Options ---
         const scales = { 
-            x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM dd' } }, ticks: { color: '#64748b', maxRotation: 0 }, grid: { color: '#334155' } }, 
-            y: { ticks: { color: '#64748b' }, grid: { color: '#334155' } } 
+            x: { 
+                type: 'time', 
+                time: { 
+                    displayFormats: { 
+                        hour: 'MMM dd HH:mm',
+                        day: 'MMM dd',
+                        month: 'MMM yyyy'
+                    }
+                }, 
+                ticks: { color: '#64748b', maxRotation: 45, minRotation: 0, autoSkip: true }, 
+                grid: { color: '#334155' },
+                title: { display: true, text: 'Observation Time (UTC)', color: '#94a3b8', font: { size: 10 } }
+            }, 
+            y: { 
+                ticks: { color: '#64748b' }, 
+                grid: { color: '#334155' },
+                title: { display: true, text: 'Confidence Score (%)', color: '#94a3b8', font: { size: 10 } }
+            } 
         };
-        const commonOptions = { responsive: true, maintainAspectRatio: false, scales: scales, plugins: { legend: { display: false } } };
+        const commonOptions = { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            scales: scales, 
+            plugins: { legend: { display: false } },
+            animation: { duration: 400 }
+        };
 
         // --- Data Preparation ---
         const bubbleDataOriginal = RAW_DATA.map(d => {
@@ -141,7 +163,7 @@ class LedgerVisualizer:
                 }
             }
             return {
-                x: d.observation_time, 
+                x: d.observation_time ? new Date(d.observation_time.replace('Z', '')) : null, 
                 y: d.confidence,
                 r: Math.max(8, Math.min(25, Math.abs(d.estimated_pnl_pct) * 8 + (d.confidence / 10))),
                 pnl: d.estimated_pnl_pct,
@@ -149,6 +171,7 @@ class LedgerVisualizer:
                 op: d.opinion,
                 filled: d.is_filled,
                 holding: d.projected_holding_hours,
+                timeLabel: d.observation_time ? new Date(d.observation_time).toLocaleString('en-GB', { timeZone: 'UTC', hour12: false }) + ' UTC' : 'Unknown',
                 color: color
             };
         });
@@ -166,7 +189,13 @@ class LedgerVisualizer:
                             label: (ctx) => {
                                 const d = ctx.raw;
                                 const status = d.op === 'NEUTRAL' ? 'Neutral' : d.filled ? d.res : 'Missed';
-                                return [`Bias: ${d.op}`, `Result: ${status}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h` ];
+                                return [
+                                    `Time: ${d.timeLabel}`,
+                                    `Bias: ${d.op}`, 
+                                    `Result: ${status}`, 
+                                    `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, 
+                                    `Holding: ${d.holding}h` 
+                                ];
                             } 
                         } 
                     } 
@@ -177,7 +206,13 @@ class LedgerVisualizer:
         const equityChart = new Chart(document.getElementById('equityChart'), { 
             type: 'line', 
             data: { datasets: [{ data: [], borderColor: '#a78bfa', borderWidth: 3, pointRadius: 4, pointBackgroundColor: '#a78bfa', fill: true, backgroundColor: 'rgba(167, 139, 250, 0.05)' }] }, 
-            options: commonOptions 
+            options: {
+                ...commonOptions,
+                scales: {
+                    ...scales,
+                    y: { ...scales.y, title: { display: true, text: 'Cumulative Equity (%)', color: '#94a3b8', font: { size: 10 } } }
+                }
+            } 
         });
 
         // --- Core Update Logic ---
@@ -202,7 +237,7 @@ class LedgerVisualizer:
                 eq *= (1 + t.estimated_pnl_pct / 100.0);
                 if (eq > peak) peak = eq;
                 dd = Math.max(dd, (peak - eq) / peak);
-                curve.push({ x: t.observation_time, y: (eq - 1) * 100 });
+                curve.push({ x: new Date(t.observation_time.replace('Z', '')), y: (eq - 1) * 100 });
             });
 
             const netPnL = (eq - 1) * 100;
