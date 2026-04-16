@@ -2,6 +2,14 @@ system:
   default_symbol: "BTCUSDT"
   # default_symbol: "XAUTUSDT"
 
+trade_management:
+  risk_per_trade: 0.005      # Max % loss of total equity allowed per trade
+  net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
+  BTCUSDT:
+    precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
+    precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
+    min_order_qty: 0.001       # Fallback safety quantity if delta is zero
+
 network:
   binance:
     api_timeout_seconds: 60

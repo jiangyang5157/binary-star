@@ -11,3 +11,4 @@ tenacity>=8.3.0
 ruamel.yaml>=0.18.0
 pytest
 pytest-mock
+binance-connector>=3.5.0

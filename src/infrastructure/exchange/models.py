@@ -58,3 +58,51 @@ class GenericOrderBook:
     bids: List[List[float]]  # List of [price, quantity]
     asks: List[List[float]]  # List of [price, quantity]
     timestamp: int
+
+@dataclass
+class MarginAsset:
+    """Represents an asset in a Margin account."""
+    asset: str
+    free: float
+    locked: float
+    borrowed: float
+    interest: float
+    net_asset: float
+
+@dataclass
+class MarginAccountSummary:
+    """Summary of a Spot Margin account (Cross or Isolated)."""
+    total_asset_of_btc: float
+    total_liability_of_btc: float
+    total_net_asset_of_btc: float
+    margin_level: float
+    status: str  # e.g., 'NORMAL', 'MARGIN_CALL', 'PRE_LIQUIDATION', 'FORCE_LIQUIDATION'
+    assets: List[MarginAsset]
+
+@dataclass
+class MarginOrder:
+    """Standardized representation of a Margin order."""
+    symbol: str
+    order_id: int
+    client_order_id: str
+    price: float
+    orig_qty: float
+    executed_qty: float
+    status: str
+    time_in_force: str
+    type: str
+    side: str
+    update_time: int
+    stop_price: float = 0.0
+    is_isolated: bool = False
+
+@dataclass
+class MarginPosition:
+    """Derived model for a specific pair's net position in Margin."""
+    symbol: str
+    base_asset: str
+    quote_asset: str
+    net_qty: float
+    borrowed: float
+    free: float
+    locked: float
