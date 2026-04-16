@@ -587,7 +587,7 @@ class SessionNotifier:
         
         # 1. Source global system settings (Notification Threshold)
         global_session = self.global_cfg.get('session', {})
-        self.notification_confidence_threshold = int(global_session['notification_confidence_threshold'])
+        self.confidence_threshold = int(global_session.get('confidence_threshold'))
         
         # 2. Source strategy-specific physics
         # Sourced from binary_star -> session node in strategy_config.yaml
