@@ -649,8 +649,8 @@ class SessionNotifier:
         confidence = final_decision.get("confidence_score", 0)
         
         # Only notify if confidence >= threshold
-        if confidence < self.notification_confidence_threshold:
-            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.notification_confidence_threshold}%). Skipping dispatch.")
+        if confidence < self.confidence_threshold:
+            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.confidence_threshold}%). Skipping dispatch.")
             return False
 
         opinion = final_decision.get("opinion") or "NEUTRAL"
@@ -735,7 +735,7 @@ class SessionNotifier:
         final_decision = strat_session.get("final_decision") or {}
         confidence = final_decision.get("confidence_score", 0)
         
-        if confidence < self.notification_confidence_threshold:
+        if confidence < self.confidence_threshold:
             logger.info(f"Notifier: Original strategy confidence too low ({confidence}%). Skipping audit dispatch.")
             return False
             
