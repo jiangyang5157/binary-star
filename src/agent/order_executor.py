@@ -169,7 +169,18 @@ class MarginOrderExecutor:
                         logger.info(f"Guardian: Entry order {entry_order_id} still pending ({elapsed_hours:.1f}h / {timeout_hours}h).")
             return trade_state
 
-        # --- Case 2: Has position but no OCO protection ---
+        # --- Case 2: Has position -> Direction Sanity Check ---
+        # Safeguard: Ensure reality's NetQty aligns with robot's Intent
+        is_long_pos = net_qty > tolerance
+        is_short_pos = net_qty < -tolerance
+        intent = trade_state["direction"]
+
+        if (intent == "LONG" and not is_long_pos) or (intent == "SHORT" and not is_short_pos):
+            logger.warning(f"Guardian: [ORIENTATION CONFLICT] Intent={intent} but NetQty={net_qty}. "
+                           f"Robot will NOT adopt this manual position and will keep tracking entry {trade_state.get('entry_order_id')}.")
+            return trade_state
+
+        # --- Case 3: Has position and direction matches -> Protect Position ---
         if not has_oco:
             tp = trade_state.get("tp_price")
             sl = trade_state.get("sl_price")
