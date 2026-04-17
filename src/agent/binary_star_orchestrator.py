@@ -65,7 +65,8 @@ class BinaryStarOrchestrator:
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
         # Always enable file logging for forensic audit trails (Reverted v6.50)
         session_log_path = os.path.join(resolve_project_root(), self.data_root, "session.log")
-        setup_logger("src", log_level=logging.INFO, log_file=session_log_path)
+        setup_logger("src", log_level=logging.INFO, log_file=session_log_path,
+                     max_bytes=10 * 1024 * 1024, backup_count=5)  # 10MB x 5 = 50MB max
         logger.info(f"--- Forensic AI Session Activated: {self.data_root} ---")
         
         # 1. Shared Infrastructure Clients

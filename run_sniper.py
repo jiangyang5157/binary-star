@@ -44,7 +44,8 @@ class SniperDaemon:
         # Ensure all pulse and guardian telemetry is persistent from startup
         from src.utils.path_utils import resolve_project_root
         session_log_path = os.path.join(resolve_project_root(), args.path, "sniper.log")
-        setup_logger("", log_level=logging.INFO, log_file=session_log_path)
+        setup_logger("", log_level=logging.INFO, log_file=session_log_path,
+                     max_bytes=10 * 1024 * 1024, backup_count=5)  # 10MB x 5 = 50MB max
         
         # 1. Initialize Lightweight Sniper Tools
         self.scout = SniperScout(self.symbol)
