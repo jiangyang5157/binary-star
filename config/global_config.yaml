@@ -79,24 +79,24 @@ evolution:
 
 sniper:
 
-  # --- Alert Muting (Cooldown) ---
-  # The duration the Sniper remains "muted" after successfully waking up the AI.
-  # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
-  pulse_cooldown_multiplier: 1.0
-
-  # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
-  # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
-  state_lockout_hours: 4.0
-
-  # [Mute]: Multiplier for cooldown during extreme volatility expansion.
-  # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
-  chaos_cooldown_multiplier: 2.0
-
   # --- Engine Heartbeat & Tick Rate ---
   # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
   # WARNING: This is the physical baseline of the engine. It defines what "instantaneous" means 
   # for the impulse/divergence probes. Do NOT change arbitrarily.
   pulse_interval_minutes: 0.25
+
+  # --- Alert Muting (Cooldown) ---
+  # The duration the Sniper remains "muted" after successfully waking up the AI.
+  # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
+  pulse_cooldown_multiplier: 1.0
+
+  # [Mute]: Multiplier for cooldown during extreme volatility expansion.
+  # 2.0 = double the standard wait time (pulse_cooldown_multiplier) when volatility is in 'Chaos' regime.
+  chaos_cooldown_multiplier: 2.0
+
+  # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
+  # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
+  state_lockout_hours: 4.0
 
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
