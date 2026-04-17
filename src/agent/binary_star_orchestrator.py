@@ -67,7 +67,7 @@ class BinaryStarOrchestrator:
         session_log_path = os.path.join(resolve_project_root(), self.data_root, "session.log")
         setup_logger("src", log_level=logging.INFO, log_file=session_log_path,
                      max_bytes=10 * 1024 * 1024, backup_count=5)  # 10MB x 5 = 50MB max
-        logger.info(f"--- Forensic AI Session Activated: {self.data_root} ---")
+        logger.info(f"--- Binary Star Session Activated: {self.data_root} ---")
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)

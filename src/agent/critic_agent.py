@@ -173,7 +173,7 @@ class CriticAgent(BaseAgent):
         and the mandatory CRITIC_CODES table. This is a cold, 
         deterministic audit designed to identify structural traps.
         """
-        logger.info(f"CriticAgent: Auditing {symbol} proposal for hidden risks...")
+        logger.info(f"CriticAgent: Auditing {symbol} proposal...")
         try:
             context = self._build_context(
                 observation, 

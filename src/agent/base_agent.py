@@ -208,7 +208,6 @@ class BaseAgent:
                     return self._parse_and_validate_response(text, agent_name)
                 
                 # Tool Execution Cycle
-                logger.info(f"{agent_name}: Found {len(tool_calls)} function calls. Executing...")
                 contents.append(response.candidates[0].content) 
                 
                 response_parts = []
