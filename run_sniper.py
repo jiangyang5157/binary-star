@@ -43,8 +43,8 @@ class SniperDaemon:
         # 0. Global Forensic Logging Initialization (Standardized v7.1)
         # Ensure all pulse and guardian telemetry is persistent from startup
         from src.utils.path_utils import resolve_project_root
-        session_log_path = os.path.join(resolve_project_root(), args.path, 'session.log')
-        setup_logger("", log_file=session_log_path)
+        session_log_path = os.path.join(resolve_project_root(), args.path, "sniper.log")
+        setup_logger("", log_level=logging.INFO, log_file=session_log_path)
         
         # 1. Initialize Lightweight Sniper Tools
         self.scout = SniperScout(self.symbol)

@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 from typing import Dict, Any, List, Optional
 from google import genai
 from google.genai import types
@@ -63,9 +64,9 @@ class BinaryStarOrchestrator:
         
         # 0. Forensic Logging Initialization (Standardized v5.10 Telemetry)
         # Always enable file logging for forensic audit trails (Reverted v6.50)
-        session_log_path = os.path.join(resolve_project_root(), self.data_root, 'session.log')
-        setup_logger("", log_file=session_log_path)
-        logger.info(f"--- Forensic Session Initialized: {self.data_root} ---")
+        session_log_path = os.path.join(resolve_project_root(), self.data_root, "session.log")
+        setup_logger("src", log_level=logging.INFO, log_file=session_log_path)
+        logger.info(f"--- Forensic AI Session Activated: {self.data_root} ---")
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)

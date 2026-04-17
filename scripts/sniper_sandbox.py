@@ -33,7 +33,7 @@ def main():
     data_root = args.path
     
     # Re-initialize logger with file support relative to data_root
-    log_file = os.path.join(data_root, "sniper.log")
+    log_file = os.path.join(data_root, "sniper_sandbox.log")
     setup_logger("SniperSandbox", log_file=log_file)
     
     from src.utils.pipeline_utils import load_global_config
