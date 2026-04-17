@@ -15,6 +15,7 @@ if PROJECT_ROOT not in sys.path:
 # Load environment before any logic
 load_dotenv()
 
+from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
 from src.analyzer.simulation_sampler import SpacedSampler, SniperSampler
@@ -35,7 +36,8 @@ class SessionEngine:
     adversarial reasoning triad. Supports Live and Backtest modes 
     with complete logic parity.
     """
-    def __init__(self, symbol: str, data_root: str, args: Any = None):
+    def __init__(self, symbol: str, data_root: str, args: Any = None, 
+                 exchange_client: Optional[AbstractExchangeClient] = None):
         self.symbol = symbol
         self.data_root = data_root
         self.args = args
@@ -51,7 +53,8 @@ class SessionEngine:
         self.orchestrator = BinaryStarOrchestrator(
             config_dict=self.config,
             api_key=self.api_key,
-            data_root=self.data_root
+            data_root=self.data_root,
+            exchange_client=exchange_client
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         

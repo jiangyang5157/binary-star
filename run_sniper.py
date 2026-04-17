@@ -15,6 +15,7 @@ if PROJECT_ROOT not in sys.path:
 # Load environment
 load_dotenv()
 
+from src.infrastructure.binance.client import BinanceFuturesClient
 from src.sniper.scout import SniperScout
 from src.sniper.trigger import SniperTrigger
 from run_session import SessionEngine
@@ -47,8 +48,11 @@ class SniperDaemon:
         setup_logger("", log_level=logging.INFO, log_file=session_log_path,
                      max_bytes=10 * 1024 * 1024, backup_count=5)  # 10MB x 5 = 50MB max
         
+        # v7.6 Shared Infrastructure: Centralized client to prevent duplicate logs/init
+        self.futures_client = BinanceFuturesClient()
+
         # 1. Initialize Lightweight Sniper Tools
-        self.scout = SniperScout(self.symbol)
+        self.scout = SniperScout(self.symbol, exchange_client=self.futures_client)
         self.trigger = SniperTrigger()
         
         logger.info(f"SniperDaemon: Trigger Cooldown is active at {self.trigger.cooldown_minutes}m.")
@@ -57,7 +61,8 @@ class SniperDaemon:
         self.session_engine = None
         if args.trigger:
             # We pass the same args to SessionEngine for email/path parity
-            self.session_engine = SessionEngine(self.symbol, args.path, args=args)
+            self.session_engine = SessionEngine(self.symbol, args.path, args=args, 
+                                                exchange_client=self.futures_client)
         
         # 3. Initialize Trade Execution (Optional: --trade flag)
         self.trade_enabled = getattr(args, 'trade', False)

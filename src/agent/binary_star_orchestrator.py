@@ -45,7 +45,8 @@ class BinaryStarOrchestrator:
                  config_dict: Dict[str, Any], 
                  api_key: str, 
                  data_root: str,
-                 instruction_overrides: Optional[Dict[str, str]] = None):
+                 instruction_overrides: Optional[Dict[str, str]] = None,
+                 exchange_client: Optional[AbstractExchangeClient] = None):
         """Initializes the orchestrator as a central resource and configuration hub.
         
         Args:
@@ -71,7 +72,7 @@ class BinaryStarOrchestrator:
         
         # 1. Shared Infrastructure Clients
         self.client = genai.Client(api_key=api_key)
-        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # 2. Global Environment Constants (Resolved from Global Config)
         gemini_net = self.global_config['network']['gemini']

@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from binance.spot import Spot
 from binance.error import ClientError
 from src.utils.logger_utils import setup_logger

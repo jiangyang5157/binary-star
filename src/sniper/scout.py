@@ -32,9 +32,9 @@ class SniperScout:
     noise-less monitoring.
     """
     
-    def __init__(self, symbol: str):
+    def __init__(self, symbol: str, exchange_client: Optional[AbstractExchangeClient] = None):
         self.symbol = symbol
-        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # Load core strategy configs to initialize analyzers (Option A: Full reuse)
         self.strategy_cfg = load_config()
