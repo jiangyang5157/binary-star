@@ -102,8 +102,7 @@ def main():
                                 </div>
                                 
                                 <div style="margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 15px; text-align: center; color: #94a3b8; font-size: 10px;">
-                                    Automated Sandbox Notification | Singularity Sniper v7.1<br/>
-                                    <i>This is a simulated test environment alert.</i>
+                                    This is an auto-generated email notification | Triggered by Singularity
                                 </div>
                             </div>
                         </body>
