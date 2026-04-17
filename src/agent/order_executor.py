@@ -87,19 +87,83 @@ class MarginOrderExecutor:
 
         # Scenario A: PIVOT (Opposite Direction)
         if current_direction != opinion_direction:
-            logger.warning(f"Executor: [Action] BIG PIVOT detected! Current: {current_direction}, New: {opinion_direction}")
-            logger.warning("Executor: Cancelling all orders and forcefully closing current position.")
+            logger.warning(f"Executor: [Action] PIVOT detected! Current: {current_direction}, New: {opinion_direction}")
             
-            if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error("Executor: [ABORT PIVOT] Failed to cancel existing orders. Halting pivot to prevent duplicate exposure.")
-                return None
+            # Determine if the opposing position has a stop loss order (i.e., it is protected)
+            exit_side_of_current = "BUY" if current_direction == "SHORT" else "SELL"
+            existing_sl_order = next(
+                (o for o in active_orders
+                 if o.side == exit_side_of_current
+                 and o.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]
+                 and o.stop_price > 0),
+                None
+            )
+            
+            if existing_sl_order:
+                # Case A-2: Opposing position is protected → preserve it with adjusted TP + new entry
+                original_sl_trigger = existing_sl_order.stop_price
+                logger.info(
+                    f"Executor: [Pivot-Preserve] Opposing {current_direction} has a stop loss at "
+                    f"{original_sl_trigger}. Preserving position and adjusting TP."
+                )
                 
-            if not self.client.execute_market_close(symbol):
-                logger.error("Executor: [ABORT PIVOT] Failed to Market Close existing position. Halting new order placement.")
-                return None
+                # 1. Cancel all existing orders (clean slate before re-hanging)
+                if not self.client.cancel_all_symbol_orders(symbol):
+                    logger.error("Executor: [ABORT Pivot-Preserve] Failed to cancel existing orders.")
+                    return None
+                
+                # 2. Calculate midpoint TP: between current price and new opinion entry
+                #    Guarantees the opposing position closes BEFORE the new entry fills.
+                current_price = self.client.get_ticker_price(symbol)
+                p_price = cfg["precision_price"]
+                midpoint_tp = round((current_price + entry_price) / 2, p_price)
+                logger.info(
+                    f"Executor: [Pivot-Preserve] Midpoint TP = "
+                    f"({current_price} + {entry_price}) / 2 = {midpoint_tp}"
+                )
+                
+                # 3. Re-hang OCO for the existing opposing position
+                #    (original SL trigger + midpoint TP)
+                buffer = cfg.get("sl_slippage_buffer", 0.0)
+                # SHORT SL is a BUY above current → limit is trigger + buffer
+                # LONG  SL is a SELL below current → limit is trigger - buffer
+                buffered_sl = original_sl_trigger + (buffer if current_direction == "SHORT" else -buffer)
+                
+                oco_success = self.client.place_oco_order(
+                    symbol=symbol,
+                    side=exit_side_of_current,
+                    qty=abs(net_qty),
+                    price=midpoint_tp,
+                    stop_price=original_sl_trigger,
+                    stop_limit_price=buffered_sl
+                )
+                if not oco_success:
+                    logger.error(
+                        "Executor: [ABORT Pivot-Preserve] Failed to place OCO for existing position. "
+                        "Position would be left naked. Halting new entry."
+                    )
+                    return None
+                
+                # 4. Place the new opinion's LIMIT entry alongside the preserved position
+                logger.info(f"Executor: [Pivot-Preserve] Placing new {opinion_direction} LIMIT entry at {entry_price}.")
+                return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
             
-            logger.info("Executor: [Action] Placing new LIMIT entry order after successful pivot clean-up.")
-            return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
+            else:
+                # Case A-1: No stop loss → opposing position is unprotected → force close
+                logger.warning(
+                    f"Executor: [Pivot-ForceClose] Opposing {current_direction} has NO stop loss. "
+                    f"Cancelling all and market closing."
+                )
+                if not self.client.cancel_all_symbol_orders(symbol):
+                    logger.error("Executor: [ABORT PIVOT] Failed to cancel existing orders. Halting pivot.")
+                    return None
+                    
+                if not self.client.execute_market_close(symbol):
+                    logger.error("Executor: [ABORT PIVOT] Failed to Market Close existing position. Halting new order placement.")
+                    return None
+                
+                logger.info("Executor: [Pivot-ForceClose] Placing new LIMIT entry after force-close.")
+                return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
         # Scenario B: SAME DIRECTION (Optimization & Net Qty Protection)
         logger.info("Executor: [Action] Same direction detected. Optimizing existing position protection.")

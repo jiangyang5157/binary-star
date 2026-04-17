@@ -16,10 +16,10 @@ def print_separator(title):
     print("="*60)
 
 def _make_executor():
-    """Creates a MarginOrderExecutor with a fully mocked client."""
     client = MagicMock()
     client.get_cross_margin_account.return_value = MarginAccountSummary(0.1, 0.0, 0.1, 999.0, "NORMAL", [])
     client.get_ticker_price.return_value = 70000.0
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", 0.0, 0.0, 0.0, 0.0)
     client.cancel_all_symbol_orders.return_value = True
     client.execute_market_close.return_value = True
     client.place_limit_order.return_value = 12345  # Mock order ID
@@ -61,18 +61,70 @@ def test_flat_with_stale_orders_to_long():
     assert order_id == 12345
     print("✅ Result: Cleared stale orders and placed LIMIT entry.")
 
-def test_pivot_short_to_long():
-    print_separator("SCENARIO: HOLDING SHORT -> LONG OPINION (PIVOT)")
+def test_pivot_short_to_long_no_sl():
+    """Case A-1: Opposing SHORT has NO stop loss → force-close and place new LONG entry."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (No SL = Force Close)")
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
+    client.get_active_orders.return_value = []  # No stop loss → Case A-1
     
     order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=74000, tp_price=76000, sl_price=73000)
     
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     client.execute_market_close.assert_called_once_with("BTCUSDT")
     client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=74000)
+    client.place_oco_order.assert_not_called()
     assert order_id == 12345
-    print("✅ Result: Cancelled orders, Market Closed Short, placed LIMIT entry Long.")
+    print("✅ Result: Opposing SHORT had no SL. Force-closed and placed new LONG entry.")
+
+def test_pivot_short_with_sl_to_long():
+    """Case A-2: Opposing SHORT has a stop loss → preserve it with midpoint TP + new LONG entry."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Has SL = Preserve + Midpoint TP)")
+    executor, client = _make_executor()
+    # SHORT position of 0.5 BTC
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
+    # SHORT's stop loss: BUY STOP_LOSS_LIMIT at 86000 (above current, protecting the short)
+    sl_order = MarginOrder("BTCUSDT", 55, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
+    client.get_active_orders.return_value = [sl_order]
+    # Current price is 84000, opinion entry is 82000
+    client.get_ticker_price.return_value = 84000.0
+    
+    order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=82000, tp_price=80000, sl_price=85000)
+    
+    # Step 1: Cancel all orders (clean slate)
+    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
+    # Step 2: Should NOT force-close the existing SHORT
+    client.execute_market_close.assert_not_called()
+    # Step 3: OCO placed to protect existing SHORT
+    #   midpoint_tp = (84000 + 82000) / 2 = 83000.0
+    #   buffered_sl = 86000 + 10.0 = 86010.0 (SHORT SL = trigger + buffer)
+    client.place_oco_order.assert_called_once_with(
+        symbol="BTCUSDT", side="BUY", qty=0.5,
+        price=83000.0, stop_price=86000, stop_limit_price=86010.0
+    )
+    # Step 4: New LONG LIMIT entry placed
+    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=82000)
+    assert order_id == 12345
+    print("✅ Result: Preserved SHORT with OCO (midpoint TP=83000, original SL=86000). Placed new LONG entry.")
+
+def test_pivot_short_with_sl_oco_fails_abort():
+    """Case A-2 failure: OCO placement fails → abort, do NOT place new entry (no naked position)."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Has SL, OCO Fails = ABORT)")
+    executor, client = _make_executor()
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
+    sl_order = MarginOrder("BTCUSDT", 55, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
+    client.get_active_orders.return_value = [sl_order]
+    client.get_ticker_price.return_value = 84000.0
+    client.place_oco_order.return_value = False  # OCO fails!
+    
+    order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=82000, tp_price=80000, sl_price=85000)
+    
+    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
+    client.execute_market_close.assert_not_called()
+    client.place_oco_order.assert_called_once()  # Attempted but failed
+    client.place_limit_order.assert_not_called()  # ABORTED: no naked entry
+    assert order_id is None
+    print("✅ Result: OCO failed → aborted new LONG entry. SHORT left without protection (already cancelled), operator alerted.")
 
 def test_same_direction_optimization():
     print_separator("SCENARIO: HOLDING LONG -> LONG OPINION (OPTIMIZATION)")
@@ -92,7 +144,7 @@ def test_same_direction_optimization():
     client.execute_market_close.assert_not_called()
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="SELL", qty=2.0,
-        price=76000, stop_price=73000, stop_limit_price=72999.0
+        price=76000, stop_price=73000, stop_limit_price=72990.0
     )
     assert order_id is None  # No new entry order for same-direction
     print("✅ Result: Protected Net Qty (2.0) with optimized TP (76000) and SL (73000).")
@@ -119,9 +171,9 @@ def test_guardian_no_trade_state():
     
     result = executor.guardian_check("BTCUSDT", {})
     
-    client.get_symbol_position.assert_not_called()
+    client.get_symbol_position.assert_called_once_with("BTCUSDT")
     assert result == {}
-    print("✅ Result: Guardian correctly skipped with empty state.")
+    print("✅ Result: Guardian correctly skipped with empty state (heartbeat check OK).")
 
 def test_guardian_entry_pending_not_expired():
     print_separator("GUARDIAN: Entry pending, not expired -> No-op")
@@ -185,7 +237,7 @@ def test_guardian_unprotected_position_place_oco():
     
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="SELL", qty=0.005,
-        price=76000.0, stop_price=73000.0, stop_limit_price=72999.0
+        price=76000.0, stop_price=73000.0, stop_limit_price=72990.0
     )
     assert "entry_order_id" not in result  # Entry tracking removed after OCO placed
     print("✅ Result: Guardian placed OCO to protect unprotected LONG position.")
@@ -235,7 +287,9 @@ def test_guardian_position_already_protected():
 if __name__ == "__main__":
     test_flat_to_long()
     test_flat_with_stale_orders_to_long()
-    test_pivot_short_to_long()
+    test_pivot_short_to_long_no_sl()
+    test_pivot_short_with_sl_to_long()
+    test_pivot_short_with_sl_oco_fails_abort()
     test_same_direction_optimization()
     test_non_whitelisted_symbol()
     test_guardian_no_trade_state()
