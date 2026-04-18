@@ -92,8 +92,9 @@ class EvolverAgent(BaseAgent):
             A dictionary containing the mutation proposal and rationale.
         """
         try:
-            logger.info(f"Evolver: Preparing context for {len(audit_reports)} forensic reports.")
-            reports_json = json.dumps(audit_reports, indent=2)
+            # v7.8: Compress audit reports to remove redundant observation topography (Token Optimization)
+            compressed_reports = self._compress_audit_reports(audit_reports)
+            reports_json = json.dumps(compressed_reports, indent=2)
             config_json = json.dumps(active_config, indent=2)
             
             # v6.11: Partitioned Markdown aggregation for precise semantic targeting
@@ -148,3 +149,42 @@ class EvolverAgent(BaseAgent):
         except Exception as e:
             logger.error(f"Evolver: Meta-optimization failed: {e}")
             raise
+    def _compress_audit_reports(self, reports: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Summarizes forensic audit reports to remove massive topographical noise.
+        We keep the decision, debate history, and performance metrics, but remove 
+        the raw observation data which is often redundant for global strategy evolution.
+        """
+        compressed = []
+        for report in reports:
+            c_report = {
+                "symbol": report.get("symbol"),
+                "timestamp": report.get("observed_at"),
+                "final_decision": report.get("final_decision", {}),
+                "performance": report.get("performance", {}),
+                "debate_summary": []
+            }
+            
+            # Summarize debate history to keep logic drift visibility
+            history = report.get("debate_history", [])
+            for entry in history:
+                c_report["debate_summary"].append({
+                    "round": entry.get("round"),
+                    "opinion": entry.get("plan", {}).get("opinion"),
+                    "veto_level": entry.get("critic", {}).get("veto_level"),
+                    "invalidations": entry.get("critic", {}).get("invalidations")
+                })
+            
+            # Include a high-fidelity summary of quantitative metrics for structural contrast
+            obs = report.get("observation", {})
+            metrics = obs.get("quantitative_metrics", {})
+            if metrics:
+                c_report["market_context_summary"] = {
+                    "market_regime": metrics.get("market_regime", {}),
+                    "price_dynamics": metrics.get("price_dynamics", {}),
+                    "volume_profile": metrics.get("volume_profile", {}),
+                    "structural_anchors": metrics.get("structural_anchors", {}),
+                    "sentiment_signals": metrics.get("sentiment_signals", {})
+                }
+                
+            compressed.append(c_report)
+        return compressed

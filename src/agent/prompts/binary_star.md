@@ -22,3 +22,30 @@ The logic unfolds in a deterministic sequence:
 - **Auditing**: Critic evaluates STRICTLY against its internal `CRITIC_CODES` and the iterative evolution in `{debate_history_json}` to identify logical or physical leaks.
 - **Synthesis**: The final convergent decision. Session MUST synthesize the entire `{debate_history_json}` Forensic Stack and the latest `math_fact_check` into a cold, deterministic verdict.
 - **Termination**: The convergence process MUST NOT exceed `{max_rounds}` rounds. If no consensus is reached, the system will force a synthesis of the latest refined plan vs current risk metrics.
+
+## 4. VISUAL_CONTEXT INTERPRETATION
+- **Structural Panorama**: These charts contain all critical anchors (POC, VAH/VAL, and High-Intensity Liquidation Clusters), providing visibility beyond the immediate candle range. 
+- **Volume Profile Distribution (Left Overlay)**: The horizontal histogram on the left side of the chart represents volume-at-price density. 
+  - **High Volume Nodes (HVNs)**: Peaks in the histogram; areas of maximum auction activity and high structural stability.
+  - **Point of Control (POC)**: The light-gray horizontal axis crossing the highest peak of the profile, representing the fair-value center.
+  - **Volume Panel (Bottom Histogram)**: Vertical bars at the base representing Volume-at-Time.
+    - **Intensity Spikes**: Tall bars indicate climax exhaustion or breakout validation.
+    - **Gaps/Silence**: Low bars indicate a structural vacuum or waning interest.
+  - **Color Semantics**: 
+    - **Teal (Support/Magnets)**: Clusters below price—representing Long Liquidation floors or liquidity magnets.
+    - **Coral (Resistance/Exhaustion)**: Clusters above price—representing Short Liquidation ceilings or exhaustion zones.
+  - **Analytical Mandate**: Integrate these distal features into your structural invalidation and target setting logic.
+
+## 5. SHARED LOGIC_MACROS
+- `IS_EXPANDING`: `volatility_expansion_index` > `{volatility_baseline_ratio}`
+- `IS_CHAOS`: `volatility_expansion_index` > `{volatility_extreme_ratio}`
+- `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
+- `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
+- `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
+- `HAS_VOLUME_SURGE`: `volatility_participation_ratio` > `{min_volume_participation_ratio}`
+- `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
+- `HAS_BULL_FLOW`: `cvd_intensity_ratio` > `{cvd_intensity_threshold}`
+- `HAS_BEAR_FLOW`: `cvd_intensity_ratio` < -`{cvd_intensity_threshold}`
+- `HAS_RETAIL_LONG_IMBALANCE`: `long_short_ratio_micro` > `{long_short_imbalance_ratio}`
+- `HAS_RETAIL_SHORT_IMBALANCE`: `long_short_ratio_micro` < `{short_heavy_imbalance_ratio}`
+- `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)

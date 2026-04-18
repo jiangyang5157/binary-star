@@ -96,7 +96,6 @@ class BinaryStarOrchestrator:
         # 4. Contextual Prompt Assembly (Support for Sandbox Injection)
         self.bs_instruction_path = os.path.join(resolve_project_root(), self.bs_config.get('system_instruction', ''))
         raw_instruction = self.instruction_overrides.get('binary_star') or read_prompt_template(self.bs_instruction_path)
-        self.shared_instruction = safe_format(raw_instruction, max_rounds=self.max_rounds)
         
         # 5. Type-Safe Configuration Slicing (Local Merge with Prompt Injection)
         local_context = {**self.config, **self.global_config}
@@ -108,6 +107,22 @@ class BinaryStarOrchestrator:
         self.critic_config = CriticConfig.from_dict(
             local_context, 
             instruction_literal=self.instruction_overrides.get('critic')
+        )
+        
+        # 5.1 Format shared instruction with constants
+        self.shared_instruction = safe_format(
+            raw_instruction,
+            max_rounds=self.max_rounds,
+            volatility_baseline_ratio=self.critic_config.volatility_baseline_ratio,
+            volatility_extreme_ratio=self.critic_config.volatility_extreme_ratio,
+            squeeze_threshold=self.critic_config.squeeze_threshold,
+            trend_intensity_threshold=self.critic_config.trend_intensity_threshold,
+            trend_intensity_strong=self.critic_config.trend_intensity_strong,
+            min_volume_participation_ratio=self.critic_config.min_volume_participation_ratio,
+            cvd_intensity_threshold=self.critic_config.cvd_intensity_threshold,
+            long_short_imbalance_ratio=self.critic_config.long_short_imbalance_ratio,
+            short_heavy_imbalance_ratio=self.critic_config.short_heavy_imbalance_ratio,
+            cvd_intensity_extreme=self.critic_config.cvd_intensity_extreme
         )
         
         # 6. Specialized Visualization Pipeline
@@ -267,7 +282,12 @@ class BinaryStarOrchestrator:
 
         # 1. Truth Bus Initialization (Context Caching)
 
-        observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
+        # Prune observation to remove raw paths since they are injected as multimodal Parts (Token Optimization)
+        pruned_observation = observation.copy()
+        if 'visual_context' in pruned_observation:
+            del pruned_observation['visual_context']
+
+        observation_json = json.dumps(pruned_observation, indent=2, ensure_ascii=False)
         visual_parts = self._extract_visual_parts(observation)
         
         try:
@@ -332,6 +352,8 @@ class BinaryStarOrchestrator:
             early_exit = False
 
             while current_round <= self.max_rounds:
+                compressed_history = self._compress_debate_history(debate_history)
+                
                 # Planning / Refinement
                 logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis (Planning State)...")
                 last_plan = self.session_agent.execute_session_cycle(
@@ -341,7 +363,7 @@ class BinaryStarOrchestrator:
                     agent_name=f"Session_Planning_R{current_round}",
                     cache_id=cache_resource_name, 
                     tools=tools, 
-                    debate_history=debate_history,
+                    debate_history=compressed_history,
                     visual_parts=visual_parts,
                     system_instruction=self.shared_instruction
                 )
@@ -351,17 +373,27 @@ class BinaryStarOrchestrator:
                 logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
                 math_fact_check = self._assemble_math_fact_check(last_plan, observation)
                 
-                critic_results = self.critic_agent.evaluate(
-                    observation=observation, 
-                    last_plan=last_plan, 
-                    symbol=symbol,
-                    debate_history=debate_history,
-                    cache_id=cache_resource_name,
-                    math_fact_check=math_fact_check,
-                    tools=None,
-                    visual_parts=visual_parts,
-                    system_instruction=self.shared_instruction
-                )
+                # Critic Fast Pass Pre-check (Token Optimization)
+                critic_results = None
+                opinion = last_plan.get("opinion", "NEUTRAL")
+                if opinion == "NEUTRAL" and math_fact_check.get("status") == "SKIPPED":
+                    fast_pass = self._evaluate_critic_fast_pass(debate_history, observation)
+                    if fast_pass:
+                        critic_results = fast_pass
+                        logger.info(f"BinaryStar: Critic Fast Pass successful! Pre-validated with {fast_pass['veto_level']}.")
+                
+                if not critic_results:
+                    critic_results = self.critic_agent.evaluate(
+                        observation=observation, 
+                        last_plan=last_plan, 
+                        symbol=symbol,
+                        debate_history=compressed_history,
+                        cache_id=cache_resource_name,
+                        math_fact_check=math_fact_check,
+                        tools=None,
+                        visual_parts=visual_parts,
+                        system_instruction=self.shared_instruction
+                    )
                 
                 # Score Telemetry
                 veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
@@ -374,9 +406,9 @@ class BinaryStarOrchestrator:
                     "math_fact_check": math_fact_check
                 })
                 
-                # Early Exit Check: If Critic issues a PASS, the plan is hardened.
-                if veto_level == "PASS":
-                    logger.info(f"BinaryStar: Pristine plan detected in Round {current_round}. Triggering early exit.")
+                # Smart Round Control (Early Exit on PASS or WEAK)
+                if veto_level in ["PASS", "WEAK"]:
+                    logger.info(f"BinaryStar: {veto_level} plan detected in Round {current_round}. Triggering early exit.")
                     early_exit = True
                     break
                     
@@ -454,6 +486,110 @@ class BinaryStarOrchestrator:
             except Exception as e:
                 logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
 
+
+    def _compress_debate_history(self, history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Compresses historical debate rounds to save tokens.
+        Keeps key names consistent with prompt expectations but strips heavy text fields.
+        """
+        if not history:
+            return history
+        
+        compressed = []
+        for i, entry in enumerate(history):
+            is_latest = (i == len(history) - 1)
+            
+            # If it's the latest round, keep it 100% full for maximum context fidelity
+            if is_latest:
+                compressed.append(entry)
+                continue
+            
+            # For older rounds, perform aggressive compression to save tokens
+            c_entry = {"round": entry.get("round")}
+            
+            plan = entry.get("plan", {})
+            c_entry["plan"] = {
+                "opinion": plan.get("opinion"),
+                "confidence_score": plan.get("confidence_score"),
+                "tactical_parameters": plan.get("tactical_parameters", {})
+            }
+            # Prune Reasoning Chain for old rounds
+            
+            critic = entry.get("critic", {})
+            c_entry["critic"] = {
+                "veto_level": critic.get("veto_level"),
+                "invalidations": critic.get("invalidations"),
+                "critic_summary": critic.get("critic_summary")
+            }
+            # Prune Audit Evidence for old rounds
+            
+            math_fc = entry.get("math_fact_check", {})
+            c_entry["math_fact_check"] = {
+                "status": math_fc.get("status"),
+                "compliance_verdict": math_fc.get("compliance_verdict")
+            }
+            compressed.append(c_entry)
+            
+        return compressed
+
+    def _evaluate_critic_fast_pass(self, debate_history: List[Dict[str, Any]], observation: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Python pre-flight check to bypass Critic API call in deterministic NEUTRAL scenarios."""
+        # 1. Check Amnesty Clause
+        has_terminal_in_history = any(
+            r.get("critic", {}).get("veto_level") == "TERMINAL" 
+            for r in debate_history
+        )
+        if has_terminal_in_history:
+            return {
+                "veto_level": "PASS",
+                "invalidations": ["[JUSTIFIED_INACTION]"],
+                "audit_evidence": "Amnesty Clause verified: TERMINAL veto in prior round justifies current NEUTRAL stance.",
+                "critic_summary": "Neutral stance justified by prior TERMINAL veto."
+            }
+            
+        # 2. Check strict non-confluence for INACTION_BIAS, TREND_STARVATION, OPPORTUNITY_DENIAL
+        metrics = observation.get('quantitative_metrics', {})
+        dyn = metrics.get('price_dynamics', {})
+        reg = metrics.get('market_regime', {})
+        sent = metrics.get('sentiment_signals', {})
+        topo = metrics.get('structural_anchors', {})
+        
+        sqz_audit_thresh = self.critic_config.squeeze_audit_threshold
+        min_vol_part = self.critic_config.min_volume_participation_ratio
+        poc_grav_dist = self.critic_config.poc_gravity_atr_distance
+        cvd_thresh = self.critic_config.cvd_intensity_threshold
+        cvd_extreme = self.critic_config.cvd_intensity_extreme
+        ti_strong = self.critic_config.trend_intensity_strong
+        vol_base = self.critic_config.volatility_baseline_ratio
+        vol_ext = self.critic_config.volatility_extreme_ratio
+        
+        squeeze_factor = reg.get('squeeze_factor', 1.0)
+        vol_part = reg.get('volume_participation_ratio', 1.0)
+        poc_dist = topo.get('poc_dist_atr', 0)
+        
+        has_inaction_bias = (squeeze_factor < sqz_audit_thresh and vol_part > min_vol_part) or abs(poc_dist) > poc_grav_dist
+        
+        cvd_intens = sent.get('cvd_intensity_ratio', 0)
+        has_flow_dom = abs(cvd_intens) > cvd_thresh
+        oi_delta = sent.get('oi_delta_micro', 0)
+        has_abs_risk = (oi_delta < 0) and (abs(cvd_intens) > cvd_extreme)
+        has_opp_denial = has_flow_dom and not has_abs_risk
+        
+        vol_exp = dyn.get('volatility_expansion_index', 1.0)
+        is_exp = vol_exp > vol_base
+        is_chaos = vol_exp > vol_ext
+        ti = reg.get('trend_intensity', 0)
+        is_trend_strong = abs(ti) > ti_strong
+        has_trend_starv = is_exp and not is_chaos and is_trend_strong
+        
+        if not has_inaction_bias and not has_opp_denial and not has_trend_starv:
+            return {
+                "veto_level": "PASS",
+                "invalidations": ["[JUSTIFIED_INACTION]"],
+                "audit_evidence": "Confluence Audit: No inaction bias, trend starvation, or opportunity denial conditions met.",
+                "critic_summary": "Neutral stance justified by telemetry."
+            }
+            
+        return None
 
     def _assemble_math_fact_check(self, plan: Dict[str, Any], observation: Dict[str, Any]) -> Dict[str, Any]:
         """Calculates deterministic mathematical truth for an AI proposal.

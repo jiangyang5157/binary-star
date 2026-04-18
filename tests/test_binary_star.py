@@ -43,7 +43,7 @@ class TestBinaryStarFlow:
         
         # Never converges (Always returns high skepticism)
         orchestrator.session_agent.execute_session_cycle = MagicMock(
-            return_value=MockDataFactory.create_mock_ai_response("NEUTRAL")
+            return_value=MockDataFactory.create_mock_ai_response("BULLISH")
         )
         orchestrator.critic_agent.evaluate = MagicMock(
             return_value=MockDataFactory.create_mock_critic_response(level="TERMINAL")
