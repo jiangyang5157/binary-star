@@ -102,6 +102,7 @@ python run_session.py --start T-30d --end T-2d --samples 50 --sampling-mode snip
 *   **实时监控 (Sniper Mode)**：基于 **v15 零熵三类觉醒探测器**（TYPE_A 势能 / TYPE_B 动能 / TYPE_C 结构）捕捉异动。系统参数已在 `global_config.yaml` 中实现垂直硬化，实现 1:1 的工程映射备份。
 ```bash
 python run_sniper.py --trigger --email
+python run_sniper.py --trigger --email --trade
 ```
 
 ### 2. 取证审计 (Forensic Audit)
@@ -109,6 +110,7 @@ python run_sniper.py --trigger --email
 ```bash
 python run_audit.py -p data/prod
 python run_audit.py -p data/backtest --file data/backtest/sessions/{symbol}_session_{timestamp}.json
+python run_audit.py -p data/backtest/v18_r50
 ```
 
 ### 3. 账本看板 (Ledger Dashboard)
