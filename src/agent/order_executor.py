@@ -115,23 +115,21 @@ class MarginOrderExecutor:
                 # 2. Determine new TP for the preserved position
                 #    User Logic: If existing TP exists and is mathematically strictly "better" 
                 #    than new entry, keep it. Else set it identically to the new entry.
-                existing_tp_order = next(
-                    (o for o in active_orders
-                     if o.side == exit_side_of_current
-                     and o.type in ["LIMIT", "LIMIT_MAKER"]),
-                    None
-                )
+                #    We scan ALL matching limits (in case a previous pending Entry limit 'C' sits alongside the OCO TP 'A')
+                #    and pick the mathematically optimal one to represent our original TP.
+                current_tps = [
+                    o.price for o in active_orders
+                    if o.side == exit_side_of_current and o.type in ["LIMIT", "LIMIT_MAKER"] and o.price > 0
+                ]
                 
-                original_tp = existing_tp_order.price if existing_tp_order and existing_tp_order.price > 0 else None
-                
-                if original_tp:
+                if current_tps:
                     if current_direction == "SHORT":
-                        # For short, lower TP is better
-                        midpoint_tp = original_tp if original_tp < entry_price else entry_price
+                        original_tp = min(current_tps)
+                        midpoint_tp = min(original_tp, entry_price)
                     else:
-                        # For long, higher TP is better
-                        midpoint_tp = original_tp if original_tp > entry_price else entry_price
-                    logger.info(f"Executor: [Pivot-Preserve] Original TP {original_tp}, New Entry {entry_price}. Selected TP = {midpoint_tp}")
+                        original_tp = max(current_tps)
+                        midpoint_tp = max(original_tp, entry_price)
+                    logger.info(f"Executor: [Pivot-Preserve] Found old TPs {current_tps}, New Entry {entry_price}. Selected TP = {midpoint_tp}")
                 else:
                     midpoint_tp = entry_price
                     logger.info(f"Executor: [Pivot-Preserve] No original TP found. Setting TP to new entry {midpoint_tp}")
