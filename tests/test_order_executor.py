@@ -125,6 +125,36 @@ def test_pivot_short_with_optimal_tp_to_long():
     )
     print("✅ Result: Preserved SHORT with OCO (optimal TP=79000, original SL=86000). Placed new LONG entry.")
 
+def test_pivot_short_with_oco_and_stale_limit():
+    """Case A-2c: Opposing SHORT has an OCO (A & B) AND a stale Limit entry (C). The system must extract the BEST TP among A and C."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (OCO + Stale Limit Disambiguation)")
+    executor, client = _make_executor()
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
+    
+    # B: OCO Stop Loss
+    sl_order = MarginOrder("BTCUSDT", 100, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
+    # A: OCO Take Profit (Original TP) -> 73000
+    tp_order = MarginOrder("BTCUSDT", 101, "", 73000, 0.5, 0.0, "NEW", "GTC", "LIMIT_MAKER", "BUY", 0)
+    # C: Stale Opinion Entry Limit -> 74000
+    stale_limit = MarginOrder("BTCUSDT", 102, "", 74000, 0.5, 0.0, "NEW", "GTC", "LIMIT", "BUY", 0)
+    
+    # Send all 3 orders!
+    client.get_active_orders.return_value = [sl_order, tp_order, stale_limit]
+    client.get_ticker_price.return_value = 84000.0
+    
+    # New Opinion Entry is 74600
+    order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=74600, tp_price=80000, sl_price=85000)
+    
+    # The system should pick `min(73000, 74000, 74600)` which is 73000 (A)!
+    client.place_oco_order.assert_called_once_with(
+        symbol="BTCUSDT", side="BUY", qty=0.5,
+        price=73000.0, stop_price=86000, stop_limit_price=86010.0
+    )
+    # The system should place the new LIMIT at 74600 (New C)
+    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=74600)
+    
+    print("✅ Result: Disambiguated multiple limits accurately! Preserved OCO with true best TP (73000) against Old Limit (74000).")
+
 def test_pivot_short_with_sl_oco_fails_abort():
     """Case A-2 failure: OCO placement fails → abort, do NOT place new entry (no naked position)."""
     print_separator("SCENARIO: PIVOT SHORT->LONG (Has SL, OCO Fails = ABORT)")
@@ -308,6 +338,7 @@ if __name__ == "__main__":
     test_pivot_short_to_long_no_sl()
     test_pivot_short_with_sl_to_long()
     test_pivot_short_with_optimal_tp_to_long()
+    test_pivot_short_with_oco_and_stale_limit()
     test_pivot_short_with_sl_oco_fails_abort()
     test_same_direction_optimization()
     test_non_whitelisted_symbol()
