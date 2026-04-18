@@ -111,7 +111,7 @@ class SniperDaemon:
                 if not is_noteworthy:
                     # Low-entropy log for sleeping state
                     status = reason if "COOLDOWN" in reason else "SLEEPING"
-                    logger.debug(f"[{now_str}] 💤 {status} | No actionable asymmetry detected.")
+                    print(f"[{now_str}] 💤 {status} | No actionable asymmetry detected.")
                 else:
                     # High-fidelity event logging with prominent UI
                     print("\n" + "!"*60)
