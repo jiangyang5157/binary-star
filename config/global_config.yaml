@@ -104,13 +104,13 @@ sniper:
   # [Tick-Scale Probes]: Micro-sensitivity for 15s heartbeats.
   # 0.02 = 2% net flow change in 15 seconds.
   #  TYPE_B (CVD 背离) 
-  cvd_divergence_tick_delta: 0.12
+  cvd_divergence_tick_delta: 0.08
   #  TYPE_B (CVD 强度) 
-  cvd_impulse_tick_delta: 0.18
+  cvd_impulse_tick_delta: 0.15
   
   # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
   # 1.0 = any increase, 1.1 = 10% growth required.
-  cvd_growth_significance_ratio: 1.5
+  cvd_growth_significance_ratio: 1.2
 
   # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
   # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
@@ -119,8 +119,8 @@ sniper:
   # [Structural]: Multipliers for structural proximity (TYPE_C).
   # VAH/VAL: 0.8 = requires price to be 20% closer to boundary.
   # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
-  vah_val_trigger_multiplier: 1.2
-  poc_trigger_multiplier: 0.8
+  vah_val_trigger_multiplier: 1.5
+  poc_trigger_multiplier: 1.0
   liq_trigger_multiplier: 0.8
 
 sandbox:

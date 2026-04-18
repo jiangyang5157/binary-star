@@ -112,15 +112,42 @@ class MarginOrderExecutor:
                     logger.error("Executor: [ABORT Pivot-Preserve] Failed to cancel existing orders.")
                     return None
                 
-                # 2. Calculate midpoint TP: between current price and new opinion entry
-                #    Guarantees the opposing position closes BEFORE the new entry fills.
-                current_price = self.client.get_ticker_price(symbol)
-                p_price = cfg["precision_price"]
-                midpoint_tp = round((current_price + entry_price) / 2, p_price)
-                logger.info(
-                    f"Executor: [Pivot-Preserve] Midpoint TP = "
-                    f"({current_price} + {entry_price}) / 2 = {midpoint_tp}"
+                # 2. Determine new TP for the preserved position
+                #    User Logic: If existing TP exists and is mathematically strictly "better" 
+                #    than new entry, keep it. Else set it identically to the new entry.
+                existing_tp_order = next(
+                    (o for o in active_orders
+                     if o.side == exit_side_of_current
+                     and o.type in ["LIMIT", "LIMIT_MAKER"]),
+                    None
                 )
+                
+                original_tp = existing_tp_order.price if existing_tp_order and existing_tp_order.price > 0 else None
+                
+                if original_tp:
+                    if current_direction == "SHORT":
+                        # For short, lower TP is better
+                        midpoint_tp = original_tp if original_tp < entry_price else entry_price
+                    else:
+                        # For long, higher TP is better
+                        midpoint_tp = original_tp if original_tp > entry_price else entry_price
+                    logger.info(f"Executor: [Pivot-Preserve] Original TP {original_tp}, New Entry {entry_price}. Selected TP = {midpoint_tp}")
+                else:
+                    midpoint_tp = entry_price
+                    logger.info(f"Executor: [Pivot-Preserve] No original TP found. Setting TP to new entry {midpoint_tp}")
+                
+                # Format to precision
+                p_price = cfg["precision_price"]
+                midpoint_tp = round(midpoint_tp, p_price)
+                
+                # Binance OCO Safety Check: limit must be correctly above/below current mark
+                current_price = self.client.get_ticker_price(symbol)
+                if current_direction == "SHORT" and midpoint_tp >= current_price:
+                    midpoint_tp = round(current_price * 0.999, p_price)
+                    logger.warning(f"Executor: [Pivot-Sanitization] TP {entry_price} >= Current {current_price}. Adjusting to {midpoint_tp} to satisfy Binance OCO rules.")
+                elif current_direction == "LONG" and midpoint_tp <= current_price:
+                    midpoint_tp = round(current_price * 1.001, p_price)
+                    logger.warning(f"Executor: [Pivot-Sanitization] TP {entry_price} <= Current {current_price}. Adjusting to {midpoint_tp} to satisfy Binance OCO rules.")
                 
                 # 3. Re-hang OCO for the existing opposing position
                 #    (original SL trigger + midpoint TP)

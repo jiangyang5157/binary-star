@@ -96,16 +96,34 @@ def test_pivot_short_with_sl_to_long():
     # Step 2: Should NOT force-close the existing SHORT
     client.execute_market_close.assert_not_called()
     # Step 3: OCO placed to protect existing SHORT
-    #   midpoint_tp = (84000 + 82000) / 2 = 83000.0
+    #   No existing TP, so new TP = new entry = 82000
     #   buffered_sl = 86000 + 10.0 = 86010.0 (SHORT SL = trigger + buffer)
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="BUY", qty=0.5,
-        price=83000.0, stop_price=86000, stop_limit_price=86010.0
+        price=82000, stop_price=86000, stop_limit_price=86010.0
     )
     # Step 4: New LONG LIMIT entry placed
     client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=82000)
     assert order_id == 12345
-    print("✅ Result: Preserved SHORT with OCO (midpoint TP=83000, original SL=86000). Placed new LONG entry.")
+    print("✅ Result: Preserved SHORT with OCO (new TP=82000, original SL=86000). Placed new LONG entry.")
+
+def test_pivot_short_with_optimal_tp_to_long():
+    """Case A-2b: Opposing SHORT has a TP that is better than the new entry → keep it."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Optimal TP Kept)")
+    executor, client = _make_executor()
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
+    sl_order = MarginOrder("BTCUSDT", 55, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
+    tp_order = MarginOrder("BTCUSDT", 56, "", 79000, 0.5, 0.0, "NEW", "GTC", "LIMIT_MAKER", "BUY", 0) # 79000 is < 82000!
+    client.get_active_orders.return_value = [sl_order, tp_order]
+    client.get_ticker_price.return_value = 84000.0
+    
+    order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=82000, tp_price=80000, sl_price=85000)
+    
+    client.place_oco_order.assert_called_once_with(
+        symbol="BTCUSDT", side="BUY", qty=0.5,
+        price=79000.0, stop_price=86000, stop_limit_price=86010.0
+    )
+    print("✅ Result: Preserved SHORT with OCO (optimal TP=79000, original SL=86000). Placed new LONG entry.")
 
 def test_pivot_short_with_sl_oco_fails_abort():
     """Case A-2 failure: OCO placement fails → abort, do NOT place new entry (no naked position)."""
@@ -289,6 +307,7 @@ if __name__ == "__main__":
     test_flat_with_stale_orders_to_long()
     test_pivot_short_to_long_no_sl()
     test_pivot_short_with_sl_to_long()
+    test_pivot_short_with_optimal_tp_to_long()
     test_pivot_short_with_sl_oco_fails_abort()
     test_same_direction_optimization()
     test_non_whitelisted_symbol()
