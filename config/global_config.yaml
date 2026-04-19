@@ -31,11 +31,11 @@ network:
 
 visuals:
   # --- Chart Rendering Tokens ---
-  render_dpi: 200
+  render_dpi: 120
   bg_color: "#0d1117"       # GitHub Dark Deep (v7.2 standard)
   up_color: "#26a69a"       # Teal
   down_color: "#ef5350"     # Coral
-  current_price_color: "#000000" # Bright Yellow/Gold for distinct price tracking
+  current_price_color: "#FFD700" # Bright Yellow/Gold for distinct price tracking
   poc_color: "#B0B0B0"      # Silver-Neutral (v9.1: Subtle Structural Axis)
   vah_val_color: "#A0A0A0"    # Silver-Gray (VAH/VAL)
   volume_profile:

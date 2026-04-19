@@ -26,7 +26,7 @@ The logic unfolds in a deterministic sequence:
 - **Structural Panorama**: These charts use a **Dual-Panel Layout** providing physical ground-truth beyond text abstractions. All panels share a numerical Y-axis on the **right side**. The **Timeline (X-Axis)** is hidden to prioritize spatial topography over temporal labels.
 - **Top Panel (Price & Topography)**: 
   - **Candlesticks**: The primary price action record.
-  - **Current Price Tracker**: A neutral-gray dashed horizontal line marking the real-time market price.
+  - **Current Price Tracker**: A bright-gold dashed horizontal line marking the real-time market price.
   - **Volume Profile (Left Overlay)**: Horizontal histogram representing volume-at-price density. 
     - **High Volume Nodes (HVNs)**: Peaks representing areas of maximum auction stability.
     - **Point of Control (POC)**: The light-gray horizontal axis crossing the highest peak.
