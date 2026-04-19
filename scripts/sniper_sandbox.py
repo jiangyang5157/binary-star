@@ -79,6 +79,14 @@ def main():
                         dispatcher = EmailDispatcher(config)
                         now_str = datetime.now(timezone.utc).isoformat()
                         
+                        # v7.1: Specialized Chinese Type Explanations
+                        TYPE_DESC = {
+                            "TYPE_A (Breakout)": "<b>势能破局</b> - 检测到波动率爆发或物理挤压，代表盘面即将变盘，势能正在从静默转向发力。",
+                            "TYPE_B (Asymmetry)": "<b>动能失衡</b> - 监测到显著的机构资金流向或散户情绪偏振，代表市场内部力量对比发生剧烈倾斜。",
+                            "TYPE_C (Structural)": "<b>关键拓扑</b> - 价格运行至筹码密集区边界、POC磁吸点或爆仓密集区，代表正在测试关键支撑或阻力结构。"
+                        }
+                        type_desc_zh = TYPE_DESC.get(t_type, "未知信号类型")
+
                         subject = f"🔫 [SANDBOX] Sniper Trigger: {args.symbol} | {t_type}"
                         
                         html_body = f"""
@@ -90,14 +98,17 @@ def main():
                                     <div style="display: inline-block; padding: 4px 12px; border-radius: 50px; background-color: #3b82f615; color: #3b82f6; font-weight: 700; font-size: 11px; margin-bottom: 8px;">
                                         🎯 SNIPER SANDBOX SIGNAL
                                     </div>
-                                    <h1 style="color: #0f172a; margin: 0; font-size: 24px;">{args.symbol} Signal Detected</h1>
-                                    <p style="color: #64748b; font-size: 13px;">Detected at {to_html_display(now_str)}</p>
+                                    <h1 style="color: #0f172a; margin: 0; font-size: 24px;">{args.symbol} 信号触发</h1>
+                                    <p style="color: #64748b; font-size: 13px;">检测时间: {to_html_display(now_str)}</p>
                                 </div>
                                 
                                 <div class="panel" style="background-color: #f8fafc; border-left: 4px solid #3b82f6;">
-                                    <h3 class="panel-title">📡 Trigger Details</h3>
-                                    <p style="font-size: 14px; margin-bottom: 10px;"><b>Type:</b> {t_type}</p>
-                                    <p style="font-size: 14px;"><b>Reasoning:</b></p>
+                                    <h3 class="panel-title">📡 触发详情 (Trigger Details)</h3>
+                                    <p style="font-size: 14px; margin-bottom: 10px;"><b>信号类型:</b> {t_type}</p>
+                                    <p style="font-size: 14px; margin-bottom: 15px; color: #334155; line-height: 1.5; background: #eff6ff; padding: 10px; border-radius: 6px;">
+                                        {type_desc_zh}
+                                    </p>
+                                    <p style="font-size: 14px; margin-bottom: 5px;"><b>判定逻辑 (Reasoning):</b></p>
                                     <div style="background: #ffffff; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 13px; line-height: 1.6;">
                                         {BaseEmailTemplate.render_md(reason)}
                                     </div>

@@ -151,12 +151,14 @@ class SniperTrigger:
                 
                 # Bullish: Price down, CVD up | Bearish: Price up, CVD down
                 if (price_delta > 0 and cvd_delta_raw < 0) or (price_delta < 0 and cvd_delta_raw > 0):
-                    return True, f"CVD Acceleration Divergence (Price:{price_delta:.1f}, CVD Delta:{cvd_delta_raw:.3f} | Threshold: {divergence_threshold})"
+                    trend = "顶部派发 [警惕见顶回撤]" if price_delta > 0 else "底部吸筹 [关注止跌反弹]"
+                    return True, f"CVD 超速背离 [量价背离] (价格变动:{price_delta:.1f}, CVD变动:{cvd_delta_raw:.3f} | 阈值: {divergence_threshold}) | **趋势推演: {trend}**"
 
             # B. 暴力大单脉冲 (Impulse) - v6.71: Tick Delta Acceleration
             pulse_threshold = self.sniper_cfg['cvd_impulse_tick_delta']
             if cvd_delta_abs > pulse_threshold:
-                return True, f"CVD Impulse Detected (Delta: {cvd_delta_abs:.3f} | Threshold: {pulse_threshold})"
+                trend = "多头大单突袭" if cvd_delta_raw > 0 else "空头大单压制"
+                return True, f"CVD 异常脉冲 [大单突袭] (变动值: {cvd_delta_abs:.3f} | 阈值: {pulse_threshold}) | **趋势推演: {trend}**"
 
         # --- [高优] 全局绝对动量锁定 (Absolute Momentum) ---
         if abs(cvd) > cvd_threshold:
@@ -168,16 +170,19 @@ class SniperTrigger:
                 if not is_significant:
                     should_trigger = False
                     
-            if should_trigger:
-                cvd_vol_delta = sent.get('cvd_volume_delta', 0.0)
-                cvd_vol = sent.get('cvd_total_volume', 0.0)
-                cvd_lookback_candles = sent.get('cvd_lookback_candles', 0)
-                micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
-                return True, (
-                    f"Institutional CVD flow (Intensity: {cvd:.3f} | "
-                    f"Delta: {cvd_vol_delta:.1f} | Vol: {cvd_vol:.1f} | "
-                    f"Window: {cvd_lookback_candles}k @ {micro_int} | Threshold: {cvd_threshold:.2f})"
-                )
+                if should_trigger:
+                    cvd_vol_delta = sent.get('cvd_volume_delta', 0.0)
+                    cvd_vol = sent.get('cvd_total_volume', 0.0)
+                    cvd_lookback_candles = sent.get('cvd_lookback_candles', 0)
+                    micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
+                    
+                    trend = "激进多头主导，短期持续看涨" if cvd > 0 else "激进空头主导，短期持续看跌"
+                    return True, (
+                        f"机构级 CVD 异常流向 [绝对动量突破] (强度: {cvd:.3f} | "
+                        f"累计差值: {cvd_vol_delta:.1f} | 成交量: {cvd_vol:.1f} | "
+                        f"窗口: {cvd_lookback_candles}k @ {micro_int} | 阈值: {cvd_threshold:.2f}) | "
+                        f"**趋势推演: {trend}**"
+                    )
 
         # --- [常态保底] 散户情绪与资金环境极值 (Ambient Sentiment) ---
         ls = sent.get('ls_ratio_micro', 1.0)
@@ -185,13 +190,15 @@ class SniperTrigger:
            ls < self.regime_cfg['short_heavy_imbalance_ratio']:
             now = datetime.now(timezone.utc)
             if self._check_state_lock("AMBIENT_LS_RATIO", now):
-                return True, f"Retail Sentiment Over-extension (L/S: {ls:.2f})"
+                trend = "多头拥挤，防范爆多踩踏风险" if ls > 1.0 else "空头拥挤，防范空头回补/空头挤压爆发"
+                return True, f"零售情绪过度扩张 [反向指标提醒] (多空比: {ls:.2f}) | **趋势推演: {trend}**"
 
         funding = sent.get('funding_rate', 0.0)
         if abs(funding) > self.regime_cfg['funding_extreme_threshold']:
             now = datetime.now(timezone.utc)
             if self._check_state_lock("AMBIENT_FUNDING", now):
-                return True, f"Funding Rate Extreme (Rate: {funding:.5f})"
+                trend = "多头过热，警惕力竭回撤" if funding > 0 else "空头过热，警惕力竭反弹"
+                return True, f"资金费率极端值 [情绪偏振检测] (费率: {funding:.5f}) | **趋势推演: {trend}**"
 
         return False, None
 
@@ -218,11 +225,13 @@ class SniperTrigger:
            part > self.regime_cfg['min_volume_participation_ratio']:
             side = "VAH" if dist_vh < dist_val else "VAL"
             if self._check_state_lock(f"BOUNDARY_{side}", now):
-                return True, f"携量撞墙 (Heavy Boundary Test): Dist to {side}={min(dist_vh, dist_val):.2f} ATR (Threshold: {vah_val_threshold:.2f})"
+                trend = f"测试 {side} 关键阻力，若无法带量突破则倾向于回转 POC" if side == "VAH" else f"测试 {side} 关键支撑，若放量跌破则下方空间打开"
+                return True, f"携量撞墙 [关键边界测试]: 距离 {side}={min(dist_vh, dist_val):.2f} ATR (阈值: {vah_val_threshold:.2f}) | **趋势推演: {trend}**"
 
         if dist_poc < poc_trigger_threshold:
             if self._check_state_lock("POC_MAGNET", now):
-                return True, f"POC 磁吸/回踩 (Gravity Test): Dist to POC={dist_poc:.2f} ATR (Threshold: {poc_trigger_threshold:.2f})"
+                trend = "引力回归中，价格倾向于在成交最密集区域震荡或企稳"
+                return True, f"POC 磁吸/回踩 [引力回归测试]: 距离 POC={dist_poc:.2f} ATR (阈值: {poc_trigger_threshold:.2f}) | **趋势推演: {trend}**"
 
         # DNA Mapping: liquidation_magnet -> liq_trigger_threshold (v7.0 Aligned with granular multiplier)
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
@@ -233,7 +242,8 @@ class SniperTrigger:
                 dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
                 if dist_atr < liq_trigger_threshold:
                     if self._check_state_lock(f"LONG_LIQ_{int(p/100)*100}", now):
-                        return True, f"多头爆仓磁吸 (Long Liq Magnet - Support Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {liq_trigger_threshold:.2f})"
+                        trend = "多头清算磁吸，价格大概率下探以清除多头流动性点位"
+                        return True, f"多头爆仓磁吸 [支撑位测试]: 价格={p:.2f}, 距离={dist_atr:.2f} ATR (阈值: {liq_trigger_threshold:.2f}) | **趋势推演: {trend}**"
             
             # Process Short Liquidations (Squeeze magnets)
             for cluster in liq_clusters.get('short_liquidation', []):
@@ -241,7 +251,8 @@ class SniperTrigger:
                 dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
                 if dist_atr < liq_trigger_threshold:
                     if self._check_state_lock(f"SHORT_LIQ_{int(p/100)*100}", now):
-                        return True, f"空头爆仓磁吸 (Short Liq Magnet - Squeeze Test): Price={p:.2f}, Dist={dist_atr:.2f} ATR (Threshold: {liq_trigger_threshold:.2f})"
+                        trend = "空头清算磁吸，价格大概率上攻以清除空头流动性点位"
+                        return True, f"空头爆仓磁吸 [挤压位测试]: 价格={p:.2f}, 距离={dist_atr:.2f} ATR (阈值: {liq_trigger_threshold:.2f}) | **趋势推演: {trend}**"
 
         return False, None
 
