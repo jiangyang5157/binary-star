@@ -107,48 +107,44 @@ class MarginOrderExecutor:
                     f"{original_sl_trigger}. Preserving position and adjusting TP."
                 )
                 
+                # 2. Determine if the flip point has already been overshot
+                current_price = self.client.get_ticker_price(symbol)
+                is_overshot = (
+                    (current_direction == "SHORT" and current_price <= entry_price) or
+                    (current_direction == "LONG" and current_price >= entry_price)
+                )
+
+                if is_overshot:
+                    logger.warning(
+                        f"Executor: [Pivot-Overshot] Price {current_price} already past entry {entry_price}. "
+                        f"Executing immediate Market Close for {current_direction}."
+                    )
+                    if not self.client.cancel_all_symbol_orders(symbol):
+                        logger.error("Executor: [ABORT Pivot-Overshot] Failed to cancel orders.")
+                        return None
+                    if not self.client.execute_market_close(symbol):
+                        logger.error("Executor: [ABORT Pivot-Overshot] Failed to Market Close.")
+                        return None
+                    
+                    # Proceed to place new entry
+                    logger.info(f"Executor: [Pivot-Overshot] Placing new {opinion_direction} LIMIT entry at {entry_price}.")
+                    return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
+
+                # 3. Standard Case: Re-hang OCO with TP aligned to new entry
+                pivot_tp = entry_price
+                logger.info(f"Executor: [Pivot-Preserve] Setting TP to new entry {pivot_tp}")
+                
                 # 1. Cancel all existing orders (clean slate before re-hanging)
                 if not self.client.cancel_all_symbol_orders(symbol):
                     logger.error("Executor: [ABORT Pivot-Preserve] Failed to cancel existing orders.")
                     return None
-                
-                # 2. Determine new TP for the preserved position
-                #    User Logic: If existing TP exists and is mathematically strictly "better" 
-                #    than new entry, keep it. Else set it identically to the new entry.
-                #    We scan ALL matching limits (in case a previous pending Entry limit 'C' sits alongside the OCO TP 'A')
-                #    and pick the mathematically optimal one to represent our original TP.
-                current_tps = [
-                    o.price for o in active_orders
-                    if o.side == exit_side_of_current and o.type in ["LIMIT", "LIMIT_MAKER"] and o.price > 0
-                ]
-                
-                if current_tps:
-                    if current_direction == "SHORT":
-                        original_tp = min(current_tps)
-                        midpoint_tp = min(original_tp, entry_price)
-                    else:
-                        original_tp = max(current_tps)
-                        midpoint_tp = max(original_tp, entry_price)
-                    logger.info(f"Executor: [Pivot-Preserve] Found old TPs {current_tps}, New Entry {entry_price}. Selected TP = {midpoint_tp}")
-                else:
-                    midpoint_tp = entry_price
-                    logger.info(f"Executor: [Pivot-Preserve] No original TP found. Setting TP to new entry {midpoint_tp}")
-                
+
                 # Format to precision
                 p_price = cfg["precision_price"]
-                midpoint_tp = round(midpoint_tp, p_price)
+                pivot_tp = round(pivot_tp, p_price)
                 
-                # Binance OCO Safety Check: limit must be correctly above/below current mark
-                current_price = self.client.get_ticker_price(symbol)
-                if current_direction == "SHORT" and midpoint_tp >= current_price:
-                    midpoint_tp = round(current_price * 0.999, p_price)
-                    logger.warning(f"Executor: [Pivot-Sanitization] TP {entry_price} >= Current {current_price}. Adjusting to {midpoint_tp} to satisfy Binance OCO rules.")
-                elif current_direction == "LONG" and midpoint_tp <= current_price:
-                    midpoint_tp = round(current_price * 1.001, p_price)
-                    logger.warning(f"Executor: [Pivot-Sanitization] TP {entry_price} <= Current {current_price}. Adjusting to {midpoint_tp} to satisfy Binance OCO rules.")
-                
-                # 3. Re-hang OCO for the existing opposing position
-                #    (original SL trigger + midpoint TP)
+                # 4. Re-hang OCO for the existing opposing position
+                #    (original SL trigger + pivot TP)
                 buffer = cfg.get("sl_slippage_buffer", 0.0)
                 # SHORT SL is a BUY above current → limit is trigger + buffer
                 # LONG  SL is a SELL below current → limit is trigger - buffer
@@ -158,7 +154,7 @@ class MarginOrderExecutor:
                     symbol=symbol,
                     side=exit_side_of_current,
                     qty=abs(net_qty),
-                    price=midpoint_tp,
+                    price=pivot_tp,
                     stop_price=original_sl_trigger,
                     stop_limit_price=buffered_sl
                 )

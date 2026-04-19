@@ -108,8 +108,8 @@ def test_pivot_short_with_sl_to_long():
     print("✅ Result: Preserved SHORT with OCO (new TP=82000, original SL=86000). Placed new LONG entry.")
 
 def test_pivot_short_with_optimal_tp_to_long():
-    """Case A-2b: Opposing SHORT has a TP that is better than the new entry → keep it."""
-    print_separator("SCENARIO: PIVOT SHORT->LONG (Optimal TP Kept)")
+    """Case A-2b: Previously this kept the 'better' TP. Now it MUST align with new entry for Seamless Flip."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Seamless Flip: TP Aligns with Entry)")
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
     sl_order = MarginOrder("BTCUSDT", 55, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
@@ -119,15 +119,16 @@ def test_pivot_short_with_optimal_tp_to_long():
     
     order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=82000, tp_price=80000, sl_price=85000)
     
+    # The system should pick the new entry_price (82000) regardless of the old TP (79000)
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="BUY", qty=0.5,
-        price=79000.0, stop_price=86000, stop_limit_price=86010.0
+        price=82000.0, stop_price=86000, stop_limit_price=86010.0
     )
-    print("✅ Result: Preserved SHORT with OCO (optimal TP=79000, original SL=86000). Placed new LONG entry.")
+    print("✅ Result: Correctly aligned SHORT TP to new entry 82000 (ignoring old 79000).")
 
 def test_pivot_short_with_oco_and_stale_limit():
-    """Case A-2c: Opposing SHORT has an OCO (A & B) AND a stale Limit entry (C). The system must extract the BEST TP among A and C."""
-    print_separator("SCENARIO: PIVOT SHORT->LONG (OCO + Stale Limit Disambiguation)")
+    """Case A-2c: Opposing SHORT has an OCO AND a stale Limit entry. The system must ignore them and use new Entry."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Alignment ignoring Stale/Old Limits)")
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
     
@@ -145,15 +146,40 @@ def test_pivot_short_with_oco_and_stale_limit():
     # New Opinion Entry is 74600
     order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=74600, tp_price=80000, sl_price=85000)
     
-    # The system should pick `min(73000, 74000, 74600)` which is 73000 (A)!
+    # The system should pick the new entry_price (74600)
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="BUY", qty=0.5,
-        price=73000.0, stop_price=86000, stop_limit_price=86010.0
+        price=74600.0, stop_price=86000, stop_limit_price=86010.0
     )
     # The system should place the new LIMIT at 74600 (New C)
     client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=74600)
     
-    print("✅ Result: Disambiguated multiple limits accurately! Preserved OCO with true best TP (73000) against Old Limit (74000).")
+    print("✅ Result: Correctly aligned to new entry 74600, ignoring older/stale limits.")
+
+def test_pivot_short_to_long_overshot():
+    """Case A-2d: Price has already overshot the entry point -> Market Close instead of OCO."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Overshot = Market Close)")
+    executor, client = _make_executor()
+    # SHORT position of 0.5 BTC
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
+    sl_order = MarginOrder("BTCUSDT", 55, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
+    client.get_active_orders.return_value = [sl_order]
+    
+    # Entry is 70000, but current price is 69950 (overshot for a SHORT)
+    client.get_ticker_price.return_value = 69950.0
+    
+    order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=70000, tp_price=75000, sl_price=69000)
+    
+    # Step 1: Cancel all orders
+    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
+    # Step 2: SHOULD execute market close because it's overshot
+    client.execute_market_close.assert_called_once_with("BTCUSDT")
+    # Step 3: Should NOT place OCO
+    client.place_oco_order.assert_not_called()
+    # Step 4: Place new LONG entry
+    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=70000)
+    
+    print("✅ Result: Detected overshot price 69950 (vs entry 70000). Market closed SHORT before placing LONG.")
 
 def test_pivot_short_with_sl_oco_fails_abort():
     """Case A-2 failure: OCO placement fails → abort, do NOT place new entry (no naked position)."""
@@ -337,6 +363,7 @@ if __name__ == "__main__":
     test_flat_with_stale_orders_to_long()
     test_pivot_short_to_long_no_sl()
     test_pivot_short_with_sl_to_long()
+    test_pivot_short_to_long_overshot()
     test_pivot_short_with_optimal_tp_to_long()
     test_pivot_short_with_oco_and_stale_limit()
     test_pivot_short_with_sl_oco_fails_abort()
