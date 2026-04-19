@@ -197,8 +197,8 @@ binary_star:
     # 时空权重矩阵 (Weight)
     temporal_weight_highway: 2.0     # [放权] 额度: 96小时。主升浪中，趋势是最好的护城河，允许4天长跑。
     temporal_weight_standard: 1.0    # [基准] 额度: 48小时。常规波段，遵守两日轮动定律。
-    temporal_weight_dead_water: 0.5  # [高压] 额度: 24小时。死水区无趋势，隔夜风险剧增，强制日内结清。
-    temporal_weight_climax: 0.25     # [极控] 额度: 12小时。混沌期只有插针，拔剑必须见血，不见血即刻撤退。
+    temporal_weight_dead_water: 0.6  # [低压] 额度: ~29小时。死水区无趋势，放宽容忍度，减少频繁拦截。
+    temporal_weight_climax: 0.3      # [极控] 额度: ~14小时。混沌期只有插针，拔剑必须见血，保留核心防御力。
 
     # 动态时间膨胀系数 (Dilation)
     temporal_dilation_highway: 1.2 # [冗余 20%]：动能极强，价格走直线。只需极小缓冲来覆盖回踩和滑点。
