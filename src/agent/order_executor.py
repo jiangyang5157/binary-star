@@ -132,7 +132,7 @@ class MarginOrderExecutor:
 
                 # 3. Standard Case: Re-hang OCO with TP aligned to new entry
                 pivot_tp = entry_price
-                logger.info(f"Executor: [Pivot-Preserve] Setting TP to new entry {pivot_tp}")
+                logger.info(f"Executor: [Pivot-Preserve] Protecting existing {current_direction} volume. Set its TP to {pivot_tp} (aligned with new entry for seamless flip).")
                 
                 # 1. Cancel all existing orders (clean slate before re-hanging)
                 if not self.client.cancel_all_symbol_orders(symbol):
@@ -166,7 +166,7 @@ class MarginOrderExecutor:
                     return None
                 
                 # 4. Place the new opinion's LIMIT entry alongside the preserved position
-                logger.info(f"Executor: [Pivot-Preserve] Placing new {opinion_direction} LIMIT entry at {entry_price}.")
+                logger.info(f"Executor: [Pivot-Preserve] Pivot setup complete. Entering new {opinion_direction} at {entry_price} (SL: {sl_price}).")
                 return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
             
             else:
@@ -347,6 +347,11 @@ class MarginOrderExecutor:
                 elif order.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]:
                     current_sls.append(order.stop_price if order.stop_price > 0 else order.price)
 
+        if current_tps:
+            logger.info(f"Executor: Found existing TPs for {direction}: {current_tps}")
+        if current_sls:
+            logger.info(f"Executor: Found existing SLs for {direction}: {current_sls}")
+
         best_tp = new_tp
         best_sl = new_sl
 
@@ -362,8 +367,7 @@ class MarginOrderExecutor:
             if current_sls:
                 best_sl = min(min(current_sls), new_sl) # Lower SL is less loss
 
-        logger.info(f"Executor: Optimized TP -> {best_tp} (Opinion was {new_tp})")
-        logger.info(f"Executor: Optimized SL -> {best_sl} (Opinion was {new_sl})")
+        logger.info(f"Executor: Final Strategic Targets -> TP: {best_tp} (Opinion: {new_tp}), SL: {best_sl} (Opinion: {new_sl})")
 
         # Clean slate the orders to apply the unified OCO over the entire Net Qty
         logger.info(f"Executor: Cancelling existing orders to wrap entire Net Qty ({net_qty}) with new OCO.")
@@ -463,6 +467,8 @@ class MarginOrderExecutor:
     def _place_entry_order(self, symbol: str, direction: str, entry_price: float, sl_price: float) -> Optional[int]:
         """Places a LIMIT entry order. Returns order_id for Guardian tracking."""
         dynamic_qty = self._calculate_target_qty(symbol, entry_price, sl_price)
+        
+        logger.info(f"Executor: [DEPLOYING] Polarity: {direction} | Entry: {entry_price} | SL Trigger: {sl_price} | Qty: {dynamic_qty}")
         
         side = "BUY" if direction == "LONG" else "SELL"
         order_id = self.client.place_limit_order(
