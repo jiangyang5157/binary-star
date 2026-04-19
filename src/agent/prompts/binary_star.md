@@ -23,18 +23,21 @@ The logic unfolds in a deterministic sequence:
 - **Synthesis**: The final convergent decision. Session MUST synthesize the entire `{debate_history_json}` Forensic Stack and the latest `math_fact_check` into a cold, deterministic verdict.
 - **Termination**: The convergence process MUST NOT exceed `{max_rounds}` rounds. If no consensus is reached, the system will force a synthesis of the latest refined plan vs current risk metrics.
 
-## 4. VISUAL_CONTEXT INTERPRETATION
-- **Structural Panorama**: These charts contain all critical anchors (POC, VAH/VAL, and High-Intensity Liquidation Clusters), providing visibility beyond the immediate candle range. 
-- **Volume Profile Distribution (Left Overlay)**: The horizontal histogram on the left side of the chart represents volume-at-price density. 
-  - **High Volume Nodes (HVNs)**: Peaks in the histogram; areas of maximum auction activity and high structural stability.
-  - **Point of Control (POC)**: The light-gray horizontal axis crossing the highest peak of the profile, representing the fair-value center.
-  - **Volume Panel (Bottom Histogram)**: Vertical bars at the base representing Volume-at-Time.
-    - **Intensity Spikes**: Tall bars indicate climax exhaustion or breakout validation.
-    - **Gaps/Silence**: Low bars indicate a structural vacuum or waning interest.
-  - **Color Semantics**: 
-    - **Teal (Support/Magnets)**: Clusters below price—representing Long Liquidation floors or liquidity magnets.
-    - **Coral (Resistance/Exhaustion)**: Clusters above price—representing Short Liquidation ceilings or exhaustion zones.
-  - **Analytical Mandate**: Integrate these distal features into your structural invalidation and target setting logic.
+- **Structural Panorama**: These charts use a **Dual-Panel Layout** providing physical ground-truth beyond text abstractions. All panels share a numerical Y-axis on the **right side**. The **Timeline (X-Axis)** is hidden to prioritize spatial topography over temporal labels.
+- **Top Panel (Price & Topography)**: 
+  - **Candlesticks**: The primary price action record.
+  - **Current Price Tracker**: A neutral-gray dashed horizontal line marking the real-time market price.
+  - **Volume Profile (Left Overlay)**: Horizontal histogram representing volume-at-price density. 
+    - **High Volume Nodes (HVNs)**: Peaks representing areas of maximum auction stability.
+    - **Point of Control (POC)**: The light-gray horizontal axis crossing the highest peak.
+    - **VAH (Upper Dash) & VAL (Lower Dash)**: Silver-gray dashed lines representing Value Area boundaries.
+  - **Liquidation Heatmap**: Semitransparent bands identifying where leverage clusters are concentrated.
+    - **Teal**: Long liquidation clusters.
+    - **Coral**: Short liquidation clusters.
+- **Bottom Panel (Volume & Momentum)**: 
+  - **Volume Histogram**: Vertical bars representing Volume-at-Time.
+    - **Intensity Spikes**: Tall bars marking volume surges.
+    - **Gaps/Silence**: Short bars marking liquidity vacuums.
 
 ## 5. SHARED LOGIC_MACROS
 - `IS_EXPANDING`: `volatility_expansion_index` > `{volatility_baseline_ratio}`

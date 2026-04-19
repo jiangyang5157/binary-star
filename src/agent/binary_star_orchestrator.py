@@ -431,7 +431,7 @@ class BinaryStarOrchestrator:
                     agent_name="Session_Synthesis",
                     cache_id=cache_resource_name, 
                     tools=tools, 
-                    debate_history=debate_history,
+                    debate_history=self._compress_debate_history(debate_history),
                     visual_parts=visual_parts,
                     system_instruction=self.shared_instruction
                 )

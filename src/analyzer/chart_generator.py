@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import mplfinance as mpf
 import matplotlib.collections as mcoll
+from matplotlib.ticker import MaxNLocator
 from dataclasses import dataclass
 from typing import Dict, List, Any, Optional, Union
 from src.utils.datetime_utils import format_timestamp_for_filename
@@ -233,10 +234,9 @@ class ChartVisualRenderer:
                 volume=True, 
                 panel_ratios=(self.config.chart_main_panel_weight, self.config.chart_volume_panel_weight),
                 style=self._get_mpf_style(), 
-                title=f"{symbol} - {time_interval} ({plot_df.index[0].strftime('%Y-%m-%d %H:%M')} -> {plot_df.index[-1].strftime('%Y-%m-%d %H:%M')})",
+                title=f"{symbol} | {time_interval}",
                 hlines=hlines,
                 ylim=(y_min, y_max),           # Enforce the adaptive topographical range
-                savefig=dict(fname=filepath, dpi=self.config.render_dpi, bbox_inches='tight'),
                 returnfig=True,
                 show_nontrading=False,          # Focus strictly on market periods
                 scale_width_adjustment=dict(volume=0.7) # Thinner pillars for better separation
@@ -263,13 +263,20 @@ class ChartVisualRenderer:
                     tick_label_color = ax.yaxis.get_ticklabels()[0].get_color() if ax.yaxis.get_ticklabels() else self.config.vah_val_color
                     
                     if i == 0:
-                        ax.set_ylabel('Price', color=tick_label_color, fontsize=11, fontweight='bold')
+                        ax.set_ylabel('')
                         ax.yaxis.set_label_position('right')
+                        # v12.2 Aesthetic: Remove the horizontal separator line for modern look
+                        ax.spines['bottom'].set_visible(False)
+                        # v12.2 Hardening: Lock price tick density to 6 for consistent scale feel
+                        ax.yaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))
                     elif i == 2: # Volume panel usually at index 2
-                        ax.set_ylabel('Volume', color=tick_label_color, fontsize=11, fontweight='bold')
+                        ax.set_ylabel('')
                         ax.yaxis.set_label_position('right')
                         
-                        # v11.8 Logic: Surgical targeting to only affect data bars (EXCLUDING axis background)
+                        # v12.1/2 Anti-Overlap: Lock density to 3 bins
+                        ax.yaxis.set_major_locator(MaxNLocator(nbins=3, prune='upper', integer=True))
+                        
+                        # v11.8 Logic: Surgical targeting to only affect data bars...
                         for child in ax.get_children():
                             # Skip the axis background patch itself
                             if child is ax.patch:
@@ -356,6 +363,7 @@ class ChartVisualRenderer:
                     )
 
                 # Finalize and Save
+                fig.subplots_adjust(hspace=0.03)  # v12.1: Add subtle vertical padding between panels
                 fig.savefig(filepath, dpi=self.config.render_dpi, bbox_inches='tight')
             finally:
                 # CRITICAL: Always close the figure to prevent memory accumulation

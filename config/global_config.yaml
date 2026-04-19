@@ -31,7 +31,7 @@ network:
 
 visuals:
   # --- Chart Rendering Tokens ---
-  render_dpi: 300
+  render_dpi: 200
   bg_color: "#0d1117"       # GitHub Dark Deep (v7.2 standard)
   up_color: "#26a69a"       # Teal
   down_color: "#ef5350"     # Coral
