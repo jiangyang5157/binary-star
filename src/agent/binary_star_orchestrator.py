@@ -2,7 +2,6 @@ import json
 import os
 import logging
 from typing import Dict, Any, List, Optional
-from google import genai
 from google.genai import types
 
 from src.infrastructure.gemini.cache_manager import GeminiCacheManager

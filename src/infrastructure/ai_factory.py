@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Optional, Dict
+from typing import Any, Dict
 from google import genai
 from src.infrastructure.ollama_adapter import OllamaAdapter
 from src.utils.pipeline_utils import load_config
