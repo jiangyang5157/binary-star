@@ -9,6 +9,7 @@ from src.infrastructure.gemini.cache_manager import GeminiCacheManager
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.agent.session_agent import SessionAgent, SessionConfig
 from src.agent.critic_agent import CriticAgent, CriticConfig
+from src.infrastructure.ai_factory import AIFactory
 from src.utils.math_utils import MathTools
 from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
@@ -70,8 +71,12 @@ class BinaryStarOrchestrator:
                      max_bytes=10 * 1024 * 1024, backup_count=5)  # 10MB x 5 = 50MB max
         logger.info(f"--- Binary Star Session Activated: {self.data_root} ---")
         
-        # 1. Shared Infrastructure Clients
-        self.client = genai.Client(api_key=api_key)
+        # 1. Shared Infrastructure Clients (Dynamic Provider Selection)
+        self.client = AIFactory.create_client(api_key=api_key, config_dict=self.global_config)
+        
+        # v12.0: Multi-provider Logic - Proactively disable cache if using local AI
+        from src.infrastructure.ollama_adapter import OllamaAdapter
+        self.is_local_ai = isinstance(self.client, OllamaAdapter)
         self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # 2. Global Environment Constants (Resolved from Global Config)
@@ -84,9 +89,13 @@ class BinaryStarOrchestrator:
         self.retry_multiplier = float(retry_strategy['multiplier'])
         self.retry_min = int(retry_strategy['min_seconds'])
         self.retry_max = int(retry_strategy['max_seconds'])
-        cache_cfg = gemini_net['context_cache']
+        llm_gemini = self.global_config['llm']['gemini']
+        cache_cfg = llm_gemini['context_cache']
         self.cache_expiration_minutes = int(cache_cfg['expiration_minutes'])
         self.enable_context_cache = bool(cache_cfg['enable'])
+        if self.is_local_ai:
+            logger.info("BinaryStar: Local AI detected. Forcing enable_context_cache=False.")
+            self.enable_context_cache = False
         
         # 3. Binary Star Protocol Parameters (Neural Infrastructure)
         self.llm_bs_config = self.global_config['llm']['binary_star']

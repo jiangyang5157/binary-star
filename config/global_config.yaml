@@ -25,12 +25,20 @@ network:
       min_seconds: 5
       max_seconds: 40
     api_pacing_seconds: 0
+
+llm:
+  # --- Central Neural Infrastructure ---
+  active_provider: "gemini" # Options: "gemini", "ollama"
+  
+  gemini:
     context_cache:
       enable: true
       expiration_minutes: 10
 
-llm:
-  # --- Central Neural Infrastructure ---
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "gemma4:e4b"
+
   binary_star:
     model: "gemini-3-flash-preview"
     system_instruction: "src/agent/prompts/binary_star.md"
@@ -79,8 +87,6 @@ analytical:
 
 session:
   confidence_threshold: 60
-
-critic: {}
 
 backtest:
   # Default sample size for backtest simulation
