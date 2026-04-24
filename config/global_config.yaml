@@ -29,6 +29,22 @@ network:
       enable: true
       expiration_minutes: 10
 
+llm:
+  # --- Central Neural Infrastructure ---
+  binary_star:
+    model: "gemini-3-flash-preview"
+    system_instruction: "src/agent/prompts/binary_star.md"
+    max_rounds: 2
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    session_role_prompt: "src/agent/prompts/session.md"
+    critic_role_prompt: "src/agent/prompts/critic.md"
+
+  evolver:
+    model: "gemini-3.1-pro-preview"
+    model_temperature: 0.0
+    role_prompt: "src/agent/prompts/evolver.md"
+
 visuals:
   # --- Chart Rendering Tokens ---
   render_dpi: 120
@@ -62,18 +78,15 @@ analytical:
   indicator_warmup_multiplier: 5.0
 
 session:
-  role_definition_prompt: "src/agent/prompts/session.md"
   confidence_threshold: 60
 
-critic:
-  role_definition_prompt: "src/agent/prompts/critic.md"
+critic: {}
 
 backtest:
   # Default sample size for backtest simulation
   default_samples: 1
 
 evolution:
-  role_definition_prompt: "src/agent/prompts/evolver.md"
   # Default sample size for audit ingestion
   default_samples: 10
 

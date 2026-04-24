@@ -111,14 +111,21 @@ class MockDataFactory:
                 "default_symbol": "BTCUSDT",
                 "notification_confidence_floor": 50
             },
-            "session": {
-                "role_definition_prompt": "src/agent/prompts/session.md"
-            },
-            "critic": {
-                "role_definition_prompt": "src/agent/prompts/critic.md"
-            },
-            "evolution": {
-                "role_definition_prompt": "src/agent/prompts/evolver.md"
+            "llm": {
+                "binary_star": {
+                    "model": "mock-model",
+                    "system_instruction": "src/agent/prompts/binary_star.md",
+                    "max_rounds": 3,
+                    "session_temperature": 0.7,
+                    "critic_temperature": 0.2,
+                    "session_role_prompt": "src/agent/prompts/session.md",
+                    "critic_role_prompt": "src/agent/prompts/critic.md"
+                },
+                "evolver": {
+                    "model": "mock-evolver",
+                    "model_temperature": 0.0,
+                    "role_prompt": "src/agent/prompts/evolver.md"
+                }
             },
             "visuals": {
                 "up_color": "#089981",
@@ -156,13 +163,7 @@ class MockDataFactory:
             },
             # 2. Strategy Config Keys
             "binary_star": {
-                "model": "mock-model",
-                "max_rounds": 3,
-                "cache_expiration_minutes": 10,
-                "system_instruction": "config/strategy_config.yaml",
                 "session": {
-                    "model_temperature": 0.7,
-                    "role_definition_prompt": "prompts/session.md",
                     "min_trade_velocity": 0.5,
                     "stop_loss_buffer_min": 0.1,
                     "holding_time_modifier": 1.0,
@@ -175,10 +176,6 @@ class MockDataFactory:
                     "temporal_weight_dead_water": 0.5,
                     "temporal_weight_climax": 0.25,
                     "max_holding_hours": 48.0
-                },
-                "critic": {
-                    "model_temperature": 0.2,
-                    "role_definition_prompt": "src/agent/prompts/critic.md",
                 }
             },
             "agent_model_shared_config": {"max_tool_iterations": 5},

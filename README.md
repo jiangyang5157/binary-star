@@ -78,8 +78,8 @@ graph TD
 ### 0. 环境准备 (重要)
 
 ```bash
-# crypto 是 Conda 环境名称
-conda activate crypto
+# ai 是 Conda 环境名称
+conda activate ai
 # pip install -r requirements.txt
 ```
 

@@ -67,8 +67,8 @@ class CriticConfig(AgentConfig):
     @classmethod
     def from_dict(cls, cfg_dict: Dict[str, Any], instruction_literal: Optional[str] = None) -> "CriticConfig":
         """Factory method to assemble a CriticConfig from the global strategy configuration."""
+        llm = cfg_dict['llm']['binary_star']
         bs = cfg_dict['binary_star']
-        critic_cfg = bs['critic']
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
         sampling = cfg_dict['analysis_window']
@@ -77,9 +77,9 @@ class CriticConfig(AgentConfig):
         visuals = cfg_dict['visuals']
         
         return cls(
-            model=str(bs['model']),
-            instruction_path=os.path.join(resolve_project_root(), cfg_dict['critic']['role_definition_prompt']),
-            model_temperature=float(critic_cfg['model_temperature']),
+            model=str(llm['model']),
+            instruction_path=os.path.join(resolve_project_root(), llm['critic_role_prompt']),
+            model_temperature=float(llm['critic_temperature']),
             max_tool_iterations=int(cfg_dict['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_node['min_trade_velocity']),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),

@@ -81,6 +81,7 @@ class SessionConfig(AgentConfig):
         Returns:
             A populated SessionConfig instance.
         """
+        llm = cfg['llm']['binary_star']
         bs = cfg['binary_star']
         session_cfg = bs['session']
         regime = cfg['regime_parameters']
@@ -90,9 +91,9 @@ class SessionConfig(AgentConfig):
         visuals = cfg['visuals']
         
         return cls(
-            model=str(bs['model']),
-            model_temperature=float(session_cfg['model_temperature']),
-            instruction_path=os.path.join(resolve_project_root(), cfg['session']['role_definition_prompt']),
+            model=str(llm['model']),
+            model_temperature=float(llm['session_temperature']),
+            instruction_path=os.path.join(resolve_project_root(), llm['session_role_prompt']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_cfg['min_trade_velocity']),
             stop_loss_buffer_min=float(session_cfg['stop_loss_buffer_min']),

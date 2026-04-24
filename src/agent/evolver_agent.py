@@ -21,12 +21,11 @@ class EvolverConfig(AgentConfig):
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
         """Factory method to extract evolver config from the standalone evolver node."""
-        evolver_cfg = cfg.get('evolver', {})
-        # Note: role_definition_prompt is the legacy key in strategy_config.yaml
+        evolver_llm = cfg['llm']['evolver']
         return cls(
-            model=str(evolver_cfg['model']),
-            instruction_path=os.path.join(resolve_project_root(), cfg['evolution']['role_definition_prompt']),
-            model_temperature=float(evolver_cfg['model_temperature']),
+            model=str(evolver_llm['model']),
+            instruction_path=os.path.join(resolve_project_root(), evolver_llm['role_prompt']),
+            model_temperature=float(evolver_llm['model_temperature']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations'])
         )
 

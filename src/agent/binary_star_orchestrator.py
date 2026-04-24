@@ -88,13 +88,13 @@ class BinaryStarOrchestrator:
         self.cache_expiration_minutes = int(cache_cfg['expiration_minutes'])
         self.enable_context_cache = bool(cache_cfg['enable'])
         
-        # 3. Binary Star Protocol Parameters
-        self.bs_config = self.config['binary_star']
-        self.max_rounds = int(self.bs_config['max_rounds'])
-        self.shared_model = self.bs_config['model']
+        # 3. Binary Star Protocol Parameters (Neural Infrastructure)
+        self.llm_bs_config = self.global_config['llm']['binary_star']
+        self.max_rounds = int(self.llm_bs_config['max_rounds'])
+        self.shared_model = self.llm_bs_config['model']
         
         # 4. Contextual Prompt Assembly (Support for Sandbox Injection)
-        self.bs_instruction_path = os.path.join(resolve_project_root(), self.bs_config.get('system_instruction', ''))
+        self.bs_instruction_path = os.path.join(resolve_project_root(), self.llm_bs_config.get('system_instruction', ''))
         raw_instruction = self.instruction_overrides.get('binary_star') or read_prompt_template(self.bs_instruction_path)
         
         # 5. Type-Safe Configuration Slicing (Local Merge with Prompt Injection)

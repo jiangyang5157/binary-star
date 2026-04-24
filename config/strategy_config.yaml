@@ -174,17 +174,7 @@ topography_parameters:
   max_liquidation_events_to_fetch: 50
 
 binary_star:
-  # gemini-3.1-pro-preview
-  # gemini-3-flash-preview
-  # gemini-3-flash-preview
-  model: gemini-3-flash-preview
-  # Root instructions for the adversarial debate.
-  system_instruction: src/agent/prompts/binary_star.md
-  # Maximum rounds of debate before forced consensus or surrender.
-  max_rounds: 2
-
   session:
-    model_temperature: 0.5
 
     # Minimum required ATR drift to justify an entry.
     min_trade_velocity: 0.4
@@ -205,14 +195,3 @@ binary_star:
     temporal_dilation_standard: 1.5 # [冗余 50%]：常态市场进三退二。物理时间 20 小时，脚本追踪 30 小时，给足结构发育的时间。
     temporal_dilation_dead_water: 2.0 # [冗余 100%]：死水区价格黏性极大，全是毛刺。物理上 10 小时的路程，需要 20 小时才能“磨”到。
     temporal_dilation_climax: 1.0 # [冗余 0%]：极端波动，非生即死。不需要缓冲，如果物理预期时间内没打到目标，说明逻辑已经破产。
-    
-  critic:
-    model_temperature: 0.1
-
-evolver:
-  # gemini-3.1-pro-preview
-  # gemini-3-flash-preview
-  # gemini-3.1-flash-lite-preview
-  model: gemini-3.1-pro-preview
-  # Deterministic temperature to ensure logic consistency.
-  model_temperature: 0.0
