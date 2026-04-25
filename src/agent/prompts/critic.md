@@ -55,7 +55,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | **Math Violation** | NOT `IS_RR_VALID` OR `compliance_verdict.atr_volatility_is_logical` == FALSE | `[MATH_VIOLATION]` | `CONSTRUCTIVE` |
 | **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `volume_participation_ratio` > `{min_volume_participation_ratio}` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
 | **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_FLOW_DOMINANCE` AND NOT `HAS_ABSORPTION_RISK` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
-| **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND NOT `IN_NEUTRAL` | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
+| **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND `IN_NEUTRAL` | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
 | **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH` | `[RETAIL_LONG_SQUEEZE]` | `TERMINAL` |
 | **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `TERMINAL` |
 | **Absorption Trap** | `HAS_ABSORPTION_RISK` AND `HAS_FLOW_OPPOSITION` | `[CVD_ABSORPTION]` | `WEAK` |
