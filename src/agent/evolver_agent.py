@@ -155,16 +155,21 @@ class EvolverAgent(BaseAgent):
         """
         compressed = []
         for report in reports:
+            # v6.11: Field Mapping Correction - Align with actual audit JSON schema
+            obs = report.get("observation", {})
+            session = report.get("session", {})
+            outcome = report.get("market_outcome", {})
+            
             c_report = {
-                "symbol": report.get("symbol"),
-                "timestamp": report.get("observed_at"),
-                "final_decision": report.get("final_decision", {}),
-                "performance": report.get("performance", {}),
+                "symbol": obs.get("symbol"),
+                "timestamp": obs.get("observed_at"),
+                "final_decision": session.get("final_decision", {}),
+                "performance": outcome,
                 "debate_summary": []
             }
             
             # Summarize debate history to keep logic drift visibility
-            history = report.get("debate_history", [])
+            history = session.get("debate_history", [])
             for entry in history:
                 c_report["debate_summary"].append({
                     "round": entry.get("round"),
@@ -174,7 +179,6 @@ class EvolverAgent(BaseAgent):
                 })
             
             # Include a high-fidelity summary of quantitative metrics for structural contrast
-            obs = report.get("observation", {})
             metrics = obs.get("quantitative_metrics", {})
             if metrics:
                 c_report["market_context_summary"] = {
