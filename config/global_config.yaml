@@ -111,7 +111,7 @@ sniper:
 
   # [Mute]: Multiplier for cooldown during extreme volatility expansion.
   # 2.0 = double the standard wait time (pulse_cooldown_multiplier) when volatility is in 'Chaos' regime.
-  chaos_cooldown_multiplier: 3.0
+  chaos_cooldown_multiplier: 2.0
 
   # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
   # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
