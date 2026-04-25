@@ -93,6 +93,7 @@ def run_task(args_tuple):
 def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Auditor v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
+    parser.add_argument("--symbol", type=str, help="Optional: Filter batch audit by symbol")
     parser.add_argument("--email", action="store_true", help="Dispatch forensic reports via email")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")
     
@@ -139,6 +140,15 @@ def main():
             
         logger.info(f"Batch Mode: Scanning for sessions in {sessions_dir}...")
         files_to_audit = [os.path.join(sessions_dir, f) for f in os.listdir(sessions_dir) if f.endswith(".json")]
+        
+        # Resolve symbol: Priority to argument, then global default
+        from src.utils.pipeline_utils import load_global_config
+        symbol = args.symbol or load_global_config().get('system', {}).get('default_symbol')
+        
+        if symbol:
+            logger.info(f"Filtering batch by symbol: {symbol}")
+            files_to_audit = [f for f in files_to_audit if os.path.basename(f).startswith(f"{symbol}_")]
+            
         files_to_audit.sort() # Process in chronological order
         
     if not files_to_audit:

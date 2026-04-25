@@ -1,6 +1,6 @@
 import os
 import sys
-import json
+import argparse
 from dotenv import load_dotenv
 
 # Ensure the project root is in the path
@@ -9,22 +9,21 @@ sys.path.append(project_root)
 
 from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.utils.logger_utils import setup_logger
+from src.utils.pipeline_utils import load_global_config
 
 logger = setup_logger("check_margin")
 
 def main():
+    parser = argparse.ArgumentParser(description="Check Binance Spot Cross Margin Status")
+    parser.add_argument("--symbol", type=str, help="Symbol to check (e.g., BTCUSDT)")
+    args = parser.parse_args()
+
     # Load environment variables from .env
     load_dotenv(os.path.join(project_root, ".env"))
     
     try:
-        import yaml
-        config_path = os.path.join(project_root, "config", "global_config.yaml")
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Global configuration file missing at {config_path}")
-            
-        with open(config_path, 'r') as f:
-            cfg = yaml.safe_load(f)
-            symbol = cfg["system"]["default_symbol"]
+        cfg = load_global_config()
+        symbol = args.symbol or cfg["system"]["default_symbol"]
 
         client = BinanceMarginClient()
         
