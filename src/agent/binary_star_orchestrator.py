@@ -45,6 +45,7 @@ class BinaryStarOrchestrator:
                  config_dict: Dict[str, Any], 
                  api_key: str, 
                  data_root: str,
+                 symbol: str,
                  instruction_overrides: Optional[Dict[str, str]] = None,
                  exchange_client: Optional[AbstractExchangeClient] = None):
         """Initializes the orchestrator as a central resource and configuration hub.
@@ -58,6 +59,7 @@ class BinaryStarOrchestrator:
         self.config = config_dict
         self.api_key = api_key
         self.data_root = data_root
+        self.symbol = symbol
         self.instruction_overrides = instruction_overrides or {}
         
         # 0. Global Configuration Merging (Physical Split maintained for Snapshot Purity)
@@ -162,7 +164,7 @@ class BinaryStarOrchestrator:
         # 7. Reasoner Triad Assembly (Dependency Injection)
         self.observer = MarketObserver(
             config=self.obs_config,
-            symbol=self.global_config['system']['default_symbol'], 
+            symbol=self.symbol, 
             data_root=self.data_root,
             exchange_client=self.exchange_client,
             chart_generator=self.chart_gen
