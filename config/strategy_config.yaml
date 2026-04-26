@@ -34,7 +34,7 @@ regime_parameters:
   # Threshold for 'High Conviction' trends where aggressive participation is enabled.
   trend_intensity_strong: 0.35
   # Minimum trend intensity required to justify directional trades during volatility expansion.
-  trend_intensity_min_expansion: 0.2
+  trend_intensity_min_expansion: 0.15
 
   # --- Volatility & Risk Fractals (Noise Management) ---
   # Ratio of current ATR vs Macro Baseline. >1.3 indicates volatility expansion.
@@ -58,7 +58,7 @@ regime_parameters:
   poc_gravity_atr_distance: 3.5
 
   # Protective margin behind structural levels to filter 'Wick Exhaustion'.
-  structural_buffer_atr: 0.65
+  structural_buffer_atr: 0.75
   # Proximity to VAH/VAL required for high-probability entries.
   structural_proximity_threshold: 0.5
 
@@ -103,7 +103,7 @@ regime_parameters:
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
   breakout_frontrun_atr: 0.5
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
-  max_entry_distance_atr: 0.75
+  max_entry_distance_atr: 0.85
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
   chaos_rr_discount: 0.35
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
