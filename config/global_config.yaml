@@ -3,7 +3,7 @@ system:
   # default_symbol: "XAUTUSDT"
 
 trade_management:
-  risk_per_trade: 0.003      # Max % loss of total equity allowed per trade
+  risk_per_trade: 0.002      # Max % loss of total equity allowed per trade
   net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
   BTCUSDT:
     precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
