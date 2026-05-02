@@ -1,4 +1,3 @@
-import ollama
 import logging
 from typing import List, Dict, Any, Optional, Union
 from dataclasses import dataclass
@@ -103,6 +102,7 @@ class OllamaAdapter:
         
         # 5. Execute via Ollama
         try:
+            import ollama
             logger.info(f"OllamaAdapter: Dispatching request to {target_model} (JSON_MODE={is_json_requested})...")
             response = ollama.chat(
                 model=target_model,

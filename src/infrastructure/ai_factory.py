@@ -1,7 +1,6 @@
 import logging
 from typing import Any, Dict
 from google import genai
-from src.infrastructure.ollama_adapter import OllamaAdapter
 from src.utils.pipeline_utils import load_config
 
 logger = logging.getLogger(__name__)
@@ -18,6 +17,7 @@ class AIFactory:
             provider = llm_cfg.get('active_provider', 'gemini').lower()
             
             if provider == 'ollama':
+                from src.infrastructure.ollama_adapter import OllamaAdapter
                 ollama_cfg = llm_cfg.get('ollama', {})
                 base_url = ollama_cfg.get('base_url')
                 model = ollama_cfg.get('model')
