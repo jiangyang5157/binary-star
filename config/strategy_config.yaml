@@ -101,14 +101,14 @@ regime_parameters:
   liq_radar_grid_padding_atr: 5.0    # Buffer around price extremes in Micro ATR units.
 
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
-  breakout_frontrun_atr: 0.5
+  breakout_frontrun_atr: 0.25
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
-  max_entry_distance_atr: 0.85
+  max_entry_distance_atr: 0.5
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
   chaos_rr_discount: 0.35
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
-  min_rr_ranging: 0.8
-  min_rr_trending: 0.9
+  min_rr_ranging: 1
+  min_rr_trending: 1.2
 
 audit_review:
   # --- Forensic Evaluation Parameters (v6.11 Hardened) ---
