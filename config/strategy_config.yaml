@@ -103,7 +103,7 @@ regime_parameters:
   # Aggressive offset for 'Front-Running' institutional liquidity clusters.
   breakout_frontrun_atr: 0.25
   # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
-  max_entry_distance_atr: 0.5
+  max_entry_distance_atr: 0.75
   # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
   chaos_rr_discount: 0.35
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
