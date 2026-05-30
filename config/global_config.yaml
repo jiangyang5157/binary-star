@@ -1,6 +1,6 @@
 system:
-  default_symbol: "BTCUSDT"
-  # default_symbol: "XAUTUSDT"
+  # default_symbol: "BTCUSDT"
+  default_symbol: "XAUTUSDT"
 
 trade_management:
   risk_per_trade: 0.004      # Max % loss of total equity allowed per trade
@@ -23,7 +23,7 @@ network:
   gemini:
     api_timeout_seconds: 240
     circuit_breaker_threshold: 3
-    max_tool_iterations: 6
+    max_tool_iterations: 7
     retry_count: 8
     retry_strategy:
       multiplier: 2
