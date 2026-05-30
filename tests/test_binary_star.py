@@ -7,7 +7,7 @@ class TestBinaryStarFlow:
     @pytest.fixture
     def orchestrator(self, mock_orchestrator_infrastructure, mock_config):
         """Standardized orchestrator instantiation for testing."""
-        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test")
+        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test", symbol="BTCUSDT")
 
     def test_debate_convergence_and_metadata(self, orchestrator):
         """Tests that the orchestrator converges when skepticism score drops."""

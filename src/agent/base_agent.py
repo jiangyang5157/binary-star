@@ -277,8 +277,20 @@ class BaseAgent:
                 logger.info(f"BaseAgent: Dispatching internal tool '{name}'...")
                 return method(**args)
             else:
-                logger.error(f"BaseAgent: Tool '{name}' is not integrated in {self.__name__}.")
+                logger.error(f"BaseAgent: Tool '{name}' is not integrated in {self.__class__.__name__}.")
                 return f"Error: Tool '{name}' missing."
         except Exception as e:
             logger.error(f"BaseAgent: Tool '{name}' fatal error: {e}")
             return f"Tool Error: {str(e)}"
+
+    # --- Tool Delegates (Function Calling Interfaces) ---
+
+    def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> Dict[str, Any]:
+        """[TOOL] Calculates the Risk-Reward (RR) ratio for a trade geometry."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
+
+    def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: Optional[float] = None) -> Dict[str, Any]:
+        """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)

@@ -6,7 +6,7 @@ class TestMathFactCheck:
     @pytest.fixture
     def orchestrator(self, mock_orchestrator_infrastructure, mock_config):
         """Standardized orchestrator instantiation for testing."""
-        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test")
+        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test", symbol="BTCUSDT")
 
     def test_bullish_valid_check(self, orchestrator):
         """Tests a standard bullish proposal with valid RR and structural shielding."""

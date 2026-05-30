@@ -121,6 +121,12 @@ class MockDataFactory:
                     "session_role_prompt": "src/agent/prompts/session.md",
                     "critic_role_prompt": "src/agent/prompts/critic.md"
                 },
+                "gemini": {
+                    "context_cache": {
+                        "enable": True,
+                        "expiration_minutes": 60
+                    }
+                },
                 "evolver": {
                     "model": "mock-evolver",
                     "model_temperature": 0.0,

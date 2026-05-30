@@ -6,7 +6,7 @@ class TestChaosLogic:
     @pytest.fixture
     def orchestrator(self, mock_orchestrator_infrastructure, mock_config):
         """Standardized orchestrator instantiation for testing."""
-        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test")
+        return BinaryStarOrchestrator(mock_config, "mock_key", data_root="data/test", symbol="BTCUSDT")
 
     def test_rr_validation_no_chaos(self, orchestrator):
         """Standard RR check without chaos (min_rr_trending = 1.2)."""

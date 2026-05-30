@@ -3,7 +3,7 @@ system:
   # default_symbol: "XAUTUSDT"
 
 trade_management:
-  risk_per_trade: 0.003      # Max % loss of total equity allowed per trade
+  risk_per_trade: 0.004      # Max % loss of total equity allowed per trade
   net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
   BTCUSDT:
     precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
@@ -23,7 +23,7 @@ network:
   gemini:
     api_timeout_seconds: 240
     circuit_breaker_threshold: 3
-    max_tool_iterations: 3
+    max_tool_iterations: 6
     retry_count: 8
     retry_strategy:
       multiplier: 2
@@ -45,7 +45,7 @@ llm:
     model: "gemma4:e4b"
 
   binary_star:
-    model: "gemini-3.5-flash"
+    model: gemini-3.5-flash #"gemini-3-flash-preview" #"gemini-3.5-flash"
     system_instruction: "src/agent/prompts/binary_star.md"
     max_rounds: 2
     session_temperature: 0.5
