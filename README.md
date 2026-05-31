@@ -91,6 +91,9 @@ conda activate ai
 ```bash
 python run_session.py
 python run_session.py -ts 2026-01-24T15:42:00Z
+
+python run_session.py --start T-30d --end T-2d --samples 14 --sampling-mode sniper --symbol XAUTUSDT -p data/backtest/v20_r14_xautusdt
+
 python run_session.py --start T-30d --end T-2d --samples 14 --sampling-mode sniper
 python run_session.py --start T-30d --end T-23d --samples 7 --sampling-mode sniper
 python run_session.py --start T-23d --end T-16d --samples 7 --sampling-mode sniper
