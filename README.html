@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Singularity 跨代交易会话引擎</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({ startOnLoad: true, theme: 'default' });</script>
+    <style>
+        :root {
+            --primary-color: #01579b;
+            --border-color: #e0e0e0;
+            --bg-color: #ffffff;
+            --code-bg: #f6f8fa;
+            --text-color: #24292e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            background-color: var(--bg-color);
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #1a1a1a;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+            margin-top: 1.5em;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+        }
+
+        hr {
+            height: 0.25em;
+            padding: 0;
+            margin: 24px 0;
+            background-color: var(--border-color);
+            border: 0;
+        }
+
+        strong {
+            font-weight: 600;
+            background-color: rgba(175, 184, 193, 0.2);
+            padding: 0.1em 0.2em;
+            border-radius: 3px;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+            background-color: var(--code-bg);
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-size: 85%;
+        }
+
+        pre {
+            background-color: var(--code-bg);
+            padding: 16px;
+            overflow: auto;
+            border-radius: 8px;
+            line-height: 1.45;
+        }
+
+        pre code {
+            background-color: transparent;
+            padding: 0;
+            font-size: 90%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        table th,
+        table td {
+            border: 1px solid var(--border-color);
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #f8f9fa;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 2rem 0;
+        }
+
+        blockquote {
+            border-left: 4px solid #dfe2e5;
+            color: #6a737d;
+            padding: 0 1em;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Singularity 跨代交易会话引擎</h1>
+
+    <p>
+        <a href="https://www.python.org/downloads/">
+            <img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+">
+        </a>
+    </p>
+
+    <hr>
+
+    <h2>⚖️ 零熵架构：双子星对抗协议 (The Binary Star Protocol)</h2>
+
+    <p>Singularity 是一个高保真、多智能体量化架构。它的内核模拟了极高标准的法庭辩论与审判过程，通过 <strong>对抗式推理 (Adversarial Reasoning)</strong>
+        来彻底消除人类交易员的主观偏见与 AI 智能体的数据幻觉。</p>
+
+    <p>每一次最终输出的交易指令，都必须在这场高压的生存游戏中，经历从复杂的市场混沌状态，到冷静、确定性的低熵参数的提纯。其核心机制如下：</p>
+
+    <ul>
+        <li><strong>统一场 (Truth Bus)</strong>：<strong>消除幻觉。</strong>
+            将市场的多重维度（多模态图表、订单流、情绪极值）硬性锚定在同一秒的物理切片上，构建不可篡改的“法庭证据”，要求博弈各方“眼见为实”。</li>
+        <li><strong>物理挤压 (The Squeeze)</strong>：<strong>消除偏见。</strong> 辩方 (Session Agent) 负责提出战略蓝图，而控方 (Critic Agent)
+            则执行致命的交叉盘问。收敛不是妥协，而是<strong>强制逼近</strong>。一旦发现结构破绽，系统会被强制放入“物理引擎”中进行逻辑重建（例如被“挤压”出极深的 DLE 限价单以满足盈亏比）。</li>
+        <li><strong>状态降维 (State Reduction)</strong>：<strong>固化指令。</strong>
+            当对抗各方终于逼近狭窄的“数学交集”后，系统将抛弃大语言模型的“人文修饰词”，在绝对理性的低温度下，将共识瞬间冷凝为可直接执行的低熵机器参数 (JSON)。</li>
+    </ul>
+
+    <div class="mermaid">
+        graph TD
+        classDef input fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#01579b
+        classDef process fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#f57f17
+        classDef strict fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#c2185b
+        classDef exec fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
+        classDef halt fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#c62828
+
+        subgraph 熵减漏斗 ["🌪️ 零熵收敛漏斗"]
+        direction TB
+
+        Inputs[/"📊 高熵数据流&lt;br&gt;(多模态K线 / 清算簇 / 订单流)"/]:::input
+        TruthBus["🔒 真理总线 (Truth Bus)&lt;br&gt;锁定物理时间戳，全员视觉同频"]:::input
+
+        subgraph 博弈循环 ["🤺 对抗博弈与物理挤压 (Adversarial Squeeze)"]
+        Thesis["💡 辩方 (Session Agent)&lt;br&gt;基于结构提出战术假设"]:::process
+        Physics["🧮 物理引擎 (MathTools)&lt;br&gt;盈亏比核验 &amp; 阻力装甲探测"]:::strict
+        Critic["🔍 控方 (Critic Agent)&lt;br&gt;寻找结构破绽与逻辑死角"]:::strict
+
+        Thesis --> Physics --> Critic
+        Critic -- "发现致命漏洞 (强制逻辑重建)" --> Thesis
+        end
+
+        Synthesis["❄️ 冰点降维 (State Reduction)&lt;br&gt;修剪所有形容词，提取物理参数"]:::process
+        Output[/"⚙️ 低熵机器指令 (Final JSON)"/]:::exec
+        Halt[/"🛑 纪律性熔断 (NEUTRAL)"/]:::halt
+
+        Inputs --> TruthBus --> Thesis
+        Critic -- "达成物理共识" --> Synthesis
+        Critic -- "逻辑脆弱 (无法闭环)" --> Halt
+        Synthesis --> Output
+        end
+    </div>
+
+    <h3>🧠 零熵逻辑阵列 (The Zero-Entropy Logic Matrix)</h3>
+
+    <p>为了实现物理级的“强制逼近”，系统不再区分传统的主观分析流派，而是将所有多通道数据统一映射为一套严格的<strong>逻辑考察点与熔断条款</strong>：</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>审查维度 (Audit Dimension)</th>
+                <th>触发条件与核心 Tags</th>
+                <th>物理意义与执行协议 (Physical Meaning &amp; Execution Rules)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>物理极点与装甲</strong></td>
+                <td><code>[ANCHOR_VIOLATION]</code></td>
+                <td><strong>结构重压约束</strong>。止损位必须由极点（HVN/POC/Wick）全遮蔽。严禁在平坦地带裸露止损。</td>
+            </tr>
+            <tr>
+                <td><strong>真空与流动性流失</strong></td>
+                <td><code>[STRUCTURAL_TRAP]</code><br><code>[LIQUIDITY_VOID]</code></td>
+                <td><strong>滑点与真空保护</strong>。入场点离 HVN 太近，或将止损摆在没有任何订单簿厚度保护的真空区，必须进行退让。</td>
+            </tr>
+            <tr>
+                <td><strong>数学盈亏底线</strong></td>
+                <td><code>[MATH_VIOLATION]</code></td>
+                <td><strong>无情数学核验</strong>。Python 引擎硬核算盈亏比 (RR) 与 ATR。只有数学过关的提案才有资格进入下一轮辩论。</td>
+            </tr>
+            <tr>
+                <td><strong>微观订单流向</strong></td>
+                <td><code>[FLOW_VIOLATION]</code></td>
+                <td><strong>流动性顺应</strong>。强制跟随大户 Taker 净流向，严禁在没有吸收迹象时逆势强接飞刀。</td>
+            </tr>
+            <tr>
+                <td><strong>冰山吸收陷阱</strong></td>
+                <td><code>[CVD_ABSORPTION]</code></td>
+                <td><strong>墙体探测</strong>。发现极端 CVD 脉冲被完全吸收，证明遭遇冰山挂单堵截，强制要求在远端结构区部署 DLE。</td>
+            </tr>
+            <tr>
+                <td><strong>散户挤压/清算</strong></td>
+                <td><code>[RETAIL_LONG_SQUEEZE]</code><br><code>[RETAIL_SHORT_SQUEEZE]</code></td>
+                <td><strong>反向极性收割</strong>。探测到散户持仓极度失衡（如 80% 做多），严禁随波逐流送死，强制发动相反方向的“极性反转”。</td>
+            </tr>
+            <tr>
+                <td><strong>宏观政体/时间轴</strong></td>
+                <td><code>[VOLATILITY_CHOP]</code>,
+                    <code>[VOLATILITY_CLIMAX]</code><br><code>Highway / Dead Water</code></td>
+                <td><strong>动态时间止损</strong>。依据波动率判定政体（死水/标准/高速公路/高潮）缩放持仓周期。无方向绞肉机行情直接触发熔断。</td>
+            </tr>
+            <tr>
+                <td><strong>均值引力极限</strong></td>
+                <td><code>[GRAVITY_EXHAUSTION]</code><br><code>[OVER_EXTENSION]</code></td>
+                <td><strong>钟摆引力判定</strong>。判定价格是否已经过度逃离核心价值区 (POC)。禁止在引力极限处追突破，强制寻求均值回归。</td>
+            </tr>
+            <tr>
+                <td><strong>懦弱与认知僵化</strong></td>
+                <td><code>[INACTION_BIAS]</code><br><code>[TREND_STARVATION]</code></td>
+                <td><strong>机会损失矫正</strong>。当大趋势爆发、结构依然清晰时，若系统给出无理由的退缩，强行责令其入场！</td>
+            </tr>
+            <tr>
+                <td><strong>局部极端衰竭</strong></td>
+                <td><code>latest_wick_skew</code></td>
+                <td><strong>针尖探测</strong>。通过 K 线影线偏移度定位局部的流动性真空与反转征兆。</td>
+            </tr>
+            <tr>
+                <td><strong>趋势爆发前奏</strong></td>
+                <td><code>squeeze_factor</code><br><code>volume_participation</code></td>
+                <td><strong>共识确认</strong>。探测流动性弹簧的极限压缩状态，用于提前预伏阵地；并在突破时通过成交参与率验证真实性。</td>
+            </tr>
+            <tr>
+                <td><strong>演化死循环</strong></td>
+                <td><code>[PROTOCOL_VIOLATION]</code></td>
+                <td><strong>逻辑死锁保护</strong>。严禁系统在被证伪的废墟上重复提出同一个错误方案。逼迫系统发生强制的“范式转移”。</td>
+            </tr>
+            <tr>
+                <td><strong>收敛绿灯状态</strong></td>
+                <td><code>[PRISTINE]</code><br><code>[JUSTIFIED_INACTION]</code></td>
+                <td><strong>合法终局</strong>。经过交叉盘问后确认为完全合规的结构性进场（绿灯执行），或基于明确事实纪律性放弃（战略撤退）。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>🛠 安装与操作手册</h2>
+
+    <h3>0. 环境准备 (重要)</h3>
+    <pre><code># crypto 是 Conda 环境名称
+conda activate crypto
+# pip install -r requirements.txt</code></pre>
+
+    <h3>1. 市场推理 (Session Engine)</h3>
+    <ul>
+        <li><strong>单次/批量分析 (Prod)</strong>：对当前市场或指定时间点进行对抗推理。结果存入 <code>data/prod/sessions</code>。</li>
+    </ul>
+    <pre><code>python run_session.py
+python run_session.py -ts 2026-01-24T15:42:00Z</code></pre>
+
+    <ul>
+        <li><strong>智联回测 (Backtest)</strong>：在历史样本点上进行采样推理。推荐使用 <code>--sampling-mode sniper</code> 以捕捉异动。</li>
+    </ul>
+    <pre><code>python run_session.py --start T-30d --end T-16d --samples 20 --sampling-mode sniper
+python run_session.py --start T-16d --end T-2d --samples 20 --sampling-mode spaced</code></pre>
+
+    <ul>
+        <li><strong>实时监控 (Sniper Mode)</strong>：基于“零熵觉醒矩阵”探测异动。系统现在完全驱动自 <code>global_config.yaml</code>，无需手动指定 pulse。
+        </li>
+    </ul>
+    <pre><code>python run_sniper.py --trigger --email</code></pre>
+
+    <h3>2. 取证审计 (Forensic Audit)</h3>
+    <p>对 Session(s) 进行深度审计并生成报告。同步更新 <code>data_root</code> 指向。</p>
+    <pre><code>python run_audit.py -p data/prod
+python run_audit.py -p data/backtest --file data/backtest/sessions/{symbol}_session_{timestamp}.json</code></pre>
+
+    <h3>3. 账本看板 (Ledger Dashboard)</h3>
+    <p>系统的可视化看板。它支持对“Audit(s) 审计报告” 或 “Sandbox 报告”（解析里面包含的Audit(s) 审计报告）进行 HTML 渲染：</p>
+    <pre><code>python scripts/session_ledger.py -p data/backtest
+python scripts/session_ledger.py -p data/backtest --f .../{symbol}_evolution_sandbox_{timestamp}.json</code></pre>
+
+    <h3>4. DNA 引擎 (Meta-Evolution)</h3>
+    <p>基于 Audit(s) 报告，对系统的判定逻辑进行“基因突变”式优化（补丁存入 <code>data/backtest/evolution/proposals</code>）。</p>
+    <pre><code>python run_evolution.py -p data/backtest</code></pre>
+
+    <h3>5. 物理同步 (Patching)</h3>
+    <p>正式将补丁“硬化”到系统。它会自动同步更新系统的配置文件与提示词。</p>
+    <pre><code>python run_patch.py -f .../{symbol}_evolution_{timestamp}.json</code></pre>
+
+    <hr>
+
+</body>
+
+</html>
