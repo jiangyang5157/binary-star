@@ -119,7 +119,11 @@ class SniperDaemon:
                     print("!"*60)
                     print(f"REASON: {reason}")
                     print("!"*60 + "\n")
-                    if self.session_engine:
+                    
+                    # v8.0: If active position exists, Guardian handles trailing stop — skip AI session
+                    has_active_position = bool(self.trade_state.get("direction"))
+                    
+                    if self.session_engine and not has_active_position:
                         # 4. Trigger Binary Star Protocol
                         logger.info("SniperDaemon: Activating Binary Star reasoning loop (Blocking Pulse)...")
                         # v6.50: Restore Forensic Logging Level for Session Cycle
@@ -136,6 +140,10 @@ class SniperDaemon:
                         # Restore Quiet Protocol after session completion
                         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
                         logger.info("SniperDaemon: Session cycle complete. Returning to pulse monitoring.")
+                    elif has_active_position:
+                        logger.info(
+                            f"SniperDaemon: Active position ({self.trade_state['direction']}) exists. "
+                            f"Skipping AI session — Guardian trailing stop manages the position.")
                     
                     # 6. Mark Triggered to start Cooldown (System Safety)
                     self.trigger.set_triggered(t_type)
@@ -234,10 +242,18 @@ class SniperDaemon:
     # ================================================================
 
     def _guardian_check(self):
-        """Delegates to MarginOrderExecutor.guardian_check() and updates trade_state."""
+        """Delegates to MarginOrderExecutor.guardian_check() and updates trade_state.
+        Passes ATR for progressive trailing stop calculations.
+        """
         try:
             logger.debug(f"Guardian: Checking position state for {self.symbol}...")
-            updated_state = self.executor.guardian_check(self.symbol, self.trade_state)
+            
+            # Extract ATR from previous scout metrics for trailing stop
+            atr = None
+            if self.prev_metrics:
+                atr = self.prev_metrics.get('price_dynamics', {}).get('atr_macro')
+            
+            updated_state = self.executor.guardian_check(self.symbol, self.trade_state, atr_macro=atr)
             
             if updated_state != self.trade_state:
                 if not updated_state:

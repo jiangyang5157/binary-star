@@ -150,8 +150,13 @@ class EvolverAgent(BaseAgent):
             raise
     def _compress_audit_reports(self, reports: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Summarizes forensic audit reports to remove massive topographical noise.
-        We keep the decision, debate history, and performance metrics, but remove 
+        
+        Keeps the decision, FULL debate history, and performance metrics, but removes 
         the raw observation data which is often redundant for global strategy evolution.
+        
+        v8.0: Debate detail PRESERVED — Evolver needs to understand WHY a plan was
+        rejected/approved to identify logical evolution patterns. Only the heavy
+        observation topography is pruned.
         """
         compressed = []
         for report in reports:
@@ -168,14 +173,20 @@ class EvolverAgent(BaseAgent):
                 "debate_summary": []
             }
             
-            # Summarize debate history to keep logic drift visibility
+            # v8.0: Preserve FULL debate detail for Evolver analysis
+            # (reasoning_chain, audit_evidence, math_fact_check are essential
+            # for identifying systematic logic failures and evolution patterns)
             history = session.get("debate_history", [])
             for entry in history:
+                plan = entry.get("plan", {})
+                critic = entry.get("critic", {})
+                math_fc = entry.get("math_fact_check", {})
+                
                 c_report["debate_summary"].append({
                     "round": entry.get("round"),
-                    "opinion": entry.get("plan", {}).get("opinion"),
-                    "veto_level": entry.get("critic", {}).get("veto_level"),
-                    "invalidations": entry.get("critic", {}).get("invalidations")
+                    "plan": plan,
+                    "critic": critic,
+                    "math_fact_check": math_fc
                 })
             
             # Include a high-fidelity summary of quantitative metrics for structural contrast

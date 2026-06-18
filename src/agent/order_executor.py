@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.infrastructure.exchange.models import MarginOrder
@@ -195,18 +196,22 @@ class MarginOrderExecutor:
     # GUARDIAN LOGIC: Called every Sniper pulse to protect positions
     # ================================================================
 
-    def guardian_check(self, symbol: str, trade_state: Dict[str, Any]) -> Dict[str, Any]:
+    def guardian_check(self, symbol: str, trade_state: Dict[str, Any], atr_macro: Optional[float] = None) -> Dict[str, Any]:
         """
         Position Guardian: Runs every Sniper pulse to ensure positions are protected.
         
         Responsibilities:
         1. If PENDING entry order → check timeout (projected_waiting_hours) → cancel if expired
         2. If FILLED position with NO OCO → place OCO or emergency close
-        3. If position already protected → no-op
+        3. If position already protected → progressive trailing stop migration
+        
+        Args:
+            symbol: Trading pair identifier.
+            trade_state: Current in-memory trade state dictionary.
+            atr_macro: Current ATR value for trailing stop calculations.
         
         Returns updated trade_state.
         """
-        from datetime import datetime, timezone
 
         # --- STEP 0: Heartbeat Reporting (Always runs if called) ---
         pos = self.client.get_symbol_position(symbol)
@@ -313,17 +318,148 @@ class MarginOrderExecutor:
                 # Update state: remove entry tracking, keep direction/prices
                 trade_state.pop("entry_order_id", None)
                 trade_state.pop("entry_placed_at", None)
+                # Record fill time for time-based stop tracking
+                if not trade_state.get("entry_filled_at"):
+                    trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
             else:
                 logger.error("Guardian: [CRITICAL] Failed to place OCO protection! Position remains unprotected.")
             
             return trade_state
 
-        # --- Case 3: Position is already protected ---
-        logger.debug(f"Guardian: Position {direction} ({net_qty}) is protected. No action needed.")
+        # --- Case 4: Position is already protected → Progressive Trailing Stop ---
+        logger.debug(f"Guardian: Position {direction} ({net_qty}) is protected.")
         
-        # Check if position has been closed (TP/SL hit)
-        # This happens when net_qty is still > tolerance but OCO is active
-        # We just let it ride
+        if atr_macro and atr_macro > 0:
+            trade_state = self._migrate_trailing_stop(symbol, direction, trade_state, active_orders, atr_macro)
+        
+        return trade_state
+
+    # ================================================================
+    # TRAILING STOP: Progressive SL migration (v8.0)
+    # ================================================================
+
+    def _migrate_trailing_stop(self, symbol: str, direction: str, trade_state: Dict[str, Any], 
+                                active_orders: List[MarginOrder], atr_macro: float) -> Dict[str, Any]:
+        """
+        Progressive Trailing Stop Migration (Deterministic, No AI).
+        
+        Moves SL based on unrealized profit measured in ATR units:
+          | Profit > 1.5 ATR | SL → entry (breakeven)     |
+          | Profit > 2.5 ATR | SL → entry + 0.5 ATR       |
+          | Profit > 4.0 ATR | SL → entry + 1.5 ATR       |
+        
+        Also enforces TIME-BASED STOP:
+          | Holding > projected_holding_hours × 1.5 | Market close |
+        
+        WARNING: Canceling OCO and re-placing creates a brief naked window.
+        On failure to re-place, falls back to emergency market close.
+        """
+        entry_price = trade_state.get("entry_price")
+        current_sl = trade_state.get("sl_price")
+        current_tp = trade_state.get("tp_price")
+        current_level = trade_state.get("trailing_sl_level", 0)
+        
+        if not entry_price or not current_sl or not current_tp:
+            return trade_state
+        
+        # --- 1. Time-Based Stop ---
+        entry_filled_at_str = trade_state.get("entry_filled_at")
+        projected_holding = trade_state.get("projected_holding_hours")
+        if entry_filled_at_str and projected_holding:
+            entry_filled_at = datetime.fromisoformat(entry_filled_at_str)
+            elapsed_hours = (datetime.now(timezone.utc) - entry_filled_at).total_seconds() / 3600
+            time_limit = float(projected_holding) * 1.5
+            
+            if elapsed_hours > time_limit:
+                logger.warning(
+                    f"Guardian: [TIME_STOP] Position held {elapsed_hours:.1f}h > limit {time_limit:.1f}h. "
+                    f"Market closing {symbol}.")
+                self.client.cancel_all_symbol_orders(symbol)
+                self.client.execute_market_close(symbol)
+                return {}  # Clear trade state
+        
+        # --- 2. Progressive Trailing Stop ---
+        current_price = self.client.get_ticker_price(symbol)
+        if not current_price or current_price <= 0:
+            return trade_state
+        
+        # Safeguard: Prevent division by zero or extremely small ATR values
+        if not atr_macro or atr_macro < 1e-6:
+            logger.warning(f"Guardian: [TRAIL] Invalid or extremely small ATR value ({atr_macro}). Skipping migration.")
+            return trade_state
+        
+        if direction == "LONG":
+            unrealized_atr = (current_price - entry_price) / atr_macro
+        else:  # SHORT
+            unrealized_atr = (entry_price - current_price) / atr_macro
+        
+        # Determine target trailing level
+        target_level = 0
+        target_sl = current_sl
+        
+        if unrealized_atr >= 4.0:
+            target_level = 3
+            if direction == "LONG":
+                target_sl = entry_price + 1.5 * atr_macro
+            else:
+                target_sl = entry_price - 1.5 * atr_macro
+        elif unrealized_atr >= 2.5:
+            target_level = 2
+            if direction == "LONG":
+                target_sl = entry_price + 0.5 * atr_macro
+            else:
+                target_sl = entry_price - 0.5 * atr_macro
+        elif unrealized_atr >= 1.5:
+            target_level = 1
+            target_sl = entry_price  # Breakeven
+        
+        # Only migrate forward (never move SL backwards, never redundant migration)
+        if target_level <= current_level:
+            logger.debug(f"Guardian: [TRAIL] Unrealized={unrealized_atr:.1f}ATR, Level={current_level}. No migration.")
+            return trade_state
+        
+        logger.info(
+            f"Guardian: [TRAIL] Migrating SL Level {current_level} → {target_level} | "
+            f"Unrealized={unrealized_atr:.1f}ATR | New SL={target_sl:.2f}")
+        
+        # --- 3. OCO Migration (Cancel + Re-place) ---
+        try:
+            cfg = self._get_trade_config(symbol)
+            buffer = cfg.get("sl_slippage_buffer", 0.0)
+            exit_side = "SELL" if direction == "LONG" else "BUY"
+            
+            # Step A: Cancel all existing orders
+            if not self.client.cancel_all_symbol_orders(symbol):
+                logger.error("Guardian: [TRAIL] Failed to cancel OCO. Keeping existing protection.")
+                return trade_state
+            
+            # Step B: Place new OCO with migrated SL
+            # Direction-aware buffer: LONG SL is SELL (limit < trigger), SHORT SL is BUY (limit > trigger)
+            buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
+            success = self.client.place_oco_order(
+                symbol=symbol,
+                side=exit_side,
+                qty=abs(self.client.get_symbol_position(symbol).net_qty),
+                price=current_tp,
+                stop_price=target_sl,
+                stop_limit_price=buffered_sl
+            )
+            
+            if success:
+                trade_state["sl_price"] = target_sl
+                trade_state["trailing_sl_level"] = target_level
+                logger.info(f"Guardian: [TRAIL] SL successfully migrated to {target_sl:.2f} (Level {target_level}).")
+            else:
+                # Step C: EMERGENCY — OCO re-placement failed, position is now NAKED
+                logger.critical(
+                    f"Guardian: [TRAIL][CRITICAL] OCO re-placement FAILED after cancel! "
+                    f"Position is unprotected. Emergency market closing {symbol}.")
+                self.client.execute_market_close(symbol)
+                return {}  # Clear trade state
+                
+        except Exception as e:
+            logger.error(f"Guardian: [TRAIL] Migration failed: {e}", exc_info=True)
+        
         return trade_state
 
     # ================================================================
