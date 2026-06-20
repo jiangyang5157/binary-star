@@ -151,12 +151,11 @@ sniper:
   # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
   squeeze_trigger_multiplier: 0.75
 
-  # [Structural]: Multipliers for structural proximity (TYPE_C).
-  # VAH/VAL: 0.8 = requires price to be 20% closer to boundary.
-  # POC/Liquidations: 1.2 = allows triggering from further away (1.2x baseline).
-  vah_val_trigger_multiplier: 1.4
-  poc_trigger_multiplier: 1.0
-  liq_trigger_multiplier: 0.8
+  # [Structural]: Direct ATR-distance thresholds for TYPE_C triggers.
+  # Price must be within this many ATR units of the structure to fire.
+  proximity_vah_val_atr: 0.70   # VAH/VAL boundary test
+  proximity_poc_atr: 0.50       # POC magnet / gravity test
+  proximity_liq_atr: 0.40       # Liquidation cluster magnet
 
 guardian:
   # ── Trailing Stop Migration ──────────────────────────────────────

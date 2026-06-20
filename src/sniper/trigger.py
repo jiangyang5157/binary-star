@@ -270,10 +270,9 @@ class SniperTrigger:
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
         dist_poc = abs(price - topo['poc']) / atr if atr > 0 else float('inf')
 
-        base_struct_threshold = self.regime_cfg['structural_proximity_threshold']
-        vah_val_threshold = base_struct_threshold * self.sniper_cfg['vah_val_trigger_multiplier']
-        poc_trigger_threshold = base_struct_threshold * self.sniper_cfg['poc_trigger_multiplier']
-        liq_trigger_threshold = base_struct_threshold * self.sniper_cfg['liq_trigger_multiplier']
+        vah_val_threshold = self.sniper_cfg['proximity_vah_val_atr']
+        poc_trigger_threshold = self.sniper_cfg['proximity_poc_atr']
+        liq_trigger_threshold = self.sniper_cfg['proximity_liq_atr']
 
         # ── VAH/VAL boundary test ────────────────────────────────────
         nearest_boundary = "VAH" if dist_vh < dist_val else "VAL"
