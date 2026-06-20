@@ -4,6 +4,7 @@ from typing import Any, List, Optional, Union
 from google.genai import types
 
 from src.infrastructure.ai.gemini_adapter import GeminiAdapter
+from src.infrastructure.ai_client import VisualPart
 from src.utils.logger_utils import setup_logger
 from src.utils.rate_limiter import CongestionController
 
@@ -27,35 +28,46 @@ class GeminiCacheManager:
         self.active_cache_id = None
 
     def create_market_cache(
-        self, 
+        self,
         symbol: str,
         interval: str,
-        contents: List[Union[str, types.Part]],
-        system_instruction: str, 
+        contents: List[Union[str, VisualPart, types.Part]],
+        system_instruction: str,
         model: str,
         ttl_minutes: int,
         tools: Optional[List[Any]] = None
     ) -> str:
         """
         Creates a new Context Cache as a 'Truth Bus' for a specific market snapshot.
-        
+
         Args:
             symbol: Trading pair (e.g., BTCUSDT).
             interval: The macro time interval (e.g., 1h, 4h).
-            contents: Large Observation JSON/Images.
+            contents: Observation JSON, VisualParts, or raw types.Part objects.
             system_instruction: The shared instructions to bake into the cache.
             model: The base model (e.g., 'gemini-2.0-flash-001').
             ttl_minutes: Time-to-live in minutes.
             tools: Optional tool definitions to bake into the cache.
-            
+
         Returns:
             The unique resource name of the created cache.
         """
         start_time = time.perf_counter()
-        
+
         display_name = f"{symbol}_{interval}_truth_bus_cache"
         logger.info(f"GeminiCacheManager: Initializing Truth Bus cache '{display_name}' (TTL: {ttl_minutes}m)...")
-        
+
+        # Convert provider-agnostic VisualParts to Gemini-native types.Part
+        gemini_contents = []
+        for item in contents:
+            if isinstance(item, VisualPart):
+                if item.label:
+                    gemini_contents.append(types.Part.from_text(text=item.label))
+                gemini_contents.append(
+                    types.Part.from_bytes(data=item.data, mime_type=item.mime_type))
+            else:
+                gemini_contents.append(item)
+
         try:
             # v7.7: Congestion Control (RPM Pacing)
             if self.congestion_controller:
@@ -67,8 +79,8 @@ class GeminiCacheManager:
                 config=types.CreateCachedContentConfig(
                     display_name=f"{symbol}_{display_name}",
                     system_instruction=system_instruction,
-                    contents=contents,
-                    tools=tools, # Tools must be in cache if using cache
+                    contents=gemini_contents,
+                    tools=tools,  # Tools must be in cache if using cache
                     ttl=f"{ttl_minutes * 60}s",
                 ),
             )

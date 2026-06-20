@@ -1,5 +1,5 @@
 import pytest
-from calculate_qty import calculate_sized_qty
+from scripts.calculate_qty import calculate_sized_qty
 
 def test_calculate_sized_qty_standard():
     # Equity=1000, Risk=0.7%, Delta=600

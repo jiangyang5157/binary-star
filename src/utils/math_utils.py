@@ -7,10 +7,10 @@ logger = logging.getLogger(__name__)
 
 class MathTools:
     """The Electronic Physicist for the Singularity Reasoning Triad.
-    
+
     Provides deterministic calculations for market topography and trade geometry
     to replace LLM heuristic math. All methods are static and idempotent.
-    
+
     Key Responsibilities:
     1. Geometric Validation (RR, ATR Buffers, Structural Armor).
     2. Velocity Projection (Predicted holding times).
@@ -18,31 +18,67 @@ class MathTools:
     """
 
     @staticmethod
+    def get_tool_declarations() -> list[dict]:
+        """Return LLM function-calling schemas for the supported tools.
+
+        Co-located with implementations so parameter changes stay in sync.
+        """
+        return [
+            {
+                "name": "calculate_risk_reward",
+                "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "entry": {"type": "NUMBER"},
+                        "take_profit": {"type": "NUMBER"},
+                        "stop_loss": {"type": "NUMBER"},
+                    },
+                    "required": ["entry", "take_profit", "stop_loss"],
+                },
+            },
+            {
+                "name": "calculate_atr_metrics",
+                "description": "Standardizes entry/exit distances using ATR.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "entry": {"type": "NUMBER"},
+                        "stop_loss": {"type": "NUMBER"},
+                        "take_profit": {"type": "NUMBER"},
+                        "atr": {"type": "NUMBER"},
+                    },
+                    "required": ["entry", "stop_loss", "take_profit", "atr"],
+                },
+            },
+        ]
+
+    @staticmethod
     def calculate_risk_reward(
         entry: float,
         take_profit: float,
         stop_loss: float
     ) -> Dict[str, Any]:
-        """计算限价单的风险回报比 (RR)。
-        
+        """Calculate the Risk-Reward (RR) ratio for a limit order.
+
         Args:
-            entry: 入场价格。
-            take_profit: 止盈价格。
-            stop_loss: 止损价格。
-            
+            entry: Entry price.
+            take_profit: Take-profit price.
+            stop_loss: Stop-loss price.
+
         Returns:
-            包含 rr_ratio, profit_distance, risk_distance 的字典。
+            Dict containing rr_ratio, profit_distance, and risk_distance.
         """
         try:
-            # 基础验证：确保输入为正数
+            # Basic validation: ensure inputs are positive
             if entry <= 0 or take_profit <= 0 or stop_loss <= 0:
                 return {"error": "All price inputs must be positive numbers."}
 
             sl_dist = abs(entry - stop_loss)
             tp_dist = abs(take_profit - entry)
             
-            # 零止损距离防御：防止除零错误
-            if sl_dist < 1e-8: # 使用极小值代替 0
+            # Zero-stop-loss guard: prevent division by zero
+            if sl_dist < 1e-8:  # epsilon check instead of zero
                 return {
                     "rr_ratio": 0.0,
                     "profit_distance": round(tp_dist, 4),
@@ -68,9 +104,10 @@ class MathTools:
         atr: float,
         current_price: Optional[float] = None
     ) -> Dict[str, Any]:
-        """使用 ATR (平均真实波幅) 对入场/止损/止盈距离进行标准化。
-        
-        将绝对价格距离转换为“波动单位”，使智能体能评估相对于市场当前粒度的风险。
+        """Standardize entry/SL/TP distances using ATR (Average True Range).
+
+        Converts absolute price distances into volatility units so agents can
+        evaluate risk relative to current market granularity.
         """
         try:
             if atr <= 0:
@@ -82,7 +119,7 @@ class MathTools:
             }
             
             if current_price is not None and current_price > 0:
-                # Drift: 入场位相对于市场当前价格的偏移值 (符号位逻辑对齐原有系统)
+                # Drift: entry offset from current market price (sign-aligned with the legacy system)
                 metrics["entry_to_current_atr"] = round((entry - current_price) / atr, 3)
                 
             return metrics
@@ -98,9 +135,10 @@ class MathTools:
         vah: Optional[float] = None,
         val: Optional[float] = None
     ) -> Dict[str, Any]:
-        """计算止损位到结构（POC/VAH/VAL）的距离，用于验证止损是否被“物理装甲”保护。
-        
-        正值表示止损在锚点上方，负值表示在下方。
+        """Calculate stop-loss distance to structural anchors (POC/VAH/VAL).
+
+        Validates whether the stop is protected by physical armor.
+        Positive values = SL above anchor; negative = SL below anchor.
         """
         try:
             if atr <= 0:
@@ -211,7 +249,7 @@ class MathTools:
         weight_climax: float,
         weight_standard: float
     ) -> Dict[str, Any]:
-        """使用静态标量引擎计算精确持仓与等待时间。"""
+        """Calculate precise holding and waiting times using the static scalar engine."""
         try:
             if atr <= 0 or interval_minutes <= 0:
                 return {"error": "ATR and interval_minutes must be > 0."}
@@ -233,16 +271,16 @@ class MathTools:
                 weight_standard=weight_standard
             )
             
-            # 使用还原后的物理速度 (有效标量 * ATR)
+            # Reconstructed physical velocity (effective scalar * ATR)
             effective_velocity = scalars["effective_velocity_per_atr"] * atr
-            
-            # 1. 物理持仓时间 (注入执行冗余 Execution Buffer)
-            # 公式 = (纯物理飞行时间) * 物理摩擦力冗余系数 (例如 1.15)
-            # 算出的 projected_holding_hours 将直接作为复盘脚本 (Audit Script) 的硬性追踪截止线。
+
+            # 1. Physical holding time (with execution buffer)
+            # Formula = (pure physical flight time) * temporal dilation factor
+            # projected_holding_hours serves as the hard tracking deadline for audit scripts.
             dist = abs(take_profit - entry)
             projected_holding_hours = round((dist / effective_velocity * interval_minutes * scalars["temporal_dilation_factor"]) / 60, 1)
-            
-            # 2. 等待时间 (不受冗余影响，保持纯物理速度)
+
+            # 2. Waiting time (no buffer, pure physical velocity)
             projected_waiting_hours = 0.0
             if current_price is not None and current_price > 0:
                 wait_dist = abs(entry - current_price)
@@ -266,7 +304,7 @@ class MathTools:
         atr_macro: float,
         threshold: float
     ) -> Dict[str, Any]:
-        """量化“懦弱成本”(Cost of Cowardice)，即在中性决策期间错过的波动。
+        """Quantify the Cost of Cowardice — missed volatility during neutral decisions.
         """
         try:
             if atr_macro <= 0:
@@ -289,7 +327,7 @@ class MathTools:
         standard: float,
         luck: float
     ) -> Dict[str, Any]:
-        """评估持仓期间的最大浮亏 (MAE) 相对于波动的压力水平。
+        """Evaluate Maximum Adverse Excursion (MAE) stress level relative to volatility.
         """
         try:
             if max_atr_used <= 0:
@@ -317,35 +355,35 @@ class MathTools:
         base_slippage_bps: float,
         max_slippage_bps: float
     ) -> Dict[str, Any]:
-        """根据成交量分布（Volume Profile）计算流动性敏感型滑点。
-        
-        逻辑：
-        - 寻找离价格最近的成交量桶（Bin）。
-        - 归一化成交量：当前桶容量 / 最大桶容量。
-        - 滑点惩罚：在基础滑点之上，根据成交量真空度增加惩罚项。
+        """Calculate liquidity-sensitive slippage from volume profile.
+
+        Logic:
+        - Find the nearest volume bin to the given price.
+        - Normalize volume: current bin / max bin volume.
+        - Slippage penalty: add to base slippage based on volume vacuum.
         """
         try:
             if not volume_profile or atr <= 0:
                 return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "warning": "Insufficient profile data."}
 
-            # 1. 寻找最近的 Price Bin
+            # 1. Find nearest price bin
             prices = np.array([float(d['price']) for d in volume_profile])
             vols = np.array([float(d['volume']) for d in volume_profile])
-            
+
             idx = (np.abs(prices - price)).argmin()
             local_vol = vols[idx]
             max_vol = vols.max() if vols.size > 0 else 1.0
-            
-            # 2. 计算流动性质量 (0.0 to 1.0)
+
+            # 2. Calculate liquidity quality (0.0 to 1.0)
             liquidity_quality = local_vol / max_vol if max_vol > 0 else 0.0
-            
-            # 3. 动态滑点计算 (线性模型补偿真空区)
-            # 基础滑点 + (1 - 质量) * (最大额外惩罚)
+
+            # 3. Dynamic slippage (linear model compensating vacuum zones)
+            # base slippage + (1 - quality) * (max extra penalty)
             extra_slippage = (1.0 - liquidity_quality) * (max_slippage_bps - base_slippage_bps)
             total_slippage_bps = base_slippage_bps + extra_slippage
-            
-            # 4. 价格调整 (假设是入场推迟)
-            # 滑点 1 bps = 0.0001
+
+            # 4. Price adjustment (entry delay simulation)
+            # Slippage: 1 bps = 0.0001
             adjustment_factor = 1.0 + (total_slippage_bps / 10000.0)
             adjusted_price = round(price * adjustment_factor, 2)
             

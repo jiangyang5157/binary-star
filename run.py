@@ -1,0 +1,368 @@
+#!/usr/bin/env python3
+"""Singularity — unified CLI entry point.
+
+Usage:
+    python run.py session [--symbol BTCUSDT] [--email] [-p data/prod]
+    python run.py session -ts 2026-01-24T15:42:00Z
+    python run.py session --start T-30d --end T-2d --samples 14 --sampling-mode sniper
+    python run.py sniper [--symbol BTCUSDT] [--trigger] [--email] [--trade]
+    python run.py audit -p data/prod [--symbol BTCUSDT] [--email] [--force]
+    python run.py evolution -p data/backtest [--symbol BTCUSDT] --samples 20
+    python run.py patch -f evolution_proposal.json
+"""
+
+import os
+import sys
+import argparse
+import logging
+from datetime import datetime, timezone, timedelta
+from typing import Optional
+
+# Ensure project root is on sys.path
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from dotenv import load_dotenv
+from src.utils.pipeline_utils import load_global_config, add_data_path_argument
+from src.utils.logger_utils import setup_logger
+from src.utils.datetime_utils import parse_iso_to_utc
+
+load_dotenv()
+logger = setup_logger("Singularity")
+
+
+# ── Date parser (shared between session subcommand and the old run_session) ──
+
+def _parse_date(date_str: str) -> datetime:
+    """Parse flexible dates: T-30d, ISO-8601, YYYY-MM-DD, or 'now'."""
+    if date_str.lower() == "now":
+        return datetime.now(timezone.utc)
+    if date_str.upper().startswith("T-"):
+        val = int(date_str[2:-1])
+        unit = date_str[-1].lower()
+        if unit == 'd':
+            return datetime.now(timezone.utc) - timedelta(days=val)
+        if unit == 'h':
+            return datetime.now(timezone.utc) - timedelta(hours=val)
+    try:
+        return parse_iso_to_utc(date_str)
+    except Exception:
+        pass
+    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+    raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
+
+
+# ── Shared helpers ────────────────────────────────────────────────────────────
+
+def _resolve_symbol(args: argparse.Namespace) -> str:
+    cfg = load_global_config()
+    return args.symbol or cfg["system"]["default_symbol"]
+
+
+def _resolve_data_path(args: argparse.Namespace, default: str) -> str:
+    if hasattr(args, "path") and args.path:
+        return args.path
+    return default
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Subcommand: session
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _add_session_parser(subparsers):
+    p = subparsers.add_parser("session", help="Run a Binary Star analysis cycle")
+    p.add_argument("--symbol", type=str, default=None,
+                   help="Trading pair (e.g. BTCUSDT)")
+    p.add_argument("--email", action="store_true",
+                   help="Enable high-conviction email alerts")
+    p.add_argument("--timestamp", "-ts", type=str,
+                   help="Precise historical timestamp (ISO-8601)")
+    p.add_argument("--start", type=_parse_date,
+                   help="Start date for backtest (YYYY-MM-DD or T-30d)")
+    p.add_argument("--end", type=_parse_date, default="now",
+                   help="End date for backtest (default: now)")
+    p.add_argument("--samples", type=int, default=None,
+                   help="Number of historical samples (backtest mode)")
+    p.add_argument("--sampling-mode", choices=["spaced", "sniper"],
+                   default="sniper")
+    add_data_path_argument(p)
+    p.set_defaults(func=_cmd_session)
+
+
+def _cmd_session(args):
+    from run_session import SessionEngine, SessionController
+    import signal
+
+    # Resolve mode
+    if getattr(args, "timestamp", None):
+        args.mode = "simulation"
+        if not args.path:
+            args.path = "data/backtest"
+        logger.info("Mode: SIMULATION (single historical point)")
+        logger.info("  --timestamp '%s'", args.timestamp)
+    elif getattr(args, "start", None):
+        args.mode = "backtest"
+        if not args.path:
+            args.path = "data/backtest"
+        if args.samples is None:
+            raise SystemExit("Error: --samples is required for backtest mode.")
+        logger.info("Mode: BACKTEST (batch historical)")
+        logger.info("  --start '%s', --end '%s', --samples %s, --sampling-mode %s",
+                    args.start, args.end, args.samples, args.sampling_mode)
+    else:
+        args.mode = "prod"
+        if not args.path:
+            args.path = "data/prod"
+        logger.info("Mode: PROD (live execution)")
+
+    print()
+    controller = SessionController(args)
+    controller.run()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Subcommand: sniper
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _add_sniper_parser(subparsers):
+    p = subparsers.add_parser("sniper", help="Run the real-time Sniper monitoring daemon")
+    p.add_argument("--symbol", type=str, default=None,
+                   help="Trading pair (e.g. BTCUSDT)")
+    p.add_argument("--trigger", action="store_true",
+                   help="Enable automatic activation of AI sessions")
+    p.add_argument("--email", action="store_true",
+                   help="Enable high-conviction email alerts for sessions")
+    p.add_argument("--trade", action="store_true",
+                   help="Enable automated margin trading execution")
+    add_data_path_argument(p)
+    p.set_defaults(func=_cmd_sniper)
+
+
+def _cmd_sniper(args):
+    from run_sniper import SniperDaemon
+
+    if not args.path:
+        args.path = "data/prod"
+
+    daemon = SniperDaemon(args)
+    daemon.run_forever()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Subcommand: audit
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _add_audit_parser(subparsers):
+    p = subparsers.add_parser("audit", help="Run forensic audit on sessions")
+    p.add_argument("--file", "-f", help="Path to a specific session JSON file")
+    p.add_argument("--symbol", type=str,
+                   help="Filter batch audit by symbol")
+    p.add_argument("--email", action="store_true",
+                   help="Dispatch forensic reports via email")
+    p.add_argument("--force", action="store_true",
+                   help="Bypass deduplication and maturity checks")
+    add_data_path_argument(p, required=True)
+    p.set_defaults(func=_cmd_audit)
+
+
+def _cmd_audit(args):
+    import concurrent.futures
+    import multiprocessing
+    from src.analyzer.audit_controller import AuditController
+    from src.utils.pipeline_utils import load_combined_config
+    from src.utils.path_utils import resolve_project_root
+
+    root = resolve_project_root()
+    data_root = args.path
+    config = load_combined_config()
+
+    log_path = os.path.join(data_root, "audit.log")
+    setup_logger("", log_file=log_path)
+    logger_audit = logging.getLogger("Audit")
+
+    controller = AuditController(config_dict=config, data_root=data_root,
+                                 logger=logger_audit)
+
+    # Collect files
+    files_to_audit: list[str] = []
+    if args.file:
+        if not os.path.exists(args.file):
+            logger_audit.error("Target file not found: %s", args.file)
+            sys.exit(1)
+        files_to_audit.append(args.file)
+    else:
+        sessions_dir = os.path.join(root, data_root, "sessions")
+        if not os.path.exists(sessions_dir):
+            logger_audit.error("Sessions directory not found: %s", sessions_dir)
+            sys.exit(1)
+        logger_audit.info("Batch Mode: Scanning %s ...", sessions_dir)
+        files_to_audit = [os.path.join(sessions_dir, f)
+                          for f in os.listdir(sessions_dir)
+                          if f.endswith(".json")]
+        symbol = args.symbol or load_global_config().get("system", {}).get("default_symbol")
+        if symbol:
+            logger_audit.info("Filtering by symbol: %s", symbol)
+            files_to_audit = [f for f in files_to_audit
+                              if os.path.basename(f).startswith(f"{symbol}_")]
+        files_to_audit.sort()
+
+    if not files_to_audit:
+        logger_audit.warning("No sessions found to audit in %s.", data_root)
+        return
+
+    # Delegate to the audit runner logic from run_audit.py
+    from run_audit import process_audit_file, worker_init, run_task
+
+    print(f"Launching Parallel Audit Pool (Workers: {multiprocessing.cpu_count() or 1})...")
+
+    task_args = [(f, args.email, data_root, args.force) for f in files_to_audit]
+
+    with concurrent.futures.ProcessPoolExecutor(
+        max_workers=multiprocessing.cpu_count(),
+        initializer=worker_init,
+        initargs=(log_path, config, data_root),
+    ) as executor:
+        results = list(executor.map(run_task, task_args))
+
+    success = results.count("SUCCESS")
+    skip = results.count("EXISTS")
+    mature = results.count("MATURING")
+    empty = results.count("EMPTY")
+    fail = results.count("FAILED")
+
+    print("\n" + "=" * 60)
+    print(" BATCH AUDIT SUMMARY")
+    print("=" * 60)
+    print(f" TOTAL SESSIONS : {len(files_to_audit)}")
+    print(f" COMPLETED      : {success}")
+    print(f" ALREADY EXISTS : {skip}")
+    print(f" EMPTY (NO DATA): {empty}")
+    print(f" MATURING (WAIT): {mature}")
+    print(f" FAILED         : {fail}")
+    print("=" * 60 + "\n")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Subcommand: evolution
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _add_evolution_parser(subparsers):
+    p = subparsers.add_parser("evolution", help="Run meta-evolution on audit results")
+    p.add_argument("--symbol", type=str, default=None,
+                   help="Trading symbol (default: from config)")
+    p.add_argument("--samples", type=int, required=True,
+                   help="Number of audit reports to ingest")
+    add_data_path_argument(p, required=True)
+    p.set_defaults(func=_cmd_evolution)
+
+
+def _cmd_evolution(args):
+    from run_evolution import EvolutionEngine
+
+    data_root = args.path
+    g_cfg = load_global_config()
+    symbol = args.symbol or g_cfg["system"]["default_symbol"]
+
+    engine = EvolutionEngine(data_root, symbol=symbol)
+    try:
+        engine.run_cycle(sample_size=args.samples)
+    except Exception as e:
+        print(f"Evolution Cycle Failed: {e}")
+        sys.exit(1)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Subcommand: patch
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _add_patch_parser(subparsers):
+    p = subparsers.add_parser("patch", help="Apply an evolution proposal to config/prompts")
+    p.add_argument("--file", "-f", required=True,
+                   help="Path to the validated evolution proposal JSON")
+    p.set_defaults(func=_cmd_patch)
+
+
+def _cmd_patch(args):
+    import logging as _logging
+    from src.utils.json_utils import load_json
+    from src.utils.evolution_utils import ConfigPatcher, PromptDistiller
+    from src.utils.path_utils import resolve_project_root
+
+    root = resolve_project_root()
+    setup_logger("PatchRunner")
+    logger_patch = _logging.getLogger("PatchRunner")
+
+    if not os.path.exists(args.file):
+        logger_patch.error("Proposal JSON NOT found: %s", args.file)
+        sys.exit(1)
+
+    proposal = load_json(args.file)
+    logger_patch.info("Patching from: %s ...", os.path.basename(args.file))
+
+    target_config = "config/strategy_config.yaml"
+    config_abs = os.path.join(root, target_config)
+
+    for p in proposal.get("config_patch", []):
+        key = p.get("target_key")
+        val = p.get("replaced_with")
+        t_path = p.get("target_path", "")
+        updates = ConfigPatcher.apply_patch(config_abs, key, val, t_path)
+        if updates > 0:
+            logger_patch.info("  (+) Updated '%s' in %s", key, target_config)
+        else:
+            logger_patch.warning("  (!) FAILED to update '%s' in %s", key, target_config)
+
+    PROMPT_MAP = {
+        "session": "config/prompts/session.md",
+        "critic": "config/prompts/critic.md",
+        "binary_star": "config/prompts/binary_star.md",
+    }
+    for p in proposal.get("semantic_refinement", []):
+        module = p.get("target_module", "").lower()
+        anchor = p.get("anchor_text")
+        logic = p.get("replaced_with")
+        rel_path = PROMPT_MAP.get(module)
+        if not rel_path:
+            logger_patch.error("  (!) Unknown module: %s. Skipping.", module)
+            continue
+        abs_path = os.path.join(root, rel_path)
+        replacements = PromptDistiller.apply_distillation(abs_path, anchor, logic)
+        if replacements > 0:
+            logger_patch.info("  (+) Replaced %d instances in %s", replacements, rel_path)
+        else:
+            logger_patch.warning("  (!) NO MATCH for anchor in %s", rel_path)
+
+    logger_patch.info("Physical synchronization COMPLETE.")
+    print(f"Physical Sync Successful: {os.path.basename(args.file)} moved to production.")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Main entry point
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Singularity — AI-driven crypto quantitative trading engine",
+    )
+    subparsers = parser.add_subparsers(dest="command", title="commands")
+    _add_session_parser(subparsers)
+    _add_sniper_parser(subparsers)
+    _add_audit_parser(subparsers)
+    _add_evolution_parser(subparsers)
+    _add_patch_parser(subparsers)
+
+    args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

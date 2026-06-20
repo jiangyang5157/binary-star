@@ -58,9 +58,11 @@ class CriticConfig(AgentConfig):
 
 class CriticAgent(BaseAgent):
     """Acts as the adversarial counterpart to the SessionAgent.
+
     Standardized to identify logical lapses, directional bias, and geometric
     violations in trade proposals by contrasting them against Math Truth.
-    作为“控方”，其唯一任务是寻找提案中的漏洞。它不负责寻找机会，只负责“否定性审计”。
+    Its sole mission is finding flaws in proposals — a purely negating audit,
+    not opportunity-seeking.
     """
     
     def __init__(
@@ -75,9 +77,8 @@ class CriticAgent(BaseAgent):
         congestion_controller: Optional[CongestionController] = None
     ):
         """Standard constructor with dependency injection."""
-        self.config = config
         super().__init__(
-            config=self.config,
+            config=config,
             ai_client=ai_client,
             api_timeout=api_timeout,
             retry_count=retry_count,
@@ -112,14 +113,14 @@ class CriticAgent(BaseAgent):
                 math_fact_check=math_fact_check, 
                 cache_id=cache_id
             )
-            # 注入物理真理 (Math Fact Check) 作为审计的绝对底线
+            # Inject physical truth (Math Fact Check) as the absolute audit baseline
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
             
             payload = [prompt]
             if not cache_id and visual_parts:
                 payload.extend(visual_parts)
                 
-            # 使用“冷温度”(Temp 0.2) 执行审计，确保逻辑的严谨性和确定性
+            # Execute audit at cold temperature for logical rigor and determinism
             return self._execute_ai_cycle(
                 payload=payload, 
                 temperature=self.config.model_temperature,

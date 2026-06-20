@@ -1,7 +1,12 @@
-"""Shared helpers for OpenAI-compatible adapters (DeepSeek, Qwen)."""
+"""Shared helpers and base class for OpenAI-compatible adapters (DeepSeek, Qwen)."""
+import base64
 import json
 import logging
 from typing import Any
+
+from src.infrastructure.ai_client import (
+    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -12,16 +17,32 @@ JSON_HINT = (
 
 
 def build_messages(
-    system_instruction: str | None, contents: list[Any]
+    system_instruction: str | None, contents: list[Any],
+    *, response_json: bool = False,
 ) -> list[dict]:
+    json_instruction = f"\n\n{JSON_HINT}" if response_json else ""
     system_content = (
-        f"{system_instruction}\n\n{JSON_HINT}"
-        if system_instruction else JSON_HINT
+        f"{system_instruction}{json_instruction}"
+        if system_instruction else json_instruction or None
     )
-    messages: list[dict] = [{"role": "system", "content": system_content}]
+    if system_content:
+        messages: list[dict] = [{"role": "system", "content": system_content}]
+    else:
+        messages: list[dict] = []
     for item in contents:
         if isinstance(item, str):
             messages.append({"role": "user", "content": item})
+        elif isinstance(item, VisualPart):
+            b64 = base64.b64encode(item.data).decode("ascii")
+            data_uri = f"data:{item.mime_type};base64,{b64}"
+            content_parts: list[dict] = []
+            if item.label:
+                content_parts.append({"type": "text", "text": item.label})
+            content_parts.append({
+                "type": "image_url",
+                "image_url": {"url": data_uri},
+            })
+            messages.append({"role": "user", "content": content_parts})
         elif isinstance(item, dict):
             role = item.get("role", "user")
             if "text" in item:
@@ -74,3 +95,82 @@ def clean_json_text(raw_text: str) -> str:
     elif text.startswith("```"):
         text = text.split("```", 1)[1].rsplit("```", 1)[0].strip()
     return text
+
+
+# ── OpenAI-compatible adapter base ────────────────────────────────────────────
+
+class OpenAICompatibleAdapter(AbstractAIClient):
+    """Base adapter for providers that speak the OpenAI chat completions protocol.
+
+    DeepSeek, Qwen, and any future OpenAI-compatible provider extend this
+    with only their default model and base URL overrides.
+    """
+
+    def __init__(self, api_key: str, default_model: str, base_url: str,
+                 provider_label: str):
+        self.api_key = api_key
+        self.default_model = default_model
+        self.base_url = base_url
+        self.provider_label = provider_label
+        self._client = None
+
+    @property
+    def supports_context_cache(self) -> bool:
+        return False
+
+    def _get_client(self):
+        if self._client is None:
+            from openai import OpenAI
+            self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        return self._client
+
+    def generate_content(
+        self, model: str, contents: list[Any], *,
+        system_instruction: str | None = None,
+        tools: list[Any] | None = None,
+        temperature: float = 0.5,
+        response_json: bool = False,
+        http_timeout: int | None = None,
+    ) -> AIResponse:
+        target_model = self.default_model if "gemini" in model.lower() else model
+        messages = build_messages(system_instruction, contents,
+                                  response_json=response_json)
+        openai_tools = convert_tools(tools) if tools else None
+
+        api_params: dict[str, Any] = {
+            "model": target_model, "messages": messages,
+            "temperature": temperature,
+        }
+        if openai_tools:
+            api_params["tools"] = openai_tools
+            api_params["tool_choice"] = "auto"
+        if response_json:
+            api_params["response_format"] = {"type": "json_object"}
+
+        if http_timeout:
+            api_params["timeout"] = http_timeout
+
+        logger.info("%s: → %s", self.provider_label, target_model)
+        response = self._get_client().chat.completions.create(**api_params)
+        return self._parse(response, response_json)
+
+    def _parse(self, response, is_json: bool) -> AIResponse:
+        msg = response.choices[0].message
+        text = clean_json_text(msg.content or "") if is_json else (msg.content or "")
+        tool_calls = None
+        if msg.tool_calls:
+            tool_calls = []
+            for tc in msg.tool_calls:
+                try:
+                    args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+                except json.JSONDecodeError:
+                    args = {}
+                tool_calls.append(ToolCall(name=tc.function.name, args=args))
+        usage = None
+        if response.usage:
+            usage = UsageMetadata(
+                total_token_count=response.usage.total_tokens or 0,
+                prompt_token_count=response.usage.prompt_tokens or 0,
+                candidates_token_count=response.usage.completion_tokens or 0,
+            )
+        return AIResponse(text=text, tool_calls=tool_calls, usage=usage)

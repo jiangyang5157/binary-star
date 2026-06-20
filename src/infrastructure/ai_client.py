@@ -1,7 +1,20 @@
 """Abstract AI client interface — decouples agents from LLM SDKs."""
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
+
+
+@dataclass
+class VisualPart:
+    """Provider-agnostic visual content (image, chart, etc.).
+
+    Replaces direct `google.genai.types.Part` usage so the orchestrator
+    and agents never import provider-specific types.
+    """
+
+    mime_type: str
+    data: bytes
+    label: str | None = None
 
 
 @dataclass

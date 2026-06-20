@@ -35,6 +35,61 @@ class TimeframeConfig:
     lookback_candles: int
 
 @dataclass(frozen=True)
+class ObserverTopographyConfig:
+    """Indicator and structural-analysis parameters for MarketObserver."""
+
+    atr_period: int
+    bb_period: int
+    bb_std_dev: float
+    kc_period: int
+    kc_multiplier: float
+    volume_ma_period: int
+    max_liquidation_events_to_fetch: int
+    max_liquidation_clusters: int
+    high_volume_node_detection_threshold: float
+    low_volume_node_detection_threshold: float
+    max_volume_node_count: int
+    top_structural_node_count: int
+    min_node_gap_atr: float
+    default_structural_distance_atr: float
+    wick_skew_lookback_candles: int
+    wick_skew_fallback: float
+    indicator_warmup_multiplier: float
+
+
+@dataclass(frozen=True)
+class ObserverRadarConfig:
+    """Liquidation-radar physics parameters for MarketObserver."""
+
+    long_threshold: float
+    short_threshold: float
+    projection_50x: float
+    projection_25x: float
+    weight_25x: float
+    gaussian_sigma: float
+    grid_bins: int
+    grid_padding_atr: float
+
+
+@dataclass(frozen=True)
+class ObserverVisualConfig:
+    """Chart and visualisation parameters specific to MarketObserver."""
+
+    volume_profile_smoothing_sigma: float
+    volume_profile_color: str
+    volume_profile_alpha: float
+    chart_main_panel_weight: int
+    chart_volume_panel_weight: int
+    chart_trendline_peak_count: int
+    chart_trendline_window: int
+    liq_max_alpha: float
+    liq_min_alpha: float
+    liq_legacy_alpha_factor: float
+    liq_legacy_min_alpha: float
+    liq_legacy_max_alpha: float
+
+
+@dataclass(frozen=True)
 class MarketObserverConfig:
     """Type-safe configuration engine for the MarketObserver, composed from sub-configs.
 
@@ -45,59 +100,105 @@ class MarketObserverConfig:
         visual: Chart rendering parameters.
         max_tool_iterations: Safety ceiling for neural tool-looping.
     """
+    # ── Core sub-configs ──────────────────────────────────────────────
     macro_context: TimeframeConfig
     micro_context: TimeframeConfig
     regime: RegimeConfig
     visual: VisualConfig
+
+    # ── Grouped sub-dataclasses ───────────────────────────────────────
+    topo: ObserverTopographyConfig
+    radar: ObserverRadarConfig
+    obs_visual: ObserverVisualConfig
+
+    # ── Remaining flat fields (non-grouped) ───────────────────────────
     volume_profile_area_ratio: float
     volume_profile_price_bucket_count: int
     cvd_micro_lookback_candles: int
-    atr_period: int
-    bb_period: int
-    bb_std_dev: float
-    kc_period: int
-    kc_multiplier: float
-    volume_ma_period: int
-    max_liquidation_events_to_fetch: int
-    high_volume_node_detection_threshold: float
-    low_volume_node_detection_threshold: float
-    max_volume_node_count: int
-    top_structural_node_count: int
-    min_node_gap_atr: float
     trend_intensity_macro_lookback_candles: int
-    wick_skew_lookback_candles: int
-    liquidation_cluster_atr_multiplier: float
     funding_rate_macro_lookback_candles: int
     volatility_intensity_macro_lookback_candles: int
-    default_structural_distance_atr: float
-    max_liquidation_clusters: int
-    wick_skew_fallback: float
+    liquidation_cluster_atr_multiplier: float
     max_tool_iterations: int
 
-    # Visuals (observer-specific, not in VisualConfig)
-    volume_profile_smoothing_sigma: float
-    volume_profile_color: str
-    volume_profile_alpha: float
-    chart_main_panel_weight: int
-    chart_volume_panel_weight: int
-    chart_trendline_peak_count: int
-    chart_trendline_window: int
-    indicator_warmup_multiplier: float
-    liq_max_alpha: float
-    liq_min_alpha: float
-    liq_legacy_alpha_factor: float
-    liq_legacy_min_alpha: float
-    liq_legacy_max_alpha: float
-    # v7.1 Synthetic Radar Physics
-    liq_radar_long_threshold: float
-    liq_radar_short_threshold: float
-    liq_radar_projection_50x: float
-    liq_radar_projection_25x: float
-    liq_radar_weight_25x: float
-    # v7.1 Analytical Engine (Calculated Hyperparameters)
-    liq_radar_gaussian_sigma: float
-    liq_radar_grid_bins: int
-    liq_radar_grid_padding_atr: float
+    # ── Backward-compatible property accessors ─────────────────────────
+
+    @property
+    def atr_period(self) -> int: return self.topo.atr_period
+    @property
+    def bb_period(self) -> int: return self.topo.bb_period
+    @property
+    def bb_std_dev(self) -> float: return self.topo.bb_std_dev
+    @property
+    def kc_period(self) -> int: return self.topo.kc_period
+    @property
+    def kc_multiplier(self) -> float: return self.topo.kc_multiplier
+    @property
+    def volume_ma_period(self) -> int: return self.topo.volume_ma_period
+    @property
+    def max_liquidation_events_to_fetch(self) -> int: return self.topo.max_liquidation_events_to_fetch
+    @property
+    def max_liquidation_clusters(self) -> int: return self.topo.max_liquidation_clusters
+    @property
+    def high_volume_node_detection_threshold(self) -> float: return self.topo.high_volume_node_detection_threshold
+    @property
+    def low_volume_node_detection_threshold(self) -> float: return self.topo.low_volume_node_detection_threshold
+    @property
+    def max_volume_node_count(self) -> int: return self.topo.max_volume_node_count
+    @property
+    def top_structural_node_count(self) -> int: return self.topo.top_structural_node_count
+    @property
+    def min_node_gap_atr(self) -> float: return self.topo.min_node_gap_atr
+    @property
+    def default_structural_distance_atr(self) -> float: return self.topo.default_structural_distance_atr
+    @property
+    def wick_skew_lookback_candles(self) -> int: return self.topo.wick_skew_lookback_candles
+    @property
+    def wick_skew_fallback(self) -> float: return self.topo.wick_skew_fallback
+    @property
+    def indicator_warmup_multiplier(self) -> float: return self.topo.indicator_warmup_multiplier
+
+    @property
+    def liq_radar_long_threshold(self) -> float: return self.radar.long_threshold
+    @property
+    def liq_radar_short_threshold(self) -> float: return self.radar.short_threshold
+    @property
+    def liq_radar_projection_50x(self) -> float: return self.radar.projection_50x
+    @property
+    def liq_radar_projection_25x(self) -> float: return self.radar.projection_25x
+    @property
+    def liq_radar_weight_25x(self) -> float: return self.radar.weight_25x
+    @property
+    def liq_radar_gaussian_sigma(self) -> float: return self.radar.gaussian_sigma
+    @property
+    def liq_radar_grid_bins(self) -> int: return self.radar.grid_bins
+    @property
+    def liq_radar_grid_padding_atr(self) -> float: return self.radar.grid_padding_atr
+
+    @property
+    def volume_profile_smoothing_sigma(self) -> float: return self.obs_visual.volume_profile_smoothing_sigma
+    @property
+    def volume_profile_color(self) -> str: return self.obs_visual.volume_profile_color
+    @property
+    def volume_profile_alpha(self) -> float: return self.obs_visual.volume_profile_alpha
+    @property
+    def chart_main_panel_weight(self) -> int: return self.obs_visual.chart_main_panel_weight
+    @property
+    def chart_volume_panel_weight(self) -> int: return self.obs_visual.chart_volume_panel_weight
+    @property
+    def chart_trendline_peak_count(self) -> int: return self.obs_visual.chart_trendline_peak_count
+    @property
+    def chart_trendline_window(self) -> int: return self.obs_visual.chart_trendline_window
+    @property
+    def liq_max_alpha(self) -> float: return self.obs_visual.liq_max_alpha
+    @property
+    def liq_min_alpha(self) -> float: return self.obs_visual.liq_min_alpha
+    @property
+    def liq_legacy_alpha_factor(self) -> float: return self.obs_visual.liq_legacy_alpha_factor
+    @property
+    def liq_legacy_min_alpha(self) -> float: return self.obs_visual.liq_legacy_min_alpha
+    @property
+    def liq_legacy_max_alpha(self) -> float: return self.obs_visual.liq_legacy_max_alpha
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
@@ -127,66 +228,69 @@ class MarketObserverConfig:
         ct_cfg = visuals.get('chart_trendline', {})
 
         return cls(
-            indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
-            max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
             macro_context=TimeframeConfig(
                 time_interval=str(macro['time_interval']),
-                lookback_candles=int(macro['lookback_candles'])
+                lookback_candles=int(macro['lookback_candles']),
             ),
             micro_context=TimeframeConfig(
                 time_interval=str(micro['time_interval']),
-                lookback_candles=int(micro['lookback_candles'])
+                lookback_candles=int(micro['lookback_candles']),
             ),
             regime=load_regime_config(cfg),
             visual=load_visual_config(cfg),
+
+            topo=ObserverTopographyConfig(
+                atr_period=int(topography['average_true_range_period']),
+                bb_period=int(topography['bollinger_bands_period']),
+                bb_std_dev=float(topography['bollinger_bands_std_dev']),
+                kc_period=int(topography['keltner_channels_period']),
+                kc_multiplier=float(topography['keltner_channels_multiplier']),
+                volume_ma_period=int(topography['volume_moving_average_period']),
+                max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
+                max_liquidation_clusters=int(topography['max_liquidation_clusters']),
+                high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
+                low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
+                max_volume_node_count=int(topography['max_volume_node_count']),
+                top_structural_node_count=int(topography['top_structural_node_count']),
+                min_node_gap_atr=float(min_node_gap_atr),
+                default_structural_distance_atr=float(def_struct_dist),
+                wick_skew_lookback_candles=int(topography['wick_skew_lookback_candles']),
+                wick_skew_fallback=float(topography['wick_skew_fallback']),
+                indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
+            ),
+            radar=ObserverRadarConfig(
+                long_threshold=float(regime['liq_radar_long_threshold']),
+                short_threshold=float(regime['liq_radar_short_threshold']),
+                projection_50x=float(regime['liq_radar_projection_50x']),
+                projection_25x=float(regime['liq_radar_projection_25x']),
+                weight_25x=float(regime['liq_radar_weight_25x']),
+                gaussian_sigma=float(regime['liq_radar_gaussian_sigma']),
+                grid_bins=int(regime['liq_radar_grid_bins']),
+                grid_padding_atr=float(regime['liq_radar_grid_padding_atr']),
+            ),
+            obs_visual=ObserverVisualConfig(
+                volume_profile_smoothing_sigma=float(vp_cfg['smoothing_sigma']),
+                volume_profile_color=str(vp_cfg['color']),
+                volume_profile_alpha=float(vp_cfg['alpha']),
+                chart_main_panel_weight=int(visuals['chart_main_panel_weight']),
+                chart_volume_panel_weight=int(visuals['chart_volume_panel_weight']),
+                chart_trendline_peak_count=int(ct_cfg['peak_count']),
+                chart_trendline_window=int(ct_cfg['window']),
+                liq_max_alpha=float(visuals['liq_max_alpha']),
+                liq_min_alpha=float(visuals['liq_min_alpha']),
+                liq_legacy_alpha_factor=float(visuals['liq_legacy_alpha_factor']),
+                liq_legacy_min_alpha=float(visuals['liq_legacy_min_alpha']),
+                liq_legacy_max_alpha=float(visuals['liq_legacy_max_alpha']),
+            ),
+
             funding_rate_macro_lookback_candles=int(sampling['funding_rate_macro_lookback_candles']),
             cvd_micro_lookback_candles=int(sampling['cvd_micro_lookback_candles']),
             trend_intensity_macro_lookback_candles=int(sampling['trend_intensity_macro_lookback_candles']),
             volatility_intensity_macro_lookback_candles=int(sampling['volatility_intensity_macro_lookback_candles']),
-
             volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
             volume_profile_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
-            volume_ma_period=int(topography['volume_moving_average_period']),
-            high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
-            low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
-            max_volume_node_count=int(topography['max_volume_node_count']),
-            top_structural_node_count=int(topography['top_structural_node_count']),
-            min_node_gap_atr=float(min_node_gap_atr),
-            atr_period=int(topography['average_true_range_period']),
-            bb_period=int(topography['bollinger_bands_period']),
-            bb_std_dev=float(topography['bollinger_bands_std_dev']),
-            kc_period=int(topography['keltner_channels_period']),
-            kc_multiplier=float(topography['keltner_channels_multiplier']),
-            wick_skew_lookback_candles=int(topography['wick_skew_lookback_candles']),
-            wick_skew_fallback=float(topography['wick_skew_fallback']),
-            max_liquidation_clusters=int(topography['max_liquidation_clusters']),
-            max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
             liquidation_cluster_atr_multiplier=float(visuals['liq_radar_atr_multiplier']),
-            default_structural_distance_atr=float(def_struct_dist),
-
-            # v12.0: Visuals (Optimized for nested groupings)
-            volume_profile_smoothing_sigma=float(vp_cfg['smoothing_sigma']),
-            volume_profile_color=str(vp_cfg['color']),
-            volume_profile_alpha=float(vp_cfg['alpha']),
-            chart_main_panel_weight=int(visuals['chart_main_panel_weight']),
-            chart_volume_panel_weight=int(visuals['chart_volume_panel_weight']),
-            chart_trendline_peak_count=int(ct_cfg['peak_count']),
-            chart_trendline_window=int(ct_cfg['window']),
-            liq_max_alpha=float(visuals['liq_max_alpha']),
-            liq_min_alpha=float(visuals['liq_min_alpha']),
-            liq_legacy_alpha_factor=float(visuals['liq_legacy_alpha_factor']),
-            liq_legacy_min_alpha=float(visuals['liq_legacy_min_alpha']),
-            liq_legacy_max_alpha=float(visuals['liq_legacy_max_alpha']),
-
-            # v7.1 Synthetic Radar Physics & Calibration
-            liq_radar_long_threshold=float(regime['liq_radar_long_threshold']),
-            liq_radar_short_threshold=float(regime['liq_radar_short_threshold']),
-            liq_radar_projection_50x=float(regime['liq_radar_projection_50x']),
-            liq_radar_projection_25x=float(regime['liq_radar_projection_25x']),
-            liq_radar_weight_25x=float(regime['liq_radar_weight_25x']),
-            liq_radar_gaussian_sigma=float(regime['liq_radar_gaussian_sigma']),
-            liq_radar_grid_bins=int(regime['liq_radar_grid_bins']),
-            liq_radar_grid_padding_atr=float(regime['liq_radar_grid_padding_atr'])
+            max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
         )
 
 

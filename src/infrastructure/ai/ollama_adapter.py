@@ -1,6 +1,9 @@
 """OllamaAdapter — local Ollama implementing AbstractAIClient."""
+import json as _json
 import logging
 from typing import Any
+
+import ollama
 
 from src.infrastructure.ai_client import (
     AbstractAIClient, AIResponse, UsageMetadata, ToolCall,
@@ -30,9 +33,7 @@ class OllamaAdapter(AbstractAIClient):
         target_model = self.default_model if "gemini" in model.lower() else model
 
         # Build messages using shared OpenAI-format helper
-        messages = build_messages(system_instruction, contents)
-
-        import ollama
+        messages = build_messages(system_instruction, contents, response_json=response_json)
 
         # Convert tools to Ollama/OpenAI format
         ollama_tools = convert_tools(tools) if tools else None
@@ -59,7 +60,6 @@ class OllamaAdapter(AbstractAIClient):
                 args = func.get("arguments", {})
                 if isinstance(args, str):
                     try:
-                        import json as _json
                         args = _json.loads(args)
                     except _json.JSONDecodeError:
                         args = {}

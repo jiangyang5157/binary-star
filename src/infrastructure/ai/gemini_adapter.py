@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from src.infrastructure.ai_client import (
-    AbstractAIClient, AIResponse, ToolCall, UsageMetadata,
+    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart,
 )
 
 logger = logging.getLogger(__name__)
@@ -61,6 +61,12 @@ class GeminiAdapter(AbstractAIClient):
                 result.append(item)
             elif isinstance(item, types.Part):
                 result.append(types.Content(parts=[item], role="user"))
+            elif isinstance(item, VisualPart):
+                parts: list[types.Part] = []
+                if item.label:
+                    parts.append(types.Part.from_text(text=item.label))
+                parts.append(types.Part.from_bytes(data=item.data, mime_type=item.mime_type))
+                result.append(types.Content(parts=parts, role="user"))
             elif isinstance(item, str):
                 result.append(types.Content(
                     parts=[types.Part.from_text(text=item)], role="user"))

@@ -56,13 +56,13 @@ class SessionConfig(AgentConfig):
 
 class SessionAgent(BaseAgent):
     """The Session Analyst & Decision Engine.
-    
+
     Responsible for transforming topographical telemetry into tactical trade blueprints.
     Operates in an iterative cycle managed by the Orchestrator:
     1. Planning (Temp 0.7): Generates/Refines directional hypotheses and parameterization.
-       在规划阶段，智能体具有较高的“创意性”，用于探索潜在的 Alpha 收益。
+       Higher creativity for exploring potential alpha.
     2. Synthesis (Temp 0.3): Hardens the plan against Critic adversarial feedback in the final round.
-       在合成阶段，智能体进入“冷逻辑”模式，强制对齐所有物理约束，确保生存。
+       Cold-logic mode enforces alignment with all physical constraints for survivability.
     """
     
     def __init__(
@@ -77,9 +77,8 @@ class SessionAgent(BaseAgent):
         congestion_controller: Optional[CongestionController] = None
     ):
         """Standard constructor with dependency injection."""
-        self.config = config
         super().__init__(
-            config=self.config,
+            config=config,
             ai_client=ai_client,
             api_timeout=api_timeout,
             retry_count=retry_count,
@@ -104,7 +103,7 @@ class SessionAgent(BaseAgent):
         """Core execution logic for a session reasoning step."""
         logger.info(f"SessionAgent: {agent_name} for {symbol}...")
         try:
-            # 构建多模态提示词：整合物理事实、辩论历史与全局参数
+            # Build multimodal prompt: integrate physical facts, debate history, and global parameters
             prompt = self._build_prompt(
                 observation=observation, 
                 debate_history=debate_history,
@@ -115,7 +114,7 @@ class SessionAgent(BaseAgent):
             if not cache_id and visual_parts:
                 payload.extend(visual_parts)
                 
-            # 执行 AI 推理循环：支持 Gemini Cache 和 Function Calling (MathTools)
+            # Execute AI reasoning cycle with cache support and function calling (MathTools)
             return self._execute_ai_cycle(
                 payload=payload, 
                 temperature=temperature,

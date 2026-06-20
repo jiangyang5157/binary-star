@@ -1,5 +1,5 @@
 from typing import Any
-from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential, retry_if_exception_type
 from dataclasses import dataclass
 
 from src.infrastructure.ai_client import AbstractAIClient, AIResponse, ToolCall, UsageMetadata
@@ -7,6 +7,13 @@ from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
 from src.utils.rate_limiter import CongestionController
+from src.utils.exceptions import (
+    AgentInferenceError,
+    EmptyModelResponseError,
+    MalformedJSONError,
+    MaxIterationsError,
+    AIProviderError,
+)
 
 # Initialize standard hardened logger for base agent telemetry
 logger = setup_logger(__name__)
@@ -116,8 +123,13 @@ class BaseAgent:
             system_instruction: Shared intelligence prompt to bypass caching limits.
 
         Returns:
-            A forensic dictionary containing either the parsed JSON output
-            or a structured error trace.
+            A forensic dictionary containing the parsed JSON output.
+
+        Raises:
+            EmptyModelResponseError: The LLM returned nothing usable.
+            MalformedJSONError: The LLM output could not be parsed as JSON.
+            MaxIterationsError: The tool-call loop exceeded the limit.
+            AIProviderError: The AI provider returned an error.
         """
         try:
             temp = temperature if temperature is not None else self.temperature
@@ -163,13 +175,13 @@ class BaseAgent:
 
                 if not response.text and not response.tool_calls:
                     logger.error("BaseAgent: %s returned empty response.", agent_name)
-                    return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
+                    raise EmptyModelResponseError(agent_name=agent_name)
 
                 # No tool calls → termination
                 if not response.tool_calls:
                     if not response.text.strip():
                         logger.error("BaseAgent: %s returned empty text.", agent_name)
-                        return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
+                        raise EmptyModelResponseError(agent_name=agent_name)
                     return self._parse_and_validate_response(response.text, agent_name)
 
                 # Tool execution cycle
@@ -190,22 +202,20 @@ class BaseAgent:
                 contents.append({"role": "user", "tool_responses": tool_responses})
 
             logger.error("%s: max iterations (%d).", agent_name, self.max_tool_iterations)
-            return {"error": "MAX_ITERATIONS", "agent": agent_name}
+            raise MaxIterationsError(agent_name=agent_name)
 
-        except Exception as e:
-            from tenacity import RetryError
-
-            actual_error = e
-            if isinstance(e, RetryError) and e.last_attempt and e.last_attempt.failed:
-                actual_error = e.last_attempt.exception()
+        except AgentInferenceError:
+            raise  # re-raise our own exceptions directly
+        except RetryError as e:
+            actual_error = e.last_attempt.exception() if e.last_attempt and e.last_attempt.failed else e
             err_msg = str(actual_error)
             if hasattr(actual_error, "response") and hasattr(actual_error.response, "text"):
                 err_msg = f"{err_msg} | Body: {actual_error.response.text}"
             logger.error("%s Inference Failure: %s", agent_name, err_msg)
-            return {
-                "error": f"{agent_name.upper()}_FAILURE",
-                "details": err_msg, "agent": agent_name,
-            }
+            raise AIProviderError(details=err_msg, agent_name=agent_name) from actual_error
+        except Exception as e:
+            logger.error("%s Inference Failure: %s", agent_name, str(e))
+            raise AIProviderError(details=str(e), agent_name=agent_name) from e
 
     def _parse_and_validate_response(self, text: str, agent_name: str) -> dict[str, Any]:
         """Extracts and validates structured JSON output from model candidates.
@@ -220,7 +230,7 @@ class BaseAgent:
         parsed = extract_json_from_text(text)
         if parsed is None:
             logger.error(f"BaseAgent: {agent_name} returned malformed JSON: {text[:200]}...")
-            return {"error": "MALFORMED_JSON", "raw": text, "agent": agent_name}
+            raise MalformedJSONError(raw_text=text, agent_name=agent_name)
         return parsed
 
     def _dispatch_tool_call(self, tc: ToolCall) -> Any:

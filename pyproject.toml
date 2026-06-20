@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=75.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "singularity"
+version = "7.1.0"
+description = "AI-driven crypto quantitative trading engine with Binary Star adversarial protocol"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.12"
+authors = [
+    {name = "yangjiang"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "binance-futures-connector>=3.0.1",
+    "pandas>=2.1.0",
+    "matplotlib>=3.8.0",
+    "mplfinance",
+    "google-genai>=0.3.0",
+    "ollama",
+    "openai>=1.0.0",
+    "pyyaml>=6.0.1",
+    "python-dotenv>=1.0.1",
+    "scipy>=1.11.0",
+    "requests>=2.32.0",
+    "tenacity>=8.3.0",
+    "ruamel.yaml>=0.18.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "binance-connector>=3.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-mock",
+    "pytest-cov",
+]
+
+[project.scripts]
+singularity = "run:main"
+
+[tool.setuptools.packages.find]
+include = ["src*", "scripts*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

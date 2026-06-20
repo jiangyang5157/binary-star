@@ -79,7 +79,6 @@ class EvolverAgent(BaseAgent):
             retry_max=retry_max,
             congestion_controller=congestion_controller
         )
-        self.config = config
 
     def evolve(
         self, 
