@@ -24,8 +24,8 @@ class TestMathFactCheck:
             "current_price": 60100.0
         })
 
-        results = orchestrator._assemble_math_fact_check(plan, observation)
-        
+        results = orchestrator.math_checker.verify(plan, observation)
+
         assert results["status"] == "VERIFIED"
         assert results["compliance_verdict"]["rr_is_valid"] is True
         assert results["compliance_verdict"]["sl_is_shielded"] is True
@@ -48,7 +48,7 @@ class TestMathFactCheck:
             "take_profit": 59500.0
         })
 
-        results = orchestrator._assemble_math_fact_check(plan, observation)
+        results = orchestrator.math_checker.verify(plan, observation)
         
         assert results["status"] == "VERIFIED"
         assert results["compliance_verdict"]["rr_is_valid"] is False
@@ -69,7 +69,7 @@ class TestMathFactCheck:
             "take_profit": 63000.0
         })
 
-        results = orchestrator._assemble_math_fact_check(plan, observation)
+        results = orchestrator.math_checker.verify(plan, observation)
         
         assert results["status"] == "VERIFIED"
         assert results["compliance_verdict"]["sl_is_shielded"] is False
@@ -79,7 +79,7 @@ class TestMathFactCheck:
         observation = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
         plan = {"opinion": "NEUTRAL", "reasoning_chain": "Wait for volatility."}
         
-        results = orchestrator._assemble_math_fact_check(plan, observation)
+        results = orchestrator.math_checker.verify(plan, observation)
         assert results["status"] == "SKIPPED"
 
     def test_error_handling_in_math_fact_check(self, orchestrator):
@@ -87,8 +87,8 @@ class TestMathFactCheck:
         observation = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
         plan = {"opinion": "BULLISH", "tactical_parameters": {}} # Missing keys
         
-        results = orchestrator._assemble_math_fact_check(plan, observation)
+        results = orchestrator.math_checker.verify(plan, observation)
         # Depending on implementation, it might return status: VERIFIED but with default values or error
-        # In BinaryStarOrchestrator._assemble_math_fact_check, it uses float(tactical.get('entry', 0))
+        # In MathFactChecker.verify, it uses float(tactical.get('entry', 0))
         # So it will likely be 0, leading to a VERIFIED status but with RR=0 or similar.
         assert "status" in results

@@ -24,7 +24,7 @@ class TestChaosLogic:
             "take_profit": 60550.0
         })
 
-        results = orchestrator._assemble_math_fact_check(plan, observation)
+        results = orchestrator.math_checker.verify(plan, observation)
         assert results["compliance_verdict"]["rr_is_valid"] is False
         assert results["rr_verification"]["rr_ratio"] == 1.1
 
@@ -49,6 +49,6 @@ class TestChaosLogic:
             "take_profit": 60450.0
         })
 
-        results = orchestrator._assemble_math_fact_check(plan, observation)
+        results = orchestrator.math_checker.verify(plan, observation)
         assert results["compliance_verdict"]["rr_is_valid"] is True
         assert results["rr_verification"]["rr_ratio"] == 0.9
