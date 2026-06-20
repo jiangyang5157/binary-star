@@ -7,9 +7,16 @@ htmlcov/
 
 # IDE
 .vscode/
+
+# Gemini
 .gemini/
+
+# Claude Code
 .claude/
+
+# Superpowers
 .superpowers/
+docs/superpowers/
 
 # Environment and Keys
 .env
