@@ -3,9 +3,9 @@ import logging
 from typing import Any
 
 from src.infrastructure.ai_client import (
-    AbstractAIClient, AIResponse, UsageMetadata,
+    AbstractAIClient, AIResponse, UsageMetadata, ToolCall,
 )
-from src.infrastructure.ai._openai_helpers import JSON_HINT, clean_json_text
+from src.infrastructure.ai._openai_helpers import JSON_HINT, clean_json_text, build_messages, convert_tools
 
 logger = logging.getLogger(__name__)
 
@@ -28,28 +28,46 @@ class OllamaAdapter(AbstractAIClient):
         http_timeout: int | None = None,
     ) -> AIResponse:
         target_model = self.default_model if "gemini" in model.lower() else model
-        system_content = (
-            f"{system_instruction}\n\n{JSON_HINT}"
-            if system_instruction else JSON_HINT
-        )
-        messages: list[dict] = [{"role": "system", "content": system_content}]
-        for item in contents:
-            if isinstance(item, str):
-                messages.append({"role": "user", "content": item})
-            elif isinstance(item, dict) and "text" in item:
-                messages.append({"role": item.get("role", "user"), "content": item["text"]})
+
+        # Build messages using shared OpenAI-format helper
+        messages = build_messages(system_instruction, contents)
 
         import ollama
+
+        # Convert tools to Ollama/OpenAI format
+        ollama_tools = convert_tools(tools) if tools else None
+
         logger.info("OllamaAdapter: → %s", target_model)
         response = ollama.chat(
             model=target_model, messages=messages,
+            tools=ollama_tools,
             format="json" if response_json else None,
             options={"temperature": temperature, "num_ctx": 8192},
         )
         msg = response.get("message", {})
-        text = clean_json_text(msg.get("content", "")) if response_json else msg.get("content", "")
+        text = msg.get("content", "")
+        if response_json and text:
+            text = clean_json_text(text)
+
+        # Extract tool calls from response
+        tool_calls = None
+        raw_tcs = msg.get("tool_calls", [])
+        if raw_tcs:
+            tool_calls = []
+            for tc in raw_tcs:
+                func = tc.get("function", {})
+                args = func.get("arguments", {})
+                if isinstance(args, str):
+                    try:
+                        import json as _json
+                        args = _json.loads(args)
+                    except _json.JSONDecodeError:
+                        args = {}
+                tool_calls.append(ToolCall(name=func.get("name", ""), args=args))
+
         return AIResponse(
             text=text,
+            tool_calls=tool_calls,
             usage=UsageMetadata(
                 total_token_count=response.get("total_duration", 0) // 1_000_000,
             ),
