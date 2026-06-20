@@ -83,10 +83,7 @@ class CriticConfig(AgentConfig):
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
         
-        if active_provider == 'gemini':
-            model_temperature = float(provider_cfg.get('critic_temperature', 0.1))
-        else:
-            model_temperature = 0.1
+        model_temperature = float(provider_cfg.get('critic_temperature', 0.1))
         
         return cls(
             model=str(model),

@@ -30,10 +30,7 @@ class EvolverConfig(AgentConfig):
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
         
-        if active_provider == 'gemini':
-            model_temperature = float(provider_cfg.get('evolver_temperature', 0.0))
-        else:
-            model_temperature = 0.0
+        model_temperature = float(provider_cfg.get('evolver_temperature', 0.0))
             
         return cls(
             model=str(model),

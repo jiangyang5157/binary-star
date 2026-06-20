@@ -97,10 +97,7 @@ class SessionConfig(AgentConfig):
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
         
-        if active_provider == 'gemini':
-            model_temperature = float(provider_cfg.get('session_temperature', 0.5))
-        else:
-            model_temperature = 0.5
+        model_temperature = float(provider_cfg.get('session_temperature', 0.5))
         
         return cls(
             model=str(model),

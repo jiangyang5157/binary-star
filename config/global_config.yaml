@@ -3,7 +3,7 @@ system:
   default_symbol: "XAUTUSDT"
 
 trade_management:
-  risk_per_trade: 0.004      # Max % loss of total equity allowed per trade
+  risk_per_trade: 0.005      # Max % loss of total equity allowed per trade
   net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
   BTCUSDT:
     precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
@@ -33,7 +33,7 @@ network:
 
 llm:
   # --- Central Neural Infrastructure ---
-  active_provider: "qwen" # Options: "gemini", "ollama", "deepseek", "qwen"
+  active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen", "ollama"
   
   gemini:
     model: "gemini-3.5-flash" # gemini-3.5-flash
@@ -44,25 +44,32 @@ llm:
       enable: true
       expiration_minutes: 10
 
+  deepseek:
+    base_url: "https://api.deepseek.com"
+    model: "deepseek-v4-pro"  # deepseek-v4-pro deepseek-v4-flash
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    evolver_temperature: 0.0 
+
   ollama:
     base_url: "http://localhost:11434"
     model: "gemma4:e4b"
-
-  deepseek:
-    # BASE URL (OpenAI 格式)	https://api.deepseek.com
-    # BASE URL (Anthropic 格式)	https://api.deepseek.com/anthropic
-    base_url: "https://api.deepseek.com"
-    model: "deepseek-v4-flash"  # deepseek-v4-pro deepseek-v4-flash 
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    evolver_temperature: 0.0
 
   qwen:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model: "qwen3.7-plus"  # qwen3.7-max, qwen3.7-plus
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    evolver_temperature: 0.0
 
   binary_star:
     system_instruction: "src/agent/prompts/binary_star.md"
-    max_rounds: 2
     session_role_prompt: "src/agent/prompts/session.md"
     critic_role_prompt: "src/agent/prompts/critic.md"
+    max_rounds: 2
 
   evolver:
     role_prompt: "src/agent/prompts/evolver.md"
