@@ -26,6 +26,7 @@ class AIFactory:
                 base_url=cfg.get("base_url"),
                 default_model=cfg.get("model"),
                 num_ctx=int(cfg.get("num_ctx", 8192)),
+                supports_vision=bool(cfg.get("supports_vision", False)),
             )
         elif provider == "deepseek":
             from src.infrastructure.ai.deepseek_adapter import DeepSeekAdapter
@@ -37,6 +38,7 @@ class AIFactory:
                 api_key=key,
                 default_model=cfg.get("model", "deepseek-v4-flash"),
                 base_url=cfg.get("base_url", "https://api.deepseek.com"),
+                supports_vision=bool(cfg.get("supports_vision", False)),
             )
         elif provider == "qwen":
             from src.infrastructure.ai.qwen_adapter import QwenAdapter
@@ -48,6 +50,7 @@ class AIFactory:
                 api_key=key,
                 default_model=cfg.get("model", "qwen-plus"),
                 base_url=cfg.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+                supports_vision=bool(cfg.get("supports_vision", False)),
             )
         else:  # gemini
             from src.infrastructure.ai.gemini_adapter import GeminiAdapter

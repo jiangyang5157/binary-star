@@ -18,7 +18,7 @@ JSON_HINT = (
 
 def build_messages(
     system_instruction: str | None, contents: list[Any],
-    *, response_json: bool = False,
+    *, response_json: bool = False, supports_vision: bool = False,
 ) -> list[dict]:
     json_instruction = f"\n\n{JSON_HINT}" if response_json else ""
     system_content = (
@@ -33,16 +33,20 @@ def build_messages(
         if isinstance(item, str):
             messages.append({"role": "user", "content": item})
         elif isinstance(item, VisualPart):
-            b64 = base64.b64encode(item.data).decode("ascii")
-            data_uri = f"data:{item.mime_type};base64,{b64}"
-            content_parts: list[dict] = []
-            if item.label:
-                content_parts.append({"type": "text", "text": item.label})
-            content_parts.append({
-                "type": "image_url",
-                "image_url": {"url": data_uri},
-            })
-            messages.append({"role": "user", "content": content_parts})
+            if supports_vision:
+                b64 = base64.b64encode(item.data).decode("ascii")
+                data_uri = f"data:{item.mime_type};base64,{b64}"
+                content_parts: list[dict] = []
+                if item.label:
+                    content_parts.append({"type": "text", "text": item.label})
+                content_parts.append({
+                    "type": "image_url",
+                    "image_url": {"url": data_uri},
+                })
+                messages.append({"role": "user", "content": content_parts})
+            else:
+                # provider doesn't support vision — send label as text only
+                messages.append({"role": "user", "content": item.label or "[chart]"})
         elif isinstance(item, dict):
             role = item.get("role", "user")
             if "text" in item:
@@ -107,11 +111,12 @@ class OpenAICompatibleAdapter(AbstractAIClient):
     """
 
     def __init__(self, api_key: str, default_model: str, base_url: str,
-                 provider_label: str):
+                 provider_label: str, *, supports_vision: bool = False):
         self.api_key = api_key
         self.default_model = default_model
         self.base_url = base_url
         self.provider_label = provider_label
+        self._supports_vision = supports_vision
         self._client = None
 
     @property
@@ -134,7 +139,8 @@ class OpenAICompatibleAdapter(AbstractAIClient):
     ) -> AIResponse:
         target_model = self.default_model if "gemini" in model.lower() else model
         messages = build_messages(system_instruction, contents,
-                                  response_json=response_json)
+                                  response_json=response_json,
+                                  supports_vision=self._supports_vision)
         openai_tools = convert_tools(tools) if tools else None
 
         api_params: dict[str, Any] = {

@@ -6,6 +6,8 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
     """Talks to DeepSeek API via the shared OpenAI-compatible protocol."""
 
     def __init__(self, api_key: str, default_model: str = "deepseek-v4-flash",
-                 base_url: str = "https://api.deepseek.com"):
+                 base_url: str = "https://api.deepseek.com",
+                 *, supports_vision: bool = False):
         super().__init__(api_key=api_key, default_model=default_model,
-                         base_url=base_url, provider_label="DeepSeekAdapter")
+                         base_url=base_url, provider_label="DeepSeekAdapter",
+                         supports_vision=supports_vision)

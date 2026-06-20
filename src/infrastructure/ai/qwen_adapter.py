@@ -6,6 +6,8 @@ class QwenAdapter(OpenAICompatibleAdapter):
     """Talks to Alibaba Qwen (DashScope) via the shared OpenAI-compatible protocol."""
 
     def __init__(self, api_key: str, default_model: str = "qwen-plus",
-                 base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"):
+                 base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+                 *, supports_vision: bool = False):
         super().__init__(api_key=api_key, default_model=default_model,
-                         base_url=base_url, provider_label="QwenAdapter")
+                         base_url=base_url, provider_label="QwenAdapter",
+                         supports_vision=supports_vision)

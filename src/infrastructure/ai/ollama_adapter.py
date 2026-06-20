@@ -14,10 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaAdapter(AbstractAIClient):
-    def __init__(self, base_url: str, default_model: str, num_ctx: int = 8192):
+    def __init__(self, base_url: str, default_model: str, num_ctx: int = 8192,
+                 *, supports_vision: bool = False):
         self.base_url = base_url
         self.default_model = default_model
         self.num_ctx = num_ctx
+        self._supports_vision = supports_vision
 
     @property
     def supports_context_cache(self) -> bool:
@@ -34,7 +36,9 @@ class OllamaAdapter(AbstractAIClient):
         target_model = self.default_model if "gemini" in model.lower() else model
 
         # Build messages using shared OpenAI-format helper
-        messages = build_messages(system_instruction, contents, response_json=response_json)
+        messages = build_messages(system_instruction, contents,
+                                  response_json=response_json,
+                                  supports_vision=self._supports_vision)
 
         # Convert tools to Ollama/OpenAI format
         ollama_tools = convert_tools(tools) if tools else None

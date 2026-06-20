@@ -50,6 +50,7 @@ llm:
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
+    supports_vision: false  # DeepSeek text-only (no vision models yet)
 
   qwen:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
@@ -57,6 +58,7 @@ llm:
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
+    supports_vision: false  # set true for qwen-vl-max or qwen3.7-vl
 
   ollama:
     base_url: "http://localhost:11434"
@@ -64,7 +66,8 @@ llm:
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
-    num_ctx: 8192  # context window size (model-dependent: 4096, 8192, 32768, 131072)
+    supports_vision: false  # depends on model (llava, bakllava, etc.)
+    num_ctx: 8192
 
   binary_star:
     system_instruction: "config/prompts/binary_star.md"
