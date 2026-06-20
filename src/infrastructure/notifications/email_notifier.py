@@ -586,8 +586,8 @@ class SessionNotifier:
         self.strategy_cfg = self._load_config("strategy_config.yaml")
         
         # 1. Source global system settings (Notification Threshold)
-        global_session = self.global_cfg.get('session', {})
-        self.confidence_threshold = int(global_session.get('confidence_threshold'))
+        bs_cfg = self.global_cfg.get('llm', {}).get('binary_star', {})
+        self.confidence_threshold = int(bs_cfg.get('session_confidence_threshold', 60))
         
         # 2. Source strategy-specific physics
         # Sourced from binary_star -> session node in strategy_config.yaml

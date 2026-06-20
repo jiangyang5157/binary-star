@@ -193,7 +193,6 @@ class SessionController:
         
         # 2. Preparation (v6.30: Sniper-Led Architecture)
         topo_cfg = self.engine.config.get('topography_parameters', {})
-        bt_cfg = self.engine.global_cfg.get('backtest', {})
         
         # Calculate warmup needed for technical indicators
         fir_period = self.engine.config['analysis_window']['macro_context']['lookback_candles']
@@ -227,7 +226,7 @@ class SessionController:
         
         # v6.15: Backtest Sampling Architecture
         self.sampling_mode = self.args.sampling_mode or "sniper"
-        self.sampling_count = self.args.samples or self.engine.global_cfg.get('backtest', {})['default_samples']
+        self.sampling_count = self.args.samples
 
         if self.sampling_mode == "sniper":
             sampler = SniperSampler(self.symbol)
@@ -299,13 +298,12 @@ def main():
         args.mode = "backtest"
         if not args.path: args.path = "data/backtest"
         
-        from src.utils.pipeline_utils import load_global_config
         if args.samples is None:
-            args.samples = load_global_config().get('backtest', {}).get('default_samples', 20)
+            raise SystemExit("Error: --samples is required for backtest mode. Use --samples N to specify the number of historical samples.")
             
         logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
         logger.info(f" => ACTION: Simulating multiple historical data points")
-        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples} (Auto-resolved), --sampling-mode {args.sampling_mode}")
+        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples}, --sampling-mode {args.sampling_mode}")
         logger.info(f" => ARCHIVAL: {args.path}")
         
     else:

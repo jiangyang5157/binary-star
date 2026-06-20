@@ -179,7 +179,9 @@ def main():
     g_cfg = load_global_config()
     
     symbol = args.symbol or g_cfg.get('system', {})['default_symbol']
-    samples = args.samples or g_cfg.get('evolution', {})['default_samples']
+    samples = args.samples
+    if samples is None:
+        parser.error("--samples is required. Use --samples N to specify the number of audit reports to ingest.")
         
     engine = EvolutionEngine(data_root, symbol=symbol)
     try:

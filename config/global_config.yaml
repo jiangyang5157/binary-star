@@ -49,13 +49,6 @@ llm:
     model: "deepseek-v4-pro"  # deepseek-v4-pro deepseek-v4-flash
     session_temperature: 0.5
     critic_temperature: 0.1
-    evolver_temperature: 0.0 
-
-  ollama:
-    base_url: "http://localhost:11434"
-    model: "gemma4:e4b"
-    session_temperature: 0.5
-    critic_temperature: 0.1
     evolver_temperature: 0.0
 
   qwen:
@@ -65,11 +58,19 @@ llm:
     critic_temperature: 0.1
     evolver_temperature: 0.0
 
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "gemma4:e4b"
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    evolver_temperature: 0.0
+
   binary_star:
     system_instruction: "src/agent/prompts/binary_star.md"
     session_role_prompt: "src/agent/prompts/session.md"
     critic_role_prompt: "src/agent/prompts/critic.md"
     max_rounds: 2
+    session_confidence_threshold: 60
 
   evolver:
     role_prompt: "src/agent/prompts/evolver.md"
@@ -105,17 +106,6 @@ visuals:
 analytical:
   # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
   indicator_warmup_multiplier: 5.0
-
-session:
-  confidence_threshold: 60
-
-backtest:
-  # Default sample size for backtest simulation
-  default_samples: 1
-
-evolution:
-  # Default sample size for audit ingestion
-  default_samples: 10
 
 sniper:
 
@@ -192,3 +182,4 @@ sandbox:
     smart_surrender_bonus: 15.0
     # Penalty for predicting the right direction but missing the fill
     catastrophic_miss_penalty: -20.0
+

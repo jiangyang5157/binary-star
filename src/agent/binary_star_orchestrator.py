@@ -74,12 +74,7 @@ class BinaryStarOrchestrator:
         
         # 1. Shared Infrastructure Clients (Dynamic Provider Selection)
         self.client = AIFactory.create_client(api_key=api_key, config_dict=self.global_config)
-        
-        # v12.0: Multi-provider Logic - Proactively disable cache if using non-Gemini AI
-        from src.infrastructure.ollama_adapter import OllamaAdapter
-        from src.infrastructure.deepseek_adapter import DeepSeekAdapter
-        from src.infrastructure.qwen_adapter import QwenAdapter
-        self.is_local_ai = isinstance(self.client, (OllamaAdapter, DeepSeekAdapter, QwenAdapter))
+
         self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # 2. Global Environment Constants (Resolved from Global Config)
@@ -92,14 +87,7 @@ class BinaryStarOrchestrator:
         self.retry_multiplier = float(retry_strategy['multiplier'])
         self.retry_min = int(retry_strategy['min_seconds'])
         self.retry_max = int(retry_strategy['max_seconds'])
-        llm_gemini = self.global_config['llm']['gemini']
-        cache_cfg = llm_gemini['context_cache']
-        self.cache_expiration_minutes = int(cache_cfg['expiration_minutes'])
-        self.enable_context_cache = bool(cache_cfg['enable'])
-        if self.is_local_ai:
-            logger.info("BinaryStar: Local AI detected. Forcing enable_context_cache=False.")
-            self.enable_context_cache = False
-        
+
         # 3. Binary Star Protocol Parameters (Neural Infrastructure)
         self.llm_bs_config = self.global_config['llm']['binary_star']
         self.max_rounds = int(self.llm_bs_config['max_rounds'])
@@ -112,6 +100,11 @@ class BinaryStarOrchestrator:
         active_provider = active_provider.lower()
         active_provider_cfg = active_llm_cfg.get(active_provider, {})
         self.shared_model = active_provider_cfg.get('model')
+        
+        # Context Cache Config — read from active provider (only Gemini enables caching)
+        cache_cfg = active_provider_cfg.get('context_cache', {})
+        self.enable_context_cache = bool(cache_cfg.get('enable', False))
+        self.cache_expiration_minutes = int(cache_cfg.get('expiration_minutes', 10))
         
         # 4. Contextual Prompt Assembly (Support for Sandbox Injection)
         self.bs_instruction_path = os.path.join(resolve_project_root(), self.llm_bs_config.get('system_instruction', ''))
