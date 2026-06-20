@@ -45,8 +45,9 @@ def build_messages(
                 })
                 messages.append({"role": "user", "content": content_parts})
             else:
-                # provider doesn't support vision — send label as text only
-                messages.append({"role": "user", "content": item.label or "[chart]"})
+                # provider doesn't support vision — skip VisualPart entirely
+                # (all chart data is already in the observation JSON)
+                logger.debug("build_messages: Skipping VisualPart (vision not supported)")
         elif isinstance(item, dict):
             role = item.get("role", "user")
             if "text" in item:
