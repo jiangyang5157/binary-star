@@ -1,0 +1,31 @@
+# ── Chart Rendering ───────────────────────────────────────────────────────
+render_dpi: 120
+bg_color: "#0d1117"              # GitHub Dark Deep
+up_color: "#26a69a"              # Teal
+down_color: "#ef5350"            # Coral
+current_price_color: "#FFD700"   # Bright Yellow/Gold
+poc_color: "#B0B0B0"             # Silver-Neutral (structural axis)
+vah_val_color: "#A0A0A0"         # Silver-Gray
+
+# ── Volume Profile ─────────────────────────────────────────────────────────
+volume_profile:
+  width_ratio: 0.3
+  smoothing_sigma: 1.5
+  color: "#B0BEC5"               # High-Contrast Blue-Silver
+  alpha: 0.3
+
+# ── Chart Layout ───────────────────────────────────────────────────────────
+chart_main_panel_weight: 4
+chart_volume_panel_weight: 1
+
+chart_trendline:
+  peak_count: 7
+  window: 14
+
+# ── Liquidation Heatmap Aesthetics ─────────────────────────────────────────
+liq_max_alpha: 0.3
+liq_min_alpha: 0.1
+liq_legacy_alpha_factor: 5.0     # denominator for legacy event scaling
+liq_legacy_min_alpha: 0.1
+liq_legacy_max_alpha: 0.5
+liq_radar_atr_multiplier: 0.5    # visual scaling for heatmap bands

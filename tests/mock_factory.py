@@ -7,41 +7,28 @@ class MockDataFactory:
     """Universal generator for deterministic test data."""
 
     @staticmethod
-    def create_mock_klines(symbol: str, count: int = 100, trend: str = "bullish") -> List[KlineData]:
-        """
-        Generates simulated Binance klines as Domain objects.
-        """
-        base_price = 60000.0
-        klines = []
-        now_ts = int(datetime.datetime.now().timestamp() * 1000)
-        interval_ms = 60000 * 15 # 15m
+    def create_mock_klines(count: int = 100, trend: str = "bullish",
+                           base_price: float = 60000.0) -> List[KlineData]:
+        """Deterministic simulated Binance klines for testing."""
+        rng = random.Random(42)  # fixed seed for reproducibility
+        now_ts = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)
+        interval_ms = 15 * 60 * 1000  # 15m
 
+        drift_per_bar = 50.0 if trend == "bullish" else -50.0
+        klines = []
         for i in range(count):
             open_ts = now_ts - (count - i) * interval_ms
             close_ts = open_ts + interval_ms - 1
-            
-            # Simulated price movement
-            drift = 50.0 if trend == "bullish" else -50.0
-            noise = random.uniform(-20, 20)
-            
-            open_p = base_price + (i * drift) + noise
-            close_p = open_p + drift + random.uniform(-10, 10)
-            high_p = max(open_p, close_p) + random.uniform(5, 15)
-            low_p = min(open_p, close_p) - random.uniform(5, 15)
-            
-            # [OpenTime, Open, High, Low, Close, Volume, CloseTime]
-            # Since we now map everything safely, other missing fields are automatically None
+            noise = rng.uniform(-20, 20)
+            open_p = base_price + (i * drift_per_bar) + noise
+            close_p = open_p + drift_per_bar + rng.uniform(-10, 10)
+            high_p = max(open_p, close_p) + rng.uniform(5, 15)
+            low_p = min(open_p, close_p) - rng.uniform(5, 15)
             klines.append(KlineData(
-                open_time=open_ts,
-                open=open_p,
-                high=high_p,
-                low=low_p,
-                close=close_p,
-                volume=100.0,
-                close_time=close_ts,
-                taker_buy_base=50.0  # Optional fallback value for simulation
+                open_time=open_ts, open=open_p, high=high_p, low=low_p,
+                close=close_p, volume=100.0, close_time=close_ts,
+                taker_buy_base=50.0,
             ))
-        
         return klines
 
     @staticmethod
@@ -88,9 +75,15 @@ class MockDataFactory:
 
     @staticmethod
     def create_mock_config() -> Dict[str, Any]:
-        """Generates a minimal valid configuration that satisfies both strategy and global config requirements."""
+        """Minimal valid config covering all keys read by the pipeline.
+
+        Visual params come from config/visual_config.yaml at test time.
+        Physics constants (projection, warmup, bucket count) are hardcoded.
+        """
         return {
-            # 1. Global Config Keys (from global_config.yaml)
+            "system": {
+                "default_symbol": "BTCUSDT",
+            },
             "network": {
                 "gemini": {
                     "api_timeout_seconds": 30,
@@ -98,19 +91,12 @@ class MockDataFactory:
                     "retry_strategy": {
                         "multiplier": 1,
                         "min_seconds": 2,
-                        "max_seconds": 10
+                        "max_seconds": 10,
                     },
                     "max_tool_iterations": 5,
-                    "context_cache": {
-                        "enable": True,
-                        "expiration_minutes": 60
-                    }
-                }
+                },
             },
-            "system": {
-                "default_symbol": "BTCUSDT",
-                "notification_confidence_floor": 50
-            },
+            # ── LLM / provider ──────────────────────────────────────
             "llm": {
                 "active_provider": "gemini",
                 "gemini": {
@@ -120,59 +106,25 @@ class MockDataFactory:
                     "evolver_temperature": 0.0,
                     "context_cache": {
                         "enable": True,
-                        "expiration_minutes": 60
-                    }
+                        "expiration_minutes": 60,
+                    },
                 },
                 "binary_star": {
                     "system_instruction": "config/prompts/binary_star.md",
                     "max_rounds": 3,
                     "session_role_prompt": "config/prompts/session.md",
-                    "critic_role_prompt": "config/prompts/critic.md"
+                    "critic_role_prompt": "config/prompts/critic.md",
+                    "session_confidence_threshold": 60,
                 },
                 "evolver": {
-                    "role_prompt": "config/prompts/evolver.md"
-                }
-            },
-            "visuals": {
-                "up_color": "#089981",
-                "down_color": "#F23645",
-                "bg_color": "#131722",
-                "poc_color": "#FF9800",
-                "vah_val_color": "#2196F3",
-                "current_price_color": "#ffffff",
-                "liq_radar_atr_multiplier": 0.5,
-                "volume_profile": {
-                    "width_ratio": 0.2,
-                    "smoothing_sigma": 1.0,
-                    "color": "#787b86",
-                    "alpha": 0.4
+                    "role_prompt": "config/prompts/evolver.md",
                 },
-                "chart_main_panel_weight": 4,
-                "chart_volume_panel_weight": 1,
-                "render_dpi": 100,
-                "chart_trendline": {
-                    "peak_count": 5,
-                    "window": 10
-                },
-                "liq_max_alpha": 0.3,
-                "liq_min_alpha": 0.1,
-                "liq_legacy_alpha_factor": 5.0,
-                "liq_legacy_min_alpha": 0.1,
-                "liq_legacy_max_alpha": 0.5,
-                "default_structural_distance_atr": 2.0
             },
-            "analytical": {
-                "indicator_warmup_multiplier": 5.0,
-            },
-            "backtest": {
-                "default_samples": 1
-            },
-            # 2. Strategy Config Keys
+            # ── Strategy — binary_star / session ────────────────────
             "binary_star": {
                 "session": {
                     "min_trade_velocity": 0.5,
                     "stop_loss_buffer_min": 0.1,
-                    "holding_time_modifier": 1.0,
                     "temporal_dilation_highway": 1.1,
                     "temporal_dilation_standard": 1.5,
                     "temporal_dilation_climax": 2.0,
@@ -181,21 +133,20 @@ class MockDataFactory:
                     "temporal_weight_standard": 1.0,
                     "temporal_weight_dead_water": 0.5,
                     "temporal_weight_climax": 0.25,
-                    "max_holding_hours": 48.0
-                }
+                    "max_holding_hours": 48.0,
+                },
             },
-            "agent_model_shared_config": {"max_tool_iterations": 5},
+            # ── Strategy — analysis / topography / regime ───────────
             "analysis_window": {
                 "macro_context": {"time_interval": "1h", "lookback_candles": 100},
                 "micro_context": {"time_interval": "15m", "lookback_candles": 100},
                 "funding_rate_macro_lookback_candles": 24,
                 "cvd_micro_lookback_candles": 4,
                 "trend_intensity_macro_lookback_candles": 24,
-                "volatility_intensity_macro_lookback_candles": 100
+                "volatility_intensity_macro_lookback_candles": 100,
             },
             "topography_parameters": {
                 "volume_profile_value_area_width": 0.7,
-                "volume_profile_price_bucket_count": 24,
                 "exponential_moving_average_period": 21,
                 "volume_moving_average_period": 21,
                 "max_volume_node_count": 3,
@@ -212,9 +163,7 @@ class MockDataFactory:
                 "wick_skew_fallback": 0.5,
                 "max_liquidation_clusters": 5,
                 "max_liquidation_events_to_fetch": 100,
-                "liquidation_cluster_atr_multiplier": 0.25,
-                "liquidation_cluster_fallback_percentage": 0.005,
-                "default_structural_distance_atr": 2.0
+                "default_structural_distance_atr": 2.0,
             },
             "regime_parameters": {
                 "trend_intensity_threshold": 0.95,
@@ -245,17 +194,11 @@ class MockDataFactory:
                 "min_rr_trending": 1.2,
                 "liq_radar_long_threshold": 1.05,
                 "liq_radar_short_threshold": 0.95,
-                "liq_radar_projection_50x": 0.02,
-                "liq_radar_projection_25x": 0.04,
-                "liq_radar_weight_25x": 0.6,
                 "liq_radar_gaussian_sigma": 2.0,
                 "liq_radar_grid_bins": 500,
-                "liq_radar_grid_padding_atr": 5.0
+                "liq_radar_grid_padding_atr": 5.0,
             },
-            "sandbox": {
-                "mae_significance_threshold": 15.0,
-                "mae_improvement_threshold": 5.0
-            },
+            # ── Audit / sandbox / strategy intent ───────────────────
             "audit_review": {
                 "forensic_resolution": "1m",
                 "atr_period": 14,
@@ -266,9 +209,13 @@ class MockDataFactory:
                 "mae_threshold_standard": 50.0,
                 "mae_threshold_luck": 80.0,
                 "base_slippage_bps": 5.0,
-                "max_slippage_bps": 50.0
+                "max_slippage_bps": 50.0,
             },
-            "strategy_intent": "TEST"
+            "sandbox": {
+                "mae_significance_threshold": 15.0,
+                "mae_improvement_threshold": 5.0,
+            },
+            "strategy_intent": "TEST",
         }
     @staticmethod
     def create_mock_ai_response(opinion: str = "BULLISH", confidence: int = 85) -> Dict[str, Any]:

@@ -88,7 +88,11 @@ def load_audit_config(cfg: dict[str, Any]) -> AuditConfig:
 
 
 def load_visual_config(cfg: dict[str, Any]) -> VisualConfig:
-    v = cfg["visuals"]
+    import os, yaml
+    from src.utils.path_utils import resolve_project_root
+    v_path = os.path.join(resolve_project_root(), "config", "visual_config.yaml")
+    with open(v_path, "r") as f:
+        v = yaml.safe_load(f)
     t = cfg["topography_parameters"]
     return VisualConfig(
         volume_profile_width_ratio=_f(v["volume_profile"], "width_ratio"),

@@ -76,38 +76,6 @@ llm:
   evolver:
     role_prompt: "config/prompts/evolver.md"
 
-visuals:
-  # --- Chart Rendering Tokens ---
-  render_dpi: 120
-  bg_color: "#0d1117"       # GitHub Dark Deep (v7.2 standard)
-  up_color: "#26a69a"       # Teal
-  down_color: "#ef5350"     # Coral
-  current_price_color: "#FFD700" # Bright Yellow/Gold for distinct price tracking
-  poc_color: "#B0B0B0"      # Silver-Neutral (v9.1: Subtle Structural Axis)
-  vah_val_color: "#A0A0A0"    # Silver-Gray (VAH/VAL)
-  volume_profile:
-    width_ratio: 0.3 # Wide, confident profile
-    smoothing_sigma: 1.5
-    color: "#B0BEC5"  # High-Contrast Blue-Silver (v7.6)
-    alpha: 0.3         # Balanced visibility (v7.7 Tuning)
-  chart_trendline:
-    peak_count: 7  # v8.7 Structural Persistence
-    window: 14      # v10.0 Fractal Sensitivity (standard: 5)
-  chart_main_panel_weight: 4
-  chart_volume_panel_weight: 1
-
-  # --- Liquidation Heatmap Aesthetics ---
-  liq_max_alpha: 0.3           # High peak intensity
-  liq_min_alpha: 0.1
-  liq_legacy_alpha_factor: 5.0  # Denominator for legacy event scaling (v5.0 default)
-  liq_legacy_min_alpha: 0.1    # Minimum opacity for legacy raw orders
-  liq_legacy_max_alpha: 0.5    # Maximum opacity for legacy raw orders
-  liq_radar_atr_multiplier: 0.5   # v11.1: Visual scaling for liquidation heatmap bands
-
-analytical:
-  # Multiplier for indicator warmup (e.g., 5.0 for standard convergence, 7.0 for forensic precision)
-  indicator_warmup_multiplier: 5.0
-
 sniper:
 
   # --- Engine Heartbeat & Tick Rate ---

@@ -75,12 +75,9 @@ class SniperScout:
             max_liquidation_clusters=self.obs_config.max_liquidation_clusters,
             long_taker_threshold=self.obs_config.liq_radar_long_threshold,
             short_taker_threshold=self.obs_config.liq_radar_short_threshold,
-            liquid_projection_50x=self.obs_config.liq_radar_projection_50x,
-            liquid_projection_25x=self.obs_config.liq_radar_projection_25x,
-            weight_25x=self.obs_config.liq_radar_weight_25x,
             gaussian_sigma=self.obs_config.liq_radar_gaussian_sigma,
             grid_bins=self.obs_config.liq_radar_grid_bins,
-            grid_padding_atr=self.obs_config.liq_radar_grid_padding_atr
+            grid_padding_atr=self.obs_config.liq_radar_grid_padding_atr,
         )
         self.loader = MarketDataLoader(self.exchange_client, self.obs_config)
         self.refiner = MarketMetricsRefiner(self.obs_config, self.vp_analyzer, self.regime_analyzer, self.radar)

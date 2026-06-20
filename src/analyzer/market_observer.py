@@ -54,18 +54,18 @@ class ObserverTopographyConfig:
     default_structural_distance_atr: float
     wick_skew_lookback_candles: int
     wick_skew_fallback: float
-    indicator_warmup_multiplier: float
 
 
 @dataclass(frozen=True)
 class ObserverRadarConfig:
-    """Liquidation-radar physics parameters for MarketObserver."""
+    """Liquidation-radar parameters for MarketObserver.
+
+    Projection distances (1/leverage) and 25x weight are physics constants
+    hardcoded in LiquidationRadar itself — no longer config knobs.
+    """
 
     long_threshold: float
     short_threshold: float
-    projection_50x: float
-    projection_25x: float
-    weight_25x: float
     gaussian_sigma: float
     grid_bins: int
     grid_padding_atr: float
@@ -113,7 +113,6 @@ class MarketObserverConfig:
 
     # ── Remaining flat fields (non-grouped) ───────────────────────────
     volume_profile_area_ratio: float
-    volume_profile_price_bucket_count: int
     cvd_micro_lookback_candles: int
     trend_intensity_macro_lookback_candles: int
     funding_rate_macro_lookback_candles: int
@@ -155,19 +154,11 @@ class MarketObserverConfig:
     def wick_skew_lookback_candles(self) -> int: return self.topo.wick_skew_lookback_candles
     @property
     def wick_skew_fallback(self) -> float: return self.topo.wick_skew_fallback
-    @property
-    def indicator_warmup_multiplier(self) -> float: return self.topo.indicator_warmup_multiplier
 
     @property
     def liq_radar_long_threshold(self) -> float: return self.radar.long_threshold
     @property
     def liq_radar_short_threshold(self) -> float: return self.radar.short_threshold
-    @property
-    def liq_radar_projection_50x(self) -> float: return self.radar.projection_50x
-    @property
-    def liq_radar_projection_25x(self) -> float: return self.radar.projection_25x
-    @property
-    def liq_radar_weight_25x(self) -> float: return self.radar.weight_25x
     @property
     def liq_radar_gaussian_sigma(self) -> float: return self.radar.gaussian_sigma
     @property
@@ -220,8 +211,11 @@ class MarketObserverConfig:
         min_volume_part = regime['min_volume_participation_ratio']
         balancing_width = regime['ranging_width_atr']
 
-        visuals = cfg.get('visuals', {})
-        analytical = cfg.get('analytical', {})
+        import yaml as _yaml
+        from src.utils.path_utils import resolve_project_root as _root
+        v_path = os.path.join(_root(), "config", "visual_config.yaml")
+        with open(v_path, "r") as _f:
+            visuals = _yaml.safe_load(_f)
 
         # v12.0: Unified Grouping for Profile and Trendline
         vp_cfg = visuals.get('volume_profile', {})
@@ -256,14 +250,10 @@ class MarketObserverConfig:
                 default_structural_distance_atr=float(def_struct_dist),
                 wick_skew_lookback_candles=int(topography['wick_skew_lookback_candles']),
                 wick_skew_fallback=float(topography['wick_skew_fallback']),
-                indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
             ),
             radar=ObserverRadarConfig(
                 long_threshold=float(regime['liq_radar_long_threshold']),
                 short_threshold=float(regime['liq_radar_short_threshold']),
-                projection_50x=float(regime['liq_radar_projection_50x']),
-                projection_25x=float(regime['liq_radar_projection_25x']),
-                weight_25x=float(regime['liq_radar_weight_25x']),
                 gaussian_sigma=float(regime['liq_radar_gaussian_sigma']),
                 grid_bins=int(regime['liq_radar_grid_bins']),
                 grid_padding_atr=float(regime['liq_radar_grid_padding_atr']),
@@ -288,7 +278,6 @@ class MarketObserverConfig:
             trend_intensity_macro_lookback_candles=int(sampling['trend_intensity_macro_lookback_candles']),
             volatility_intensity_macro_lookback_candles=int(sampling['volatility_intensity_macro_lookback_candles']),
             volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
-            volume_profile_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
             liquidation_cluster_atr_multiplier=float(visuals['liq_radar_atr_multiplier']),
             max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
         )
@@ -637,12 +626,9 @@ class MarketObserver:
             max_liquidation_clusters=self.config.max_liquidation_clusters,
             long_taker_threshold=self.config.liq_radar_long_threshold,
             short_taker_threshold=self.config.liq_radar_short_threshold,
-            liquid_projection_50x=self.config.liq_radar_projection_50x,
-            liquid_projection_25x=self.config.liq_radar_projection_25x,
-            weight_25x=self.config.liq_radar_weight_25x,
             gaussian_sigma=self.config.liq_radar_gaussian_sigma,
             grid_bins=self.config.liq_radar_grid_bins,
-            grid_padding_atr=self.config.liq_radar_grid_padding_atr
+            grid_padding_atr=self.config.liq_radar_grid_padding_atr,
         )
         self.loader = MarketDataLoader(self._exchange, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer, self.radar)
@@ -656,8 +642,7 @@ class MarketObserver:
             # Check Macro Context
             macro_warmup = calculate_indicator_warmup(
                 iir_periods=[self.config.atr_period, self.config.bb_period, self.config.kc_period],
-                fir_periods=[int(self.config.trend_intensity_lookback_hours)], # Base lookback
-                multiplier=self.config.indicator_warmup_multiplier
+                fir_periods=[int(self.config.trend_intensity_lookback_hours)],
             )
             if self.config.macro_context.lookback_candles < macro_warmup:
                 logger.warning(
@@ -766,7 +751,7 @@ class MarketObserver:
         cfg = self.config
         vp_cfg = VolumeProfileConfig(
             value_area_ratio=cfg.volume_profile_area_ratio,
-            resolution_bins=cfg.volume_profile_price_bucket_count,
+            resolution_bins=300,  # fixed resolution, not a strategy knob
             atr_period=cfg.atr_period,
             max_volume_node_count=cfg.max_volume_node_count,
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold,

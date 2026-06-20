@@ -15,26 +15,33 @@ class LiquidationRadar:
     to localize theoretical liquidation clusters (Structural Magnets).
     """
 
-    def __init__(self, 
-                 volume_moving_average_period: int, 
+    # Physics constants (derived from leverage, not strategy knobs)
+    LEVERAGE_50X = 50.0
+    LEVERAGE_25X = 25.0
+    WEIGHT_25X = 0.6  # relative intensity of 25x clusters vs 50x
+
+    def __init__(self,
+                 volume_moving_average_period: int,
                  volume_surge_vs_ma_ratio: float,
                  max_liquidation_clusters: int,
                  long_taker_threshold: float,
                  short_taker_threshold: float,
-                 liquid_projection_50x: float,
-                 liquid_projection_25x: float,
-                 weight_25x: float,
                  gaussian_sigma: float,
                  grid_bins: int,
-                 grid_padding_atr: float):
+                 grid_padding_atr: float,
+                 # ── optional overrides for physics constants ──────────
+                 liquid_projection_50x: float | None = None,
+                 liquid_projection_25x: float | None = None,
+                 weight_25x: float | None = None):
         self.volume_moving_average_period = volume_moving_average_period
         self.volume_surge_vs_ma_ratio = volume_surge_vs_ma_ratio
         self.max_liquidation_clusters = max_liquidation_clusters
         self.long_taker_threshold = long_taker_threshold
         self.short_taker_threshold = short_taker_threshold
-        self.liquid_projection_50x = liquid_projection_50x
-        self.liquid_projection_25x = liquid_projection_25x
-        self.weight_25x = weight_25x
+        # Physics: liquidation distance = 1 / leverage
+        self.liquid_projection_50x = liquid_projection_50x or (1.0 / self.LEVERAGE_50X)
+        self.liquid_projection_25x = liquid_projection_25x or (1.0 / self.LEVERAGE_25X)
+        self.weight_25x = weight_25x if weight_25x is not None else self.WEIGHT_25X
         self.gaussian_sigma = gaussian_sigma
         self.grid_bins = grid_bins
         self.grid_padding_atr = grid_padding_atr
