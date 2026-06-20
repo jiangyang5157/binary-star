@@ -33,16 +33,18 @@ class EvolutionEngine:
         self.symbol = symbol
         self.dirs = self._setup_evolution_dirs()
         load_dotenv()
-        self.api_key = os.environ.get("GEMINI_API_KEY")
         
         # v6.10: Setup system-wide logging with physical persistence in data_root
-        # Initializing the ROOT logger catches all child agents (Evolver, Sandbox, etc.)
         log_path = os.path.join(self.data_root, "evolution.log")
         setup_logger("", log_file=log_path) # Empty string means Root Logger
         self.logger = logging.getLogger("EvolutionEngine")
         
+        # Resolve API key based on active provider (decoupled)
+        from src.utils.pipeline_utils import resolve_api_key
+        self.api_key = resolve_api_key()
+        
         if not self.api_key:
-            self.logger.critical("GEMINI_API_KEY-VET_FAILED: Evolution Oracle offline.")
+            self.logger.critical("API_KEY-VET_FAILED: Evolution Oracle offline.")
             sys.exit(1)
         
         self.logger.info(f"Engine: Oracle online [{self.symbol}]. Audit Trail Persistence: {log_path}")

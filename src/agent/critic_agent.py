@@ -76,7 +76,10 @@ class CriticConfig(AgentConfig):
         topography = cfg_dict['topography_parameters']
         visuals = cfg_dict['visuals']
         
-        active_provider = llm_cfg.get('active_provider').lower()
+        active_provider = llm_cfg.get('active_provider')
+        if not active_provider:
+            raise ValueError("active_provider is not set in llm configuration.")
+        active_provider = active_provider.lower()
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
         

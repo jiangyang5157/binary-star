@@ -74,11 +74,11 @@ def main():
         
     # 5. Run Batch Sandbox Validation
     load_dotenv()
-    api_key = os.environ.get("GEMINI_API_KEY")
+    from src.utils.pipeline_utils import resolve_api_key
+    api_key = resolve_api_key()
     if not api_key:
-        logger.critical("GEMINI_API_KEY Missing.")
+        logger.critical("API_KEY not found for active provider.")
         sys.exit(1)
-        
     full_config = load_combined_config()
     sandbox = EvolverSandbox(
         api_key=api_key, 

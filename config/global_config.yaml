@@ -33,10 +33,10 @@ network:
 
 llm:
   # --- Central Neural Infrastructure ---
-  active_provider: "deepseek" # Options: "gemini", "ollama", "deepseek", "qwen"
+  active_provider: "qwen" # Options: "gemini", "ollama", "deepseek", "qwen"
   
   gemini:
-    model: "gemini-3.5-flash" # "gemini-3.5-flash"
+    model: "gemini-3.5-flash" # gemini-3.5-flash
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
@@ -52,11 +52,11 @@ llm:
     # BASE URL (OpenAI 格式)	https://api.deepseek.com
     # BASE URL (Anthropic 格式)	https://api.deepseek.com/anthropic
     base_url: "https://api.deepseek.com"
-    model: "deepseek-v4-flash"  # deepseek-v4-flash deepseek-v4-pro
+    model: "deepseek-v4-flash"  # deepseek-v4-pro deepseek-v4-flash 
 
   qwen:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model: "qwen-plus"  # qwen-turbo qwen-plus qwen-max qwen-vl-max
+    model: "qwen3.7-plus"  # qwen3.7-max, qwen3.7-plus
 
   binary_star:
     system_instruction: "src/agent/prompts/binary_star.md"

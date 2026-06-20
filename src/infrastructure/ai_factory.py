@@ -15,7 +15,10 @@ class AIFactory:
         try:
             config = config_dict or load_config('config/global_config.yaml')
             llm_cfg = config.get('llm', {})
-            provider = llm_cfg.get('active_provider', 'gemini').lower()
+            provider = llm_cfg.get('active_provider')
+            if not provider:
+                raise ValueError("active_provider is not set in llm configuration.")
+            provider = provider.lower()
             
             if provider == 'ollama':
                 from src.infrastructure.ollama_adapter import OllamaAdapter

@@ -44,10 +44,11 @@ class SessionEngine:
         self.config = load_config()
         self.global_cfg = load_global_config()
         
-        # Initialize Infrastructure
-        self.api_key = os.environ.get("GEMINI_API_KEY")
+        # Resolve API key based on active provider (decoupled)
+        from src.utils.pipeline_utils import resolve_api_key
+        self.api_key = resolve_api_key()
         if not self.api_key:
-            logger.critical("GEMINI_API_KEY not found. Neural inference disabled.")
+            logger.critical("API_KEY not found for active provider. Neural inference disabled.")
             sys.exit(1)
             
         self.orchestrator = BinaryStarOrchestrator(

@@ -23,7 +23,10 @@ class EvolverConfig(AgentConfig):
         """Factory method to extract evolver config from the standalone evolver node."""
         llm_cfg = cfg['llm']
         evolver_llm = llm_cfg['evolver']
-        active_provider = llm_cfg.get('active_provider').lower()
+        active_provider = llm_cfg.get('active_provider')
+        if not active_provider:
+            raise ValueError("active_provider is not set in llm configuration.")
+        active_provider = active_provider.lower()
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
         

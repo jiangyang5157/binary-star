@@ -106,7 +106,10 @@ class BinaryStarOrchestrator:
         
         # v14.0: Resolve shared model from active provider (decoupled from binary_star node)
         active_llm_cfg = self.global_config['llm']
-        active_provider = active_llm_cfg.get('active_provider').lower()
+        active_provider = active_llm_cfg.get('active_provider')
+        if not active_provider:
+            raise ValueError("active_provider is not set in llm configuration.")
+        active_provider = active_provider.lower()
         active_provider_cfg = active_llm_cfg.get(active_provider, {})
         self.shared_model = active_provider_cfg.get('model')
         

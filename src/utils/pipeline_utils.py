@@ -49,6 +49,22 @@ def load_global_config(config_filepath: str = "config/global_config.yaml") -> Di
         return {}
 
 
+def resolve_api_key() -> Optional[str]:
+    """Reads active_provider from global_config and returns the corresponding API key
+    from environment variables. Returns None if not found."""
+    _ENV_MAP = {
+        'gemini':   'GEMINI_API_KEY',
+        'deepseek': 'DEEPSEEK_API_KEY',
+        'qwen':     'QWEN_API_KEY',
+    }
+    global_cfg = load_global_config()
+    active_provider = global_cfg.get('llm', {}).get('active_provider')
+    if not active_provider or active_provider not in _ENV_MAP:
+        raise ValueError(f"Unknown or missing active_provider: {active_provider}. Supported: {list(_ENV_MAP.keys())}")
+    env_var = _ENV_MAP[active_provider]
+    return os.environ.get(env_var)
+
+
 def deep_merge(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:
     """
     Recursively merges two dictionaries. 
