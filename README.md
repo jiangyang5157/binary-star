@@ -136,3 +136,114 @@ python run_patch.py -f .../{symbol}_evolution_{timestamp}.json
 ```
 
 ---
+
+## 🤖 AI Provider 配置
+
+系统支持 **4 种 AI Provider**，可根据需求灵活切换：
+
+| Provider | 特点 | 适用场景 | 成本 |
+|----------|------|----------|------|
+| **Gemini** | 多模态、Context Cache、1M 上下文 | 图像分析、超长文档 | 💰💰💰 |
+| **DeepSeek** | OpenAI 兼容、国内直连、极速响应 | 日常推理、高频调用 | 💰 |
+| **Qwen** | 中文优化、支持图像/视频、阿里云生态 | 中文场景、图表分析 | 💰 |
+| **Ollama** | 本地部署、完全离线、隐私保护 | 数据敏感、无网络环境 | 🆓 |
+
+### ⚙️ 切换步骤
+
+#### 1. 配置 API Key
+
+编辑 `.env` 文件（根据选择的 Provider）：
+```bash
+# Gemini（默认）
+GEMINI_API_KEY="your-key-here"
+
+# DeepSeek
+DEEPSEEK_API_KEY="sk-your-key-here"
+
+# Qwen
+QWEN_API_KEY="sk-your-key-here"
+
+# Ollama（无需 API Key，需本地运行 Ollama 服务）
+```
+
+#### 2. 安装依赖（如需要）
+```bash
+# DeepSeek / Qwen 需要
+pip install openai
+
+# Ollama 需要
+pip install ollama
+```
+
+#### 3. 修改配置文件
+
+编辑 [`config/global_config.yaml`](config/global_config.yaml)：
+```yaml
+llm:
+  active_provider: "gemini"  # 可选: gemini / deepseek / qwen / ollama
+```
+
+#### 4. 重启程序
+```bash
+python run_session.py --email --symbol XAUTUSDT
+```
+
+### 📋 Provider 详细配置
+
+**Gemini**（默认）
+```yaml
+llm:
+  active_provider: "gemini"
+  gemini:
+    context_cache:
+      enable: true
+      expiration_minutes: 10
+```
+- ✅ 唯一支持 Context Cache 的 Provider
+- ✅ 原生多模态（图像/视频）
+- ❌ 需要 VPN（国内）
+
+**DeepSeek**
+```yaml
+llm:
+  active_provider: "deepseek"
+  deepseek:
+    base_url: "https://api.deepseek.com"
+    model: "deepseek-v4-flash"  # 或 deepseek-v4-pro
+```
+- ✅ 性价比最高（便宜 96%）
+- ✅ 国内直连，速度快
+- ❌ 不支持图像
+
+**Qwen**
+```yaml
+llm:
+  active_provider: "qwen"
+  qwen:
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: "qwen-plus"  # 或 qwen-vl-max（需图像）
+```
+- ✅ 中文理解能力强
+- ✅ 支持图像/视频（qwen-vl-max）
+- ✅ 阿里云生态集成
+
+**Ollama**
+```yaml
+llm:
+  active_provider: "ollama"
+  ollama:
+    base_url: "http://localhost:11434"
+    model: "gemma4:e4b"  # 或其他本地模型
+```
+- ✅ 完全离线，隐私保护
+- ✅ 免费使用
+- ❌ 需要 GPU 和本地部署
+
+### ⚠️ 注意事项
+
+- **无缝切换**：切换 Provider 无需修改任何业务代码
+- **功能兼容**：所有 Provider 均支持 Function Calling + JSON Mode
+- **Context Cache**：仅 Gemini 支持，其他 Provider 会自动禁用
+- **多模态**：Gemini ✅ / Qwen-VL ✅ / DeepSeek ❌ / Ollama（取决于模型）
+
+---

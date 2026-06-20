@@ -33,7 +33,7 @@ network:
 
 llm:
   # --- Central Neural Infrastructure ---
-  active_provider: "gemini" # Options: "gemini", "ollama"
+  active_provider: "deepseek" # Options: "gemini", "ollama", "deepseek", "qwen"
   
   gemini:
     context_cache:
@@ -44,8 +44,16 @@ llm:
     base_url: "http://localhost:11434"
     model: "gemma4:e4b"
 
+  deepseek:
+    base_url: "https://api.deepseek.com"
+    model: "deepseek-v4-flash"  # deepseek-v4-flash deepseek-v4-pro
+
+  qwen:
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model: "qwen-plus"  # qwen-turbo qwen-plus qwen-max qwen-vl-max
+
   binary_star:
-    model: gemini-3.5-flash #gemini-3.5-flash #"gemini-3-flash-preview"
+    model: gemini-3.5-flash # gemini-3.5-flash
     system_instruction: "src/agent/prompts/binary_star.md"
     max_rounds: 2
     session_temperature: 0.5
