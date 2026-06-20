@@ -106,12 +106,11 @@ class EvolutionEngine:
         
         ev_cfg = EvolverConfig.from_dict(full_config)
         
-        from google import genai
         from src.utils.pipeline_utils import load_global_config
-        
-        # Setup AI Client and Infrastructure Params
-        client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1alpha'})
+        from src.infrastructure.ai_factory import AIFactory
+
         g_cfg = load_global_config()
+        client = AIFactory.create_client(api_key=self.api_key, config_dict=g_cfg)
         gemini_net = g_cfg['network']['gemini']
         
         evolver = EvolverAgent(
