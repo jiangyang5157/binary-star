@@ -12,7 +12,7 @@ def mock_project_env(tmp_path):
     config_dir.mkdir()
     config_file = config_dir / "strategy_config.yaml"
     
-    prompts_dir = tmp_path / "src" / "agent" / "prompts"
+    prompts_dir = tmp_path / "config" / "prompts"
     prompts_dir.mkdir(parents=True)
     session_file = prompts_dir / "session.md"
     

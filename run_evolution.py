@@ -125,9 +125,9 @@ class EvolutionEngine:
         )
 
         instruction_paths = {
-            "session_path": os.path.join(self.root, "src/agent/prompts/session.md"),
-            "critic_path": os.path.join(self.root, "src/agent/prompts/critic.md"),
-            "binary_star_path": os.path.join(self.root, "src/agent/prompts/binary_star.md")
+            "session_path": os.path.join(self.root, "config/prompts/session.md"),
+            "critic_path": os.path.join(self.root, "config/prompts/critic.md"),
+            "binary_star_path": os.path.join(self.root, "config/prompts/binary_star.md")
         }
         
         # 3. Phase: Prototype Generation

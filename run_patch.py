@@ -57,9 +57,9 @@ def main():
     # 4. Synchronize Semantic Refinements (Prompt Patches)
     semantic_patches = proposal.get('semantic_refinement', [])
     PROMPT_MAP = {
-        "session": "src/agent/prompts/session.md",
-        "critic": "src/agent/prompts/critic.md",
-        "binary_star": "src/agent/prompts/binary_star.md"
+        "session": "config/prompts/session.md",
+        "critic": "config/prompts/critic.md",
+        "binary_star": "config/prompts/binary_star.md"
     }
     
     if semantic_patches:
