@@ -7,6 +7,7 @@ from google.genai import types
 from src.infrastructure.gemini.cache_manager import GeminiCacheManager
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.math_fact_checker import MathFactChecker
+from src.agent.debate_loop import DebateLoop
 from src.agent.session_agent import SessionAgent, SessionConfig
 from src.agent.critic_agent import CriticAgent, CriticConfig
 from src.infrastructure.ai_factory import AIFactory
@@ -365,94 +366,41 @@ class BinaryStarOrchestrator:
             ]
             
             # 2. Adversarial Debate Loop
-            current_round = 1
-            critic_results = None
-            last_plan = None
-            debate_history = []
-            math_fact_check = None
-            early_exit = False
+            self.debate_loop = DebateLoop(
+                session_agent=self.session_agent,
+                critic_agent=self.critic_agent,
+                math_checker=self.math_checker,
+                max_rounds=self.max_rounds,
+                cache_resource_name=cache_resource_name,
+                tools=tools,
+                visual_parts=visual_parts,
+                shared_instruction=self.shared_instruction,
+                session_config=self.session_config,
+                critic_config=self.critic_config,
+            )
+            debate_result = self.debate_loop.run(observation, symbol)
+            last_plan = debate_result["final_decision"]
+            debate_history = debate_result["debate_history"]
+            early_exit = debate_result["early_exit"]
 
-            while current_round <= self.max_rounds:
-                compressed_history = self._compress_debate_history(debate_history)
-                
-                # Planning / Refinement
-                logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis (Planning State)...")
-                last_plan = self.session_agent.execute_session_cycle(
-                    observation=observation, 
-                    symbol=symbol,
-                    temperature=self.session_config.model_temperature,
-                    agent_name=f"Session_Planning_R{current_round}",
-                    cache_id=cache_resource_name, 
-                    tools=tools, 
-                    debate_history=compressed_history,
-                    visual_parts=visual_parts,
-                    system_instruction=self.shared_instruction
-                )
-
-                
-                # Adversarial Audit (Math Fact Check Injection)
-                logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
-                math_fact_check = self.math_checker.verify(last_plan, observation)
-                
-                # Critic Fast Pass Pre-check (Token Optimization)
-                critic_results = None
-                opinion = last_plan.get("opinion", "NEUTRAL")
-                if opinion == "NEUTRAL" and math_fact_check.get("status") == "SKIPPED":
-                    fast_pass = self._evaluate_critic_fast_pass(debate_history, observation)
-                    if fast_pass:
-                        critic_results = fast_pass
-                        logger.info(f"BinaryStar: Critic Fast Pass successful! Pre-validated with {fast_pass['veto_level']}.")
-                
-                if not critic_results:
-                    critic_results = self.critic_agent.evaluate(
-                        observation=observation, 
-                        last_plan=last_plan, 
-                        symbol=symbol,
-                        debate_history=compressed_history,
-                        cache_id=cache_resource_name,
-                        math_fact_check=math_fact_check,
-                        tools=None,
-                        visual_parts=visual_parts,
-                        system_instruction=self.shared_instruction
-                    )
-                
-                # Score Telemetry
-                veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
-                logger.info(f"BinaryStar Audit [R{current_round}]: Veto={veto_level}")
-                
-                debate_history.append({
-                    "round": current_round,
-                    "plan": last_plan,
-                    "critic": critic_results,
-                    "math_fact_check": math_fact_check
-                })
-                
-                # Smart Round Control (Early Exit on PASS or WEAK)
-                if veto_level in ["PASS", "WEAK"]:
-                    logger.info(f"BinaryStar: {veto_level} plan detected in Round {current_round}. Triggering early exit.")
-                    early_exit = True
-                    break
-                    
-                current_round += 1
-                
             # 3. Decision Finalization (Convergent Synthesis)
             if early_exit:
                 logger.info("BinaryStar: Using early-exit plan as final decision.")
                 final_decision = last_plan
             else:
-                # STRATEGIC ALPHA: We hijack the Auditor's cold temperature (0.3) for 
-                # the final synthesis. This forces the Session Agent to shift from 
-                # 'Creative Planning' (0.7) to 'Disciplined Execution' (0.3), ensuring 
+                # STRATEGIC ALPHA: We hijack the Auditor's cold temperature (0.3) for
+                # the final synthesis. This forces the Session Agent to shift from
+                # 'Creative Planning' (0.7) to 'Disciplined Execution' (0.3), ensuring
                 # that the final technical parameters are deterministic and rigorous.
                 logger.info("BinaryStar: Finalizing consensus decision...")
                 final_decision = self.session_agent.execute_session_cycle(
-                    observation=observation, 
+                    observation=observation,
                     symbol=symbol,
                     temperature=self.critic_config.model_temperature,
                     agent_name="Session_Synthesis",
-                    cache_id=cache_resource_name, 
-                    tools=tools, 
-                    debate_history=self._compress_debate_history(debate_history),
+                    cache_id=cache_resource_name,
+                    tools=tools,
+                    debate_history=self.debate_loop._compress_debate_history(debate_history),
                     visual_parts=visual_parts,
                     system_instruction=self.shared_instruction
                 )
@@ -507,110 +455,6 @@ class BinaryStarOrchestrator:
             except Exception as e:
                 logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
 
-
-    def _compress_debate_history(self, history: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Compresses historical debate rounds to save tokens.
-        Keeps key names consistent with prompt expectations but strips heavy text fields.
-        """
-        if not history:
-            return history
-        
-        compressed = []
-        for i, entry in enumerate(history):
-            is_latest = (i == len(history) - 1)
-            
-            # If it's the latest round, keep it 100% full for maximum context fidelity
-            if is_latest:
-                compressed.append(entry)
-                continue
-            
-            # For older rounds, perform aggressive compression to save tokens
-            c_entry = {"round": entry.get("round")}
-            
-            plan = entry.get("plan", {})
-            c_entry["plan"] = {
-                "opinion": plan.get("opinion"),
-                "confidence_score": plan.get("confidence_score"),
-                "tactical_parameters": plan.get("tactical_parameters", {})
-            }
-            # Prune Reasoning Chain for old rounds
-            
-            critic = entry.get("critic", {})
-            c_entry["critic"] = {
-                "veto_level": critic.get("veto_level"),
-                "invalidations": critic.get("invalidations"),
-                "critic_summary": critic.get("critic_summary")
-            }
-            # Prune Audit Evidence for old rounds
-            
-            math_fc = entry.get("math_fact_check", {})
-            c_entry["math_fact_check"] = {
-                "status": math_fc.get("status"),
-                "compliance_verdict": math_fc.get("compliance_verdict")
-            }
-            compressed.append(c_entry)
-            
-        return compressed
-
-    def _evaluate_critic_fast_pass(self, debate_history: List[Dict[str, Any]], observation: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Python pre-flight check to bypass Critic API call in deterministic NEUTRAL scenarios."""
-        # 1. Check Amnesty Clause
-        has_terminal_in_history = any(
-            r.get("critic", {}).get("veto_level") == "TERMINAL" 
-            for r in debate_history
-        )
-        if has_terminal_in_history:
-            return {
-                "veto_level": "PASS",
-                "invalidations": ["[JUSTIFIED_INACTION]"],
-                "audit_evidence": "Amnesty Clause verified: TERMINAL veto in prior round justifies current NEUTRAL stance.",
-                "critic_summary": "Neutral stance justified by prior TERMINAL veto."
-            }
-            
-        # 2. Check strict non-confluence for INACTION_BIAS, TREND_STARVATION, OPPORTUNITY_DENIAL
-        metrics = observation.get('quantitative_metrics', {})
-        dyn = metrics.get('price_dynamics', {})
-        reg = metrics.get('market_regime', {})
-        sent = metrics.get('sentiment_signals', {})
-        topo = metrics.get('structural_anchors', {})
-        
-        sqz_audit_thresh = self.critic_config.regime.squeeze_audit_threshold
-        min_vol_part = self.critic_config.regime.min_volume_participation_ratio
-        poc_grav_dist = self.critic_config.risk.poc_gravity_atr_distance
-        cvd_thresh = self.critic_config.regime.cvd_intensity_threshold
-        cvd_extreme = self.critic_config.regime.cvd_intensity_extreme
-        ti_strong = self.critic_config.regime.trend_intensity_strong
-        vol_base = self.critic_config.regime.volatility_baseline_ratio
-        vol_ext = self.critic_config.regime.volatility_extreme_ratio
-        
-        squeeze_factor = reg.get('squeeze_factor', 1.0)
-        vol_part = reg.get('volume_participation_ratio', 1.0)
-        poc_dist = topo.get('poc_dist_atr', 0)
-        
-        has_inaction_bias = (squeeze_factor < sqz_audit_thresh and vol_part > min_vol_part) or abs(poc_dist) > poc_grav_dist
-        
-        cvd_intens = sent.get('cvd_intensity_ratio', 0)
-        has_flow_dom = abs(cvd_intens) > cvd_thresh
-        oi_delta = sent.get('oi_delta_micro', 0)
-        has_abs_risk = (oi_delta < 0) and (abs(cvd_intens) > cvd_extreme)
-        has_opp_denial = has_flow_dom and not has_abs_risk
-        
-        vol_exp = dyn.get('volatility_expansion_index', 1.0)
-        is_exp = vol_exp > vol_base
-        is_chaos = vol_exp > vol_ext
-        ti = reg.get('trend_intensity', 0)
-        is_trend_strong = abs(ti) > ti_strong
-        has_trend_starv = is_exp and not is_chaos and is_trend_strong
-        
-        if not has_inaction_bias and not has_opp_denial and not has_trend_starv:
-            return {
-                "veto_level": "PASS",
-                "invalidations": ["[JUSTIFIED_INACTION]"],
-                "audit_evidence": "Confluence Audit: No inaction bias, trend starvation, or opportunity denial conditions met.",
-                "critic_summary": "Neutral stance justified by telemetry."
-            }
-            
-        return None
 
     def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[types.Part]:
         """Converts observation visual assets into multimodal Gemini Parts."""
