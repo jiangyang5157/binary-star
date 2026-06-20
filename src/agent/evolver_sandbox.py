@@ -87,9 +87,9 @@ class EvolverSandbox:
             logger.info("Sandbox: Distilling instruction refinements in-memory...")
             # We need to load the current templates to apply patches to them
             prompt_paths = {
-                "session": "src/agent/prompts/session.md",
-                "critic": "src/agent/prompts/critic.md",
-                "binary_star": "src/agent/prompts/binary_star.md"
+                "session": "config/prompts/session.md",
+                "critic": "config/prompts/critic.md",
+                "binary_star": "config/prompts/binary_star.md"
             }
             
             for agent_name, rel_path in prompt_paths.items():

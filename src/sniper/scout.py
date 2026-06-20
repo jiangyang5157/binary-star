@@ -53,25 +53,25 @@ class SniperScout:
             high_volume_node_detection_threshold=self.obs_config.high_volume_node_detection_threshold,
             low_volume_node_detection_threshold=self.obs_config.low_volume_node_detection_threshold,
             min_node_gap_atr=self.obs_config.min_node_gap_atr,
-            ranging_width_atr=self.obs_config.ranging_width_atr
+            ranging_width_atr=self.obs_config.regime.ranging_width_atr
         )
         self.vp_analyzer = VolumeProfileAnalyzer(config=vp_cfg)
-        
+
         rg_cfg = MarketRegimeConfig(
             bollinger_window=self.obs_config.bb_period,
             bollinger_std_dev=self.obs_config.bb_std_dev,
             keltner_window=self.obs_config.kc_period,
             keltner_multiplier=self.obs_config.kc_multiplier,
             volume_ma_window=self.obs_config.volume_ma_period,
-            trend_intensity_threshold=self.obs_config.trend_intensity_threshold,
+            trend_intensity_threshold=self.obs_config.regime.trend_intensity_threshold,
             trend_lookback_candles=self.obs_config.trend_intensity_macro_lookback_candles,
             wick_skew_lookback_candles=self.obs_config.wick_skew_lookback_candles
         )
         self.regime_analyzer = MarketRegimeAnalyzer(config=rg_cfg)
-        
+
         self.radar = LiquidationRadar(
             volume_moving_average_period=self.obs_config.volume_ma_period,
-            volume_surge_vs_ma_ratio=self.obs_config.volume_surge_vs_ma_ratio,
+            volume_surge_vs_ma_ratio=self.obs_config.regime.volume_surge_vs_ma_ratio,
             max_liquidation_clusters=self.obs_config.max_liquidation_clusters,
             long_taker_threshold=self.obs_config.liq_radar_long_threshold,
             short_taker_threshold=self.obs_config.liq_radar_short_threshold,

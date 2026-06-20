@@ -124,13 +124,13 @@ class MockDataFactory:
                     }
                 },
                 "binary_star": {
-                    "system_instruction": "src/agent/prompts/binary_star.md",
+                    "system_instruction": "config/prompts/binary_star.md",
                     "max_rounds": 3,
-                    "session_role_prompt": "src/agent/prompts/session.md",
-                    "critic_role_prompt": "src/agent/prompts/critic.md"
+                    "session_role_prompt": "config/prompts/session.md",
+                    "critic_role_prompt": "config/prompts/critic.md"
                 },
                 "evolver": {
-                    "role_prompt": "src/agent/prompts/evolver.md"
+                    "role_prompt": "config/prompts/evolver.md"
                 }
             },
             "visuals": {

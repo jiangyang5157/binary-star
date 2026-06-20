@@ -126,29 +126,29 @@ class BinaryStarOrchestrator:
         self.shared_instruction = safe_format(
             raw_instruction,
             max_rounds=self.max_rounds,
-            volatility_baseline_ratio=self.critic_config.volatility_baseline_ratio,
-            volatility_extreme_ratio=self.critic_config.volatility_extreme_ratio,
-            squeeze_threshold=self.critic_config.squeeze_threshold,
-            trend_intensity_threshold=self.critic_config.trend_intensity_threshold,
-            trend_intensity_strong=self.critic_config.trend_intensity_strong,
-            min_volume_participation_ratio=self.critic_config.min_volume_participation_ratio,
-            cvd_intensity_threshold=self.critic_config.cvd_intensity_threshold,
-            long_short_imbalance_ratio=self.critic_config.long_short_imbalance_ratio,
-            short_heavy_imbalance_ratio=self.critic_config.short_heavy_imbalance_ratio,
-            cvd_intensity_extreme=self.critic_config.cvd_intensity_extreme
+            volatility_baseline_ratio=self.critic_config.regime.volatility_baseline_ratio,
+            volatility_extreme_ratio=self.critic_config.regime.volatility_extreme_ratio,
+            squeeze_threshold=self.critic_config.regime.squeeze_threshold,
+            trend_intensity_threshold=self.critic_config.regime.trend_intensity_threshold,
+            trend_intensity_strong=self.critic_config.regime.trend_intensity_strong,
+            min_volume_participation_ratio=self.critic_config.regime.min_volume_participation_ratio,
+            cvd_intensity_threshold=self.critic_config.regime.cvd_intensity_threshold,
+            long_short_imbalance_ratio=self.critic_config.regime.long_short_imbalance_ratio,
+            short_heavy_imbalance_ratio=self.critic_config.regime.short_heavy_imbalance_ratio,
+            cvd_intensity_extreme=self.critic_config.regime.cvd_intensity_extreme
         )
         
         # 6. Specialized Visualization Pipeline
         self.chart_gen = ChartGenerator(
             output_dir=os.path.join(resolve_project_root(), self.data_root, "klines"),
-            up_color=self.obs_config.up_color,
-            down_color=self.obs_config.down_color,
-            bg_color=self.obs_config.bg_color,
-            poc_color=self.obs_config.poc_color,
-            vah_val_color=self.obs_config.vah_val_color,
-            current_price_color=self.obs_config.current_price_color,
-            volume_profile_width_ratio=self.obs_config.volume_profile_width_ratio,
-            render_dpi=self.obs_config.render_dpi,
+            up_color=self.obs_config.visual.up_color,
+            down_color=self.obs_config.visual.down_color,
+            bg_color=self.obs_config.visual.bg_color,
+            poc_color=self.obs_config.visual.poc_color,
+            vah_val_color=self.obs_config.visual.vah_val_color,
+            current_price_color=self.obs_config.visual.current_price_color,
+            volume_profile_width_ratio=self.obs_config.visual.volume_profile_width_ratio,
+            render_dpi=self.obs_config.visual.render_dpi,
             volume_profile_smoothing_sigma=self.obs_config.volume_profile_smoothing_sigma,
             volume_profile_color=self.obs_config.volume_profile_color,
             volume_profile_alpha=self.obs_config.volume_profile_alpha,
@@ -261,19 +261,19 @@ class BinaryStarOrchestrator:
                 trend_intensity=float(regime.get('trend_intensity', 0)),
                 volatility_intensity_index=float(dynamics.get('volatility_intensity_index', 0)),
                 normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
-                min_velocity_floor=self.session_config.min_trade_velocity,
-                ti_thresh=self.critic_config.trend_intensity_threshold,
-                ti_strong=self.critic_config.trend_intensity_strong,
-                vr_base=self.critic_config.volatility_baseline_ratio,
-                vr_extreme=self.critic_config.volatility_extreme_ratio,
-                dilation_dead_water=self.session_config.temporal_dilation_dead_water,
-                dilation_highway=self.session_config.temporal_dilation_highway,
-                dilation_climax=self.session_config.temporal_dilation_climax,
-                dilation_standard=self.session_config.temporal_dilation_standard,
-                weight_dead_water=self.session_config.temporal_weight_dead_water,
-                weight_highway=self.session_config.temporal_weight_highway,
-                weight_climax=self.session_config.temporal_weight_climax,
-                weight_standard=self.session_config.temporal_weight_standard
+                min_velocity_floor=self.session_config.temporal.min_trade_velocity,
+                ti_thresh=self.critic_config.regime.trend_intensity_threshold,
+                ti_strong=self.critic_config.regime.trend_intensity_strong,
+                vr_base=self.critic_config.regime.volatility_baseline_ratio,
+                vr_extreme=self.critic_config.regime.volatility_extreme_ratio,
+                dilation_dead_water=self.session_config.temporal.temporal_dilation_dead_water,
+                dilation_highway=self.session_config.temporal.temporal_dilation_highway,
+                dilation_climax=self.session_config.temporal.temporal_dilation_climax,
+                dilation_standard=self.session_config.temporal.temporal_dilation_standard,
+                weight_dead_water=self.session_config.temporal.temporal_weight_dead_water,
+                weight_highway=self.session_config.temporal.temporal_weight_highway,
+                weight_climax=self.session_config.temporal.temporal_weight_climax,
+                weight_standard=self.session_config.temporal.temporal_weight_standard
             )
             
             macro_interval_mins = get_interval_minutes(self.macro_interval)
@@ -566,14 +566,14 @@ class BinaryStarOrchestrator:
         sent = metrics.get('sentiment_signals', {})
         topo = metrics.get('structural_anchors', {})
         
-        sqz_audit_thresh = self.critic_config.squeeze_audit_threshold
-        min_vol_part = self.critic_config.min_volume_participation_ratio
-        poc_grav_dist = self.critic_config.poc_gravity_atr_distance
-        cvd_thresh = self.critic_config.cvd_intensity_threshold
-        cvd_extreme = self.critic_config.cvd_intensity_extreme
-        ti_strong = self.critic_config.trend_intensity_strong
-        vol_base = self.critic_config.volatility_baseline_ratio
-        vol_ext = self.critic_config.volatility_extreme_ratio
+        sqz_audit_thresh = self.critic_config.regime.squeeze_audit_threshold
+        min_vol_part = self.critic_config.regime.min_volume_participation_ratio
+        poc_grav_dist = self.critic_config.risk.poc_gravity_atr_distance
+        cvd_thresh = self.critic_config.regime.cvd_intensity_threshold
+        cvd_extreme = self.critic_config.regime.cvd_intensity_extreme
+        ti_strong = self.critic_config.regime.trend_intensity_strong
+        vol_base = self.critic_config.regime.volatility_baseline_ratio
+        vol_ext = self.critic_config.regime.volatility_extreme_ratio
         
         squeeze_factor = reg.get('squeeze_factor', 1.0)
         vol_part = reg.get('volume_participation_ratio', 1.0)
@@ -656,47 +656,47 @@ class BinaryStarOrchestrator:
                 volatility_intensity_index=float(dynamics['volatility_intensity_index']),
                 normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
                 interval_minutes=get_interval_minutes(self.macro_interval),
-                min_velocity_floor=self.session_config.min_trade_velocity,
-                vr_base=self.critic_config.volatility_baseline_ratio,
-                vr_extreme=self.critic_config.volatility_extreme_ratio,
-                ti_strong=self.critic_config.trend_intensity_strong,
-                ti_thresh=self.critic_config.trend_intensity_threshold,
-                dilation_dead_water=self.session_config.temporal_dilation_dead_water,
-                dilation_highway=self.session_config.temporal_dilation_highway,
-                dilation_climax=self.session_config.temporal_dilation_climax,
-                dilation_standard=self.session_config.temporal_dilation_standard,
-                weight_dead_water=self.session_config.temporal_weight_dead_water,
-                weight_highway=self.session_config.temporal_weight_highway,
-                weight_climax=self.session_config.temporal_weight_climax,
-                weight_standard=self.session_config.temporal_weight_standard
+                min_velocity_floor=self.session_config.temporal.min_trade_velocity,
+                vr_base=self.critic_config.regime.volatility_baseline_ratio,
+                vr_extreme=self.critic_config.regime.volatility_extreme_ratio,
+                ti_strong=self.critic_config.regime.trend_intensity_strong,
+                ti_thresh=self.critic_config.regime.trend_intensity_threshold,
+                dilation_dead_water=self.session_config.temporal.temporal_dilation_dead_water,
+                dilation_highway=self.session_config.temporal.temporal_dilation_highway,
+                dilation_climax=self.session_config.temporal.temporal_dilation_climax,
+                dilation_standard=self.session_config.temporal.temporal_dilation_standard,
+                weight_dead_water=self.session_config.temporal.temporal_weight_dead_water,
+                weight_highway=self.session_config.temporal.temporal_weight_highway,
+                weight_climax=self.session_config.temporal.temporal_weight_climax,
+                weight_standard=self.session_config.temporal.temporal_weight_standard
             )
 
             
             # Compliance Verdict Synthesis (Aligned with Highway Threshold)
-            is_trending = abs(trend_intensity) >= self.critic_config.trend_intensity_threshold
-            
+            is_trending = abs(trend_intensity) >= self.critic_config.regime.trend_intensity_threshold
+
             # v7.6: Chaos-Aware Math Audit
             # In 'IS_CHAOS' regimes, survival (shielding) takes precedence over standard RR hulls.
             # We apply the chaos_rr_discount to the threshold to allow low-RR survival plans to pass.
             vol_expansion = dynamics.get('volatility_expansion_index', 1.0)
-            is_chaos = vol_expansion > self.critic_config.volatility_extreme_ratio
-            
-            min_rr = self.session_config.min_rr_trending if is_trending else self.session_config.min_rr_ranging
-            
+            is_chaos = vol_expansion > self.critic_config.regime.volatility_extreme_ratio
+
+            min_rr = self.session_config.risk.min_rr_trending if is_trending else self.session_config.risk.min_rr_ranging
+
             if is_chaos:
-                min_rr *= (1.0 - self.session_config.chaos_rr_discount)
-                logger.info(f"BinaryStar: IS_CHAOS detected. Applying {self.session_config.chaos_rr_discount*100}% RR discount. New min_rr={min_rr:.2f}")
+                min_rr *= (1.0 - self.session_config.risk.chaos_rr_discount)
+                logger.info(f"BinaryStar: IS_CHAOS detected. Applying {self.session_config.risk.chaos_rr_discount*100}% RR discount. New min_rr={min_rr:.2f}")
 
             # Shielding check
-            buffer = self.critic_config.structural_buffer_atr
+            buffer = self.critic_config.risk.structural_buffer_atr
             prox_values = [v for v in proximity.values() if v is not None]
-            is_shielded = (any(v < -buffer for v in prox_values) if opinion == "BULLISH" 
+            is_shielded = (any(v < -buffer for v in prox_values) if opinion == "BULLISH"
                            else any(v > buffer for v in prox_values))
-            
+
             compliance = {
                 "rr_is_valid": rr_results.get("rr_ratio", 0) >= min_rr,
                 "sl_is_shielded": is_shielded,
-                "atr_volatility_is_logical": atr_metrics.get("entry_to_sl_atr", 0) < self.critic_config.poc_gravity_atr_distance
+                "atr_volatility_is_logical": atr_metrics.get("entry_to_sl_atr", 0) < self.critic_config.risk.poc_gravity_atr_distance
             }
             
             return {

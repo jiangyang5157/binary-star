@@ -11,8 +11,9 @@ from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConf
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
 from src.analyzer.liquidation_radar import LiquidationRadar
+from src.config.sub_configs import RegimeConfig, VisualConfig
 from src.utils.datetime_utils import (
-    get_current_utc_time, format_datetime, FILE_TIMESTAMP_FORMAT, 
+    get_current_utc_time, format_datetime, FILE_TIMESTAMP_FORMAT,
     to_iso_zulu, get_interval_seconds
 )
 from src.utils.json_utils import save_json
@@ -25,7 +26,7 @@ logger = setup_logger(__name__)
 @dataclass(frozen=True)
 class TimeframeConfig:
     """Encapsulates timeframe parameters for market telemetry.
-    
+
     Attributes:
         time_interval: Binance-standard interval string (e.g., '1h', '15m').
         lookback_candles: Number of historical candles to fetch for context.
@@ -35,17 +36,19 @@ class TimeframeConfig:
 
 @dataclass(frozen=True)
 class MarketObserverConfig:
-    """Type-safe configuration engine for the MarketObserver.
-    
+    """Type-safe configuration engine for the MarketObserver, composed from sub-configs.
+
     Attributes:
         macro_context: High-level market topography configuration.
         micro_context: Low-level tactical execution configuration.
-        vp_value_area_width: Percentage of volume included in the 'Value Area'.
-        trend_intensity_threshold: Minimum intensity for trending status.
+        regime: Market regime thresholds (trend, volatility, volume, CVD, funding).
+        visual: Chart rendering parameters.
         max_tool_iterations: Safety ceiling for neural tool-looping.
     """
     macro_context: TimeframeConfig
     micro_context: TimeframeConfig
+    regime: RegimeConfig
+    visual: VisualConfig
     volume_profile_area_ratio: float
     volume_profile_price_bucket_count: int
     cvd_micro_lookback_candles: int
@@ -66,42 +69,17 @@ class MarketObserverConfig:
     liquidation_cluster_atr_multiplier: float
     funding_rate_macro_lookback_candles: int
     volatility_intensity_macro_lookback_candles: int
-    trend_intensity_threshold: float
-    volatility_baseline_ratio: float
-    volatility_extreme_ratio: float
-    volume_surge_vs_ma_ratio: float
-    long_short_imbalance_ratio: float
-    poc_gravity_atr_distance: float
-    vacuum_risk_score: float
-    wick_skew_exhaustion: float
-    trend_intensity_strong: float
-    min_rr_ranging: float
-    min_rr_trending: float
-    min_volume_participation_ratio: float
-    squeeze_threshold: float
-    ranging_width_atr: float
-    cvd_intensity_threshold: float
-    cvd_intensity_extreme: float
-    funding_extreme_threshold: float
     default_structural_distance_atr: float
     max_liquidation_clusters: int
     wick_skew_fallback: float
     max_tool_iterations: int
 
-    # Visuals (from global_config.yaml)
-    volume_profile_width_ratio: float
+    # Visuals (observer-specific, not in VisualConfig)
     volume_profile_smoothing_sigma: float
     volume_profile_color: str
     volume_profile_alpha: float
     chart_main_panel_weight: int
     chart_volume_panel_weight: int
-    render_dpi: int
-    up_color: str
-    down_color: str
-    bg_color: str
-    poc_color: str
-    vah_val_color: str
-    current_price_color: str
     chart_trendline_peak_count: int
     chart_trendline_window: int
     indicator_warmup_multiplier: float
@@ -124,44 +102,48 @@ class MarketObserverConfig:
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "MarketObserverConfig":
         """Factory method to transform a raw configuration dict into a type-safe object."""
+        from src.config.loader import load_regime_config, load_visual_config
+
         gemini_cfg = cfg.get('network', {}).get('gemini', {})
         sampling = cfg['analysis_window']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
-        
+
         macro = sampling['macro_context']
         micro = sampling['micro_context']
-        
+
         min_node_gap_atr = topography['min_node_gap_atr']
         def_struct_dist = topography['default_structural_distance_atr']
-        
+
         volume_part_surge = regime['volume_surge_vs_ma_ratio']
         min_volume_part = regime['min_volume_participation_ratio']
         balancing_width = regime['ranging_width_atr']
 
         visuals = cfg.get('visuals', {})
         analytical = cfg.get('analytical', {})
-        
+
         # v12.0: Unified Grouping for Profile and Trendline
         vp_cfg = visuals.get('volume_profile', {})
         ct_cfg = visuals.get('chart_trendline', {})
-        
+
         return cls(
             indicator_warmup_multiplier=float(analytical['indicator_warmup_multiplier']),
             max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
             macro_context=TimeframeConfig(
-                time_interval=str(macro['time_interval']), 
+                time_interval=str(macro['time_interval']),
                 lookback_candles=int(macro['lookback_candles'])
             ),
             micro_context=TimeframeConfig(
-                time_interval=str(micro['time_interval']), 
+                time_interval=str(micro['time_interval']),
                 lookback_candles=int(micro['lookback_candles'])
             ),
+            regime=load_regime_config(cfg),
+            visual=load_visual_config(cfg),
             funding_rate_macro_lookback_candles=int(sampling['funding_rate_macro_lookback_candles']),
             cvd_micro_lookback_candles=int(sampling['cvd_micro_lookback_candles']),
             trend_intensity_macro_lookback_candles=int(sampling['trend_intensity_macro_lookback_candles']),
             volatility_intensity_macro_lookback_candles=int(sampling['volatility_intensity_macro_lookback_candles']),
-            
+
             volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
             volume_profile_price_bucket_count=int(topography['volume_profile_price_bucket_count']),
             volume_ma_period=int(topography['volume_moving_average_period']),
@@ -182,40 +164,12 @@ class MarketObserverConfig:
             liquidation_cluster_atr_multiplier=float(visuals['liq_radar_atr_multiplier']),
             default_structural_distance_atr=float(def_struct_dist),
 
-            
-            trend_intensity_threshold=float(regime['trend_intensity_threshold']),
-            volatility_baseline_ratio=float(regime['volatility_baseline_ratio']),
-            volatility_extreme_ratio=float(regime['volatility_extreme_ratio']),
-
-            volume_surge_vs_ma_ratio=float(volume_part_surge),
-            long_short_imbalance_ratio=float(regime['long_short_imbalance_ratio']),
-            poc_gravity_atr_distance=float(regime['poc_gravity_atr_distance']),
-            vacuum_risk_score=float(regime['vacuum_risk_score']),
-            wick_skew_exhaustion=float(regime['wick_skew_exhaustion']),
-            trend_intensity_strong=float(regime['trend_intensity_strong']),
-            min_rr_ranging=float(regime['min_rr_ranging']),
-            min_rr_trending=float(regime['min_rr_trending']),
-            min_volume_participation_ratio=float(min_volume_part),
-            squeeze_threshold=float(regime['squeeze_threshold']),
-            ranging_width_atr=float(balancing_width),
-            cvd_intensity_threshold=float(regime['cvd_intensity_threshold']),
-            cvd_intensity_extreme=float(regime['cvd_intensity_extreme']),
-            funding_extreme_threshold=float(regime['funding_extreme_threshold']),
-
             # v12.0: Visuals (Optimized for nested groupings)
-            volume_profile_width_ratio=float(vp_cfg['width_ratio']),
             volume_profile_smoothing_sigma=float(vp_cfg['smoothing_sigma']),
             volume_profile_color=str(vp_cfg['color']),
             volume_profile_alpha=float(vp_cfg['alpha']),
             chart_main_panel_weight=int(visuals['chart_main_panel_weight']),
             chart_volume_panel_weight=int(visuals['chart_volume_panel_weight']),
-            render_dpi=int(visuals['render_dpi']),
-            up_color=str(visuals['up_color']),
-            down_color=str(visuals['down_color']),
-            bg_color=str(visuals['bg_color']),
-            poc_color=str(visuals['poc_color']),
-            vah_val_color=str(visuals['vah_val_color']),
-            current_price_color=str(visuals['current_price_color']),
             chart_trendline_peak_count=int(ct_cfg['peak_count']),
             chart_trendline_window=int(ct_cfg['window']),
             liq_max_alpha=float(visuals['liq_max_alpha']),
@@ -223,7 +177,7 @@ class MarketObserverConfig:
             liq_legacy_alpha_factor=float(visuals['liq_legacy_alpha_factor']),
             liq_legacy_min_alpha=float(visuals['liq_legacy_min_alpha']),
             liq_legacy_max_alpha=float(visuals['liq_legacy_max_alpha']),
-            
+
             # v7.1 Synthetic Radar Physics & Calibration
             liq_radar_long_threshold=float(regime['liq_radar_long_threshold']),
             liq_radar_short_threshold=float(regime['liq_radar_short_threshold']),
@@ -546,22 +500,22 @@ class MarketObserver:
         self._volume_profile_analyzer = self._init_volume_profile()
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
-        
+
         # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
-            up_color=self.config.up_color,
-            down_color=self.config.down_color,
-            bg_color=self.config.bg_color,
-            poc_color=self.config.poc_color,
-            vah_val_color=self.config.vah_val_color,
-            current_price_color=self.config.current_price_color,
-            volume_profile_width_ratio=self.config.volume_profile_width_ratio,
+            up_color=self.config.visual.up_color,
+            down_color=self.config.visual.down_color,
+            bg_color=self.config.visual.bg_color,
+            poc_color=self.config.visual.poc_color,
+            vah_val_color=self.config.visual.vah_val_color,
+            current_price_color=self.config.visual.current_price_color,
+            volume_profile_width_ratio=self.config.visual.volume_profile_width_ratio,
             volume_profile_smoothing_sigma=self.config.volume_profile_smoothing_sigma,
             volume_profile_color=self.config.volume_profile_color,
             volume_profile_alpha=self.config.volume_profile_alpha,
             chart_main_panel_weight=self.config.chart_main_panel_weight,
             chart_volume_panel_weight=self.config.chart_volume_panel_weight,
-            render_dpi=self.config.render_dpi,
+            render_dpi=self.config.visual.render_dpi,
             liquidation_cluster_atr_multiplier=self.config.liquidation_cluster_atr_multiplier,
             liq_max_alpha=self.config.liq_max_alpha,
             liq_min_alpha=self.config.liq_min_alpha,
@@ -571,11 +525,11 @@ class MarketObserver:
             chart_trendline_peak_count=self.config.chart_trendline_peak_count,
             chart_trendline_window=self.config.chart_trendline_window
         )
-        
+
         # [MODULARIZED PROCESSING STACK]
         self.radar = LiquidationRadar(
             volume_moving_average_period=self.config.volume_ma_period,
-            volume_surge_vs_ma_ratio=self.config.volume_surge_vs_ma_ratio,
+            volume_surge_vs_ma_ratio=self.config.regime.volume_surge_vs_ma_ratio,
             max_liquidation_clusters=self.config.max_liquidation_clusters,
             long_taker_threshold=self.config.liq_radar_long_threshold,
             short_taker_threshold=self.config.liq_radar_short_threshold,
@@ -707,14 +661,14 @@ class MarketObserver:
         """Initializes the Volume Profile engine with contextual resolution."""
         cfg = self.config
         vp_cfg = VolumeProfileConfig(
-            value_area_ratio=cfg.volume_profile_area_ratio, 
+            value_area_ratio=cfg.volume_profile_area_ratio,
             resolution_bins=cfg.volume_profile_price_bucket_count,
-            atr_period=cfg.atr_period, 
-            max_volume_node_count=cfg.max_volume_node_count, 
-            high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold, 
+            atr_period=cfg.atr_period,
+            max_volume_node_count=cfg.max_volume_node_count,
+            high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold,
             low_volume_node_detection_threshold=cfg.low_volume_node_detection_threshold,
             min_node_gap_atr=cfg.min_node_gap_atr,
-            ranging_width_atr=cfg.ranging_width_atr
+            ranging_width_atr=cfg.regime.ranging_width_atr
         )
         return VolumeProfileAnalyzer(config=vp_cfg)
 
@@ -722,14 +676,14 @@ class MarketObserver:
         """Initializes the Market Regime engine for volatility and trend mapping."""
         cfg = self.config
         rg_cfg = MarketRegimeConfig(
-            bollinger_window=cfg.bb_period, 
+            bollinger_window=cfg.bb_period,
             bollinger_std_dev=cfg.bb_std_dev,
-            keltner_window=cfg.kc_period, 
+            keltner_window=cfg.kc_period,
             keltner_multiplier=cfg.kc_multiplier,
-            volume_ma_window=cfg.volume_ma_period, 
-            trend_intensity_threshold=self.config.trend_intensity_threshold,
+            volume_ma_window=cfg.volume_ma_period,
+            trend_intensity_threshold=cfg.regime.trend_intensity_threshold,
             trend_lookback_candles=cfg.trend_intensity_macro_lookback_candles,
-            wick_skew_lookback_candles=self.config.wick_skew_lookback_candles
+            wick_skew_lookback_candles=cfg.wick_skew_lookback_candles
         )
         return MarketRegimeAnalyzer(config=rg_cfg)
 
