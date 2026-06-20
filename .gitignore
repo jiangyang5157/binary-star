@@ -13,6 +13,7 @@ htmlcov/
 
 # Claude Code
 .claude/
+CLAUDE.md
 
 # Superpowers
 .superpowers/
