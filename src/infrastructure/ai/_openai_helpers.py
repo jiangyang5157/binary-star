@@ -1,6 +1,9 @@
 """Shared helpers for OpenAI-compatible adapters (DeepSeek, Qwen)."""
 import json
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 JSON_HINT = (
     "IMPORTANT: You MUST respond ONLY with a valid JSON object. "
@@ -36,6 +39,8 @@ def build_messages(
                     "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])},
                 } for tc in item["tool_calls"]]
                 messages.append({"role": "assistant", "content": None, "tool_calls": tcs})
+            else:
+                logger.warning("build_messages: Skipping unrecognized content type: %s", type(item).__name__)
     return messages
 
 
