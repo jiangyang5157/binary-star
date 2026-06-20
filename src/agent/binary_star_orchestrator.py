@@ -75,9 +75,11 @@ class BinaryStarOrchestrator:
         # 1. Shared Infrastructure Clients (Dynamic Provider Selection)
         self.client = AIFactory.create_client(api_key=api_key, config_dict=self.global_config)
         
-        # v12.0: Multi-provider Logic - Proactively disable cache if using local AI
+        # v12.0: Multi-provider Logic - Proactively disable cache if using non-Gemini AI
         from src.infrastructure.ollama_adapter import OllamaAdapter
-        self.is_local_ai = isinstance(self.client, OllamaAdapter)
+        from src.infrastructure.deepseek_adapter import DeepSeekAdapter
+        from src.infrastructure.qwen_adapter import QwenAdapter
+        self.is_local_ai = isinstance(self.client, (OllamaAdapter, DeepSeekAdapter, QwenAdapter))
         self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # 2. Global Environment Constants (Resolved from Global Config)
@@ -101,7 +103,12 @@ class BinaryStarOrchestrator:
         # 3. Binary Star Protocol Parameters (Neural Infrastructure)
         self.llm_bs_config = self.global_config['llm']['binary_star']
         self.max_rounds = int(self.llm_bs_config['max_rounds'])
-        self.shared_model = self.llm_bs_config['model']
+        
+        # v14.0: Resolve shared model from active provider (decoupled from binary_star node)
+        active_llm_cfg = self.global_config['llm']
+        active_provider = active_llm_cfg.get('active_provider').lower()
+        active_provider_cfg = active_llm_cfg.get(active_provider, {})
+        self.shared_model = active_provider_cfg.get('model')
         
         # 4. Contextual Prompt Assembly (Support for Sandbox Injection)
         self.bs_instruction_path = os.path.join(resolve_project_root(), self.llm_bs_config.get('system_instruction', ''))

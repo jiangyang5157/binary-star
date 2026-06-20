@@ -81,7 +81,7 @@ class SessionConfig(AgentConfig):
         Returns:
             A populated SessionConfig instance.
         """
-        llm = cfg['llm']['binary_star']
+        llm_cfg = cfg['llm']
         bs = cfg['binary_star']
         session_cfg = bs['session']
         regime = cfg['regime_parameters']
@@ -90,10 +90,19 @@ class SessionConfig(AgentConfig):
         topography = cfg['topography_parameters']
         visuals = cfg['visuals']
         
+        active_provider = llm_cfg.get('active_provider').lower()
+        provider_cfg = llm_cfg.get(active_provider, {})
+        model = provider_cfg.get('model')
+        
+        if active_provider == 'gemini':
+            model_temperature = float(provider_cfg.get('session_temperature', 0.5))
+        else:
+            model_temperature = 0.5
+        
         return cls(
-            model=str(llm['model']),
-            model_temperature=float(llm['session_temperature']),
-            instruction_path=os.path.join(resolve_project_root(), llm['session_role_prompt']),
+            model=str(model),
+            model_temperature=model_temperature,
+            instruction_path=os.path.join(resolve_project_root(), llm_cfg['binary_star']['session_role_prompt']),
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_cfg['min_trade_velocity']),
             stop_loss_buffer_min=float(session_cfg['stop_loss_buffer_min']),

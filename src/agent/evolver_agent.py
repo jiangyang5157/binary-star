@@ -21,11 +21,21 @@ class EvolverConfig(AgentConfig):
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
         """Factory method to extract evolver config from the standalone evolver node."""
-        evolver_llm = cfg['llm']['evolver']
+        llm_cfg = cfg['llm']
+        evolver_llm = llm_cfg['evolver']
+        active_provider = llm_cfg.get('active_provider').lower()
+        provider_cfg = llm_cfg.get(active_provider, {})
+        model = provider_cfg.get('model')
+        
+        if active_provider == 'gemini':
+            model_temperature = float(provider_cfg.get('evolver_temperature', 0.0))
+        else:
+            model_temperature = 0.0
+            
         return cls(
-            model=str(evolver_llm['model']),
+            model=str(model),
             instruction_path=os.path.join(resolve_project_root(), evolver_llm['role_prompt']),
-            model_temperature=float(evolver_llm['model_temperature']),
+            model_temperature=model_temperature,
             max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations'])
         )
 

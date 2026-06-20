@@ -36,6 +36,10 @@ llm:
   active_provider: "deepseek" # Options: "gemini", "ollama", "deepseek", "qwen"
   
   gemini:
+    model: "gemini-3.5-flash" # "gemini-3.5-flash"
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    evolver_temperature: 0.0
     context_cache:
       enable: true
       expiration_minutes: 10
@@ -45,6 +49,8 @@ llm:
     model: "gemma4:e4b"
 
   deepseek:
+    # BASE URL (OpenAI 格式)	https://api.deepseek.com
+    # BASE URL (Anthropic 格式)	https://api.deepseek.com/anthropic
     base_url: "https://api.deepseek.com"
     model: "deepseek-v4-flash"  # deepseek-v4-flash deepseek-v4-pro
 
@@ -53,17 +59,12 @@ llm:
     model: "qwen-plus"  # qwen-turbo qwen-plus qwen-max qwen-vl-max
 
   binary_star:
-    model: gemini-3.5-flash # gemini-3.5-flash
     system_instruction: "src/agent/prompts/binary_star.md"
     max_rounds: 2
-    session_temperature: 0.5
-    critic_temperature: 0.1
     session_role_prompt: "src/agent/prompts/session.md"
     critic_role_prompt: "src/agent/prompts/critic.md"
 
   evolver:
-    model: "gemini-3.5-flash"
-    model_temperature: 0.0
     role_prompt: "src/agent/prompts/evolver.md"
 
 visuals:

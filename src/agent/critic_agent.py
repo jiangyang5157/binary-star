@@ -67,7 +67,7 @@ class CriticConfig(AgentConfig):
     @classmethod
     def from_dict(cls, cfg_dict: Dict[str, Any], instruction_literal: Optional[str] = None) -> "CriticConfig":
         """Factory method to assemble a CriticConfig from the global strategy configuration."""
-        llm = cfg_dict['llm']['binary_star']
+        llm_cfg = cfg_dict['llm']
         bs = cfg_dict['binary_star']
         session_node = bs['session']
         regime = cfg_dict['regime_parameters']
@@ -76,10 +76,19 @@ class CriticConfig(AgentConfig):
         topography = cfg_dict['topography_parameters']
         visuals = cfg_dict['visuals']
         
+        active_provider = llm_cfg.get('active_provider').lower()
+        provider_cfg = llm_cfg.get(active_provider, {})
+        model = provider_cfg.get('model')
+        
+        if active_provider == 'gemini':
+            model_temperature = float(provider_cfg.get('critic_temperature', 0.1))
+        else:
+            model_temperature = 0.1
+        
         return cls(
-            model=str(llm['model']),
-            instruction_path=os.path.join(resolve_project_root(), llm['critic_role_prompt']),
-            model_temperature=float(llm['critic_temperature']),
+            model=str(model),
+            instruction_path=os.path.join(resolve_project_root(), llm_cfg['binary_star']['critic_role_prompt']),
+            model_temperature=model_temperature,
             max_tool_iterations=int(cfg_dict['network']['gemini']['max_tool_iterations']),
             min_trade_velocity=float(session_node['min_trade_velocity']),
             stop_loss_buffer_min=float(session_node['stop_loss_buffer_min']),

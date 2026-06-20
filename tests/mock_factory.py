@@ -112,24 +112,24 @@ class MockDataFactory:
                 "notification_confidence_floor": 50
             },
             "llm": {
-                "binary_star": {
+                "active_provider": "gemini",
+                "gemini": {
                     "model": "mock-model",
-                    "system_instruction": "src/agent/prompts/binary_star.md",
-                    "max_rounds": 3,
                     "session_temperature": 0.7,
                     "critic_temperature": 0.2,
-                    "session_role_prompt": "src/agent/prompts/session.md",
-                    "critic_role_prompt": "src/agent/prompts/critic.md"
-                },
-                "gemini": {
+                    "evolver_temperature": 0.0,
                     "context_cache": {
                         "enable": True,
                         "expiration_minutes": 60
                     }
                 },
+                "binary_star": {
+                    "system_instruction": "src/agent/prompts/binary_star.md",
+                    "max_rounds": 3,
+                    "session_role_prompt": "src/agent/prompts/session.md",
+                    "critic_role_prompt": "src/agent/prompts/critic.md"
+                },
                 "evolver": {
-                    "model": "mock-evolver",
-                    "model_temperature": 0.0,
                     "role_prompt": "src/agent/prompts/evolver.md"
                 }
             },
