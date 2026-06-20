@@ -220,52 +220,92 @@ class BinaryStarOrchestrator:
 
     def execute_flow(self, observation: Dict[str, Any], symbol: str) -> Dict[str, Any]:
         """Executes a complete adversarial reasoning cycle (Binary Star Flow).
-        
-        This cycle involves:
-        1. Context Caching: Initializing the multimodal Truth Bus.
-           (初始化真理总线：在 Gemini Cache 中锁定物理快照，防止 Agent 产生幻觉)
-        2. Planning: The Session Agent proposes a thesis plan after reading topography.
-           (规划阶段：Session Agent 提出初步交易假设)
-        3. Audit: The Critic Agent performs an adversarial audit of the plan.
-           (审计阶段：Critic Agent 针对数学和结构风险进行否定性盘问)
-        4. Hardening: Loops through debate rounds until convergence or max_rounds.
-           (硬化循环：通过多轮辩论不断修正计划，直到质疑分低于阈值)
-        5. Finalization: Synthesis of the final decision under high mathematical discipline.
-           (最终合成：在冷温度下执行最后一次合成，将共识固化为 JSON 指令)
-        
-        Args:
-            observation: Market topographical telemetry (Metrics + Visuals).
-            symbol: Trading pair identifier (e.g., BTCUSDT).
-            
-        Returns:
-            A forensic session dictionary containing decision, history, and metadata.
-            
-        Raises:
-            Exception: If cache creation or reasoning cycle fails fatally.
-        """
-        obs_ts = observation.get("observed_at", "")
-        
-        # Standardize forensic timestamp (YYYYMMDD_HHMMSS)
-        if "_" in obs_ts and len(obs_ts) == 15:
-            timestamp = obs_ts
-        else:
-            try:
-                dt = parse_iso_to_utc(obs_ts)
-                timestamp = dt.strftime(FILE_TIMESTAMP_FORMAT)
-            except Exception:
-                from datetime import datetime
-                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+        Phases: regime benchmarks -> cache setup -> debate -> finalize -> sanitize -> package.
+        """
+        timestamp = self._resolve_timestamp(observation)
         logger.info(f"BinaryStar: Beginning cycle for {symbol} at {timestamp}...")
-        
-        # v7.5 Optimization: Regime Benchmark Injection (Physical Pre-calculation)
-        # We pre-calculate static market constants for this session to reduce Agent tool calls.
+
+        # 1. Inject regime benchmarks (pre-calculated physical constants)
+        self._inject_regime_benchmarks(observation)
+
+        # Prune observation and extract visual parts
+        pruned_observation = observation.copy()
+        if 'visual_context' in pruned_observation:
+            del pruned_observation['visual_context']
+        observation_json = json.dumps(pruned_observation, indent=2, ensure_ascii=False)
+        visual_parts = self._extract_visual_parts(observation)
+
+        try:
+            # 2. Set up context cache and agent tools
+            cache_resource_name, tools = self._prepare_agent_tools(
+                observation_json, symbol, visual_parts)
+
+            # 3. Adversarial Debate Loop
+            self.debate_loop = DebateLoop(
+                session_agent=self.session_agent,
+                critic_agent=self.critic_agent,
+                math_checker=self.math_checker,
+                max_rounds=self.max_rounds,
+                cache_resource_name=cache_resource_name,
+                tools=tools,
+                visual_parts=visual_parts,
+                shared_instruction=self.shared_instruction,
+                session_config=self.session_config,
+                critic_config=self.critic_config,
+            )
+            debate_result = self.debate_loop.run(observation, symbol)
+
+            # 4. Finalize and sanitize decision
+            final_decision = self._finalize_and_sanitize(
+                debate_result, observation, symbol,
+                cache_resource_name, tools, visual_parts)
+
+            # 5. Package forensic output
+            project_root = resolve_project_root()
+            config_path = os.path.join(project_root, 'config', 'strategy_config.yaml')
+            return {
+                "final_decision": final_decision,
+                "debate_history": debate_result["debate_history"],
+                "observation": observation,
+                "metadata": {
+                    "config_snapshot": self.config,
+                    "version_control": {
+                        "session_hash": get_file_hash(self.session_agent.config.instruction_path),
+                        "critic_hash": get_file_hash(self.critic_agent.config.instruction_path),
+                        "binary_star_hash": get_file_hash(self.bs_instruction_path),
+                        "config_hash": get_file_hash(config_path)
+                    }
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"BinaryStar Flow failed fatally: {e}", exc_info=True)
+            raise
+        finally:
+            self._cleanup_cache()
+
+    # ── Private helper methods ──────────────────────────────────────────────
+
+    def _resolve_timestamp(self, observation: Dict[str, Any]) -> str:
+        """Standardize forensic timestamp to YYYYMMDD_HHMMSS format."""
+        obs_ts = observation.get("observed_at", "")
+        if "_" in obs_ts and len(obs_ts) == 15:
+            return obs_ts
+        try:
+            dt = parse_iso_to_utc(obs_ts)
+            return dt.strftime(FILE_TIMESTAMP_FORMAT)
+        except Exception:
+            from datetime import datetime
+            return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def _inject_regime_benchmarks(self, observation: Dict[str, Any]) -> None:
+        """Pre-calculate static market constants to reduce Agent tool calls."""
         try:
             metrics = observation.get('quantitative_metrics', {})
             dynamics = metrics.get('price_dynamics', {})
             regime = metrics.get('market_regime', {})
-            
-            # 1. Fetch Shared Physics Scalars
+
             scalars = MathTools.get_regime_scalars(
                 trend_intensity=float(regime.get('trend_intensity', 0)),
                 volatility_intensity_index=float(dynamics.get('volatility_intensity_index', 0)),
@@ -284,176 +324,120 @@ class BinaryStarOrchestrator:
                 weight_climax=self.session_config.temporal.temporal_weight_climax,
                 weight_standard=self.session_config.temporal.temporal_weight_standard
             )
-            
+
             macro_interval_mins = get_interval_minutes(self.macro_interval)
-            
-            # 2. Derive Benchmarks
             unit_atr_holding_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins * scalars["temporal_dilation_factor"]) / 60, 1)
             unit_atr_waiting_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins) / 60, 1)
-            
-            # Inject into observation (Only complex physical scalars that AI cannot mental-math)
+
             regime['temporal_physics'] = {
                 "unit_atr_holding_hours": unit_atr_holding_hours,
                 "unit_atr_waiting_hours": unit_atr_waiting_hours
             }
-
             logger.info(f"BinaryStar: Injected Regime Benchmarks [Holding: {unit_atr_holding_hours}h/ATR, Waiting: {unit_atr_waiting_hours}h/ATR]")
         except Exception as e:
             logger.warning(f"BinaryStar: Failed to inject regime benchmarks: {e}")
 
-
-        # 1. Truth Bus Initialization (Context Caching)
-
-        # Prune observation to remove raw paths since they are injected as multimodal Parts (Token Optimization)
-        pruned_observation = observation.copy()
-        if 'visual_context' in pruned_observation:
-            del pruned_observation['visual_context']
-
-        observation_json = json.dumps(pruned_observation, indent=2, ensure_ascii=False)
-        visual_parts = self._extract_visual_parts(observation)
-        
-        try:
-            # v5.10 Context Caching: Manual Tool Schema Injection.
-            tool_declarations = [
-                {
-                    "name": "calculate_risk_reward",
-                    "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
-                    "parameters": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "entry": {"type": "NUMBER"},
-                            "take_profit": {"type": "NUMBER"},
-                            "stop_loss": {"type": "NUMBER"}
-                        },
-                        "required": ["entry", "take_profit", "stop_loss"]
-                    }
-                },
-                {
-                    "name": "calculate_atr_metrics",
-                    "description": "Standardizes entry/exit distances using ATR.",
-                    "parameters": {
-                        "type": "OBJECT",
-                        "properties": {
-                            "entry": {"type": "NUMBER"},
-                            "stop_loss": {"type": "NUMBER"},
-                            "take_profit": {"type": "NUMBER"},
-                            "atr": {"type": "NUMBER"}
-                        },
-                        "required": ["entry", "stop_loss", "take_profit", "atr"]
-                    }
+    def _prepare_agent_tools(self, observation_json: str, symbol: str,
+                             visual_parts: list) -> tuple[str | None, list]:
+        """Set up context cache and return the cache resource name and tool list."""
+        tool_declarations = [
+            {
+                "name": "calculate_risk_reward",
+                "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "entry": {"type": "NUMBER"},
+                        "take_profit": {"type": "NUMBER"},
+                        "stop_loss": {"type": "NUMBER"}
+                    },
+                    "required": ["entry", "take_profit", "stop_loss"]
                 }
-            ]
-            
-            cache_resource_name = None
-            if self.enable_context_cache:
-                cache_resource_name = self.cache_manager.create_market_cache(
-                    symbol=symbol,
-                    interval=self.macro_interval,
-                    contents=[observation_json] + visual_parts,
-                    system_instruction=self.shared_instruction,
-                    model=self.shared_model,
-                    ttl_minutes=self.cache_expiration_minutes,
-                    tools=[types.Tool(function_declarations=tool_declarations)]
-                )
-            else:
-                logger.info(f"BinaryStar: Context Cache is DISABLED. Routing multimodal visual payload statelessly.")
-            
-
-            # tools available for agent
-            tools = [
-                self.session_agent.calculate_risk_reward, 
-                self.session_agent.calculate_atr_metrics
-            ]
-            
-            # 2. Adversarial Debate Loop
-            self.debate_loop = DebateLoop(
-                session_agent=self.session_agent,
-                critic_agent=self.critic_agent,
-                math_checker=self.math_checker,
-                max_rounds=self.max_rounds,
-                cache_resource_name=cache_resource_name,
-                tools=tools,
-                visual_parts=visual_parts,
-                shared_instruction=self.shared_instruction,
-                session_config=self.session_config,
-                critic_config=self.critic_config,
-            )
-            debate_result = self.debate_loop.run(observation, symbol)
-            last_plan = debate_result["final_decision"]
-            debate_history = debate_result["debate_history"]
-            early_exit = debate_result["early_exit"]
-
-            # 3. Decision Finalization (Convergent Synthesis)
-            if early_exit:
-                logger.info("BinaryStar: Using early-exit plan as final decision.")
-                final_decision = last_plan
-            else:
-                # STRATEGIC ALPHA: We hijack the Auditor's cold temperature (0.3) for
-                # the final synthesis. This forces the Session Agent to shift from
-                # 'Creative Planning' (0.7) to 'Disciplined Execution' (0.3), ensuring
-                # that the final technical parameters are deterministic and rigorous.
-                logger.info("BinaryStar: Finalizing consensus decision...")
-                final_decision = self.session_agent.execute_session_cycle(
-                    observation=observation,
-                    symbol=symbol,
-                    temperature=self.critic_config.model_temperature,
-                    agent_name="Session_Synthesis",
-                    cache_id=cache_resource_name,
-                    tools=tools,
-                    debate_history=self.debate_loop._compress_debate_history(debate_history),
-                    visual_parts=visual_parts,
-                    system_instruction=self.shared_instruction
-                )
-
-            # v7.1: Physical Parameter Sanitization (Zero-Entropy Alignment)
-            # We re-run the math fact check on the final decision to ensure 
-            # that tactical parameters (Time, RR) are 100% physically accurate.
-            final_math = self.math_checker.verify(final_decision, observation)
-            if final_math.get("status") == "VERIFIED":
-                tactical = final_decision.get("tactical_parameters", {})
-                
-                # Align Projected Times
-                holding_v = final_math.get("holding_time_verification", {})
-                if holding_v:
-                    tactical["projected_holding_hours"] = holding_v.get("projected_holding_hours", 0)
-                    tactical["projected_waiting_hours"] = holding_v.get("projected_waiting_hours", 0)
-                
-                # Align Risk-Reward Metrics (Mathematical Truth)
-                rr_v = final_math.get("rr_verification", {})
-                if rr_v and "rr_ratio" in rr_v:
-                    tactical["rr_ratio"] = rr_v["rr_ratio"]
-            
-            logger.info("BinaryStar: Final decision sanitized against physical truth.")
-            
-            # 4. Forensic Packaging
-            project_root = resolve_project_root()
-            config_path = os.path.join(project_root, 'config', 'strategy_config.yaml')
-            
-            return {
-                "final_decision": final_decision,
-                "debate_history": debate_history,
-                "observation": observation,
-                "metadata": {
-                    "config_snapshot": self.config,
-                    "version_control": {
-                        "session_hash": get_file_hash(self.session_agent.config.instruction_path),
-                        "critic_hash": get_file_hash(self.critic_agent.config.instruction_path),
-                        "binary_star_hash": get_file_hash(self.bs_instruction_path),
-                        "config_hash": get_file_hash(config_path)
-                    }
+            },
+            {
+                "name": "calculate_atr_metrics",
+                "description": "Standardizes entry/exit distances using ATR.",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "entry": {"type": "NUMBER"},
+                        "stop_loss": {"type": "NUMBER"},
+                        "take_profit": {"type": "NUMBER"},
+                        "atr": {"type": "NUMBER"}
+                    },
+                    "required": ["entry", "stop_loss", "take_profit", "atr"]
                 }
             }
-            
+        ]
+
+        cache_resource_name = None
+        if self.enable_context_cache:
+            cache_resource_name = self.cache_manager.create_market_cache(
+                symbol=symbol,
+                interval=self.macro_interval,
+                contents=[observation_json] + visual_parts,
+                system_instruction=self.shared_instruction,
+                model=self.shared_model,
+                ttl_minutes=self.cache_expiration_minutes,
+                tools=[types.Tool(function_declarations=tool_declarations)]
+            )
+        else:
+            logger.info(f"BinaryStar: Context Cache is DISABLED. Routing multimodal visual payload statelessly.")
+
+        tools = [
+            self.session_agent.calculate_risk_reward,
+            self.session_agent.calculate_atr_metrics
+        ]
+        return cache_resource_name, tools
+
+    def _finalize_and_sanitize(self, debate_result: dict, observation: dict,
+                               symbol: str, cache_resource_name: str | None,
+                               tools: list, visual_parts: list) -> dict:
+        """Run final synthesis (if needed) and sanitize the decision against math truth."""
+        last_plan = debate_result["final_decision"]
+        debate_history = debate_result["debate_history"]
+        early_exit = debate_result["early_exit"]
+
+        # Decision Finalization
+        if early_exit:
+            logger.info("BinaryStar: Using early-exit plan as final decision.")
+            final_decision = last_plan
+        else:
+            logger.info("BinaryStar: Finalizing consensus decision...")
+            final_decision = self.session_agent.execute_session_cycle(
+                observation=observation,
+                symbol=symbol,
+                temperature=self.critic_config.model_temperature,
+                agent_name="Session_Synthesis",
+                cache_id=cache_resource_name,
+                tools=tools,
+                debate_history=self.debate_loop._compress_debate_history(debate_history),
+                visual_parts=visual_parts,
+                system_instruction=self.shared_instruction
+            )
+
+        # Physical Parameter Sanitization
+        final_math = self.math_checker.verify(final_decision, observation)
+        if final_math.get("status") == "VERIFIED":
+            tactical = final_decision.get("tactical_parameters", {})
+            holding_v = final_math.get("holding_time_verification", {})
+            if holding_v:
+                tactical["projected_holding_hours"] = holding_v.get("projected_holding_hours", 0)
+                tactical["projected_waiting_hours"] = holding_v.get("projected_waiting_hours", 0)
+            rr_v = final_math.get("rr_verification", {})
+            if rr_v and "rr_ratio" in rr_v:
+                tactical["rr_ratio"] = rr_v["rr_ratio"]
+
+        logger.info("BinaryStar: Final decision sanitized against physical truth.")
+        return final_decision
+
+    def _cleanup_cache(self) -> None:
+        """Proactively purge the session context cache."""
+        try:
+            if getattr(self, 'enable_context_cache', True) and self.cache_manager.active_cache_id:
+                self.cache_manager.delete_market_cache()
         except Exception as e:
-            logger.error(f"BinaryStar Flow failed fatally: {e}", exc_info=True)
-            raise
-        finally:
-            # Proactively purge session context cache
-            try:
-                if getattr(self, 'enable_context_cache', True) and self.cache_manager.active_cache_id:
-                    self.cache_manager.delete_market_cache()
-            except Exception as e:
-                logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
+            logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
 
 
     def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[types.Part]:
