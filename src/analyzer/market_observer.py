@@ -751,7 +751,6 @@ class MarketObserver:
         cfg = self.config
         vp_cfg = VolumeProfileConfig(
             value_area_ratio=cfg.volume_profile_area_ratio,
-            resolution_bins=300,  # fixed resolution, not a strategy knob
             atr_period=cfg.atr_period,
             max_volume_node_count=cfg.max_volume_node_count,
             high_volume_node_detection_threshold=cfg.high_volume_node_detection_threshold,

@@ -14,13 +14,13 @@ class VolumeProfileConfig:
     Configuration parameters for Volume Profile analysis.
     """
     value_area_ratio: float           # Percentage of volume to include in Value Area (configured via topography_parameters)
-    resolution_bins: int              # Number of horizontal price buckets
     atr_period: int                   # Window for Average True Range calculation
     max_volume_node_count: int                # Maximum structural nodes (HVN/LVN) to return
     high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
     low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
     min_node_gap_atr: float           # ATR multiplier for dynamic node separation (v12.0)
     ranging_width_atr: float          # ATR multiplier for state classification
+    resolution_bins: int = 300        # Number of horizontal price buckets (fixed, not a strategy knob)
 
 @dataclass(frozen=True)
 class VolumeNode:

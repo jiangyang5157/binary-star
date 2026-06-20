@@ -47,7 +47,6 @@ class SniperScout:
         # Initialize analyzers (No UI, just math)
         vp_cfg = VolumeProfileConfig(
             value_area_ratio=self.obs_config.volume_profile_area_ratio,
-            resolution_bins=self.obs_config.volume_profile_price_bucket_count,
             atr_period=self.obs_config.atr_period,
             max_volume_node_count=self.obs_config.max_volume_node_count,
             high_volume_node_detection_threshold=self.obs_config.high_volume_node_detection_threshold,
