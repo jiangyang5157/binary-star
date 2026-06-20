@@ -142,6 +142,10 @@ sniper:
   # 1.0 = any increase, 1.1 = 10% growth required.
   cvd_growth_significance_ratio: 1.4
 
+  # [Damping]: Minimum growth in volatility intensity between pulses to re-trigger TYPE_A (Breakout).
+  # Prevents sustained high-vol from re-firing every cooldown. 1.03 = 3% growth required.
+  vol_growth_significance_ratio: 1.03
+
   # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
   # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
   squeeze_trigger_multiplier: 0.75
