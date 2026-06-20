@@ -7,13 +7,12 @@ htmlcov/
 
 # IDE
 .vscode/
-.obsidian/
-.idea/
+.gemini/
+.claude/
+.superpowers/
 
 # Environment and Keys
 .env
-.gems/
-.gemini/
 
 # Logs
 *.log
