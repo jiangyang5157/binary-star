@@ -1,9 +1,8 @@
-from typing import Dict, Any, List, Optional, Union
-from google import genai
-from google.genai import types
+from typing import Any
 from tenacity import Retrying, stop_after_attempt, wait_exponential, retry_if_exception_type
 from dataclasses import dataclass
 
+from src.infrastructure.ai_client import AbstractAIClient, AIResponse, ToolCall, UsageMetadata
 from src.utils.pipeline_utils import read_prompt_template, safe_format
 from src.utils.json_utils import extract_json_from_text
 from src.utils.logger_utils import setup_logger
@@ -15,7 +14,7 @@ logger = setup_logger(__name__)
 @dataclass(frozen=True)
 class AgentConfig:
     """Base configuration for neural agents.
-    
+
     Attributes:
         model: The Gemini model identifier (e.g., 'gemini-2.0-flash').
         model_temperature: Model creativity override.
@@ -29,32 +28,32 @@ class AgentConfig:
 
 class BaseAgent:
     """Abstract Base Class for all AI-driven agents in the Singularity pipeline.
-    
-    Provides standardized orchestration for multimodal neural inference, 
+
+    Provides standardized orchestration for multimodal neural inference,
     autonomous tool-call handshaking, and robust error recovery patterns.
-    
+
     Attributes:
         config: Standardized AgentConfig.
-        client: The high-level Gemini GenAI client.
+        client: The shared AbstractAIClient instance.
         api_timeout: HTTP timeout limit in seconds.
     """
-    
+
     def __init__(
-        self, 
+        self,
         config: AgentConfig,
-        ai_client: genai.Client, 
+        ai_client: AbstractAIClient,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
         retry_max: int,
-        congestion_controller: Optional[CongestionController] = None
+        congestion_controller: CongestionController | None = None
     ):
         """Initializes the agent with core AI configuration and dependencies.
-        
+
         Args:
             config: Type-safe AgentConfig object.
-            ai_client: The shared genai.Client instance.
+            ai_client: The shared AbstractAIClient instance.
             api_timeout: Global timeout for neural inference.
             retry_count: Number of retry attempts on transient failure.
             retry_multiplier: Exponential backoff multiplier.
@@ -76,7 +75,7 @@ class BaseAgent:
 
     def _prepare_prompt(self, template_path: str, **context: Any) -> str:
         """Reads a prompt template and injects semantic context variables.
-        
+
         Prioritizes the in-memory instruction_literal if provided in the config,
         otherwise falls back to reading from the template_path on disk.
         """
@@ -84,7 +83,7 @@ class BaseAgent:
             # Phase 1: Context Retrieval (Literal vs. Disk)
             # Prioritizing instruction_literal for sandbox/in-memory experiments
             instruction_literal = getattr(self.config, 'instruction_literal', None)
-            
+
             if instruction_literal:
                 template = instruction_literal
             else:
@@ -95,19 +94,19 @@ class BaseAgent:
             raise
 
     def _execute_ai_cycle(
-        self, 
-        payload: Union[str, List[Any]], 
-        temperature: Optional[float] = None,
+        self,
+        payload: str | list[Any],
+        temperature: float | None = None,
         agent_name: str = "Agent",
-        cached_content: Optional[str] = None,
-        tools: Optional[List[Any]] = None,
-        system_instruction: Optional[str] = None
-    ) -> Dict[str, Any]:
+        cached_content: str | None = None,
+        tools: list[Any] | None = None,
+        system_instruction: str | None = None,
+    ) -> dict[str, Any]:
         """Orchestrates an autonomous iterative cycle for tool-use and inference.
-        
-        This logic implements the core 'Reasoning Loop', handling multi-turn 
-        handshaking between the Gemini model and local Python tool logic.
-        
+
+        This logic implements the core 'Reasoning Loop', handling multi-turn
+        handshaking between the AI model and local Python tool logic.
+
         Args:
             payload: Initial prompt or multimodal content sequence.
             temperature: Model creativity override. Defaults to config value.
@@ -115,141 +114,106 @@ class BaseAgent:
             cached_content: ID of the active context cache resource.
             tools: List of function schemas available for dispatch.
             system_instruction: Shared intelligence prompt to bypass caching limits.
-            
+
         Returns:
-            A forensic dictionary containing either the parsed JSON output 
+            A forensic dictionary containing either the parsed JSON output
             or a structured error trace.
         """
         try:
             temp = temperature if temperature is not None else self.temperature
-            contents = payload if isinstance(payload, list) else [payload]
+            contents: list[Any] = payload if isinstance(payload, list) else [payload]
             iteration = 0
-            
+            next_tc_id = 0
+
             while iteration < self.max_tool_iterations:
                 iteration += 1
-                
-                # Standardized retry strategy with exponential backoff
+
                 retryer = Retrying(
                     stop=stop_after_attempt(self.retry_count),
                     wait=wait_exponential(
-                        multiplier=self.retry_multiplier, 
-                        min=self.retry_min, 
-                        max=self.retry_max
+                        multiplier=self.retry_multiplier,
+                        min=self.retry_min, max=self.retry_max,
                     ),
-                    retry=retry_if_exception_type(Exception)
+                    retry=retry_if_exception_type(Exception),
                 )
-                
-                # Resolve Generation Configuration
-                if cached_content:
-                    # Note: Gemini rule - Tools/Instructions must be in cache, not in config.
-                    gen_config = {
-                        "temperature": temp,
-                        "http_options": {"timeout": self.api_timeout * 1000},
-                        "cached_content": cached_content,
-                        "system_instruction": None,
-                        "tools": None
-                    }
-                else:
-                    gen_config = {
-                        "temperature": temp,
-                        "http_options": {"timeout": self.api_timeout * 1000},
-                        "tools": tools
-                    }
-                    if system_instruction is not None:
-                        gen_config["system_instruction"] = system_instruction
-                        
-                    if not tools:
-                        # Fallback to direct JSON mode if no tools are allocated.
-                        gen_config["response_mime_type"] = "application/json"
 
-                # v7.7: Congestion Control (RPM Pacing)
+                use_json_mode = not tools and not cached_content
+
                 if self.congestion_controller:
                     self.congestion_controller.pace(agent_name=agent_name)
 
-                response = retryer(
-                    self.client.models.generate_content,
+                response: AIResponse = retryer(
+                    self.client.generate_content,
                     model=self.model,
                     contents=contents,
-                    config=gen_config
+                    system_instruction=system_instruction if not cached_content else None,
+                    tools=tools if not cached_content else None,
+                    temperature=temp,
+                    response_json=use_json_mode,
+                    http_timeout=self.api_timeout,
                 )
-                
-                # Token Forensics
-                if response and response.usage_metadata:
-                    m = response.usage_metadata
+
+                if response.usage:
+                    u = response.usage
                     logger.info(
-                        f"[{agent_name}] Usage: T={m.total_token_count} | "
-                        f"P={m.prompt_token_count} | "
-                        f"C={m.candidates_token_count} | "
-                        f"Cache={m.cached_content_token_count or 0}"
+                        "[%s] Usage: T=%d | P=%d | C=%d | Cache=%d",
+                        agent_name, u.total_token_count, u.prompt_token_count,
+                        u.candidates_token_count, u.cached_content_token_count,
                     )
 
-                if not response or not response.candidates:
-                    logger.error(f"BaseAgent: {agent_name} received NO_RESPONSE.")
-                    return {"error": "NO_RESPONSE", "agent": agent_name}
+                if not response.text and not response.tool_calls:
+                    logger.error("BaseAgent: %s returned empty response.", agent_name)
+                    return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
 
-                # Evaluate for Tool Dispatch (Function Calls)
-                content = response.candidates[0].content
-                parts = getattr(content, 'parts', []) or []
-                tool_calls = [p.function_call for p in parts if p.function_call]
-                
-                if not tool_calls:
-                    # Termination Condition: No further tools needed.
-                    try:
-                        # [v6.27] Simple Silence: Manually extract text to bypass SDK warnings for non-text parts
-                        text = "".join([p.text for p in parts if hasattr(p, 'text') and p.text])
-                        
-                        if not text or not text.strip():
-                            logger.error(f"BaseAgent: {agent_name} returned empty text.")
-                            return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
-                    except Exception as e:
-                        logger.error(f"BaseAgent: Text extraction failure for {agent_name}: {e}")
-                        return {"error": "TEXT_FAILURE", "details": str(e), "agent": agent_name}
-                        
-                    return self._parse_and_validate_response(text, agent_name)
-                
-                # Tool Execution Cycle
-                contents.append(response.candidates[0].content) 
-                
-                response_parts = []
-                for fc in tool_calls:
-                    result = self._dispatch_tool_call(fc)
-                    response_parts.append(
-                        types.Part.from_function_response(
-                            name=fc.name,
-                            response={'result': result}
-                        )
-                    )
-                
-                contents.append(types.Content(parts=response_parts, role='user'))
+                # No tool calls → termination
+                if not response.tool_calls:
+                    if not response.text.strip():
+                        logger.error("BaseAgent: %s returned empty text.", agent_name)
+                        return {"error": "EMPTY_MODEL_RESPONSE", "agent": agent_name}
+                    return self._parse_and_validate_response(response.text, agent_name)
 
-            logger.error(f"{agent_name}: Iteration safety floor reached ({self.max_tool_iterations}).")
+                # Tool execution cycle
+                tc_entries = []
+                for tc in response.tool_calls:
+                    tc_entries.append({
+                        "id": f"call_{next_tc_id}", "name": tc.name, "args": tc.args,
+                    })
+                    next_tc_id += 1
+                contents.append({"role": "model", "tool_calls": tc_entries})
+
+                tool_responses = []
+                for entry, tc in zip(tc_entries, response.tool_calls):
+                    result = self._dispatch_tool_call(tc)
+                    tool_responses.append({
+                        "id": entry["id"], "name": tc.name, "result": result,
+                    })
+                contents.append({"role": "user", "tool_responses": tool_responses})
+
+            logger.error("%s: max iterations (%d).", agent_name, self.max_tool_iterations)
             return {"error": "MAX_ITERATIONS", "agent": agent_name}
 
         except Exception as e:
-            # Handle SDK or Connectivity errors
-            actual_error = e
             from tenacity import RetryError
+
+            actual_error = e
             if isinstance(e, RetryError) and e.last_attempt and e.last_attempt.failed:
                 actual_error = e.last_attempt.exception()
-
             err_msg = str(actual_error)
-            if hasattr(actual_error, 'response') and hasattr(actual_error.response, 'text'):
+            if hasattr(actual_error, "response") and hasattr(actual_error.response, "text"):
                 err_msg = f"{err_msg} | Body: {actual_error.response.text}"
-            
-            logger.error(f"{agent_name} Inference Failure: {err_msg}")
+            logger.error("%s Inference Failure: %s", agent_name, err_msg)
             return {
-                "error": f"{agent_name.upper()}_FAILURE", 
-                "details": err_msg, 
-                "agent": agent_name
+                "error": f"{agent_name.upper()}_FAILURE",
+                "details": err_msg, "agent": agent_name,
             }
 
-    def _parse_and_validate_response(self, text: str, agent_name: str) -> Dict[str, Any]:
+    def _parse_and_validate_response(self, text: str, agent_name: str) -> dict[str, Any]:
         """Extracts and validates structured JSON output from model candidates.
-        
+
         Args:
             text: The raw text extracted from response parts.
             agent_name: Identity for error attribution.
-            
+
         Returns:
             Extracted dictionary. Defaults to error object if malformed.
         """
@@ -259,38 +223,37 @@ class BaseAgent:
             return {"error": "MALFORMED_JSON", "raw": text, "agent": agent_name}
         return parsed
 
-    def _dispatch_tool_call(self, fc: types.FunctionCall) -> Any:
+    def _dispatch_tool_call(self, tc: ToolCall) -> Any:
         """Dynamically dispatches a tool-call to the local agent instance.
-        
+
         Args:
-            fc: Function call specification.
-            
+            tc: ToolCall specification (name + args).
+
         Returns:
             The execution result or error string.
         """
-        name = fc.name
-        args = fc.args or {}
-        
+        name = tc.name
+        args = tc.args or {}
         try:
             if hasattr(self, name):
                 method = getattr(self, name)
-                logger.info(f"BaseAgent: Dispatching internal tool '{name}'...")
+                logger.info("BaseAgent: Dispatching tool '%s'...", name)
                 return method(**args)
             else:
-                logger.error(f"BaseAgent: Tool '{name}' is not integrated in {self.__class__.__name__}.")
+                logger.error("BaseAgent: Tool '%s' not found.", name)
                 return f"Error: Tool '{name}' missing."
         except Exception as e:
-            logger.error(f"BaseAgent: Tool '{name}' fatal error: {e}")
+            logger.error("BaseAgent: Tool '%s' error: %s", name, e)
             return f"Tool Error: {str(e)}"
 
     # --- Tool Delegates (Function Calling Interfaces) ---
 
-    def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> Dict[str, Any]:
+    def calculate_risk_reward(self, entry: float, take_profit: float, stop_loss: float) -> dict[str, Any]:
         """[TOOL] Calculates the Risk-Reward (RR) ratio for a trade geometry."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
 
-    def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: Optional[float] = None) -> Dict[str, Any]:
+    def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: float | None = None) -> dict[str, Any]:
         """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)

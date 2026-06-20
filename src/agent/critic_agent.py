@@ -3,7 +3,7 @@ import json
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 
-from google import genai
+from src.infrastructure.ai_client import AbstractAIClient
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
@@ -150,7 +150,7 @@ class CriticAgent(BaseAgent):
         retry_multiplier: float,
         retry_min: int,
         retry_max: int,
-        ai_client: genai.Client,
+        ai_client: AbstractAIClient,
         congestion_controller: Optional[CongestionController] = None
     ):
         """Standard constructor with dependency injection."""

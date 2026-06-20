@@ -3,7 +3,7 @@ import json
 from dataclasses import dataclass
 from typing import Dict, Any, Optional, List
 
-from google import genai
+from src.infrastructure.ai_client import AbstractAIClient
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
@@ -166,7 +166,7 @@ class SessionAgent(BaseAgent):
     def __init__(
         self, 
         config: SessionConfig, 
-        ai_client: genai.Client,
+        ai_client: AbstractAIClient,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,

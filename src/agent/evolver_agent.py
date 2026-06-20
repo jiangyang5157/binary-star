@@ -3,7 +3,7 @@ import json
 import logging
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
-from google import genai
+from src.infrastructure.ai_client import AbstractAIClient
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
 from src.utils.rate_limiter import CongestionController
@@ -49,7 +49,7 @@ class EvolverAgent(BaseAgent):
     def __init__(
         self, 
         config: EvolverConfig, 
-        ai_client: genai.Client,
+        ai_client: AbstractAIClient,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
