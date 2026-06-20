@@ -205,10 +205,13 @@ class BinaryStarOrchestrator:
         self.session_agent.congestion_controller = self.congestion_controller
         self.critic_agent.congestion_controller = self.congestion_controller
         
-        self.cache_manager = GeminiCacheManager(
-            adapter=self.client,
-            congestion_controller=self.congestion_controller
-        )
+        if self.enable_context_cache:
+            self.cache_manager = GeminiCacheManager(
+                adapter=self.client,
+                congestion_controller=self.congestion_controller
+            )
+        else:
+            self.cache_manager = None
         self.macro_interval = self.obs_config.macro_context.time_interval
 
         self.math_checker = MathFactChecker(
@@ -434,7 +437,7 @@ class BinaryStarOrchestrator:
     def _cleanup_cache(self) -> None:
         """Proactively purge the session context cache."""
         try:
-            if getattr(self, 'enable_context_cache', True) and self.cache_manager.active_cache_id:
+            if self.cache_manager is not None and self.enable_context_cache and self.cache_manager.active_cache_id:
                 self.cache_manager.delete_market_cache()
         except Exception as e:
             logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
