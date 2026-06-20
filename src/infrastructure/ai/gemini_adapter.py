@@ -57,7 +57,11 @@ class GeminiAdapter(AbstractAIClient):
     def _to_gemini_contents(self, contents: list[Any]) -> list[types.Content]:
         result = []
         for item in contents:
-            if isinstance(item, str):
+            if isinstance(item, types.Content):
+                result.append(item)
+            elif isinstance(item, types.Part):
+                result.append(types.Content(parts=[item], role="user"))
+            elif isinstance(item, str):
                 result.append(types.Content(
                     parts=[types.Part.from_text(text=item)], role="user"))
             elif isinstance(item, dict):

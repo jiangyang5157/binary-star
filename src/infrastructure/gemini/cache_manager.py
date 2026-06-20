@@ -1,10 +1,9 @@
 import logging
 import time
-from datetime import timedelta
-from typing import Dict, Any, List, Optional, Union
-from google import genai
+from typing import Any, List, Optional, Union
 from google.genai import types
 
+from src.infrastructure.ai.gemini_adapter import GeminiAdapter
 from src.utils.logger_utils import setup_logger
 from src.utils.rate_limiter import CongestionController
 
@@ -13,16 +12,17 @@ logger = setup_logger(__name__)
 class GeminiCacheManager:
     """
     Manages the lifecycle of Gemini Context Caches.
-    
+
     This utility allows for:
     1. Creating a cache from a large context (Market Topography + Visuals).
     2. Retrieving existing caches by name.
     3. Deleting caches manually if needed.
     4. Auto-expiration handling via TTL.
     """
-    
-    def __init__(self, client: genai.Client, congestion_controller: Optional[CongestionController] = None):
-        self.client = client
+
+    def __init__(self, adapter: GeminiAdapter, congestion_controller: Optional[CongestionController] = None):
+        self._adapter = adapter
+        self.client = adapter.raw_client  # underlying genai.Client for cache operations
         self.congestion_controller = congestion_controller
         self.active_cache_id = None
 

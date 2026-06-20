@@ -204,7 +204,7 @@ class BinaryStarOrchestrator:
         self.critic_agent.congestion_controller = self.congestion_controller
         
         self.cache_manager = GeminiCacheManager(
-            client=self.client, 
+            adapter=self.client,
             congestion_controller=self.congestion_controller
         )
         self.macro_interval = self.obs_config.macro_context.time_interval
