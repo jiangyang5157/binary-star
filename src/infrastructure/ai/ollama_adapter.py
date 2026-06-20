@@ -14,9 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class OllamaAdapter(AbstractAIClient):
-    def __init__(self, base_url: str, default_model: str):
+    def __init__(self, base_url: str, default_model: str, num_ctx: int = 8192):
         self.base_url = base_url
         self.default_model = default_model
+        self.num_ctx = num_ctx
 
     @property
     def supports_context_cache(self) -> bool:
@@ -43,7 +44,7 @@ class OllamaAdapter(AbstractAIClient):
             model=target_model, messages=messages,
             tools=ollama_tools,
             format="json" if response_json else None,
-            options={"temperature": temperature, "num_ctx": 8192},
+            options={"temperature": temperature, "num_ctx": self.num_ctx},
         )
         msg = response.get("message", {})
         text = msg.get("content", "")

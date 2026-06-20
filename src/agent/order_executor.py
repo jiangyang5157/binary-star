@@ -338,38 +338,37 @@ class MarginOrderExecutor:
     # TRAILING STOP: Progressive SL migration (v8.0)
     # ================================================================
 
-    def _migrate_trailing_stop(self, symbol: str, direction: str, trade_state: Dict[str, Any], 
+    def _migrate_trailing_stop(self, symbol: str, direction: str, trade_state: Dict[str, Any],
                                 active_orders: List[MarginOrder], atr_macro: float) -> Dict[str, Any]:
         """
         Progressive Trailing Stop Migration (Deterministic, No AI).
-        
-        Moves SL based on unrealized profit measured in ATR units:
-          | Profit > 1.5 ATR | SL → entry (breakeven)     |
-          | Profit > 2.5 ATR | SL → entry + 0.5 ATR       |
-          | Profit > 4.0 ATR | SL → entry + 1.5 ATR       |
-        
-        Also enforces TIME-BASED STOP:
-          | Holding > projected_holding_hours × 1.5 | Market close |
-        
+
+        Moves SL based on unrealized profit measured in ATR units.
+        Thresholds and offsets are read from global_config.yaml → guardian.
+        Also enforces TIME-BASED STOP when holding exceeds the configured limit.
+
         WARNING: Canceling OCO and re-placing creates a brief naked window.
         On failure to re-place, falls back to emergency market close.
         """
+        # Load guardian config
+        gc = self._get_guardian_config()
+
         entry_price = trade_state.get("entry_price")
         current_sl = trade_state.get("sl_price")
         current_tp = trade_state.get("tp_price")
         current_level = trade_state.get("trailing_sl_level", 0)
-        
+
         if not entry_price or not current_sl or not current_tp:
             return trade_state
-        
+
         # --- 1. Time-Based Stop ---
         entry_filled_at_str = trade_state.get("entry_filled_at")
         projected_holding = trade_state.get("projected_holding_hours")
         if entry_filled_at_str and projected_holding:
             entry_filled_at = datetime.fromisoformat(entry_filled_at_str)
             elapsed_hours = (datetime.now(timezone.utc) - entry_filled_at).total_seconds() / 3600
-            time_limit = float(projected_holding) * 1.5
-            
+            time_limit = float(projected_holding) * gc["time_stop_multiplier"]
+
             if elapsed_hours > time_limit:
                 logger.warning(
                     f"Guardian: [TIME_STOP] Position held {elapsed_hours:.1f}h > limit {time_limit:.1f}h. "
@@ -377,39 +376,45 @@ class MarginOrderExecutor:
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
                 return {}  # Clear trade state
-        
+
         # --- 2. Progressive Trailing Stop ---
         current_price = self.client.get_ticker_price(symbol)
         if not current_price or current_price <= 0:
             return trade_state
-        
+
         # Safeguard: Prevent division by zero or extremely small ATR values
         if not atr_macro or atr_macro < 1e-6:
             logger.warning(f"Guardian: [TRAIL] Invalid or extremely small ATR value ({atr_macro}). Skipping migration.")
             return trade_state
-        
+
         if direction == "LONG":
             unrealized_atr = (current_price - entry_price) / atr_macro
         else:  # SHORT
             unrealized_atr = (entry_price - current_price) / atr_macro
-        
-        # Determine target trailing level
+
+        # Determine target trailing level (thresholds from config)
+        l1 = gc["trailing_profit_atr_level_1"]
+        l2 = gc["trailing_profit_atr_level_2"]
+        l3 = gc["trailing_profit_atr_level_3"]
+        offset_2 = gc["trailing_sl_offset_atr_level_2"]
+        offset_3 = gc["trailing_sl_offset_atr_level_3"]
+
         target_level = 0
         target_sl = current_sl
-        
-        if unrealized_atr >= 4.0:
+
+        if unrealized_atr >= l3:
             target_level = 3
             if direction == "LONG":
-                target_sl = entry_price + 1.5 * atr_macro
+                target_sl = entry_price + offset_3 * atr_macro
             else:
-                target_sl = entry_price - 1.5 * atr_macro
-        elif unrealized_atr >= 2.5:
+                target_sl = entry_price - offset_3 * atr_macro
+        elif unrealized_atr >= l2:
             target_level = 2
             if direction == "LONG":
-                target_sl = entry_price + 0.5 * atr_macro
+                target_sl = entry_price + offset_2 * atr_macro
             else:
-                target_sl = entry_price - 0.5 * atr_macro
-        elif unrealized_atr >= 1.5:
+                target_sl = entry_price - offset_2 * atr_macro
+        elif unrealized_atr >= l1:
             target_level = 1
             target_sl = entry_price  # Breakeven
         
@@ -532,6 +537,24 @@ class MarginOrderExecutor:
     # ================================================================
     # INTERNAL HELPERS
     # ================================================================
+
+    @staticmethod
+    def _get_guardian_config() -> dict:
+        """Loads guardian (trailing stop + time-stop) config from global_config.yaml."""
+        import yaml, os
+        from src.utils.path_utils import resolve_project_root
+        config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
+        with open(config_path, 'r') as f:
+            cfg = yaml.safe_load(f)
+        gc = cfg.get("guardian", {})
+        return {
+            "trailing_profit_atr_level_1": float(gc.get("trailing_profit_atr_level_1", 1.5)),
+            "trailing_profit_atr_level_2": float(gc.get("trailing_profit_atr_level_2", 2.5)),
+            "trailing_profit_atr_level_3": float(gc.get("trailing_profit_atr_level_3", 4.0)),
+            "trailing_sl_offset_atr_level_2": float(gc.get("trailing_sl_offset_atr_level_2", 0.5)),
+            "trailing_sl_offset_atr_level_3": float(gc.get("trailing_sl_offset_atr_level_3", 1.5)),
+            "time_stop_multiplier": float(gc.get("time_stop_multiplier", 1.5)),
+        }
 
     def _get_trade_config(self, symbol: str):
         """Loads and returns strict configuration. Raises Exception if missing."""

@@ -25,6 +25,7 @@ class AIFactory:
             return OllamaAdapter(
                 base_url=cfg.get("base_url"),
                 default_model=cfg.get("model"),
+                num_ctx=int(cfg.get("num_ctx", 8192)),
             )
         elif provider == "deepseek":
             from src.infrastructure.ai.deepseek_adapter import DeepSeekAdapter

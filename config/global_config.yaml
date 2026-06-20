@@ -64,6 +64,7 @@ llm:
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
+    num_ctx: 8192  # context window size (model-dependent: 4096, 8192, 32768, 131072)
 
   binary_star:
     system_instruction: "config/prompts/binary_star.md"
@@ -156,6 +157,22 @@ sniper:
   vah_val_trigger_multiplier: 1.4
   poc_trigger_multiplier: 1.0
   liq_trigger_multiplier: 0.8
+
+guardian:
+  # ── Trailing Stop Migration ──────────────────────────────────────
+  # Profit thresholds in ATR units that trigger stop-loss migration.
+  # Level 1: SL → entry (breakeven).  Level 2: SL → entry + 0.5 ATR.  Level 3: SL → entry + 1.5 ATR.
+  trailing_profit_atr_level_1: 1.5
+  trailing_profit_atr_level_2: 2.5
+  trailing_profit_atr_level_3: 4.0
+  # SL offsets (in ATR) past entry for each level.
+  trailing_sl_offset_atr_level_2: 0.5
+  trailing_sl_offset_atr_level_3: 1.5
+
+  # ── Time-Based Stop ──────────────────────────────────────────────
+  # Multiplier on projected_holding_hours. Position is market-closed
+  # when elapsed > projected_holding × this value.
+  time_stop_multiplier: 1.5
 
 sandbox:
   # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
