@@ -205,7 +205,7 @@ def _cmd_audit(args):
         files_to_audit = [os.path.join(sessions_dir, f)
                           for f in os.listdir(sessions_dir)
                           if f.endswith(".json")]
-        symbol = args.symbol or load_global_config().get("system", {}).get("default_symbol")
+        symbol = args.symbol  # None → audit all sessions; pass --symbol to filter
         if symbol:
             logger_audit.info("Filtering by symbol: %s", symbol)
             files_to_audit = [f for f in files_to_audit
