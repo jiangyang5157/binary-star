@@ -161,12 +161,15 @@ class MarginOrderExecutor:
                     stop_limit_price=buffered_sl
                 )
                 if not oco_success:
-                    logger.error(
-                        "Executor: [ABORT Pivot-Preserve] Failed to place OCO for existing position. "
-                        "Position would be left naked. Halting new entry."
+                    logger.critical(
+                        "Executor: [EMERGENCY Pivot-Preserve] Failed to place OCO after cancel — "
+                        "existing position is now naked. Emergency market closing + placing new entry."
                     )
-                    return None
-                
+                    self.client.execute_market_close(symbol)
+                    # Position is closed but AI opinion is still valid — place new entry
+                    logger.info(f"Executor: [Pivot-Preserve] Emergency close complete. Entering new {opinion_direction} at {entry_price}.")
+                    return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
+
                 # 4. Place the new opinion's LIMIT entry alongside the preserved position
                 logger.info(f"Executor: [Pivot-Preserve] Pivot setup complete. Entering new {opinion_direction} at {entry_price} (SL: {sl_price}).")
                 return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
@@ -190,7 +193,11 @@ class MarginOrderExecutor:
 
         # Scenario B: SAME DIRECTION (Optimization & Net Qty Protection)
         logger.info("Executor: [Action] Same direction detected. Optimizing existing position protection.")
-        self._optimize_same_direction(symbol, current_direction, net_qty, active_orders, tp_price, sl_price)
+        position_intact = self._optimize_same_direction(symbol, current_direction, net_qty, active_orders, tp_price, sl_price)
+        if not position_intact:
+            # Emergency close was triggered — return sentinel to signal caller that trade_state should be cleared
+            logger.critical("Executor: [EMERGENCY Same-Direction] Position emergency-closed after OCO failure. Returning sentinel.")
+            return -1  # Sentinel: position was emergency-closed
         return None
 
     # ================================================================
@@ -472,10 +479,13 @@ class MarginOrderExecutor:
     # SAME-DIRECTION OPTIMIZATION (unchanged)
     # ================================================================
 
-    def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float):
+    def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float) -> bool:
         """
         Calculates the best TP/SL comparing existing manual/script orders vs new opinion.
         Protects the ENTIRE net_qty.
+
+        Returns:
+            True if position remains protected, False if emergency-closed due to OCO failure.
         """
         current_tps = []
         current_sls = []
@@ -515,7 +525,7 @@ class MarginOrderExecutor:
         logger.info(f"Executor: Cancelling existing orders to wrap entire Net Qty ({net_qty}) with new OCO.")
         if not self.client.cancel_all_symbol_orders(symbol):
             logger.error("Executor: [ABORT OPTIMIZATION] Failed to cancel existing OCOs. Original protection remains active.")
-            return
+            return True  # Position still intact (original OCOs untouched)
 
         # Calculate buffered SL Limit (Slippage protection)
         trade_cfg = self._get_trade_config(symbol)
@@ -533,7 +543,11 @@ class MarginOrderExecutor:
             stop_limit_price=buffered_sl 
         )
         if not success:
-             logger.error("Executor: [CRITICAL] Cancelled old OCO but failed to place new OCO. Position may be unprotected!")
+            logger.critical("Executor: [EMERGENCY Same-Direction] Cancelled old OCO but failed to place new OCO. Position is now naked. Emergency market closing.")
+            self.client.execute_market_close(symbol)
+            return False  # Signal caller: position was emergency-closed
+
+        return True  # Position remains protected
 
     # ================================================================
     # INTERNAL HELPERS

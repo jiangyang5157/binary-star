@@ -182,23 +182,25 @@ def test_pivot_short_to_long_overshot():
     print("✅ Result: Detected overshot price 69950 (vs entry 70000). Market closed SHORT before placing LONG.")
 
 def test_pivot_short_with_sl_oco_fails_abort():
-    """Case A-2 failure: OCO placement fails → abort, do NOT place new entry (no naked position)."""
-    print_separator("SCENARIO: PIVOT SHORT->LONG (Has SL, OCO Fails = ABORT)")
+    """Case A-2 failure: OCO placement fails → emergency close + place new entry (v8.2 recovery fix)."""
+    print_separator("SCENARIO: PIVOT SHORT->LONG (Has SL, OCO Fails = EMERGENCY CLOSE + NEW ENTRY)")
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
     sl_order = MarginOrder("BTCUSDT", 55, "", 86000, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "BUY", 0, stop_price=86000)
     client.get_active_orders.return_value = [sl_order]
     client.get_ticker_price.return_value = 84000.0
     client.place_oco_order.return_value = False  # OCO fails!
-    
+
     order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=82000, tp_price=80000, sl_price=85000)
-    
+
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
-    client.execute_market_close.assert_not_called()
     client.place_oco_order.assert_called_once()  # Attempted but failed
-    client.place_limit_order.assert_not_called()  # ABORTED: no naked entry
-    assert order_id is None
-    print("✅ Result: OCO failed → aborted new LONG entry. SHORT left without protection (already cancelled), operator alerted.")
+    # v8.2: Emergency close instead of leaving position naked
+    client.execute_market_close.assert_called_once_with("BTCUSDT")
+    # v8.2: Still place new entry since AI opinion is valid
+    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=82000)
+    assert order_id is not None  # Returns new entry order_id
+    print("✅ Result: OCO failed → emergency closed SHORT → placed new LONG entry. No naked position.")
 
 def test_same_direction_optimization():
     print_separator("SCENARIO: HOLDING LONG -> LONG OPINION (OPTIMIZATION)")

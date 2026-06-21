@@ -220,7 +220,7 @@ class SniperDaemon:
             )
             
             # Update trade state for Guardian tracking
-            if order_id:
+            if order_id and order_id > 0:
                 self.trade_state = {
                     "direction": direction,
                     "entry_price": float(entry),
@@ -231,6 +231,10 @@ class SniperDaemon:
                     "projected_waiting_hours": float(projected_waiting),
                 }
                 logger.info(f"TradeGate: Trade state updated. Guardian will monitor order {order_id}.")
+            elif order_id == -1:
+                # sync_with_opinion emergency-closed the position (OCO failure after cancel)
+                self.trade_state = {}
+                logger.warning("TradeGate: Position was emergency-closed by executor (OCO re-place failure). Trade state cleared.")
             else:
                 # sync_with_opinion returned None — could be SAME_DIRECTION optimization
                 # Keep existing trade_state if it has a direction (position is being managed)
