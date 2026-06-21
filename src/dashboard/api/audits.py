@@ -28,10 +28,7 @@ def _find_audit_files(data_root: str, symbol: str | None = None) -> list[Path]:
 def _compute_pnl(entry_price: float, opinion: str, tp_sl_result: str,
                  take_profit: float, stop_loss: float,
                  exit_price: float) -> float:
-    """Compute realized P&L percentage from audit outcome data.
-
-    Mirrors LedgerVisualizer._normalize_audit_report() logic.
-    """
+    """Compute realized P&L percentage from audit outcome data."""
     if entry_price <= 0:
         return 0.0
 

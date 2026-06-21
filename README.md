@@ -172,9 +172,8 @@ python run.py patch -f data/backtest/evolution/proposals/BTCUSDT_evolution_20260
 
 # Start dashboard (http://localhost:8080)
 python -m src.dashboard.server
+python -m src.dashboard.server -p data/prod --port 8080
 
-# Ledger visualization
-python scripts/session_ledger.py -p data/backtest
 ```
 
 ### Running tests

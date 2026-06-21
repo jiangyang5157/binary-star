@@ -6,7 +6,7 @@ Usage:
     python run.py session -ts 2026-01-24T15:42:00Z
     python run.py session --start T-30d --end T-2d --samples 14 --sampling-mode sniper
     python run.py sniper [--symbol BTCUSDT] [--trigger] [--email] [--trade]
-    python run.py audit -p data/prod [--symbol BTCUSDT] [--email] [--force]
+    python run.py audit -p data/prod [--symbol BTCUSDT] [--force]
     python run.py evolution -p data/backtest [--symbol BTCUSDT] --samples 20
     python run.py patch -f evolution_proposal.json
 """
@@ -162,8 +162,6 @@ def _add_audit_parser(subparsers):
     p.add_argument("--file", "-f", help="Path to a specific session JSON file")
     p.add_argument("--symbol", type=str,
                    help="Filter batch audit by symbol")
-    p.add_argument("--email", action="store_true",
-                   help="Dispatch forensic reports via email")
     p.add_argument("--force", action="store_true",
                    help="Bypass deduplication and maturity checks")
     add_data_path_argument(p, required=True)
@@ -220,7 +218,7 @@ def _cmd_audit(args):
 
     print(f"Launching Parallel Audit Pool (Workers: {multiprocessing.cpu_count() or 1})...")
 
-    task_args = [(f, args.email, data_root, args.force) for f in files_to_audit]
+    task_args = [(f, data_root, args.force) for f in files_to_audit]
 
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=multiprocessing.cpu_count(),

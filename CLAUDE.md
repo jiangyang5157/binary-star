@@ -20,6 +20,7 @@ pip install -e ".[dev]"
 
 # Start the dashboard server (http://localhost:8080)
 python -m src.dashboard.server
+python -m src.dashboard.server -p data/prod --port 8080
 
 # ── Unified CLI (run.py) ─────────────────────────────────────────────
 

@@ -24,46 +24,35 @@ from src.utils.datetime_utils import format_timestamp_for_filename
 # v6.10: Global logger reference
 logger = None
 
-def process_audit_file(file_path: str, controller: AuditController, email: bool, data_root: str, force: bool = False) -> str:
+def process_audit_file(file_path: str, controller: AuditController, data_root: str, force: bool = False) -> str:
     """Handles the full lifecycle of a single session audit."""
     try:
         logger.info(f"--- Initiating Audit Review: {os.path.basename(file_path)} ---")
-        
+
         # 1. Deduplication Gate: Skip if file already exists (unless forced)
         import json
         with open(file_path, 'r', encoding='utf-8') as f:
             session = json.load(f)
-        
+
         obs = session.get("observation", {})
         symbol = obs.get("symbol", "UNKNOWN")
         obs_ts = obs.get("observed_at")
         ts_compact = format_timestamp_for_filename(obs_ts)
-        
+
         if not force and controller.is_already_audited(symbol, ts_compact):
             logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
             return "EXISTS"
 
         # 2. Execute Analysis (Standardized 3-key Bundle: session, market_outcome, metadata)
         audit_bundle = controller.run_manual_audit(file_path, force=force)
-        
+
         # 3. Automated Persistence
         report_path = controller.save_report(audit_bundle)
-        
-        # 4. Notification Logic
-        from src.infrastructure.notifications.email_notifier import SessionNotifier
-        notifier = SessionNotifier(data_root=data_root)
-        
-        # Decision: Notification control
-        opinion = session.get("final_decision", {}).get("opinion", "").upper()
-        should_dispatch = email and opinion != "NEUTRAL"
-        
-        # Dispatch notification using the standardized bundle
-        notifier.notify_audit(symbol, audit_bundle, save_local=email, dispatch_email=should_dispatch)
 
         outcome = audit_bundle.get('market_outcome', {})
         result_str = outcome.get('tp_sl_result', 'N/A')
-        
-        # 5. Standardized Audit Output
+
+        # 4. Standardized Audit Output
         print(f"🔍 AUDIT COMPLETE | {symbol} | {result_str} | {os.path.basename(report_path)}")
         return "SUCCESS"
     except Exception as e:
@@ -86,15 +75,14 @@ def worker_init(log_path, config, data_root):
 
 def run_task(args_tuple):
     """Wrapper to call process_audit_file with global controller."""
-    f, email, data_root, force = args_tuple
+    f, data_root, force = args_tuple
     global controller
-    return process_audit_file(f, controller, email, data_root, force=force)
+    return process_audit_file(f, controller, data_root, force=force)
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Auditor v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
     parser.add_argument("--symbol", type=str, help="Optional: Filter batch audit by symbol")
-    parser.add_argument("--email", action="store_true", help="Dispatch forensic reports via email")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")
     
     add_data_path_argument(parser, required=True)
@@ -159,7 +147,7 @@ def main():
     print(f"🚀 Launching Parallel Audit Pool (Workers: {multiprocessing.cpu_count() or 1})...")
     
     # Pack arguments for top-level run_task
-    task_args = [(f, args.email, data_root, args.force) for f in files_to_audit]
+    task_args = [(f, data_root, args.force) for f in files_to_audit]
 
     with concurrent.futures.ProcessPoolExecutor(
         max_workers=multiprocessing.cpu_count(),
