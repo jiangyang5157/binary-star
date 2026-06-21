@@ -15,8 +15,14 @@ logger = logging.getLogger(__name__)
 class GeminiAdapter(AbstractAIClient):
     """Wraps Google GenAI SDK to match AbstractAIClient."""
 
-    def __init__(self, api_key: str):
-        self._client = genai.Client(api_key=api_key)
+    def __init__(self, api_key: str, http_timeout: int = 240):
+        # Per Python 3.14 + google-genai 2.9.0 compatibility: http_options
+        # must live on the Client (not per-request config dict) to avoid
+        # a ``copy.deepcopy`` failure on ``_thread.lock`` objects.
+        self._client = genai.Client(
+            api_key=api_key,
+            http_options={'timeout': http_timeout * 1000},
+        )
 
     @property
     def raw_client(self) -> genai.Client:
@@ -35,11 +41,10 @@ class GeminiAdapter(AbstractAIClient):
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
-        timeout_ms = (http_timeout or 240) * 1000
-
+        # Timeout is set once on the Client (see __init__), not per-request,
+        # to avoid a Python 3.14 deepcopy issue with the google-genai SDK.
         gen_config: dict[str, Any] = {
             "temperature": temperature,
-            "http_options": {"timeout": timeout_ms},
         }
         if tools:
             gen_config["tools"] = tools

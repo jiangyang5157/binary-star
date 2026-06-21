@@ -3,6 +3,8 @@ import yaml
 import re
 import argparse
 import hashlib
+import subprocess
+from functools import lru_cache
 from typing import Dict, Any, List, Optional
 
 def get_file_hash(file_path: str) -> str:
@@ -14,6 +16,42 @@ def get_file_hash(file_path: str) -> str:
             return hashlib.md5(f.read()).hexdigest()[:8]
     except Exception:
         return "unavailable"
+
+
+@lru_cache(maxsize=1)
+def get_project_version() -> str:
+    """Return the installed singularity version from package metadata.
+
+    Reads from importlib.metadata (pyproject.toml).  Falls back to
+    ``"0.0.0.dev"`` when the package is not installed (e.g. raw
+    ``python run.py`` without ``pip install -e .``).
+    """
+    try:
+        from importlib.metadata import version
+        return version("singularity")
+    except Exception:
+        return "0.0.0.dev"
+
+
+@lru_cache(maxsize=1)
+def get_git_commit(short: bool = True) -> str:
+    """Return the current HEAD commit hash, or ``"unknown"``.
+
+    Uses subprocess to avoid a hard dependency on GitPython.
+    """
+    try:
+        args = ["git", "rev-parse", "--short=8", "HEAD"] if short else ["git", "rev-parse", "HEAD"]
+        result = subprocess.run(
+            args,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return "unknown"
 
 
 def load_config(config_filepath: str = "config/strategy_config.yaml") -> Dict[str, Any]:
