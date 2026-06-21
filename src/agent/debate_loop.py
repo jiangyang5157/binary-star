@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 from src.analyzer.math_fact_checker import MathFactChecker
+from src.utils.exceptions import MalformedJSONError
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,15 @@ class DebateLoop:
 
             # Critic Fast Pass Pre-check (Token Optimization)
             critic_results = None
+            if not isinstance(last_plan, dict):
+                logger.error(
+                    "BinaryStar: Session agent returned %s instead of dict. Raw: %s",
+                    type(last_plan).__name__, str(last_plan)[:300],
+                )
+                raise MalformedJSONError(
+                    raw_text=str(last_plan)[:500],
+                    agent_name="SessionAgent",
+                )
             opinion = last_plan.get("opinion", "NEUTRAL")
             if opinion == "NEUTRAL" and math_fact_check.get("status") == "SKIPPED":
                 fast_pass = self._evaluate_critic_fast_pass(debate_history, observation)

@@ -71,23 +71,44 @@ def load_from_json_file(file_path: str) -> Any:
         logger.error(f"Failed to load JSON from {file_path}: {e}")
         return None
 
+def _coerce_to_dict(obj: Any) -> Optional[Dict[str, Any]]:
+    """Normalise a parsed JSON value to a dict, unwrapping single-element lists."""
+    if isinstance(obj, dict):
+        return obj
+    if isinstance(obj, list):
+        if len(obj) == 1 and isinstance(obj[0], dict):
+            logger.debug("extract_json_from_text: Unwrapped single-element JSON array.")
+            return obj[0]
+        logger.warning(
+            "extract_json_from_text: Expected JSON object but got list (%d elements). "
+            "Returning None — callers require a dict.",
+            len(obj),
+        )
+        return None
+    logger.warning(
+        "extract_json_from_text: Expected JSON object but got %s. Returning None.",
+        type(obj).__name__,
+    )
+    return None
+
+
 def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
     """
-    Extracts and parses a JSON object from a string, even if it contains 
+    Extracts and parses a JSON object from a string, even if it contains
     conversational filler or trailing garbage characters (e.g. extra braces).
     Uses JSONDecoder().raw_decode to find the logical end of the JSON structure.
     """
     if not text:
         return None
-        
+
     text = text.strip()
-    
+
     # 1. Quick try: standard parse
     try:
-        return json.loads(text)
+        return _coerce_to_dict(json.loads(text))
     except Exception:
         pass
-        
+
     # 2. Advanced try: Find first '{' and use raw_decode
     try:
         start_idx = text.find('{')
@@ -96,10 +117,10 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
             decoder = json.JSONDecoder()
             # raw_decode returns the object and the byte index where it stopped
             obj, index = decoder.raw_decode(json_text)
-            return obj
+            return _coerce_to_dict(obj)
     except Exception as e:
         logger.debug(f"JSON raw_decode failed: {e}")
-        
+
     # 3. Fallback: Cleanup common LLM artifacts (markdown blocks)
     try:
         cleaned = text.replace('```json', '').replace('```', '').strip()
@@ -107,10 +128,10 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
         start = cleaned.find('{')
         end = cleaned.rfind('}')
         if start != -1 and end != -1:
-            return json.loads(cleaned[start:end+1])
+            return _coerce_to_dict(json.loads(cleaned[start:end+1]))
     except Exception:
         pass
-        
+
     return None
 
 # Aliases for backward compatibility

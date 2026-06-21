@@ -39,6 +39,7 @@ class AIResponse:
     text: str
     tool_calls: list[ToolCall] | None = None
     usage: UsageMetadata | None = None
+    reasoning_content: str | None = None  # DeepSeek thinking models
 
 
 class AbstractAIClient(ABC):

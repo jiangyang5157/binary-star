@@ -64,32 +64,80 @@ def build_messages(
                     "id": tc["id"], "type": "function",
                     "function": {"name": tc["name"], "arguments": json.dumps(tc["args"])},
                 } for tc in item["tool_calls"]]
-                messages.append({"role": "assistant", "content": None, "tool_calls": tcs})
+                assistant_msg: dict = {"role": "assistant", "content": None, "tool_calls": tcs}
+                # DeepSeek thinking models require reasoning_content echoed back
+                if item.get("reasoning_content"):
+                    assistant_msg["reasoning_content"] = item["reasoning_content"]
+                messages.append(assistant_msg)
             else:
                 logger.warning("build_messages: Skipping unrecognized content type: %s", type(item).__name__)
     return messages
 
 
+def _convert_dict_tool(tool: dict) -> dict | None:
+    """Convert a plain-dict tool declaration (from MathTools) to OpenAI format."""
+    name = tool.get("name")
+    if not name:
+        return None
+    desc = tool.get("description", "")
+    raw_params = tool.get("parameters", {})
+    props, required = {}, []
+    for pn, ps in raw_params.get("properties", {}).items():
+        props[pn] = {
+            "type": ps.get("type", "string").lower(),
+            "description": ps.get("description", ""),
+        }
+    required = list(raw_params.get("required", []) or [])
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": desc,
+            "parameters": {
+                "type": "object",
+                "properties": props,
+                "required": required,
+            },
+        },
+    }
+
+
+def _convert_gemini_tool(tool: Any) -> list[dict]:
+    """Convert a Gemini-format Tool object (with function_declarations) to OpenAI format."""
+    result = []
+    for fd in tool.function_declarations:
+        props, required = {}, []
+        if hasattr(fd, "parameters") and fd.parameters:
+            for pn, ps in getattr(fd.parameters, "properties", {}).items():
+                props[pn] = {
+                    "type": getattr(ps, "type", "string").lower(),
+                    "description": getattr(ps, "description", ""),
+                }
+            required = list(getattr(fd.parameters, "required", []) or [])
+        result.append({
+            "type": "function",
+            "function": {
+                "name": fd.name, "description": fd.description or "",
+                "parameters": {"type": "object", "properties": props, "required": required},
+            },
+        })
+    return result
+
+
 def convert_tools(tools: list[Any]) -> list[dict]:
+    """Convert tool declarations to OpenAI function-calling format.
+
+    Handles both Gemini Tool objects (with ``function_declarations``) and
+    plain dicts (from ``MathTools.get_tool_declarations()``).
+    """
     result = []
     for tool in tools:
         if hasattr(tool, "function_declarations"):
-            for fd in tool.function_declarations:
-                props, required = {}, []
-                if hasattr(fd, "parameters") and fd.parameters:
-                    for pn, ps in getattr(fd.parameters, "properties", {}).items():
-                        props[pn] = {
-                            "type": getattr(ps, "type", "string").lower(),
-                            "description": getattr(ps, "description", ""),
-                        }
-                    required = list(getattr(fd.parameters, "required", []) or [])
-                result.append({
-                    "type": "function",
-                    "function": {
-                        "name": fd.name, "description": fd.description or "",
-                        "parameters": {"type": "object", "properties": props, "required": required},
-                    },
-                })
+            result.extend(_convert_gemini_tool(tool))
+        elif isinstance(tool, dict):
+            converted = _convert_dict_tool(tool)
+            if converted:
+                result.append(converted)
     return result
 
 
@@ -180,4 +228,6 @@ class OpenAICompatibleAdapter(AbstractAIClient):
                 prompt_token_count=response.usage.prompt_tokens or 0,
                 candidates_token_count=response.usage.completion_tokens or 0,
             )
-        return AIResponse(text=text, tool_calls=tool_calls, usage=usage)
+        reasoning = getattr(msg, "reasoning_content", None) or None
+        return AIResponse(text=text, tool_calls=tool_calls, usage=usage,
+                          reasoning_content=reasoning)

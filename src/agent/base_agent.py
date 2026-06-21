@@ -177,12 +177,64 @@ class BaseAgent:
                     logger.error("BaseAgent: %s returned empty response.", agent_name)
                     raise EmptyModelResponseError(agent_name=agent_name)
 
-                # No tool calls → termination
+                # No tool calls → termination (with simulated-tool-call detection)
                 if not response.tool_calls:
                     if not response.text.strip():
                         logger.error("BaseAgent: %s returned empty text.", agent_name)
                         raise EmptyModelResponseError(agent_name=agent_name)
-                    return self._parse_and_validate_response(response.text, agent_name)
+                    parsed = self._parse_and_validate_response(response.text, agent_name)
+
+                    # Detect "simulated" tool calls: some models (e.g. DeepSeek v4 pro)
+                    # describe function calls in text rather than using native tool_calls.
+                    # Two formats observed:
+                    #   A) {tool, parameters}          — single simulated call
+                    #   B) {tool_calls: [{name, arguments}]}  — batch simulated calls
+                    # When the dict lacks "opinion" but looks like a tool invocation,
+                    # dispatch every tool, feed results back, and loop.
+                    simulated: list[ToolCall] = []
+
+                    if isinstance(parsed, dict) and "tool" in parsed and "parameters" in parsed:
+                        simulated.append(ToolCall(
+                            name=parsed["tool"],
+                            args=parsed.get("parameters", {}),
+                        ))
+                    elif isinstance(parsed, dict) and isinstance(parsed.get("tool_calls"), list):
+                        for tc in parsed["tool_calls"]:
+                            if isinstance(tc, dict) and "name" in tc:
+                                simulated.append(ToolCall(
+                                    name=tc["name"],
+                                    args=tc.get("arguments", tc.get("args", {})),
+                                ))
+
+                    if simulated and "opinion" not in parsed:
+                        logger.info(
+                            "BaseAgent: %s simulated %d tool call(s) in text — dispatching.",
+                            agent_name, len(simulated),
+                        )
+                        tc_entries = []
+                        tool_responses = []
+                        for tc in simulated:
+                            result = self._dispatch_tool_call(tc)
+                            entry = {
+                                "id": f"call_{next_tc_id}",
+                                "name": tc.name,
+                                "args": tc.args,
+                            }
+                            next_tc_id += 1
+                            tc_entries.append(entry)
+                            tool_responses.append({
+                                "id": entry["id"],
+                                "name": tc.name,
+                                "result": result,
+                            })
+                        model_msg: dict = {"role": "model", "tool_calls": tc_entries}
+                        if response.reasoning_content:
+                            model_msg["reasoning_content"] = response.reasoning_content
+                        contents.append(model_msg)
+                        contents.append({"role": "user", "tool_responses": tool_responses})
+                        continue
+
+                    return parsed
 
                 # Tool execution cycle
                 tc_entries = []
@@ -191,7 +243,10 @@ class BaseAgent:
                         "id": f"call_{next_tc_id}", "name": tc.name, "args": tc.args,
                     })
                     next_tc_id += 1
-                contents.append({"role": "model", "tool_calls": tc_entries})
+                model_msg = {"role": "model", "tool_calls": tc_entries}
+                if response.reasoning_content:
+                    model_msg["reasoning_content"] = response.reasoning_content
+                contents.append(model_msg)
 
                 tool_responses = []
                 for entry, tc in zip(tc_entries, response.tool_calls):
@@ -242,13 +297,25 @@ class BaseAgent:
         Returns:
             The execution result or error string.
         """
+        import inspect
         name = tc.name
         args = tc.args or {}
         try:
             if hasattr(self, name):
                 method = getattr(self, name)
+                # Filter args to only those the method actually accepts —
+                # models sometimes pass extra context fields (opinion, atr_macro, etc.)
+                sig = inspect.signature(method)
+                valid_params = set(sig.parameters.keys())
+                filtered = {k: v for k, v in args.items() if k in valid_params}
+                dropped = set(args.keys()) - valid_params
+                if dropped:
+                    logger.debug(
+                        "BaseAgent: Dropped extra tool args for '%s': %s",
+                        name, sorted(dropped),
+                    )
                 logger.info("BaseAgent: Dispatching tool '%s'...", name)
-                return method(**args)
+                return method(**filtered)
             else:
                 logger.error("BaseAgent: Tool '%s' not found.", name)
                 return f"Error: Tool '{name}' missing."
