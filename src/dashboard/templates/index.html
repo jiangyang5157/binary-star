@@ -227,6 +227,7 @@ function renderTimeline(trades, threshold) {
       r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
       pnl: t.pnl_pct, res: t.tp_sl_result, op: t.opinion, filled: t.is_filled,
       holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
+      sessionFile: t.session_filename || '',
       backgroundColor: color, borderColor: above ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0)',
     };
   });
@@ -243,6 +244,18 @@ function renderTimeline(trades, threshold) {
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Time: ${d.timeLabel}`, `Direction: ${d.op}`, `Result: ${d.op === 'NEUTRAL' ? 'NEUTRAL' : d.filled ? d.res : 'Unfilled'}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`]; } } }
+      },
+      onClick: (e) => {
+        const points = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+        if (points.length) {
+          const d = timelineChart.data.datasets[0].data[points[0].index];
+          if (d.sessionFile) {
+            window.location = `/sessions/${encodeURIComponent(d.sessionFile)}${DR ? '?' + DR : ''}`;
+          }
+        }
+      },
+      onHover: (e) => {
+        e.native.target.style.cursor = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false).length ? 'pointer' : 'default';
       }
     }
   });
