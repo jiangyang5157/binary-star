@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class GeminiAdapter(AbstractAIClient):
     """Wraps Google GenAI SDK to match AbstractAIClient."""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, http_timeout: int = 240):
         self._client = genai.Client(api_key=api_key)
 
     @property
@@ -35,11 +35,8 @@ class GeminiAdapter(AbstractAIClient):
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
-        timeout_ms = (http_timeout or 240) * 1000
-
         gen_config: dict[str, Any] = {
             "temperature": temperature,
-            "http_options": {"timeout": timeout_ms},
         }
         if tools:
             gen_config["tools"] = tools
