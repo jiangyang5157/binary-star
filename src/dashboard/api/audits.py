@@ -24,14 +24,6 @@ def _find_audit_files(data_root: str, symbol: str | None = None) -> list[Path]:
     return files
 
 
-def _audit_filename_for_session(session_filename: str) -> str:
-    """Derive the expected audit filename from a session filename.
-
-    session: BTCUSDT_session_20260621_025751.json
-    audit:   BTCUSDT_audit_20260621_025751.json
-    """
-    return session_filename.replace("_session_", "_audit_")
-
 
 def _compute_pnl(entry_price: float, opinion: str, tp_sl_result: str,
                  take_profit: float, stop_loss: float,
@@ -235,20 +227,3 @@ def get_trades(
 
     trades.sort(key=lambda t: t["time"])
     return {"trades": trades, "total": len(trades)}
-
-
-@router.get("/audits/{session_filename}")
-def get_audit_for_session(
-    session_filename: str,
-    data_root: str = Query(""),
-):
-    data_root = _resolve_data_root(data_root)
-    """Return the full audit JSON for a given session filename."""
-    audit_filename = _audit_filename_for_session(session_filename)
-    path = Path(data_root) / "audits" / audit_filename
-    if not path.exists():
-        return {"error": "Audit not found", "audit_filename": audit_filename}
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return {"error": "Failed to parse audit file"}

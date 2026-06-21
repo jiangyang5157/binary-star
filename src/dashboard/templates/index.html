@@ -164,19 +164,21 @@ async function loadTrades(symbol) {
 }
 
 function updateAllCharts(threshold) {
-  if (!allTrades.length) {
-    $('kpi-executed').textContent = '0 / 0';
+  const filledTrades = (allTrades || []).filter(t => t.is_filled);
+
+  if (!filledTrades.length) {
+    for (const id of ['kpi-pnl','kpi-winrate','kpi-calmar','kpi-mdd','kpi-executed'])
+      $(id).textContent = id === 'kpi-executed' ? '0 trades' : '--';
+    $('confVal').textContent = threshold;
     return;
   }
 
-  const activeTrades = allTrades.filter(t => t.confidence >= threshold);
-  const executedTrades = activeTrades.filter(t => t.is_filled);
-  const filledTrades = allTrades.filter(t => t.is_filled);
+  // Only filled trades contribute to KPIs and equity curve
+  const activeTrades = filledTrades.filter(t => t.confidence >= threshold);
 
-  // KPIs
   let eq = 1.0, peak = 1.0, dd = 0;
   const curve = [];
-  executedTrades.forEach(t => {
+  activeTrades.forEach(t => {
     eq *= (1 + t.pnl_pct / 100);
     if (eq > peak) peak = eq;
     dd = Math.max(dd, (peak - eq) / peak);
@@ -185,15 +187,15 @@ function updateAllCharts(threshold) {
 
   const netPnL = (eq - 1) * 100, mddPct = dd * 100;
   const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
-  const wins = executedTrades.filter(t => t.pnl_pct > 0).length;
-  const winRate = executedTrades.length ? (wins / executedTrades.length * 100) : 0;
+  const wins = activeTrades.filter(t => t.pnl_pct > 0).length;
+  const winRate = activeTrades.length ? (wins / activeTrades.length * 100) : 0;
 
   $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
   $('kpi-pnl').className = 'kpi-value ' + (netPnL >= 0 ? 'positive' : 'negative');
   $('kpi-winrate').textContent = winRate.toFixed(1) + '%';
   $('kpi-calmar').textContent = calmar.toFixed(2);
   $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
-  $('kpi-executed').textContent = `${executedTrades.length} / ${activeTrades.length}`;
+  $('kpi-executed').textContent = `${activeTrades.length} / ${filledTrades.length}`;
   $('confVal').textContent = threshold;
 
   renderTimeline(allTrades, threshold);
