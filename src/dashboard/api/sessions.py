@@ -118,5 +118,5 @@ def list_active(data_root: str = Query("")):
             "time_remaining_seconds": round(time_left_seconds),
         })
 
-    active.sort(key=lambda s: s["time_remaining_seconds"])
+    active.sort(key=lambda s: s["observed_at"], reverse=True)
     return {"active": active, "total": len(active)}
