@@ -17,7 +17,7 @@ from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.chart_generator import ChartGenerator
 from src.utils.rate_limiter import CongestionController
-from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, safe_format
+from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_template, safe_format, get_project_version, get_git_commit
 from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT, get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
@@ -351,6 +351,8 @@ class BinaryStarOrchestrator:
                 "metadata": {
                     "config_snapshot": self.config,
                     "version_control": {
+                        "project_version": get_project_version(),
+                        "git_commit": get_git_commit(),
                         "session_hash": get_file_hash(self.session_agent.config.instruction_path),
                         "critic_hash": get_file_hash(self.critic_agent.config.instruction_path),
                         "binary_star_hash": get_file_hash(self.bs_instruction_path),

@@ -168,6 +168,8 @@ function renderMetadata(metadata) {
     <section class="card">
       <h2>Metadata</h2>
       <div class="metadata-grid">
+        ${vc.project_version ? `<div class="metadata-item"><span class="metadata-label">Project Version</span><code>${vc.project_version}</code></div>` : ''}
+        ${vc.git_commit ? `<div class="metadata-item"><span class="metadata-label">Git Commit</span><code>${vc.git_commit}</code></div>` : ''}
         ${vc.session_hash ? `<div class="metadata-item"><span class="metadata-label">Session Hash</span><code>${vc.session_hash}</code></div>` : ''}
         ${vc.critic_hash ? `<div class="metadata-item"><span class="metadata-label">Critic Hash</span><code>${vc.critic_hash}</code></div>` : ''}
         ${vc.binary_star_hash ? `<div class="metadata-item"><span class="metadata-label">Binary Star Hash</span><code>${vc.binary_star_hash}</code></div>` : ''}

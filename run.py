@@ -345,9 +345,21 @@ def _cmd_patch(args):
 # Main entry point
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _build_version_string() -> str:
+    """Build the --version output string including git commit."""
+    from src.utils.pipeline_utils import get_project_version, get_git_commit
+    ver = get_project_version()
+    commit = get_git_commit()
+    return f"singularity {ver} (commit {commit})"
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Singularity — AI-driven crypto quantitative trading engine",
+    )
+    parser.add_argument(
+        "--version", action="version",
+        version=_build_version_string(),
     )
     subparsers = parser.add_subparsers(dest="command", title="commands")
     _add_session_parser(subparsers)

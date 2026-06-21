@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 
 from src.analyzer.audit_assembler import AuditAssembler, AuditReviewConfig
 from src.infrastructure.binance.client import BinanceFuturesClient
-from src.utils.pipeline_utils import get_file_hash
+from src.utils.pipeline_utils import get_file_hash, get_project_version, get_git_commit
 from src.utils.path_utils import resolve_project_root
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.infrastructure.exchange.base_client import AbstractExchangeClient
@@ -252,6 +252,8 @@ class AuditController:
                 "session": session,
                 "market_outcome": outcome,
                 "metadata": {
+                    "project_version": get_project_version(),
+                    "git_commit": get_git_commit(),
                     "config_hash": get_file_hash("config/strategy_config.yaml"),
                     "audit_at": to_iso_zulu(t1_dt)
                 }
