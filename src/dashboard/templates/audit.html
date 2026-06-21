@@ -11,10 +11,8 @@
   <h1>Singularity</h1>
   <nav>
     <a href="/" class="nav-link">Overview</a>
+    <a href="/active" class="nav-link">Active</a>
   </nav>
-  <div class="header-controls">
-    <a href="/" class="btn-sm">&larr; Back</a>
-  </div>
 </header>
 
 <main class="container" id="app-main">
@@ -98,6 +96,12 @@ function renderDecisionCard(decision) {
     </section>`;
 }
 
+function renderMathCheck(math) {
+  if (!math || !math.compliance_verdict) return '';
+  if (typeof math.compliance_verdict === 'string') return `<p>${math.compliance_verdict}</p>`;
+  return `<pre class="reasoning-text">${JSON.stringify(math.compliance_verdict, null, 2)}</pre>`;
+}
+
 function renderDebateRounds(debateHistory) {
   if (!debateHistory || !debateHistory.length) return '';
   return `
@@ -108,17 +112,13 @@ function renderDebateRounds(debateHistory) {
           <summary>
             <span class="round-label">Round ${r.round || (i + 1)}</span>
             ${r.plan ? `<span class="round-plan-opinion">${opinionBadge(r.plan.opinion || '?')}</span>` : ''}
+            ${r.plan && r.plan.confidence_score != null ? `<span class="round-confidence">${r.plan.confidence_score.toFixed(1)}%</span>` : ''}
             ${r.critic ? `<span class="round-veto veto-${(r.critic.veto_level || '').toLowerCase()}">${r.critic.veto_level || ''}</span>` : ''}
             ${r.math_fact_check ? `<span class="round-math math-${(r.math_fact_check.status || '').toLowerCase()}">${r.math_fact_check.status || ''}</span>` : ''}
           </summary>
           <div class="debate-body">
             ${r.plan ? `
             <div class="debate-section">
-              <h4>Bull Plan</h4>
-              <div class="plan-meta">
-                <span>Opinion: ${opinionBadge(r.plan.opinion || '?')}</span>
-                <span>Confidence: ${r.plan.confidence_score != null ? r.plan.confidence_score.toFixed(1) + '%' : '&mdash;'}</span>
-              </div>
               ${r.plan.tactical_parameters ? `
               <div class="tactical-grid compact">
                 <div class="tactical-item"><span class="tactical-label">Entry</span><span class="tactical-value mono">${formatPrice(r.plan.tactical_parameters.entry)}</span></div>
@@ -131,14 +131,15 @@ function renderDebateRounds(debateHistory) {
             ${r.critic ? `
             <div class="debate-section">
               <h4>Critic Review <span class="round-veto veto-${(r.critic.veto_level || '').toLowerCase()}">${r.critic.veto_level || ''}</span></h4>
-              ${r.critic.critic_summary ? `<p>${r.critic.critic_summary}</p>` : ''}
+              ${r.critic.critic_summary ? `<pre class="reasoning-text">${r.critic.critic_summary}</pre>` : ''}
               ${r.critic.audit_evidence ? `
-              <details><summary>Audit Evidence</summary><pre class="reasoning-text">${r.critic.audit_evidence}</pre></details>` : ''}
+              <h5>Audit Evidence</h5>
+              <pre class="reasoning-text">${r.critic.audit_evidence}</pre>` : ''}
             </div>` : ''}
             ${r.math_fact_check ? `
             <div class="debate-section">
               <h4>Math Fact Check <span class="round-math math-${(r.math_fact_check.status || '').toLowerCase()}">${r.math_fact_check.status || ''}</span></h4>
-              ${r.math_fact_check.compliance_verdict ? `<p>${r.math_fact_check.compliance_verdict}</p>` : ''}
+              ${renderMathCheck(r.math_fact_check)}
             </div>` : ''}
           </div>
         </details>`).join('')}
@@ -239,10 +240,6 @@ function renderAuditOutcome(audit) {
         ${pnl != null ? `<div class="audit-pnl ${pnlClass}">${pnlSign}${pnl.toFixed(2)}%</div>` : ''}
       </div>
       <div class="tactical-grid">
-        <div class="tactical-item">
-          <span class="tactical-label">Entry Price</span>
-          <span class="tactical-value mono">${formatPrice(tp.entry)}</span>
-        </div>
         <div class="tactical-item">
           <span class="tactical-label">Exit Price (T1)</span>
           <span class="tactical-value mono">${formatPrice(forensics.price_at_t1)}</span>
