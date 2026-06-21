@@ -116,6 +116,7 @@ class BinaryStarConfig:
         shared_instruction = safe_format(
             raw_instruction,
             max_rounds=bs_cfg["max_rounds"],
+            debate_history_json="[Provided in user prompt — cumulative round-by-round record]",
             volatility_baseline_ratio=critic_config.regime.volatility_baseline_ratio,
             volatility_extreme_ratio=critic_config.regime.volatility_extreme_ratio,
             squeeze_threshold=critic_config.regime.squeeze_threshold,
@@ -439,10 +440,10 @@ class BinaryStarOrchestrator:
         else:
             logger.info(f"BinaryStar: Context Cache is DISABLED. Routing multimodal visual payload statelessly.")
 
-        tools = [
-            self.session_agent.calculate_risk_reward,
-            self.session_agent.calculate_atr_metrics
-        ]
+        # Return dict-format declarations so convert_tools() can forward
+        # them to the API.  Dispatch happens by name via hasattr(self, name)
+        # on the agent instance, so callables are not needed here.
+        tools = tool_declarations
         return cache_resource_name, tools
 
     def _finalize_and_sanitize(self, debate_result: dict, observation: dict,

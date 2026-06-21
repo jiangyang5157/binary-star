@@ -47,7 +47,7 @@ class GeminiAdapter(AbstractAIClient):
             "temperature": temperature,
         }
         if tools:
-            gen_config["tools"] = tools
+            gen_config["tools"] = self._normalize_tools(tools)
         elif response_json:
             gen_config["response_mime_type"] = "application/json"
         if system_instruction is not None:
@@ -58,6 +58,39 @@ class GeminiAdapter(AbstractAIClient):
             model=model, contents=gemini_contents, config=gen_config,
         )
         return self._to_ai_response(response)
+
+    @staticmethod
+    def _normalize_tools(tools: list[Any]) -> list[Any]:
+        """Convert any dict-format tool declarations to Gemini Tool objects.
+
+        Dict format comes from ``MathTools.get_tool_declarations()``.
+        Gemini ``types.Tool`` objects pass through unchanged.
+        """
+        normalized: list[Any] = []
+        dict_fds: list[types.FunctionDeclaration] = []
+        for tool in tools:
+            if isinstance(tool, dict):
+                props = {}
+                required: list[str] = []
+                raw_params = tool.get("parameters", {})
+                for pn, ps in raw_params.get("properties", {}).items():
+                    props[pn] = types.Schema(
+                        type=ps.get("type", "STRING").upper(),
+                        description=ps.get("description", ""),
+                    )
+                required = list(raw_params.get("required", []) or [])
+                dict_fds.append(types.FunctionDeclaration(
+                    name=tool.get("name", ""),
+                    description=tool.get("description", ""),
+                    parameters=types.Schema(
+                        type="OBJECT", properties=props, required=required,
+                    ),
+                ))
+            else:
+                normalized.append(tool)
+        if dict_fds:
+            normalized.append(types.Tool(function_declarations=dict_fds))
+        return normalized
 
     def _to_gemini_contents(self, contents: list[Any]) -> list[types.Content]:
         result = []

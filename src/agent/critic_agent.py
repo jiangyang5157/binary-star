@@ -166,6 +166,7 @@ class CriticAgent(BaseAgent):
             "squeeze_audit_threshold": self.config.regime.squeeze_audit_threshold,
             "structural_buffer_atr": self.config.risk.structural_buffer_atr,
             "cvd_intensity_threshold": self.config.regime.cvd_intensity_threshold,
+            "min_volume_participation_ratio": self.config.regime.min_volume_participation_ratio,
             "funding_extreme_threshold": self.config.regime.funding_extreme_threshold,
             "max_holding_hours": self.config.risk.max_holding_hours,
             "temporal_dilation_dead_water": self.config.temporal.temporal_dilation_dead_water,
