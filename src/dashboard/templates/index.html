@@ -274,9 +274,11 @@ function renderEquity(curve, netPnL) {
   const color = netPnL >= 0 ? '#3fb950' : '#f85149';
   const fill = netPnL >= 0 ? 'rgba(63, 185, 80, 0.08)' : 'rgba(248, 81, 73, 0.08)';
 
+  const pointRadius = curve.length <= 2 ? 5 : 0;
+
   equityChart = new Chart(ctx, {
     type: 'line',
-    data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius: 0, fill: true, backgroundColor: fill, tension: 0.15 }] },
+    data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius, fill: true, backgroundColor: fill, tension: 0.15 }] },
     options: {
       responsive: true, maintainAspectRatio: false, animation: false,
       scales: {
