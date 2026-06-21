@@ -45,7 +45,7 @@ def main():
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Singularity Dashboard")
-    parser.add_argument("--data-root", default="data/prod",
+    parser.add_argument("-p", "--data-root", default="data/prod",
                         help="Data directory root (default: data/prod)")
     parser.add_argument("--port", type=int, default=8080,
                         help="Server port (default: 8080)")
