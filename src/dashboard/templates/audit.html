@@ -218,13 +218,11 @@ function renderAuditOutcome(audit) {
     : '<span class="badge badge-gray">UNFILLED</span>';
 
   let resultBadge = '';
-  if (!filled) {
-    resultBadge = '<span class="badge badge-gray">N/A</span>';
-  } else if (result === 'TP_HIT') {
+  if (filled && result === 'TP_HIT') {
     resultBadge = '<span class="badge result-tp">TP HIT</span>';
-  } else if (result === 'SL_HIT') {
+  } else if (filled && result === 'SL_HIT') {
     resultBadge = '<span class="badge result-sl">SL HIT</span>';
-  } else {
+  } else if (filled) {
     resultBadge = '<span class="badge result-neither">EXPIRED</span>';
   }
 

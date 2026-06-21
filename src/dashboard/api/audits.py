@@ -76,7 +76,7 @@ def get_performance(
             entry_price = float(tp_params.get("entry") or 0)
             is_filled = outcome.get("is_filled", False)
             tp_sl_result = outcome.get("tp_sl_result", "NEITHER")
-            forensics = outcome.get("market_forensics", {})
+            forensics = outcome.get("market_forensics") or {}
             exit_price = float(forensics.get("price_at_t1") or entry_price)
 
             pnl = _compute_pnl(
@@ -196,7 +196,7 @@ def get_trades(
             entry_price = float(tp_params.get("entry") or 0)
             is_filled = outcome.get("is_filled", False)
             tp_sl_result = outcome.get("tp_sl_result", "NEITHER")
-            forensics = outcome.get("market_forensics", {})
+            forensics = outcome.get("market_forensics") or {}
             exit_price = float(forensics.get("price_at_t1") or entry_price)
 
             pnl = _compute_pnl(
@@ -275,11 +275,11 @@ def list_audits(
                     "is_filled": is_filled,
                     "tp_sl_result": tp_sl_result,
                     "pnl_pct": round(pnl, 2),
-                    "mfe_pct": forensics.get("max_favorable_runup_pct"),
-                    "mae_pct": forensics.get("max_adverse_drawdown_pct"),
-                    "actual_holding_hours": metrics.get("actual_holding_hours"),
-                    "is_justified_surrender": verdict.get("is_justified_surrender"),
-                    "is_catastrophic_miss": verdict.get("is_catastrophic_miss"),
+                    "mfe_pct": forensics.get("max_favorable_runup_pct") if forensics else None,
+                    "mae_pct": forensics.get("max_adverse_drawdown_pct") if forensics else None,
+                    "actual_holding_hours": metrics.get("actual_holding_hours") if metrics else None,
+                    "is_justified_surrender": verdict.get("is_justified_surrender") if verdict else None,
+                    "is_catastrophic_miss": verdict.get("is_catastrophic_miss") if verdict else None,
                 },
             })
         except Exception:
