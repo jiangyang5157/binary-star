@@ -81,6 +81,8 @@
     <div class="section-header">
       <h2>Trading Sessions</h2>
       <div class="section-controls">
+        <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" title="Run forensic audit against all un-audited sessions">⟳ Run Audit</button>
+        <span id="run-audit-status" class="audit-status" style="display:none"></span>
         <input type="text" id="symbol-filter" placeholder="Filter symbol..." class="filter-input">
         <select id="opinion-filter" class="filter-select">
           <option value="">All Opinions</option>
@@ -410,6 +412,45 @@ document.querySelectorAll('th.sortable').forEach(th => {
     applyFilters();
   });
 });
+
+// ── Run Audit (trigger backend audit then refresh) ──
+async function runAudit() {
+  const btn = $('run-audit-btn');
+  const status = $('run-audit-status');
+  btn.disabled = true;
+  btn.textContent = '⟳ Auditing...';
+  status.style.display = 'none';
+
+  try {
+    const resp = await fetch(apiUrl('/api/audits/run'), { method: 'POST' });
+    const data = await resp.json();
+
+    if (data.error) {
+      status.textContent = '⚠ ' + data.error;
+      status.className = 'audit-status audit-error';
+    } else {
+      const { done, total } = data;
+      status.textContent = `✓ ${done}/${total}`;
+      status.className = 'audit-status audit-ok';
+      btn.style.display = 'none';
+    }
+    status.style.display = 'inline';
+    setTimeout(() => {
+      status.style.display = 'none';
+      btn.style.display = '';
+    }, 6000);
+  } catch (e) {
+    status.textContent = '⚠ Request failed';
+    status.className = 'audit-status audit-error';
+    status.style.display = 'inline';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⟳ Run Audit';
+  }
+
+  // Refresh table and charts regardless of outcome
+  await Promise.all([loadSessions(), loadTrades()]);
+}
 
 // ── Init ──
 Promise.all([loadTrades(), loadSessions()]);

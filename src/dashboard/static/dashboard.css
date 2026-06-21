@@ -248,12 +248,12 @@ tbody tr:hover {
 /* --- Buttons --- */
 .btn-sm {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
@@ -264,6 +264,14 @@ tbody tr:hover {
   color: var(--text-primary);
   text-decoration: none;
 }
+
+/* --- Audit trigger status --- */
+.audit-status {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.audit-ok { color: var(--accent-green); }
+.audit-error { color: var(--accent-red); }
 
 /* --- Filter Inputs --- */
 .filter-input {

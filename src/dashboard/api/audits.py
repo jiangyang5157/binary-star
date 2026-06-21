@@ -1,5 +1,7 @@
 """API endpoints for audit data and performance metrics."""
 import json
+import logging
+import concurrent.futures
 from pathlib import Path
 
 from fastapi import APIRouter, Query
@@ -298,3 +300,101 @@ def get_audit(filename: str, data_root: str = Query("")):
         return json.loads(path.read_text())
     except Exception:
         return {"error": "Failed to parse"}
+
+
+@router.post("/audits/run")
+def run_audits(data_root: str = Query("")):
+    """Trigger forensic audit against all un-audited sessions (all symbols).
+
+    Scans {data_root}/sessions/ for every .json file, skips sessions
+    that already have an audit report, and runs forensic analysis on
+    the rest.  Returns a summary of what was done.
+    """
+    data_root = _resolve_data_root(data_root)
+    log = logging.getLogger("AuditAPI")
+
+    sessions_dir = Path(data_root) / "sessions"
+    if not sessions_dir.exists():
+        return {"error": f"Sessions directory not found: {sessions_dir}"}
+
+    session_files = sorted(
+        [f for f in sessions_dir.glob("*.json")],
+        key=lambda f: f.name,
+    )
+
+    if not session_files:
+        return {"audited": 0, "skipped": 0, "failed": 0, "total": 0}
+
+    # Build AuditController (one per request — lightweight)
+    from src.utils.pipeline_utils import load_combined_config
+    from src.analyzer.audit_controller import AuditController
+
+    config = load_combined_config()
+    controller = AuditController(config_dict=config, data_root=str(data_root), logger=log)
+
+    log.info("Run-audit triggered: %d session files found in %s", len(session_files), sessions_dir)
+
+    audited = 0
+    skipped = 0
+    waiting = 0
+    empty = 0
+    failed = 0
+
+    def _audit_one(session_path: Path) -> str:
+        """Audit a single session file. Returns one of audited|skipped|waiting|empty|failed."""
+        nonlocal audited, skipped, waiting, empty, failed
+        try:
+            with open(session_path, "r", encoding="utf-8") as fh:
+                session = json.load(fh)
+            obs = session.get("observation", {})
+            symbol = obs.get("symbol", "UNKNOWN")
+            obs_ts = obs.get("observed_at")
+
+            from src.utils.datetime_utils import format_timestamp_for_filename
+            ts_compact = format_timestamp_for_filename(obs_ts)
+
+            if controller.is_already_audited(symbol, ts_compact):
+                log.debug("Skipped (exists): %s", session_path.name)
+                skipped += 1
+                return "skipped"
+
+            audit_bundle = controller.run_manual_audit(str(session_path), force=False)
+            controller.save_report(audit_bundle)
+
+            outcome = audit_bundle.get("market_outcome", {})
+            result_str = outcome.get("tp_sl_result", "N/A")
+            log.info("Audited: %s → %s", session_path.name, result_str)
+            audited += 1
+            return "audited"
+        except Exception as e:
+            msg = str(e)
+            if "SESSION_MATURING" in msg:
+                log.info("Waiting (maturing): %s — %s", session_path.name, msg)
+                waiting += 1
+                return "waiting"
+            if "EMPTY_KLINES" in msg:
+                log.info("Empty (no data): %s — %s", session_path.name, msg)
+                empty += 1
+                return "empty"
+            log.exception("Audit failed: %s", session_path.name)
+            failed += 1
+            return "failed"
+
+    # Run audits in parallel with ThreadPoolExecutor
+    max_workers = min(4, len(session_files))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+        list(pool.map(_audit_one, session_files))
+
+    done = audited + skipped
+    log.info("Run-audit complete: done=%d waiting=%d empty=%d failed=%d total=%d",
+             done, waiting, empty, failed, len(session_files))
+
+    return {
+        "audited": audited,
+        "skipped": skipped,
+        "waiting": waiting,
+        "empty": empty,
+        "failed": failed,
+        "done": done,
+        "total": len(session_files),
+    }
