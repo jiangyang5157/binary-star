@@ -24,7 +24,7 @@
 <script>
 const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
 const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
-const filename = window.location.pathname.split('/sessions/')[1];
+const filename = window.location.pathname.split('/audits/')[1];
 
 function apiUrl(path, extra = {}) {
   const p = new URLSearchParams(DR ? DR : '');

@@ -24,15 +24,6 @@ def _find_audit_files(data_root: str) -> list[Path]:
     return sorted(audit_dir.glob("*_audit_*.json"), reverse=True)
 
 
-def _audit_to_session_filename(audit_name: str) -> str:
-    """Convert audit filename to session-style for URL compatibility."""
-    return audit_name.replace("_audit_", "_session_")
-
-
-def _session_to_audit_filename(session_name: str) -> str:
-    """Convert session-style filename back to audit filename for disk lookup."""
-    return session_name.replace("_session_", "_audit_")
-
 
 def _compute_pnl(entry_price: float, opinion: str, tp_sl_result: str,
                  take_profit: float, stop_loss: float,
@@ -94,7 +85,7 @@ def list_sessions(
                 )
 
             results.append({
-                "filename": _audit_to_session_filename(f.name),
+                "filename": f.name,
                 "symbol": session.get("observation", {}).get("symbol", ""),
                 "observed_at": session.get("observation", {}).get("observed_at", ""),
                 "opinion": opinion or "UNKNOWN",
@@ -112,20 +103,15 @@ def list_sessions(
                 },
             })
         except Exception:
-            results.append({"filename": _audit_to_session_filename(f.name), "error": "Failed to parse"})
+            results.append({"filename": f.name, "error": "Failed to parse"})
     return {"sessions": results, "total": len(files)}
 
 
 @router.get("/sessions/{filename}")
 def get_session(filename: str, data_root: str = Query("")):
-    """Return the full audit JSON for a session filename.
-
-    Resolves session-style filename → audit file on disk.
-    The response is the complete audit bundle (session + outcome + verdict).
-    """
+    """Return the full audit JSON for the given audit filename."""
     data_root = _resolve_data_root(data_root)
-    audit_name = _session_to_audit_filename(filename)
-    path = Path(data_root) / "audits" / audit_name
+    path = Path(data_root) / "audits" / filename
     if not path.exists():
         return {"error": "Not found"}
     try:

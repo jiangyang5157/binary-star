@@ -165,10 +165,11 @@ async function loadTrades(symbol) {
 
 function updateAllCharts(threshold) {
   const filledTrades = (allTrades || []).filter(t => t.is_filled);
+  const orderedTrades = (allTrades || []).filter(t => t.opinion !== 'NEUTRAL');
 
   if (!filledTrades.length) {
     for (const id of ['kpi-pnl','kpi-winrate','kpi-calmar','kpi-mdd','kpi-executed'])
-      $(id).textContent = id === 'kpi-executed' ? '0 trades' : '--';
+      $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
     $('confVal').textContent = threshold;
     return;
   }
@@ -195,7 +196,7 @@ function updateAllCharts(threshold) {
   $('kpi-winrate').textContent = winRate.toFixed(1) + '%';
   $('kpi-calmar').textContent = calmar.toFixed(2);
   $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
-  $('kpi-executed').textContent = `${activeTrades.length} / ${filledTrades.length}`;
+  $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
   $('confVal').textContent = threshold;
 
   renderTimeline(allTrades, threshold);
@@ -252,7 +253,7 @@ function renderTimeline(trades, threshold) {
         if (points.length) {
           const d = timelineChart.data.datasets[0].data[points[0].index];
           if (d.sessionFile) {
-            window.location = `/sessions/${encodeURIComponent(d.sessionFile)}${DR ? '?' + DR : ''}`;
+            window.location = `/audits/${encodeURIComponent(d.sessionFile)}${DR ? '?' + DR : ''}`;
           }
         }
       },
@@ -373,7 +374,7 @@ function renderTable(sessions) {
       <td class="mono">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
       <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">UNFILLED</span>' : resultBadge(audit?.tp_sl_result)}</td>
       <td>${pnlSpan(audit?.pnl_pct)}</td>
-      <td><a href="/sessions/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
+      <td><a href="/audits/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
     </tr>`;
   }).join('');
 }
