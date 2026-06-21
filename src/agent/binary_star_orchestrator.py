@@ -283,12 +283,14 @@ class BinaryStarOrchestrator:
         self.session_agent.congestion_controller = self.congestion_controller
         self.critic_agent.congestion_controller = self.congestion_controller
 
-        if self.enable_context_cache:
+        if self.enable_context_cache and self.client.supports_context_cache:
             self.cache_manager = GeminiCacheManager(
                 adapter=self.client,
                 congestion_controller=self.congestion_controller,
             )
         else:
+            if self.enable_context_cache and not self.client.supports_context_cache:
+                logger.info("BinaryStar: Non-Gemini provider detected. Forcing enable_context_cache=False.")
             self.cache_manager = None
 
         self.macro_interval = self.obs_config.macro_context.time_interval
