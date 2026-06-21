@@ -40,11 +40,6 @@ def audit_view(filename: str, data_root: str = Query("")):
     return read_template("audit.html")
 
 
-@app.get("/ledger", response_class=HTMLResponse)
-def ledger(data_root: str = Query("")):
-    return read_template("ledger.html")
-
-
 def main():
     import argparse
     import uvicorn

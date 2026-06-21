@@ -45,8 +45,8 @@ def _compute_pnl(entry_price: float, opinion: str, tp_sl_result: str,
         return 0.0
 
 
-@router.get("/sessions")
-def list_sessions(
+@router.get("/audits")
+def list_audits(
     data_root: str = Query(""),
     symbol: str | None = None,
     limit: int = 50,
@@ -107,8 +107,8 @@ def list_sessions(
     return {"sessions": results, "total": len(files)}
 
 
-@router.get("/sessions/{filename}")
-def get_session(filename: str, data_root: str = Query("")):
+@router.get("/audits/{filename}")
+def get_audit(filename: str, data_root: str = Query("")):
     """Return the full audit JSON for the given audit filename."""
     data_root = _resolve_data_root(data_root)
     path = Path(data_root) / "audits" / filename

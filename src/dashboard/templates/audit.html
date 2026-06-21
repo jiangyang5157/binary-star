@@ -283,7 +283,7 @@ function renderAuditOutcome(audit) {
 async function loadSession() {
   const main = document.getElementById('app-main');
   try {
-    const resp = await fetch(apiUrl(`/api/sessions/${encodeURIComponent(filename)}`));
+    const resp = await fetch(apiUrl(`/api/audits/${encodeURIComponent(filename)}`));
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const audit = await resp.json();
     if (audit.error) throw new Error(audit.error);

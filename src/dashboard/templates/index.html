@@ -391,7 +391,7 @@ function applyFilters() {
 async function loadSessions() {
   const tbody = $('sessions-body');
   tbody.innerHTML = '<tr><td colspan="11" class="loading">Loading sessions...</td></tr>';
-  const resp = await fetch(apiUrl('/api/sessions', { limit: '200', enriched: 'true' }));
+  const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
   const data = await resp.json();
   allSessions = data.sessions || [];
   $('session-count').textContent = `${data.total} total sessions`;
