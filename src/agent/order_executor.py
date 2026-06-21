@@ -17,8 +17,9 @@ class MarginOrderExecutor:
     1. Entry via LIMIT order (since OTOCO is unavailable on Margin SAPI)
     2. Protection via OCO order (placed by Guardian on next Sniper pulse)
     """
-    def __init__(self, client: Optional[BinanceMarginClient] = None):
+    def __init__(self, client: Optional[BinanceMarginClient] = None, manual_balance_usdt: Optional[float] = None):
         self.client = client or BinanceMarginClient()
+        self.manual_balance_usdt = manual_balance_usdt
 
     def _is_symbol_whitelisted(self, symbol: str) -> bool:
         """Checks if the symbol is explicitly defined in global_config.yaml's trade_management block."""
@@ -596,12 +597,14 @@ class MarginOrderExecutor:
         benchmark_symbol = trade_cfg["benchmark_symbol"]
 
         # 2. Get Total Net Equity in USDT
-        account = self.client.get_cross_margin_account()
-        # Converts absolute BTC equity value into USDT
-        current_price = self.client.get_ticker_price(benchmark_symbol) 
-        
-        total_equity_btc = account.total_net_asset_of_btc
-        total_equity_usdt = total_equity_btc * current_price
+        if self.manual_balance_usdt is not None:
+            total_equity_usdt = self.manual_balance_usdt
+        else:
+            account = self.client.get_cross_margin_account()
+            # Converts absolute BTC equity value into USDT
+            current_price = self.client.get_ticker_price(benchmark_symbol)
+            total_equity_btc = account.total_net_asset_of_btc
+            total_equity_usdt = total_equity_btc * current_price
         
         # 3. Calculate Risk Amount
         max_loss_usdt = total_equity_usdt * risk_pct

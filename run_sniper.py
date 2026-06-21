@@ -66,13 +66,16 @@ class SniperDaemon:
         
         # 3. Initialize Trade Execution (Optional: --trade flag)
         self.trade_enabled = getattr(args, 'trade', False)
+        self.manual_balance = getattr(args, 'balance', None)
         self.executor = None
         self.trade_state = {}  # In-memory state for Guardian
         if self.trade_enabled:
             from src.infrastructure.binance.margin_client import BinanceMarginClient
             from src.agent.order_executor import MarginOrderExecutor
             margin_client = BinanceMarginClient()
-            self.executor = MarginOrderExecutor(client=margin_client)
+            self.executor = MarginOrderExecutor(client=margin_client, manual_balance_usdt=self.manual_balance)
+            if self.manual_balance:
+                logger.info(f"SniperDaemon: Using manual balance ${self.manual_balance:.2f} USDT for position sizing.")
             logger.info("SniperDaemon: Trade execution ENABLED. Guardian will monitor positions every pulse.")
         
         self.prev_metrics = None
@@ -269,6 +272,9 @@ def main():
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
     parser.add_argument("--trade", action="store_true", help="Enable automated margin trading execution")
+    parser.add_argument("-b", "--balance", type=float, default=None,
+                        help="Manual equity balance in USDT (e.g., 1000). "
+                             "When provided, used for position sizing instead of querying Binance.")
     from src.utils.pipeline_utils import add_data_path_argument
     add_data_path_argument(parser)
 

@@ -139,6 +139,9 @@ def _add_sniper_parser(subparsers):
                    help="Enable high-conviction email alerts for sessions")
     p.add_argument("--trade", action="store_true",
                    help="Enable automated margin trading execution")
+    p.add_argument("-b", "--balance", type=float, default=None,
+                   help="Manual equity balance in USDT (e.g., 1000). "
+                        "When provided, used for position sizing instead of querying Binance.")
     add_data_path_argument(p)
     p.set_defaults(func=_cmd_sniper)
 
