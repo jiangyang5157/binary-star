@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run all tests (91 tests in unit/integration/system structure)
+# Run all tests (90 tests in unit/integration/system structure)
 python -m pytest tests/ -v
 
 # Run a single test file
