@@ -110,6 +110,7 @@ def list_active(data_root: str = Query("")):
             "entry": tp.get("entry"),
             "take_profit": tp.get("take_profit"),
             "stop_loss": tp.get("stop_loss"),
+            "rr_ratio": tp.get("rr_ratio"),
             "projected_holding_hours": holding_hours,
             "projected_waiting_hours": waiting_hours,
             "expiry_at": expiry.isoformat(),

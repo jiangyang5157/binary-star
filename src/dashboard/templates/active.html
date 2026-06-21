@@ -35,9 +35,9 @@
             <th>Entry</th>
             <th>TP</th>
             <th>SL</th>
+            <th>RR Ratio</th>
             <th>Holding (h)</th>
             <th>Waiting (h)</th>
-            <th>Expires At</th>
             <th>Time Left</th>
           </tr>
         </thead>
@@ -100,9 +100,9 @@ async function loadActive() {
         <td class="mono">${formatPrice(s.entry)}</td>
         <td class="mono">${formatPrice(s.take_profit)}</td>
         <td class="mono">${formatPrice(s.stop_loss)}</td>
+        <td>${s.rr_ratio != null ? s.rr_ratio.toFixed(2) : '&mdash;'}</td>
         <td>${s.projected_holding_hours}h</td>
         <td>${s.projected_waiting_hours}h</td>
-        <td class="mono">${(s.expiry_at || '').replace('T', ' ').substring(0, 19)}</td>
         <td><span class="time-remaining ${trClass}">${s.time_remaining}</span></td>
       </tr>`;
     }).join('');
