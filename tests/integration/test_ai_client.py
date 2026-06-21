@@ -4,7 +4,6 @@ from src.infrastructure.ai_client import AbstractAIClient, AIResponse, ToolCall,
 from src.infrastructure.ai.gemini_adapter import GeminiAdapter
 from src.infrastructure.ai.deepseek_adapter import DeepSeekAdapter
 from src.infrastructure.ai.qwen_adapter import QwenAdapter
-from src.infrastructure.ai.ollama_adapter import OllamaAdapter
 
 
 def test_all_adapters_implement_interface():
@@ -12,7 +11,6 @@ def test_all_adapters_implement_interface():
         GeminiAdapter("test-key"),
         DeepSeekAdapter("test-key", default_model="test-model"),
         QwenAdapter("test-key", default_model="test-model"),
-        OllamaAdapter(base_url="http://localhost:11434", default_model="test-model"),
     ]
     for adapter in adapters:
         assert isinstance(adapter, AbstractAIClient), \
@@ -28,7 +26,6 @@ def test_openai_adapters_no_cache():
     adapters = [
         DeepSeekAdapter("test-key", default_model="test-model"),
         QwenAdapter("test-key", default_model="test-model"),
-        OllamaAdapter(base_url="http://localhost:11434", default_model="test-model"),
     ]
     for adapter in adapters:
         assert adapter.supports_context_cache is False, \

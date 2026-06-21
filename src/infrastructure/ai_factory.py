@@ -19,16 +19,7 @@ class AIFactory:
         llm_cfg = config.get("llm", {})
         provider = llm_cfg.get("active_provider", "gemini").lower()
 
-        if provider == "ollama":
-            from src.infrastructure.ai.ollama_adapter import OllamaAdapter
-            cfg = llm_cfg.get("ollama", {})
-            return OllamaAdapter(
-                base_url=cfg.get("base_url"),
-                default_model=cfg.get("model"),
-                num_ctx=int(cfg.get("num_ctx", 8192)),
-                supports_vision=bool(cfg.get("supports_vision", False)),
-            )
-        elif provider == "deepseek":
+        if provider == "deepseek":
             from src.infrastructure.ai.deepseek_adapter import DeepSeekAdapter
             cfg = llm_cfg.get("deepseek", {})
             key = api_key or os.getenv("DEEPSEEK_API_KEY")

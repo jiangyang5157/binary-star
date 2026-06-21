@@ -13,7 +13,7 @@ Entry Points (run.py)
   → Dashboard (src/dashboard/)           FastAPI + HTML, reads session JSON
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent
-  → AI Backend (src/infrastructure/ai/)  AbstractAIClient → Gemini/DeepSeek/Qwen/Ollama adapters
+  → AI Backend (src/infrastructure/ai/)  AbstractAIClient → Gemini/DeepSeek/Qwen adapters
   → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar
   → Data Layer (src/infrastructure/)     AbstractExchangeClient → Binance, models (KlineData, etc.)
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders
@@ -292,7 +292,7 @@ The system supports both `BTCUSDT` and `XAUTUSDT` from a single config. Core ana
 ### Prerequisites
 
 - Python 3.12+
-- A supported LLM provider API key (Gemini, DeepSeek, Qwen, or local Ollama)
+- A supported LLM provider API key (Gemini, DeepSeek, or Qwen)
 
 ### Setup
 
@@ -319,7 +319,7 @@ pip install -e .
 2. Edit `config/global_config.yaml` to set your active provider:
    ```yaml
    llm:
-     active_provider: "gemini"  # gemini | deepseek | qwen | ollama
+     active_provider: "gemini"  # gemini | deepseek | qwen
    ```
 
 3. Review `config/strategy_config.yaml` for trading parameters, regime thresholds, and analysis windows.
@@ -372,14 +372,13 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
 
 ## AI Providers
 
-The system supports 4 providers through a unified `AbstractAIClient` interface. Switch providers by changing `active_provider` in `global_config.yaml` — no code changes needed.
+The system supports 3 providers through a unified `AbstractAIClient` interface. Switch providers by changing `active_provider` in `global_config.yaml` — no code changes needed.
 
 | Provider | Adapter | Vision | Context Cache | Cost |
 |----------|---------|--------|---------------|------|
 | **Gemini** | `GeminiAdapter` | Yes | Yes (Truth Bus) | $$$ |
 | **DeepSeek** | `DeepSeekAdapter` → `OpenAICompatibleAdapter` | — | — | $ |
 | **Qwen** | `QwenAdapter` → `OpenAICompatibleAdapter` | Yes (VL models) | — | $ |
-| **Ollama** | `OllamaAdapter` | Model-dependent | — | Free |
 
 All providers support function calling + JSON mode. DeepSeek and Qwen share a single `OpenAICompatibleAdapter` base class — adding a new OpenAI-compatible provider is a ~10-line subclass.
 
@@ -411,15 +410,6 @@ llm:
   qwen:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model: "qwen-plus"
-```
-
-**Ollama** (local — fully offline, privacy-preserving):
-```yaml
-llm:
-  active_provider: "ollama"
-  ollama:
-    base_url: "http://localhost:11434"
-    model: "gemma4:e4b"
 ```
 
 ---

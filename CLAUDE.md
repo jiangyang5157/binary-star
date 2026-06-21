@@ -59,7 +59,7 @@ Entry Points (run.py)
   → Dashboard (src/dashboard/)           FastAPI + HTML, reads session JSON
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator, BinaryStarConfig
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent
-  → AI Backend (src/infrastructure/ai/)  AbstractAIClient → GeminiAdapter / OpenAICompatibleAdapter (DeepSeek, Qwen) / OllamaAdapter
+  → AI Backend (src/infrastructure/ai/)  AbstractAIClient → GeminiAdapter / OpenAICompatibleAdapter (DeepSeek, Qwen)
   → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar
   → Data Layer (src/infrastructure/)     AbstractExchangeClient → Binance, models (KlineData, MarginOrder, etc.)
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders

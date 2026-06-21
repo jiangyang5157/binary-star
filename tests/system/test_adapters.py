@@ -39,16 +39,6 @@ def test_gemini_adapter_constructs():
     assert adapter is not None
 
 
-def test_ollama_adapter_constructs():
-    """OllamaAdapter can be constructed with a base URL and model."""
-    from src.infrastructure.ai.ollama_adapter import OllamaAdapter
-    adapter = OllamaAdapter(
-        base_url="http://localhost:11434",
-        default_model="test-model",
-    )
-    assert adapter is not None
-
-
 def test_ai_factory_supports_providers():
     """AIFactory can be imported and lists supported providers."""
     from src.infrastructure.ai_factory import AIFactory

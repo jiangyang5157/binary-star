@@ -33,7 +33,7 @@ network:
 
 llm:
   # --- Central Neural Infrastructure ---
-  active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen", "ollama"
+  active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
   
   gemini:
     model: "gemini-3.5-flash" # gemini-3.5-flash
@@ -59,15 +59,6 @@ llm:
     critic_temperature: 0.1
     evolver_temperature: 0.0
     supports_vision: false  # set true for qwen-vl-max or qwen3.7-vl
-
-  ollama:
-    base_url: "http://localhost:11434"
-    model: "gemma4:e4b"
-    session_temperature: 0.5
-    critic_temperature: 0.1
-    evolver_temperature: 0.0
-    supports_vision: false  # depends on model (llava, bakllava, etc.)
-    num_ctx: 8192
 
   binary_star:
     system_instruction: "config/prompts/binary_star.md"
