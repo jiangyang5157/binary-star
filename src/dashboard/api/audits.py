@@ -220,7 +220,7 @@ def get_trades(
                 "tp_sl_result": tp_sl_result,
                 "pnl_pct": round(pnl, 2),
                 "projected_holding_hours": tp_params.get("projected_holding_hours") or 0,
-                "session_filename": f.name.replace("_audit_", "_session_"),
+                "session_filename": f.name,
             })
         except Exception:
             continue
