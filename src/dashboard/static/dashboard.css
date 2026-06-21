@@ -868,6 +868,24 @@ tbody tr:hover {
   color: var(--text-muted);
 }
 
+/* --- Time Remaining Urgency --- */
+.time-remaining {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-remaining.time-safe {
+  color: var(--accent-green);
+}
+
+.time-remaining.time-warning {
+  color: var(--accent-orange);
+}
+
+.time-remaining.time-critical {
+  color: var(--accent-red);
+}
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   .app-header {

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Active Sessions — Singularity</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body class="dark">
+<header class="app-header">
+  <h1>Singularity</h1>
+  <nav>
+    <a href="/" class="nav-link">Overview</a>
+    <a href="/active" class="nav-link active">Active</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <!-- ═══════ Active Sessions Table ═══════ -->
+  <section class="card">
+    <div class="section-header">
+      <h2>Active Sessions</h2>
+      <span class="text-muted" style="font-size:0.8rem">Auto-refreshes every 60s</span>
+    </div>
+    <p class="chart-hint">BULLISH / BEARISH sessions still within their projected time window</p>
+    <div class="table-wrapper">
+      <table id="active-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Observed At</th>
+            <th>Direction</th>
+            <th>Conf</th>
+            <th>Entry</th>
+            <th>TP</th>
+            <th>SL</th>
+            <th>Holding (h)</th>
+            <th>Waiting (h)</th>
+            <th>Expires At</th>
+            <th>Time Left</th>
+          </tr>
+        </thead>
+        <tbody id="active-body">
+          <tr><td colspan="11" class="loading">Loading active sessions...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer"><span id="active-count"></span></div>
+  </section>
+
+</main>
+
+<script>
+const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
+const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
+
+function apiUrl(path) {
+  return DR ? `${path}?${DR}` : path;
+}
+
+function opinionBadge(o) {
+  const cls = o === 'BULLISH' ? 'badge-green' : 'badge-red';
+  return `<span class="badge ${cls}">${o}</span>`;
+}
+
+function formatPrice(v) {
+  return (v == null || v === 0) ? '&mdash;' : parseFloat(v).toFixed(2);
+}
+
+function timeRemainingClass(seconds) {
+  if (seconds > 43200) return 'time-safe';       // > 12h
+  if (seconds > 3600) return 'time-warning';      // 1-12h
+  return 'time-critical';                          // < 1h
+}
+
+async function loadActive() {
+  const tbody = document.getElementById('active-body');
+  const countEl = document.getElementById('active-count');
+
+  try {
+    const resp = await fetch(apiUrl('/api/active'));
+    const data = await resp.json();
+    const sessions = data.active || [];
+
+    countEl.textContent = `${sessions.length} active session${sessions.length !== 1 ? 's' : ''}`;
+
+    if (!sessions.length) {
+      tbody.innerHTML = '<tr><td colspan="11" class="empty">No active sessions — all clear</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = sessions.map(s => {
+      const trClass = timeRemainingClass(s.time_remaining_seconds);
+      return `<tr>
+        <td><strong>${s.symbol}</strong></td>
+        <td>${s.observed_at || '&mdash;'}</td>
+        <td>${opinionBadge(s.opinion)}</td>
+        <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
+        <td class="mono">${formatPrice(s.entry)}</td>
+        <td class="mono">${formatPrice(s.take_profit)}</td>
+        <td class="mono">${formatPrice(s.stop_loss)}</td>
+        <td>${s.projected_holding_hours}h</td>
+        <td>${s.projected_waiting_hours}h</td>
+        <td class="mono">${(s.expiry_at || '').replace('T', ' ').substring(0, 19)}</td>
+        <td><span class="time-remaining ${trClass}">${s.time_remaining}</span></td>
+      </tr>`;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="11" class="error">Failed to load active sessions</td></tr>';
+  }
+}
+
+// Initial load + auto-refresh every 60s
+loadActive();
+setInterval(loadActive, 60000);
+</script>
+</body>
+</html>
