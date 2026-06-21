@@ -45,9 +45,6 @@ python run.py evolution -p data/backtest --samples 20
 
 # Apply evolution patch
 python run.py patch -f <evolution_file>.json
-
-# Ledger dashboard (static HTML)
-python scripts/session_ledger.py -p data/prod
 ```
 
 ## Architecture

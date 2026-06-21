@@ -10,8 +10,7 @@
 <header class="app-header">
   <h1>Singularity</h1>
   <nav>
-    <a href="/" class="nav-link">Sessions</a>
-    <a href="/ledger" class="nav-link">Ledger</a>
+    <a href="/" class="nav-link">Overview</a>
   </nav>
   <div class="header-controls">
     <a href="/" class="btn-sm">&larr; Back</a>
@@ -23,8 +22,16 @@
 </main>
 
 <script>
-const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || 'data/prod';
+const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
+const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
 const filename = window.location.pathname.split('/sessions/')[1];
+
+function apiUrl(path, extra = {}) {
+  const p = new URLSearchParams(DR ? DR : '');
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  const qs = p.toString();
+  return qs ? `${path}?${qs}` : path;
+}
 
 function opinionBadge(opinion) {
   const cls = opinion === 'BULLISH' ? 'badge-green' : opinion === 'BEARISH' ? 'badge-red' : 'badge-gray';
@@ -178,14 +185,118 @@ function renderMetadata(metadata) {
     </section>`;
 }
 
+function renderAuditOutcome(audit) {
+  if (!audit || audit.error) return '';
+
+  const outcome = audit.market_outcome || {};
+  const forensics = outcome.market_forensics || {};
+  const metrics = outcome.trade_execution_metrics || {};
+  const verdict = audit.forensic_verdict || {};
+
+  const filled = outcome.is_filled;
+  const result = outcome.tp_sl_result || 'NEITHER';
+
+  // Compute P&L for display
+  const session = audit.session || {};
+  const decision = session.final_decision || {};
+  const tp = decision.tactical_parameters || {};
+  const entry = tp.entry || 0;
+  let pnl = null;
+  if (filled && entry > 0) {
+    const exitPrice = forensics.price_at_t1 || entry;
+    if (result === 'TP_HIT') pnl = Math.abs((tp.take_profit || entry) - entry) / entry * 100;
+    else if (result === 'SL_HIT') pnl = -Math.abs(entry - (tp.stop_loss || entry)) / entry * 100;
+    else {
+      const delta = exitPrice - entry;
+      pnl = (decision.opinion === 'BULLISH' ? delta : -delta) / entry * 100;
+    }
+  }
+
+  const fillBadge = filled
+    ? '<span class="badge badge-green">FILLED</span>'
+    : '<span class="badge badge-gray">UNFILLED</span>';
+
+  let resultBadge = '';
+  if (!filled) {
+    resultBadge = '<span class="badge badge-gray">N/A</span>';
+  } else if (result === 'TP_HIT') {
+    resultBadge = '<span class="badge result-tp">TP HIT</span>';
+  } else if (result === 'SL_HIT') {
+    resultBadge = '<span class="badge result-sl">SL HIT</span>';
+  } else {
+    resultBadge = '<span class="badge result-neither">EXPIRED</span>';
+  }
+
+  const pnlClass = pnl != null ? (pnl > 0 ? 'pnl-positive' : pnl < 0 ? 'pnl-negative' : '') : '';
+  const pnlSign = pnl != null && pnl > 0 ? '+' : '';
+
+  return `
+    <section class="card audit-outcome">
+      <h2>Trade Outcome</h2>
+      <div class="audit-header">
+        <div>${fillBadge}</div>
+        <div>${resultBadge}</div>
+        ${pnl != null ? `<div class="audit-pnl ${pnlClass}">${pnlSign}${pnl.toFixed(2)}%</div>` : ''}
+      </div>
+      <div class="tactical-grid">
+        <div class="tactical-item">
+          <span class="tactical-label">Entry Price</span>
+          <span class="tactical-value mono">${formatPrice(tp.entry)}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">Exit Price (T1)</span>
+          <span class="tactical-value mono">${formatPrice(forensics.price_at_t1)}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">Max Favorable Excursion</span>
+          <span class="tactical-value mono profit">${forensics.max_favorable_runup_pct != null ? '+' + forensics.max_favorable_runup_pct.toFixed(2) + '%' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">Max Adverse Excursion</span>
+          <span class="tactical-value mono loss">${forensics.max_adverse_drawdown_pct != null ? forensics.max_adverse_drawdown_pct.toFixed(2) + '%' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">Projected Holding</span>
+          <span class="tactical-value">${tp.projected_holding_hours != null ? tp.projected_holding_hours.toFixed(1) + 'h' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">Actual Holding</span>
+          <span class="tactical-value">${metrics.actual_holding_hours != null ? metrics.actual_holding_hours.toFixed(1) + 'h' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">MFE Efficiency</span>
+          <span class="tactical-value">${metrics.mfe_efficiency_pct != null ? metrics.mfe_efficiency_pct.toFixed(1) + '%' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">MAE Stress Level</span>
+          <span class="tactical-value">${metrics.mae_stress_level_pct != null ? metrics.mae_stress_level_pct.toFixed(1) + '%' : '&mdash;'}</span>
+        </div>
+      </div>
+      ${(verdict.is_justified_surrender || verdict.is_catastrophic_miss) ? `
+      <div class="audit-verdicts">
+        ${verdict.is_justified_surrender ? '<span class="badge badge-gray">Justified Surrender</span>' : ''}
+        ${verdict.is_catastrophic_miss ? '<span class="badge badge-red">Catastrophic Miss</span>' : ''}
+      </div>` : ''}
+    </section>`;
+}
+
 async function loadSession() {
   const main = document.getElementById('app-main');
   try {
-    const params = new URLSearchParams({ data_root: DATA_ROOT });
-    const resp = await fetch(`/api/sessions/${encodeURIComponent(filename)}?${params}`);
+    const resp = await fetch(apiUrl(`/api/sessions/${encodeURIComponent(filename)}`));
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (data.error) throw new Error(data.error);
+
+    // Fetch audit outcome in parallel
+    let audit = null;
+    try {
+      const auditResp = await fetch(apiUrl(`/api/audits/${encodeURIComponent(filename)}`));
+      if (auditResp.ok) {
+        const auditJson = await auditResp.json();
+        if (!auditJson.error) audit = auditJson;
+      }
+    } catch (_) { /* audit fetch is best-effort */ }
 
     main.innerHTML = `
       <div class="session-header">
@@ -193,6 +304,7 @@ async function loadSession() {
         <span class="session-time">${data.observation?.observed_at || ''}</span>
       </div>
       ${renderDecisionCard(data.final_decision || {})}
+      ${renderAuditOutcome(audit)}
       ${renderDebateRounds(data.debate_history)}
       ${renderCharts(data.observation?.visual_context)}
       ${renderMetadata(data.metadata)}

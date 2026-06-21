@@ -5,99 +5,397 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Singularity Dashboard</title>
 <link rel="stylesheet" href="/static/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
 <body class="dark">
 <header class="app-header">
   <h1>Singularity</h1>
   <nav>
-    <a href="/" class="nav-link active">Sessions</a>
-    <a href="/ledger" class="nav-link">Ledger</a>
+    <a href="/" class="nav-link active">Overview</a>
   </nav>
-  <div class="header-controls">
-    <input type="text" id="symbol-filter" placeholder="Filter symbol..." class="filter-input">
-  </div>
 </header>
 
 <main class="container">
+
+  <!-- ═══════ KPI Cards ═══════ -->
+  <section class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card accent-green">
+      <span class="kpi-label">Net P&amp;L</span>
+      <span class="kpi-value" id="kpi-pnl">--</span>
+    </div>
+    <div class="kpi-card accent-blue">
+      <span class="kpi-label">Win Rate</span>
+      <span class="kpi-value" id="kpi-winrate">--</span>
+    </div>
+    <div class="kpi-card accent-green">
+      <span class="kpi-label">Calmar Ratio</span>
+      <span class="kpi-value" id="kpi-calmar">--</span>
+    </div>
+    <div class="kpi-card accent-red">
+      <span class="kpi-label">Max Drawdown</span>
+      <span class="kpi-value" id="kpi-mdd">--</span>
+    </div>
+    <div class="kpi-card accent-purple">
+      <span class="kpi-label">Executed / Total</span>
+      <span class="kpi-value" id="kpi-executed">--</span>
+    </div>
+  </section>
+
+  <!-- ═══════ Decision Timeline ═══════ -->
+  <section class="card chart-card">
+    <div class="chart-header">
+      <h2>Decision Timeline</h2>
+      <div class="chart-controls">
+        <label class="slider-label">Min Confidence:</label>
+        <input type="range" id="confSlider" min="40" max="100" value="40" class="slider">
+        <span id="confVal" class="slider-value">40</span>
+      </div>
+    </div>
+    <p class="chart-hint">Bubble: Y = Confidence  |  Size = |P&amp;L %|  |  Color = Outcome</p>
+    <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
+  </section>
+
+  <!-- ═══════ Charts Row ═══════ -->
+  <section class="card chart-card">
+    <h2>Equity Growth Curve</h2>
+    <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+  </section>
+
+  <div class="chart-row">
+    <section class="card chart-card">
+      <h2>Confidence Threshold Optimizer</h2>
+      <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
+      <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
+    </section>
+    <section class="card chart-card">
+      <h2>Confidence Distribution</h2>
+      <p class="chart-hint">Frequency of confidence scores (filled trades only)</p>
+      <div class="chart-wrap"><canvas id="distChart"></canvas></div>
+    </section>
+  </div>
+
+  <!-- ═══════ Session Table ═══════ -->
   <section class="card">
-    <h2>Trading Sessions</h2>
+    <div class="section-header">
+      <h2>Trading Sessions</h2>
+      <div class="section-controls">
+        <input type="text" id="symbol-filter" placeholder="Filter symbol..." class="filter-input">
+        <select id="opinion-filter" class="filter-select">
+          <option value="">All Opinions</option>
+          <option value="BULLISH">BULLISH</option>
+          <option value="BEARISH">BEARISH</option>
+          <option value="NEUTRAL">NEUTRAL</option>
+        </select>
+      </div>
+    </div>
     <div class="table-wrapper">
       <table id="sessions-table">
         <thead>
           <tr>
-            <th>Symbol</th>
-            <th>Observed At</th>
-            <th>Opinion</th>
-            <th>Confidence</th>
-            <th>Entry</th>
-            <th>Take Profit</th>
-            <th>Stop Loss</th>
-            <th>RR</th>
+            <th class="sortable" data-sort="symbol">Symbol</th>
+            <th class="sortable" data-sort="observed_at">Date</th>
+            <th class="sortable" data-sort="opinion">Direction</th>
+            <th class="sortable" data-sort="confidence">Conf</th>
+            <th class="sortable" data-sort="entry">Entry</th>
+            <th class="sortable" data-sort="take_profit">TP</th>
+            <th class="sortable" data-sort="stop_loss">SL</th>
+            <th class="sortable" data-sort="rr_ratio">RR</th>
+            <th>Result</th>
+            <th>P&amp;L</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="sessions-body">
-          <tr><td colspan="9" class="loading">Loading sessions...</td></tr>
+          <tr><td colspan="11" class="loading">Loading sessions...</td></tr>
         </tbody>
       </table>
     </div>
-    <div class="card-footer">
-      <span id="session-count"></span>
-    </div>
+    <div class="card-footer"><span id="session-count"></span></div>
   </section>
+
 </main>
 
 <script>
-const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || 'data/prod';
+const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
+const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
 
-function opinionBadge(opinion) {
-  const cls = opinion === 'BULLISH' ? 'badge-green' : opinion === 'BEARISH' ? 'badge-red' : 'badge-gray';
-  return `<span class="badge ${cls}">${opinion}</span>`;
+const $ = id => document.getElementById(id);
+
+function apiUrl(path, extra = {}) {
+  const p = new URLSearchParams(DR ? DR : '');
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  const qs = p.toString();
+  return qs ? `${path}?${qs}` : path;
 }
 
-function formatPrice(v) {
-  if (v == null || v === 0) return '&mdash;';
-  return parseFloat(v).toFixed(2);
+// ── Chart config ──
+const gridColor = '#21262d', textMuted = '#6e7681', textBright = '#8b949e';
+let timelineChart = null, equityChart = null, optimizerChart = null, distChart = null;
+let allTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
+
+// ── Helpers ──
+function opinionBadge(o) {
+  const cls = o === 'BULLISH' ? 'badge-green' : o === 'BEARISH' ? 'badge-red' : 'badge-gray';
+  return `<span class="badge ${cls}">${o}</span>`;
+}
+function resultBadge(r) {
+  if (!r) return '<span class="text-muted">&mdash;</span>';
+  if (r === 'TP_HIT') return '<span class="badge result-tp">TP HIT</span>';
+  if (r === 'SL_HIT') return '<span class="badge result-sl">SL HIT</span>';
+  if (r === 'NEITHER') {
+    return '<span class="badge result-neither">EXPIRED</span>';
+  }
+  return `<span class="text-muted">${r}</span>`;
+}
+function pnlSpan(p) {
+  if (p == null) return '<span class="text-muted">&mdash;</span>';
+  const cls = p > 0 ? 'pnl-positive' : p < 0 ? 'pnl-negative' : 'text-muted';
+  return `<span class="mono ${cls}">${p > 0 ? '+' : ''}${p.toFixed(2)}%</span>`;
+}
+function formatPrice(v) { return (v == null || v === 0) ? '&mdash;' : parseFloat(v).toFixed(2); }
+
+// ── Load trades + render charts ──
+async function loadTrades(symbol) {
+  const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
+  const data = await resp.json();
+  allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
+  updateAllCharts(40);
 }
 
-async function loadSessions(symbol) {
-  const tbody = document.getElementById('sessions-body');
-  tbody.innerHTML = '<tr><td colspan="9" class="loading">Loading sessions...</td></tr>';
-  const params = new URLSearchParams({ data_root: DATA_ROOT, limit: '200' });
-  if (symbol) params.set('symbol', symbol);
-  try {
-    const resp = await fetch('/api/sessions?' + params.toString());
-    const data = await resp.json();
-    const sessions = data.sessions || [];
-    document.getElementById('session-count').textContent = `${data.total} total sessions`;
-    if (sessions.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty">No sessions found</td></tr>';
-      return;
+function updateAllCharts(threshold) {
+  if (!allTrades.length) {
+    $('kpi-executed').textContent = '0 / 0';
+    return;
+  }
+
+  const activeTrades = allTrades.filter(t => t.confidence >= threshold);
+  const executedTrades = activeTrades.filter(t => t.is_filled);
+  const filledTrades = allTrades.filter(t => t.is_filled);
+
+  // KPIs
+  let eq = 1.0, peak = 1.0, dd = 0;
+  const curve = [];
+  executedTrades.forEach(t => {
+    eq *= (1 + t.pnl_pct / 100);
+    if (eq > peak) peak = eq;
+    dd = Math.max(dd, (peak - eq) / peak);
+    curve.push({ x: new Date(t.time), y: (eq - 1) * 100 });
+  });
+
+  const netPnL = (eq - 1) * 100, mddPct = dd * 100;
+  const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
+  const wins = executedTrades.filter(t => t.pnl_pct > 0).length;
+  const winRate = executedTrades.length ? (wins / executedTrades.length * 100) : 0;
+
+  $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
+  $('kpi-pnl').className = 'kpi-value ' + (netPnL >= 0 ? 'positive' : 'negative');
+  $('kpi-winrate').textContent = winRate.toFixed(1) + '%';
+  $('kpi-calmar').textContent = calmar.toFixed(2);
+  $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
+  $('kpi-executed').textContent = `${executedTrades.length} / ${activeTrades.length}`;
+  $('confVal').textContent = threshold;
+
+  renderTimeline(allTrades, threshold);
+  renderEquity(curve, netPnL);
+  renderOptimizer(filledTrades);
+  renderDistribution(filledTrades);
+}
+
+// ── Charts ──
+function renderTimeline(trades, threshold) {
+  const ctx = $('timelineChart').getContext('2d');
+  if (timelineChart) timelineChart.destroy();
+
+  const points = trades.map(t => {
+    let color = 'rgba(148, 163, 184, 0.08)';
+    const above = t.confidence >= threshold;
+    if (t.opinion !== 'NEUTRAL') {
+      if (t.is_filled) {
+        if (t.tp_sl_result === 'TP_HIT') color = above ? 'rgba(63, 185, 80, 0.85)' : 'rgba(0,0,0,0)';
+        else if (t.tp_sl_result === 'SL_HIT') color = above ? 'rgba(248, 81, 73, 0.85)' : 'rgba(0,0,0,0)';
+        else if (t.pnl_pct > 0) color = above ? 'rgba(63, 185, 80, 0.35)' : 'rgba(0,0,0,0)';
+        else if (t.pnl_pct < 0) color = above ? 'rgba(248, 81, 73, 0.35)' : 'rgba(0,0,0,0)';
+        else color = above ? 'rgba(100, 116, 139, 0.5)' : 'rgba(0,0,0,0)';
+      } else {
+        color = above ? 'rgba(148, 163, 184, 0.4)' : 'rgba(0,0,0,0)';
+      }
     }
-    tbody.innerHTML = sessions.map(s => {
-      const tp = s.tactical || {};
-      return `<tr>
-        <td><strong>${s.symbol}</strong></td>
-        <td>${s.observed_at || '&mdash;'}</td>
-        <td>${opinionBadge(s.opinion)}</td>
-        <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
-        <td class="mono">${formatPrice(tp.current_price || tp.entry)}</td>
-        <td class="mono">${formatPrice(tp.take_profit)}</td>
-        <td class="mono">${formatPrice(tp.stop_loss)}</td>
-        <td class="mono">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
-        <td><a href="/sessions/${encodeURIComponent(s.filename)}?data_root=${encodeURIComponent(DATA_ROOT)}" class="btn-sm">View</a></td>
-      </tr>`;
-    }).join('');
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="9" class="error">Failed to load: ${err.message}</td></tr>`;
+    return {
+      x: t.time ? new Date(t.time.replace('Z', '')) : null,
+      y: t.confidence,
+      r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
+      pnl: t.pnl_pct, res: t.tp_sl_result, op: t.opinion, filled: t.is_filled,
+      holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
+      backgroundColor: color, borderColor: above ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0)',
+    };
+  });
+
+  timelineChart = new Chart(ctx, {
+    type: 'bubble',
+    data: { datasets: [{ data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      scales: {
+        x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
+        y: { ticks: { color: textBright }, grid: { color: gridColor } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Time: ${d.timeLabel}`, `Direction: ${d.op}`, `Result: ${d.op === 'NEUTRAL' ? 'NEUTRAL' : d.filled ? d.res : 'Unfilled'}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`]; } } }
+      }
+    }
+  });
+}
+
+function renderEquity(curve, netPnL) {
+  const ctx = $('equityChart').getContext('2d');
+  if (equityChart) equityChart.destroy();
+
+  const color = netPnL >= 0 ? '#3fb950' : '#f85149';
+  const fill = netPnL >= 0 ? 'rgba(63, 185, 80, 0.08)' : 'rgba(248, 81, 73, 0.08)';
+
+  equityChart = new Chart(ctx, {
+    type: 'line',
+    data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius: 0, fill: true, backgroundColor: fill, tension: 0.15 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      scales: {
+        x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
+        y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `Equity: ${ctx.raw.y >= 0 ? '+' : ''}${ctx.raw.y.toFixed(2)}%` } } }
+    }
+  });
+}
+
+function renderOptimizer(filledTrades) {
+  const ctx = $('optimizerChart').getContext('2d');
+  if (optimizerChart) optimizerChart.destroy();
+
+  const thresholds = [], data = [];
+  for (let t = 40; t <= 100; t += 5) {
+    let sum = 0;
+    filledTrades.forEach(tr => { if (tr.confidence >= t) sum += tr.pnl_pct; });
+    thresholds.push(t); data.push(sum);
+  }
+
+  optimizerChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: thresholds, datasets: [{ data, borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#58a6ff' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: textBright }, ticks: { color: textMuted } },
+        y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
+      }
+    }
+  });
+}
+
+function renderDistribution(filledTrades) {
+  const ctx = $('distChart').getContext('2d');
+  if (distChart) distChart.destroy();
+
+  const bins = [];
+  for (let i = 40; i <= 95; i += 5) bins.push({ label: `${i}-${i + 4}`, min: i, max: i + 5, count: 0, pnlSum: 0 });
+  filledTrades.forEach(t => { bins.forEach(b => { if (t.confidence >= b.min && t.confidence < b.max) { b.count++; b.pnlSum += t.pnl_pct; } }); });
+
+  distChart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: bins.map(b => b.label), datasets: [{ data: bins.map(b => b.count), backgroundColor: '#a371f7', borderRadius: 6 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => { const b = bins[ctx.dataIndex]; return [`Count: ${b.count}`, `PnL Sum: ${b.pnlSum >= 0 ? '+' : ''}${b.pnlSum.toFixed(2)}%`]; } } } },
+      scales: { x: { ticks: { color: textMuted } }, y: { ticks: { color: textBright, stepSize: 1 }, grid: { color: gridColor } } }
+    }
+  });
+}
+
+// ── Session Table ──
+function getSortValue(session, key) {
+  const tp = session.tactical || {};
+  switch (key) {
+    case 'symbol': return session.symbol || '';
+    case 'observed_at': return session.observed_at || '';
+    case 'opinion': return session.opinion || '';
+    case 'confidence': return session.confidence != null ? session.confidence : -1;
+    case 'entry': return tp.current_price || tp.entry || 0;
+    case 'take_profit': return tp.take_profit || 0;
+    case 'stop_loss': return tp.stop_loss || 0;
+    case 'rr_ratio': return tp.rr_ratio != null ? tp.rr_ratio : -1;
+    default: return '';
   }
 }
 
-document.getElementById('symbol-filter').addEventListener('input', function(e) {
-  loadSessions(e.target.value.trim() || null);
+function sortSessions(sessions, key, dir) {
+  return [...sessions].sort((a, b) => {
+    const va = getSortValue(a, key), vb = getSortValue(b, key);
+    if (typeof va === 'number' && typeof vb === 'number') {
+      if (va === -1 && vb === -1) return 0; if (va === -1) return 1; if (vb === -1) return -1;
+      return (va - vb) * dir;
+    }
+    return String(va).localeCompare(String(vb)) * dir;
+  });
+}
+
+function renderTable(sessions) {
+  const tbody = $('sessions-body');
+  $('session-count').textContent = `${sessions.length} sessions`;
+  if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No sessions match filters</td></tr>'; return; }
+  tbody.innerHTML = sessions.map(s => {
+    const tp = s.tactical || {}, audit = s.audit;
+    const entry = tp.current_price || tp.entry;
+    return `<tr>
+      <td><strong>${s.symbol}</strong></td>
+      <td>${s.observed_at || '&mdash;'}</td>
+      <td>${opinionBadge(s.opinion)}</td>
+      <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
+      <td class="mono">${formatPrice(entry)}</td>
+      <td class="mono">${formatPrice(tp.take_profit)}</td>
+      <td class="mono">${formatPrice(tp.stop_loss)}</td>
+      <td class="mono">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
+      <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">UNFILLED</span>' : resultBadge(audit?.tp_sl_result)}</td>
+      <td>${pnlSpan(audit?.pnl_pct)}</td>
+      <td><a href="/sessions/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
+    </tr>`;
+  }).join('');
+}
+
+function applyFilters() {
+  const sym = $('symbol-filter').value.trim().toUpperCase();
+  const op = $('opinion-filter').value;
+  let f = allSessions;
+  if (sym) f = f.filter(s => (s.symbol || '').includes(sym));
+  if (op) f = f.filter(s => s.opinion === op);
+  renderTable(sortSessions(f, sortKey, sortDir));
+}
+
+async function loadSessions() {
+  const tbody = $('sessions-body');
+  tbody.innerHTML = '<tr><td colspan="11" class="loading">Loading sessions...</td></tr>';
+  const resp = await fetch(apiUrl('/api/sessions', { limit: '200', enriched: 'true' }));
+  const data = await resp.json();
+  allSessions = data.sessions || [];
+  $('session-count').textContent = `${data.total} total sessions`;
+  applyFilters();
+}
+
+// ── Events ──
+$('symbol-filter').addEventListener('input', applyFilters);
+$('opinion-filter').addEventListener('change', applyFilters);
+$('confSlider').addEventListener('input', function() { updateAllCharts(parseInt(this.value)); });
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', function() {
+    sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
+    sortKey = this.dataset.sort;
+    applyFilters();
+  });
 });
 
-loadSessions();
+// ── Init ──
+Promise.all([loadTrades(), loadSessions()]);
 </script>
 </body>
 </html>
