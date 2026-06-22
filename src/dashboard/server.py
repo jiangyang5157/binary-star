@@ -1,4 +1,5 @@
 """FastAPI dashboard server for Singularity session visualization."""
+import json
 import os
 import sys
 from pathlib import Path
@@ -10,9 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 from src.dashboard.api.sessions import router as sessions_router
 from src.dashboard.api.audits import router as audits_router
 from src.dashboard.api.session_run import router as session_run_router
@@ -35,6 +37,50 @@ app.include_router(session_run_router)
 app.include_router(sniper_run_router)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+
+# ── User permissions (loaded once at startup) ────────────────────────────
+
+_users_permissions: dict[str, set[str]] = {}
+
+
+def _load_users() -> dict[str, set[str]]:
+    """Load users.json and resolve effective permissions per user ID.
+
+    Returns a dict mapping user_id → set of permission strings.
+    Returns an empty dict if the file is missing or malformed.
+    """
+    users_path = PROJECT_ROOT / "config" / "users.json"
+    if not users_path.exists():
+        return {}
+    try:
+        config = json.loads(users_path.read_text())
+    except json.JSONDecodeError:
+        return {}
+
+    roles = config.get("roles", {})
+    users = config.get("users", {})
+    result: dict[str, set[str]] = {}
+    for user_id, user_data in users.items():
+        role_key = user_data.get("role", "")
+        role = roles.get(role_key, {})
+        perms = set(role.get("permissions", []))
+        result[user_id] = perms
+    return result
+
+
+_users_permissions = _load_users()
+
+
+def _get_user_permissions(user_id: str | None) -> set[str]:
+    """Resolve permissions for a user ID.
+
+    Returns empty set for None, empty string, or unknown user IDs.
+    """
+    if not user_id:
+        return set()
+    return _users_permissions.get(user_id, set())
 
 
 def read_template(name: str) -> str:
@@ -53,8 +99,12 @@ def performance(data_root: str = Query("")):
 
 
 @app.get("/live", response_class=HTMLResponse, summary="Live Sessions", tags=["Pages"])
-def live_view(data_root: str = Query("")):
-    return read_template("live.html")
+def live_view(request: Request, user: str = Query(None), data_root: str = Query("")):
+    permissions = _get_user_permissions(user)
+    return templates.TemplateResponse("live.html", {
+        "request": request,
+        "permissions": permissions,
+    })
 
 
 @app.get("/audits/{filename}", response_class=HTMLResponse, summary="Audit Detail", tags=["Pages"])
