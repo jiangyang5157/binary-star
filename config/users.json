@@ -1,0 +1,30 @@
+{
+  "roles": {
+    "admin": {
+      "label": "Administrator",
+      "permissions": ["view_active_sessions", "run_new_session", "run_sniper"]
+    },
+    "operator": {
+      "label": "Operator",
+      "permissions": ["view_active_sessions", "run_new_session"]
+    },
+    "customer": {
+      "label": "Customer",
+      "permissions": []
+    }
+  },
+  "users": {
+    "42": {
+      "role": "admin",
+      "label": "Yang Jiang"
+    },
+    "123": {
+      "role": "operator",
+      "label": "Bob Yo"
+    },
+    "123456": {
+      "role": "customer",
+      "label": "thisis user name"
+    }
+  }
+}
