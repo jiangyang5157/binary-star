@@ -20,11 +20,10 @@ def main():
     # Load global config early to respect user-defined defaults
     from src.utils.pipeline_utils import load_global_config, add_data_path_argument
     global_cfg = load_global_config()
-    default_symbol = global_cfg.get('system', {}).get('default_symbol')
     pulse_mins = global_cfg.get('sniper', {}).get('pulse_interval_minutes')
 
     parser = argparse.ArgumentParser(description="Singularity Sniper Mode Sandbox (Independent Test)")
-    parser.add_argument("--symbol", type=str, default=default_symbol, help="Trading pair symbol")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     parser.add_argument("--continuous", action="store_true", help="Run continuously using pulse_interval_minutes from config")
     parser.add_argument("--email", action="store_true", help="Send email notification on trigger")
     
@@ -42,7 +41,8 @@ def main():
     log_file = os.path.join(data_root, "sniper_sandbox.log")
     setup_logger("SniperSandbox", log_file=log_file)
     
-    scout = SniperScout(args.symbol)
+    from src.utils.symbol_utils import resolve_symbol
+    scout = SniperScout(resolve_symbol(args.symbol))
     trigger = SniperTrigger()
     
     prev_metrics = None

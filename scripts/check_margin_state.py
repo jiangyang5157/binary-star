@@ -15,7 +15,7 @@ logger = setup_logger("check_margin")
 
 def main():
     parser = argparse.ArgumentParser(description="Check Binance Spot Cross Margin Status")
-    parser.add_argument("--symbol", type=str, help="Symbol to check (e.g., BTCUSDT)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     args = parser.parse_args()
 
     # Load environment variables from .env
@@ -23,7 +23,8 @@ def main():
     
     try:
         cfg = load_global_config()
-        symbol = args.symbol or cfg["system"]["default_symbol"]
+        from src.utils.symbol_utils import resolve_symbol
+        symbol = resolve_symbol(args.symbol)
 
         client = BinanceMarginClient()
         

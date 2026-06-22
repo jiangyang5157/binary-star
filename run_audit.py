@@ -129,9 +129,11 @@ def main():
         logger.info(f"Batch Mode: Scanning for sessions in {sessions_dir}...")
         files_to_audit = [os.path.join(sessions_dir, f) for f in os.listdir(sessions_dir) if f.endswith(".json")]
         
-        # Resolve symbol: Priority to argument, then global default
-        from src.utils.pipeline_utils import load_global_config
-        symbol = args.symbol or load_global_config().get('system', {}).get('default_symbol')
+        # Resolve symbol: optional filter, prefix format
+        symbol = None
+        if args.symbol:
+            from src.utils.symbol_utils import resolve_symbol
+            symbol = resolve_symbol(args.symbol)
         
         if symbol:
             logger.info(f"Filtering batch by symbol: {symbol}")

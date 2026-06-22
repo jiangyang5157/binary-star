@@ -17,7 +17,7 @@ logger = setup_logger("MarketRecon")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Market Recon Tool (v5.10)")
-    parser.add_argument("--symbol", type=str, help="Symbol to observe (e.g., BTCUSDT)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     parser.add_argument("--timestamp", "-ts", type=str, help="ISO-8601 timestamp (e.g., 2026-04-05T00:23:34Z)")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification of the market scan.")
     from src.utils.pipeline_utils import add_data_path_argument
@@ -33,7 +33,8 @@ def main():
     merged_config = config.copy()
     merged_config.update(global_cfg)
     
-    symbol = args.symbol or global_cfg['system']['default_symbol']
+    from src.utils.symbol_utils import resolve_symbol
+    symbol = resolve_symbol(args.symbol)
     
     # Optional historical anchor
     at_time = None

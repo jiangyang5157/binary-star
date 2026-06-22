@@ -300,7 +300,7 @@ class SniperDaemon:
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon v7.1 (Zero-Entropy Architecture)")
-    parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
     parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
     parser.add_argument("--trade", action="store_true", help="Enable automated margin trading execution")
