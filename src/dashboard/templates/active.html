@@ -17,6 +17,22 @@
 
 <main class="container">
 
+  <!-- ═══════ Run Session ═══════ -->
+  <section class="card run-section">
+    <div class="section-header">
+      <h2>▶ Run Session</h2>
+    </div>
+    <div class="run-controls">
+      <div class="run-input-group">
+        <input type="text" id="symbol-prefix" class="filter-input run-symbol-input"
+               placeholder="BTC" maxlength="10" autocomplete="off">
+        <span class="run-suffix">USDT</span>
+      </div>
+      <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
+      <span id="run-status" class="run-status-text" style="display:none"></span>
+    </div>
+  </section>
+
   <!-- ═══════ Active Sessions Table ═══════ -->
   <section class="card">
     <div class="section-header">
@@ -70,6 +86,135 @@ const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
 function apiUrl(path) {
   return DR ? `${path}?${DR}` : path;
 }
+
+// ── Session Run Trigger ──
+let runPollInterval = null;
+
+function formatElapsed(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function updateRunUI(state) {
+  const input = document.getElementById('symbol-prefix');
+  const btn = document.getElementById('run-session-btn');
+
+  if (state === 'running') {
+    input.disabled = true;
+    btn.disabled = true;
+    btn.textContent = '▶ Run';
+  } else {
+    input.disabled = false;
+    btn.disabled = false;
+    btn.textContent = '▶ Run';
+    runPollInterval = null;
+  }
+}
+
+async function checkRunStatus() {
+  try {
+    const resp = await fetch(apiUrl('/api/session/run-status'));
+    const data = await resp.json();
+
+    if (data.running) {
+      updateRunUI('running');
+      const statusEl = document.getElementById('run-status');
+      const elapsed = formatElapsed(data.elapsed_seconds || 0);
+      statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
+    } else {
+      if (runPollInterval) {
+        clearInterval(runPollInterval);
+        runPollInterval = null;
+
+        const statusEl = document.getElementById('run-status');
+        statusEl.style.display = 'inline';
+        const last = data.last_run;
+        if (last) {
+          if (last.result === 'success') {
+            statusEl.className = 'run-status-text run-ok';
+            statusEl.textContent = `✓ ${last.symbol} completed`;
+            loadActive();
+            setTimeout(() => {
+              statusEl.style.display = 'none';
+              updateRunUI('idle');
+            }, 3000);
+          } else {
+            statusEl.className = 'run-status-text run-error';
+            const msg = last.error_message || 'unknown error';
+            statusEl.textContent = `✗ ${last.symbol} failed: ${msg}`;
+            updateRunUI('idle');
+            loadActive();
+          }
+        } else {
+          updateRunUI('idle');
+          statusEl.style.display = 'none';
+        }
+      }
+    }
+  } catch (e) {
+    // polling failed silently
+  }
+}
+
+async function triggerRun() {
+  const input = document.getElementById('symbol-prefix');
+  const prefix = input.value.trim();
+  if (!prefix || prefix.length < 2) {
+    alert('Enter at least 2 characters (e.g. BTC)');
+    return;
+  }
+
+  const btn = document.getElementById('run-session-btn');
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    const resp = await fetch(apiUrl('/api/session/run'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol_prefix: prefix }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      const statusEl = document.getElementById('run-status');
+      statusEl.style.display = 'inline';
+      statusEl.className = 'run-status-text run-error';
+      statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
+      updateRunUI('idle');
+      return;
+    }
+
+    const data = await resp.json();
+    updateRunUI('running');
+    const statusEl = document.getElementById('run-status');
+    statusEl.style.display = 'inline';
+    statusEl.className = 'run-status-text';
+    statusEl.textContent = `⟳ Running ${data.symbol}…`;
+    runPollInterval = setInterval(checkRunStatus, 2000);
+  } catch (e) {
+    const statusEl = document.getElementById('run-status');
+    statusEl.style.display = 'inline';
+    statusEl.className = 'run-status-text run-error';
+    statusEl.textContent = '✗ Request failed';
+    updateRunUI('idle');
+  }
+}
+
+// On page load, check if a run is already in progress
+(async function initRunStatus() {
+  try {
+    const resp = await fetch(apiUrl('/api/session/run-status'));
+    const data = await resp.json();
+    if (data.running) {
+      updateRunUI('running');
+      document.getElementById('run-status').style.display = 'inline';
+      runPollInterval = setInterval(checkRunStatus, 2000);
+      checkRunStatus();
+    }
+  } catch (e) { /* ignore */ }
+})();
 
 function opinionBadge(o) {
   const cls = o === 'BULLISH' ? 'badge-green' : o === 'BEARISH' ? 'badge-red' : 'badge-gray';
