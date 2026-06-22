@@ -276,6 +276,10 @@ async function triggerRun() {
     const resp = await fetch(apiUrl('/api/session/run-status'));
     const data = await resp.json();
     if (data.running) {
+      // Restore symbol input value (strip "USDT" suffix)
+      const symbolInput = document.getElementById('symbol-prefix');
+      const rawSymbol = data.symbol || '';
+      symbolInput.value = rawSymbol.replace(/USDT$/i, '');
       updateRunUI('running');
       document.getElementById('run-status').style.display = 'block';
       runPollInterval = setInterval(checkRunStatus, 2000);
@@ -367,7 +371,7 @@ async function checkSniperStatus() {
         // Summary line
         html += '<div class="guardian-summary">';
         if (guardian.account_balance != null) {
-          html += `Balance: $${guardian.account_balance.toLocaleString()} USDT | `;
+          html += `Account Balance: $${guardian.account_balance.toLocaleString()} USDT | `;
         }
         html += `Pulse: ${formatElapsed(elapsed)} ago`;
         html += '</div>';
@@ -509,6 +513,25 @@ async function triggerSniper() {
     const resp = await fetch(apiUrl('/api/sniper/status'));
     const data = await resp.json();
     if (data.running) {
+      // Restore symbol input (strip "USDT" from each, join with comma)
+      const sniperSymbolInput = document.getElementById('sniper-symbol');
+      const symbols = (data.symbols || []).map(s => s.replace(/USDT$/i, ''));
+      sniperSymbolInput.value = symbols.join(',');
+
+      // Restore trade toggle
+      const tradeToggle = document.getElementById('sniper-trade-toggle');
+      tradeToggle.checked = !!data.trade_enabled;
+
+      // Restore balance input and visibility
+      const balanceInput = document.getElementById('sniper-balance');
+      const balanceGroup = document.getElementById('sniper-balance-group');
+      if (data.balance != null) {
+        balanceInput.value = data.balance;
+      }
+      if (data.trade_enabled) {
+        balanceGroup.style.display = 'inline-flex';
+      }
+
       updateSniperUI('running');
       document.getElementById('sniper-status').style.display = 'block';
       sniperPollInterval = setInterval(checkSniperStatus, 2000);
