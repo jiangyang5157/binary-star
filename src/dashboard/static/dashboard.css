@@ -1015,3 +1015,49 @@ tbody tr:hover {
   transform: translateX(16px);
   background: #fff;
 }
+
+/* --- Run Session Section --- */
+.run-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.run-input-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.run-symbol-input {
+  width: 100px;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.run-suffix {
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  user-select: none;
+}
+
+.run-status-text {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.run-ok {
+  color: var(--accent-green);
+}
+
+.run-error {
+  color: var(--accent-red);
+}
