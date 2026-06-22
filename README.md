@@ -342,27 +342,24 @@ python run.py session --symbol BTC
 python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
 
 # Backtest (sampled historical points)
-python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
-python run.py session --symbol XAUT --start T-30d --end T-2d --samples 14 -p data/backtest
+python run.py session --start T-30d --end T-2d --samples 21 --sampling-mode sniper --symbol BTC -p data/backtest/v26.6.23_r21_btcusdt
 
 # Real-time monitoring daemon (CSV for multi-symbol)
-python run.py sniper --symbol BTC,XAUT --trigger --email
-python run.py sniper --symbol BTC,XAUT --trigger --email --trade
+python run.py sniper --symbol BTC,XAUT --trigger --email --trade -b 1000 
 
 # Forensic audit
 python run.py audit -p data/prod
+python run.py audit -p data/backtest/v26.6.23_r21_btcusdt
 python run.py audit -p data/backtest --file data/backtest/sessions/BTCUSDT_session_20260101_120000.json
-python run.py audit -p data/prod --symbol BTC
 
 # Meta-evolution (strategy optimization from audit results)
-python run.py evolution --symbol BTC -p data/backtest --samples 20
+python run.py evolution --symbol BTC -p data/backtest/v26.6.23_r21_btcusdt --sample 21
 
 # Apply evolution patch
 python run.py patch -f data/backtest/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
 
 # Start dashboard (http://localhost:8080)
-python -m src.dashboard.server
-python -m src.dashboard.server -p data/prod --port 8080
+python -m src.dashboard.server --port 8080 --host 0.0.0.0 -p data/prod
 
 ```
 
