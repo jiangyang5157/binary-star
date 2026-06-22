@@ -59,11 +59,6 @@ def _parse_date(date_str: str) -> datetime:
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
 
-def _resolve_symbol(args: argparse.Namespace) -> str:
-    cfg = load_global_config()
-    return args.symbol or cfg["system"]["default_symbol"]
-
-
 def _resolve_data_path(args: argparse.Namespace, default: str) -> str:
     if hasattr(args, "path") and args.path:
         return args.path
@@ -76,8 +71,8 @@ def _resolve_data_path(args: argparse.Namespace, default: str) -> str:
 
 def _add_session_parser(subparsers):
     p = subparsers.add_parser("session", help="Run a Binary Star analysis cycle")
-    p.add_argument("--symbol", type=str, default=None,
-                   help="Trading pair (e.g. BTCUSDT)")
+    p.add_argument("--symbol", type=str, required=True,
+                   help="Trading pair prefix (e.g. BTC)")
     p.add_argument("--email", action="store_true",
                    help="Enable high-conviction email alerts")
     p.add_argument("--timestamp", "-ts", type=str,
@@ -131,8 +126,8 @@ def _cmd_session(args):
 
 def _add_sniper_parser(subparsers):
     p = subparsers.add_parser("sniper", help="Run the real-time Sniper monitoring daemon")
-    p.add_argument("--symbol", type=str, default=None,
-                   help="Trading pair (e.g. BTCUSDT)")
+    p.add_argument("--symbol", type=str, required=True,
+                   help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
     p.add_argument("--trigger", action="store_true",
                    help="Enable automatic activation of AI sessions")
     p.add_argument("--email", action="store_true",
@@ -205,7 +200,10 @@ def _cmd_audit(args):
         files_to_audit = [os.path.join(sessions_dir, f)
                           for f in os.listdir(sessions_dir)
                           if f.endswith(".json")]
-        symbol = args.symbol  # None → audit all sessions; pass --symbol to filter
+        symbol = None
+        if args.symbol:
+            from src.utils.symbol_utils import resolve_symbol
+            symbol = resolve_symbol(args.symbol)
         if symbol:
             logger_audit.info("Filtering by symbol: %s", symbol)
             files_to_audit = [f for f in files_to_audit
@@ -254,8 +252,8 @@ def _cmd_audit(args):
 
 def _add_evolution_parser(subparsers):
     p = subparsers.add_parser("evolution", help="Run meta-evolution on audit results")
-    p.add_argument("--symbol", type=str, default=None,
-                   help="Trading symbol (default: from config)")
+    p.add_argument("--symbol", type=str, required=True,
+                   help="Trading pair prefix (e.g. BTC)")
     p.add_argument("--samples", type=int, required=True,
                    help="Number of audit reports to ingest")
     add_data_path_argument(p, required=True)
@@ -264,10 +262,10 @@ def _add_evolution_parser(subparsers):
 
 def _cmd_evolution(args):
     from run_evolution import EvolutionEngine
+    from src.utils.symbol_utils import resolve_symbol
 
     data_root = args.path
-    g_cfg = load_global_config()
-    symbol = args.symbol or g_cfg["system"]["default_symbol"]
+    symbol = resolve_symbol(args.symbol)
 
     engine = EvolutionEngine(data_root, symbol=symbol)
     try:

@@ -149,7 +149,8 @@ class SessionController:
         self.args = args
         self.data_root = args.path
         self.global_cfg = load_global_config()
-        self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
+        from src.utils.symbol_utils import resolve_symbol
+        self.symbol = resolve_symbol(args.symbol)
         
         self.engine = SessionEngine(self.symbol, self.data_root, args=args)
         self._setup_signals()
@@ -262,7 +263,7 @@ def parse_date(date_str: str) -> datetime:
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine v7.1 (Zero-Entropy Architecture)")
-    parser.add_argument("--symbol", type=str, default=None, help="Trading pair (e.g. BTCUSDT)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
     
     # 2. Backtest Configuration Group
