@@ -302,6 +302,7 @@ async function checkSniperStatus() {
     if (data.running) {
       updateSniperUI('running');
       const statusEl = document.getElementById('sniper-status');
+      statusEl.style.display = 'inline';
       const elapsed = formatElapsed(data.elapsed_seconds || 0);
       const trade = ` | Trade=${data.trade_enabled ? 'ON' : 'OFF'}`;
       const balance = data.balance != null ? ` | Balance=${data.balance}` : '';
