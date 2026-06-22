@@ -19,6 +19,7 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.sniper.scout import SniperScout
 from src.sniper.trigger import SniperTrigger
 from run_session import SessionEngine
+from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.logger_utils import setup_logger
 from src.utils.pipeline_utils import load_global_config
 
@@ -86,6 +87,12 @@ class SniperDaemon:
 
         # Per-symbol previous metrics for inter-pulse comparison
         self.prev_metrics: dict[str, dict | None] = {sym: None for sym in self.symbols}
+
+        # 4. Session Email Notifier (wired when --email is set)
+        self.send_email = getattr(args, 'email', False)
+        self.notifier = SessionNotifier(data_root=args.path) if self.send_email else None
+        if self.send_email:
+            logger.info(f"SniperDaemon: Session email notifications ENABLED for {self.symbols}.")
 
         # v6.50: Sniper Quiet-Monitoring Protocol
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
@@ -157,6 +164,19 @@ class SniperDaemon:
                         session_result = self.session_engines[sym].execute_cycle()
 
                         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
+
+                        # ── 3.5 SESSION NOTIFICATION: email + local preview ──
+                        if self.send_email and self.notifier and session_result and "error" not in session_result:
+                            try:
+                                self.notifier.notify_session(
+                                    sym,
+                                    session_result,
+                                    save_local=True,
+                                    dispatch_email=True,
+                                )
+                                logger.info(f"SniperDaemon [{sym}]: Session email dispatched.")
+                            except Exception as e:
+                                logger.error(f"SniperDaemon [{sym}]: Failed to send session email: {e}")
 
                         if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                             self._attempt_trade_execution(sym, session_result)
