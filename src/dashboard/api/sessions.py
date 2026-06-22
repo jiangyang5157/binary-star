@@ -50,8 +50,11 @@ def _parse_session_timestamp(t0_str: str) -> datetime | None:
 # ── Endpoints ────────────────────────────────────────────────────────
 
 @router.get("/active")
-def list_active(data_root: str = Query("")):
+def list_active(data_root: str = Query(""), include_neutral: bool = Query(True)):
     """Return sessions with BULLISH/BEARISH opinion still within their time window.
+
+    Optionally include NEUTRAL sessions (no time window — always shown when
+    include_neutral is True).
 
     Reads session JSONs from {data_root}/sessions/, filters to active
     directional trades, and excludes sessions that already have an audit.
@@ -77,7 +80,8 @@ def list_active(data_root: str = Query("")):
         opinion = (decision.get("opinion") or "").upper()
 
         if opinion not in ("BULLISH", "BEARISH"):
-            continue
+            if not (include_neutral and opinion == "NEUTRAL"):
+                continue
 
         t0_str = obs.get("observed_at", "")
         t0 = _parse_session_timestamp(t0_str)
@@ -85,12 +89,22 @@ def list_active(data_root: str = Query("")):
             continue
 
         tp = decision.get("tactical_parameters", {})
-        holding_hours = float(tp.get("projected_holding_hours", 0) or 0)
-        waiting_hours = float(tp.get("projected_waiting_hours", 0) or 0)
-        expiry = t0 + timedelta(hours=holding_hours + waiting_hours)
 
-        if now >= expiry:
-            continue
+        if opinion == "NEUTRAL":
+            # NEUTRAL sessions have no time window — skip expiry check
+            holding_hours = 0.0
+            waiting_hours = 0.0
+            expiry = t0  # dummy value, not used elsewhere
+            time_left_seconds = None
+        else:
+            holding_hours = float(tp.get("projected_holding_hours", 0) or 0)
+            waiting_hours = float(tp.get("projected_waiting_hours", 0) or 0)
+            expiry = t0 + timedelta(hours=holding_hours + waiting_hours)
+
+            if now >= expiry:
+                continue
+
+            time_left_seconds = (expiry - now).total_seconds()
 
         # Skip if already audited
         if t0_str:
@@ -99,8 +113,6 @@ def list_active(data_root: str = Query("")):
             audit_name = f"{obs.get('symbol', '')}_audit_{compact}.json"
             if (audits_dir / audit_name).exists():
                 continue
-
-        time_left_seconds = (expiry - now).total_seconds()
 
         active.append({
             "symbol": obs.get("symbol", ""),
@@ -114,8 +126,8 @@ def list_active(data_root: str = Query("")):
             "projected_holding_hours": holding_hours,
             "projected_waiting_hours": waiting_hours,
             "expiry_at": expiry.isoformat(),
-            "time_remaining": _format_time_remaining(time_left_seconds),
-            "time_remaining_seconds": round(time_left_seconds),
+            "time_remaining": "—" if time_left_seconds is None else _format_time_remaining(time_left_seconds),
+            "time_remaining_seconds": None if time_left_seconds is None else round(time_left_seconds),
         })
 
     active.sort(key=lambda s: s["observed_at"], reverse=True)
