@@ -131,6 +131,7 @@ def list_active(data_root: str = Query(""), include_neutral: bool = Query(True))
                 continue
 
         active.append({
+            "filename": f.name,
             "symbol": obs.get("symbol", ""),
             "observed_at": t0_str,
             "opinion": opinion,
