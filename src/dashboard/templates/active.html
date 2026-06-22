@@ -46,11 +46,6 @@
           <input type="checkbox" id="neutral-toggle" class="toggle-input" checked onchange="loadActive()">
           <span class="toggle-slider"></span>
         </label>
-        <label class="toggle-label" for="expired-toggle">
-          <span class="toggle-text">Expired</span>
-          <input type="checkbox" id="expired-toggle" class="toggle-input" checked onchange="loadActive()">
-          <span class="toggle-slider"></span>
-        </label>
       </div>
     </div>
     <div class="table-wrapper">
@@ -232,6 +227,13 @@ function opinionBadge(o) {
   return `<span class="badge ${cls}">${o}</span>`;
 }
 
+function formatLocalTime(isoStr) {
+  if (!isoStr) return '&mdash;';
+  try {
+    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
+  } catch { return isoStr; }
+}
+
 function formatPrice(v) {
   return (v == null || v === 0) ? '&mdash;' : parseFloat(v).toFixed(2);
 }
@@ -248,9 +250,8 @@ async function loadActive() {
 
   try {
     const includeNeutral = document.getElementById('neutral-toggle').checked;
-    const includeExpired = document.getElementById('expired-toggle').checked;
     let url = apiUrl('/api/active');
-    url += (url.includes('?') ? '&' : '?') + `include_neutral=${includeNeutral}&include_expired=${includeExpired}`;
+    url += (url.includes('?') ? '&' : '?') + `include_neutral=${includeNeutral}`;
     const resp = await fetch(url);
     const data = await resp.json();
     const sessions = data.active || [];
@@ -267,7 +268,7 @@ async function loadActive() {
       const trClass = isNeutral ? '' : timeRemainingClass(s.time_remaining_seconds);
       return `<tr>
         <td><strong>${s.symbol}</strong></td>
-        <td>${s.observed_at || '&mdash;'}</td>
+        <td>${formatLocalTime(s.observed_at)}</td>
         <td>${opinionBadge(s.opinion)}</td>
         <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.entry)}</td>

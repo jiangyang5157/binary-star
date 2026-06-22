@@ -90,13 +90,13 @@
       <table id="sessions-table">
         <thead>
           <tr>
-            <th class="sortable" data-sort="symbol">Symbol</th>
+            <th>Symbol</th>
             <th class="sortable" data-sort="observed_at">Date</th>
-            <th class="sortable" data-sort="opinion">Direction</th>
+            <th>Direction</th>
             <th class="sortable" data-sort="confidence">Conf</th>
-            <th class="sortable" data-sort="entry">Entry</th>
-            <th class="sortable" data-sort="take_profit">TP</th>
-            <th class="sortable" data-sort="stop_loss">SL</th>
+            <th>Entry</th>
+            <th>TP</th>
+            <th>SL</th>
             <th class="sortable" data-sort="rr_ratio">RR</th>
             <th>Result</th>
             <th>P&amp;L</th>
@@ -149,6 +149,12 @@ function pnlSpan(p) {
   if (p == null) return '<span class="text-muted">&mdash;</span>';
   const cls = p > 0 ? 'pnl-positive' : p < 0 ? 'pnl-negative' : 'text-muted';
   return `<span class="mono ${cls}">${p > 0 ? '+' : ''}${p.toFixed(2)}%</span>`;
+}
+function formatLocalTime(isoStr) {
+  if (!isoStr) return '&mdash;';
+  try {
+    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
+  } catch { return isoStr; }
 }
 function formatPrice(v) { return (v == null || v === 0) ? '&mdash;' : parseFloat(v).toFixed(2); }
 
@@ -346,7 +352,7 @@ function renderTable(sessions) {
     const entry = tp.current_price || tp.entry;
     return `<tr>
       <td><strong>${s.symbol}</strong></td>
-      <td>${s.observed_at || '&mdash;'}</td>
+      <td>${formatLocalTime(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>
       <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
       <td class="mono">${formatPrice(entry)}</td>

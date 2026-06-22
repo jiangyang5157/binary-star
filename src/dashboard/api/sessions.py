@@ -66,14 +66,14 @@ def _parse_session_timestamp(t0_str: str) -> datetime | None:
 # ── Endpoints ────────────────────────────────────────────────────────
 
 @router.get("/active")
-def list_active(data_root: str = Query(""), include_neutral: bool = Query(True), include_expired: bool = Query(True)):
+def list_active(data_root: str = Query(""), include_neutral: bool = Query(True)):
     """Return sessions with BULLISH/BEARISH/NEUTRAL opinion.
 
-    Optionally include NEUTRAL sessions (no time window) and expired
-    BULLISH/BEARISH sessions (past their projected time window).
+    Optionally include NEUTRAL sessions (no time window).
 
     Reads session JSONs from {data_root}/sessions/ and excludes
-    sessions that already have an audit.
+    sessions that already have an audit. Expired sessions (past
+    their projected time window) are always excluded.
     """
     data_root_dir = _resolve_data_root(data_root)
     sessions_dir = Path(data_root_dir) / "sessions"
@@ -118,9 +118,7 @@ def list_active(data_root: str = Query(""), include_neutral: bool = Query(True),
             expiry = t0 + timedelta(hours=holding_hours + waiting_hours)
 
             if now >= expiry:
-                if not include_expired:
-                    continue
-                # Expired — still include, time_left_seconds will be negative
+                continue
 
             time_left_seconds = (expiry - now).total_seconds()
 
