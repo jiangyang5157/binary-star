@@ -61,7 +61,6 @@
       </span>
       <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Start</button>
       <span id="sniper-status" class="run-status-text" style="display:none"></span>
-      <span id="sniper-guardian" class="run-status-text" style="display:none;font-family:monospace;font-size:0.78rem"></span>
     </div>
   </section>
 
@@ -303,19 +302,22 @@ async function checkSniperStatus() {
       updateSniperUI('running');
       const statusEl = document.getElementById('sniper-status');
       statusEl.style.display = 'inline';
-      const elapsed = formatElapsed(data.elapsed_seconds || 0);
-      const trade = ` | Trade=${data.trade_enabled ? 'ON' : 'OFF'}`;
-      const balance = data.balance != null ? ` | Balance=${data.balance}` : '';
-      statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}${trade}${balance}`;
 
-      // Guardian pulse
-      const guardianEl = document.getElementById('sniper-guardian');
       if (data.guardian) {
+        // Fully running — show concise combined status
         const g = data.guardian;
-        guardianEl.style.display = 'inline';
-        guardianEl.textContent = `| NetQty=${g.net_qty?.toFixed(4)} | Orders=${g.active_orders} |`;
+        let parts = [data.symbol];
+        parts.push(`Trade=${data.trade_enabled ? 'ON' : 'OFF'}`);
+        if (data.balance != null) parts.push(`Balance=${data.balance}`);
+        parts.push(`NetQty=${g.net_qty?.toFixed(4)}`);
+        parts.push(`Orders=${g.active_orders}`);
+        statusEl.textContent = parts.join(' | ');
+        statusEl.className = 'run-status-text';
       } else {
-        guardianEl.style.display = 'none';
+        // Waiting for first guardian pulse
+        const elapsed = formatElapsed(data.elapsed_seconds || 0);
+        statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
+        statusEl.className = 'run-status-text';
       }
     } else {
       if (sniperPollInterval) {
@@ -325,7 +327,6 @@ async function checkSniperStatus() {
         statusEl.style.display = 'inline';
         statusEl.className = 'run-status-text run-ok';
         statusEl.textContent = '✓ Stopped';
-        document.getElementById('sniper-guardian').style.display = 'none';
         updateSniperUI('idle');
         setTimeout(() => {
           statusEl.style.display = 'none';
