@@ -198,7 +198,7 @@ function updateAllCharts(threshold) {
 
   renderTimeline(allTrades, threshold);
   renderEquity(curve, netPnL);
-  renderOptimizer(filledTrades);
+  renderOptimizer(filledTrades, threshold);
 }
 
 // ── Charts ──
@@ -283,12 +283,14 @@ function renderEquity(curve, netPnL) {
   });
 }
 
-function renderOptimizer(filledTrades) {
+function renderOptimizer(filledTrades, minThreshold = 40) {
   const ctx = $('optimizerChart').getContext('2d');
   if (optimizerChart) optimizerChart.destroy();
 
+  // Align step to nearest 5 (e.g. 42 → 40, 43 → 45)
+  const start = Math.round(minThreshold / 5) * 5;
   const thresholds = [], data = [];
-  for (let t = 40; t <= 100; t += 5) {
+  for (let t = start; t <= 100; t += 5) {
     let sum = 0;
     filledTrades.forEach(tr => { if (tr.confidence >= t) sum += tr.pnl_pct; });
     thresholds.push(t); data.push(sum);
