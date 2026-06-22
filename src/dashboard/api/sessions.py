@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api")
 
@@ -149,3 +149,18 @@ def list_active(data_root: str = Query(""), include_neutral: bool = Query(True))
 
     active.sort(key=lambda s: s["observed_at"], reverse=True)
     return {"active": active, "total": len(active)}
+
+
+@router.get("/sessions/{filename}")
+def get_session(filename: str, data_root: str = Query("")):
+    """Return raw session JSON for a single session file."""
+    data_root_dir = _resolve_data_root(data_root)
+    filepath = Path(data_root_dir) / "sessions" / filename
+
+    if not filepath.exists():
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    try:
+        return json.loads(filepath.read_text())
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to read session file")
