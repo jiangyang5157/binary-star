@@ -1,6 +1,7 @@
 """API endpoints for active (not-yet-audited) session data."""
 
 import json
+import os
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
@@ -10,7 +11,6 @@ router = APIRouter(prefix="/api")
 
 
 def _resolve_data_root(value: str) -> str:
-    import os
     return value or os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
 
 
@@ -155,7 +155,10 @@ def list_active(data_root: str = Query(""), include_neutral: bool = Query(True))
 def get_session(filename: str, data_root: str = Query("")):
     """Return raw session JSON for a single session file."""
     data_root_dir = _resolve_data_root(data_root)
-    filepath = Path(data_root_dir) / "sessions" / filename
+    filepath = (Path(data_root_dir) / "sessions" / filename).resolve()
+    sessions_dir = (Path(data_root_dir) / "sessions").resolve()
+    if not str(filepath).startswith(str(sessions_dir) + os.sep) and str(filepath) != str(sessions_dir):
+        raise HTTPException(status_code=404, detail="Session not found")
 
     if not filepath.exists():
         raise HTTPException(status_code=404, detail="Session not found")
