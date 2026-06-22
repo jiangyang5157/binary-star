@@ -1,0 +1,195 @@
+"""API endpoints for triggering on-demand session runs."""
+
+import json
+import os
+import threading
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+
+from fastapi import APIRouter, Query, HTTPException
+from pydantic import BaseModel
+
+router = APIRouter(prefix="/api/session")
+
+
+# ── Models ──────────────────────────────────────────────────────────────
+
+class RunRequest(BaseModel):
+    symbol_prefix: str
+
+
+# ── Status file helpers ─────────────────────────────────────────────────
+
+STATUS_FILENAME = ".run_status.json"
+log = logging.getLogger("SessionRunAPI")
+
+
+def _read_status(data_root: str) -> dict | None:
+    """Read the run status file. Returns None if missing or corrupt."""
+    path = Path(data_root) / STATUS_FILENAME
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return None
+
+
+def _write_status(data_root: str, status: dict) -> None:
+    """Atomically write the run status file."""
+    path = Path(data_root) / STATUS_FILENAME
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(status, default=str))
+    tmp.replace(path)
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Check if a process with the given PID is still running."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except (OSError, ProcessLookupError):
+        return False
+
+
+# ── Background runner ───────────────────────────────────────────────────
+
+def _run_session_in_thread(symbol: str, data_root: str) -> None:
+    """Execute a session cycle in a background thread. Updates status file on
+    completion (success or error)."""
+    try:
+        from run_session import SessionEngine
+
+        # Build a minimal args namespace for SessionEngine
+        class Args:
+            email = True
+
+        engine = SessionEngine(
+            symbol=symbol,
+            data_root=data_root,
+            args=Args(),
+        )
+        result = engine.execute_cycle(timestamp_str=None)
+
+        if result and "error" in result:
+            _write_status(data_root, {
+                "running": False,
+                "last_run": {
+                    "symbol": symbol,
+                    "result": "error",
+                    "error_message": str(result["error"]),
+                    "at": datetime.now(timezone.utc).isoformat(),
+                },
+            })
+        else:
+            _write_status(data_root, {
+                "running": False,
+                "last_run": {
+                    "symbol": symbol,
+                    "result": "success",
+                    "at": datetime.now(timezone.utc).isoformat(),
+                },
+            })
+    except Exception as e:
+        log.exception("Session run thread failed for %s", symbol)
+        _write_status(data_root, {
+            "running": False,
+            "last_run": {
+                "symbol": symbol,
+                "result": "error",
+                "error_message": str(e),
+                "at": datetime.now(timezone.utc).isoformat(),
+            },
+        })
+
+
+# ── Endpoints ───────────────────────────────────────────────────────────
+
+@router.post("/run")
+def trigger_run(req: RunRequest, data_root: str = Query("")):
+    """Trigger a one-time session run for the given symbol prefix.
+
+    Uppercases the prefix and appends 'USDT' to form the symbol.
+    Only one run is allowed at a time — returns 409 if busy.
+    """
+    from src.dashboard.api.sessions import _resolve_data_root
+    data_root = _resolve_data_root(data_root)
+
+    # Validate and construct symbol
+    raw = (req.symbol_prefix or "").strip()
+    if not raw or len(raw) < 2 or not raw.isalnum():
+        raise HTTPException(status_code=400, detail="Invalid symbol prefix — must be ≥2 alphanumeric characters")
+
+    symbol = raw.upper() + "USDT"
+
+    # Check current status
+    status = _read_status(data_root)
+    if status and status.get("running"):
+        pid = status.get("pid")
+        if pid and _is_pid_alive(pid):
+            started = status.get("started_at", "unknown")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Run already in progress: {status.get('symbol', '?')} (started {started})",
+            )
+        # Stale lock — PID is dead, proceed
+        log.warning("Clearing stale lock for PID %s", pid)
+
+    # Write running status
+    _write_status(data_root, {
+        "running": True,
+        "symbol": symbol,
+        "pid": os.getpid(),
+        "started_at": datetime.now(timezone.utc).isoformat(),
+    })
+
+    # Spawn background thread
+    thread = threading.Thread(
+        target=_run_session_in_thread,
+        args=(symbol, data_root),
+        daemon=True,
+    )
+    thread.start()
+
+    return {"accepted": True, "symbol": symbol}
+
+
+@router.get("/run-status")
+def get_run_status(data_root: str = Query("")):
+    """Return the current run status (running/idle, last run info)."""
+    from src.dashboard.api.sessions import _resolve_data_root
+    data_root = _resolve_data_root(data_root)
+
+    status = _read_status(data_root)
+    if not status:
+        return {"running": False, "last_run": None}
+
+    if status.get("running"):
+        pid = status.get("pid")
+        if pid and not _is_pid_alive(pid):
+            # Stale lock — clear it
+            log.warning("Clearing stale lock for dead PID %s", pid)
+            _write_status(data_root, {"running": False, "last_run": None})
+            return {"running": False, "last_run": None}
+
+        started_str = status.get("started_at", "")
+        elapsed = 0
+        if started_str:
+            try:
+                started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
+                elapsed = (datetime.now(timezone.utc) - started).total_seconds()
+            except Exception:
+                pass
+
+        return {
+            "running": True,
+            "symbol": status.get("symbol", ""),
+            "started_at": started_str,
+            "elapsed_seconds": round(elapsed),
+        }
+
+    return {
+        "running": False,
+        "last_run": status.get("last_run"),
+    }
