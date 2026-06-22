@@ -125,7 +125,7 @@ class SessionRenderer(BaseEmailTemplate):
                         <h4>Reasoning Chain</h4>
                         <pre class="reasoning-text">{SessionRenderer.render_md(reasoning)}</pre>
                     </div>
-                    {f'<div class="reasoning-details"><h4>Critic Impact</h4><pre class="reasoning-text">{fmt(decision.get("audit_impact"))}</pre></div>' if decision.get("audit_impact") else ""}
+                    {f'<div class="reasoning-details"><h4>Critic Impact</h4><pre class="reasoning-text">{fmt(decision.get("critic_impact"))}</pre></div>' if decision.get("critic_impact") else ""}
                 </div>
 
                 <!-- Audit Matrix -->

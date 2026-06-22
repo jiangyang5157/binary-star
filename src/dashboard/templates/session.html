@@ -41,6 +41,7 @@ async function loadSession() {
     if (!session || session.error) throw new Error(session?.error || 'Invalid session data');
 
     main.innerHTML = `
+      <a href="/active" class="btn-sm" style="margin-bottom:16px;display:inline-block">&larr; Back to Live</a>
       <div class="session-header">
         <h2>${session.observation?.symbol || 'Unknown'} Session</h2>
         <span class="session-time">${session.observation?.observed_at || ''}</span>

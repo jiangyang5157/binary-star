@@ -140,7 +140,6 @@ function renderCharts(visualContext) {
 
 function renderMetadata(metadata) {
   if (!metadata) return '';
-  const cs = metadata.config_snapshot || {};
   const vc = metadata.version_control || {};
   return `
     <section class="card">
