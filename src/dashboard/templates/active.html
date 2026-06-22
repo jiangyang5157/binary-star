@@ -382,6 +382,13 @@ async function triggerSniper() {
   const balanceRaw = document.getElementById('sniper-balance').value.trim();
   const balance = balanceRaw ? parseFloat(balanceRaw) : null;
 
+  if (balance !== null && balance <= 0) {
+    statusEl.style.display = 'inline';
+    statusEl.className = 'run-status-text run-error';
+    statusEl.textContent = '✗ Balance must be > 0';
+    return;
+  }
+
   btn.disabled = true;
   btn.textContent = '…';
 
