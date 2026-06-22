@@ -65,8 +65,8 @@ def _parse_session_timestamp(t0_str: str) -> datetime | None:
 
 # ── Endpoints ────────────────────────────────────────────────────────
 
-@router.get("/active")
-def list_active(data_root: str = Query(""), include_neutral: bool = Query(True)):
+@router.get("/live-sessions")
+def list_live_sessions(data_root: str = Query(""), include_neutral: bool = Query(True)):
     """Return sessions with BULLISH/BEARISH/NEUTRAL opinion.
 
     Optionally include NEUTRAL sessions (no time window).

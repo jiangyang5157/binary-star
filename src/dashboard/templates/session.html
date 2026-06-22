@@ -12,7 +12,7 @@
   <h1>Singularity</h1>
   <nav>
     <a href="/" class="nav-link">Performance</a>
-    <a href="/active" class="nav-link">Live</a>
+    <a href="/live" class="nav-link">Live</a>
   </nav>
 </header>
 
@@ -51,7 +51,7 @@ async function loadSession() {
       ${renderMetadata(session.metadata)}
     `;
   } catch (err) {
-    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/active" class="btn-sm">&larr; Back to Live</a></div>`;
+    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/live" class="btn-sm">&larr; Back to Live</a></div>`;
   }
 }
 

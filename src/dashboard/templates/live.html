@@ -11,7 +11,7 @@
   <h1>Singularity</h1>
   <nav>
     <a href="/" class="nav-link">Performance</a>
-    <a href="/active" class="nav-link active">Live</a>
+    <a href="/live" class="nav-link active">Live</a>
   </nav>
 </header>
 
@@ -478,7 +478,7 @@ async function loadActive() {
 
   try {
     const includeNeutral = document.getElementById('neutral-toggle').checked;
-    let url = apiUrl('/api/active');
+    let url = apiUrl('/api/live-sessions');
     url += (url.includes('?') ? '&' : '?') + `include_neutral=${includeNeutral}`;
     const resp = await fetch(url);
     const data = await resp.json();

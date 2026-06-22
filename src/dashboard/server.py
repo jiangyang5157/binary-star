@@ -44,9 +44,9 @@ def index(data_root: str = Query("")):
     return read_template("index.html")
 
 
-@app.get("/active", response_class=HTMLResponse)
-def active_view(data_root: str = Query("")):
-    return read_template("active.html")
+@app.get("/live", response_class=HTMLResponse)
+def live_view(data_root: str = Query("")):
+    return read_template("live.html")
 
 
 @app.get("/audits/{filename}", response_class=HTMLResponse)
