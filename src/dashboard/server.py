@@ -11,10 +11,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi import FastAPI, Query, Request
+from fastapi import FastAPI, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader
 from src.dashboard.api.sessions import router as sessions_router
 from src.dashboard.api.audits import router as audits_router
 from src.dashboard.api.session_run import router as session_run_router
@@ -37,7 +37,7 @@ app.include_router(session_run_router)
 app.include_router(sniper_run_router)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+_jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
 
 
 # ── User permissions (loaded once at startup) ────────────────────────────
@@ -99,12 +99,10 @@ def performance(data_root: str = Query("")):
 
 
 @app.get("/live", response_class=HTMLResponse, summary="Live Sessions", tags=["Pages"])
-def live_view(request: Request, user: str = Query(None), data_root: str = Query("")):
+def live_view(user: str = Query(None), data_root: str = Query("")):
     permissions = _get_user_permissions(user)
-    return templates.TemplateResponse("live.html", {
-        "request": request,
-        "permissions": permissions,
-    })
+    template = _jinja_env.get_template("live.html")
+    return HTMLResponse(template.render(permissions=permissions))
 
 
 @app.get("/audits/{filename}", response_class=HTMLResponse, summary="Audit Detail", tags=["Pages"])
