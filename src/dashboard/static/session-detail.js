@@ -11,6 +11,13 @@ function formatPrice(v) {
   return parseFloat(v).toFixed(2);
 }
 
+function formatLocalTime(isoStr) {
+  if (!isoStr) return '&mdash;';
+  try {
+    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
+  } catch { return isoStr; }
+}
+
 function renderDecisionCard(decision) {
   const tp = decision.tactical_parameters || {};
   return `
@@ -78,7 +85,7 @@ function renderDebateRounds(debateHistory) {
     <section class="card">
       <h2>Debate Rounds (${debateHistory.length})</h2>
       ${debateHistory.map((r, i) => `
-        <details class="debate-round" ${i === debateHistory.length - 1 ? 'open' : ''}>
+        <details class="debate-round">
           <summary>
             <span class="round-label">Round ${r.round || (i + 1)}</span>
             ${r.plan ? `<span class="round-plan-opinion">${opinionBadge(r.plan.opinion || '?')}</span>` : ''}

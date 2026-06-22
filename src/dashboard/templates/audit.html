@@ -12,7 +12,7 @@
   <h1>Singularity</h1>
   <nav>
     <a href="/" class="nav-link">Performance</a>
-    <a href="/active" class="nav-link">Active</a>
+    <a href="/active" class="nav-link">Live</a>
   </nav>
 </header>
 
@@ -135,7 +135,7 @@ async function loadSession() {
     main.innerHTML = `
       <div class="session-header">
         <h2>${session.observation?.symbol || 'Unknown'} Trade</h2>
-        <span class="session-time">${session.observation?.observed_at || ''}</span>
+        <span class="session-time">${formatLocalTime(session.observation?.observed_at)}</span>
       </div>
       ${renderDecisionCard(session.final_decision || {})}
       ${renderAuditOutcome(audit)}

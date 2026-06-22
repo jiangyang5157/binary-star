@@ -43,7 +43,7 @@
         <span id="refresh-active-status" class="audit-status" style="display:none"></span>
         <label class="toggle-label" for="neutral-toggle">
           <span class="toggle-text">Neutral</span>
-          <input type="checkbox" id="neutral-toggle" class="toggle-input" checked onchange="loadActive()">
+          <input type="checkbox" id="neutral-toggle" class="toggle-input" onchange="loadActive()">
           <span class="toggle-slider"></span>
         </label>
       </div>
@@ -60,8 +60,8 @@
             <th>TP</th>
             <th>SL</th>
             <th>RR Ratio</th>
-            <th>Holding (h)</th>
             <th>Waiting (h)</th>
+            <th>Holding (h)</th>
             <th>Time Left</th>
             <th></th>
           </tr>
@@ -276,8 +276,8 @@ async function loadActive() {
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.take_profit)}</td>
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.stop_loss)}</td>
         <td>${isNeutral ? '&mdash;' : (s.rr_ratio != null ? s.rr_ratio.toFixed(2) : '&mdash;')}</td>
-        <td>${s.projected_holding_hours}h</td>
         <td>${s.projected_waiting_hours}h</td>
+        <td>${s.projected_holding_hours}h</td>
         <td><span class="time-remaining ${trClass}">${s.time_remaining}</span></td>
         <td><a href="/sessions/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
       </tr>`;
