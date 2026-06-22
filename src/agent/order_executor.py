@@ -585,7 +585,7 @@ class MarginOrderExecutor:
             
         cfg = {}
         # Strict parsing: intentionally raises KeyError if keys are missing
-        cfg["benchmark_symbol"] = full_cfg["system"]["default_symbol"]
+        cfg["benchmark_symbol"] = "BTCUSDT"
         
         tm = full_cfg["trade_management"]
         cfg["risk_per_trade"] = tm["risk_per_trade"]

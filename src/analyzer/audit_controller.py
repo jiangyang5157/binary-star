@@ -74,10 +74,9 @@ class AuditController:
             chart_trendline_window=self.obs_config.chart_trendline_window
         )
         
-        default_symbol = config_dict['system']['default_symbol']
         self.observer = MarketObserver(
             config=self.obs_config,
-            symbol=default_symbol,
+            symbol="BTCUSDT",  # benchmark; overwritten per-audit at line 125
             data_root=self.data_root,
             exchange_client=self.exchange_client,
             chart_generator=self.chart_gen

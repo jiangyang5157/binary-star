@@ -81,9 +81,7 @@ class MockDataFactory:
         Physics constants (projection, warmup, bucket count) are hardcoded.
         """
         return {
-            "system": {
-                "default_symbol": "BTCUSDT",
-            },
+            "system": {},
             "network": {
                 "gemini": {
                     "api_timeout_seconds": 30,
