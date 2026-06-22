@@ -39,7 +39,7 @@
     <div class="section-header">
       <h2>Active Sessions</h2>
       <div class="section-controls">
-        <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" title="Refresh active sessions">⟳ Refresh</button>
+        <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" title="Refresh">⟳ Refresh</button>
         <span id="refresh-active-status" class="audit-status" style="display:none"></span>
         <label class="toggle-label" for="neutral-toggle">
           <span class="toggle-text">Neutral</span>
@@ -71,7 +71,7 @@
           </tr>
         </thead>
         <tbody id="active-body">
-          <tr><td colspan="11" class="loading">Loading active sessions...</td></tr>
+          <tr><td colspan="11" class="loading">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -255,10 +255,10 @@ async function loadActive() {
     const data = await resp.json();
     const sessions = data.active || [];
 
-    countEl.textContent = `${sessions.length} active session${sessions.length !== 1 ? 's' : ''}`;
+    countEl.textContent = `${sessions.length} record${sessions.length !== 1 ? 's' : ''}`;
 
     if (!sessions.length) {
-      tbody.innerHTML = '<tr><td colspan="11" class="empty">No active sessions — all clear</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="empty">No records — all clear</td></tr>';
       return;
     }
 
@@ -280,7 +280,7 @@ async function loadActive() {
       </tr>`;
     }).join('');
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="11" class="error">Failed to load active sessions</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="error">Failed to load records</td></tr>';
   }
 }
 

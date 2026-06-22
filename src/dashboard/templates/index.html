@@ -339,8 +339,8 @@ function sortSessions(sessions, key, dir) {
 
 function renderTable(sessions) {
   const tbody = $('sessions-body');
-  $('session-count').textContent = `${sessions.length} sessions`;
-  if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No sessions match filters</td></tr>'; return; }
+  $('session-count').textContent = `${sessions.length} records`;
+  if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No records match filters</td></tr>'; return; }
   tbody.innerHTML = sessions.map(s => {
     const tp = s.tactical || {}, audit = s.audit;
     const entry = tp.current_price || tp.entry;
@@ -375,7 +375,7 @@ async function loadSessions() {
   const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
   const data = await resp.json();
   allSessions = data.sessions || [];
-  $('session-count').textContent = `${data.total} total sessions`;
+  $('session-count').textContent = `${data.total} records`;
   applyFilters();
 }
 
