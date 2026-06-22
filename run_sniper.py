@@ -37,38 +37,44 @@ class SniperDaemon:
     """
     
     def __init__(self, args):
+        from src.utils.symbol_utils import resolve_symbols
+
         self.args = args
         self.global_cfg = load_global_config()
-        self.symbol = args.symbol or self.global_cfg['system']['default_symbol']
-        
+
+        # Parse CSV symbol list (e.g., "BTC,ETH,XAUT" → ["BTCUSDT", "ETHUSDT", "XAUTUSDT"])
+        raw_symbols = getattr(args, 'symbol', '') or ''
+        self.symbols = resolve_symbols(raw_symbols)
+
         # 0. Global Forensic Logging Initialization (Standardized v7.1)
-        # Ensure all pulse and guardian telemetry is persistent from startup
         from src.utils.path_utils import resolve_project_root
         session_log_path = os.path.join(resolve_project_root(), args.path, "sniper.log")
         setup_logger("", log_level=logging.INFO, log_file=session_log_path,
-                     max_bytes=10 * 1024 * 1024, backup_count=5)  # 10MB x 5 = 50MB max
-        
-        # v7.6 Shared Infrastructure: Centralized client to prevent duplicate logs/init
+                     max_bytes=10 * 1024 * 1024, backup_count=5)
+
+        # v7.6 Shared Infrastructure: Centralized client (shared across all symbols)
         self.futures_client = BinanceFuturesClient()
 
-        # 1. Initialize Lightweight Sniper Tools
-        self.scout = SniperScout(self.symbol, exchange_client=self.futures_client)
-        self.trigger = SniperTrigger()
-        
-        logger.info(f"SniperDaemon: Trigger Cooldown is active at {self.trigger.cooldown_minutes}m.")
-        
-        # 2. Initialize Heavyweight Session Engine (Optional)
-        self.session_engine = None
+        # 1. Initialize Lightweight Sniper Tools (one per symbol)
+        self.scouts: dict[str, SniperScout] = {}
+        self.triggers: dict[str, SniperTrigger] = {}
+        for sym in self.symbols:
+            self.scouts[sym] = SniperScout(sym, exchange_client=self.futures_client)
+            self.triggers[sym] = SniperTrigger()
+            logger.info(f"SniperDaemon [{sym}]: Trigger Cooldown is active at {self.triggers[sym].cooldown_minutes}m.")
+
+        # 2. Initialize Heavyweight Session Engines (one per symbol, optional)
+        self.session_engines: dict = {}
         if args.trigger:
-            # We pass the same args to SessionEngine for email/path parity
-            self.session_engine = SessionEngine(self.symbol, args.path, args=args, 
-                                                exchange_client=self.futures_client)
-        
-        # 3. Initialize Trade Execution (Optional: --trade flag)
+            for sym in self.symbols:
+                self.session_engines[sym] = SessionEngine(sym, args.path, args=args,
+                                                          exchange_client=self.futures_client)
+
+        # 3. Initialize Trade Execution (shared executor is symbol-aware)
         self.trade_enabled = getattr(args, 'trade', False)
         self.manual_balance = getattr(args, 'balance', None)
         self.executor = None
-        self.trade_state = {}  # In-memory state for Guardian
+        self.trade_states: dict[str, dict] = {}
         if self.trade_enabled:
             from src.infrastructure.binance.margin_client import BinanceMarginClient
             from src.agent.order_executor import MarginOrderExecutor
@@ -76,12 +82,12 @@ class SniperDaemon:
             self.executor = MarginOrderExecutor(client=margin_client, manual_balance_usdt=self.manual_balance)
             if self.manual_balance:
                 logger.info(f"SniperDaemon: Using manual balance ${self.manual_balance:.2f} USDT for position sizing.")
-            logger.info("SniperDaemon: Trade execution ENABLED. Guardian will monitor positions every pulse.")
-        
-        self.prev_metrics = None
-        
+            logger.info(f"SniperDaemon: Trade execution ENABLED for {self.symbols}. Guardian will monitor every pulse.")
+
+        # Per-symbol previous metrics for inter-pulse comparison
+        self.prev_metrics: dict[str, dict | None] = {sym: None for sym in self.symbols}
+
         # v6.50: Sniper Quiet-Monitoring Protocol
-        # We default to CRITICAL level during pulsars to keep logs clean from Binance noise.
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
