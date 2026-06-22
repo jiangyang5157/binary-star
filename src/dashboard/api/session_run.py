@@ -53,11 +53,24 @@ def _is_pid_alive(pid: int) -> bool:
         return False
 
 
+# ── Run ID tracking (prevents stale-thread races on stop/restart) ──────
+
+_run_id_lock = threading.Lock()
+_next_run_id = 0
+
+
+def _next_id() -> int:
+    global _next_run_id
+    with _run_id_lock:
+        _next_run_id += 1
+        return _next_run_id
+
+
 # ── Background runner ───────────────────────────────────────────────────
 
-def _run_session_in_thread(symbol: str, data_root: str) -> None:
+def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
     """Execute a session cycle in a background thread. Updates status file on
-    completion (success or error)."""
+    completion only if no newer run has been started (checked via run_id)."""
     try:
         from run_session import SessionEngine
 
@@ -72,9 +85,16 @@ def _run_session_in_thread(symbol: str, data_root: str) -> None:
         )
         result = engine.execute_cycle(timestamp_str=None)
 
+        # Only write completion if this run hasn't been superseded
+        current = _read_status(data_root)
+        if not current or current.get("run_id") != run_id:
+            log.info("Run %d for %s completed but was superseded — discarding result", run_id, symbol)
+            return
+
         if result and "error" in result:
             _write_status(data_root, {
                 "running": False,
+                "run_id": run_id,
                 "last_run": {
                     "symbol": symbol,
                     "result": "error",
@@ -85,6 +105,7 @@ def _run_session_in_thread(symbol: str, data_root: str) -> None:
         else:
             _write_status(data_root, {
                 "running": False,
+                "run_id": run_id,
                 "last_run": {
                     "symbol": symbol,
                     "result": "success",
@@ -93,8 +114,12 @@ def _run_session_in_thread(symbol: str, data_root: str) -> None:
             })
     except Exception as e:
         log.exception("Session run thread failed for %s", symbol)
+        current = _read_status(data_root)
+        if not current or current.get("run_id") != run_id:
+            return
         _write_status(data_root, {
             "running": False,
+            "run_id": run_id,
             "last_run": {
                 "symbol": symbol,
                 "result": "error",
@@ -136,10 +161,12 @@ def trigger_run(req: RunRequest, data_root: str = Query("")):
         # Stale lock — PID is dead, proceed
         log.warning("Clearing stale lock for PID %s", pid)
 
-    # Write running status
+    # Write running status with unique run_id for stale-thread guard
+    run_id = _next_id()
     _write_status(data_root, {
         "running": True,
         "symbol": symbol,
+        "run_id": run_id,
         "pid": os.getpid(),
         "started_at": datetime.now(timezone.utc).isoformat(),
     })
@@ -147,12 +174,29 @@ def trigger_run(req: RunRequest, data_root: str = Query("")):
     # Spawn background thread
     thread = threading.Thread(
         target=_run_session_in_thread,
-        args=(symbol, data_root),
+        args=(symbol, data_root, run_id),
         daemon=True,
     )
     thread.start()
 
     return {"accepted": True, "symbol": symbol}
+
+
+@router.post("/stop")
+def stop_run(data_root: str = Query("")):
+    """Stop the currently running session. The background thread will still
+    complete, but its result is discarded via run_id tracking."""
+    from src.dashboard.api.sessions import _resolve_data_root
+    data_root = _resolve_data_root(data_root)
+
+    status = _read_status(data_root)
+    if not status or not status.get("running"):
+        raise HTTPException(status_code=404, detail="No session is running")
+
+    symbol = status.get("symbol", "?")
+    _write_status(data_root, {"running": False, "last_run": None})
+    log.info("Session run stopped for %s", symbol)
+    return {"stopped": True, "symbol": symbol}
 
 
 @router.get("/run-status")

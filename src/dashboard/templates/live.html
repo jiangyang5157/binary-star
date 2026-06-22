@@ -127,12 +127,14 @@ function updateRunUI(state) {
 
   if (state === 'running') {
     input.disabled = true;
-    btn.disabled = true;
-    btn.textContent = '▶ Run';
+    btn.disabled = false;
+    btn.textContent = '⏹ Stop';
+    btn.classList.add('btn-danger');
   } else {
     input.disabled = false;
     btn.disabled = false;
     btn.textContent = '▶ Run';
+    btn.classList.remove('btn-danger');
     runPollInterval = null;
   }
 }
@@ -183,6 +185,36 @@ async function checkRunStatus() {
 }
 
 async function triggerRun() {
+  const statusEl = document.getElementById('run-status');
+  const btn = document.getElementById('run-session-btn');
+
+  // Toggle: if running, STOP
+  if (runPollInterval) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const resp = await fetch(apiUrl('/api/session/stop'), { method: 'POST' });
+      if (!resp.ok) {
+        const err = await resp.json();
+        statusEl.style.display = 'inline';
+        statusEl.className = 'run-status-text run-error';
+        statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
+        btn.disabled = false;
+        btn.textContent = '⏹ Stop';
+        return;
+      }
+      // Polling will catch the transition to idle
+    } catch (e) {
+      statusEl.style.display = 'inline';
+      statusEl.className = 'run-status-text run-error';
+      statusEl.textContent = '✗ Request failed';
+      btn.disabled = false;
+      btn.textContent = '⏹ Stop';
+    }
+    return;
+  }
+
+  // START
   const input = document.getElementById('symbol-prefix');
   let prefix = input.value.trim();
 
@@ -193,14 +225,12 @@ async function triggerRun() {
   }
 
   if (!prefix || prefix.length < 2) {
-    const statusEl = document.getElementById('run-status');
     statusEl.style.display = 'inline';
     statusEl.className = 'run-status-text run-error';
     statusEl.textContent = '✗ Enter at least 2 characters';
     return;
   }
 
-  const btn = document.getElementById('run-session-btn');
   btn.disabled = true;
   btn.textContent = '…';
 
@@ -213,7 +243,6 @@ async function triggerRun() {
 
     if (!resp.ok) {
       const err = await resp.json();
-      const statusEl = document.getElementById('run-status');
       statusEl.style.display = 'inline';
       statusEl.className = 'run-status-text run-error';
       statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
@@ -223,13 +252,11 @@ async function triggerRun() {
 
     const data = await resp.json();
     updateRunUI('running');
-    const statusEl = document.getElementById('run-status');
     statusEl.style.display = 'inline';
     statusEl.className = 'run-status-text';
     statusEl.textContent = `⟳ Running ${data.symbol}…`;
     runPollInterval = setInterval(checkRunStatus, 2000);
   } catch (e) {
-    const statusEl = document.getElementById('run-status');
     statusEl.style.display = 'inline';
     statusEl.className = 'run-status-text run-error';
     statusEl.textContent = '✗ Request failed';
