@@ -129,12 +129,12 @@ function updateRunUI(state) {
     input.disabled = true;
     btn.disabled = false;
     btn.textContent = '⏹ Stop';
-    btn.classList.add('btn-danger');
+    btn.style.color = 'var(--accent-red)';
   } else {
     input.disabled = false;
     btn.disabled = false;
     btn.textContent = '▶ Run';
-    btn.classList.remove('btn-danger');
+    btn.style.color = '';
     runPollInterval = null;
   }
 }
@@ -201,6 +201,7 @@ async function triggerRun() {
         statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
+        btn.style.color = 'var(--accent-red)';
         return;
       }
       // Polling will catch the transition to idle
@@ -210,6 +211,7 @@ async function triggerRun() {
       statusEl.textContent = '✗ Request failed';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
+      btn.style.color = 'var(--accent-red)';
     }
     return;
   }
