@@ -63,10 +63,11 @@
             <th>Holding (h)</th>
             <th>Waiting (h)</th>
             <th>Time Left</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="active-body">
-          <tr><td colspan="11" class="loading">Loading...</td></tr>
+          <tr><td colspan="12" class="loading">Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -259,7 +260,7 @@ async function loadActive() {
     countEl.textContent = `${sessions.length} record${sessions.length !== 1 ? 's' : ''}`;
 
     if (!sessions.length) {
-      tbody.innerHTML = '<tr><td colspan="11" class="empty">No records — all clear</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="empty">No records — all clear</td></tr>';
       return;
     }
 
@@ -278,10 +279,11 @@ async function loadActive() {
         <td>${s.projected_holding_hours}h</td>
         <td>${s.projected_waiting_hours}h</td>
         <td><span class="time-remaining ${trClass}">${s.time_remaining}</span></td>
+        <td><a href="/sessions/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
       </tr>`;
     }).join('');
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="11" class="error">Failed to load records</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="12" class="error">Failed to load records</td></tr>';
   }
 }
 
