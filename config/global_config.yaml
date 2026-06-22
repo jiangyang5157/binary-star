@@ -12,7 +12,7 @@ trade_management:
     precision_qty: 3
     precision_price: 1
     min_order_qty: 0.01
-    sl_slippage_buffer: 0.4
+    sl_slippage_buffer: 0.5
 
 network:
   binance:
