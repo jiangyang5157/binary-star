@@ -136,7 +136,6 @@ function renderCharts(visualContext) {
         ${charts.map(c => `
         <div class="chart-container">
           <h4>${c.label}</h4>
-          <p class="chart-path mono">${c.path}</p>
           <img src="/${c.path}" alt="${c.label}" class="chart-img" loading="lazy"
                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
           <div class="chart-fallback" style="display:none;">Chart image not available via server</div>

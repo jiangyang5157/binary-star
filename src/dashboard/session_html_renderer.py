@@ -1,8 +1,8 @@
 """Server-side session HTML renderer for email notifications.
 
-Produces standalone HTML documents with embedded dark-theme CSS
-matching the dashboard web UI. Used by SessionNotifier for email
-generation and local HTML preview.
+Produces standalone HTML documents whose structure and styling match the
+dashboard session view (session-detail.js + dashboard.css) exactly.
+Used by SessionNotifier for email generation and local HTML preview.
 """
 
 import json
@@ -13,7 +13,7 @@ from src.utils.datetime_utils import to_html_display
 
 
 class SessionRenderer(BaseEmailTemplate):
-    """Renders session data to dark-themed HTML for email embedding."""
+    """Renders session data to dark-themed HTML matching the dashboard session view."""
 
     @staticmethod
     def render(session_data: Dict[str, Any]) -> str:
@@ -21,276 +21,363 @@ class SessionRenderer(BaseEmailTemplate):
         decision = session_data.get("final_decision") or {}
         symbol = obs.get("symbol", "UNKNOWN")
         display_time = to_html_display(obs.get("observed_at", ""))
-
-        opinion = str(decision.get("opinion", "NEUTRAL") or "NEUTRAL").upper()
-        confidence = decision.get("confidence_score", 0)
-        reasoning = decision.get("reasoning_chain", "No description provided.")
-
-        tactical = decision.get("tactical_parameters") or {}
-        rr_display = tactical.get("rr_ratio")
-        rr_display = rr_display if rr_display is not None else "N/A"
-
-        proj_wait = tactical.get("projected_waiting_hours") or 0
-        proj_hold = tactical.get("projected_holding_hours") or 0
-
-        # Regime detection
         history = session_data.get("debate_history", [])
-        last_round = history[-1] if history else {}
-        verdict = last_round.get("math_fact_check", {}).get("compliance_verdict", {})
-        sl_shielded = verdict.get("sl_is_shielded", False)
+        visual_context = obs.get("visual_context") or {}
+        metadata = session_data.get("metadata")
 
-        vr_val = obs.get("quantitative_metrics", {}).get("price_dynamics", {}).get("volatility_expansion_index", 0)
-        regime_cfg = session_data.get("metadata", {}).get("config_snapshot", {}).get("regime_parameters", {})
-        vr_extreme = regime_cfg.get("volatility_extreme_ratio")
-        is_chaos = float(vr_val or 0) > float(vr_extreme) if vr_extreme is not None else False
-
-        colors = {"BULLISH": "#10b981", "BEARISH": "#ef4444", "NEUTRAL": "#64748b"}
-        theme_color = colors.get(opinion, "#64748b")
-        display_opinion = "STAND ASIDE" if opinion == "NEUTRAL" else opinion
         fmt = SessionRenderer.fmt
-
-        # Confidence matrix
-        def get_row_style(min_val, max_val):
-            return 'class="matrix-highlight"' if min_val <= confidence < max_val else ""
-
-        matrix_html = f"""
-        <table class="matrix-table">
-            <thead>
-                <tr><th>Confidence</th><th>Rating</th><th>Action</th></tr>
-            </thead>
-            <tbody>
-                <tr {get_row_style(90, 101)}><td>90-100</td><td>DIAMOND</td><td>Precision Deployment</td></tr>
-                <tr {get_row_style(70, 90)}><td>70-90</td><td>HARDENED</td><td>Reinforced Entry</td></tr>
-                <tr {get_row_style(50, 70)}><td>50-70</td><td>SHIELDED</td><td>Defensive Buffer (DLE)</td></tr>
-                <tr {get_row_style(0, 50)}><td>0-50</td><td>FRAGILE</td><td>Systemic Halt</td></tr>
-            </tbody>
-        </table>"""
-
-        # Debate rounds
-        debate_html = ""
-        if history:
-            rounds = []
-            for i, r in enumerate(history):
-                plan = r.get("plan") or {}
-                critic = r.get("critic") or {}
-                math = r.get("math_fact_check") or {}
-                veto = critic.get("veto_level", "")
-                math_status = math.get("status", "")
-                rounds.append(f"""
-                <details class="debate-round" {"open" if i == len(history) - 1 else ""}>
-                    <summary>
-                        <span class="round-label">Round {r.get("round", i + 1)}</span>
-                        {f'<span class="badge badge-green">{plan.get("opinion", "?")}</span>' if plan else ""}
-                        {f'<span class="round-confidence">{plan.get("confidence_score", 0):.1f}%</span>' if plan and plan.get("confidence_score") is not None else ""}
-                        {f'<span class="round-veto veto-{veto.lower()}">{veto}</span>' if veto else ""}
-                        {f'<span class="round-math math-{math_status.lower()}">{math_status}</span>' if math_status else ""}
-                    </summary>
-                    <div class="debate-body">
-                        {f'<div class="debate-section"><pre class="reasoning-text">{plan.get("reasoning_chain", "")}</pre></div>' if plan else ""}
-                        {f'<div class="debate-section"><h4>Critic Review</h4><pre class="reasoning-text">{critic.get("critic_summary", "")}</pre></div>' if critic else ""}
-                        {f'<div class="debate-section"><h4>Math Fact Check</h4><pre class="reasoning-text">{json.dumps(math.get("compliance_verdict", {}), indent=2)}</pre></div>' if math else ""}
-                    </div>
-                </details>""")
-            debate_html = f"""
-            <div class="card">
-                <h3>Debate Rounds ({len(history)})</h3>
-                {"".join(rounds)}
-            </div>"""
 
         return f"""
         <html>
         <head>{SessionRenderer.get_styles()}</head>
-        <body>
+        <body class="dark">
             <div class="container">
-                <!-- Header -->
-                <div class="session-header">
-                    <span class="badge {"badge-green" if opinion == "BULLISH" else "badge-red" if opinion == "BEARISH" else "badge-gray"}">{display_opinion}</span>
-                    <h1>{symbol} Session</h1>
-                    <p class="session-time">Confidence: <b style="color:{theme_color}">{confidence}%</b> | {display_time}</p>
-                </div>
-
-                <!-- Final Decision -->
-                <div class="card decision-card">
-                    <h2>Final Decision</h2>
-                    <div class="tactical-grid">
-                        <div class="tactical-item"><span class="tactical-label">Current Price</span><span class="tactical-value mono">{fmt(tactical.get("current_price"))}</span></div>
-                        <div class="tactical-item"><span class="tactical-label">Entry</span><span class="tactical-value mono">{fmt(tactical.get("entry"))}</span></div>
-                        <div class="tactical-item"><span class="tactical-label">Take Profit</span><span class="tactical-value mono profit">{fmt(tactical.get("take_profit"))}</span></div>
-                        <div class="tactical-item"><span class="tactical-label">Stop Loss</span><span class="tactical-value mono loss">{fmt(tactical.get("stop_loss"))}</span></div>
-                        <div class="tactical-item"><span class="tactical-label">RR Ratio</span><span class="tactical-value mono">{rr_display}</span></div>
-                        <div class="tactical-item"><span class="tactical-label">Waiting Hours</span><span class="tactical-value">{SessionRenderer.format_duration(proj_wait)}</span></div>
-                        <div class="tactical-item"><span class="tactical-label">Holding Hours</span><span class="tactical-value">{SessionRenderer.format_duration(proj_hold)}</span></div>
-                    </div>
-                    <div class="reasoning-details">
-                        <h4>Reasoning Chain</h4>
-                        <pre class="reasoning-text">{SessionRenderer.render_md(reasoning)}</pre>
-                    </div>
-                    {f'<div class="reasoning-details"><h4>Critic Impact</h4><pre class="reasoning-text">{fmt(decision.get("critic_impact"))}</pre></div>' if decision.get("critic_impact") else ""}
-                </div>
-
-                <!-- Audit Matrix -->
-                <div class="card">
-                    <h2>Audit Matrix</h2>
-                    <div class="status-pills">
-                        <span class="status-pill {"pill-chaos" if is_chaos else "pill-safe"}">{"CHAOS" if is_chaos else "SAFE"} Regime</span>
-                        <span class="status-pill {"pill-shielded" if sl_shielded else "pill-exposed"}">{"SHIELDED" if sl_shielded else "EXPOSED"} Armor</span>
-                    </div>
-                    {matrix_html}
-                    {f'<div class="warning-banner chaos">Chaos Regime: Extreme physical friction. Slippage risk detected. Manual audit required.</div>' if is_chaos else ""}
-                    {f'<div class="warning-banner exposed">Exposed Armor: SL lacks structural shielding. Risk of liquidity wicks. Reduce sizing.</div>' if not sl_shielded else ""}
-                </div>
-
-                <!-- Debate Rounds -->
-                {debate_html}
-
-                <!-- Charts -->
-                <div class="card">
-                    <h2>Visual Context</h2>
-                    <div class="chart-grid">
-                        <div class="chart-container">
-                            <h4>Macro (1h)</h4>
-                            <img src="cid:macro_snapshot" style="width:100%;border-radius:8px;">
-                        </div>
-                        <div class="chart-container">
-                            <h4>Micro (15m)</h4>
-                            <img src="cid:micro_snapshot" style="width:100%;border-radius:8px;">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Metadata -->
-                <div class="card">
-                    <h2>Metadata</h2>
-                    <div class="metadata-grid">
-                        {SessionRenderer._render_metadata(session_data.get("metadata"))}
-                    </div>
-                </div>
-
-                {SessionRenderer.render_footer(session_data, "Auto-generated by Singularity | Session Engine")}
+                {SessionRenderer._render_header(symbol, display_time)}
+                {SessionRenderer._render_decision_card(decision, fmt)}
+                {SessionRenderer._render_debate_rounds(history, fmt)}
+                {SessionRenderer._render_charts(visual_context)}
+                {SessionRenderer._render_metadata(metadata)}
             </div>
         </body>
         </html>"""
+
+    # ── Section renderers ─────────────────────────────────────────────
+
+    @staticmethod
+    def _render_header(symbol: str, display_time: str) -> str:
+        return f"""
+        <div class="session-header">
+            <h2>Session: {symbol}</h2>
+            <p class="session-time">Observed: {display_time}</p>
+        </div>"""
+
+    @staticmethod
+    def _opinion_badge(opinion: str) -> str:
+        opinion = (opinion or "UNKNOWN").upper()
+        cls = {"BULLISH": "badge-green", "BEARISH": "badge-red"}.get(opinion, "badge-gray")
+        return f'<span class="badge {cls}">{opinion}</span>'
+
+    @staticmethod
+    def _format_price(v) -> str:
+        if v is None or v == 0:
+            return "&mdash;"
+        try:
+            return f"{float(v):.2f}"
+        except (ValueError, TypeError):
+            return str(v)
+
+    @staticmethod
+    def _render_decision_card(decision: Dict[str, Any], fmt) -> str:
+        opinion = str(decision.get("opinion") or "UNKNOWN").upper()
+        confidence = decision.get("confidence_score")
+        tp = decision.get("tactical_parameters") or {}
+        reasoning = decision.get("reasoning_chain")
+        critic_impact = decision.get("critic_impact")
+
+        conf_display = f"{confidence:.1f}%" if confidence is not None else "&mdash;"
+        sp = SessionRenderer._format_price
+
+        return f"""
+        <section class="card decision-card">
+            <h2>Final Decision</h2>
+            <div class="decision-header">
+                <div class="decision-opinion">{SessionRenderer._opinion_badge(opinion)}</div>
+                <div class="decision-confidence">
+                    <span class="confidence-value">{conf_display}</span>
+                    <span class="confidence-label">Confidence</span>
+                </div>
+            </div>
+            <div class="tactical-grid">
+                <div class="tactical-item">
+                    <span class="tactical-label">Current Price</span>
+                    <span class="tactical-value mono">{sp(tp.get("current_price"))}</span>
+                </div>
+                <div class="tactical-item">
+                    <span class="tactical-label">Entry</span>
+                    <span class="tactical-value mono">{sp(tp.get("entry"))}</span>
+                </div>
+                <div class="tactical-item">
+                    <span class="tactical-label">Take Profit</span>
+                    <span class="tactical-value mono profit">{sp(tp.get("take_profit"))}</span>
+                </div>
+                <div class="tactical-item">
+                    <span class="tactical-label">Stop Loss</span>
+                    <span class="tactical-value mono loss">{sp(tp.get("stop_loss"))}</span>
+                </div>
+                <div class="tactical-item">
+                    <span class="tactical-label">RR Ratio</span>
+                    <span class="tactical-value mono">{tp.get("rr_ratio") if tp.get("rr_ratio") is not None else "&mdash;"}</span>
+                </div>
+                <div class="tactical-item">
+                    <span class="tactical-label">Waiting Hours</span>
+                    <span class="tactical-value">{tp.get("projected_waiting_hours") if tp.get("projected_waiting_hours") is not None else "&mdash;"}h</span>
+                </div>
+                <div class="tactical-item">
+                    <span class="tactical-label">Holding Hours</span>
+                    <span class="tactical-value">{tp.get("projected_holding_hours") if tp.get("projected_holding_hours") is not None else "&mdash;"}h</span>
+                </div>
+            </div>
+            {f'''<details class="reasoning-details">
+                <summary>Reasoning Chain</summary>
+                <pre class="reasoning-text">{reasoning}</pre>
+            </details>''' if reasoning else ""}
+            {f'''<details class="reasoning-details">
+                <summary>Critic Impact</summary>
+                <pre class="reasoning-text">{fmt(critic_impact)}</pre>
+            </details>''' if critic_impact else ""}
+        </section>"""
+
+    @staticmethod
+    def _render_debate_rounds(history: list, fmt) -> str:
+        if not history:
+            return ""
+
+        sp = SessionRenderer._format_price
+        rounds = []
+        for i, r in enumerate(history):
+            plan = r.get("plan") or {}
+            critic = r.get("critic") or {}
+            math = r.get("math_fact_check") or {}
+            veto = str(critic.get("veto_level") or "")
+            math_status = str(math.get("status") or "")
+            round_num = r.get("round", i + 1)
+
+            plan_tactics = plan.get("tactical_parameters") or {}
+            compact_grid = ""
+            if plan_tactics:
+                compact_grid = f"""
+                <div class="tactical-grid compact">
+                    <div class="tactical-item"><span class="tactical-label">Entry</span><span class="tactical-value mono">{sp(plan_tactics.get("entry"))}</span></div>
+                    <div class="tactical-item"><span class="tactical-label">TP</span><span class="tactical-value mono profit">{sp(plan_tactics.get("take_profit"))}</span></div>
+                    <div class="tactical-item"><span class="tactical-label">SL</span><span class="tactical-value mono loss">{sp(plan_tactics.get("stop_loss"))}</span></div>
+                    <div class="tactical-item"><span class="tactical-label">RR</span><span class="tactical-value mono">{plan_tactics.get("rr_ratio") if plan_tactics.get("rr_ratio") is not None else "&mdash;"}</span></div>
+                </div>"""
+
+            plan_reasoning = plan.get("reasoning_chain") or ""
+            critic_summary = critic.get("critic_summary") or ""
+            critic_evidence = critic.get("audit_evidence") or ""
+            math_verdict = math.get("compliance_verdict") or {}
+
+            rounds.append(f"""
+            <details class="debate-round">
+                <summary>
+                    <span class="round-label">Round {round_num}</span>
+                    {f'<span class="round-plan-opinion">{SessionRenderer._opinion_badge(plan.get("opinion") or "?")}</span>' if plan else ""}
+                    {f'<span class="round-confidence">{plan.get("confidence_score"):.1f}%</span>' if plan and plan.get("confidence_score") is not None else ""}
+                    {f'<span class="round-veto veto-{veto.lower()}">{veto}</span>' if veto else ""}
+                    {f'<span class="round-math math-{math_status.lower()}">{math_status}</span>' if math_status else ""}
+                </summary>
+                <div class="debate-body">
+                    {f'''<div class="debate-section">
+                        {compact_grid}
+                        {f'<pre class="reasoning-text">{plan_reasoning}</pre>' if plan_reasoning else ""}
+                    </div>''' if plan else ""}
+                    {f'''<div class="debate-section">
+                        <h4>Critic Review <span class="round-veto veto-{veto.lower()}">{veto}</span></h4>
+                        {f'<pre class="reasoning-text">{critic_summary}</pre>' if critic_summary else ""}
+                        {f"<h5>Audit Evidence</h5><pre class=\"reasoning-text\">{critic_evidence}</pre>" if critic_evidence else ""}
+                    </div>''' if critic else ""}
+                    {f'''<div class="debate-section">
+                        <h4>Math Fact Check <span class="round-math math-{math_status.lower()}">{math_status}</span></h4>
+                        <pre class="reasoning-text">{json.dumps(math_verdict, indent=2)}</pre>
+                    </div>''' if math else ""}
+                </div>
+            </details>""")
+
+        return f"""
+        <section class="card">
+            <h2>Debate Rounds ({len(history)})</h2>
+            {"".join(rounds)}
+        </section>"""
+
+    @staticmethod
+    def _render_charts(visual_context: Dict[str, Any]) -> str:
+        if not visual_context:
+            return ""
+
+        charts = []
+        if visual_context.get("macro_snapshot"):
+            charts.append(("Macro (1h)", "macro_snapshot"))
+        if visual_context.get("micro_snapshot"):
+            charts.append(("Micro (15m)", "micro_snapshot"))
+
+        if not charts:
+            return ""
+
+        items = ""
+        for label, cid in charts:
+            items += f"""
+            <div class="chart-container">
+                <h4>{label}</h4>
+                <img src="cid:{cid}" alt="{label}" class="chart-img">
+            </div>"""
+
+        return f"""
+        <section class="card">
+            <h2>Charts</h2>
+            <div class="chart-grid">{items}
+            </div>
+        </section>"""
 
     @staticmethod
     def _render_metadata(metadata: Dict[str, Any]) -> str:
         if not metadata:
             return ""
-        vc = metadata.get("version_control") or {}
-        parts = []
+        vc = (metadata.get("version_control") or {}) if isinstance(metadata, dict) else {}
+        items = []
         if vc.get("project_version"):
-            parts.append(f'<div class="metadata-item"><span class="metadata-label">Version</span><code>{vc["project_version"]}</code></div>')
+            items.append(f'<div class="metadata-item"><span class="metadata-label">Project Version</span><code>{vc["project_version"]}</code></div>')
         if vc.get("git_commit"):
-            parts.append(f'<div class="metadata-item"><span class="metadata-label">Commit</span><code>{vc["git_commit"]}</code></div>')
+            items.append(f'<div class="metadata-item"><span class="metadata-label">Git Commit</span><code>{vc["git_commit"]}</code></div>')
         if vc.get("session_hash"):
-            parts.append(f'<div class="metadata-item"><span class="metadata-label">Session Hash</span><code>{vc["session_hash"]}</code></div>')
+            items.append(f'<div class="metadata-item"><span class="metadata-label">Session Hash</span><code>{vc["session_hash"]}</code></div>')
         if vc.get("critic_hash"):
-            parts.append(f'<div class="metadata-item"><span class="metadata-label">Critic Hash</span><code>{vc["critic_hash"]}</code></div>')
+            items.append(f'<div class="metadata-item"><span class="metadata-label">Critic Hash</span><code>{vc["critic_hash"]}</code></div>')
         if vc.get("binary_star_hash"):
-            parts.append(f'<div class="metadata-item"><span class="metadata-label">Binary Star Hash</span><code>{vc["binary_star_hash"]}</code></div>')
+            items.append(f'<div class="metadata-item"><span class="metadata-label">Binary Star Hash</span><code>{vc["binary_star_hash"]}</code></div>')
         if vc.get("config_hash"):
-            parts.append(f'<div class="metadata-item"><span class="metadata-label">Config Hash</span><code>{vc["config_hash"]}</code></div>')
-        return "".join(parts)
+            items.append(f'<div class="metadata-item"><span class="metadata-label">Config Hash</span><code>{vc["config_hash"]}</code></div>')
+        if not items:
+            return ""
+
+        return f"""
+        <section class="card">
+            <h2>Metadata</h2>
+            <div class="metadata-grid">{"".join(items)}
+            </div>
+        </section>"""
+
+    # ── Styles (extracted from dashboard.css, hardcoded for email) ──
 
     @staticmethod
     def get_styles() -> str:
-        """Dark-themed styles matching the dashboard web UI."""
         return """
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                    line-height: 1.5; color: #e2e8f0; margin: 0; padding: 20px;
-                    background-color: #0f172a;
+                /* ── Variables & Base ── */
+                :root {
+                    --bg-primary: #0d1117; --bg-secondary: #161b22; --bg-card: #1c2333;
+                    --bg-card-hover: #21283a; --bg-input: #0d1117;
+                    --border-color: #30363d; --border-muted: #21262d;
+                    --text-primary: #e6edf3; --text-secondary: #8b949e; --text-muted: #6e7681;
+                    --accent-blue: #58a6ff; --accent-green: #3fb950; --accent-red: #f85149;
+                    --accent-orange: #d29922; --accent-purple: #a371f7;
+                    --badge-green-bg: rgba(63, 185, 80, 0.15); --badge-green-text: #3fb950;
+                    --badge-green-border: rgba(63, 185, 80, 0.4);
+                    --badge-red-bg: rgba(248, 81, 73, 0.15); --badge-red-text: #f85149;
+                    --badge-red-border: rgba(248, 81, 73, 0.4);
+                    --badge-gray-bg: rgba(139, 148, 158, 0.15); --badge-gray-text: #8b949e;
+                    --badge-gray-border: rgba(139, 148, 158, 0.4);
+                    --radius: 8px; --radius-sm: 4px;
+                    --shadow: 0 1px 3px rgba(0,0,0,0.3);
                 }
-                .container {
-                    max-width: 850px; margin: 0 auto;
-                    background: #1e293b; border-radius: 12px;
-                    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4);
-                    padding: 40px; border: 1px solid #334155;
+                *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+                body.dark {
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+                        Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial, sans-serif;
+                    background: var(--bg-primary); color: var(--text-primary); line-height: 1.6;
                 }
-                .badge {
-                    display: inline-block; padding: 4px 12px; border-radius: 9999px;
-                    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+                a { color: var(--accent-blue); text-decoration: none; }
+                code, pre, .mono {
+                    font-family: "SF Mono", "Fira Code", Consolas, monospace;
                 }
-                .badge-green { background: #065f4620; color: #34d399; border: 1px solid #34d39940; }
-                .badge-red { background: #7f1d1d20; color: #f87171; border: 1px solid #f8717140; }
-                .badge-gray { background: #334155; color: #94a3b8; border: 1px solid #475569; }
+
+                /* ── Container & Card ── */
+                .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
                 .card {
-                    background: #1e293b; border: 1px solid #334155; border-radius: 10px;
-                    padding: 20px; margin-bottom: 20px;
+                    background: var(--bg-card); border: 1px solid var(--border-muted);
+                    border-radius: var(--radius); padding: 20px 24px; margin-bottom: 20px;
                 }
-                h1 { color: #f1f5f9; font-size: 28px; margin: 0 0 4px 0; }
-                h2 { color: #f1f5f9; font-size: 18px; margin: 0 0 16px 0; }
-                h3 { color: #e2e8f0; font-size: 15px; margin: 0 0 12px 0; }
-                h4 { color: #94a3b8; font-size: 12px; text-transform: uppercase; margin: 0 0 8px 0; }
-                .session-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #334155; }
-                .session-time { color: #94a3b8; font-size: 13px; margin-top: 4px; }
-                .tactical-grid {
-                    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                    gap: 12px; margin-bottom: 16px;
+                .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+
+                /* ── Session Header ── */
+                .session-header { margin-bottom: 20px; }
+                .session-header h2 { font-size: 1.4rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+                .session-time { color: var(--text-secondary); font-size: 0.85rem; }
+
+                /* ── Badges ── */
+                .badge {
+                    display: inline-block; padding: 2px 10px; border-radius: 12px;
+                    font-size: 0.75rem; font-weight: 600; letter-spacing: 0.03em;
+                    text-transform: uppercase; border: 1px solid transparent;
                 }
-                .tactical-item {
-                    background: #0f172a; border: 1px solid #334155; border-radius: 8px;
-                    padding: 12px; text-align: center;
-                }
-                .tactical-label { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 4px; }
-                .tactical-value { font-size: 16px; color: #e2e8f0; font-weight: 800; }
-                .mono { font-family: "SF Mono", "Courier New", monospace; }
-                .profit { color: #34d399; }
-                .loss { color: #f87171; }
-                .reasoning-details { margin-top: 12px; }
+                .badge-green { background: var(--badge-green-bg); color: var(--badge-green-text); border-color: var(--badge-green-border); }
+                .badge-red { background: var(--badge-red-bg); color: var(--badge-red-text); border-color: var(--badge-red-border); }
+                .badge-gray { background: var(--badge-gray-bg); color: var(--badge-gray-text); border-color: var(--badge-gray-border); }
+
+                /* ── Decision Card ── */
+                .decision-card { border-left: 3px solid var(--accent-blue); }
+                .decision-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+                .decision-opinion .badge { font-size: 0.9rem; padding: 4px 16px; }
+                .decision-confidence { display: flex; flex-direction: column; }
+                .confidence-value { font-size: 1.5rem; font-weight: 700; color: var(--accent-blue); }
+                .confidence-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+                /* ── Tactical Grid ── */
+                .tactical-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 16px; }
+                .tactical-grid.compact { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+                .tactical-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); }
+                .tactical-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+                .tactical-value { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+                .tactical-value.profit { color: var(--accent-green); }
+                .tactical-value.loss { color: var(--accent-red); }
+
+                /* ── Reasoning ── */
+                .reasoning-details { margin-top: 8px; }
+                .reasoning-details summary { cursor: pointer; color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; padding: 6px 0; }
                 .reasoning-text {
-                    background: #0f172a; color: #cbd5e1; padding: 16px; border-radius: 8px;
-                    font-size: 12px; line-height: 1.6; white-space: pre-wrap; overflow-x: auto;
+                    background: var(--bg-secondary); border: 1px solid var(--border-muted);
+                    border-radius: var(--radius-sm); padding: 14px; font-size: 0.8rem;
+                    line-height: 1.5; color: var(--text-secondary); white-space: pre-wrap;
+                    word-break: break-word; max-height: 400px; overflow-y: auto; margin-top: 8px;
                 }
-                .status-pills { display: flex; gap: 8px; margin-bottom: 16px; }
-                .status-pill {
-                    display: inline-block; padding: 4px 10px; border-radius: 6px;
-                    font-size: 11px; font-weight: 700; text-transform: uppercase;
+
+                /* ── Debate Rounds ── */
+                .debate-round { border: 1px solid var(--border-muted); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+                .debate-round summary {
+                    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+                    background: var(--bg-secondary); cursor: pointer; font-weight: 500;
+                    font-size: 0.9rem; user-select: none;
                 }
-                .pill-safe { background: #065f4620; color: #34d399; border: 1px solid #34d39940; }
-                .pill-chaos { background: #7f1d1d20; color: #f87171; border: 1px solid #f8717140; }
-                .pill-shielded { background: #1e3a5f20; color: #60a5fa; border: 1px solid #60a5fa40; }
-                .pill-exposed { background: #78350f20; color: #fbbf24; border: 1px solid #fbbf2440; }
-                .warning-banner {
-                    text-align: center; padding: 10px; border-radius: 8px; margin-bottom: 8px;
-                    font-size: 11px; font-weight: 600; line-height: 1.5;
+                .round-label { color: var(--text-primary); font-weight: 600; }
+                .round-plan-opinion .badge { font-size: 0.7rem; }
+                .round-confidence { color: var(--text-secondary); font-size: 0.85rem; }
+                .round-veto {
+                    padding: 1px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: 0.03em; margin-left: auto;
                 }
-                .warning-banner.chaos { background: #7f1d1d20; color: #f87171; border: 1px solid #f8717140; }
-                .warning-banner.exposed { background: #78350f20; color: #fbbf24; border: 1px solid #fbbf2440; }
-                .matrix-table {
-                    width: 100%; border-collapse: separate; border-spacing: 0;
-                    border-radius: 8px; border: 1px solid #334155; overflow: hidden; margin-top: 10px;
+                .round-math {
+                    padding: 1px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 600;
+                    text-transform: uppercase; letter-spacing: 0.03em;
                 }
-                .matrix-table th { background: #0f172a; color: #94a3b8; font-size: 10px; padding: 8px; text-align: center; border-bottom: 1px solid #334155; }
-                .matrix-table td { font-size: 11px; padding: 10px 8px; text-align: center; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
-                .matrix-table tr:last-child td { border-bottom: none; }
-                .matrix-highlight { background: #0f172a; font-weight: 600; color: #f1f5f9; }
-                .debate-round { margin-bottom: 12px; border: 1px solid #334155; border-radius: 8px; }
-                .debate-round summary { padding: 10px 16px; cursor: pointer; color: #e2e8f0; font-weight: 600; background: #0f172a; border-radius: 8px; }
+                .veto-pass { background: var(--badge-green-bg); color: var(--badge-green-text); }
+                .veto-constructive { background: rgba(210, 153, 34, 0.15); color: var(--accent-orange); }
+                .veto-critical { background: var(--badge-red-bg); color: var(--badge-red-text); }
+                .math-verified { background: var(--badge-green-bg); color: var(--badge-green-text); }
+                .math-failed { background: var(--badge-red-bg); color: var(--badge-red-text); }
                 .debate-body { padding: 16px; }
-                .debate-section { margin-bottom: 12px; }
-                .round-label { margin-right: 8px; }
-                .round-veto { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 8px; }
-                .veto-pass { background: #065f4620; color: #34d399; }
-                .veto-weak { background: #78350f20; color: #fbbf24; }
-                .veto-terminal { background: #7f1d1d20; color: #f87171; }
-                .veto-constructive { background: #1e3a5f20; color: #60a5fa; }
-                .round-math { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 4px; }
-                .math-verified { background: #065f4620; color: #34d399; }
-                .math-error { background: #7f1d1d20; color: #f87171; }
-                .math-skipped { background: #334155; color: #94a3b8; }
-                .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-                .chart-container { text-align: center; }
-                .chart-container img { max-width: 100%; }
-                .metadata-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
-                .metadata-item { padding: 8px 12px; background: #0f172a; border-radius: 6px; }
-                .metadata-label { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 2px; }
-                code { font-size: 11px; color: #94a3b8; font-family: "SF Mono", "Courier New", monospace; }
+                .debate-section { margin-bottom: 14px; }
+                .debate-section:last-child { margin-bottom: 0; }
+                .debate-section h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+                .debate-section h5 { font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; margin-top: 10px; color: var(--text-secondary); }
+
+                /* ── Charts ── */
+                .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 16px; }
+                .chart-container { background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 12px; }
+                .chart-container h4 { font-size: 0.85rem; font-weight: 600; margin-bottom: 8px; color: var(--text-secondary); }
+                .chart-img { width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-muted); }
+
+                /* ── Metadata ── */
+                .metadata-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+                .metadata-item { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; background: var(--bg-secondary); border-radius: var(--radius-sm); }
+                .metadata-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+                .metadata-item code { font-size: 0.8rem; color: var(--accent-purple); }
+
+                /* ── Responsive ── */
                 @media only screen and (max-width: 600px) {
-                    .container { padding: 20px !important; }
+                    .container { padding: 12px !important; }
                     .chart-grid { grid-template-columns: 1fr; }
+                    .tactical-grid { grid-template-columns: 1fr 1fr; }
                 }
-            </style>
-        """
+            </style>"""

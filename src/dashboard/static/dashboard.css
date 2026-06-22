@@ -557,13 +557,6 @@ tbody tr:hover {
   color: var(--text-secondary);
 }
 
-.chart-path {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-  word-break: break-all;
-}
-
 .chart-img {
   width: 100%;
   border-radius: var(--radius-sm);
