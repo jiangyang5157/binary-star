@@ -9,19 +9,21 @@ AI-driven crypto quantitative trading engine. Its core innovation is the **Binar
 ## Architecture
 
 ```
-Entry Points (run.py)
-  → Dashboard (src/dashboard/)           FastAPI + HTML, reads session JSON
+Entry Points (run.py + standalone run_*.py)
+  → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator
-  → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent
-  → AI Backend (src/infrastructure/ai/)  AbstractAIClient → Gemini/DeepSeek/Qwen adapters
-  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar
-  → Data Layer (src/infrastructure/)     AbstractExchangeClient → Binance, models (KlineData, etc.)
+  → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
+  → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
+  → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
+  → Notifications (src/infrastructure/)  EmailNotifier
+  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar,
+                                         MathFactChecker, AuditAssembler, AuditController
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders
 ```
 
 ### AI backend (key design pattern)
 
-`AbstractAIClient` is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` returns the right adapter based on `global_config.yaml` → `llm.active_provider`.
+`AbstractAIClient` (in `src/infrastructure/ai_client.py`) is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` (in `src/infrastructure/ai_factory.py`) returns the right adapter based on `global_config.yaml` → `llm.active_provider`. Adapter implementations live in `src/infrastructure/ai/`.
 
 OpenAI-compatible providers (DeepSeek, Qwen) share a single `OpenAICompatibleAdapter` base class. Only `GeminiAdapter` touches Gemini SDK types — the orchestrator and agents use provider-agnostic `VisualPart` for multimodal content.
 
@@ -109,10 +111,10 @@ The Sniper is a two-phase monitoring and trading automaton: a fast, lightweight 
 ### Architecture
 
 ```
-run_sniper.py (SniperDaemon)
+run.py sniper (SniperDaemon)
   ├── SniperScout (src/sniper/scout.py)         Lightweight market data harvester
   ├── SniperTrigger (src/sniper/trigger.py)     Three-type signal evaluator
-  ├── SessionEngine (run_session.py)            Binary Star AI reasoning (on-demand)
+  ├── SessionEngine (run.py session)            Binary Star AI reasoning (on-demand)
   └── MarginOrderExecutor (src/agent/order_executor.py)  Order lifecycle + Guardian
 ```
 
@@ -139,52 +141,52 @@ Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the st
 ### Complete Decision Tree (Phase 2: AI + Execution)
 
 ```
-                      ┌─────────────────────────┐
-                      │  Scan every 2 minutes     │
-                      │  Guardian ALWAYS runs first│
-                      └────────────┬────────────┘
+                      ┌─────────────────────────────┐
+                      │  Scan every 2 minutes       │
+                      │  Guardian ALWAYS runs first │
+                      └────────────┬────────────────┘
                                    │
-                    ┌──────────────▼──────────────┐
-                    │  GUARDIAN: Protect open positions │
-                    │  • Entry timeout? → Cancel         │
-                    │  • Filled but no OCO? → Place OCO  │
-                    │  • Has OCO? → Migrate trailing stop│
-                    │  • Time-stop? → Market close       │
-                    └──────────────┬──────────────┘
+                    ┌──────────────▼──────────────────────┐
+                    │  GUARDIAN: Protect open positions   │
+                    │  • Entry timeout? → Cancel          │
+                    │  • Filled but no OCO? → Place OCO   │
+                    │  • Has OCO? → Migrate trailing stop │
+                    │  • Time-stop? → Market close        │
+                    └──────────────┬──────────────────────┘
                                    │
-                    ┌──────────────▼──────────────┐
+                    ┌──────────────▼────────────────────┐
                     │  Evaluate Trigger (A/B/C signals) │
-                    └──────┬──────────┬───────────┘
+                    └──────┬──────────┬─────────────────┘
                            │          │
                     No trigger    Trigger hit
                            │          │
-              ┌────────────▼──┐  ┌───▼──────────────────┐
-              │ Sleep until     │  │ Has position already? │
-              │ next pulse      │  └──┬─────────────────┬──┘
+              ┌────────────▼──┐  ┌───▼───────────────────┐
+              │ Sleep until   │  │ Has position already? │
+              │ next pulse    │  └──┬─────────────────┬──┘
               └───────────────┘     │ YES             │ NO
-                         ┌──────────▼──────┐  ┌───────▼──────────────┐
-                         │ Skip AI entirely  │  │ Run Binary Star AI   │
-                         │ Guardian manages   │  │ Debate → final decision │
-                         │ the position       │  └───────┬──────────────┘
-                         └─────────────────┘          │
-                                          ┌───────────▼───────────┐
-                                          │ Trade Gates:            │
-                                          │ • BULLISH/BEARISH?      │
-                                          │ • Confidence ≥ 60%?     │
-                                          │ • Has entry/TP/SL?      │
-                                          └─────┬────────┬────────┘
+                         ┌──────────▼───────┐  ┌───────▼─────────────────┐
+                         │ Skip AI entirely │  │ Run Binary Star AI      │
+                         │ Guardian manages │  │ Debate → final decision │
+                         │ the position     │  └───────┬─────────────────┘
+                         └──────────────────┘          │
+                                          ┌───────────▼─────────┐
+                                          │ Trade Gates:        │
+                                          │ • BULLISH/BEARISH?  │
+                                          │ • Confidence ≥ 60%? │
+                                          │ • Has entry/TP/SL?  │
+                                          └─────┬────────┬──────┘
                                                 │ PASS   │ FAIL
                                      ┌──────────▼──┐  ┌──▼──────┐
-                                     │ sync_with_   │  │ Skip    │
-                                     │ opinion()    │  └─────────┘
-                                     └──┬──┬──┬───┘
+                                     │ sync_with_  │  │ Skip    │
+                                     │ opinion()   │  └─────────┘
+                                     └──┬──┬──┬────┘
                                         │  │  │
                          FLAT ──────────┘  │  └────────── SAME DIRECTION
-                         • Cancel stale     │              • Pick best TP/SL
-                         • LIMIT entry      │              • Wrap into OCO
-                         • Return order_id  │              • Return None
-                                            │
-                                    PIVOT ──┘
+                         • Cancel stale    │              • Pick best TP/SL
+                         • LIMIT entry     │              • Wrap into OCO
+                         • Return order_id │              • Return None
+                                           │
+                                    PIVOT ─┘
                                     ├─ Unprotected: Force-close + new entry
                                     └─ Protected: Adjust TP + hang new entry
 ```
@@ -418,7 +420,8 @@ llm:
 
 - `config/strategy_config.yaml` — trading parameters, regime thresholds, analysis windows
 - `config/global_config.yaml` — system settings, LLM provider config, visuals, sniper
-- `config/prompts/*.md` — LLM system prompts (sensitive system logic)
+- `config/visual_config.yaml` — chart appearance, color themes, visual rendering options
+- `config/prompts/*.md` — LLM system prompts: `session.md`, `critic.md`, `evolver.md`, `binary_star.md` (sensitive system logic)
 - `src/config/sub_configs.py` — `RegimeConfig`, `TemporalConfig`, `RiskConfig`, `AuditConfig`, `VisualConfig` (frozen dataclasses)
 - `src/config/loader.py` — builds sub-configs from YAML dicts
 

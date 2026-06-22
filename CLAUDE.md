@@ -55,22 +55,26 @@ This is **Singularity** — an AI-driven crypto quantitative trading engine. Its
 ### Layer stack
 
 ```
-Entry Points (run.py)
-  → Dashboard (src/dashboard/)           FastAPI + HTML, reads session JSON
+Entry Points (run.py + standalone run_*.py)
+  → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator, BinaryStarConfig
-  → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent
-  → AI Backend (src/infrastructure/ai/)  AbstractAIClient → GeminiAdapter / OpenAICompatibleAdapter (DeepSeek, Qwen)
-  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar
-  → Data Layer (src/infrastructure/)     AbstractExchangeClient → Binance, models (KlineData, MarginOrder, etc.)
+  → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
+  → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
+  → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
+  → Notifications (src/infrastructure/)  EmailNotifier
+  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar,
+                                         MathFactChecker, AuditAssembler, AuditController, ChartGenerator,
+                                         TopographyEngine, SimulationSampler
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders
 ```
 
 ### AI backend (key design pattern)
 
-`AbstractAIClient` is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` returns the right adapter based on `global_config.yaml` → `llm.active_provider`.
+`AbstractAIClient` (in `src/infrastructure/ai_client.py`) is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` (in `src/infrastructure/ai_factory.py`) returns the right adapter based on `global_config.yaml` → `llm.active_provider`.
 
+- **`src/infrastructure/ai/`** — adapter implementations only: `GeminiAdapter`, `DeepSeekAdapter`, `QwenAdapter`, plus `_openai_helpers.py`.
 - **`OpenAICompatibleAdapter`** — shared base class for DeepSeek and Qwen. Adding a new OpenAI-compatible provider is a ~10-line subclass.
-- **`VisualPart`** — provider-agnostic multimodal content type. The orchestrator and agents use this; only `GeminiAdapter` and `GeminiCacheManager` convert to Gemini-native `types.Part`.
+- **`VisualPart`** — provider-agnostic multimodal content type (defined in `ai_client.py`). The orchestrator and agents use this; only `GeminiAdapter` and `GeminiCacheManager` convert to Gemini-native `types.Part`.
 - **`GeminiAdapter`** — the only adapter that touches `google.genai` types. Exposes `.raw_client` for cache operations. Only Gemini supports context caching (`supports_context_cache = True`).
 
 ### Adversarial debate flow
@@ -87,7 +91,8 @@ Entry Points (run.py)
 
 - `config/strategy_config.yaml` — trading parameters, regime thresholds, analysis windows
 - `config/global_config.yaml` — system settings, LLM provider config, visuals, sniper
-- `config/prompts/*.md` — LLM system prompts (these + the YAML keys are **sensitive system logic**)
+- `config/visual_config.yaml` — chart appearance, color themes, visual rendering options
+- `config/prompts/*.md` — LLM system prompts: `session.md`, `critic.md`, `evolver.md`, `binary_star.md` (sensitive system logic)
 - `src/config/sub_configs.py` — `RegimeConfig`, `TemporalConfig`, `RiskConfig`, `AuditConfig`, `VisualConfig` (frozen dataclasses)
 - `src/config/loader.py` — builds sub-configs from YAML dicts
 - `src/agent/binary_star_orchestrator.py` — `BinaryStarConfig.from_dicts()` factory consolidates all config resolution
@@ -95,14 +100,14 @@ Entry Points (run.py)
 
 ### Error handling
 
-- `src/utils/exceptions.py` — domain exception hierarchy: `AgentInferenceError`, `EmptyModelResponseError`, `MalformedJSONError`, `MaxIterationsError`, `AIProviderError`
+- `src/utils/exceptions.py` — domain exception hierarchy: `SingularityError` (base) → `AgentInferenceError` (agent failures: `EmptyModelResponseError`, `MalformedJSONError`, `MaxIterationsError`, `AIProviderError`), `DataIntegrityError`, `ConfigurationError`
 - `BaseAgent._execute_ai_cycle()` raises typed exceptions instead of returning error dicts
 
 ### Key invariants
 
 - **`BinaryStarOrchestrator.execute_flow(observation, symbol)`** — public signature must not change
-- **`GeminiCacheManager`** requires `GeminiAdapter` (only Gemini supports context caching); guarded by `self.enable_context_cache` check
+- **`GeminiCacheManager`** (`src/infrastructure/gemini/cache_manager.py`) requires `GeminiAdapter` (only Gemini supports context caching); guarded by `self.enable_context_cache` check
 - **`run_evolution.py`** (and `run.py evolution`) must use `AIFactory.create_client()`, not raw SDK clients
 - Non-Gemini adapters return `False` for `supports_context_cache`
-- Tool function declarations live in `MathTools.get_tool_declarations()` — must stay in sync with actual implementations
+- **`MathTools`** (`src/utils/math_utils.py`) — tool function declarations via `get_tool_declarations()` must stay in sync with actual implementations
 - `VisualPart` is the only multimodal type in the orchestrator/agent layer — `google.genai.types` is isolated to `GeminiAdapter` and `GeminiCacheManager`
