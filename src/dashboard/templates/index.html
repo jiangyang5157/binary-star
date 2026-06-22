@@ -58,21 +58,15 @@
   </section>
 
   <!-- ═══════ Charts Row ═══════ -->
-  <section class="card chart-card">
-    <h2>Equity Growth Curve</h2>
-    <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
-  </section>
-
   <div class="chart-row">
+    <section class="card chart-card">
+      <h2>Equity Growth Curve</h2>
+      <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+    </section>
     <section class="card chart-card">
       <h2>Confidence Threshold Optimizer</h2>
       <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
       <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
-    </section>
-    <section class="card chart-card">
-      <h2>Confidence Distribution</h2>
-      <p class="chart-hint">Frequency of confidence scores (filled trades only)</p>
-      <div class="chart-wrap"><canvas id="distChart"></canvas></div>
     </section>
   </div>
 
@@ -134,7 +128,7 @@ function apiUrl(path, extra = {}) {
 
 // ── Chart config ──
 const gridColor = '#21262d', textMuted = '#6e7681', textBright = '#8b949e';
-let timelineChart = null, equityChart = null, optimizerChart = null, distChart = null;
+let timelineChart = null, equityChart = null, optimizerChart = null;
 let allTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
 
 // ── Helpers ──
@@ -205,7 +199,6 @@ function updateAllCharts(threshold) {
   renderTimeline(allTrades, threshold);
   renderEquity(curve, netPnL);
   renderOptimizer(filledTrades);
-  renderDistribution(filledTrades);
 }
 
 // ── Charts ──
@@ -311,25 +304,6 @@ function renderOptimizer(filledTrades) {
         x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: textBright }, ticks: { color: textMuted } },
         y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
       }
-    }
-  });
-}
-
-function renderDistribution(filledTrades) {
-  const ctx = $('distChart').getContext('2d');
-  if (distChart) distChart.destroy();
-
-  const bins = [];
-  for (let i = 40; i <= 95; i += 5) bins.push({ label: `${i}-${i + 4}`, min: i, max: i + 5, count: 0, pnlSum: 0 });
-  filledTrades.forEach(t => { bins.forEach(b => { if (t.confidence >= b.min && t.confidence < b.max) { b.count++; b.pnlSum += t.pnl_pct; } }); });
-
-  distChart = new Chart(ctx, {
-    type: 'bar',
-    data: { labels: bins.map(b => b.label), datasets: [{ data: bins.map(b => b.count), backgroundColor: '#a371f7', borderRadius: 6 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => { const b = bins[ctx.dataIndex]; return [`Count: ${b.count}`, `PnL Sum: ${b.pnlSum >= 0 ? '+' : ''}${b.pnlSum.toFixed(2)}%`]; } } } },
-      scales: { x: { ticks: { color: textMuted } }, y: { ticks: { color: textBright, stepSize: 1 }, grid: { color: gridColor } } }
     }
   });
 }
