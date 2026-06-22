@@ -27,6 +27,46 @@ analysis_window:
   # --- 微观张量 (Micro Tensors) ---
   cvd_micro_lookback_candles: 4
 
+topography_parameters:
+  # --- Volume Profile Engine ---
+  # The % of volume defined as the 'Value Area' (Standard: 70%).
+  volume_profile_value_area_width: 0.86
+
+  # --- Strategic Indicator Smoothing ---
+  # Period for trend detection (EMA).
+  exponential_moving_average_period: 21
+  # Period for smoothing volume and volatility participation.
+  volume_moving_average_period: 21
+
+  # --- Structural Node Detection ---
+  # Max structural nodes (HVN/LVN) to extract from profile.
+  max_volume_node_count: 3
+  # Max structural nodes to report in topography and context.
+  top_structural_node_count: 3
+  # Probability threshold for detecting a structural High Volume Node.
+  high_volume_node_detection_threshold: 0.15
+  # Probability threshold for detecting a structural Low Volume Node.
+  low_volume_node_detection_threshold: 0.05
+  # Minimum gap required to distinguish two separate structural nodes.
+  min_node_gap_atr: 1.2
+
+  # --- Technical Sensors (Physics Math) ---
+  average_true_range_period: 21
+  bollinger_bands_period: 21
+  bollinger_bands_std_dev: 2.0
+  keltner_channels_period: 21
+  keltner_channels_multiplier: 1.5
+  wick_skew_lookback_candles: 3
+  wick_skew_fallback: 0.5
+  # Fallback distance in ATR units used when no structural nodes are detected.
+  default_structural_distance_atr: 5.0
+
+  # --- Liquidity Magnet (Liquidation Clusters) ---
+  # Number of forced-liquidation clusters to analyze simultaneously.
+  max_liquidation_clusters: 2
+  # Max historical liquidation events to fetch per cycle.
+  max_liquidation_events_to_fetch: 50
+
 regime_parameters:
   # --- Trend & Momentum Vectors (Regime Detection) ---
   # Minimum vector strength to classify as 'Trending'. Range [0, 1].
@@ -104,68 +144,7 @@ regime_parameters:
   # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
   min_rr_ranging: 1
   min_rr_trending: 1.2
-
-audit_review:
-  # --- Forensic Evaluation Parameters (v6.11 Hardened) ---
-  # Fidelity of the sampling window for forensic replay (Forensic Resolution).
-  forensic_resolution: 1m
-  # ATR threshold to classify an unfilled order as a 'Near Miss' (Physical Redline).
-  unfilled_proximity_atr_limit: 0.1
-  # ATR threshold for missed moves that trigger a catastrophic failure audit.
-  missed_opportunity_atr_threshold: 2.0
-  # Price % move threshold for catastrophic missed opportunities.
-  catastrophic_miss_atr_threshold: 3.0
-
-  # MAE stress thresholds (percentage of ATR) for performance tiering.
-  mae_threshold_pinpoint: 20.0
-  mae_threshold_standard: 50.0
-  mae_threshold_luck: 80.0
-  # --- Market Friction Modeling ---
-  # Ideal floor for slippage (5.0 bps = 0.05%).
-  base_slippage_bps: 5.0
-  # Max penalty for liquidity vacuums (50.0 bps = 0.50%).
-  max_slippage_bps: 50.0
-
-topography_parameters:
-  # --- Volume Profile Engine ---
-  # The % of volume defined as the 'Value Area' (Standard: 70%).
-  volume_profile_value_area_width: 0.86
-
-  # --- Strategic Indicator Smoothing ---
-  # Period for trend detection (EMA).
-  exponential_moving_average_period: 21
-  # Period for smoothing volume and volatility participation.
-  volume_moving_average_period: 21
-
-  # --- Structural Node Detection ---
-  # Max structural nodes (HVN/LVN) to extract from profile.
-  max_volume_node_count: 3
-  # Max structural nodes to report in topography and context.
-  top_structural_node_count: 3
-  # Probability threshold for detecting a structural High Volume Node.
-  high_volume_node_detection_threshold: 0.15
-  # Probability threshold for detecting a structural Low Volume Node.
-  low_volume_node_detection_threshold: 0.05
-  # Minimum gap required to distinguish two separate structural nodes.
-  min_node_gap_atr: 1.2
-
-  # --- Technical Sensors (Physics Math) ---
-  average_true_range_period: 21
-  bollinger_bands_period: 21
-  bollinger_bands_std_dev: 2.0
-  keltner_channels_period: 21
-  keltner_channels_multiplier: 1.5
-  wick_skew_lookback_candles: 3
-  wick_skew_fallback: 0.5
-  # Fallback distance in ATR units used when no structural nodes are detected.
-  default_structural_distance_atr: 5.0
-
-  # --- Liquidity Magnet (Liquidation Clusters) ---
-  # Number of forced-liquidation clusters to analyze simultaneously.
-  max_liquidation_clusters: 2
-  # Max historical liquidation events to fetch per cycle.
-  max_liquidation_events_to_fetch: 50
-
+  
 binary_star:
   session:
 
@@ -188,3 +167,24 @@ binary_star:
     temporal_dilation_standard: 1.5 # [冗余 50%]：常态市场进三退二。物理时间 20 小时，脚本追踪 30 小时，给足结构发育的时间。
     temporal_dilation_dead_water: 2.0 # [冗余 100%]：死水区价格黏性极大，全是毛刺。物理上 10 小时的路程，需要 20 小时才能“磨”到。
     temporal_dilation_climax: 1.0 # [冗余 0%]：极端波动，非生即死。不需要缓冲，如果物理预期时间内没打到目标，说明逻辑已经破产。
+
+audit_review:
+  # --- Forensic Evaluation Parameters (v6.11 Hardened) ---
+  # Fidelity of the sampling window for forensic replay (Forensic Resolution).
+  forensic_resolution: 1m
+  # ATR threshold to classify an unfilled order as a 'Near Miss' (Physical Redline).
+  unfilled_proximity_atr_limit: 0.1
+  # ATR threshold for missed moves that trigger a catastrophic failure audit.
+  missed_opportunity_atr_threshold: 2.0
+  # Price % move threshold for catastrophic missed opportunities.
+  catastrophic_miss_atr_threshold: 3.0
+
+  # MAE stress thresholds (percentage of ATR) for performance tiering.
+  mae_threshold_pinpoint: 20.0
+  mae_threshold_standard: 50.0
+  mae_threshold_luck: 80.0
+  # --- Market Friction Modeling ---
+  # Ideal floor for slippage (5.0 bps = 0.05%).
+  base_slippage_bps: 5.0
+  # Max penalty for liquidity vacuums (50.0 bps = 0.50%).
+  max_slippage_bps: 50.0
