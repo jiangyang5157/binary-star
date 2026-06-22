@@ -308,7 +308,8 @@ async function checkSniperStatus() {
         const g = data.guardian;
         let parts = [data.symbol];
         parts.push(`Trade=${data.trade_enabled ? 'ON' : 'OFF'}`);
-        if (data.balance != null) parts.push(`Balance=${data.balance}`);
+        const balance = data.balance ?? g.account_balance;
+        if (balance != null) parts.push(`Balance=${balance}`);
         parts.push(`NetQty=${g.net_qty?.toFixed(4)}`);
         parts.push(`Orders=${g.active_orders}`);
         statusEl.textContent = parts.join(' | ');

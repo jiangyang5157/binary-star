@@ -281,6 +281,15 @@ class SniperDaemon:
                     "active_orders": len(active_orders) if active_orders else 0,
                     "last_pulse_at": datetime.now(timezone.utc).isoformat(),
                 }
+                # Fetch account balance for display (USDT net asset)
+                try:
+                    account = self.executor.client.get_cross_margin_account()
+                    for a in (account.assets or []):
+                        if a.asset == "USDT" and a.net_asset > 0:
+                            guardian["account_balance"] = round(a.net_asset, 2)
+                            break
+                except Exception:
+                    pass  # balance fetch is best-effort
                 guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_guardian.json")
                 _json.dump(guardian, open(guardian_path, "w"), default=str)
             except Exception:
