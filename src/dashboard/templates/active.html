@@ -55,7 +55,8 @@
         <input type="number" id="sniper-balance" class="filter-input"
                placeholder="Balance" min="0" step="any"
                style="width:100px"
-               onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /[0-9.]/.test(event.key) && event.key.length === 1">
+               onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+               oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '')">
         <span class="run-suffix" style="font-size:0.8rem">USDT</span>
       </span>
       <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Start</button>
