@@ -2,12 +2,12 @@
 """Singularity — unified CLI entry point.
 
 Usage:
-    python run.py session [--symbol BTCUSDT] [--email] [-p data/prod]
-    python run.py session -ts 2026-01-24T15:42:00Z
-    python run.py session --start T-30d --end T-2d --samples 14 --sampling-mode sniper
-    python run.py sniper [--symbol BTCUSDT] [--trigger] [--email] [--trade]
-    python run.py audit -p data/prod [--symbol BTCUSDT] [--force]
-    python run.py evolution -p data/backtest [--symbol BTCUSDT] --samples 20
+    python run.py session --symbol BTC [--email] [-p data/prod]
+    python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
+    python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
+    python run.py sniper --symbol BTC,XAUT [--trigger] [--email] [--trade]
+    python run.py audit -p data/prod [--symbol BTC] [--force]
+    python run.py evolution --symbol BTC -p data/backtest --samples 20
     python run.py patch -f evolution_proposal.json
 """
 
@@ -159,7 +159,7 @@ def _add_audit_parser(subparsers):
     p = subparsers.add_parser("audit", help="Run forensic audit on sessions")
     p.add_argument("--file", "-f", help="Path to a specific session JSON file")
     p.add_argument("--symbol", type=str,
-                   help="Filter batch audit by symbol")
+                   help="Filter batch audit by symbol prefix (e.g. BTC)")
     p.add_argument("--force", action="store_true",
                    help="Bypass deduplication and maturity checks")
     add_data_path_argument(p, required=True)

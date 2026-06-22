@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run all tests (90 tests in unit/integration/system structure)
+# Run all tests (107 tests)
 python -m pytest tests/ -v
 
 # Run a single test file
@@ -23,26 +23,28 @@ python -m src.dashboard.server
 python -m src.dashboard.server -p data/prod --port 8080
 
 # ── Unified CLI (run.py) ─────────────────────────────────────────────
+# --symbol accepts prefix format (BTC, XAUT, ETH); "USDT" appended internally
 
 # Live analysis
-python run.py session
+python run.py session --symbol BTC
 
 # Single historical snapshot
-python run.py session -ts 2026-01-24T15:42:00Z
+python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
 
 # Backtest (sampled historical points)
-python run.py session --start T-30d --end T-2d --samples 14 --sampling-mode sniper
+python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
 
-# Real-time monitoring daemon
-python run.py sniper --trigger --email
-python run.py sniper --trigger --email --trade
+# Real-time monitoring daemon (CSV for multi-symbol)
+python run.py sniper --symbol BTC,XAUT --trigger --email
+python run.py sniper --symbol BTC,XAUT --trigger --email --trade
 
 # Forensic audit
 python run.py audit -p data/prod
 python run.py audit -p data/backtest --file <session_file>.json
+python run.py audit -p data/prod --symbol BTC
 
 # Strategy meta-evolution
-python run.py evolution -p data/backtest --samples 20
+python run.py evolution --symbol BTC -p data/backtest --samples 20
 
 # Apply evolution patch
 python run.py patch -f <evolution_file>.json

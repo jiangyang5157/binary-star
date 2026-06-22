@@ -82,7 +82,7 @@ def run_task(args_tuple):
 def main():
     parser = argparse.ArgumentParser(description="Singularity Forensic Auditor v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
-    parser.add_argument("--symbol", type=str, help="Optional: Filter batch audit by symbol")
+    parser.add_argument("--symbol", type=str, help="Optional: Filter batch audit by symbol prefix (e.g. BTC)")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")
     
     add_data_path_argument(parser, required=True)

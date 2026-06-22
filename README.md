@@ -251,17 +251,17 @@ When OCO re-placement fails after cancelling existing orders (in Pivot-Preserve 
 
 This matches the existing emergency-close pattern in the **Trailing Stop Migration** path, ensuring no position ever sits unprotected.
 
-### Dual-Instrument Calibration (BTC + XAUT)
+### Multi-Symbol Architecture
 
-The system supports both `BTCUSDT` and `XAUTUSDT` from a single config. Core analysis parameters in `strategy_config.yaml` are instrument-agnostic — CVD ratios, ATR-normalized distances, and volume participation ratios apply identically to both. Only **timing parameters** are tuned for balance:
+The system supports any number of trading pairs from a single config. Symbols are provided at runtime via `--symbol` (prefix format, e.g., `BTC,XAUT`), and the sniper daemon runs an independent scout → trigger → guardian loop for each. Core analysis parameters in `strategy_config.yaml` are instrument-agnostic — CVD ratios, ATR-normalized distances, and volume participation ratios apply identically across instruments. Timing parameters are tuned for general-purpose balance:
 
-| Parameter | Original (BTC-oriented) | Balanced (current) | Rationale |
-|-----------|------------------------|---------------------|-----------|
-| **Cooldown** | 60 min | **45 min** | Midpoint — responsive enough for XAUT's rare signals, long enough to prevent BTC spam |
-| **Chaos Mute** | 120 min | **90 min** | Proportional to cooldown (45 × 2.0). Extends protection during vol spikes |
-| **State Lockout** | 8.0 hours | **6.0 hours** | Between 4h (XAUT-optimal) and 8h (BTC-optimal). Prevents spam without missing setups |
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| **Cooldown** | **45 min** | 15m micro-context × 3.0 multiplier |
+| **Chaos Mute** | **90 min** | Proportional to cooldown (45 × 2.0). Extends protection during vol spikes |
+| **State Lockout** | **6.0 hours** | Prevents structural/sentiment trigger spam without missing setups |
 
-**Why CVD/volatility/squeeze thresholds are NOT per-instrument:**
+**Why CVD/volatility/squeeze thresholds are instrument-agnostic:**
 
 | Parameter | Why instrument-agnostic |
 |-----------|------------------------|
@@ -272,7 +272,7 @@ The system supports both `BTCUSDT` and `XAUTUSDT` from a single config. Core ana
 | `proximity_vah_val_atr` (0.70) | All ATR-denominated — structural proximity is measured in the instrument's own volatility units. |
 | `cvd_intensity_threshold` (0.10) | Used by AI agents + debate loop + sniper trigger. Changing it shifts the entire reasoning pipeline's baseline for "significant flow." |
 
-> **Future enhancement**: Per-symbol config overrides (e.g., `sniper.BTCUSDT.cvd_divergence_tick_delta`) would allow instrument-specific tuning without duplicating config files.
+> **Future enhancement**: Per-symbol config overrides (e.g., `sniper.BTC.cvd_divergence_tick_delta`) would allow instrument-specific tuning without duplicating config files. State (cooldowns, lockouts, trade_state) is already per-symbol in the daemon.
 
 ### Key Configuration
 
@@ -333,26 +333,29 @@ pip install -e .
 All entry points are consolidated under `run.py`:
 
 ```bash
+# --symbol accepts prefix format (BTC, XAUT, ETH); "USDT" appended internally
+
 # Live analysis
-python run.py session
+python run.py session --symbol BTC
 
 # Single historical snapshot
-python run.py session -ts 2026-01-24T15:42:00Z
+python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
 
 # Backtest (sampled historical points)
-python run.py session --start T-30d --end T-2d --samples 14 --sampling-mode sniper
-python run.py session --start T-30d --end T-2d --samples 14 --symbol XAUTUSDT -p data/backtest/xautusdt
+python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
+python run.py session --symbol XAUT --start T-30d --end T-2d --samples 14 -p data/backtest
 
-# Real-time monitoring daemon
-python run.py sniper --trigger --email
-python run.py sniper --trigger --email --trade
+# Real-time monitoring daemon (CSV for multi-symbol)
+python run.py sniper --symbol BTC,XAUT --trigger --email
+python run.py sniper --symbol BTC,XAUT --trigger --email --trade
 
 # Forensic audit
 python run.py audit -p data/prod
 python run.py audit -p data/backtest --file data/backtest/sessions/BTCUSDT_session_20260101_120000.json
+python run.py audit -p data/prod --symbol BTC
 
 # Meta-evolution (strategy optimization from audit results)
-python run.py evolution -p data/backtest --samples 20
+python run.py evolution --symbol BTC -p data/backtest --samples 20
 
 # Apply evolution patch
 python run.py patch -f data/backtest/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
