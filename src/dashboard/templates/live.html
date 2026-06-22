@@ -120,15 +120,15 @@ function apiUrl(path) {
   return DR ? `${path}?${DR}` : path;
 }
 
-{% if "run_new_session" in permissions %}
-// ── Session Run Trigger ──
-let runPollInterval = null;
-
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+{% if "run_new_session" in permissions %}
+// ── Session Run Trigger ──
+let runPollInterval = null;
 
 function updateRunUI(state) {
   const input = document.getElementById('symbol-prefix');
@@ -170,7 +170,7 @@ async function checkRunStatus() {
           if (last.result === 'success') {
             statusEl.className = 'run-status-box run-ok';
             statusEl.textContent = `✓ ${last.symbol} completed`;
-            loadActive();
+            if (typeof loadActive === 'function') { loadActive(); }
             setTimeout(() => {
               statusEl.style.display = 'none';
               updateRunUI('idle');
@@ -180,7 +180,7 @@ async function checkRunStatus() {
             const msg = last.error_message || 'unknown error';
             statusEl.textContent = `✗ ${last.symbol} failed: ${msg}`;
             updateRunUI('idle');
-            loadActive();
+            if (typeof loadActive === 'function') { loadActive(); }
           }
         } else {
           updateRunUI('idle');
