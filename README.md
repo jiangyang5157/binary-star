@@ -347,6 +347,8 @@ python run.py session --start T-30d --end T-2d --samples 21 --sampling-mode snip
 # Real-time monitoring daemon (CSV for multi-symbol)
 python run.py sniper --symbol BTC,XAUT --trigger --email --trade -b 1000 
 
+python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_20260622_090935.json
+
 # Forensic audit
 python run.py audit -p data/prod
 python run.py audit -p data/backtest/v26.6.23_r21_btcusdt
