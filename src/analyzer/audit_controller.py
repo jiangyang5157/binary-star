@@ -76,7 +76,7 @@ class AuditController:
         
         self.observer = MarketObserver(
             config=self.obs_config,
-            symbol="BTCUSDT",  # benchmark; overwritten per-audit at line 125
+            symbol=None,  # placeholder; set per-audit before observe()
             data_root=self.data_root,
             exchange_client=self.exchange_client,
             chart_generator=self.chart_gen
