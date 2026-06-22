@@ -21,7 +21,7 @@ class RunRequest(BaseModel):
 
 # ── Status file helpers ─────────────────────────────────────────────────
 
-STATUS_FILENAME = ".run_status.json"
+STATUS_FILENAME = ".session_run_status.json"
 log = logging.getLogger("SessionRunAPI")
 
 

@@ -14,7 +14,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/sniper")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-STATUS_FILENAME = ".sniper_status.json"
+STATUS_FILENAME = ".sniper_daemon_status.json"
 log = logging.getLogger("SniperRunAPI")
 
 
@@ -194,7 +194,7 @@ def sniper_status(data_root: str = Query("")):
 
 def _read_guardian_status(data_root: str) -> dict | None:
     """Read the guardian pulse file written by the sniper daemon."""
-    path = Path(data_root) / ".sniper_guardian.json"
+    path = Path(data_root) / ".sniper_heartbeat.json"
     if not path.exists():
         return None
     try:

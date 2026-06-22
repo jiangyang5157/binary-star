@@ -63,7 +63,7 @@ llm:
     session_role_prompt: "config/prompts/session.md"
     critic_role_prompt: "config/prompts/critic.md"
     max_rounds: 2
-    session_confidence_threshold: 60
+    session_confidence_threshold: 50
 
   evolver:
     role_prompt: "config/prompts/evolver.md"

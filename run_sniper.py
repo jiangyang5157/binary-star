@@ -326,7 +326,7 @@ class SniperDaemon:
             }
 
             # Atomic write
-            guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_guardian.json")
+            guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_heartbeat.json")
             tmp_path = guardian_path + ".tmp"
             with open(tmp_path, "w") as f:
                 _json.dump(guardian, f, default=str)
