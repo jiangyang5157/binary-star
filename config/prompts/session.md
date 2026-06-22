@@ -76,7 +76,7 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[CVD_ABSORPTION]`: Abort Momentum. Move to deep **DLE** at nearest `HVN/POC`.
 - `[GRAVITY_EXHAUSTION]`: IF lacks momentum, execute Mean-Reversion **DLE** targeting `POC`. IF institutional flow is confirmed (`IS_TREND_STRONG`), execute **Shallow Pullback DLE** aligned with flow; DO NOT force a return to the distal `POC`.
 - `[FLOW_VIOLATION]`: Polarity Pivot to align with `cvd_intensity_ratio` or abort to "NEUTRAL". DO NOT attempt to "deepen the entry" to absorb counter-flow; this is a falling knife trap.
-- `[VOLATILITY_CHOP]`: Immediately abort to "NEUTRAL".
+- `[VOLATILITY_CHOP]`: Treat as high-noise regime. Tighten `take_profit` to first structural boundary. If CVD flow is dominant, maintain directional bias. If flow direction is unclear, abort to "NEUTRAL".
 - `[INACTION_BIAS]`: Re-read telemetry; execute Mean-Reversion DLE or Vacuum Flip.
 - `[OPPORTUNITY_DENIAL]`: Execute **Momentum Entry** aligned with CVD or shallow **DLE**. **MANDATORY**: `entry` MUST be anchored to valid structure. Do not force a shallow entry in a vacuum just to satisfy proximity.
 - `[TREND_STARVATION]`: Shift to shallow pullback or Momentum Entry. No deep DLEs.

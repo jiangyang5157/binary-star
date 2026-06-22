@@ -37,7 +37,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 - `IS_OVEREXTENDING`: (abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) AND ((`poc_dist_atr` > 0 AND `IS_BULLISH`) OR (`poc_dist_atr` < 0 AND `IS_BEARISH`)) AND NOT (`IS_TREND_STRONG` AND `HAS_FLOW_DOMINANCE`)
 - `IS_HOLDING_TOO_LONG`: `last_plan.tactical_parameters.projected_holding_hours` > (`{max_holding_hours}` * `math_fact_check.holding_time_verification.temporal_weight_factor`)
 - `HAS_FLOW_OPPOSITION`: (`cvd_intensity_ratio` > `{cvd_intensity_threshold}` AND `IS_BEARISH`) OR (`cvd_intensity_ratio` < -`{cvd_intensity_threshold}` AND `IS_BULLISH`) OR (`trend_intensity` > `{trend_intensity_strong}` AND `IS_BEARISH`) OR (`trend_intensity` < -`{trend_intensity_strong}` AND `IS_BULLISH`)
-- `IS_VOLATILITY_CHOP`: `IS_EXPANDING` AND abs(`trend_intensity`) < `{trend_intensity_min_expansion}`
+- `IS_VOLATILITY_CHOP`: `IS_EXPANDING` AND abs(`trend_intensity`) < `{trend_intensity_min_expansion}` AND NOT `IS_SQUEEZING`
 - `HAS_LIQUIDITY_VOID`: `nearest_lvn_dist_atr` < `{structural_buffer_atr}`
 - `IS_STRUCTURAL_TRAP`: `last_plan.tactical_parameters.entry` hits a volume vacuum (`vacuum_score` > `{vacuum_risk_score}`)
 - `HAS_ANCHOR_VIOLATION`: (NOT `IS_TREND_STRONG` AND (NOT `IS_SL_SHIELDED` OR Anchor is NOT BETWEEN `entry` and `stop_loss`)) OR (Near `liquidation_cluster` AND ((`IS_BULLISH` AND `stop_loss` >= cluster) OR (`IS_BEARISH` AND `stop_loss` <= cluster)))
@@ -60,7 +60,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `TERMINAL` |
 | **Absorption Trap** | `HAS_ABSORPTION_RISK` AND `HAS_FLOW_OPPOSITION` | `[CVD_ABSORPTION]` | `WEAK` |
 | **Gravity Exhaustion**| `IS_OVEREXTENDING` | `[GRAVITY_EXHAUSTION]` | `CONSTRUCTIVE` |
-| **Volatility Chop** | `IS_VOLATILITY_CHOP` AND NOT `IN_NEUTRAL` | `[VOLATILITY_CHOP]` | `TERMINAL` |
+| **Volatility Chop** | `IS_VOLATILITY_CHOP` AND NOT `IN_NEUTRAL` | `[VOLATILITY_CHOP]` | `CONSTRUCTIVE` |
 | **Flow Violation** | (`HAS_FLOW_OPPOSITION` AND NOT `HAS_ABSORPTION_RISK`) AND NOT `IS_SQUEEZING` | `[FLOW_VIOLATION]` | `CONSTRUCTIVE` |
 | **Expansion Anomaly** | `IS_HOLDING_TOO_LONG` AND NOT `IN_NEUTRAL` | `[OVER_EXTENSION]` | `CONSTRUCTIVE` |
 | **Liquidity Void** | `HAS_LIQUIDITY_VOID` | `[LIQUIDITY_VOID]` | `CONSTRUCTIVE` |
