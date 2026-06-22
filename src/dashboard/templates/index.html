@@ -129,7 +129,7 @@ function apiUrl(path, extra = {}) {
 // ── Chart config ──
 const gridColor = '#21262d', textMuted = '#6e7681', textBright = '#8b949e';
 let timelineChart = null, equityChart = null, optimizerChart = null;
-let allTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
+let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
 let confThreshold = 50; // fallback, overridden by /api/config
 
 // ── Helpers ──
@@ -164,12 +164,14 @@ async function loadTrades(symbol) {
   const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
   const data = await resp.json();
   allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
+  filteredTrades = allTrades;
   updateAllCharts(confThreshold);
 }
 
 function updateAllCharts(threshold) {
-  const filledTrades = (allTrades || []).filter(t => t.is_filled);
-  const orderedTrades = (allTrades || []).filter(t => t.opinion !== 'NEUTRAL');
+  const trades = filteredTrades.length ? filteredTrades : allTrades;
+  const filledTrades = trades.filter(t => t.is_filled);
+  const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
 
   if (!filledTrades.length) {
     for (const id of ['kpi-pnl','kpi-winrate','kpi-calmar','kpi-mdd','kpi-executed'])
@@ -203,7 +205,7 @@ function updateAllCharts(threshold) {
   $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
   $('confVal').textContent = threshold;
 
-  renderTimeline(allTrades, threshold);
+  renderTimeline(trades, threshold);
   renderEquity(curve, netPnL);
   renderOptimizer(filledTrades, threshold);
 }
@@ -374,6 +376,11 @@ function applyFilters() {
   if (sym) f = f.filter(s => (s.symbol || '').includes(sym));
   if (op) f = f.filter(s => s.opinion === op);
   renderTable(sortSessions(f, sortKey, sortDir));
+
+  // Drive KPIs and charts from the same filtered set
+  const visibleFiles = new Set(f.map(s => s.filename));
+  filteredTrades = (allTrades || []).filter(t => t.session_filename && visibleFiles.has(t.session_filename));
+  updateAllCharts(confThreshold);
 }
 
 async function loadSessions() {
