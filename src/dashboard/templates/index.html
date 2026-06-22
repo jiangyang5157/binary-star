@@ -49,8 +49,8 @@
       <h2>Decision Timeline</h2>
       <div class="chart-controls">
         <label class="slider-label">Min Confidence:</label>
-        <input type="range" id="confSlider" min="40" max="100" value="40" class="slider">
-        <span id="confVal" class="slider-value">40</span>
+        <input type="range" id="confSlider" min="50" max="100" value="50" class="slider">
+        <span id="confVal" class="slider-value">50</span>
       </div>
     </div>
     <p class="chart-hint">Bubble: Y = Confidence  |  Size = |P&amp;L %|  |  Color = Outcome</p>
@@ -130,6 +130,7 @@ function apiUrl(path, extra = {}) {
 const gridColor = '#21262d', textMuted = '#6e7681', textBright = '#8b949e';
 let timelineChart = null, equityChart = null, optimizerChart = null;
 let allTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
+let confThreshold = 50; // fallback, overridden by /api/config
 
 // ── Helpers ──
 function opinionBadge(o) {
@@ -163,7 +164,7 @@ async function loadTrades(symbol) {
   const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
   const data = await resp.json();
   allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
-  updateAllCharts(40);
+  updateAllCharts(confThreshold);
 }
 
 function updateAllCharts(threshold) {
@@ -289,7 +290,7 @@ function renderEquity(curve, netPnL) {
   });
 }
 
-function renderOptimizer(filledTrades, minThreshold = 40) {
+function renderOptimizer(filledTrades, minThreshold) {
   const ctx = $('optimizerChart').getContext('2d');
   if (optimizerChart) optimizerChart.destroy();
 
@@ -437,7 +438,22 @@ async function runAudit() {
 }
 
 // ── Init ──
-Promise.all([loadTrades(), loadSessions()]);
+async function initConfig() {
+  try {
+    const resp = await fetch(apiUrl('/api/config'));
+    const data = await resp.json();
+    if (data.session_confidence_threshold) {
+      confThreshold = data.session_confidence_threshold;
+      $('confSlider').min = confThreshold;
+      $('confSlider').value = confThreshold;
+      $('confVal').textContent = confThreshold;
+    }
+  } catch (e) {
+    // keep fallback value
+  }
+}
+
+initConfig().then(() => Promise.all([loadTrades(), loadSessions()]));
 </script>
 </body>
 </html>

@@ -398,3 +398,12 @@ def run_audits(data_root: str = Query("")):
         "done": done,
         "total": len(session_files),
     }
+
+
+@router.get("/config")
+def get_config():
+    """Return UI-relevant config values (confidence threshold, etc.)."""
+    from src.utils.pipeline_utils import load_combined_config
+    config = load_combined_config()
+    threshold = int(config["llm"]["binary_star"]["session_confidence_threshold"])
+    return {"session_confidence_threshold": threshold}
