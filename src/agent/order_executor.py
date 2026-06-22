@@ -47,7 +47,7 @@ class MarginOrderExecutor:
         The central brain for syncing the current Binance state with a newly generated AI Opinion.
         Returns the entry order_id if a new LIMIT entry was placed, or None.
         """
-        logger.info(f"Executor: Syncing {symbol} with new Opinion: {opinion_direction} (Entry: {entry_price}, TP: {tp_price}, SL: {sl_price})")
+        logger.info(f"Executor [{symbol}]: Syncing with new Opinion: {opinion_direction} (Entry: {entry_price}, TP: {tp_price}, SL: {sl_price})")
         
         # [SAFETY GUARD] Explicit Whitelist Check
         if not self._is_symbol_whitelisted(symbol):
@@ -234,7 +234,7 @@ class MarginOrderExecutor:
             return trade_state
 
         has_position = abs(net_qty) > tolerance
-        logger.info(f"Guardian Pulse: Symbol={symbol}, NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
+        logger.info(f"Guardian Pulse [{symbol}]: NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
 
         # --- STEP 1: Intent Check (Early exit if robot has no skin in the game) ---
         if not trade_state or not trade_state.get("direction"):
