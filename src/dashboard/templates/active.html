@@ -34,6 +34,32 @@
     </div>
   </section>
 
+  <!-- ═══════ Sniper Control ═══════ -->
+  <section class="card run-section">
+    <div class="section-header">
+      <h2>Sniper Control</h2>
+    </div>
+    <div class="run-controls">
+      <div class="run-input-group">
+        <input type="text" id="sniper-symbol" class="filter-input run-symbol-input"
+               placeholder="Symbol" maxlength="10" autocomplete="off"
+               oninput="document.getElementById('sniper-status').style.display='none'">
+        <span class="run-suffix">USDT</span>
+      </div>
+      <label class="toggle-label" for="sniper-trade-toggle">
+        <span class="toggle-text">Trade</span>
+        <input type="checkbox" id="sniper-trade-toggle" class="toggle-input">
+        <span class="toggle-slider"></span>
+      </label>
+      <input type="number" id="sniper-balance" class="filter-input"
+             placeholder="Balance" min="0" step="any"
+             style="width:100px">
+      <span class="run-suffix" style="font-size:0.8rem">USDT</span>
+      <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Start</button>
+      <span id="sniper-status" class="run-status-text" style="display:none"></span>
+    </div>
+  </section>
+
   <!-- ═══════ Active Sessions Table ═══════ -->
   <section class="card">
     <div class="section-header">
@@ -221,6 +247,159 @@ async function triggerRun() {
       checkRunStatus();
     }
   } catch (e) { /* ignore */ }
+})();
+
+// ── Sniper Control ──
+let sniperPollInterval = null;
+
+function updateSniperUI(state) {
+	const input = document.getElementById('sniper-symbol');
+	const tradeToggle = document.getElementById('sniper-trade-toggle');
+	const balanceInput = document.getElementById('sniper-balance');
+	const btn = document.getElementById('sniper-btn');
+
+	if (state === 'running') {
+		input.disabled = true;
+		tradeToggle.disabled = true;
+		balanceInput.disabled = true;
+		btn.textContent = '⏹ Stop';
+		btn.style.color = 'var(--accent-red)';
+	} else {
+		input.disabled = false;
+		tradeToggle.disabled = false;
+		balanceInput.disabled = false;
+		btn.textContent = '▶ Start';
+		btn.style.color = '';
+		sniperPollInterval = null;
+	}
+}
+
+async function checkSniperStatus() {
+	try {
+		const resp = await fetch(apiUrl('/api/sniper/status'));
+		const data = await resp.json();
+
+		if (data.running) {
+			updateSniperUI('running');
+			const statusEl = document.getElementById('sniper-status');
+			const elapsed = formatElapsed(data.elapsed_seconds || 0);
+			statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
+		} else {
+			if (sniperPollInterval) {
+				clearInterval(sniperPollInterval);
+				sniperPollInterval = null;
+				const statusEl = document.getElementById('sniper-status');
+				statusEl.style.display = 'inline';
+				statusEl.className = 'run-status-text run-ok';
+				statusEl.textContent = '✓ Stopped';
+				updateSniperUI('idle');
+				setTimeout(() => {
+					statusEl.style.display = 'none';
+				}, 3000);
+			}
+		}
+	} catch (e) { /* polling failed silently */ }
+}
+
+async function triggerSniper() {
+	const statusEl = document.getElementById('sniper-status');
+	const btn = document.getElementById('sniper-btn');
+
+	// Check if currently running — if so, STOP
+	if (sniperPollInterval) {
+		btn.disabled = true;
+		btn.textContent = '…';
+		try {
+			const resp = await fetch(apiUrl('/api/sniper/stop'), { method: 'POST' });
+			if (!resp.ok) {
+				const err = await resp.json();
+				statusEl.style.display = 'inline';
+				statusEl.className = 'run-status-text run-error';
+				statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
+				btn.disabled = false;
+				btn.textContent = '⏹ Stop';
+				return;
+			}
+			// Status polling will catch the transition to idle
+		} catch (e) {
+			statusEl.style.display = 'inline';
+			statusEl.className = 'run-status-text run-error';
+			statusEl.textContent = '✗ Request failed';
+			btn.disabled = false;
+			btn.textContent = '⏹ Stop';
+		}
+		return;
+	}
+
+	// START
+	const input = document.getElementById('sniper-symbol');
+	let prefix = input.value.trim();
+
+	if (prefix.toUpperCase().endsWith('USDT')) {
+		prefix = prefix.slice(0, -4).trim();
+		input.value = prefix;
+	}
+
+	if (!prefix || prefix.length < 2) {
+		statusEl.style.display = 'inline';
+		statusEl.className = 'run-status-text run-error';
+		statusEl.textContent = '✗ Enter at least 2 characters';
+		return;
+	}
+
+	const trade = document.getElementById('sniper-trade-toggle').checked;
+	const balanceRaw = document.getElementById('sniper-balance').value.trim();
+	const balance = balanceRaw ? parseFloat(balanceRaw) : null;
+
+	btn.disabled = true;
+	btn.textContent = '…';
+
+	try {
+		const resp = await fetch(apiUrl('/api/sniper/start'), {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				symbol_prefix: prefix,
+				trade: trade,
+				balance: balance,
+			}),
+		});
+
+		if (!resp.ok) {
+			const err = await resp.json();
+			statusEl.style.display = 'inline';
+			statusEl.className = 'run-status-text run-error';
+			statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
+			updateSniperUI('idle');
+			return;
+		}
+
+		const data = await resp.json();
+		updateSniperUI('running');
+		statusEl.style.display = 'inline';
+		statusEl.className = 'run-status-text';
+		statusEl.textContent = `⟳ Running ${data.symbol}…`;
+		sniperPollInterval = setInterval(checkSniperStatus, 2000);
+	} catch (e) {
+		statusEl.style.display = 'inline';
+		statusEl.className = 'run-status-text run-error';
+		statusEl.textContent = '✗ Request failed';
+		updateSniperUI('idle');
+	}
+}
+
+// On page load, check if sniper is already running
+(async function initSniperStatus() {
+	try {
+		const resp = await fetch(apiUrl('/api/sniper/status'));
+		const data = await resp.json();
+		if (data.running) {
+			updateSniperUI('running');
+			document.getElementById('sniper-status').style.display = 'inline';
+			sniperPollInterval = setInterval(checkSniperStatus, 2000);
+			checkSniperStatus();
+		}
+	} catch (e) { /* ignore */ }
 })();
 
 function opinionBadge(o) {
