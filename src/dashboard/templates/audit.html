@@ -93,8 +93,16 @@ function renderAuditOutcome(audit) {
           <span class="tactical-value mono profit">${forensics.max_favorable_runup_pct != null ? '+' + forensics.max_favorable_runup_pct.toFixed(2) + '%' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
+          <span class="tactical-label">MFE Efficiency</span>
+          <span class="tactical-value">${metrics.mfe_efficiency_pct != null ? metrics.mfe_efficiency_pct.toFixed(1) + '%' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
           <span class="tactical-label">Max Adverse Excursion</span>
           <span class="tactical-value mono loss">${forensics.max_adverse_drawdown_pct != null ? forensics.max_adverse_drawdown_pct.toFixed(2) + '%' : '&mdash;'}</span>
+        </div>
+        <div class="tactical-item">
+          <span class="tactical-label">MAE Stress Level</span>
+          <span class="tactical-value">${metrics.mae_stress_level_pct != null ? metrics.mae_stress_level_pct.toFixed(1) + '%' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
           <span class="tactical-label">Projected Holding</span>
@@ -103,14 +111,6 @@ function renderAuditOutcome(audit) {
         <div class="tactical-item">
           <span class="tactical-label">Actual Holding</span>
           <span class="tactical-value">${metrics.actual_holding_hours != null ? metrics.actual_holding_hours.toFixed(1) + 'h' : '&mdash;'}</span>
-        </div>
-        <div class="tactical-item">
-          <span class="tactical-label">MFE Efficiency</span>
-          <span class="tactical-value">${metrics.mfe_efficiency_pct != null ? metrics.mfe_efficiency_pct.toFixed(1) + '%' : '&mdash;'}</span>
-        </div>
-        <div class="tactical-item">
-          <span class="tactical-label">MAE Stress Level</span>
-          <span class="tactical-value">${metrics.mae_stress_level_pct != null ? metrics.mae_stress_level_pct.toFixed(1) + '%' : '&mdash;'}</span>
         </div>
       </div>
       ${(verdict.is_justified_surrender || verdict.is_catastrophic_miss) ? `
