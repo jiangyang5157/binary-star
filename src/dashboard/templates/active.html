@@ -304,7 +304,7 @@ async function checkSniperStatus() {
       statusEl.style.display = 'inline';
 
       if (data.guardian) {
-        // Fully running — show concise combined status
+        // Guardian pulse arrived — full status
         const g = data.guardian;
         let parts = [data.symbol];
         parts.push(`Trade=${data.trade_enabled ? 'ON' : 'OFF'}`);
@@ -314,8 +314,12 @@ async function checkSniperStatus() {
         parts.push(`Orders=${g.active_orders}`);
         statusEl.textContent = parts.join(' | ');
         statusEl.className = 'run-status-text';
+      } else if (!data.trade_enabled) {
+        // Trade OFF — no guardian, show minimal
+        statusEl.textContent = `${data.symbol} | Trade=OFF`;
+        statusEl.className = 'run-status-text';
       } else {
-        // Waiting for first guardian pulse
+        // Trade ON — waiting for first guardian pulse
         const elapsed = formatElapsed(data.elapsed_seconds || 0);
         statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
         statusEl.className = 'run-status-text';
