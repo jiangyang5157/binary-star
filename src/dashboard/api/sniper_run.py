@@ -65,17 +65,17 @@ def _check_email_available() -> bool:
 
 @router.post("/start")
 def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
-    """Start the Sniper daemon for the given symbol prefix."""
+    """Start the Sniper daemon for the given symbol prefix(es)."""
+    from src.utils.symbol_utils import resolve_symbols
+
     data_root = _resolve_data_root(data_root)
 
-    # Validate symbol
+    # Validate and resolve symbols (CSV: "BTC,ETH,XAUT")
     raw = (req.symbol_prefix or "").strip()
-    if not raw or len(raw) < 2 or not raw.isalnum():
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid symbol prefix — must be ≥2 alphanumeric characters",
-        )
-    symbol = raw.upper() + "USDT"
+    try:
+        symbols = resolve_symbols(raw)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # Singleton check
     status = _read_sniper_status(data_root)
@@ -83,9 +83,10 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
         pid = status.get("pid")
         if pid and _is_pid_alive(pid):
             started = status.get("started_at", "unknown")
+            existing = status.get("symbols", [status.get("symbol", "?")])
             raise HTTPException(
                 status_code=409,
-                detail=f"Sniper already running: {status.get('symbol', '?')} (started {started})",
+                detail=f"Sniper already running: {existing} (started {started})",
             )
         log.warning("Clearing stale sniper lock for dead PID %s", pid)
 
@@ -94,10 +95,11 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
     if balance is not None and balance <= 0:
         balance = None
 
-    # Build command
+    # Build command — pass CSV prefix string to daemon
+    csv_arg = ",".join(s[:s.rfind("USDT")] if s.endswith("USDT") else s for s in symbols)
     cmd = [
         sys.executable, "run.py", "sniper",
-        "--symbol", symbol,
+        "--symbol", csv_arg,
         "--trigger",
         "-p", data_root,
     ]
@@ -114,14 +116,14 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
 
     _write_sniper_status(data_root, {
         "running": True,
-        "symbol": symbol,
+        "symbols": symbols,
         "pid": proc.pid,
         "trade_enabled": req.trade,
         "balance": balance,
         "started_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    return {"accepted": True, "symbol": symbol}
+    return {"accepted": True, "symbols": symbols}
 
 
 @router.post("/stop")
@@ -134,19 +136,19 @@ def sniper_stop(data_root: str = Query("")):
         raise HTTPException(status_code=404, detail="No sniper is running")
 
     pid = status.get("pid")
-    symbol = status.get("symbol", "?")
+    symbols = status.get("symbols", [status.get("symbol", "?")])
 
     if pid and _is_pid_alive(pid):
         try:
             os.kill(pid, 15)  # SIGTERM
-            log.info("Sent SIGTERM to sniper PID %s (%s)", pid, symbol)
+            log.info("Sent SIGTERM to sniper PID %s (%s)", pid, symbols)
         except OSError as e:
             log.error("Failed to kill sniper PID %s: %s", pid, e)
     else:
         log.warning("Sniper PID %s was already dead — clearing lock", pid)
 
     _write_sniper_status(data_root, {"running": False})
-    return {"stopped": True, "symbol": symbol}
+    return {"stopped": True, "symbols": symbols}
 
 
 @router.get("/status")
@@ -173,9 +175,15 @@ def sniper_status(data_root: str = Query("")):
         except Exception:
             pass
 
+    # Backwards-compatible: if old format with "symbol" (single string), wrap in array
+    symbols = status.get("symbols")
+    if not symbols:
+        single = status.get("symbol")
+        symbols = [single] if single else []
+
     return {
         "running": True,
-        "symbol": status.get("symbol", ""),
+        "symbols": symbols,
         "trade_enabled": status.get("trade_enabled", False),
         "balance": status.get("balance"),
         "started_at": started_str,
