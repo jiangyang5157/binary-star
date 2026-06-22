@@ -25,7 +25,8 @@
     <div class="run-controls">
       <div class="run-input-group">
         <input type="text" id="symbol-prefix" class="filter-input run-symbol-input"
-               placeholder="Symbol" maxlength="10" autocomplete="off">
+               placeholder="Symbol" maxlength="10" autocomplete="off"
+               oninput="document.getElementById('run-status').style.display='none'">
         <span class="run-suffix">USDT</span>
       </div>
       <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
@@ -168,7 +169,10 @@ async function triggerRun() {
   }
 
   if (!prefix || prefix.length < 2) {
-    alert('Enter at least 2 characters (e.g. BTC)');
+    const statusEl = document.getElementById('run-status');
+    statusEl.style.display = 'inline';
+    statusEl.className = 'run-status-text run-error';
+    statusEl.textContent = '✗ Enter at least 2 characters';
     return;
   }
 
