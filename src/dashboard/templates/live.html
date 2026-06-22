@@ -25,9 +25,8 @@
     <div class="run-controls">
       <div class="run-input-group">
         <input type="text" id="symbol-prefix" class="filter-input run-symbol-input"
-               placeholder="Symbol" maxlength="10" autocomplete="off"
+               placeholder="BTC" maxlength="10" autocomplete="off"
                oninput="document.getElementById('run-status').style.display='none'">
-        <span class="run-suffix">USDT</span>
       </div>
       <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
       <span id="run-status" class="run-status-text" style="display:none"></span>
@@ -42,9 +41,8 @@
     <div class="run-controls">
       <div class="run-input-group">
         <input type="text" id="sniper-symbol" class="filter-input run-symbol-input"
-               placeholder="Symbol" maxlength="10" autocomplete="off"
+               placeholder="BTC,ETH,XAUT" maxlength="50" autocomplete="off"
                oninput="document.getElementById('sniper-status').style.display='none'">
-        <span class="run-suffix">USDT</span>
       </div>
       <label class="toggle-label" for="sniper-trade-toggle">
         <span class="toggle-text">Trade</span>
@@ -300,28 +298,58 @@ async function checkSniperStatus() {
     if (data.running) {
       updateSniperUI('running');
       const statusEl = document.getElementById('sniper-status');
-      statusEl.style.display = 'inline';
+      statusEl.style.display = 'block';
 
-      if (data.guardian) {
-        // Guardian pulse arrived — full status
-        const g = data.guardian;
-        let parts = [data.symbol];
-        parts.push(`Trade=${data.trade_enabled ? 'ON' : 'OFF'}`);
-        const balance = data.balance ?? g.account_balance;
-        if (balance != null) parts.push(`Balance=${balance}`);
-        parts.push(`NetQty=${g.net_qty?.toFixed(4)}`);
-        parts.push(`Position=${g.has_position}`);
-        parts.push(`Orders=${g.active_orders}`);
-        statusEl.textContent = parts.join(' | ');
+      const symbols = data.symbols || [];
+      const tradeOn = data.trade_enabled;
+      const guardian = data.guardian;
+      const elapsed = data.elapsed_seconds || 0;
+
+      if (tradeOn && guardian && guardian.symbols) {
+        // Trade=ON with guardian data — per-symbol table
+        let html = '<table class="guardian-table"><thead><tr>';
+        html += '<th>Symbol</th><th>Position</th><th>Net Qty</th><th>Orders</th><th>Status</th>';
+        html += '</tr></thead><tbody>';
+
+        for (const sym of symbols) {
+          const gs = guardian.symbols[sym] || {};
+          const posLabel = gs.has_position
+            ? (gs.net_qty > 0 ? 'LONG' : 'SHORT')
+            : '—';
+          const statusLabel = gs.has_position
+            ? (gs.active_orders > 0 ? 'Protected' : 'Naked!')
+            : 'Idle';
+
+          html += '<tr>';
+          html += `<td><strong>${sym}</strong></td>`;
+          html += `<td>${posLabel}</td>`;
+          html += `<td>${gs.net_qty != null ? gs.net_qty : '0.0'}</td>`;
+          html += `<td>${gs.active_orders || 0}</td>`;
+          html += `<td>${statusLabel}</td>`;
+          html += '</tr>';
+        }
+
+        html += '</tbody></table>';
+
+        // Summary line
+        html += '<div class="guardian-summary">';
+        if (guardian.account_balance != null) {
+          html += `Balance: $${guardian.account_balance.toLocaleString()} USDT | `;
+        }
+        html += `Pulse: ${formatElapsed(elapsed)} ago`;
+        html += '</div>';
+
+        statusEl.innerHTML = html;
         statusEl.className = 'run-status-text';
-      } else if (!data.trade_enabled) {
-        // Trade OFF — no guardian, show minimal
-        statusEl.textContent = `${data.symbol} | Trade=OFF`;
+      } else if (tradeOn) {
+        // Trade=ON but no guardian pulse yet
+        statusEl.innerHTML = '';
+        statusEl.textContent = `⟳ Running ${symbols.join(', ')}… ${formatElapsed(elapsed)}`;
         statusEl.className = 'run-status-text';
       } else {
-        // Trade ON — waiting for first guardian pulse
-        const elapsed = formatElapsed(data.elapsed_seconds || 0);
-        statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
+        // Trade=OFF
+        statusEl.innerHTML = '';
+        statusEl.textContent = `${symbols.join(', ')} | Trade=OFF`;
         statusEl.className = 'run-status-text';
       }
     } else {
@@ -371,21 +399,27 @@ async function triggerSniper() {
     return;
   }
 
-  // START
+  // START — validate CSV symbol prefixes
   const input = document.getElementById('sniper-symbol');
-  let prefix = input.value.trim();
+  const raw = input.value.trim();
 
-  if (prefix.toUpperCase().endsWith('USDT')) {
-    prefix = prefix.slice(0, -4).trim();
-    input.value = prefix;
-  }
+  const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
-  if (!prefix || prefix.length < 2) {
+  if (parts.length === 0) {
     statusEl.style.display = 'inline';
     statusEl.className = 'run-status-text run-error';
-    statusEl.textContent = '✗ Enter at least 2 characters';
+    statusEl.textContent = '✗ At least one symbol required';
     return;
   }
+  for (const p of parts) {
+    if (p.length < 2 || !/^[A-Z0-9]+$/.test(p)) {
+      statusEl.style.display = 'inline';
+      statusEl.className = 'run-status-text run-error';
+      statusEl.textContent = `✗ Invalid symbol: "${p}"`;
+      return;
+    }
+  }
+  const symbolPrefix = parts.join(',');
 
   const trade = document.getElementById('sniper-trade-toggle').checked;
   const balanceRaw = document.getElementById('sniper-balance').value.trim();
@@ -406,7 +440,7 @@ async function triggerSniper() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        symbol_prefix: prefix,
+        symbol_prefix: symbolPrefix,
         trade: trade,
         balance: balance,
       }),
@@ -422,10 +456,11 @@ async function triggerSniper() {
     }
 
     const data = await resp.json();
+    const symbols = data.symbols || [];
     updateSniperUI('running');
     statusEl.style.display = 'inline';
     statusEl.className = 'run-status-text';
-    statusEl.textContent = `⟳ Running ${data.symbol}…`;
+    statusEl.textContent = `⟳ Running ${symbols.join(', ')}…`;
     sniperPollInterval = setInterval(checkSniperStatus, 2000);
   } catch (e) {
     statusEl.style.display = 'inline';

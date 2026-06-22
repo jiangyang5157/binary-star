@@ -1031,7 +1031,7 @@ tbody tr:hover {
 }
 
 .run-symbol-input {
-  width: 100px;
+  width: 180px;
 }
 
 .run-suffix {
@@ -1053,4 +1053,26 @@ tbody tr:hover {
 
 .run-error {
   color: var(--accent-red);
+}
+
+/* ── Multi-symbol Guardian Table ─────────────────────────── */
+.guardian-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+.guardian-table th, .guardian-table td {
+  padding: 4px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+.guardian-table th {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.guardian-summary {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
