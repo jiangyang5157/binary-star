@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 import os
-import json
-import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -99,14 +97,6 @@ class BaseEmailTemplate:
         return str(v) if v is not None else "N/A"
 
     @staticmethod
-    def format_duration(hours: float) -> str:
-        """Formats hours into a human-readable string (e.g., 18.5h or 2.3d)."""
-        if hours < 24:
-            return f"{hours:.1f}h"
-        days = hours / 24
-        return f"{days:.1f}d"
-
-    @staticmethod
     def render_md(text: str) -> str:
         """
         Lightweight markdown-ish to HTML converter (no external deps).
@@ -130,31 +120,6 @@ class BaseEmailTemplate:
         text = text.replace("<br/><br/>", '<div style="margin-top: 12px;"></div>')
         
         return text
-
-    @staticmethod
-    def render_footer(full_json: Dict[str, Any], trigger_info: str) -> str:
-        return f"""
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
-                    <details>
-                        <summary style="font-size: 12px; color: #94a3b8; cursor: pointer; font-weight: 600;">Raw Data</summary>
-                        <pre style="background: #1e293b; color: #cbd5e1; padding: 20px; border-radius: 8px; font-size: 11px; text-align: left; overflow-x: auto; margin-top: 15px;"><code>{json.dumps(full_json, indent=2, ensure_ascii=False)}</code></pre>
-                    </details>
-                    <div style="margin-top: 25px; color: #94a3b8; font-size: 11px; font-weight: 500;">
-                        {trigger_info}
-                    </div>
-                </div>
-        """
-
-    @staticmethod
-    def render_summary_footer(trigger_info: str) -> str:
-        """Lightweight footer for aggregate reports, excludes raw JSON data blocks."""
-        return f"""
-                <div style="margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 25px; text-align: center;">
-                    <div style="margin-top: 10px; color: #94a3b8; font-size: 11px; font-weight: 500;">
-                        {trigger_info}
-                    </div>
-                </div>
-        """
 
 class EmailDispatcher:
     """Manages the low-level infrastructure for sending emails via SMTP."""

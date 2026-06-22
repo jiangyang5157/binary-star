@@ -1,6 +1,5 @@
 import os
 import json
-import logging
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 import yaml
@@ -80,16 +79,10 @@ class SessionNotifier:
         self.dispatcher = EmailDispatcher(self.config)
         self.data_root = data_root
         
-        # Load both configurations to maintain strict parameter isolation
+        # Load global config for notification threshold
         self.global_cfg = self._load_config("global_config.yaml")
-        self.strategy_cfg = self._load_config("strategy_config.yaml")
-        
-        # 1. Source global system settings (Notification Threshold)
         bs_cfg = self.global_cfg.get('llm', {}).get('binary_star', {})
         self.confidence_threshold = int(bs_cfg.get('session_confidence_threshold', 60))
-        
-        # 2. Source strategy-specific physics
-        # Sourced from binary_star -> session node in strategy_config.yaml
 
     def _load_config(self, filename: str) -> Dict[str, Any]:
         """Loads a YAML configuration file from the standardized config directory."""
@@ -101,10 +94,6 @@ class SessionNotifier:
         except Exception as e:
             logger.error(f"Failed to load {filename}: {e}")
         return {}
-
-    def _load_global_config(self) -> Dict[str, Any]:
-        # Deprecated: usage replaced by generic _load_config
-        return self._load_config("global_config.yaml")
 
     def _get_timestamp_suffix(self, obs: Dict[str, Any]) -> str:
         """
