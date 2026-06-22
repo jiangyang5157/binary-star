@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Detail - Singularity</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/session-detail.js"></script>
+</head>
+<body class="dark">
+<header class="app-header">
+  <h1>Singularity</h1>
+  <nav>
+    <a href="/" class="nav-link">Performance</a>
+    <a href="/active" class="nav-link active">Live</a>
+  </nav>
+</header>
+
+<main class="container" id="app-main">
+  <div class="loading-spinner">Loading session...</div>
+</main>
+
+<script>
+const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
+const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
+const filename = window.location.pathname.split('/sessions/')[1];
+
+function apiUrl(path, extra = {}) {
+  const p = new URLSearchParams(DR ? DR : '');
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  const qs = p.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
+async function loadSession() {
+  const main = document.getElementById('app-main');
+  try {
+    const resp = await fetch(apiUrl(`/api/sessions/${encodeURIComponent(filename)}`));
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const session = await resp.json();
+    if (!session || session.error) throw new Error(session?.error || 'Invalid session data');
+
+    main.innerHTML = `
+      <div class="session-header">
+        <h2>${session.observation?.symbol || 'Unknown'} Session</h2>
+        <span class="session-time">${session.observation?.observed_at || ''}</span>
+      </div>
+      ${renderDecisionCard(session.final_decision || {})}
+      ${renderDebateRounds(session.debate_history)}
+      ${renderCharts(session.observation?.visual_context)}
+      ${renderMetadata(session.metadata)}
+    `;
+  } catch (err) {
+    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/active" class="btn-sm">&larr; Back to Live</a></div>`;
+  }
+}
+
+loadSession();
+</script>
+</body>
+</html>
