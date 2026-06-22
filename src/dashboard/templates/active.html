@@ -301,8 +301,9 @@ async function checkSniperStatus() {
       updateSniperUI('running');
       const statusEl = document.getElementById('sniper-status');
       const elapsed = formatElapsed(data.elapsed_seconds || 0);
-      const balance = data.balance != null ? ` | Balance=$${data.balance}` : '';
-      statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}${balance}`;
+      const trade = ` | Trade=${data.trade_enabled ? 'ON' : 'OFF'}`;
+      const balance = data.balance != null ? ` | Balance=${data.balance}` : '';
+      statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}${trade}${balance}`;
 
       // Guardian pulse
       const guardianEl = document.getElementById('sniper-guardian');
