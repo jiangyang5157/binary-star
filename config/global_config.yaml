@@ -170,4 +170,3 @@ sandbox:
     smart_surrender_bonus: 15.0
     # Penalty for predicting the right direction but missing the fill
     catastrophic_miss_penalty: -20.0
-
