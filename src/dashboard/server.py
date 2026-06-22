@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse
 from src.dashboard.api.sessions import router as sessions_router
 from src.dashboard.api.audits import router as audits_router
 from src.dashboard.api.session_run import router as session_run_router
+from src.dashboard.api.sniper_run import router as sniper_run_router
 
 app = FastAPI(title="Singularity Dashboard", version="2.0")
 
@@ -28,6 +29,7 @@ if data_dir.exists():
 app.include_router(sessions_router)
 app.include_router(audits_router)
 app.include_router(session_run_router)
+app.include_router(sniper_run_router)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 
