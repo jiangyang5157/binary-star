@@ -9,7 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from fastapi import FastAPI, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from src.dashboard.api.sessions import router as sessions_router
 from src.dashboard.api.audits import router as audits_router
 from src.dashboard.api.session_run import router as session_run_router
@@ -39,22 +39,27 @@ def read_template(name: str) -> str:
     return path.read_text() if path.exists() else "<h1>Template missing</h1>"
 
 
-@app.get("/", response_class=HTMLResponse)
-def index(data_root: str = Query("")):
+@app.get("/", response_class=HTMLResponse, include_in_schema=False)
+def index():
+    return RedirectResponse(url="/performance")
+
+
+@app.get("/performance", response_class=HTMLResponse, summary="Performance Dashboard", tags=["Pages"])
+def performance(data_root: str = Query("")):
     return read_template("index.html")
 
 
-@app.get("/live", response_class=HTMLResponse)
+@app.get("/live", response_class=HTMLResponse, summary="Live Sessions", tags=["Pages"])
 def live_view(data_root: str = Query("")):
     return read_template("live.html")
 
 
-@app.get("/audits/{filename}", response_class=HTMLResponse)
+@app.get("/audits/{filename}", response_class=HTMLResponse, summary="Audit Detail", tags=["Pages"])
 def audit_view(filename: str, data_root: str = Query("")):
     return read_template("audit.html")
 
 
-@app.get("/sessions/{filename}", response_class=HTMLResponse)
+@app.get("/sessions/{filename}", response_class=HTMLResponse, summary="Session Detail", tags=["Pages"])
 def session_view(filename: str, data_root: str = Query("")):
     return read_template("session.html")
 
