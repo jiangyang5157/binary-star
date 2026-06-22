@@ -24,6 +24,11 @@
       <div class="section-controls">
         <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" title="Refresh active sessions">⟳ Refresh</button>
         <span id="refresh-active-status" class="audit-status" style="display:none"></span>
+        <label class="toggle-label" for="neutral-toggle">
+          <span class="toggle-text">Neutral</span>
+          <input type="checkbox" id="neutral-toggle" class="toggle-input" checked onchange="loadActive()">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </div>
     <p class="chart-hint">BULLISH / BEARISH sessions still within their projected time window</p>
@@ -63,7 +68,7 @@ function apiUrl(path) {
 }
 
 function opinionBadge(o) {
-  const cls = o === 'BULLISH' ? 'badge-green' : 'badge-red';
+  const cls = o === 'BULLISH' ? 'badge-green' : o === 'BEARISH' ? 'badge-red' : 'badge-gray';
   return `<span class="badge ${cls}">${o}</span>`;
 }
 
@@ -82,7 +87,10 @@ async function loadActive() {
   const countEl = document.getElementById('active-count');
 
   try {
-    const resp = await fetch(apiUrl('/api/active'));
+    const includeNeutral = document.getElementById('neutral-toggle').checked;
+    let url = apiUrl('/api/active');
+    url += (url.includes('?') ? '&' : '?') + `include_neutral=${includeNeutral}`;
+    const resp = await fetch(url);
     const data = await resp.json();
     const sessions = data.active || [];
 
@@ -94,16 +102,17 @@ async function loadActive() {
     }
 
     tbody.innerHTML = sessions.map(s => {
-      const trClass = timeRemainingClass(s.time_remaining_seconds);
+      const isNeutral = s.opinion === 'NEUTRAL';
+      const trClass = isNeutral ? '' : timeRemainingClass(s.time_remaining_seconds);
       return `<tr>
         <td><strong>${s.symbol}</strong></td>
         <td>${s.observed_at || '&mdash;'}</td>
         <td>${opinionBadge(s.opinion)}</td>
         <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
-        <td class="mono">${formatPrice(s.entry)}</td>
-        <td class="mono">${formatPrice(s.take_profit)}</td>
-        <td class="mono">${formatPrice(s.stop_loss)}</td>
-        <td>${s.rr_ratio != null ? s.rr_ratio.toFixed(2) : '&mdash;'}</td>
+        <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.entry)}</td>
+        <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.take_profit)}</td>
+        <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.stop_loss)}</td>
+        <td>${isNeutral ? '&mdash;' : (s.rr_ratio != null ? s.rr_ratio.toFixed(2) : '&mdash;')}</td>
         <td>${s.projected_holding_hours}h</td>
         <td>${s.projected_waiting_hours}h</td>
         <td><span class="time-remaining ${trClass}">${s.time_remaining}</span></td>
