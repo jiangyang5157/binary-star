@@ -102,6 +102,12 @@ class SniperDaemon:
                     for sym in self.symbols:
                         self._guardian_check(sym)
 
+                # ── 0.5 HEARTBEAT: write before any blocking AI sessions ──
+                # Ensures the dashboard always has fresh position data, even if
+                # sessions run long or the daemon crashes mid-pulse.
+                if self.trade_enabled:
+                    self._write_guardian_status()
+
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
                 metrics: dict[str, dict] = {}
                 for sym in self.symbols:
