@@ -52,6 +52,11 @@ def audit_view(filename: str, data_root: str = Query("")):
     return read_template("audit.html")
 
 
+@app.get("/sessions/{filename}", response_class=HTMLResponse)
+def session_view(filename: str, data_root: str = Query("")):
+    return read_template("session.html")
+
+
 def main():
     import argparse
     import uvicorn
