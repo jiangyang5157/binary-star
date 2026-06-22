@@ -18,8 +18,24 @@ def _resolve_data_root(value: str) -> str:
 
 def _format_time_remaining(seconds: float) -> str:
     """Human-readable time remaining string."""
+    if seconds is None:
+        return "—"
     if seconds <= 0:
-        return "Expired"
+        prefix = "-" if seconds < 0 else ""
+        total_seconds = abs(int(seconds))
+        days, rem = divmod(total_seconds, 86400)
+        hours, rem = divmod(rem, 3600)
+        minutes = rem // 60
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+        if hours > 0:
+            parts.append(f"{hours}h")
+        if minutes > 0 and days == 0:
+            parts.append(f"{minutes}m")
+        if not parts:
+            return "Expired"
+        return f"{prefix}{' '.join(parts)}"
     total_seconds = int(seconds)
     days, rem = divmod(total_seconds, 86400)
     hours, rem = divmod(rem, 3600)
@@ -50,14 +66,14 @@ def _parse_session_timestamp(t0_str: str) -> datetime | None:
 # ── Endpoints ────────────────────────────────────────────────────────
 
 @router.get("/active")
-def list_active(data_root: str = Query(""), include_neutral: bool = Query(True)):
-    """Return sessions with BULLISH/BEARISH opinion still within their time window.
+def list_active(data_root: str = Query(""), include_neutral: bool = Query(True), include_expired: bool = Query(True)):
+    """Return sessions with BULLISH/BEARISH/NEUTRAL opinion.
 
-    Optionally include NEUTRAL sessions (no time window — always shown when
-    include_neutral is True).
+    Optionally include NEUTRAL sessions (no time window) and expired
+    BULLISH/BEARISH sessions (past their projected time window).
 
-    Reads session JSONs from {data_root}/sessions/, filters to active
-    directional trades, and excludes sessions that already have an audit.
+    Reads session JSONs from {data_root}/sessions/ and excludes
+    sessions that already have an audit.
     """
     data_root_dir = _resolve_data_root(data_root)
     sessions_dir = Path(data_root_dir) / "sessions"
@@ -102,7 +118,9 @@ def list_active(data_root: str = Query(""), include_neutral: bool = Query(True))
             expiry = t0 + timedelta(hours=holding_hours + waiting_hours)
 
             if now >= expiry:
-                continue
+                if not include_expired:
+                    continue
+                # Expired — still include, time_left_seconds will be negative
 
             time_left_seconds = (expiry - now).total_seconds()
 
@@ -126,7 +144,7 @@ def list_active(data_root: str = Query(""), include_neutral: bool = Query(True))
             "projected_holding_hours": holding_hours,
             "projected_waiting_hours": waiting_hours,
             "expiry_at": expiry.isoformat(),
-            "time_remaining": "—" if time_left_seconds is None else _format_time_remaining(time_left_seconds),
+            "time_remaining": _format_time_remaining(time_left_seconds),
             "time_remaining_seconds": None if time_left_seconds is None else round(time_left_seconds),
         })
 
