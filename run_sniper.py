@@ -92,74 +92,84 @@ class SniperDaemon:
 
     def run_forever(self):
         pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
-        logger.info(f"--- Sniper Monitoring Started: {self.symbol} (Pulse: {pulse_mins}m) ---")
-        
+        sym_list = ", ".join(self.symbols)
+        logger.info(f"--- Sniper Monitoring Started: {sym_list} (Pulse: {pulse_mins}m) ---")
+
         while True:
             try:
-                # 0. [GUARDIAN] Position protection check (every pulse, regardless of trigger state)
+                # ── 0. GUARDIAN: protect every symbol with skin in the game ──
                 if self.trade_enabled and self.executor:
-                    self._guardian_check()
+                    for sym in self.symbols:
+                        self._guardian_check(sym)
 
-                # 1. Capture Topography (No Images, No AI)
-                result = self.scout.scout()
-                metrics = result.metrics
-                
+                # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
+                metrics: dict[str, dict] = {}
+                for sym in self.symbols:
+                    result = self.scouts[sym].scout()
+                    if result.metrics:
+                        metrics[sym] = result.metrics
+
                 if not metrics:
-                    logger.warning("SniperDaemon: Scout returned empty metrics. Skipping pulse.")
+                    logger.warning("SniperDaemon: All scouts returned empty metrics. Skipping pulse.")
                     time.sleep(60)
                     continue
 
-                # 2. Check Wake-Up Matrix (Interest Evaluation)
-                is_noteworthy, t_type, reason = self.trigger.evaluate(metrics, self.prev_metrics)
-                
-                # 3. Report Status
+                # ── 2. TRIGGER: independent evaluation per symbol ──
+                triggered: list[tuple[str, str, str]] = []
                 now_str = datetime.now().strftime("%H:%M:%S")
-                if self.prev_metrics is None:
-                    logger.info(f"--- Sniper Monitoring Started: Initial Baseline Established ({self.symbol}) ---")
 
-                if not is_noteworthy:
-                    # Low-entropy log for sleeping state
-                    status = reason if "COOLDOWN" in reason else "SLEEPING"
-                    print(f"[{now_str}] 💤 {status} | No actionable asymmetry detected.")
-                else:
-                    # High-fidelity event logging with prominent UI
-                    print("\n" + "!"*60)
-                    print(f"       🔫 SNIPER WAKE UP! [{t_type}]")
-                    print("!"*60)
-                    print(f"REASON: {reason}")
-                    print("!"*60 + "\n")
-                    
-                    # v8.0: If active position exists, Guardian handles trailing stop — skip AI session
-                    has_active_position = bool(self.trade_state.get("direction"))
-                    
-                    if self.session_engine and not has_active_position:
-                        # 4. Trigger Binary Star Protocol
-                        logger.info("SniperDaemon: Activating Binary Star reasoning loop (Blocking Pulse)...")
-                        # v6.50: Restore Forensic Logging Level for Session Cycle
+                for sym in self.symbols:
+                    if sym not in metrics:
+                        continue
+
+                    is_noteworthy, t_type, reason = self.triggers[sym].evaluate(
+                        metrics[sym], self.prev_metrics.get(sym)
+                    )
+
+                    if self.prev_metrics.get(sym) is None:
+                        logger.info(f"--- Sniper [{sym}]: Initial Baseline Established ---")
+
+                    if not is_noteworthy:
+                        status = reason if "COOLDOWN" in reason else "SLEEPING"
+                        print(f"[{now_str}] [{sym}] 💤 {status} | No actionable asymmetry detected.")
+                    else:
+                        print("\n" + "!" * 60)
+                        print(f"       🔫 SNIPER WAKE UP! [{sym}] [{t_type}]")
+                        print("!" * 60)
+                        print(f"[{sym}] REASON: {reason}")
+                        print("!" * 60 + "\n")
+                        triggered.append((sym, t_type, reason))
+
+                # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
+                for sym, t_type, reason in triggered:
+                    has_active = bool(self.trade_states.get(sym, {}).get("direction"))
+
+                    if self.session_engines.get(sym) and not has_active:
+                        logger.info(f"SniperDaemon [{sym}]: Activating Binary Star reasoning loop (Blocking Pulse)...")
                         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
-                        
-                        # This is a blocking call (Synchronous/Serial)
-                        # It will generate images, run AI, and send emails if --email is on.
-                        session_result = self.session_engine.execute_cycle()
-                        
-                        # 5. Attempt Trade Execution (if enabled and session succeeded)
-                        if self.trade_enabled and self.executor and session_result and "error" not in session_result:
-                            self._attempt_trade_execution(session_result)
-                        
-                        # Restore Quiet Protocol after session completion
-                        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
-                        logger.info("SniperDaemon: Session cycle complete. Returning to pulse monitoring.")
-                    elif has_active_position:
-                        logger.info(
-                            f"SniperDaemon: Active position ({self.trade_state['direction']}) exists. "
-                            f"Skipping AI session — Guardian trailing stop manages the position.")
-                    
-                    # 6. Mark Triggered to start Cooldown (System Safety)
-                    self.trigger.set_triggered(t_type)
 
-                # 7. Housekeeping
+                        session_result = self.session_engines[sym].execute_cycle()
+
+                        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
+
+                        if self.trade_enabled and self.executor and session_result and "error" not in session_result:
+                            self._attempt_trade_execution(sym, session_result)
+
+                        logger.info(f"SniperDaemon [{sym}]: Session cycle complete. Returning to pulse monitoring.")
+                    elif has_active:
+                        logger.info(
+                            f"SniperDaemon [{sym}]: Active position ({self.trade_states[sym]['direction']}) exists. "
+                            f"Skipping AI session — Guardian trailing stop manages the position.")
+
+                    self.triggers[sym].set_triggered(t_type)
+
+                # ── 4. HOUSEKEEPING ──
                 self.prev_metrics = metrics
-                
+
+                # ── 5. Guardian heartbeat file (once per pulse, all symbols) ──
+                if self.trade_enabled:
+                    self._write_guardian_status()
+
                 # Sleep until next pulse
                 logger.debug(f"SniperDaemon: Waiting {pulse_mins}m for next check...")
                 time.sleep(pulse_mins * 60)
@@ -169,65 +179,65 @@ class SniperDaemon:
                 break
             except Exception as e:
                 logger.error(f"SniperDaemon Loop Failure: {e}", exc_info=True)
-                time.sleep(60) # Wait a minute before retrying on error
+                time.sleep(60)
 
     # ================================================================
     # TRADE GATE: Evaluates AI decision and triggers entry
     # ================================================================
 
-    def _attempt_trade_execution(self, session_result):
+    def _attempt_trade_execution(self, symbol: str, session_result: dict):
         """
         Evaluates session result against confidence threshold and triggers trade execution.
-        Migrated from SessionEngine to SniperDaemon for Guardian lifecycle management.
+        Keyed by symbol for multi-symbol trade state management.
         """
         try:
             final_decision = session_result.get('final_decision', {})
             opinion = str(final_decision.get('opinion', 'NEUTRAL')).upper()
             confidence = float(final_decision.get('confidence_score', 0))
             tactical = final_decision.get('tactical_parameters', {})
-            
-            logger.info(f"TradeGate: Evaluating session -> Opinion={opinion}, Confidence={confidence}%")
-            
+
+            logger.info(f"TradeGate [{symbol}]: Evaluating session -> Opinion={opinion}, Confidence={confidence}%")
+
             # Gate 1: Directional opinion required
             if opinion not in ('BULLISH', 'BEARISH'):
-                logger.info(f"TradeGate: Opinion is {opinion}. No trade action.")
+                logger.info(f"TradeGate [{symbol}]: Opinion is {opinion}. No trade action.")
                 return
-            
+
             # Gate 2: Confidence threshold
             threshold = int(self.global_cfg['llm']['binary_star']['session_confidence_threshold'])
             if confidence < threshold:
-                logger.info(f"TradeGate: Confidence {confidence}% < threshold {threshold}%. Skipping trade.")
+                logger.info(f"TradeGate [{symbol}]: Confidence {confidence}% < threshold {threshold}%. Skipping trade.")
                 return
-            
+
             # Gate 3: Tactical parameters must be present
             entry = tactical.get('entry')
             tp = tactical.get('take_profit')
             sl = tactical.get('stop_loss')
             if not all([entry, tp, sl]):
-                logger.warning(f"TradeGate: Missing tactical parameters (Entry={entry}, TP={tp}, SL={sl}). Skipping trade.")
+                logger.warning(f"TradeGate [{symbol}]: Missing tactical parameters (Entry={entry}, TP={tp}, SL={sl}). Skipping trade.")
                 return
-            
+
             # Map AI opinion to executor direction
             direction = 'LONG' if opinion == 'BULLISH' else 'SHORT'
-            
+
             # Extract projected waiting time for Guardian timeout
             projected_waiting = tactical.get('projected_waiting_hours', 4.0)
-            
-            logger.info(f"TradeGate: ALL GATES PASSED. Executing {direction} for {self.symbol} "
+
+            logger.info(f"TradeGate [{symbol}]: ALL GATES PASSED. Executing {direction} "
                         f"(Confidence: {confidence}%, Entry: {entry}, TP: {tp}, SL: {sl}, "
                         f"Projected Wait: {projected_waiting}h)")
-            
+
             order_id = self.executor.sync_with_opinion(
-                symbol=self.symbol,
+                symbol=symbol,
                 opinion_direction=direction,
                 entry_price=float(entry),
                 tp_price=float(tp),
                 sl_price=float(sl)
             )
-            
+
             # Update trade state for Guardian tracking
             if order_id and order_id > 0:
-                self.trade_state = {
+                self.trade_states[symbol] = {
                     "direction": direction,
                     "entry_price": float(entry),
                     "tp_price": float(tp),
@@ -236,73 +246,93 @@ class SniperDaemon:
                     "entry_placed_at": datetime.now(timezone.utc),
                     "projected_waiting_hours": float(projected_waiting),
                 }
-                logger.info(f"TradeGate: Trade state updated. Guardian will monitor order {order_id}.")
+                logger.info(f"TradeGate [{symbol}]: Trade state updated. Guardian will monitor order {order_id}.")
             elif order_id == -1:
-                # sync_with_opinion emergency-closed the position (OCO failure after cancel)
-                self.trade_state = {}
-                logger.warning("TradeGate: Position was emergency-closed by executor (OCO re-place failure). Trade state cleared.")
+                self.trade_states.pop(symbol, None)
+                logger.warning(f"TradeGate [{symbol}]: Position was emergency-closed by executor (OCO re-place failure). Trade state cleared.")
             else:
-                # sync_with_opinion returned None — could be SAME_DIRECTION optimization
-                # Keep existing trade_state if it has a direction (position is being managed)
-                if not self.trade_state.get("direction"):
-                    logger.info("TradeGate: No entry order placed and no active trade state.")
-                    
+                if not self.trade_states.get(symbol, {}).get("direction"):
+                    logger.info(f"TradeGate [{symbol}]: No entry order placed and no active trade state.")
+
         except Exception as e:
-            logger.error(f"TradeGate: Trade execution failed: {e}", exc_info=True)
+            logger.error(f"TradeGate [{symbol}]: Trade execution failed: {e}", exc_info=True)
 
     # ================================================================
     # GUARDIAN: Position protection every pulse
     # ================================================================
 
-    def _guardian_check(self):
-        """Delegates to MarginOrderExecutor.guardian_check() and updates trade_state.
-        Passes ATR for progressive trailing stop calculations.
+    def _guardian_check(self, symbol: str):
+        """Delegates to MarginOrderExecutor.guardian_check() and updates trade_states[symbol].
+
+        Passes ATR from the most recent scout metrics for progressive trailing stop calculations.
         """
         try:
-            logger.debug(f"Guardian: Checking position state for {self.symbol}...")
-            
+            logger.debug(f"Guardian [{symbol}]: Checking position state...")
+
             # Extract ATR from previous scout metrics for trailing stop
             atr = None
-            if self.prev_metrics:
-                atr = self.prev_metrics.get('price_dynamics', {}).get('atr_macro')
-            
-            updated_state = self.executor.guardian_check(self.symbol, self.trade_state, atr_macro=atr)
+            prev = self.prev_metrics.get(symbol)
+            if prev:
+                atr = prev.get('price_dynamics', {}).get('atr_macro')
 
-            if updated_state != self.trade_state:
+            trade_state = self.trade_states.get(symbol, {})
+            updated_state = self.executor.guardian_check(symbol, trade_state, atr_macro=atr)
+
+            if updated_state != trade_state:
                 if not updated_state:
-                    logger.info("Guardian: Trade state cleared (position closed or entry expired).")
-                self.trade_state = updated_state or {}
-
-            # Write guardian pulse status for dashboard consumption
-            try:
-                from src.utils.path_utils import resolve_project_root
-                import json as _json
-                pos = self.executor.client.get_symbol_position(self.symbol)
-                net_qty = pos.net_qty if pos else 0.0
-                active_orders = self.executor.client.get_active_orders(self.symbol)
-                guardian = {
-                    "symbol": self.symbol,
-                    "net_qty": net_qty,
-                    "has_position": abs(net_qty) > 1e-8,
-                    "active_orders": len(active_orders) if active_orders else 0,
-                    "last_pulse_at": datetime.now(timezone.utc).isoformat(),
-                }
-                # Fetch account balance for display (USDT net asset)
-                try:
-                    account = self.executor.client.get_cross_margin_account()
-                    for a in (account.assets or []):
-                        if a.asset == "USDT" and a.net_asset > 0:
-                            guardian["account_balance"] = round(a.net_asset, 2)
-                            break
-                except Exception:
-                    pass  # balance fetch is best-effort
-                guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_guardian.json")
-                _json.dump(guardian, open(guardian_path, "w"), default=str)
-            except Exception:
-                pass  # Dashboard may not be running; silently skip
+                    logger.info(f"Guardian [{symbol}]: Trade state cleared (position closed or entry expired).")
+                    self.trade_states.pop(symbol, None)
+                else:
+                    self.trade_states[symbol] = updated_state
 
         except Exception as e:
-            logger.error(f"Guardian: Check failed: {e}", exc_info=True)
+            logger.error(f"Guardian [{symbol}]: Check failed: {e}", exc_info=True)
+
+    def _write_guardian_status(self):
+        """Write combined guardian heartbeat for all symbols (once per pulse)."""
+        try:
+            from src.utils.path_utils import resolve_project_root
+            import json as _json
+
+            # Fetch account balance once (shared cross-margin account)
+            account_balance = None
+            try:
+                account = self.executor.client.get_cross_margin_account()
+                for a in (account.assets or []):
+                    if a.asset == "USDT" and a.net_asset > 0:
+                        account_balance = round(a.net_asset, 2)
+                        break
+            except Exception:
+                pass
+
+            symbols_data = {}
+            for sym in self.symbols:
+                try:
+                    pos = self.executor.client.get_symbol_position(sym)
+                    net_qty = pos.net_qty if pos else 0.0
+                    active_orders = self.executor.client.get_active_orders(sym)
+                    symbols_data[sym] = {
+                        "net_qty": net_qty,
+                        "has_position": abs(net_qty) > 1e-8,
+                        "active_orders": len(active_orders) if active_orders else 0,
+                    }
+                except Exception:
+                    symbols_data[sym] = {"net_qty": 0.0, "has_position": False, "active_orders": 0}
+
+            guardian = {
+                "last_pulse_at": datetime.now(timezone.utc).isoformat(),
+                "account_balance": account_balance,
+                "symbols": symbols_data,
+            }
+
+            # Atomic write
+            guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_guardian.json")
+            tmp_path = guardian_path + ".tmp"
+            with open(tmp_path, "w") as f:
+                _json.dump(guardian, f, default=str)
+            os.replace(tmp_path, guardian_path)
+        except Exception:
+            pass  # Dashboard may not be running; silently skip
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon v7.1 (Zero-Entropy Architecture)")
