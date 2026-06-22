@@ -311,6 +311,7 @@ async function checkSniperStatus() {
         const balance = data.balance ?? g.account_balance;
         if (balance != null) parts.push(`Balance=${balance}`);
         parts.push(`NetQty=${g.net_qty?.toFixed(4)}`);
+        parts.push(`Position=${g.has_position}`);
         parts.push(`Orders=${g.active_orders}`);
         statusEl.textContent = parts.join(' | ');
         statusEl.className = 'run-status-text';
