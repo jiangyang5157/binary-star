@@ -180,4 +180,16 @@ def sniper_status(data_root: str = Query("")):
         "balance": status.get("balance"),
         "started_at": started_str,
         "elapsed_seconds": round(elapsed),
+        "guardian": _read_guardian_status(data_root),
     }
+
+
+def _read_guardian_status(data_root: str) -> dict | None:
+    """Read the guardian pulse file written by the sniper daemon."""
+    path = Path(data_root) / ".sniper_guardian.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return None

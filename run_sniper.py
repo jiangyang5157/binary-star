@@ -261,12 +261,31 @@ class SniperDaemon:
                 atr = self.prev_metrics.get('price_dynamics', {}).get('atr_macro')
             
             updated_state = self.executor.guardian_check(self.symbol, self.trade_state, atr_macro=atr)
-            
+
             if updated_state != self.trade_state:
                 if not updated_state:
                     logger.info("Guardian: Trade state cleared (position closed or entry expired).")
                 self.trade_state = updated_state or {}
-                
+
+            # Write guardian pulse status for dashboard consumption
+            try:
+                from src.utils.path_utils import resolve_project_root
+                import json as _json
+                pos = self.executor.client.get_symbol_position(self.symbol)
+                net_qty = pos.net_qty if pos else 0.0
+                active_orders = self.executor.client.get_active_orders(self.symbol)
+                guardian = {
+                    "symbol": self.symbol,
+                    "net_qty": net_qty,
+                    "has_position": abs(net_qty) > 1e-8,
+                    "active_orders": len(active_orders) if active_orders else 0,
+                    "last_pulse_at": datetime.now(timezone.utc).isoformat(),
+                }
+                guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_guardian.json")
+                _json.dump(guardian, open(guardian_path, "w"), default=str)
+            except Exception:
+                pass  # Dashboard may not be running; silently skip
+
         except Exception as e:
             logger.error(f"Guardian: Check failed: {e}", exc_info=True)
 

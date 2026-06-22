@@ -57,6 +57,7 @@
       <span class="run-suffix" style="font-size:0.8rem">USDT</span>
       <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Start</button>
       <span id="sniper-status" class="run-status-text" style="display:none"></span>
+      <span id="sniper-guardian" class="run-status-text" style="display:none;font-family:monospace;font-size:0.78rem"></span>
     </div>
   </section>
 
@@ -286,6 +287,16 @@ async function checkSniperStatus() {
       const statusEl = document.getElementById('sniper-status');
       const elapsed = formatElapsed(data.elapsed_seconds || 0);
       statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
+
+      // Guardian pulse
+      const guardianEl = document.getElementById('sniper-guardian');
+      if (data.guardian) {
+        const g = data.guardian;
+        guardianEl.style.display = 'inline';
+        guardianEl.textContent = `Guardian: ${g.symbol} | NetQty=${g.net_qty?.toFixed(4)} | Position=${g.has_position} | Orders=${g.active_orders}`;
+      } else {
+        guardianEl.style.display = 'none';
+      }
     } else {
       if (sniperPollInterval) {
         clearInterval(sniperPollInterval);
@@ -294,6 +305,7 @@ async function checkSniperStatus() {
         statusEl.style.display = 'inline';
         statusEl.className = 'run-status-text run-ok';
         statusEl.textContent = '✓ Stopped';
+        document.getElementById('sniper-guardian').style.display = 'none';
         updateSniperUI('idle');
         setTimeout(() => {
           statusEl.style.display = 'none';
