@@ -17,50 +17,50 @@
 
 <main class="container">
 
-  <!-- ═══════ New Session ═══════ -->
-  <section class="card run-section">
-    <div class="section-header">
-      <h2>New Session</h2>
-    </div>
-    <div class="run-controls">
-      <div class="run-input-group">
+  <!-- ═══════ New Session & Sniper Control ═══════ -->
+  <div class="run-panels">
+
+    <!-- New Session -->
+    <section class="card run-panel">
+      <div class="section-header">
+        <h2>New Session</h2>
+        <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
+      </div>
+      <div class="run-controls">
         <input type="text" id="symbol-prefix" class="filter-input run-symbol-input"
                placeholder="BTC" maxlength="10" autocomplete="off"
                oninput="document.getElementById('run-status').style.display='none'">
       </div>
-      <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
-      <span id="run-status" class="run-status-text" style="display:none"></span>
-    </div>
-  </section>
+      <div id="run-status" class="run-status-box" style="display:none"></div>
+    </section>
 
-  <!-- ═══════ Sniper Control ═══════ -->
-  <section class="card run-section">
-    <div class="section-header">
-      <h2>Sniper Control</h2>
-    </div>
-    <div class="run-controls">
-      <div class="run-input-group">
+    <!-- Sniper Control -->
+    <section class="card run-panel">
+      <div class="section-header">
+        <h2>Sniper Control</h2>
+        <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Run</button>
+      </div>
+      <div class="run-controls">
         <input type="text" id="sniper-symbol" class="filter-input run-symbol-input"
                placeholder="BTC,XAUT" maxlength="50" autocomplete="off"
                oninput="document.getElementById('sniper-status').style.display='none'">
+        <span id="sniper-balance-group" style="display:none" class="balance-group">
+          <input type="number" id="sniper-balance" class="filter-input balance-input"
+                 placeholder="Balance" min="0" step="any"
+                 onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+                 oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '')">
+          <span class="run-suffix">USDT</span>
+        </span>
+        <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
+          <span class="toggle-text">Trade</span>
+          <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
+          <span class="toggle-slider"></span>
+        </label>
       </div>
-      <label class="toggle-label" for="sniper-trade-toggle">
-        <span class="toggle-text">Trade</span>
-        <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
-        <span class="toggle-slider"></span>
-      </label>
-      <span id="sniper-balance-group" style="display:none">
-        <input type="number" id="sniper-balance" class="filter-input"
-               placeholder="Balance" min="0" step="any"
-               style="width:100px"
-               onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
-               oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '')">
-        <span class="run-suffix" style="font-size:0.8rem">USDT</span>
-      </span>
-      <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Start</button>
-      <span id="sniper-status" class="run-status-text" style="display:none"></span>
-    </div>
-  </section>
+      <div id="sniper-status" class="run-status-box" style="display:none"></div>
+    </section>
+
+  </div>
 
   <!-- ═══════ Active Sessions Table ═══════ -->
   <section class="card">
@@ -155,11 +155,11 @@ async function checkRunStatus() {
         runPollInterval = null;
 
         const statusEl = document.getElementById('run-status');
-        statusEl.style.display = 'inline';
+        statusEl.style.display = 'block';
         const last = data.last_run;
         if (last) {
           if (last.result === 'success') {
-            statusEl.className = 'run-status-text run-ok';
+            statusEl.className = 'run-status-box run-ok';
             statusEl.textContent = `✓ ${last.symbol} completed`;
             loadActive();
             setTimeout(() => {
@@ -167,7 +167,7 @@ async function checkRunStatus() {
               updateRunUI('idle');
             }, 3000);
           } else {
-            statusEl.className = 'run-status-text run-error';
+            statusEl.className = 'run-status-box run-error';
             const msg = last.error_message || 'unknown error';
             statusEl.textContent = `✗ ${last.symbol} failed: ${msg}`;
             updateRunUI('idle');
@@ -196,8 +196,8 @@ async function triggerRun() {
       const resp = await fetch(apiUrl('/api/session/stop'), { method: 'POST' });
       if (!resp.ok) {
         const err = await resp.json();
-        statusEl.style.display = 'inline';
-        statusEl.className = 'run-status-text run-error';
+        statusEl.style.display = 'block';
+        statusEl.className = 'run-status-box run-error';
         statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
@@ -206,8 +206,8 @@ async function triggerRun() {
       }
       // Polling will catch the transition to idle
     } catch (e) {
-      statusEl.style.display = 'inline';
-      statusEl.className = 'run-status-text run-error';
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
       statusEl.textContent = '✗ Request failed';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
@@ -226,9 +226,13 @@ async function triggerRun() {
     input.value = prefix;
   }
 
+  // Strip commas (single symbol — user may have pasted CSV-like input)
+  prefix = prefix.replace(/,/g, '').trim();
+  if (prefix !== input.value) input.value = prefix;
+
   if (!prefix || prefix.length < 2) {
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text run-error';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Enter at least 2 characters';
     return;
   }
@@ -245,8 +249,8 @@ async function triggerRun() {
 
     if (!resp.ok) {
       const err = await resp.json();
-      statusEl.style.display = 'inline';
-      statusEl.className = 'run-status-text run-error';
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
       statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
       updateRunUI('idle');
       return;
@@ -254,13 +258,13 @@ async function triggerRun() {
 
     const data = await resp.json();
     updateRunUI('running');
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box';
     statusEl.textContent = `⟳ Running ${data.symbol}…`;
     runPollInterval = setInterval(checkRunStatus, 2000);
   } catch (e) {
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text run-error';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Request failed';
     updateRunUI('idle');
   }
@@ -273,7 +277,7 @@ async function triggerRun() {
     const data = await resp.json();
     if (data.running) {
       updateRunUI('running');
-      document.getElementById('run-status').style.display = 'inline';
+      document.getElementById('run-status').style.display = 'block';
       runPollInterval = setInterval(checkRunStatus, 2000);
       checkRunStatus();
     }
@@ -287,7 +291,7 @@ function toggleBalanceVisibility() {
   const trade = document.getElementById('sniper-trade-toggle').checked;
   const group = document.getElementById('sniper-balance-group');
   const balanceInput = document.getElementById('sniper-balance');
-  group.style.display = trade ? 'inline' : 'none';
+  group.style.display = trade ? 'inline-flex' : 'none';
   if (!trade) {
     balanceInput.value = '';
   }
@@ -313,7 +317,7 @@ function updateSniperUI(state) {
     // Restore balance visibility based on trade toggle state
     toggleBalanceVisibility();
     btn.disabled = false;
-    btn.textContent = '▶ Start';
+    btn.textContent = '▶ Run';
     btn.style.color = '';
     sniperPollInterval = null;
   }
@@ -369,25 +373,25 @@ async function checkSniperStatus() {
         html += '</div>';
 
         statusEl.innerHTML = html;
-        statusEl.className = 'run-status-text';
+        statusEl.className = 'run-status-box';
       } else if (tradeOn) {
         // Trade=ON but no guardian pulse yet
         statusEl.innerHTML = '';
         statusEl.textContent = `⟳ Running ${symbols.join(', ')}… ${formatElapsed(elapsed)}`;
-        statusEl.className = 'run-status-text';
+        statusEl.className = 'run-status-box';
       } else {
         // Trade=OFF
         statusEl.innerHTML = '';
         statusEl.textContent = `${symbols.join(', ')} | Trade=OFF`;
-        statusEl.className = 'run-status-text';
+        statusEl.className = 'run-status-box';
       }
     } else {
       if (sniperPollInterval) {
         clearInterval(sniperPollInterval);
         sniperPollInterval = null;
         const statusEl = document.getElementById('sniper-status');
-        statusEl.style.display = 'inline';
-        statusEl.className = 'run-status-text run-ok';
+        statusEl.style.display = 'block';
+        statusEl.className = 'run-status-box run-ok';
         statusEl.textContent = '✓ Stopped';
         updateSniperUI('idle');
         setTimeout(() => {
@@ -410,8 +414,8 @@ async function triggerSniper() {
       const resp = await fetch(apiUrl('/api/sniper/stop'), { method: 'POST' });
       if (!resp.ok) {
         const err = await resp.json();
-        statusEl.style.display = 'inline';
-        statusEl.className = 'run-status-text run-error';
+        statusEl.style.display = 'block';
+        statusEl.className = 'run-status-box run-error';
         statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
@@ -419,8 +423,8 @@ async function triggerSniper() {
       }
       // Status polling will catch the transition to idle
     } catch (e) {
-      statusEl.style.display = 'inline';
-      statusEl.className = 'run-status-text run-error';
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
       statusEl.textContent = '✗ Request failed';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
@@ -435,15 +439,15 @@ async function triggerSniper() {
   const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   if (parts.length === 0) {
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text run-error';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ At least one symbol required';
     return;
   }
   for (const p of parts) {
     if (p.length < 2 || !/^[A-Z0-9]+$/.test(p)) {
-      statusEl.style.display = 'inline';
-      statusEl.className = 'run-status-text run-error';
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
       statusEl.textContent = `✗ Invalid symbol: "${p}"`;
       return;
     }
@@ -455,8 +459,8 @@ async function triggerSniper() {
   const balance = balanceRaw ? parseFloat(balanceRaw) : null;
 
   if (balance !== null && (isNaN(balance) || balance <= 0)) {
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text run-error';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Balance must be > 0';
     return;
   }
@@ -477,8 +481,8 @@ async function triggerSniper() {
 
     if (!resp.ok) {
       const err = await resp.json();
-      statusEl.style.display = 'inline';
-      statusEl.className = 'run-status-text run-error';
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
       statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
       updateSniperUI('idle');
       return;
@@ -487,13 +491,13 @@ async function triggerSniper() {
     const data = await resp.json();
     const symbols = data.symbols || [];
     updateSniperUI('running');
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box';
     statusEl.textContent = `⟳ Running ${symbols.join(', ')}…`;
     sniperPollInterval = setInterval(checkSniperStatus, 2000);
   } catch (e) {
-    statusEl.style.display = 'inline';
-    statusEl.className = 'run-status-text run-error';
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Request failed';
     updateSniperUI('idle');
   }
@@ -506,7 +510,7 @@ async function triggerSniper() {
     const data = await resp.json();
     if (data.running) {
       updateSniperUI('running');
-      document.getElementById('sniper-status').style.display = 'inline';
+      document.getElementById('sniper-status').style.display = 'block';
       sniperPollInterval = setInterval(checkSniperStatus, 2000);
       checkSniperStatus();
     }
