@@ -1027,7 +1027,7 @@ tbody tr:hover {
 .run-input-group {
   display: inline-flex;
   align-items: center;
-  gap: 0;
+  gap: 6px;
 }
 
 .run-symbol-input {

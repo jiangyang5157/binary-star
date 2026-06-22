@@ -25,7 +25,7 @@
     <div class="run-controls">
       <div class="run-input-group">
         <input type="text" id="symbol-prefix" class="filter-input run-symbol-input"
-               placeholder="BTC" maxlength="10" autocomplete="off">
+               placeholder="Symbol" maxlength="10" autocomplete="off">
         <span class="run-suffix">USDT</span>
       </div>
       <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
@@ -159,7 +159,14 @@ async function checkRunStatus() {
 
 async function triggerRun() {
   const input = document.getElementById('symbol-prefix');
-  const prefix = input.value.trim();
+  let prefix = input.value.trim();
+
+  // Strip trailing "USDT" if user accidentally included it
+  if (prefix.toUpperCase().endsWith('USDT')) {
+    prefix = prefix.slice(0, -4).trim();
+    input.value = prefix;
+  }
+
   if (!prefix || prefix.length < 2) {
     alert('Enter at least 2 characters (e.g. BTC)');
     return;
