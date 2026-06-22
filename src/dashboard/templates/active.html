@@ -48,13 +48,15 @@
       </div>
       <label class="toggle-label" for="sniper-trade-toggle">
         <span class="toggle-text">Trade</span>
-        <input type="checkbox" id="sniper-trade-toggle" class="toggle-input">
+        <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
         <span class="toggle-slider"></span>
       </label>
-      <input type="number" id="sniper-balance" class="filter-input"
-             placeholder="Balance" min="0" step="any"
-             style="width:100px">
-      <span class="run-suffix" style="font-size:0.8rem">USDT</span>
+      <span id="sniper-balance-group" style="display:none">
+        <input type="number" id="sniper-balance" class="filter-input"
+               placeholder="Balance" min="0" step="any"
+               style="width:100px">
+        <span class="run-suffix" style="font-size:0.8rem">USDT</span>
+      </span>
       <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Start</button>
       <span id="sniper-status" class="run-status-text" style="display:none"></span>
       <span id="sniper-guardian" class="run-status-text" style="display:none;font-family:monospace;font-size:0.78rem"></span>
@@ -253,10 +255,21 @@ async function triggerRun() {
 // ── Sniper Control ──
 let sniperPollInterval = null;
 
+function toggleBalanceVisibility() {
+  const trade = document.getElementById('sniper-trade-toggle').checked;
+  const group = document.getElementById('sniper-balance-group');
+  const balanceInput = document.getElementById('sniper-balance');
+  group.style.display = trade ? 'inline' : 'none';
+  if (!trade) {
+    balanceInput.value = '';
+  }
+}
+
 function updateSniperUI(state) {
   const input = document.getElementById('sniper-symbol');
   const tradeToggle = document.getElementById('sniper-trade-toggle');
   const balanceInput = document.getElementById('sniper-balance');
+  const balanceGroup = document.getElementById('sniper-balance-group');
   const btn = document.getElementById('sniper-btn');
 
   if (state === 'running') {
@@ -270,6 +283,8 @@ function updateSniperUI(state) {
     input.disabled = false;
     tradeToggle.disabled = false;
     balanceInput.disabled = false;
+    // Restore balance visibility based on trade toggle state
+    toggleBalanceVisibility();
     btn.disabled = false;
     btn.textContent = '▶ Start';
     btn.style.color = '';
