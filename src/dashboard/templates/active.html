@@ -21,7 +21,10 @@
   <section class="card">
     <div class="section-header">
       <h2>Active Sessions</h2>
-      <span class="text-muted" style="font-size:0.8rem">Auto-refreshes every 60s</span>
+      <div class="section-controls">
+        <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" title="Refresh active sessions">⟳ Refresh</button>
+        <span id="refresh-active-status" class="audit-status" style="display:none"></span>
+      </div>
     </div>
     <p class="chart-hint">BULLISH / BEARISH sessions still within their projected time window</p>
     <div class="table-wrapper">
@@ -111,9 +114,34 @@ async function loadActive() {
   }
 }
 
-// Initial load + auto-refresh every 60s
+// ── Refresh button ──
+async function refreshActive() {
+  const btn = document.getElementById('refresh-active-btn');
+  const status = document.getElementById('refresh-active-status');
+  btn.disabled = true;
+  btn.textContent = '⟳ Refreshing...';
+  status.style.display = 'none';
+
+  try {
+    await loadActive();
+    status.textContent = '✓ Updated';
+    status.className = 'audit-status audit-ok';
+    btn.style.display = 'none';
+  } catch {
+    status.textContent = '⚠ Failed';
+    status.className = 'audit-status audit-error';
+  }
+  status.style.display = 'inline';
+  setTimeout(() => {
+    status.style.display = 'none';
+    btn.style.display = '';
+  }, 3000);
+  btn.disabled = false;
+  btn.textContent = '⟳ Refresh';
+}
+
+// Initial load
 loadActive();
-setInterval(loadActive, 60000);
 </script>
 </body>
 </html>
