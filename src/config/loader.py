@@ -93,9 +93,15 @@ def load_audit_config(cfg: dict[str, Any]) -> AuditConfig:
 def load_visual_config(cfg: dict[str, Any]) -> VisualConfig:
     import os, yaml
     from src.utils.path_utils import resolve_project_root
+    from src.utils.pipeline_utils import deep_merge
     v_path = os.path.join(resolve_project_root(), "config", "visual_config.yaml")
     with open(v_path, "r") as f:
         v = yaml.safe_load(f)
+    # Merge cfg-level visual overrides on top of file defaults.
+    # This enables per-symbol visual config via symbol_config.yaml → overrides → visual.
+    v_overrides = cfg.get("visual", {})
+    if v_overrides:
+        v = deep_merge(v, v_overrides)
     return VisualConfig(
         volume_profile_width_ratio=_f(v["volume_profile"], "width_ratio"),
         render_dpi=_i(v["chart"], "render_dpi"),

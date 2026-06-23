@@ -55,37 +55,39 @@ def get_git_commit(short: bool = True) -> str:
     return "unknown"
 
 
-def load_config(config_filepath: str = "config/strategy_config.yaml") -> Dict[str, Any]:
-    """
-    Loads a YAML configuration file from the given path.
-    If the path is relative, it is resolved against the project root.
+def _load_yaml_file(filepath: str, on_error: str = "raise") -> Dict[str, Any]:
+    """Internal YAML loader with configurable error handling.
+
+    Args:
+        filepath: Relative or absolute path to a YAML file.
+        on_error: ``"raise"`` (propagate), ``"empty"`` (return ``{}``),
+                  or ``"warn"`` (log warning + return ``{}``).
     """
     from src.utils.path_utils import resolve_project_root
-    project_root = resolve_project_root()
-    
-    absolute_path = config_filepath
-    if not os.path.isabs(config_filepath):
-        absolute_path = os.path.join(project_root, config_filepath)
-        
-    with open(absolute_path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f)
+
+    absolute = filepath if os.path.isabs(filepath) else os.path.join(
+        resolve_project_root(), filepath)
+
+    try:
+        with open(absolute, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+        return data if data is not None else {}
+    except Exception as e:
+        if on_error == "raise":
+            raise
+        if on_error == "warn":
+            logger.warning("Failed to load %s: %s — falling back to empty config", filepath, e)
+        return {}
+
+
+def load_config(config_filepath: str = "config/strategy_config.yaml") -> Dict[str, Any]:
+    """Load a YAML configuration file.  Raises on any error."""
+    return _load_yaml_file(config_filepath, on_error="raise")
+
 
 def load_global_config(config_filepath: str = "config/global_config.yaml") -> Dict[str, Any]:
-    """
-    Loads the global system configuration file.
-    """
-    from src.utils.path_utils import resolve_project_root
-    project_root = resolve_project_root()
-    
-    absolute_path = config_filepath
-    if not os.path.isabs(config_filepath):
-        absolute_path = os.path.join(project_root, config_filepath)
-        
-    try:
-        with open(absolute_path, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
-    except Exception:
-        return {}
+    """Load the global system config.  Returns ``{}`` on error (safe for daemons)."""
+    return _load_yaml_file(config_filepath, on_error="empty")
 
 
 def resolve_api_key() -> Optional[str]:

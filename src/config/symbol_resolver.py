@@ -22,16 +22,11 @@ logger = logging.getLogger(__name__)
 def _load_yaml(rel_path: str) -> dict:
     """Load a YAML file relative to the project root.
 
-    Falls back to an empty dict on any error (missing file, parse error, I/O error)
+    Delegates to the shared pipeline_utils loader with ``on_error="warn"``
     so that config resolution degrades safely rather than crashing the daemon.
     """
-    path = os.path.join(resolve_project_root(), rel_path)
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    except (FileNotFoundError, yaml.YAMLError, OSError) as e:
-        logger.warning("Failed to load %s: %s — falling back to empty config", rel_path, e)
-        return {}
+    from src.utils.pipeline_utils import _load_yaml_file
+    return _load_yaml_file(rel_path, on_error="warn")
 
 
 # ── Public API ──────────────────────────────────────────────────────────────
