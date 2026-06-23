@@ -33,355 +33,364 @@ class RegimePhysicsConfig:
     weight_standard: float
 
 
-class MathTools:
-    """The Electronic Physicist for the Singularity Reasoning Triad.
 
-    Provides deterministic calculations for market topography and trade geometry
-    to replace LLM heuristic math. All methods are static and idempotent.
+def get_tool_declarations() -> list[dict]:
+    """Return LLM function-calling schemas for the supported tools.
 
-    Key Responsibilities:
-    1. Geometric Validation (RR, ATR Buffers, Structural Armor).
-    2. Velocity Projection (Predicted holding times).
-    3. Forensic Benchmarking (MAE Stress, Opportunity Cost).
+    Co-located with implementations so parameter changes stay in sync.
     """
-
-    @staticmethod
-    def get_tool_declarations() -> list[dict]:
-        """Return LLM function-calling schemas for the supported tools.
-
-        Co-located with implementations so parameter changes stay in sync.
-        """
-        return [
-            {
-                "name": "calculate_risk_reward",
-                "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
-                "parameters": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "entry": {"type": "NUMBER"},
-                        "take_profit": {"type": "NUMBER"},
-                        "stop_loss": {"type": "NUMBER"},
-                    },
-                    "required": ["entry", "take_profit", "stop_loss"],
+    return [
+        {
+            "name": "calculate_risk_reward",
+            "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
+            "parameters": {
+                "type": "OBJECT",
+                "properties": {
+                    "entry": {"type": "NUMBER"},
+                    "take_profit": {"type": "NUMBER"},
+                    "stop_loss": {"type": "NUMBER"},
                 },
+                "required": ["entry", "take_profit", "stop_loss"],
             },
-            {
-                "name": "calculate_atr_metrics",
-                "description": "Standardizes entry/exit distances using ATR.",
-                "parameters": {
-                    "type": "OBJECT",
-                    "properties": {
-                        "entry": {"type": "NUMBER"},
-                        "stop_loss": {"type": "NUMBER"},
-                        "take_profit": {"type": "NUMBER"},
-                        "atr": {"type": "NUMBER"},
-                    },
-                    "required": ["entry", "stop_loss", "take_profit", "atr"],
+        },
+        {
+            "name": "calculate_atr_metrics",
+            "description": "Standardizes entry/exit distances using ATR.",
+            "parameters": {
+                "type": "OBJECT",
+                "properties": {
+                    "entry": {"type": "NUMBER"},
+                    "stop_loss": {"type": "NUMBER"},
+                    "take_profit": {"type": "NUMBER"},
+                    "atr": {"type": "NUMBER"},
                 },
+                "required": ["entry", "stop_loss", "take_profit", "atr"],
             },
-        ]
+        },
+    ]
 
-    @staticmethod
-    def calculate_risk_reward(
-        entry: float,
-        take_profit: float,
-        stop_loss: float
-    ) -> Dict[str, Any]:
-        """Calculate the Risk-Reward (RR) ratio for a limit order.
+def calculate_risk_reward(
+    entry: float,
+    take_profit: float,
+    stop_loss: float
+) -> Dict[str, Any]:
+    """Calculate the Risk-Reward (RR) ratio for a limit order.
 
-        Args:
-            entry: Entry price.
-            take_profit: Take-profit price.
-            stop_loss: Stop-loss price.
+    Args:
+        entry: Entry price.
+        take_profit: Take-profit price.
+        stop_loss: Stop-loss price.
 
-        Returns:
-            Dict containing rr_ratio, profit_distance, and risk_distance.
-        """
-        try:
-            # Basic validation: ensure inputs are positive
-            if entry <= 0 or take_profit <= 0 or stop_loss <= 0:
-                return {"error": "All price inputs must be positive numbers."}
+    Returns:
+        Dict containing rr_ratio, profit_distance, and risk_distance.
+    """
+    try:
+        # Basic validation: ensure inputs are positive
+        if entry <= 0 or take_profit <= 0 or stop_loss <= 0:
+            return {"error": "All price inputs must be positive numbers."}
 
-            sl_dist = abs(entry - stop_loss)
-            tp_dist = abs(take_profit - entry)
-            
-            # Zero-stop-loss guard: prevent division by zero
-            if sl_dist < 1e-8:  # epsilon check instead of zero
-                return {
-                    "rr_ratio": 0.0,
-                    "profit_distance": round(tp_dist, 4),
-                    "risk_distance": 0.0,
-                    "warning": "Zero stop-loss distance detected. Logical trap."
-                }
-            
-            rr = round(tp_dist / sl_dist, 2)
+        sl_dist = abs(entry - stop_loss)
+        tp_dist = abs(take_profit - entry)
+        
+        # Zero-stop-loss guard: prevent division by zero
+        if sl_dist < 1e-8:  # epsilon check instead of zero
             return {
-                "rr_ratio": rr,
+                "rr_ratio": 0.0,
                 "profit_distance": round(tp_dist, 4),
-                "risk_distance": round(sl_dist, 4)
+                "risk_distance": 0.0,
+                "warning": "Zero stop-loss distance detected. Logical trap."
             }
-        except Exception as e:
-            logger.error(f"MathTools: RR calculation failure: {e}")
-            return {"error": str(e)}
+        
+        rr = round(tp_dist / sl_dist, 2)
+        return {
+            "rr_ratio": rr,
+            "profit_distance": round(tp_dist, 4),
+            "risk_distance": round(sl_dist, 4)
+        }
+    except Exception as e:
+        logger.error(f"MathTools: RR calculation failure: {e}")
+        return {"error": str(e)}
 
-    @staticmethod
-    def calculate_atr_metrics(
-        entry: float,
-        stop_loss: float,
-        take_profit: float,
-        atr: float,
-        current_price: Optional[float] = None
-    ) -> Dict[str, Any]:
-        """Standardize entry/SL/TP distances using ATR (Average True Range).
+def calculate_atr_metrics(
+    entry: float,
+    stop_loss: float,
+    take_profit: float,
+    atr: float,
+    current_price: Optional[float] = None
+) -> Dict[str, Any]:
+    """Standardize entry/SL/TP distances using ATR (Average True Range).
 
-        Converts absolute price distances into volatility units so agents can
-        evaluate risk relative to current market granularity.
-        """
-        try:
-            if atr <= 0:
-                return {"error": "ATR must be > 0 for topographical normalization."}
-                
-            metrics = {
-                "entry_to_sl_atr": round(abs(entry - stop_loss) / atr, 3),
-                "entry_to_tp_atr": round(abs(take_profit - entry) / atr, 3),
-            }
+    Converts absolute price distances into volatility units so agents can
+    evaluate risk relative to current market granularity.
+    """
+    try:
+        if atr <= 0:
+            return {"error": "ATR must be > 0 for topographical normalization."}
             
-            if current_price is not None and current_price > 0:
-                # Drift: entry offset from current market price (sign-aligned with the legacy system)
-                metrics["entry_to_current_atr"] = round((entry - current_price) / atr, 3)
-                
-            return metrics
-        except Exception as e:
-            logger.error(f"MathTools: ATR metrics failure: {e}")
-            return {"error": str(e)}
+        metrics = {
+            "entry_to_sl_atr": round(abs(entry - stop_loss) / atr, 3),
+            "entry_to_tp_atr": round(abs(take_profit - entry) / atr, 3),
+        }
+        
+        if current_price is not None and current_price > 0:
+            # Drift: entry offset from current market price (sign-aligned with the legacy system)
+            metrics["entry_to_current_atr"] = round((entry - current_price) / atr, 3)
+            
+        return metrics
+    except Exception as e:
+        logger.error(f"MathTools: ATR metrics failure: {e}")
+        return {"error": str(e)}
 
-    @staticmethod
-    def calculate_structural_proximity(
-        stop_loss: float,
-        atr: float,
-        poc: Optional[float] = None,
-        vah: Optional[float] = None,
-        val: Optional[float] = None
-    ) -> Dict[str, Any]:
-        """Calculate stop-loss distance to structural anchors (POC/VAH/VAL).
+def calculate_structural_proximity(
+    stop_loss: float,
+    atr: float,
+    poc: Optional[float] = None,
+    vah: Optional[float] = None,
+    val: Optional[float] = None
+) -> Dict[str, Any]:
+    """Calculate stop-loss distance to structural anchors (POC/VAH/VAL).
 
-        Validates whether the stop is protected by physical armor.
-        Positive values = SL above anchor; negative = SL below anchor.
-        """
-        try:
-            if atr <= 0:
-                return {"error": "ATR must be > 0."}
-                
-            def dist_to_atr(anchor: Optional[float]) -> Optional[float]:
-                if anchor is None or anchor <= 0: return None
-                return round((stop_loss - anchor) / atr, 3)
-
-            return {
-                "sl_to_poc_atr": dist_to_atr(poc),
-                "sl_to_vah_atr": dist_to_atr(vah),
-                "sl_to_val_atr": dist_to_atr(val)
-            }
-        except Exception as e:
-            logger.error(f"MathTools: Structural proximity failure: {e}")
-            return {"error": str(e)}
-
-    @staticmethod
-    def get_regime_scalars(
-        trend_intensity: float,
-        volatility_intensity_index: float,
-        normalized_velocity: float,
-        physics: RegimePhysicsConfig,
-    ) -> Dict[str, Any]:
-        """Calculates primary physics scalars for a given market regime.
-
-        Args:
-            trend_intensity: Efficiency Ratio [-1, 1] for regime triggers.
-            volatility_intensity_index: Current vs mean ATR ratio.
-            normalized_velocity: Physical ATR/Bar speed for time projection.
-            physics: Bundled config values (thresholds, dilation/weight modifiers).
-        """
-        ti_abs = abs(trend_intensity)
-
-        # Final Velocity is the higher of observed speed or the protocol floor.
-        effective_velocity_per_atr = max(normalized_velocity, physics.min_velocity_floor, 1e-9)
-
-        # Regime Detection (Logic gates remain on trend_intensity)
-        if volatility_intensity_index >= physics.vr_extreme:
-            factor = physics.dilation_climax
-            weight = physics.weight_climax
-            dilation_variable = "temporal_dilation_climax"
-            weight_variable = "temporal_weight_climax"
-        elif ti_abs >= physics.ti_thresh:
-            factor = physics.dilation_highway
-            weight = physics.weight_highway
-            dilation_variable = "temporal_dilation_highway"
-            weight_variable = "temporal_weight_highway"
-        elif volatility_intensity_index < physics.vr_base and ti_abs < physics.ti_strong:
-            factor = physics.dilation_dead_water
-            weight = physics.weight_dead_water
-            dilation_variable = "temporal_dilation_dead_water"
-            weight_variable = "temporal_weight_dead_water"
-        else:
-            factor = physics.dilation_standard
-            weight = physics.weight_standard
-            dilation_variable = "temporal_dilation_standard"
-            weight_variable = "temporal_weight_standard"
+    Validates whether the stop is protected by physical armor.
+    Positive values = SL above anchor; negative = SL below anchor.
+    """
+    try:
+        if atr <= 0:
+            return {"error": "ATR must be > 0."}
+            
+        def dist_to_atr(anchor: Optional[float]) -> Optional[float]:
+            if anchor is None or anchor <= 0: return None
+            return round((stop_loss - anchor) / atr, 3)
 
         return {
-            "effective_velocity_per_atr": effective_velocity_per_atr,
-            "temporal_dilation_factor": factor,
-            "temporal_dilation_variable": dilation_variable,
-            "temporal_weight_factor": weight,
-            "temporal_weight_variable": weight_variable
+            "sl_to_poc_atr": dist_to_atr(poc),
+            "sl_to_vah_atr": dist_to_atr(vah),
+            "sl_to_val_atr": dist_to_atr(val)
+        }
+    except Exception as e:
+        logger.error(f"MathTools: Structural proximity failure: {e}")
+        return {"error": str(e)}
+
+def get_regime_scalars(
+    trend_intensity: float,
+    volatility_intensity_index: float,
+    normalized_velocity: float,
+    physics: RegimePhysicsConfig,
+) -> Dict[str, Any]:
+    """Calculates primary physics scalars for a given market regime.
+
+    Args:
+        trend_intensity: Efficiency Ratio [-1, 1] for regime triggers.
+        volatility_intensity_index: Current vs mean ATR ratio.
+        normalized_velocity: Physical ATR/Bar speed for time projection.
+        physics: Bundled config values (thresholds, dilation/weight modifiers).
+    """
+    ti_abs = abs(trend_intensity)
+
+    # Final Velocity is the higher of observed speed or the protocol floor.
+    effective_velocity_per_atr = max(normalized_velocity, physics.min_velocity_floor, 1e-9)
+
+    # Regime Detection (Logic gates remain on trend_intensity)
+    if volatility_intensity_index >= physics.vr_extreme:
+        factor = physics.dilation_climax
+        weight = physics.weight_climax
+        dilation_variable = "temporal_dilation_climax"
+        weight_variable = "temporal_weight_climax"
+    elif ti_abs >= physics.ti_thresh:
+        factor = physics.dilation_highway
+        weight = physics.weight_highway
+        dilation_variable = "temporal_dilation_highway"
+        weight_variable = "temporal_weight_highway"
+    elif volatility_intensity_index < physics.vr_base and ti_abs < physics.ti_strong:
+        factor = physics.dilation_dead_water
+        weight = physics.weight_dead_water
+        dilation_variable = "temporal_dilation_dead_water"
+        weight_variable = "temporal_weight_dead_water"
+    else:
+        factor = physics.dilation_standard
+        weight = physics.weight_standard
+        dilation_variable = "temporal_dilation_standard"
+        weight_variable = "temporal_weight_standard"
+
+    return {
+        "effective_velocity_per_atr": effective_velocity_per_atr,
+        "temporal_dilation_factor": factor,
+        "temporal_dilation_variable": dilation_variable,
+        "temporal_weight_factor": weight,
+        "temporal_weight_variable": weight_variable
+    }
+
+def project_holding_time(
+    current_price: float,
+    entry: float,
+    take_profit: float,
+    atr: float,
+    trend_intensity: float,
+    volatility_intensity_index: float,
+    normalized_velocity: float,
+    interval_minutes: int,
+    physics: RegimePhysicsConfig,
+) -> Dict[str, Any]:
+    """Calculate precise holding and waiting times using the static scalar engine."""
+    try:
+        if atr <= 0 or interval_minutes <= 0:
+            return {"error": "ATR and interval_minutes must be > 0."}
+
+        scalars = get_regime_scalars(
+            trend_intensity=trend_intensity,
+            volatility_intensity_index=volatility_intensity_index,
+            normalized_velocity=normalized_velocity,
+            physics=physics,
+        )
+        
+        # Reconstructed physical velocity (effective scalar * ATR)
+        effective_velocity = scalars["effective_velocity_per_atr"] * atr
+
+        # 1. Physical holding time (with execution buffer)
+        # Formula = (pure physical flight time) * temporal dilation factor
+        # projected_holding_hours serves as the hard tracking deadline for audit scripts.
+        dist = abs(take_profit - entry)
+        projected_holding_hours = round((dist / effective_velocity * interval_minutes * scalars["temporal_dilation_factor"]) / 60, 1)
+
+        # 2. Waiting time (no buffer, pure physical velocity)
+        projected_waiting_hours = 0.0
+        if current_price is not None and current_price > 0:
+            wait_dist = abs(entry - current_price)
+            projected_waiting_hours = round((wait_dist / effective_velocity * interval_minutes) / 60, 1)
+
+        return {
+            "projected_holding_hours": projected_holding_hours,
+            "projected_waiting_hours": projected_waiting_hours,
+            "temporal_weight_factor": scalars["temporal_weight_factor"],
+            "temporal_weight_variable": scalars["temporal_weight_variable"]
         }
 
-    @staticmethod
-    def project_holding_time(
-        current_price: float,
-        entry: float,
-        take_profit: float,
-        atr: float,
-        trend_intensity: float,
-        volatility_intensity_index: float,
-        normalized_velocity: float,
-        interval_minutes: int,
-        physics: RegimePhysicsConfig,
-    ) -> Dict[str, Any]:
-        """Calculate precise holding and waiting times using the static scalar engine."""
-        try:
-            if atr <= 0 or interval_minutes <= 0:
-                return {"error": "ATR and interval_minutes must be > 0."}
+    except Exception as e:
+        logger.error(f"MathTools: Time projection failure: {e}")
+        return {"error": str(e)}
 
-            scalars = MathTools.get_regime_scalars(
-                trend_intensity=trend_intensity,
-                volatility_intensity_index=volatility_intensity_index,
-                normalized_velocity=normalized_velocity,
-                physics=physics,
-            )
+
+def calculate_opportunity_cost(
+    missed_range: float,
+    atr_macro: float,
+    threshold: float
+) -> Dict[str, Any]:
+    """Quantify the Cost of Cowardice — missed volatility during neutral decisions.
+    """
+    try:
+        if atr_macro <= 0:
+            return {"error": "ATR must be > 0."}
+        
+        rel_range = round(missed_range / atr_macro, 2)
+        return {
+            "missed_relative_range": rel_range,
+            "is_catastrophic_miss": rel_range > threshold
+        }
+    except Exception as e:
+        logger.error(f"MathTools: Opportunity cost failure: {e}")
+        return {"error": str(e)}
+
+def calculate_mae_stress(
+    mae_distance: float,
+    max_atr_used: float,
+    pinpoint: float,
+    standard: float,
+    luck: float
+) -> Dict[str, Any]:
+    """Evaluate Maximum Adverse Excursion (MAE) stress level relative to volatility.
+    """
+    try:
+        if max_atr_used <= 0:
+            return {"error": "max_atr_used must be > 0."}
             
-            # Reconstructed physical velocity (effective scalar * ATR)
-            effective_velocity = scalars["effective_velocity_per_atr"] * atr
+        stress_level = round((mae_distance / max_atr_used) * 100, 1)
+        
+        tier = "LOGIC_FAILURE"
+        if stress_level <= pinpoint: tier = "PINPOINT"
+        elif stress_level <= standard: tier = "STANDARD"
+        elif stress_level <= luck: tier = "LUCK"
+        
+        return {
+            "mae_stress_level_pct": stress_level,
+            "stress_tier": tier
+        }
+    except Exception as e:
+        logger.error(f"MathTools: MAE stress failure: {e}")
+        return {"error": str(e)}
 
-            # 1. Physical holding time (with execution buffer)
-            # Formula = (pure physical flight time) * temporal dilation factor
-            # projected_holding_hours serves as the hard tracking deadline for audit scripts.
-            dist = abs(take_profit - entry)
-            projected_holding_hours = round((dist / effective_velocity * interval_minutes * scalars["temporal_dilation_factor"]) / 60, 1)
+def calculate_liquidity_slippage(
+    price: float,
+    volume_profile: List[Dict[str, Any]],
+    atr: float,
+    base_slippage_bps: float,
+    max_slippage_bps: float
+) -> Dict[str, Any]:
+    """Calculate liquidity-sensitive slippage from volume profile.
 
-            # 2. Waiting time (no buffer, pure physical velocity)
-            projected_waiting_hours = 0.0
-            if current_price is not None and current_price > 0:
-                wait_dist = abs(entry - current_price)
-                projected_waiting_hours = round((wait_dist / effective_velocity * interval_minutes) / 60, 1)
+    Logic:
+    - Find the nearest volume bin to the given price.
+    - Normalize volume: current bin / max bin volume.
+    - Slippage penalty: add to base slippage based on volume vacuum.
+    """
+    try:
+        if not volume_profile or atr <= 0:
+            return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "warning": "Insufficient profile data."}
 
-            return {
-                "projected_holding_hours": projected_holding_hours,
-                "projected_waiting_hours": projected_waiting_hours,
-                "temporal_weight_factor": scalars["temporal_weight_factor"],
-                "temporal_weight_variable": scalars["temporal_weight_variable"]
-            }
+        # 1. Find nearest price bin
+        prices = np.array([float(d['price']) for d in volume_profile])
+        vols = np.array([float(d['volume']) for d in volume_profile])
 
-        except Exception as e:
-            logger.error(f"MathTools: Time projection failure: {e}")
-            return {"error": str(e)}
+        idx = (np.abs(prices - price)).argmin()
+        local_vol = vols[idx]
+        max_vol = vols.max() if vols.size > 0 else 1.0
+
+        # 2. Calculate liquidity quality (0.0 to 1.0)
+        liquidity_quality = local_vol / max_vol if max_vol > 0 else 0.0
+
+        # 3. Dynamic slippage (linear model compensating vacuum zones)
+        # base slippage + (1 - quality) * (max extra penalty)
+        extra_slippage = (1.0 - liquidity_quality) * (max_slippage_bps - base_slippage_bps)
+        total_slippage_bps = base_slippage_bps + extra_slippage
+
+        # 4. Price adjustment (entry delay simulation)
+        # Slippage: 1 bps = 0.0001
+        adjustment_factor = 1.0 + (total_slippage_bps / 10000.0)
+        adjusted_price = round(price * adjustment_factor, 2)
+        
+        return {
+            "original_price": price,
+            "price_adjusted": adjusted_price,
+            "slippage_bps": round(total_slippage_bps, 2),
+            "liquidity_quality": round(liquidity_quality, 3),
+            "is_vacuum_zone": bool(liquidity_quality < 0.1)
+        }
+    except Exception as e:
+        logger.error(f"MathTools: Slippage calculation failure: {e}")
+        return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "error": str(e)}
+
+# Backward-compatible namespace for MathTools.xxx() callers.
+# Prefer importing functions directly, e.g. from src.utils.math_utils import calculate_risk_reward
+class _MathToolsNamespace:
+    """Delegates attribute access to module-level functions.
+
+    ``MathTools()`` returns self for backward compatibility with callers
+    that instantiated the old class.
+    """
+    def __call__(self):
+        return self
 
 
-    @staticmethod
-    def calculate_opportunity_cost(
-        missed_range: float,
-        atr_macro: float,
-        threshold: float
-    ) -> Dict[str, Any]:
-        """Quantify the Cost of Cowardice — missed volatility during neutral decisions.
-        """
-        try:
-            if atr_macro <= 0:
-                return {"error": "ATR must be > 0."}
-            
-            rel_range = round(missed_range / atr_macro, 2)
-            return {
-                "missed_relative_range": rel_range,
-                "is_catastrophic_miss": rel_range > threshold
-            }
-        except Exception as e:
-            logger.error(f"MathTools: Opportunity cost failure: {e}")
-            return {"error": str(e)}
-
-    @staticmethod
-    def calculate_mae_stress(
-        mae_distance: float,
-        max_atr_used: float,
-        pinpoint: float,
-        standard: float,
-        luck: float
-    ) -> Dict[str, Any]:
-        """Evaluate Maximum Adverse Excursion (MAE) stress level relative to volatility.
-        """
-        try:
-            if max_atr_used <= 0:
-                return {"error": "max_atr_used must be > 0."}
-                
-            stress_level = round((mae_distance / max_atr_used) * 100, 1)
-            
-            tier = "LOGIC_FAILURE"
-            if stress_level <= pinpoint: tier = "PINPOINT"
-            elif stress_level <= standard: tier = "STANDARD"
-            elif stress_level <= luck: tier = "LUCK"
-            
-            return {
-                "mae_stress_level_pct": stress_level,
-                "stress_tier": tier
-            }
-        except Exception as e:
-            logger.error(f"MathTools: MAE stress failure: {e}")
-            return {"error": str(e)}
-    @staticmethod
-    def calculate_liquidity_slippage(
-        price: float,
-        volume_profile: List[Dict[str, Any]],
-        atr: float,
-        base_slippage_bps: float,
-        max_slippage_bps: float
-    ) -> Dict[str, Any]:
-        """Calculate liquidity-sensitive slippage from volume profile.
-
-        Logic:
-        - Find the nearest volume bin to the given price.
-        - Normalize volume: current bin / max bin volume.
-        - Slippage penalty: add to base slippage based on volume vacuum.
-        """
-        try:
-            if not volume_profile or atr <= 0:
-                return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "warning": "Insufficient profile data."}
-
-            # 1. Find nearest price bin
-            prices = np.array([float(d['price']) for d in volume_profile])
-            vols = np.array([float(d['volume']) for d in volume_profile])
-
-            idx = (np.abs(prices - price)).argmin()
-            local_vol = vols[idx]
-            max_vol = vols.max() if vols.size > 0 else 1.0
-
-            # 2. Calculate liquidity quality (0.0 to 1.0)
-            liquidity_quality = local_vol / max_vol if max_vol > 0 else 0.0
-
-            # 3. Dynamic slippage (linear model compensating vacuum zones)
-            # base slippage + (1 - quality) * (max extra penalty)
-            extra_slippage = (1.0 - liquidity_quality) * (max_slippage_bps - base_slippage_bps)
-            total_slippage_bps = base_slippage_bps + extra_slippage
-
-            # 4. Price adjustment (entry delay simulation)
-            # Slippage: 1 bps = 0.0001
-            adjustment_factor = 1.0 + (total_slippage_bps / 10000.0)
-            adjusted_price = round(price * adjustment_factor, 2)
-            
-            return {
-                "original_price": price,
-                "price_adjusted": adjusted_price,
-                "slippage_bps": round(total_slippage_bps, 2),
-                "liquidity_quality": round(liquidity_quality, 3),
-                "is_vacuum_zone": bool(liquidity_quality < 0.1)
-            }
-        except Exception as e:
-            logger.error(f"MathTools: Slippage calculation failure: {e}")
-            return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "error": str(e)}
+# Populate MathTools namespace — only the functions that were MathTools methods
+_MATH_TOOLS_FUNCTIONS = [
+    get_tool_declarations,
+    calculate_risk_reward,
+    calculate_atr_metrics,
+    calculate_structural_proximity,
+    get_regime_scalars,
+    project_holding_time,
+    calculate_opportunity_cost,
+    calculate_mae_stress,
+    calculate_liquidity_slippage,
+]
+MathTools = _MathToolsNamespace()
+for _fn in _MATH_TOOLS_FUNCTIONS:
+    setattr(MathTools, _fn.__name__, staticmethod(_fn))
