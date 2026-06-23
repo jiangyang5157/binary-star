@@ -48,7 +48,7 @@ class MarginOrderExecutor:
         
         # [SAFETY GUARD] Explicit Whitelist Check
         if not self._is_symbol_whitelisted(symbol):
-            logger.warning(f"Executor: [ABORT] Symbol {symbol} is NOT configured in trade_management. Operation halted globally.")
+            logger.warning(f"Executor: [ABORT] Symbol {symbol} is NOT configured in symbol_config.yaml. Operation halted globally.")
             return None
             
         pos = self.client.get_symbol_position(symbol)
@@ -565,8 +565,8 @@ class MarginOrderExecutor:
         }
 
     def _get_trade_config(self, symbol: str):
-        """Returns strict trade configuration. Raises KeyError if missing."""
-        from src.config.symbol_resolver import get_symbol_trade_params
+        """Returns strict trade configuration. Raises KeyError if symbol not configured."""
+        from src.config.symbol_resolver import load_symbol_config, get_symbol_trade_params
 
         full_cfg = self._global_config_raw
 
@@ -577,6 +577,14 @@ class MarginOrderExecutor:
         tm = full_cfg["trade_management"]
         cfg["risk_per_trade"] = tm["risk_per_trade"]
         cfg["net_qty_tolerance"] = tm["net_qty_tolerance"]
+
+        # Verify the symbol is explicitly configured (not just getting defaults)
+        sym_raw = load_symbol_config().get(symbol, {})
+        if "precision_qty" not in sym_raw:
+            raise KeyError(
+                f"Symbol '{symbol}' is not configured in symbol_config.yaml. "
+                f"Add an entry with precision_qty, precision_price, min_order_qty, and sl_slippage_buffer."
+            )
 
         sym_cfg = get_symbol_trade_params(symbol)
         cfg["precision_qty"] = sym_cfg["precision_qty"]

@@ -10,8 +10,35 @@ from src.config.symbol_resolver import (
     resolve_config,
     resolve_all,
     is_symbol_configured,
-    _deep_merge,
 )
+from src.utils.pipeline_utils import deep_merge
+
+
+# ── deep_merge (via pipeline_utils) ─────────────────────────────────────────
+
+def test_deep_merge_simple():
+    result = deep_merge({"a": 1}, {"b": 2})
+    assert result == {"a": 1, "b": 2}
+
+
+def test_deep_merge_overwrite():
+    result = deep_merge({"a": 1}, {"a": 99})
+    assert result["a"] == 99
+
+
+def test_deep_merge_nested():
+    result = deep_merge({"a": {"x": 1, "y": 2}}, {"a": {"y": 99, "z": 3}})
+    assert result["a"] == {"x": 1, "y": 99, "z": 3}
+
+
+def test_deep_merge_non_dict_override():
+    result = deep_merge({"a": {"x": 1}}, {"a": "string_value"})
+    assert result["a"] == "string_value"
+
+
+def test_deep_merge_empty():
+    result = deep_merge({"a": 1}, {})
+    assert result == {"a": 1}
 
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
@@ -68,39 +95,6 @@ def sample_symbol_config():
             },
         },
     }
-
-
-# ── _deep_merge ─────────────────────────────────────────────────────────────
-
-def test_deep_merge_simple():
-    base = {"a": 1}
-    _deep_merge(base, {"b": 2})
-    assert base == {"a": 1, "b": 2}
-
-
-def test_deep_merge_overwrite():
-    base = {"a": 1}
-    _deep_merge(base, {"a": 99})
-    assert base["a"] == 99
-
-
-def test_deep_merge_nested():
-    base = {"a": {"x": 1, "y": 2}}
-    _deep_merge(base, {"a": {"y": 99, "z": 3}})
-    assert base["a"] == {"x": 1, "y": 99, "z": 3}
-
-
-def test_deep_merge_non_dict_override():
-    """Non-dict values overwrite entirely (no deep merge)."""
-    base = {"a": {"x": 1}}
-    _deep_merge(base, {"a": "string_value"})
-    assert base["a"] == "string_value"
-
-
-def test_deep_merge_empty():
-    base = {"a": 1}
-    _deep_merge(base, {})
-    assert base == {"a": 1}
 
 
 # ── load_symbol_config / list / is_configured ──────────────────────────────
@@ -398,3 +392,66 @@ def test_all_prompt_template_vars_reachable():
     for p in config_placeholders:
         val = reachable.get(p)
         assert val is not None, f"Placeholder {{{p}}} resolved to None"
+
+
+# ── Config validation ────────────────────────────────────────────────────────
+
+def test_validate_symbol_configs_with_real_file():
+    """Real symbol_config.yaml should pass validation."""
+    from src.config.symbol_resolver import validate_symbol_configs
+    errors = validate_symbol_configs()
+    assert errors == [], f"Validation errors in symbol_config.yaml: {errors}"
+
+
+def test_validate_symbol_configs_missing_params():
+    """Symbol missing required trade params should produce errors."""
+    from src.config.symbol_resolver import validate_symbol_configs
+    from unittest.mock import patch
+
+    bad_config = {
+        "BADSYMBOL": {
+            "precision_qty": 4,
+            # missing precision_price, min_order_qty, sl_slippage_buffer
+        },
+    }
+    with patch("src.config.symbol_resolver.load_symbol_config", return_value=bad_config):
+        errors = validate_symbol_configs()
+        assert len(errors) >= 3  # missing precision_price, min_order_qty, sl_slippage_buffer
+
+
+def test_validate_symbol_configs_non_dict_overrides():
+    """Non-dict overrides should produce an error."""
+    from src.config.symbol_resolver import validate_symbol_configs
+    from unittest.mock import patch
+
+    bad_config = {
+        "BADSYMBOL": {
+            "precision_qty": 4,
+            "precision_price": 1,
+            "min_order_qty": 0.001,
+            "sl_slippage_buffer": 10.0,
+            "overrides": "not_a_dict",
+        },
+    }
+    with patch("src.config.symbol_resolver.load_symbol_config", return_value=bad_config):
+        errors = validate_symbol_configs()
+        assert any("overrides" in e for e in errors)
+
+
+def test_validate_symbol_configs_non_dict_section():
+    """Non-dict override section should produce an error."""
+    from src.config.symbol_resolver import validate_symbol_configs
+    from unittest.mock import patch
+
+    bad_config = {
+        "BADSYMBOL": {
+            "precision_qty": 4,
+            "precision_price": 1,
+            "min_order_qty": 0.001,
+            "sl_slippage_buffer": 10.0,
+            "overrides": {"regime_parameters": "not_a_dict"},
+        },
+    }
+    with patch("src.config.symbol_resolver.load_symbol_config", return_value=bad_config):
+        errors = validate_symbol_configs()
+        assert any("regime_parameters" in e for e in errors)

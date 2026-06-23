@@ -61,7 +61,8 @@ class SessionEngine:
             api_key=self.api_key,
             data_root=self.data_root,
             symbol=self.symbol,
-            exchange_client=exchange_client
+            exchange_client=exchange_client,
+            global_config=self.global_cfg,
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         

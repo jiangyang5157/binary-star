@@ -174,7 +174,8 @@ class BinaryStarOrchestrator:
                  symbol: str,
                  instruction_overrides: Optional[Dict[str, str]] = None,
                  exchange_client: Optional[AbstractExchangeClient] = None,
-                 bs_config: Optional[BinaryStarConfig] = None):
+                 bs_config: Optional[BinaryStarConfig] = None,
+                 global_config: Optional[Dict[str, Any]] = None):
         """Initializes the orchestrator as a central resource and configuration hub.
 
         Args:
@@ -185,6 +186,8 @@ class BinaryStarOrchestrator:
             instruction_overrides: In-memory overrides for agent prompt templates.
             exchange_client: Optional pre-configured exchange client for testing.
             bs_config: Pre-built BinaryStarConfig (bypasses internal config parsing).
+            global_config: Optional pre-resolved global config (with per-symbol
+                           overrides applied). If not provided, loads raw from disk.
         """
         self.config = config_dict
         self.api_key = api_key
@@ -193,7 +196,10 @@ class BinaryStarOrchestrator:
         self.instruction_overrides = instruction_overrides or {}
 
         # ── 0. Global config & logging ──────────────────────────────
-        self.global_config = load_config('config/global_config.yaml')
+        if global_config is not None:
+            self.global_config = global_config
+        else:
+            self.global_config = load_config('config/global_config.yaml')
         session_log_path = os.path.join(resolve_project_root(), self.data_root, "session.log")
         setup_logger("src", log_level=logging.INFO, log_file=session_log_path,
                      max_bytes=10 * 1024 * 1024, backup_count=5)

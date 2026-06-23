@@ -5,36 +5,43 @@ The resolution order is: base config + symbol.overrides → resolved config.
 Symbol overrides always win on conflict.
 """
 import copy
+import logging
 import os
+from functools import lru_cache
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
 from src.utils.path_utils import resolve_project_root
 
+logger = logging.getLogger(__name__)
+
 
 # ── Internal helpers ────────────────────────────────────────────────────────
 
-def _deep_merge(base: dict, overrides: dict) -> None:
-    """Mutates base by merging overrides recursively (in-place)."""
-    for key, value in overrides.items():
-        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
-            _deep_merge(base[key], value)
-        else:
-            base[key] = value
-
-
 def _load_yaml(rel_path: str) -> dict:
-    """Load a YAML file relative to the project root."""
+    """Load a YAML file relative to the project root.
+
+    Falls back to an empty dict on any error (missing file, parse error, I/O error)
+    so that config resolution degrades safely rather than crashing the daemon.
+    """
     path = os.path.join(resolve_project_root(), rel_path)
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
+    except (FileNotFoundError, yaml.YAMLError, OSError) as e:
+        logger.warning("Failed to load %s: %s — falling back to empty config", rel_path, e)
+        return {}
 
 
 # ── Public API ──────────────────────────────────────────────────────────────
 
+@lru_cache(maxsize=1)
 def load_symbol_config() -> dict:
-    """Load symbol_config.yaml → {SYMBOL: {precision_qty, ..., overrides: {...}}}."""
+    """Load symbol_config.yaml → {SYMBOL: {precision_qty, ..., overrides: {...}}}.
+
+    Cached to avoid redundant disk I/O on every pulse/trade.
+    """
     return _load_yaml("config/symbol_config.yaml")
 
 
@@ -81,11 +88,13 @@ def resolve_config(base_config: dict, symbol: str, symbol_config: Optional[dict]
     overrides = sym_cfg.get("overrides", {})
 
     if isinstance(overrides, dict) and overrides:
+        from src.utils.pipeline_utils import deep_merge
+
         for section, section_overrides in overrides.items():
             if not isinstance(section_overrides, dict):
                 continue
             if section in result and isinstance(result[section], dict):
-                _deep_merge(result[section], section_overrides)
+                result[section] = deep_merge(result[section], section_overrides)
 
     return result
 
@@ -98,14 +107,13 @@ def resolve_all(symbol: str) -> Dict[str, Any]:
 
     Returns a single merged + resolved dict suitable for most consumers.
     """
-    from src.utils.pipeline_utils import load_config, load_global_config
+    from src.utils.pipeline_utils import load_config, load_global_config, deep_merge
 
     strategy = load_config()
     global_cfg = load_global_config()
 
     # Merge base configs: global + strategy (strategy wins on conflict)
-    base = copy.deepcopy(global_cfg)
-    _deep_merge(base, strategy)
+    base = deep_merge(global_cfg, strategy)
 
     # Apply symbol overrides
     return resolve_config(base, symbol)
@@ -173,5 +181,51 @@ def patch_config(symbol: str, target_path: str, key: str, value: Any) -> int:
         return 1
 
     # Key not in overrides — fall back to strategy_config.yaml
+    logger.info(
+        "patch_config: key '%s' not found in %s overrides — patching strategy_config.yaml instead",
+        key, symbol,
+    )
     from src.utils.evolution_utils import ConfigPatcher
     return ConfigPatcher.apply_patch(strategy_path, key, value, target_path)
+
+
+def validate_symbol_configs() -> List[str]:
+    """Validate symbol_config.yaml for common misconfigurations.
+
+    Returns a list of human-readable error messages. An empty list means valid.
+    Call this at startup to catch issues before they cause runtime failures.
+    """
+    errors = []
+    sym_cfg = load_symbol_config()
+
+    required_params = {"precision_qty", "precision_price", "min_order_qty", "sl_slippage_buffer"}
+
+    for symbol, cfg in sym_cfg.items():
+        if not isinstance(cfg, dict):
+            errors.append(f"[{symbol}] entry is not a dict (got {type(cfg).__name__})")
+            continue
+
+        # Check required trade params
+        for param in required_params:
+            if param not in cfg:
+                errors.append(
+                    f"[{symbol}] missing required trade param '{param}' — "
+                    f"orders will fail at exchange API level"
+                )
+
+        # Check overrides structure
+        overrides = cfg.get("overrides", {})
+        if not isinstance(overrides, dict):
+            errors.append(
+                f"[{symbol}] 'overrides' must be a dict, got {type(overrides).__name__}"
+            )
+            continue
+
+        for section, section_overrides in overrides.items():
+            if not isinstance(section_overrides, dict):
+                errors.append(
+                    f"[{symbol}] overrides.{section} must be a dict, "
+                    f"got {type(section_overrides).__name__} — override will be ignored"
+                )
+
+    return errors
