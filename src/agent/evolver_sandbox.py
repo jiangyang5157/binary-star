@@ -41,7 +41,7 @@ class EvolverSandbox:
         Replays a historical failure case with new logic.
         
         Args:
-            audit_report: The original audit session report (v3.5+ schema).
+            audit_report: The original audit session report.
             config_patch: Potential strategy_config.yaml overrides.
             instruction_patch: Potential instruction text overrides.
         """
@@ -148,7 +148,7 @@ class EvolverSandbox:
             end_time=historical_t1
         )
         
-        # Return the standardized Audit Bundle (Directly following v6.12 schema)
+        # Return the standardized Audit Bundle (Directly following schema)
         return audit_bundle
     
     def run_batch_validation(
@@ -198,7 +198,7 @@ class EvolverSandbox:
                     "metadata": None
                 })
 
-        # Simple Majority Rule: New DNA must improve more cases than it breaks (Zero-Entropy)
+        # Simple Majority Rule: New DNA must improve more cases than it breaks
         is_accepted = len(accepted_cases) > len(rejected_cases)
 
         return {

@@ -135,9 +135,10 @@ class SessionEngine:
             logger.error(f"Session Cycle Failure ({self.consecutive_failures}/{self.max_failures_threshold}): {e}", exc_info=True)
             
             if self.consecutive_failures >= self.max_failures_threshold and not timestamp_str:
-                logger.critical("CIRCUIT BREAKER: Triggering emergency notification.")
+                logger.critical("CIRCUIT BREAKER: Threshold exceeded — stopping session engine.")
                 self.notifier.notify_alert("PIPELINE_ERROR", self.symbol, str(e))
-                
+                raise RuntimeError(f"Circuit breaker tripped after {self.consecutive_failures} consecutive failures.") from e
+
             return {"error": str(e)}
 
         finally:
@@ -196,7 +197,7 @@ class SessionController:
         
         macro_interval = self.engine.config['analysis_window']['macro_context']['time_interval']
         
-        # 2. Preparation (v6.30: Sniper-Led Architecture)
+        # 2. Preparation
         topo_cfg = self.engine.config.get('topography_parameters', {})
         
         # Calculate warmup needed for technical indicators
@@ -225,13 +226,13 @@ class SessionController:
         )
         binance.close()
         
-        # Prepare KlineData range for sampling (v7.1: Zero-Entropy Refactor)
+        # Prepare KlineData range for sampling
         klines_range = [
             k for k in klines 
             if start_dt <= datetime.fromtimestamp(k.open_time / 1000, tz=timezone.utc) <= end_dt
         ]
         
-        # v6.15: Backtest Sampling Architecture
+        # Backtest Sampling Architecture
         self.sampling_mode = self.args.sampling_mode or "sniper"
         self.sampling_count = self.args.samples
 
@@ -250,29 +251,14 @@ class SessionController:
 
 def parse_date(date_str: str) -> datetime:
     """Helper to parse flexible dates (T-30d, ISO, now)."""
-    if date_str.lower() == "now":
-        return datetime.now(timezone.utc)
-    if date_str.upper().startswith("T-"):
-        if len(date_str) < 4:
-            raise argparse.ArgumentTypeError(f"Invalid date: '{date_str}'. Use T-<N>d or T-<N>h (e.g., T-30d, T-12h).")
-        val = int(date_str[2:-1])
-        unit = date_str[-1].lower()
-        if unit == 'd': return datetime.now(timezone.utc) - timedelta(days=val)
-        if unit == 'h': return datetime.now(timezone.utc) - timedelta(hours=val)
-        raise argparse.ArgumentTypeError(f"Invalid date: '{date_str}'. Unsupported unit '{unit}'. Use 'd' (days) or 'h' (hours).")
-    
+    from src.utils.datetime_utils import parse_flexible_date
     try:
-        return parse_iso_to_utc(date_str)
-    except:
-        pass
-
-    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-        try: return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
-        except: continue
-    raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
+        return parse_flexible_date(date_str)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Session Engine v7.1 (Zero-Entropy Architecture)")
+    parser = argparse.ArgumentParser(description="Singularity Session Engine")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
 
     # 2. Backtest Configuration Group

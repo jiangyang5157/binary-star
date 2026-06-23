@@ -87,7 +87,7 @@ class AuditAssembler:
         lows = [k.low for k in klines]
         closes = [k.close for k in klines]
         
-        # v6.5 Optimization: Core Physical Snapshots
+        # Optimization: Core Physical Snapshots
         max_price = max(highs)
         min_price = min(lows)
         final_close = closes[-1]
@@ -103,13 +103,13 @@ class AuditAssembler:
             "price_move_pct": round(((final_close - entry_price) / entry_price) * 100, 2)
         }
 
-        # v6.5: Regime Drift Analysis
+        # Regime Drift Analysis
         regime_forensics = {
             "volatility_drift_pct": round(((atr_macro_t1 - atr_macro_t0) / atr_macro_t0 * 100), 2) if atr_macro_t0 > 0 else 0,
             "sentiment_drift": round(long_short_ratio_macro_t1 - long_short_ratio_macro_t0, 4)
         }
 
-        # v6.16: Decision context extraction
+        # Decision context extraction
         final_decision = strategy.get('final_decision', {})
         opinion = final_decision.get('opinion', 'NEUTRAL').upper()
         # Default to NEITHER — actual result computed downstream
@@ -161,7 +161,7 @@ class AuditAssembler:
                 "is_near_miss": 0 < entry_drift_atr < unfilled_proximity_atr_limit
             }
  
-            # v6.13 Schema Relocation (Indicators now grouped in market_forensics)
+            # Schema Relocation (Indicators now grouped in market_forensics)
             market_forensics["planned_entry_price"] = target_entry
             market_forensics["total_price_change_pct"] = market_forensics["price_move_pct"]
             market_forensics["max_favorable_runup_pct"] = round((theoretical_mfe / entry_price) * 100, 2) if entry_price > 0 else 0
@@ -258,7 +258,7 @@ class AuditAssembler:
                     result["execution_forensics"]["mfe_efficiency_pct"] = round((mfe / tp_dist * 100) if tp_dist > 0 else 0, 1)
                     # result["execution_forensics"]["time_efficiency_multiplier"] = round(actual_holding_hours / proj_holding_hours, 2) if proj_holding_hours > 0 else 0
                     
-                    # v6.13 Sync: TP/SL Outcomes
+                    # Sync: TP/SL Outcomes
                     market_forensics["max_favorable_runup_pct"] = round((mfe / entry_price) * 100, 2) if entry_price > 0 else 0
                     market_forensics["max_favorable_runup_atr"] = round(mfe / max_atr, 4) if max_atr > 0 else 0
                     market_forensics["max_adverse_drawdown_pct"] = round((mae / entry_price) * 100, 2) if entry_price > 0 else 0
@@ -285,7 +285,7 @@ class AuditAssembler:
         final_decision = historical_strategy.get("final_decision", {})
         opinion = final_decision.get("opinion", "NEUTRAL")
         
-        # v6.13 Forensic Verdict logic
+        # Forensic Verdict logic
         forensic_verdict = {}
         
         # 1. Justified Surrender Logic (Only for NEUTRAL)

@@ -27,3 +27,18 @@ def resolve_project_root() -> str:
     return os.getcwd()
 # Alias for backward compatibility
 find_project_root = resolve_project_root
+
+
+def setup_project_path() -> str:
+    """Ensure the project root is on sys.path (for standalone run_*.py scripts).
+
+    Uses resolve_project_root() to find the root via marker files (.git, src/,
+    config/strategy_config.yaml) and prepends it to sys.path if not already there.
+
+    Returns the project root path.
+    """
+    import sys
+    root = resolve_project_root()
+    if root not in sys.path:
+        sys.path.insert(0, root)
+    return root

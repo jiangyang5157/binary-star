@@ -35,15 +35,15 @@ class ChartConfig:
     chart_main_panel_weight: int
     chart_volume_panel_weight: int
     render_dpi: int
-    # v7.1 Synthetic Radar Aesthetics
+    # Synthetic Radar Aesthetics
     liquidation_cluster_atr_multiplier: float
     liq_max_alpha: float
     liq_min_alpha: float
     liq_legacy_alpha_factor: float
     liq_legacy_min_alpha: float
     liq_legacy_max_alpha: float
-    chart_trendline_peak_count: int # v8.7 Structural Persistence
-    chart_trendline_window: int     # v10.0 Fractal Sensitivity
+    chart_trendline_peak_count: int # Structural Persistence
+    chart_trendline_window: int     # Fractal Sensitivity
 
 
 class TechnicalFeatureExtractor:
@@ -189,7 +189,7 @@ class ChartVisualRenderer:
         try:
             logger.info(f"Rendering chart: {symbol} [{time_interval}] -> {filepath}")
             
-            # 1. Prepare Horizontal Levels (v6.67: Reverted to native hlines API)
+            # 1. Prepare Horizontal Levels
             poc = profile_data.get("poc", 0)
             vah = profile_data.get("vah", 0)
             val = profile_data.get("val", 0)
@@ -201,18 +201,18 @@ class ChartVisualRenderer:
                 linewidths=[1.0, 1.0, 1.0] # POC (1.5), VAH/VAL (1.0)
             )
 
-            # 2. Calculate Adaptive Y-Limits (v8.4 Scheme B: Active Visibility)
+            # 2. Calculate Adaptive Y-Limits
             candle_min = plot_df['Low'].min()
             candle_max = plot_df['High'].max()
             y_min, y_max = candle_min, candle_max
             
-            # v8.5: Collect ALL structural targets that MUST be visible (Topography + Liquidations)
+            # Collect ALL structural targets that MUST be visible (Topography + Liquidations)
             targets = [poc, vah, val]
             if isinstance(liquidations, dict):
                 for side in ['long_liquidation', 'short_liquidation']:
                     targets.extend([l['price'] for l in liquidations.get(side, [])])
             
-            # v8.5 Sanity Guard & Scale Expansion
+            # Sanity Guard & Scale Expansion
             curr_p = plot_df['Close'].iloc[-1]
             # Filter for valid, non-zero prices and within 20% relative distance to prevent warping
             valid_targets = [p for p in targets if p > 0 and abs(p - curr_p) / curr_p < 0.2]
@@ -246,7 +246,7 @@ class ChartVisualRenderer:
                 # 3. Axis Cleanup (Hide left/top spines for modern TradingView feel)
                 # axlist[0] = Price Panel, axlist[2] = Volume Panel (standard mpf stacking)
                 for i, ax in enumerate(axlist):
-                    # v6.50 Hardening: Completely hide X-axis for zero-clutter focus
+                    # Hardening: Completely hide X-axis for zero-clutter focus
                     ax.xaxis.set_visible(False)
                     
                     # Hide left/top spines
@@ -258,16 +258,16 @@ class ChartVisualRenderer:
                     # Force price ticks to right only
                     ax.yaxis.set_ticks_position('right')
 
-                    # v6.51 Hardening: Distinguish Price from Volume to prevent scale confusion
-                    # v11.9 Aesthetic: Inherit tick color for panel labels to maintain structural consistency
+                    # Hardening: Distinguish Price from Volume to prevent scale confusion
+                    # Aesthetic: Inherit tick color for panel labels to maintain structural consistency
                     tick_label_color = ax.yaxis.get_ticklabels()[0].get_color() if ax.yaxis.get_ticklabels() else self.config.vah_val_color
                     
                     if i == 0:
                         ax.set_ylabel('')
                         ax.yaxis.set_label_position('right')
-                        # v12.2 Aesthetic: Remove the horizontal separator line for modern look
+                        # Aesthetic: Remove the horizontal separator line for modern look
                         ax.spines['bottom'].set_visible(False)
-                        # v12.2 Hardening: Lock price tick density to 6 for consistent scale feel
+                        # Hardening: Lock price tick density to 6 for consistent scale feel
                         ax.yaxis.set_major_locator(MaxNLocator(nbins=6, integer=False))
                     elif i == 2: # Volume panel usually at index 2
                         ax.set_ylabel('')
@@ -276,7 +276,7 @@ class ChartVisualRenderer:
                         # v12.1/2 Anti-Overlap: Lock density to 3 bins
                         ax.yaxis.set_major_locator(MaxNLocator(nbins=3, prune='upper', integer=True))
                         
-                        # v11.8 Logic: Surgical targeting to only affect data bars...
+                        # Logic: Surgical targeting to only affect data bars...
                         for child in ax.get_children():
                             # Skip the axis background patch itself
                             if child is ax.patch:
@@ -295,13 +295,13 @@ class ChartVisualRenderer:
 
                 main_ax = axlist[0]
                 
-                # 4. Current Price Tracker (v6.75: Thin dashed line for immediate context)
+                # 4. Current Price Tracker
                 current_price = plot_df['Close'].iloc[-1]
                 main_ax.axhline(
                     y=current_price, 
                     color=self.config.current_price_color,      # Configurable via global_config.yaml
                     linestyle='--',                             # Hardcoded v6.81
-                    linewidth=0.5,                              # Increased v11.7 for visibility
+                    linewidth=0.5,                              # Increased for visibility
                     alpha=0.8,                                  # Increased v11.7
                     zorder=11                                   # Above everything
                 )
@@ -314,7 +314,7 @@ class ChartVisualRenderer:
                 if liquidations:
                     self._overlay_liquidations(main_ax, plot_df, liquidations, atr=atr)
     
-                # 5. Overlay Trendlines (v8.7: Configurable Persistence, v10.0: Configurable window)
+                # 5. Overlay Trendlines
                 trendlines = self.extractor.detect_trendlines(
                     df, 
                     peak_count=self.config.chart_trendline_peak_count,
@@ -325,7 +325,7 @@ class ChartVisualRenderer:
                     main_ax.plot(line['x'], line['y'], color=color, linestyle='--', linewidth=1.0, alpha=0.8, zorder=4)
     
                 # 6. OCR Text Hard Injection (Minimalist Right-Side Identifier)
-                # v6.65: Labels are right-aligned to the last candle, but price numbers 
+                # Labels are right-aligned to the last candle, but price numbers 
                 # are removed to keep the footprint extremely small and non-obstructive.
                 x_pos = len(plot_df) + 1  # Standard shift to the right of the price action
                 
@@ -363,7 +363,7 @@ class ChartVisualRenderer:
                     )
 
                 # Finalize and Save
-                fig.subplots_adjust(hspace=0.03)  # v12.1: Add subtle vertical padding between panels
+                fig.subplots_adjust(hspace=0.03)  # Add subtle vertical padding between panels
                 fig.savefig(filepath, dpi=self.config.render_dpi, bbox_inches='tight')
             finally:
                 # CRITICAL: Always close the figure to prevent memory accumulation
@@ -376,7 +376,7 @@ class ChartVisualRenderer:
 
     def _overlay_volume_profile(self, ax: plt.Axes, df: pd.DataFrame, profile: List[Dict[str, Any]]):
         """Draws the Volume-at-Price histogram as a smooth Gaussian area on the price axis."""
-        # v6.71 Experiment: Pure Unfiltered Profile
+        # Experiment: Pure Unfiltered Profile
         # User requested to see the effect of no clipping at all. 
         # Note: This will cause auto-scaling of the Y-axis to the full profile range.
         visible_profile = profile
@@ -388,14 +388,14 @@ class ChartVisualRenderer:
         p_vals = np.array([p['price'] for p in visible_profile])
         v_vals = np.array([p['volume'] for p in visible_profile])
         
-        # v8.3 Hardening: Prevent division by zero if all visible volumes are zero
+        # Hardening: Prevent division by zero if all visible volumes are zero
         max_v = max(v_vals) if len(v_vals) > 0 and max(v_vals) > 0 else 1
 
         # Normalize width relative to total candle count
         norm_v = (v_vals / max_v) * (len(df) * self.config.volume_profile_width_ratio)
         
         # --- Gaussian Smoothing Visual Layer ---
-        # v8.3: Conditionally apply smoothing. Setting sigma=0 now bypasses the filter to show 'Raw Profile'.
+        # Conditionally apply smoothing. Setting sigma=0 now bypasses the filter to show 'Raw Profile'.
         if self.config.volume_profile_smoothing_sigma > 0:
             smoothed_v = gaussian_filter1d(norm_v, sigma=self.config.volume_profile_smoothing_sigma)
         else:
@@ -415,19 +415,19 @@ class ChartVisualRenderer:
 
     def _overlay_liquidations(self, ax: plt.Axes, df: pd.DataFrame, liquidations: Union[List, Dict], atr: Optional[float] = None):
         """Draws semi-transparent liquidation heat bands based on ATR physics."""
-        # v11.4 Visual Hardening: Strict ATR-only logic (Zero-Default Fallback)
+        # Visual Hardening: Strict ATR-only logic (Zero-Default Fallback)
         band_height = atr * self.config.liquidation_cluster_atr_multiplier
         
         # Determine format
         if isinstance(liquidations, dict):
-            # v7.1: Synthetic Bifurcated Format (Radar Output)
+            # Synthetic Bifurcated Format (Radar Output)
             long_targets = liquidations.get('long_liquidation', [])
             short_targets = liquidations.get('short_liquidation', [])
             
             # Draw Longs (Traps)
             for liq in long_targets:
                 p = liq['price']
-                # v8.8: Reusing up_color for Long Traps (Support)
+                # Reusing up_color for Long Traps (Support)
                 alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
                 ax.add_patch(patches.Rectangle(
                     (0, p - (band_height / 2)), len(df), band_height, 
@@ -438,7 +438,7 @@ class ChartVisualRenderer:
             # Draw Shorts (Squeezes)
             for liq in short_targets:
                 p = liq['price']
-                # v8.8: Reusing down_color for Short Squeezes (Resistance)
+                # Reusing down_color for Short Squeezes (Resistance)
                 alpha = min(max(liq['intensity'] * self.config.liq_max_alpha, self.config.liq_min_alpha), self.config.liq_max_alpha)
                 ax.add_patch(patches.Rectangle(
                     (0, p - (band_height / 2)), len(df), band_height, 

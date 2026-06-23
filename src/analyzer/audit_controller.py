@@ -24,7 +24,7 @@ from src.utils.datetime_utils import (
 logger = logging.getLogger(__name__)
 
 class AuditController:
-    """The Audit Orchestrator (v7.1).
+    """The Audit Orchestrator.
     
     Coordinates forensic analysis by fetching historical outcomes, 
     triggering T1 visual capture, and assembling structural reports.
@@ -133,7 +133,7 @@ class AuditController:
             self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
             raise ValueError(f"Invalid timestamp format in session: {t0_str}")
 
-        # v6.16: Strategic T1 Anchoring
+        # Strategic T1 Anchoring
         final_decision = session.get("final_decision", {})
         opinion = final_decision.get("opinion", "").upper()
         
@@ -170,7 +170,7 @@ class AuditController:
             except Exception as ke:
                 self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}")
 
-            # v6.17 early exit: If no market data is available, skip expensive visual-only audit.
+            # early exit: If no market data is available, skip expensive visual-only audit.
             if not klines:
                 raise ValueError("EMPTY_KLINES: No market data available for the forensic window.")
 
@@ -199,7 +199,7 @@ class AuditController:
             # 4. Final T1 Anchoring Logic
             res_type = outcome.get("tp_sl_result", "NEITHER")
 
-            # v6.18: Maturity Guard (Logic: Hit Target OR Window Expired)
+            # Maturity Guard (Logic: Hit Target OR Window Expired)
             if not force:
                 if res_type not in ("TP_HIT", "SL_HIT") and now_dt < expiry_dt:
                     time_left = expiry_dt - now_dt
@@ -246,7 +246,7 @@ class AuditController:
             report = self.assembler.review(session, outcome)
             outcome["forensic_verdict"] = report.get("forensic_verdict", {})
             
-            # Standard Bundle Return (v6.12 schema parity)
+            # Standard Bundle Return
             return {
                 "session": session,
                 "market_outcome": outcome,

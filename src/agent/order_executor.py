@@ -343,7 +343,7 @@ class MarginOrderExecutor:
         return trade_state
 
     # ================================================================
-    # TRAILING STOP: Progressive SL migration (v8.0)
+    # TRAILING STOP: Progressive SL migration
     # ================================================================
 
     def _migrate_trailing_stop(self, symbol: str, direction: str, trade_state: Dict[str, Any],

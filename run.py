@@ -36,28 +36,11 @@ logger = setup_logger("Singularity")
 
 def _parse_date(date_str: str) -> datetime:
     """Parse flexible dates: T-30d, ISO-8601, YYYY-MM-DD, or 'now'."""
-    if date_str.lower() == "now":
-        return datetime.now(timezone.utc)
-    if date_str.upper().startswith("T-"):
-        if len(date_str) < 4:
-            raise argparse.ArgumentTypeError(f"Invalid date: '{date_str}'. Use T-<N>d or T-<N>h (e.g., T-30d, T-12h).")
-        val = int(date_str[2:-1])
-        unit = date_str[-1].lower()
-        if unit == 'd':
-            return datetime.now(timezone.utc) - timedelta(days=val)
-        if unit == 'h':
-            return datetime.now(timezone.utc) - timedelta(hours=val)
-        raise argparse.ArgumentTypeError(f"Invalid date: '{date_str}'. Unsupported unit '{unit}'. Use 'd' (days) or 'h' (hours).")
+    from src.utils.datetime_utils import parse_flexible_date
     try:
-        return parse_iso_to_utc(date_str)
-    except Exception:
-        pass
-    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-        try:
-            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
-        except Exception:
-            continue
-    raise argparse.ArgumentTypeError(f"Invalid date: {date_str}")
+        return parse_flexible_date(date_str)
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(str(e))
 
 
 # ── Shared helpers ────────────────────────────────────────────────────────────

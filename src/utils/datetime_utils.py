@@ -132,4 +132,52 @@ def get_interval_hours(interval: str) -> float:
 # Aliases for backward compatibility
 get_utc_now = get_current_utc_time
 sanitize_timestamp = format_timestamp_for_filename
+
+
+def parse_flexible_date(date_str: str) -> datetime:
+    """Parse flexible date strings into timezone-aware UTC datetimes.
+
+    Supported formats:
+        - ``"now"`` — current UTC time
+        - ``"T-30d"`` / ``"T-12h"`` — relative time offset (days or hours)
+        - ISO-8601 (e.g. ``"2026-06-01T12:34:00Z"``)
+        - ``"YYYY-MM-DD"``, ``"YYYY-MM-DDTHH:MM:SS"``, ``"YYYY-MM-DD HH:MM:SS"``
+
+    Raises:
+        ValueError: if the string does not match any supported format.
+    """
+    from datetime import timedelta
+
+    if date_str.lower() == "now":
+        return datetime.now(timezone.utc)
+
+    if date_str.upper().startswith("T-"):
+        if len(date_str) < 4:
+            raise ValueError(
+                f"Invalid date: '{date_str}'. Use T-<N>d or T-<N>h (e.g., T-30d, T-12h)."
+            )
+        val = int(date_str[2:-1])
+        unit = date_str[-1].lower()
+        if unit == 'd':
+            return datetime.now(timezone.utc) - timedelta(days=val)
+        if unit == 'h':
+            return datetime.now(timezone.utc) - timedelta(hours=val)
+        raise ValueError(
+            f"Invalid date: '{date_str}'. Unsupported unit '{unit}'. Use 'd' (days) or 'h' (hours)."
+        )
+
+    # Try ISO-8601
+    try:
+        return parse_iso_to_utc(date_str)
+    except Exception:
+        pass
+
+    # Try common formats
+    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(date_str, fmt).replace(tzinfo=timezone.utc)
+        except Exception:
+            continue
+
+    raise ValueError(f"Invalid date: '{date_str}'")
 parse_iso_to_utc = parse_iso_string_to_utc

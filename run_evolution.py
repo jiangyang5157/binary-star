@@ -18,11 +18,11 @@ from src.utils.json_utils import load_json, save_json
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
-# v6.10: Global logger reference (will be properly initialized in Engine.__init__)
+# Global logger reference (will be properly initialized in Engine.__init__)
 logger = None
 
 class EvolutionEngine:
-    """Singularity Meta-Evolution Engine (v6.1).
+    """Singularity Meta-Evolution Engine.
 
     Implements the 'Meta-Optimization' loop: 
     Ingest Audit Data -> Neural Mutation -> Sandbox Validation -> Atomic Config Commit.
@@ -34,7 +34,7 @@ class EvolutionEngine:
         self.dirs = self._setup_evolution_dirs()
         load_dotenv()
         
-        # v6.10: Setup system-wide logging with physical persistence in data_root
+        # Setup system-wide logging with physical persistence in data_root
         log_path = os.path.join(self.data_root, "evolution.log")
         setup_logger("", log_file=log_path) # Empty string means Root Logger
         self.logger = logging.getLogger("EvolutionEngine")
@@ -75,7 +75,7 @@ class EvolutionEngine:
             self.logger.warning(f"Audit dir not found: {audit_dir}. Aborting cycle.")
             return
 
-        # v6.11: Filter by symbol (Filename prefix + JSON validation)
+        # Filter by symbol (Filename prefix + JSON validation)
         all_files = sorted([f for f in os.listdir(audit_dir) if f.endswith(".json")], reverse=True)
         files = []
         for f in all_files:
@@ -136,7 +136,7 @@ class EvolutionEngine:
         # 3. Phase: Prototype Generation
         self.logger.info(f"Evolver: Initiating Neural Meta-Optimization ({ev_cfg.model} Inference)...")
         
-        # v6.11: Inject RAW instruction contents to enable byte-perfect semantic refinement
+        # Inject RAW instruction contents to enable byte-perfect semantic refinement
         from src.utils.pipeline_utils import read_prompt_template
         instruction_contents = {
             "session": read_prompt_template(instruction_paths["session_path"]),
@@ -150,7 +150,7 @@ class EvolutionEngine:
             current_instructions=instruction_contents
         )
         
-        # v6.11: Standardized Naming: {symbol}_evolution_{timestamp}
+        # Standardized Naming: {symbol}_evolution_{timestamp}
         ev_id = f"{self.symbol}_evolution_{ts_compact}"
         
         # Inject context for standalone sandbox/patch recovery
@@ -170,7 +170,7 @@ class EvolutionEngine:
         self.logger.info(f"--- Evolution Cycle Complete | Duration: {timestamp_now} ---")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")
+    parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     parser.add_argument("--samples", type=int, default=None, help="Number of audit reports to ingest (required)")
     add_data_path_argument(parser, required=True)

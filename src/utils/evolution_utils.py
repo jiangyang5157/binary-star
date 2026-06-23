@@ -30,7 +30,7 @@ class ConfigPatcher:
             def find_and_update_recursive(source, k, v):
                 count = 0
                 if k in source:
-                    # v6.11: Support both dict and CommentedMap (ruamel)
+                    # Support both dict and CommentedMap (ruamel)
                     if isinstance(source[k], (dict, collections.abc.Mapping)) and isinstance(v, (dict, collections.abc.Mapping)):
                         source[k].update(v)
                     else:

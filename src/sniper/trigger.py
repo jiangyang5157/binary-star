@@ -9,7 +9,7 @@ logger = setup_logger(__name__)
 
 class SniperTrigger:
     """
-    The Decision Node of the 'Sniper Mode' (v7.1).
+    The Decision Node of the 'Sniper Mode'.
     
     All thresholds and cooldowns are injected via strategy_cfg/global_cfg
     constructor parameters (or loaded from strategy_config.yaml if omitted).
@@ -24,7 +24,7 @@ class SniperTrigger:
         self.global_cfg = global_cfg if global_cfg is not None else load_global_config()
         self.regime_cfg = self.strat_cfg['regime_parameters']
 
-        # v7.1: EXPLICIT CONFIG ENFORCEMENT
+        # EXPLICIT CONFIG ENFORCEMENT
         self.sniper_cfg = self.global_cfg['sniper']
 
         # Derive cooldown from micro-context (e.g., 15m) + Multiplier
@@ -55,7 +55,7 @@ class SniperTrigger:
                 return False, None, f"GLOBAL_COOLDOWN (Aligned: {elapsed:.1f}m/{self.cooldown_minutes}m)"
 
         # 1. Evaluate DNA Traps — score all three, return the strongest hit
-        # v6.71: CHAOS_MUTE (Extreme Volatility Protection)
+        # CHAOS_MUTE (Extreme Volatility Protection)
         vol = current_metrics['price_dynamics']['volatility_intensity_index']
         if vol > self.regime_cfg['volatility']['volatility_extreme_ratio']:
             if self.last_trigger_time:

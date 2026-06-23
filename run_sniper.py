@@ -52,7 +52,7 @@ class SniperDaemon:
         setup_logger("", log_level=logging.INFO, log_file=session_log_path,
                      max_bytes=10 * 1024 * 1024, backup_count=5)
 
-        # v7.6 Shared Infrastructure: Centralized client (shared across all symbols)
+        # Shared Infrastructure: Centralized client (shared across all symbols)
         self.futures_client = BinanceFuturesClient()
 
         # 1. Initialize Lightweight Sniper Tools (one per symbol)
@@ -89,7 +89,7 @@ class SniperDaemon:
         # Per-symbol previous metrics for inter-pulse comparison
         self.prev_metrics: dict[str, dict | None] = {sym: None for sym in self.symbols}
 
-        # v6.50: Sniper Quiet-Monitoring Protocol
+        # Sniper Quiet-Monitoring Protocol
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
@@ -345,7 +345,7 @@ class SniperDaemon:
             pass  # Dashboard may not be running; silently skip
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon v7.1 (Zero-Entropy Architecture)")
+    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon (Zero-Entropy Architecture)")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
     parser.add_argument("--trade", nargs='?', const=True, default=False, type=float,
                         help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "
@@ -355,7 +355,7 @@ def main():
 
     args = parser.parse_args()
     
-    # v7.1: Zero-Entropy Path Resolution
+    # Zero-Entropy Path Resolution
     if not args.path:
         args.path = "data/prod"
     

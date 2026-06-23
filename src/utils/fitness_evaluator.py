@@ -67,7 +67,7 @@ class FitnessConfig:
 
 class FitnessEvaluator:
     """
-    Darwinian Fitness Evaluator (v4.0)
+    Darwinian Fitness Evaluator
     
     A shared, stateless judge that scores market outcomes and compares 
     old vs. new strategy results for the Evolution pipeline.
@@ -130,7 +130,7 @@ class FitnessEvaluator:
 
     def is_superior(self, old_outcome: Dict[str, Any], new_outcome: Dict[str, Any]) -> bool:
         """
-        Darwinian Comparison (v4.0): Evaluates PnL, forensic intelligence, 
+        Darwinian Comparison: Evaluates PnL, forensic intelligence, 
         and execution efficiency.
         
         Returns True if the new outcome is strictly better than the old one.

@@ -88,7 +88,7 @@ class MathFactChecker:
             # Compliance Verdict Synthesis (Aligned with Highway Threshold)
             is_trending = abs(trend_intensity) >= self.critic_config.regime.trend_intensity_threshold
 
-            # v7.6: Chaos-Aware Math Audit
+            # Chaos-Aware Math Audit
             # In 'IS_CHAOS' regimes, survival (shielding) takes precedence over standard RR hulls.
             # We apply the chaos_rr_discount to the threshold to allow low-RR survival plans to pass.
             vol_expansion = dynamics.get('volatility_expansion_index', 1.0)

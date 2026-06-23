@@ -217,7 +217,7 @@ class MarketObserverConfig:
         with open(v_path, "r") as _f:
             visuals = _yaml.safe_load(_f)
 
-        # v12.0: Unified Grouping for Profile and Trendline
+        # Unified Grouping for Profile and Trendline
         vp_cfg = visuals.get('volume_profile', {})
         ct_cfg = visuals.get('chart_trendline', {})
 
@@ -359,10 +359,10 @@ class MarketDataLoader:
         liq_lookback_ms = int(micro_oi_delta.total_seconds() * cfg.micro_context.lookback_candles * 1000)
         liq_start_ts_ms = ts_ms - liq_lookback_ms
         
-        # v6.12: Dynamic funding limit to avoid hardcoded bloat
+        # Dynamic funding limit to avoid hardcoded bloat
         funding_rate_limit = max(2, int(cfg.funding_rate_lookback_hours / 8) + 2)
 
-        # v6.30: Sentiment Window Anchoring (Macro at Start of Window, Micro at Current)
+        # Sentiment Window Anchoring (Macro at Start of Window, Micro at Current)
         macro_ls_delta_ms = int(get_interval_seconds(cfg.macro_context.time_interval) * 1000)
         macro_ls_ts_ms = ts_ms - macro_ls_delta_ms
 
@@ -444,7 +444,7 @@ class MarketMetricsRefiner:
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback_candles).mean()
         volatility_intensity_index = (atr_m / mean_historical_atr) if mean_historical_atr > 0 else 1.0
         
-        # v12.1: Physics Engine Correction - Normalized Velocity (ATR/Bar)
+        # Physics Engine Correction - Normalized Velocity (ATR/Bar)
         # Calculates the actual physical speed of the trend for Zero-Entropy time projections.
         trend_lookback = self.config.trend_intensity_macro_lookback_candles
         normalized_velocity = 0.0
@@ -530,7 +530,7 @@ class MarketMetricsRefiner:
             h_val = hist.open_interest
             return (cur_oi - h_val) / h_val if h_val > 0 else 0.0
 
-        # v6.12: Enhanced sentiment trending
+        # Enhanced sentiment trending
         funding_history = raw.funding_rate
         f_rate = funding_history[-1].funding_rate if funding_history else 0.0
         f_delta = (f_rate - funding_history[-2].funding_rate) if funding_history and len(funding_history) >= 2 else 0.0
@@ -588,7 +588,7 @@ class MarketObserver:
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
 
-        # v6.12 Hardening: Dynamic re-configuration of charting engine from global tokens
+        # Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
             up_color=self.config.visual.up_color,
             down_color=self.config.visual.down_color,
@@ -627,7 +627,7 @@ class MarketObserver:
         self.loader = MarketDataLoader(self._exchange, self.config)
         self.refiner = MarketMetricsRefiner(self.config, self._volume_profile_analyzer, self._regime_analyzer, self.radar)
         
-        # v6.32: Passive Indicator Warmup Quality Audit
+        # Passive Indicator Warmup Quality Audit
         self._validate_warmup_depth()
 
     def _validate_warmup_depth(self):
@@ -716,7 +716,7 @@ class MarketObserver:
         """Assembles the final forensic JSON bundle."""
         ts_compact = at_time.strftime(FILE_TIMESTAMP_FORMAT)
         
-        # v6.25 Forensic Hardening: Slimming down the report for AI reasoning
+        # Forensic Hardening: Slimming down the report for AI reasoning
         # We strip the raw 300-bin histogram data from the final JSON bundle 
         # while keeping the distilled anchors. This keeps session contexts lean.
         metrics_dict = {k: (v.copy() if isinstance(v, dict) else v) for k, v in metrics.__dict__.items()}

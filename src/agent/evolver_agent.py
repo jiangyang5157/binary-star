@@ -100,12 +100,12 @@ class EvolverAgent(BaseAgent):
             A dictionary containing the mutation proposal and rationale.
         """
         try:
-            # v7.8: Compress audit reports to remove redundant observation topography (Token Optimization)
+            # Compress audit reports to remove redundant observation topography (Token Optimization)
             compressed_reports = self._compress_audit_reports(audit_reports)
             reports_json = json.dumps(compressed_reports, indent=2)
             config_json = json.dumps(active_config, indent=2)
             
-            # v6.11: Partitioned Markdown aggregation for precise semantic targeting
+            # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
             for module, content in current_instructions.items():
                 prompts_md += f"# {module.lower()}_PROMPT\n{content}\n\n"
@@ -143,7 +143,7 @@ class EvolverAgent(BaseAgent):
                 tools=None
             )
             
-            # v6.11: Resilience - Handle cases where the model wraps the JSON in a list
+            # Resilience - Handle cases where the model wraps the JSON in a list
             if isinstance(evolution_result, list) and len(evolution_result) > 0:
                 logger.info("Evolver: AI returned a list. Extracting the first element.")
                 evolution_result = evolution_result[0]
@@ -169,7 +169,7 @@ class EvolverAgent(BaseAgent):
         """
         compressed = []
         for report in reports:
-            # v6.11: Field Mapping Correction - Align with actual audit JSON schema
+            # Field Mapping Correction - Align with actual audit JSON schema
             obs = report.get("observation", {})
             session = report.get("session", {})
             outcome = report.get("market_outcome", {})
@@ -182,7 +182,7 @@ class EvolverAgent(BaseAgent):
                 "debate_summary": []
             }
             
-            # v8.0: Preserve FULL debate detail for Evolver analysis
+            # Preserve FULL debate detail for Evolver analysis
             # (reasoning_chain, audit_evidence, math_fact_check are essential
             # for identifying systematic logic failures and evolution patterns)
             history = session.get("debate_history", [])

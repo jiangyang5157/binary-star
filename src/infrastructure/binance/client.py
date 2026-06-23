@@ -52,7 +52,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
             logger.warning("Initializing Binance client in public (unauthenticated) mode. Some write endpoints will be unavailable.")
             self.client = UMFutures()
         
-        # v6.20: Expose auth state for defensive calls
+        # Expose auth state for defensive calls
         self.is_authenticated = bool(key and secret)
             
         self.network_cfg = self._load_network_config()

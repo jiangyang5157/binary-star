@@ -54,7 +54,7 @@ class LiquidationRadar:
                              atr: float) -> Dict[str, List[Dict[str, Any]]]:
         """
         Synthesizes active long and short liquidation clusters based on order flow proxies.
-        v8.2 Hardening: Syncs filtering with global current_price.
+        Hardening: Syncs filtering with global current_price.
         """
         try:
             if not klines or not oi_history or not taker_history:
@@ -73,7 +73,7 @@ class LiquidationRadar:
             oi_vals = np.array([o.open_interest for o in oi_history])[-min_len:]
             taker_ratios = np.array([t.long_short_ratio for t in taker_history])[-min_len:]
             
-            logger.debug(f"LiquidationRadar (v8.2): Anchored to current_price: {current_price:.2f}")
+            logger.debug(f"LiquidationRadar: Anchored to current_price: {current_price:.2f}")
 
             # 2. Derived metrics (SMA for surge detection, OI Delta for intent)
             vol_ma = self._calculate_sma(volumes, self.volume_moving_average_period)
@@ -113,7 +113,7 @@ class LiquidationRadar:
                             logger.debug(f"Radar: Skipping stale SHORT stop {s:.2f} (below price {current_price:.2f})")
 
             # 4. Final Semantic Consolidation (Trigger-Based)
-            # v8.1: Regardless of origin, categorize by current market potential
+            # Regardless of origin, categorize by current market potential
             # to prevent 'Green above Red' visual paradox.
             final_long = []  # To be colored Green (Below price)
             final_short = [] # To be colored Purple (Above price)
@@ -133,7 +133,7 @@ class LiquidationRadar:
             }
 
         except Exception as e:
-            logger.error(f"LiquidationRadar v8.1 synthesis failed: {e}", exc_info=True)
+            logger.error(f"LiquidationRadar synthesis failed: {e}", exc_info=True)
             return {"long_liquidation": [], "short_liquidation": []}
 
     def _calculate_sma(self, data: np.ndarray, period: int) -> np.ndarray:

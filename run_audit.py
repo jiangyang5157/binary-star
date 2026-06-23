@@ -12,7 +12,7 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-# Load environment before any logic (v6.20)
+# Load environment before any logic
 load_dotenv()
 
 from src.analyzer.audit_controller import AuditController
@@ -21,7 +21,7 @@ from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import format_timestamp_for_filename
 
-# v6.10: Global logger reference
+# Global logger reference
 logger = None
 
 def process_audit_file(file_path: str, controller: AuditController, data_root: str, force: bool = False) -> str:
@@ -80,7 +80,7 @@ def run_task(args_tuple):
     return process_audit_file(f, controller, data_root, force=force)
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Forensic Auditor v7.1 (Zero-Entropy Architecture)")
+    parser = argparse.ArgumentParser(description="Singularity Forensic Auditor")
     parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
     parser.add_argument("--symbol", type=str, help="Optional: Filter batch audit by symbol prefix (e.g. BTC)")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")

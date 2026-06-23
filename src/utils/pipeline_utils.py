@@ -207,7 +207,7 @@ class SafeFormatter(string.Formatter):
         try:
             return super().get_field(field_name, args, kwargs)
         except (AttributeError, KeyError, IndexError, TypeError):
-            # v6.11 RESILIENCE: If any part of the path fails, return the full placeholder
+            # RESILIENCE: If any part of the path fails, return the full placeholder
             return f"{{{field_name}}}", field_name
 
 def safe_format(template: str, **kwargs) -> str:
@@ -250,7 +250,7 @@ def archive_strategy_result(symbol: str, timestamp, result: Any, data_root: str,
     ts_str = timestamp.isoformat() if hasattr(timestamp, 'isoformat') else str(timestamp)
     ts_suffix = sanitize_timestamp(ts_str)
     
-    # v5.10 PHYSICAL HARDENING: Final micro-alignment of professional prefixes
+    # PHYSICAL HARDENING: Final micro-alignment of professional prefixes
     prefix_map = {"sessions": "session", "audits": "audit", "market": "market"}
     file_prefix = prefix_map.get(target_dir, target_dir)
     

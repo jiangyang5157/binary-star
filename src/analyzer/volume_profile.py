@@ -18,7 +18,7 @@ class VolumeProfileConfig:
     max_volume_node_count: int                # Maximum structural nodes (HVN/LVN) to return
     high_volume_node_detection_threshold: float            # Prominence threshold for HVN detection
     low_volume_node_detection_threshold: float            # Prominence threshold for LVN detection
-    min_node_gap_atr: float           # ATR multiplier for dynamic node separation (v12.0)
+    min_node_gap_atr: float           # ATR multiplier for dynamic node separation
     ranging_width_atr: float          # ATR multiplier for state classification
     resolution_bins: int = 300        # Number of horizontal price buckets (fixed, not a strategy knob)
 
@@ -135,7 +135,7 @@ class VolumeProfileEngine:
         vah = price_bins[va_idx_max]
         val = price_bins[va_idx_min]
         
-        # v7.2 Audit log to trace VP data generation
+        # Audit log to trace VP data generation
         logger.debug(
             f"VolumeProfileEngine: Distribution Complete. "
             f"Bins: {num_bins}, Total Vol: {total_vol:.2f}, "

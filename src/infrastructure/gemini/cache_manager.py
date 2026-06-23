@@ -69,7 +69,7 @@ class GeminiCacheManager:
                 gemini_contents.append(item)
 
         try:
-            # v7.7: Congestion Control (RPM Pacing)
+            # Congestion Control (RPM Pacing)
             if self.congestion_controller:
                 self.congestion_controller.pace(agent_name="CacheManager")
 
