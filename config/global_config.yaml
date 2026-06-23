@@ -15,10 +15,7 @@ trade_management:
     strategy_overrides:
       regime_parameters:
         trend:
-          trend_intensity_threshold: 0.15
-          trend_intensity_strong: 0.25
-        volatility:
-          volatility_baseline_ratio: 1.15
+          trend_intensity_min_expansion: 0.08
 
 network:
   binance:
