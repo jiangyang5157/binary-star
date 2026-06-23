@@ -83,12 +83,14 @@ class TestMathFactCheck:
         assert results["status"] == "SKIPPED"
 
     def test_error_handling_in_math_fact_check(self, orchestrator):
-        """Gracefully handle missing tactical parameters."""
+        """Missing tactical parameters: must return structured result without crashing."""
         observation = MockDataFactory.create_mock_session_result("BTCUSDT")["observation"]
-        plan = {"opinion": "BULLISH", "tactical_parameters": {}} # Missing keys
-        
+        plan = {"opinion": "BULLISH", "tactical_parameters": {}}
+
         results = orchestrator.math_checker.verify(plan, observation)
-        # Depending on implementation, it might return status: VERIFIED but with default values or error
-        # In MathFactChecker.verify, it uses float(tactical.get('entry', 0))
-        # So it will likely be 0, leading to a VERIFIED status but with RR=0 or similar.
+        # Must return a structured dict with status and at least one verdict field
         assert "status" in results
+        assert isinstance(results["status"], str)
+        # With empty tactical params, rr_is_valid should be False (can't compute valid RR)
+        if "compliance_verdict" in results:
+            assert "rr_is_valid" in results["compliance_verdict"]

@@ -51,6 +51,34 @@ def test_deep_merge_immutability():
     base = {"a": {"b": 1}}
     overlay = {"a": {"c": 2}}
     result = deep_merge(base, overlay)
-    
+
     assert base == {"a": {"b": 1}} # Original should remain unchanged
     assert result == {"a": {"b": 1, "c": 2}}
+
+
+def test_deep_merge_none_value():
+    """None values in overlay should overwrite existing values."""
+    result = deep_merge({"a": 1}, {"a": None})
+    assert result["a"] is None
+
+
+def test_deep_merge_deep_nesting():
+    """Very deeply nested dicts should be merged correctly (10+ levels)."""
+    def deep_nest(levels):
+        if levels == 1:
+            return {"v": "original"}
+        return {"nested": deep_nest(levels - 1)}
+    base = deep_nest(10)
+    overlay = {"nested": {"nested": {"nested": {"nested": {"nested": {"nested": {"nested": {"nested": {"nested": {"v": "overridden"}}}}}}}}}}
+    result = deep_merge(base, overlay)
+    # Navigate to the deepest level
+    curr = result
+    for _ in range(9):
+        curr = curr["nested"]
+    assert curr["v"] == "overridden"
+
+
+def test_deep_merge_list_preserved():
+    """List values are not deep-merged; overlay list replaces base list."""
+    result = deep_merge({"a": [1, 2, 3]}, {"a": [4, 5]})
+    assert result["a"] == [4, 5]

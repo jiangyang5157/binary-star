@@ -49,70 +49,54 @@ class TestMathTools:
         res = MathTools.calculate_structural_proximity(49500, 100, poc=None)
         assert res['sl_to_poc_atr'] is None
 
-    def test_projected_holding_time(self):
-        # Full Configuration from strategy_config.yaml (Thresholds + Modifiers)
-        cfg = {
-            "dilation_dead_water": 3.0, "dilation_highway": 1.1, "dilation_climax": 2.0, "dilation_standard": 1.5,
-            "weight_dead_water": 0.5, "weight_highway": 2.0, "weight_climax": 0.25, "weight_standard": 1.0
-        }
-        # Thresholds (Moved to positional to match hardened signature if needed, or kept in kwargs)
-        thresholds = {
-            "vr_base": 1.3, "vr_extreme": 2.0, "ti_strong": 0.5, "ti_thresh": 0.95
-        }
+    # Shared config for projected_holding_time tests
+    _time_cfg = {
+        "dilation_dead_water": 3.0, "dilation_highway": 1.1, "dilation_climax": 2.0, "dilation_standard": 1.5,
+        "weight_dead_water": 0.5, "weight_highway": 2.0, "weight_climax": 0.25, "weight_standard": 1.0,
+        "vr_base": 1.3, "vr_extreme": 2.0, "ti_strong": 0.5, "ti_thresh": 0.95,
+    }
 
-        # 1. 场景：极度高潮 (Chaos) - VR 2.2 (>= 2.0)
-        # Expected: Dist 2000 / (ATR 200 * Velocity 1.0) = 10 candles.
-        # Modifier 2.0. Hours = 10 * 60 * 2.0 / 60 = 20.0
-        res = MathTools.project_holding_time(
-            current_price=60000, entry=50000, take_profit=52000, atr=200, 
-            trend_intensity=1.0, volatility_intensity_index=2.2, normalized_velocity=1.0, 
-            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+    def _call_holding_time(self, entry, tp, trend, vol_idx, velocity, atr=200, interval=60):
+        return MathTools.project_holding_time(
+            current_price=60000, entry=entry, take_profit=tp, atr=atr,
+            trend_intensity=trend, volatility_intensity_index=vol_idx,
+            normalized_velocity=velocity, interval_minutes=interval,
+            min_velocity_floor=0.5, **self._time_cfg,
         )
-        assert res['temporal_weight_factor'] == 0.25
-        assert res['projected_holding_hours'] == 20.0
 
-        # 2. 场景：死水区 (Dead Water) - VR 1.0 (< 1.3), TI 0.2 (< 0.5)
-        # Expected: Dist 2000 / (ATR 200 * Floor 0.5) = 20 candles. 
-        # Modifier 3.0. Hours = 20 * 60 * 3.0 / 60 = 60.0
-        res = MathTools.project_holding_time(
-            current_price=60000, entry=50000, take_profit=52000, atr=200, 
-            trend_intensity=0.2, volatility_intensity_index=1.0, normalized_velocity=0.2, 
-            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
-        )
-        assert res['temporal_weight_factor'] == 0.5
-        assert res['projected_holding_hours'] == 60.0
-        
-        # 3. 场景：高速公路 (Highway) - TI 0.96 (>= 0.95), VR 1.5 (1.3 <= 1.5 < 2.0)
-        # Expected: Dist 2000 / (ATR 200 * Velocity 0.96) = 2000 / 192 = 10.416 candles.
-        # Modifier 1.1. Hours = 10.416 * 60 * 1.1 / 60 = 11.458 -> 11.5
-        res = MathTools.project_holding_time(
-            current_price=60000, entry=50000, take_profit=52000, atr=200, 
-            trend_intensity=0.96, volatility_intensity_index=1.5, normalized_velocity=0.96, 
-            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
-        )
-        assert res['temporal_weight_factor'] == 2.0
-        assert res['projected_holding_hours'] == 11.5
+    def test_projected_holding_climax(self):
+        """Chaos regime: VR 2.2, weight 0.25, dilation 2.0 → 20 hours."""
+        res = self._call_holding_time(50000, 52000, 1.0, 2.2, 1.0)
+        assert res["temporal_weight_factor"] == 0.25
+        assert res["projected_holding_hours"] == 20.0
 
-        # 4. 场景：标准扩张 (Standard) - VR 1.5, TI 0.6 (不满足 Highway 和 Dead Water)
-        # Expected: Dist 2000 / (ATR 200 * Velocity 0.6) = 2000 / 120 = 16.666 candles.
-        # Modifier 1.5. Hours = 16.666 * 60 * 1.5 / 60 = 25.0
-        res = MathTools.project_holding_time(
-            current_price=60000, entry=50000, take_profit=52000, atr=200, 
-            trend_intensity=0.6, volatility_intensity_index=1.5, normalized_velocity=0.6, 
-            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
-        )
-        assert res['temporal_weight_factor'] == 1.0
-        assert res['projected_holding_hours'] == 25.0
+    def test_projected_holding_dead_water(self):
+        """Dead water: VR 1.0, TI 0.2, floor 0.5, weight 0.5, dilation 3.0 → 60h."""
+        res = self._call_holding_time(50000, 52000, 0.2, 1.0, 0.2)
+        assert res["temporal_weight_factor"] == 0.5
+        assert res["projected_holding_hours"] == 60.0
 
-        # 5. 等待时间校验 (Wait time test)
-        # current_price=59000, entry=60000, TP=62000. Dist=1000. ATR=200. Velocity=1.0.
-        # Expected: 1000 / (200 * 1.0) = 5 candles = 5 hours (at 60m interval).
-        res_wait = MathTools.project_holding_time(
-            current_price=59000, entry=60000, take_profit=62000, atr=200, 
-            trend_intensity=1.0, volatility_intensity_index=2.2, normalized_velocity=1.0, 
-            interval_minutes=60, min_velocity_floor=0.5, **cfg, **thresholds
+    def test_projected_holding_highway(self):
+        """Highway: TI 0.96, VR 1.5, weight 2.0, dilation 1.1 → 11.5h."""
+        res = self._call_holding_time(50000, 52000, 0.96, 1.5, 0.96)
+        assert res["temporal_weight_factor"] == 2.0
+        assert res["projected_holding_hours"] == 11.5
+
+    def test_projected_holding_standard(self):
+        """Standard expansion: TI 0.6, VR 1.5, weight 1.0, dilation 1.5 → 25h."""
+        res = self._call_holding_time(50000, 52000, 0.6, 1.5, 0.6)
+        assert res["temporal_weight_factor"] == 1.0
+        assert res["projected_holding_hours"] == 25.0
+
+    def test_projected_waiting_time(self):
+        """Wait time: entry=60000, TP=62000, dist=1000, vel=1.0 → 5h."""
+        res = MathTools.project_holding_time(
+            current_price=59000, entry=60000, take_profit=62000, atr=200,
+            trend_intensity=1.0, volatility_intensity_index=2.2,
+            normalized_velocity=1.0, interval_minutes=60,
+            min_velocity_floor=0.5, **self._time_cfg,
         )
-        assert res_wait['projected_waiting_hours'] == 5.0
+        assert res["projected_waiting_hours"] == 5.0
 
     def test_mae_stress_tiers(self):
         # 定义测试用的阈值

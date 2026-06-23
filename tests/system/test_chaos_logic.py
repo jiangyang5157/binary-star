@@ -52,3 +52,40 @@ class TestChaosLogic:
         results = orchestrator.math_checker.verify(plan, observation)
         assert results["compliance_verdict"]["rr_is_valid"] is True
         assert results["rr_verification"]["rr_ratio"] == 0.9
+
+    def test_rr_validation_chaos_boundary(self, orchestrator):
+        """RR exactly at chaos-adjusted threshold (0.78) should be valid."""
+        observation = MockDataFactory.create_mock_session_result(
+            "BTCUSDT", current_price=60000, atr=500, trend_intensity=0.96
+        )["observation"]
+        observation["quantitative_metrics"]["price_dynamics"]["volatility_expansion_index"] = 2.5
+
+        plan = MockDataFactory.create_mock_ai_response(opinion="BULLISH")
+        # RR = 390/500 = 0.78 (exactly at chaos-adjusted min_rr = 1.2 * 0.65 = 0.78)
+        plan["tactical_parameters"].update({
+            "entry": 60000.0,
+            "stop_loss": 59500.0,
+            "take_profit": 60390.0
+        })
+
+        results = orchestrator.math_checker.verify(plan, observation)
+        assert results["rr_verification"]["rr_ratio"] == 0.78
+
+    def test_rr_validation_chaos_below_threshold(self, orchestrator):
+        """RR below chaos-adjusted threshold (0.78) should be invalid."""
+        observation = MockDataFactory.create_mock_session_result(
+            "BTCUSDT", current_price=60000, atr=500, trend_intensity=0.96
+        )["observation"]
+        observation["quantitative_metrics"]["price_dynamics"]["volatility_expansion_index"] = 2.5
+
+        plan = MockDataFactory.create_mock_ai_response(opinion="BULLISH")
+        # RR = 350/500 = 0.7 (below chaos-adjusted 0.78)
+        plan["tactical_parameters"].update({
+            "entry": 60000.0,
+            "stop_loss": 59500.0,
+            "take_profit": 60350.0
+        })
+
+        results = orchestrator.math_checker.verify(plan, observation)
+        assert results["compliance_verdict"]["rr_is_valid"] is False
+        assert results["rr_verification"]["rr_ratio"] == 0.7

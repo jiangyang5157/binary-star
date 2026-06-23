@@ -11,34 +11,6 @@ from src.config.symbol_resolver import (
     resolve_all,
     is_symbol_configured,
 )
-from src.utils.pipeline_utils import deep_merge
-
-
-# ── deep_merge (via pipeline_utils) ─────────────────────────────────────────
-
-def test_deep_merge_simple():
-    result = deep_merge({"a": 1}, {"b": 2})
-    assert result == {"a": 1, "b": 2}
-
-
-def test_deep_merge_overwrite():
-    result = deep_merge({"a": 1}, {"a": 99})
-    assert result["a"] == 99
-
-
-def test_deep_merge_nested():
-    result = deep_merge({"a": {"x": 1, "y": 2}}, {"a": {"y": 99, "z": 3}})
-    assert result["a"] == {"x": 1, "y": 99, "z": 3}
-
-
-def test_deep_merge_non_dict_override():
-    result = deep_merge({"a": {"x": 1}}, {"a": "string_value"})
-    assert result["a"] == "string_value"
-
-
-def test_deep_merge_empty():
-    result = deep_merge({"a": 1}, {})
-    assert result == {"a": 1}
 
 
 # ── Fixtures ────────────────────────────────────────────────────────────────
