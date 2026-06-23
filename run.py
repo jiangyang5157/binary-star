@@ -1,14 +1,9 @@
 #!/usr/bin/env python3
 """Singularity — unified CLI entry point.
-
-Usage:
-    python run.py session --symbol BTC [-p data/prod]
-    python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
-    python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
-    python run.py sniper --symbol BTC,XAUT [--trade [BALANCE]]
-    python run.py audit -p data/prod [--symbol BTC] [--force]
-    python run.py evolution --symbol BTC -p data/backtest --samples 20
-    python run.py patch -f evolution_proposal.json
+Each run_*.py also has a standalone main() for direct invocation
+(e.g. ``python run_session.py --symbol BTC``).  The argparse definitions
+are intentionally duplicated — the run_*.py scripts are independent
+entry points that must work without importing run.py.
 """
 
 import os

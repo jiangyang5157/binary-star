@@ -1,3 +1,14 @@
+"""
+Session Agent — the "Thesis" role in the Binary Star adversarial protocol.
+
+Terminology note: "Session" in this module refers to the LLM agent role
+(Session Analyst / Thesis proposer).  It is distinct from:
+  - A trading session (a market position lifecycle)
+  - A log file (session.log)
+  - A single inference cycle (execute_session_cycle)
+
+The Session Agent proposes trade blueprints; the Critic Agent audits them.
+"""
 import os
 import json
 from dataclasses import dataclass

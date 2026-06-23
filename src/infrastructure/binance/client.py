@@ -145,10 +145,16 @@ class BinanceFuturesClient(AbstractExchangeClient):
             logger.error(f"Binance: Unexpected error during kline pagination: {e}", exc_info=True)
             return []
 
+    # NOTE: Data mappers below use .get() defaults (e.g., .get('field', 0)).
+    # Missing API fields silently become 0/1.0 rather than raising — this
+    # keeps the pipeline running but masks upstream data-quality issues.
+    # TODO: Add structured data-quality logging when API responses diverge
+    # from the expected schema.
+
     def _map_klines(self, raw_data: List[List[Any]]) -> List[KlineData]:
         """
         Maps raw Binance API responses to domain KlineData objects.
-        
+
         Binance API Original Kline/Candlestick payload schema:
         [
             0: Open time (开盘时间)
