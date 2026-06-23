@@ -125,7 +125,7 @@ class CriticAgent(BaseAgent):
                 payload=payload, 
                 temperature=self.config.model_temperature,
                 agent_name="Critic_Evaluation",
-                cached_content=cache_id,
+                cache_resource_name=cache_id,
                 tools=tools,
                 system_instruction=system_instruction
             )

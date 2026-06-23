@@ -119,7 +119,7 @@ class SessionAgent(BaseAgent):
                 payload=payload, 
                 temperature=temperature,
                 agent_name=agent_name,
-                cached_content=cache_id,
+                cache_resource_name=cache_id,
                 tools=tools,
                 system_instruction=system_instruction
             )

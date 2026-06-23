@@ -102,11 +102,11 @@ class EvolutionEngine:
 
         # 2. Neural Meta-Optimization
         from src.utils.pipeline_utils import load_combined_config
-        from src.config.symbol_resolver import resolve_all
+        from src.config.symbol_resolver import load_and_resolve_for_symbol
 
         # Resolve all configs with per-symbol overrides so the evolver
         # analyzes with the exact same config the sessions ran with
-        full_config = resolve_all(self.symbol)
+        full_config = load_and_resolve_for_symbol(self.symbol)
 
         ev_cfg = EvolverConfig.from_dict(full_config)
         

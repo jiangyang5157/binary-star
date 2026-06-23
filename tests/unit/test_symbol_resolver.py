@@ -8,7 +8,7 @@ from src.config.symbol_resolver import (
     list_configured_symbols,
     get_symbol_trade_params,
     resolve_config,
-    resolve_all,
+    load_and_resolve_for_symbol,
     is_symbol_configured,
 )
 
@@ -199,7 +199,7 @@ def test_resolve_config_deeply_nested_override():
 
 def test_resolve_config_with_real_files():
     """Integration: resolve against actual YAML files."""
-    cfg = resolve_all("XAUTUSDT")
+    cfg = load_and_resolve_for_symbol("XAUTUSDT")
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
     # Non-overridden values from base
@@ -207,8 +207,8 @@ def test_resolve_config_with_real_files():
     assert cfg["sniper"]["probes"]["cvd_growth_significance_ratio"] == 1.4
 
 
-def test_resolve_all_btc_no_overrides():
-    cfg = resolve_all("BTCUSDT")
+def test_load_and_resolve_btc_no_overrides():
+    cfg = load_and_resolve_for_symbol("BTCUSDT")
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.12
     assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.22
 
@@ -245,7 +245,7 @@ def test_full_config_pipeline_session():
 
 def test_full_config_pipeline_evolution():
     """Simulate the run_evolution.py data flow."""
-    cfg = resolve_all("XAUTUSDT")
+    cfg = load_and_resolve_for_symbol("XAUTUSDT")
 
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
@@ -274,13 +274,13 @@ def test_full_config_pipeline_sniper():
 
 
 def test_loaders_work_with_resolved_config():
-    """All sub-config loaders work with a resolve_all() result."""
+    """All sub-config loaders work with a load_and_resolve_for_symbol() result."""
     from src.config.loader import (
         load_regime_config, load_temporal_config, load_risk_config,
         load_audit_config, load_visual_config,
     )
 
-    cfg = resolve_all("XAUTUSDT")
+    cfg = load_and_resolve_for_symbol("XAUTUSDT")
 
     # All should load without error
     r = load_regime_config(cfg)
@@ -298,8 +298,8 @@ def test_loaders_work_with_resolved_config():
 
 def test_config_snapshot_consistency():
     """config_snapshot from session matches evolver active_config."""
-    xaut = resolve_all("XAUTUSDT")
-    btc = resolve_all("BTCUSDT")
+    xaut = load_and_resolve_for_symbol("XAUTUSDT")
+    btc = load_and_resolve_for_symbol("BTCUSDT")
 
     # XAUTUSDT uses overrides
     assert xaut["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
@@ -319,7 +319,7 @@ def test_all_prompt_template_vars_reachable():
     from src.utils.pipeline_utils import read_prompt_template
     from src.utils.path_utils import resolve_project_root
 
-    cfg = resolve_all("XAUTUSDT")
+    cfg = load_and_resolve_for_symbol("XAUTUSDT")
     from src.config.loader import load_regime_config, load_temporal_config, load_risk_config, load_audit_config
     r = load_regime_config(cfg)
     t = load_temporal_config(cfg)

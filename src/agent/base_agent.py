@@ -105,7 +105,7 @@ class BaseAgent:
         payload: str | list[Any],
         temperature: float | None = None,
         agent_name: str = "Agent",
-        cached_content: str | None = None,
+        cache_resource_name: str | None = None,
         tools: list[Any] | None = None,
         system_instruction: str | None = None,
     ) -> dict[str, Any]:
@@ -118,7 +118,7 @@ class BaseAgent:
             payload: Initial prompt or multimodal content sequence.
             temperature: Model creativity override. Defaults to config value.
             agent_name: Logical identity for tracking and forensic logging.
-            cached_content: ID of the active context cache resource.
+            cache_resource_name: ID of the active context cache resource (Gemini context cache name).
             tools: List of function schemas available for dispatch.
             system_instruction: Shared intelligence prompt to bypass caching limits.
 
@@ -153,7 +153,7 @@ class BaseAgent:
                     retry=retry_if_exception(lambda e: not isinstance(e, _NON_RETRYABLE)),
                 )
 
-                use_json_mode = not tools and not cached_content
+                use_json_mode = not tools and not cache_resource_name
 
                 if self.congestion_controller:
                     self.congestion_controller.pace(agent_name=agent_name)
@@ -162,8 +162,8 @@ class BaseAgent:
                     self.client.generate_content,
                     model=self.model,
                     contents=contents,
-                    system_instruction=system_instruction if not cached_content else None,
-                    tools=tools if not cached_content else None,
+                    system_instruction=system_instruction if not cache_resource_name else None,
+                    tools=tools if not cache_resource_name else None,
                     temperature=temp,
                     response_json=use_json_mode,
                     http_timeout=self.api_timeout,

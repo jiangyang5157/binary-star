@@ -99,8 +99,8 @@ def resolve_config(base_config: dict, symbol: str, symbol_config: Optional[dict]
     return result
 
 
-def resolve_all(symbol: str) -> Dict[str, Any]:
-    """Load and resolve ALL base configs for a symbol.
+def load_and_resolve_for_symbol(symbol: str) -> Dict[str, Any]:
+    """Load strategy + global configs, merge, and apply per-symbol overrides.
 
     Loads strategy_config.yaml + global_config.yaml, deep-merges them
     (strategy takes priority on conflicts), then applies symbol overrides.
