@@ -10,7 +10,7 @@ from src.infrastructure.exchange.models import KlineData, OpenInterestData, Rati
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
-from src.analyzer.liquidation_radar import LiquidationRadar
+from src.analyzer.liquidation_estimator import LiquidationEstimator
 from src.config.sub_configs import RegimeConfig, VisualConfig
 from src.utils.datetime_utils import (
     get_current_utc_time, format_datetime, FILE_TIMESTAMP_FORMAT,
@@ -61,7 +61,7 @@ class ObserverRadarConfig:
     """Liquidation-radar parameters for MarketObserver.
 
     Projection distances (1/leverage) and 25x weight are physics constants
-    hardcoded in LiquidationRadar itself — no longer config knobs.
+    hardcoded in LiquidationEstimator itself — no longer config knobs.
     """
 
     long_threshold: float
@@ -392,7 +392,7 @@ class MarketMetricsRefiner:
     using specialized Volume Profile and Market Regime analysis.
     """
     
-    def __init__(self, config: MarketObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer, radar: LiquidationRadar):
+    def __init__(self, config: MarketObserverConfig, vp_analyzer: VolumeProfileAnalyzer, regime_analyzer: MarketRegimeAnalyzer, radar: LiquidationEstimator):
         """Initializes specialized processing units for topography and dynamics."""
         self.config = config
         self.vp = vp_analyzer
@@ -614,7 +614,7 @@ class MarketObserver:
         )
 
         # [MODULARIZED PROCESSING STACK]
-        self.radar = LiquidationRadar(
+        self.radar = LiquidationEstimator(
             volume_moving_average_period=self.config.volume_ma_period,
             volume_surge_vs_ma_ratio=self.config.regime.volume_surge_vs_ma_ratio,
             max_liquidation_clusters=self.config.max_liquidation_clusters,

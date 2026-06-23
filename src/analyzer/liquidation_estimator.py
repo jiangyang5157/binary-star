@@ -8,7 +8,7 @@ from src.infrastructure.exchange.models import KlineData, OpenInterestData, Rati
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
-class LiquidationRadar:
+class LiquidationEstimator:
     """The Synthetic Liquidation Synthesizer.
     
     Reverse-engineers retail 'traps' using OHLCV, Open Interest, and Taker Flow 
@@ -73,7 +73,7 @@ class LiquidationRadar:
             oi_vals = np.array([o.open_interest for o in oi_history])[-min_len:]
             taker_ratios = np.array([t.long_short_ratio for t in taker_history])[-min_len:]
             
-            logger.debug(f"LiquidationRadar: Anchored to current_price: {current_price:.2f}")
+            logger.debug(f"LiquidationEstimator: Anchored to current_price: {current_price:.2f}")
 
             # 2. Derived metrics (SMA for surge detection, OI Delta for intent)
             vol_ma = self._calculate_sma(volumes, self.volume_moving_average_period)
@@ -133,7 +133,7 @@ class LiquidationRadar:
             }
 
         except Exception as e:
-            logger.error(f"LiquidationRadar synthesis failed: {e}", exc_info=True)
+            logger.error(f"LiquidationEstimator synthesis failed: {e}", exc_info=True)
             return {"long_liquidation": [], "short_liquidation": []}
 
     def _calculate_sma(self, data: np.ndarray, period: int) -> np.ndarray:

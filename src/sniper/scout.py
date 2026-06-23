@@ -9,7 +9,7 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.analyzer.market_observer import MarketObserverConfig, MarketDataLoader, MarketMetricsRefiner
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
-from src.analyzer.liquidation_radar import LiquidationRadar
+from src.analyzer.liquidation_estimator import LiquidationEstimator
 from src.utils.pipeline_utils import load_config, load_global_config
 from src.utils.logger_utils import setup_logger
 
@@ -73,7 +73,7 @@ class SniperScout:
         )
         self.regime_analyzer = MarketRegimeAnalyzer(config=rg_cfg)
 
-        self.radar = LiquidationRadar(
+        self.radar = LiquidationEstimator(
             volume_moving_average_period=self.obs_config.volume_ma_period,
             volume_surge_vs_ma_ratio=self.obs_config.regime.volume_surge_vs_ma_ratio,
             max_liquidation_clusters=self.obs_config.max_liquidation_clusters,

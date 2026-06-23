@@ -34,18 +34,20 @@ class AuditController:
         data_root: The logical data repository (e.g., 'data/prod').
     """
     
-    def __init__(self, config_dict: Dict[str, Any], data_root: str, logger: Optional[logging.Logger] = None):
+    def __init__(self, config_dict: Dict[str, Any], data_root: str,
+                 logger: Optional[logging.Logger] = None,
+                 exchange_client: Optional[AbstractExchangeClient] = None):
         """Initializes the AuditController with required forensic components."""
         self.config = config_dict
         self.logger = logger or logging.getLogger(__name__)
         self.data_root = data_root
-        
+
         # 1. Initialize Forensic Assembler
         review_cfg = AuditReviewConfig.from_dict(config_dict)
         self.assembler = AuditAssembler(review_cfg)
-        
+
         # 2. Shared Infrastructure (Dynamic interface)
-        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # 3. Visual Forensic Observer (T1)
         self.obs_config = MarketObserverConfig.from_dict(config_dict)

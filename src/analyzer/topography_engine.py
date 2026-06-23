@@ -10,11 +10,12 @@ from src.utils.path_utils import resolve_project_root
 
 class TopographyEngine:
     """Orchestrates market reconnaissance and topography reconstruction."""
-    def __init__(self, config_dict: Dict[str, Any], data_root: str, logger):
+    def __init__(self, config_dict: Dict[str, Any], data_root: str, logger,
+                 exchange_client: Optional[AbstractExchangeClient] = None):
         self.config = config_dict
         self.data_root = os.path.join(resolve_project_root(), data_root)
         self.logger = logger
-        self.exchange_client: AbstractExchangeClient = BinanceFuturesClient()
+        self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
         
         # Parse config early to inject visual parameters
         obs_config = MarketObserverConfig.from_dict(config_dict)
