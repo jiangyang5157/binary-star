@@ -2,12 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Behaviour
-回复结尾如果有需要我手动处理的事情，用
-- [ ] 待办一
-- [ ] 待办二
-这种勾选清单单独列出来
-做完再给我一句话进度回顾
+## Style
+
+- When a task completes and there are manual follow-ups the user needs to handle, list them at the end of the reply as a `- [ ]` checkbox list.
+- Finish every implementation response with a one-sentence progress recap.
 
 ## Commands
 
@@ -46,7 +44,7 @@ python run.py audit -p data/prod
 python run.py audit -p data/backtest --file data/backtest/v26.6.23_r14/sessions/BTCUSDT_session_20260101_120000.json
 
 # Meta-evolution (strategy optimization from audit results)
-python run.py evolution -p data/prod --symbol BTC --sample 100 
+python run.py evolution -p data/prod --symbol BTC --samples 100 
 
 # Apply evolution patch
 python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260101_120000.json

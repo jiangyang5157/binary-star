@@ -353,7 +353,7 @@ python run.py audit -p data/prod
 python run.py audit -p data/backtest --file data/backtest/v26.6.23_r14/sessions/BTCUSDT_session_20260101_120000.json
 
 # Meta-evolution (strategy optimization from audit results)
-python run.py evolution -p data/prod --symbol BTC --sample 100 
+python run.py evolution -p data/prod --symbol BTC --samples 100 
 
 # Apply evolution patch
 python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
