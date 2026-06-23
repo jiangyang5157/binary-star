@@ -136,7 +136,8 @@ def main():
 
     print(f"Dashboard: data_root = {args.data_root}")
     print(f"Dashboard: http://{args.host}:{args.port}")
-    uvicorn.run("src.dashboard.server:app", host=args.host, port=args.port, reload=True)
+    uvicorn.run("src.dashboard.server:app", host=args.host, port=args.port,
+                reload=True, reload_excludes=["data", "*.log", "*.png", "*.json"])
 
 
 if __name__ == "__main__":
