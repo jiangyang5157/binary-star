@@ -101,9 +101,16 @@ class EvolutionEngine:
             if report: reports.append(report)
 
         # 2. Neural Meta-Optimization
-        from src.utils.pipeline_utils import load_combined_config
-        full_config = load_combined_config()
-        
+        from src.utils.pipeline_utils import load_combined_config, load_config, load_global_config
+        from src.config.loader import merge_symbol_overrides
+
+        strat_cfg = load_config()
+        global_cfg = load_global_config()
+        # Apply per-symbol overrides so the evolver analyzes with the exact
+        # same config the sessions ran with (e.g., XAUTUSDT gets lower thresholds)
+        overridden_strat, _ = merge_symbol_overrides(strat_cfg, global_cfg, self.symbol)
+        full_config = {**global_cfg, **overridden_strat}
+
         ev_cfg = EvolverConfig.from_dict(full_config)
         
         from src.utils.pipeline_utils import load_global_config
