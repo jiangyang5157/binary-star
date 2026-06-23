@@ -53,7 +53,7 @@
         <span id="confVal" class="slider-value">50</span>
       </div>
     </div>
-    <p class="chart-hint">Bubble: Y = Confidence  |  Size = |P&amp;L %|  |  Color = Outcome</p>
+    <p class="chart-hint">Click a bubble to open the session audit report</p>
     <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
   </section>
 
@@ -78,12 +78,7 @@
         <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" title="Run forensic audit against all un-audited sessions">⟳ Run Audit</button>
         <span id="run-audit-status" class="audit-status" style="display:none"></span>
         <input type="text" id="symbol-filter" placeholder="Filter symbol..." class="filter-input">
-        <select id="opinion-filter" class="filter-select">
-          <option value="">All Opinions</option>
-          <option value="BULLISH">BULLISH</option>
-          <option value="BEARISH">BEARISH</option>
-          <option value="NEUTRAL">NEUTRAL</option>
-        </select>
+        <input type="text" id="version-filter" placeholder="Filter version..." class="filter-input">
       </div>
     </div>
     <div class="table-wrapper">
@@ -100,11 +95,12 @@
             <th class="sortable" data-sort="rr_ratio">RR</th>
             <th>Result</th>
             <th>P&amp;L</th>
+            <th>Version</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="sessions-body">
-          <tr><td colspan="11" class="loading">Loading sessions...</td></tr>
+          <tr><td colspan="12" class="loading">Loading sessions...</td></tr>
         </tbody>
       </table>
     </div>
@@ -233,9 +229,10 @@ function renderTimeline(trades, threshold) {
       x: t.time ? new Date(t.time.replace('Z', '')) : null,
       y: t.confidence,
       r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
-      pnl: t.pnl_pct, res: t.tp_sl_result, op: t.opinion, filled: t.is_filled,
+      pnl: t.pnl_pct, op: t.opinion,
       holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
       sessionFile: t.session_filename || '',
+      version: t.version || '',
       backgroundColor: color, borderColor: above ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0)',
     };
   });
@@ -251,7 +248,7 @@ function renderTimeline(trades, threshold) {
       },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Time: ${d.timeLabel}`, `Direction: ${d.op}`, `Result: ${d.op === 'NEUTRAL' ? 'NEUTRAL' : d.filled ? d.res : 'Unfilled'}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`]; } } }
+        tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Time: ${d.timeLabel}`, `Direction: ${d.op}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`, `Version: ${d.version || '&mdash;'}`]; } } }
       },
       onClick: (e) => {
         const points = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
@@ -349,7 +346,7 @@ function sortSessions(sessions, key, dir) {
 function renderTable(sessions) {
   const tbody = $('sessions-body');
   $('session-count').textContent = `${sessions.length} records`;
-  if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="11" class="empty">No records match filters</td></tr>'; return; }
+  if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No records match filters</td></tr>'; return; }
   tbody.innerHTML = sessions.map(s => {
     const tp = s.tactical || {}, audit = s.audit;
     const entry = tp.current_price || tp.entry;
@@ -364,6 +361,7 @@ function renderTable(sessions) {
       <td class="mono">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
       <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">UNFILLED</span>' : resultBadge(audit?.tp_sl_result)}</td>
       <td>${pnlSpan(audit?.pnl_pct)}</td>
+      <td><span class="text-muted">${s.version || '&mdash;'}</span></td>
       <td><a href="/audits/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
     </tr>`;
   }).join('');
@@ -371,10 +369,10 @@ function renderTable(sessions) {
 
 function applyFilters() {
   const sym = $('symbol-filter').value.trim().toUpperCase();
-  const op = $('opinion-filter').value;
+  const ver = $('version-filter').value.trim();
   let f = allSessions;
   if (sym) f = f.filter(s => (s.symbol || '').includes(sym));
-  if (op) f = f.filter(s => s.opinion === op);
+  if (ver) f = f.filter(s => (s.version || '').includes(ver));
   renderTable(sortSessions(f, sortKey, sortDir));
 
   // Drive KPIs and charts from the same filtered set
@@ -385,7 +383,7 @@ function applyFilters() {
 
 async function loadSessions() {
   const tbody = $('sessions-body');
-  tbody.innerHTML = '<tr><td colspan="11" class="loading">Loading sessions...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading sessions...</td></tr>';
   const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
   const data = await resp.json();
   allSessions = data.sessions || [];
@@ -395,7 +393,7 @@ async function loadSessions() {
 
 // ── Events ──
 $('symbol-filter').addEventListener('input', applyFilters);
-$('opinion-filter').addEventListener('change', applyFilters);
+$('version-filter').addEventListener('input', applyFilters);
 $('confSlider').addEventListener('input', function() { updateAllCharts(parseInt(this.value)); });
 document.querySelectorAll('th.sortable').forEach(th => {
   th.addEventListener('click', function() {

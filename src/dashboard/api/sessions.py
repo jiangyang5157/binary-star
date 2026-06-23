@@ -14,6 +14,11 @@ def _resolve_data_root(value: str) -> str:
     return value or os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
 
 
+def _extract_version(session: dict) -> str:
+    """Safely extract project_version from session metadata."""
+    return (session.get("metadata") or {}).get("version_control", {}).get("project_version", "")
+
+
 # ── Helpers ──────────────────────────────────────────────────────────
 
 def _format_time_remaining(seconds: float) -> str:
@@ -145,6 +150,7 @@ def list_live_sessions(data_root: str = Query(""), include_neutral: bool = Query
             "expiry_at": expiry.isoformat(),
             "time_remaining": _format_time_remaining(time_left_seconds),
             "time_remaining_seconds": None if time_left_seconds is None else round(time_left_seconds),
+            "version": _extract_version(session),
         })
 
     active.sort(key=lambda s: s["observed_at"], reverse=True)

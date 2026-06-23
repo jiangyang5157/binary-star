@@ -15,6 +15,11 @@ def _resolve_data_root(value: str) -> str:
     return value or os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
 
 
+def _extract_version(session: dict) -> str:
+    """Safely extract project_version from session metadata."""
+    return (session.get("metadata") or {}).get("version_control", {}).get("project_version", "")
+
+
 def _find_audit_files(data_root: str, symbol: str | None = None) -> list[Path]:
     """Discover audit JSON files in {data_root}/audits/."""
     audits_dir = Path(data_root) / "audits"
@@ -220,6 +225,7 @@ def get_trades(
                 "pnl_pct": round(pnl, 2),
                 "projected_holding_hours": tp_params.get("projected_holding_hours") or 0,
                 "session_filename": f.name,
+                "version": _extract_version(session),
             })
         except Exception:
             continue
@@ -272,6 +278,7 @@ def list_audits(
                 "observed_at": session.get("observation", {}).get("observed_at", ""),
                 "opinion": opinion or "UNKNOWN",
                 "confidence": decision.get("confidence_score"),
+                "version": _extract_version(session),
                 "tactical": tp_params,
                 "audit": {
                     "is_filled": is_filled,
