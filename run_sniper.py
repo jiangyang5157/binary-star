@@ -63,16 +63,15 @@ class SniperDaemon:
             self.triggers[sym] = SniperTrigger()
             logger.info(f"SniperDaemon [{sym}]: Trigger Cooldown is active at {self.triggers[sym].cooldown_minutes}m.")
 
-        # 2. Initialize Heavyweight Session Engines (one per symbol, optional)
+        # 2. Initialize Heavyweight Session Engines (one per symbol, always)
         self.session_engines: dict = {}
-        if args.trigger:
-            for sym in self.symbols:
-                self.session_engines[sym] = SessionEngine(sym, args.path, args=args,
-                                                          exchange_client=self.futures_client)
+        for sym in self.symbols:
+            self.session_engines[sym] = SessionEngine(sym, args.path, args=args,
+                                                      exchange_client=self.futures_client)
 
         # 3. Initialize Trade Execution (shared executor is symbol-aware)
-        self.trade_enabled = getattr(args, 'trade', False)
-        self.manual_balance = getattr(args, 'balance', None)
+        self.trade_enabled = bool(args.trade)
+        self.manual_balance = args.trade if isinstance(args.trade, float) else None
         self.executor = None
         self.trade_states: dict[str, dict] = {}
         if self.trade_enabled:
@@ -343,12 +342,9 @@ class SniperDaemon:
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
-    parser.add_argument("--trigger", action="store_true", help="Enable automatic activation of AI sessions")
-    parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts for sessions")
-    parser.add_argument("--trade", action="store_true", help="Enable automated margin trading execution")
-    parser.add_argument("-b", "--balance", type=float, default=None,
-                        help="Manual equity balance in USDT (e.g., 1000). "
-                             "When provided, used for position sizing instead of querying Binance.")
+    parser.add_argument("--trade", nargs='?', const=True, default=False, type=float,
+                        help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "
+                             "Without a value, uses real Binance cross-margin balance.")
     from src.utils.pipeline_utils import add_data_path_argument
     add_data_path_argument(parser)
 

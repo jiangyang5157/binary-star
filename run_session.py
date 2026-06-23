@@ -60,9 +60,9 @@ class SessionEngine:
         )
         self.notifier = SessionNotifier(data_root=self.data_root)
         
-        # UI/Notification control
-        self.send_email = getattr(args, 'email', False)
-        
+        # Notification control — always enabled at the engine level.
+        # The SessionNotifier gates actual email dispatch on .env credentials.
+
         # Failure tracking for circuit breaker
         self.consecutive_failures = 0
         self.max_failures_threshold = int(self.global_cfg.get('network', {}).get('gemini', {}).get('circuit_breaker_threshold', 3))
@@ -103,14 +103,12 @@ class SessionEngine:
             logger.info("BinaryStar: Initiating adversarial debate [Session Analyst VS Critic]...")
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 
-            # 4. Notification (Filtered)
-            # We skip email notifications unless --email is explicitly provided.
-            # Local previews are ALWAYS generated for audit trails.
+            # 4. Notification (always attempt; SessionNotifier gates on .env + confidence)
             self.notifier.notify_session(
-                self.symbol, 
-                session_result, 
-                save_local=self.send_email, 
-                dispatch_email=self.send_email
+                self.symbol,
+                session_result,
+                save_local=True,
+                dispatch_email=True
             )
 
             # 5. Audit Archival
@@ -264,8 +262,7 @@ def parse_date(date_str: str) -> datetime:
 def main():
     parser = argparse.ArgumentParser(description="Singularity Session Engine v7.1 (Zero-Entropy Architecture)")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
-    parser.add_argument("--email", action="store_true", help="Enable high-conviction email alerts")
-    
+
     # 2. Backtest Configuration Group
     bt_group = parser.add_argument_group("Backtest Options")
     bt_group.add_argument("--timestamp", "-ts", type=str, help="Precise historical timestamp")

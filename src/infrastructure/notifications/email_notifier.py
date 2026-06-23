@@ -213,10 +213,21 @@ class SessionNotifier:
                         preview_html = str(preview_html).replace(f"cid:{cid}", f"file://{abs_path}")
             
             file_path = os.path.join(output_dir, filename)
-            
+
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(preview_html)
-            
+
+            # Rotate: keep only the last 50 previews per data_root
+            try:
+                html_files = sorted(
+                    [os.path.join(output_dir, fn) for fn in os.listdir(output_dir) if fn.endswith(".html")],
+                    key=os.path.getmtime,
+                )
+                for old in html_files[:-50]:
+                    os.remove(old)
+            except OSError:
+                pass
+
             logger.info(f"Notifier: HTML preview saved to {file_path}")
             return file_path
         except Exception as e:

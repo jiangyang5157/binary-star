@@ -2,10 +2,10 @@
 """Singularity — unified CLI entry point.
 
 Usage:
-    python run.py session --symbol BTC [--email] [-p data/prod]
+    python run.py session --symbol BTC [-p data/prod]
     python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
     python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
-    python run.py sniper --symbol BTC,XAUT [--trigger] [--email] [--trade]
+    python run.py sniper --symbol BTC,XAUT [--trade [BALANCE]]
     python run.py audit -p data/prod [--symbol BTC] [--force]
     python run.py evolution --symbol BTC -p data/backtest --samples 20
     python run.py patch -f evolution_proposal.json
@@ -73,8 +73,6 @@ def _add_session_parser(subparsers):
     p = subparsers.add_parser("session", help="Run a Binary Star analysis cycle")
     p.add_argument("--symbol", type=str, required=True,
                    help="Trading pair prefix (e.g. BTC)")
-    p.add_argument("--email", action="store_true",
-                   help="Enable high-conviction email alerts")
     p.add_argument("--timestamp", "-ts", type=str,
                    help="Precise historical timestamp (ISO-8601)")
     p.add_argument("--start", type=_parse_date,
@@ -128,15 +126,9 @@ def _add_sniper_parser(subparsers):
     p = subparsers.add_parser("sniper", help="Run the real-time Sniper monitoring daemon")
     p.add_argument("--symbol", type=str, required=True,
                    help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
-    p.add_argument("--trigger", action="store_true",
-                   help="Enable automatic activation of AI sessions")
-    p.add_argument("--email", action="store_true",
-                   help="Enable high-conviction email alerts for sessions")
-    p.add_argument("--trade", action="store_true",
-                   help="Enable automated margin trading execution")
-    p.add_argument("-b", "--balance", type=float, default=None,
-                   help="Manual equity balance in USDT (e.g., 1000). "
-                        "When provided, used for position sizing instead of querying Binance.")
+    p.add_argument("--trade", nargs='?', const=True, default=False, type=float,
+                   help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "
+                        "Without a value, uses real Binance cross-margin balance.")
     add_data_path_argument(p)
     p.set_defaults(func=_cmd_sniper)
 

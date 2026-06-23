@@ -57,10 +57,6 @@ def _is_pid_alive(pid: int) -> bool:
         return False
 
 
-def _check_email_available() -> bool:
-    return bool(os.environ.get("EMAIL_ADDRESS") and os.environ.get("EMAIL_APP_PASSWORD"))
-
-
 # ── Endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/start")
@@ -100,15 +96,13 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
     cmd = [
         sys.executable, "run.py", "sniper",
         "--symbol", csv_arg,
-        "--trigger",
         "-p", data_root,
     ]
-    if _check_email_available():
-        cmd.append("--email")
     if req.trade:
-        cmd.append("--trade")
-    if balance is not None:
-        cmd.extend(["-b", str(balance)])
+        if balance is not None:
+            cmd.extend(["--trade", str(balance)])
+        else:
+            cmd.append("--trade")
 
     log.info("Starting sniper: %s", " ".join(cmd))
 

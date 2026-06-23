@@ -74,14 +74,9 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
     try:
         from run_session import SessionEngine
 
-        # Build a minimal args namespace for SessionEngine
-        class Args:
-            email = True
-
         engine = SessionEngine(
             symbol=symbol,
             data_root=data_root,
-            args=Args(),
         )
         result = engine.execute_cycle(timestamp_str=None)
 

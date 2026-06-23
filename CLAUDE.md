@@ -2,6 +2,13 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Behaviour
+回复结尾如果有需要我手动处理的事情，用
+- [ ] 待办一
+- [ ] 待办二
+这种勾选清单单独列出来
+做完再给我一句话进度回顾
+
 ## Commands
 
 ```bash
@@ -18,40 +25,40 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
 pip install -e .
 pip install -e ".[dev]"
 
-# Start the dashboard server (http://localhost:8080)
-python -m src.dashboard.server
-python -m src.dashboard.server -p data/prod --port 8080
-
 # ── Unified CLI (run.py) ─────────────────────────────────────────────
 # --symbol accepts prefix format (BTC, XAUT, ETH); "USDT" appended internally
 
 # Live analysis
-python run.py session --symbol BTC
+python run.py session -p data/prod --symbol BTC
 
 # Single historical snapshot
-python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
+python run.py session -p data/prod --symbol BTC -ts 2026-06-01T12:34:00Z
 
 # Backtest (sampled historical points)
-python run.py session --start T-30d --end T-2d --samples 21 --sampling-mode sniper --symbol BTC -p data/backtest/v26.6.23_r21_btcusdt
+python run.py session --start T-16d --end T-2d --samples 14 --sampling-mode sniper --symbol BTC -p data/backtest/v26.6.23_r14
 
-# Real-time monitoring daemon (CSV for multi-symbol)
-python run.py sniper --symbol BTC,XAUT --trigger --email --trade -b 1000 
-
-python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_20260622_090935.json
+# Real-time monitoring daemon (real balance or fixed balance)
+python run.py sniper -p data/prod --symbol BTC,XAUT --trade
+python run.py sniper -p data/prod --symbol BTC,XAUT --trade 1000 
 
 # Forensic audit
 python run.py audit -p data/prod
-python run.py audit -p data/backtest/v26.6.23_r21_btcusdt
-python run.py audit -p data/backtest --file data/backtest/sessions/BTCUSDT_session_20260101_120000.json
+python run.py audit -p data/backtest --file data/backtest/v26.6.23_r14/sessions/BTCUSDT_session_20260101_120000.json
 
 # Meta-evolution (strategy optimization from audit results)
-python run.py evolution --symbol BTC -p data/backtest/v26.6.23_r21_btcusdt --sample 21
+python run.py evolution -p data/prod --symbol BTC --sample 100 
 
 # Apply evolution patch
-python run.py patch -f data/backtest/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
+python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
 
-# Start dashboard (http://localhost:8080)
-python -m src.dashboard.server --port 8080 --host 0.0.0.0 -p data/prod
+# Start dashboard server (http://0.0.0.0:8080)
+python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
+
+# Calculate order qty based on the balance for a session
+python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_20260622_090935.json
+
+# Clean NEUTRAL session reports
+python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
 
 ```
 
