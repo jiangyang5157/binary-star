@@ -204,9 +204,9 @@ class SignificantNodeFinder:
                                   distance=bin_dist)
         
         lvns = sorted([
-            {"price": round(float(prices[i]), 2), "strength": round(float(vols[i] / max_v), 3)}
+            {"price": round(float(prices[i]), 2), "vacuum_score": round(float(vols[i] / max_v), 3)}
             for i in l_valleys
-        ], key=lambda x: x['strength'])
+        ], key=lambda x: x['vacuum_score'])
         
         return {
             "hvn": hvns[:self.config.max_volume_node_count],
