@@ -51,7 +51,7 @@ def _load_users() -> dict[str, set[str]]:
     Returns a dict mapping user_id → set of permission strings.
     Returns an empty dict if the file is missing or malformed.
     """
-    users_path = PROJECT_ROOT / "config" / "users.json"
+    users_path = PROJECT_ROOT / "config" / "auth" / "users.json"
     if not users_path.exists():
         return {}
     try:
