@@ -43,6 +43,10 @@ class SessionEngine:
         self.args = args
         self.config = load_config()
         self.global_cfg = load_global_config()
+
+        # Apply per-symbol regime overrides (XAUTUSDT vs BTCUSDT baseline)
+        from src.config.loader import merge_symbol_overrides
+        self.config = merge_symbol_overrides(self.config, symbol)
         
         # Resolve API key based on active provider (decoupled)
         from src.utils.pipeline_utils import resolve_api_key
@@ -196,7 +200,10 @@ class SessionController:
         # Calculate warmup needed for technical indicators
         fir_period = self.engine.config['analysis_window']['macro_context']['lookback_candles']
         warmup = calculate_indicator_warmup(
-            iir_periods=[topo_cfg['exponential_moving_average_period'], topo_cfg['average_true_range_period']],
+            iir_periods=[
+                topo_cfg['indicators']['exponential_moving_average_period'],
+                topo_cfg['indicators']['average_true_range_period'],
+            ],
             fir_periods=[fir_period],
         )
         
