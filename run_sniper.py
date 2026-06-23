@@ -90,7 +90,7 @@ class SniperDaemon:
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
-        pulse_mins = load_global_config()['sniper']['pulse_interval_minutes']
+        pulse_mins = load_global_config()['sniper']['heartbeat']['pulse_interval_minutes']
         sym_list = ", ".join(self.symbols)
         logger.info(f"--- Sniper Monitoring Started: {sym_list} (Pulse: {pulse_mins}m) ---")
 

@@ -126,11 +126,11 @@ def load_visual_config(cfg: dict[str, Any]) -> VisualConfig:
         v = yaml.safe_load(f)
     return VisualConfig(
         volume_profile_width_ratio=_f(v["volume_profile"], "width_ratio"),
-        render_dpi=_i(v, "render_dpi"),
-        up_color=_s(v, "up_color"),
-        down_color=_s(v, "down_color"),
-        bg_color=_s(v, "bg_color"),
-        poc_color=_s(v, "poc_color"),
-        vah_val_color=_s(v, "vah_val_color"),
-        current_price_color=_s(v, "current_price_color"),
+        render_dpi=_i(v["chart"], "render_dpi"),
+        up_color=_s(v["chart"], "up_color"),
+        down_color=_s(v["chart"], "down_color"),
+        bg_color=_s(v["chart"], "bg_color"),
+        poc_color=_s(v["chart"], "poc_color"),
+        vah_val_color=_s(v["chart"], "vah_val_color"),
+        current_price_color=_s(v["chart"], "current_price_color"),
     )

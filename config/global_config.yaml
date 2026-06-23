@@ -35,7 +35,7 @@ network:
 llm:
   # --- Central Neural Infrastructure ---
   active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
-  
+
   gemini:
     model: "gemini-3.5-flash" # gemini-3.5-flash
     session_temperature: 0.5
@@ -71,84 +71,96 @@ llm:
   evolver:
     role_prompt: "config/prompts/evolver.md"
 
+# ═══════════════════════════════════════════════════════════════════════════
+# SNIPER — Monitoring Daemon Trigger Sensitivity
+# ═══════════════════════════════════════════════════════════════════════════
 sniper:
 
-  # --- Engine Heartbeat & Tick Rate ---
-  # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
-  # WARNING: This is the physical baseline of the engine. It defines what "instantaneous" means
-  # for the impulse/divergence probes. Do NOT change arbitrarily.
-  pulse_interval_minutes: 2.0
+  # --- Engine Heartbeat ---
+  heartbeat:
+    # The frequency at which Sniper scans the exchange (0.1 = snapshot every 6 seconds).
+    # WARNING: This is the physical baseline of the engine. It defines what "instantaneous" means
+    # for the impulse/divergence probes. Do NOT change arbitrarily.
+    pulse_interval_minutes: 2.0
 
   # --- Alert Muting (Cooldown) ---
-  # The duration the Sniper remains "muted" after successfully waking up the AI.
-  # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
-  # 3.0 = 45 min. Balanced for dual BTC/XAUT use: faster than 60 min, not as aggressive as 30 min.
-  pulse_cooldown_multiplier: 3.0
-
-  # [Mute]: Multiplier for cooldown during extreme volatility expansion.
-  # 2.0 = double the standard wait time (pulse_cooldown_multiplier) when volatility is in 'Chaos' regime.
-  # 45 min × 2.0 = 90 min chaos mute.
-  chaos_cooldown_multiplier: 2.0
-
-  # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
-  # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
-  # 6.0h. Balanced: shorter than 8h (don't miss XAUT setups), longer than 4h (prevent BTC spam).
-  state_lockout_hours: 6.0
+  cooldown:
+    # The duration the Sniper remains "muted" after successfully waking up the AI.
+    # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
+    # 3.0 = 45 min. Balanced for dual BTC/XAUT use: faster than 60 min, not as aggressive as 30 min.
+    pulse_cooldown_multiplier: 3.0
+    # [Mute]: Multiplier for cooldown during extreme volatility expansion.
+    # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
+    # 45 min × 2.0 = 90 min chaos mute.
+    chaos_cooldown_multiplier: 2.0
+    # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
+    # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
+    # 6.0h. Balanced: shorter than 8h (don't miss XAUT setups), longer than 4h (prevent BTC spam).
+    state_lockout_hours: 6.0
 
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
   # XAUT calibration: Lower thresholds throughout (thinner order books → smaller absolute CVD swings).
+  probes:
+    # [Tick-Scale Probes]: Micro-sensitivity for intra-pulse CVD swings.
+    # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
+    # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC or XAUT.
+    cvd_divergence_tick_delta: 0.20     # TYPE_B (CVD 背离)
+    cvd_impulse_tick_delta: 0.30        # TYPE_B (CVD 强度)
+    # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
+    # 1.0 = any increase, 1.1 = 10% growth required.
+    cvd_growth_significance_ratio: 1.4
+    # [Damping]: Minimum growth in volatility intensity between pulses to re-trigger TYPE_A (Breakout).
+    # Prevents sustained high-vol from re-firing every cooldown. 1.03 = 3% growth required.
+    vol_growth_significance_ratio: 1.03
+    # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
+    # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
+    squeeze_trigger_multiplier: 0.75
 
-  # [Tick-Scale Probes]: Micro-sensitivity for intra-pulse CVD swings.
-  # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
-  # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC or XAUT.
-  #  TYPE_B (CVD 背离)
-  cvd_divergence_tick_delta: 0.20
-  #  TYPE_B (CVD 强度)
-  cvd_impulse_tick_delta: 0.30
+  # --- Structural Proximity ---
+  proximity:
+    # Direct ATR-distance thresholds for TYPE_C triggers.
+    # Price must be within this many ATR units of the structure to fire.
+    # NOTE: ATR-normalized thresholds are instrument-agnostic — kept at original values.
+    proximity_vah_val_atr: 0.70   # VAH/VAL boundary test
+    proximity_poc_atr: 0.50       # POC magnet / gravity test
+    proximity_liq_atr: 0.40       # Liquidation cluster magnet
 
-  # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
-  # 1.0 = any increase, 1.1 = 10% growth required.
-  cvd_growth_significance_ratio: 1.4
-
-  # [Damping]: Minimum growth in volatility intensity between pulses to re-trigger TYPE_A (Breakout).
-  # Prevents sustained high-vol from re-firing every cooldown. 1.03 = 3% growth required.
-  vol_growth_significance_ratio: 1.03
-
-  # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
-  # 0.65 = requires market to be extremely 'silent' to trigger a sniper alert (v6.71 Tightened).
-  squeeze_trigger_multiplier: 0.75
-
-  # [Structural]: Direct ATR-distance thresholds for TYPE_C triggers.
-  # Price must be within this many ATR units of the structure to fire.
-  # NOTE: ATR-normalized thresholds are instrument-agnostic — kept at original values.
-  proximity_vah_val_atr: 0.70   # VAH/VAL boundary test
-  proximity_poc_atr: 0.50       # POC magnet / gravity test
-  proximity_liq_atr: 0.40       # Liquidation cluster magnet
-
+# ═══════════════════════════════════════════════════════════════════════════
+# GUARDIAN — Position Management (Trailing Stop + Time Stop)
+# ═══════════════════════════════════════════════════════════════════════════
 guardian:
-  # ── Trailing Stop Migration ──────────────────────────────────────
-  # Profit thresholds in ATR units that trigger stop-loss migration.
-  # Level 1: SL → entry (breakeven).  Level 2: SL → entry + 0.5 ATR.  Level 3: SL → entry + 1.5 ATR.
-  trailing_profit_atr_level_1: 1.5
-  trailing_profit_atr_level_2: 2.5
-  trailing_profit_atr_level_3: 4.0
-  # SL offsets (in ATR) past entry for each level.
-  trailing_sl_offset_atr_level_2: 0.5
-  trailing_sl_offset_atr_level_3: 1.5
 
-  # ── Time-Based Stop ──────────────────────────────────────────────
-  # Multiplier on projected_holding_hours. Position is market-closed
-  # when elapsed > projected_holding × this value.
-  time_stop_multiplier: 1.5
+  # --- Trailing Stop Migration ---
+  trailing:
+    # Profit thresholds in ATR units that trigger stop-loss migration.
+    # Level 1: SL → entry (breakeven).  Level 2: SL → entry + 0.5 ATR.  Level 3: SL → entry + 1.5 ATR.
+    trailing_profit_atr_level_1: 1.5
+    trailing_profit_atr_level_2: 2.5
+    trailing_profit_atr_level_3: 4.0
+    # SL offsets (in ATR) past entry for each level.
+    trailing_sl_offset_atr_level_2: 0.5
+    trailing_sl_offset_atr_level_3: 1.5
 
+  # --- Time-Based Stop ---
+  time_stop:
+    # Multiplier on projected_holding_hours. Position is market-closed
+    # when elapsed > projected_holding × this value.
+    time_stop_multiplier: 1.5
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SANDBOX — Evolution Fitness Scoring
+# ═══════════════════════════════════════════════════════════════════════════
 sandbox:
-  # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
-  mae_significance_threshold: 15.0
-  # Minimum reduction in MAE stress (pct) required to classify a case as 'improved'
-  mae_improvement_threshold: 5.0
-  # Minimum reduction in trade duration (hours) required to classify a case as 'improved' (TP_HIT tie-breaker)
-  time_improvement_threshold: 4.0
+
+  # --- Significance Thresholds ---
+  thresholds:
+    # MAE stress level (pct) above which we consider a baseline result to be 'risky' enough for improvement
+    mae_significance_threshold: 15.0
+    # Minimum reduction in MAE stress (pct) required to classify a case as 'improved'
+    mae_improvement_threshold: 5.0
+    # Minimum reduction in trade duration (hours) required to classify a case as 'improved' (TP_HIT tie-breaker)
+    time_improvement_threshold: 4.0
 
   # --- Fitness Scoring Ladder ---
   # Base scores for different market outcomes (TP/SL/Neutral/Neither)
@@ -159,7 +171,8 @@ sandbox:
     sl_hit: 5.0
     na: 0.0
 
-  # Forensic modifiers for execution quality and logic integrity
+  # --- Forensic Modifiers ---
+  # Execution quality and logic integrity adjustments
   modifiers:
     # Heavy penalty for MAE >= 100% or explicit LOGIC_FAILURE categorization
     logic_failure_penalty: -40.0

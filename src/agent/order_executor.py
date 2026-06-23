@@ -562,13 +562,15 @@ class MarginOrderExecutor:
         with open(config_path, 'r') as f:
             cfg = yaml.safe_load(f)
         gc = cfg.get("guardian", {})
+        trailing = gc.get("trailing", {})
+        time_stop = gc.get("time_stop", {})
         return {
-            "trailing_profit_atr_level_1": float(gc.get("trailing_profit_atr_level_1", 1.5)),
-            "trailing_profit_atr_level_2": float(gc.get("trailing_profit_atr_level_2", 2.5)),
-            "trailing_profit_atr_level_3": float(gc.get("trailing_profit_atr_level_3", 4.0)),
-            "trailing_sl_offset_atr_level_2": float(gc.get("trailing_sl_offset_atr_level_2", 0.5)),
-            "trailing_sl_offset_atr_level_3": float(gc.get("trailing_sl_offset_atr_level_3", 1.5)),
-            "time_stop_multiplier": float(gc.get("time_stop_multiplier", 1.5)),
+            "trailing_profit_atr_level_1": float(trailing.get("trailing_profit_atr_level_1", 1.5)),
+            "trailing_profit_atr_level_2": float(trailing.get("trailing_profit_atr_level_2", 2.5)),
+            "trailing_profit_atr_level_3": float(trailing.get("trailing_profit_atr_level_3", 4.0)),
+            "trailing_sl_offset_atr_level_2": float(trailing.get("trailing_sl_offset_atr_level_2", 0.5)),
+            "trailing_sl_offset_atr_level_3": float(trailing.get("trailing_sl_offset_atr_level_3", 1.5)),
+            "time_stop_multiplier": float(time_stop.get("time_stop_multiplier", 1.5)),
         }
 
     def _get_trade_config(self, symbol: str):

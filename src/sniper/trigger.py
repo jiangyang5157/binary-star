@@ -32,9 +32,9 @@ class SniperTrigger:
         # Derive cooldown from micro-context (e.g., 15m) + Multiplier
         micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
         base_cooldown = self._parse_interval_to_minutes(micro_interval)
-        self.cooldown_minutes = base_cooldown * self.sniper_cfg['pulse_cooldown_multiplier']
+        self.cooldown_minutes = base_cooldown * self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']
         
-        logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m (Mult: {self.sniper_cfg['pulse_cooldown_multiplier']}).")
+        logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m (Mult: {self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']}).")
 
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
         """Parses '15m', '1h' etc. into float minutes."""
@@ -62,7 +62,7 @@ class SniperTrigger:
         if vol > self.regime_cfg['volatility']['volatility_extreme_ratio']:
             if self.last_trigger_time:
                 elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-                chaos_mult = self.sniper_cfg['chaos_cooldown_multiplier']
+                chaos_mult = self.sniper_cfg['cooldown']['chaos_cooldown_multiplier']
                 if elapsed < (self.cooldown_minutes * chaos_mult):
                     return False, None, f"CHAOS_MUTE (Extreme Volatility: {vol:.2f} | Cooldown x{chaos_mult})"
 
@@ -99,7 +99,7 @@ class SniperTrigger:
         """Returns True if permitted to trigger, False if muted by state lock."""
         if not hasattr(self, 'state_locks'):
             self.state_locks = {}
-        cooldown_hours = self.sniper_cfg['state_lockout_hours']
+        cooldown_hours = self.sniper_cfg['cooldown']['state_lockout_hours']
         
         if lock_key in self.state_locks:
             elapsed_hours = (now - self.state_locks[lock_key]).total_seconds() / 3600.0
@@ -124,12 +124,12 @@ class SniperTrigger:
         # Confirmation gate: require vol to be NEWLY expanding (not just sustained)
         if is_vol_hit and is_volume_hit and prev:
             prev_vol = prev['price_dynamics']['volatility_intensity_index']
-            growth_ratio = self.sniper_cfg.get('vol_growth_significance_ratio', 1.03)
+            growth_ratio = self.sniper_cfg['probes'].get('vol_growth_significance_ratio', 1.03)
             if vol <= prev_vol * growth_ratio:
                 is_vol_hit = False  # vol is elevated but not accelerating — skip
 
         # 2. Physical Squeeze
-        squeeze_mult = self.sniper_cfg['squeeze_trigger_multiplier']
+        squeeze_mult = self.sniper_cfg['probes']['squeeze_trigger_multiplier']
         squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold'] * squeeze_mult
         is_squeeze_hit = squeeze < squeeze_threshold
 
@@ -173,7 +173,7 @@ class SniperTrigger:
             cvd_delta_abs = abs(cvd_delta_raw)
 
             # A. CVD divergence: price and CVD move in opposite directions
-            divergence_threshold = self.sniper_cfg['cvd_divergence_tick_delta']
+            divergence_threshold = self.sniper_cfg['probes']['cvd_divergence_tick_delta']
             if cvd_delta_abs > divergence_threshold:
                 curr_price = curr['price_dynamics']['current_price']
                 prev_price = prev['price_dynamics']['current_price']
@@ -188,7 +188,7 @@ class SniperTrigger:
                     )
 
             # B. CVD impulse: large single-pulse order
-            pulse_threshold = self.sniper_cfg['cvd_impulse_tick_delta']
+            pulse_threshold = self.sniper_cfg['probes']['cvd_impulse_tick_delta']
             if cvd_delta_abs > pulse_threshold:
                 strength = max(1, min(10, int((cvd_delta_abs / max(pulse_threshold, 0.001)) * 4)))
                 trend = "多头大单突袭" if cvd_delta_raw > 0 else "空头大单压制"
@@ -202,7 +202,7 @@ class SniperTrigger:
             should_trigger = True
             if prev:
                 prev_cvd = prev.get('sentiment_signals', {}).get('cvd_intensity_ratio', 0.0)
-                growth_ratio = self.sniper_cfg['cvd_growth_significance_ratio']
+                growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
                 if abs(cvd) <= abs(prev_cvd) * growth_ratio:
                     should_trigger = False
                 if should_trigger:
@@ -270,9 +270,9 @@ class SniperTrigger:
         dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
         dist_poc = abs(price - topo['poc']) / atr if atr > 0 else float('inf')
 
-        vah_val_threshold = self.sniper_cfg['proximity_vah_val_atr']
-        poc_trigger_threshold = self.sniper_cfg['proximity_poc_atr']
-        liq_trigger_threshold = self.sniper_cfg['proximity_liq_atr']
+        vah_val_threshold = self.sniper_cfg['proximity']['proximity_vah_val_atr']
+        poc_trigger_threshold = self.sniper_cfg['proximity']['proximity_poc_atr']
+        liq_trigger_threshold = self.sniper_cfg['proximity']['proximity_liq_atr']
 
         # ── VAH/VAL boundary test ────────────────────────────────────
         nearest_boundary = "VAH" if dist_vh < dist_val else "VAL"

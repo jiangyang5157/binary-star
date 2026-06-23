@@ -44,6 +44,7 @@ class FitnessConfig:
     def from_dict(cls, config_dict: Dict[str, Any]) -> "FitnessConfig":
         """Factory to assemble config from the sandbox block."""
         sandbox = config_dict.get('sandbox', {})
+        thresholds = sandbox.get('thresholds', {})
         base = sandbox.get('base_scores', {})
         mods = sandbox.get('modifiers', {})
 
@@ -58,9 +59,9 @@ class FitnessConfig:
             slow_lock_penalty=float(mods.get('slow_lock_penalty', -15.0)),
             smart_surrender_bonus=float(mods.get('smart_surrender_bonus', 15.0)),
             catastrophic_miss_penalty=float(mods.get('catastrophic_miss_penalty', -20.0)),
-            mae_significance_threshold=float(sandbox.get('mae_significance_threshold', 15.0)),
-            mae_improvement_threshold=float(sandbox.get('mae_improvement_threshold', 5.0)),
-            time_improvement_threshold=float(sandbox.get('time_improvement_threshold', 4.0))
+            mae_significance_threshold=float(thresholds.get('mae_significance_threshold', 15.0)),
+            mae_improvement_threshold=float(thresholds.get('mae_improvement_threshold', 5.0)),
+            time_improvement_threshold=float(thresholds.get('time_improvement_threshold', 4.0))
         )
 
 
