@@ -367,19 +367,10 @@ def calculate_liquidity_slippage(
         logger.error(f"MathTools: Slippage calculation failure: {e}")
         return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "error": str(e)}
 
-# Backward-compatible namespace for MathTools.xxx() callers.
+# ── Backward-compatible namespace for MathTools.xxx() callers ──────────────
 # Prefer importing functions directly, e.g. from src.utils.math_utils import calculate_risk_reward
-class _MathToolsNamespace:
-    """Delegates attribute access to module-level functions.
 
-    ``MathTools()`` returns self for backward compatibility with callers
-    that instantiated the old class.
-    """
-    def __call__(self):
-        return self
-
-
-# Populate MathTools namespace — only the functions that were MathTools methods
+# Functions that were methods on the old MathTools class
 _MATH_TOOLS_FUNCTIONS = [
     get_tool_declarations,
     calculate_risk_reward,
@@ -391,6 +382,24 @@ _MATH_TOOLS_FUNCTIONS = [
     calculate_mae_stress,
     calculate_liquidity_slippage,
 ]
-MathTools = _MathToolsNamespace()
+
+
+class _MathToolsNamespace:
+    """Delegates attribute access to module-level functions.
+
+    ``MathTools()`` returns a **fresh** namespace instance so that callers
+    that instantiated the old class (e.g. ``self.math_tools = MathTools()``)
+    are not accidentally sharing mutable state.
+    """
+
+    def __call__(self):
+        new_instance = _MathToolsNamespace()
+        for _fn in _MATH_TOOLS_FUNCTIONS:
+            setattr(new_instance, _fn.__name__, staticmethod(_fn))
+        return new_instance
+
+
+MathToolsNamespace = _MathToolsNamespace  # public type alias for annotations
+MathTools = _MathToolsNamespace()          # singleton for MathTools.xxx() access
 for _fn in _MATH_TOOLS_FUNCTIONS:
     setattr(MathTools, _fn.__name__, staticmethod(_fn))

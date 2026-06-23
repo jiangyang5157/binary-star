@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential, retry_if_exception
 from dataclasses import dataclass
@@ -101,7 +102,6 @@ class BaseAgent:
             # Detect missing template variables: SafeFormatter renders unresolved
             # {placeholders} as literal text.  If any remain, the caller forgot
             # to pass a config value — the LLM will see garbage, not data.
-            import re
             unresolved = set(re.findall(r'\{(\w+)\}', rendered))
             if unresolved:
                 logger.warning(

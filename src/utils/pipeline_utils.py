@@ -86,8 +86,8 @@ def load_config(config_filepath: str = "config/strategy_config.yaml") -> Dict[st
 
 
 def load_global_config(config_filepath: str = "config/global_config.yaml") -> Dict[str, Any]:
-    """Load the global system config.  Returns ``{}`` on error (safe for daemons)."""
-    return _load_yaml_file(config_filepath, on_error="empty")
+    """Load the global system config.  Logs a warning + returns ``{}`` on error (safe for daemons)."""
+    return _load_yaml_file(config_filepath, on_error="warn")
 
 
 def resolve_api_key() -> Optional[str]:

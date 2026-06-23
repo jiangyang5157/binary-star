@@ -110,7 +110,7 @@ class SessionAgent(BaseAgent):
         temperature: float,
         agent_name: str,
         debate_history: Optional[List[Dict[str, Any]]] = None,
-        cache_id: Optional[str] = None,
+        cache_resource_name: Optional[str] = None,
         tools: Optional[List[Any]] = None,
         visual_parts: Optional[List[Any]] = None,
         system_instruction: Optional[str] = None
@@ -120,21 +120,21 @@ class SessionAgent(BaseAgent):
         try:
             # Build multimodal prompt: integrate physical facts, debate history, and global parameters
             prompt = self._build_prompt(
-                observation=observation, 
+                observation=observation,
                 debate_history=debate_history,
-                cache_id=cache_id
+                cache_resource_name=cache_resource_name
             )
-            
+
             payload = [prompt]
-            if not cache_id and visual_parts:
+            if not cache_resource_name and visual_parts:
                 payload.extend(visual_parts)
-                
+
             # Execute AI reasoning cycle with cache support and function calling (MathTools)
             return self._execute_ai_cycle(
-                payload=payload, 
+                payload=payload,
                 temperature=temperature,
                 agent_name=agent_name,
-                cache_resource_name=cache_id,
+                cache_resource_name=cache_resource_name,
                 tools=tools,
                 system_instruction=system_instruction
             )
@@ -143,17 +143,17 @@ class SessionAgent(BaseAgent):
             raise
 
     def _build_prompt(
-        self, 
-        observation: Optional[Dict[str, Any]], 
+        self,
+        observation: Optional[Dict[str, Any]],
         debate_history: Optional[List[Dict[str, Any]]] = None,
-        cache_id: Optional[str] = None,
+        cache_resource_name: Optional[str] = None,
     ) -> str:
         """Internal logic for constructing the multimodal reasoning context.
-        
+
         Orchestrates variable injection for both zero-cache (direct)
         and high-context (cached) inference modes.
         """
-        if cache_id:
+        if cache_resource_name:
             observation_json = "[CONTEXT_PROVIDED_VIA_GEMINI_CACHE]"
         elif observation:
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)

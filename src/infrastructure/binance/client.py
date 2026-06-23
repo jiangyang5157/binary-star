@@ -101,7 +101,8 @@ class BinanceFuturesClient(AbstractExchangeClient):
             remaining = limit
             current_kwargs = kwargs.copy()
             is_forward = 'startTime' in current_kwargs
-            
+            pagination_failed = False
+
             while remaining > 0:
                 fetch_count = min(remaining, MAX_CHUNK)
                 logger.debug(f"Binance: Paginating klines ({'FWD' if is_forward else 'BWD'}) for {symbol} (Rem: {remaining})")
@@ -112,6 +113,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                             chunk = self.client.klines(symbol=symbol, interval=interval, limit=fetch_count, **current_kwargs)
                 except (ClientError, Exception) as e:
                     logger.warning(f"Binance: Chunk fetch failed mid-pagination ({len(all_klines)} klines accumulated): {e}")
+                    pagination_failed = True
                     break
 
                 if not chunk:
@@ -131,10 +133,15 @@ class BinanceFuturesClient(AbstractExchangeClient):
                 remaining -= len(chunk)
                 if len(chunk) < fetch_count:
                     break
-            
+
             unique_klines = {k[0]: k for k in all_klines}
             sorted_unique = [unique_klines[ts] for ts in sorted(unique_klines.keys())]
-            
+
+            if pagination_failed:
+                logger.warning(
+                    "Binance: Returning partial klines for %s — %d fetched, %d requested (%d missing).",
+                    symbol, len(sorted_unique), limit, limit - len(sorted_unique),
+                )
             logger.info(f"Binance: Fetched {len(sorted_unique)} klines for {symbol}.")
             return self._map_klines(sorted_unique)
             

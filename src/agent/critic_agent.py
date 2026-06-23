@@ -89,43 +89,43 @@ class CriticAgent(BaseAgent):
         )
 
     def evaluate(
-        self, 
-        observation: Optional[Dict[str, Any]], 
-        last_plan: Dict[str, Any], 
+        self,
+        observation: Optional[Dict[str, Any]],
+        last_plan: Dict[str, Any],
         symbol: str,
         debate_history: Optional[List[Dict[str, Any]]] = None,
-        cache_id: Optional[str] = None,
+        cache_resource_name: Optional[str] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None,
         visual_parts: Optional[List[Any]] = None,
         system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
-        """Evaluates the proposed plan against physical market topography 
-        and the mandatory CRITIC_CODES table. This is a cold, 
+        """Evaluates the proposed plan against physical market topography
+        and the mandatory CRITIC_CODES table. This is a cold,
         deterministic audit designed to identify structural traps.
         """
         logger.info(f"CriticAgent: Auditing {symbol} proposal...")
         try:
             context = self._build_context(
-                observation, 
-                last_plan, 
+                observation,
+                last_plan,
                 debate_history=debate_history,
-                math_fact_check=math_fact_check, 
-                cache_id=cache_id
+                math_fact_check=math_fact_check,
+                cache_resource_name=cache_resource_name
             )
             # Inject physical truth (Math Fact Check) as the absolute audit baseline
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
-            
+
             payload = [prompt]
-            if not cache_id and visual_parts:
+            if not cache_resource_name and visual_parts:
                 payload.extend(visual_parts)
-                
+
             # Execute audit at cold temperature for logical rigor and determinism
             return self._execute_ai_cycle(
-                payload=payload, 
+                payload=payload,
                 temperature=self.config.model_temperature,
                 agent_name="Critic_Evaluation",
-                cache_resource_name=cache_id,
+                cache_resource_name=cache_resource_name,
                 tools=tools,
                 system_instruction=system_instruction
             )
@@ -139,10 +139,10 @@ class CriticAgent(BaseAgent):
         last_plan: Dict[str, Any],
         debate_history: Optional[List[Dict[str, Any]]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
-        cache_id: Optional[str] = None
+        cache_resource_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """Internal logic for constructing the adversarial audit context."""
-        if cache_id:
+        if cache_resource_name:
             observation_json = "[CONTEXT_PROVIDED_VIA_GEMINI_CACHE]"
         elif observation:
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)

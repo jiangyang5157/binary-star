@@ -1,7 +1,7 @@
 """MathFactChecker — deterministic trade geometry verification."""
 import logging
 from typing import Any
-from src.utils.math_utils import MathTools
+from src.utils.math_utils import MathTools, MathToolsNamespace
 from src.utils.datetime_utils import get_interval_minutes
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ class MathFactChecker:
     ensuring the audit loop is anchored by physical market reality.
     """
 
-    def __init__(self, math_tools: MathTools, session_config, critic_config,
+    def __init__(self, math_tools: MathToolsNamespace, session_config, critic_config,
                  macro_interval: str):
         self.math = math_tools
         self.session_config = session_config
