@@ -1,9 +1,37 @@
 import logging
+from dataclasses import dataclass
 import numpy as np
 from typing import Dict, Any, Optional, List
 
 # Initialize standard hardened logger for math telemetry
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RegimePhysicsConfig:
+    """Bundled config values for regime detection and temporal dilation.
+
+    These values come from strategy_config.yaml (regime_parameters + temporal_parameters)
+    and are passed as a group to get_regime_scalars() and project_holding_time().
+    """
+    # Velocity
+    min_velocity_floor: float
+    # Thresholds (from RegimeConfig)
+    ti_thresh: float
+    ti_strong: float
+    vr_base: float
+    vr_extreme: float
+    # Dilation modifiers (from TemporalConfig)
+    dilation_dead_water: float
+    dilation_highway: float
+    dilation_climax: float
+    dilation_standard: float
+    # Weight modifiers (from TemporalConfig)
+    weight_dead_water: float
+    weight_highway: float
+    weight_climax: float
+    weight_standard: float
+
 
 class MathTools:
     """The Electronic Physicist for the Singularity Reasoning Triad.
@@ -162,22 +190,7 @@ class MathTools:
         trend_intensity: float,
         volatility_intensity_index: float,
         normalized_velocity: float,
-        min_velocity_floor: float,
-        # Thresholds
-        ti_thresh: float,
-        ti_strong: float,
-        vr_base: float,
-        vr_extreme: float,
-        # Dilation Modifiers (Loaded from YAML temporal_dilation_*)
-        dilation_dead_water: float,
-        dilation_highway: float,
-        dilation_climax: float,
-        dilation_standard: float,
-        # Weight Modifiers (Loaded from YAML temporal_weight_*)
-        weight_dead_water: float,
-        weight_highway: float,
-        weight_climax: float,
-        weight_standard: float
+        physics: RegimePhysicsConfig,
     ) -> Dict[str, Any]:
         """Calculates primary physics scalars for a given market regime.
 
@@ -185,32 +198,32 @@ class MathTools:
             trend_intensity: Efficiency Ratio [-1, 1] for regime triggers.
             volatility_intensity_index: Current vs mean ATR ratio.
             normalized_velocity: Physical ATR/Bar speed for time projection.
+            physics: Bundled config values (thresholds, dilation/weight modifiers).
         """
         ti_abs = abs(trend_intensity)
 
         # Final Velocity is the higher of observed speed or the protocol floor.
-        # Added 1e-9 epsilon to prevent DivisionByZero.
-        effective_velocity_per_atr = max(normalized_velocity, min_velocity_floor, 1e-9)
+        effective_velocity_per_atr = max(normalized_velocity, physics.min_velocity_floor, 1e-9)
 
         # Regime Detection (Logic gates remain on trend_intensity)
-        if volatility_intensity_index >= vr_extreme:
-            factor = dilation_climax
-            weight = weight_climax
+        if volatility_intensity_index >= physics.vr_extreme:
+            factor = physics.dilation_climax
+            weight = physics.weight_climax
             dilation_variable = "temporal_dilation_climax"
             weight_variable = "temporal_weight_climax"
-        elif ti_abs >= ti_thresh:
-            factor = dilation_highway
-            weight = weight_highway
+        elif ti_abs >= physics.ti_thresh:
+            factor = physics.dilation_highway
+            weight = physics.weight_highway
             dilation_variable = "temporal_dilation_highway"
             weight_variable = "temporal_weight_highway"
-        elif volatility_intensity_index < vr_base and ti_abs < ti_strong:
-            factor = dilation_dead_water
-            weight = weight_dead_water
+        elif volatility_intensity_index < physics.vr_base and ti_abs < physics.ti_strong:
+            factor = physics.dilation_dead_water
+            weight = physics.weight_dead_water
             dilation_variable = "temporal_dilation_dead_water"
             weight_variable = "temporal_weight_dead_water"
         else:
-            factor = dilation_standard
-            weight = weight_standard
+            factor = physics.dilation_standard
+            weight = physics.weight_standard
             dilation_variable = "temporal_dilation_standard"
             weight_variable = "temporal_weight_standard"
 
@@ -232,43 +245,18 @@ class MathTools:
         volatility_intensity_index: float,
         normalized_velocity: float,
         interval_minutes: int,
-        min_velocity_floor: float,
-        # Thresholds
-        vr_base: float,
-        vr_extreme: float,
-        ti_strong: float,
-        ti_thresh: float,
-        # Dilation Modifiers (Loaded from YAML temporal_dilation_*)
-        dilation_dead_water: float,
-        dilation_highway: float,
-        dilation_climax: float,
-        dilation_standard: float,
-        # Weight Modifiers (Loaded from YAML temporal_weight_*)
-        weight_dead_water: float,
-        weight_highway: float,
-        weight_climax: float,
-        weight_standard: float
+        physics: RegimePhysicsConfig,
     ) -> Dict[str, Any]:
         """Calculate precise holding and waiting times using the static scalar engine."""
         try:
             if atr <= 0 or interval_minutes <= 0:
                 return {"error": "ATR and interval_minutes must be > 0."}
-            
+
             scalars = MathTools.get_regime_scalars(
                 trend_intensity=trend_intensity,
                 volatility_intensity_index=volatility_intensity_index,
                 normalized_velocity=normalized_velocity,
-                min_velocity_floor=min_velocity_floor,
-                ti_thresh=ti_thresh, ti_strong=ti_strong,
-                vr_base=vr_base, vr_extreme=vr_extreme,
-                dilation_dead_water=dilation_dead_water,
-                dilation_highway=dilation_highway,
-                dilation_climax=dilation_climax,
-                dilation_standard=dilation_standard,
-                weight_dead_water=weight_dead_water,
-                weight_highway=weight_highway,
-                weight_climax=weight_climax,
-                weight_standard=weight_standard
+                physics=physics,
             )
             
             # Reconstructed physical velocity (effective scalar * ATR)

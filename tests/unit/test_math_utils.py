@@ -1,5 +1,5 @@
 import pytest
-from src.utils.math_utils import MathTools
+from src.utils.math_utils import MathTools, RegimePhysicsConfig
 
 class TestMathTools:
     
@@ -50,18 +50,19 @@ class TestMathTools:
         assert res['sl_to_poc_atr'] is None
 
     # Shared config for projected_holding_time tests
-    _time_cfg = {
-        "dilation_dead_water": 3.0, "dilation_highway": 1.1, "dilation_climax": 2.0, "dilation_standard": 1.5,
-        "weight_dead_water": 0.5, "weight_highway": 2.0, "weight_climax": 0.25, "weight_standard": 1.0,
-        "vr_base": 1.3, "vr_extreme": 2.0, "ti_strong": 0.5, "ti_thresh": 0.95,
-    }
+    _physics = RegimePhysicsConfig(
+        min_velocity_floor=0.5,
+        ti_thresh=0.95, ti_strong=0.5, vr_base=1.3, vr_extreme=2.0,
+        dilation_dead_water=3.0, dilation_highway=1.1, dilation_climax=2.0, dilation_standard=1.5,
+        weight_dead_water=0.5, weight_highway=2.0, weight_climax=0.25, weight_standard=1.0,
+    )
 
     def _call_holding_time(self, entry, tp, trend, vol_idx, velocity, atr=200, interval=60):
         return MathTools.project_holding_time(
             current_price=60000, entry=entry, take_profit=tp, atr=atr,
             trend_intensity=trend, volatility_intensity_index=vol_idx,
             normalized_velocity=velocity, interval_minutes=interval,
-            min_velocity_floor=0.5, **self._time_cfg,
+            physics=self._physics,
         )
 
     def test_projected_holding_climax(self):
@@ -94,7 +95,7 @@ class TestMathTools:
             current_price=59000, entry=60000, take_profit=62000, atr=200,
             trend_intensity=1.0, volatility_intensity_index=2.2,
             normalized_velocity=1.0, interval_minutes=60,
-            min_velocity_floor=0.5, **self._time_cfg,
+            physics=self._physics,
         )
         assert res["projected_waiting_hours"] == 5.0
 

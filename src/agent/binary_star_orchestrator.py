@@ -399,10 +399,8 @@ class BinaryStarOrchestrator:
             dynamics = metrics.get('price_dynamics', {})
             regime = metrics.get('market_regime', {})
 
-            scalars = MathTools.get_regime_scalars(
-                trend_intensity=float(regime.get('trend_intensity', 0)),
-                volatility_intensity_index=float(dynamics.get('volatility_intensity_index', 0)),
-                normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
+            from src.utils.math_utils import RegimePhysicsConfig
+            physics = RegimePhysicsConfig(
                 min_velocity_floor=self.session_config.temporal.min_trade_velocity,
                 ti_thresh=self.critic_config.regime.trend_intensity_threshold,
                 ti_strong=self.critic_config.regime.trend_intensity_strong,
@@ -415,7 +413,13 @@ class BinaryStarOrchestrator:
                 weight_dead_water=self.session_config.temporal.temporal_weight_dead_water,
                 weight_highway=self.session_config.temporal.temporal_weight_highway,
                 weight_climax=self.session_config.temporal.temporal_weight_climax,
-                weight_standard=self.session_config.temporal.temporal_weight_standard
+                weight_standard=self.session_config.temporal.temporal_weight_standard,
+            )
+            scalars = MathTools.get_regime_scalars(
+                trend_intensity=float(regime.get('trend_intensity', 0)),
+                volatility_intensity_index=float(dynamics.get('volatility_intensity_index', 0)),
+                normalized_velocity=float(dynamics.get('normalized_velocity', 0)),
+                physics=physics,
             )
 
             macro_interval_mins = get_interval_minutes(self.macro_interval)
