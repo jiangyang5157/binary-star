@@ -11,7 +11,6 @@
 | # | File | Line | Issue |
 |---|------|------|-------|
 | 1 | `order_executor.py` | 83-84,165 | **Emergency market close result unchecked** — if `execute_market_close` fails, code proceeds to place a new entry order, risking double exposure |
-| 2 | `margin_client.py` | 195 | **`MARGIN_BUY` hardcoded for sell orders** — `execute_market_close` always sends `sideEffectType="MARGIN_BUY"` regardless of direction. For sells, should be `AUTO_REPAY` |
 | 4 | `client.py` | 139-140 | **Silent data loss in paginated kline fetch** — partial results discarded on mid-stream failure |
 
 ### Resolved (all other bugs fixed in rounds 1-4)
