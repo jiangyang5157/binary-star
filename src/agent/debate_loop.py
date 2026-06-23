@@ -103,7 +103,9 @@ class DebateLoop:
             })
 
             # Smart Round Control (Early Exit on PASS or WEAK)
-            if veto_level in ["PASS", "WEAK"]:
+            # Amnesty Clause fast-pass preserves NEUTRAL justification but
+            # should NOT block cold synthesis — it may find a creative repair.
+            if veto_level in ["PASS", "WEAK"] and not critic_results.get("defer_to_synthesis"):
                 logger.info(f"BinaryStar: {veto_level} plan detected in Round {current_round}. Triggering early exit.")
                 early_exit = True
                 break
@@ -174,6 +176,7 @@ class DebateLoop:
                 "audit_evidence": "Amnesty Clause verified: TERMINAL veto in prior round justifies current NEUTRAL stance.",
                 "critic_summary": "Neutral stance justified by prior TERMINAL veto.",
                 "critic_confidence": None,  # fast-pass bypass, no AI inference
+                "defer_to_synthesis": True,  # amnesty justifies NEUTRAL but synthesis may find a creative repair
             }
 
         # 2. Check strict non-confluence for INACTION_BIAS, TREND_STARVATION, OPPORTUNITY_DENIAL
