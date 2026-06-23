@@ -16,24 +16,23 @@ class SniperTrigger:
     all 100% of its thresholds and cooldowns from strategy_config.yaml.
     """
     
-    def __init__(self):
+    def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None):
         self.last_trigger_time: Optional[datetime] = None
-        
-        # v7.1: Absolute DNA Convergence
-        # All monitoring sensitivity is physically identical to strategy parameters.
+
+        # Accept pre-loaded configs (with per-symbol overrides applied) or load defaults
         from src.utils.pipeline_utils import load_combined_config, load_global_config
-        self.strat_cfg = load_combined_config()
-        self.global_cfg = load_global_config()
+        self.strat_cfg = strategy_cfg if strategy_cfg is not None else load_combined_config()
+        self.global_cfg = global_cfg if global_cfg is not None else load_global_config()
         self.regime_cfg = self.strat_cfg['regime_parameters']
-        
+
         # v7.1: EXPLICIT CONFIG ENFORCEMENT
         self.sniper_cfg = self.global_cfg['sniper']
-        
+
         # Derive cooldown from micro-context (e.g., 15m) + Multiplier
         micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
         base_cooldown = self._parse_interval_to_minutes(micro_interval)
         self.cooldown_minutes = base_cooldown * self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']
-        
+
         logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m (Mult: {self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']}).")
 
     def _parse_interval_to_minutes(self, interval_str: str) -> float:

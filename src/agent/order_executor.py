@@ -17,23 +17,25 @@ class MarginOrderExecutor:
     1. Entry via LIMIT order (since OTOCO is unavailable on Margin SAPI)
     2. Protection via OCO order (placed by Guardian on next Sniper pulse)
     """
-    def __init__(self, client: Optional[BinanceMarginClient] = None, manual_balance_usdt: Optional[float] = None):
+    def __init__(self, client: Optional[BinanceMarginClient] = None, manual_balance_usdt: Optional[float] = None, global_config: Optional[dict] = None):
         self.client = client or BinanceMarginClient()
         self.manual_balance_usdt = manual_balance_usdt
+        # Cache global_config to avoid re-reading from disk on every guardian/trade call
+        if global_config is not None:
+            self._global_config_raw = global_config
+        else:
+            import yaml, os
+            from src.utils.path_utils import resolve_project_root
+            config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
+            with open(config_path, 'r') as f:
+                self._global_config_raw = yaml.safe_load(f)
 
     def _is_symbol_whitelisted(self, symbol: str) -> bool:
         """Checks if the symbol is explicitly defined in global_config.yaml's trade_management block."""
-        import yaml, os
-        from src.utils.path_utils import resolve_project_root
         try:
-            config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
-            if os.path.exists(config_path):
-                with open(config_path, 'r') as f:
-                    cfg = yaml.safe_load(f)
-                    tm = cfg.get("trade_management", {})
-                    # Explicit checking: symbol must be a registered dict inside trade_management
-                    if symbol in tm and isinstance(tm[symbol], dict):
-                        return True
+            tm = self._global_config_raw.get("trade_management", {})
+            if symbol in tm and isinstance(tm[symbol], dict):
+                return True
         except Exception as e:
             logger.error(f"Executor: Error verifying whitelist for {symbol}: {e}")
         return False
@@ -553,15 +555,9 @@ class MarginOrderExecutor:
     # INTERNAL HELPERS
     # ================================================================
 
-    @staticmethod
-    def _get_guardian_config() -> dict:
-        """Loads guardian (trailing stop + time-stop) config from global_config.yaml."""
-        import yaml, os
-        from src.utils.path_utils import resolve_project_root
-        config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
-        with open(config_path, 'r') as f:
-            cfg = yaml.safe_load(f)
-        gc = cfg.get("guardian", {})
+    def _get_guardian_config(self) -> dict:
+        """Returns guardian (trailing stop + time-stop) config from cached global_config."""
+        gc = self._global_config_raw.get("guardian", {})
         trailing = gc.get("trailing", {})
         time_stop = gc.get("time_stop", {})
         return {
@@ -574,25 +570,17 @@ class MarginOrderExecutor:
         }
 
     def _get_trade_config(self, symbol: str):
-        """Loads and returns strict configuration. Raises Exception if missing."""
-        import yaml, os
-        from src.utils.path_utils import resolve_project_root
-        
-        config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
-        if not os.path.exists(config_path):
-            raise FileNotFoundError(f"Global configuration file missing at {config_path}")
-            
-        with open(config_path, 'r') as f:
-            full_cfg = yaml.safe_load(f)
-            
+        """Returns strict trade configuration from cached global_config. Raises KeyError if missing."""
+        full_cfg = self._global_config_raw
+
         cfg = {}
         # Strict parsing: intentionally raises KeyError if keys are missing
         cfg["benchmark_symbol"] = "BTCUSDT"
-        
+
         tm = full_cfg["trade_management"]
         cfg["risk_per_trade"] = tm["risk_per_trade"]
         cfg["net_qty_tolerance"] = tm["net_qty_tolerance"]
-        
+
         sym_cfg = tm[symbol]
         cfg["precision_qty"] = sym_cfg["precision_qty"]
         cfg["precision_price"] = sym_cfg["precision_price"]

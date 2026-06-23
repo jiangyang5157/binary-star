@@ -19,16 +19,20 @@ def _deep_merge(base: dict, overrides: dict) -> None:
             base[key] = value
 
 
-def merge_symbol_overrides(config_dict: dict, global_config: dict, symbol: str) -> dict:
-    """Deep-merge per-symbol strategy overrides from global_config into a copy of config_dict.
+def merge_symbol_overrides(config_dict: dict, global_config: dict, symbol: str) -> tuple[dict, dict]:
+    """Deep-merge per-symbol strategy overrides into copies of both config dicts.
 
     Overrides live in global_config.yaml → trade_management.<SYMBOL>.strategy_overrides.
-    Evolution patches only strategy_config.yaml, so these remain fixed per-symbol tuning.
+    Each override section is merged into the corresponding section in BOTH config_dict
+    (strategy_config) AND global_config, so sections like 'sniper' (in global_config)
+    also receive per-symbol tuning.
 
-    Returns a new dict; does not mutate the original.
+    Returns (overridden_config_dict, overridden_global_config).
+    Does not mutate the originals.
     """
     import copy
     result = copy.deepcopy(config_dict)
+    global_result = copy.deepcopy(global_config)
     overrides = (
         global_config.get("trade_management", {})
         .get(symbol, {})
@@ -36,9 +40,15 @@ def merge_symbol_overrides(config_dict: dict, global_config: dict, symbol: str) 
     )
     if isinstance(overrides, dict) and overrides:
         for section, section_overrides in overrides.items():
-            if section in result and isinstance(result[section], dict) and isinstance(section_overrides, dict):
+            if not isinstance(section_overrides, dict):
+                continue
+            # Merge into strategy_config sections (e.g., regime_parameters)
+            if section in result and isinstance(result[section], dict):
                 _deep_merge(result[section], section_overrides)
-    return result
+            # Merge into global_config sections (e.g., sniper)
+            if section in global_result and isinstance(global_result[section], dict):
+                _deep_merge(global_result[section], section_overrides)
+    return result, global_result
 
 
 def _f(d: dict, key: str) -> float:

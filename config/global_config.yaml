@@ -16,6 +16,10 @@ trade_management:
       regime_parameters:
         trend:
           trend_intensity_min_expansion: 0.08
+      sniper:
+        probes:
+          cvd_divergence_tick_delta: 0.15
+          cvd_impulse_tick_delta: 0.22
 
 network:
   binance:

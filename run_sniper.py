@@ -60,7 +60,10 @@ class SniperDaemon:
         self.triggers: dict[str, SniperTrigger] = {}
         for sym in self.symbols:
             self.scouts[sym] = SniperScout(sym, exchange_client=self.futures_client)
-            self.triggers[sym] = SniperTrigger()
+            self.triggers[sym] = SniperTrigger(
+                strategy_cfg=self.scouts[sym].strategy_cfg,
+                global_cfg=self.scouts[sym].global_cfg,
+            )
             logger.info(f"SniperDaemon [{sym}]: Trigger Cooldown is active at {self.triggers[sym].cooldown_minutes}m.")
 
         # 2. Initialize Heavyweight Session Engines (one per symbol, always)
