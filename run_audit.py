@@ -40,7 +40,7 @@ def process_audit_file(file_path: str, controller: AuditController, data_root: s
         ts_compact = format_timestamp_for_filename(obs_ts)
 
         if not force and controller.is_already_audited(symbol, ts_compact):
-            logger.info(f"🔍 [EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
+            logger.info(f"[EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
             return "EXISTS"
 
         # 2. Execute Analysis (Standardized 3-key Bundle: session, market_outcome, metadata)
@@ -57,10 +57,10 @@ def process_audit_file(file_path: str, controller: AuditController, data_root: s
         return "SUCCESS"
     except Exception as e:
         if "SESSION_MATURING" in str(e):
-            logger.info(f"⏳ [WAITING] Skipped: {os.path.basename(file_path)} is still maturing. {e}")
+            logger.info(f"[WAITING] Skipped: {os.path.basename(file_path)} is still maturing. {e}")
             return "MATURING"
         if "EMPTY_KLINES" in str(e):
-            logger.info(f"🔍 [EMPTY DATA] Skipped: {os.path.basename(file_path)} has no market data. {e}")
+            logger.info(f"[EMPTY DATA] Skipped: {os.path.basename(file_path)} has no market data. {e}")
             return "EMPTY"
         logger.error(f"Failed to audit {file_path}: {e}")
         return "FAILED"

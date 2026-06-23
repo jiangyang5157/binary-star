@@ -21,7 +21,6 @@
 
 - **Triple naming for cache ID**: Same object called `cache_resource_name` (orchestrator), `cached_content` (base_agent), `cache_id` (debate_loop).
 - **`"session"` overloaded**: SessionAgent (LLM role), `session.log` (log file), `execute_session_cycle()` (single inference), `session_config` (config object).
-- **`strength` vs `vacuum_score`**: HVN nodes carry `"strength"`, LVN nodes carry `"vacuum_score"` — inconsistent keys when nodes are merged.
 - **`resolve_all` vs `resolve_config`**: Very similar names, very different behaviors — `resolve_all` is the main entry point.
 - **Version numbers in comments**: `v6.12`, `v7.1`, `v8.0` scattered everywhere with no change context.
 
@@ -36,9 +35,8 @@
 
 ---
 
-## Observability (3)
+## Observability (2)
 
-- **Remove emoji from log files** — `💤`, `🔫`, `✅` in structured logs break ASCII-only log aggregators.
 - **Add data quality metrics** — Kline/API response mappers default missing fields to `0`, silently masking data issues. Log when defaults are triggered.
 - **Circuit breaker doesn't break** — `SessionEngine` circuit breaker only alerts; never stops sending requests.
 
@@ -56,7 +54,6 @@
 ## Error Handling (3)
 
 - **Use the exception hierarchy** — `exceptions.py` defines `AgentInferenceError`, `MalformedJSONError`, etc. but run scripts catch bare `Exception` everywhere.
-- **Don't silently return `{}`** — `_load_yaml` returns `{}` on parse failures. Log a warning at minimum.
 - **`deep_merge` list behavior** — Replaces lists instead of merging. Future config sections with list values will silently overwrite.
 
 ---
@@ -90,7 +87,7 @@
 
 | Round | Items | Effort |
 |-------|-------|--------|
-| 5 | Emoji cleanup, `_load_yaml` warning, `strength`→`vacuum_score`, sys.path consolidation | Trivial |
+| 5 | sys.path consolidation, circuit breaker | Trivial–Easy |
 | 6 | Date-parse consolidation, mode-detection consolidation, circuit breaker | Easy |
 | 7 | Version number cleanup, exception hierarchy usage, `MathTools` → module functions | Easy–Medium |
 | 8+ | God constructors, SRP splits, DI refactors, prompt template engine | Medium–Hard |
