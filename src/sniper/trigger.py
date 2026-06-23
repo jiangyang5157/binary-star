@@ -11,9 +11,8 @@ class SniperTrigger:
     """
     The Decision Node of the 'Sniper Mode' (v7.1).
     
-    ZERO-ENTROPY: This class is now completely standalone. 
-    It no longer loads its own config file. Instead, it extracts 
-    all 100% of its thresholds and cooldowns from strategy_config.yaml.
+    All thresholds and cooldowns are injected via strategy_cfg/global_cfg
+    constructor parameters (or loaded from strategy_config.yaml if omitted).
     """
     
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None):

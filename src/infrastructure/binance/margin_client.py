@@ -155,20 +155,20 @@ class BinanceMarginClient:
 
     def _get_precisions(self, symbol: str):
         """Loads precisions and tolerances from config. Raises Exception if missing."""
-        import os, yaml
+        import os
         from src.utils.path_utils import resolve_project_root
-        
-        import yaml as _yaml
+        from src.config.symbol_resolver import get_symbol_trade_params
+
         config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"Global configuration file missing at {config_path}")
 
         with open(config_path, 'r') as f:
-            cfg = _yaml.safe_load(f)
+            import yaml
+            cfg = yaml.safe_load(f)
 
         tolerance = cfg["trade_management"]["net_qty_tolerance"]
 
-        from src.config.symbol_resolver import get_symbol_trade_params
         sym_cfg = get_symbol_trade_params(symbol)
         p_qty = sym_cfg["precision_qty"]
         p_price = sym_cfg["precision_price"]

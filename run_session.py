@@ -188,9 +188,9 @@ class SessionController:
         start_dt = self.args.start
         end_dt = self.args.end
         count = self.args.samples
-        sample_mode = self.args.sampling_mode or "sniper"
+        sampling_mode = self.args.sampling_mode or "sniper"
 
-        logger.info(f"Backtest: Sampling {count} points from {start_dt} to {end_dt} ({sample_mode} mode)")
+        logger.info(f"Backtest: Sampling {count} points from {start_dt} to {end_dt} ({sampling_mode} mode)")
         
         from src.utils.datetime_utils import get_interval_seconds
         

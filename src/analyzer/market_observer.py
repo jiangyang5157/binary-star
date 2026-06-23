@@ -522,12 +522,6 @@ class MarketMetricsRefiner:
                     cvd_vol_delta += (tb - (v - tb))
                 cvd_total_vol += v
             
-        if len(raw.micro_klines) >= lookback_candles * 2:
-            prev_window = raw.micro_klines[-(lookback_candles*2):-lookback_candles]
-            for k in prev_window:
-                v = k.volume
-                tb = k.taker_buy_base
-        
         cvd_intensity_ratio = cvd_vol_delta / (cvd_total_vol + 1e-9)
 
         cur_oi = raw.current_oi.open_interest if raw.current_oi else 0.0

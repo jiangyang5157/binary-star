@@ -135,7 +135,7 @@ class SessionAgent(BaseAgent):
     ) -> str:
         """Internal logic for constructing the multimodal reasoning context.
         
-        Orchestrates variable injection for both zero-knowledge (direct) 
+        Orchestrates variable injection for both zero-cache (direct)
         and high-context (cached) inference modes.
         """
         if cache_id:

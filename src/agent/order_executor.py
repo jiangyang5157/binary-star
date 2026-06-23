@@ -473,7 +473,7 @@ class MarginOrderExecutor:
         return trade_state
 
     # ================================================================
-    # SAME-DIRECTION OPTIMIZATION (unchanged)
+    # SAME-DIRECTION OPTIMIZATION
     # ================================================================
 
     def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float) -> bool:

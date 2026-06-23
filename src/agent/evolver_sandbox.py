@@ -31,7 +31,7 @@ class EvolverSandbox:
             logger=logger
         )
 
-    def reply_audit_with_patch(
+    def replay_audit_with_patch(
         self, 
         audit_report: Dict[str, Any], 
         config_patch: Optional[List[Dict[str, Any]]] = None,
@@ -173,7 +173,7 @@ class EvolverSandbox:
             
             try:
                 # 1. Execute Shadow Replay
-                new_audit_report = self.reply_audit_with_patch(report, config_patch, instruction_patch)
+                new_audit_report = self.replay_audit_with_patch(report, config_patch, instruction_patch)
                 
                 # 2. Forensic Comparison (Delegated to shared evaluator)
                 old_outcome = report.get('market_outcome', {})

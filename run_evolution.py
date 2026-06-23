@@ -172,7 +172,7 @@ class EvolutionEngine:
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine (v6.1)")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
-    parser.add_argument("--samples", type=int, default=True, help="Number of audit reports to ingest")
+    parser.add_argument("--samples", type=int, default=None, help="Number of audit reports to ingest (required)")
     add_data_path_argument(parser, required=True)
     
     args = parser.parse_args()
@@ -184,7 +184,9 @@ def main():
     from src.utils.symbol_utils import resolve_symbol
     symbol = resolve_symbol(args.symbol)
     samples = args.samples
-    
+    if samples is None:
+        raise SystemExit("Error: --samples is required (number of audit reports to ingest).")
+
     engine = EvolutionEngine(data_root, symbol=symbol)
     try:
         engine.run_cycle(sample_size=samples)

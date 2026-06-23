@@ -89,7 +89,6 @@ def _add_session_parser(subparsers):
 
 def _cmd_session(args):
     from run_session import SessionEngine, SessionController
-    import signal
 
     # Resolve mode
     if getattr(args, "timestamp", None):

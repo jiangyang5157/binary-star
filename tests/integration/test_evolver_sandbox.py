@@ -28,7 +28,7 @@ def mock_audit_report():
 
 @patch("src.agent.evolver_sandbox.BinaryStarOrchestrator")
 @patch("src.agent.evolver_sandbox.AuditController")
-def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
+def test_replay_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
     api_key = "test_key"
     data_root = "data/test"
@@ -49,7 +49,7 @@ def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock
     }]
     
     # Execute
-    sandbox.reply_audit_with_patch(mock_audit_report, config_patch=config_patch)
+    sandbox.replay_audit_with_patch(mock_audit_report, config_patch=config_patch)
     
     # Verification 1: Orchestrator was initialized with the PATCHED config
     _, kwargs = mock_orchestrator_cls.call_args

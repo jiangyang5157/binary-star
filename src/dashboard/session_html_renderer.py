@@ -196,7 +196,7 @@ class SessionRenderer(BaseEmailTemplate):
             veto_colors = {
                 "PASS":         (C["badge_green_bg"], C["badge_green_txt"]),
                 "CONSTRUCTIVE": ("rgba(210,153,34,0.15)", C["orange"]),
-                "CRITICAL":     (C["badge_red_bg"], C["badge_red_txt"]),
+                "TERMINAL":     (C["badge_red_bg"], C["badge_red_txt"]),
             }
             vbg, vc = veto_colors.get(veto, (C["badge_gray_bg"], C["badge_gray_txt"]))
             veto_badge = f'<span style="{_s(display="inline-block", padding="1px 8px", borderRadius="10px", fontSize="11px", fontWeight="600", textTransform="uppercase", background=vbg, color=vc)}">{veto}</span>'
