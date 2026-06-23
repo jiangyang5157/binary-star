@@ -55,10 +55,10 @@ def test_reply_audit_with_patch_memory_isolation(mock_audit_controller_cls, mock
     _, kwargs = mock_orchestrator_cls.call_args
     captured_config = kwargs.get('config_dict')
     
-    assert captured_config['regime_parameters']['trend_intensity_threshold'] == 0.99
+    assert captured_config['regime_parameters']['trend']['trend_intensity_threshold'] == 0.99
     
     # Verification 2: The original audit report was NOT polluted (Deep Copy Check)
-    original_val = mock_audit_report['session']['metadata']['config_snapshot']['regime_parameters']['trend_intensity_threshold']
+    original_val = mock_audit_report['session']['metadata']['config_snapshot']['regime_parameters']['trend']['trend_intensity_threshold']
     assert original_val == 0.95 # Aligned with MockDataFactory default
 
 @patch("src.agent.evolver_sandbox.BinaryStarOrchestrator")

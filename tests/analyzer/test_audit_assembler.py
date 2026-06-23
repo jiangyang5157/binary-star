@@ -20,15 +20,18 @@ class TestAuditAssembler(unittest.TestCase):
             "regime_parameters": {},
             "audit_review": {
                 "forensic_resolution": "1m",
-                "atr_period": 14,
                 "missed_opportunity_atr_threshold": 2.0,
                 "unfilled_proximity_atr_limit": 0.1,
                 "catastrophic_miss_atr_threshold": 3.0,
-                "mae_threshold_pinpoint": 15.0,
-                "mae_threshold_standard": 50.0,
-                "mae_threshold_luck": 80.0,
-                "base_slippage_bps": 5.0,
-                "max_slippage_bps": 50.0
+                "mae": {
+                    "mae_threshold_pinpoint": 15.0,
+                    "mae_threshold_standard": 50.0,
+                    "mae_threshold_luck": 80.0,
+                },
+                "slippage": {
+                    "base_slippage_bps": 5.0,
+                    "max_slippage_bps": 50.0,
+                },
             },
             "strategy_intent": "TEST"
         }
