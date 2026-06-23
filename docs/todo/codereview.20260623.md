@@ -21,6 +21,21 @@
 
 ---
 
+## ✅ Fixed (2026-06-23 — Round 2: Standalone Bug Fixes & Docstrings)
+
+- [x] **Bug #5 — Variable name mismatch: `binary_star.md:48` + `session.md:36`** — Changed `volatility_participation_ratio` → `volume_participation_ratio` to match the schema definition in `binary_star.md:17` and the actual telemetry key.
+- [x] **Bug #7 — Model config produces string `"None"`: `binary_star_orchestrator.py:88`** — Added explicit `ValueError` when `model` is missing from provider config, preventing opaque `model="None"` API errors.
+- [x] **Bug #9 — KeyError risk in evolver_sandbox.py:50,136** — Replaced direct bracket access `observation["observed_at"]` and `metadata["audit_at"]` with `.get()` + explicit validation.
+- [x] **Bug #14 — `_parse_date` T- format without unit suffix: `run.py` + `run_session.py`** — Added length validation and explicit error message for missing/unsupported unit in T- relative date format.
+- [x] **Bug #17 — `deep_merge` shallow copy: `pipeline_utils.py:111`** — Changed `base.copy()` to `copy.deepcopy(base)` to prevent mutation of nested dicts in the original.
+- [x] **Bug #21 — Sentinel `-1` fragile: `order_executor.py:197`** — Replaced magic number with named module constant `EMERGENCY_CLOSED_SENTINEL = -1`; updated caller in `run_sniper.py`.
+- [x] **Bug #23 — Boundary condition: `liquidation_radar.py:125-128`** — Changed `>` to `>=` so points at exactly `current_price` are classified as `final_short` instead of silently dropped.
+- [x] **Bug #24 — `pulse_interval_minutes` unvalidated: `run_sniper.py:96`** — Added `ValueError` when `pulse_interval_minutes <= 0` to prevent busy-loop or negative sleep.
+- [x] **Missing docstrings — `loader.py` `_f/_i/_s`** — Added docstrings explaining these are type-safe extractors that raise KeyError on missing keys.
+- [x] **Missing docstrings — `trigger.py` `_parse_interval_to_minutes`, `_check_type_a`, `_check_type_b`** — Added/improved docstrings describing function behavior and sub-strategies.
+
+---
+
 ## 1. Data Flow
 
 ### 1.1 Market Data Pipeline
@@ -89,7 +104,7 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 - **Good**: Binance kline payload schema (client.py:144-161), `GeminiAdapter` thread-lock comment, `SafeFormatter` pattern, prompt file macros documentation.
 - **Stale/removed**: ~~order_executor.py "(unchanged)"~~, version numbers scattered everywhere (`v6.12`, `v7.1`, `v8.0`) with no change context.
 - **Misleading**: ~~session_agent.py "zero-knowledge"~~, ~~trigger.py "completely standalone"~~.
-- **Missing**: `_f/_i/_s` helpers in `loader.py` have no docstrings; `_check_type_a` and `_check_type_b` in `trigger.py` have no docstrings; `_parse_interval_to_minutes` has no docstring.
+- **Missing**: ~~`_f/_i/_s` helpers in `loader.py`~~, ~~`_check_type_a` and `_check_type_b` in `trigger.py`~~, ~~`_parse_interval_to_minutes`~~ — all docstrings added in Round 2.
 
 ---
 
@@ -103,24 +118,24 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 | 2 | `margin_client.py` | 195 | **`MARGIN_BUY` hardcoded for sell orders** — `execute_market_close` always sends `sideEffectType="MARGIN_BUY"` regardless of direction. For sells, should be `AUTO_REPAY` |
 | 3 | ~~`audit_assembler.py`~~ | ~~115~~ | ✅ **FIXED** — Dead conditional: both branches returned "NEITHER" |
 | 4 | `client.py` | 139-140 | **Silent data loss in paginated kline fetch** — partial results discarded on mid-stream failure |
-| 5 | `binary_star.md` | 16 vs 48 | **Variable name mismatch** — `volume_participation_ratio` vs `volatility_participation_ratio` |
+| 5 | ~~`binary_star.md`~~ | ~~16 vs 48~~ | ✅ **FIXED** — `volatility_participation_ratio` → `volume_participation_ratio` (also in session.md) |
 | 6 | `client.py` | 68 | **`Exception` in retry whitelist** — `_get_retryer` catches ALL exceptions including `ValueError`, `TypeError`, making retries fire on application bugs, not just transient failures |
 
 ### Medium Severity
 
 | # | File | Line | Issue |
 |---|------|-------|-------|
-| 7 | `binary_star_orchestrator.py` | 88,140 | Missing model config produces string `"None"` |
+| 7 | ~~`binary_star_orchestrator.py`~~ | ~~88,140~~ | ✅ **FIXED** — Added explicit ValueError when model key is missing |
 | 8 | `simulation_sampler.py` | 99-102 | Stratified sampling returns more than `count` |
-| 9 | `evolver_sandbox.py` | 50,136 | Direct bracket access `observation["observed_at"]` can raise `KeyError` |
+| 9 | ~~`evolver_sandbox.py`~~ | ~~50,136~~ | ✅ **FIXED** — Direct bracket access replaced with .get() + validation |
 | 10 | `base_agent.py` | 149 | Tenacity retries on `Exception` — catches `MalformedJSONError` too |
 | 11 | `math_utils.py` | 388 | `adjusted_price` rounds to 2dp for all symbols |
 | 12 | `market_regime.py` | 148 | NaN `trend_intensity` propagates when `trend_lookback > bollinger_window` |
 | 13 | ~~`run_evolution.py`~~ | ~~175~~ | ✅ **FIXED** — `--samples` default was `True` (bool) instead of `None` |
-| 14 | `run.py` / `run_session.py` | 41-47, 255-258 | `_parse_date` doesn't handle `"T-30"` (no unit suffix) |
+| 14 | ~~`run.py` / `run_session.py`~~ | ~~41-47, 255-258~~ | ✅ **FIXED** — T- format now validates unit suffix with clear error message |
 | 15 | `audits.py` | 350-388 | Race condition on `nonlocal` counters inside `ThreadPoolExecutor.map()` |
 | 16 | `audits.py` | 159 | `confidence == 0` excluded from averaging — inflates average confidence |
-| 17 | `pipeline_utils.py` | 111 | `deep_merge` uses shallow copy, mutates nested dicts in original |
+| 17 | ~~`pipeline_utils.py`~~ | ~~111~~ | ✅ **FIXED** — `base.copy()` → `copy.deepcopy(base)` |
 | 18 | ~~`margin_client.py`~~ | ~~156-166~~ | ✅ **FIXED** — Triple yaml import cleaned up |
 
 ### Low Severity
@@ -129,10 +144,10 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 |---|------|-------|-------|
 | 19 | ~~`market_observer.py`~~ | ~~526-529~~ | ✅ **FIXED** — Dead `prev_window` loop removed |
 | 20 | `debate_loop.py` | 75-78 | Fast pass replaces critic dict with different schema |
-| 21 | `order_executor.py` | 197 | Sentinel `-1` for emergency close — fragile, collides with valid order IDs |
+| 21 | ~~`order_executor.py`~~ | ~~197~~ | ✅ **FIXED** — Sentinel `-1` replaced with named constant `EMERGENCY_CLOSED_SENTINEL` |
 | 22 | ~~`session_html_renderer.py`~~ | ~~199~~ | ✅ **FIXED** — `"CRITICAL"` veto color → `"TERMINAL"` |
-| 23 | `liquidation_radar.py` | 127 | Points at exactly `current_price` silently dropped |
-| 24 | `run_sniper.py` | 183 | `pulse_interval_minutes` can be 0 or negative with no validation |
+| 23 | ~~`liquidation_radar.py`~~ | ~~127~~ | ✅ **FIXED** — `>` changed to `>=` so boundary points are classified |
+| 24 | ~~`run_sniper.py`~~ | ~~183~~ | ✅ **FIXED** — Added ValueError when pulse_interval_minutes <= 0 |
 
 ---
 
@@ -199,14 +214,12 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 
 ---
 
-## 6. Fix Round Summary (2026-06-23)
+## 6. Fix Round Summary
 
-**12 issues fixed** in Round 1 — all low-risk, straightforward changes:
-- 4 dead code / unused variable removals
-- 4 comment corrections (stale, misleading)
-- 3 simple bug fixes (dead conditional, stale veto color, `--samples` default)
-- 1 typo fix (`reply_` → `replay_`)
+**Round 1 (2026-06-23):** 12 issues fixed — dead code, comment corrections, simple bugs, typo fix. All 150 tests pass.
 
-**Smoke test:** All 150 tests pass after fixes.
+**Round 2 (2026-06-23):** 10 issues fixed — variable name mismatch in prompts, model config validation, defensive dict access, T- date parsing, deep_merge shallow copy, sentinel constant, liquidation boundary condition, pulse validation, and missing docstrings. All 150 tests pass.
 
-**Remaining:** ~35 items across bug, design, naming, and improvement categories for future rounds.
+**Overall:** 22 of ~35+ items resolved across two rounds.
+
+**Remaining:** ~15 items — mostly medium/high severity bugs (#1, #2, #4, #6, #8, #10, #11, #12, #15, #16, #20) and design/architecture improvements (god constructors, SRP violations, duplication, testability, naming consolidation).

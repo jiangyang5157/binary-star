@@ -122,9 +122,9 @@ class LiquidationRadar:
             all_active = active_above + active_below
             
             for p in all_active:
-                if p["price"] > current_price:
+                if p["price"] >= current_price:
                     final_short.append(p)
-                elif p["price"] < current_price:
+                else:
                     final_long.append(p)
 
             return {

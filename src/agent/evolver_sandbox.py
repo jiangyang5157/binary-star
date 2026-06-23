@@ -47,7 +47,9 @@ class EvolverSandbox:
         """
         observation = audit_report.get('session', {}).get('observation', {})
         symbol = observation.get('symbol', 'UNKNOWN')
-        obs_ts = observation["observed_at"]
+        obs_ts = observation.get("observed_at", "")
+        if not obs_ts:
+            raise ValueError("Sandbox: observation is missing 'observed_at' timestamp.")
         session_id = f"{symbol}_{obs_ts}"
         
         logger.info(f"Sandbox: Replaying session {session_id} in shadow.")
@@ -133,7 +135,10 @@ class EvolverSandbox:
         # Directly anchor to the historical T1 timestamp (Assume presence per protocol hardening)
         from datetime import datetime
         metadata = audit_report.get('metadata', {})
-        historical_t1 = datetime.fromisoformat(metadata["audit_at"].replace('Z', '+00:00'))
+        audit_at = metadata.get("audit_at", "")
+        if not audit_at:
+            raise ValueError("Sandbox: audit report is missing 'metadata.audit_at' timestamp.")
+        historical_t1 = datetime.fromisoformat(audit_at.replace('Z', '+00:00'))
         logger.info(f"Sandbox: Anchoring audit to historical T1: {historical_t1.isoformat()}")
 
         # We use force=True to bypass maturity since we are replaying a historical session

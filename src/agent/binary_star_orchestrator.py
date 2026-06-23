@@ -86,6 +86,8 @@ class BinaryStarConfig:
         active_provider = active_provider.lower()
         provider_cfg = llm_cfg.get(active_provider, {})
         shared_model = provider_cfg.get("model")
+        if not shared_model:
+            raise ValueError(f"Missing 'model' in llm.{active_provider} configuration.")
 
         # Context cache
         cache_cfg = provider_cfg.get("context_cache", {})

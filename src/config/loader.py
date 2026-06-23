@@ -11,14 +11,17 @@ from src.config.sub_configs import (
 
 
 def _f(d: dict, key: str) -> float:
+    """Type-safe float extractor. Raises KeyError if key is missing."""
     return float(d[key])
 
 
 def _i(d: dict, key: str) -> int:
+    """Type-safe int extractor. Raises KeyError if key is missing."""
     return int(d[key])
 
 
 def _s(d: dict, key: str) -> str:
+    """Type-safe str extractor. Raises KeyError if key is missing."""
     return str(d[key])
 
 

@@ -45,7 +45,7 @@ The logic unfolds in a deterministic sequence:
 - `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
 - `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
 - `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
-- `HAS_VOLUME_SURGE`: `volatility_participation_ratio` > `{min_volume_participation_ratio}`
+- `HAS_VOLUME_SURGE`: `volume_participation_ratio` > `{min_volume_participation_ratio}`
 - `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
 - `HAS_BULL_FLOW`: `cvd_intensity_ratio` > `{cvd_intensity_threshold}`
 - `HAS_BEAR_FLOW`: `cvd_intensity_ratio` < -`{cvd_intensity_threshold}`

@@ -39,12 +39,15 @@ def _parse_date(date_str: str) -> datetime:
     if date_str.lower() == "now":
         return datetime.now(timezone.utc)
     if date_str.upper().startswith("T-"):
+        if len(date_str) < 4:
+            raise argparse.ArgumentTypeError(f"Invalid date: '{date_str}'. Use T-<N>d or T-<N>h (e.g., T-30d, T-12h).")
         val = int(date_str[2:-1])
         unit = date_str[-1].lower()
         if unit == 'd':
             return datetime.now(timezone.utc) - timedelta(days=val)
         if unit == 'h':
             return datetime.now(timezone.utc) - timedelta(hours=val)
+        raise argparse.ArgumentTypeError(f"Invalid date: '{date_str}'. Unsupported unit '{unit}'. Use 'd' (days) or 'h' (hours).")
     try:
         return parse_iso_to_utc(date_str)
     except Exception:

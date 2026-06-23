@@ -35,7 +35,7 @@ class SniperTrigger:
         logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m (Mult: {self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']}).")
 
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
-        """Parses '15m', '1h' etc. into float minutes."""
+        """Parse a Binance interval string ('15m', '1h', '1d') into float minutes."""
         val = int(interval_str[:-1])
         unit = interval_str[-1].lower()
         if unit == 'h': return val * 60.0
@@ -107,7 +107,7 @@ class SniperTrigger:
         return True
 
     def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """TYPE_A (Breakout): [volatility expansion + volume surge] OR [extreme physical squeeze]"""
+        """TYPE_A (Breakout): volatility expansion + volume surge, or extreme physical squeeze."""
         vol = curr['price_dynamics']['volatility_intensity_index']
         part = curr['market_regime']['volume_participation_ratio']
         squeeze = curr['market_regime']['squeeze_factor']
@@ -158,7 +158,8 @@ class SniperTrigger:
         return False, None
 
     def _check_type_b(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """TYPE_B (Asymmetry): CVD divergence/impulse, funding extreme, or L/S ratio extreme"""
+        """TYPE_B (Asymmetry): five sub-strategies evaluating CVD divergence/impulse,
+        CVD momentum, retail sentiment extremes, and funding rate extremes."""
         sent = curr.get('sentiment_signals', {})
         cvd_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
         cvd = sent.get('cvd_intensity_ratio', 0.0)

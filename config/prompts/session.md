@@ -33,7 +33,7 @@ Use these metrics to synthesize your tactical entry strategy:
 | Parameter | Heuristic Signal |
 | :--- | :--- |
 | `poc_dist_atr` | High absolute value = Extreme mean-reversion gravity. |
-| `volatility_participation_ratio` | IF `HAS_VOLUME_SURGE` = High market involvement. Confirms breakout/reversals. |
+| `volume_participation_ratio` | IF `HAS_VOLUME_SURGE` = High market involvement. Confirms breakout/reversals. |
 | `volatility_expansion_index` | IF `IS_EXPANDING` = Momentum strategies unlock. |
 | `squeeze_factor` | IF `IS_SQUEEZING` = Coiling spring. Anticipate violent breakout. |
 | `trend_intensity`| Signed `[-1, 1]`. Positive = Bullish trend, Negative = Bearish trend. `IS_TREND_STRONG` = Institutional backing. Prioritize shallow pullbacks in the trend direction. DO NOT execute counter-trend trades against an `IS_TREND_STRONG` direction. |

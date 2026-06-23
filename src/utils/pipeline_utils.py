@@ -1,6 +1,7 @@
 import os
 import yaml
 import re
+import copy
 import argparse
 import hashlib
 import subprocess
@@ -108,7 +109,7 @@ def deep_merge(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:
     Recursively merges two dictionaries. 
     Keys in 'overlay' take precedence over 'base'.
     """
-    merged = base.copy()
+    merged = copy.deepcopy(base)
     for key, value in overlay.items():
         if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
             merged[key] = deep_merge(merged[key], value)

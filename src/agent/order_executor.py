@@ -7,6 +7,9 @@ from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)
 
+# Sentinel returned by sync_with_opinion when the position is emergency-closed
+EMERGENCY_CLOSED_SENTINEL = -1
+
 class MarginOrderExecutor:
     """
     Orchestrates the order management lifecycle for Margin trading.
@@ -194,7 +197,7 @@ class MarginOrderExecutor:
         if not position_intact:
             # Emergency close was triggered — return sentinel to signal caller that trade_state should be cleared
             logger.critical("Executor: [EMERGENCY Same-Direction] Position emergency-closed after OCO failure. Returning sentinel.")
-            return -1  # Sentinel: position was emergency-closed
+            return EMERGENCY_CLOSED_SENTINEL
         return None
 
     # ================================================================
