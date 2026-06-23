@@ -65,7 +65,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
         return tenacity.Retrying(
             stop=tenacity.stop_after_attempt(self.retry_count),
             wait=tenacity.wait_random_exponential(multiplier=1, max=10),
-            retry=tenacity.retry_if_exception_type((ClientError, requests.exceptions.RequestException, Exception)),
+            retry=tenacity.retry_if_exception_type((ClientError, requests.exceptions.RequestException)),
             before_sleep=lambda retry_state: logger.warning(
                 f"Binance: {method_name} failed. Retrying ({retry_state.attempt_number}/{self.retry_count})..."
             ),

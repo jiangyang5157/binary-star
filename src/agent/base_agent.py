@@ -1,5 +1,5 @@
 from typing import Any
-from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_exception
 from dataclasses import dataclass
 
 from src.infrastructure.ai_client import AbstractAIClient, AIResponse, ToolCall, UsageMetadata
@@ -140,13 +140,17 @@ class BaseAgent:
             while iteration < self.max_tool_iterations:
                 iteration += 1
 
+                # Only retry on transient errors (network, provider, timeout).
+                # Do NOT retry on application bugs or malformed responses.
+                _NON_RETRYABLE = (ValueError, TypeError, KeyError, AttributeError,
+                                  AgentInferenceError)
                 retryer = Retrying(
                     stop=stop_after_attempt(self.retry_count),
                     wait=wait_exponential(
                         multiplier=self.retry_multiplier,
                         min=self.retry_min, max=self.retry_max,
                     ),
-                    retry=retry_if_exception_type(Exception),
+                    retry=retry_if_exception(lambda e: not isinstance(e, _NON_RETRYABLE)),
                 )
 
                 use_json_mode = not tools and not cached_content

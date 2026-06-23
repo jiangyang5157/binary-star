@@ -96,10 +96,12 @@ class SniperSampler(Sampler):
         if len(event_df) <= count:
             return event_df['timestamp'].tolist()
         
-        # Stratified sample by event type
+        # Stratified sample by event type (at least 1 per group, capped at count)
         sampled_rows = event_df.groupby('type', group_keys=False).apply(
             lambda x: x.sample(n=min(len(x), max(1, int(len(x) / len(event_df) * count))))
         )
+        if len(sampled_rows) > count:
+            sampled_rows = sampled_rows.sample(count)
         
         if len(sampled_rows) < count:
             remaining = event_df[~event_df.index.isin(sampled_rows.index)]
