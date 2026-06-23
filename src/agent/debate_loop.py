@@ -19,7 +19,7 @@ class DebateLoop:
         self.critic_agent = critic_agent
         self.math_checker = math_checker
         self.max_rounds = max_rounds
-        self.cache_id = cache_resource_name
+        self.cache_resource_name = cache_resource_name
         self.tools = tools
         self.visual_parts = visual_parts
         self.shared_instruction = shared_instruction
@@ -49,7 +49,7 @@ class DebateLoop:
                 symbol=symbol,
                 temperature=self.session_config.model_temperature,
                 agent_name=f"Session_Planning_R{current_round}",
-                cache_id=self.cache_id,
+                cache_id=self.cache_resource_name,
                 tools=self.tools,
                 debate_history=compressed_history,
                 visual_parts=self.visual_parts,
@@ -84,7 +84,7 @@ class DebateLoop:
                     last_plan=last_plan,
                     symbol=symbol,
                     debate_history=compressed_history,
-                    cache_id=self.cache_id,
+                    cache_id=self.cache_resource_name,
                     math_fact_check=math_fact_check,
                     tools=None,
                     visual_parts=self.visual_parts,

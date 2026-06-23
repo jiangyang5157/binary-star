@@ -15,7 +15,11 @@ logger = setup_logger(__name__, propagate=True)
 
 @dataclass(frozen=True)
 class SessionConfig(AgentConfig):
-    """Strategic configuration composed from logical sub-configs."""
+    """Strategic configuration for the Session Analyst (the Thesis agent in Binary Star).
+
+    Composed from logical sub-configs.  Note: "Session" refers to the LLM agent
+    role (not a trading session, log file, or inference cycle).
+    """
     regime: RegimeConfig
     temporal: TemporalConfig
     risk: RiskConfig

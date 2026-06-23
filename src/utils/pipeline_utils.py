@@ -106,8 +106,11 @@ def resolve_api_key() -> Optional[str]:
 
 def deep_merge(base: Dict[str, Any], overlay: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Recursively merges two dictionaries. 
+    Recursively merges two dictionaries.
     Keys in 'overlay' take precedence over 'base'.
+
+    Note: lists are replaced (not merged). If a config key holds a list,
+    the overlay value fully replaces the base list.
     """
     merged = copy.deepcopy(base)
     for key, value in overlay.items():
