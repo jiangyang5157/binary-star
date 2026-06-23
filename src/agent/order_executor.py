@@ -163,10 +163,11 @@ class MarginOrderExecutor:
                 if not oco_success:
                     logger.critical(
                         "Executor: [EMERGENCY Pivot-Preserve] Failed to place OCO after cancel — "
-                        "existing position is now naked. Emergency market closing + placing new entry."
+                        "existing position is now naked. Emergency market closing."
                     )
-                    self.client.execute_market_close(symbol)
-                    # Position is closed but AI opinion is still valid — place new entry
+                    if not self.client.execute_market_close(symbol):
+                        logger.error("Executor: [ABORT Pivot-Preserve] Emergency market close failed. Aborting to prevent double exposure.")
+                        return None
                     logger.info(f"Executor: [Pivot-Preserve] Emergency close complete. Entering new {opinion_direction} at {entry_price}.")
                     return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
