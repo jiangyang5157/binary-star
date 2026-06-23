@@ -52,7 +52,7 @@ class CriticConfig(AgentConfig):
             strategy_intent=str(cfg.get("strategy_intent", "")),
             macro_interval=str(sampling["macro_context"]["time_interval"]),
             micro_interval=str(sampling["micro_context"]["time_interval"]),
-            cvd_micro_lookback_candles=int(sampling["cvd_micro_lookback_candles"]),
+            cvd_micro_lookback_candles=int(sampling["tensors"]["cvd_micro_lookback_candles"]),
             instruction_literal=instruction_literal,
         )
 
