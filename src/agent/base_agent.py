@@ -1,5 +1,6 @@
+import os
 from typing import Any
-from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_exception
+from tenacity import Retrying, RetryError, stop_after_attempt, wait_exponential, retry_if_exception
 from dataclasses import dataclass
 
 from src.infrastructure.ai_client import AbstractAIClient, AIResponse, ToolCall, UsageMetadata
@@ -95,10 +96,120 @@ class BaseAgent:
                 template = instruction_literal
             else:
                 template = read_prompt_template(template_path)
-            return safe_format(template, **context)
+            rendered = safe_format(template, **context)
+
+            # Detect missing template variables: SafeFormatter renders unresolved
+            # {placeholders} as literal text.  If any remain, the caller forgot
+            # to pass a config value — the LLM will see garbage, not data.
+            import re
+            unresolved = set(re.findall(r'\{(\w+)\}', rendered))
+            if unresolved:
+                logger.warning(
+                    "BaseAgent: %d unresolved template variable(s) in %s: %s",
+                    len(unresolved), os.path.basename(template_path),
+                    ", ".join(sorted(unresolved)),
+                )
+
+            return rendered
         except Exception as e:
             logger.error(f"BaseAgent: Failed to prepare prompt from {template_path}: {e}")
             raise
+
+    def _call_ai_provider(
+        self,
+        contents: list[Any],
+        temperature: float,
+        agent_name: str,
+        cache_resource_name: str | None,
+        tools: list[Any] | None,
+        system_instruction: str | None,
+    ) -> AIResponse:
+        """Single AI inference call with retry and congestion pacing."""
+        _NON_RETRYABLE = (ValueError, TypeError, KeyError, AttributeError,
+                          AgentInferenceError)
+        retryer = Retrying(
+            stop=stop_after_attempt(self.retry_count),
+            wait=wait_exponential(
+                multiplier=self.retry_multiplier,
+                min=self.retry_min, max=self.retry_max,
+            ),
+            retry=retry_if_exception(lambda e: not isinstance(e, _NON_RETRYABLE)),
+        )
+        use_json_mode = not tools and not cache_resource_name
+
+        if self.congestion_controller:
+            self.congestion_controller.pace(agent_name=agent_name)
+
+        response: AIResponse = retryer(
+            self.client.generate_content,
+            model=self.model,
+            contents=contents,
+            system_instruction=system_instruction if not cache_resource_name else None,
+            tools=tools if not cache_resource_name else None,
+            temperature=temperature,
+            response_json=use_json_mode,
+            http_timeout=self.api_timeout,
+        )
+
+        if response.usage:
+            u = response.usage
+            logger.info(
+                "[%s] Usage: T=%d | P=%d | C=%d | Cache=%d",
+                agent_name, u.total_token_count, u.prompt_token_count,
+                u.candidates_token_count, u.cached_content_token_count,
+            )
+        return response
+
+    @staticmethod
+    def _extract_simulated_tool_calls(parsed: dict) -> list[ToolCall]:
+        """Detect models that describe function calls in text instead of native tool_calls.
+
+        Two formats observed (e.g. DeepSeek v4 pro):
+          A) {tool, parameters}              — single simulated call
+          B) {tool_calls: [{name, arguments}]} — batch simulated calls
+        """
+        simulated: list[ToolCall] = []
+        if "tool" in parsed and "parameters" in parsed:
+            simulated.append(ToolCall(
+                name=parsed["tool"],
+                args=parsed.get("parameters", {}),
+            ))
+        elif isinstance(parsed.get("tool_calls"), list):
+            for tc in parsed["tool_calls"]:
+                if isinstance(tc, dict) and "name" in tc:
+                    simulated.append(ToolCall(
+                        name=tc["name"],
+                        args=tc.get("arguments", tc.get("args", {})),
+                    ))
+        return simulated
+
+    def _dispatch_tool_calls_to_contents(
+        self,
+        contents: list[Any],
+        tool_calls: list[ToolCall],
+        next_tc_id: int,
+        reasoning_content: str | None = None,
+    ) -> int:
+        """Dispatch tool calls, append model+tool messages to contents. Returns new next_tc_id."""
+        tc_entries = []
+        for tc in tool_calls:
+            tc_entries.append({
+                "id": f"call_{next_tc_id}", "name": tc.name, "args": tc.args,
+            })
+            next_tc_id += 1
+        model_msg: dict = {"role": "model", "tool_calls": tc_entries}
+        if reasoning_content:
+            model_msg["reasoning_content"] = reasoning_content
+        contents.append(model_msg)
+
+        tool_responses = []
+        for entry, tc in zip(tc_entries, tool_calls):
+            result = self._dispatch_tool_call(tc)
+            tool_responses.append({
+                "id": entry["id"], "name": tc.name, "result": result,
+            })
+        contents.append({"role": "user", "tool_responses": tool_responses})
+        return next_tc_id
 
     def _execute_ai_cycle(
         self,
@@ -109,27 +220,9 @@ class BaseAgent:
         tools: list[Any] | None = None,
         system_instruction: str | None = None,
     ) -> dict[str, Any]:
-        """Orchestrates an autonomous iterative cycle for tool-use and inference.
+        """Autonomous iterative cycle: AI inference ↔ tool dispatch until convergence.
 
-        This logic implements the core 'Reasoning Loop', handling multi-turn
-        handshaking between the AI model and local Python tool logic.
-
-        Args:
-            payload: Initial prompt or multimodal content sequence.
-            temperature: Model creativity override. Defaults to config value.
-            agent_name: Logical identity for tracking and forensic logging.
-            cache_resource_name: ID of the active context cache resource (Gemini context cache name).
-            tools: List of function schemas available for dispatch.
-            system_instruction: Shared intelligence prompt to bypass caching limits.
-
-        Returns:
-            A forensic dictionary containing the parsed JSON output.
-
-        Raises:
-            EmptyModelResponseError: The LLM returned nothing usable.
-            MalformedJSONError: The LLM output could not be parsed as JSON.
-            MaxIterationsError: The tool-call loop exceeded the limit.
-            AIProviderError: The AI provider returned an error.
+        Returns a parsed JSON dict.  See class docstring for raised exceptions.
         """
         try:
             temp = temperature if temperature is not None else self.temperature
@@ -140,131 +233,46 @@ class BaseAgent:
             while iteration < self.max_tool_iterations:
                 iteration += 1
 
-                # Only retry on transient errors (network, provider, timeout).
-                # Do NOT retry on application bugs or malformed responses.
-                _NON_RETRYABLE = (ValueError, TypeError, KeyError, AttributeError,
-                                  AgentInferenceError)
-                retryer = Retrying(
-                    stop=stop_after_attempt(self.retry_count),
-                    wait=wait_exponential(
-                        multiplier=self.retry_multiplier,
-                        min=self.retry_min, max=self.retry_max,
-                    ),
-                    retry=retry_if_exception(lambda e: not isinstance(e, _NON_RETRYABLE)),
+                response = self._call_ai_provider(
+                    contents, temp, agent_name,
+                    cache_resource_name, tools, system_instruction,
                 )
-
-                use_json_mode = not tools and not cache_resource_name
-
-                if self.congestion_controller:
-                    self.congestion_controller.pace(agent_name=agent_name)
-
-                response: AIResponse = retryer(
-                    self.client.generate_content,
-                    model=self.model,
-                    contents=contents,
-                    system_instruction=system_instruction if not cache_resource_name else None,
-                    tools=tools if not cache_resource_name else None,
-                    temperature=temp,
-                    response_json=use_json_mode,
-                    http_timeout=self.api_timeout,
-                )
-
-                if response.usage:
-                    u = response.usage
-                    logger.info(
-                        "[%s] Usage: T=%d | P=%d | C=%d | Cache=%d",
-                        agent_name, u.total_token_count, u.prompt_token_count,
-                        u.candidates_token_count, u.cached_content_token_count,
-                    )
 
                 if not response.text and not response.tool_calls:
                     logger.error("BaseAgent: %s returned empty response.", agent_name)
                     raise EmptyModelResponseError(agent_name=agent_name)
 
-                # No tool calls → termination (with simulated-tool-call detection)
+                # No tool calls → termination (check for simulated calls first)
                 if not response.tool_calls:
                     if not response.text.strip():
                         logger.error("BaseAgent: %s returned empty text.", agent_name)
                         raise EmptyModelResponseError(agent_name=agent_name)
+
                     parsed = self._parse_and_validate_response(response.text, agent_name)
-
-                    # Detect "simulated" tool calls: some models (e.g. DeepSeek v4 pro)
-                    # describe function calls in text rather than using native tool_calls.
-                    # Two formats observed:
-                    #   A) {tool, parameters}          — single simulated call
-                    #   B) {tool_calls: [{name, arguments}]}  — batch simulated calls
-                    # When the dict lacks "opinion" but looks like a tool invocation,
-                    # dispatch every tool, feed results back, and loop.
-                    simulated: list[ToolCall] = []
-
-                    if isinstance(parsed, dict) and "tool" in parsed and "parameters" in parsed:
-                        simulated.append(ToolCall(
-                            name=parsed["tool"],
-                            args=parsed.get("parameters", {}),
-                        ))
-                    elif isinstance(parsed, dict) and isinstance(parsed.get("tool_calls"), list):
-                        for tc in parsed["tool_calls"]:
-                            if isinstance(tc, dict) and "name" in tc:
-                                simulated.append(ToolCall(
-                                    name=tc["name"],
-                                    args=tc.get("arguments", tc.get("args", {})),
-                                ))
+                    simulated = self._extract_simulated_tool_calls(parsed)
 
                     if simulated and "opinion" not in parsed:
                         logger.info(
                             "BaseAgent: %s simulated %d tool call(s) in text — dispatching.",
                             agent_name, len(simulated),
                         )
-                        tc_entries = []
-                        tool_responses = []
-                        for tc in simulated:
-                            result = self._dispatch_tool_call(tc)
-                            entry = {
-                                "id": f"call_{next_tc_id}",
-                                "name": tc.name,
-                                "args": tc.args,
-                            }
-                            next_tc_id += 1
-                            tc_entries.append(entry)
-                            tool_responses.append({
-                                "id": entry["id"],
-                                "name": tc.name,
-                                "result": result,
-                            })
-                        model_msg: dict = {"role": "model", "tool_calls": tc_entries}
-                        if response.reasoning_content:
-                            model_msg["reasoning_content"] = response.reasoning_content
-                        contents.append(model_msg)
-                        contents.append({"role": "user", "tool_responses": tool_responses})
+                        next_tc_id = self._dispatch_tool_calls_to_contents(
+                            contents, simulated, next_tc_id, response.reasoning_content,
+                        )
                         continue
 
                     return parsed
 
-                # Tool execution cycle
-                tc_entries = []
-                for tc in response.tool_calls:
-                    tc_entries.append({
-                        "id": f"call_{next_tc_id}", "name": tc.name, "args": tc.args,
-                    })
-                    next_tc_id += 1
-                model_msg = {"role": "model", "tool_calls": tc_entries}
-                if response.reasoning_content:
-                    model_msg["reasoning_content"] = response.reasoning_content
-                contents.append(model_msg)
-
-                tool_responses = []
-                for entry, tc in zip(tc_entries, response.tool_calls):
-                    result = self._dispatch_tool_call(tc)
-                    tool_responses.append({
-                        "id": entry["id"], "name": tc.name, "result": result,
-                    })
-                contents.append({"role": "user", "tool_responses": tool_responses})
+                # Real tool calls → dispatch, append results, loop
+                next_tc_id = self._dispatch_tool_calls_to_contents(
+                    contents, response.tool_calls, next_tc_id, response.reasoning_content,
+                )
 
             logger.error("%s: max iterations (%d).", agent_name, self.max_tool_iterations)
             raise MaxIterationsError(agent_name=agent_name)
 
         except AgentInferenceError:
-            raise  # re-raise our own exceptions directly
+            raise
         except RetryError as e:
             actual_error = e.last_attempt.exception() if e.last_attempt and e.last_attempt.failed else e
             err_msg = str(actual_error)
