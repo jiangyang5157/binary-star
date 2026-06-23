@@ -62,8 +62,6 @@ def _add_session_parser(subparsers):
                    help="End date for backtest (default: now)")
     p.add_argument("--samples", type=int, default=None,
                    help="Number of historical samples (backtest mode)")
-    p.add_argument("--sampling-mode", choices=["spaced", "sniper"],
-                   default="sniper")
     add_data_path_argument(p)
     p.set_defaults(func=_cmd_session)
 
@@ -82,8 +80,8 @@ def _cmd_session(args):
         if args.samples is None:
             raise SystemExit("Error: --samples is required for backtest mode.")
         logger.info("Mode: BACKTEST (batch historical)")
-        logger.info("  --start '%s', --end '%s', --samples %s, --sampling-mode %s",
-                    args.start, args.end, args.samples, args.sampling_mode)
+        logger.info("  --start '%s', --end '%s', --samples %s",
+                    args.start, args.end, args.samples)
     else:
         logger.info("Mode: PROD (live execution)")
 

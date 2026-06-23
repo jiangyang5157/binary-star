@@ -18,7 +18,7 @@ load_dotenv()
 from src.infrastructure.exchange.base_client import AbstractExchangeClient
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
-from src.analyzer.simulation_sampler import SpacedSampler, SniperSampler
+from src.analyzer.simulation_sampler import SniperSampler
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, archive_strategy_result
 from src.utils.logger_utils import setup_logger
@@ -184,9 +184,8 @@ class SessionController:
         start_dt = self.args.start
         end_dt = self.args.end
         count = self.args.samples
-        sampling_mode = self.args.sampling_mode or "sniper"
 
-        logger.info(f"Backtest: Sampling {count} points from {start_dt} to {end_dt} ({sampling_mode} mode)")
+        logger.info(f"Backtest: Sniper-sampling {count} noteworthy points from {start_dt} to {end_dt}")
         
         from src.utils.datetime_utils import get_interval_seconds
         
@@ -227,19 +226,12 @@ class SessionController:
             if start_dt <= datetime.fromtimestamp(k.open_time / 1000, tz=timezone.utc) <= end_dt
         ]
         
-        # Backtest Sampling Architecture
-        self.sampling_mode = self.args.sampling_mode or "sniper"
-        self.sampling_count = self.args.samples
-
-        if self.sampling_mode == "sniper":
-            sampler = SniperSampler(self.symbol)
-        else:
-            sampler = SpacedSampler()
-            
-        timestamps = sampler.sample(klines_range, self.sampling_count)
+        # SniperSampler: scans historical range for noteworthy asymmetry events
+        sampler = SniperSampler(self.symbol)
+        timestamps = sampler.sample(klines_range, self.args.samples)
         
         # 3. Execution Loop
-        logger.info(f"Simulating {len(timestamps)} temporal snapshots (Sample Count: {self.sampling_count})...")
+        logger.info(f"Simulating {len(timestamps)} temporal snapshots (Requested: {self.args.samples})...")
         for i, dt in enumerate(timestamps, 1):
             logger.info(f"\n[BACKTEST PROGRESS: {i}/{len(timestamps)}]")
             self.engine.execute_cycle(timestamp_str=dt.isoformat())
@@ -262,7 +254,6 @@ def main():
     bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
     bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
     bt_group.add_argument("--samples", type=int, default=None, help="Number of historical samples")
-    bt_group.add_argument("--sampling-mode", choices=["spaced", "sniper"], default="sniper")
 
     
     from src.utils.pipeline_utils import add_data_path_argument
