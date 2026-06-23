@@ -59,7 +59,7 @@ class SniperTrigger:
         # 1. Evaluate DNA Traps — score all three, return the strongest hit
         # v6.71: CHAOS_MUTE (Extreme Volatility Protection)
         vol = current_metrics['price_dynamics']['volatility_intensity_index']
-        if vol > self.regime_cfg['volatility_extreme_ratio']:
+        if vol > self.regime_cfg['volatility']['volatility_extreme_ratio']:
             if self.last_trigger_time:
                 elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
                 chaos_mult = self.sniper_cfg['chaos_cooldown_multiplier']
@@ -115,10 +115,10 @@ class SniperTrigger:
         squeeze = curr['market_regime']['squeeze_factor']
 
         # 1. Volatility Expansion + Volume Surge
-        vol_threshold = self.regime_cfg['volatility_baseline_ratio']
+        vol_threshold = self.regime_cfg['volatility']['volatility_baseline_ratio']
         is_vol_hit = vol > vol_threshold
 
-        part_threshold = self.regime_cfg['volume_participation_threshold']
+        part_threshold = self.regime_cfg['volume']['volume_participation_threshold']
         is_volume_hit = part > part_threshold
 
         # Confirmation gate: require vol to be NEWLY expanding (not just sustained)
@@ -130,7 +130,7 @@ class SniperTrigger:
 
         # 2. Physical Squeeze
         squeeze_mult = self.sniper_cfg['squeeze_trigger_multiplier']
-        squeeze_threshold = self.regime_cfg['squeeze_threshold'] * squeeze_mult
+        squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold'] * squeeze_mult
         is_squeeze_hit = squeeze < squeeze_threshold
 
         # Confirmation gate: require squeeze to be INTENSIFYING (getting tighter)
@@ -162,7 +162,7 @@ class SniperTrigger:
     def _check_type_b(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
         """TYPE_B (Asymmetry): CVD divergence/impulse, funding extreme, or L/S ratio extreme"""
         sent = curr.get('sentiment_signals', {})
-        cvd_threshold = self.regime_cfg['cvd_intensity_threshold']
+        cvd_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
         cvd = sent.get('cvd_intensity_ratio', 0.0)
 
         # --- [Priority 1] Dynamic micro-event probes (tick-delta acceleration) ---
@@ -221,13 +221,13 @@ class SniperTrigger:
 
         # --- [Priority 3] Retail sentiment extremes (ambient) ---
         ls = sent.get('ls_ratio_micro', 1.0)
-        if ls > self.regime_cfg['long_short_imbalance_ratio'] or \
-           ls < self.regime_cfg['short_heavy_imbalance_ratio']:
+        if ls > self.regime_cfg['imbalance']['long_short_imbalance_ratio'] or \
+           ls < self.regime_cfg['imbalance']['short_heavy_imbalance_ratio']:
             now = datetime.now(timezone.utc)
             if self._check_state_lock("AMBIENT_LS_RATIO", now):
                 strength = max(1, min(10, int(
-                    max(ls / max(self.regime_cfg['long_short_imbalance_ratio'], 0.01),
-                        self.regime_cfg['short_heavy_imbalance_ratio'] / max(ls, 0.01)) * 3
+                    max(ls / max(self.regime_cfg['imbalance']['long_short_imbalance_ratio'], 0.01),
+                        self.regime_cfg['imbalance']['short_heavy_imbalance_ratio'] / max(ls, 0.01)) * 3
                 )))
                 trend = "多头拥挤，防范爆多踩踏风险" if ls > 1.0 else "空头拥挤，防范空头回补/空头挤压爆发"
                 return True, (
@@ -236,11 +236,11 @@ class SniperTrigger:
                 )
 
         funding = sent.get('funding_rate', 0.0)
-        if abs(funding) > self.regime_cfg['funding_extreme_threshold']:
+        if abs(funding) > self.regime_cfg['micro_sentiment']['funding_extreme_threshold']:
             now = datetime.now(timezone.utc)
             if self._check_state_lock("AMBIENT_FUNDING", now):
                 strength = max(1, min(10, int(
-                    (abs(funding) / max(abs(self.regime_cfg['funding_extreme_threshold']), 1e-9)) * 4
+                    (abs(funding) / max(abs(self.regime_cfg['micro_sentiment']['funding_extreme_threshold']), 1e-9)) * 4
                 )))
                 trend = "多头过热，警惕力竭回撤" if funding > 0 else "空头过热，警惕力竭反弹"
                 return True, (
@@ -278,7 +278,7 @@ class SniperTrigger:
         nearest_boundary = "VAH" if dist_vh < dist_val else "VAL"
         nearest_dist = min(dist_vh, dist_val)
 
-        if nearest_dist < vah_val_threshold and part > self.regime_cfg['min_volume_participation_ratio']:
+        if nearest_dist < vah_val_threshold and part > self.regime_cfg['volume']['min_volume_participation_ratio']:
             # Directional gate: only trigger if approaching the boundary
             approaching = (nearest_boundary == "VAH" and approaching_from_below) or \
                           (nearest_boundary == "VAL" and approaching_from_above)
