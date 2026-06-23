@@ -353,14 +353,9 @@ class MathTools:
         volume_profile: List[Dict[str, Any]],
         atr: float,
         base_slippage_bps: float,
-        max_slippage_bps: float,
-        price_precision: int = 2
+        max_slippage_bps: float
     ) -> Dict[str, Any]:
         """Calculate liquidity-sensitive slippage from volume profile.
-
-        Args:
-            price_precision: Decimal places for adjusted price (default 2).
-                Override with symbol-specific precision (e.g., 1 for BTC, 4 for XRP).
 
         Logic:
         - Find the nearest volume bin to the given price.
@@ -390,7 +385,7 @@ class MathTools:
             # 4. Price adjustment (entry delay simulation)
             # Slippage: 1 bps = 0.0001
             adjustment_factor = 1.0 + (total_slippage_bps / 10000.0)
-            adjusted_price = round(price * adjustment_factor, price_precision)
+            adjusted_price = round(price * adjustment_factor, 2)
             
             return {
                 "original_price": price,
