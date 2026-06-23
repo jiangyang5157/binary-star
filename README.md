@@ -18,7 +18,7 @@ Entry Points (run.py + standalone run_*.py)
   → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
   → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationEstimator,
                                          MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
-                                         TopographyEngine, SniperSampler, SpacedSampler
+                                         TopographyEngine, SniperSampler
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders
 ```
 
@@ -34,8 +34,8 @@ OpenAI-compatible providers (DeepSeek, Qwen) share a single `OpenAICompatibleAda
 2. `BinaryStarOrchestrator.execute_flow()`:
    - Injects regime benchmarks into observation
    - Optionally creates Gemini context cache (Truth Bus)
-   - `DebateLoop.run()` alternates: SessionAgent proposes → MathFactChecker verifies → CriticAgent audits → repeat until PASS/TERMINAL or `max_rounds`
-   - Final synthesis at cold temperature, sanitized against math truth
+   - `DebateLoop.run()` alternates: SessionAgent proposes → MathFactChecker verifies → CriticAgent audits → repeat until PASS/WEAK (early exit) or `max_rounds`
+   - If max rounds reached without PASS/WEAK, cold synthesis produces final decision
 3. Result archived as JSON in `<data_root>/sessions/`
 
 ---
@@ -136,8 +136,8 @@ Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the st
 | **STRUCTURAL_APPROACH** | Liquidation Cluster Magnet | Price within 0.40 ATR of long/short liquidation clusters | Long liq: price must be **falling**; Short liq: price must be **rising** |
 
 **Global gates** (evaluated before any signal):
-- **Cooldown**: 45 min after last trigger → `GLOBAL_COOLDOWN`
-- **Chaos Mute**: Volatility > 2.2× extreme ratio **and** within 90 min of last trigger → `CHAOS_MUTE`
+- **Cooldown**: 37.5 min after last trigger → `GLOBAL_COOLDOWN`
+- **Chaos Mute**: Volatility > 2.2× extreme ratio **and** within 75 min of last trigger → `CHAOS_MUTE`
 
 ### Complete Decision Tree (Phase 2: AI + Execution)
 
@@ -258,9 +258,9 @@ The system supports any number of trading pairs from a single config. Symbols ar
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| **Cooldown** | **45 min** | 15m micro-context × 3.0 multiplier |
-| **Chaos Mute** | **90 min** | Proportional to cooldown (45 × 2.0). Extends protection during vol spikes |
-| **State Lockout** | **6.0 hours** | Prevents structural/sentiment trigger spam without missing setups |
+| **Cooldown** | **37.5 min** | 15m micro-context × 2.5 multiplier |
+| **Chaos Mute** | **75 min** | Proportional to cooldown (37.5 × 2.0). Extends protection during vol spikes |
+| **State Lockout** | **8.0 hours** | Prevents structural/sentiment trigger spam without missing setups |
 
 **Why most thresholds are instrument-agnostic — and when they aren't:**
 
@@ -287,9 +287,9 @@ Per-symbol overrides are deep-merged at config resolution time and never touched
 | Parameter | Value | Purpose |
 |-----------|-------|---------|
 | `pulse_interval_minutes` | 2.0 | Scan frequency |
-| `pulse_cooldown_multiplier` | 3.0 | Post-trigger silence (15m × 3 = 45 min) |
-| `chaos_cooldown_multiplier` | 2.0 | Extreme vol silence (45m × 2 = 90 min) |
-| `state_lockout_hours` | 6.0 | Structural/sentiment repeat suppression |
+| `pulse_cooldown_multiplier` | 2.5 | Post-trigger silence (15m × 2.5 = 37.5 min) |
+| `chaos_cooldown_multiplier` | 2.0 | Extreme vol silence (37.5m × 2 = 75 min) |
+| `state_lockout_hours` | 8.0 | Structural/sentiment repeat suppression |
 | `session_confidence_threshold` | 60 | Minimum AI confidence for execution |
 | `risk_per_trade` | 0.004 | Maximum loss per trade (0.4% equity) |
 | `trailing_profit_atr_level_1/2/3` | 1.5/2.5/4.0 | Trailing stop migration thresholds |

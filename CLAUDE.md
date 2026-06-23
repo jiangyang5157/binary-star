@@ -77,7 +77,7 @@ Entry Points (run.py + standalone run_*.py)
   → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
   → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationEstimator,
                                          MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
-                                         TopographyEngine, SniperSampler, SpacedSampler
+                                         TopographyEngine, SniperSampler
   → Config (src/config/)                 Sub-config dataclasses, YAML loaders, symbol resolver
 ```
 
@@ -96,8 +96,8 @@ Entry Points (run.py + standalone run_*.py)
 2. `BinaryStarOrchestrator.execute_flow()`:
    - Injects regime benchmarks into observation
    - Optionally creates Gemini context cache (Truth Bus)
-   - `DebateLoop.run()` alternates: SessionAgent proposes → MathFactChecker verifies → CriticAgent audits → repeat until PASS/TERMINAL or `max_rounds`
-   - Final synthesis at cold temperature, sanitized against math truth
+   - `DebateLoop.run()` alternates: SessionAgent proposes → MathFactChecker verifies → CriticAgent audits → repeat until PASS/WEAK (early exit) or `max_rounds`
+   - If max rounds reached without PASS/WEAK, cold synthesis produces final decision
 3. Result archived as JSON in `<data_root>/sessions/`
 
 ### Config system
