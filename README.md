@@ -275,8 +275,8 @@ XAUTUSDT:
         trend_intensity_min_expansion: 0.08    # lower bar for XAUT trend detection
     sniper:
       probes:
-        cvd_divergence_tick_delta: 0.15        # thinner books → smaller CVD swings
-        cvd_impulse_tick_delta: 0.22
+        cvd_divergence_tick_delta: 0.18        # thinner books → smaller CVD swings
+        cvd_impulse_tick_delta: 0.25
 ```
 
 Per-symbol overrides are deep-merged at config resolution time and never touched by evolution — they're fixed operational tuning. Evolution patches `strategy_config.yaml` defaults only.
