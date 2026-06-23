@@ -100,6 +100,9 @@ def performance(data_root: str = Query("")):
 
 @app.get("/live", response_class=HTMLResponse, summary="Live Sessions", tags=["Pages"])
 def live_view(user: str = Query(None), data_root: str = Query("")):
+    # Reload users.json on every request — edits take effect without restart
+    global _users_permissions
+    _users_permissions = _load_users()
     permissions = _get_user_permissions(user)
     template = _jinja_env.get_template("live.html")
     return HTMLResponse(template.render(permissions=permissions))
