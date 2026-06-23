@@ -168,7 +168,7 @@ def test_pivot_short_to_long_overshot():
     client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=70000)
 
 def test_pivot_short_with_sl_oco_fails_abort():
-    """Case A-2 failure: OCO placement fails → emergency close + place new entry (v8.2 recovery fix)."""
+    """Case A-2 failure: OCO placement fails → emergency close + place new entry."""
 
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.5, 0.5, 0.0, 0.0)
@@ -181,9 +181,9 @@ def test_pivot_short_with_sl_oco_fails_abort():
 
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     client.place_oco_order.assert_called_once()  # Attempted but failed
-    # v8.2: Emergency close instead of leaving position naked
+    # Emergency close instead of leaving position naked
     client.execute_market_close.assert_called_once_with("BTCUSDT")
-    # v8.2: Still place new entry since AI opinion is valid
+    # Still place new entry since AI opinion is valid
     client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=82000)
     assert order_id is not None  # Returns new entry order_id
 

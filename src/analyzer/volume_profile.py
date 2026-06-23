@@ -70,7 +70,7 @@ class VolumeProfileEngine:
     def compute_profile(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
         Computes the volume profile distribution and key fair-value benchmarks.
-        v7.2: Uses Range-Based Distribution and Contiguous Value Area Expansion.
+        Uses Range-Based Distribution and Contiguous Value Area Expansion.
         """
         if df.empty:
             return {}

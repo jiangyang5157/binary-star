@@ -98,7 +98,7 @@ class PromptDistiller:
         """
         Pure function: Replaces anchor with new_text in the provided content string.
         Utilizes flexible whitespace matching for robust distillation.
-        v6.20: Enhanced with Indentation Awareness to align AI suggestions with target file.
+        Enhanced with Indentation Awareness to align AI suggestions with target file.
         """
         if not anchor or not content or new_text is None:
             return content

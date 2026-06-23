@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Singularity Offline Sandbox Review (v1.0)
+Singularity Offline Sandbox Review
 
 Re-evaluates a sandbox report against the original audit reports using
 the Darwinian Fitness Evaluator. This allows offline quality assessment
@@ -39,7 +39,7 @@ def _observed_at_to_audit_filename(symbol: str, observed_at: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Offline Sandbox Review (v1.0)")
+    parser = argparse.ArgumentParser(description="Singularity Offline Sandbox Review")
     parser.add_argument("--file", "-f", required=True, help="Path to the sandbox result JSON file")
     add_data_path_argument(parser, required=True)
 
@@ -133,7 +133,7 @@ def main():
 
     # 8. Calculate acceptance
     total = len(all_new_cases)
-    # v6.12: Simplified Selection Rule - New logic is accepted if IMPROVED > BROKEN (Net Improvement)
+    # Simplified Selection Rule - New logic is accepted if IMPROVED > BROKEN (Net Improvement)
     is_accepted = len(accepted_cases) > len(rejected_cases)
 
     # 9. Build result

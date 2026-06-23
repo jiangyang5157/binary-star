@@ -147,7 +147,7 @@ regime_parameters:
     # Absolute funding threshold for Retail Squeeze detection.
     funding_extreme_threshold: 0.0005
 
-  # --- Liquidation Radar Physics (v7.0) ---
+  # --- Liquidation Radar Physics ---
   liquidation_radar:
     # [Sensitivity]: Thresholds for detecting retail dominance traps.
     liq_radar_long_threshold: 1.05  # Taker Long/Short ratio above which longs are considered crowded.
@@ -194,7 +194,7 @@ temporal_parameters:
 # AUDIT & FORENSICS
 # ═══════════════════════════════════════════════════════════════════════════
 audit_review:
-  # --- Forensic Evaluation Parameters (v6.11 Hardened) ---
+  # --- Forensic Evaluation Parameters ---
   # Fidelity of the sampling window for forensic replay (Forensic Resolution).
   forensic_resolution: 1m
   # ATR threshold to classify an unfilled order as a 'Near Miss' (Physical Redline).

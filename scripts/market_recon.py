@@ -16,7 +16,7 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger("MarketRecon")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Market Recon Tool (v5.10)")
+    parser = argparse.ArgumentParser(description="Singularity Market Recon Tool")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     parser.add_argument("--timestamp", "-ts", type=str, help="ISO-8601 timestamp (e.g., 2026-04-05T00:23:34Z)")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification of the market scan.")
@@ -29,7 +29,7 @@ def main():
     config = load_config()
     global_cfg = load_global_config()
     
-    # v4.8+: Merge for full configuration awareness (visuals, network, etc.)
+    # Merge for full configuration awareness (visuals, network, etc.)
     merged_config = config.copy()
     merged_config.update(global_cfg)
     

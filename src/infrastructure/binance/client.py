@@ -216,7 +216,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
         """
         Fetches recent forced liquidation orders.
         
-        v6.85: Polling-based force_orders and allForceOrders are disabled 
+        Polling-based force_orders and allForceOrders are disabled 
         due to infrastructure mismatch and API weight/permission restrictions.
         Returning None to allow downstream metrics to gracefully handle data absence.
         """

@@ -25,7 +25,7 @@ class GeminiCacheManager:
         self._adapter = adapter
         self.client = adapter.raw_client  # underlying genai.Client for cache operations
         self.congestion_controller = congestion_controller
-        self.active_cache_id = None
+        self.active_cache_resource_name = None
 
     def create_market_cache(
         self,
@@ -87,7 +87,7 @@ class GeminiCacheManager:
             
             elapsed = time.perf_counter() - start_time
             logger.info(f"GeminiCache: Successfully created cache {cache.name} for {symbol} in {elapsed:.2f}s. Expires in {ttl_minutes} minutes.")
-            self.active_cache_id = cache.name
+            self.active_cache_resource_name = cache.name
             return cache.name
             
         except Exception as e:
@@ -114,13 +114,13 @@ class GeminiCacheManager:
 
     def delete_market_cache(self) -> bool:
         """Stateful cleanup: deletes the last created session cache if active."""
-        if not self.active_cache_id:
+        if not self.active_cache_resource_name:
             logger.debug("CacheManager: No active market cache to purge.")
             return True
         
-        success = self.delete_cache(self.active_cache_id)
+        success = self.delete_cache(self.active_cache_resource_name)
         if success:
-            self.active_cache_id = None
+            self.active_cache_resource_name = None
         return success
 
     def list_caches(self) -> List[types.CachedContent]:

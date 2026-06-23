@@ -163,7 +163,7 @@ class EvolverAgent(BaseAgent):
         Keeps the decision, FULL debate history, and performance metrics, but removes 
         the raw observation data which is often redundant for global strategy evolution.
         
-        v8.0: Debate detail PRESERVED — Evolver needs to understand WHY a plan was
+        Debate detail PRESERVED — Evolver needs to understand WHY a plan was
         rejected/approved to identify logical evolution patterns. Only the heavy
         observation topography is pruned.
         """

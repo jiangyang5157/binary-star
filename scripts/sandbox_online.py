@@ -18,7 +18,7 @@ from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Online Shadow Sandbox (v6.12)")
+    parser = argparse.ArgumentParser(description="Singularity Online Shadow Sandbox")
     parser.add_argument("--file", "-f", required=True, help="Path to the evolution proposal JSON file")
     add_data_path_argument(parser, required=True)
     
@@ -95,7 +95,7 @@ def main():
     
     # 6. Save Detailed Sandbox Result
     evolver_at = metadata["evolver_at"]
-    # v6.12: Unified forensic timestamp conversion (ISO -> YYYYMMDD_HHMMSS)
+    # Unified forensic timestamp conversion (ISO -> YYYYMMDD_HHMMSS)
     ts_compact = evolver_at.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
     
     sandbox_id = f"{symbol}_evolution_sandbox_{ts_compact}"
@@ -103,7 +103,7 @@ def main():
     save_json(validation, sandbox_file)
     
     # 8. Summary & Routing
-    # v6.12: Simplified Selection Rule - New logic is accepted if IMPROVED > BROKEN (Net Improvement)
+    # Simplified Selection Rule - New logic is accepted if IMPROVED > BROKEN (Net Improvement)
     
     accepted_cases = validation.get('accepted_cases', [])
     rejected_cases = validation.get('rejected_cases', [])

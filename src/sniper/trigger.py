@@ -56,13 +56,13 @@ class SniperTrigger:
 
         # 1. Evaluate DNA Traps — score all three, return the strongest hit
         # CHAOS_MUTE (Extreme Volatility Protection)
-        vol = current_metrics['price_dynamics']['volatility_intensity_index']
-        if vol > self.regime_cfg['volatility']['volatility_extreme_ratio']:
+        volatility_ii = current_metrics['price_dynamics']['volatility_intensity_index']
+        if volatility_ii > self.regime_cfg['volatility']['volatility_extreme_ratio']:
             if self.last_trigger_time:
                 elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
                 chaos_mult = self.sniper_cfg['cooldown']['chaos_cooldown_multiplier']
                 if elapsed < (self.cooldown_minutes * chaos_mult):
-                    return False, None, f"CHAOS_MUTE (Extreme Volatility: {vol:.2f} | Cooldown x{chaos_mult})"
+                    return False, None, f"CHAOS_MUTE (Extreme Volatility: {volatility_ii:.2f} | Cooldown x{chaos_mult})"
 
         checks = [
             (self._check_type_a, "TYPE_A (Breakout)"),
@@ -108,51 +108,51 @@ class SniperTrigger:
 
     def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
         """TYPE_A (Breakout): volatility expansion + volume surge, or extreme physical squeeze."""
-        vol = curr['price_dynamics']['volatility_intensity_index']
-        part = curr['market_regime']['volume_participation_ratio']
-        squeeze = curr['market_regime']['squeeze_factor']
+        volatility_intensity_index = curr['price_dynamics']['volatility_intensity_index']
+        volume_participation_ratio = curr['market_regime']['volume_participation_ratio']
+        squeeze_factor = curr['market_regime']['squeeze_factor']
 
         # 1. Volatility Expansion + Volume Surge
-        vol_threshold = self.regime_cfg['volatility']['volatility_baseline_ratio']
-        is_vol_hit = vol > vol_threshold
+        volatility_baseline_ratio = self.regime_cfg['volatility']['volatility_baseline_ratio']
+        is_volatility_hit = volatility_intensity_index > volatility_baseline_ratio
 
-        part_threshold = self.regime_cfg['volume']['volume_participation_threshold']
-        is_volume_hit = part > part_threshold
+        volume_participation_threshold = self.regime_cfg['volume']['volume_participation_threshold']
+        is_volume_hit = volume_participation_ratio > volume_participation_threshold
 
-        # Confirmation gate: require vol to be NEWLY expanding (not just sustained)
-        if is_vol_hit and is_volume_hit and prev:
-            prev_vol = prev['price_dynamics']['volatility_intensity_index']
-            growth_ratio = self.sniper_cfg['probes'].get('vol_growth_significance_ratio', 1.03)
-            if vol <= prev_vol * growth_ratio:
-                is_vol_hit = False  # vol is elevated but not accelerating — skip
+        # Confirmation gate: require volatility to be NEWLY expanding (not just sustained)
+        if is_volatility_hit and is_volume_hit and prev:
+            prev_volatility_intensity_index = prev['price_dynamics']['volatility_intensity_index']
+            volatility_growth_significance_ratio = self.sniper_cfg['probes'].get('volatility_growth_significance_ratio', 1.03)
+            if volatility_intensity_index <= prev_volatility_intensity_index * volatility_growth_significance_ratio:
+                is_volatility_hit = False  # volatility is elevated but not accelerating — skip
 
         # 2. Physical Squeeze
-        squeeze_mult = self.sniper_cfg['probes']['squeeze_trigger_multiplier']
-        squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold'] * squeeze_mult
-        is_squeeze_hit = squeeze < squeeze_threshold
+        squeeze_trigger_multiplier = self.sniper_cfg['probes']['squeeze_trigger_multiplier']
+        squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold'] * squeeze_trigger_multiplier
+        is_squeeze_hit = squeeze_factor < squeeze_threshold
 
         # Confirmation gate: require squeeze to be INTENSIFYING (getting tighter)
         if is_squeeze_hit and prev:
-            prev_squeeze = prev['market_regime']['squeeze_factor']
-            if squeeze >= prev_squeeze * 0.98:  # less than 2% tighter
+            prev_squeeze_factor = prev['market_regime']['squeeze_factor']
+            if squeeze_factor >= prev_squeeze_factor * 0.98:  # less than 2% tighter
                 is_squeeze_hit = False
 
         # Signal strength for priority scoring
-        strength = 0
-        if is_vol_hit and is_volume_hit:
-            strength = max(1, min(10, int((vol / max(vol_threshold, 0.01)) * 5)))
+        volatility_strength = 0
+        if is_volatility_hit and is_volume_hit:
+            volatility_strength = max(1, min(10, int((volatility_intensity_index / max(volatility_baseline_ratio, 0.01)) * 5)))
         elif is_squeeze_hit:
-            strength = max(1, min(10, int((squeeze_threshold / max(squeeze, 0.001)) * 4)))
+            volatility_strength = max(1, min(10, int((squeeze_threshold / max(squeeze_factor, 0.001)) * 4)))
 
-        if (is_vol_hit and is_volume_hit) or is_squeeze_hit:
-            reason = f"[strength={strength}/10] TYPE_A 势能破局: "
-            if is_vol_hit and is_volume_hit:
-                reason += f"[暴走] Vol={vol:.2f}(>{vol_threshold:.2f}) | Vol_Ratio={part:.2f}"
+        if (is_volatility_hit and is_volume_hit) or is_squeeze_hit:
+            reason = f"[strength={volatility_strength}/10] TYPE_A 势能破局: "
+            if is_volatility_hit and is_volume_hit:
+                reason += f"[暴走] Volatility={volatility_intensity_index:.2f}(>{volatility_baseline_ratio:.2f}) | Vol_Ratio={volume_participation_ratio:.2f}"
             elif is_squeeze_hit:
                 now = datetime.now(timezone.utc)
                 if not self._check_state_lock("SQUEEZE_STATE", now):
                     return False, None
-                reason += f"[挤压] Squeeze={squeeze:.2f}(<{squeeze_threshold:.2f}) | Multiplier={squeeze_mult}"
+                reason += f"[挤压] Squeeze={squeeze_factor:.2f}(<{squeeze_threshold:.2f}) | Multiplier={squeeze_trigger_multiplier}"
             return True, reason
 
         return False, None

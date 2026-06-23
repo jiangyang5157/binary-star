@@ -479,7 +479,7 @@ class BinaryStarOrchestrator:
                 symbol=symbol,
                 temperature=self.critic_config.model_temperature,
                 agent_name="Session_Synthesis",
-                cache_id=cache_resource_name,
+                cache_resource_name=cache_resource_name,
                 tools=tools,
                 debate_history=self.debate_loop._compress_debate_history(debate_history),
                 visual_parts=visual_parts,
@@ -504,7 +504,7 @@ class BinaryStarOrchestrator:
     def _cleanup_cache(self) -> None:
         """Proactively purge the session context cache."""
         try:
-            if self.cache_manager is not None and self.enable_context_cache and self.cache_manager.active_cache_id:
+            if self.cache_manager is not None and self.enable_context_cache and self.cache_manager.active_cache_resource_name:
                 self.cache_manager.delete_market_cache()
         except Exception as e:
             logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")

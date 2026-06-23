@@ -57,7 +57,7 @@ def parse_iso_string_to_utc(iso_timestamp: str) -> datetime:
 
 def to_iso_zulu(dt_obj: datetime) -> str:
     """Returns a clean ISO-8601 string with 'Z' suffix (Zulu time).
-    Hardened v6.12: Strips microseconds for terminal consistency.
+    Strips microseconds for terminal consistency.
     """
     if dt_obj.tzinfo is None:
         dt_obj = dt_obj.replace(tzinfo=timezone.utc)

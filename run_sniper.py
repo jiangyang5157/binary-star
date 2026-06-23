@@ -46,7 +46,7 @@ class SniperDaemon:
         raw_symbols = getattr(args, 'symbol', '') or ''
         self.symbols = resolve_symbols(raw_symbols)
 
-        # 0. Global Forensic Logging Initialization (Standardized v7.1)
+        # 0. Global Forensic Logging Initialization
         from src.utils.path_utils import resolve_project_root
         session_log_path = os.path.join(resolve_project_root(), args.path, "sniper.log")
         setup_logger("", log_level=logging.INFO, log_file=session_log_path,

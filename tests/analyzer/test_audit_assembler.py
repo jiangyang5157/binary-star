@@ -92,7 +92,6 @@ class TestAuditAssembler(unittest.TestCase):
             }
         }
         
-        # Consistent with v6.16 Schema
         outcome = {
             "market_forensics": {
                 "window_volatility_intensity_atr": 3.0,

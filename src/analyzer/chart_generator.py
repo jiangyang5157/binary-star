@@ -54,7 +54,7 @@ class TechnicalFeatureExtractor:
     def detect_trendlines(df: pd.DataFrame, peak_count: int, window: int) -> List[Dict[str, Any]]:
         """
         Detects fractal highs and lows to generate trendline segments.
-        v8.7: peak_count is now configurable from global_config.
+        peak_count is now configurable from global_config.
         """
         try:
             # Detect local peaks (highs) and valleys (lows)
@@ -273,7 +273,7 @@ class ChartVisualRenderer:
                         ax.set_ylabel('')
                         ax.yaxis.set_label_position('right')
                         
-                        # v12.1/2 Anti-Overlap: Lock density to 3 bins
+                        # Anti-Overlap: Lock density to 3 bins
                         ax.yaxis.set_major_locator(MaxNLocator(nbins=3, prune='upper', integer=True))
                         
                         # Logic: Surgical targeting to only affect data bars...
@@ -300,9 +300,9 @@ class ChartVisualRenderer:
                 main_ax.axhline(
                     y=current_price, 
                     color=self.config.current_price_color,      # Configurable via global_config.yaml
-                    linestyle='--',                             # Hardcoded v6.81
+                    linestyle='--',                             # Hardcoded
                     linewidth=0.5,                              # Increased for visibility
-                    alpha=0.8,                                  # Increased v11.7
+                    alpha=0.8,                                  # Increased
                     zorder=11                                   # Above everything
                 )
 
