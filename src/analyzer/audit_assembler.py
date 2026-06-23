@@ -34,11 +34,11 @@ class AuditReviewConfig:
             catastrophic_miss_atr_threshold=float(audit_node['catastrophic_miss_atr_threshold']),
             unfilled_proximity_atr_limit=float(audit_node['unfilled_proximity_atr_limit']),
             missed_opportunity_atr_threshold=float(audit_node['missed_opportunity_atr_threshold']),
-            mae_threshold_pinpoint=float(audit_node['mae_threshold_pinpoint']),
-            mae_threshold_standard=float(audit_node['mae_threshold_standard']),
-            mae_threshold_luck=float(audit_node['mae_threshold_luck']),
-            base_slippage_bps=float(audit_node['base_slippage_bps']),
-            max_slippage_bps=float(audit_node['max_slippage_bps'])
+            mae_threshold_pinpoint=float(audit_node['mae']['mae_threshold_pinpoint']),
+            mae_threshold_standard=float(audit_node['mae']['mae_threshold_standard']),
+            mae_threshold_luck=float(audit_node['mae']['mae_threshold_luck']),
+            base_slippage_bps=float(audit_node['slippage']['base_slippage_bps']),
+            max_slippage_bps=float(audit_node['slippage']['max_slippage_bps'])
         )
 
 class AuditAssembler:
