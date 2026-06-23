@@ -77,8 +77,20 @@ class EvolverSandbox:
                             curr = curr[k]
                     
                     if path_valid:
-                        # Update the final target
-                        curr[target] = value
+                        if target in curr:
+                            # Direct match
+                            curr[target] = value
+                        else:
+                            # Fallback: search one level into sub-groups
+                            found = False
+                            for child_key, child_val in curr.items():
+                                if isinstance(child_val, dict) and target in child_val:
+                                    child_val[target] = value
+                                    found = True
+                                    break
+                            if not found:
+                                # Truly new key — add at this level
+                                curr[target] = value
                         logger.info(f"Sandbox: Applied config patch: {t_path + '.' if t_path else ''}{target} = {value}")
 
         # 2. Prepare Proposed Instructions (Baseline + Patch) - IN-MEMORY ONLY
