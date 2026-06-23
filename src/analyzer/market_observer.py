@@ -204,8 +204,8 @@ class MarketObserverConfig:
         macro = sampling['macro_context']
         micro = sampling['micro_context']
 
-        min_node_gap_atr = topography['min_node_gap_atr']
-        def_struct_dist = topography['default_structural_distance_atr']
+        min_node_gap_atr = topography['structural_nodes']['min_node_gap_atr']
+        def_struct_dist = topography['sensors']['default_structural_distance_atr']
 
         volume_part_surge = regime['volume_surge_vs_ma_ratio']
         min_volume_part = regime['min_volume_participation_ratio']
@@ -234,29 +234,29 @@ class MarketObserverConfig:
             visual=load_visual_config(cfg),
 
             topo=ObserverTopographyConfig(
-                atr_period=int(topography['average_true_range_period']),
-                bb_period=int(topography['bollinger_bands_period']),
-                bb_std_dev=float(topography['bollinger_bands_std_dev']),
-                kc_period=int(topography['keltner_channels_period']),
-                kc_multiplier=float(topography['keltner_channels_multiplier']),
-                volume_ma_period=int(topography['volume_moving_average_period']),
-                max_liquidation_events_to_fetch=int(topography['max_liquidation_events_to_fetch']),
-                max_liquidation_clusters=int(topography['max_liquidation_clusters']),
-                high_volume_node_detection_threshold=float(topography['high_volume_node_detection_threshold']),
-                low_volume_node_detection_threshold=float(topography['low_volume_node_detection_threshold']),
-                max_volume_node_count=int(topography['max_volume_node_count']),
-                top_structural_node_count=int(topography['top_structural_node_count']),
+                atr_period=int(topography['indicators']['average_true_range_period']),
+                bb_period=int(topography['indicators']['bollinger_bands_period']),
+                bb_std_dev=float(topography['indicators']['bollinger_bands_std_dev']),
+                kc_period=int(topography['indicators']['keltner_channels_period']),
+                kc_multiplier=float(topography['indicators']['keltner_channels_multiplier']),
+                volume_ma_period=int(topography['indicators']['volume_moving_average_period']),
+                max_liquidation_events_to_fetch=int(topography['liquidation']['max_liquidation_events_to_fetch']),
+                max_liquidation_clusters=int(topography['liquidation']['max_liquidation_clusters']),
+                high_volume_node_detection_threshold=float(topography['structural_nodes']['high_volume_node_detection_threshold']),
+                low_volume_node_detection_threshold=float(topography['structural_nodes']['low_volume_node_detection_threshold']),
+                max_volume_node_count=int(topography['structural_nodes']['max_volume_node_count']),
+                top_structural_node_count=int(topography['structural_nodes']['top_structural_node_count']),
                 min_node_gap_atr=float(min_node_gap_atr),
                 default_structural_distance_atr=float(def_struct_dist),
-                wick_skew_lookback_candles=int(topography['wick_skew_lookback_candles']),
-                wick_skew_fallback=float(topography['wick_skew_fallback']),
+                wick_skew_lookback_candles=int(topography['sensors']['wick_skew_lookback_candles']),
+                wick_skew_fallback=float(topography['sensors']['wick_skew_fallback']),
             ),
             radar=ObserverRadarConfig(
-                long_threshold=float(regime['liq_radar_long_threshold']),
-                short_threshold=float(regime['liq_radar_short_threshold']),
-                gaussian_sigma=float(regime['liq_radar_gaussian_sigma']),
-                grid_bins=int(regime['liq_radar_grid_bins']),
-                grid_padding_atr=float(regime['liq_radar_grid_padding_atr']),
+                long_threshold=float(regime['liquidation_radar']['liq_radar_long_threshold']),
+                short_threshold=float(regime['liquidation_radar']['liq_radar_short_threshold']),
+                gaussian_sigma=float(regime['liquidation_radar']['liq_radar_gaussian_sigma']),
+                grid_bins=int(regime['liquidation_radar']['liq_radar_grid_bins']),
+                grid_padding_atr=float(regime['liquidation_radar']['liq_radar_grid_padding_atr']),
             ),
             obs_visual=ObserverVisualConfig(
                 volume_profile_smoothing_sigma=float(vp_cfg['smoothing_sigma']),
@@ -273,11 +273,11 @@ class MarketObserverConfig:
                 liq_legacy_max_alpha=float(visuals['liq_legacy_max_alpha']),
             ),
 
-            funding_rate_macro_lookback_candles=int(sampling['funding_rate_macro_lookback_candles']),
-            cvd_micro_lookback_candles=int(sampling['cvd_micro_lookback_candles']),
-            trend_intensity_macro_lookback_candles=int(sampling['trend_intensity_macro_lookback_candles']),
-            volatility_intensity_macro_lookback_candles=int(sampling['volatility_intensity_macro_lookback_candles']),
-            volume_profile_area_ratio=float(topography['volume_profile_value_area_width']),
+            funding_rate_macro_lookback_candles=int(sampling['tensors']['funding_rate_macro_lookback_candles']),
+            cvd_micro_lookback_candles=int(sampling['tensors']['cvd_micro_lookback_candles']),
+            trend_intensity_macro_lookback_candles=int(sampling['tensors']['trend_intensity_macro_lookback_candles']),
+            volatility_intensity_macro_lookback_candles=int(sampling['tensors']['volatility_intensity_macro_lookback_candles']),
+            volume_profile_area_ratio=float(topography['volume_profile']['volume_profile_value_area_width']),
             liquidation_cluster_atr_multiplier=float(visuals['liq_radar_atr_multiplier']),
             max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
         )
