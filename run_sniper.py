@@ -345,7 +345,7 @@ class SniperDaemon:
             pass  # Dashboard may not be running; silently skip
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon (Zero-Entropy Architecture)")
+    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
     parser.add_argument("--trade", nargs='?', const=True, default=False, type=float,
                         help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "
@@ -355,7 +355,6 @@ def main():
 
     args = parser.parse_args()
     
-    # Zero-Entropy Path Resolution
     if not args.path:
         args.path = "data/prod"
     

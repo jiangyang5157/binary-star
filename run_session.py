@@ -277,39 +277,27 @@ def main():
     
     # --- Mode Resolution & Parameter Validation ---
     if getattr(args, 'timestamp', None):
-        # Priority 1: Time-Machine (Single Historical Point)
         args.mode = "simulation"
-        if not args.path: args.path = "data/backtest"
-        
-        ignored = [arg for arg in ['--start', '--end', '--samples', '--sampling-mode'] if any(a.startswith(arg) for a in sys.argv)]
+        if not args.path: 
+            args.path = "data/backtest"
         logger.info(f"=== Mode Resolved: SIMULATION (One-Off Historical) ===")
         logger.info(f" => ACTION: Replaying market cross-section at historical point")
         logger.info(f" => ADOPTED: --timestamp '{args.timestamp}'")
-        if ignored: logger.warning(f" => IGNORED: {', '.join(ignored)} (Not applicable for single-point simulation)")
         logger.info(f" => ARCHIVAL: {args.path}")
-        
     elif getattr(args, 'start', None):
-        # Priority 2: Batch Backtest
         args.mode = "backtest"
         if not args.path: args.path = "data/backtest"
-        
         if args.samples is None:
-            raise SystemExit("Error: --samples is required for backtest mode. Use --samples N to specify the number of historical samples.")
-            
+            raise SystemExit("Error: --samples is required for backtest mode.")
         logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
         logger.info(f" => ACTION: Simulating multiple historical data points")
         logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples}, --sampling-mode {args.sampling_mode}")
         logger.info(f" => ARCHIVAL: {args.path}")
-        
     else:
-        # Priority 3: Live Production
         args.mode = "prod"
         if not args.path: args.path = "data/prod"
-        
-        ignored = [arg for arg in ['--end', '--samples', '--sampling-mode'] if any(a.startswith(arg) for a in sys.argv)]
         logger.info(f"=== Mode Resolved: PROD (Live Execution) ===")
         logger.info(f" => ACTION: Fetching current real-time market data")
-        if ignored: logger.warning(f" => IGNORED: {', '.join(ignored)} (Not applicable for live execution)")
         logger.info(f" => ARCHIVAL: {args.path}")
 
     print("\n") # formatting spacing before engine start

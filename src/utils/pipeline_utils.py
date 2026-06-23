@@ -259,4 +259,3 @@ def archive_strategy_result(symbol: str, timestamp, result: Any, data_root: str,
     
     save_json(result, output_file)
     return output_file
-
