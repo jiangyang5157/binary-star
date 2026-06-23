@@ -207,9 +207,9 @@ class MarketObserverConfig:
         min_node_gap_atr = topography['structural_nodes']['min_node_gap_atr']
         def_struct_dist = topography['sensors']['default_structural_distance_atr']
 
-        volume_part_surge = regime['volume_surge_vs_ma_ratio']
-        min_volume_part = regime['min_volume_participation_ratio']
-        balancing_width = regime['ranging_width_atr']
+        volume_part_surge = regime['volume']['volume_surge_vs_ma_ratio']
+        min_volume_part = regime['volume']['min_volume_participation_ratio']
+        balancing_width = regime['volatility']['ranging_width_atr']
 
         import yaml as _yaml
         from src.utils.path_utils import resolve_project_root as _root
