@@ -73,11 +73,11 @@ Entry Points (run.py + standalone run_*.py)
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator, BinaryStarConfig
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
   → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
-  → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
-  → Notifications (src/infrastructure/)  EmailNotifier
-  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar,
-                                         MathFactChecker, AuditAssembler, AuditController, ChartGenerator,
-                                         TopographyEngine, SimulationSampler
+  → Exchange (src/infrastructure/)       AbstractExchangeClient (exchange/base_client.py) → Binance (binance/client.py, margin_client.py), models (exchange/models.py)
+  → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
+  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationEstimator,
+                                         MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
+                                         TopographyEngine, SniperSampler, SpacedSampler
   → Config (src/config/)                 Sub-config dataclasses, YAML loaders, symbol resolver
 ```
 
@@ -138,5 +138,5 @@ config/
 - **`GeminiCacheManager`** (`src/infrastructure/gemini/cache_manager.py`) requires `GeminiAdapter` (only Gemini supports context caching); guarded by `self.enable_context_cache` check
 - **`run_evolution.py`** (and `run.py evolution`) must use `AIFactory.create_client()`, not raw SDK clients
 - Non-Gemini adapters return `False` for `supports_context_cache`
-- **`MathTools`** (`src/utils/math_utils.py`) — tool function declarations via `get_tool_declarations()` must stay in sync with actual implementations
+- **`get_tool_declarations()`** (`src/utils/math_utils.py`) — LLM function-calling schemas must stay in sync with actual implementations in `_MathToolsNamespace`
 - `VisualPart` is the only multimodal type in the orchestrator/agent layer — `google.genai.types` is isolated to `GeminiAdapter` and `GeminiCacheManager`

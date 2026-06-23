@@ -15,9 +15,10 @@ Entry Points (run.py + standalone run_*.py)
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
   → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
   → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
-  → Notifications (src/infrastructure/)  EmailNotifier
-  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar,
-                                         MathFactChecker, AuditAssembler, AuditController
+  → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
+  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationEstimator,
+                                         MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
+                                         TopographyEngine, SniperSampler, SpacedSampler
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders
 ```
 
@@ -155,7 +156,7 @@ Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the st
                     └──────────────┬──────────────────────┘
                                    │
                     ┌──────────────▼────────────────────┐
-                    │  Evaluate Trigger (A/B/C signals) │
+                    │  Evaluate Trigger                │
                     └──────┬──────────┬─────────────────┘
                            │          │
                     No trigger    Trigger hit
@@ -306,7 +307,7 @@ Per-symbol overrides are deep-merged at config resolution time and never touched
 ### Setup
 
 ```bash
-git clone <repo-url> && cd singularity
+git clone <repo-url> && cd crypto
 pip install -e .              # core dependencies
 pip install -e ".[dev]"       # include pytest, coverage
 ```
@@ -320,7 +321,7 @@ pip install -e .
 
 ### Configuration
 
-1. Copy `.env.example` (or create `.env`) with your API key:
+1. Create a `.env` file with your API key:
    ```bash
    GEMINI_API_KEY="your-key-here"    # or DEEPSEEK_API_KEY / QWEN_API_KEY
    ```
