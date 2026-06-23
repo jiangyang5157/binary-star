@@ -165,6 +165,10 @@ class SniperDaemon:
                         if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                             self._attempt_trade_execution(sym, session_result)
 
+                        # Refresh heartbeat so UI sees order/position changes immediately
+                        if self.trade_enabled:
+                            self._write_guardian_status()
+
                         logger.info(f"SniperDaemon [{sym}]: Session cycle complete. Returning to pulse monitoring.")
                     elif has_active:
                         logger.info(
