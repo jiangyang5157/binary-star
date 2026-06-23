@@ -16,15 +16,11 @@
   "users": {
     "42": {
       "role": "admin",
-      "label": "Yang Jiang"
+      "label": "Yang J"
     },
-    "123": {
+    "mu": {
       "role": "operator",
-      "label": "Bob Yo"
-    },
-    "123456": {
-      "role": "customer",
-      "label": "thisis user name"
+      "label": "Mu C"
     }
   }
 }
