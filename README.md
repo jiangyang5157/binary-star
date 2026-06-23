@@ -156,7 +156,7 @@ Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the st
                     └──────────────┬──────────────────────┘
                                    │
                     ┌──────────────▼────────────────────┐
-                    │  Evaluate Trigger                │
+                    │  Evaluate Trigger                 │
                     └──────┬──────────┬─────────────────┘
                            │          │
                     No trigger    Trigger hit
