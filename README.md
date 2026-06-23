@@ -331,7 +331,7 @@ pip install -e .
      active_provider: "gemini"  # gemini | deepseek | qwen
    ```
 
-3. Review `config/strategy_config.yaml` for trading parameters, regime thresholds, and analysis windows.
+3. Review `config/strategy_config.yaml` for trading parameters and `config/symbol_config.yaml` for per-instrument precision and overrides.
 
 ---
 
@@ -451,7 +451,15 @@ config/
 - `src/config/loader.py` — builds sub-configs from YAML dicts
 - `src/config/symbol_resolver.py` — per-symbol config resolution, symbol-aware patching, startup validation
 
-**Config resolution:** base config + `symbol_config.yaml → <SYMBOL>.overrides` → resolved config. Symbol overrides win on conflict. Per-symbol overrides can target any config section (`regime_parameters`, `sniper`, etc.) and the override structure mirrors the original config exactly.
+**Config resolution** (every access path — session, sniper, evolution):
+
+1. Load base configs (`strategy_config.yaml`, `global_config.yaml`)
+2. Load `symbol_config.yaml → <SYMBOL>.overrides`
+3. Deep-merge: base + overrides → resolved config (symbol overrides win)
+
+Overrides can target any config section (`regime_parameters`, `sniper`, etc.) and the override structure mirrors the original config exactly. See the Multi-Symbol Architecture section above for an example.
+
+**Evolution patching:** `--symbol XAUT` patches `symbol_config.yaml` overrides first, then falls back to `strategy_config.yaml`. Per-symbol overrides in `symbol_config.yaml` are never touched by evolution — they're fixed operational tuning.
 
 ---
 

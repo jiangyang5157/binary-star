@@ -78,7 +78,7 @@ Entry Points (run.py + standalone run_*.py)
   → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar,
                                          MathFactChecker, AuditAssembler, AuditController, ChartGenerator,
                                          TopographyEngine, SimulationSampler
-  → Config (src/config/)                 Sub-config dataclasses + YAML loaders
+  → Config (src/config/)                 Sub-config dataclasses, YAML loaders, symbol resolver
 ```
 
 ### AI backend (key design pattern)
@@ -119,13 +119,13 @@ config/
 
 - `src/config/sub_configs.py` — `RegimeConfig`, `TemporalConfig`, `RiskConfig`, `AuditConfig`, `VisualConfig` (frozen dataclasses)
 - `src/config/loader.py` — builds sub-configs from YAML dicts
-- `src/config/symbol_resolver.py` — per-symbol config resolution, symbol-aware patching, startup validation
+- `src/config/symbol_resolver.py` — `resolve_config(base, symbol)` for per-symbol overrides; `patch_config(symbol, ...)` for symbol-aware evolution patching; `validate_symbol_configs()` for startup checks
 - `src/agent/binary_star_orchestrator.py` — `BinaryStarConfig.from_dicts()` factory consolidates all config resolution
 - `src/analyzer/market_observer.py` — `ObserverTopographyConfig`, `ObserverRadarConfig`, `ObserverVisualConfig`
 
-**Config resolution order (every access path):** base config + `symbol_config.yaml → <SYMBOL>.overrides` → resolved config. Symbol overrides win on conflict.
+**Config resolution order (every access path):** base config + `symbol_config.yaml → <SYMBOL>.overrides` → resolved config. Symbol overrides win on conflict. Override structure mirrors the original config structure exactly.
 
-**Evolution patching:** `patch_config(symbol, ...)` tries `symbol_config.yaml` overrides first, then falls back to `strategy_config.yaml`. Pass `--symbol` to `run.py patch` for symbol-aware patching.
+**Evolution patching:** `patch_config(symbol, ...)` tries `symbol_config.yaml` overrides first, then falls back to `strategy_config.yaml`. `symbol_config.yaml` is NOT evolved — it contains fixed per-symbol tuning. Pass `--symbol` to `run.py patch` for symbol-aware patching.
 
 ### Error handling
 
@@ -140,5 +140,3 @@ config/
 - Non-Gemini adapters return `False` for `supports_context_cache`
 - **`MathTools`** (`src/utils/math_utils.py`) — tool function declarations via `get_tool_declarations()` must stay in sync with actual implementations
 - `VisualPart` is the only multimodal type in the orchestrator/agent layer — `google.genai.types` is isolated to `GeminiAdapter` and `GeminiCacheManager`
-- **`symbol_resolver.resolve_config(base, symbol)`** — must be called before any config reaches an agent; overrides are deep-merged copies, never mutating originals
-- **`symbol_config.yaml`** is NOT evolved — it contains fixed per-symbol tuning. Evolution patches `strategy_config.yaml` defaults. `--symbol` flag on `run.py patch` writes to overrides first
