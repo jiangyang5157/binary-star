@@ -89,12 +89,12 @@ sniper:
     # [Tick-Scale Probes]: Micro-sensitivity for intra-pulse CVD swings.
     # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
     # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC.
-    cvd_divergence_tick_delta: 0.22     # TYPE_B (CVD 背离)
-    cvd_impulse_tick_delta: 0.35        # TYPE_B (CVD 强度)
+    cvd_divergence_tick_delta: 0.22     # FLOW_ASYMMETRY (CVD 背离)
+    cvd_impulse_tick_delta: 0.35        # FLOW_ASYMMETRY (CVD 强度)
     # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
     # 1.0 = any increase, 1.1 = 10% growth required.
     cvd_growth_significance_ratio: 1.4
-    # [Damping]: Minimum growth in volatility intensity between pulses to re-trigger TYPE_A (Breakout).
+    # [Damping]: Minimum growth in volatility intensity between pulses to re-trigger ENERGY_BUILDUP.
     # Prevents sustained high-volatility from re-firing every cooldown. 1.03 = 3% growth required.
     volatility_growth_significance_ratio: 1.03
     # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
@@ -103,7 +103,7 @@ sniper:
 
   # --- Structural Proximity ---
   proximity:
-    # Direct ATR-distance thresholds for TYPE_C triggers.
+    # Direct ATR-distance thresholds for STRUCTURAL_APPROACH triggers.
     # Price must be within this many ATR units of the structure to fire.
     # NOTE: ATR-normalized thresholds are instrument-agnostic — kept at original values.
     proximity_vah_val_atr: 0.70   # VAH/VAL boundary test

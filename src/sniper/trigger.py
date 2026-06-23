@@ -65,9 +65,9 @@ class SniperTrigger:
                     return False, None, f"CHAOS_MUTE (Extreme Volatility: {volatility_ii:.2f} | Cooldown x{chaos_mult})"
 
         checks = [
-            (self._check_type_a, "TYPE_A (Breakout)"),
-            (self._check_type_b, "TYPE_B (Asymmetry)"),
-            (self._check_type_c, "TYPE_C (Structural)"),
+            (self._check_energy_buildup, "ENERGY_BUILDUP"),
+            (self._check_flow_asymmetry, "FLOW_ASYMMETRY"),
+            (self._check_structural_approach, "STRUCTURAL_APPROACH"),
         ]
 
         # Score all types, pick the strongest hit
@@ -106,8 +106,8 @@ class SniperTrigger:
         self.state_locks[lock_key] = now
         return True
 
-    def _check_type_a(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """TYPE_A (Breakout): volatility expansion + volume surge, or extreme physical squeeze."""
+    def _check_energy_buildup(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
+        """Detect energy buildup: volatility expansion + volume surge, or extreme physical squeeze."""
         volatility_intensity_index = curr['price_dynamics']['volatility_intensity_index']
         volume_participation_ratio = curr['market_regime']['volume_participation_ratio']
         squeeze_factor = curr['market_regime']['squeeze_factor']
@@ -145,7 +145,7 @@ class SniperTrigger:
             volatility_strength = max(1, min(10, int((squeeze_threshold / max(squeeze_factor, 0.001)) * 4)))
 
         if (is_volatility_hit and is_volume_hit) or is_squeeze_hit:
-            reason = f"[strength={volatility_strength}/10] TYPE_A 势能破局: "
+            reason = f"[strength={volatility_strength}/10] ENERGY_BUILDUP 势能破局: "
             if is_volatility_hit and is_volume_hit:
                 reason += f"[暴走] Volatility={volatility_intensity_index:.2f}(>{volatility_baseline_ratio:.2f}) | Vol_Ratio={volume_participation_ratio:.2f}"
             elif is_squeeze_hit:
@@ -157,7 +157,7 @@ class SniperTrigger:
 
         return False, None
 
-    # ── TYPE_B sub-strategies (Priority 1 → 4) ──────────────────────────
+    # ── FLOW_ASYMMETRY sub-strategies (Priority 1 → 4) ─────────────────
 
     def _check_cvd_divergence(self, curr: Dict[str, Any], prev: Dict[str, Any],
                                cvd: float, prev_cvd: float) -> Tuple[bool, Optional[str]]:
@@ -175,7 +175,7 @@ class SniperTrigger:
         strength = max(1, min(10, int((cvd_delta_abs / max(threshold, 0.001)) * 5)))
         trend = "顶部派发 [警惕见顶回撤]" if price_delta > 0 else "底部吸筹 [关注止跌反弹]"
         return True, (
-            f"[strength={strength}/10] TYPE_B CVD 超速背离 [量价背离] "
+            f"[strength={strength}/10] FLOW_ASYMMETRY CVD 超速背离 [量价背离] "
             f"(价格变动:{price_delta:.1f}, CVD变动:{cvd_delta_raw:.3f} | 阈值: {threshold}) | "
             f"**趋势推演: {trend}**"
         )
@@ -190,7 +190,7 @@ class SniperTrigger:
         strength = max(1, min(10, int((cvd_delta_abs / max(threshold, 0.001)) * 4)))
         trend = "多头大单突袭" if cvd_delta_raw > 0 else "空头大单压制"
         return True, (
-            f"[strength={strength}/10] TYPE_B CVD 异常脉冲 [大单突袭] "
+            f"[strength={strength}/10] FLOW_ASYMMETRY CVD 异常脉冲 [大单突袭] "
             f"(变动值: {cvd_delta_abs:.3f} | 阈值: {threshold}) | **趋势推演: {trend}**"
         )
 
@@ -211,7 +211,7 @@ class SniperTrigger:
         micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
         trend = "激进多头主导，短期持续看涨" if cvd > 0 else "激进空头主导，短期持续看跌"
         return True, (
-            f"[strength={strength}/10] TYPE_B 机构级 CVD 异常流向 [绝对动量突破] "
+            f"[strength={strength}/10] FLOW_ASYMMETRY 机构级 CVD 异常流向 [绝对动量突破] "
             f"(强度: {cvd:.3f} | 累计差值: {cvd_vol_delta:.1f} | 成交量: {cvd_vol:.1f} | "
             f"窗口: {cvd_lookback_candles}k @ {micro_int} | 阈值: {cvd_threshold:.2f}) | "
             f"**趋势推演: {trend}**"
@@ -231,7 +231,7 @@ class SniperTrigger:
         )))
         trend = "多头拥挤，防范爆多踩踏风险" if ls > 1.0 else "空头拥挤，防范空头回补/空头挤压爆发"
         return True, (
-            f"[strength={strength}/10] TYPE_B 零售情绪过度扩张 [反向指标提醒] "
+            f"[strength={strength}/10] FLOW_ASYMMETRY 零售情绪过度扩张 [反向指标提醒] "
             f"(多空比: {ls:.2f}) | **趋势推演: {trend}**"
         )
 
@@ -248,12 +248,12 @@ class SniperTrigger:
         )))
         trend = "多头过热，警惕力竭回撤" if funding > 0 else "空头过热，警惕力竭反弹"
         return True, (
-            f"[strength={strength}/10] TYPE_B 资金费率极端值 [情绪偏振检测] "
+            f"[strength={strength}/10] FLOW_ASYMMETRY 资金费率极端值 [情绪偏振检测] "
             f"(费率: {funding:.5f}) | **趋势推演: {trend}**"
         )
 
-    def _check_type_b(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """TYPE_B (Asymmetry): evaluate sub-strategies in priority order."""
+    def _check_flow_asymmetry(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
+        """Detect flow asymmetry: evaluate sub-strategies in priority order."""
         sent = curr.get('sentiment_signals', {})
         cvd = sent.get('cvd_intensity_ratio', 0.0)
         cvd_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
@@ -273,8 +273,8 @@ class SniperTrigger:
 
         return self._check_funding_extreme(sent)
 
-    def _check_type_c(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """TYPE_C (Structural): boundary collision, POC magnet, or liquidation magnet"""
+    def _check_structural_approach(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
+        """Detect structural approach: boundary collision, POC magnet, or liquidation magnet."""
         now = datetime.now(timezone.utc)
         topo = curr['volume_profile']
         atr = curr['price_dynamics']['atr_macro']
@@ -316,7 +316,7 @@ class SniperTrigger:
                     f"测试 {nearest_boundary} 关键支撑，若放量跌破则下方空间打开"
                 )
                 return True, (
-                    f"[strength={strength}/10] TYPE_C 携量撞墙 [{direction_note}] "
+                    f"[strength={strength}/10] STRUCTURAL_APPROACH 携量撞墙 [{direction_note}] "
                     f"距离 {nearest_boundary}={nearest_dist:.2f} ATR (阈值: {vah_val_threshold:.2f}) | "
                     f"**趋势推演: {trend}**"
                 )
@@ -330,7 +330,7 @@ class SniperTrigger:
             elif self._check_state_lock("POC_MAGNET", now):
                 strength = max(1, min(10, int((poc_trigger_threshold / max(dist_poc, 0.01)) * 3)))
                 return True, (
-                    f"[strength={strength}/10] TYPE_C POC 磁吸/回踩 [引力回归测试] "
+                    f"[strength={strength}/10] STRUCTURAL_APPROACH POC 磁吸/回踩 [引力回归测试] "
                     f"距离 POC={dist_poc:.2f} ATR (阈值: {poc_trigger_threshold:.2f}) | "
                     f"**趋势推演: 引力回归中，价格倾向于在成交最密集区域震荡或企稳**"
                 )
@@ -348,7 +348,7 @@ class SniperTrigger:
                     if self._check_state_lock(f"LONG_LIQ_{int(p/100)*100}", now):
                         strength = max(1, min(10, int((liq_trigger_threshold / max(dist_atr, 0.01)) * 3)))
                         return True, (
-                            f"[strength={strength}/10] TYPE_C 多头爆仓磁吸 [支撑位测试] "
+                            f"[strength={strength}/10] STRUCTURAL_APPROACH 多头爆仓磁吸 [支撑位测试] "
                             f"价格={p:.2f}, 距离={dist_atr:.2f} ATR (阈值: {liq_trigger_threshold:.2f}) | "
                             f"**趋势推演: 多头清算磁吸，价格大概率下探以清除多头流动性点位**"
                         )
@@ -363,7 +363,7 @@ class SniperTrigger:
                     if self._check_state_lock(f"SHORT_LIQ_{int(p/100)*100}", now):
                         strength = max(1, min(10, int((liq_trigger_threshold / max(dist_atr, 0.01)) * 3)))
                         return True, (
-                            f"[strength={strength}/10] TYPE_C 空头爆仓磁吸 [挤压位测试] "
+                            f"[strength={strength}/10] STRUCTURAL_APPROACH 空头爆仓磁吸 [挤压位测试] "
                             f"价格={p:.2f}, 距离={dist_atr:.2f} ATR (阈值: {liq_trigger_threshold:.2f}) | "
                             f"**趋势推演: 空头清算磁吸，价格大概率上攻以清除空头流动性点位**"
                         )

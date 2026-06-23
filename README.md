@@ -124,15 +124,15 @@ Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the st
 
 | Type | Sub-Type | Condition | Key Gate |
 |------|----------|-----------|----------|
-| **TYPE_A** (Breakout) | Volatility Expansion + Volume Surge | Vol > 1.25× baseline **and** Volume Participation > 1.5× | Vol must be **accelerating** (>3% pulse-over-pulse growth), not just sustained |
-| **TYPE_A** (Breakout) | Physical Squeeze | Squeeze Factor < 0.75 | Squeeze must be **intensifying** (>2% tighter); 6h state lock |
-| **TYPE_B** (Asymmetry) | CVD Divergence | Price↑ + CVD↓ (distribution) or Price↓ + CVD↑ (accumulation), delta > 0.20 | Requires previous-pulse data |
-| **TYPE_B** (Asymmetry) | CVD Impulse | Single large taker order, delta > 0.30 | Large trader raid detection |
-| **TYPE_B** (Asymmetry) | CVD Absolute Momentum | CVD intensity > 0.1 **and** growing > 1.4× | Growth-gated re-trigger |
-| **TYPE_B** (Asymmetry) | Retail Sentiment Extreme | L/S ratio > 1.5 or < 0.6; Funding > 0.0005 | 6h state lock per key |
-| **TYPE_C** (Structural) | VAH/VAL Boundary Collision | Price within 0.70 ATR of VAH/VAL + Volume Participation > 1.0× | Must be **approaching** the boundary |
-| **TYPE_C** (Structural) | POC Magnet | Price within 0.50 ATR of POC | Must be **approaching** POC |
-| **TYPE_C** (Structural) | Liquidation Cluster Magnet | Price within 0.40 ATR of long/short liquidation clusters | Long liq: price must be **falling**; Short liq: price must be **rising** |
+| **ENERGY_BUILDUP** | Volatility Expansion + Volume Surge | Volatility > 1.25× baseline **and** Volume Participation > 1.5× | Volatility must be **accelerating** (>3% pulse-over-pulse growth), not just sustained |
+| **ENERGY_BUILDUP** | Physical Squeeze | Squeeze Factor < 0.75 | Squeeze must be **intensifying** (>2% tighter); 6h state lock |
+| **FLOW_ASYMMETRY** | CVD Divergence | Price↑ + CVD↓ (distribution) or Price↓ + CVD↑ (accumulation), delta > 0.20 | Requires previous-pulse data |
+| **FLOW_ASYMMETRY** | CVD Impulse | Single large taker order, delta > 0.30 | Large trader raid detection |
+| **FLOW_ASYMMETRY** | CVD Absolute Momentum | CVD intensity > 0.1 **and** growing > 1.4× | Growth-gated re-trigger |
+| **FLOW_ASYMMETRY** | Retail Sentiment Extreme | L/S ratio > 1.5 or < 0.6; Funding > 0.0005 | 6h state lock per key |
+| **STRUCTURAL_APPROACH** | VAH/VAL Boundary Collision | Price within 0.70 ATR of VAH/VAL + Volume Participation > 1.0× | Must be **approaching** the boundary |
+| **STRUCTURAL_APPROACH** | POC Magnet | Price within 0.50 ATR of POC | Must be **approaching** POC |
+| **STRUCTURAL_APPROACH** | Liquidation Cluster Magnet | Price within 0.40 ATR of long/short liquidation clusters | Long liq: price must be **falling**; Short liq: price must be **rising** |
 
 **Global gates** (evaluated before any signal):
 - **Cooldown**: 45 min after last trigger → `GLOBAL_COOLDOWN`
