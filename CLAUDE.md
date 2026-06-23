@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run all tests (107 tests)
+# Run all tests (150 tests)
 python -m pytest tests/ -v
 
 # Run a single test file
@@ -46,8 +46,9 @@ python run.py audit -p data/backtest --file data/backtest/v26.6.23_r14/sessions/
 # Meta-evolution (strategy optimization from audit results)
 python run.py evolution -p data/prod --symbol BTC --samples 100 
 
-# Apply evolution patch
+# Apply evolution patch (symbol-aware: patches overrides first, then base config)
 python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
+python run.py patch -f data/prod/evolution/proposals/XAUTUSDT_evolution_20260101_120000.json --symbol XAUT
 
 # Start dashboard server (http://0.0.0.0:8080)
 python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
@@ -101,14 +102,30 @@ Entry Points (run.py + standalone run_*.py)
 
 ### Config system
 
-- `config/strategy_config.yaml` — trading parameters, regime thresholds, analysis windows
-- `config/global_config.yaml` — system settings, LLM provider config, visuals, sniper
-- `config/visual_config.yaml` — chart appearance, color themes, visual rendering options
-- `config/prompts/*.md` — LLM system prompts: `session.md`, `critic.md`, `evolver.md`, `binary_star.md` (sensitive system logic)
+```
+config/
+├── strategy_config.yaml    # trading parameters, regime thresholds, analysis windows (evolvable)
+├── global_config.yaml      # system settings, LLM provider config, sniper, guardian, sandbox
+├── visual_config.yaml      # chart appearance, color themes, visual rendering options
+├── symbol_config.yaml      # per-instrument params (precision, overrides) — NOT evolved
+├── prompts/                # LLM system prompts (sensitive system logic)
+│   ├── binary_star.md
+│   ├── session.md
+│   ├── critic.md
+│   └── evolver.md
+└── auth/
+    └── users.json          # dashboard access control (roles + permissions)
+```
+
 - `src/config/sub_configs.py` — `RegimeConfig`, `TemporalConfig`, `RiskConfig`, `AuditConfig`, `VisualConfig` (frozen dataclasses)
 - `src/config/loader.py` — builds sub-configs from YAML dicts
+- `src/config/symbol_resolver.py` — per-symbol config resolution, symbol-aware patching, startup validation
 - `src/agent/binary_star_orchestrator.py` — `BinaryStarConfig.from_dicts()` factory consolidates all config resolution
-- `src/analyzer/market_observer.py` — `ObserverTopographyConfig`, `ObserverRadarConfig`, `ObserverVisualConfig` group the 67 original flat fields
+- `src/analyzer/market_observer.py` — `ObserverTopographyConfig`, `ObserverRadarConfig`, `ObserverVisualConfig`
+
+**Config resolution order (every access path):** base config + `symbol_config.yaml → <SYMBOL>.overrides` → resolved config. Symbol overrides win on conflict.
+
+**Evolution patching:** `patch_config(symbol, ...)` tries `symbol_config.yaml` overrides first, then falls back to `strategy_config.yaml`. Pass `--symbol` to `run.py patch` for symbol-aware patching.
 
 ### Error handling
 
@@ -123,3 +140,5 @@ Entry Points (run.py + standalone run_*.py)
 - Non-Gemini adapters return `False` for `supports_context_cache`
 - **`MathTools`** (`src/utils/math_utils.py`) — tool function declarations via `get_tool_declarations()` must stay in sync with actual implementations
 - `VisualPart` is the only multimodal type in the orchestrator/agent layer — `google.genai.types` is isolated to `GeminiAdapter` and `GeminiCacheManager`
+- **`symbol_resolver.resolve_config(base, symbol)`** — must be called before any config reaches an agent; overrides are deep-merged copies, never mutating originals
+- **`symbol_config.yaml`** is NOT evolved — it contains fixed per-symbol tuning. Evolution patches `strategy_config.yaml` defaults. `--symbol` flag on `run.py patch` writes to overrides first

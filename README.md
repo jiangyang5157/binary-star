@@ -261,18 +261,25 @@ The system supports any number of trading pairs from a single config. Symbols ar
 | **Chaos Mute** | **90 min** | Proportional to cooldown (45 × 2.0). Extends protection during vol spikes |
 | **State Lockout** | **6.0 hours** | Prevents structural/sentiment trigger spam without missing setups |
 
-**Why CVD/volatility/squeeze thresholds are instrument-agnostic:**
+**Why most thresholds are instrument-agnostic — and when they aren't:**
 
-| Parameter | Why instrument-agnostic |
-|-----------|------------------------|
-| `cvd_divergence_tick_delta` (0.20) | CVD ratio = net_taker / total_volume — already normalized. A 20% directional swing means the same thing for any instrument. |
-| `cvd_impulse_tick_delta` (0.30) | Same normalization logic. 30% single-pulse dominance is extreme regardless of book depth. |
-| `volatility_baseline_ratio` (1.25) | ATR-relative — measures expansion vs. the instrument's own baseline, not an absolute value. |
-| `squeeze_trigger_multiplier` (0.75) | Bollinger/Keltner relationship is a mathematical construct independent of price level. |
-| `proximity_vah_val_atr` (0.70) | All ATR-denominated — structural proximity is measured in the instrument's own volatility units. |
-| `cvd_intensity_threshold` (0.10) | Used by AI agents + debate loop + sniper trigger. Changing it shifts the entire reasoning pipeline's baseline for "significant flow." |
+Most parameters (CVD ratios, ATR-normalized distances, squeeze multipliers) are instrument-agnostic because they're already normalized. However, instruments with fundamentally different character (e.g., BTC's volatility vs. XAUT's calm mean-reversion) benefit from per-symbol tuning via `symbol_config.yaml`:
 
-> **Future enhancement**: Per-symbol config overrides (e.g., `sniper.BTC.cvd_divergence_tick_delta`) would allow instrument-specific tuning without duplicating config files. State (cooldowns, lockouts, trade_state) is already per-symbol in the daemon.
+```yaml
+# config/symbol_config.yaml
+XAUTUSDT:
+  precision_qty: 3
+  overrides:
+    regime_parameters:
+      trend:
+        trend_intensity_min_expansion: 0.08    # lower bar for XAUT trend detection
+    sniper:
+      probes:
+        cvd_divergence_tick_delta: 0.15        # thinner books → smaller CVD swings
+        cvd_impulse_tick_delta: 0.22
+```
+
+Per-symbol overrides are deep-merged at config resolution time and never touched by evolution — they're fixed operational tuning. Evolution patches `strategy_config.yaml` defaults only.
 
 ### Key Configuration
 
@@ -355,8 +362,9 @@ python run.py audit -p data/backtest --file data/backtest/v26.6.23_r14/sessions/
 # Meta-evolution (strategy optimization from audit results)
 python run.py evolution -p data/prod --symbol BTC --samples 100 
 
-# Apply evolution patch
+# Apply evolution patch (add --symbol for per-symbol override patching)
 python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
+python run.py patch -f data/prod/evolution/proposals/XAUTUSDT_evolution_20260101_120000.json --symbol XAUT
 
 # Start dashboard server (http://0.0.0.0:8080)
 python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
@@ -424,12 +432,26 @@ llm:
 
 ## Config System
 
-- `config/strategy_config.yaml` — trading parameters, regime thresholds, analysis windows
-- `config/global_config.yaml` — system settings, LLM provider config, visuals, sniper
-- `config/visual_config.yaml` — chart appearance, color themes, visual rendering options
-- `config/prompts/*.md` — LLM system prompts: `session.md`, `critic.md`, `evolver.md`, `binary_star.md` (sensitive system logic)
+```
+config/
+├── strategy_config.yaml    # trading parameters, regime thresholds, analysis windows (evolvable)
+├── global_config.yaml      # system settings, LLM provider config, sniper, guardian, sandbox
+├── visual_config.yaml      # chart appearance, color themes, visual rendering options
+├── symbol_config.yaml      # per-instrument params (precision, overrides) — NOT evolved
+├── prompts/                # LLM system prompts
+│   ├── binary_star.md
+│   ├── session.md
+│   ├── critic.md
+│   └── evolver.md
+└── auth/
+    └── users.json          # dashboard access control (roles + permissions)
+```
+
 - `src/config/sub_configs.py` — `RegimeConfig`, `TemporalConfig`, `RiskConfig`, `AuditConfig`, `VisualConfig` (frozen dataclasses)
 - `src/config/loader.py` — builds sub-configs from YAML dicts
+- `src/config/symbol_resolver.py` — per-symbol config resolution, symbol-aware patching, startup validation
+
+**Config resolution:** base config + `symbol_config.yaml → <SYMBOL>.overrides` → resolved config. Symbol overrides win on conflict. Per-symbol overrides can target any config section (`regime_parameters`, `sniper`, etc.) and the override structure mirrors the original config exactly.
 
 ---
 
