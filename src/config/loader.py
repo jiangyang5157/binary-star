@@ -34,9 +34,9 @@ def merge_symbol_overrides(config_dict: dict, global_config: dict, symbol: str) 
         .get(symbol, {})
         .get("strategy_overrides", {})
     )
-    if overrides:
+    if isinstance(overrides, dict) and overrides:
         for section, section_overrides in overrides.items():
-            if section in result and isinstance(result[section], dict):
+            if section in result and isinstance(result[section], dict) and isinstance(section_overrides, dict):
                 _deep_merge(result[section], section_overrides)
     return result
 
