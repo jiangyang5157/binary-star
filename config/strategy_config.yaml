@@ -160,7 +160,7 @@ regime_parameters:
   # --- Trade Risk Boundaries ---
   risk:
     # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
-    min_rr_ranging: 1.0
+    min_rr_ranging: 1
     min_rr_trending: 1.2
     # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
     chaos_rr_discount: 0.35
