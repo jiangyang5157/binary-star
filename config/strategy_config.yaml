@@ -168,18 +168,6 @@ regime_parameters:
     stop_loss_buffer_min: 1.25
     max_holding_hours: 72.0
 
-  # --- Per-Symbol Overrides ---
-  # Values here are deep-merged over the defaults above at runtime.
-  # Only include parameters that DIFFER from the symbol-agnostic baseline.
-  symbols:
-    BTCUSDT: {}
-    XAUTUSDT:
-      trend:
-        trend_intensity_threshold: 0.15
-        trend_intensity_strong: 0.25
-      volatility:
-        volatility_baseline_ratio: 1.15
-
 # ═══════════════════════════════════════════════════════════════════════════
 # TEMPORAL PHYSICS
 # ═══════════════════════════════════════════════════════════════════════════

@@ -19,19 +19,25 @@ def _deep_merge(base: dict, overrides: dict) -> None:
             base[key] = value
 
 
-def merge_symbol_overrides(config_dict: dict, symbol: str) -> dict:
-    """Deep-merge per-symbol regime overrides into a copy of the config dict.
+def merge_symbol_overrides(config_dict: dict, global_config: dict, symbol: str) -> dict:
+    """Deep-merge per-symbol strategy overrides from global_config into a copy of config_dict.
+
+    Overrides live in global_config.yaml → trade_management.<SYMBOL>.strategy_overrides.
+    Evolution patches only strategy_config.yaml, so these remain fixed per-symbol tuning.
+
     Returns a new dict; does not mutate the original.
     """
     import copy
     result = copy.deepcopy(config_dict)
-    symbols_node = (
-        result.get("regime_parameters", {})
-        .get("symbols", {})
+    overrides = (
+        global_config.get("trade_management", {})
+        .get(symbol, {})
+        .get("strategy_overrides", {})
     )
-    overrides = symbols_node.get(symbol, {}) if isinstance(symbols_node, dict) else {}
     if overrides:
-        _deep_merge(result["regime_parameters"], overrides)
+        for section, section_overrides in overrides.items():
+            if section in result and isinstance(result[section], dict):
+                _deep_merge(result[section], section_overrides)
     return result
 
 
