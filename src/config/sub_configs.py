@@ -66,7 +66,6 @@ class AuditConfig:
 class VisualConfig:
     """Chart rendering parameters."""
     volume_profile_width_ratio: float
-    volume_profile_value_area_width: float
     render_dpi: int
     up_color: str
     down_color: str

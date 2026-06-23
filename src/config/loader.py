@@ -120,7 +120,6 @@ def load_visual_config(cfg: dict[str, Any]) -> VisualConfig:
         v = yaml.safe_load(f)
     return VisualConfig(
         volume_profile_width_ratio=_f(v["volume_profile"], "width_ratio"),
-        volume_profile_value_area_width=_f(cfg["topography_parameters"]["volume_profile"], "volume_profile_value_area_width"),
         render_dpi=_i(v, "render_dpi"),
         up_color=_s(v, "up_color"),
         down_color=_s(v, "down_color"),
