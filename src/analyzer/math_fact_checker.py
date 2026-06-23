@@ -1,7 +1,7 @@
 """MathFactChecker — deterministic trade geometry verification."""
 import logging
 from typing import Any
-from src.utils.math_utils import MathTools, MathToolsNamespace
+from src.utils.math_utils import MathToolsNamespace
 from src.utils.datetime_utils import get_interval_minutes
 
 logger = logging.getLogger(__name__)
