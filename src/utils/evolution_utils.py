@@ -44,14 +44,20 @@ class ConfigPatcher:
 
             def navigate_and_update(source, path_parts, k, v):
                 if not path_parts:
-                    # We reached the target segment
+                    # Direct match at this level
                     if k in source:
                         source[k] = v
                         return 1
-                    # If key not in this segment, add it
+                    # Fallback: search one level into sub-groups (supports old flat-path patches
+                    # against the new nested YAML structure)
+                    for child_key, child_val in source.items():
+                        if isinstance(child_val, (dict, collections.abc.Mapping)) and k in child_val:
+                            child_val[k] = v
+                            return 1
+                    # Truly new key — add at this level
                     source[k] = v
                     return 1
-                
+
                 current_segment = path_parts[0]
                 if current_segment in source and isinstance(source[current_segment], (dict, collections.abc.Mapping)):
                     return navigate_and_update(source[current_segment], path_parts[1:], k, v)
