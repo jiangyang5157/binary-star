@@ -67,14 +67,15 @@ def main():
         
     # 4. Get Symbol Specific Config
     try:
-        tm = config["trade_management"]
-        risk_per_trade = tm["risk_per_trade"]
-        
-        if symbol not in tm:
-            print(f"Error: Symbol {symbol} not configured in trade_management.")
+        from src.config.symbol_resolver import get_symbol_trade_params, is_symbol_configured
+
+        risk_per_trade = config["trade_management"]["risk_per_trade"]
+
+        if not is_symbol_configured(symbol):
+            print(f"Error: Symbol {symbol} not configured in symbol_config.yaml.")
             sys.exit(1)
-            
-        sym_cfg = tm[symbol]
+
+        sym_cfg = get_symbol_trade_params(symbol)
         p_qty = sym_cfg["precision_qty"]
         min_qty = sym_cfg.get("min_order_qty", 0.0)
     except KeyError as e:

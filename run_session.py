@@ -44,9 +44,10 @@ class SessionEngine:
         self.config = load_config()
         self.global_cfg = load_global_config()
 
-        # Apply per-symbol regime overrides (XAUTUSDT vs BTCUSDT baseline)
-        from src.config.loader import merge_symbol_overrides
-        self.config, self.global_cfg = merge_symbol_overrides(self.config, self.global_cfg, symbol)
+        # Apply per-symbol config overrides (XAUTUSDT vs BTCUSDT baseline)
+        from src.config.symbol_resolver import resolve_config
+        self.config = resolve_config(self.config, symbol)
+        self.global_cfg = resolve_config(self.global_cfg, symbol)
         
         # Resolve API key based on active provider (decoupled)
         from src.utils.pipeline_utils import resolve_api_key

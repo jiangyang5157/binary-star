@@ -17,42 +17,57 @@ from src.utils.logger_utils import setup_logger
 def main():
     parser = argparse.ArgumentParser(description="Singularity Physical Evolution Synchronizer (v6.1)")
     parser.add_argument("--file", "-f", required=True, help="Path to the validated evolution proposal JSON")
-    
+    parser.add_argument("--symbol", type=str, help="Trading symbol for symbol-aware patching")
+
     args = parser.parse_args()
-    
+
     # 1. Dynamically resolve project root for testing compatibility
     root = resolve_project_root()
-    
+
     # 2. Initialize Logging
     setup_logger("PatchRunner")
     logger = logging.getLogger("PatchRunner")
-    
+
     # 3. Hardcoded Physical Targets
     target_config = "config/strategy_config.yaml"
     config_abs_path = os.path.join(root, target_config)
 
+    # Resolve symbol if provided
+    symbol = None
+    if args.symbol:
+        from src.utils.symbol_utils import resolve_symbol
+        symbol = resolve_symbol(args.symbol)
+
     if not os.path.exists(args.file):
         logger.error(f"Proposal JSON NOT found: {args.file}")
         sys.exit(1)
-        
+
     proposal = load_json(args.file)
     logger.info(f"Patching: Initiating physical sync from: {os.path.basename(args.file)}...")
-    
+
     # 3. Synchronize Config Patches
     config_patches = proposal.get('config_patch', [])
-    
+
     if config_patches:
         logger.info(f"Patching: Applying {len(config_patches)} configuration changes to: {target_config}...")
         for p in config_patches:
             key = p.get('target_key')
             val = p.get('replaced_with')
             t_path = p.get('target_path', "")
-            
-            updates = ConfigPatcher.apply_patch(config_abs_path, key, val, t_path)
-            if updates > 0:
-                logger.info(f"Patching:   (+) Updated '{key}' in {target_config}")
+
+            if symbol:
+                from src.config.symbol_resolver import patch_config
+                updates = patch_config(symbol, t_path, key, val)
+                if updates > 0:
+                    logger.info(f"Patching:   (+) Updated '{key}' for {symbol} (overrides)")
+                else:
+                    logger.warning(f"Patching:   (!) FAILED to update '{key}' for {symbol}")
             else:
-                logger.warning(f"Patching:   (!) FAILED to update '{key}' in {target_config}")
+                updates = ConfigPatcher.apply_patch(config_abs_path, key, val, t_path)
+                if updates > 0:
+                    logger.info(f"Patching:   (+) Updated '{key}' in {target_config}")
+                else:
+                    logger.warning(f"Patching:   (!) FAILED to update '{key}' in {target_config}")
                 
     # 4. Synchronize Semantic Refinements (Prompt Patches)
     semantic_patches = proposal.get('semantic_refinement', [])

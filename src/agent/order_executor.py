@@ -31,14 +31,9 @@ class MarginOrderExecutor:
                 self._global_config_raw = yaml.safe_load(f)
 
     def _is_symbol_whitelisted(self, symbol: str) -> bool:
-        """Checks if the symbol is explicitly defined in global_config.yaml's trade_management block."""
-        try:
-            tm = self._global_config_raw.get("trade_management", {})
-            if symbol in tm and isinstance(tm[symbol], dict):
-                return True
-        except Exception as e:
-            logger.error(f"Executor: Error verifying whitelist for {symbol}: {e}")
-        return False
+        """Checks if the symbol is defined in symbol_config.yaml."""
+        from src.config.symbol_resolver import is_symbol_configured
+        return is_symbol_configured(symbol)
 
     # ================================================================
     # ENTRY LOGIC: Called when AI issues a new directional opinion
@@ -570,7 +565,9 @@ class MarginOrderExecutor:
         }
 
     def _get_trade_config(self, symbol: str):
-        """Returns strict trade configuration from cached global_config. Raises KeyError if missing."""
+        """Returns strict trade configuration. Raises KeyError if missing."""
+        from src.config.symbol_resolver import get_symbol_trade_params
+
         full_cfg = self._global_config_raw
 
         cfg = {}
@@ -581,11 +578,11 @@ class MarginOrderExecutor:
         cfg["risk_per_trade"] = tm["risk_per_trade"]
         cfg["net_qty_tolerance"] = tm["net_qty_tolerance"]
 
-        sym_cfg = tm[symbol]
+        sym_cfg = get_symbol_trade_params(symbol)
         cfg["precision_qty"] = sym_cfg["precision_qty"]
         cfg["precision_price"] = sym_cfg["precision_price"]
         cfg["min_order_qty"] = sym_cfg["min_order_qty"]
-        cfg["sl_slippage_buffer"] = sym_cfg.get("sl_slippage_buffer", 0.0)
+        cfg["sl_slippage_buffer"] = sym_cfg["sl_slippage_buffer"]
         
         return cfg
 

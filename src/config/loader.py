@@ -10,47 +10,6 @@ from src.config.sub_configs import (
 )
 
 
-def _deep_merge(base: dict, overrides: dict) -> None:
-    """Mutates base by merging overrides recursively (in-place)."""
-    for key, value in overrides.items():
-        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
-            _deep_merge(base[key], value)
-        else:
-            base[key] = value
-
-
-def merge_symbol_overrides(config_dict: dict, global_config: dict, symbol: str) -> tuple[dict, dict]:
-    """Deep-merge per-symbol strategy overrides into copies of both config dicts.
-
-    Overrides live in global_config.yaml → trade_management.<SYMBOL>.strategy_overrides.
-    Each override section is merged into the corresponding section in BOTH config_dict
-    (strategy_config) AND global_config, so sections like 'sniper' (in global_config)
-    also receive per-symbol tuning.
-
-    Returns (overridden_config_dict, overridden_global_config).
-    Does not mutate the originals.
-    """
-    import copy
-    result = copy.deepcopy(config_dict)
-    global_result = copy.deepcopy(global_config)
-    overrides = (
-        global_config.get("trade_management", {})
-        .get(symbol, {})
-        .get("strategy_overrides", {})
-    )
-    if isinstance(overrides, dict) and overrides:
-        for section, section_overrides in overrides.items():
-            if not isinstance(section_overrides, dict):
-                continue
-            # Merge into strategy_config sections (e.g., regime_parameters)
-            if section in result and isinstance(result[section], dict):
-                _deep_merge(result[section], section_overrides)
-            # Merge into global_config sections (e.g., sniper)
-            if section in global_result and isinstance(global_result[section], dict):
-                _deep_merge(global_result[section], section_overrides)
-    return result, global_result
-
-
 def _f(d: dict, key: str) -> float:
     return float(d[key])
 

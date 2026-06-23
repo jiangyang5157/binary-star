@@ -275,6 +275,10 @@ def _add_patch_parser(subparsers):
     p = subparsers.add_parser("patch", help="Apply an evolution proposal to config/prompts")
     p.add_argument("--file", "-f", required=True,
                    help="Path to the validated evolution proposal JSON")
+    p.add_argument("--symbol", type=str,
+                   help="Trading symbol (e.g., BTC, XAUT). If provided, patches "
+                        "symbol_config.yaml overrides first, then falls back to "
+                        "strategy_config.yaml.")
     p.set_defaults(func=_cmd_patch)
 
 
@@ -295,6 +299,12 @@ def _cmd_patch(args):
     proposal = load_json(args.file)
     logger_patch.info("Patching from: %s ...", os.path.basename(args.file))
 
+    # Resolve symbol if provided (symbol-aware patching)
+    symbol = None
+    if args.symbol:
+        from src.utils.symbol_utils import resolve_symbol
+        symbol = resolve_symbol(args.symbol)
+
     target_config = "config/strategy_config.yaml"
     config_abs = os.path.join(root, target_config)
 
@@ -302,11 +312,20 @@ def _cmd_patch(args):
         key = p.get("target_key")
         val = p.get("replaced_with")
         t_path = p.get("target_path", "")
-        updates = ConfigPatcher.apply_patch(config_abs, key, val, t_path)
-        if updates > 0:
-            logger_patch.info("  (+) Updated '%s' in %s", key, target_config)
+
+        if symbol:
+            from src.config.symbol_resolver import patch_config
+            updates = patch_config(symbol, t_path, key, val)
+            if updates > 0:
+                logger_patch.info("  (+) Updated '%s' for %s (overrides)", key, symbol)
+            else:
+                logger_patch.warning("  (!) FAILED to update '%s' for %s", key, symbol)
         else:
-            logger_patch.warning("  (!) FAILED to update '%s' in %s", key, target_config)
+            updates = ConfigPatcher.apply_patch(config_abs, key, val, t_path)
+            if updates > 0:
+                logger_patch.info("  (+) Updated '%s' in %s", key, target_config)
+            else:
+                logger_patch.warning("  (!) FAILED to update '%s' in %s", key, target_config)
 
     PROMPT_MAP = {
         "session": "config/prompts/session.md",

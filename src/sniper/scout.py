@@ -40,9 +40,10 @@ class SniperScout:
         self.strategy_cfg = load_config()
         self.global_cfg = load_global_config()
 
-        # Apply per-symbol regime overrides (XAUTUSDT vs BTCUSDT baseline)
-        from src.config.loader import merge_symbol_overrides
-        self.strategy_cfg, self.global_cfg = merge_symbol_overrides(self.strategy_cfg, self.global_cfg, symbol)
+        # Apply per-symbol config overrides (XAUTUSDT vs BTCUSDT baseline)
+        from src.config.symbol_resolver import resolve_config
+        self.strategy_cfg = resolve_config(self.strategy_cfg, symbol)
+        self.global_cfg = resolve_config(self.global_cfg, symbol)
 
         # Merge for MarketObserverConfig structure
         full_cfg = {**self.strategy_cfg, **self.global_cfg}

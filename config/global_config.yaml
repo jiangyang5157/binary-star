@@ -1,25 +1,6 @@
 trade_management:
   risk_per_trade: 0.004      # Max % loss of total equity allowed per trade
   net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
-  BTCUSDT:
-    precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
-    precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
-    min_order_qty: 0.001       # Fallback safety quantity if delta is zero
-    sl_slippage_buffer: 10.0   # SL Limit offset from Trigger (e.g., -10.0 for LONG SL)
-    strategy_overrides: {}
-  XAUTUSDT:
-    precision_qty: 3
-    precision_price: 1
-    min_order_qty: 0.01
-    sl_slippage_buffer: 0.5
-    strategy_overrides:
-      regime_parameters:
-        trend:
-          trend_intensity_min_expansion: 0.08
-      sniper:
-        probes:
-          cvd_divergence_tick_delta: 0.15
-          cvd_impulse_tick_delta: 0.22
 
 network:
   binance:

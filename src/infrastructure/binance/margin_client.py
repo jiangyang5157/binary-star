@@ -158,20 +158,21 @@ class BinanceMarginClient:
         import os, yaml
         from src.utils.path_utils import resolve_project_root
         
+        import yaml as _yaml
         config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
         if not os.path.exists(config_path):
             raise FileNotFoundError(f"Global configuration file missing at {config_path}")
-            
+
         with open(config_path, 'r') as f:
-            cfg = yaml.safe_load(f)
-            
-        tm = cfg["trade_management"]
-        tolerance = tm["net_qty_tolerance"]
-        
-        sym_cfg = tm[symbol]
+            cfg = _yaml.safe_load(f)
+
+        tolerance = cfg["trade_management"]["net_qty_tolerance"]
+
+        from src.config.symbol_resolver import get_symbol_trade_params
+        sym_cfg = get_symbol_trade_params(symbol)
         p_qty = sym_cfg["precision_qty"]
         p_price = sym_cfg["precision_price"]
-        
+
         return p_qty, p_price, tolerance
 
     def execute_market_close(self, symbol: str) -> bool:

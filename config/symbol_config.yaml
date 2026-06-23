@@ -1,0 +1,34 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# SYMBOL CONFIG — Per-instrument trading parameters and strategy overrides
+# ═══════════════════════════════════════════════════════════════════════════
+# Each symbol block defines execution precision AND optional overrides.
+# Overrides deep-merge on top of the corresponding base config section at
+# resolve time. The override structure mirrors the original config structure
+# exactly (e.g., overrides.regime_parameters matches strategy_config.yaml's
+# regime_parameters section).
+#
+# Config resolution order: base config + symbol.overrides → resolved
+# Evolution patching: overrides first, then base config
+
+BTCUSDT:
+  precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
+  precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
+  min_order_qty: 0.001       # Fallback safety quantity if delta is zero
+  sl_slippage_buffer: 10.0   # SL Limit offset from Trigger (e.g., -10.0 for LONG SL)
+
+  overrides: {}
+
+XAUTUSDT:
+  precision_qty: 3
+  precision_price: 1
+  min_order_qty: 0.01
+  sl_slippage_buffer: 0.5
+
+  overrides:
+    regime_parameters:
+      trend:
+        trend_intensity_min_expansion: 0.08
+    sniper:
+      probes:
+        cvd_divergence_tick_delta: 0.15
+        cvd_impulse_tick_delta: 0.22
