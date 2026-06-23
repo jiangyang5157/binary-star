@@ -156,7 +156,7 @@ def get_performance(
     max_drawdown_pct = round(max_dd * 100, 2)
     calmar = round(net_pnl_pct / max_drawdown_pct, 2) if max_drawdown_pct > 0 else 0.0
 
-    confidences = [r["confidence"] for r in records if r["confidence"] and r["confidence"] > 0]
+    confidences = [r["confidence"] for r in records if r["confidence"] is not None and r["confidence"] >= 0]
     avg_confidence = round(sum(confidences) / len(confidences), 1) if confidences else 0.0
 
     return {
@@ -341,11 +341,14 @@ def run_audits(data_root: str = Query("")):
 
     log.info("Run-audit triggered: %d session files found in %s", len(session_files), sessions_dir)
 
+    import threading
+
     audited = 0
     skipped = 0
     waiting = 0
     empty = 0
     failed = 0
+    counters_lock = threading.Lock()
 
     def _audit_one(session_path: Path) -> str:
         """Audit a single session file. Returns one of audited|skipped|waiting|empty|failed."""
@@ -362,7 +365,8 @@ def run_audits(data_root: str = Query("")):
 
             if controller.is_already_audited(symbol, ts_compact):
                 log.debug("Skipped (exists): %s", session_path.name)
-                skipped += 1
+                with counters_lock:
+                    skipped += 1
                 return "skipped"
 
             audit_bundle = controller.run_manual_audit(str(session_path), force=False)
@@ -371,20 +375,24 @@ def run_audits(data_root: str = Query("")):
             outcome = audit_bundle.get("market_outcome", {})
             result_str = outcome.get("tp_sl_result", "N/A")
             log.info("Audited: %s → %s", session_path.name, result_str)
-            audited += 1
+            with counters_lock:
+                audited += 1
             return "audited"
         except Exception as e:
             msg = str(e)
             if "SESSION_MATURING" in msg:
                 log.info("Waiting (maturing): %s — %s", session_path.name, msg)
-                waiting += 1
+                with counters_lock:
+                    waiting += 1
                 return "waiting"
             if "EMPTY_KLINES" in msg:
                 log.info("Empty (no data): %s — %s", session_path.name, msg)
-                empty += 1
+                with counters_lock:
+                    empty += 1
                 return "empty"
             log.exception("Audit failed: %s", session_path.name)
-            failed += 1
+            with counters_lock:
+                failed += 1
             return "failed"
 
     # Run audits in parallel with ThreadPoolExecutor

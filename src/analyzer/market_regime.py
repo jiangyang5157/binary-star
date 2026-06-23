@@ -139,7 +139,7 @@ class MarketRegimeAnalyzer:
         """
         Entry point for market regime analysis.
         """
-        if df.empty or len(df) < self.config.bollinger_window:
+        if df.empty or len(df) < max(self.config.bollinger_window, self.config.trend_lookback_candles + 1):
             logger.warning("Insufficient data for Market Regime analysis.")
             return asdict(RegimeResult(1.0, 0.0, 0.0, 1.0))
 

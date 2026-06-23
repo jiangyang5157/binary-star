@@ -36,6 +36,15 @@
 
 ---
 
+## ✅ Fixed (2026-06-23 — Round 3: Simplest Remaining Bugs)
+
+- [x] **Bug #12 — NaN `trend_intensity` guard: `market_regime.py:142`** — Changed guard from `len(df) < bollinger_window` to `len(df) < max(bollinger_window, trend_lookback_candles + 1)` to prevent NaN when trend lookback > bollinger window.
+- [x] **Bug #15 — Race condition on nonlocal counters: `audits.py:350-388`** — Added `threading.Lock` around all five counter increments in `_audit_one` to make them thread-safe.
+- [x] **Bug #16 — `confidence == 0` excluded from averaging: `audits.py:159`** — Changed filter from `r["confidence"] and r["confidence"] > 0` to `r["confidence"] is not None and r["confidence"] >= 0`, allowing valid zero-confidence trades.
+- [x] **Bug #20 — Fast-pass critic schema mismatch: `debate_loop.py:171-219`** — Added `"critic_confidence": None` marker to both fast-pass return dicts to normalize schema with full critic responses.
+
+---
+
 ## 1. Data Flow
 
 ### 1.1 Market Data Pipeline
@@ -130,11 +139,11 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 | 9 | ~~`evolver_sandbox.py`~~ | ~~50,136~~ | ✅ **FIXED** — Direct bracket access replaced with .get() + validation |
 | 10 | `base_agent.py` | 149 | Tenacity retries on `Exception` — catches `MalformedJSONError` too |
 | 11 | `math_utils.py` | 388 | `adjusted_price` rounds to 2dp for all symbols |
-| 12 | `market_regime.py` | 148 | NaN `trend_intensity` propagates when `trend_lookback > bollinger_window` |
+| 12 | ~~`market_regime.py`~~ | ~~148~~ | ✅ **FIXED** — NaN guard now checks max(bollinger_window, trend_lookback_candles + 1) |
 | 13 | ~~`run_evolution.py`~~ | ~~175~~ | ✅ **FIXED** — `--samples` default was `True` (bool) instead of `None` |
 | 14 | ~~`run.py` / `run_session.py`~~ | ~~41-47, 255-258~~ | ✅ **FIXED** — T- format now validates unit suffix with clear error message |
-| 15 | `audits.py` | 350-388 | Race condition on `nonlocal` counters inside `ThreadPoolExecutor.map()` |
-| 16 | `audits.py` | 159 | `confidence == 0` excluded from averaging — inflates average confidence |
+| 15 | ~~`audits.py`~~ | ~~350-388~~ | ✅ **FIXED** — Race condition on nonlocal counters fixed with threading.Lock |
+| 16 | ~~`audits.py`~~ | ~~159~~ | ✅ **FIXED** — `confidence >= 0` instead of `> 0`, allowing valid zero-confidence trades |
 | 17 | ~~`pipeline_utils.py`~~ | ~~111~~ | ✅ **FIXED** — `base.copy()` → `copy.deepcopy(base)` |
 | 18 | ~~`margin_client.py`~~ | ~~156-166~~ | ✅ **FIXED** — Triple yaml import cleaned up |
 
@@ -143,7 +152,7 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 | # | File | Line | Issue |
 |---|------|-------|-------|
 | 19 | ~~`market_observer.py`~~ | ~~526-529~~ | ✅ **FIXED** — Dead `prev_window` loop removed |
-| 20 | `debate_loop.py` | 75-78 | Fast pass replaces critic dict with different schema |
+| 20 | ~~`debate_loop.py`~~ | ~~75-78~~ | ✅ **FIXED** — Fast-pass dicts now include `critic_confidence: None` to normalize schema |
 | 21 | ~~`order_executor.py`~~ | ~~197~~ | ✅ **FIXED** — Sentinel `-1` replaced with named constant `EMERGENCY_CLOSED_SENTINEL` |
 | 22 | ~~`session_html_renderer.py`~~ | ~~199~~ | ✅ **FIXED** — `"CRITICAL"` veto color → `"TERMINAL"` |
 | 23 | ~~`liquidation_radar.py`~~ | ~~127~~ | ✅ **FIXED** — `>` changed to `>=` so boundary points are classified |
@@ -218,8 +227,8 @@ YAML files (global_config, strategy_config, symbol_config, visual_config)
 
 **Round 1 (2026-06-23):** 12 issues fixed — dead code, comment corrections, simple bugs, typo fix. All 150 tests pass.
 
-**Round 2 (2026-06-23):** 10 issues fixed — variable name mismatch in prompts, model config validation, defensive dict access, T- date parsing, deep_merge shallow copy, sentinel constant, liquidation boundary condition, pulse validation, and missing docstrings. All 150 tests pass.
+**Round 3 (2026-06-23):** 4 issues fixed — NaN guard, threading lock, confidence zero filter, fast-pass schema normalization. All 150 tests pass.
 
-**Overall:** 22 of ~35+ items resolved across two rounds.
+**Overall:** 26 of ~35+ items resolved across three rounds.
 
-**Remaining:** ~15 items — mostly medium/high severity bugs (#1, #2, #4, #6, #8, #10, #11, #12, #15, #16, #20) and design/architecture improvements (god constructors, SRP violations, duplication, testability, naming consolidation).
+**Remaining:** ~10 items — high severity bugs (#1, #2, #4, #6), medium bugs (#8, #10, #11), and design/architecture improvements.

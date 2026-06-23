@@ -172,7 +172,8 @@ class DebateLoop:
                 "veto_level": "PASS",
                 "invalidations": ["[JUSTIFIED_INACTION]"],
                 "audit_evidence": "Amnesty Clause verified: TERMINAL veto in prior round justifies current NEUTRAL stance.",
-                "critic_summary": "Neutral stance justified by prior TERMINAL veto."
+                "critic_summary": "Neutral stance justified by prior TERMINAL veto.",
+                "critic_confidence": None,  # fast-pass bypass, no AI inference
             }
 
         # 2. Check strict non-confluence for INACTION_BIAS, TREND_STARVATION, OPPORTUNITY_DENIAL
@@ -215,7 +216,8 @@ class DebateLoop:
                 "veto_level": "PASS",
                 "invalidations": ["[JUSTIFIED_INACTION]"],
                 "audit_evidence": "Confluence Audit: No inaction bias, trend starvation, or opportunity denial conditions met.",
-                "critic_summary": "Neutral stance justified by telemetry."
+                "critic_summary": "Neutral stance justified by telemetry.",
+                "critic_confidence": None,  # fast-pass bypass, no AI inference
             }
 
         return None
