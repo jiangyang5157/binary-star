@@ -349,7 +349,7 @@ python run.py session -p data/prod --symbol BTC
 python run.py session -p data/prod --symbol BTC -ts 2026-06-01T12:34:00Z
 
 # Backtest (sampled historical points)
-python run.py session --start T-16d --end T-2d --samples 14 --sampling-mode sniper --symbol BTC -p data/backtest/v26.6.23_r14
+python run.py session --start T-15d --end T-1d --samples 14 --sampling-mode sniper --symbol BTC -p data/backtest/v26.6.23_r14
 
 # Real-time monitoring daemon (real balance or fixed balance)
 python run.py sniper -p data/prod --symbol BTC,XAUT --trade
