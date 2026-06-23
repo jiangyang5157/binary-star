@@ -172,17 +172,12 @@ class SessionController:
         sys.exit(0)
 
     def run(self):
-        mode = self.args.mode
-        # Start logging handled by routing logic above
-        
-        if mode == "prod":
-            self.engine.execute_cycle(timestamp_str=None)
-            
-        elif mode == "simulation":
+        if self.args.timestamp:
             self.engine.execute_cycle(timestamp_str=self.args.timestamp)
-        
-        elif mode == "backtest":
+        elif self.args.start:
             self._run_backtest()
+        else:
+            self.engine.execute_cycle(timestamp_str=None)
 
     def _run_backtest(self):
         """Historical simulation orchestration."""
@@ -276,17 +271,15 @@ def main():
     args = parser.parse_args()
     
     # --- Mode Resolution & Parameter Validation ---
+    if not args.path:
+        args.path = "data/prod"
+
     if getattr(args, 'timestamp', None):
-        args.mode = "simulation"
-        if not args.path: 
-            args.path = "data/backtest"
         logger.info(f"=== Mode Resolved: SIMULATION (One-Off Historical) ===")
         logger.info(f" => ACTION: Replaying market cross-section at historical point")
         logger.info(f" => ADOPTED: --timestamp '{args.timestamp}'")
         logger.info(f" => ARCHIVAL: {args.path}")
     elif getattr(args, 'start', None):
-        args.mode = "backtest"
-        if not args.path: args.path = "data/backtest"
         if args.samples is None:
             raise SystemExit("Error: --samples is required for backtest mode.")
         logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
@@ -294,8 +287,6 @@ def main():
         logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples}, --sampling-mode {args.sampling_mode}")
         logger.info(f" => ARCHIVAL: {args.path}")
     else:
-        args.mode = "prod"
-        if not args.path: args.path = "data/prod"
         logger.info(f"=== Mode Resolved: PROD (Live Execution) ===")
         logger.info(f" => ACTION: Fetching current real-time market data")
         logger.info(f" => ARCHIVAL: {args.path}")

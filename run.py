@@ -77,25 +77,19 @@ def _cmd_session(args):
     from run_session import SessionEngine, SessionController
 
     # Resolve mode
+    if not args.path:
+        args.path = "data/prod"
+
     if getattr(args, "timestamp", None):
-        args.mode = "simulation"
-        if not args.path:
-            args.path = "data/backtest"
         logger.info("Mode: SIMULATION (single historical point)")
         logger.info("  --timestamp '%s'", args.timestamp)
     elif getattr(args, "start", None):
-        args.mode = "backtest"
-        if not args.path:
-            args.path = "data/backtest"
         if args.samples is None:
             raise SystemExit("Error: --samples is required for backtest mode.")
         logger.info("Mode: BACKTEST (batch historical)")
         logger.info("  --start '%s', --end '%s', --samples %s, --sampling-mode %s",
                     args.start, args.end, args.samples, args.sampling_mode)
     else:
-        args.mode = "prod"
-        if not args.path:
-            args.path = "data/prod"
         logger.info("Mode: PROD (live execution)")
 
     print()
