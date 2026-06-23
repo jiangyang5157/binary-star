@@ -90,7 +90,7 @@ regime_parameters:
     # Threshold for 'High Conviction' trends where aggressive participation is enabled.
     trend_intensity_strong: 0.35
     # Minimum trend intensity required to justify directional trades during volatility expansion.
-    trend_intensity_min_expansion: 0.1
+    trend_intensity_min_expansion: 0.12
 
   # --- Volatility & Risk Fractals (Noise Management) ---
   volatility:

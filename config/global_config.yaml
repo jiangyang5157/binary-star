@@ -72,26 +72,25 @@ sniper:
   cooldown:
     # The duration the Sniper remains "muted" after successfully waking up the AI.
     # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
-    # 3.0 = 45 min. Balanced for dual BTC/XAUT use: faster than 60 min, not as aggressive as 30 min.
-    pulse_cooldown_multiplier: 3.0
+    # 2.5 = 37.5 min. Balanced for dual BTC use: faster throughput than 45 min.
+    pulse_cooldown_multiplier: 2.5
     # [Mute]: Multiplier for cooldown during extreme volatility expansion.
     # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
-    # 45 min × 2.0 = 90 min chaos mute.
+    # 37.5 min × 2.0 = 75 min chaos mute.
     chaos_cooldown_multiplier: 2.0
     # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
     # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
-    # 6.0h. Balanced: shorter than 8h (don't miss XAUT setups), longer than 4h (prevent BTC spam).
-    state_lockout_hours: 6.0
+    # 8.0h. Covers full Asian session; prevents retail-sentiment re-trigger spam after daemon restart.
+    state_lockout_hours: 8.0
 
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
-  # XAUT calibration: Lower thresholds throughout (thinner order books → smaller absolute CVD swings).
   probes:
     # [Tick-Scale Probes]: Micro-sensitivity for intra-pulse CVD swings.
     # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
-    # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC or XAUT.
-    cvd_divergence_tick_delta: 0.20     # TYPE_B (CVD 背离)
-    cvd_impulse_tick_delta: 0.30        # TYPE_B (CVD 强度)
+    # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC.
+    cvd_divergence_tick_delta: 0.22     # TYPE_B (CVD 背离)
+    cvd_impulse_tick_delta: 0.35        # TYPE_B (CVD 强度)
     # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
     # 1.0 = any increase, 1.1 = 10% growth required.
     cvd_growth_significance_ratio: 1.4
