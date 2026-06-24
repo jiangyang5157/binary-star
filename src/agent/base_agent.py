@@ -99,14 +99,17 @@ class BaseAgent:
                 template = read_prompt_template(template_path)
             rendered = safe_format(template, **context)
 
-            # Detect missing template variables: SafeFormatter renders unresolved
-            # {placeholders} as literal text.  If any remain, the caller forgot
-            # to pass a config value — the LLM will see garbage, not data.
-            unresolved = set(re.findall(r'\{(\w+)\}', rendered))
-            if unresolved:
+            # Detect missing template variables: compare what the template
+            # declares against what the caller provided.  We intentionally
+            # avoid regex-scanning the rendered output because substituted
+            # values (e.g. embedded prompt files) may contain {placeholders}
+            # of their own that are meant to be seen verbatim by the LLM.
+            template_vars = set(re.findall(r'\{(\w+)\}', template))
+            missing = template_vars - set(context.keys())
+            if missing:
                 raise ValueError(
-                    f"BaseAgent: {len(unresolved)} unresolved template variable(s) "
-                    f"in {os.path.basename(template_path)}: {', '.join(sorted(unresolved))}"
+                    f"BaseAgent: {len(missing)} unresolved template variable(s) "
+                    f"in {os.path.basename(template_path)}: {', '.join(sorted(missing))}"
                 )
 
             return rendered
