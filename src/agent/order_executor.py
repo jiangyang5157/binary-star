@@ -378,18 +378,25 @@ class MarginOrderExecutor:
         if not entry_price or not current_sl or not current_tp:
             return trade_state
 
-        # --- 1. Time-Based Stop ---
+        # --- 1. Time-Based Stop (adaptive to volatility changes) ---
         entry_filled_at_str = trade_state.get("entry_filled_at")
         projected_holding = trade_state.get("projected_holding_hours")
         if entry_filled_at_str and projected_holding and float(projected_holding) > 0:
             entry_filled_at = datetime.fromisoformat(entry_filled_at_str)
             elapsed_hours = (datetime.now(timezone.utc) - entry_filled_at).total_seconds() / 3600
-            time_limit = float(projected_holding) * gc["time_stop_multiplier"]
+            # Scale holding limit by current vs entry ATR: rising vol → shorter hold
+            entry_atr = trade_state.get("entry_atr")
+            if entry_atr and atr_macro and entry_atr > 0:
+                atr_ratio = atr_macro / entry_atr
+            else:
+                atr_ratio = 1.0
+            adjusted_holding = float(projected_holding) / max(atr_ratio, 0.1)
+            time_limit = adjusted_holding * gc["time_stop_multiplier"]
 
             if elapsed_hours > time_limit:
                 logger.warning(
-                    f"Guardian: [TIME_STOP] Position held {elapsed_hours:.1f}h > limit {time_limit:.1f}h. "
-                    f"Market closing {symbol}.")
+                    f"Guardian: [TIME_STOP] Position held {elapsed_hours:.1f}h > limit {time_limit:.1f}h "
+                    f"(base={projected_holding}h, atr_ratio={atr_ratio:.2f}). Market closing {symbol}.")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
                 return {}  # Clear trade state
