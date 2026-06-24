@@ -67,12 +67,12 @@ class BinaryStarConfig:
         """Resolve all config values from raw dicts into a frozen bundle."""
         overrides = instruction_overrides or {}
 
-        # Network
-        gemini_net = global_config["network"]["gemini"]
-        api_timeout = int(gemini_net["api_timeout_seconds"])
-        retry_count = int(gemini_net["retry_count"])
-        max_tool_iterations = int(gemini_net["max_tool_iterations"])
-        retry_strategy = gemini_net["retry_strategy"]
+        # LLM / provider
+        gemini_llm = global_config["llm"]["gemini"]
+        api_timeout = int(gemini_llm["api_timeout_seconds"])
+        retry_count = int(gemini_llm["retry_count"])
+        max_tool_iterations = int(gemini_llm["max_tool_iterations"])
+        retry_strategy = gemini_llm["retry_strategy"]
         retry_multiplier = float(retry_strategy["multiplier"])
         retry_min = int(retry_strategy["min_seconds"])
         retry_max = int(retry_strategy["max_seconds"])
@@ -285,8 +285,8 @@ class BinaryStarOrchestrator:
         )
 
         # ── 5. Congestion control & caching ─────────────────────────
-        gemini_net = self.global_config['network']['gemini']
-        pacing_seconds = float(gemini_net.get('api_pacing_seconds', 0.0))
+        gemini_llm = self.global_config['llm']['gemini']
+        pacing_seconds = float(gemini_llm.get('api_pacing_seconds', 0.0))
         self.congestion_controller = CongestionController(pacing_seconds)
         self.session_agent.congestion_controller = self.congestion_controller
         self.critic_agent.congestion_controller = self.congestion_controller

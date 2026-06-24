@@ -1,9 +1,32 @@
 """Symbol resolution utilities.
 
 All user-facing symbol inputs use the PREFIX format (e.g., "BTC").
-These utilities append "USDT" at the outermost layer so internal
-code always works with full symbols like "BTCUSDT".
+These utilities append the configured quote currency at the outermost layer
+so internal code always works with full symbols like "BTCUSDT".
+
+The quote currency is read from global_config.yaml → trade_management.quote_currency.
 """
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def get_quote_currency() -> str:
+    """Return the quote currency from global_config.yaml (cached).
+
+    Defaults to "USDT" if the config key is missing.
+    """
+    from src.utils.path_utils import resolve_project_root
+    import os
+    import yaml
+
+    config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
+    try:
+        with open(config_path, 'r') as f:
+            cfg = yaml.safe_load(f)
+        return str(cfg.get("trade_management", {}).get("quote_currency", "USDT"))
+    except Exception:
+        return "USDT"
 
 
 def resolve_symbol(raw: str) -> str:
@@ -26,8 +49,9 @@ def resolve_symbol(raw: str) -> str:
     if not symbol.isalnum():
         raise ValueError(f"Symbol must be alphanumeric, got: {repr(raw)}")
 
-    if not symbol.endswith("USDT"):
-        symbol = symbol + "USDT"
+    quote = get_quote_currency()
+    if not symbol.endswith(quote):
+        symbol = symbol + quote
 
     return symbol
 

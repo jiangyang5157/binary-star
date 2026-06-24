@@ -122,17 +122,19 @@ class BinanceMarginClient:
         # Assumption: standard pairs. This is a simplified version.
         # We'll just look for the base asset of the symbol.
         # e.g. for BTCUSDT, we look for BTC.
-        base_asset = symbol.replace("USDT", "") # Simple heuristic
-        
+        from src.utils.symbol_utils import get_quote_currency
+        quote = get_quote_currency()
+        base_asset = symbol[:-len(quote)] if symbol.endswith(quote) else symbol.replace(quote, "")
+
         target_asset = next((a for a in summary.assets if a.asset == base_asset), None)
-        
+
         if not target_asset:
             return None
-            
+
         return MarginPosition(
             symbol=symbol,
             base_asset=base_asset,
-            quote_asset="USDT",
+            quote_asset=quote,
             net_qty=target_asset.net_asset,
             borrowed=target_asset.borrowed,
             free=target_asset.free,

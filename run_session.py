@@ -128,7 +128,7 @@ class SessionEngine:
                 target_dir="sessions"
             )
             logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
-            
+
             self.consecutive_failures = 0
             return session_result
 

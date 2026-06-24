@@ -277,9 +277,9 @@ def _run_backtest_in_thread(
                 samples_state2 = current2.get("samples") or []
                 if i < len(samples_state2):
                     samples_state2[i]["status"] = "completed"
-                    # Try to find the session filename
-                    if result and not isinstance(result, dict):
-                        pass
+                    # Build the session filename from the deterministic archive pattern
+                    from src.utils.datetime_utils import sanitize_timestamp
+                    samples_state2[i]["session_file"] = f"{symbol}_session_{sanitize_timestamp(ts)}.json"
                 _write_status(data_root, {
                     **current2,
                     "samples": samples_state2,

@@ -142,10 +142,11 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
 def trigger_run(req: RunRequest, data_root: str = Query("")):
     """Trigger a one-time session run for the given symbol prefix.
 
-    Uppercases the prefix and appends 'USDT' to form the symbol.
+    Appends the configured quote currency to form the symbol.
     Only one run is allowed at a time — returns 409 if busy.
     """
     from src.dashboard.api.sessions import _resolve_data_root
+    from src.utils.symbol_utils import get_quote_currency
     data_root = _resolve_data_root(data_root)
 
     # Validate and construct symbol
@@ -153,7 +154,7 @@ def trigger_run(req: RunRequest, data_root: str = Query("")):
     if not raw or len(raw) < 2 or not raw.isalnum():
         raise HTTPException(status_code=400, detail="Invalid symbol prefix — must be ≥2 alphanumeric characters")
 
-    symbol = raw.upper() + "USDT"
+    symbol = raw.upper() + get_quote_currency()
 
     # Check current status
     status = _read_status(data_root)

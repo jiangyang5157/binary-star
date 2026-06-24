@@ -92,8 +92,10 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
     if balance is not None and balance <= 0:
         balance = None
 
-    # Build command — pass CSV prefix string to daemon
-    csv_arg = ",".join(s[:s.rfind("USDT")] if s.endswith("USDT") else s for s in symbols)
+    # Build command — pass CSV prefix string to daemon (strip quote suffix)
+    from src.utils.symbol_utils import get_quote_currency
+    quote = get_quote_currency()
+    csv_arg = ",".join(s[:s.rfind(quote)] if s.endswith(quote) else s for s in symbols)
     cmd = [
         sys.executable, "run.py", "sniper",
         "--symbol", csv_arg,

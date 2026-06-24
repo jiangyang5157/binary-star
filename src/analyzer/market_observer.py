@@ -196,7 +196,7 @@ class MarketObserverConfig:
         """Factory method to transform a raw configuration dict into a type-safe object."""
         from src.config.loader import load_regime_config, load_visual_config
 
-        gemini_cfg = cfg.get('network', {}).get('gemini', {})
+        gemini_cfg = cfg.get('llm', {}).get('gemini', {})
         sampling = cfg['analysis_window']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
@@ -438,7 +438,7 @@ class MarketMetricsRefiner:
         atr_n = n_df['atr'].iloc[-1]
         
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
-        volatility_expansion_index = atr_n / (atr_m / ratio) if atr_m > 0 else 1.0
+        volatility_expansion_index = atr_n / (atr_m / (ratio ** 0.5)) if atr_m > 0 else 1.0
         
         avg_atr_lookback_candles = min(self.config.volatility_intensity_macro_lookback_candles, len(m_df))
         mean_historical_atr = m_df['atr'].tail(avg_atr_lookback_candles).mean()

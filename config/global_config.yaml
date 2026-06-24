@@ -1,4 +1,5 @@
 trade_management:
+  quote_currency: "USDT"     # Default quote asset (USDT, USDC, etc.)
   risk_per_trade: 0.004      # Max % loss of total equity allowed per trade
   net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
 
@@ -6,8 +7,17 @@ network:
   binance:
     api_timeout_seconds: 65
     retry_count: 2
+
+llm:
+  # --- Central Neural Infrastructure ---
+  active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
+
   gemini:
+    model: "gemini-3.5-flash" # gemini-3.5-flash
     api_timeout_seconds: 240
+    session_temperature: 0.5
+    critic_temperature: 0.1
+    evolver_temperature: 0.0
     circuit_breaker_threshold: 3
     max_tool_iterations: 9
     retry_count: 8
@@ -16,16 +26,6 @@ network:
       min_seconds: 5
       max_seconds: 40
     api_pacing_seconds: 0
-
-llm:
-  # --- Central Neural Infrastructure ---
-  active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
-
-  gemini:
-    model: "gemini-3.5-flash" # gemini-3.5-flash
-    session_temperature: 0.5
-    critic_temperature: 0.1
-    evolver_temperature: 0.0
     context_cache:
       enable: true
       expiration_minutes: 10
@@ -33,6 +33,7 @@ llm:
   deepseek:
     base_url: "https://api.deepseek.com"
     model: "deepseek-v4-pro"  # deepseek-v4-pro deepseek-v4-flash
+    api_timeout_seconds: 240
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
@@ -41,6 +42,7 @@ llm:
   qwen:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model: "qwen3.7-max"  # qwen3.7-max, qwen3.7-plus
+    api_timeout_seconds: 240
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
