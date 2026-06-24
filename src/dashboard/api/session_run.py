@@ -1,7 +1,6 @@
 """API endpoints for triggering on-demand session runs."""
 
 import json
-import os
 import threading
 import logging
 from datetime import datetime, timezone
@@ -45,13 +44,25 @@ def _write_status(data_root: str, status: dict) -> None:
     tmp.replace(path)
 
 
-def _is_pid_alive(pid: int) -> bool:
-    """Check if a process with the given PID is still running."""
-    try:
-        os.kill(pid, 0)
+
+# ── Stale-lock timeout ──────────────────────────────────────────────────
+
+# If a run status hasn't been updated in this many seconds, it's
+# assumed to have crashed (background thread died without cleanup).
+STALE_TIMEOUT_SECONDS = 3600  # 1 hour
+
+
+def _is_stale(status: dict) -> bool:
+    """Check whether a run status has exceeded the staleness timeout."""
+    started_str = status.get("started_at", "")
+    if not started_str:
         return True
-    except (OSError, ProcessLookupError):
-        return False
+    try:
+        started = datetime.fromisoformat(started_str)
+        elapsed = (datetime.now(timezone.utc) - started).total_seconds()
+        return elapsed > STALE_TIMEOUT_SECONDS
+    except Exception:
+        return True
 
 
 # ── Run ID tracking (prevents stale-thread races on stop/restart) ──────
@@ -147,15 +158,14 @@ def trigger_run(req: RunRequest, data_root: str = Query("")):
     # Check current status
     status = _read_status(data_root)
     if status and status.get("running"):
-        pid = status.get("pid")
-        if pid and _is_pid_alive(pid):
+        if not _is_stale(status):
             started = status.get("started_at", "unknown")
             raise HTTPException(
                 status_code=409,
                 detail=f"Run already in progress: {status.get('symbol', '?')} (started {started})",
             )
-        # Stale lock — PID is dead, proceed
-        log.warning("Clearing stale lock for PID %s", pid)
+        # Stale lock — run timed out, proceed
+        log.warning("Clearing stale lock for run_id %s", status.get("run_id"))
 
     # Write running status with unique run_id for stale-thread guard
     run_id = _next_id()
@@ -163,7 +173,6 @@ def trigger_run(req: RunRequest, data_root: str = Query("")):
         "running": True,
         "symbol": symbol,
         "run_id": run_id,
-        "pid": os.getpid(),
         "started_at": datetime.now(timezone.utc).isoformat(),
     })
 
@@ -206,10 +215,9 @@ def get_run_status(data_root: str = Query("")):
         return {"running": False, "last_run": None}
 
     if status.get("running"):
-        pid = status.get("pid")
-        if pid and not _is_pid_alive(pid):
-            # Stale lock — clear it
-            log.warning("Clearing stale lock for dead PID %s", pid)
+        if _is_stale(status):
+            # Stale lock — run timed out, clear it
+            log.warning("Clearing stale lock for run_id %s", status.get("run_id"))
             _write_status(data_root, {"running": False, "last_run": None})
             return {"running": False, "last_run": None}
 

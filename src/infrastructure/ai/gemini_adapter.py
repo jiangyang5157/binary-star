@@ -48,7 +48,7 @@ class GeminiAdapter(AbstractAIClient):
         }
         if tools:
             gen_config["tools"] = self._normalize_tools(tools)
-        elif response_json:
+        if response_json:
             gen_config["response_mime_type"] = "application/json"
         if system_instruction is not None:
             gen_config["system_instruction"] = system_instruction

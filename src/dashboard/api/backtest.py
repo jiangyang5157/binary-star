@@ -1,7 +1,6 @@
 """API endpoints for triggering and monitoring backtest sessions."""
 
 import json
-import os
 import threading
 import logging
 from datetime import datetime, timezone
@@ -64,12 +63,23 @@ def _write_status(data_root: str, status: dict) -> None:
     tmp.replace(path)
 
 
-def _is_pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
+# ── Stale-lock timeout ──────────────────────────────────────────────────
+
+# Backtests can take longer than single sessions — use a generous timeout.
+BACKTEST_STALE_TIMEOUT_SECONDS = 7200  # 2 hours
+
+
+def _is_stale(status: dict) -> bool:
+    """Check whether a backtest run status has exceeded the staleness timeout."""
+    started_str = status.get("started_at", "")
+    if not started_str:
         return True
-    except (OSError, ProcessLookupError):
-        return False
+    try:
+        started = datetime.fromisoformat(started_str)
+        elapsed = (datetime.now(timezone.utc) - started).total_seconds()
+        return elapsed > BACKTEST_STALE_TIMEOUT_SECONDS
+    except Exception:
+        return True
 
 
 # ── Run ID tracking ─────────────────────────────────────────────────────
@@ -389,14 +399,13 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query("")):
     # Check if already running
     status = _read_status(data_root)
     if status and status.get("running"):
-        pid = status.get("pid")
-        if pid and _is_pid_alive(pid):
+        if not _is_stale(status):
             raise HTTPException(
                 status_code=409,
                 detail=f"Backtest already in progress: {status.get('symbol', '?')} "
                 f"({status.get('done_count', 0)}/{status.get('total_count', '?')})",
             )
-        log.warning("Clearing stale backtest lock for PID %s", pid)
+        log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
 
     # Validate symbol
     raw = (req.symbol_prefix or "").strip()
@@ -429,7 +438,6 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query("")):
         "mode": req.mode,
         "symbol": symbol,
         "run_id": run_id,
-        "pid": os.getpid(),
         "started_at": datetime.now(timezone.utc).isoformat(),
         "total_count": len(ts_list),
         "done_count": 0,
@@ -462,15 +470,14 @@ def get_status(data_root: str = Query("")):
         return {"running": False}
 
     if status.get("running"):
-        pid = status.get("pid")
-        if pid and not _is_pid_alive(pid):
-            log.warning("Clearing stale backtest lock for dead PID %s", pid)
+        if _is_stale(status):
+            log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
             _write_status(data_root, {
                 **status,
                 "running": False,
-                "error": "Process died unexpectedly",
+                "error": "Run timed out — thread likely crashed",
             })
-            return {"running": False, "error": "Process died unexpectedly"}
+            return {"running": False, "error": "Run timed out — thread likely crashed"}
 
         elapsed = _compute_elapsed(status)
         return {

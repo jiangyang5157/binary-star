@@ -141,6 +141,7 @@ class LiquidationEstimator:
             return np.full_like(data, np.mean(data))
         ret = np.cumsum(data, dtype=float)
         ret[period:] = ret[period:] - ret[:-period]
+        ret[:period - 1] = np.nan  # First period-1 elements are not valid SMA
         return ret / period
 
     def _cluster_points(self, points: List[Dict[str, Any]], atr: float, range_min: float, range_max: float) -> List[Dict[str, Any]]:
