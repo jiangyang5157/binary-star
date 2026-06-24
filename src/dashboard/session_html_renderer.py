@@ -164,7 +164,7 @@ class SessionRenderer(BaseEmailTemplate):
             <td style="{_s(paddingBottom='12px')}">
                 {SessionRenderer._opinion_badge(opinion)}
             </td>
-            <td style="{_s(textAlign='right', paddingBottom='12px')}">
+            <td style="{_s(paddingBottom='12px', paddingLeft='20px')}">
                 <span style="{_s(fontSize='22px', fontWeight='700', color=C['blue'])}">{conf_display}</span>
                 <span style="{_s(fontSize='11px', color=C['text3'], textTransform='uppercase', display='block')}">Confidence</span>
             </td>
@@ -240,7 +240,7 @@ class SessionRenderer(BaseEmailTemplate):
             if critic:
                 round_body += f"""\
 <div style="{_s(padding='0 14px 14px 14px')}">
-    <p style="{_s(fontSize='12px', fontWeight='600', color=C['text'], margin='0 0 8px 0')}">Critic Review {veto_badge}</p>
+    <p style="{_s(fontSize='12px', fontWeight='600', color=C['text'], margin='0 0 8px 0', overflow='hidden')}"><span>Critic Review</span> <span style="{_s(float='right')}">{veto_badge}</span></p>
     {f'<div style="{_s(padding="12px", background=C["bg2"], borderRadius="6px", border=f"1px solid {C["border"]}", marginBottom="12px")}"><pre style="{_s(fontSize="12px", lineHeight="1.6", color=C["text2"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily="inherit")}">{critic_summary}</pre></div>' if critic_summary else ""}
 </div>"""
             if critic_evidence:
@@ -253,7 +253,7 @@ class SessionRenderer(BaseEmailTemplate):
             if math:
                 round_body += f"""\
 <div style="{_s(padding='0 14px 14px 14px')}">
-    <p style="{_s(fontSize='12px', fontWeight='600', color=C['text'], margin='0 0 8px 0')}">Math Fact Check {math_badge}</p>
+    <p style="{_s(fontSize='12px', fontWeight='600', color=C['text'], margin='0 0 8px 0', overflow='hidden')}"><span>Math Fact Check</span> <span style="{_s(float='right')}">{math_badge}</span></p>
     <div style="{_s(padding="12px", background=C["bg2"], borderRadius="6px", border=f"1px solid {C["border"]}")}"><pre style="{_s(fontSize="11px", lineHeight="1.5", color=C["text2"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily='"SF Mono","Fira Code",Consolas,monospace')}">{json.dumps(math_verdict, indent=2)}</pre></div>
 </div>"""
 

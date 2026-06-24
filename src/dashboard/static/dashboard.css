@@ -509,6 +509,11 @@ tbody tr:hover {
   letter-spacing: 0.03em;
 }
 
+/* Push math badge to the right inside debate-section headings (matching veto badge behavior) */
+.debate-section h4 .round-math {
+  margin-left: auto;
+}
+
 .math-verified {
   background: var(--badge-green-bg);
   color: var(--badge-green-text);
