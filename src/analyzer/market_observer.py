@@ -403,14 +403,14 @@ class MarketMetricsRefiner:
         self.regime = regime_analyzer
         self.radar = radar
 
-    def refine(self, raw: RawMarketData) -> ProcessedMarketMetrics:
+    def refine(self, raw: RawMarketData) -> tuple[ProcessedMarketMetrics, 'pd.DataFrame', 'pd.DataFrame']:
         """Orchestrates comprehensive metric distillation.
-        
+
         Args:
             raw: RawMarketData package.
-            
+
         Returns:
-            A ProcessedMarketMetrics instance representing the market's current state.
+            (ProcessedMarketMetrics, macro_df, micro_df) — DataFrames returned for reuse in chart generation.
         """
         m_df = self.vp.process_klines(raw.macro_klines)
         n_df = self.vp.process_klines(raw.micro_klines)
@@ -424,12 +424,16 @@ class MarketMetricsRefiner:
         
         atr_micro = n_df['atr'].iloc[-1] if 'atr' in n_df.columns and not n_df.empty else 0
 
-        return ProcessedMarketMetrics(
-            price_dynamics=self._derive_price_dynamics(m_df, n_df),
-            structural_anchors=self._derive_anchors(m_df, profile),
-            volume_profile=self._refine_topography(profile, nodes, atr_macro, current_price),
-            market_regime=regime_data,
-            sentiment_signals=self._derive_sentiment(raw, atr_macro, atr_micro, current_price)
+        return (
+            ProcessedMarketMetrics(
+                price_dynamics=self._derive_price_dynamics(m_df, n_df),
+                structural_anchors=self._derive_anchors(m_df, profile),
+                volume_profile=self._refine_topography(profile, nodes, atr_macro, current_price),
+                market_regime=regime_data,
+                sentiment_signals=self._derive_sentiment(raw, atr_macro, atr_micro, current_price)
+            ),
+            m_df,
+            n_df,
         )
 
     def _derive_price_dynamics(self, m_df: pd.DataFrame, n_df: pd.DataFrame) -> Dict[str, Any]:
@@ -664,10 +668,10 @@ class MarketObserver:
             return {"error": "DATA_INTEGRITY_FAILURE"}
 
         # 3. [METRIC DISTILLATION]
-        metrics = self.refiner.refine(raw)
+        metrics, m_df, n_df = self.refiner.refine(raw)
 
         # 4. [MULTIMODAL ASSET GENERATION]
-        snapshots = self._generate_snapshots(raw, metrics, data_root or self.data_root, at_time)
+        snapshots = self._generate_snapshots(raw, metrics, m_df, n_df, data_root or self.data_root, at_time)
             
         # 5. [FORENSIC PACKAGING]
         observation = self._package_observation(metrics, snapshots, at_time)
@@ -692,14 +696,17 @@ class MarketObserver:
         except Exception as e:
             logger.error(f"MarketObserver: Persistence failure: {e}")
 
-    def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics, data_root: str, at_time: datetime) -> Dict[str, str]:
-        """Triggers high-fidelity chart generation for Macro and Micro contexts."""
+    def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics,
+                            m_df: 'pd.DataFrame', n_df: 'pd.DataFrame',
+                            data_root: str, at_time: datetime) -> Dict[str, str]:
+        """Triggers high-fidelity chart generation for Macro and Micro contexts.
+
+        Accepts pre-processed DataFrames from refine() to avoid redundant kline processing.
+        """
         img_dir = os.path.join(data_root, "klines")
-        self._charting.storage.output_dir = img_dir 
-        
+        self._charting.storage.output_dir = img_dir
+
         ctx = {**metrics.volume_profile, "timestamp": format_datetime(at_time, FILE_TIMESTAMP_FORMAT)}
-        m_df = self._volume_profile_analyzer.process_klines(raw.macro_klines)
-        n_df = self._volume_profile_analyzer.process_klines(raw.micro_klines)
         
         liq_clusters = metrics.sentiment_signals.get("liquidation_clusters")
         

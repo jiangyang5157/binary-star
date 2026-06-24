@@ -100,7 +100,8 @@ class SniperScout:
             return ScoutResult(self.symbol, ts, {}, raw)
 
         # 3. Refine into metrics (Option A: Full Re-use of VP and Regime math)
-        metrics = self.refiner.refine(raw)
+        # Sniper doesn't generate charts, so discard the pre-processed DataFrames.
+        metrics, _, _ = self.refiner.refine(raw)
         
         # Slim down the processed metrics to just what the Trigger needs
         distilled = {
