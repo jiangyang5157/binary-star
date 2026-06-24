@@ -144,7 +144,7 @@ class SessionRenderer(BaseEmailTemplate):
         if reasoning:
             reasoning_html = f"""\
 <div style="{_s(marginTop='16px', padding='12px', background=C['bg2'], borderRadius='6px', border=f'1px solid {C["border"]}')}">
-    <p style="{_s(fontSize='11px', color=C['text3'], textTransform='uppercase', letterSpacing='0.05em', margin='0 0 6px 0')}">Reasoning</p>
+    <p style="{_s(fontSize='11px', color=C['text3'], textTransform='uppercase', letterSpacing='0.05em', margin='0 0 6px 0')}">Reasoning Chain</p>
     <pre style="{_s(fontSize='12px', lineHeight='1.6', color=C['text2'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily='inherit')}">{reasoning}</pre>
 </div>"""
 
@@ -326,7 +326,7 @@ class SessionRenderer(BaseEmailTemplate):
     def _render_footer() -> str:
         return f"""\
 <div style="{_s(textAlign='center', padding='24px 0', borderTop=f'1px solid {C["border"]}', marginTop='16px')}">
-    <p style="{_s(fontSize='11px', color=C['text3'], margin='0')}">Singularity &middot; Binary Star Protocol &middot; Automated Notification</p>
+    <p style="{_s(fontSize='11px', color=C['text3'], margin='0')}">Singularity &middot; Automated Notification</p>
 </div>"""
 
     # ── Styles (empty — all styling is inline for email compatibility) ──

@@ -134,7 +134,7 @@ async function loadSession() {
 
     main.innerHTML = `
       <div class="session-header">
-        <h2>${session.observation?.symbol || 'Unknown'} Trade</h2>
+        <h2>Trade: ${session.observation?.symbol || 'Unknown'}</h2>
         <span class="session-time">${formatLocalTime(session.observation?.observed_at)}</span>
       </div>
       ${renderDecisionCard(session.final_decision || {})}
