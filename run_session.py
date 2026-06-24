@@ -3,6 +3,7 @@ import os
 import sys
 import argparse
 import signal
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
@@ -28,6 +29,7 @@ from src.utils.path_utils import resolve_project_root
 
 # Initialize central engine logger
 logger = setup_logger("SessionEngine")
+_session_file_log = logging.getLogger("src.SessionEngine")  # writes to {data_root}/session.log
 
 class SessionEngine:
     """The Singularity Session Engine.
@@ -229,11 +231,17 @@ class SessionController:
         # SniperSampler: scans historical range for noteworthy asymmetry events
         sampler = SniperSampler(self.symbol)
         timestamps = sampler.sample(klines_range, self.args.samples)
-        
+
+        # Log the full sample list to session.log for traceability
+        _session_file_log.info("Backtest sample selection (%d timestamps):", len(timestamps))
+        for i, dt in enumerate(timestamps, 1):
+            _session_file_log.info("  [%d] %s", i, dt.isoformat())
+
         # 3. Execution Loop
         logger.info(f"Simulating {len(timestamps)} temporal snapshots (Requested: {self.args.samples})...")
         for i, dt in enumerate(timestamps, 1):
             logger.info(f"\n[BACKTEST PROGRESS: {i}/{len(timestamps)}]")
+            _session_file_log.info("[BACKTEST %d/%d] %s — starting", i, len(timestamps), dt.isoformat())
             self.engine.execute_cycle(timestamp_str=dt.isoformat())
 
 def parse_date(date_str: str) -> datetime:
@@ -275,7 +283,7 @@ def main():
             raise SystemExit("Error: --samples is required for backtest mode.")
         logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
         logger.info(f" => ACTION: Simulating multiple historical data points")
-        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples}, --sampling-mode {args.sampling_mode}")
+        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples}")
         logger.info(f" => ARCHIVAL: {args.path}")
     else:
         logger.info(f"=== Mode Resolved: PROD (Live Execution) ===")
