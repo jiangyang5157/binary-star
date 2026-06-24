@@ -13,19 +13,19 @@ class FitnessConfig:
     Representative Score Ladder (Default Config):
         TP_HIT (clean, fast):              100
         TP_HIT (clean, slow >48h):          85
-        NEUTRAL (justified surrender):      75
-        NEUTRAL (baseline):                 60
-        TP_HIT (LOGIC_FAILURE):             45
+        NEUTRAL (justified surrender):      85
+        NEUTRAL (baseline):                 70
+        TP_HIT (LOGIC_FAILURE):             60
         NEITHER (baseline, unfilled):       40
         NEITHER (catastrophic miss):        20
-        SL_HIT (clean):                     15
-        SL_HIT (LOGIC_FAILURE):            -25
+        SL_HIT (clean):                      5
+        SL_HIT (LOGIC_FAILURE):            -35
     """
-    # Base Outcome Scores
+    # Base Outcome Scores (synced with global_config.yaml → sandbox.base_scores)
     tp_hit: float = 100.0
-    neutral: float = 60.0
+    neutral: float = 70.0
     neither: float = 40.0
-    sl_hit: float = 15.0
+    sl_hit: float = 5.0
     na: float = 0.0
 
     # Forensic Modifiers
