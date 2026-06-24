@@ -75,25 +75,27 @@ class SessionEngine:
         self.consecutive_failures = 0
         self.max_failures_threshold = int(self.global_cfg.get('llm', {}).get('circuit_breaker_max_failures', 3))
 
-    def execute_cycle(self, timestamp_str: Optional[str] = None) -> Dict[str, Any]:
+    def execute_cycle(self, timestamp_str: Optional[str] = None,
+                      situation_brief: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Executes a single market analysis cycle.
         If timestamp_str is None, it acts as 'Live' (Real-time).
         If timestamp_str is provided, it acts as 'Simulation' (Historical).
+        situation_brief: Optional upstream intelligence injected into observation.
         """
         try:
             mode_label = "PROD" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
             logger.info(f"--- Session Cycle Start [{mode_label}] ---")
-            
+
             # 1. Topographic Fact Gathering
             target_dt = None
             if timestamp_str:
                 from src.utils.datetime_utils import parse_iso_to_utc
                 target_dt = parse_iso_to_utc(timestamp_str)
-            
+
             logger.info(f"Observer: Mapping structural topography for {self.symbol}...")
             observation = self.orchestrator.observer.observe(timestamp=target_dt, persist=False)
-            
+
             if "error" in observation:
                 raise ValueError(f"Observer failure: {observation['error']}")
 
@@ -108,6 +110,11 @@ class SessionEngine:
             )
 
             # 2. Adversarial Reasoning Triad
+            # Inject situation brief into the observation before the debate.
+            # SessionAgent and Critic both see it inside observation_json.
+            if situation_brief:
+                observation['situation_brief'] = situation_brief
+
             logger.info("BinaryStar: Initiating adversarial debate [Session Analyst VS Critic]...")
             session_result = self.orchestrator.execute_flow(observation, self.symbol)
 

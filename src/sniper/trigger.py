@@ -1,104 +1,288 @@
-import os
-from typing import Dict, Any, Tuple, Optional, List
-from datetime import datetime, timezone
+"""
+Singularity Sniper Trigger — Signal Stack Architecture.
 
-from src.utils.path_utils import resolve_project_root
+Replaces the old binary-trigger model with a continuous multi-signal confluence
+engine. 14 signal types across 5 categories are detected per pulse, scored on
+a 0–1 continuum, stacked directionally, and only fire an AI session when the
+confluence score exceeds a regime-adaptive threshold.
+
+See docs/trigger-design-20260625.md for the full design specification.
+"""
+
+from enum import Enum
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Dict, Any, Tuple, Optional, List
+
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Enums
+# ═══════════════════════════════════════════════════════════════════════════
+
+class SignalCategory(str, Enum):
+    FLOW = "FLOW"
+    ENERGY = "ENERGY"
+    STRUCTURAL = "STRUCTURAL"
+    POSITIONING = "POSITIONING"
+    CROSS_SYMBOL = "CROSS_SYMBOL"
+
+
+class Direction(str, Enum):
+    BULLISH = "BULLISH"
+    BEARISH = "BEARISH"
+    NEUTRAL = "NEUTRAL"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Data Structures
+# ═══════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class SignalCard:
+    """A single detected market signal with continuous 0–1 scoring."""
+    signal_id: str
+    category: SignalCategory
+    sub_type: str
+    direction: Direction
+    strength: float                         # 0.0–1.0
+    confidence: float                       # 0.0–1.0, per-signal-type reliability weight
+    urgency: float                          # 0.0–1.0, time-sensitivity
+    timestamp: datetime
+    decay_half_life_minutes: float
+    evidence: Dict[str, Any] = field(default_factory=dict)
+    regime_compatibility: float = 1.0
+
+    @property
+    def weighted_score(self) -> float:
+        """Effective score used in confluence stacking."""
+        return self.strength * self.confidence
+
+    def decayed_strength(self, now: datetime) -> float:
+        """Strength after applying temporal decay (half-life formula)."""
+        elapsed = (now - self.timestamp).total_seconds() / 60.0
+        if elapsed <= 0:
+            return self.strength
+        return self.strength * (0.5 ** (elapsed / max(self.decay_half_life_minutes, 1.0)))
+
+    def decayed_weighted_score(self, now: datetime) -> float:
+        """Weighted score after temporal decay."""
+        return self.decayed_strength(now) * self.confidence
+
+
+@dataclass
+class TriggerResult:
+    """Output of trigger evaluation — replaces old (bool, str, str) tuple."""
+    triggered: bool
+    confluence_score: float                 # 0.0–1.0
+    confluence_direction: Direction
+    signals: List[SignalCard]               # all signals (including decayed survivors)
+    active_signals: List[SignalCard]        # fresh signals that contributed to trigger
+    gate_result: str                        # "PASS" | "WEAK_PASS" | "FAIL"
+    gate_reason: str
+    situation_brief: Optional[Dict[str, Any]]  # None if not triggered
+    cooldown_minutes: float
+
+
+@dataclass
+class SignalMemory:
+    """Tracks signals across pulses for decay and persistence."""
+    active_signals: Dict[str, SignalCard] = field(default_factory=dict)
+
+    def ingest(self, new_signals: List[SignalCard], now: datetime) -> List[SignalCard]:
+        """Add new signals, decay existing ones, purge expired (strength < 0.05)."""
+        decayed = []
+        expired_keys = []
+        for sid, card in self.active_signals.items():
+            d_strength = card.decayed_strength(now)
+            if d_strength > 0.05:
+                card.strength = d_strength
+                decayed.append(card)
+            else:
+                expired_keys.append(sid)
+
+        for key in expired_keys:
+            del self.active_signals[key]
+
+        # Merge new signals (replace existing with same sub_type)
+        for ns in new_signals:
+            key = ns.sub_type
+            self.active_signals[key] = ns
+
+        # Return alive signals: fresh signals take priority over decayed survivors
+        # (same sub_type in both → keep the fresh one, discard the stale one)
+        fresh_keys = {ns.sub_type for ns in new_signals}
+        return new_signals + [d for d in decayed if d.sub_type not in fresh_keys]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Confluence Engine
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ConfluenceEngine:
+    """Evaluates a stack of SignalCards and produces a confluence score + trigger decision."""
+
+    def __init__(self, config: dict):
+        # config is the signal_stack sub-dict
+        self.base_threshold = config.get('trigger_threshold', 0.35)
+        self.emergency_threshold = config.get('emergency_threshold', 0.85)
+        self.regime_modifiers = config.get('regime_modifiers', {
+            'trending': 0.85, 'ranging': 1.15, 'squeeze': 0.70, 'chaos': 1.50,
+        })
+        self.signal_weights = config.get('weights', {})
+        self.min_strength_for_stack = 0.15
+
+    def _directional_score(self, signals: List[SignalCard], direction: Direction) -> float:
+        """1 - ∏(1 - s.weighted_score) for all signals matching direction."""
+        matching = [s for s in signals
+                    if s.direction == direction and s.strength >= self.min_strength_for_stack]
+        if not matching:
+            return 0.0
+        product = 1.0
+        for s in matching:
+            product *= (1.0 - s.weighted_score)
+        return 1.0 - product
+
+    def _compute_confluence(self, signals: List[SignalCard]) -> Tuple[float, Direction]:
+        """Returns (confluence_score, dominant_direction)."""
+        bullish_score = self._directional_score(signals, Direction.BULLISH)
+        bearish_score = self._directional_score(signals, Direction.BEARISH)
+
+        noise_factor = 1.0 - (bullish_score * bearish_score)
+
+        if bullish_score >= bearish_score:
+            dominant = Direction.BULLISH
+            raw_score = bullish_score
+        else:
+            dominant = Direction.BEARISH
+            raw_score = bearish_score
+
+        confluence_score = raw_score * noise_factor
+        return confluence_score, dominant
+
+    def evaluate(self, signals: List[SignalCard], regime: str,
+                 is_cooldown_active: bool = False) -> Tuple[float, Direction, bool]:
+        """
+        Returns (confluence_score, dominant_direction, should_trigger).
+
+        Considers: directional stacking, noise cancellation, regime modifier,
+        emergency override, and cooldown.
+        """
+        confluence_score, dominant_direction = self._compute_confluence(signals)
+
+        modifier = self.regime_modifiers.get(regime, 1.0)
+        effective_threshold = self.base_threshold * modifier
+
+        # Emergency override: fire if any single fresh signal exceeds emergency threshold
+        emergency = any(
+            s.strength >= self.emergency_threshold and s.direction != Direction.NEUTRAL
+            for s in signals
+        )
+
+        should_trigger = emergency or (confluence_score >= effective_threshold)
+
+        # During cooldown, only fire on emergency override or stacked break
+        # (stacked break handled by caller via cooldown_break logic)
+        if is_cooldown_active and not emergency:
+            should_trigger = False
+
+        return confluence_score, dominant_direction, should_trigger
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SniperTrigger — Main Class
+# ═══════════════════════════════════════════════════════════════════════════
+
 class SniperTrigger:
     """
-    The Decision Node of the 'Sniper Mode'.
-    
-    All thresholds and cooldowns are injected via strategy_cfg/global_cfg
-    constructor parameters (or loaded from strategy_config.yaml if omitted).
+    Signal Stack trigger engine.
+
+    Replaces the old binary-trigger model. Every 2-minute pulse, detects up to
+    14 signal types, stacks them directionally via ConfluenceEngine, and fires
+    an AI session only when confluence exceeds a regime-adaptive threshold.
     """
-    
+
+    # Cross-symbol correlation defaults (fixed, not yet dynamically computed)
+    CROSS_CORRELATIONS: Dict[str, float] = {
+        'XAUTUSDT': 0.40,
+        'ETHUSDT': 0.75,
+    }
+
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None):
         self.last_trigger_time: Optional[datetime] = None
+        self.last_trigger_score: Optional[float] = None
 
-        # Accept pre-loaded configs (with per-symbol overrides applied) or load defaults
+        # Config loading
         from src.utils.pipeline_utils import load_combined_config, load_global_config
         self.strat_cfg = strategy_cfg if strategy_cfg is not None else load_combined_config()
         self.global_cfg = global_cfg if global_cfg is not None else load_global_config()
         self.regime_cfg = self.strat_cfg['regime_parameters']
-
-        # EXPLICIT CONFIG ENFORCEMENT
         self.sniper_cfg = self.global_cfg['sniper']
 
-        # Derive cooldown from micro-context (e.g., 15m) + Multiplier
+        # Default cooldown (used as fallback; adaptive cooldown is primary)
         micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
         base_cooldown = self._parse_interval_to_minutes(micro_interval)
         self.cooldown_minutes = base_cooldown * self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']
 
-        logger.info(f"SniperTrigger: Physically standalone. Cooldown={self.cooldown_minutes}m (Mult: {self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']}).")
+        # Confluence engine (receives signal_stack sub-config only)
+        self.engine = ConfluenceEngine(self.sniper_cfg.get('signal_stack', {}))
+
+        # Signal memory for inter-pulse decay
+        self.memory = SignalMemory()
+
+        # State locks for structural/sentiment patterns (ported from old trigger)
+        self.state_locks: Dict[str, datetime] = {}
+
+        # Signal confidence weights (convenience accessor)
+        self.signal_weights = self.sniper_cfg.get('signal_stack', {}).get('weights', {})
+
+        # Ordered signal detection registry
+        self._signal_detectors = [
+            # FLOW (fastest, most direct)
+            self._detect_cvd_momentum,
+            self._detect_cvd_divergence,
+            self._detect_cvd_absorption,
+            self._detect_taker_imbalance,
+            # ENERGY
+            self._detect_volatility_surge,
+            self._detect_squeeze,
+            # STRUCTURAL
+            self._detect_boundary_test,
+            self._detect_poc_gravity,
+            self._detect_liquidation_hunt,
+            self._detect_trend_pullback,
+            # POSITIONING
+            self._detect_retail_extreme,
+            self._detect_oi_divergence,
+            self._detect_oi_surge,
+        ]
+
+        logger.info(
+            f"SniperTrigger: Signal Stack active. "
+            f"Base threshold={self.engine.base_threshold}, "
+            f"Emergency threshold={self.engine.emergency_threshold}, "
+            f"Fallback cooldown={self.cooldown_minutes}m, "
+            f"Detectors={len(self._signal_detectors)}"
+        )
+
+    # ── Helpers ──────────────────────────────────────────────────────────
 
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
         """Parse a Binance interval string ('15m', '1h', '1d') into float minutes."""
         val = int(interval_str[:-1])
         unit = interval_str[-1].lower()
-        if unit == 'h': return val * 60.0
-        if unit == 'd': return val * 1440.0
-        return float(val) # Default for 'm'
-
-    def evaluate(self, current_metrics: Dict[str, Any], prev_metrics: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str], Optional[str]]:
-        """
-        Evaluates the current market state for 'noteworthy' asymmetry.
-        """
-        now = datetime.now(timezone.utc)
-
-        # 0. Global Physical Cooldown Check
-        if self.last_trigger_time:
-            elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-            if elapsed < self.cooldown_minutes:
-                return False, None, f"GLOBAL_COOLDOWN (Aligned: {elapsed:.1f}m/{self.cooldown_minutes}m)"
-
-        # 1. Evaluate DNA Traps — score all three, return the strongest hit
-        # CHAOS_MUTE (Extreme Volatility Protection)
-        volatility_ii = current_metrics['price_dynamics']['volatility_intensity_index']
-        if volatility_ii > self.regime_cfg['volatility']['volatility_extreme_ratio']:
-            if self.last_trigger_time:
-                elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-                chaos_mult = self.sniper_cfg['cooldown']['chaos_cooldown_multiplier']
-                if elapsed < (self.cooldown_minutes * chaos_mult):
-                    return False, None, f"CHAOS_MUTE (Extreme Volatility: {volatility_ii:.2f} | Cooldown x{chaos_mult})"
-
-        checks = [
-            (self._check_energy_buildup, "ENERGY_BUILDUP"),
-            (self._check_flow_asymmetry, "FLOW_ASYMMETRY"),
-            (self._check_structural_approach, "STRUCTURAL_APPROACH"),
-        ]
-
-        # Score all types, pick the strongest hit
-        hits: list[tuple[int, str, str]] = []  # (strength, type_tag, reason)
-        for check_fn, type_tag in checks:
-            is_hit, reason = check_fn(current_metrics, prev_metrics)
-            if is_hit and reason:
-                # Parse strength from reason string: "[strength=N/10] ..."
-                strength = 5  # default
-                if reason.startswith("[strength="):
-                    try:
-                        end = reason.index("]")
-                        strength = int(reason[10:end].split("/")[0])
-                    except (ValueError, IndexError):
-                        pass
-                hits.append((strength, type_tag, reason))
-
-        if hits:
-            hits.sort(key=lambda x: x[0], reverse=True)  # highest strength first
-            strength, type_tag, reason = hits[0]
-            logger.info(f"SNIPER WAKE UP! [{type_tag}] | {reason}")
-            return True, type_tag, reason
-
-        return False, None, "SLEEPING"
+        if unit == 'h':
+            return val * 60.0
+        if unit == 'd':
+            return val * 1440.0
+        return float(val)
 
     def _check_state_lock(self, lock_key: str, now: datetime) -> bool:
         """Returns True if permitted to trigger, False if muted by state lock."""
-        if not hasattr(self, 'state_locks'):
-            self.state_locks = {}
         cooldown_hours = self.sniper_cfg['cooldown']['state_lockout_hours']
-        
         if lock_key in self.state_locks:
             elapsed_hours = (now - self.state_locks[lock_key]).total_seconds() / 3600.0
             if elapsed_hours < cooldown_hours:
@@ -106,270 +290,1078 @@ class SniperTrigger:
         self.state_locks[lock_key] = now
         return True
 
-    def _check_energy_buildup(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """Detect energy buildup: volatility expansion + volume surge, or extreme physical squeeze."""
-        volatility_intensity_index = curr['price_dynamics']['volatility_intensity_index']
-        volume_participation_ratio = curr['market_regime']['volume_participation_ratio']
-        squeeze_factor = curr['market_regime']['squeeze_factor']
+    # ── Regime Detection ─────────────────────────────────────────────────
 
-        # 1. Volatility Expansion + Volume Surge
-        volatility_baseline_ratio = self.regime_cfg['volatility']['volatility_baseline_ratio']
-        is_volatility_hit = volatility_intensity_index > volatility_baseline_ratio
+    def _determine_regime(self, curr: Dict[str, Any]) -> str:
+        """Classify current market regime for threshold modulation."""
+        vii = curr['price_dynamics']['volatility_intensity_index']
+        sf = curr['market_regime']['squeeze_factor']
+        trend = abs(curr['market_regime'].get('trend_intensity', 0))
+        trend_strong = self.regime_cfg['trend']['trend_intensity_strong']
+        squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold']
+        extreme_ratio = self.regime_cfg['volatility']['volatility_extreme_ratio']
 
-        volume_participation_threshold = self.regime_cfg['volume']['volume_participation_threshold']
-        is_volume_hit = volume_participation_ratio > volume_participation_threshold
+        if vii > extreme_ratio:
+            return 'chaos'
+        if sf < squeeze_threshold:
+            return 'squeeze'
+        if trend > trend_strong:
+            return 'trending'
+        return 'ranging'
 
-        # Confirmation gate: require volatility to be NEWLY expanding (not just sustained)
-        if is_volatility_hit and is_volume_hit and prev:
-            prev_volatility_intensity_index = prev['price_dynamics']['volatility_intensity_index']
-            volatility_growth_significance_ratio = self.sniper_cfg['probes'].get('volatility_growth_significance_ratio', 1.03)
-            if volatility_intensity_index <= prev_volatility_intensity_index * volatility_growth_significance_ratio:
-                is_volatility_hit = False  # volatility is elevated but not accelerating — skip
+    # ── Adaptive Cooldown ────────────────────────────────────────────────
 
-        # 2. Physical Squeeze
-        squeeze_trigger_multiplier = self.sniper_cfg['probes']['squeeze_trigger_multiplier']
-        squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold'] * squeeze_trigger_multiplier
-        is_squeeze_hit = squeeze_factor < squeeze_threshold
+    def _check_adaptive_cooldown(self, now: datetime, regime: str) -> Tuple[bool, str]:
+        """Returns (is_cooldown_active, reason_string)."""
+        if not self.last_trigger_time:
+            return False, ""
 
-        # Confirmation gate: require squeeze to be INTENSIFYING (getting tighter)
-        if is_squeeze_hit and prev:
-            prev_squeeze_factor = prev['market_regime']['squeeze_factor']
-            if squeeze_factor >= prev_squeeze_factor * 0.98:  # less than 2% tighter
-                is_squeeze_hit = False
+        cooldown_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
+        if not cooldown_cfg:
+            # No adaptive cooldown configured — fallback to fixed cooldown
+            elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
+            if elapsed < self.cooldown_minutes:
+                return True, f"GLOBAL_COOLDOWN ({elapsed:.1f}m/{self.cooldown_minutes}m)"
+            return False, ""
 
-        # Signal strength for priority scoring
-        volatility_strength = 0
-        if is_volatility_hit and is_volume_hit:
-            volatility_strength = max(1, min(10, int((volatility_intensity_index / max(volatility_baseline_ratio, 0.01)) * 5)))
-        elif is_squeeze_hit:
-            volatility_strength = max(1, min(10, int((squeeze_threshold / max(squeeze_factor, 0.001)) * 4)))
+        regime_minutes = cooldown_cfg.get('regime_base_minutes', {})
+        cooldown_mins = regime_minutes.get(regime, self.cooldown_minutes)
 
-        if (is_volatility_hit and is_volume_hit) or is_squeeze_hit:
-            reason = f"[strength={volatility_strength}/10] ENERGY_BUILDUP 势能破局: "
-            if is_volatility_hit and is_volume_hit:
-                reason += f"[暴走] Volatility={volatility_intensity_index:.2f}(>{volatility_baseline_ratio:.2f}) | Vol_Ratio={volume_participation_ratio:.2f}"
-            elif is_squeeze_hit:
-                now = datetime.now(timezone.utc)
-                if not self._check_state_lock("SQUEEZE_STATE", now):
-                    return False, None
-                reason += f"[挤压] Squeeze={squeeze_factor:.2f}(<{squeeze_threshold:.2f}) | Multiplier={squeeze_trigger_multiplier}"
-            return True, reason
+        elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
 
-        return False, None
+        # Enforce minimum gap after any cooldown break
+        min_gap = cooldown_cfg.get('break_min_gap_minutes', 10)
+        if elapsed < min_gap:
+            return True, f"MIN_GAP ({elapsed:.1f}m/{min_gap}m)"
 
-    # ── FLOW_ASYMMETRY sub-strategies (Priority 1 → 4) ─────────────────
+        if elapsed < cooldown_mins:
+            return True, f"COOLDOWN_{regime.upper()} ({elapsed:.1f}m/{cooldown_mins}m)"
 
-    def _check_cvd_divergence(self, curr: Dict[str, Any], prev: Dict[str, Any],
-                               cvd: float, prev_cvd: float) -> Tuple[bool, Optional[str]]:
-        """P1a: CVD divergence — price and CVD move in opposite directions."""
-        cvd_delta_raw = cvd - prev_cvd
-        cvd_delta_abs = abs(cvd_delta_raw)
-        threshold = self.sniper_cfg['probes']['cvd_divergence_tick_delta']
-        if cvd_delta_abs <= threshold:
-            return False, None
-        curr_price = curr['price_dynamics']['current_price']
-        prev_price = prev['price_dynamics']['current_price']
-        price_delta = curr_price - prev_price
-        if not ((price_delta > 0 and cvd_delta_raw < 0) or (price_delta < 0 and cvd_delta_raw > 0)):
-            return False, None
-        strength = max(1, min(10, int((cvd_delta_abs / max(threshold, 0.001)) * 5)))
-        trend = "顶部派发 [警惕见顶回撤]" if price_delta > 0 else "底部吸筹 [关注止跌反弹]"
-        return True, (
-            f"[strength={strength}/10] FLOW_ASYMMETRY CVD 超速背离 [量价背离] "
-            f"(价格变动:{price_delta:.1f}, CVD变动:{cvd_delta_raw:.3f} | 阈值: {threshold}) | "
-            f"**趋势推演: {trend}**"
-        )
+        return False, ""
 
-    def _check_cvd_impulse(self, cvd: float, prev_cvd: float) -> Tuple[bool, Optional[str]]:
-        """P1b: CVD impulse — large single-pulse order (tick-delta acceleration)."""
-        cvd_delta_abs = abs(cvd - prev_cvd)
-        threshold = self.sniper_cfg['probes']['cvd_impulse_tick_delta']
-        if cvd_delta_abs <= threshold:
-            return False, None
-        cvd_delta_raw = cvd - prev_cvd
-        strength = max(1, min(10, int((cvd_delta_abs / max(threshold, 0.001)) * 4)))
-        trend = "多头大单突袭" if cvd_delta_raw > 0 else "空头大单压制"
-        return True, (
-            f"[strength={strength}/10] FLOW_ASYMMETRY CVD 异常脉冲 [大单突袭] "
-            f"(变动值: {cvd_delta_abs:.3f} | 阈值: {threshold}) | **趋势推演: {trend}**"
-        )
+    def _get_regime_cooldown(self, regime: str) -> float:
+        """Return the cooldown that will be applied after a trigger in this regime."""
+        cooldown_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
+        regime_minutes = cooldown_cfg.get('regime_base_minutes', {})
+        return regime_minutes.get(regime, self.cooldown_minutes)
 
-    def _check_cvd_momentum(self, sent: Dict[str, Any], cvd: float,
-                             cvd_threshold: float, prev: Optional[Dict[str, Any]]) -> Tuple[bool, Optional[str]]:
-        """P2: Absolute CVD momentum — strong institutional flow direction."""
-        if abs(cvd) <= cvd_threshold:
-            return False, None
+    def _check_cooldown_break(self, fresh_signals: List[SignalCard],
+                              regime: str) -> bool:
+        """Check if cooldown should break due to stacked signals or strength ratio."""
+        cooldown_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
+
+        # Break if 3+ fresh signals stack in same direction
+        stacked_count = cooldown_cfg.get('stacked_break_count', 3)
+        dir_counts: Dict[Direction, int] = {}
+        for s in fresh_signals:
+            if s.direction != Direction.NEUTRAL and s.strength >= 0.15:
+                dir_counts[s.direction] = dir_counts.get(s.direction, 0) + 1
+        if any(c >= stacked_count for c in dir_counts.values()):
+            return True
+
+        # Break if any fresh signal exceeds strength ratio vs last trigger
+        if self.last_trigger_score is not None:
+            break_ratio = cooldown_cfg.get('break_on_strength_ratio', 1.8)
+            for s in fresh_signals:
+                if s.weighted_score >= self.last_trigger_score * break_ratio:
+                    return True
+
+        return False
+
+    # ── Pre-AI Gate ──────────────────────────────────────────────────────
+
+    def _run_pre_ai_gate(self, curr: Dict[str, Any],
+                         signals: List[SignalCard],
+                         direction: Direction,
+                         regime: str) -> Tuple[str, str]:
+        """Deterministic pre-check before spending AI tokens. Returns (result, reason)."""
+        gate_cfg = self.sniper_cfg.get('signal_stack', {}).get('gate', {})
+        if not gate_cfg.get('enabled', True):
+            return "PASS", "gate disabled"
+
+        checks = gate_cfg.get('checks', {})
+        atr = curr['price_dynamics'].get('atr_macro', 0)
+        price = curr['price_dynamics'].get('current_price', 0)
+        topo = curr.get('volume_profile', {})
+
+        # 1. Entry feasibility
+        if checks.get('entry_feasibility', True):
+            max_dist = self.regime_cfg['structural'].get('max_entry_distance_atr', 1.0)
+            if direction == Direction.BULLISH:
+                # Need structure BELOW for entry
+                anchors = topo.get('anchors_below', [])
+            else:
+                anchors = topo.get('anchors_above', [])
+            nearest_hvn = next((a for a in (anchors or []) if a.get('type') == 'HVN'), None)
+            if nearest_hvn and atr > 0:
+                dist = abs(price - nearest_hvn['price']) / atr
+                if dist > max_dist:
+                    return "FAIL", f"ENTRY_FEASIBILITY: nearest structure at {dist:.1f} ATR > {max_dist}"
+
+        # 2. Directional sanity
+        if checks.get('directional_sanity', True):
+            trend = curr['market_regime'].get('trend_intensity', 0)
+            trend_strong = self.regime_cfg['trend']['trend_intensity_strong']
+            cvd = curr['sentiment_signals'].get('cvd_intensity_ratio', 0)
+            cvd_threshold = self.regime_cfg['micro_sentiment'].get('cvd_intensity_threshold', 0.1)
+            # Counter-trend without structural anchor → suspect
+            if direction == Direction.BULLISH and trend < -trend_strong:
+                if abs(cvd) < cvd_threshold:
+                    return "FAIL", "DIRECTIONAL_SANITY: BULLISH against strong bearish trend without CVD confirmation"
+            if direction == Direction.BEARISH and trend > trend_strong:
+                if abs(cvd) < cvd_threshold:
+                    return "FAIL", "DIRECTIONAL_SANITY: BEARISH against strong bullish trend without CVD confirmation"
+
+        # 3. Chaos survival
+        if checks.get('chaos_survival', True) and regime == 'chaos':
+            # Directional momentum signals in chaos are prohibited
+            momentum_signals = [s for s in signals
+                              if s.sub_type in ('cvd_momentum', 'volatility_surge')
+                              and s.direction == direction]
+            if momentum_signals and not any(
+                s.sub_type in ('squeeze', 'cvd_absorption') for s in signals
+            ):
+                return "FAIL", "CHAOS_SURVIVAL: directional momentum prohibited in chaos regime"
+
+        return "PASS", ""
+
+    # ── Pre-Brief Builder ────────────────────────────────────────────────
+
+    def _build_situation_brief(self, all_signals: List[SignalCard],
+                         confluence_score: float,
+                         direction: Direction,
+                         regime: str,
+                         gate_result: str) -> Dict[str, Any]:
+        """Build the pre-brief JSON injected into the SessionAgent's observation."""
+        active = [s for s in all_signals
+                  if s.strength >= 0.15 and s.direction in (direction, Direction.NEUTRAL)]
+
+        activated_by = []
+        for s in sorted(all_signals, key=lambda x: x.weighted_score, reverse=True)[:5]:
+            if s.direction != Direction.NEUTRAL or s.sub_type == 'squeeze':
+                thesis = self._suggest_thesis(s.sub_type, s.direction)
+                activated_by.append({
+                    "signal": s.sub_type.upper(),
+                    "direction": s.direction.value,
+                    "strength": round(s.strength, 2),
+                    "confidence": round(s.confidence, 2),
+                    "key_evidence": self._format_evidence(s),
+                    "suggested_thesis": thesis,
+                })
+
+        risk_caveats = self._build_risk_caveats(all_signals, direction, regime)
+
+        suggested_entry = self._build_entry_suggestion(all_signals, direction, regime)
+
+        return {
+            "confluence_score": round(confluence_score, 2),
+            "confluence_direction": direction.value,
+            "stacked_signals_count": len(active),
+            "regime_note": self._build_regime_note(direction, regime),
+            "gate_result": gate_result,
+            "activated_by": activated_by,
+            "risk_caveats": risk_caveats,
+            "suggested_entry_zone": suggested_entry,
+        }
+
+    def _suggest_thesis(self, sub_type: str, direction: Direction) -> str:
+        theses = {
+            'cvd_momentum': (
+                "Bearish momentum building — seek short on pullback to nearest HVN"
+                if direction == Direction.BEARISH else
+                "Bullish momentum building — seek long on dip to nearest HVN"
+            ),
+            'cvd_divergence': (
+                "Distribution detected — smart money selling into strength, prepare short"
+                if direction == Direction.BEARISH else
+                "Accumulation detected — smart money buying into weakness, prepare long"
+            ),
+            'cvd_absorption': (
+                "Iceberg selling absorption — large player accumulating shorts, expect downside"
+                if direction == Direction.BEARISH else
+                "Iceberg buying absorption — large player accumulating longs, expect upside"
+            ),
+            'taker_imbalance': (
+                "Aggressive selling pressure — follow the flow short"
+                if direction == Direction.BEARISH else
+                "Aggressive buying pressure — follow the flow long"
+            ),
+            'volatility_surge': (
+                "Breakout energy with bearish flow — momentum short entry"
+                if direction == Direction.BEARISH else
+                "Breakout energy with bullish flow — momentum long entry"
+            ),
+            'squeeze': "Coiling spring — prepare for violent expansion, direction TBD on breakout",
+            'boundary_test': (
+                "Testing resistance — if rejection, fade short; if breakout with volume, follow"
+                if direction == Direction.BULLISH else
+                "Testing support — if rejection, fade long; if breakdown with volume, follow"
+            ),
+            'poc_gravity': "Mean-reversion gravity active — price pulled toward fair value (POC)",
+            'liquidation_hunt': "Liquidity sweep in progress — enter after cluster is cleared",
+            'trend_pullback': (
+                "Trend pullback to structure — high-probability entry in trend direction (BEARISH)"
+                if direction == Direction.BEARISH else
+                "Trend pullback to structure — high-probability entry in trend direction (BULLISH)"
+            ),
+            'retail_extreme': (
+                "Retail overcrowded long — squeeze fuel for downside cascade"
+                if direction == Direction.BEARISH else
+                "Retail overcrowded short — squeeze fuel for upside cascade"
+            ),
+            'oi_divergence': (
+                "OI dropping while price rises — short-squeeze exhaustion, bearish reversal ahead"
+                if direction == Direction.BEARISH else
+                "OI rising while price drops — accumulation, bullish reversal ahead"
+            ),
+            'oi_surge': (
+                "Fresh capital entering shorts — trend continuation fuel"
+                if direction == Direction.BEARISH else
+                "Fresh capital entering longs — trend continuation fuel"
+            ),
+        }
+        return theses.get(sub_type, f"Signal detected — evaluate against market structure")
+
+    def _format_evidence(self, s: SignalCard) -> str:
+        """One-line summary of signal evidence for the pre-brief."""
+        ev = s.evidence
+        if s.sub_type == 'cvd_momentum':
+            return f"CVD intensity {ev.get('cvd_intensity', 0.0):.3f}"
+        if s.sub_type == 'cvd_divergence':
+            return f"CVD delta {ev.get('cvd_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
+        if s.sub_type == 'cvd_absorption':
+            return f"CVD {ev.get('cvd_intensity', 0.0):.3f} with flat price (delta {ev.get('price_delta', 0.0):.1f})"
+        if s.sub_type == 'taker_imbalance':
+            return f"CVD {ev.get('cvd_intensity', 0.0):.3f} (taker imbalance equivalent)"
+        if s.sub_type == 'volatility_surge':
+            return f"VII={ev.get('vii', 0.0):.2f}, VPR={ev.get('vpr', 0.0):.2f}"
+        if s.sub_type == 'squeeze':
+            return f"Squeeze factor {ev.get('squeeze_factor', 0.0):.2f}"
+        if s.sub_type == 'boundary_test':
+            return f"Distance to {ev.get('boundary', '?')}: {ev.get('dist_atr', 0.0):.2f} ATR"
+        if s.sub_type == 'poc_gravity':
+            return f"POC distance: {ev.get('poc_dist_atr', 0.0):.2f} ATR"
+        if s.sub_type == 'liquidation_hunt':
+            return f"Cluster at {ev.get('cluster_price', 0.0):.1f}, distance: {ev.get('dist_atr', 0.0):.2f} ATR"
+        if s.sub_type == 'trend_pullback':
+            return f"Trend={ev.get('trend_intensity', 0.0):.2f}, dist to structure={ev.get('dist_to_structure_atr', 0.0):.2f} ATR"
+        if s.sub_type == 'retail_extreme':
+            trigger = ev.get('trigger', '?')
+            if trigger == 'ls_long':
+                return f"LS ratio {ev.get('ls_ratio', 0.0):.2f} — retail heavily long"
+            elif trigger == 'ls_short':
+                return f"LS ratio {ev.get('ls_ratio', 0.0):.2f} — retail heavily short"
+            elif trigger == 'funding':
+                return f"Funding rate {ev.get('funding_rate', 0.0):.5f} — extreme"
+        if s.sub_type == 'oi_divergence':
+            return f"OI delta {ev.get('oi_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
+        if s.sub_type == 'oi_surge':
+            return f"OI delta {ev.get('oi_delta', 0.0):.3f} aligned with price delta {ev.get('price_delta', 0.0):.1f}"
+        return str(ev)[:120]
+
+    def _build_risk_caveats(self, signals: List[SignalCard],
+                            direction: Direction, regime: str) -> List[str]:
+        caveats = []
+        sub_types = {s.sub_type for s in signals}
+
+        if 'retail_extreme' in sub_types:
+            caveats.append(
+                "Retail extreme can persist for hours — do not force entry without structural confirmation"
+            )
+        if 'cvd_momentum' in sub_types and 'cvd_absorption' not in sub_types:
+            caveats.append(
+                "CVD momentum is strong but watch for absorption — extreme CVD without price movement = reversal risk"
+            )
+        if 'trend_pullback' in sub_types:
+            caveats.append(
+                "Trend pullback is the highest-quality setup — prioritize structure-anchored entry"
+            )
+        if regime == 'chaos':
+            caveats.append(
+                "CHAOS regime active — use hit-and-run strategy, compress TP to first structural boundary"
+            )
+        if regime == 'squeeze':
+            caveats.append(
+                "Squeeze active — expect violent breakout, use wider stop or wait for direction confirmation"
+            )
+        if 'cvd_divergence' in sub_types and direction == Direction.BEARISH:
+            caveats.append(
+                "Distribution divergence — smart money may be selling into strength, size conservatively"
+            )
+        return caveats
+
+    def _build_entry_suggestion(self, signals: List[SignalCard],
+                                 direction: Direction, regime: str) -> Dict[str, Any]:
+        max_dist = self.regime_cfg['structural'].get('max_entry_distance_atr', 1.0)
+        suggestion = {
+            "max_distance_atr": max_dist,
+        }
+
+        if any(s.sub_type == 'trend_pullback' for s in signals):
+            suggestion["type"] = "trend_pullback_dle"
+            suggestion["target_area"] = "nearest HVN in trend direction"
+        elif any(s.sub_type == 'cvd_divergence' for s in signals):
+            suggestion["type"] = "divergence_fade"
+            suggestion["target_area"] = "proximal structural boundary"
+        elif any(s.sub_type == 'squeeze' for s in signals):
+            suggestion["type"] = "squeeze_breakout"
+            suggestion["target_area"] = "beyond VAH/VAL on confirmed breakout direction"
+        elif regime == 'chaos':
+            suggestion["type"] = "hit_and_run"
+            suggestion["target_area"] = "nearest liquidation cluster or VAH/VAL boundary"
+        elif direction == Direction.BEARISH:
+            suggestion["type"] = "shallow_pullback_dle"
+            suggestion["target_area"] = "nearest HVN above current price"
+        else:
+            suggestion["type"] = "shallow_dip_dle"
+            suggestion["target_area"] = "nearest HVN below current price"
+
+        return suggestion
+
+    def _build_regime_note(self, direction: Direction, regime: str) -> str:
+        notes = {
+            'trending': (
+                f"IS_TREND_STRONG {direction.value} — momentum entries authorized, "
+                f"Dynamic Kinetic Shield available, counter-trend prohibited"
+            ),
+            'ranging': (
+                "Ranging regime — mean-reversion entries preferred, "
+                "tighten TP to nearest structural boundary"
+            ),
+            'squeeze': (
+                "Squeeze regime — coiling spring, prepare for breakout, "
+                "direction TBD on expansion, use wider stops"
+            ),
+            'chaos': (
+                "CHAOS regime — hit-and-run only, directional momentum PROHIBITED, "
+                "survival priority, compress TP aggressively"
+            ),
+        }
+        return notes.get(regime, f"Regime: {regime}")
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # SIGNAL DETECTORS (13 direct + 1 cross-symbol = 14 total)
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def _make_id(self, sub_type: str, now: datetime) -> str:
+        return f"{sub_type}_{now.strftime('%Y%m%d_%H%M%S')}"
+
+    # ── FLOW: CVD Momentum (#1) ────────────────────────────────────────
+
+    def _detect_cvd_momentum(self, curr: Dict[str, Any],
+                              prev: Optional[Dict[str, Any]],
+                              now: datetime) -> Optional[SignalCard]:
+        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
+        threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
+        if abs(cvd) <= threshold:
+            return None
+
         if prev:
-            prev_cvd = prev.get('sentiment_signals', {}).get('cvd_intensity_ratio', 0.0)
+            prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
             growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
             if abs(cvd) <= abs(prev_cvd) * growth_ratio:
-                return False, None
-        strength = max(1, min(10, int((abs(cvd) / max(cvd_threshold, 0.01)) * 5)))
-        cvd_vol_delta = sent.get('cvd_volume_delta', 0.0)
-        cvd_vol = sent.get('cvd_total_volume', 0.0)
-        cvd_lookback_candles = sent.get('cvd_lookback_candles', 0)
-        micro_int = self.strat_cfg['analysis_window']['micro_context']['time_interval']
-        trend = "激进多头主导，短期持续看涨" if cvd > 0 else "激进空头主导，短期持续看跌"
-        return True, (
-            f"[strength={strength}/10] FLOW_ASYMMETRY 机构级 CVD 异常流向 [绝对动量突破] "
-            f"(强度: {cvd:.3f} | 累计差值: {cvd_vol_delta:.1f} | 成交量: {cvd_vol:.1f} | "
-            f"窗口: {cvd_lookback_candles}k @ {micro_int} | 阈值: {cvd_threshold:.2f}) | "
-            f"**趋势推演: {trend}**"
+                return None
+
+        direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
+        strength = min(abs(cvd) / (threshold * 3), 1.0)
+        confidence = self.signal_weights.get('cvd_momentum', 0.65)
+
+        return SignalCard(
+            signal_id=self._make_id('cvd_momentum', now),
+            category=SignalCategory.FLOW,
+            sub_type='cvd_momentum',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.5,
+            timestamp=now,
+            decay_half_life_minutes=15.0,
+            evidence={'cvd_intensity': cvd, 'threshold': threshold},
         )
 
-    def _check_retail_sentiment(self, sent: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-        """P3: Retail sentiment extremes — LS ratio imbalance."""
-        ls = sent.get('ls_ratio_micro', 1.0)
-        cfg = self.regime_cfg['imbalance']
-        if not (ls > cfg['long_short_imbalance_ratio'] or ls < cfg['short_heavy_imbalance_ratio']):
-            return False, None
-        if not self._check_state_lock("AMBIENT_LS_RATIO", datetime.now(timezone.utc)):
-            return False, None
-        strength = max(1, min(10, int(
-            max(ls / max(cfg['long_short_imbalance_ratio'], 0.01),
-                cfg['short_heavy_imbalance_ratio'] / max(ls, 0.01)) * 3
-        )))
-        trend = "多头拥挤，防范爆多踩踏风险" if ls > 1.0 else "空头拥挤，防范空头回补/空头挤压爆发"
-        return True, (
-            f"[strength={strength}/10] FLOW_ASYMMETRY 零售情绪过度扩张 [反向指标提醒] "
-            f"(多空比: {ls:.2f}) | **趋势推演: {trend}**"
+    # ── FLOW: CVD Divergence (#2) ──────────────────────────────────────
+
+    def _detect_cvd_divergence(self, curr: Dict[str, Any],
+                                prev: Optional[Dict[str, Any]],
+                                now: datetime) -> Optional[SignalCard]:
+        if not prev:
+            return None
+        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
+        prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
+        cvd_delta = cvd - prev_cvd
+        threshold = self.sniper_cfg['probes']['cvd_divergence_tick_delta']
+        if abs(cvd_delta) <= threshold:
+            return None
+
+        price_delta = (curr['price_dynamics']['current_price'] -
+                       prev['price_dynamics']['current_price'])
+        if not ((price_delta > 0 and cvd_delta < 0) or (price_delta < 0 and cvd_delta > 0)):
+            return None
+
+        direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
+        strength = min(abs(cvd_delta) / (threshold * 3), 1.0)
+        confidence = self.signal_weights.get('cvd_divergence', 0.70)
+
+        return SignalCard(
+            signal_id=self._make_id('cvd_divergence', now),
+            category=SignalCategory.FLOW,
+            sub_type='cvd_divergence',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.7,
+            timestamp=now,
+            decay_half_life_minutes=4.0,
+            evidence={'cvd_delta': cvd_delta, 'price_delta': price_delta, 'threshold': threshold},
         )
 
-    def _check_funding_extreme(self, sent: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
-        """P4: Funding rate extreme — overheated longs or shorts."""
-        funding = sent.get('funding_rate', 0.0)
-        threshold = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
-        if abs(funding) <= threshold:
-            return False, None
-        if not self._check_state_lock("AMBIENT_FUNDING", datetime.now(timezone.utc)):
-            return False, None
-        strength = max(1, min(10, int(
-            (abs(funding) / max(abs(threshold), 1e-9)) * 4
-        )))
-        trend = "多头过热，警惕力竭回撤" if funding > 0 else "空头过热，警惕力竭反弹"
-        return True, (
-            f"[strength={strength}/10] FLOW_ASYMMETRY 资金费率极端值 [情绪偏振检测] "
-            f"(费率: {funding:.5f}) | **趋势推演: {trend}**"
+    # ── FLOW: CVD Absorption (#3) ──────────────────────────────────────
+
+    def _detect_cvd_absorption(self, curr: Dict[str, Any],
+                                prev: Optional[Dict[str, Any]],
+                                now: datetime) -> Optional[SignalCard]:
+        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
+        extreme_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_extreme']
+        if abs(cvd) <= extreme_threshold:
+            return None
+        if not prev:
+            return None
+        price_delta = abs(curr['price_dynamics']['current_price'] -
+                          prev['price_dynamics']['current_price'])
+        atr_micro = curr['price_dynamics'].get('atr_micro', 0)
+        if atr_micro <= 0:
+            return None
+        if price_delta >= 0.3 * atr_micro:
+            return None
+
+        direction = Direction.BEARISH if cvd > 0 else Direction.BULLISH
+        strength = min((abs(cvd) - extreme_threshold) / 0.15, 1.0)
+        confidence = self.signal_weights.get('cvd_absorption', 0.65)
+
+        return SignalCard(
+            signal_id=self._make_id('cvd_absorption', now),
+            category=SignalCategory.FLOW,
+            sub_type='cvd_absorption',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.6,
+            timestamp=now,
+            decay_half_life_minutes=10.0,
+            evidence={'cvd_intensity': cvd, 'price_delta': price_delta},
         )
 
-    def _check_flow_asymmetry(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """Detect flow asymmetry: evaluate sub-strategies in priority order."""
-        sent = curr.get('sentiment_signals', {})
-        cvd = sent.get('cvd_intensity_ratio', 0.0)
-        cvd_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
+    # ── FLOW: Taker Imbalance (#4) ─────────────────────────────────────
+    # Derived from cvd_intensity_ratio (taker_imbalance = (cvd + 1) / 2).
+    # No separate data field needed — mathematically equivalent to raw taker ratio.
+
+    def _detect_taker_imbalance(self, curr: Dict[str, Any],
+                                 prev: Optional[Dict[str, Any]],
+                                 now: datetime) -> Optional[SignalCard]:
+        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
+        # cvd > 0.20 → taker_imbalance > 0.60; cvd < -0.20 → taker_imbalance < 0.40
+        threshold = 0.20
+        if abs(cvd) <= threshold:
+            return None
+
+        direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
+        strength = min((abs(cvd) - threshold) / 0.40, 1.0)  # saturates at cvd=0.60
+        confidence = self.signal_weights.get('taker_imbalance', 0.60)
+
+        return SignalCard(
+            signal_id=self._make_id('taker_imbalance', now),
+            category=SignalCategory.FLOW,
+            sub_type='taker_imbalance',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.6,
+            timestamp=now,
+            decay_half_life_minutes=4.0,
+            evidence={'cvd_intensity': cvd},
+        )
+
+    # ── ENERGY: Volatility Surge (#5) ───────────────────────────────────
+
+    def _detect_volatility_surge(self, curr: Dict[str, Any],
+                                  prev: Optional[Dict[str, Any]],
+                                  now: datetime) -> Optional[SignalCard]:
+        vii = curr['price_dynamics']['volatility_intensity_index']
+        vpr = curr['market_regime']['volume_participation_ratio']
+        baseline = self.regime_cfg['volatility']['volatility_baseline_ratio']
+        vol_threshold = self.regime_cfg['volume']['volume_participation_threshold']
+
+        if not (vii > baseline and vpr > vol_threshold):
+            return None
 
         if prev:
-            prev_cvd = prev.get('sentiment_signals', {}).get('cvd_intensity_ratio', 0.0)
-            hit, reason = self._check_cvd_divergence(curr, prev, cvd, prev_cvd)
-            if hit: return True, reason
-            hit, reason = self._check_cvd_impulse(cvd, prev_cvd)
-            if hit: return True, reason
+            prev_vii = prev['price_dynamics']['volatility_intensity_index']
+            growth_ratio = self.sniper_cfg['probes'].get('volatility_growth_significance_ratio', 1.03)
+            if vii <= prev_vii * growth_ratio:
+                return None
 
-        hit, reason = self._check_cvd_momentum(sent, cvd, cvd_threshold, prev)
-        if hit: return True, reason
+        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
+        if abs(cvd) > 0.05:
+            direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
+        elif abs(trend := curr['market_regime'].get('trend_intensity', 0)) > 0.05:
+            direction = Direction.BULLISH if trend > 0 else Direction.BEARISH
+        else:
+            direction = Direction.NEUTRAL  # flat — no directional bias
 
-        hit, reason = self._check_retail_sentiment(sent)
-        if hit: return True, reason
+        strength = min((vii - baseline) / (baseline * 2), 1.0)
+        confidence = self.signal_weights.get('volatility_surge', 0.55)
 
-        return self._check_funding_extreme(sent)
+        return SignalCard(
+            signal_id=self._make_id('volatility_surge', now),
+            category=SignalCategory.ENERGY,
+            sub_type='volatility_surge',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.5,
+            timestamp=now,
+            decay_half_life_minutes=20.0,
+            evidence={'vii': vii, 'vpr': vpr},
+        )
 
-    def _check_structural_approach(self, curr: Dict[str, Any], prev: Optional[Dict[str, Any]] = None) -> Tuple[bool, Optional[str]]:
-        """Detect structural approach: boundary collision, POC magnet, or liquidation magnet."""
-        now = datetime.now(timezone.utc)
+    # ── ENERGY: Squeeze (#6) ─────────────────────────────────────────────
+
+    def _detect_squeeze(self, curr: Dict[str, Any],
+                         prev: Optional[Dict[str, Any]],
+                         now: datetime) -> Optional[SignalCard]:
+        sf = curr['market_regime']['squeeze_factor']
+        threshold = (self.regime_cfg['volatility']['squeeze_threshold'] *
+                     self.sniper_cfg['probes']['squeeze_trigger_multiplier'])
+        if sf >= threshold:
+            return None
+
+        if prev:
+            prev_sf = prev['market_regime']['squeeze_factor']
+            if sf >= prev_sf * 0.98:
+                return None
+
+        strength = min((threshold - sf) / threshold, 1.0)
+        confidence = self.signal_weights.get('squeeze', 0.75)
+
+        return SignalCard(
+            signal_id=self._make_id('squeeze', now),
+            category=SignalCategory.ENERGY,
+            sub_type='squeeze',
+            direction=Direction.NEUTRAL,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.9,
+            timestamp=now,
+            decay_half_life_minutes=20.0,
+            evidence={'squeeze_factor': sf, 'threshold': threshold},
+        )
+
+    # ── STRUCTURAL: Boundary Test (#7) ──────────────────────────────────
+
+    def _detect_boundary_test(self, curr: Dict[str, Any],
+                               prev: Optional[Dict[str, Any]],
+                               now: datetime) -> Optional[SignalCard]:
         topo = curr['volume_profile']
-        atr = curr['price_dynamics']['atr_macro']
+        atr = curr['price_dynamics'].get('atr_macro', 0)
+        if atr <= 0:
+            return None
         price = curr['price_dynamics']['current_price']
         part = curr['market_regime']['volume_participation_ratio']
 
-        # Directional context: is price moving toward or away from the structure?
-        approaching_from_below = False
-        approaching_from_above = False
+        dist_vh = abs(price - topo['vah']) / atr
+        dist_val = abs(price - topo['val']) / atr
+        threshold = self.sniper_cfg['proximity']['proximity_vah_val_atr']
+
+        nearest_dist = min(dist_vh, dist_val)
+        nearest = 'VAH' if dist_vh < dist_val else 'VAL'
+
+        if nearest_dist >= threshold or part <= self.regime_cfg['volume']['min_volume_participation_ratio']:
+            return None
+
         if prev:
             prev_price = prev['price_dynamics']['current_price']
-            approaching_from_below = price > prev_price  # moving up
-            approaching_from_above = price < prev_price  # moving down
+            approaching_up = nearest == 'VAH' and price > prev_price
+            approaching_down = nearest == 'VAL' and price < prev_price
+            if not (approaching_up or approaching_down):
+                return None
 
-        dist_vh = abs(price - topo['vah']) / atr if atr > 0 else float('inf')
-        dist_val = abs(price - topo['val']) / atr if atr > 0 else float('inf')
-        dist_poc = abs(price - topo['poc']) / atr if atr > 0 else float('inf')
+        if not self._check_state_lock(f"BOUNDARY_{nearest}", now):
+            return None
 
-        vah_val_threshold = self.sniper_cfg['proximity']['proximity_vah_val_atr']
-        poc_trigger_threshold = self.sniper_cfg['proximity']['proximity_poc_atr']
-        liq_trigger_threshold = self.sniper_cfg['proximity']['proximity_liq_atr']
+        direction = Direction.BULLISH if nearest == 'VAH' else Direction.BEARISH
+        strength = min(threshold / max(nearest_dist, 0.01) * 0.25, 1.0)
+        confidence = self.signal_weights.get('boundary_test', 0.50)
 
-        # ── VAH/VAL boundary test ────────────────────────────────────
-        nearest_boundary = "VAH" if dist_vh < dist_val else "VAL"
-        nearest_dist = min(dist_vh, dist_val)
+        return SignalCard(
+            signal_id=self._make_id('boundary_test', now),
+            category=SignalCategory.STRUCTURAL,
+            sub_type='boundary_test',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.4,
+            timestamp=now,
+            decay_half_life_minutes=10.0,
+            evidence={'boundary': nearest, 'dist_atr': nearest_dist, 'threshold': threshold},
+        )
 
-        if nearest_dist < vah_val_threshold and part > self.regime_cfg['volume']['min_volume_participation_ratio']:
-            # Directional gate: only trigger if approaching the boundary
-            approaching = (nearest_boundary == "VAH" and approaching_from_below) or \
-                          (nearest_boundary == "VAL" and approaching_from_above)
-            if prev and not approaching:
-                pass  # retreating from boundary — skip
-            elif self._check_state_lock(f"BOUNDARY_{nearest_boundary}", now):
-                strength = max(1, min(10, int((vah_val_threshold / max(nearest_dist, 0.01)) * 4)))
-                direction_note = "向上测试" if nearest_boundary == "VAH" else "向下测试"
-                trend = (
-                    f"测试 {nearest_boundary} 关键阻力，若无法带量突破则倾向于回转 POC"
-                    if nearest_boundary == "VAH" else
-                    f"测试 {nearest_boundary} 关键支撑，若放量跌破则下方空间打开"
-                )
-                return True, (
-                    f"[strength={strength}/10] STRUCTURAL_APPROACH 携量撞墙 [{direction_note}] "
-                    f"距离 {nearest_boundary}={nearest_dist:.2f} ATR (阈值: {vah_val_threshold:.2f}) | "
-                    f"**趋势推演: {trend}**"
-                )
+    # ── STRUCTURAL: POC Gravity (#8) ────────────────────────────────────
 
-        # ── POC magnet ──────────────────────────────────────────────
-        if dist_poc < poc_trigger_threshold:
-            approaching_poc = (price < topo['poc'] and approaching_from_below) or \
-                              (price > topo['poc'] and approaching_from_above)
-            if prev and not approaching_poc:
-                pass  # retreating from POC — skip
-            elif self._check_state_lock("POC_MAGNET", now):
-                strength = max(1, min(10, int((poc_trigger_threshold / max(dist_poc, 0.01)) * 3)))
-                return True, (
-                    f"[strength={strength}/10] STRUCTURAL_APPROACH POC 磁吸/回踩 [引力回归测试] "
-                    f"距离 POC={dist_poc:.2f} ATR (阈值: {poc_trigger_threshold:.2f}) | "
-                    f"**趋势推演: 引力回归中，价格倾向于在成交最密集区域震荡或企稳**"
-                )
+    def _detect_poc_gravity(self, curr: Dict[str, Any],
+                             prev: Optional[Dict[str, Any]],
+                             now: datetime) -> Optional[SignalCard]:
+        poc_dist = curr['structural_anchors'].get('poc_dist_atr', 0)
+        threshold = self.sniper_cfg['proximity']['proximity_poc_atr']
+        if abs(poc_dist) >= threshold:
+            return None  # too far from POC — gravity not active
 
-        # ── Liquidation cluster magnets ─────────────────────────────
+        if prev:
+            prev_price = prev['price_dynamics']['current_price']
+            price = curr['price_dynamics']['current_price']
+            poc = curr['volume_profile']['poc']
+            approaching = (price < poc and price > prev_price) or (price > poc and price < prev_price)
+            if not approaching:
+                return None
+
+        if not self._check_state_lock("POC_MAGNET", now):
+            return None
+
+        direction = Direction.BULLISH if poc_dist < 0 else Direction.BEARISH
+        strength = min(threshold / max(abs(poc_dist), 0.01) * 0.20, 1.0)
+        confidence = self.signal_weights.get('poc_gravity', 0.55)
+
+        return SignalCard(
+            signal_id=self._make_id('poc_gravity', now),
+            category=SignalCategory.STRUCTURAL,
+            sub_type='poc_gravity',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.3,
+            timestamp=now,
+            decay_half_life_minutes=10.0,
+            evidence={'poc_dist_atr': poc_dist, 'threshold': threshold},
+        )
+
+    # ── STRUCTURAL: Liquidation Hunt (#9) ────────────────────────────────
+
+    def _detect_liquidation_hunt(self, curr: Dict[str, Any],
+                                  prev: Optional[Dict[str, Any]],
+                                  now: datetime) -> Optional[SignalCard]:
         liq_clusters = curr['sentiment_signals'].get('liquidation_clusters')
-        if liq_clusters and isinstance(liq_clusters, dict):
-            for cluster in liq_clusters.get('long_liquidation', []):
-                p = float(cluster['price'])
-                dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
-                if dist_atr < liq_trigger_threshold:
-                    # Long liquidation magnet: price moves DOWN to sweep longs
-                    if prev and not approaching_from_above:
+        if not liq_clusters or not isinstance(liq_clusters, dict):
+            return None
+
+        atr = curr['price_dynamics'].get('atr_macro', 0)
+        if atr <= 0:
+            return None
+        price = curr['price_dynamics']['current_price']
+        threshold = self.sniper_cfg['proximity']['proximity_liq_atr']
+
+        # Check long liquidation clusters (price moving DOWN to sweep)
+        for cluster in liq_clusters.get('long_liquidation', []):
+            p = float(cluster['price'])
+            dist_atr = abs(price - p) / atr
+            if dist_atr < threshold:
+                if prev:
+                    prev_price = prev['price_dynamics']['current_price']
+                    if price >= prev_price:
                         continue
-                    if self._check_state_lock(f"LONG_LIQ_{int(p/100)*100}", now):
-                        strength = max(1, min(10, int((liq_trigger_threshold / max(dist_atr, 0.01)) * 3)))
-                        return True, (
-                            f"[strength={strength}/10] STRUCTURAL_APPROACH 多头爆仓磁吸 [支撑位测试] "
-                            f"价格={p:.2f}, 距离={dist_atr:.2f} ATR (阈值: {liq_trigger_threshold:.2f}) | "
-                            f"**趋势推演: 多头清算磁吸，价格大概率下探以清除多头流动性点位**"
-                        )
+                if self._check_state_lock(f"LONG_LIQ_{int(p/100)*100}", now):
+                    strength = min(threshold / max(dist_atr, 0.01) * 0.15, 1.0)
+                    return SignalCard(
+                        signal_id=self._make_id('liquidation_hunt', now),
+                        category=SignalCategory.STRUCTURAL,
+                        sub_type='liquidation_hunt',
+                        direction=Direction.BEARISH,
+                        strength=strength,
+                        confidence=self.signal_weights.get('liquidation_hunt', 0.60),
+                        urgency=0.5,
+                        timestamp=now,
+                        decay_half_life_minutes=10.0,
+                        evidence={'cluster_price': p, 'dist_atr': dist_atr, 'type': 'long'},
+                    )
 
-            for cluster in liq_clusters.get('short_liquidation', []):
-                p = float(cluster['price'])
-                dist_atr = abs(price - p) / atr if atr > 0 else float('inf')
-                if dist_atr < liq_trigger_threshold:
-                    # Short liquidation magnet: price moves UP to squeeze shorts
-                    if prev and not approaching_from_below:
+        # Check short liquidation clusters (price moving UP to squeeze)
+        for cluster in liq_clusters.get('short_liquidation', []):
+            p = float(cluster['price'])
+            dist_atr = abs(price - p) / atr
+            if dist_atr < threshold:
+                if prev:
+                    prev_price = prev['price_dynamics']['current_price']
+                    if price <= prev_price:
                         continue
-                    if self._check_state_lock(f"SHORT_LIQ_{int(p/100)*100}", now):
-                        strength = max(1, min(10, int((liq_trigger_threshold / max(dist_atr, 0.01)) * 3)))
-                        return True, (
-                            f"[strength={strength}/10] STRUCTURAL_APPROACH 空头爆仓磁吸 [挤压位测试] "
-                            f"价格={p:.2f}, 距离={dist_atr:.2f} ATR (阈值: {liq_trigger_threshold:.2f}) | "
-                            f"**趋势推演: 空头清算磁吸，价格大概率上攻以清除空头流动性点位**"
-                        )
+                if self._check_state_lock(f"SHORT_LIQ_{int(p/100)*100}", now):
+                    strength = min(threshold / max(dist_atr, 0.01) * 0.15, 1.0)
+                    return SignalCard(
+                        signal_id=self._make_id('liquidation_hunt', now),
+                        category=SignalCategory.STRUCTURAL,
+                        sub_type='liquidation_hunt',
+                        direction=Direction.BULLISH,
+                        strength=strength,
+                        confidence=self.signal_weights.get('liquidation_hunt', 0.60),
+                        urgency=0.5,
+                        timestamp=now,
+                        decay_half_life_minutes=10.0,
+                        evidence={'cluster_price': p, 'dist_atr': dist_atr, 'type': 'short'},
+                    )
 
-        return False, None
+        return None
 
-    def set_triggered(self, t_type: str):
-        """Sets the last trigger time for physical cooldown."""
+    # ── STRUCTURAL: Trend Pullback (#10) ─────────────────────────────────
+
+    def _detect_trend_pullback(self, curr: Dict[str, Any],
+                                prev: Optional[Dict[str, Any]],
+                                now: datetime) -> Optional[SignalCard]:
+        trend = curr['market_regime'].get('trend_intensity', 0)
+        strong_threshold = self.regime_cfg['trend']['trend_intensity_strong']
+        if abs(trend) <= strong_threshold:
+            return None
+
+        direction = Direction.BULLISH if trend > 0 else Direction.BEARISH
+        price = curr['price_dynamics']['current_price']
+        atr = curr['price_dynamics'].get('atr_macro', 0)
+        if atr <= 0:
+            return None
+        vp = curr['volume_profile']
+        max_dist = self.regime_cfg['structural'].get('max_entry_distance_atr', 1.0)
+
+        if direction == Direction.BULLISH:
+            target_price = vp.get('poc', price)
+            for anchor in vp.get('anchors_below', []):
+                if anchor.get('type') == 'HVN':
+                    target_price = anchor['price']
+                    break
+            dist_atr = abs(price - target_price) / atr
+            if price <= target_price:
+                return None
+        else:
+            target_price = vp.get('poc', price)
+            for anchor in vp.get('anchors_above', []):
+                if anchor.get('type') == 'HVN':
+                    target_price = anchor['price']
+                    break
+            dist_atr = abs(price - target_price) / atr
+            if price >= target_price:
+                return None
+
+        if dist_atr > max_dist:
+            return None
+
+        strength = min(abs(trend) * (1.0 - dist_atr / max_dist), 1.0)
+        confidence = self.signal_weights.get('trend_pullback', 0.75)
+
+        return SignalCard(
+            signal_id=self._make_id('trend_pullback', now),
+            category=SignalCategory.STRUCTURAL,
+            sub_type='trend_pullback',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.6,
+            timestamp=now,
+            decay_half_life_minutes=10.0,
+            evidence={'trend_intensity': trend, 'dist_to_structure_atr': dist_atr},
+        )
+
+    # ── POSITIONING: Retail Extreme (#11) ───────────────────────────────
+
+    def _detect_retail_extreme(self, curr: Dict[str, Any],
+                                prev: Optional[Dict[str, Any]],
+                                now: datetime) -> Optional[SignalCard]:
+        ls = curr['sentiment_signals'].get('ls_ratio_micro', 1.0)
+        funding = curr['sentiment_signals'].get('funding_rate', 0.0)
+        cfg = self.regime_cfg['imbalance']
+
+        direction = None
+        strength = 0.0
+        evidence: Dict[str, Any] = {}
+
+        if ls > cfg['long_short_imbalance_ratio']:
+            direction = Direction.BEARISH
+            strength = min((ls - 1.0) / (cfg['long_short_imbalance_ratio'] * 2), 1.0)
+            evidence = {'trigger': 'ls_long', 'ls_ratio': ls}
+        elif ls < cfg['short_heavy_imbalance_ratio']:
+            direction = Direction.BULLISH
+            strength = min((1.0 - ls) / max(1.0 - cfg['short_heavy_imbalance_ratio'] * 2, 0.01), 1.0)
+            evidence = {'trigger': 'ls_short', 'ls_ratio': ls}
+
+        funding_threshold = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
+        if abs(funding) > funding_threshold:
+            f_direction = Direction.BEARISH if funding > 0 else Direction.BULLISH
+            f_strength = min(abs(funding) / (funding_threshold * 4), 1.0)
+            if direction is None or f_strength > strength:
+                direction = f_direction
+                strength = f_strength
+                evidence = {'trigger': 'funding', 'funding_rate': funding}
+
+        if direction is None:
+            return None
+
+        if not self._check_state_lock("AMBIENT_SENTIMENT", now):
+            return None
+
+        confidence = self.signal_weights.get('retail_extreme', 0.43)
+
+        return SignalCard(
+            signal_id=self._make_id('retail_extreme', now),
+            category=SignalCategory.POSITIONING,
+            sub_type='retail_extreme',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.3,
+            timestamp=now,
+            decay_half_life_minutes=60.0,
+            evidence=evidence,
+        )
+
+    # ── POSITIONING: OI Divergence (#12) ────────────────────────────────
+
+    def _detect_oi_divergence(self, curr: Dict[str, Any],
+                               prev: Optional[Dict[str, Any]],
+                               now: datetime) -> Optional[SignalCard]:
+        if not prev:
+            return None
+        oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
+        price_delta = (curr['price_dynamics']['current_price'] -
+                       prev['price_dynamics']['current_price'])
+
+        if oi_delta == 0 or price_delta == 0:
+            return None
+        # Must be divergent: OI and price move OPPOSITE
+        if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
+            return None
+
+        direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
+        strength = min(abs(oi_delta) / 0.03, 1.0)
+        confidence = self.signal_weights.get('oi_divergence', 0.70)
+
+        return SignalCard(
+            signal_id=self._make_id('oi_divergence', now),
+            category=SignalCategory.POSITIONING,
+            sub_type='oi_divergence',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.5,
+            timestamp=now,
+            decay_half_life_minutes=15.0,
+            evidence={'oi_delta': oi_delta, 'price_delta': price_delta},
+        )
+
+    # ── POSITIONING: OI Surge (#13) ─────────────────────────────────────
+
+    def _detect_oi_surge(self, curr: Dict[str, Any],
+                          prev: Optional[Dict[str, Any]],
+                          now: datetime) -> Optional[SignalCard]:
+        oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
+        if abs(oi_delta) <= 0.02:
+            return None
+        if not prev:
+            return None
+        price_delta = (curr['price_dynamics']['current_price'] -
+                       prev['price_dynamics']['current_price'])
+        # Must be aligned: OI and price same direction
+        if (oi_delta > 0 and price_delta <= 0) or (oi_delta < 0 and price_delta >= 0):
+            return None
+
+        direction = Direction.BULLISH if price_delta > 0 else Direction.BEARISH
+        strength = min((abs(oi_delta) - 0.02) / 0.04, 1.0)
+        confidence = self.signal_weights.get('oi_surge', 0.55)
+
+        return SignalCard(
+            signal_id=self._make_id('oi_surge', now),
+            category=SignalCategory.POSITIONING,
+            sub_type='oi_surge',
+            direction=direction,
+            strength=strength,
+            confidence=confidence,
+            urgency=0.4,
+            timestamp=now,
+            decay_half_life_minutes=20.0,
+            evidence={'oi_delta': oi_delta, 'price_delta': price_delta},
+        )
+
+    # ── CROSS-SYMBOL / Re-evaluation ───────────────────────────────────
+
+    def reevaluate_with_boost(self, boosted_signals: List[SignalCard],
+                              metrics: Dict[str, Any]) -> Optional['TriggerResult']:
+        """Public entry point for cross-symbol Leader Sync re-evaluation.
+
+        Called by SniperDaemon when a correlated leader symbol triggers.
+        Recomputes confluence with the boost signal included, re-runs the
+        pre-AI gate, and returns a new TriggerResult if the boost tips the
+        follower over threshold. Returns None if still below threshold or
+        gate fails.
+        """
+        regime = self._determine_regime(metrics)
+        confluence_score, dominant_direction, should_trigger = self.engine.evaluate(
+            boosted_signals, regime, is_cooldown_active=False
+        )
+        if not should_trigger:
+            return None
+
+        gate_result, gate_reason = self._run_pre_ai_gate(
+            metrics, boosted_signals, dominant_direction, regime
+        )
+        if gate_result == 'FAIL':
+            return None
+
+        situation_brief = self._build_situation_brief(
+            boosted_signals, confluence_score, dominant_direction, regime, gate_result
+        )
+        cooldown_mins = self._get_regime_cooldown(regime)
+
+        return TriggerResult(
+            triggered=True,
+            confluence_score=confluence_score,
+            confluence_direction=dominant_direction,
+            signals=boosted_signals,
+            active_signals=[s for s in boosted_signals
+                           if s.strength >= 0.15 and s.sub_type != 'leader_sync'],
+            gate_result=gate_result,
+            gate_reason=gate_reason,
+            situation_brief=situation_brief,
+            cooldown_minutes=cooldown_mins,
+        )
+
+    def apply_leader_sync(self, own_signals: List[SignalCard],
+                          leader_confluence_score: float,
+                          leader_direction: Direction,
+                          correlation: float,
+                          now: datetime) -> Optional[SignalCard]:
+        """Amplify existing weak directional alignment when leader fires."""
+        if leader_confluence_score <= 0:
+            return None
+
+        aligned = [s for s in own_signals if s.direction == leader_direction]
+        if not aligned:
+            return None
+
+        boost = min(leader_confluence_score * correlation * 0.30, 0.15)
+        confidence = self.signal_weights.get('leader_sync', 0.40)
+
+        return SignalCard(
+            signal_id=self._make_id('leader_sync', now),
+            category=SignalCategory.CROSS_SYMBOL,
+            sub_type='leader_sync',
+            direction=leader_direction,
+            strength=boost,
+            confidence=confidence,
+            urgency=0.5,
+            timestamp=now,
+            decay_half_life_minutes=8.0,
+            evidence={'leader_score': leader_confluence_score, 'correlation': correlation},
+        )
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # MAIN EVALUATE — replaces old (bool, str, str) method
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def evaluate(self, current_metrics: Dict[str, Any],
+                 prev_metrics: Optional[Dict[str, Any]] = None) -> TriggerResult:
+        """
+        Evaluate current market state and return a TriggerResult.
+
+        Algorithm:
+        1. Check adaptive cooldown
+        2. Detect all 13 direct signal types
+        3. Merge with decayed signal memory
+        4. Compute confluence via ConfluenceEngine
+        5. Check emergency override and cooldown break
+        6. Run Pre-AI gate if triggering
+        7. Build pre-brief if passing
+        8. Return TriggerResult
+        """
+        now = datetime.now(timezone.utc)
+
+        # 0. Determine regime
+        regime = self._determine_regime(current_metrics)
+
+        # 1. Cooldown check
+        cooldown_active, cooldown_reason = self._check_adaptive_cooldown(now, regime)
+
+        # Also check the old chaos mute logic for backward compat
+        if not cooldown_active:
+            vii = current_metrics['price_dynamics']['volatility_intensity_index']
+            if vii > self.regime_cfg['volatility']['volatility_extreme_ratio']:
+                if self.last_trigger_time:
+                    elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
+                    chaos_mult = self.sniper_cfg['cooldown']['chaos_cooldown_multiplier']
+                    chaos_cooldown = self.cooldown_minutes * chaos_mult
+                    if elapsed < chaos_cooldown:
+                        cooldown_active = True
+                        cooldown_reason = f"CHAOS_MUTE (VII={vii:.2f}, elapsed={elapsed:.1f}m/{chaos_cooldown:.1f}m)"
+
+        # 2. Detect all signals from current pulse
+        fresh_signals: List[SignalCard] = []
+        for detector in self._signal_detectors:
+            try:
+                card = detector(current_metrics, prev_metrics, now)
+                if card:
+                    fresh_signals.append(card)
+            except Exception as e:
+                logger.debug(f"Signal detector {detector.__name__} failed: {e}")
+
+        # 3. Merge with decayed signal memory
+        all_signals = self.memory.ingest(fresh_signals, now)
+
+        # 4. Check cooldown break (stacked signals or strength ratio)
+        cooldown_break = False
+        if cooldown_active:
+            cooldown_break = self._check_cooldown_break(fresh_signals, regime)
+
+        # 5. Compute confluence
+        effective_cooldown = cooldown_active and not cooldown_break
+        confluence_score, dominant_direction, should_trigger = self.engine.evaluate(
+            all_signals, regime, is_cooldown_active=effective_cooldown
+        )
+
+        # 6. Pre-AI Gate
+        gate_result = "PASS"
+        gate_reason = ""
+        if should_trigger:
+            gate_result, gate_reason = self._run_pre_ai_gate(
+                current_metrics, all_signals, dominant_direction, regime
+            )
+            if gate_result == "FAIL":
+                should_trigger = False
+
+        # 7. Build situation brief
+        situation_brief = None
+        if should_trigger:
+            situation_brief = self._build_situation_brief(
+                all_signals, confluence_score, dominant_direction, regime, gate_result
+            )
+
+        # 8. Cooldown for this trigger
+        cooldown_mins = self._get_regime_cooldown(regime)
+
+        result = TriggerResult(
+            triggered=should_trigger,
+            confluence_score=confluence_score,
+            confluence_direction=dominant_direction,
+            signals=all_signals,
+            active_signals=[s for s in fresh_signals if s.strength >= 0.15],
+            gate_result=gate_result,
+            gate_reason=gate_reason or (cooldown_reason if cooldown_active and not should_trigger else ""),
+            situation_brief=situation_brief,
+            cooldown_minutes=cooldown_mins,
+        )
+
+        if should_trigger:
+            logger.info(
+                f"SNIPER WAKE UP! [{dominant_direction.value}] "
+                f"confluence={confluence_score:.2f} "
+                f"signals={len(fresh_signals)} "
+                f"active={[s.sub_type for s in result.active_signals]} "
+                f"gate={gate_result} regime={regime}"
+            )
+
+        return result
+
+    def set_triggered(self, result: TriggerResult):
+        """Record trigger time and score for cooldown tracking."""
         self.last_trigger_time = datetime.now(timezone.utc)
+        self.last_trigger_score = result.confluence_score

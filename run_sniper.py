@@ -17,7 +17,7 @@ load_dotenv()
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.sniper.scout import SniperScout
-from src.sniper.trigger import SniperTrigger
+from src.sniper.trigger import SniperTrigger, TriggerResult, Direction, SignalCard
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
 
@@ -128,40 +128,83 @@ class SniperDaemon:
                     continue
 
                 # ── 2. TRIGGER: independent evaluation per symbol ──
-                triggered: list[tuple[str, str, str]] = []
+                triggered: list[tuple[str, 'TriggerResult']] = []
                 now_str = datetime.now().strftime("%H:%M:%S")
+                symbol_results: dict[str, 'TriggerResult'] = {}
 
                 for sym in self.symbols:
                     if sym not in metrics:
                         continue
 
-                    is_noteworthy, t_type, reason = self.triggers[sym].evaluate(
+                    result = self.triggers[sym].evaluate(
                         metrics[sym], self.prev_metrics.get(sym)
                     )
 
                     if self.prev_metrics.get(sym) is None:
                         logger.info(f"--- Sniper [{sym}]: Initial Baseline Established ---")
 
-                    if not is_noteworthy:
-                        status = reason if "COOLDOWN" in reason else "SLEEPING"
-                        print(f"[{now_str}] [{sym}] 💤 {status} | No actionable asymmetry detected.")
+                    symbol_results[sym] = result
+
+                    if not result.triggered:
+                        status = result.gate_reason or "SLEEPING"
+                        print(f"[{now_str}] [{sym}] 💤 {status}")
                     else:
                         print("\n" + "!" * 60)
-                        print(f"       🔫 SNIPER WAKE UP! [{sym}] [{t_type}]")
+                        print(f"       🔫 SNIPER WAKE UP! [{sym}] [{result.confluence_direction.value}]")
                         print("!" * 60)
-                        print(f"[{sym}] REASON: {reason}")
+                        print(f"[{sym}] Confluence: {result.confluence_score:.2f} | "
+                              f"Signals: {len(result.active_signals)} | "
+                              f"Gate: {result.gate_result}")
+                        print(f"[{sym}] Signals: {[s.sub_type for s in result.active_signals]}")
                         print("!" * 60 + "\n")
-                        triggered.append((sym, t_type, reason))
+                        triggered.append((sym, result))
+
+                # ── 2.5 CROSS-SYMBOL: Leader Sync ──
+                # If any symbol triggered, boost correlated followers and re-check
+                for sym, result in triggered:
+                    for follower_sym in self.symbols:
+                        if follower_sym == sym or follower_sym not in symbol_results:
+                            continue
+                        follower = symbol_results[follower_sym]
+                        if follower.triggered:
+                            continue  # already firing, no boost needed
+
+                        correlation = self.triggers[follower_sym].CROSS_CORRELATIONS.get(
+                            follower_sym, 0.30
+                        )
+                        leader_card = self.triggers[follower_sym].apply_leader_sync(
+                            own_signals=follower.signals,
+                            leader_confluence_score=result.confluence_score,
+                            leader_direction=result.confluence_direction,
+                            correlation=correlation,
+                            now=datetime.now(timezone.utc),
+                        )
+                        if leader_card:
+                            boosted_signals = list(follower.signals) + [leader_card]
+                            new_result = self.triggers[follower_sym].reevaluate_with_boost(
+                                boosted_signals,
+                                metrics.get(follower_sym, {}),
+                            )
+                            if new_result:
+                                symbol_results[follower_sym] = new_result
+                                triggered.append((follower_sym, new_result))
+                                logger.info(
+                                    f"SniperDaemon [{follower_sym}]: Leader Sync boost from "
+                                    f"[{sym}] — confluence {new_result.confluence_score:.2f} "
+                                    f"(was {follower.confluence_score:.2f})"
+                                )
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
-                for sym, t_type, reason in triggered:
+                for sym, result in triggered:
                     has_active = bool(self.trade_states.get(sym, {}).get("direction"))
 
                     if self.session_engines.get(sym) and not has_active:
                         logger.info(f"SniperDaemon [{sym}]: Activating Binary Star reasoning loop (Blocking Pulse)...")
                         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
 
-                        session_result = self.session_engines[sym].execute_cycle()
+                        session_result = self.session_engines[sym].execute_cycle(
+                            situation_brief=result.situation_brief
+                        )
 
                         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
@@ -178,7 +221,7 @@ class SniperDaemon:
                             f"SniperDaemon [{sym}]: Active position ({self.trade_states[sym]['direction']}) exists. "
                             f"Skipping AI session — Guardian trailing stop manages the position.")
 
-                    self.triggers[sym].set_triggered(t_type)
+                    self.triggers[sym].set_triggered(result)
 
                 # ── 4. HOUSEKEEPING ──
                 self.prev_metrics = metrics

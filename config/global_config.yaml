@@ -110,6 +110,69 @@ sniper:
     proximity_poc_atr: 0.50       # POC magnet / gravity test
     proximity_liq_atr: 0.40       # Liquidation cluster magnet
 
+  # --- Signal Stack Engine ---
+  signal_stack:
+    enabled: true
+    # Base threshold for confluence score to trigger AI session
+    trigger_threshold: 0.35
+    # Emergency override: fire immediately if any single signal exceeds this
+    emergency_threshold: 0.85
+    # Regime modifiers (multiplied with trigger_threshold)
+    regime_modifiers:
+      trending: 0.85
+      ranging: 1.15
+      squeeze: 0.70
+      chaos: 1.50
+    # Decay half-lives (minutes) per signal category
+    decay:
+      flow_tick: 4
+      flow_macro: 15
+      energy: 20
+      sentiment: 60
+      structural: 10
+
+    # --- Adaptive Cooldown ---
+    cooldown:
+      regime_base_minutes:
+        trending: 25
+        ranging: 45
+        squeeze: 20
+        chaos: 60
+      break_on_strength_ratio: 1.8
+      break_min_gap_minutes: 10
+      stacked_break_count: 3
+
+    # --- Pre-Trigger Validation Gate ---
+    gate:
+      enabled: true
+      checks:
+        entry_feasibility: true
+        rr_feasibility: true
+        directional_sanity: true
+        chaos_survival: true
+
+    # --- Per-Signal Confidence Weights (evolvable) ---
+    weights:
+      # FLOW
+      cvd_momentum: 0.65
+      cvd_divergence: 0.70
+      cvd_absorption: 0.65
+      taker_imbalance: 0.60
+      # ENERGY
+      volatility_surge: 0.55
+      squeeze: 0.75
+      # STRUCTURAL
+      boundary_test: 0.50
+      poc_gravity: 0.55
+      liquidation_hunt: 0.60
+      trend_pullback: 0.75
+      # POSITIONING
+      retail_extreme: 0.43
+      oi_divergence: 0.70
+      oi_surge: 0.55
+      # CROSS-SYMBOL
+      leader_sync: 0.40
+
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Trailing Stop + Time Stop)
 # ═══════════════════════════════════════════════════════════════════════════

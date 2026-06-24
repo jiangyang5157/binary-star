@@ -8,6 +8,8 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
 # Sentinel returned by sync_with_opinion when the position is emergency-closed
+# during a failed synthetic-OCO repair. See MarginOrderExecutor docstring for
+# why synthetic OCO is used instead of native OCO (Binance SAPI limitation).
 _EMERGENCY_CLOSED_SENTINEL = -1
 
 class MarginOrderExecutor:
@@ -15,10 +17,24 @@ class MarginOrderExecutor:
     Orchestrates the order management lifecycle for Margin trading.
     Implements the "Conflict Decider" logic to protect Net Qty, pivot positions,
     and handle OCO/LIMIT executions.
-    
-    Architecture: Two-Step Execution
-    1. Entry via LIMIT order (since OTOCO is unavailable on Margin SAPI)
-    2. Protection via OCO order (placed by Guardian on next Sniper pulse)
+
+    Architecture: Synthetic OCO via Two-Step Execution
+    1. Entry via LIMIT order
+    2. Protection via two separate LIMIT orders (TP + SL) treated as a synthetic OCO
+
+    Why synthetic OCO instead of native OCO?
+    This account uses Binance Spot Margin (SAPI), which does NOT expose the
+    advanced OCO/OTOCO endpoints (those require the Futures or unified API).
+    The approach: place a LIMIT entry, then on the NEXT Guardian pulse, place
+    two independent LIMIT orders — a take-profit limit and a stop-loss limit.
+    Guardian manually cross-manages them: if one fills, the other is cancelled.
+    Trailing stop migration = cancel old SL → place new SL.
+
+    RISK: Between cancelling old orders and placing new OCO legs, the position
+    is NAKED. If any re-place step fails, Guardian performs an EMERGENCY market
+    close to avoid running unprotected. This is the reason for the
+    _EMERGENCY_CLOSED_SENTINEL sentinel value — it signals the SniperDaemon
+    that the position was force-closed during a failed OCO repair.
     """
     def __init__(self, client: Optional[BinanceMarginClient] = None, manual_balance_usdt: Optional[float] = None, global_config: Optional[dict] = None):
         self.client = client or BinanceMarginClient()
