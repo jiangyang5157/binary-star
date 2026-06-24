@@ -85,7 +85,7 @@
     </div>
 
     <!-- Format hint -->
-    <p class="bt-hint">Format: <code>T-Nd</code>, <code>T-Nh</code>, <code>YYYY-MM-DD</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start must be before End</p>
+    <p class="bt-hint">Format: <code>T-Nd</code>, <code>T-Nh</code>, <code>YYYY-MM-DD HH:MM:SS</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start must be before End</p>
 
     <!-- Preview button -->
     <button id="bt-preview-btn" class="btn-sm" onclick="previewSamples()">Preview Samples</button>
@@ -131,12 +131,10 @@ function switchMode(mode) {
 }
 
 function clearPreview() {
-  sampleTimestamps = [];
-  $('bt-sample-list').style.display = 'none';
+  // Only clear transient UI — keep the sample list visible
   $('bt-run-status').style.display = 'none';
   $('bt-preview-status').style.display = 'none';
   $('bt-run-btn').disabled = true;
-  // Clear inline field errors
   clearFieldErrors();
 }
 
@@ -203,6 +201,10 @@ async function previewSamples() {
   const err = validateFields();
   const statusEl = $('bt-preview-status');
   const btn = $('bt-preview-btn');
+
+  // Clear old samples before generating new ones
+  sampleTimestamps = [];
+  $('bt-sample-list').style.display = 'none';
 
   if (err) {
     statusEl.style.display = 'inline';
