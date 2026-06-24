@@ -236,8 +236,13 @@ class SessionRenderer(BaseEmailTemplate):
                 round_body += f"""\
 <div style="{_s(padding='0 14px 14px 14px')}">
     <p style="{_s(fontSize='12px', fontWeight='600', color=C['text'], margin='0 0 8px 0')}">Critic Review {veto_badge}</p>
-    {f'<div style="{_s(padding="12px", background=C["bg2"], borderRadius="6px", border=f"1px solid {C["border"]}", marginBottom="8px")}"><pre style="{_s(fontSize="12px", lineHeight="1.6", color=C["text2"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily="inherit")}">{critic_summary}</pre></div>' if critic_summary else ""}
-    {f'<div style="{_s(padding="12px", background=C["bg2"], borderRadius="6px", border=f"1px solid {C["border"]}")}"><p style="{_s(fontSize="11px", color=C["text3"], margin="0 0 4px 0")}">Evidence</p><pre style="{_s(fontSize="12px", lineHeight="1.6", color=C["text2"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily="inherit")}">{critic_evidence}</pre></div>' if critic_evidence else ""}
+    {f'<div style="{_s(padding="12px", background=C["bg2"], borderRadius="6px", border=f"1px solid {C["border"]}", marginBottom="12px")}"><pre style="{_s(fontSize="12px", lineHeight="1.6", color=C["text2"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily="inherit")}">{critic_summary}</pre></div>' if critic_summary else ""}
+</div>"""
+            if critic_evidence:
+                round_body += f"""\
+<div style="{_s(padding='0 14px 14px 14px')}">
+    <p style="{_s(fontSize='12px', fontWeight='600', color=C['text'], margin='0 0 8px 0')}">Audit Evidence</p>
+    <pre style="{_s(fontSize='12px', lineHeight='1.6', color=C['text2'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily='inherit', padding='12px', background=C['bg2'], borderRadius='6px', border=f'1px solid {C["border"]}')}">{fmt(critic_evidence)}</pre>
 </div>"""
 
             if math:
