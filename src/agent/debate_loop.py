@@ -71,27 +71,19 @@ class DebateLoop:
             logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
             math_fact_check = self.math_checker.verify(last_plan, observation)
 
-            # Critic Fast Pass Pre-check (Token Optimization)
-            critic_results = None
-            opinion = last_plan.get("opinion", "NEUTRAL")
-            if opinion == "NEUTRAL" and math_fact_check.get("status") == "SKIPPED":
-                fast_pass = self._evaluate_critic_fast_pass(debate_history, observation)
-                if fast_pass:
-                    critic_results = fast_pass
-                    logger.info(f"BinaryStar: Critic Fast Pass successful! Pre-validated with {fast_pass['veto_level']}.")
-
-            if not critic_results:
-                critic_results = self.critic_agent.evaluate(
-                    observation=observation,
-                    last_plan=last_plan,
-                    symbol=symbol,
-                    debate_history=compressed_history,
-                    cache_resource_name=self.cache_resource_name,
-                    math_fact_check=math_fact_check,
-                    tools=None,
-                    visual_parts=self.visual_parts,
-                    system_instruction=self.shared_instruction
-                )
+            # Full adversarial review — critic always runs (handles NEUTRAL via
+            # its own NEUTRALITY PARADOX protocol, no Python-level bypass needed).
+            critic_results = self.critic_agent.evaluate(
+                observation=observation,
+                last_plan=last_plan,
+                symbol=symbol,
+                debate_history=compressed_history,
+                cache_resource_name=self.cache_resource_name,
+                math_fact_check=math_fact_check,
+                tools=None,
+                visual_parts=self.visual_parts,
+                system_instruction=self.shared_instruction
+            )
 
             # Score Telemetry
             veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
@@ -105,9 +97,7 @@ class DebateLoop:
             })
 
             # Smart Round Control (Early Exit on PASS or WEAK)
-            # Amnesty Clause fast-pass preserves NEUTRAL justification but
-            # should NOT block cold synthesis — it may find a creative repair.
-            if veto_level in ["PASS", "WEAK"] and not critic_results.get("defer_to_synthesis"):
+            if veto_level in ["PASS", "WEAK"]:
                 logger.info(f"BinaryStar: {veto_level} plan detected in Round {current_round}. Triggering early exit.")
                 early_exit = True
                 break
@@ -163,66 +153,3 @@ class DebateLoop:
             compressed.append(c_entry)
 
         return compressed
-
-    def _evaluate_critic_fast_pass(self, debate_history: list[dict[str, Any]], observation: dict[str, Any]) -> dict[str, Any] | None:
-        """Python pre-flight check to bypass Critic API call in deterministic NEUTRAL scenarios."""
-        # 1. Check Amnesty Clause
-        has_terminal_in_history = any(
-            r.get("critic", {}).get("veto_level") == "TERMINAL"
-            for r in debate_history
-        )
-        if has_terminal_in_history:
-            return {
-                "veto_level": "PASS",
-                "invalidations": ["[JUSTIFIED_INACTION]"],
-                "audit_evidence": "Amnesty Clause verified: TERMINAL veto in prior round justifies current NEUTRAL stance.",
-                "critic_summary": "Neutral stance justified by prior TERMINAL veto.",
-                "critic_confidence": None,  # fast-pass bypass, no AI inference
-                "defer_to_synthesis": True,  # amnesty justifies NEUTRAL but synthesis may find a creative repair
-            }
-
-        # 2. Check strict non-confluence for INACTION_BIAS, TREND_STARVATION, OPPORTUNITY_DENIAL
-        metrics = observation.get('quantitative_metrics', {})
-        dyn = metrics.get('price_dynamics', {})
-        reg = metrics.get('market_regime', {})
-        sent = metrics.get('sentiment_signals', {})
-        topo = metrics.get('structural_anchors', {})
-
-        sqz_audit_thresh = self.critic_config.regime.squeeze_audit_threshold
-        min_vol_part = self.critic_config.regime.min_volume_participation_ratio
-        poc_grav_dist = self.critic_config.risk.poc_gravity_atr_distance
-        cvd_thresh = self.critic_config.regime.cvd_intensity_threshold
-        cvd_extreme = self.critic_config.regime.cvd_intensity_extreme
-        ti_strong = self.critic_config.regime.trend_intensity_strong
-        vol_base = self.critic_config.regime.volatility_baseline_ratio
-        vol_ext = self.critic_config.regime.volatility_extreme_ratio
-
-        squeeze_factor = reg.get('squeeze_factor', 1.0)
-        vol_part = reg.get('volume_participation_ratio', 1.0)
-        poc_dist = topo.get('poc_dist_atr', 0)
-
-        has_inaction_bias = (squeeze_factor < sqz_audit_thresh and vol_part > min_vol_part) or abs(poc_dist) > poc_grav_dist
-
-        cvd_intens = sent.get('cvd_intensity_ratio', 0)
-        has_flow_dom = abs(cvd_intens) > cvd_thresh
-        oi_delta = sent.get('oi_delta_micro', 0)
-        has_abs_risk = (oi_delta < 0) and (abs(cvd_intens) > cvd_extreme)
-        has_opp_denial = has_flow_dom and not has_abs_risk
-
-        vol_exp = dyn.get('volatility_expansion_index', 1.0)
-        is_exp = vol_exp > vol_base
-        is_chaos = vol_exp > vol_ext
-        ti = reg.get('trend_intensity', 0)
-        is_trend_strong = abs(ti) > ti_strong
-        has_trend_starv = is_exp and not is_chaos and is_trend_strong
-
-        if not has_inaction_bias and not has_opp_denial and not has_trend_starv:
-            return {
-                "veto_level": "PASS",
-                "invalidations": ["[JUSTIFIED_INACTION]"],
-                "audit_evidence": "Confluence Audit: No inaction bias, trend starvation, or opportunity denial conditions met.",
-                "critic_summary": "Neutral stance justified by telemetry.",
-                "critic_confidence": None,  # fast-pass bypass, no AI inference
-            }
-
-        return None
