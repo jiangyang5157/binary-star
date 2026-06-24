@@ -359,8 +359,12 @@ class MarketDataLoader:
         liq_lookback_ms = int(micro_oi_delta.total_seconds() * cfg.micro_context.lookback_candles * 1000)
         liq_start_ts_ms = ts_ms - liq_lookback_ms
         
-        # Dynamic funding limit to avoid hardcoded bloat
-        funding_rate_limit = max(2, int(cfg.funding_rate_lookback_hours / 8) + 2)
+        # Dynamic funding limit to avoid hardcoded bloat.
+        # Binance funding interval varies per pair (4-8h). Use 4h as safe lower bound
+        # so the limit covers all pairs; over-asking is harmless (Binance returns only
+        # what exists), under-asking would silently drop data.
+        funding_interval_hours = 4
+        funding_rate_limit = max(2, int(cfg.funding_rate_lookback_hours / funding_interval_hours) + 2)
 
         # Sentiment Window Anchoring (Macro at Start of Window, Micro at Current)
         macro_ls_delta_ms = int(get_interval_seconds(cfg.macro_context.time_interval) * 1000)

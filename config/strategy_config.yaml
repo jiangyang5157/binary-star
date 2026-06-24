@@ -37,7 +37,7 @@ topography_parameters:
   # --- Volume Profile Engine ---
   # The % of volume defined as the 'Value Area' (Standard: 70%).
   volume_profile:
-    volume_profile_value_area_width: 0.86
+    volume_profile_value_area_width: 0.84
 
   # --- Technical Indicators ---
   indicators:
