@@ -178,9 +178,6 @@ def main():
     args = parser.parse_args()
     data_root = args.path
     
-    from src.utils.pipeline_utils import load_global_config
-    g_cfg = load_global_config()
-    
     from src.utils.symbol_utils import resolve_symbol
     symbol = resolve_symbol(args.symbol)
     samples = args.samples

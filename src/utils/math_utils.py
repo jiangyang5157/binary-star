@@ -244,6 +244,9 @@ def project_holding_time(
         
         # Reconstructed physical velocity (effective scalar * ATR)
         effective_velocity = scalars["effective_velocity_per_atr"] * atr
+        # Guard: prevent division-by-zero when ATR is microscopic (e.g., stablecoins)
+        if effective_velocity <= 1e-12:
+            effective_velocity = 1e-12
 
         # 1. Physical holding time (with execution buffer)
         # Formula = (pure physical flight time) * temporal dilation factor

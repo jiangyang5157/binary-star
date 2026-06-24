@@ -160,12 +160,14 @@ class OpenAICompatibleAdapter(AbstractAIClient):
     """
 
     def __init__(self, api_key: str, default_model: str, base_url: str,
-                 provider_label: str, *, supports_vision: bool = False):
+                 provider_label: str, *, supports_vision: bool = False,
+                 http_timeout: int = 240):
         self.api_key = api_key
         self.default_model = default_model
         self.base_url = base_url
         self.provider_label = provider_label
         self._supports_vision = supports_vision
+        self._http_timeout = http_timeout
         self._client = None
 
     @property
@@ -175,7 +177,8 @@ class OpenAICompatibleAdapter(AbstractAIClient):
     def _get_client(self):
         if self._client is None:
             from openai import OpenAI
-            self._client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+            self._client = OpenAI(api_key=self.api_key, base_url=self.base_url,
+                                  timeout=self._http_timeout)
         return self._client
 
     def generate_content(

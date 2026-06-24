@@ -21,12 +21,13 @@ class BinanceMarginClient:
     def __init__(self, api_key: Optional[str] = None, api_secret: Optional[str] = None):
         key = api_key or os.environ.get("BINANCE_API_KEY")
         secret = api_secret or os.environ.get("BINANCE_API_SECRET")
-        
+
         if not key or not secret:
             logger.error("BinanceMarginClient: API Key or Secret missing. Margin operations require authentication.")
             raise ValueError("Authenticated access required for Margin operations.")
 
         self.client = Spot(api_key=key, api_secret=secret)
+        self._precisions_cache: dict = {}  # symbol → (p_qty, p_price, tolerance)
         logger.info("BinanceMarginClient initialized for authenticated Spot Margin access.")
 
     def get_cross_margin_account(self) -> MarginAccountSummary:
@@ -154,7 +155,10 @@ class BinanceMarginClient:
             return False
 
     def _get_precisions(self, symbol: str):
-        """Loads precisions and tolerances from config. Raises Exception if missing."""
+        """Loads precisions and tolerances from config. Cached per symbol."""
+        if symbol in self._precisions_cache:
+            return self._precisions_cache[symbol]
+
         import os
         from src.utils.path_utils import resolve_project_root
         from src.config.symbol_resolver import get_symbol_trade_params
@@ -173,7 +177,9 @@ class BinanceMarginClient:
         p_qty = sym_cfg["precision_qty"]
         p_price = sym_cfg["precision_price"]
 
-        return p_qty, p_price, tolerance
+        result = (p_qty, p_price, tolerance)
+        self._precisions_cache[symbol] = result
+        return result
 
     def execute_market_close(self, symbol: str) -> bool:
         """Closes any open net position for the symbol with a Market order."""
