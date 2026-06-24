@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Development — Singularity</title>
+<link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body class="dark">
+<header class="app-header">
+  <h1>Singularity</h1>
+  <nav>
+    <a href="/performance" class="nav-link">Performance</a>
+    <a href="/live" class="nav-link">Live</a>
+    <a href="/development" class="nav-link active">Development</a>
+  </nav>
+</header>
+
+<main class="container">
+
+  <!-- ═══════ Backtest ═══════ -->
+  <section class="card backtest-card">
+    <div class="section-header">
+      <h2>Backtest</h2>
+      <button id="backtest-run-btn" class="btn-sm" onclick="triggerBacktest()" disabled>▶ Run Backtest</button>
+    </div>
+
+    <!-- Mode Toggle -->
+    <div class="bt-mode-row">
+      <label class="bt-mode-option">
+        <input type="radio" name="bt-mode" value="timestamp" onchange="switchMode('timestamp')">
+        <span class="bt-mode-label">Single Timestamp</span>
+      </label>
+      <label class="bt-mode-option">
+        <input type="radio" name="bt-mode" value="range" onchange="switchMode('range')" checked>
+        <span class="bt-mode-label">Date Range</span>
+      </label>
+    </div>
+
+    <!-- Symbol -->
+    <div class="bt-param-row">
+      <label class="bt-field">
+        <span class="bt-label">Symbol</span>
+        <span class="bt-input-group">
+          <input type="text" id="bt-symbol" class="filter-input bt-symbol-input"
+                 placeholder="BTC" maxlength="10" autocomplete="off"
+                 oninput="clearPreview()">
+          <span class="bt-suffix">USDT</span>
+        </span>
+      </label>
+    </div>
+
+    <!-- Shared config area: show/hide fields by mode -->
+    <div class="bt-param-row" id="bt-timestamp-row" style="display:none">
+      <label class="bt-field bt-field-wide">
+        <span class="bt-label">Timestamp</span>
+        <input type="text" id="bt-timestamp" class="filter-input bt-date-input"
+               placeholder="T-2d" autocomplete="off"
+               oninput="clearPreview()">
+      </label>
+    </div>
+
+    <div id="bt-range-rows">
+      <div class="bt-param-row bt-range-grid">
+        <label class="bt-field">
+          <span class="bt-label">Start</span>
+          <input type="text" id="bt-start" class="filter-input bt-date-input"
+                 placeholder="T-28d" autocomplete="off"
+                 oninput="clearPreview()">
+        </label>
+        <label class="bt-field">
+          <span class="bt-label">End</span>
+          <input type="text" id="bt-end" class="filter-input bt-date-input"
+                 placeholder="now" autocomplete="off"
+                 oninput="clearPreview()">
+        </label>
+        <label class="bt-field bt-field-sm">
+          <span class="bt-label">Samples</span>
+          <input type="number" id="bt-samples" class="filter-input bt-samples-input"
+                 placeholder="14" min="1" max="200" value="14"
+                 oninput="clearPreview()">
+        </label>
+      </div>
+    </div>
+
+    <!-- Format hint -->
+    <p class="bt-hint">Format: <code>T-Nd</code>, <code>T-Nh</code>, <code>now</code>, <code>YYYY-MM-DD</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start must be before End</p>
+
+    <!-- Preview button -->
+    <button id="bt-preview-btn" class="btn-sm" onclick="previewSamples()">Preview Samples</button>
+    <span id="bt-preview-status" class="audit-status" style="display:none"></span>
+
+    <!-- Sample List -->
+    <div id="bt-sample-list" class="bt-sample-list" style="display:none">
+      <div class="bt-sample-header">
+        <span id="bt-sample-count"></span>
+      </div>
+      <div class="bt-sample-body" id="bt-sample-body"></div>
+    </div>
+
+    <!-- Run Status -->
+    <div id="bt-run-status" class="run-status-box" style="display:none"></div>
+  </section>
+
+</main>
+
+<script>
+const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
+const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
+
+function apiUrl(path) {
+  return DR ? `${path}?${DR}` : path;
+}
+
+const $ = id => document.getElementById(id);
+
+// ── State ──
+let currentMode = 'range';
+let sampleTimestamps = [];
+let backtestPollInterval = null;
+
+// ── Mode Switching ──
+function switchMode(mode) {
+  currentMode = mode;
+  $('bt-timestamp-row').style.display = mode === 'timestamp' ? '' : 'none';
+  $('bt-range-rows').style.display = mode === 'range' ? '' : 'none';
+  clearPreview();
+}
+
+function clearPreview() {
+  sampleTimestamps = [];
+  $('bt-sample-list').style.display = 'none';
+  $('bt-run-status').style.display = 'none';
+  $('bt-preview-status').style.display = 'none';
+  $('bt-run-btn').disabled = true;
+}
+
+// ── Validation ──
+function validateFields() {
+  const symbol = $('bt-symbol').value.trim();
+  if (!symbol || symbol.length < 2 || !/^[A-Za-z0-9]+$/.test(symbol)) {
+    return 'Symbol must be ≥2 alphanumeric characters';
+  }
+
+  if (currentMode === 'timestamp') {
+    const ts = $('bt-timestamp').value.trim();
+    if (!ts) return 'Timestamp is required';
+  } else {
+    const start = $('bt-start').value.trim();
+    const end = $('bt-end').value.trim();
+    const samples = parseInt($('bt-samples').value) || 0;
+    if (!start) return 'Start date is required';
+    if (!end) return 'End date is required';
+    if (samples < 1) return 'Samples must be ≥ 1';
+  }
+  return null;
+}
+
+// ── Preview ──
+async function previewSamples() {
+  const err = validateFields();
+  const statusEl = $('bt-preview-status');
+  const btn = $('bt-preview-btn');
+
+  if (err) {
+    statusEl.style.display = 'inline';
+    statusEl.textContent = '⚠ ' + err;
+    statusEl.className = 'audit-status audit-error';
+    return;
+  }
+
+  statusEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  const symbol = $('bt-symbol').value.trim().toUpperCase();
+  const body = {
+    mode: currentMode,
+    symbol_prefix: symbol,
+  };
+
+  if (currentMode === 'timestamp') {
+    body.timestamp = $('bt-timestamp').value.trim();
+  } else {
+    body.start = $('bt-start').value.trim();
+    body.end = $('bt-end').value.trim();
+    body.samples = parseInt($('bt-samples').value) || 14;
+  }
+
+  try {
+    const resp = await fetch(apiUrl('/api/backtest/preview'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      statusEl.style.display = 'inline';
+      statusEl.textContent = '⚠ ' + (data.detail || 'preview failed');
+      statusEl.className = 'audit-status audit-error';
+      btn.disabled = false;
+      btn.textContent = 'Preview Samples';
+      return;
+    }
+
+    sampleTimestamps = data.timestamps || [];
+    renderSampleList(data);
+    $('bt-run-btn').disabled = false;
+
+    statusEl.style.display = 'inline';
+    statusEl.textContent = '✓ ' + data.count + ' sample' + (data.count !== 1 ? 's' : '') + ' ready';
+    statusEl.className = 'audit-status audit-ok';
+  } catch (e) {
+    statusEl.style.display = 'inline';
+    statusEl.textContent = '⚠ Request failed';
+    statusEl.className = 'audit-status audit-error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Preview Samples';
+  }
+}
+
+function renderSampleList(data) {
+  const list = $('bt-sample-list');
+  const body = $('bt-sample-body');
+  const countEl = $('bt-sample-count');
+
+  list.style.display = 'block';
+  countEl.textContent = `● ${data.count} timestamp${data.count !== 1 ? 's' : ''} selected`;
+
+  body.innerHTML = data.timestamps.map((ts, i) => {
+    const dt = formatTimestamp(ts);
+    return `<div class="bt-sample-row">
+      <span class="bt-sample-idx">${i + 1}</span>
+      <span class="bt-sample-ts">${dt}</span>
+      <span class="bt-sample-status status-pending">pending</span>
+    </div>`;
+  }).join('');
+}
+
+function formatTimestamp(isoStr) {
+  try {
+    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
+  } catch { return isoStr; }
+}
+
+function formatElapsed(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+// ── Run Backtest ──
+async function triggerBacktest() {
+  const statusEl = $('bt-run-status');
+  const btn = $('bt-run-btn');
+
+  // Toggle: if running, STOP
+  if (backtestPollInterval) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const resp = await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' });
+      if (!resp.ok) {
+        const err = await resp.json();
+        statusEl.style.display = 'block';
+        statusEl.className = 'run-status-box run-error';
+        statusEl.textContent = '✗ ' + (err.detail || 'stop failed');
+        btn.disabled = false;
+        btn.textContent = '⏹ Stop';
+        return;
+      }
+    } catch (e) {
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
+      statusEl.textContent = '✗ Request failed';
+      btn.disabled = false;
+      btn.textContent = '⏹ Stop';
+    }
+    return;
+  }
+
+  if (!sampleTimestamps.length) {
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
+    statusEl.textContent = '✗ Preview samples first';
+    return;
+  }
+
+  const symbol = $('bt-symbol').value.trim().toUpperCase();
+  const body = {
+    mode: currentMode,
+    symbol_prefix: symbol,
+    sample_timestamps: sampleTimestamps,
+  };
+  if (currentMode === 'timestamp') {
+    body.timestamp = $('bt-timestamp').value.trim();
+  } else {
+    body.start = $('bt-start').value.trim();
+    body.end = $('bt-end').value.trim();
+    body.samples = parseInt($('bt-samples').value) || 14;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    const resp = await fetch(apiUrl('/api/backtest/run'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box run-error';
+      statusEl.textContent = '✗ ' + (err.detail || 'request failed');
+      btn.disabled = false;
+      btn.textContent = '▶ Run Backtest';
+      return;
+    }
+
+    updateRunUI('running');
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box';
+    statusEl.textContent = '⟳ Running ' + symbol + 'USDT…';
+    backtestPollInterval = setInterval(checkBacktestStatus, 2000);
+    checkBacktestStatus();
+  } catch (e) {
+    statusEl.style.display = 'block';
+    statusEl.className = 'run-status-box run-error';
+    statusEl.textContent = '✗ Request failed';
+    btn.disabled = false;
+    btn.textContent = '▶ Run Backtest';
+  }
+}
+
+function updateRunUI(state) {
+  const input = $('bt-symbol');
+  const btn = $('bt-run-btn');
+  const previewBtn = $('bt-preview-btn');
+  const radios = document.querySelectorAll('input[name="bt-mode"]');
+
+  if (state === 'running') {
+    input.disabled = true;
+    previewBtn.disabled = true;
+    $('bt-timestamp').disabled = true;
+    $('bt-start').disabled = true;
+    $('bt-end').disabled = true;
+    $('bt-samples').disabled = true;
+    radios.forEach(r => r.disabled = true);
+    btn.disabled = false;
+    btn.textContent = '⏹ Stop';
+    btn.style.color = 'var(--accent-red)';
+  } else {
+    input.disabled = false;
+    previewBtn.disabled = false;
+    $('bt-timestamp').disabled = false;
+    $('bt-start').disabled = false;
+    $('bt-end').disabled = false;
+    $('bt-samples').disabled = false;
+    radios.forEach(r => r.disabled = false);
+    btn.disabled = false;
+    btn.textContent = '▶ Run Backtest';
+    btn.style.color = '';
+    backtestPollInterval = null;
+  }
+}
+
+async function checkBacktestStatus() {
+  try {
+    const resp = await fetch(apiUrl('/api/backtest/status'));
+    const data = await resp.json();
+
+    if (data.running) {
+      updateRunUI('running');
+      const statusEl = $('bt-run-status');
+      const done = data.done_count || 0;
+      const total = data.total_count || 0;
+      const elapsed = formatElapsed(data.elapsed_seconds || 0);
+      const symbol = data.symbol || '';
+
+      // Update sample list with statuses
+      if (data.samples) {
+        updateSampleStatuses(data.samples);
+      }
+
+      statusEl.style.display = 'block';
+      statusEl.className = 'run-status-box';
+      statusEl.innerHTML = '⟳ Running <strong>' + symbol + '</strong>… ' +
+        done + '/' + total + ' samples · elapsed ' + elapsed;
+    } else {
+      if (backtestPollInterval) {
+        clearInterval(backtestPollInterval);
+        backtestPollInterval = null;
+
+        const statusEl = $('bt-run-status');
+
+        if (data.stopped) {
+          statusEl.style.display = 'block';
+          statusEl.className = 'run-status-box run-ok';
+          statusEl.textContent = '✓ Stopped';
+        } else if (data.error) {
+          statusEl.style.display = 'block';
+          statusEl.className = 'run-status-box run-error';
+          statusEl.textContent = '✗ ' + data.error;
+        } else {
+          // Check if all completed
+          const done = data.done_count || 0;
+          const total = data.total_count || 0;
+          const failed = (data.samples || []).filter(s => s.status === 'failed').length;
+
+          statusEl.style.display = 'block';
+          let cls = 'run-status-box run-ok';
+          let msg = '✓ Completed ' + done + '/' + total + ' samples';
+          if (failed > 0) {
+            cls = 'run-status-box run-error';
+            msg += ' · ' + failed + ' failed';
+          }
+          statusEl.className = cls;
+          statusEl.textContent = msg;
+        }
+
+        updateRunUI('idle');
+        setTimeout(() => {
+          statusEl.style.display = 'none';
+        }, 5000);
+      }
+    }
+  } catch (e) { /* polling failed silently */ }
+}
+
+function updateSampleStatuses(samples) {
+  const rows = document.querySelectorAll('.bt-sample-row');
+  if (!rows.length) return;
+
+  samples.forEach((s, i) => {
+    if (i >= rows.length) return;
+    const statusEl = rows[i].querySelector('.bt-sample-status');
+    if (!statusEl) return;
+
+    statusEl.textContent = s.status;
+    statusEl.className = 'bt-sample-status';
+    if (s.status === 'completed') {
+      statusEl.classList.add('status-completed');
+    } else if (s.status === 'running') {
+      statusEl.classList.add('status-running');
+    } else if (s.status === 'failed') {
+      statusEl.classList.add('status-failed');
+    } else {
+      statusEl.classList.add('status-pending');
+    }
+  });
+}
+
+// ── Init: check if backtest is already running ──
+(async function initBacktestStatus() {
+  try {
+    const resp = await fetch(apiUrl('/api/backtest/status'));
+    const data = await resp.json();
+    if (data.running) {
+      // Restore UI state
+      const symbol = data.symbol || '';
+      $('bt-symbol').value = symbol.replace(/USDT$/i, '');
+
+      if (data.mode) {
+        currentMode = data.mode;
+        document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
+        switchMode(data.mode);
+      }
+
+      if (data.samples) {
+        sampleTimestamps = data.samples.map(s => s.timestamp);
+        renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+        updateSampleStatuses(data.samples);
+        $('bt-run-btn').disabled = false;
+      }
+
+      updateRunUI('running');
+      $('bt-run-status').style.display = 'block';
+      backtestPollInterval = setInterval(checkBacktestStatus, 2000);
+      checkBacktestStatus();
+    }
+  } catch (e) { /* ignore */ }
+})();
+</script>
+</body>
+</html>

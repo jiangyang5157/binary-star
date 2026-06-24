@@ -195,6 +195,7 @@ class SessionRenderer(BaseEmailTemplate):
             # Veto badge
             veto_colors = {
                 "PASS":         (C["badge_green_bg"], C["badge_green_txt"]),
+                "WEAK":         ("rgba(88,166,255,0.15)", C["blue"]),
                 "CONSTRUCTIVE": ("rgba(210,153,34,0.15)", C["orange"]),
                 "TERMINAL":     (C["badge_red_bg"], C["badge_red_txt"]),
             }
@@ -202,7 +203,11 @@ class SessionRenderer(BaseEmailTemplate):
             veto_badge = f'<span style="{_s(display="inline-block", padding="1px 8px", borderRadius="10px", fontSize="11px", fontWeight="600", textTransform="uppercase", background=vbg, color=vc)}">{veto}</span>'
             math_badge = ""
             if math_status:
-                mbg, mc = (C["badge_green_bg"], C["badge_green_txt"]) if math_status.upper() == "VERIFIED" else (C["badge_red_bg"], C["badge_red_txt"])
+                math_badge_colors = {
+                    "VERIFIED": (C["badge_green_bg"], C["badge_green_txt"]),
+                    "SKIPPED":  (C["badge_gray_bg"], C["badge_gray_txt"]),
+                }
+                mbg, mc = math_badge_colors.get(math_status.upper(), (C["badge_red_bg"], C["badge_red_txt"]))
                 math_badge = f'<span style="{_s(display="inline-block", padding="1px 8px", borderRadius="10px", fontSize="11px", fontWeight="600", textTransform="uppercase", background=mbg, color=mc)}">{math_status}</span>'
 
             plan_opinion = SessionRenderer._opinion_badge(plan.get("opinion") or "?") if plan else ""

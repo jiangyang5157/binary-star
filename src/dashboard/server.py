@@ -19,6 +19,7 @@ from src.dashboard.api.sessions import router as sessions_router
 from src.dashboard.api.audits import router as audits_router
 from src.dashboard.api.session_run import router as session_run_router
 from src.dashboard.api.sniper_run import router as sniper_run_router
+from src.dashboard.api.backtest import router as backtest_router
 
 app = FastAPI(title="Singularity Dashboard", version="2.0")
 
@@ -35,6 +36,7 @@ app.include_router(sessions_router)
 app.include_router(audits_router)
 app.include_router(session_run_router)
 app.include_router(sniper_run_router)
+app.include_router(backtest_router)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 _jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
@@ -106,6 +108,11 @@ def live_view(user: str = Query(None), data_root: str = Query("")):
     permissions = _get_user_permissions(user)
     template = _jinja_env.get_template("live.html")
     return HTMLResponse(template.render(permissions=permissions))
+
+
+@app.get("/development", response_class=HTMLResponse, summary="Development Dashboard", tags=["Pages"])
+def development_view(data_root: str = Query("")):
+    return read_template("development.html")
 
 
 @app.get("/audits/{filename}", response_class=HTMLResponse, summary="Audit Detail", tags=["Pages"])
