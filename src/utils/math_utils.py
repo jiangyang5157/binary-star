@@ -33,6 +33,28 @@ class RegimePhysicsConfig:
     weight_standard: float
 
 
+def build_physics_config(session_config, critic_config) -> RegimePhysicsConfig:
+    """Factory: build RegimePhysicsConfig from session and critic config sub-objects.
+
+    Centralises the mapping so orchestrator and math checker stay in sync.
+    """
+    return RegimePhysicsConfig(
+        min_velocity_floor=session_config.temporal.min_trade_velocity,
+        ti_thresh=critic_config.regime.trend_intensity_threshold,
+        ti_strong=critic_config.regime.trend_intensity_strong,
+        vr_base=critic_config.regime.volatility_baseline_ratio,
+        vr_extreme=critic_config.regime.volatility_extreme_ratio,
+        dilation_dead_water=session_config.temporal.temporal_dilation_dead_water,
+        dilation_highway=session_config.temporal.temporal_dilation_highway,
+        dilation_climax=session_config.temporal.temporal_dilation_climax,
+        dilation_standard=session_config.temporal.temporal_dilation_standard,
+        weight_dead_water=session_config.temporal.temporal_weight_dead_water,
+        weight_highway=session_config.temporal.temporal_weight_highway,
+        weight_climax=session_config.temporal.temporal_weight_climax,
+        weight_standard=session_config.temporal.temporal_weight_standard,
+    )
+
+
 
 def get_tool_declarations() -> list[dict]:
     """Return LLM function-calling schemas for the supported tools.

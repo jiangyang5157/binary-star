@@ -65,22 +65,8 @@ class MathFactChecker:
             atr_metrics = self.math.calculate_atr_metrics(entry, sl, tp, atr)
             proximity = self.math.calculate_structural_proximity(sl, atr, poc, vah, val)
 
-            from src.utils.math_utils import RegimePhysicsConfig
-            physics = RegimePhysicsConfig(
-                min_velocity_floor=self.session_config.temporal.min_trade_velocity,
-                ti_thresh=self.critic_config.regime.trend_intensity_threshold,
-                ti_strong=self.critic_config.regime.trend_intensity_strong,
-                vr_base=self.critic_config.regime.volatility_baseline_ratio,
-                vr_extreme=self.critic_config.regime.volatility_extreme_ratio,
-                dilation_dead_water=self.session_config.temporal.temporal_dilation_dead_water,
-                dilation_highway=self.session_config.temporal.temporal_dilation_highway,
-                dilation_climax=self.session_config.temporal.temporal_dilation_climax,
-                dilation_standard=self.session_config.temporal.temporal_dilation_standard,
-                weight_dead_water=self.session_config.temporal.temporal_weight_dead_water,
-                weight_highway=self.session_config.temporal.temporal_weight_highway,
-                weight_climax=self.session_config.temporal.temporal_weight_climax,
-                weight_standard=self.session_config.temporal.temporal_weight_standard,
-            )
+            from src.utils.math_utils import build_physics_config
+            physics = build_physics_config(self.session_config, self.critic_config)
             holding_time = self.math.project_holding_time(
                 current_price=float(tactical.get('current_price', 0) or 0),
                 entry=entry, take_profit=tp, atr=atr,
