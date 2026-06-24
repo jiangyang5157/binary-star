@@ -13,19 +13,19 @@ llm:
   active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
   api_timeout_seconds: 240
   max_tool_iterations: 9
+  retry_count: 8
+  retry_strategy:
+    multiplier: 2
+    min_seconds: 5
+    max_seconds: 40
+  api_pacing_seconds: 0
+  circuit_breaker_max_failures: 3
 
   gemini:
     model: "gemini-3.5-flash" # gemini-3.5-flash
     session_temperature: 0.5
     critic_temperature: 0.1
     evolver_temperature: 0.0
-    circuit_breaker_threshold: 3
-    retry_count: 8
-    retry_strategy:
-      multiplier: 2
-      min_seconds: 5
-      max_seconds: 40
-    api_pacing_seconds: 0
     context_cache:
       enable: true
       expiration_minutes: 10

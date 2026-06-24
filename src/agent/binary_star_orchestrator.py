@@ -69,11 +69,10 @@ class BinaryStarConfig:
 
         # LLM / provider
         llm_cfg = global_config["llm"]
-        gemini_llm = llm_cfg["gemini"]
         api_timeout = int(llm_cfg["api_timeout_seconds"])
-        retry_count = int(gemini_llm["retry_count"])
+        retry_count = int(llm_cfg["retry_count"])
         max_tool_iterations = int(llm_cfg["max_tool_iterations"])
-        retry_strategy = gemini_llm["retry_strategy"]
+        retry_strategy = llm_cfg["retry_strategy"]
         retry_multiplier = float(retry_strategy["multiplier"])
         retry_min = int(retry_strategy["min_seconds"])
         retry_max = int(retry_strategy["max_seconds"])
@@ -283,8 +282,8 @@ class BinaryStarOrchestrator:
         )
 
         # ── 5. Congestion control & caching ─────────────────────────
-        gemini_llm = self.global_config['llm']['gemini']
-        pacing_seconds = float(gemini_llm.get('api_pacing_seconds', 0.0))
+        llm_cfg = self.global_config['llm']
+        pacing_seconds = float(llm_cfg.get('api_pacing_seconds', 0.0))
         self.congestion_controller = CongestionController(pacing_seconds)
         self.session_agent.congestion_controller = self.congestion_controller
         self.critic_agent.congestion_controller = self.congestion_controller

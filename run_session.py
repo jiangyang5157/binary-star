@@ -73,7 +73,7 @@ class SessionEngine:
 
         # Failure tracking for circuit breaker
         self.consecutive_failures = 0
-        self.max_failures_threshold = int(self.global_cfg.get('network', {}).get('gemini', {}).get('circuit_breaker_threshold', 3))
+        self.max_failures_threshold = int(self.global_cfg.get('llm', {}).get('circuit_breaker_max_failures', 3))
 
     def execute_cycle(self, timestamp_str: Optional[str] = None) -> Dict[str, Any]:
         """
