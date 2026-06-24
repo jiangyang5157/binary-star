@@ -83,10 +83,16 @@ def _convert_dict_tool(tool: dict) -> dict | None:
     raw_params = tool.get("parameters", {})
     props, required = {}, []
     for pn, ps in raw_params.get("properties", {}).items():
-        props[pn] = {
+        prop = {
             "type": ps.get("type", "string").lower(),
             "description": ps.get("description", ""),
         }
+        for key in ("enum", "minimum", "maximum"):
+            if key in ps:
+                prop[key] = ps[key]
+        if "items" in ps:
+            prop["items"] = {"type": ps["items"].get("type", "string").lower()}
+        props[pn] = prop
     required = list(raw_params.get("required", []) or [])
     return {
         "type": "function",
@@ -109,10 +115,16 @@ def _convert_gemini_tool(tool: Any) -> list[dict]:
         props, required = {}, []
         if hasattr(fd, "parameters") and fd.parameters:
             for pn, ps in getattr(fd.parameters, "properties", {}).items():
-                props[pn] = {
+                prop = {
                     "type": getattr(ps, "type", "string").lower(),
                     "description": getattr(ps, "description", ""),
                 }
+                for key in ("enum", "minimum", "maximum"):
+                    if hasattr(ps, key):
+                        prop[key] = getattr(ps, key)
+                if hasattr(ps, "items") and ps.items:
+                    prop["items"] = {"type": getattr(ps.items, "type", "string").lower()}
+                props[pn] = prop
             required = list(getattr(fd.parameters, "required", []) or [])
         result.append({
             "type": "function",
