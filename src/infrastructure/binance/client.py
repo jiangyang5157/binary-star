@@ -215,10 +215,15 @@ class BinanceFuturesClient(AbstractExchangeClient):
     def fetch_liquidations(self, symbol: str, limit: int = 100, **kwargs: Any) -> Optional[List[LiquidationData]]:
         """
         Fetches recent forced liquidation orders.
-        
-        Polling-based force_orders and allForceOrders are disabled 
-        due to infrastructure mismatch and API weight/permission restrictions.
-        Returning None to allow downstream metrics to gracefully handle data absence.
+
+        NOTE: Binance API does not provide a public liquidation data endpoint.
+        - The /fapi/v1/forceOrders endpoint requires a listen key (user data stream),
+          which is scoped to the user's own account — not market-wide liquidations.
+        - The /fapi/v1/allForceOrders endpoint was deprecated/restricted and is no
+          longer available on the public API.
+        - Without a viable data source, this method returns None. Downstream metrics
+          (e.g., LiquidationEstimator, liquidation cluster triggers) gracefully handle
+          the absence of this data.
         """
         return None
 

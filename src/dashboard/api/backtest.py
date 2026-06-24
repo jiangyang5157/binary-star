@@ -179,7 +179,7 @@ def _compute_samples(
         interval_seconds = get_interval_seconds(macro_interval)
         limit = int(range_seconds / interval_seconds) + warmup
 
-        from src.infrastructure.exchange.binance.client import (
+        from src.infrastructure.binance.client import (
             BinanceFuturesClient,
         )
         from src.analyzer.simulation_sampler import SniperSampler
