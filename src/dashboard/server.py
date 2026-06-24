@@ -64,6 +64,11 @@ def _load_users() -> dict[str, set[str]]:
     roles = config.get("roles", {})
     users = config.get("users", {})
     result: dict[str, set[str]] = {}
+
+    # Stash anonymous role as fallback for unknown/missing user IDs
+    anon_role = roles.get("anonymous", {})
+    result["__role_anonymous__"] = set(anon_role.get("permissions", []))
+
     for user_id, user_data in users.items():
         role_key = user_data.get("role", "")
         role = roles.get(role_key, {})
@@ -78,11 +83,13 @@ _users_permissions = _load_users()
 def _get_user_permissions(user_id: str | None) -> set[str]:
     """Resolve permissions for a user ID.
 
-    Returns empty set for None, empty string, or unknown user IDs.
+    Falls back to the "anonymous" role when no user is specified or the
+    user ID is unknown.
     """
-    if not user_id:
-        return set()
-    return _users_permissions.get(user_id, set())
+    if user_id and user_id in _users_permissions:
+        return _users_permissions[user_id]
+    # Fallback to anonymous role
+    return _users_permissions.get("__role_anonymous__", set())
 
 
 def read_template(name: str) -> str:

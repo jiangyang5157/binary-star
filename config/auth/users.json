@@ -8,9 +8,9 @@
       "label": "Operator",
       "permissions": ["view_active_sessions", "run_new_session"]
     },
-    "customer": {
-      "label": "Customer",
-      "permissions": []
+    "anonymous": {
+      "label": "Anonymous",
+      "permissions": ["view_active_sessions", "run_new_session", "run_sniper", "run_backtest"]
     }
   },
   "users": {
