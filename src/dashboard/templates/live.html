@@ -29,10 +29,16 @@
         <h2>New Session</h2>
         <button id="run-session-btn" class="btn-sm" onclick="triggerRun()">▶ Run</button>
       </div>
-      <div class="run-controls">
-        <input type="text" id="symbol-prefix" class="filter-input run-symbol-input"
-               placeholder="BTC" maxlength="10" autocomplete="off"
-               oninput="document.getElementById('run-status').style.display='none'">
+      <div class="bt-param-row">
+        <label class="bt-field">
+          <span class="bt-label">Symbol</span>
+          <span class="bt-input-group">
+            <input type="text" id="symbol-prefix" class="filter-input bt-symbol-input"
+                   placeholder="BTC" maxlength="10" autocomplete="off"
+                   oninput="document.getElementById('run-status').style.display='none';this.classList.remove('bt-field-error')">
+            <span class="bt-suffix">USDT</span>
+          </span>
+        </label>
       </div>
       <div id="run-status" class="run-status-box" style="display:none"></div>
     </section>
@@ -45,22 +51,32 @@
         <h2>Sniper Control</h2>
         <button id="sniper-btn" class="btn-sm" onclick="triggerSniper()">▶ Run</button>
       </div>
-      <div class="run-controls">
-        <input type="text" id="sniper-symbol" class="filter-input run-symbol-input"
-               placeholder="BTC,XAUT" maxlength="50" autocomplete="off"
-               oninput="document.getElementById('sniper-status').style.display='none'">
-        <span id="sniper-balance-group" style="display:none" class="balance-group">
-          <input type="number" id="sniper-balance" class="filter-input balance-input"
-                 placeholder="Balance" min="0" step="any"
-                 onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
-                 oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '')">
-          <span class="run-suffix">USDT</span>
-        </span>
-        <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
-          <span class="toggle-text">Trade</span>
-          <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
-          <span class="toggle-slider"></span>
+      <div class="bt-param-row">
+        <label class="bt-field bt-field-wide">
+          <span class="bt-label">Symbols</span>
+          <input type="text" id="sniper-symbol" class="filter-input" style="width:100%"
+                 placeholder="BTC,XAUT" maxlength="50" autocomplete="off"
+                 oninput="document.getElementById('sniper-status').style.display='none';this.classList.remove('bt-field-error')">
         </label>
+      </div>
+      <div class="bt-param-row">
+        <div class="bt-range-grid">
+          <label class="bt-field bt-field-sm" id="sniper-balance-field" style="display:none">
+            <span class="bt-label">Balance</span>
+            <span class="bt-input-group">
+              <input type="number" id="sniper-balance" class="filter-input bt-samples-input"
+                     placeholder="1000" min="0" step="any"
+                     onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+                     oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');this.classList.remove('bt-field-error')">
+              <span class="bt-suffix">USDT</span>
+            </span>
+          </label>
+          <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
+            <span class="toggle-text">Trade</span>
+            <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
       <div id="sniper-status" class="run-status-box" style="display:none"></div>
     </section>
@@ -242,6 +258,7 @@ async function triggerRun() {
   if (prefix !== input.value) input.value = prefix;
 
   if (!prefix || prefix.length < 2) {
+    input.classList.add('bt-field-error');
     statusEl.style.display = 'block';
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Enter at least 2 characters';
@@ -306,9 +323,9 @@ let sniperPollInterval = null;
 
 function toggleBalanceVisibility() {
   const trade = document.getElementById('sniper-trade-toggle').checked;
-  const group = document.getElementById('sniper-balance-group');
+  const field = document.getElementById('sniper-balance-field');
   const balanceInput = document.getElementById('sniper-balance');
-  group.style.display = trade ? 'inline-flex' : 'none';
+  field.style.display = trade ? '' : 'none';
   if (!trade) {
     balanceInput.value = '';
   }
@@ -456,6 +473,7 @@ async function triggerSniper() {
   const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   if (parts.length === 0) {
+    input.classList.add('bt-field-error');
     statusEl.style.display = 'block';
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ At least one symbol required';
@@ -463,6 +481,7 @@ async function triggerSniper() {
   }
   for (const p of parts) {
     if (p.length < 2 || !/^[A-Z0-9]+$/.test(p)) {
+      input.classList.add('bt-field-error');
       statusEl.style.display = 'block';
       statusEl.className = 'run-status-box run-error';
       statusEl.textContent = `✗ Invalid symbol: "${p}"`;
@@ -476,6 +495,7 @@ async function triggerSniper() {
   const balance = balanceRaw ? parseFloat(balanceRaw) : null;
 
   if (balance !== null && (isNaN(balance) || balance <= 0)) {
+    document.getElementById('sniper-balance').classList.add('bt-field-error');
     statusEl.style.display = 'block';
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Balance must be > 0';
@@ -537,12 +557,12 @@ async function triggerSniper() {
 
       // Restore balance input and visibility
       const balanceInput = document.getElementById('sniper-balance');
-      const balanceGroup = document.getElementById('sniper-balance-group');
+      const balanceField = document.getElementById('sniper-balance-field');
       if (data.balance != null) {
         balanceInput.value = data.balance;
       }
       if (data.trade_enabled) {
-        balanceGroup.style.display = 'inline-flex';
+        balanceField.style.display = '';
       }
 
       updateSniperUI('running');

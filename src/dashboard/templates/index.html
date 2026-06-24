@@ -75,11 +75,17 @@
   <section class="card">
     <div class="section-header">
       <h2>Trade Ledger</h2>
-      <div class="section-controls">
-        <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" title="Run forensic audit against all un-audited sessions">⟳ Run Audit</button>
+      <div class="section-controls" style="align-items:flex-end">
+        <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" title="Run forensic audit against all un-audited sessions">▶ Audit</button>
         <span id="run-audit-status" class="audit-status" style="display:none"></span>
-        <input type="text" id="symbol-filter" placeholder="Filter symbol..." class="filter-input">
-        <input type="text" id="version-filter" placeholder="Filter version..." class="filter-input">
+        <label class="bt-field">
+          <span class="bt-label">Symbol</span>
+          <input type="text" id="symbol-filter" class="filter-input bt-symbol-input">
+        </label>
+        <label class="bt-field">
+          <span class="bt-label">Version</span>
+          <input type="text" id="version-filter" class="filter-input" style="width:90px">
+        </label>
       </div>
     </div>
     <div class="table-wrapper">
@@ -436,7 +442,7 @@ async function runAudit() {
     status.style.display = 'inline';
   } finally {
     btn.disabled = false;
-    btn.textContent = '⟳ Run Audit';
+    btn.textContent = '▶ Audit';
   }
 
   // Refresh table and charts regardless of outcome

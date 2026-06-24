@@ -29,11 +29,11 @@
     <!-- Mode Toggle -->
     <div class="bt-mode-row">
       <label class="bt-mode-option">
-        <input type="radio" name="bt-mode" value="timestamp" onchange="switchMode('timestamp')">
+        <input type="radio" name="bt-mode" value="timestamp" onchange="switchMode('timestamp')" checked>
         <span class="bt-mode-label">Single Timestamp</span>
       </label>
       <label class="bt-mode-option">
-        <input type="radio" name="bt-mode" value="range" onchange="switchMode('range')" checked>
+        <input type="radio" name="bt-mode" value="range" onchange="switchMode('range')">
         <span class="bt-mode-label">Date Range</span>
       </label>
     </div>
@@ -52,7 +52,7 @@
     </div>
 
     <!-- Shared config area: show/hide fields by mode -->
-    <div class="bt-param-row" id="bt-timestamp-row" style="display:none">
+    <div class="bt-param-row" id="bt-timestamp-row">
       <label class="bt-field bt-field-wide">
         <span class="bt-label">Timestamp</span>
         <input type="text" id="bt-timestamp" class="filter-input bt-date-input"
@@ -61,7 +61,7 @@
       </label>
     </div>
 
-    <div id="bt-range-rows">
+    <div id="bt-range-rows" style="display:none">
       <div class="bt-param-row bt-range-grid">
         <label class="bt-field">
           <span class="bt-label">Start</span>
@@ -118,7 +118,7 @@ function apiUrl(path) {
 const $ = id => document.getElementById(id);
 
 // ── State ──
-let currentMode = 'range';
+let currentMode = 'timestamp';
 let sampleTimestamps = [];
 let backtestPollInterval = null;
 
