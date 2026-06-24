@@ -39,7 +39,7 @@ class SniperSampler:
         from src.sniper.trigger import SniperTrigger
 
         self.scout = SniperScout(symbol)
-        self.trigger = SniperTrigger()
+        self.trigger = SniperTrigger(strategy_cfg=self.scout.strategy_cfg, global_cfg=self.scout.global_cfg)
 
     def sample(self, klines: List[KlineData], count: int) -> List[datetime]:
         """
