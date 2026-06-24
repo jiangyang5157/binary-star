@@ -79,7 +79,7 @@ class BinanceMarginClient:
                 try:
                     orders.append(MarginOrder(
                         symbol=o.get('symbol', 'UNKNOWN'),
-                        order_id=o.get('orderId', 0),
+                        order_id=str(o.get('orderId', '')),
                         client_order_id=o.get('clientOrderId', ''),
                         price=float(o.get('price', 0)),
                         orig_qty=float(o.get('origQty', o.get('qty', 0))),

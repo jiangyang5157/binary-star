@@ -96,7 +96,7 @@ def index():
 
 
 @app.get("/performance", response_class=HTMLResponse, summary="Performance Dashboard", tags=["Pages"])
-def performance(data_root: str = Query("")):
+def performance():
     return read_template("index.html")
 
 

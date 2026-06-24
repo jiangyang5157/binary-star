@@ -139,6 +139,13 @@ def sniper_stop(data_root: str = Query("")):
         try:
             os.kill(pid, 15)  # SIGTERM
             log.info("Sent SIGTERM to sniper PID %s (%s)", pid, symbols)
+            # Brief grace period for the process to flush state and exit
+            import time
+            for _ in range(30):  # up to 3 seconds
+                if not _is_pid_alive(pid):
+                    log.info("Sniper PID %s terminated cleanly.", pid)
+                    break
+                time.sleep(0.1)
         except OSError as e:
             log.error("Failed to kill sniper PID %s: %s", pid, e)
     else:

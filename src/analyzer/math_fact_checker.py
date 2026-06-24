@@ -41,6 +41,8 @@ class MathFactChecker:
                 return {"status": "SKIPPED", "reason": "Neutral proposal requires no math audit."}
 
             tactical = plan.get('tactical_parameters', {})
+            if not isinstance(tactical, dict) or not all(k in tactical for k in ('entry', 'stop_loss', 'take_profit')):
+                return {"status": "VERIFICATION_FAILURE", "reason": "tactical_parameters missing required keys (entry, stop_loss, take_profit)."}
             entry = float(tactical.get('entry', 0) or 0)
             sl = float(tactical.get('stop_loss', 0) or 0)
             tp = float(tactical.get('take_profit', 0) or 0)

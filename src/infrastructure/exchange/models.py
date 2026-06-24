@@ -83,7 +83,7 @@ class MarginAccountSummary:
 class MarginOrder:
     """Standardized representation of a Margin order."""
     symbol: str
-    order_id: int
+    order_id: str  # str avoids JS precision loss (>2^53) in dashboard
     client_order_id: str
     price: float
     orig_qty: float
