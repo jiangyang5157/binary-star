@@ -161,12 +161,12 @@ class SessionRenderer(BaseEmailTemplate):
     <h2 style="{_s(fontSize='15px', fontWeight='600', color=C['text'], margin='0 0 16px 0')}">Final Decision</h2>
     <table cellpadding="0" cellspacing="0" border="0" width="100%" style="{_s(marginBottom='16px')}">
         <tr>
-            <td style="{_s(paddingBottom='12px')}">
-                {SessionRenderer._opinion_badge(opinion)}
-            </td>
-            <td style="{_s(paddingBottom='12px', paddingLeft='20px')}">
+            <td style="{_s(paddingBottom='12px', paddingRight='20px')}">
                 <span style="{_s(fontSize='22px', fontWeight='700', color=C['blue'])}">{conf_display}</span>
                 <span style="{_s(fontSize='11px', color=C['text3'], textTransform='uppercase', display='block')}">Confidence</span>
+            </td>
+            <td style="{_s(paddingBottom='12px', verticalAlign='middle')}">
+                {SessionRenderer._opinion_badge(opinion)}
             </td>
         </tr>
     </table>

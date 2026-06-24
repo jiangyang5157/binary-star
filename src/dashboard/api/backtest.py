@@ -145,7 +145,8 @@ def _compute_samples(
             raise ValueError("Timestamp is required for single-timestamp mode")
         dt = _parse_date(timestamp_str)
         _validate_date_window(dt, now)
-        return [dt.isoformat()]
+        from src.utils.datetime_utils import to_iso_zulu
+        return [to_iso_zulu(dt)]
 
     if mode == "range":
         if not start_str:
@@ -228,7 +229,8 @@ def _compute_samples(
         if not timestamps:
             raise ValueError("SniperSampler returned no timestamps")
 
-        return [dt.isoformat() for dt in timestamps]
+        from src.utils.datetime_utils import to_iso_zulu
+        return [to_iso_zulu(dt) for dt in timestamps]
 
     raise ValueError(f"Unknown mode: '{mode}'")
 

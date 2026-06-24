@@ -283,7 +283,7 @@ function renderSampleList(data) {
 
 function formatTimestamp(isoStr) {
   try {
-    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
+    return new Date(isoStr).toLocaleString();
   } catch { return isoStr; }
 }
 
