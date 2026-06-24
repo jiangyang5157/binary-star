@@ -362,10 +362,11 @@ python run.py audit -p data/backtest --file data/backtest/v26.6.24_r14/sessions/
 
 # Meta-evolution (strategy optimization from audit results)
 python run.py evolution -p data/prod --symbol BTC --samples 100 
+python run.py evolution -p data/backtest/v26.6.24_r14 --symbol XAUT --samples 100 
 
 # Apply evolution patch (add --symbol for per-symbol override patching)
 python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
-python run.py patch -f data/prod/evolution/proposals/XAUTUSDT_evolution_20260101_120000.json --symbol XAUT
+python run.py patch -f data/backtest/v26.6.24_r14/evolution/proposals/XAUTUSDT_evolution_20260624_060954.json --symbol XAUT
 
 # Start dashboard server (http://0.0.0.0:8080)
 python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
