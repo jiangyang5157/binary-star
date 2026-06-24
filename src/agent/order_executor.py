@@ -48,7 +48,12 @@ class MarginOrderExecutor:
         Returns the entry order_id if a new LIMIT entry was placed, or None.
         """
         logger.info(f"Executor [{symbol}]: Syncing with new Opinion: {opinion_direction} (Entry: {entry_price}, TP: {tp_price}, SL: {sl_price})")
-        
+
+        # [SAFETY GUARD] NEUTRAL opinions require no order action
+        if opinion_direction == "NEUTRAL":
+            logger.info(f"Executor [{symbol}]: Opinion is NEUTRAL — no order placement needed.")
+            return None
+
         # [SAFETY GUARD] Explicit Whitelist Check
         if not self._is_symbol_whitelisted(symbol):
             logger.warning(f"Executor: [ABORT] Symbol {symbol} is NOT configured in symbol_config.yaml. Operation halted globally.")
@@ -111,6 +116,9 @@ class MarginOrderExecutor:
                 
                 # 2. Determine if the flip point has already been overshot
                 current_price = self.client.get_ticker_price(symbol)
+                if current_price is None or current_price <= 0:
+                    logger.error("Executor: [Pivot-Preserve] Failed to get valid ticker price. Aborting pivot.")
+                    return None
                 is_overshot = (
                     (current_direction == "SHORT" and current_price <= entry_price) or
                     (current_direction == "LONG" and current_price >= entry_price)
@@ -373,7 +381,7 @@ class MarginOrderExecutor:
         # --- 1. Time-Based Stop ---
         entry_filled_at_str = trade_state.get("entry_filled_at")
         projected_holding = trade_state.get("projected_holding_hours")
-        if entry_filled_at_str and projected_holding:
+        if entry_filled_at_str and projected_holding and float(projected_holding) > 0:
             entry_filled_at = datetime.fromisoformat(entry_filled_at_str)
             elapsed_hours = (datetime.now(timezone.utc) - entry_filled_at).total_seconds() / 3600
             time_limit = float(projected_holding) * gc["time_stop_multiplier"]
@@ -450,10 +458,14 @@ class MarginOrderExecutor:
             # Step B: Place new OCO with migrated SL
             # Direction-aware buffer: LONG SL is SELL (limit < trigger), SHORT SL is BUY (limit > trigger)
             buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
+            pos = self.client.get_symbol_position(symbol)
+            if not pos:
+                logger.error("Guardian: [TRAILING STOP] Failed to get position for %s. Aborting migration.", symbol)
+                return trade_state
             success = self.client.place_oco_order(
                 symbol=symbol,
                 side=exit_side,
-                qty=abs(self.client.get_symbol_position(symbol).net_qty),
+                qty=abs(pos.net_qty),
                 price=current_tp,
                 stop_price=target_sl,
                 stop_limit_price=buffered_sl

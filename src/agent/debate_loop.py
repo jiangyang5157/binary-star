@@ -56,12 +56,7 @@ class DebateLoop:
                 system_instruction=self.shared_instruction
             )
 
-            # Adversarial Audit (Math Fact Check Injection)
-            logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
-            math_fact_check = self.math_checker.verify(last_plan, observation)
-
-            # Critic Fast Pass Pre-check (Token Optimization)
-            critic_results = None
+            # Validate response type before any expensive operations
             if not isinstance(last_plan, dict):
                 logger.error(
                     "BinaryStar: Session agent returned %s instead of dict. Raw: %s",
@@ -71,6 +66,13 @@ class DebateLoop:
                     raw_text=str(last_plan)[:500],
                     agent_name="SessionAgent",
                 )
+
+            # Adversarial Audit (Math Fact Check Injection)
+            logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
+            math_fact_check = self.math_checker.verify(last_plan, observation)
+
+            # Critic Fast Pass Pre-check (Token Optimization)
+            critic_results = None
             opinion = last_plan.get("opinion", "NEUTRAL")
             if opinion == "NEUTRAL" and math_fact_check.get("status") == "SKIPPED":
                 fast_pass = self._evaluate_critic_fast_pass(debate_history, observation)
