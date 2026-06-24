@@ -22,6 +22,9 @@ class AgentInferenceError(SingularityError):
 class EmptyModelResponseError(AgentInferenceError):
     """The LLM returned an empty response (no text, no tool calls)."""
 
+    def __init__(self, message: str = "Model returned empty response", agent_name: str = "Unknown"):
+        super().__init__(message, agent_name=agent_name)
+
 
 class MalformedJSONError(AgentInferenceError):
     """The LLM response could not be parsed as valid JSON."""
@@ -35,6 +38,9 @@ class MalformedJSONError(AgentInferenceError):
 
 class MaxIterationsError(AgentInferenceError):
     """The agent reached the maximum tool-call iteration limit."""
+
+    def __init__(self, message: str = "Max tool-call iterations reached", agent_name: str = "Unknown"):
+        super().__init__(message, agent_name=agent_name)
 
 
 class AIProviderError(AgentInferenceError):
