@@ -109,7 +109,7 @@ def test_get_symbol_trade_params_btc():
 def test_get_symbol_trade_params_xaut():
     params = get_symbol_trade_params("XAUTUSDT")
     assert params["precision_qty"] == 3
-    assert params["sl_slippage_buffer"] == 0.5
+    assert params["sl_slippage_buffer"] == 1
 
 
 def test_get_symbol_trade_params_unknown_falls_back():

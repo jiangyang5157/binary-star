@@ -83,20 +83,24 @@ class MockDataFactory:
         return {
             "system": {},
             "network": {
-                "gemini": {
-                    "api_timeout_seconds": 30,
+                "binance": {
+                    "api_timeout_seconds": 65,
                     "retry_count": 2,
-                    "retry_strategy": {
-                        "multiplier": 1,
-                        "min_seconds": 2,
-                        "max_seconds": 10,
-                    },
-                    "max_tool_iterations": 5,
                 },
             },
             # ── LLM / provider ──────────────────────────────────────
             "llm": {
                 "active_provider": "gemini",
+                "api_timeout_seconds": 30,
+                "max_tool_iterations": 5,
+                "retry_count": 2,
+                "retry_strategy": {
+                    "multiplier": 1,
+                    "min_seconds": 2,
+                    "max_seconds": 10,
+                },
+                "api_pacing_seconds": 0,
+                "circuit_breaker_max_failures": 3,
                 "gemini": {
                     "model": "mock-model",
                     "session_temperature": 0.7,
