@@ -101,15 +101,13 @@ When history contains specific veto tags, apply these technical repair protocols
   - **Zero-Score Overrides**:
     - If your `opinion` is **NEUTRAL**, the score MUST unconditionally be **0** (it is a non-trade, therefore structural hardness of the trade is 0).
     - If `math_fact_check` fails (`rr_is_valid: false` or any physical error), the score MUST unconditionally be **0**.
-  - **Dimension 1: Topographical Armor (Up to 30 pts)**:
-    - Evaluate subjective hardness. Award `0 to 30 pts`. Start at `30`. Subtract points for friction: e.g., `-5 to -10` if the anchor is structurally weak (e.g., mid-range LVN instead of HVN); `-10` if `entry` does not effectively front-run liquidity or sits in a minor vacuum. Award `0` if completely unshielded.
-  - **Dimension 2: Regime & Gravity Synchronization (Up to 30 pts)**:
-    - Evaluate adaptation. Award `0 to 30 pts`. Start at `30`. Subtract `-10 to -20` if the plan acknowledges the regime but its tactical mitigations are weak. Subtract `-30` (award 0) if the plan is completely dogmatic or ignores macro risks like [GRAVITY_EXHAUSTION].
-  - **Dimension 3: Temporal & Sentiment Convexity (Up to 20 pts)**:
-    - Evaluate alignment. Award `0 to 20 pts`. Start at `20`. Subtract `-5 to -10` for misalignment with `temporal_physics` (e.g., hold time too long for the current regime). Subtract `-5 to -10` if directional polarity fights the CVD flow or ignores clear retail imbalances.
-  - **Dimension 4: The Critic's Crucible (Up to 20 pts)**:
-    - Start at `20` ONLY IF the Critic issued a `PASS` with zero reservations. If `PASS` with minor structural/mathematical friction, award `5 to 15 pts` depending on friction severity. If the current state is the first round (`IS_PLANNING`) or a `CONSTRUCTIVE`/`TERMINAL` challenge remains, score MUST be `0`.
-  - **Constraint**: The final score represents the "Logical Hardness" of the proposal. By using this penalty paradigm, fractional or intermediate scores (e.g., 82.5 or 68.0) are expected and encouraged, allowing nuance without rampant inflation. A raw score of 100 represents a flawless setup and should be exceedingly rare.
+  - **Dimension 1: Topographical Armor (Up to 40 pts)**:
+    - Evaluate subjective hardness. Award `0 to 40 pts`. Start at `40`. Subtract points for friction: e.g., `-5 to -10` if the anchor is structurally weak (e.g., mid-range LVN instead of HVN); `-10` if `entry` does not effectively front-run liquidity or sits in a minor vacuum; `-15` if `entry` exceeds `{max_entry_distance_atr}` ATR from `current_price`. Award `0` if completely unshielded.
+  - **Dimension 2: Regime & Gravity Synchronization (Up to 35 pts)**:
+    - Evaluate adaptation. Award `0 to 35 pts`. Start at `35`. Subtract `-10 to -20` if the plan acknowledges the regime but its tactical mitigations are weak. Subtract `-35` (award 0) if the plan is completely dogmatic or ignores macro risks like [GRAVITY_EXHAUSTION].
+  - **Dimension 3: Temporal & Sentiment Convexity (Up to 25 pts)**:
+    - Evaluate alignment. Award `0 to 25 pts`. Start at `25`. Subtract `-5 to -10` for misalignment with `temporal_physics` (e.g., hold time too long for the current regime). Subtract `-5 to -10` if directional polarity fights the CVD flow or ignores clear retail imbalances.
+  - **Constraint**: The three dimensions sum to a maximum of 100. Fractional scores (e.g., 72.5 or 68.0) are expected and encouraged, allowing nuance without rampant inflation. A score of 100 represents a flawless setup and should be exceedingly rare.
 - **Finalization**: Output JSON.
 
 # OUTPUT_SCHEMA
