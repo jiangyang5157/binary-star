@@ -24,7 +24,7 @@ pip install -e .
 pip install -e ".[dev]"
 
 # ── Unified CLI (run.py) ─────────────────────────────────────────────
-# --symbol accepts prefix format (BTC, XAUT, ETH); "USDT" appended internally
+# --symbol accepts prefix format (BTC, XAUT, ETH); quote currency from global_config.yaml appended (default: USDT)
 
 # Live analysis
 python run.py session -p data/prod --symbol BTC

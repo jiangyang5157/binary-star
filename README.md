@@ -225,7 +225,7 @@ Has position (net qty)?
   │     • Record entry_filled_at for time-stop tracking
   │
   └── YES, direction matches, HAS OCO:
-        • Check time-stop: elapsed > projected_holding × 1.5? → Market close
+        • Check time-stop: elapsed > projected_holding × 1.5 / (current_ATR / entry_ATR)? → Market close (adaptive to volatility)
         • Progressive trailing stop migration (forward-only):
           Level 1 (≥1.5 ATR profit): SL → entry (breakeven)
           Level 2 (≥2.5 ATR profit): SL → entry + 0.5 ATR (LONG) / entry - 0.5 ATR (SHORT)
@@ -341,7 +341,7 @@ pip install -e .
 All entry points are consolidated under `run.py`:
 
 ```bash
-# --symbol accepts prefix format (BTC, XAUT, ETH); "USDT" appended internally
+# --symbol accepts prefix format (BTC, XAUT, ETH); quote currency from global_config.yaml appended (default: USDT)
 
 # Live analysis
 python run.py session -p data/prod --symbol BTC
