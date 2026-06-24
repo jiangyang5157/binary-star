@@ -4,9 +4,12 @@ import re
 import copy
 import argparse
 import hashlib
+import logging
 import subprocess
 from functools import lru_cache
 from typing import Dict, Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 def get_file_hash(file_path: str) -> str:
     """Calculates a short MD5 hash of a file's content to track prompt/config versions."""

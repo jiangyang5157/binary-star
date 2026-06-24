@@ -125,6 +125,7 @@ class EvolverSandbox:
             config_dict=proposed_config,
             api_key=self.api_key,
             data_root=self.data_root,
+            symbol=symbol,
             instruction_overrides=instruction_overrides
         )
 

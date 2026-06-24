@@ -66,6 +66,7 @@ def main():
         sys.exit(1)
         
     # 4. Get Symbol Specific Config
+    sys.path.insert(0, resolve_project_root())
     try:
         from src.config.symbol_resolver import get_symbol_trade_params, is_symbol_configured
 
