@@ -20,6 +20,9 @@ from src.sniper.scout import SniperScout
 from src.sniper.trigger import SniperTrigger
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
+
+# Sentinel matching MarginOrderExecutor.EMERGENCY_CLOSED_SENTINEL
+_EMERGENCY_CLOSED_SENTINEL = -1
 from src.utils.pipeline_utils import load_global_config
 
 logger = setup_logger("SniperDaemon")
@@ -79,7 +82,7 @@ class SniperDaemon:
         self.trade_states: dict[str, dict] = {}
         if self.trade_enabled:
             from src.infrastructure.binance.margin_client import BinanceMarginClient
-            from src.agent.order_executor import MarginOrderExecutor, EMERGENCY_CLOSED_SENTINEL
+            from src.agent.order_executor import MarginOrderExecutor
             margin_client = BinanceMarginClient()
             self.executor = MarginOrderExecutor(client=margin_client, manual_balance_usdt=self.manual_balance)
             if self.manual_balance:
@@ -265,7 +268,7 @@ class SniperDaemon:
                     "entry_atr": entry_atr,
                 }
                 logger.info(f"TradeGate [{symbol}]: Trade state updated. Guardian will monitor order {order_id}.")
-            elif order_id == EMERGENCY_CLOSED_SENTINEL:
+            elif order_id == _EMERGENCY_CLOSED_SENTINEL:
                 self.trade_states.pop(symbol, None)
                 logger.warning(f"TradeGate [{symbol}]: Position was emergency-closed by executor (OCO re-place failure). Trade state cleared.")
             else:
