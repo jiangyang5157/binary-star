@@ -115,16 +115,16 @@ class EvolutionEngine:
 
         g_cfg = load_global_config()
         client = AIFactory.create_client(api_key=self.api_key, config_dict=g_cfg)
-        gemini_net = g_cfg['network']['gemini']
-        
+        llm_cfg = g_cfg['llm']
+
         evolver = EvolverAgent(
-            config=ev_cfg, 
+            config=ev_cfg,
             ai_client=client,
-            api_timeout=int(gemini_net['api_timeout_seconds']),
-            retry_count=int(gemini_net['retry_count']),
-            retry_multiplier=float(gemini_net['retry_strategy']['multiplier']),
-            retry_min=int(gemini_net['retry_strategy']['min_seconds']),
-            retry_max=int(gemini_net['retry_strategy']['max_seconds'])
+            api_timeout=int(llm_cfg['api_timeout_seconds']),
+            retry_count=int(llm_cfg['retry_count']),
+            retry_multiplier=float(llm_cfg['retry_strategy']['multiplier']),
+            retry_min=int(llm_cfg['retry_strategy']['min_seconds']),
+            retry_max=int(llm_cfg['retry_strategy']['max_seconds'])
         )
 
         instruction_paths = {
