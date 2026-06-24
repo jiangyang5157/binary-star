@@ -234,12 +234,14 @@ class SniperDaemon:
             # Map AI opinion to executor direction
             direction = 'LONG' if opinion == 'BULLISH' else 'SHORT'
 
-            # Extract projected waiting time for Guardian timeout
-            projected_waiting = tactical.get('projected_waiting_hours', 4.0)
+            # Extract projected holding/waiting time and entry ATR for adaptive guardian
+            projected_waiting = tactical.get('projected_waiting_hours', 0)
+            projected_holding = tactical.get('projected_holding_hours', 0)
+            entry_atr = float(metrics[symbol].get('price_dynamics', {}).get('atr_macro', 0))
 
             logger.info(f"TradeGate [{symbol}]: ALL GATES PASSED. Executing {direction} "
                         f"(Confidence: {confidence}%, Entry: {entry}, TP: {tp}, SL: {sl}, "
-                        f"Projected Wait: {projected_waiting}h)")
+                        f"Projected Wait: {projected_waiting}h, Hold: {projected_holding}h)")
 
             order_id = self.executor.sync_with_opinion(
                 symbol=symbol,
@@ -259,6 +261,8 @@ class SniperDaemon:
                     "entry_order_id": order_id,
                     "entry_placed_at": datetime.now(timezone.utc),
                     "projected_waiting_hours": float(projected_waiting),
+                    "projected_holding_hours": float(projected_holding),
+                    "entry_atr": entry_atr,
                 }
                 logger.info(f"TradeGate [{symbol}]: Trade state updated. Guardian will monitor order {order_id}.")
             elif order_id == EMERGENCY_CLOSED_SENTINEL:
