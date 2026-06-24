@@ -102,13 +102,7 @@ class BaseAgent:
             # Detect missing template variables: SafeFormatter renders unresolved
             # {placeholders} as literal text.  If any remain, the caller forgot
             # to pass a config value — the LLM will see garbage, not data.
-            #
-            # Only flag variables that were in the ORIGINAL template, not those
-            # introduced by substituted values (e.g. embedded prompt files that
-            # contain their own {placeholders} for later resolution).
-            template_vars = set(re.findall(r'\{(\w+)\}', template))
-            rendered_vars = set(re.findall(r'\{(\w+)\}', rendered))
-            unresolved = rendered_vars & template_vars
+            unresolved = set(re.findall(r'\{(\w+)\}', rendered))
             if unresolved:
                 raise ValueError(
                     f"BaseAgent: {len(unresolved)} unresolved template variable(s) "
