@@ -80,20 +80,18 @@ class VolumeProfileEngine:
         price_bins = np.linspace(min_p, max_p, num_bins + 1)
         v_profile = np.zeros(num_bins)
         
-        # 1. Range-Based Volume Distribution (Fixes Wick Cut-off)
-        for _, row in df.iterrows():
-            low, high, vol = row['low'], row['high'], row['volume']
-            # Find which bins the candle covers
-            bin_start = np.digitize(low, price_bins) - 1
-            bin_end = np.digitize(high, price_bins) - 1
-            
-            # Clip to valid range
-            bin_start = max(0, min(num_bins - 1, bin_start))
-            bin_end = max(0, min(num_bins - 1, bin_end))
-            
-            num_covered = bin_end - bin_start + 1
-            vol_per_bin = vol / num_covered
-            v_profile[bin_start : bin_end + 1] += vol_per_bin
+        # 1. Range-Based Volume Distribution (Vectorized — Fixes Wick Cut-off)
+        low_bin = np.digitize(df['low'].values, price_bins) - 1
+        high_bin = np.digitize(df['high'].values, price_bins) - 1
+        low_bin = np.clip(low_bin, 0, num_bins - 1)
+        high_bin = np.clip(high_bin, 0, num_bins - 1)
+        num_covered = high_bin - low_bin + 1
+        vol_per_bin = df['volume'].values / num_covered
+
+        # Scatter-add: build flat index/value arrays for np.add.at
+        indices = np.concatenate([np.arange(lo, hi + 1) for lo, hi in zip(low_bin, high_bin)])
+        values = np.repeat(vol_per_bin, num_covered)
+        np.add.at(v_profile, indices, values)
 
         # 2. Point of Control (POC)
         poc_idx = np.argmax(v_profile)
