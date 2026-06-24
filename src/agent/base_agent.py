@@ -104,10 +104,9 @@ class BaseAgent:
             # to pass a config value — the LLM will see garbage, not data.
             unresolved = set(re.findall(r'\{(\w+)\}', rendered))
             if unresolved:
-                logger.warning(
-                    "BaseAgent: %d unresolved template variable(s) in %s: %s",
-                    len(unresolved), os.path.basename(template_path),
-                    ", ".join(sorted(unresolved)),
+                raise ValueError(
+                    f"BaseAgent: {len(unresolved)} unresolved template variable(s) "
+                    f"in {os.path.basename(template_path)}: {', '.join(sorted(unresolved))}"
                 )
 
             return rendered

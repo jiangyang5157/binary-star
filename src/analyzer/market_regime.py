@@ -141,7 +141,9 @@ class MarketRegimeAnalyzer:
         """
         if df.empty or len(df) < max(self.config.bollinger_window, self.config.trend_lookback_candles + 1):
             logger.warning("Insufficient data for Market Regime analysis.")
-            return asdict(RegimeResult(1.0, 0.0, 0.0, 1.0))
+            # Sentinel values: -1 flags "sensor failure" so the LLM can distinguish it
+            # from a genuinely balanced market (where values would be ~1.0, ~0.0, ~1.0).
+            return asdict(RegimeResult(-1.0, -1.0, -1.0, -1.0))
 
         processed_df = self.engine.calculate_indicators(df.copy())
         result = self.classifier.classify_regime(processed_df)

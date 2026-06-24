@@ -186,7 +186,7 @@ def _cmd_audit(args):
     task_args = [(f, data_root, args.force) for f in files_to_audit]
 
     with concurrent.futures.ProcessPoolExecutor(
-        max_workers=multiprocessing.cpu_count(),
+        max_workers=min(multiprocessing.cpu_count(), 8),
         initializer=worker_init,
         initargs=(log_path, config, data_root),
     ) as executor:

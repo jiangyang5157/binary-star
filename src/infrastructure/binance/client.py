@@ -339,7 +339,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
     def _is_within_30_days(self, timestamp_ms: int) -> bool:
         now_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
         thirty_days_ms = 30 * 24 * 60 * 60 * 1000
-        return (now_ms - timestamp_ms) <= thirty_days_ms
+        return (now_ms - timestamp_ms) < thirty_days_ms
 
     def close(self):
         """Closes the client connection (placeholder for session cleanup)."""

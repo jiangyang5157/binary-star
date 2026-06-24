@@ -380,7 +380,7 @@ class MarketDataLoader:
 
             current_oi=(res[0] if (res := self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, endTime=ts_ms)) else None),
             liquidations=self.client.fetch_liquidations(symbol, limit=cfg.max_liquidation_events_to_fetch, startTime=liq_start_ts_ms, endTime=ts_ms),
-            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - (int(cfg.funding_rate_lookback_hours) * 60 * 60 * 1000), endTime=ts_ms),
+            funding_rate=self.client.fetch_funding_rate(symbol, limit=funding_rate_limit, startTime=ts_ms - round(cfg.funding_rate_lookback_hours * 60 * 60 * 1000), endTime=ts_ms),
             oi_history=self.client.fetch_open_interest(symbol, cfg.micro_context.time_interval, limit=cfg.micro_context.lookback_candles, endTime=ts_ms) or [],
             taker_ratio_history=self.client.fetch_taker_long_short_ratio(symbol, cfg.micro_context.time_interval, limit=cfg.micro_context.lookback_candles, endTime=ts_ms) or []
         )

@@ -58,8 +58,8 @@ class TechnicalFeatureExtractor:
         """
         try:
             # Detect local peaks (highs) and valleys (lows)
-            highs = df['high'].rolling(window=window, center=True).max() == df['high']
-            lows = df['low'].rolling(window=window, center=True).min() == df['low']
+            highs = np.isclose(df['high'].rolling(window=window, center=True).max(), df['high'])
+            lows = np.isclose(df['low'].rolling(window=window, center=True).min(), df['low'])
             
             peak_indices = np.where(highs)[0]
             valley_indices = np.where(lows)[0]
