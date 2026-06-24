@@ -132,7 +132,7 @@ regime_parameters:
     # The 'Magnetic Field' range of the POC in ATR units.
     poc_gravity_atr_distance: 3.5
     # Aggressive offset for 'Front-Running' institutional liquidity clusters.
-    breakout_frontrun_atr: 0.28
+    breakout_frontrun_atr: 0.24
     # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
     max_entry_distance_atr: 1.0
 
@@ -161,7 +161,7 @@ regime_parameters:
   risk:
     # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
     min_rr_ranging: 1
-    min_rr_trending: 1.2
+    min_rr_trending: 1.12
     # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
     chaos_rr_discount: 0.35
     # Hard safety boundaries for stop-loss placements.
