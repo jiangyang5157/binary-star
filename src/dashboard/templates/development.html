@@ -19,10 +19,11 @@
 <main class="container">
 
   <!-- ═══════ Backtest ═══════ -->
-  <section class="card backtest-card">
+  {% if "run_backtest" in permissions %}
+<section class="card backtest-card">
     <div class="section-header">
       <h2>Backtest</h2>
-      <button id="backtest-run-btn" class="btn-sm" onclick="triggerBacktest()" disabled>▶ Run Backtest</button>
+      <button id="backtest-run-btn" class="btn-sm" onclick="triggerBacktest()" disabled>▶ Run</button>
     </div>
 
     <!-- Mode Toggle -->
@@ -55,7 +56,7 @@
       <label class="bt-field bt-field-wide">
         <span class="bt-label">Timestamp</span>
         <input type="text" id="bt-timestamp" class="filter-input bt-date-input"
-               placeholder="T-2d" autocomplete="off"
+               placeholder="2026-06-01T12:34:00Z" autocomplete="off"
                oninput="clearPreview()">
       </label>
     </div>
@@ -65,26 +66,26 @@
         <label class="bt-field">
           <span class="bt-label">Start</span>
           <input type="text" id="bt-start" class="filter-input bt-date-input"
-                 placeholder="T-28d" autocomplete="off"
+                 placeholder="T-15d" autocomplete="off"
                  oninput="clearPreview()">
         </label>
         <label class="bt-field">
           <span class="bt-label">End</span>
           <input type="text" id="bt-end" class="filter-input bt-date-input"
-                 placeholder="now" autocomplete="off"
+                 placeholder="T-1d" autocomplete="off"
                  oninput="clearPreview()">
         </label>
         <label class="bt-field bt-field-sm">
           <span class="bt-label">Samples</span>
           <input type="number" id="bt-samples" class="filter-input bt-samples-input"
-                 placeholder="14" min="1" max="200" value="14"
+                 placeholder="14" min="1" max="200" step="1"
                  oninput="clearPreview()">
         </label>
       </div>
     </div>
 
     <!-- Format hint -->
-    <p class="bt-hint">Format: <code>T-Nd</code>, <code>T-Nh</code>, <code>now</code>, <code>YYYY-MM-DD</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start must be before End</p>
+    <p class="bt-hint">Format: <code>T-Nd</code>, <code>T-Nh</code>, <code>YYYY-MM-DD</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start must be before End</p>
 
     <!-- Preview button -->
     <button id="bt-preview-btn" class="btn-sm" onclick="previewSamples()">Preview Samples</button>
@@ -102,8 +103,16 @@
     <div id="bt-run-status" class="run-status-box" style="display:none"></div>
   </section>
 
+{% else %}
+  <section class="card">
+    <h2>Backtest</h2>
+    <p class="muted">Access denied — contact admin for "run_backtest" permission.</p>
+  </section>
+{% endif %}
+
 </main>
 
+{% if "run_backtest" in permissions %}
 <script>
 const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
 const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
@@ -133,25 +142,64 @@ function clearPreview() {
   $('bt-run-status').style.display = 'none';
   $('bt-preview-status').style.display = 'none';
   $('bt-run-btn').disabled = true;
+  // Clear inline field errors
+  clearFieldErrors();
+}
+
+function clearFieldErrors() {
+  ['bt-symbol', 'bt-timestamp', 'bt-start', 'bt-end', 'bt-samples'].forEach(id => {
+    const el = $(id);
+    if (el) el.classList.remove('bt-field-error');
+  });
+}
+
+function setFieldError(id, hasError) {
+  const el = $(id);
+  if (!el) return;
+  if (hasError) {
+    el.classList.add('bt-field-error');
+  } else {
+    el.classList.remove('bt-field-error');
+  }
 }
 
 // ── Validation ──
 function validateFields() {
+  clearFieldErrors();
+
   const symbol = $('bt-symbol').value.trim();
   if (!symbol || symbol.length < 2 || !/^[A-Za-z0-9]+$/.test(symbol)) {
+    setFieldError('bt-symbol', true);
     return 'Symbol must be ≥2 alphanumeric characters';
   }
 
   if (currentMode === 'timestamp') {
     const ts = $('bt-timestamp').value.trim();
-    if (!ts) return 'Timestamp is required';
+    if (!ts) {
+      setFieldError('bt-timestamp', true);
+      return 'Timestamp is required';
+    }
   } else {
     const start = $('bt-start').value.trim();
     const end = $('bt-end').value.trim();
-    const samples = parseInt($('bt-samples').value) || 0;
-    if (!start) return 'Start date is required';
-    if (!end) return 'End date is required';
-    if (samples < 1) return 'Samples must be ≥ 1';
+    const samplesRaw = $('bt-samples').value.trim();
+    if (!start) {
+      setFieldError('bt-start', true);
+      return 'Start date is required';
+    }
+    if (!end) {
+      setFieldError('bt-end', true);
+      return 'End date is required';
+    }
+    if (!samplesRaw) {
+      setFieldError('bt-samples', true);
+      return 'Samples is required';
+    }
+    const samples = parseInt(samplesRaw, 10);
+    if (!Number.isInteger(samples) || samples < 1) {
+      setFieldError('bt-samples', true);
+      return 'Samples must be a positive integer (≥ 1)';
+    }
   }
   return null;
 }
@@ -318,7 +366,7 @@ async function triggerBacktest() {
       statusEl.className = 'run-status-box run-error';
       statusEl.textContent = '✗ ' + (err.detail || 'request failed');
       btn.disabled = false;
-      btn.textContent = '▶ Run Backtest';
+      btn.textContent = '▶ Run';
       return;
     }
 
@@ -333,7 +381,7 @@ async function triggerBacktest() {
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Request failed';
     btn.disabled = false;
-    btn.textContent = '▶ Run Backtest';
+    btn.textContent = '▶ Run';
   }
 }
 
@@ -363,7 +411,7 @@ function updateRunUI(state) {
     $('bt-samples').disabled = false;
     radios.forEach(r => r.disabled = false);
     btn.disabled = false;
-    btn.textContent = '▶ Run Backtest';
+    btn.textContent = '▶ Run';
     btn.style.color = '';
     backtestPollInterval = null;
   }
@@ -486,5 +534,6 @@ function updateSampleStatuses(samples) {
   } catch (e) { /* ignore */ }
 })();
 </script>
+{% endif %}
 </body>
 </html>

@@ -111,8 +111,12 @@ def live_view(user: str = Query(None), data_root: str = Query("")):
 
 
 @app.get("/development", response_class=HTMLResponse, summary="Development Dashboard", tags=["Pages"])
-def development_view(data_root: str = Query("")):
-    return read_template("development.html")
+def development_view(user: str = Query(None), data_root: str = Query("")):
+    global _users_permissions
+    _users_permissions = _load_users()
+    permissions = _get_user_permissions(user)
+    template = _jinja_env.get_template("development.html")
+    return HTMLResponse(template.render(permissions=permissions))
 
 
 @app.get("/audits/{filename}", response_class=HTMLResponse, summary="Audit Detail", tags=["Pages"])

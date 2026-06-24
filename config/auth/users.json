@@ -2,7 +2,7 @@
   "roles": {
     "admin": {
       "label": "Administrator",
-      "permissions": ["view_active_sessions", "run_new_session", "run_sniper"]
+      "permissions": ["view_active_sessions", "run_new_session", "run_sniper", "run_backtest"]
     },
     "operator": {
       "label": "Operator",

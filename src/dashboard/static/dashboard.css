@@ -1220,6 +1220,12 @@ tbody tr:hover {
   width: 90px;
 }
 
+.bt-field-error,
+.bt-field-error:focus {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 0 2px rgba(255, 85, 85, 0.15);
+}
+
 .bt-suffix {
   font-size: 0.85rem;
   color: var(--text-muted);
