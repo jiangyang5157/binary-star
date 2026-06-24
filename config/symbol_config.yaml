@@ -28,6 +28,8 @@ XAUTUSDT:
     regime_parameters:
       trend:
         trend_intensity_min_expansion: 0.08
+      structural:
+        breakout_frontrun_atr: 0.2
     sniper:
       probes:
         cvd_divergence_tick_delta: 0.18
