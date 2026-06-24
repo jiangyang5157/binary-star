@@ -93,7 +93,7 @@ class SniperDaemon:
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
     def run_forever(self):
-        pulse_mins = load_global_config()['sniper']['heartbeat']['pulse_interval_minutes']
+        pulse_mins = self.global_cfg['sniper']['heartbeat']['pulse_interval_minutes']
         if pulse_mins <= 0:
             raise ValueError(f"pulse_interval_minutes must be > 0, got {pulse_mins}")
         sym_list = ", ".join(self.symbols)
@@ -311,9 +311,11 @@ class SniperDaemon:
             # Fetch account balance once (shared cross-margin account)
             account_balance = None
             try:
+                from src.utils.symbol_utils import get_quote_currency
+                quote = get_quote_currency()
                 account = self.executor.client.get_cross_margin_account()
                 for a in (account.assets or []):
-                    if a.asset == "USDT" and a.net_asset > 0:
+                    if a.asset == quote and a.net_asset > 0:
                         account_balance = round(a.net_asset, 2)
                         break
             except Exception:

@@ -36,7 +36,7 @@ class EvolverConfig(AgentConfig):
             model=str(model),
             instruction_path=os.path.join(resolve_project_root(), evolver_llm['role_prompt']),
             model_temperature=model_temperature,
-            max_tool_iterations=int(cfg['network']['gemini']['max_tool_iterations'])
+            max_tool_iterations=int(cfg['llm']['max_tool_iterations'])
         )
 
 class EvolverAgent(BaseAgent):

@@ -57,7 +57,7 @@ class SessionConfig(AgentConfig):
             model=str(provider_cfg.get("model")),
             model_temperature=float(provider_cfg.get("session_temperature", 0.5)),
             instruction_path=os.path.join(resolve_project_root(), llm_cfg["binary_star"]["session_role_prompt"]),
-            max_tool_iterations=int(cfg["network"]["gemini"]["max_tool_iterations"]),
+            max_tool_iterations=int(cfg["llm"]["max_tool_iterations"]),
             regime=load_regime_config(cfg),
             temporal=load_temporal_config(cfg),
             risk=load_risk_config(cfg),

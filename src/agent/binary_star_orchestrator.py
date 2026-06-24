@@ -68,17 +68,15 @@ class BinaryStarConfig:
         overrides = instruction_overrides or {}
 
         # LLM / provider
-        gemini_llm = global_config["llm"]["gemini"]
-        api_timeout = int(gemini_llm["api_timeout_seconds"])
+        llm_cfg = global_config["llm"]
+        gemini_llm = llm_cfg["gemini"]
+        api_timeout = int(llm_cfg["api_timeout_seconds"])
         retry_count = int(gemini_llm["retry_count"])
-        max_tool_iterations = int(gemini_llm["max_tool_iterations"])
+        max_tool_iterations = int(llm_cfg["max_tool_iterations"])
         retry_strategy = gemini_llm["retry_strategy"]
         retry_multiplier = float(retry_strategy["multiplier"])
         retry_min = int(retry_strategy["min_seconds"])
         retry_max = int(retry_strategy["max_seconds"])
-
-        # LLM / provider
-        llm_cfg = global_config["llm"]
         bs_cfg = llm_cfg["binary_star"]
         active_provider = llm_cfg.get("active_provider")
         if not active_provider:

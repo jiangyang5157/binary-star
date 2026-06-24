@@ -30,7 +30,7 @@ class AIFactory:
                 default_model=cfg.get("model", "deepseek-v4-flash"),
                 base_url=cfg.get("base_url", "https://api.deepseek.com"),
                 supports_vision=bool(cfg.get("supports_vision", False)),
-                http_timeout=int(cfg.get("api_timeout_seconds", 240)),
+                http_timeout=int(llm_cfg.get("api_timeout_seconds", 240)),
             )
         elif provider == "qwen":
             from src.infrastructure.ai.qwen_adapter import QwenAdapter
@@ -43,7 +43,7 @@ class AIFactory:
                 default_model=cfg.get("model", "qwen-plus"),
                 base_url=cfg.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
                 supports_vision=bool(cfg.get("supports_vision", False)),
-                http_timeout=int(cfg.get("api_timeout_seconds", 240)),
+                http_timeout=int(llm_cfg.get("api_timeout_seconds", 240)),
             )
         else:  # gemini
             from src.infrastructure.ai.gemini_adapter import GeminiAdapter

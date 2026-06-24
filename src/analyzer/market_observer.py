@@ -196,7 +196,7 @@ class MarketObserverConfig:
         """Factory method to transform a raw configuration dict into a type-safe object."""
         from src.config.loader import load_regime_config, load_visual_config
 
-        gemini_cfg = cfg.get('llm', {}).get('gemini', {})
+        llm_cfg = cfg.get('llm', {})
         sampling = cfg['analysis_window']
         topography = cfg['topography_parameters']
         regime = cfg['regime_parameters']
@@ -279,7 +279,7 @@ class MarketObserverConfig:
             volatility_intensity_macro_lookback_candles=int(sampling['tensors']['volatility_intensity_macro_lookback_candles']),
             volume_profile_area_ratio=float(topography['volume_profile']['volume_profile_value_area_width']),
             liquidation_cluster_atr_multiplier=float(visuals['liquidation_heatmap']['liq_radar_atr_multiplier']),
-            max_tool_iterations=int(gemini_cfg['max_tool_iterations']),
+            max_tool_iterations=int(llm_cfg['max_tool_iterations']),
         )
 
 
