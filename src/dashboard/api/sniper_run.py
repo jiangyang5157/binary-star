@@ -188,6 +188,10 @@ def sniper_status(data_root: str = Query("")):
         single = status.get("symbol")
         symbols = [single] if single else []
 
+    # Pulse timer: prefer lightweight heartbeat (always fresh), fall back to
+    # heavy heartbeat, then daemon uptime as last resort.
+    pulse_seconds = _read_pulse_seconds(data_root, fallback_elapsed=round(elapsed))
+
     return {
         "running": True,
         "symbols": symbols,
@@ -195,8 +199,49 @@ def sniper_status(data_root: str = Query("")):
         "balance": status.get("balance"),
         "started_at": started_str,
         "elapsed_seconds": round(elapsed),
+        "pulse_seconds": pulse_seconds,
         "guardian": _read_guardian_status(data_root),
     }
+
+
+def _seconds_since_iso(ts: str) -> int | None:
+    """Parse an ISO timestamp string and return seconds elapsed since then."""
+    try:
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return round((datetime.now(timezone.utc) - dt).total_seconds())
+    except Exception:
+        return None
+
+
+def _read_pulse_seconds(data_root: str, fallback_elapsed: int = 0) -> int:
+    """Seconds since the last daemon pulse, using the most reliable heartbeat.
+
+    Priority: lightweight heartbeat > heavyweight heartbeat > daemon uptime.
+    """
+    # Try lightweight heartbeat first (zero-API-call, always written)
+    light = Path(data_root) / ".sniper_alive.json"
+    if light.exists():
+        try:
+            data = json.loads(light.read_text())
+            last_str = data.get("last_pulse_at", "")
+            if last_str:
+                secs = _seconds_since_iso(last_str)
+                if secs is not None:
+                    return max(secs, 0)  # clamp negative (clock skew) to zero
+        except Exception:
+            pass
+
+    # Fall back to heavyweight heartbeat
+    heavy = _read_guardian_status(data_root)
+    if heavy:
+        last_str = heavy.get("last_pulse_at", "")
+        if last_str:
+            secs = _seconds_since_iso(last_str)
+            if secs is not None:
+                return max(secs, 0)
+
+    # Last resort: daemon uptime (inaccurate but non-zero proves it's running)
+    return fallback_elapsed
 
 
 def _read_guardian_status(data_root: str) -> dict | None:

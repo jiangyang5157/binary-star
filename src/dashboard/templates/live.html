@@ -370,7 +370,7 @@ async function checkSniperStatus() {
       const symbols = data.symbols || [];
       const tradeOn = data.trade_enabled;
       const guardian = data.guardian;
-      const elapsed = data.elapsed_seconds || 0;
+      const pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
 
       if (tradeOn && guardian && guardian.symbols) {
         // Trade=ON with guardian data — per-symbol table
@@ -403,7 +403,7 @@ async function checkSniperStatus() {
         if (guardian.account_balance != null) {
           html += `Account Balance: $${guardian.account_balance.toLocaleString()} USDT | `;
         }
-        html += `Pulse: ${formatElapsed(elapsed)} ago`;
+        html += `Pulse: ${formatElapsed(pulseAge)} ago`;
         html += '</div>';
 
         statusEl.innerHTML = html;
@@ -411,7 +411,7 @@ async function checkSniperStatus() {
       } else if (tradeOn) {
         // Trade=ON but no guardian pulse yet
         statusEl.innerHTML = '';
-        statusEl.textContent = `⟳ Running ${symbols.join(', ')}… ${formatElapsed(elapsed)}`;
+        statusEl.textContent = `⟳ Running ${symbols.join(', ')}… ${formatElapsed(pulseAge)}`;
         statusEl.className = 'run-status-box';
       } else {
         // Trade=OFF

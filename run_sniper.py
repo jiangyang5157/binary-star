@@ -105,16 +105,22 @@ class SniperDaemon:
 
         while True:
             try:
-                # ── 0. GUARDIAN: protect every symbol with skin in the game ──
+                # ── 0. LIGHTWEIGHT HEARTBEAT: written unconditionally, zero API calls ──
+                # Always succeeds — proves the daemon is alive even when trade is off
+                # or the heavyweight heartbeat fails on a Binance API blip.
+                self._write_lightweight_heartbeat()
+
+                # ── 0.5 GUARDIAN: protect every symbol with skin in the game ──
+                guardian_data: dict[str, dict] = {}
                 if self.trade_enabled and self.executor:
                     for sym in self.symbols:
-                        self._guardian_check(sym)
+                        gs = self._guardian_check(sym)
+                        if gs:
+                            guardian_data[sym] = gs
 
-                # ── 0.5 HEARTBEAT: write before any blocking AI sessions ──
-                # Ensures the dashboard always has fresh position data, even if
-                # sessions run long or the daemon crashes mid-pulse.
+                # ── 0.6 HEAVYWEIGHT HEARTBEAT: fed with guardian data, no extra API calls ──
                 if self.trade_enabled:
-                    self._write_guardian_status()
+                    self._write_guardian_status(guardian_data)
 
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
                 metrics: dict[str, dict] = {}
@@ -216,10 +222,11 @@ class SniperDaemon:
 
                             if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                                 self._attempt_trade_execution(sym, session_result)
-
-                            # Refresh heartbeat so UI sees order/position changes immediately
-                            if self.trade_enabled:
-                                self._write_guardian_status()
+                                # Re-harvest position/order state after trade execution so
+                                # the heartbeat reflects newly placed orders immediately.
+                                gs = self._guardian_check(sym)
+                                if gs:
+                                    guardian_data[sym] = gs
 
                             logger.info(f"SniperDaemon [{sym}]: Session cycle complete. Returning to pulse monitoring.")
                     elif has_active:
@@ -232,9 +239,9 @@ class SniperDaemon:
                 # ── 4. HOUSEKEEPING ──
                 self.prev_metrics = metrics
 
-                # ── 5. Guardian heartbeat file (once per pulse, all symbols) ──
+                # ── 5. Refresh heartbeat with latest guardian state ──
                 if self.trade_enabled:
-                    self._write_guardian_status()
+                    self._write_guardian_status(guardian_data)
 
                 # Sleep until next pulse
                 logger.debug(f"SniperDaemon: Waiting {pulse_mins}m for next check...")
@@ -331,10 +338,12 @@ class SniperDaemon:
     # GUARDIAN: Position protection every pulse
     # ================================================================
 
-    def _guardian_check(self, symbol: str):
+    def _guardian_check(self, symbol: str) -> dict | None:
         """Delegates to MarginOrderExecutor.guardian_check() and updates trade_states[symbol].
 
         Passes ATR from the most recent scout metrics for progressive trailing stop calculations.
+
+        Returns a dict with position/order summary for heartbeat use (no extra API calls needed).
         """
         try:
             logger.debug(f"Guardian [{symbol}]: Checking position state...")
@@ -355,16 +364,53 @@ class SniperDaemon:
                 else:
                     self.trade_states[symbol] = updated_state
 
+            # Return guardian snapshot for heartbeat (harvested during check, no extra API calls)
+            try:
+                pos = self.executor.client.get_symbol_position(symbol)
+                active_orders = self.executor.client.get_active_orders(symbol)
+                return {
+                    "net_qty": pos.net_qty if pos else 0.0,
+                    "has_position": abs(pos.net_qty if pos else 0.0) > 1e-8,
+                    "active_orders": len(active_orders) if active_orders else 0,
+                }
+            except Exception as e:
+                logger.warning(f"Guardian [{symbol}]: Position/order snapshot failed ({e}) — heartbeat will show idle")
+                return {"net_qty": 0.0, "has_position": False, "active_orders": 0}
+
         except Exception as e:
             logger.error(f"Guardian [{symbol}]: Check failed: {e}", exc_info=True)
+            return None
 
-    def _write_guardian_status(self):
-        """Write combined guardian heartbeat for all symbols (once per pulse)."""
+    def _write_lightweight_heartbeat(self):
+        """Zero-API-call liveness proof. Always succeeds — never blocks on Binance.
+
+        Written unconditionally every pulse so the dashboard always has a fresh
+        pulse timer, regardless of --trade flag or API health.
+        """
+        try:
+            from src.utils.path_utils import resolve_project_root
+            import json as _json
+            path = os.path.join(resolve_project_root(), self.args.path, ".sniper_alive.json")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".tmp"
+            with open(tmp, "w") as f:
+                _json.dump({"last_pulse_at": datetime.now(timezone.utc).isoformat()}, f)
+            os.replace(tmp, path)
+        except Exception as e:
+            logger.warning(f"SniperDaemon: Lightweight heartbeat write failed: {e}")
+
+    def _write_guardian_status(self, guardian_data: dict[str, dict] | None = None):
+        """Write combined guardian heartbeat for all symbols (once per pulse).
+
+        Accepts guardian_data harvested during _guardian_check() to avoid
+        duplicate Binance API calls. Falls back to empty per-symbol entries
+        for any missing symbols.
+        """
         try:
             from src.utils.path_utils import resolve_project_root
             import json as _json
 
-            # Fetch account balance once (shared cross-margin account)
+            # Fetch account balance (one API call, shared cross-margin account)
             account_balance = None
             try:
                 from src.utils.symbol_utils import get_quote_currency
@@ -374,22 +420,16 @@ class SniperDaemon:
                     if a.asset == quote and a.net_asset > 0:
                         account_balance = round(a.net_asset, 2)
                         break
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"SniperDaemon: Account balance fetch skipped ({e})")
 
+            # Use guardian data already harvested — no extra position/order API calls
             symbols_data = {}
             for sym in self.symbols:
-                try:
-                    pos = self.executor.client.get_symbol_position(sym)
-                    net_qty = pos.net_qty if pos else 0.0
-                    active_orders = self.executor.client.get_active_orders(sym)
-                    symbols_data[sym] = {
-                        "net_qty": net_qty,
-                        "has_position": abs(net_qty) > 1e-8,
-                        "active_orders": len(active_orders) if active_orders else 0,
-                    }
-                except Exception:
-                    symbols_data[sym] = {"net_qty": 0.0, "has_position": False, "active_orders": 0}
+                gs = (guardian_data or {}).get(sym)
+                symbols_data[sym] = gs if gs else {
+                    "net_qty": 0.0, "has_position": False, "active_orders": 0,
+                }
 
             guardian = {
                 "last_pulse_at": datetime.now(timezone.utc).isoformat(),
@@ -399,12 +439,13 @@ class SniperDaemon:
 
             # Atomic write
             guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_heartbeat.json")
+            os.makedirs(os.path.dirname(guardian_path), exist_ok=True)
             tmp_path = guardian_path + ".tmp"
             with open(tmp_path, "w") as f:
                 _json.dump(guardian, f, default=str)
             os.replace(tmp_path, guardian_path)
-        except Exception:
-            pass  # Dashboard may not be running; silently skip
+        except Exception as e:
+            logger.warning(f"SniperDaemon: Heavyweight heartbeat write failed: {e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")
