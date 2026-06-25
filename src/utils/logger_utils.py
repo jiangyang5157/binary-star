@@ -4,6 +4,41 @@ import os
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
+
+# ── Colorized Console Formatter ──────────────────────────────────────────────
+
+class ColorFormatter(logging.Formatter):
+    """Terminal-only: wraps the standard format with ANSI color codes."""
+
+    COLORS = {
+        logging.DEBUG:    "\033[90m",
+        logging.INFO:     "\033[36m",
+        logging.WARNING:  "\033[93m",
+        logging.ERROR:    "\033[91m",
+        logging.CRITICAL: "\033[91;1m",
+    }
+    RESET = "\033[0m"
+    LEVEL_SHORT = {
+        logging.DEBUG:    "DBG",
+        logging.INFO:     "INF",
+        logging.WARNING:  "WRN",
+        logging.ERROR:    "ERR",
+        logging.CRITICAL: "CRT",
+    }
+
+    def __init__(self, fmt: str = "%(asctime)s [%(shortlevel)s] %(name)s | %(message)s",
+                 datefmt: str = "%H:%M:%S"):
+        super().__init__(fmt=fmt, datefmt=datefmt)
+
+    def format(self, record: logging.LogRecord) -> str:
+        record.shortlevel = self.LEVEL_SHORT.get(record.levelno, record.levelname[:3])
+        color = self.COLORS.get(record.levelno, "")
+        formatted = super().format(record)
+        if color and sys.stdout.isatty():
+            return f"{color}{formatted}{self.RESET}"
+        return formatted
+
+
 DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Compact timestamp format for console: "HH:MM:SS [LVL] name | message"
@@ -52,7 +87,6 @@ def setup_logger(
 
     if not has_console:
         if console_color:
-            from src.utils.log_metrics import ColorFormatter
             console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setFormatter(ColorFormatter())
         else:
