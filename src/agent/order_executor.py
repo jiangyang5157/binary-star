@@ -281,7 +281,7 @@ class MarginOrderExecutor:
                 # Check timeout
                 placed_at = trade_state.get("entry_placed_at")
                 timeout_hours = trade_state.get("projected_waiting_hours", 24.0)
-                
+
                 if placed_at:
                     elapsed_hours = (datetime.now(timezone.utc) - placed_at).total_seconds() / 3600
                     if elapsed_hours > timeout_hours:
@@ -290,6 +290,16 @@ class MarginOrderExecutor:
                         return {}  # Clear trade state
                     else:
                         logger.info(f"Guardian: Entry order {entry_order_id} still pending ({elapsed_hours:.1f}h / {timeout_hours}h).")
+            else:
+                # Position was entered and then closed (net≈0, no entry order).
+                # Possible causes: Pivot-Preserve flip, SL partial fill that left
+                # a residual that was subsequently closed, or bidirectional unwind.
+                # Cancel any stray orders and clear stale trade state.
+                if trade_state.get("entry_filled_at"):
+                    logger.info(f"Guardian: Position flat (was filled at {trade_state['entry_filled_at']}). "
+                                f"Cleaning up stray orders and trade state for {symbol}.")
+                self.client.cancel_all_symbol_orders(symbol)
+                return {}
             return trade_state
 
         # --- Case 2: Has position -> Direction Sanity Check ---
