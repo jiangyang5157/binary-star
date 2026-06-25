@@ -95,13 +95,13 @@ sniper:
     # [Tick-Scale Probes]: Micro-sensitivity for intra-pulse CVD swings.
     # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
     # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC.
-    cvd_divergence_tick_delta: 0.26     # FLOW_ASYMMETRY (CVD 背离)
+    cvd_divergence_tick_delta: 0.25     # FLOW_ASYMMETRY (CVD 背离)
     # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
     # 1.0 = any increase, 1.1 = 10% growth required.
     cvd_growth_significance_ratio: 1.4
     # [Damping]: Minimum growth in volatility intensity between pulses to re-trigger ENERGY_BUILDUP.
     # Prevents sustained high-volatility from re-firing every cooldown. 1.03 = 3% growth required.
-    volatility_growth_significance_ratio: 1.03
+    volatility_growth_significance_ratio: 1.04
     # [Squeeze]: Multiplier for the strategy-level squeeze threshold.
     # requires market to be extremely 'silent' to trigger a sniper alert.
     squeeze_trigger_multiplier: 0.75
@@ -145,7 +145,7 @@ sniper:
         chaos: 60
       break_on_strength_ratio: 1.8
       break_min_gap_minutes: 10
-      stacked_break_count: 3
+      stacked_break_count: 4
 
     # --- Pre-Trigger Validation Gate ---
     gate:
@@ -172,7 +172,7 @@ sniper:
       liquidation_hunt: 0.60
       trend_pullback: 0.75
       # POSITIONING
-      retail_extreme: 0.43
+      retail_extreme: 0.42
       oi_divergence: 0.70
       oi_surge: 0.55
       # CROSS-SYMBOL
