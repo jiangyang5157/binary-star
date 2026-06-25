@@ -347,7 +347,8 @@ def calculate_liquidity_slippage(
     volume_profile: List[Dict[str, Any]],
     atr: float,
     base_slippage_bps: float,
-    max_slippage_bps: float
+    max_slippage_bps: float,
+    opinion: str = "BULLISH"
 ) -> Dict[str, Any]:
     """Calculate liquidity-sensitive slippage from volume profile.
 
@@ -355,6 +356,7 @@ def calculate_liquidity_slippage(
     - Find the nearest volume bin to the given price.
     - Normalize volume: current bin / max bin volume.
     - Slippage penalty: add to base slippage based on volume vacuum.
+    - Entry delay: BULLISH→adjust up (price rises during delay), BEARISH→adjust down.
     """
     try:
         if not volume_profile or atr <= 0:
@@ -378,7 +380,13 @@ def calculate_liquidity_slippage(
 
         # 4. Price adjustment (entry delay simulation)
         # Slippage: 1 bps = 0.0001
-        adjustment_factor = 1.0 + (total_slippage_bps / 10000.0)
+        # BULLISH (buy limit): price rises during delay → adjust upward
+        # BEARISH (sell limit): price falls during delay → adjust downward
+        slippage_ratio = total_slippage_bps / 10000.0
+        if opinion.upper() == "BEARISH":
+            adjustment_factor = 1.0 - slippage_ratio
+        else:
+            adjustment_factor = 1.0 + slippage_ratio
         adjusted_price = round(price * adjustment_factor, 2)
         
         return {
