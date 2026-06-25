@@ -1,0 +1,55 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest *)",
+      "Bash(python run.py session *)",
+      "Bash(python run.py audit *)",
+      "Bash(python run.py evolution *)",
+      "Bash(python run.py patch *)",
+      "Bash(python run.py sniper *)",
+      "Bash(python scripts/*)",
+      "Bash(git *)",
+      "Bash(pip install *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(ls *)",
+      "Bash(wc *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(sort *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(wget *)",
+      "Bash(curl *)",
+      "Bash(echo *)",
+      "Bash(date *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push origin main *)",
+      "Bash(python run.py sniper * --trade *)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": ".claude/statusline.sh",
+    "padding": 1
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "matcher_regex": ".*\\.py$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m pytest tests/unit/ -q --tb=short 2>&1 | tail -8"
+          }
+        ]
+      }
+    ]
+  }
+}
