@@ -22,7 +22,7 @@ Entry Points (run.py + standalone run_*.py)
                                          MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
                                          TopographyEngine, SniperSampler
   → Config (src/config/)                 Sub-config dataclasses + YAML loaders
-  → Utilities (src/utils/)               CongestionController, MetricsCollector, FitnessEvaluator,
+  → Utilities (src/utils/)               CongestionController, FitnessEvaluator,
                                          ConfigPatcher + PromptDistiller, exceptions, math tools
 ```
 
