@@ -75,7 +75,8 @@ class SniperDaemon:
             self.session_engines[sym] = SessionEngine(sym, args.path, args=args,
                                                       exchange_client=self.futures_client)
 
-        # 3. Initialize Trade Execution (shared executor is symbol-aware)
+        # 3. LLM / Trade execution
+        self.llm_enabled = bool(getattr(args, 'llm', False))
         self.trade_enabled = bool(args.trade)
         self.manual_balance = args.trade if isinstance(args.trade, float) else None
         self.executor = None
@@ -199,23 +200,32 @@ class SniperDaemon:
                     has_active = bool(self.trade_states.get(sym, {}).get("direction"))
 
                     if self.session_engines.get(sym) and not has_active:
-                        logger.info(f"SniperDaemon [{sym}]: Activating Binary Star reasoning loop (Blocking Pulse)...")
-                        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
+                        if not self.llm_enabled:
+                            logger.info(
+                                f"SniperDaemon [{sym}]: OBSERVE-ONLY — would fire AI session "
+                                f"(direction={result.confluence_direction.value}, "
+                                f"confluence={result.confluence_score:.2f}, "
+                                f"signals={[s.sub_type for s in result.active_signals]}, "
+                                f"gate={result.gate_result})"
+                            )
+                        else:
+                            logger.info(f"SniperDaemon [{sym}]: Activating Binary Star reasoning loop (Blocking Pulse)...")
+                            logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
 
-                        session_result = self.session_engines[sym].execute_cycle(
-                            situation_brief=result.situation_brief
-                        )
+                            session_result = self.session_engines[sym].execute_cycle(
+                                situation_brief=result.situation_brief
+                            )
 
-                        logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
+                            logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
-                        if self.trade_enabled and self.executor and session_result and "error" not in session_result:
-                            self._attempt_trade_execution(sym, session_result)
+                            if self.trade_enabled and self.executor and session_result and "error" not in session_result:
+                                self._attempt_trade_execution(sym, session_result)
 
-                        # Refresh heartbeat so UI sees order/position changes immediately
-                        if self.trade_enabled:
-                            self._write_guardian_status()
+                            # Refresh heartbeat so UI sees order/position changes immediately
+                            if self.trade_enabled:
+                                self._write_guardian_status()
 
-                        logger.info(f"SniperDaemon [{sym}]: Session cycle complete. Returning to pulse monitoring.")
+                            logger.info(f"SniperDaemon [{sym}]: Session cycle complete. Returning to pulse monitoring.")
                     elif has_active:
                         logger.info(
                             f"SniperDaemon [{sym}]: Active position ({self.trade_states[sym]['direction']}) exists. "

@@ -98,8 +98,12 @@ def _add_sniper_parser(subparsers):
     p = subparsers.add_parser("sniper", help="Run the real-time Sniper monitoring daemon")
     p.add_argument("--symbol", type=str, required=True,
                    help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
+    p.add_argument("--llm", action="store_true", default=False,
+                   help="Enable AI session dispatch on trigger. Without this, "
+                        "signals are evaluated and logged but no LLM tokens are spent.")
     p.add_argument("--trade", nargs='?', const=True, default=False, type=float,
-                   help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "
+                   help="Enable automated margin trading (implies --llm). "
+                        "Optionally specify manual balance (e.g. --trade 1000). "
                         "Without a value, uses real Binance cross-margin balance.")
     add_data_path_argument(p)
     p.set_defaults(func=_cmd_sniper)
@@ -107,6 +111,10 @@ def _add_sniper_parser(subparsers):
 
 def _cmd_sniper(args):
     from run_sniper import SniperDaemon
+
+    # --trade implies --llm
+    if args.trade and not args.llm:
+        args.llm = True
 
     if not args.path:
         args.path = "data/prod"
