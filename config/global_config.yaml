@@ -146,18 +146,17 @@ sniper:
       chaos: 1.50       # 有效阈值 0.35×1.50=0.525
 
     # —— 信号半衰期（分钟）——
-    # 每隔此时间信号强度减半。按信号物理生命周期设计：
-    #   flow_tick：CVD tick 级变化最快，一笔大单就能翻转
-    #   structural：VP 结构随新 K 线漂移，比 tick 慢但比 sentiment 快
-    #   flow_macro：15 分钟级 CVD 趋势需更多 K 线确认
-    #   energy：波动率体制切换慢，ATR 不会瞬间翻倍
-    #   sentiment：散户持仓 + 资金费率是慢变量，不会几分钟集体转向
+    # 每隔此时间信号强度减半（指数衰减：0.5^(elapsed/half_life)）。
+    # 半衰期决定信号在 pulse 之间"存活"多久，影响多信号堆叠窗口宽度。
+    # 经验法则：半衰期 ≥ 3× pulse_interval（2min），保证信号至少活过 3 个 pulse，
+    # 给其他 detector 的信号留足组队时间，否则信号"即生即灭"失去堆叠意义。
+    # 按信号物理生命周期从快到慢排列：
     decay:
-      flow_tick: 6       # 原 4min，2min pulse 下半衰过快（1 pulse 掉 29%）
-      flow_macro: 15     # 15 分钟级趋势信号
-      energy: 20         # 波动率状态变化慢
-      sentiment: 60      # LS ratio / funding rate 是慢变量
-      structural: 10     # VP HVN/LVN 锚点漂移速度
+      flow_tick: 6       # 6min = 3× pulse_interval（2min），1 pulse 后剩 79%，3 pulse 后剩 50%
+      flow_macro: 15     # CVD 15 分钟级趋势，7.5 pulse 后半衰，比 tick 流稳定
+      energy: 20         # 波动率体制变化慢，ATR 不会瞬间翻倍，10 pulse 后半衰
+      sentiment: 60      # LS ratio / funding rate 是慢变量，散户不会几分钟集体转向
+      structural: 10     # VP HVN/LVN 锚点随新 K 线漂移，比 tick 慢但比 sentiment 快
 
     # —— 自适应冷却 (Adaptive Cooldown) ——
     # 触发后进入冷却期，防止同一信号反复触发浪费 token。
