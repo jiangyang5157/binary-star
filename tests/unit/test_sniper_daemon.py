@@ -18,11 +18,10 @@ def _make_daemon(executor=None, trade_states=None, prev_metrics=None,
 
     daemon = SniperDaemon.__new__(SniperDaemon)
     daemon.global_cfg = {
-        "llm": {
-            "binary_star": {
-                "session_confidence_threshold": confidence_threshold,
-            }
-        }
+        "llm": {},
+        "binary_star": {
+            "session_confidence_threshold": confidence_threshold,
+        },
     }
     daemon.executor = executor
     daemon.trade_states = trade_states or {}

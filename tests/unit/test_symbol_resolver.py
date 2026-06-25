@@ -32,7 +32,6 @@ def sample_base_config():
         "sniper": {
             "probes": {
                 "cvd_divergence_tick_delta": 0.20,
-                "cvd_impulse_tick_delta": 0.30,
             }
         },
     }
@@ -265,7 +264,8 @@ def test_full_config_pipeline_sniper():
 
     # Sniper trigger reads sniper config from global_cfg
     assert global_cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
-    assert global_cfg["sniper"]["probes"]["cvd_impulse_tick_delta"] == 0.25
+    # cvd_impulse_tick_delta removed — verify trend override still resolves
+    assert strategy["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     # Non-overridden sniper values
     assert global_cfg["sniper"]["probes"]["cvd_growth_significance_ratio"] == 1.4
 

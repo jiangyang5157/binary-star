@@ -111,16 +111,17 @@ class MockDataFactory:
                         "expiration_minutes": 60,
                     },
                 },
-                "binary_star": {
-                    "system_instruction": "config/prompts/binary_star.md",
-                    "max_rounds": 3,
-                    "session_role_prompt": "config/prompts/session.md",
-                    "critic_role_prompt": "config/prompts/critic.md",
-                    "session_confidence_threshold": 60,
-                },
-                "evolver": {
-                    "role_prompt": "config/prompts/evolver.md",
-                },
+            },
+            # ── Binary Star / Evolver ────────────────────────────────
+            "binary_star": {
+                "system_instruction": "config/prompts/binary_star.md",
+                "max_rounds": 3,
+                "session_role_prompt": "config/prompts/session.md",
+                "critic_role_prompt": "config/prompts/critic.md",
+                "session_confidence_threshold": 60,
+            },
+            "evolver": {
+                "role_prompt": "config/prompts/evolver.md",
             },
             # ── Strategy — temporal parameters ────────────────────
             "temporal_parameters": {
