@@ -391,9 +391,14 @@ XAUTUSDT:
     regime_parameters:
       trend:
         trend_intensity_min_expansion: 0.08    # lower bar for XAUT trend detection
+      structural:
+        breakout_frontrun_atr: 0.2             # tighter front-run for thinner books
     sniper:
       probes:
         cvd_divergence_tick_delta: 0.18        # thinner books → smaller CVD swings
+      signal_stack:
+        gate:
+          max_price_to_structure_atr: 2.0      # XAUT structure typically closer than BTC
 ```
 
 Per-symbol overrides are deep-merged at config resolution time and never touched by evolution — they're fixed operational tuning. Evolution patches `strategy_config.yaml` defaults only.
@@ -406,7 +411,9 @@ Per-symbol overrides are deep-merged at config resolution time and never touched
 | `signal_stack.trigger_threshold` | 0.35 | Base confluence score to fire AI session |
 | `signal_stack.emergency_threshold` | 0.85 | Single-signal override trigger |
 | `signal_stack.weights.*` | 0.40–0.75 | Per-signal confidence (14 signals, evolvable) |
-| `muting.pulse_cooldown_multiplier` | 2.5 | Legacy fallback cooldown (15m × 2.5 = 37.5 min) |
+| `signal_stack.gate.max_price_to_structure_atr` | 4.0 | Max current price distance to nearest HVN (sniper-specific, independent of strategy-layer `max_entry_distance_atr`) |
+| `signal_stack.cooldown.stacked_break_count` | 3 | Signals needed in same direction to break cooldown |
+| `muting.pulse_cooldown_multiplier` | 2.5 | Fallback cooldown (15m × 2.5 = 37.5 min) |
 | `muting.state_lockout_hours` | 8.0 | Structural/sentiment repeat suppression |
 | `binary_star.session_confidence_threshold` | 50 | Minimum AI confidence for trade execution |
 | `risk_per_trade` | 0.004 | Maximum loss per trade (0.4% equity) |

@@ -84,7 +84,7 @@ This is **Singularity** — an AI-driven crypto quantitative trading engine. Its
 ```
 Entry Points (run.py + standalone run_*.py)
   → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
-  → Sniper (src/sniper/)                 SniperScout (market harvest), SniperTrigger + ConfluenceEngine (14-signal stack)
+  → Sniper (src/sniper/)                 SniperScout (market harvest), SniperTrigger + ConfluenceEngine (14-signal stack, 5 categories, signal_stack config)
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator, BinaryStarConfig
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
   → Trade Execution (src/agent/)         MarginOrderExecutor (order lifecycle + Guardian position protection)
@@ -111,9 +111,9 @@ Entry Points (run.py + standalone run_*.py)
 
 The Sniper is a two-phase real-time monitoring and trading automaton:
 
-- **Phase 1 — Scout + Trigger** (`src/sniper/`): `SniperScout` harvests market data every 2 minutes; `SniperTrigger.evaluate()` runs the **ConfluenceEngine** over 14 signals across 5 categories (FLOW, ENERGY, STRUCTURAL, POSITIONING, CROSS-SYMBOL). Trigger fires when confluence score ≥ threshold.
+- **Phase 1 — Scout + Trigger** (`src/sniper/`): `SniperScout` harvests market data every 2 minutes; `SniperTrigger.evaluate()` runs the **ConfluenceEngine** over 14 signals across 5 categories (FLOW, ENERGY, STRUCTURAL, POSITIONING, CROSS-SYMBOL). Trigger fires when confluence score ≥ threshold. A pre-trigger gate (`sniper.signal_stack.gate`) filters untradeable setups — notably `max_price_to_structure_atr` (current price distance to nearest HVN in ATR), independent of the strategy-layer `max_entry_distance_atr`.
 - **Phase 2 — AI Reasoning** (`run.py session`): Binary Star debate generates a trade blueprint on-demand.
-- **Guardian** (`src/agent/order_executor.py` → `MarginOrderExecutor`): Runs EVERY pulse regardless of trigger state. Protects open positions with OCO orders, progressive trailing stops, time-stops, and emergency market-close fallback. The entry point is `run_sniper.py` (`SniperDaemon`).
+- **Guardian** (`src/agent/order_executor.py` → `MarginOrderExecutor`): Runs EVERY pulse regardless of trigger state. Protects open positions with OCO orders, progressive trailing stops, time-stops, and emergency market-close fallback. The entry point is `run.py sniper` (`SniperDaemon`).
 
 ### Adversarial debate flow
 
@@ -130,7 +130,7 @@ The Sniper is a two-phase real-time monitoring and trading automaton:
 ```
 config/
 ├── strategy_config.yaml    # trading parameters, regime thresholds, analysis windows (evolvable)
-├── global_config.yaml      # system settings, llm, binary_star, evolver, sniper, guardian, sandbox
+├── global_config.yaml      # system settings, llm, binary_star, evolver, sniper (muting, probes, proximity, signal_stack), guardian, sandbox
 ├── visual_config.yaml      # chart appearance, color themes, visual rendering options
 ├── symbol_config.yaml      # per-instrument params (precision, overrides) — NOT evolved
 ├── prompts/                # LLM system prompts (sensitive system logic)
@@ -147,6 +147,7 @@ config/
 - `src/config/symbol_resolver.py` — `resolve_config(base, symbol)` for per-symbol overrides; `patch_config(symbol, ...)` for symbol-aware evolution patching; `validate_symbol_configs()` for startup checks
 - `src/agent/binary_star_orchestrator.py` — `BinaryStarConfig.from_dicts()` factory consolidates all config resolution
 - `src/analyzer/market_observer.py` — `ObserverTopographyConfig`, `ObserverRadarConfig`, `ObserverVisualConfig`
+- `sniper.signal_stack` — sub-config for trigger threshold, regime modifiers, decay half-lives, adaptive cooldown, pre-trigger validation gate (incl. `max_price_to_structure_atr`), and per-signal confidence weights (14 signals, evolvable)
 
 **Config resolution order (every access path):** base config + `symbol_config.yaml → <SYMBOL>.overrides` → resolved config. Symbol overrides win on conflict. Override structure mirrors the original config structure exactly.
 
