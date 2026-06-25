@@ -134,7 +134,7 @@ regime_parameters:
     # Aggressive offset for 'Front-Running' institutional liquidity clusters.
     breakout_frontrun_atr: 0.24
     # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
-    max_entry_distance_atr: 1.0
+    max_entry_distance_atr: 1.6
 
   # --- Micro-Sentiment & Exhaustion ---
   micro_sentiment:
@@ -165,7 +165,7 @@ regime_parameters:
     # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
     chaos_rr_discount: 0.35
     # Hard safety boundaries for stop-loss placements.
-    stop_loss_buffer_min: 1.25
+    stop_loss_buffer_min: 1.4
     max_holding_hours: 72.0
 
 # ═══════════════════════════════════════════════════════════════════════════
