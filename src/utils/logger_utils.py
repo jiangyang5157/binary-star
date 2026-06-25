@@ -6,6 +6,11 @@ from typing import Optional
 
 DEFAULT_LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
+# Compact timestamp format for console: "HH:MM:SS [LVL] name | message"
+CONSOLE_FORMAT = "%(asctime)s [%(shortlevel)s] %(name)s | %(message)s"  # noqa — shortlevel injected by ColorFormatter
+CONSOLE_DATEFMT = "%H:%M:%S"
+
+
 def setup_logger(
     logger_name: str,
     log_level: int = logging.INFO,
@@ -14,6 +19,7 @@ def setup_logger(
     propagate: bool = True,
     max_bytes: int = 0,
     backup_count: int = 3,
+    console_color: bool = False,
 ) -> logging.Logger:
     """
     Standardizes logger configuration throughout the project.
@@ -42,11 +48,16 @@ def setup_logger(
         isinstance(h, logging.StreamHandler) and h.stream == sys.stdout
         for h in target_for_console.handlers
     )
-    formatter = logging.Formatter(format_string)
+    file_formatter = logging.Formatter(format_string)
 
     if not has_console:
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(formatter)
+        if console_color:
+            from src.utils.log_metrics import ColorFormatter
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setFormatter(ColorFormatter())
+        else:
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setFormatter(file_formatter)
         target_for_console.addHandler(console_handler)
 
     # 2. File Handler Management
@@ -81,7 +92,7 @@ def setup_logger(
                     # Standard mode: plain append, no size limit
                     file_handler = logging.FileHandler(log_file_abs, encoding="utf-8")
 
-                file_handler.setFormatter(formatter)
+                file_handler.setFormatter(file_formatter)
                 logger.addHandler(file_handler)
 
         except Exception as e:

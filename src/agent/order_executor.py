@@ -259,7 +259,7 @@ class MarginOrderExecutor:
             return trade_state
 
         has_position = abs(net_qty) > tolerance
-        logger.info(f"Guardian Pulse [{symbol}]: NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
+        logger.debug(f"Guardian Pulse [{symbol}]: NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
 
         # --- STEP 1: Intent Check (Early exit if robot has no skin in the game) ---
         if not trade_state or not trade_state.get("direction"):

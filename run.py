@@ -24,7 +24,7 @@ from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc
 
 load_dotenv()
-logger = setup_logger("Singularity")
+logger = setup_logger("Singularity", console_color=True)
 
 
 # ── Date parser (shared between session subcommand and the old run_session) ──
@@ -243,7 +243,7 @@ def _cmd_evolution(args):
     try:
         engine.run_cycle(sample_size=args.samples)
     except Exception as e:
-        print(f"Evolution Cycle Failed: {e}")
+        logger.error(f"Evolution Cycle Failed: {e}")
         sys.exit(1)
 
 
@@ -327,8 +327,7 @@ def _cmd_patch(args):
         else:
             logger_patch.warning("  (!) NO MATCH for anchor in %s", rel_path)
 
-    logger_patch.info("Physical synchronization COMPLETE.")
-    print(f"Physical Sync Successful: {os.path.basename(args.file)} moved to production.")
+    logger_patch.info(f"Physical Sync Successful: {os.path.basename(args.file)} moved to production.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

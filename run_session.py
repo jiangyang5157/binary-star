@@ -27,9 +27,10 @@ from src.utils.datetime_utils import parse_iso_to_utc
 from src.utils.market_utils import calculate_indicator_warmup
 from src.utils.path_utils import resolve_project_root
 
-# Initialize central engine logger
-logger = setup_logger("SessionEngine")
-_session_file_log = logging.getLogger("src.SessionEngine")  # writes to {data_root}/session.log
+# Initialize central engine logger (colorized when called standalone;
+# dedup-safe: sniper daemon already owns the root console handler)
+logger = setup_logger("SessionEngine", console_color=True)
+_session_file_log = logging.getLogger("src.SessionEngine")
 
 class SessionEngine:
     """The Singularity Session Engine.

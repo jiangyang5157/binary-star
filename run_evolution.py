@@ -188,8 +188,8 @@ def main():
     try:
         engine.run_cycle(sample_size=samples)
     except Exception as e:
-        # Note: self.logger might not be initialized if __init__ fails
-        print(f"Evolution Cycle Failed: {e}")
+        # engine.__init__ guarantees self.logger exists if run_cycle() is reachable
+        engine.logger.error(f"Evolution Cycle Failed: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

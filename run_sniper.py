@@ -53,7 +53,15 @@ class SniperDaemon:
         from src.utils.path_utils import resolve_project_root
         session_log_path = os.path.join(resolve_project_root(), args.path, "sniper.log")
         setup_logger("", log_level=logging.INFO, log_file=session_log_path,
-                     max_bytes=10 * 1024 * 1024, backup_count=5)
+                     max_bytes=10 * 1024 * 1024, backup_count=5,
+                     console_color=True)
+
+        # 0.1 Structured metrics sidecar (JSONL, one line per pulse)
+        from src.utils.log_metrics import init_metrics
+        self.metrics = init_metrics(os.path.join(resolve_project_root(), args.path))
+
+        # 0.2 Metrics-backed silence: Guardian Pulse → DEBUG (see order_executor.py)
+        # Periodic summary at INFO level covers the same information every 10 pulses.
 
         # Shared Infrastructure: Centralized client (shared across all symbols)
         self.futures_client = BinanceFuturesClient()
@@ -242,6 +250,22 @@ class SniperDaemon:
                 # ── 5. Refresh heartbeat with latest guardian state ──
                 if self.trade_enabled:
                     self._write_guardian_status(guardian_data)
+
+                # ── 6. Metrics snapshot (structured JSONL + periodic summary) ──
+                if hasattr(self, 'metrics') and self.metrics is not None:
+                    symbol_states = {}
+                    for sym in self.symbols:
+                        gd = guardian_data.get(sym, {}) if self.trade_enabled else {}
+                        symbol_states[sym] = {
+                            "state": "ACTIVE" if gd.get("has_position") else "SLEEPING",
+                            "position": gd.get("has_position", False),
+                        }
+                    session_triggered = bool(triggered)
+                    self.metrics.pulse(
+                        symbol_states=symbol_states,
+                        trigger_fired=session_triggered,
+                        session_result={"trade_executed": bool(triggered)} if session_triggered else None,
+                    )
 
                 # Sleep until next pulse
                 logger.debug(f"SniperDaemon: Waiting {pulse_mins}m for next check...")
