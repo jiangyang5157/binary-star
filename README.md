@@ -264,6 +264,109 @@ When OCO re-placement fails after cancelling existing orders (in Pivot-Preserve 
 
 This matches the existing emergency-close pattern in the **Trailing Stop Migration** path, ensuring no position ever sits unprotected.
 
+### Order Management: Complete Scenario Matrix
+
+Every AI-generated trade opinion flows through `sync_with_opinion()`, which cross-references the opinion against the current exchange state (position, active orders) and branches into one of four top-level scenarios. Same-direction positions then pass through `_optimize_same_direction()` for TP/SL arbitration. The Guardian runs independently every pulse to manage the full position lifecycle.
+
+#### TP/SL Arbitration Rule (Same-Direction Optimization)
+
+When a new AI opinion matches the existing position direction, the system picks the **best of both worlds** — it never blindly replaces existing protection:
+
+| Direction | TP Rule | SL Rule |
+|-----------|---------|---------|
+| **LONG** | `max(current_TP, new_TP)` → wider TP = more profit | `max(current_SL, new_SL)` → higher SL = tighter stop (less loss) |
+| **SHORT** | `min(current_TP, new_TP)` → lower TP = more profit | `min(current_SL, new_SL)` → lower SL = tighter stop (less loss) |
+
+**Design rationale**: The system is greedy in both directions — it always takes the most profitable TP and the least-risky SL from all available opinions. A new session can only **widen** the TP (more reward) or **tighten** the SL (less risk). It can never widen the SL or narrow the TP. This is the **one-way ratchet**: protection only improves, never degrades.
+
+**Example** (your XAUT scenario):
+```
+Existing OCO: TP=4020, SL=3927
+New session:  TP=4049, SL=3925
+
+LONG → max(4020, 4049)=4049 ✅ TP updated (wider, more profit)
+LONG → max(3927, 3925)=3927 ✅ SL kept     (tighter, less loss than 3925)
+```
+
+#### sync_with_opinion() — Full Scenario Matrix
+
+| # | Current State | AI Opinion | Key Condition | Action | OCO Re-place Failure | Returns |
+|---|---------------|------------|---------------|--------|---------------------|---------|
+| **C1** | FLAT | BULLISH/BEARISH | No active orders | Place LIMIT entry at `entry_price` | N/A (entry only) | `order_id` |
+| **C2** | FLAT | BULLISH/BEARISH | Has stale active orders | Cancel all → place LIMIT entry | N/A (entry only) | `order_id` |
+| **C3** | FLAT | NEUTRAL | — | No action | N/A | `None` |
+| **C4** | FLAT | BULLISH/BEARISH | Symbol not in whitelist | Abort — no action | N/A | `None` |
+| **B1** | LONG | BULLISH | New TP better, new SL better | Cancel all OCO → re-wrap entire net qty with `max(TP)`, `max(SL)` | Emergency market close | `None` (or `-1` sentinel) |
+| **B2** | LONG | BULLISH | New TP better, new SL worse | Cancel all OCO → re-wrap with `max(TP)`, old tighter SL kept | Emergency market close | `None` (or `-1` sentinel) |
+| **B3** | LONG | BULLISH | New TP worse, new SL better | Cancel all OCO → re-wrap with old wider TP, `max(SL)` | Emergency market close | `None` (or `-1` sentinel) |
+| **B4** | LONG | BULLISH | Neither improved | Still cancels + re-wraps (atomic refresh over current net qty) | Emergency market close | `None` (or `-1` sentinel) |
+| **B5** | SHORT | BEARISH | (mirror of B1–B4) | Same logic with `min()` for TP and SL | Emergency market close | `None` (or `-1` sentinel) |
+| **A1** | LONG | BEARISH | **No SL** (unprotected) | Cancel all → market close LONG → place SHORT LIMIT entry | N/A (force-close, then entry) | `order_id` |
+| **A2** | LONG | BEARISH | **Has SL** (protected) + price not past entry | Preserve existing SL trigger → set TP to `entry_price` (seamless flip) → re-hang OCO → place SHORT LIMIT entry | Emergency close LONG → still place SHORT entry | `order_id` |
+| **A3** | LONG | BEARISH | **Has SL** but price already ≥ entry (overshot) | Cancel all → market close LONG → place SHORT LIMIT entry | N/A (force-close, then entry) | `order_id` |
+| **A4** | SHORT | BULLISH | (mirror of A1–A3) | Same logic, reversed directions | Same fallback paths | `order_id` |
+
+**Key detail for scenario B (Same-Direction)**: The system cancels ALL existing orders and re-wraps the **entire current net quantity** into a single unified OCO. This atomic replacement eliminates spider-web OCO fragmentation from partial fills — the position always has exactly one TP order and one SL order covering its full size.
+
+#### Pivot-Preserve: The Seamless Flip
+
+When pivoting a **protected** position (scenarios A2/A4), the existing position's TP is moved to the new entry price rather than being force-closed:
+
+```
+Example: LONG 0.5 XAUT, SL=3927, Opinion flips to BEARISH with entry=3982
+
+Before pivot:                  After pivot:
+  LONG 0.5 XAUT                  LONG 0.5 XAUT (preserved)
+  TP: 4049                       TP: 3982 ← moved to new entry (breakeven flip)
+  SL: 3927                       SL: 3927 ← original trigger preserved
+                                 SHORT LIMIT entry @ 3982 ← new opinion
+
+When price hits 3982:
+  → LONG TP fills (breakeven) + SHORT entry fills simultaneously
+  → Net result: zero-slippage reversal
+```
+
+If the price has already moved past the entry point at pivot time (scenario A3), the system skips the preserve step and force-closes immediately — the flip opportunity has already been missed.
+
+#### Guardian: Per-Pulse Protection Lifecycle
+
+The Guardian runs **every 2-minute pulse** regardless of trigger state. It is the sole mechanism that places and migrates OCO protection — `sync_with_opinion()` only places entry orders and optimizes existing OCOs.
+
+| # | Position | OCO Active | Condition | Action | Failure Fallback |
+|---|----------|------------|-----------|--------|-----------------|
+| **G1** | None | — | `trade_state` empty or no direction | Return — nothing to protect | N/A |
+| **G2** | None | — | Entry order pending, within `projected_waiting_hours` | Wait — log elapsed time | N/A |
+| **G3** | None | — | Entry order pending, **timed out** (> `projected_waiting_hours`) | Cancel entry order → clear `trade_state` | N/A |
+| **G4** | None | — | No entry order, but `entry_filled_at` set (was filled, now flat) | Cancel any stray orders → clear `trade_state` | N/A |
+| **G5** | Yes | — | Direction mismatch (manual position ≠ robot intent) | **Do nothing** — robot does not adopt manual positions | N/A |
+| **G6** | Yes | No | Price **breached SL** | Cancel all → emergency market close → clear `trade_state` | N/A |
+| **G7** | Yes | No | Price safe, no OCO | Cancel stale entry orders → place OCO (TP + SL from `trade_state`) → record `entry_filled_at` | Log critical error (position stays unprotected) |
+| **G8** | Yes | Yes | **Time-stop exceeded**: `elapsed > projected_holding × time_stop_multiplier / (current_ATR / entry_ATR)` | Cancel all → market close → clear `trade_state` | N/A |
+| **G9** | Yes | Yes | Unrealized PnL ≥ **1.5 ATR** (Level 1) | Migrate SL → entry price (breakeven) | Emergency market close |
+| **G10** | Yes | Yes | Unrealized PnL ≥ **2.5 ATR** (Level 2) | Migrate SL → entry + 0.5 ATR (LONG) / entry − 0.5 ATR (SHORT) | Emergency market close |
+| **G11** | Yes | Yes | Unrealized PnL ≥ **4.0 ATR** (Level 3) | Migrate SL → entry + 1.5 ATR (LONG) / entry − 1.5 ATR (SHORT) | Emergency market close |
+| **G12** | Yes | Yes | Trailing level ≤ current level | No migration — SL only moves forward | N/A |
+| **G13** | Yes | Yes | Cancel succeeds but OCO re-place fails (during migration) | Emergency market close → clear `trade_state` | N/A |
+
+**Trailing stop invariant**: The SL only migrates **forward** (toward profit). If `target_level ≤ current_level`, the migration is skipped — the SL never moves backward. The time-stop is adaptively scaled by `current_ATR / entry_ATR`: rising volatility shortens the maximum hold time.
+
+#### Edge Cases & Failure Modes
+
+| Edge Case | Where Handled | Behavior |
+|-----------|---------------|----------|
+| **Partial SL fill** (e.g., 0.028 residual after SL triggers) | Guardian G7 | Detects position exists but no OCO → places new OCO over remaining net qty using original TP/SL from `trade_state` |
+| **Partial TP fill** (residual position after TP triggers) | `_optimize_same_direction` (scenario B) | Next same-direction opinion cancels all + re-wraps entire remaining net qty into a fresh unified OCO |
+| **OCO re-place failure after cancel** (any path) | `_optimize_same_direction`, `_migrate_trailing_stop`, Pivot-Preserve | Emergency market close — position is never left naked. Sentinel `-1` returned to clear `trade_state` |
+| **Cancel failure** (can't clear old orders) | `_optimize_same_direction` | Abort optimization — original OCOs remain intact, position stays protected |
+| **Entry order never fills** | Guardian G3 | Timed out after `projected_waiting_hours` → cancelled, state cleared |
+| **Manual position conflict** (user traded outside robot) | Guardian G5 | Robot ignores the position — does not adopt, protect, or close it |
+| **Symbol not configured** | `sync_with_opinion` C4 | Hard abort before any exchange call |
+| **Price gaps through SL** (SL not triggered, price below SL limit) | Guardian G6 | Detects `current_price ≤ sl` → emergency market close |
+| **Multiple same-direction sessions** in quick succession | `_optimize_same_direction` | Each call cancels + re-wraps atomically — last writer wins, no order fragmentation |
+| **Exchange returns zero/invalid price** | Pivot-Preserve, Guardian | Abort operation — do not act on bad data |
+| **ATR drops to near-zero** (low volatility) | Guardian trailing stop | Skip migration — prevents division-by-zero and nonsensical SL targets |
+| **Bidirectional exposure** (both LONG and SHORT net qty) | Not possible with cross-margin | Cross-margin nets positions automatically; `net_qty` is always unidirectional |
+
 ### Multi-Symbol Architecture
 
 The system supports any number of trading pairs from a single config. Symbols are provided at runtime via `--symbol` (prefix format, e.g., `BTC,XAUT`), and the sniper daemon runs an independent scout → trigger → guardian loop for each. Cross-symbol **Leader Sync** amplifies follower signals when a correlated leader triggers. Core analysis parameters in `strategy_config.yaml` are instrument-agnostic — CVD ratios, ATR-normalized distances, and volume participation ratios apply identically across instruments.
