@@ -148,16 +148,12 @@ class SniperDaemon:
 
                     if not result.triggered:
                         status = result.gate_reason or "SLEEPING"
-                        print(f"[{now_str}] [{sym}] 💤 {status}")
+                        logger.info(f"[{sym}] 💤 {status}")
                     else:
-                        print("\n" + "!" * 60)
-                        print(f"       🔫 SNIPER WAKE UP! [{sym}] [{result.confluence_direction.value}]")
-                        print("!" * 60)
-                        print(f"[{sym}] Confluence: {result.confluence_score:.2f} | "
-                              f"Signals: {len(result.active_signals)} | "
-                              f"Gate: {result.gate_result}")
-                        print(f"[{sym}] Signals: {[s.sub_type for s in result.active_signals]}")
-                        print("!" * 60 + "\n")
+                        logger.info(f"🔫 SNIPER WAKE UP! [{sym}] [{result.confluence_direction.value}] "
+                                    f"confluence={result.confluence_score:.2f} "
+                                    f"signals={[s.sub_type for s in result.active_signals]} "
+                                    f"gate={result.gate_result}")
                         triggered.append((sym, result))
 
                 # ── 2.5 CROSS-SYMBOL: Leader Sync ──
