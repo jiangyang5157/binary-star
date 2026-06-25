@@ -1,10 +1,11 @@
 """API endpoints for audit data and performance metrics."""
 import json
 import logging
+import os
 import concurrent.futures
 from pathlib import Path
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(prefix="/api")
 
