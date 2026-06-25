@@ -135,7 +135,8 @@ class AuditAssembler:
                 volume_profile=volume_profile or [],
                 atr=max_atr,
                 base_slippage_bps=self.config.base_slippage_bps,
-                max_slippage_bps=self.config.max_slippage_bps
+                max_slippage_bps=self.config.max_slippage_bps,
+                opinion=opinion
             )
             target_entry = slippage_metrics["price_adjusted"]
             
@@ -164,9 +165,9 @@ class AuditAssembler:
             # Schema Relocation (Indicators now grouped in market_forensics)
             market_forensics["planned_entry_price"] = target_entry
             market_forensics["total_price_change_pct"] = market_forensics["price_move_pct"]
-            market_forensics["max_favorable_runup_pct"] = round((theoretical_mfe / entry_price) * 100, 2) if entry_price > 0 else 0
+            market_forensics["max_favorable_runup_pct"] = round((theoretical_mfe / target_entry) * 100, 2) if target_entry > 0 else 0
             market_forensics["max_favorable_runup_atr"] = round(theoretical_mfe / max_atr, 4) if max_atr > 0 else 0
-            market_forensics["max_adverse_drawdown_pct"] = round((theoretical_mae / entry_price) * 100, 2) if entry_price > 0 else 0
+            market_forensics["max_adverse_drawdown_pct"] = round((theoretical_mae / target_entry) * 100, 2) if target_entry > 0 else 0
  
             if tp > 0 and sl > 0:
                 entry_hit = False
@@ -259,9 +260,9 @@ class AuditAssembler:
                     # result["execution_forensics"]["time_efficiency_multiplier"] = round(actual_holding_hours / proj_holding_hours, 2) if proj_holding_hours > 0 else 0
                     
                     # Sync: TP/SL Outcomes
-                    market_forensics["max_favorable_runup_pct"] = round((mfe / entry_price) * 100, 2) if entry_price > 0 else 0
+                    market_forensics["max_favorable_runup_pct"] = round((mfe / target_entry) * 100, 2) if target_entry > 0 else 0
                     market_forensics["max_favorable_runup_atr"] = round(mfe / max_atr, 4) if max_atr > 0 else 0
-                    market_forensics["max_adverse_drawdown_pct"] = round((mae / entry_price) * 100, 2) if entry_price > 0 else 0
+                    market_forensics["max_adverse_drawdown_pct"] = round((mae / target_entry) * 100, 2) if target_entry > 0 else 0
         
         return result
 
