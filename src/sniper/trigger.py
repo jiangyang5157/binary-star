@@ -225,7 +225,7 @@ class SniperTrigger:
         # Default cooldown (used as fallback; adaptive cooldown is primary)
         micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
         base_cooldown = self._parse_interval_to_minutes(micro_interval)
-        self.cooldown_minutes = base_cooldown * self.sniper_cfg['cooldown']['pulse_cooldown_multiplier']
+        self.cooldown_minutes = base_cooldown * self.sniper_cfg['muting']['pulse_cooldown_multiplier']
 
         # Confluence engine (receives signal_stack sub-config only)
         self.engine = ConfluenceEngine(self.sniper_cfg.get('signal_stack', {}))
@@ -282,7 +282,7 @@ class SniperTrigger:
 
     def _check_state_lock(self, lock_key: str, now: datetime) -> bool:
         """Returns True if permitted to trigger, False if muted by state lock."""
-        cooldown_hours = self.sniper_cfg['cooldown']['state_lockout_hours']
+        cooldown_hours = self.sniper_cfg['muting']['state_lockout_hours']
         if lock_key in self.state_locks:
             elapsed_hours = (now - self.state_locks[lock_key]).total_seconds() / 3600.0
             if elapsed_hours < cooldown_hours:
@@ -1288,7 +1288,7 @@ class SniperTrigger:
             if vii > self.regime_cfg['volatility']['volatility_extreme_ratio']:
                 if self.last_trigger_time:
                     elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-                    chaos_mult = self.sniper_cfg['cooldown']['chaos_cooldown_multiplier']
+                    chaos_mult = self.sniper_cfg['muting']['chaos_cooldown_multiplier']
                     chaos_cooldown = self.cooldown_minutes * chaos_mult
                     if elapsed < chaos_cooldown:
                         cooldown_active = True

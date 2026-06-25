@@ -46,15 +46,21 @@ llm:
     evolver_temperature: 0.0
     supports_vision: false  # set true for qwen-vl-max or qwen3.7-vl
 
-  binary_star:
-    system_instruction: "config/prompts/binary_star.md"
-    session_role_prompt: "config/prompts/session.md"
-    critic_role_prompt: "config/prompts/critic.md"
-    max_rounds: 2
-    session_confidence_threshold: 50
+# ═══════════════════════════════════════════════════════════════════════════
+# BINARY STAR — Adversarial Debate Protocol
+# ═══════════════════════════════════════════════════════════════════════════
+binary_star:
+  system_instruction: "config/prompts/binary_star.md"
+  session_role_prompt: "config/prompts/session.md"
+  critic_role_prompt: "config/prompts/critic.md"
+  max_rounds: 2
+  session_confidence_threshold: 50
 
-  evolver:
-    role_prompt: "config/prompts/evolver.md"
+# ═══════════════════════════════════════════════════════════════════════════
+# EVOLVER — Strategy Evolution Agent
+# ═══════════════════════════════════════════════════════════════════════════
+evolver:
+  role_prompt: "config/prompts/evolver.md"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SNIPER — Monitoring Daemon Trigger Sensitivity
@@ -68,8 +74,8 @@ sniper:
     # for the impulse/divergence probes. Do NOT change arbitrarily.
     pulse_interval_minutes: 2.0
 
-  # --- Alert Muting (Cooldown) ---
-  cooldown:
+  # --- Alert Muting (Baseline silence rules) ---
+  muting:
     # The duration the Sniper remains "muted" after successfully waking up the AI.
     # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
     # 2.5 = 37.5 min. Balanced for dual BTC use: faster throughput than 45 min.
@@ -90,7 +96,6 @@ sniper:
     # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
     # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC.
     cvd_divergence_tick_delta: 0.22     # FLOW_ASYMMETRY (CVD 背离)
-    cvd_impulse_tick_delta: 0.35        # FLOW_ASYMMETRY (CVD 强度)
     # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
     # 1.0 = any increase, 1.1 = 10% growth required.
     cvd_growth_significance_ratio: 1.4

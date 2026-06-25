@@ -420,5 +420,5 @@ def get_config():
     """Return UI-relevant config values (confidence threshold, etc.)."""
     from src.utils.pipeline_utils import load_combined_config
     config = load_combined_config()
-    threshold = int(config["llm"]["binary_star"]["session_confidence_threshold"])
+    threshold = int(config["binary_star"]["session_confidence_threshold"])
     return {"session_confidence_threshold": threshold}

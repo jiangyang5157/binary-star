@@ -76,7 +76,7 @@ class BinaryStarConfig:
         retry_multiplier = float(retry_strategy["multiplier"])
         retry_min = int(retry_strategy["min_seconds"])
         retry_max = int(retry_strategy["max_seconds"])
-        bs_cfg = llm_cfg["binary_star"]
+        bs_cfg = global_config["binary_star"]
         active_provider = llm_cfg.get("active_provider")
         if not active_provider:
             raise ValueError("active_provider is not set in llm configuration.")

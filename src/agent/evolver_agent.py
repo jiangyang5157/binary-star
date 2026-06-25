@@ -22,19 +22,19 @@ class EvolverConfig(AgentConfig):
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
         """Factory method to extract evolver config from the standalone evolver node."""
         llm_cfg = cfg['llm']
-        evolver_llm = llm_cfg['evolver']
+        evolver_cfg = cfg['evolver']
         active_provider = llm_cfg.get('active_provider')
         if not active_provider:
             raise ValueError("active_provider is not set in llm configuration.")
         active_provider = active_provider.lower()
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
-        
+
         model_temperature = float(provider_cfg.get('evolver_temperature', 0.0))
-            
+
         return cls(
             model=str(model),
-            instruction_path=os.path.join(resolve_project_root(), evolver_llm['role_prompt']),
+            instruction_path=os.path.join(resolve_project_root(), evolver_cfg['role_prompt']),
             model_temperature=model_temperature,
             max_tool_iterations=int(cfg['llm']['max_tool_iterations'])
         )
@@ -131,7 +131,7 @@ class EvolverAgent(BaseAgent):
                 mae_threshold_pinpoint=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_pinpoint'),
                 mae_threshold_standard=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_standard'),
                 mae_threshold_luck=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_luck'),
-                max_rounds=active_config.get('llm', {}).get('binary_star', {}).get('max_rounds'),
+                max_rounds=active_config.get('binary_star', {}).get('max_rounds'),
             )
 
             logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")

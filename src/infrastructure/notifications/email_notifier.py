@@ -81,7 +81,7 @@ class SessionNotifier:
         
         # Load global config for notification threshold
         self.global_cfg = self._load_config("global_config.yaml")
-        bs_cfg = self.global_cfg.get('llm', {}).get('binary_star', {})
+        bs_cfg = self.global_cfg.get('binary_star', {})
         self.confidence_threshold = int(bs_cfg.get('session_confidence_threshold', 60))
 
     def _load_config(self, filename: str) -> Dict[str, Any]:

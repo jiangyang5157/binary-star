@@ -33,4 +33,3 @@ XAUTUSDT:
     sniper:
       probes:
         cvd_divergence_tick_delta: 0.18
-        cvd_impulse_tick_delta: 0.25
