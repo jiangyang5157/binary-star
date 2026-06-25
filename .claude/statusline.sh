@@ -86,7 +86,8 @@ SEG1="${C_CYAN}${REPO}${C_RESET}"
 # LINES moved to SEG2
 
 # ── 构建第 2 段：时长 + 上下文 ─────────────────────────────────────────
-SEG2="${LINES}  ⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR}${EXCEEDS_ICON}${C_RESET}"
+SEG2="⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR}${EXCEEDS_ICON}${C_RESET}"
+[ -n "$LINES" ] && SEG2="${LINES}  ${SEG2}"
 
 # ── 构建第 3 段：模型 + effort ─────────────────────────────────────────
 SEG3="${MODEL} ${EFFORT_ICON}${EFFORT}"
