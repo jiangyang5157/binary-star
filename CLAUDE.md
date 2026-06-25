@@ -2,11 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Style
-
-- When a task completes and there are manual follow-ups the user needs to handle, list them at the end of the reply as a `- [ ]` checkbox list.
-- Finish every implementation response with a one-sentence progress recap.
-
 ## Commands
 
 ```bash
