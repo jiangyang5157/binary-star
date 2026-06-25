@@ -113,6 +113,9 @@ class SniperDaemon:
 
         while True:
             try:
+                metrics: dict[str, dict] = {}
+                triggered: list[tuple[str, 'TriggerResult']] = []
+
                 # ── 0. LIGHTWEIGHT HEARTBEAT: written unconditionally, zero API calls ──
                 # Always succeeds — proves the daemon is alive even when trade is off
                 # or the heavyweight heartbeat fails on a Binance API blip.
@@ -131,19 +134,14 @@ class SniperDaemon:
                     self._write_guardian_status(guardian_data)
 
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
-                metrics: dict[str, dict] = {}
                 for sym in self.symbols:
                     result = self.scouts[sym].scout()
                     if result.metrics:
                         metrics[sym] = result.metrics
 
-                if not metrics:
-                    logger.warning("SniperDaemon: All scouts returned empty metrics. Skipping pulse.")
-                    time.sleep(60)
-                    continue
-
                 # ── 2. TRIGGER: independent evaluation per symbol ──
-                triggered: list[tuple[str, 'TriggerResult']] = []
+                if not metrics:
+                    logger.warning("SniperDaemon: All scouts returned empty metrics. Skipping trigger/AI phase.")
                 now_str = datetime.now().strftime("%H:%M:%S")
                 symbol_results: dict[str, 'TriggerResult'] = {}
 
@@ -245,7 +243,8 @@ class SniperDaemon:
                     self.triggers[sym].set_triggered(result)
 
                 # ── 4. HOUSEKEEPING ──
-                self.prev_metrics = metrics
+                if metrics:
+                    self.prev_metrics = metrics
 
                 # ── 5. Refresh heartbeat with latest guardian state ──
                 if self.trade_enabled:
@@ -267,16 +266,16 @@ class SniperDaemon:
                         session_result={"trade_executed": bool(triggered)} if session_triggered else None,
                     )
 
-                # Sleep until next pulse
-                logger.debug(f"SniperDaemon: Waiting {pulse_mins}m for next check...")
-                time.sleep(pulse_mins * 60)
-
             except KeyboardInterrupt:
                 logger.warning("SniperDaemon terminated by user.")
                 break
             except Exception as e:
                 logger.error(f"SniperDaemon Loop Failure: {e}", exc_info=True)
-                time.sleep(60)
+
+            # Sleep until next pulse (shorter retry on empty scout)
+            sleep_secs = pulse_mins * 60 if metrics else 60
+            logger.debug(f"SniperDaemon: Waiting {sleep_secs}s for next check...")
+            time.sleep(sleep_secs)
 
     # ================================================================
     # TRADE GATE: Evaluates AI decision and triggers entry
