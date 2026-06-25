@@ -95,6 +95,8 @@ Entry Points (run.py + standalone run_*.py)
                                          MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
                                          TopographyEngine, SniperSampler
   → Config (src/config/)                 Sub-config dataclasses, YAML loaders, symbol resolver
+  → Utilities (src/utils/)               CongestionController, MetricsCollector, FitnessEvaluator,
+                                         ConfigPatcher + PromptDistiller, exceptions, math tools
 ```
 
 ### AI backend (key design pattern)
