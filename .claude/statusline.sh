@@ -50,7 +50,7 @@ fi
 
 # ── 超 200k 标记 ───────────────────────────────────────────────────────
 EXCEEDS_ICON=""
-[ "$EXCEEDS" = "true" ] && EXCEEDS_ICON="⚠"
+[ "$EXCEEDS" = "true" ] && EXCEEDS_ICON=" ⚠"
 
 # ── 时长格式化 ────────────────────────────────────────────────────────
 DUR_SEC=$((DUR_MS / 1000))
@@ -95,7 +95,7 @@ fmt_tok() {
 TOK_IN_FMT=$(fmt_tok "$TOTAL_IN")
 TOK_OUT_FMT=$(fmt_tok "$TOTAL_OUT")
 TOK_MAX_FMT=$(fmt_tok "$WIN_SIZE")
-SEG2="⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR} ${EXCEEDS_ICON} ⇣${TOK_IN_FMT}/${TOK_MAX_FMT} ⇡${TOK_OUT_FMT}${C_RESET}"
+SEG2="⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR}${EXCEEDS_ICON} ⇣${TOK_IN_FMT}/${TOK_MAX_FMT} ⇡${TOK_OUT_FMT}${C_RESET}"
 
 # ── 构建第 3 段：模型 + effort ─────────────────────────────────────────
 SEG3="${MODEL} ${EFFORT_ICON}${EFFORT}"
