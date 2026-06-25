@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─── Claude Code Status Line ──────────────────────────────────────────
-#   crypto v26.6.27 +156/-23 │ ⏱ 2h ██████░░░░ │ deepseek-v4-pro ◆xhigh
+#   crypto v26.6.27 │ ⏱ 2h ██████░░░⚠ ↓173.2k/200k ↑12.5k │ deepseek-v4-pro ◆xhigh
 # ──────────────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -11,9 +11,10 @@ REPO=$(echo "$input" | jq -r '.workspace.repo.name // ""')
 DIR=$(echo "$input" | jq -r '.workspace.current_dir')
 PCT=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 DUR_MS=$(echo "$input" | jq -r '.cost.total_duration_ms // 0')
-ADDED=$(echo "$input" | jq -r '.cost.total_lines_added // 0')
-REMOVED=$(echo "$input" | jq -r '.cost.total_lines_removed // 0')
 EFFORT=$(echo "$input" | jq -r '.effort.level // ""')
+TOTAL_IN=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+TOTAL_OUT=$(echo "$input" | jq -r '.context_window.total_output_tokens // 0')
+WIN_SIZE=$(echo "$input" | jq -r '.context_window.context_window_size // 0')
 EXCEEDS=$(echo "$input" | jq -r '.exceeds_200k_tokens // false')
 
 # ── 模型名：优先从环境变量取真实名称，回退到 display_name ────────────
@@ -49,7 +50,7 @@ fi
 
 # ── 超 200k 标记 ───────────────────────────────────────────────────────
 EXCEEDS_ICON=""
-[ "$EXCEEDS" = "true" ] && EXCEEDS_ICON="⚡"
+[ "$EXCEEDS" = "true" ] && EXCEEDS_ICON="⚠"
 
 # ── 时长格式化 ────────────────────────────────────────────────────────
 DUR_SEC=$((DUR_MS / 1000))
@@ -63,12 +64,6 @@ else
     DUR_FMT="${DUR_M}m"
 fi
 
-# ── 代码增删 ──────────────────────────────────────────────────────────
-LINES=""
-if [ "$ADDED" -gt 0 ] || [ "$REMOVED" -gt 0 ]; then
-    LINES="${C_GREEN}+${ADDED}${C_RESET}/${C_RED}-${REMOVED}${C_RESET}"
-fi
-
 # ── Effort icon ────────────────────────────────────────────────────────
 EFFORT_ICON=""
 case "$EFFORT" in
@@ -80,14 +75,27 @@ case "$EFFORT" in
   low)       EFFORT_ICON="· " ;;
 esac
 
-# ── 构建第 1 段：身份 + 增删 ───────────────────────────────────────────
+# ── 构建第 1 段：身份 ──────────────────────────────────────────────────
 SEG1="${C_CYAN}${REPO}${C_RESET}"
 [ -n "$BRANCH" ] && SEG1="${SEG1} ${C_MAGENTA}${BRANCH}${C_RESET}"
-# LINES moved to SEG2
+
+# ── Token 格式化（12500 → 12.5k）───────────────────────────────────────
+fmt_tok() {
+    local n=$1
+    if [ "$n" -ge 1000000 ]; then
+        printf "%.1fM" "$(echo "scale=1; $n/1000000" | bc)"
+    elif [ "$n" -ge 1000 ]; then
+        printf "%.1fk" "$(echo "scale=1; $n/1000" | bc)"
+    else
+        printf "%d" "$n"
+    fi
+}
 
 # ── 构建第 2 段：时长 + 上下文 ─────────────────────────────────────────
-SEG2="⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR}${EXCEEDS_ICON}${C_RESET}"
-[ -n "$LINES" ] && SEG2="${LINES}  ${SEG2}"
+TOK_IN_FMT=$(fmt_tok "$TOTAL_IN")
+TOK_OUT_FMT=$(fmt_tok "$TOTAL_OUT")
+TOK_MAX_FMT=$(fmt_tok "$WIN_SIZE")
+SEG2="⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR} ${EXCEEDS_ICON} ⇣${TOK_IN_FMT}/${TOK_MAX_FMT} ⇡${TOK_OUT_FMT}${C_RESET}"
 
 # ── 构建第 3 段：模型 + effort ─────────────────────────────────────────
 SEG3="${MODEL} ${EFFORT_ICON}${EFFORT}"
