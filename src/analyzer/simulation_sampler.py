@@ -64,7 +64,10 @@ class SniperSampler:
                     continue
 
                 # 2. Evaluate for 'Interest'
-                is_noteworthy, event_type, reason = self.trigger.evaluate(res.metrics, prev_metrics)
+                result = self.trigger.evaluate(res.metrics, prev_metrics)
+                is_noteworthy = result.triggered
+                event_type = result.gate_result
+                reason = result.gate_reason
 
                 if is_noteworthy:
                     logger.info(f"SniperSampler: Found noteworthy event at {dt}: [{event_type}] {reason}")
