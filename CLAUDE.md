@@ -108,7 +108,7 @@ Entry Points (run.py + standalone run_*.py)
 ```
 config/
 ├── strategy_config.yaml    # trading parameters, regime thresholds, analysis windows (evolvable)
-├── global_config.yaml      # system settings, LLM provider config, sniper, guardian, sandbox
+├── global_config.yaml      # system settings, llm, binary_star, evolver, sniper, guardian, sandbox
 ├── visual_config.yaml      # chart appearance, color themes, visual rendering options
 ├── symbol_config.yaml      # per-instrument params (precision, overrides) — NOT evolved
 ├── prompts/                # LLM system prompts (sensitive system logic)

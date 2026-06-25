@@ -114,30 +114,40 @@ The Sniper is a two-phase monitoring and trading automaton: a fast, lightweight 
 ```
 run.py sniper (SniperDaemon)
   ├── SniperScout (src/sniper/scout.py)         Lightweight market data harvester
-  ├── SniperTrigger (src/sniper/trigger.py)     Three-type signal evaluator
+  ├── SniperTrigger (src/sniper/trigger.py)     Signal Stack confluence engine (14 signals, 5 categories)
   ├── SessionEngine (run.py session)            Binary Star AI reasoning (on-demand)
   └── MarginOrderExecutor (src/agent/order_executor.py)  Order lifecycle + Guardian
 ```
 
 ### Signal Types (Phase 1: Trigger)
 
-Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the strongest wins.
+Every 2 minutes, `SniperTrigger.evaluate()` detects up to 14 signal types across 5 categories. Signals produce continuous 0–1 strength scores with per-signal confidence weights. The **ConfluenceEngine** stacks signals directionally — two moderate signals reinforcing each other carry more weight than one strong signal alone. Contradictory signals create a noise penalty.
 
-| Type | Sub-Type | Condition | Key Gate |
-|------|----------|-----------|----------|
-| **ENERGY_BUILDUP** | Volatility Expansion + Volume Surge | Volatility > 1.25× baseline **and** Volume Participation > 1.5× | Volatility must be **accelerating** (>3% pulse-over-pulse growth), not just sustained |
-| **ENERGY_BUILDUP** | Physical Squeeze | Squeeze Factor < 0.75 | Squeeze must be **intensifying** (>2% tighter); 6h state lock |
-| **FLOW_ASYMMETRY** | CVD Divergence | Price↑ + CVD↓ (distribution) or Price↓ + CVD↑ (accumulation), delta > 0.20 | Requires previous-pulse data |
-| **FLOW_ASYMMETRY** | CVD Impulse | Single large taker order, delta > 0.30 | Large trader raid detection |
-| **FLOW_ASYMMETRY** | CVD Absolute Momentum | CVD intensity > 0.1 **and** growing > 1.4× | Growth-gated re-trigger |
-| **FLOW_ASYMMETRY** | Retail Sentiment Extreme | L/S ratio > 1.5 or < 0.6; Funding > 0.0005 | 6h state lock per key |
-| **STRUCTURAL_APPROACH** | VAH/VAL Boundary Collision | Price within 0.70 ATR of VAH/VAL + Volume Participation > 1.0× | Must be **approaching** the boundary |
-| **STRUCTURAL_APPROACH** | POC Magnet | Price within 0.50 ATR of POC | Must be **approaching** POC |
-| **STRUCTURAL_APPROACH** | Liquidation Cluster Magnet | Price within 0.40 ATR of long/short liquidation clusters | Long liq: price must be **falling**; Short liq: price must be **rising** |
+| Category | Signal | Direction | Detection |
+|----------|--------|-----------|-----------|
+| **FLOW** | CVD Momentum | Sign of CVD | `abs(cvd) > 0.10` AND growing pulse-over-pulse |
+| **FLOW** | CVD Divergence | Opposite to price | Price↑ CVD↓ → BEARISH / Price↓ CVD↑ → BULLISH |
+| **FLOW** | CVD Absorption | Opposite to CVD | Extreme CVD with flat price → iceberg orders |
+| **FLOW** | Taker Imbalance | Sign of CVD | Derived from `cvd_intensity_ratio` (mathematically equivalent) |
+| **ENERGY** | Volatility Surge | From CVD/trend | VII > 1.25 + volume confirmation + accelerating |
+| **ENERGY** | Squeeze | NEUTRAL | BB-KC squeeze intensifying pulse-over-pulse |
+| **STRUCTURAL** | Boundary Test | Toward VAH/VAL | Within 0.70 ATR + volume + approaching |
+| **STRUCTURAL** | POC Gravity | Toward POC | Within 0.50 ATR + approaching |
+| **STRUCTURAL** | Liquidation Hunt | Toward cluster | Within 0.40 ATR + moving toward liq cluster |
+| **STRUCTURAL** | Trend Pullback | Trend direction | Strong trend + price retracing to HVN — highest quality |
+| **POSITIONING** | Retail Extreme | Contrarian | LS ratio > 1.5 or < 0.6; or funding extreme |
+| **POSITIONING** | OI Divergence | Opposite to price | OI↓ + Price↑ = short squeeze exhaustion → BEARISH |
+| **POSITIONING** | OI Surge | Price direction | OI spike aligned with price → continuation fuel |
+| **CROSS-SYMBOL** | Leader Sync | Inherited | Leader symbol triggers → boost correlated followers |
 
-**Global gates** (evaluated before any signal):
-- **Cooldown**: 37.5 min after last trigger → `GLOBAL_COOLDOWN`
-- **Chaos Mute**: Volatility > 2.2× extreme ratio **and** within 75 min of last trigger → `CHAOS_MUTE`
+**Trigger fires when:** `confluence_score ≥ trigger_threshold × regime_modifier`, or any single signal exceeds `emergency_threshold` (0.85). Cooldown is adaptive (25–60 min by regime) and breaks on 3+ stacked signals. A **Pre-AI Gate** filters untradeable setups before spending LLM tokens.
+
+**CLI modes:**
+```bash
+python run.py sniper --symbol BTC,XAUT               # observe only (signal log, zero LLM cost)
+python run.py sniper --symbol BTC,XAUT --llm         # + AI sessions on trigger
+python run.py sniper --symbol BTC,XAUT --trade       # + AI + trade (--trade implies --llm)
+```
 
 ### Complete Decision Tree (Phase 2: AI + Execution)
 
@@ -254,13 +264,15 @@ This matches the existing emergency-close pattern in the **Trailing Stop Migrati
 
 ### Multi-Symbol Architecture
 
-The system supports any number of trading pairs from a single config. Symbols are provided at runtime via `--symbol` (prefix format, e.g., `BTC,XAUT`), and the sniper daemon runs an independent scout → trigger → guardian loop for each. Core analysis parameters in `strategy_config.yaml` are instrument-agnostic — CVD ratios, ATR-normalized distances, and volume participation ratios apply identically across instruments. Timing parameters are tuned for general-purpose balance:
+The system supports any number of trading pairs from a single config. Symbols are provided at runtime via `--symbol` (prefix format, e.g., `BTC,XAUT`), and the sniper daemon runs an independent scout → trigger → guardian loop for each. Cross-symbol **Leader Sync** amplifies follower signals when a correlated leader triggers. Core analysis parameters in `strategy_config.yaml` are instrument-agnostic — CVD ratios, ATR-normalized distances, and volume participation ratios apply identically across instruments.
 
 | Parameter | Value | Notes |
 |-----------|-------|-------|
-| **Cooldown** | **37.5 min** | 15m micro-context × 2.5 multiplier |
-| **Chaos Mute** | **75 min** | Proportional to cooldown (37.5 × 2.0). Extends protection during vol spikes |
-| **State Lockout** | **8.0 hours** | Prevents structural/sentiment trigger spam without missing setups |
+| **Confluence Threshold** | **0.35** | Base trigger threshold, modulated by regime (×0.85 trending, ×1.50 chaos) |
+| **Emergency Override** | **0.85** | Fire immediately if any single signal exceeds this |
+| **Adaptive Cooldown** | **25–60 min** | Trending 25min, Ranging 45min, Squeeze 20min, Chaos 60min |
+| **State Lockout** | **8.0 hours** | Prevents structural/sentiment trigger spam |
+| **Signal Stack** | **14 signals** | FLOW(4) + ENERGY(2) + STRUCTURAL(4) + POSITIONING(3) + CROSS-SYMBOL(1) |
 
 **Why most thresholds are instrument-agnostic — and when they aren't:**
 
@@ -277,7 +289,6 @@ XAUTUSDT:
     sniper:
       probes:
         cvd_divergence_tick_delta: 0.18        # thinner books → smaller CVD swings
-        cvd_impulse_tick_delta: 0.25
 ```
 
 Per-symbol overrides are deep-merged at config resolution time and never touched by evolution — they're fixed operational tuning. Evolution patches `strategy_config.yaml` defaults only.
@@ -287,10 +298,12 @@ Per-symbol overrides are deep-merged at config resolution time and never touched
 | Parameter | Value | Purpose |
 |-----------|-------|---------|
 | `pulse_interval_minutes` | 2.0 | Scan frequency |
-| `pulse_cooldown_multiplier` | 2.5 | Post-trigger silence (15m × 2.5 = 37.5 min) |
-| `chaos_cooldown_multiplier` | 2.0 | Extreme vol silence (37.5m × 2 = 75 min) |
-| `state_lockout_hours` | 8.0 | Structural/sentiment repeat suppression |
-| `session_confidence_threshold` | 60 | Minimum AI confidence for execution |
+| `signal_stack.trigger_threshold` | 0.35 | Base confluence score to fire AI session |
+| `signal_stack.emergency_threshold` | 0.85 | Single-signal override trigger |
+| `signal_stack.weights.*` | 0.40–0.75 | Per-signal confidence (14 signals, evolvable) |
+| `muting.pulse_cooldown_multiplier` | 2.5 | Legacy fallback cooldown (15m × 2.5 = 37.5 min) |
+| `muting.state_lockout_hours` | 8.0 | Structural/sentiment repeat suppression |
+| `binary_star.session_confidence_threshold` | 50 | Minimum AI confidence for trade execution |
 | `risk_per_trade` | 0.004 | Maximum loss per trade (0.4% equity) |
 | `trailing_profit_atr_level_1/2/3` | 1.5/2.5/4.0 | Trailing stop migration thresholds |
 | `time_stop_multiplier` | 1.5 | Max hold time = projected_holding × 1.5 |
