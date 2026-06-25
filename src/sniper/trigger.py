@@ -1258,6 +1258,103 @@ class SniperTrigger:
         )
 
     # ═══════════════════════════════════════════════════════════════════════
+    # SIGNAL DIAGNOSTICS — per-pulse compact log of all detector key metrics
+    # ═══════════════════════════════════════════════════════════════════════
+
+    def _log_signal_diagnostics(self, metrics: Dict[str, Any],
+                                 fresh_signals: List[SignalCard]) -> None:
+        """Log a compact per-pulse summary of key decision metrics for all 14
+        signal detectors.  Fired detectors show their strength; silent detectors
+        show the primary rejection metric vs threshold so operators can tune
+        sensitivity or detect silent failures."""
+        fired = {s.sub_type: s for s in fresh_signals}
+        parts: List[str] = []
+
+        # ── FLOW category ──
+        cvd = metrics['sentiment_signals']['cvd_intensity_ratio']
+        cvd_thresh = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
+        parts.append(f"cvd={cvd:+.3f}")
+
+        s = fired.get('cvd_momentum')
+        parts.append(f"cvd_momentum={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={cvd_thresh}'}")
+
+        s = fired.get('cvd_divergence')
+        parts.append(f"cvd_divergence={'F:'+str(round(s.strength,2)) if s else 'R:no-prev/div-low'}")
+        s = fired.get('cvd_absorption')
+        parts.append(f"cvd_absorption={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<=extreme'}")
+        s = fired.get('taker_imbalance')
+        taker_thresh = 0.20
+        parts.append(f"taker_imb={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={taker_thresh}'}")
+
+        # ── ENERGY category ──
+        vii = metrics['price_dynamics']['volatility_intensity_index']
+        vpr = metrics['market_regime']['volume_participation_ratio']
+        parts.append(f"vii={vii:.2f},vpr={vpr:.2f}")
+
+        s = fired.get('volatility_surge')
+        vol_base = self.regime_cfg['volatility']['volatility_baseline_ratio']
+        vol_thresh = self.regime_cfg['volume']['volume_participation_threshold']
+        parts.append(f"vol_surge={'F:'+str(round(s.strength,2)) if s else f'R:vii<={vol_base}|vpr<={vol_thresh}'}")
+
+        sf = metrics['market_regime']['squeeze_factor']
+        sq_thresh = (self.regime_cfg['volatility']['squeeze_threshold'] *
+                     self.sniper_cfg['probes']['squeeze_trigger_multiplier'])
+        s = fired.get('squeeze')
+        parts.append(f"squeeze={'F:'+str(round(s.strength,2)) if s else f'R:sf={sf:.3f}>={sq_thresh:.3f}'}")
+
+        # ── STRUCTURAL category ──
+        price = metrics['price_dynamics']['current_price']
+        atr = metrics['price_dynamics'].get('atr_macro', 0)
+        topo = metrics['volume_profile']
+        anchors = metrics.get('structural_anchors', {})
+        parts.append(f"price={price:.1f},atr={atr:.2f}")
+
+        # boundary_test
+        s = fired.get('boundary_test')
+        if atr > 0:
+            dist_vh = abs(price - topo['vah']) / atr
+            dist_val = abs(price - topo['val']) / atr
+            prox_thresh = self.sniper_cfg['proximity']['proximity_vah_val_atr']
+            parts.append(f"boundary_test={'F:'+str(round(s.strength,2)) if s else f'R:dist_vh={dist_vh:.1f},dist_val={dist_val:.1f}>={prox_thresh}'}")
+        else:
+            parts.append("boundary_test=R:atr=0")
+
+        # poc_gravity
+        poc_dist = anchors.get('poc_dist_atr', 0)
+        poc_thresh = self.sniper_cfg['proximity']['proximity_poc_atr']
+        s = fired.get('poc_gravity')
+        parts.append(f"poc_gravity={'F:'+str(round(s.strength,2)) if s else f'R:poc_dist={abs(poc_dist):.2f}>={poc_thresh}'}")
+
+        # liquidation_hunt — already tracked via evidence in SignalCard, just show count
+        s = fired.get('liquidation_hunt')
+        parts.append(f"liq_hunt={'F:'+str(round(s.strength,2)) if s else 'R:no-cluster-in-range'}")
+
+        # trend_pullback
+        trend = metrics['market_regime'].get('trend_intensity', 0)
+        strong_t = self.regime_cfg['trend']['trend_intensity_strong']
+        s = fired.get('trend_pullback')
+        parts.append(f"trend_pullback={'F:'+str(round(s.strength,2)) if s else f'R:|trend|={abs(trend):.3f}<={strong_t}'}")
+
+        # ── POSITIONING category ──
+        ls = metrics['sentiment_signals'].get('ls_ratio_micro', 1.0)
+        funding = metrics['sentiment_signals'].get('funding_rate', 0.0)
+        parts.append(f"ls={ls:.2f},fund={funding:.4f}")
+
+        s = fired.get('retail_extreme')
+        ls_imb = self.regime_cfg['imbalance']['long_short_imbalance_ratio']
+        ls_short = self.regime_cfg['imbalance']['short_heavy_imbalance_ratio']
+        fund_ext = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
+        parts.append(f"retail_ext={'F:'+str(round(s.strength,2)) if s else f'R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}'}")
+
+        s = fired.get('oi_divergence')
+        parts.append(f"oi_div={'F:'+str(round(s.strength,2)) if s else 'R:no-div/no-prev'}")
+        s = fired.get('oi_surge')
+        oi_delta = metrics['sentiment_signals'].get('oi_delta_micro', 0.0)
+        parts.append(f"oi_surge={'F:'+str(round(s.strength,2)) if s else f'R:|oi_d|={abs(oi_delta):.4f}<=0.02'}")
+
+        logger.info("SIGNAL_DIAG [%s] %s", self.symbol, " | ".join(parts))
+
+    # ═══════════════════════════════════════════════════════════════════════
     # MAIN EVALUATE — replaces old (bool, str, str) method
     # ═══════════════════════════════════════════════════════════════════════
 
@@ -1304,7 +1401,10 @@ class SniperTrigger:
                 if card:
                     fresh_signals.append(card)
             except Exception as e:
-                logger.debug(f"Signal detector {detector.__name__} failed: {e}")
+                logger.warning(f"Signal detector {detector.__name__} failed: {e}")
+
+        # 2b. Per-pulse signal diagnostics — compact log of all detector key metrics
+        self._log_signal_diagnostics(current_metrics, fresh_signals)
 
         # 3. Merge with decayed signal memory
         all_signals = self.memory.ingest(fresh_signals, now)
