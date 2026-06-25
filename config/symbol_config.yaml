@@ -36,3 +36,6 @@ XAUTUSDT:
       probes:
         # 降低背离检测阈值以避免漏掉微弱信号。
         cvd_divergence_tick_delta: 0.18
+      signal_stack:
+        gate:
+          max_price_to_structure_atr: 2.0

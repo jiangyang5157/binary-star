@@ -145,7 +145,7 @@ sniper:
         chaos: 60
       break_on_strength_ratio: 1.8
       break_min_gap_minutes: 10
-      stacked_break_count: 4
+      stacked_break_count: 3
 
     # --- Pre-Trigger Validation Gate ---
     gate:
@@ -155,6 +155,10 @@ sniper:
         rr_feasibility: true
         directional_sanity: true
         chaos_survival: true
+      # [Sniper 专属] 当前价格离最近结构锚点的最大 ATR 距离。
+      # 超过此阈值拒绝触发，避免在结构真空区浪费 LLM token。
+      # 独立于策略层 max_entry_distance_atr（策略层校验 entry 合理性）。
+      max_price_to_structure_atr: 4.0
 
     # --- Per-Signal Confidence Weights (evolvable) ---
     weights:

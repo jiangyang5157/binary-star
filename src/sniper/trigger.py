@@ -386,7 +386,7 @@ class SniperTrigger:
 
         # 1. Entry feasibility
         if checks.get('entry_feasibility', True):
-            max_dist = self.regime_cfg['structural'].get('max_entry_distance_atr', 1.0)
+            max_dist = gate_cfg.get('max_price_to_structure_atr', 1.0)
             if direction == Direction.BULLISH:
                 # Need structure BELOW for entry
                 anchors = topo.get('anchors_below', [])
@@ -592,7 +592,8 @@ class SniperTrigger:
 
     def _build_entry_suggestion(self, signals: List[SignalCard],
                                  direction: Direction, regime: str) -> Dict[str, Any]:
-        max_dist = self.regime_cfg['structural'].get('max_entry_distance_atr', 1.0)
+        max_dist = self.sniper_cfg.get('signal_stack', {}).get('gate', {}).get(
+            'max_price_to_structure_atr', 1.0)
         suggestion = {
             "max_distance_atr": max_dist,
         }
@@ -1024,7 +1025,8 @@ class SniperTrigger:
         if atr <= 0:
             return None
         vp = curr['volume_profile']
-        max_dist = self.regime_cfg['structural'].get('max_entry_distance_atr', 1.0)
+        max_dist = self.sniper_cfg.get('signal_stack', {}).get('gate', {}).get(
+            'max_price_to_structure_atr', 1.0)
 
         if direction == Direction.BULLISH:
             target_price = vp.get('poc', price)

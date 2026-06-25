@@ -209,7 +209,7 @@ def test_resolve_config_with_real_files():
 def test_load_and_resolve_btc_no_overrides():
     cfg = load_and_resolve_for_symbol("BTCUSDT")
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.12
-    assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.22
+    assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.25
 
 
 # ── Data flow: full config pipeline ──────────────────────────────────────────
@@ -290,7 +290,7 @@ def test_loaders_work_with_resolved_config():
     v = load_visual_config(cfg)
 
     assert r.trend_intensity_min_expansion == 0.08
-    assert k.stop_loss_buffer_min == 1.25
+    assert k.stop_loss_buffer_min == 1.4
     assert t.min_trade_velocity == 0.4
     assert a.mae_threshold_pinpoint == 20.0
     assert v.render_dpi == 120
