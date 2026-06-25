@@ -6,10 +6,31 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/session")
+
+
+def _require(perm: str):
+    import json
+    _users_path = Path(__file__).resolve().parent.parent.parent.parent / "config" / "auth" / "users.json"
+
+    def checker(user: str = Query(None)):
+        perms: set[str] = set()
+        if _users_path.exists():
+            try:
+                cfg = json.loads(_users_path.read_text())
+            except json.JSONDecodeError:
+                cfg = {}
+            roles = cfg.get("roles", {})
+            users_data = cfg.get("users", {})
+            role_key = users_data.get(user, {}).get("role", "") if user else ""
+            role = roles.get(role_key, roles.get("anonymous", {}))
+            perms = set(role.get("permissions", []))
+        if perm not in perms:
+            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
+    return checker
 
 
 # ── Models ──────────────────────────────────────────────────────────────
@@ -139,7 +160,8 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
 # ── Endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/run")
-def trigger_run(req: RunRequest, data_root: str = Query("")):
+def trigger_run(req: RunRequest, data_root: str = Query(""),
+                _=Depends(_require("run_new_session"))):
     """Trigger a one-time session run for the given symbol prefix.
 
     Appends the configured quote currency to form the symbol.
@@ -189,7 +211,8 @@ def trigger_run(req: RunRequest, data_root: str = Query("")):
 
 
 @router.post("/stop")
-def stop_run(data_root: str = Query("")):
+def stop_run(data_root: str = Query(""),
+             _=Depends(_require("run_new_session"))):
     """Stop the currently running session. The background thread will still
     complete, but its result is discarded via run_id tracking."""
     from src.dashboard.api.sessions import _resolve_data_root

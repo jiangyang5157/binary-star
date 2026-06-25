@@ -11,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader
@@ -92,6 +92,15 @@ def _get_user_permissions(user_id: str | None) -> set[str]:
     return _users_permissions.get("__role_anonymous__", set())
 
 
+def require_permission(perm: str):
+    """FastAPI dependency: reject requests lacking the named permission."""
+    def checker(user: str = Query(None)):
+        perms = _get_user_permissions(user)
+        if perm not in perms:
+            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
+    return checker
+
+
 def read_template(name: str) -> str:
     path = TEMPLATES_DIR / name
     return path.read_text() if path.exists() else "<h1>Template missing</h1>"
@@ -145,8 +154,8 @@ def main():
                         help="Data directory root (default: data/prod)")
     parser.add_argument("--port", type=int, default=8080,
                         help="Server port (default: 8080)")
-    parser.add_argument("--host", default="0.0.0.0",
-                        help="Server host (default: 0.0.0.0)")
+    parser.add_argument("--host", default="127.0.0.1",
+                        help="Server host (default: 127.0.0.1)")
     args = parser.parse_args()
 
     # Use env var so uvicorn reload subprocess inherits the value
