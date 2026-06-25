@@ -253,7 +253,8 @@ class VolumeProfileAnalyzer:
             }
             
         df = self.process_klines(klines_data)
-        atr = df['atr'].iloc[-1] if not df.empty and 'atr' in df.columns else 0.0
+        atr_val = df['atr'].iloc[-1] if not df.empty and 'atr' in df.columns else 0.0
+        atr = float(atr_val) if pd.notna(atr_val) and atr_val > 0 else 0.0
         profile = self.calculate_profile(df)
         nodes = self.find_significant_nodes(profile, atr=atr)
         

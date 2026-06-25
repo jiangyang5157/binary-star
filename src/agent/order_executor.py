@@ -1,3 +1,4 @@
+import math
 import os
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
@@ -372,7 +373,7 @@ class MarginOrderExecutor:
         # --- Case 4: Position is already protected → Progressive Trailing Stop ---
         logger.debug(f"Guardian: Position {direction} ({net_qty}) is protected.")
         
-        if atr_macro and atr_macro > 0:
+        if atr_macro is not None and not math.isnan(atr_macro) and atr_macro > 0:
             trade_state = self._migrate_trailing_stop(symbol, direction, trade_state, active_orders, atr_macro)
         
         return trade_state
@@ -432,9 +433,9 @@ class MarginOrderExecutor:
         if not current_price or current_price <= 0:
             return trade_state
 
-        # Safeguard: Prevent division by zero or extremely small ATR values
-        if not atr_macro or atr_macro < 1e-6:
-            logger.warning(f"Guardian: [TRAIL] Invalid or extremely small ATR value ({atr_macro}). Skipping migration.")
+        # Safeguard: Prevent division by zero, NaN, or extremely small ATR values
+        if atr_macro is None or math.isnan(atr_macro) or atr_macro < 1e-6:
+            logger.warning(f"Guardian: [TRAIL] Invalid ATR value ({atr_macro}). Skipping migration.")
             return trade_state
 
         if direction == "LONG":

@@ -477,10 +477,12 @@ class MarketMetricsRefiner:
         """Calculates distance to structural anchors (POC/VAH/VAL) in ATR units."""
         price = df['close'].iloc[-1]
         atr = df['atr'].iloc[-1]
+        # Guard both zero AND NaN — bool(NaN) is True, so `if atr` alone misses NaN
+        valid = bool(atr) and not pd.isna(atr)
         return {
-            "poc_dist_atr": (price - profile.get('poc', 0)) / atr if atr else 0,
-            "vah_dist_atr": (price - profile.get('vah', 0)) / atr if atr else 0,
-            "val_dist_atr": (price - profile.get('val', 0)) / atr if atr else 0
+            "poc_dist_atr": (price - profile.get('poc', 0)) / atr if valid else 0,
+            "vah_dist_atr": (price - profile.get('vah', 0)) / atr if valid else 0,
+            "val_dist_atr": (price - profile.get('val', 0)) / atr if valid else 0
         }
 
     def _refine_topography(self, profile: Dict[str, Any], nodes: Dict[str, List], atr_macro: float, current_price: float) -> Dict[str, Any]:
