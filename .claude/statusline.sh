@@ -66,14 +66,14 @@ fi
 # ── 代码增删 ──────────────────────────────────────────────────────────
 LINES=""
 if [ "$ADDED" -gt 0 ] || [ "$REMOVED" -gt 0 ]; then
-    LINES=" ${C_GREEN}+${ADDED}${C_RESET}/${C_RED}-${REMOVED}${C_RESET}"
+    LINES="${C_GREEN}+${ADDED}${C_RESET}/${C_RED}-${REMOVED}${C_RESET}"
 fi
 
 # ── Effort icon ────────────────────────────────────────────────────────
 EFFORT_ICON=""
 case "$EFFORT" in
-  ultracode) EFFORT_ICON="⚡⚡ " ;;
-  max)       EFFORT_ICON="⚡ " ;;
+  ultracode) EFFORT_ICON="⚡⚡" ;;
+  max)       EFFORT_ICON="⚡" ;;
   xhigh)     EFFORT_ICON="◆ " ;;
   high)      EFFORT_ICON="◇ " ;;
   medium)    EFFORT_ICON="◦ " ;;
@@ -83,14 +83,14 @@ esac
 # ── 构建第 1 段：身份 + 增删 ───────────────────────────────────────────
 SEG1="${C_CYAN}${REPO}${C_RESET}"
 [ -n "$BRANCH" ] && SEG1="${SEG1} ${C_MAGENTA}${BRANCH}${C_RESET}"
-SEG1="${SEG1}${LINES}"
+# LINES moved to SEG2
 
 # ── 构建第 2 段：时长 + 上下文 ─────────────────────────────────────────
-SEG2="⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR}${EXCEEDS_ICON}${C_RESET}"
+SEG2="${LINES}  ⏱ ${DUR_FMT}  ${BAR_COLOR}${BAR}${EXCEEDS_ICON}${C_RESET}"
 
 # ── 构建第 3 段：模型 + effort ─────────────────────────────────────────
-SEG3="${MODEL}  ${EFFORT_ICON}${EFFORT}"
+SEG3="${MODEL} ${EFFORT_ICON}${EFFORT}"
 
 # ── 渲染 ──────────────────────────────────────────────────────────────
-printf "%b" "${SEG1} │ ${SEG2} │ ${SEG3}"
+printf "%b" "${SEG1}  │  ${SEG2}  │  ${SEG3}"
 echo
