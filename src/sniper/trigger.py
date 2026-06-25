@@ -216,9 +216,10 @@ class SniperTrigger:
         'ETHUSDT': 0.75,
     }
 
-    def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None):
+    def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):
         self.last_trigger_time: Optional[datetime] = None
         self.last_trigger_score: Optional[float] = None
+        self.symbol: Optional[str] = symbol
 
         # Config loading
         from src.utils.pipeline_utils import load_combined_config, load_global_config

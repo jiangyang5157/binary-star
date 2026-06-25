@@ -67,6 +67,7 @@ class SniperDaemon:
             self.triggers[sym] = SniperTrigger(
                 strategy_cfg=self.scouts[sym].strategy_cfg,
                 global_cfg=self.scouts[sym].global_cfg,
+                symbol=sym,
             )
             logger.info(f"SniperDaemon [{sym}]: Trigger Cooldown is active at {self.triggers[sym].cooldown_minutes}m.")
 
