@@ -559,17 +559,18 @@ class MarginOrderExecutor:
         best_tp = new_tp
         best_sl = new_sl
 
-        # Pick the tightest SL (less risk) and widest TP (more reward)
+        # TP: greedy mode — keep widest TP (more reward)
+        # SL: risk mode — keep tightest SL (less loss)
         if direction == "LONG":
             if current_tps:
-                best_tp = max(max(current_tps), new_tp) # Higher TP is better
+                best_tp = max(max(current_tps), new_tp)  # Higher TP = wider
             if current_sls:
-                best_sl = max(max(current_sls), new_sl) # Higher SL is less loss
-        else: # SHORT
+                best_sl = max(max(current_sls), new_sl)  # Higher SL = tighter
+        else:  # SHORT
             if current_tps:
-                best_tp = min(min(current_tps), new_tp) # Lower TP is better
+                best_tp = min(min(current_tps), new_tp)  # Lower TP = wider
             if current_sls:
-                best_sl = min(min(current_sls), new_sl) # Lower SL is less loss
+                best_sl = min(min(current_sls), new_sl)  # Lower SL = tighter
 
         logger.info(f"Executor: Final Strategic Targets -> TP: {best_tp} (Opinion: {new_tp}), SL: {best_sl} (Opinion: {new_sl})")
 
