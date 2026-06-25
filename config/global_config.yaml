@@ -115,71 +115,105 @@ sniper:
     proximity_poc_atr: 0.50       # POC magnet / gravity test
     proximity_liq_atr: 0.40       # Liquidation cluster magnet
 
-  # --- Signal Stack Engine ---
+  # --- 信号栈引擎 (Signal Stack Engine) ---
+  # 14 个信号检测器 × 5 个类别，0-1 连续打分，方向堆叠 + 噪声抵消。
+  # 多源弱信号可聚沙成塔（1−∏(1−s)），单个强信号可独当一面。
   signal_stack:
-    # Base threshold for confluence score to trigger AI session
-    trigger_threshold: 0.35
-    # Emergency override: fire immediately if any single signal exceeds this
-    emergency_threshold: 0.85
-    # Regime modifiers (multiplied with trigger_threshold)
-    regime_modifiers:
-      trending: 0.85
-      ranging: 1.15
-      squeeze: 0.70
-      chaos: 1.50
-    # Decay half-lives (minutes) per signal category
-    decay:
-      flow_tick: 4
-      flow_macro: 15
-      energy: 20
-      sentiment: 60
-      structural: 10
 
-    # --- Adaptive Cooldown ---
+    # —— 基准触发阈值 ——
+    # confluence_score ≥ 此值即触发 AI session（regime 会乘修正系数）。
+    # 要达到 0.35，约需 2-3 个弱信号协同或 1 个中强信号。
+    # 设太低 → 噪声误触发；设太高 → 永远不触发。
+    trigger_threshold: 0.35
+
+    # —— 紧急越级通道 ——
+    # 当任意单个信号的 raw strength（不加权）≥ 此值时，绕过所有冷却和门槛直接触发。
+    # 定位是"打破冷却的最后手段"，不应成为常态后门。
+    # 0.80：信号需达到最大可能强度的 ~80%，大约一周触发一次。
+    # 0.75 太容易（每天可能触发），0.85 基本永远不触发（形同虚设）。
+    emergency_threshold: 0.80
+
+    # —— 体制自适应修正系数 ——
+    # 与 trigger_threshold 相乘得到有效阈值。原理：
+    #   squeeze：压缩是 breakout precursor → 最低门槛，提前就位
+    #   trending：趋势有惯性 → 次低门槛，顺势信号可靠性高
+    #   ranging：震荡假突破多 → 抬高门槛，要求更多信号确认
+    #   chaos：极端波动全是噪声 → 几乎锁死，只靠 emergency 突破
+    regime_modifiers:
+      trending: 0.85    # 有效阈值 0.35×0.85=0.298
+      ranging: 1.0      # 有效阈值 0.35×1.0=0.35（震荡不惩罚不奖励，中性）
+      squeeze: 0.75     # 有效阈值 0.35×0.75=0.2625
+      chaos: 1.50       # 有效阈值 0.35×1.50=0.525
+
+    # —— 信号半衰期（分钟）——
+    # 每隔此时间信号强度减半。按信号物理生命周期设计：
+    #   flow_tick：CVD tick 级变化最快，一笔大单就能翻转
+    #   structural：VP 结构随新 K 线漂移，比 tick 慢但比 sentiment 快
+    #   flow_macro：15 分钟级 CVD 趋势需更多 K 线确认
+    #   energy：波动率体制切换慢，ATR 不会瞬间翻倍
+    #   sentiment：散户持仓 + 资金费率是慢变量，不会几分钟集体转向
+    decay:
+      flow_tick: 6       # 原 4min，2min pulse 下半衰过快（1 pulse 掉 29%）
+      flow_macro: 15     # 15 分钟级趋势信号
+      energy: 20         # 波动率状态变化慢
+      sentiment: 60      # LS ratio / funding rate 是慢变量
+      structural: 10     # VP HVN/LVN 锚点漂移速度
+
+    # —— 自适应冷却 (Adaptive Cooldown) ——
+    # 触发后进入冷却期，防止同一信号反复触发浪费 token。
+    # 体制越不可靠，冷却越长。三种破例方式：
+    #   1) 新信号强度 > 上次触发分 × break_on_strength_ratio → 打破冷却
+    #   2) 累积 ≥ stacked_break_count 个新信号 → 打破冷却
+    #   3) 自上次触发已过 break_min_gap_minutes（绝对最小间隔）
     cooldown:
       regime_base_minutes:
-        trending: 25
-        ranging: 45
-        squeeze: 20
-        chaos: 60
-      break_on_strength_ratio: 1.8
-      break_min_gap_minutes: 10
-      stacked_break_count: 3
+        trending: 25     # 趋势中允许较快重新触发
+        ranging: 45      # 震荡中延长，减少反复触发
+        squeeze: 25      # 对齐 trending
+        chaos: 60        # 混沌中几乎禁止
+      break_on_strength_ratio: 1.8     # 新信号强度 > 上次 × 1.8 才破例
+      break_min_gap_minutes: 10        # 绝对最小间隔，同信号不重复
+      stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
 
-    # --- Pre-Trigger Validation Gate ---
+    # —— 预触发确定性门禁 (Pre-Trigger Gate) ——
+    # 在消耗 LLM token 之前，用纯数学过滤不可交易场景。
+    # 四项检查全部可独立开关。
     gate:
       enabled: true
       checks:
-        entry_feasibility: true
-        rr_feasibility: true
-        directional_sanity: true
-        chaos_survival: true
-      # [Sniper 专属] 当前价格离最近结构锚点的最大 ATR 距离。
-      # 超过此阈值拒绝触发，避免在结构真空区浪费 LLM token。
-      # 独立于策略层 max_entry_distance_atr（策略层校验 entry 合理性）。
+        entry_feasibility: true    # 价格离最近结构锚点太远 → 拒绝（结构真空区不能交易）
+        rr_feasibility: true       # 盈亏比不够 → 拒绝
+        directional_sanity: true   # 逆势无 CV D确认 → 拒绝
+        chaos_survival: true       # 混沌中追方向信号 → 拒绝
+      # 当前价格离最近 HVN 的最大 ATR 距离。超过此值拒绝触发。
+      # 4.0 对 BTC（ATR~590）≈ $2360，主要过滤极端真空区。
+      # XAUT 通过 symbol_config.yaml 覆盖为 2.0（ATR~26，≈$52）。
       max_price_to_structure_atr: 4.0
 
-    # --- Per-Signal Confidence Weights (evolvable) ---
+    # —— 信号置信度权重（可被 Evolution 进化）——
+    # 设计原则：结构性/流动性信号 > 情绪/反向信号。
+    # squeeze 和 trend_pullback 权重最高——经过回测验证的高胜率 pattern。
+    # retail_extreme 和 leader_sync 权重最低——反向指标可能更极端，跨币种相关性噪声大。
     weights:
-      # FLOW
-      cvd_momentum: 0.65
-      cvd_divergence: 0.70
-      cvd_absorption: 0.65
-      taker_imbalance: 0.60
-      # ENERGY
-      volatility_surge: 0.55
-      squeeze: 0.75
-      # STRUCTURAL
-      boundary_test: 0.50
-      poc_gravity: 0.55
-      liquidation_hunt: 0.60
-      trend_pullback: 0.75
-      # POSITIONING
-      retail_extreme: 0.42
-      oi_divergence: 0.70
-      oi_surge: 0.55
-      # CROSS-SYMBOL
-      leader_sync: 0.40
+      # FLOW — 资金流（快变量，可靠但短命）
+      cvd_momentum: 0.65      # CVD 方向：可靠，但可能瞬间翻转
+      cvd_divergence: 0.70    # CVD-价格背离：强信号，聪明钱 vs 散户
+      cvd_absorption: 0.65    # CVD 吸收：挂单墙被吃掉，方向确认
+      taker_imbalance: 0.60   # 主动买卖比：中等可靠，需配合
+      # ENERGY — 波动能量
+      volatility_surge: 0.55  # 波动率激增：不具方向性，需叠加其他信号
+      squeeze: 0.75           # 布林带压缩：最佳前置信号，突破 precursor
+      # STRUCTURAL — 结构锚点
+      boundary_test: 0.50     # VAH/VAL 触碰：假突破多，权重最低
+      poc_gravity: 0.55       # POC 磁吸：成交量最大处有引力
+      liquidation_hunt: 0.60  # 猎杀流动性：需方向配合，单独不够
+      trend_pullback: 0.75    # 趋势回调到结构位：高胜率 setup
+      # POSITIONING — 持仓情绪（反向指标，可能更极端）
+      retail_extreme: 0.42    # 散户极端持仓：反向信号但散户可以更疯
+      oi_divergence: 0.70     # OI-价格背离：强信号，持仓 vs 价格方向矛盾
+      oi_surge: 0.55          # OI 单边激增：方向不明，可能开仓也可能平仓
+      # CROSS-SYMBOL — 跨币种联动
+      leader_sync: 0.40       # 龙头带动：相关性噪声大，仅作辅助叠加
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Trailing Stop + Time Stop)

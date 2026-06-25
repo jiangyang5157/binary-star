@@ -1085,7 +1085,7 @@ class SniperTrigger:
             evidence = {'trigger': 'ls_long', 'ls_ratio': ls}
         elif ls < cfg['short_heavy_imbalance_ratio']:
             direction = Direction.BULLISH
-            strength = min((1.0 - ls) / max(1.0 - cfg['short_heavy_imbalance_ratio'] * 2, 0.01), 1.0)
+            strength = min((1.0 - ls) / ((1.0 - cfg['short_heavy_imbalance_ratio']) * 2), 1.0)
             evidence = {'trigger': 'ls_short', 'ls_ratio': ls}
 
         funding_threshold = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
