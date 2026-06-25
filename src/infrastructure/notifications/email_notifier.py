@@ -102,7 +102,7 @@ class SessionNotifier:
         """
         market_ts = obs.get("observed_at", '')
         if not market_ts:
-            return datetime.now().strftime("%Y%m%d_%H%M%S")
+            return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             
         return format_timestamp_for_filename(market_ts)
 

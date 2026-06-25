@@ -386,8 +386,8 @@ class BinaryStarOrchestrator:
             dt = parse_iso_to_utc(obs_ts)
             return dt.strftime(FILE_TIMESTAMP_FORMAT)
         except Exception:
-            from datetime import datetime
-            return datetime.now().strftime("%Y%m%d_%H%M%S")
+            from datetime import datetime, timezone
+            return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
     def _inject_regime_benchmarks(self, observation: Dict[str, Any]) -> None:
         """Pre-calculate static market constants to reduce Agent tool calls."""

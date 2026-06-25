@@ -18,7 +18,7 @@ def calculate_sized_qty(equity, risk_per_trade, entry, sl, p_qty, min_qty=0.0):
     max_loss = equity * risk_per_trade
     price_delta = abs(entry - sl)
     
-    if price_delta == 0:
+    if price_delta < 1e-12:
         raise ValueError("Stop loss distance is zero. Cannot calculate quantity.")
         
     target_qty = max_loss / price_delta

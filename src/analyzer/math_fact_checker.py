@@ -1,4 +1,5 @@
 """MathFactChecker — deterministic trade geometry verification."""
+import math
 import logging
 from typing import Any
 from src.utils.math_utils import MathToolsNamespace
@@ -46,6 +47,9 @@ class MathFactChecker:
             entry = float(tactical.get('entry', 0) or 0)
             sl = float(tactical.get('stop_loss', 0) or 0)
             tp = float(tactical.get('take_profit', 0) or 0)
+            # Reject non-finite prices (NaN, Inf, -Inf) before they reach the exchange
+            if not all(math.isfinite(v) and v > 0 for v in (entry, sl, tp)):
+                return {"status": "VERIFICATION_FAILURE", "reason": f"tactical_parameters contain non-finite or non-positive values (entry={entry}, sl={sl}, tp={tp})."}
 
             # Topography Metrics
             metrics = observation.get('quantitative_metrics', {})

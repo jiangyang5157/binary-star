@@ -27,10 +27,13 @@ static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# Mount data directory so chart images (e.g., data/prod/klines/*.png) are served
-data_dir = PROJECT_ROOT / "data"
-if data_dir.exists():
-    app.mount("/data", StaticFiles(directory=str(data_dir)), name="data")
+# Mount only chart image subdirectories (not raw session/audit data)
+klines_dir = PROJECT_ROOT / "data" / os.environ.get("DATA_ROOT", "prod") / "klines"
+if klines_dir.exists():
+    app.mount("/klines", StaticFiles(directory=str(klines_dir)), name="klines")
+html_dir = PROJECT_ROOT / "data" / os.environ.get("DATA_ROOT", "prod") / "html"
+if html_dir.exists():
+    app.mount("/html", StaticFiles(directory=str(html_dir)), name="html")
 
 app.include_router(sessions_router)
 app.include_router(audits_router)

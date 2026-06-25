@@ -144,6 +144,8 @@ class BinanceFuturesClient(AbstractExchangeClient):
             logger.error(f"Binance: Klines fetch failed for {symbol}: {e.error_message}")
             return []
         except Exception as e:
+            if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                raise
             logger.error(f"Binance: Unexpected error during kline pagination: {e}", exc_info=True)
             return []
 
@@ -263,6 +265,8 @@ class BinanceFuturesClient(AbstractExchangeClient):
             logger.error(f"Binance: Open Interest fetch failed for {symbol}: {e.error_message}")
             return []
         except Exception as e:
+            if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                raise
             logger.error(f"Binance: Unexpected error in OI fetch for {symbol}: {e}")
             return []
 
@@ -301,6 +305,8 @@ class BinanceFuturesClient(AbstractExchangeClient):
             logger.error(f"Binance: Taker L/S Ratio fetch failed for {symbol}: {e.error_message}")
             return []
         except Exception as e:
+            if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                raise
             logger.error(f"Binance: Unexpected error in Taker L/S Ratio fetch: {e}")
             return []
 
@@ -342,5 +348,14 @@ class BinanceFuturesClient(AbstractExchangeClient):
         return (now_ms - timestamp_ms) < thirty_days_ms
 
     def close(self):
-        """Closes the client connection (placeholder for session cleanup)."""
-        pass
+        """Closes the underlying HTTP session to prevent connection leaks."""
+        try:
+            self.client.session.close()
+        except Exception:
+            pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()

@@ -53,7 +53,10 @@ class SniperStartRequest(BaseModel):
 # ── Helpers ─────────────────────────────────────────────────────────────
 
 def _resolve_data_root(value: str) -> str:
-    return value or os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+    resolved = value or os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+    if ".." in resolved:
+        raise HTTPException(status_code=400, detail="data_root contains path traversal")
+    return resolved
 
 
 def _read_sniper_status(data_root: str) -> dict | None:

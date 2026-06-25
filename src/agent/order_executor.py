@@ -579,8 +579,17 @@ class MarginOrderExecutor:
             logger.error("Executor: [ABORT OPTIMIZATION] Failed to cancel existing OCOs. Original protection remains active.")
             return True  # Position still intact (original OCOs untouched)
 
-        # Calculate buffered SL Limit (Slippage protection)
+        # Re-verify position after cancel — a fill during the cancel window can change qty
         trade_cfg = self._get_trade_config(symbol)
+        pos = self.client.get_symbol_position(symbol)
+        live_qty = abs(pos.net_qty) if pos else 0.0
+        if live_qty <= 0:
+            logger.warning("Executor: [OPTIMIZE] Position vanished after cancel — nothing to protect.")
+            return True
+        if abs(live_qty - abs(net_qty)) > trade_cfg.get("net_qty_tolerance", 1e-8):
+            logger.warning(f"Executor: [OPTIMIZE] Qty changed after cancel ({net_qty} → {live_qty}). Using live qty.")
+
+        # Calculate buffered SL Limit (Slippage protection)
         buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
         # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
         buffered_sl = best_sl + (buffer if direction == "SHORT" else -buffer)
@@ -589,7 +598,7 @@ class MarginOrderExecutor:
         success = self.client.place_oco_order(
             symbol=symbol,
             side=exit_side,
-            qty=abs(net_qty),
+            qty=live_qty,
             price=best_tp,
             stop_price=best_sl,
             stop_limit_price=buffered_sl 
@@ -688,7 +697,7 @@ class MarginOrderExecutor:
         
         # 4. Calculate Distance
         price_delta = abs(entry_price - sl_price)
-        if price_delta <= 0:
+        if price_delta < 1e-12:
             logger.error(f"Executor: Invalid Stop Loss (Delta = 0). Fallback to minimal qty: {min_qty}")
             return min_qty
 

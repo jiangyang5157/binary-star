@@ -135,7 +135,7 @@ class SniperDaemon:
                 # ── 2. TRIGGER: independent evaluation per symbol ──
                 if not metrics:
                     logger.warning("SniperDaemon: All scouts returned empty metrics. Skipping trigger/AI phase.")
-                now_str = datetime.now().strftime("%H:%M:%S")
+                now_str = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 symbol_results: dict[str, 'TriggerResult'] = {}
 
                 for sym in self.symbols:

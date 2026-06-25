@@ -3,7 +3,7 @@ import os
 import sys
 import logging
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict
 from dotenv import load_dotenv
 
@@ -63,9 +63,9 @@ class EvolutionEngine:
     def run_cycle(self, sample_size: int):
         """Standard Operating Procedure for the Universal Evolver."""
         self.logger.info("="*60)
-        self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now().isoformat()}")
-        self.logger.info("="*60)
-        from datetime import timezone
+        self.logger.info("=" * 60)
+        self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now(timezone.utc).isoformat()}")
+        self.logger.info("=" * 60)
         evolver_at_dt = datetime.now(timezone.utc)
         evolver_at = evolver_at_dt.isoformat()
         ts_compact = evolver_at_dt.strftime("%Y%m%d_%H%M%S")
@@ -169,7 +169,7 @@ class EvolutionEngine:
         self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id}")
         self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
-        timestamp_now = datetime.now().strftime("%H:%M:%S")
+        timestamp_now = datetime.now(timezone.utc).strftime("%H:%M:%S")
         self.logger.info(f"--- Evolution Cycle Complete | Duration: {timestamp_now} ---")
 
 def main():
