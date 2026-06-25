@@ -1,3 +1,4 @@
+import math
 import os
 import re
 from typing import Any
@@ -300,6 +301,15 @@ class BaseAgent:
         if parsed is None:
             logger.error(f"BaseAgent: {agent_name} returned malformed JSON: {text[:200]}...")
             raise MalformedJSONError(raw_text=text, agent_name=agent_name)
+        # Clamp confidence_score to valid range [0, 100] — guard against hallucinated values
+        if "confidence_score" in parsed:
+            try:
+                cs = float(parsed["confidence_score"])
+                if not math.isfinite(cs):
+                    cs = 0.0
+                parsed["confidence_score"] = max(0.0, min(100.0, cs))
+            except (TypeError, ValueError):
+                parsed["confidence_score"] = 0.0
         return parsed
 
     def _dispatch_tool_call(self, tc: ToolCall) -> Any:

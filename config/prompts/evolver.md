@@ -68,7 +68,7 @@ Determine the Mutation Vector based on MAE stress and telemetry forensics:
 # ACTION_DICTIONARY
 These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
 
-- **`NO-OP`**: Termination signal. Output an empty JSON patch.
+- **`NO-OP`**: Termination signal. Output `"config_patch": []` and `"semantic_refinement": []` (empty arrays, NOT null/missing).
 - **`EXPAND_DEFENSE`**: Mutation of "Safety" parameters.
   - Logic: If current buffers are too shallow, increase them.
   - Schema: Use `config_patch` to target buffers (e.g., `{structural_buffer_atr}`).

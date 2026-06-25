@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.infrastructure.exchange.models import MarginOrder
 from src.utils.logger_utils import setup_logger
+from src.utils.exceptions import ConfigurationError
 
 logger = setup_logger(__name__)
 
@@ -320,8 +321,10 @@ class MarginOrderExecutor:
             sl = trade_state.get("sl_price")
             
             if not tp or not sl:
-                logger.error("Guardian: Has position but no TP/SL in trade_state. Cannot protect!")
-                return trade_state
+                logger.critical("Guardian: Has position but no TP/SL in trade_state. Emergency closing position!")
+                self.client.cancel_all_symbol_orders(symbol)
+                self.client.execute_market_close(symbol)
+                return {}
 
             # Check if price has already breached SL
             current_price = self.client.get_ticker_price(symbol)
@@ -366,9 +369,10 @@ class MarginOrderExecutor:
                 if not trade_state.get("entry_filled_at"):
                     trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
             else:
-                logger.error("Guardian: [CRITICAL] Failed to place OCO protection! Position remains unprotected.")
-            
-            return trade_state
+                logger.critical("Guardian: [CRITICAL] Failed to place OCO protection! Emergency closing position.")
+                self.client.cancel_all_symbol_orders(symbol)
+                self.client.execute_market_close(symbol)
+                return {}
 
         # --- Case 4: Position is already protected → Progressive Trailing Stop ---
         logger.debug(f"Guardian: Position {direction} ({net_qty}) is protected.")
@@ -494,8 +498,9 @@ class MarginOrderExecutor:
             buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
             pos = self.client.get_symbol_position(symbol)
             if not pos:
-                logger.error("Guardian: [TRAILING STOP] Failed to get position for %s. Aborting migration.", symbol)
-                return trade_state
+                logger.critical("Guardian: [TRAILING STOP] Position vanished after cancel! Emergency closing %s.", symbol)
+                self.client.execute_market_close(symbol)
+                return {}
             success = self.client.place_oco_order(
                 symbol=symbol,
                 side=exit_side,
@@ -518,9 +523,9 @@ class MarginOrderExecutor:
                 return {}  # Clear trade state
                 
         except Exception as e:
-            logger.error(f"Guardian: [TRAIL] Migration failed: {e}", exc_info=True)
-        
-        return trade_state
+            logger.critical(f"Guardian: [TRAIL] Migration exception after cancel — emergency closing {symbol}: {e}", exc_info=True)
+            self.client.execute_market_close(symbol)
+            return {}
 
     # ================================================================
     # SAME-DIRECTION OPTIMIZATION
@@ -613,6 +618,18 @@ class MarginOrderExecutor:
             "trailing_sl_offset_atr_level_3": float(trailing.get("trailing_sl_offset_atr_level_3", 1.5)),
             "time_stop_multiplier": float(time_stop.get("time_stop_multiplier", 1.5)),
         }
+
+        # Validate monotonic ordering — misconfigured levels silently break trailing stop
+        l1 = result["trailing_profit_atr_level_1"]
+        l2 = result["trailing_profit_atr_level_2"]
+        l3 = result["trailing_profit_atr_level_3"]
+        o2 = result["trailing_sl_offset_atr_level_2"]
+        o3 = result["trailing_sl_offset_atr_level_3"]
+        if not (0 < l1 < l2 < l3):
+            raise ConfigurationError(f"guardian.trailing levels must be 0 < l1 < l2 < l3, got {l1}, {l2}, {l3}")
+        if not (0 < o2 < o3):
+            raise ConfigurationError(f"guardian.trailing offsets must be 0 < o2 < o3, got {o2}, {o3}")
+        return result
 
     def _get_trade_config(self, symbol: str):
         """Returns strict trade configuration. Raises KeyError if symbol not configured."""

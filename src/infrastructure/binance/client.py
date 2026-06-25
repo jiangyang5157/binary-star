@@ -109,7 +109,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                     for attempt in self._get_retryer("klines_paginated"):
                         with attempt:
                             chunk = self.client.klines(symbol=symbol, interval=interval, limit=fetch_count, **current_kwargs)
-                except (ClientError, Exception) as e:
+                except ClientError as e:
                     raise RuntimeError(
                         f"Binance: Chunk fetch failed mid-pagination for {symbol} "
                         f"({len(all_klines)} klines accumulated, {remaining} remaining). "

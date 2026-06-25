@@ -9,6 +9,7 @@ confluence score exceeds a regime-adaptive threshold.
 See docs/trigger-design-20260625.md for the full design specification.
 """
 
+import math
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -59,7 +60,8 @@ class SignalCard:
     @property
     def weighted_score(self) -> float:
         """Effective score used in confluence stacking."""
-        return self.strength * self.confidence
+        result = self.strength * self.confidence
+        return 0.0 if math.isnan(result) else result
 
     def decayed_strength(self, now: datetime) -> float:
         """Strength after applying temporal decay (half-life formula)."""
@@ -161,6 +163,9 @@ class ConfluenceEngine:
             raw_score = bearish_score
 
         confluence_score = raw_score * noise_factor
+        if math.isnan(confluence_score):
+            logger.warning("ConfluenceEngine: NaN confluence detected — returning 0.0")
+            return 0.0, Direction.NEUTRAL
         return confluence_score, dominant
 
     def evaluate(self, signals: List[SignalCard], regime: str,
@@ -1103,7 +1108,7 @@ class SniperTrigger:
         if not self._check_state_lock("AMBIENT_SENTIMENT", now):
             return None
 
-        confidence = self.signal_weights.get('retail_extreme', 0.43)
+        confidence = self.signal_weights.get('retail_extreme', 0.42)
 
         return SignalCard(
             signal_id=self._make_id('retail_extreme', now),

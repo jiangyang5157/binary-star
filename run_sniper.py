@@ -416,7 +416,7 @@ class SniperDaemon:
                         account_balance = round(a.net_asset, 2)
                         break
             except Exception as e:
-                logger.debug(f"SniperDaemon: Account balance fetch skipped ({e})")
+                logger.warning(f"SniperDaemon: Account balance fetch skipped ({e})")
 
             # Use guardian data already harvested — no extra position/order API calls
             symbols_data = {}

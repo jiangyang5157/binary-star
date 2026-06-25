@@ -88,7 +88,9 @@ class EvolutionEngine:
                     report_preview = load_json(os.path.join(audit_dir, f))
                     if report_preview.get("symbol") == self.symbol:
                         files.append(f)
-                except: continue
+                except Exception as e:
+                    logger.warning(f"Failed to read audit file {f}: {e}")
+                    continue
 
         if not files:
             self.logger.warning(f"No audit reports found for {self.symbol}. No evolutionary pressure detected.")

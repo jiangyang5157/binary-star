@@ -654,7 +654,7 @@ class MarketObserver:
                     f"is below recommended warmup ({macro_warmup}). Indicator drift possible."
                 )
         except Exception as e:
-            logger.debug(f"Warmup audit skipped: {e}")
+            logger.warning(f"Warmup audit skipped: {e}")
 
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True) -> Dict[str, Any]:
         """Executes a complete market mapping cycle."""

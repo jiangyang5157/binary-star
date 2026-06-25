@@ -155,7 +155,8 @@ class SessionEngine:
             # Resource Hygiene: Purge context caches
             try:
                 self.orchestrator.cache_manager.delete_market_cache()
-            except: pass
+            except Exception as e:
+                logger.warning(f"Failed to delete market cache: {e}")
 
 
 class SessionController:
@@ -178,7 +179,8 @@ class SessionController:
         logger.warning(f"Termination signal received. Cleaning up context caches...")
         try:
             self.engine.orchestrator.cache_manager.delete_market_cache()
-        except: pass
+        except Exception as e:
+            logger.warning(f"Failed to delete market cache during shutdown: {e}")
         sys.exit(0)
 
     def run(self):
