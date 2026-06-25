@@ -24,6 +24,7 @@ class SniperStartRequest(BaseModel):
     symbol_prefix: str
     trade: bool = False
     balance: float | None = None
+    llm: bool = False  # enable AI session dispatch (--trade implies --llm)
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────
@@ -101,6 +102,8 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query("")):
         "--symbol", csv_arg,
         "-p", data_root,
     ]
+    if req.llm or req.trade:
+        cmd.append("--llm")
     if req.trade:
         if balance is not None:
             cmd.extend(["--trade", str(balance)])
