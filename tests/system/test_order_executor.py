@@ -347,3 +347,70 @@ def test_flat_to_short():
     client.execute_market_close.assert_not_called()
     client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="SELL", qty=ANY, price=66000)
     assert order_id == 12345
+
+
+# ================================================================
+# GUARDIAN EDGE CASE TESTS
+# ================================================================
+
+def test_guardian_position_flat_no_entry_cleanup():
+    """Position went flat after being filled — clean up stray orders and state."""
+    executor, client = _make_executor()
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", 0.0, 0.0, 0.0, 0.0)
+    client.get_active_orders.return_value = []
+
+    trade_state = {
+        "direction": "LONG",
+        "tp_price": 76000,
+        "sl_price": 73000,
+        "entry_filled_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+    }
+
+    result = executor.guardian_check("BTCUSDT", trade_state)
+
+    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
+    assert result == {}
+
+
+def test_guardian_partial_sl_fill_rebuilds_oco_with_remaining_qty():
+    """SL partially filled (0.04 of 0.068) — remaining 0.028 gets new OCO."""
+    executor, client = _make_executor()
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", -0.028, 0.0, 0.0, 0.0)
+    client.get_active_orders.return_value = []  # SL order consumed (partial fill + cancel)
+    client.get_ticker_price.return_value = 65000  # price recovered, not breached
+
+    trade_state = {
+        "direction": "SHORT",
+        "tp_price": 63000,
+        "sl_price": 66000,
+        "entry_filled_at": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
+    }
+
+    result = executor.guardian_check("BTCUSDT", trade_state)
+
+    # Should place OCO for remaining qty=0.028
+    client.place_oco_order.assert_called_once()
+    call_kwargs = client.place_oco_order.call_args.kwargs
+    assert call_kwargs["qty"] == 0.028
+    assert call_kwargs["side"] == "BUY"  # close SHORT = BUY
+    assert "entry_order_id" not in result
+    assert result["direction"] == "SHORT"
+
+
+def test_guardian_position_flat_without_entry_filled_at():
+    """Position flat, no entry_order_id, no entry_filled_at — still cleans up."""
+    executor, client = _make_executor()
+    client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", 0.0, 0.0, 0.0, 0.0)
+    client.get_active_orders.return_value = []
+
+    trade_state = {
+        "direction": "LONG",
+        "tp_price": 76000,
+        "sl_price": 73000,
+        # no entry_filled_at
+    }
+
+    result = executor.guardian_check("BTCUSDT", trade_state)
+
+    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
+    assert result == {}
