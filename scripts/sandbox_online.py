@@ -30,7 +30,8 @@ def main():
     data_root = os.path.join(root, data_root_rel)
     
     log_path = os.path.join(data_root, "sandbox_online.log")
-    setup_logger("", log_file=log_path)
+    setup_logger("", log_file=log_path,
+                 max_bytes=10 * 1024 * 1024, backup_count=5)
     logger = logging.getLogger("SandboxOnline")
     
     # 2. Load Proposal

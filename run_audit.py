@@ -69,7 +69,8 @@ def process_audit_file(file_path: str, controller: AuditController, data_root: s
 controller = None
 def worker_init(log_path, config, data_root):
     global logger, controller
-    setup_logger("", log_file=log_path)
+    setup_logger("", log_file=log_path,
+                 max_bytes=10 * 1024 * 1024, backup_count=5)
     logger = logging.getLogger("AuditWorker")
     controller = AuditController(config_dict=config, data_root=data_root, logger=logger)
 
@@ -101,7 +102,8 @@ def main():
     # Root-level configuration catches all sub-modules (Assembler, Observer, Notifier, etc.)
     global logger
     log_path = os.path.join(data_root, "audit.log")
-    setup_logger("", log_file=log_path)
+    setup_logger("", log_file=log_path,
+                 max_bytes=10 * 1024 * 1024, backup_count=5)
     logger = logging.getLogger("Audit")
     
     # 4. Initialize the Audit Controller (The Orchestrator)

@@ -150,7 +150,8 @@ def _cmd_audit(args):
     config = load_combined_config()
 
     log_path = os.path.join(data_root, "audit.log")
-    setup_logger("", log_file=log_path)
+    setup_logger("", log_file=log_path,
+                 max_bytes=10 * 1024 * 1024, backup_count=5)
     logger_audit = logging.getLogger("Audit")
 
     controller = AuditController(config_dict=config, data_root=data_root,

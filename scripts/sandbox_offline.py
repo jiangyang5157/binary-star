@@ -50,7 +50,8 @@ def main():
     data_root = os.path.join(root, args.path)
 
     log_path = os.path.join(data_root, "sandbox_offline.log")
-    setup_logger("", log_file=log_path)
+    setup_logger("", log_file=log_path,
+                 max_bytes=10 * 1024 * 1024, backup_count=5)
     logger = logging.getLogger("SandboxOffline")
 
     # 2. Load sandbox report

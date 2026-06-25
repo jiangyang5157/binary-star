@@ -63,9 +63,12 @@ class MetricsCollector:
     Also emits a compact INFO summary every `summary_every` pulses.
     """
 
-    def __init__(self, data_root: str, summary_every: int = 10):
+    def __init__(self, data_root: str, summary_every: int = 10,
+                 max_bytes: int = 10 * 1024 * 1024, backup_count: int = 5):
         self.data_root = data_root
         self.summary_every = summary_every
+        self.max_bytes = max_bytes
+        self.backup_count = backup_count
         self._count = 0
         self._triggers_since_summary = 0
         self._sessions_since_summary = 0
@@ -73,6 +76,21 @@ class MetricsCollector:
         self._errors_since_summary = 0
         self._warnings_since_summary = 0
         self._pulse_latencies: deque[float] = deque(maxlen=summary_every)
+
+    def _rotate_if_needed(self):
+        """Rotate metrics.jsonl if it exceeds max_bytes. Keeps backup_count old files."""
+        try:
+            if os.path.exists(self.metrics_path):
+                if os.path.getsize(self.metrics_path) >= self.max_bytes:
+                    for i in range(self.backup_count - 1, 0, -1):
+                        src = f"{self.metrics_path}.{i}"
+                        dst = f"{self.metrics_path}.{i + 1}"
+                        if os.path.exists(src):
+                            os.replace(src, dst)
+                    bak = f"{self.metrics_path}.1"
+                    os.replace(self.metrics_path, bak)
+        except Exception:
+            pass  # best-effort; never crash the main loop
 
     @property
     def metrics_path(self) -> str:
@@ -93,7 +111,8 @@ class MetricsCollector:
         self._errors_since_summary += errors
         self._warnings_since_summary += warnings
 
-        # Write JSONL entry
+        # Write JSONL entry (with size-based rotation)
+        self._rotate_if_needed()
         entry = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "pulse": self._count,
@@ -137,10 +156,11 @@ class MetricsCollector:
 _collector: Optional[MetricsCollector] = None
 
 
-def init_metrics(data_root: str, summary_every: int = 10) -> MetricsCollector:
+def init_metrics(data_root: str, summary_every: int = 10,
+                 max_bytes: int = 10 * 1024 * 1024, backup_count: int = 5) -> MetricsCollector:
     """Initialize the global metrics collector. Call once at daemon startup."""
     global _collector
-    _collector = MetricsCollector(data_root, summary_every)
+    _collector = MetricsCollector(data_root, summary_every, max_bytes, backup_count)
     return _collector
 
 

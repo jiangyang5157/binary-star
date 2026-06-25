@@ -36,7 +36,8 @@ class EvolutionEngine:
         
         # Setup system-wide logging with physical persistence in data_root
         log_path = os.path.join(self.data_root, "evolution.log")
-        setup_logger("", log_file=log_path) # Empty string means Root Logger
+        setup_logger("", log_file=log_path,
+                     max_bytes=10 * 1024 * 1024, backup_count=5)
         self.logger = logging.getLogger("EvolutionEngine")
         
         # Resolve API key based on active provider (decoupled)
