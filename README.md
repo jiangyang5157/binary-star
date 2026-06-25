@@ -11,8 +11,10 @@ AI-driven crypto quantitative trading engine. Its core innovation is the **Binar
 ```
 Entry Points (run.py + standalone run_*.py)
   → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
+  → Sniper (src/sniper/)                 SniperScout (market harvest), SniperTrigger + ConfluenceEngine (14-signal stack)
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
+  → Trade Execution (src/agent/)         MarginOrderExecutor (order lifecycle + Guardian position protection)
   → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
   → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
   → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
@@ -391,6 +393,22 @@ python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_2
 
 # Clean NEUTRAL session reports
 python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
+
+# Market reconnaissance snapshot
+python scripts/market_recon.py --symbol BTC -p data/prod
+
+# Reverse-engineer strategy from session
+python scripts/export_session.py -f data/prod/sessions/BTCUSDT_session_20260101_120000.json
+
+# Check Binance cross-margin state
+python scripts/check_margin_state.py
+
+# Offline/online shadow sandbox backtesting
+python scripts/sandbox_offline.py -p data/prod --symbol BTC --samples 20
+python scripts/sandbox_online.py -p data/prod --symbol BTC
+
+# LLM connectivity diagnostic
+python scripts/diagnostic_models.py
 
 ```
 

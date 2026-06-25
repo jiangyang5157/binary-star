@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run all tests (150 tests)
+# Run all tests (166 tests)
 python -m pytest tests/ -v
 
 # Run a single test file
@@ -62,6 +62,22 @@ python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_2
 # Clean NEUTRAL session reports
 python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
 
+# Market reconnaissance snapshot
+python scripts/market_recon.py --symbol BTC -p data/prod
+
+# Reverse-engineer strategy from session
+python scripts/export_session.py -f data/prod/sessions/BTCUSDT_session_20260101_120000.json
+
+# Check Binance cross-margin state
+python scripts/check_margin_state.py
+
+# Offline/online sandbox backtesting
+python scripts/sandbox_offline.py -p data/prod --symbol BTC --samples 20
+python scripts/sandbox_online.py -p data/prod --symbol BTC
+
+# LLM connectivity diagnostic
+python scripts/diagnostic_models.py
+
 ```
 
 ## Architecture
@@ -73,8 +89,10 @@ This is **Singularity** — an AI-driven crypto quantitative trading engine. Its
 ```
 Entry Points (run.py + standalone run_*.py)
   → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
+  → Sniper (src/sniper/)                 SniperScout (market harvest), SniperTrigger + ConfluenceEngine (14-signal stack)
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator, BinaryStarConfig
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
+  → Trade Execution (src/agent/)         MarginOrderExecutor (order lifecycle + Guardian position protection)
   → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
   → Exchange (src/infrastructure/)       AbstractExchangeClient (exchange/base_client.py) → Binance (binance/client.py, margin_client.py), models (exchange/models.py)
   → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
@@ -86,12 +104,21 @@ Entry Points (run.py + standalone run_*.py)
 
 ### AI backend (key design pattern)
 
-`AbstractAIClient` (in `src/infrastructure/ai_client.py`) is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` (in `src/infrastructure/ai_factory.py`) returns the right adapter based on `global_config.yaml` → `llm.active_provider`.
+`AbstractAIClient` (in `src/infrastructure/ai_client.py`) is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` (in `src/infrastructure/ai_factory.py`) returns the right adapter based on `global_config.yaml` → `llm.active_provider`. Adapter implementations live in `src/infrastructure/ai/`.
 
 - **`src/infrastructure/ai/`** — adapter implementations only: `GeminiAdapter`, `DeepSeekAdapter`, `QwenAdapter`, plus `_openai_helpers.py`.
 - **`OpenAICompatibleAdapter`** — shared base class for DeepSeek and Qwen. Adding a new OpenAI-compatible provider is a ~10-line subclass.
 - **`VisualPart`** — provider-agnostic multimodal content type (defined in `ai_client.py`). The orchestrator and agents use this; only `GeminiAdapter` and `GeminiCacheManager` convert to Gemini-native `types.Part`.
 - **`GeminiAdapter`** — the only adapter that touches `google.genai` types. Exposes `.raw_client` for cache operations. Only Gemini supports context caching (`supports_context_cache = True`).
+- **`AIFactory`** — centralized client creation (`src/infrastructure/ai_factory.py`). Reads `active_provider` from global config and returns the matching adapter. All entry points (`run.py`, `run_evolution.py`, `run_sniper.py`) must use `AIFactory.create_client()`, not raw SDK clients.
+
+### Sniper + Guardian subsystems
+
+The Sniper is a two-phase real-time monitoring and trading automaton:
+
+- **Phase 1 — Scout + Trigger** (`src/sniper/`): `SniperScout` harvests market data every 2 minutes; `SniperTrigger.evaluate()` runs the **ConfluenceEngine** over 14 signals across 5 categories (FLOW, ENERGY, STRUCTURAL, POSITIONING, CROSS-SYMBOL). Trigger fires when confluence score ≥ threshold.
+- **Phase 2 — AI Reasoning** (`run.py session`): Binary Star debate generates a trade blueprint on-demand.
+- **Guardian** (`src/agent/order_executor.py` → `MarginOrderExecutor`): Runs EVERY pulse regardless of trigger state. Protects open positions with OCO orders, progressive trailing stops, time-stops, and emergency market-close fallback. The entry point is `run_sniper.py` (`SniperDaemon`).
 
 ### Adversarial debate flow
 
@@ -140,6 +167,9 @@ config/
 - **`BinaryStarOrchestrator.execute_flow(observation, symbol)`** — public signature must not change
 - **`GeminiCacheManager`** (`src/infrastructure/gemini/cache_manager.py`) requires `GeminiAdapter` (only Gemini supports context caching); guarded by `self.enable_context_cache` check
 - **`run_evolution.py`** (and `run.py evolution`) must use `AIFactory.create_client()`, not raw SDK clients
+- **`run_sniper.py`** (and `run.py sniper`) must use `AIFactory.create_client()` for on-demand AI sessions
 - Non-Gemini adapters return `False` for `supports_context_cache`
 - **`get_tool_declarations()`** (`src/utils/math_utils.py`) — LLM function-calling schemas must stay in sync with actual implementations in `_MathToolsNamespace`
 - `VisualPart` is the only multimodal type in the orchestrator/agent layer — `google.genai.types` is isolated to `GeminiAdapter` and `GeminiCacheManager`
+- **`MarginOrderExecutor`** — `sync_with_opinion()` and Guardian OCO protection must never leave a position naked; emergency market-close is the fallback when OCO re-placement fails
+- **`CongestionController`** (`src/utils/rate_limiter.py`) — Binance API rate limiting; all exchange calls must go through this
