@@ -411,7 +411,15 @@ function renderTable(sessions) {
   tbody.innerHTML = sessions.map(s => {
     const tp = s.tactical || {}, audit = s.audit;
     const entry = tp.current_price || tp.entry;
-    return `<tr>
+    // Row accent color matches result
+    let rowCls = '';
+    if (audit) {
+      if (!audit.is_filled) rowCls = 'row-unfilled';
+      else if (audit.tp_sl_result === 'TP_HIT') rowCls = 'row-tp';
+      else if (audit.tp_sl_result === 'SL_HIT') rowCls = 'row-sl';
+      else rowCls = 'row-expired';
+    }
+    return `<tr class="${rowCls}">
       <td><strong>${s.symbol}</strong></td>
       <td>${formatLocalTime(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>

@@ -1077,6 +1077,12 @@ tr.row-safe  { border-left: 3px solid transparent; }
 tr.row-warn  { border-left: 3px solid var(--accent-orange); }
 tr.row-critical { border-left: 3px solid var(--accent-red); }
 
+/* Row-level result accent (Trade Ledger) */
+tr.row-tp  { border-left: 3px solid var(--accent-green); }
+tr.row-sl  { border-left: 3px solid var(--accent-red); }
+tr.row-expired { border-left: 3px solid var(--accent-orange); }
+tr.row-unfilled { border-left: 3px solid var(--text-muted); }
+
 /* --- Responsive --- */
 @media (max-width: 768px) {
   .app-header {
