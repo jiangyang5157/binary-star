@@ -164,7 +164,7 @@ function clearBacktestErrors() {
   // Clear transient UI — keep sample list visible
   $('bt-run-status').style.display = 'none';
   $('bt-preview-status').style.display = 'none';
-  $('bt-run-btn').disabled = true;
+  $('backtest-run-btn').disabled = true;
 }
 
 // ── Hint helper ──
@@ -283,7 +283,7 @@ async function previewSamples() {
 
     sampleTimestamps = data.timestamps || [];
     renderSampleList(data);
-    $('bt-run-btn').disabled = false;
+    $('backtest-run-btn').disabled = false;
 
     statusEl.style.display = 'inline';
     statusEl.textContent = '✓ ' + data.count + ' sample' + (data.count !== 1 ? 's' : '') + ' ready';
@@ -331,7 +331,7 @@ function formatElapsed(seconds) {
 // ── Run Backtest ──
 async function triggerBacktest() {
   const statusEl = $('bt-run-status');
-  const btn = $('bt-run-btn');
+  const btn = $('backtest-run-btn');
 
   // Toggle: if running, STOP
   if (backtestPollInterval) {
@@ -416,7 +416,7 @@ async function triggerBacktest() {
 
 function updateRunUI(state) {
   const input = $('bt-symbol');
-  const btn = $('bt-run-btn');
+  const btn = $('backtest-run-btn');
   const previewBtn = $('bt-preview-btn');
   const radios = document.querySelectorAll('input[name="bt-mode"]');
 
@@ -552,7 +552,7 @@ function updateSampleStatuses(samples) {
         sampleTimestamps = data.samples.map(s => s.timestamp);
         renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
         updateSampleStatuses(data.samples);
-        $('bt-run-btn').disabled = false;
+        $('backtest-run-btn').disabled = false;
       }
 
       updateRunUI('running');
