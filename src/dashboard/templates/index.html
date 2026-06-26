@@ -75,17 +75,20 @@
   <section class="card">
     <div class="section-header">
       <h2>Trade Ledger</h2>
-      <div class="section-controls" style="align-items:flex-end">
+      <div class="section-controls">
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label">Symbol</span>
+            <input type="text" id="symbol-filter" class="filter-input" placeholder="e.g. BTC" style="width:80px">
+          </div>
+          <div class="filter-sep"></div>
+          <div class="filter-group">
+            <span class="filter-label">Version</span>
+            <input type="text" id="version-filter" class="filter-input" placeholder="e.g. 26.6" style="width:70px">
+          </div>
+        </div>
         <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" title="Run forensic audit against all un-audited sessions">▶ Audit</button>
         <span id="run-audit-status" class="audit-status" style="display:none"></span>
-        <label class="bt-field">
-          <span class="bt-label">Symbol</span>
-          <input type="text" id="symbol-filter" class="filter-input bt-symbol-input">
-        </label>
-        <label class="bt-field">
-          <span class="bt-label">Version</span>
-          <input type="text" id="version-filter" class="filter-input" style="width:90px">
-        </label>
       </div>
     </div>
     <div class="table-wrapper">
@@ -255,7 +258,23 @@ function renderTimeline(trades, threshold) {
       },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Symbol: ${d.symbol || '&mdash;'}`, `Time: ${d.timeLabel}`, `Direction: ${d.op}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`, `Version: ${d.version || '&mdash;'}`]; } } }
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            title: (items) => {
+              const d = items[0].raw;
+              return `${d.symbol || '&mdash;'}  ·  ${d.timeLabel}`;
+            },
+            label: (ctx) => {
+              const d = ctx.raw;
+              const pnlStr = d.pnl != null ? `${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%` : '—';
+              const lines = [`${d.op}  ·  Conf ${d.y != null ? d.y.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
+              if (d.holding) lines.push(`Holding: ${d.holding}h`);
+              if (d.version) lines.push(`v${d.version}`);
+              return lines;
+            }
+          }
+        }
       },
       onClick: (e) => {
         const points = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
@@ -280,18 +299,36 @@ function renderEquity(curve, netPnL) {
   const color = netPnL >= 0 ? '#40a85f' : '#e0554a';
   const fill = netPnL >= 0 ? 'rgba(64, 168, 95, 0.08)' : 'rgba(224, 85, 74, 0.08)';
 
-  const pointRadius = curve.length <= 2 ? 5 : 0;
+  // Dots only on sparse data; crosshair handles dense-data tooltips
+  const pointRadius = curve.length <= 5 ? 4 : 0;
+  const pointHoverRadius = curve.length <= 5 ? 6 : 4;
 
   equityChart = new Chart(ctx, {
     type: 'line',
-    data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius, fill: true, backgroundColor: fill, tension: 0.15 }] },
+    data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius, pointHoverRadius, pointBackgroundColor: color, pointBorderColor: 'rgba(255,255,255,0.2)', fill: true, backgroundColor: fill, tension: 0.15 }] },
     options: {
       responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'nearest', axis: 'x', intersect: false },
       scales: {
         x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
         y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
       },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `Equity: ${ctx.raw.y >= 0 ? '+' : ''}${ctx.raw.y.toFixed(2)}%` } } }
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            title: (items) => {
+              const d = items[0].raw.x;
+              return d ? d.toLocaleString() : '';
+            },
+            label: (ctx) => {
+              const y = ctx.raw.y;
+              return `${y >= 0 ? '+' : ''}${y.toFixed(2)}%`;
+            }
+          }
+        }
+      }
     }
   });
 }
@@ -303,10 +340,12 @@ function renderOptimizer(filledTrades, minThreshold) {
   // Align step to nearest 5 (e.g. 42 → 40, 43 → 45)
   const start = Math.round(minThreshold / 5) * 5;
   const thresholds = [], data = [];
+  // Also count trades passing each threshold for richer tooltip
+  const counts = [];
   for (let t = start; t <= 100; t += 5) {
-    let sum = 0;
-    filledTrades.forEach(tr => { if (tr.confidence >= t) sum += tr.pnl_pct; });
-    thresholds.push(t); data.push(sum);
+    let sum = 0, cnt = 0;
+    filledTrades.forEach(tr => { if (tr.confidence >= t) { sum += tr.pnl_pct; cnt++; } });
+    thresholds.push(t); data.push(sum); counts.push(cnt);
   }
 
   optimizerChart = new Chart(ctx, {
@@ -314,7 +353,22 @@ function renderOptimizer(filledTrades, minThreshold) {
     data: { labels: thresholds, datasets: [{ data, borderColor: '#54a0a8', backgroundColor: 'rgba(84, 160, 168, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#54a0a8' }] },
     options: {
       responsive: true, maintainAspectRatio: false, animation: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: {
+            title: (items) => `Confidence Threshold ≥ ${items[0].label}%`,
+            label: (ctx) => {
+              const pnl = ctx.raw;
+              const count = counts[ctx.dataIndex];
+              const sign = pnl >= 0 ? '+' : '';
+              const color = pnl >= 0 ? '#40a85f' : '#e0554a';
+              return [`Cumulative P&L: ${sign}${pnl.toFixed(2)}%`, `${count} trade${count !== 1 ? 's' : ''} qualify`];
+            }
+          }
+        }
+      },
       scales: {
         x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: textBright }, ticks: { color: textMuted } },
         y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }

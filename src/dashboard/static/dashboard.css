@@ -320,6 +320,45 @@ tbody tr:hover {
   border-color: var(--accent-teal);
 }
 
+/* --- Filter Bar (Trade Ledger) --- */
+.filter-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  padding: 5px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-muted);
+}
+
+.filter-bar .filter-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.filter-bar .filter-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  user-select: none;
+}
+
+.filter-bar .filter-input {
+  width: 100px;
+  padding: 5px 10px;
+  font-size: 0.82rem;
+}
+
+.filter-bar .filter-sep {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  margin: 0 2px;
+}
+
 /* --- Session Page --- */
 .session-header {
   margin-bottom: 20px;
