@@ -11,7 +11,10 @@ def format_timestamp_for_filename(timestamp_str: str) -> str:
     Example: '2026-03-24 10:30:00Z' -> '20260324_103000'
     """
     try:
-        # Normalize: Remove 'Z' and treat as ISO format
+        # Normalize: Remove 'Z' and treat as ISO format.
+        # Note: fromisoformat on a string without timezone offset produces a naive
+        # datetime, which is intentional — we only need strftime output for a filename,
+        # so the absolute UTC instant is irrelevant.
         normalized_ts = timestamp_str.replace('Z', '').strip()
         dt_obj = datetime.fromisoformat(normalized_ts)
         return dt_obj.strftime(FILE_TIMESTAMP_FORMAT)
