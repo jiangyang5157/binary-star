@@ -171,6 +171,7 @@ let QUOTE = 'USDT'; // fallback, overwritten by /api/config
 // ── Session Run Trigger ──
 let runPollInterval = null;
 let runProgress = null;
+let runGeneration = 0;  // to cancel stale completion timeouts
 
 function clearRunErrors() {
   const input = document.getElementById('symbol-prefix');
@@ -237,9 +238,11 @@ async function checkRunStatus() {
         }
         if (typeof loadActive === 'function') { loadActive(); }
 
-        // Reset after fade-out
+        // Reset after fade-out (guard against race with new run)
         const isCompleted = data.progress && data.progress.status === 'completed';
+        const genAtComplete = runGeneration;
         setTimeout(() => {
+          if (runGeneration !== genAtComplete) return;  // new run started, skip
           updateRunUI('idle');
           if (runProgress) { runProgress.hide(); }
         }, isCompleted ? 3500 : 0);
@@ -277,6 +280,7 @@ async function triggerRun() {
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
       btn.classList.add('danger');
+      return;
     }
     container.innerHTML = '';
     if (runProgress) { runProgress.destroy(); runProgress = null; }
@@ -333,6 +337,7 @@ async function triggerRun() {
 
     const data = await resp.json();
     updateRunUI('running');
+    runGeneration++;  // invalidate any stale completion timeout
     // Progress component will be created by checkRunStatus on first poll
     runPollInterval = setInterval(checkRunStatus, 2000);
     checkRunStatus();
@@ -363,6 +368,7 @@ async function triggerRun() {
 // ── Sniper Control ──
 let sniperPollInterval = null;
 let sniperProgress = null;
+let sniperGeneration = 0;
 
 function clearSniperErrors() {
   ['sniper-symbol', 'sniper-balance'].forEach(id => {
@@ -497,7 +503,9 @@ async function checkSniperStatus() {
         container.innerHTML = '<div class="run-status-box run-ok" style="display:block">✓ Stopped</div>';
         if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
         updateSniperUI('idle');
+        const genAtStop = sniperGeneration;
         setTimeout(function() {
+          if (sniperGeneration !== genAtStop) return;
           container.innerHTML = '';
         }, 5000);
       }
@@ -527,6 +535,7 @@ async function triggerSniper() {
       container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
+      return;
     }
     container.innerHTML = '';
     if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
@@ -601,6 +610,7 @@ async function triggerSniper() {
     }
 
     updateSniperUI('running');
+    sniperGeneration++;
     sniperPollInterval = setInterval(checkSniperStatus, 2000);
     checkSniperStatus();
   } catch (e) {

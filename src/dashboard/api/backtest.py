@@ -292,14 +292,15 @@ def _run_backtest_in_thread(
 
             try:
                 # ── Progress callback for this sample ──
-                sample_idx = i  # capture for closure
+                # Use default-arg capture to bind i at definition time
                 def _bt_progress(stage=None, activity=None, status="running",
-                                 stage_label=None, result=None, error=None):
+                                 stage_label=None, result=None, error=None,
+                                 _sample_idx=i):
                     current3 = _read_status(data_root)
                     if not current3 or current3.get("run_id") != run_id:
                         return
                     samples3 = list(current3.get("samples") or [])
-                    if sample_idx >= len(samples3):
+                    if _sample_idx >= len(samples3):
                         return
                     now_utc = datetime.now(timezone.utc)
                     started_str3 = current3.get("started_at", "")
@@ -311,7 +312,7 @@ def _run_backtest_in_thread(
                         except Exception:
                             pass
 
-                    progress = samples3[sample_idx].get("progress", {})
+                    progress = samples3[_sample_idx].get("progress", {})
                     if status == "running":
                         activities = list(progress.get("activities", []))
                         entry_type = "active"
@@ -358,7 +359,7 @@ def _run_backtest_in_thread(
                             "activities": activities,
                         }
 
-                    samples3[sample_idx]["progress"] = progress
+                    samples3[_sample_idx]["progress"] = progress
                     _write_status(data_root, {**current3, "samples": samples3})
 
                 result = engine.execute_cycle(timestamp_str=ts,

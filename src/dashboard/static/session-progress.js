@@ -149,7 +149,7 @@ class SessionProgress {
       if (activityRow) {
         activityRow.onclick = function () {
           self.expanded = !self.expanded;
-          self._renderRunning(data);
+          self._renderRunning(self._lastData);
         };
       }
     }
