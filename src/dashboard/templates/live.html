@@ -55,15 +55,18 @@
       <div class="bt-param-row">
         <label class="bt-field bt-field-wide">
           <span class="bt-label">Trading Pairs</span>
-          <input type="text" id="sniper-symbol" class="filter-input" style="width:100%"
-                 placeholder="BTC, XAUT" maxlength="50" autocomplete="off"
-                 oninput="clearSniperErrors()">
-          <div id="sniper-field-hint" class="field-hint muted" style="display:none">Comma-separated, USDT pairs only</div>
+          <span class="input-group" id="sniper-symbol-group">
+            <span class="input-group-prefix">USDT</span>
+            <input type="text" id="sniper-symbol" class="input-group-field"
+                   placeholder="BTC, XAUT" maxlength="50" autocomplete="off"
+                   oninput="clearSniperErrors()">
+          </span>
+          <div id="sniper-field-hint" class="field-hint muted">Comma-separated, USDT pairs only</div>
         </label>
       </div>
       <div class="bt-param-row">
         <div class="bt-range-grid">
-          <label class="bt-field bt-field-sm" id="sniper-balance-field" style="display:none">
+          <label class="bt-field" id="sniper-balance-field" style="display:none; max-width:180px">
             <span class="bt-label">Balance</span>
             <span class="input-group">
               <input type="number" id="sniper-balance" class="input-group-field"
@@ -357,10 +360,12 @@ function clearSniperErrors() {
     const el = document.getElementById(id);
     if (el) el.classList.remove('bt-field-error');
   });
+  const group = document.getElementById('sniper-symbol-group');
+  if (group) group.classList.remove('has-error');
   const status = document.getElementById('sniper-status');
   status.style.display = 'none';
   const hint = document.getElementById('sniper-field-hint');
-  if (hint) { hint.className = 'field-hint muted'; hint.style.display = 'none'; }
+  if (hint) { hint.className = 'field-hint muted'; hint.textContent = 'Comma-separated, USDT pairs only'; }
 }
 
 function toggleBalanceVisibility() {
@@ -515,25 +520,24 @@ async function triggerSniper() {
 
   // START — validate CSV symbol prefixes
   const input = document.getElementById('sniper-symbol');
+  const inputGroup = document.getElementById('sniper-symbol-group');
   const hint = document.getElementById('sniper-field-hint');
   const raw = input.value.trim();
 
   const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   if (parts.length === 0) {
-    input.classList.add('bt-field-error');
+    if (inputGroup) inputGroup.classList.add('has-error');
     hint.textContent = 'Enter at least one symbol (e.g. BTC)';
     hint.className = 'field-hint error';
-    hint.style.display = 'block';
     input.focus();
     return;
   }
   for (const p of parts) {
     if (p.length < 2 || !/^[A-Z0-9]+$/.test(p)) {
-      input.classList.add('bt-field-error');
+      if (inputGroup) inputGroup.classList.add('has-error');
       hint.textContent = `"${p}" is not a valid symbol — use letters and numbers only`;
       hint.className = 'field-hint error';
-      hint.style.display = 'block';
       input.focus();
       return;
     }

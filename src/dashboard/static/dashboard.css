@@ -360,6 +360,18 @@ tbody tr:hover {
   outline: none;
   width: 100%;
 }
+.input-group .input-group-prefix {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  font-family: "SF Mono", "Fira Code", Consolas, monospace;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  user-select: none;
+  white-space: nowrap;
+}
+
 .input-group .input-group-suffix {
   padding: 6px 10px;
   font-size: 0.8rem;
