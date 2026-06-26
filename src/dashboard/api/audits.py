@@ -420,8 +420,12 @@ def run_audits(data_root: str = Query("")):
 
 @router.get("/config")
 def get_config():
-    """Return UI-relevant config values (confidence threshold, etc.)."""
+    """Return UI-relevant config values (confidence threshold, quote currency, etc.)."""
     from src.utils.pipeline_utils import load_combined_config
+    from src.utils.symbol_utils import get_quote_currency
     config = load_combined_config()
     threshold = int(config["binary_star"]["session_confidence_threshold"])
-    return {"session_confidence_threshold": threshold}
+    return {
+        "session_confidence_threshold": threshold,
+        "quote_currency": get_quote_currency(),
+    }

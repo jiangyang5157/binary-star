@@ -36,10 +36,10 @@
             <input type="text" id="symbol-prefix" class="input-group-field"
                    placeholder="BTC" maxlength="10" autocomplete="off"
                    oninput="clearRunErrors()">
-            <span class="input-group-suffix">USDT</span>
+            <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
         </label>
-        <div id="run-field-hint" class="field-hint muted" style="display:none"></div>
+        <div id="run-field-hint" class="field-hint error" style="display:none"></div>
       </div>
       <div id="run-status" class="run-status-box" style="display:none"></div>
     </section>
@@ -56,12 +56,12 @@
         <label class="bt-field bt-field-wide">
           <span class="bt-label">Trading Pairs</span>
           <span class="input-group" id="sniper-symbol-group">
-            <span class="input-group-prefix">USDT</span>
             <input type="text" id="sniper-symbol" class="input-group-field"
                    placeholder="BTC, XAUT" maxlength="50" autocomplete="off"
                    oninput="clearSniperErrors()">
+            <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
-          <div id="sniper-field-hint" class="field-hint muted">Comma-separated, USDT pairs only</div>
+          <div id="sniper-field-hint" class="field-hint error" style="display:none"></div>
         </label>
       </div>
       <div class="bt-param-row">
@@ -73,7 +73,7 @@
                      placeholder="1000" min="0" step="any"
                      onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                      oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
-              <span class="input-group-suffix">USDT</span>
+              <span class="input-group-suffix quote-suffix">USDT</span>
             </span>
           </label>
           <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
@@ -151,6 +151,19 @@ function formatElapsed(seconds) {
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+// ── Dynamic config from backend ──
+let QUOTE = 'USDT'; // fallback, overwritten by /api/config
+(async function initConfig() {
+  try {
+    const resp = await fetch(apiUrl('/api/config'));
+    const data = await resp.json();
+    if (data.quote_currency) {
+      QUOTE = data.quote_currency;
+      document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
+    }
+  } catch (e) { /* keep fallback */ }
+})();
 
 {% if "run_new_session" in permissions %}
 // ── Session Run Trigger ──
@@ -269,9 +282,9 @@ async function triggerRun() {
   // START
   let prefix = input.value.trim();
 
-  // Strip trailing "USDT" if user accidentally included it
-  if (prefix.toUpperCase().endsWith('USDT')) {
-    prefix = prefix.slice(0, -4).trim();
+  // Strip trailing quote currency if user accidentally included it
+  if (prefix.toUpperCase().endsWith(QUOTE)) {
+    prefix = prefix.slice(0, -QUOTE.length).trim();
     input.value = prefix;
   }
 
@@ -339,7 +352,7 @@ async function triggerRun() {
     if (data.running) {
       const symbolInput = document.getElementById('symbol-prefix');
       const rawSymbol = data.symbol || '';
-      symbolInput.value = rawSymbol.replace(/USDT$/i, '');
+      symbolInput.value = rawSymbol.replace(new RegExp(QUOTE + '$', 'i'), '');
       updateRunUI('running');
       const statusEl = document.getElementById('run-status');
       statusEl.style.display = 'block';
@@ -365,7 +378,7 @@ function clearSniperErrors() {
   const status = document.getElementById('sniper-status');
   status.style.display = 'none';
   const hint = document.getElementById('sniper-field-hint');
-  if (hint) { hint.className = 'field-hint muted'; hint.textContent = 'Comma-separated, USDT pairs only'; }
+  if (hint) { hint.className = 'field-hint muted'; hint.textContent = ''; hint.style.display = 'none'; }
 }
 
 function toggleBalanceVisibility() {
@@ -453,7 +466,7 @@ async function checkSniperStatus() {
 
         html += '<div class="guardian-summary">';
         if (guardian.account_balance != null) {
-          html += `Balance: $${guardian.account_balance.toLocaleString()} USDT | `;
+          html += `Balance: $${guardian.account_balance.toLocaleString()} ${QUOTE} | `;
         }
         html += `Pulse: ${formatElapsed(pulseAge)} ago`;
         if (health.label) {
@@ -608,7 +621,7 @@ async function triggerSniper() {
     const data = await resp.json();
     if (data.running) {
       const sniperSymbolInput = document.getElementById('sniper-symbol');
-      const symbols = (data.symbols || []).map(s => s.replace(/USDT$/i, ''));
+      const symbols = (data.symbols || []).map(s => s.replace(new RegExp(QUOTE + '$', 'i'), ''));
       sniperSymbolInput.value = symbols.join(',');
 
       const tradeToggle = document.getElementById('sniper-trade-toggle');

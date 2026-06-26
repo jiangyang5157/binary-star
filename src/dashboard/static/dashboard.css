@@ -360,6 +360,15 @@ tbody tr:hover {
   outline: none;
   width: 100%;
 }
+/* Hide number-input spinners inside input-group */
+.input-group .input-group-field::-webkit-outer-spin-button,
+.input-group .input-group-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.input-group .input-group-field[type="number"] {
+  -moz-appearance: textfield;
+}
 .input-group .input-group-prefix {
   padding: 6px 10px;
   font-size: 0.8rem;
