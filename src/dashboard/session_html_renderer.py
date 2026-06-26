@@ -87,7 +87,6 @@ class SessionRenderer(BaseEmailTemplate):
         visual_context = obs.get("visual_context") or {}
         metadata = session_data.get("metadata")
         qm = obs.get("quantitative_metrics") or {}
-        brief = obs.get("situation_brief") or {}
 
         fmt = SessionRenderer.fmt
 
@@ -100,8 +99,8 @@ class SessionRenderer(BaseEmailTemplate):
 <body style="{_s(background=C['void'], color=C['text'], fontFamily=F['body'], lineHeight='1.6', margin='0', padding='0')}">
     <div style="{_s(maxWidth='680px', margin='0 auto', padding='28px 18px')}">
         {SessionRenderer._render_header(symbol, display_time, metadata)}
-        {SessionRenderer._render_hero(decision, fmt)}
-        {SessionRenderer._render_market_dashboard(qm, brief, fmt)}
+        {SessionRenderer._render_hero(decision)}
+        {SessionRenderer._render_market_dashboard(qm)}
         {SessionRenderer._render_reasoning(decision, fmt)}
         {SessionRenderer._render_debate_rounds(history, fmt)}
         {SessionRenderer._render_charts(visual_context)}
@@ -196,22 +195,12 @@ class SessionRenderer(BaseEmailTemplate):
         except (ValueError, TypeError):
             return str(v)
 
-    @staticmethod
-    def _fmt_pct(v) -> str:
-        """Format a ratio/value as a percentage string."""
-        if v is None:
-            return "&mdash;"
-        try:
-            return f"{float(v):.1f}%"
-        except (ValueError, TypeError):
-            return str(v)
-
     # ── Hero strip ──────────────────────────────────────────────────
     # Signature element: opinion → confidence → entry → TP/SL in one
     # left-to-right scan — the trader's decision sequence materialised.
 
     @staticmethod
-    def _render_hero(decision: Dict[str, Any], fmt) -> str:
+    def _render_hero(decision: Dict[str, Any]) -> str:
         opinion = str(decision.get("opinion") or "NEUTRAL").upper()
         confidence = decision.get("confidence_score")
         tp = decision.get("tactical_parameters") or {}
@@ -297,13 +286,12 @@ class SessionRenderer(BaseEmailTemplate):
 </div>"""
 
     # ── Market dashboard ────────────────────────────────────────────
-    # Four metric pills in a row: Regime · Confluence · Signals · ATR.
-    # Surfaces quantitative_metrics + situation_brief that were previously
-    # invisible in the email.
+    # Single row of quantitative metrics — all sourced from
+    # observation.quantitative_metrics (no situation_brief dependency).
 
     @staticmethod
-    def _render_market_dashboard(qm: Dict[str, Any], brief: Dict[str, Any], fmt) -> str:
-        """Render a single row of quantitative metrics (no situation_brief data)."""
+    def _render_market_dashboard(qm: Dict[str, Any]) -> str:
+        """Render a single row of quantitative metrics."""
         if not qm:
             return ""
 

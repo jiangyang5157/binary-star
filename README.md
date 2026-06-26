@@ -509,6 +509,8 @@ python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
 # Market reconnaissance snapshot
 python scripts/market_recon.py --symbol BTC -p data/prod
 
+python scripts/render_email_html.py -f data/prod/sessions/BTCUSDT_session_20260625_104702.json -p data/test   
+
 # Reverse-engineer strategy from session
 python scripts/export_session.py -f data/prod/sessions/BTCUSDT_session_20260101_120000.json
 
