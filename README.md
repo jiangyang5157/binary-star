@@ -201,7 +201,7 @@ python run.py sniper --symbol BTC,XAUT --trade       # + AI + trade (--trade imp
                                            │
                          ┌─────────────────┼─────────────────┐
                          │                 │                 │
-                    FLAT │     SAME DIRECTION │         PIVOT │
+                    FLAT │  SAME DIRECTION │           PIVOT │
                          │                 │                 │
            ┌─────────────▼──┐  ┌───────────▼────────┐  ┌─────▼──────────────┐
            │ Cancel stale   │  │ Pick best TP/SL    │  │ Protected (has SL)?│
@@ -382,8 +382,8 @@ Every AI-generated trade decision flows through a deterministic lifecycle manage
 ```
 TRIGGER → AI Session → Trade Gate → sync_with_opinion()
                                           │
-                    ┌─────────────────────┘
-                    ▼
+                                          │
+                                          ▼
                         ┌──────────────────────────────┐
                         │  PHASE 1: ENTRY PENDING      │
                         │                              │
@@ -401,8 +401,8 @@ TRIGGER → AI Session → Trade Gate → sync_with_opinion()
                         │    elapsed > waiting? →      │
                         │      cancel + clear state    │
                         └──────────────┬───────────────┘
-                                        │  Order FILLED
-                                        ▼
+                                       │  Order FILLED
+                                       ▼
                         ┌──────────────────────────────┐
                         │  PHASE 2: OCO PROTECTED      │
                         │                              │
@@ -420,9 +420,9 @@ TRIGGER → AI Session → Trade Gate → sync_with_opinion()
                         │    ├─ Trailing stop migrate  │
                         │    └─ Orientation check      │
                         └──────────────┬───────────────┘
-                                        │
-                              ┌─────────┴──────────┐
-                              ▼                    ▼
+                                       │
+                              ┌────────┴──────────┐
+                              ▼                   ▼
                       ┌──────────────┐    ┌──────────────┐
                       │ NORMAL EXIT  │    │ EMERGENCY    │
                       │ TP/SL filled │    │ Market close │
