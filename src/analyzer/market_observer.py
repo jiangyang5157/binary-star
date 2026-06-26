@@ -656,8 +656,13 @@ class MarketObserver:
         except Exception as e:
             logger.warning(f"Warmup audit skipped: {e}")
 
-    def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True) -> Dict[str, Any]:
-        """Executes a complete market mapping cycle."""
+    def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True,
+                progress_callback=None) -> Dict[str, Any]:
+        """Executes a complete market mapping cycle.
+
+        Args:
+            progress_callback: Optional fn(stage, activity) for progress reporting.
+        """
         at_time = timestamp or get_current_utc_time()
         logger.info(f"MarketObserver: Capturing topography for {self.symbol}...")
 
@@ -670,14 +675,26 @@ class MarketObserver:
             return {"error": "DATA_INTEGRITY_FAILURE"}
 
         # 3. [METRIC DISTILLATION]
+        if progress_callback:
+            progress_callback(stage=1, activity="计算波动率指标…")
         metrics, m_df, n_df = self.refiner.refine(raw)
 
         # 4. [MULTIMODAL ASSET GENERATION]
+        if progress_callback:
+            progress_callback(stage=1, activity="渲染图表…")
         snapshots = self._generate_snapshots(raw, metrics, m_df, n_df, data_root or self.data_root, at_time)
-            
+
         # 5. [FORENSIC PACKAGING]
         observation = self._package_observation(metrics, snapshots, at_time)
-        
+
+        if progress_callback:
+            kline_count = len(raw.macro_klines) if hasattr(raw, 'macro_klines') else '?'
+            indicator_count = len(metrics.__dict__) if hasattr(metrics, '__dict__') else 0
+            progress_callback(
+                stage=1,
+                activity=f"采集数据完成 · {kline_count} 条 K 线, {indicator_count} 个指标",
+            )
+
         if persist:
             self._persist_observation(observation, data_root or self.data_root, at_time)
         

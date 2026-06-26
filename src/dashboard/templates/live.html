@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live — Singularity</title>
 <link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/session-progress.js"></script>
 </head>
 <body class="dark">
 <header class="app-header">
@@ -41,7 +42,7 @@
         </label>
         <div id="run-field-hint" class="field-hint muted"></div>
       </div>
-      <div id="run-status" class="run-status-box" style="display:none"></div>
+      <div id="run-progress-container"></div>
     </section>
     {% endif %}
 
@@ -84,7 +85,7 @@
           </label>
         </div>
       </div>
-      <div id="sniper-status" class="run-status-box" style="display:none"></div>
+      <div id="sniper-progress-container"></div>
     </section>
     {% endif %}
 
@@ -169,17 +170,18 @@ let QUOTE = 'USDT'; // fallback, overwritten by /api/config
 {% if "run_new_session" in permissions %}
 // ── Session Run Trigger ──
 let runPollInterval = null;
+let runProgress = null;
 
 function clearRunErrors() {
   const input = document.getElementById('symbol-prefix');
   const group = document.getElementById('symbol-input-group');
   const hint = document.getElementById('run-field-hint');
-  const status = document.getElementById('run-status');
   input.classList.remove('bt-field-error');
   group.classList.remove('has-error');
   hint.textContent = '';
   hint.className = 'field-hint muted';
-  status.style.display = 'none';
+  if (runProgress) { runProgress.destroy(); runProgress = null; }
+  document.getElementById('run-progress-container').innerHTML = '';
 }
 
 function updateRunUI(state) {
@@ -207,38 +209,40 @@ async function checkRunStatus() {
 
     if (data.running) {
       updateRunUI('running');
-      const statusEl = document.getElementById('run-status');
-      const elapsed = formatElapsed(data.elapsed_seconds || 0);
-      statusEl.className = 'run-status-box run-active';
-      statusEl.textContent = `⟳ Running ${data.symbol}… ${elapsed}`;
+      if (data.progress) {
+        if (!runProgress) {
+          runProgress = new SessionProgress(
+            document.getElementById('run-progress-container'),
+            { size: 'full', context: 'session' }
+          );
+        }
+        const p = data.progress;
+        p._symbol = data.symbol || '';
+        runProgress.update(p);
+      }
     } else {
       if (runPollInterval) {
         clearInterval(runPollInterval);
         runPollInterval = null;
 
-        const statusEl = document.getElementById('run-status');
-        statusEl.style.display = 'block';
-        const last = data.last_run;
-        if (last) {
-          if (last.result === 'success') {
-            statusEl.className = 'run-status-box run-ok';
-            statusEl.textContent = `✓ ${last.symbol} completed`;
-            if (typeof loadActive === 'function') { loadActive(); }
-            setTimeout(() => {
-              statusEl.style.display = 'none';
-              updateRunUI('idle');
-            }, 5000);
-          } else {
-            statusEl.className = 'run-status-box run-error';
-            const msg = last.error_message || 'unknown error';
-            statusEl.textContent = `✗ ${last.symbol} failed: ${msg}`;
-            updateRunUI('idle');
-            if (typeof loadActive === 'function') { loadActive(); }
+        // Show final state via progress component
+        if (data.progress) {
+          if (!runProgress) {
+            runProgress = new SessionProgress(
+              document.getElementById('run-progress-container'),
+              { size: 'full', context: 'session' }
+            );
           }
-        } else {
-          updateRunUI('idle');
-          statusEl.style.display = 'none';
+          runProgress.update(data.progress);
         }
+        if (typeof loadActive === 'function') { loadActive(); }
+
+        // Reset after fade-out
+        const isCompleted = data.progress && data.progress.status === 'completed';
+        setTimeout(() => {
+          updateRunUI('idle');
+          if (runProgress) { runProgress.hide(); }
+        }, isCompleted ? 3500 : 0);
       }
     }
   } catch (e) {
@@ -247,7 +251,7 @@ async function checkRunStatus() {
 }
 
 async function triggerRun() {
-  const statusEl = document.getElementById('run-status');
+  const container = document.getElementById('run-progress-container');
   const btn = document.getElementById('run-session-btn');
   const input = document.getElementById('symbol-prefix');
   const group = document.getElementById('symbol-input-group');
@@ -261,22 +265,21 @@ async function triggerRun() {
       const resp = await fetch(apiUrl('/api/session/stop'), { method: 'POST' });
       if (!resp.ok) {
         const err = await resp.json();
-        statusEl.style.display = 'block';
-        statusEl.className = 'run-status-box run-error';
-        statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
+        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
+          (err.detail || 'stop failed') + '</div>';
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
         btn.classList.add('danger');
         return;
       }
     } catch (e) {
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-error';
-      statusEl.textContent = '✗ Request failed';
+      container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
       btn.classList.add('danger');
     }
+    container.innerHTML = '';
+    if (runProgress) { runProgress.destroy(); runProgress = null; }
     return;
   }
 
@@ -322,23 +325,19 @@ async function triggerRun() {
 
     if (!resp.ok) {
       const err = await resp.json();
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-error';
-      statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
+      container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
+        (err.detail || 'request failed') + '</div>';
       updateRunUI('idle');
       return;
     }
 
     const data = await resp.json();
     updateRunUI('running');
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-active';
-    statusEl.textContent = `⟳ Running ${data.symbol}…`;
+    // Progress component will be created by checkRunStatus on first poll
     runPollInterval = setInterval(checkRunStatus, 2000);
+    checkRunStatus();
   } catch (e) {
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-error';
-    statusEl.textContent = '✗ Request failed';
+    container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
     updateRunUI('idle');
   }
 }
@@ -353,9 +352,6 @@ async function triggerRun() {
       const rawSymbol = data.symbol || '';
       symbolInput.value = rawSymbol.replace(new RegExp(QUOTE + '$', 'i'), '');
       updateRunUI('running');
-      const statusEl = document.getElementById('run-status');
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-active';
       runPollInterval = setInterval(checkRunStatus, 2000);
       checkRunStatus();
     }
@@ -366,6 +362,7 @@ async function triggerRun() {
 {% if "run_sniper" in permissions %}
 // ── Sniper Control ──
 let sniperPollInterval = null;
+let sniperProgress = null;
 
 function clearSniperErrors() {
   ['sniper-symbol', 'sniper-balance'].forEach(id => {
@@ -374,8 +371,9 @@ function clearSniperErrors() {
   });
   const group = document.getElementById('sniper-symbol-group');
   if (group) group.classList.remove('has-error');
-  const status = document.getElementById('sniper-status');
-  status.style.display = 'none';
+  const container = document.getElementById('sniper-progress-container');
+  container.innerHTML = '';
+  if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
   const hint = document.getElementById('sniper-field-hint');
   if (hint) { hint.className = 'field-hint muted'; hint.textContent = ''; }
 }
@@ -422,6 +420,47 @@ function pulseHealthAge(seconds) {
   return { label: 'Stale', cls: 'audit-error' };
 }
 
+// ── Render sniper IDLE view ──
+function _renderSniperIdle(container, data) {
+  const symbols = (data.symbols || []).map(function(s) {
+    return s.replace(new RegExp(QUOTE + '$', 'i'), '');
+  }).join(', ');
+  const pulseCount = data.pulse_count || 0;
+  const nextScout = data.next_scout_in_seconds;
+  const health = pulseHealthAge(data.pulse_seconds);
+  const recentSignals = data.recent_signals || [];
+
+  var nextScoutText = '';
+  if (nextScout != null && nextScout >= 0) {
+    var nm = Math.floor(nextScout / 60);
+    var ns = nextScout % 60;
+    nextScoutText = ' · 下次侦查 ' + nm + ':' + (ns < 10 ? '0' : '') + ns;
+  }
+
+  var recentHtml = '';
+  if (recentSignals.length > 0) {
+    var items = recentSignals.map(function(s) {
+      var dir = s.direction;
+      if (dir === 'BULLISH') dir = 'BUY';
+      else if (dir === 'BEARISH') dir = 'SELL';
+      return s.time + ' ' + dir + ' ' + s.confidence + '%';
+    }).join('  ·  ');
+    recentHtml = '<br><span class="sniper-idle-recent">最近：' + items + '</span>';
+  }
+
+  var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
+  var tradeOn = data.trade_enabled;
+  var statusLine = tradeOn ? ' · ' + formatElapsed(pulseAge) + ' since last pulse' : '';
+
+  container.innerHTML =
+    '<div class="sniper-idle">' +
+      '<span class="sniper-idle-dot"></span>' +
+      '<span class="sniper-idle-info">观察 <strong>' + symbols + '</strong> 中… · 脉冲 #' +
+        pulseCount + nextScoutText + statusLine + '</span>' +
+      recentHtml +
+    '</div>';
+}
+
 async function checkSniperStatus() {
   try {
     const resp = await fetch(apiUrl('/api/sniper/status'));
@@ -429,72 +468,37 @@ async function checkSniperStatus() {
 
     if (data.running) {
       updateSniperUI('running');
-      const statusEl = document.getElementById('sniper-status');
-      statusEl.style.display = 'block';
+      const container = document.getElementById('sniper-progress-container');
 
-      const symbols = data.symbols || [];
-      const tradeOn = data.trade_enabled;
-      const guardian = data.guardian;
-      const pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-      const health = pulseHealthAge(pulseAge);
-
-      if (tradeOn && guardian && guardian.symbols) {
-        let html = '<table class="guardian-table"><thead><tr>';
-        html += '<th>Symbol</th><th>Position</th><th>Net Qty</th><th>Orders</th><th>Status</th>';
-        html += '</tr></thead><tbody>';
-
-        for (const sym of symbols) {
-          const gs = guardian.symbols[sym] || {};
-          const posLabel = gs.has_position
-            ? (gs.net_qty > 0 ? 'LONG' : 'SHORT')
-            : '—';
-          const statusLabel = gs.has_position
-            ? (gs.active_orders > 0 ? 'Protected' : 'Naked!')
-            : 'Idle';
-
-          html += '<tr>';
-          html += `<td><strong>${sym}</strong></td>`;
-          html += `<td>${posLabel}</td>`;
-          html += `<td>${gs.net_qty != null ? gs.net_qty : '0.0'}</td>`;
-          html += `<td>${gs.active_orders || 0}</td>`;
-          html += `<td>${statusLabel}</td>`;
-          html += '</tr>';
+      // Check if there's an active session (AI reasoning in progress)
+      if (data.active_session && data.active_session.progress) {
+        if (!sniperProgress) {
+          sniperProgress = new SessionProgress(container, {
+            size: 'full', context: 'sniper'
+          });
         }
-
-        html += '</tbody></table>';
-
-        html += '<div class="guardian-summary">';
-        if (guardian.account_balance != null) {
-          html += `Balance: $${guardian.account_balance.toLocaleString()} ${QUOTE} | `;
-        }
-        html += `Pulse: ${formatElapsed(pulseAge)} ago`;
-        if (health.label) {
-          html += ` · <span class="${health.cls}">${health.label}</span>`;
-        }
-        html += '</div>';
-
-        statusEl.innerHTML = html;
-        statusEl.className = 'run-status-box run-active';
-      } else if (tradeOn) {
-        statusEl.innerHTML = '';
-        statusEl.textContent = `⟳ Running ${symbols.join(', ')}… ${formatElapsed(pulseAge)}`;
-        statusEl.className = 'run-status-box run-active';
+        const p = data.active_session.progress;
+        p._symbol = data.active_session.symbol || '';
+        p._triggered_at = data.active_session.triggered_at || '';
+        sniperProgress.update(p);
       } else {
-        statusEl.innerHTML = '';
-        statusEl.textContent = `⟳ ${symbols.join(', ')} | Trading disabled · ${formatElapsed(pulseAge)} since last pulse`;
-        statusEl.className = 'run-status-box run-active';
+        // IDLE view
+        if (sniperProgress) {
+          sniperProgress.destroy();
+          sniperProgress = null;
+        }
+        _renderSniperIdle(container, data);
       }
     } else {
       if (sniperPollInterval) {
         clearInterval(sniperPollInterval);
         sniperPollInterval = null;
-        const statusEl = document.getElementById('sniper-status');
-        statusEl.style.display = 'block';
-        statusEl.className = 'run-status-box run-ok';
-        statusEl.textContent = '✓ Stopped';
+        const container = document.getElementById('sniper-progress-container');
+        container.innerHTML = '<div class="run-status-box run-ok" style="display:block">✓ Stopped</div>';
+        if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
         updateSniperUI('idle');
-        setTimeout(() => {
-          statusEl.style.display = 'none';
+        setTimeout(function() {
+          container.innerHTML = '';
         }, 5000);
       }
     }
@@ -502,7 +506,7 @@ async function checkSniperStatus() {
 }
 
 async function triggerSniper() {
-  const statusEl = document.getElementById('sniper-status');
+  const container = document.getElementById('sniper-progress-container');
   const btn = document.getElementById('sniper-btn');
 
   // Check if currently running — if so, STOP
@@ -513,20 +517,19 @@ async function triggerSniper() {
       const resp = await fetch(apiUrl('/api/sniper/stop'), { method: 'POST' });
       if (!resp.ok) {
         const err = await resp.json();
-        statusEl.style.display = 'block';
-        statusEl.className = 'run-status-box run-error';
-        statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
+        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
+          (err.detail || 'stop failed') + '</div>';
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
         return;
       }
     } catch (e) {
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-error';
-      statusEl.textContent = '✗ Request failed';
+      container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
     }
+    container.innerHTML = '';
+    if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
     return;
   }
 
@@ -591,24 +594,17 @@ async function triggerSniper() {
 
     if (!resp.ok) {
       const err = await resp.json();
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-error';
-      statusEl.textContent = `✗ ${err.detail || 'request failed'}`;
+      container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
+        (err.detail || 'request failed') + '</div>';
       updateSniperUI('idle');
       return;
     }
 
-    const data = await resp.json();
-    const symbols = data.symbols || [];
     updateSniperUI('running');
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-active';
-    statusEl.textContent = `⟳ Running ${symbols.join(', ')}…`;
     sniperPollInterval = setInterval(checkSniperStatus, 2000);
+    checkSniperStatus();
   } catch (e) {
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-error';
-    statusEl.textContent = '✗ Request failed';
+    container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
     updateSniperUI('idle');
   }
 }
@@ -636,9 +632,6 @@ async function triggerSniper() {
       }
 
       updateSniperUI('running');
-      const statusEl = document.getElementById('sniper-status');
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-active';
       sniperPollInterval = setInterval(checkSniperStatus, 2000);
       checkSniperStatus();
     }

@@ -306,16 +306,24 @@ class BinaryStarOrchestrator:
             macro_interval=self.macro_interval,
         )
 
-    def execute_flow(self, observation: Dict[str, Any], symbol: str) -> Dict[str, Any]:
+    def execute_flow(self, observation: Dict[str, Any], symbol: str,
+                     progress_callback=None) -> Dict[str, Any]:
         """Executes a complete adversarial reasoning cycle (Binary Star Flow).
 
         Phases: regime benchmarks -> cache setup -> debate -> finalize -> sanitize -> package.
+
+        Args:
+            progress_callback: Optional fn(stage, activity, stage_label=..., status=...)
+                for progress reporting. Called at key phase transitions.
         """
         timestamp = self._resolve_timestamp(observation)
         logger.info(f"BinaryStar: Beginning cycle for {symbol} at {timestamp}...")
 
         # 1. Inject regime benchmarks (pre-calculated physical constants)
         self._inject_regime_benchmarks(observation)
+
+        if progress_callback:
+            progress_callback(stage=2, activity="计算市场体制…")
 
         # Prune observation and extract visual parts
         pruned_observation = observation.copy()
@@ -328,6 +336,9 @@ class BinaryStarOrchestrator:
             # 2. Set up context cache and agent tools
             cache_resource_name, tools = self._prepare_agent_tools(
                 observation_json, symbol, visual_parts)
+
+            if progress_callback:
+                progress_callback(stage=2, activity="准备 AI 上下文…")
 
             # 3. Adversarial Debate Loop
             self.debate_loop = DebateLoop(
@@ -342,12 +353,17 @@ class BinaryStarOrchestrator:
                 session_config=self.session_config,
                 critic_config=self.critic_config,
             )
-            debate_result = self.debate_loop.run(observation, symbol)
+            debate_result = self.debate_loop.run(observation, symbol,
+                                                   progress_callback=progress_callback)
 
             # 4. Finalize and sanitize decision
+            if progress_callback:
+                progress_callback(stage=4, activity="综合决策…")
+
             final_decision = self._finalize_and_sanitize(
                 debate_result, observation, symbol,
-                cache_resource_name, tools, visual_parts)
+                cache_resource_name, tools, visual_parts,
+                progress_callback=progress_callback)
 
             # 5. Package forensic output
             project_root = resolve_project_root()
@@ -445,7 +461,8 @@ class BinaryStarOrchestrator:
 
     def _finalize_and_sanitize(self, debate_result: dict, observation: dict,
                                symbol: str, cache_resource_name: str | None,
-                               tools: list, visual_parts: list) -> dict:
+                               tools: list, visual_parts: list,
+                               progress_callback=None) -> dict:
         """Run final synthesis (if needed) and sanitize the decision against math truth."""
         last_plan = debate_result["final_decision"]
         debate_history = debate_result["debate_history"]
@@ -482,6 +499,10 @@ class BinaryStarOrchestrator:
                 tactical["rr_ratio"] = rr_v["rr_ratio"]
 
         logger.info("BinaryStar: Final decision sanitized against physical truth.")
+
+        if progress_callback:
+            progress_callback(stage=4, activity="参数验证完成")
+
         return final_decision
 
     def _cleanup_cache(self) -> None:

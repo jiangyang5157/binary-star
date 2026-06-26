@@ -77,12 +77,15 @@ class SessionEngine:
         self.max_failures_threshold = int(self.global_cfg.get('llm', {}).get('circuit_breaker_max_failures', 3))
 
     def execute_cycle(self, timestamp_str: Optional[str] = None,
-                      situation_brief: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                      situation_brief: Optional[Dict[str, Any]] = None,
+                      progress_callback=None) -> Dict[str, Any]:
         """
         Executes a single market analysis cycle.
         If timestamp_str is None, it acts as 'Live' (Real-time).
         If timestamp_str is provided, it acts as 'Simulation' (Historical).
         situation_brief: Optional upstream intelligence injected into observation.
+        progress_callback: Optional fn(stage, activity, stage_label=..., status=...,
+                           result=..., error=...) for progress reporting.
         """
         try:
             mode_label = "PROD" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
@@ -94,8 +97,14 @@ class SessionEngine:
                 from src.utils.datetime_utils import parse_iso_to_utc
                 target_dt = parse_iso_to_utc(timestamp_str)
 
+            if progress_callback:
+                progress_callback(stage=1, activity="获取 K 线数据…")
+
             logger.info(f"Observer: Mapping structural topography for {self.symbol}...")
-            observation = self.orchestrator.observer.observe(timestamp=target_dt, persist=False)
+            observation = self.orchestrator.observer.observe(
+                timestamp=target_dt, persist=False,
+                progress_callback=progress_callback,
+            )
 
             if "error" in observation:
                 raise ValueError(f"Observer failure: {observation['error']}")
@@ -117,9 +126,15 @@ class SessionEngine:
                 observation['situation_brief'] = situation_brief
 
             logger.info("BinaryStar: Initiating adversarial debate [Session Analyst VS Critic]...")
-            session_result = self.orchestrator.execute_flow(observation, self.symbol)
+            session_result = self.orchestrator.execute_flow(
+                observation, self.symbol,
+                progress_callback=progress_callback,
+            )
 
             # 4. Notification (always attempt; SessionNotifier gates on .env + confidence)
+            if progress_callback:
+                progress_callback(stage=5, activity="保存会话…")
+
             self.notifier.notify_session(
                 self.symbol,
                 session_result,
@@ -137,13 +152,37 @@ class SessionEngine:
             )
             logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
 
+            # Progress: completed
+            if progress_callback:
+                final_decision = session_result.get("final_decision", {})
+                debate_history = session_result.get("debate_history", [])
+                # Build debate path string
+                debate_path_parts = []
+                for entry in debate_history:
+                    r = entry.get("round", "?")
+                    v = entry.get("critic", {}).get("veto_level", "?")
+                    debate_path_parts.append(f"R{r} {v}")
+                debate_path = " → ".join(debate_path_parts) if debate_path_parts else ""
+                progress_callback(
+                    status="completed",
+                    result={
+                        "direction": str(final_decision.get("opinion", "NEUTRAL")),
+                        "confidence": int(final_decision.get("confidence_score", 0)),
+                        "debate_path": debate_path,
+                        "session_file": os.path.basename(output_file) if output_file else "",
+                    },
+                )
+
             self.consecutive_failures = 0
             return session_result
 
         except Exception as e:
             self.consecutive_failures += 1
             logger.error(f"Session Cycle Failure ({self.consecutive_failures}/{self.max_failures_threshold}): {e}", exc_info=True)
-            
+
+            if progress_callback:
+                progress_callback(status="failed", error=str(e))
+
             if self.consecutive_failures >= self.max_failures_threshold and not timestamp_str:
                 logger.critical("CIRCUIT BREAKER: Threshold exceeded — stopping session engine.")
                 self.notifier.notify_alert("PIPELINE_ERROR", self.symbol, str(e))

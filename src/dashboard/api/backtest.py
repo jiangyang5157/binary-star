@@ -291,7 +291,78 @@ def _run_backtest_in_thread(
             })
 
             try:
-                result = engine.execute_cycle(timestamp_str=ts)
+                # ── Progress callback for this sample ──
+                sample_idx = i  # capture for closure
+                def _bt_progress(stage=None, activity=None, status="running",
+                                 stage_label=None, result=None, error=None):
+                    current3 = _read_status(data_root)
+                    if not current3 or current3.get("run_id") != run_id:
+                        return
+                    samples3 = list(current3.get("samples") or [])
+                    if sample_idx >= len(samples3):
+                        return
+                    now_utc = datetime.now(timezone.utc)
+                    started_str3 = current3.get("started_at", "")
+                    elapsed3 = 0
+                    if started_str3:
+                        try:
+                            started3 = datetime.fromisoformat(started_str3.replace("Z", "+00:00"))
+                            elapsed3 = round((now_utc - started3).total_seconds())
+                        except Exception:
+                            pass
+
+                    progress = samples3[sample_idx].get("progress", {})
+                    if status == "running":
+                        activities = list(progress.get("activities", []))
+                        entry_type = "active"
+                        if activity and ":" in activity and activity.startswith("辩论"):
+                            entry_type = "complete"
+                        elif activity and "完成" in activity:
+                            entry_type = "complete"
+                        activities.append({
+                            "time": now_utc.strftime("%H:%M:%S"),
+                            "type": entry_type,
+                            "message": activity or "",
+                        })
+                        if len(activities) > 10:
+                            activities = activities[-10:]
+                        progress = {
+                            "status": "running",
+                            "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                            "stage_label": stage_label or progress.get("stage_label", ""),
+                            "activity": activity or progress.get("activity", ""),
+                            "elapsed_seconds": elapsed3,
+                            "activities": activities,
+                        }
+                    elif status == "completed":
+                        progress = {
+                            "status": "completed",
+                            "current_stage": 5,
+                            "elapsed_seconds": elapsed3,
+                            "result": result or {},
+                            "activities": progress.get("activities", []),
+                        }
+                    elif status == "failed":
+                        activities = list(progress.get("activities", []))
+                        if activity:
+                            activities.append({
+                                "time": now_utc.strftime("%H:%M:%S"),
+                                "type": "error",
+                                "message": activity,
+                            })
+                        progress = {
+                            "status": "failed",
+                            "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                            "elapsed_seconds": elapsed3,
+                            "error": error or activity or "未知错误",
+                            "activities": activities,
+                        }
+
+                    samples3[sample_idx]["progress"] = progress
+                    _write_status(data_root, {**current3, "samples": samples3})
+
+                result = engine.execute_cycle(timestamp_str=ts,
+                                              progress_callback=_bt_progress)
 
                 # Mark as completed
                 current2 = _read_status(data_root)
@@ -492,6 +563,19 @@ def get_status(data_root: str = Query("")):
     status = _read_status(data_root)
     if not status:
         return {"running": False}
+
+    # Compute overall summary from samples
+    if status and status.get("samples"):
+        samples = status["samples"]
+        status["overall"] = {
+            "total": len(samples),
+            "completed": sum(1 for s in samples if s.get("status") == "completed"),
+            "running": sum(1 for s in samples if s.get("status") == "running"),
+            "failed": sum(1 for s in samples if s.get("status") == "failed"),
+            "pending": sum(1 for s in samples if s.get("status") == "pending"),
+        }
+    else:
+        status["overall"] = None
 
     if status.get("running"):
         if _is_stale(status):

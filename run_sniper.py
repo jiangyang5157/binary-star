@@ -105,6 +105,31 @@ class SniperDaemon:
         sym_list = ", ".join(self.symbols)
         logger.info(f"--- Sniper Monitoring Started: {sym_list} (Pulse: {pulse_mins}m) ---")
 
+        # Pulse counter (persisted to status file for dashboard display)
+        pulse_count = 0
+        # Path to the daemon status file (same as dashboard API reads)
+        import json as _json_module
+        _status_path = os.path.join(resolve_project_root(), self.args.path,
+                                    ".sniper_daemon_status.json")
+
+        def _read_daemon_status():
+            try:
+                if os.path.exists(_status_path):
+                    with open(_status_path, 'r') as f:
+                        return _json_module.load(f)
+            except Exception:
+                pass
+            return None
+
+        def _write_daemon_status(s):
+            try:
+                tmp = _status_path + ".tmp"
+                with open(tmp, 'w') as f:
+                    _json_module.dump(s, f, default=str)
+                os.replace(tmp, _status_path)
+            except Exception:
+                pass
+
         while True:
             try:
                 metrics: dict[str, dict] = {}
@@ -114,6 +139,7 @@ class SniperDaemon:
                 # Always succeeds — proves the daemon is alive even when trade is off
                 # or the heavyweight heartbeat fails on a Binance API blip.
                 self._write_lightweight_heartbeat()
+                pulse_count += 1
 
                 # ── 0.5 GUARDIAN: protect every symbol with skin in the game ──
                 guardian_data: dict[str, dict] = {}
@@ -126,6 +152,12 @@ class SniperDaemon:
                 # ── 0.6 HEAVYWEIGHT HEARTBEAT: fed with guardian data, no extra API calls ──
                 if self.trade_enabled:
                     self._write_guardian_status(guardian_data)
+
+                # ── 0.7 Update daemon status with pulse count ──
+                s = _read_daemon_status()
+                if s:
+                    s["pulse_count"] = pulse_count
+                    _write_daemon_status(s)
 
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
                 for sym in self.symbols:
@@ -214,14 +246,121 @@ class SniperDaemon:
                             logger.info(f"SniperDaemon [{sym}]: Activating Binary Star reasoning loop (Blocking Pulse)...")
                             logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
 
+                            # ── Write active_session to status before execution ──
+                            triggered_at = datetime.now(timezone.utc)
+                            s = _read_daemon_status()
+                            if s:
+                                s["active_session"] = {
+                                    "symbol": sym,
+                                    "triggered_at": triggered_at.strftime("%H:%M:%S"),
+                                    "triggered_at_iso": triggered_at.isoformat(),
+                                    "progress": {
+                                        "status": "running",
+                                        "current_stage": 1,
+                                        "stage_label": "采集数据",
+                                        "activity": "获取 K 线数据…",
+                                        "elapsed_seconds": 0,
+                                        "activities": [],
+                                    },
+                                }
+                                _write_daemon_status(s)
+
+                            # ── Progress callback for session execution ──
+                            def _sniper_progress(stage=None, activity=None, status="running",
+                                                  stage_label=None, result=None, error=None):
+                                s2 = _read_daemon_status()
+                                if not s2 or not s2.get("active_session"):
+                                    return
+                                now_utc = datetime.now(timezone.utc)
+                                trig_iso = s2["active_session"].get("triggered_at_iso", "")
+                                elapsed = 0
+                                if trig_iso:
+                                    try:
+                                        trig_dt = datetime.fromisoformat(trig_iso.replace("Z", "+00:00"))
+                                        elapsed = round((now_utc - trig_dt).total_seconds())
+                                    except Exception:
+                                        pass
+
+                                progress = s2["active_session"].get("progress", {})
+                                if status == "running":
+                                    activities = list(progress.get("activities", []))
+                                    entry_type = "active"
+                                    if activity and ":" in activity and activity.startswith("辩论"):
+                                        entry_type = "complete"
+                                    elif activity and "完成" in activity:
+                                        entry_type = "complete"
+                                    activities.append({
+                                        "time": now_utc.strftime("%H:%M:%S"),
+                                        "type": entry_type,
+                                        "message": activity or "",
+                                    })
+                                    if len(activities) > 10:
+                                        activities = activities[-10:]
+                                    progress = {
+                                        "status": "running",
+                                        "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                                        "stage_label": stage_label or progress.get("stage_label", ""),
+                                        "activity": activity or progress.get("activity", ""),
+                                        "elapsed_seconds": elapsed,
+                                        "activities": activities,
+                                    }
+                                elif status == "completed":
+                                    progress = {
+                                        "status": "completed",
+                                        "current_stage": 5,
+                                        "elapsed_seconds": elapsed,
+                                        "result": result or {},
+                                        "activities": progress.get("activities", []),
+                                    }
+                                elif status == "failed":
+                                    activities = list(progress.get("activities", []))
+                                    if activity:
+                                        activities.append({
+                                            "time": now_utc.strftime("%H:%M:%S"),
+                                            "type": "error",
+                                            "message": activity,
+                                        })
+                                    progress = {
+                                        "status": "failed",
+                                        "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                                        "elapsed_seconds": elapsed,
+                                        "error": error or activity or "未知错误",
+                                        "activities": activities,
+                                    }
+                                s2["active_session"]["progress"] = progress
+                                _write_daemon_status(s2)
+
                             session_result = self.session_engines[sym].execute_cycle(
-                                situation_brief=result.situation_brief
+                                situation_brief=result.situation_brief,
+                                progress_callback=_sniper_progress,
                             )
 
                             logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
                             if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                                 self._attempt_trade_execution(sym, session_result)
+
+                            # ── Clear active_session and update recent signals ──
+                            s3 = _read_daemon_status()
+                            if s3 and s3.get("active_session"):
+                                direction = "NEUTRAL"
+                                confidence = 0
+                                if session_result and "error" not in session_result:
+                                    fd = session_result.get("final_decision", {})
+                                    direction = str(fd.get("opinion", "NEUTRAL"))
+                                    confidence = int(fd.get("confidence_score", 0))
+                                else:
+                                    direction = "ERROR"
+
+                                recent = list(s3.get("recent_signals", []))
+                                recent.insert(0, {
+                                    "time": datetime.now(timezone.utc).strftime("%H:%M"),
+                                    "direction": direction,
+                                    "confidence": confidence,
+                                })
+                                s3["recent_signals"] = recent[:5]
+                                s3["active_session"] = None
+                                _write_daemon_status(s3)
 
                             logger.info(f"SniperDaemon [{sym}]: Session cycle complete. Returning to pulse monitoring.")
                     elif has_active:

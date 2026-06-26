@@ -1542,3 +1542,326 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
     max-width: none;
   }
 }
+
+/* ============================================================
+   SessionProgress — shared progress component
+   ============================================================ */
+
+/* ── Container ── */
+.session-progress {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  transition: opacity 0.5s ease-out;
+}
+.session-progress.sp-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+.session-progress.sp-hidden {
+  display: none;
+}
+
+/* ── Bar row ── */
+.sp-bar-row {
+  position: relative;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+.sp-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: visible;
+}
+.sp-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--accent-green);
+  border-radius: 3px;
+  transition: width 0.6s ease-out;
+  z-index: 1;
+}
+.sp-bar-fill.sp-stage-3 {
+  background: linear-gradient(90deg, var(--accent-teal), #14b8a6);
+  animation: sp-breathe 2s ease-in-out infinite;
+}
+
+/* ── Anchor dots ── */
+.sp-anchor {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border-color);
+  border: 2px solid var(--bg-card);
+  z-index: 2;
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.sp-anchor.done {
+  background: var(--accent-green);
+}
+.sp-anchor.active {
+  background: var(--accent-teal);
+  box-shadow: 0 0 8px 2px rgba(84, 160, 168, 0.5);
+  animation: sp-pulse-glow 2s ease-in-out infinite;
+}
+.sp-anchor.failed {
+  background: var(--accent-red);
+  box-shadow: 0 0 6px 2px rgba(224, 85, 74, 0.4);
+}
+
+/* Anchor positions — 5 stages (percentage left) */
+.sp-anchor.s1 { left: 0%; }
+.sp-anchor.s2 { left: 18%; }
+.sp-anchor.s3 { left: 62.5%; }
+.sp-anchor.s4 { left: 87.5%; }
+.sp-anchor.s5 { left: 100%; }
+
+/* ── Labels row ── */
+.sp-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.sp-label {
+  text-align: center;
+  white-space: nowrap;
+  transition: color 0.4s;
+}
+.sp-label.done { color: var(--accent-green); }
+.sp-label.active { color: var(--accent-teal); }
+.sp-label.failed { color: var(--accent-red); }
+
+/* ── Activity row ── */
+.sp-activity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+}
+.sp-activity-toggle {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  width: 12px;
+  flex-shrink: 0;
+}
+.sp-activity-text {
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+.sp-activity-text.sp-error {
+  color: var(--accent-red);
+}
+.sp-elapsed {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+}
+
+/* ── Activity log (expandable) ── */
+.sp-log {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease-out, padding 0.3s, margin 0.3s;
+}
+.sp-log.collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  overflow: hidden;
+}
+.sp-log-entry {
+  padding: 2px 0;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.sp-log-entry .sp-log-icon {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.sp-log-entry .sp-log-time {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.sp-log-entry .sp-log-msg {
+  color: var(--text-secondary);
+}
+.sp-log-entry.complete .sp-log-icon { color: var(--accent-green); }
+.sp-log-entry.active .sp-log-icon { color: var(--accent-teal); }
+.sp-log-entry.error .sp-log-icon,
+.sp-log-entry.error .sp-log-msg { color: var(--accent-red); }
+
+/* ── Completed state ── */
+.sp-completed {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-green);
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+.sp-completed .sp-completed-dir {
+  font-weight: 600;
+}
+.sp-completed .sp-completed-meta {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+.sp-completed .sp-completed-debate {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+/* ── Failed state ── */
+.sp-error-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 0;
+  color: var(--accent-red);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+/* ── Sniper IDLE view ── */
+.sniper-idle {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sniper-idle-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-teal);
+  flex-shrink: 0;
+  animation: sp-pulse-glow 2s ease-in-out infinite;
+}
+.sniper-idle-info {
+  color: var(--text-secondary);
+}
+.sniper-idle-info strong {
+  color: var(--text-primary);
+}
+.sniper-idle-recent {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+}
+
+/* ── Sniper signal trigger banner ── */
+.sp-signal-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 8px;
+  font-size: 0.78rem;
+  color: var(--accent-orange);
+  font-weight: 500;
+}
+
+/* ── Backtest global bar ── */
+.bt-global-bar {
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+}
+.bt-global-bar .sp-bar-row {
+  height: 24px;
+}
+.bt-global-bar .sp-bar {
+  height: 8px;
+  border-radius: 4px;
+}
+.bt-global-summary {
+  display: flex;
+  gap: 16px;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.bt-global-summary .done-count { color: var(--accent-green); }
+.bt-global-summary .failed-count { color: var(--accent-red); }
+.bt-global-summary .running-count { color: var(--accent-teal); }
+
+/* ── Backtest sample row with compact progress ── */
+.bt-sample-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-muted);
+}
+.bt-sample-row:last-child { border-bottom: none; }
+.bt-sample-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+}
+.bt-sample-idx { color: var(--text-muted); width: 28px; flex-shrink: 0; }
+.bt-sample-ts { color: var(--text-secondary); min-width: 140px; }
+.bt-sample-status-icon { width: 16px; text-align: center; flex-shrink: 0; }
+.bt-sample-status-icon.ok { color: var(--accent-green); }
+.bt-sample-status-icon.err { color: var(--accent-red); }
+.bt-sample-status-icon.running { color: var(--accent-teal); }
+.bt-sample-status-icon.pending { color: var(--text-muted); }
+.bt-sample-result { color: var(--text-primary); font-weight: 500; }
+.bt-sample-meta { color: var(--text-muted); font-size: 0.76rem; }
+.bt-sample-error { color: var(--accent-red); font-size: 0.76rem; }
+.bt-sample-progress { width: 100%; }
+
+/* ── Animations ── */
+@keyframes sp-breathe {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+@keyframes sp-pulse-glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(84, 160, 168, 0.3); }
+  50% { box-shadow: 0 0 10px 3px rgba(84, 160, 168, 0.55); }
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .sp-bar-fill { transition: none; }
+  .sp-bar-fill.sp-stage-3 { animation: none; }
+  .sp-anchor.active { animation: none; }
+  .sniper-idle-dot { animation: none; }
+  .sp-log { transition: none; }
+  .session-progress { transition: none; }
+}

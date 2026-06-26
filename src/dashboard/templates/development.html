@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Development — Singularity</title>
 <link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/session-progress.js"></script>
 </head>
 <body class="dark">
 <header class="app-header">
@@ -103,6 +104,9 @@
       </div>
       <div class="bt-sample-body" id="bt-sample-body"></div>
     </div>
+
+    <!-- Global Progress Bar -->
+    <div id="bt-global-bar-container" style="display:none"></div>
 
     <!-- Run Status -->
     <div id="bt-run-status" class="run-status-box" style="display:none"></div>
@@ -308,12 +312,21 @@ function renderSampleList(data) {
 
   body.innerHTML = data.timestamps.map((ts, i) => {
     const dt = formatTimestamp(ts);
-    return `<div class="bt-sample-row">
-      <span class="bt-sample-idx">${i + 1}</span>
-      <span class="bt-sample-ts">${dt}</span>
-      <span class="bt-sample-status status-pending">pending</span>
+    return `<div class="bt-sample-row" id="bt-sample-${i}">
+      <div class="bt-sample-info">
+        <span class="bt-sample-idx">${i + 1}</span>
+        <span class="bt-sample-ts">${dt}</span>
+        <span class="bt-sample-status-icon pending">○</span>
+        <span class="bt-sample-result"></span>
+        <span class="bt-sample-meta"></span>
+        <span class="bt-sample-error"></span>
+      </div>
+      <div class="bt-sample-progress" id="bt-sp-${i}"></div>
     </div>`;
   }).join('');
+
+  // Reset progress instances
+  window._btProgressInstances = {};
 }
 
 function formatTimestamp(isoStr) {
@@ -464,9 +477,33 @@ async function checkBacktestStatus() {
         updateSampleStatuses(data.samples);
       }
 
+      // Update global bar
+      const globalContainer = $('bt-global-bar-container');
+      if (data.overall) {
+        globalContainer.style.display = 'block';
+        const ov = data.overall;
+        const donePct = ov.total > 0 ? Math.round((ov.completed / ov.total) * 100) : 0;
+        globalContainer.innerHTML =
+          '<div class="bt-global-bar">' +
+            '<div class="sp-bar-row">' +
+              '<div class="sp-bar">' +
+                '<div class="sp-bar-fill" style="width:' + donePct + '%"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="bt-global-summary">' +
+              '<span>' + (ov.completed + ov.failed) + '/' + ov.total + ' 完成</span>' +
+              (ov.running > 0 ? '<span class="running-count">◉ ' + ov.running + ' 运行中</span>' : '') +
+              '<span class="done-count">✓ ' + ov.completed + '</span>' +
+              (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + '</span>' : '') +
+              '<span>○ ' + ov.pending + '</span>' +
+            '</div>' +
+          '</div>';
+      }
+
+      // Keep run-status minimal
       statusEl.style.display = 'block';
       statusEl.className = 'run-status-box run-active';
-      statusEl.innerHTML = '⟳ Running <strong>' + symbol + '</strong>… ' +
+      statusEl.innerHTML = '⟳ ' + symbol + ' · ' +
         done + '/' + total + ' samples · elapsed ' + elapsed;
     } else {
       if (backtestPollInterval) {
@@ -504,30 +541,90 @@ async function checkBacktestStatus() {
         setTimeout(() => {
           statusEl.style.display = 'none';
         }, 5000);
+
+        // Update global bar for final state
+        if (data.overall) {
+          const globalContainer = $('bt-global-bar-container');
+          globalContainer.style.display = 'block';
+          const ov = data.overall;
+          globalContainer.innerHTML =
+            '<div class="bt-global-bar">' +
+              '<div class="sp-bar-row">' +
+                '<div class="sp-bar">' +
+                  '<div class="sp-bar-fill" style="width:100%"></div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="bt-global-summary">' +
+                '<span>' + ov.total + '/' + ov.total + ' 完成</span>' +
+                '<span class="done-count">✓ ' + ov.completed + ' 通过</span>' +
+                (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + ' 失败</span>' : '') +
+              '</div>' +
+            '</div>';
+        }
       }
     }
   } catch (e) { /* polling failed silently */ }
 }
 
 function updateSampleStatuses(samples) {
-  const rows = document.querySelectorAll('.bt-sample-row');
-  if (!rows.length) return;
-
   samples.forEach((s, i) => {
-    if (i >= rows.length) return;
-    const statusEl = rows[i].querySelector('.bt-sample-status');
-    if (!statusEl) return;
+    const row = document.getElementById('bt-sample-' + i);
+    if (!row) return;
 
-    statusEl.textContent = s.status;
-    statusEl.className = 'bt-sample-status';
-    if (s.status === 'completed') {
-      statusEl.classList.add('status-completed');
-    } else if (s.status === 'running') {
-      statusEl.classList.add('status-running');
+    const iconEl = row.querySelector('.bt-sample-status-icon');
+    const resultEl = row.querySelector('.bt-sample-result');
+    const metaEl = row.querySelector('.bt-sample-meta');
+    const errorEl = row.querySelector('.bt-sample-error');
+    const progContainer = document.getElementById('bt-sp-' + i);
+
+    const progress = s.progress;
+
+    if (s.status === 'running') {
+      if (iconEl) { iconEl.textContent = '◉'; iconEl.className = 'bt-sample-status-icon running'; }
+      if (resultEl) resultEl.textContent = '';
+      if (metaEl) metaEl.textContent = '';
+      if (errorEl) errorEl.textContent = '';
+
+      if (progress && progContainer) {
+        if (!window._btProgressInstances[i]) {
+          window._btProgressInstances[i] = new SessionProgress(progContainer, {
+            size: 'compact', context: 'backtest'
+          });
+        }
+        window._btProgressInstances[i].update(progress);
+      }
+    } else if (s.status === 'completed') {
+      if (iconEl) { iconEl.textContent = '✓'; iconEl.className = 'bt-sample-status-icon ok'; }
+      if (progContainer && window._btProgressInstances[i]) {
+        window._btProgressInstances[i].update(progress || { status: 'completed', result: {}, elapsed_seconds: 0 });
+      }
+      if (progress && progress.result) {
+        const r = progress.result;
+        if (resultEl) resultEl.textContent = (r.direction || '?') + ' ' + (r.confidence || 0) + '%';
+        if (metaEl) {
+          let meta = formatElapsed(progress.elapsed_seconds || 0);
+          if (r.debate_path) meta += ' · ' + r.debate_path;
+          metaEl.textContent = meta;
+        }
+      } else if (resultEl) {
+        resultEl.textContent = 'completed';
+      }
+      if (errorEl) errorEl.textContent = '';
     } else if (s.status === 'failed') {
-      statusEl.classList.add('status-failed');
+      if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
+      if (progContainer && window._btProgressInstances[i]) {
+        window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || '失败' });
+      }
+      if (resultEl) resultEl.textContent = '';
+      if (metaEl) metaEl.textContent = '';
+      if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || '失败';
     } else {
-      statusEl.classList.add('status-pending');
+      // pending — reset
+      if (progContainer && window._btProgressInstances[i]) {
+        window._btProgressInstances[i].destroy();
+        delete window._btProgressInstances[i];
+        progContainer.innerHTML = '';
+      }
     }
   });
 }

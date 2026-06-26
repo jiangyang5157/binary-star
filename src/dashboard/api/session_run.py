@@ -111,7 +111,78 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
             symbol=symbol,
             data_root=data_root,
         )
-        result = engine.execute_cycle(timestamp_str=None)
+
+        # ── Progress callback: writes to .session_run_status.json ──
+        def _on_progress(stage=None, activity=None, status="running",
+                         stage_label=None, result=None, error=None):
+            current = _read_status(data_root)
+            if not current or current.get("run_id") != run_id:
+                return
+            now_utc = datetime.now(timezone.utc)
+            started_str = current.get("started_at", "")
+            elapsed = 0
+            if started_str:
+                try:
+                    started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
+                    elapsed = round((now_utc - started).total_seconds())
+                except Exception:
+                    pass
+
+            progress = current.get("progress", {})
+            if status == "running":
+                activities = list(progress.get("activities", []))
+                # Determine entry type
+                entry_type = "active"
+                if activity and ":" in activity and activity.startswith("辩论"):
+                    entry_type = "complete"
+                elif activity and "完成" in activity:
+                    entry_type = "complete"
+                activities.append({
+                    "time": now_utc.strftime("%H:%M:%S"),
+                    "type": entry_type,
+                    "message": activity or "",
+                })
+                if len(activities) > 10:
+                    activities = activities[-10:]
+
+                progress = {
+                    "status": "running",
+                    "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                    "stage_label": stage_label or progress.get("stage_label", ""),
+                    "activity": activity or progress.get("activity", ""),
+                    "elapsed_seconds": elapsed,
+                    "activities": activities,
+                }
+            elif status == "completed":
+                progress = {
+                    "status": "completed",
+                    "current_stage": 5,
+                    "stage_label": "归档",
+                    "elapsed_seconds": elapsed,
+                    "result": result or {},
+                    "activities": progress.get("activities", []),
+                }
+            elif status == "failed":
+                activities = list(progress.get("activities", []))
+                if activity:
+                    activities.append({
+                        "time": now_utc.strftime("%H:%M:%S"),
+                        "type": "error",
+                        "message": activity,
+                    })
+                progress = {
+                    "status": "failed",
+                    "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                    "elapsed_seconds": elapsed,
+                    "error": error or activity or "未知错误",
+                    "activities": activities,
+                }
+
+            current["progress"] = progress
+            _write_status(data_root, current)
+
+        result = engine.execute_cycle(timestamp_str=None,
+                                      progress_callback=_on_progress)
 
         # Only write completion if this run hasn't been superseded
         current = _read_status(data_root)
@@ -129,6 +200,7 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
                     "error_message": str(result["error"]),
                     "at": datetime.now(timezone.utc).isoformat(),
                 },
+                "progress": current.get("progress") if current else None,
             })
         else:
             _write_status(data_root, {
@@ -139,6 +211,7 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
                     "result": "success",
                     "at": datetime.now(timezone.utc).isoformat(),
                 },
+                "progress": current.get("progress") if current else None,
             })
     except Exception as e:
         log.exception("Session run thread failed for %s", symbol)
@@ -154,6 +227,7 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
                 "error_message": str(e),
                 "at": datetime.now(timezone.utc).isoformat(),
             },
+            "progress": current.get("progress") if current else None,
         })
 
 
@@ -259,9 +333,11 @@ def get_run_status(data_root: str = Query("")):
             "symbol": status.get("symbol", ""),
             "started_at": started_str,
             "elapsed_seconds": round(elapsed),
+            "progress": status.get("progress"),
         }
 
     return {
         "running": False,
         "last_run": status.get("last_run"),
+        "progress": status.get("progress"),
     }

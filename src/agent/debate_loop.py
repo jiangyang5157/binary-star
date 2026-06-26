@@ -26,8 +26,13 @@ class DebateLoop:
         self.session_config = session_config
         self.critic_config = critic_config
 
-    def run(self, observation: dict, symbol: str) -> dict[str, Any]:
+    def run(self, observation: dict, symbol: str,
+            progress_callback=None) -> dict[str, Any]:
         """Execute the full debate and return final results.
+
+        Args:
+            progress_callback: Optional fn(stage, activity, stage_label=...)
+                for progress reporting.
 
         Returns:
             {"final_decision": ..., "debate_history": ..., "early_exit": bool}
@@ -41,6 +46,14 @@ class DebateLoop:
 
         while current_round <= self.max_rounds:
             compressed_history = self._compress_debate_history(debate_history)
+
+            # Progress: debate round starting — Session Agent
+            if progress_callback:
+                progress_callback(
+                    stage=3,
+                    activity=f"辩论 R{current_round} · Session Agent 思考中…",
+                    stage_label=f"辩论 · Round {current_round}/{self.max_rounds}",
+                )
 
             # Planning / Refinement
             logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis (Planning State)...")
@@ -68,11 +81,21 @@ class DebateLoop:
                 )
 
             # Adversarial Audit (Math Fact Check Injection)
+            if progress_callback:
+                progress_callback(
+                    stage=3,
+                    activity=f"辩论 R{current_round} · Math 验证…",
+                )
             logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
             math_fact_check = self.math_checker.verify(last_plan, observation)
 
             # Full adversarial review — critic always runs (handles NEUTRAL via
             # its own NEUTRALITY PARADOX protocol, no Python-level bypass needed).
+            if progress_callback:
+                progress_callback(
+                    stage=3,
+                    activity=f"辩论 R{current_round} · Critic 审计中…",
+                )
             critic_results = self.critic_agent.evaluate(
                 observation=observation,
                 last_plan=last_plan,
@@ -88,6 +111,12 @@ class DebateLoop:
             # Score Telemetry
             veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
             logger.info(f"BinaryStar Audit [R{current_round}]: Veto={veto_level}")
+
+            if progress_callback:
+                progress_callback(
+                    stage=3,
+                    activity=f"辩论 R{current_round} · Critic: {veto_level}",
+                )
 
             debate_history.append({
                 "round": current_round,

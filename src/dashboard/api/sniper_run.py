@@ -220,6 +220,22 @@ def sniper_status(data_root: str = Query("")):
     # heavy heartbeat, then daemon uptime as last resort.
     pulse_seconds = _read_pulse_seconds(data_root, fallback_elapsed=round(elapsed))
 
+    # Active session (AI session triggered by sniper signal)
+    active_session = status.get("active_session")
+    recent_signals = status.get("recent_signals", [])
+    pulse_count = status.get("pulse_count", 0)
+
+    # Next scout countdown (only when idle — no active session)
+    next_scout = None
+    if active_session is None:
+        try:
+            from src.utils.pipeline_utils import load_global_config
+            gcfg = load_global_config()
+            pulse_mins = int(gcfg.get('sniper', {}).get('heartbeat', {}).get('pulse_interval_minutes', 2))
+            next_scout = max(0, pulse_mins * 60 - pulse_seconds)
+        except Exception:
+            pass
+
     return {
         "running": True,
         "symbols": symbols,
@@ -228,6 +244,10 @@ def sniper_status(data_root: str = Query("")):
         "started_at": started_str,
         "elapsed_seconds": round(elapsed),
         "pulse_seconds": pulse_seconds,
+        "pulse_count": pulse_count,
+        "next_scout_in_seconds": next_scout,
+        "active_session": active_session,
+        "recent_signals": recent_signals,
         "guardian": _read_guardian_status(data_root),
     }
 
