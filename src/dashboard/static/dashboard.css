@@ -334,6 +334,7 @@ tbody tr:hover {
   font-size: 0.72rem;
   margin-top: 4px;
   line-height: 1.4;
+  min-height: 1.4em;        /* reserve space — no layout shift when error appears */
 }
 .field-hint.muted  { color: var(--text-muted); }
 .field-hint.error  { color: var(--accent-red); }

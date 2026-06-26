@@ -39,7 +39,7 @@
             <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
         </label>
-        <div id="run-field-hint" class="field-hint error" style="display:none"></div>
+        <div id="run-field-hint" class="field-hint muted"></div>
       </div>
       <div id="run-status" class="run-status-box" style="display:none"></div>
     </section>
@@ -61,7 +61,8 @@
                    oninput="clearSniperErrors()">
             <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
-          <div id="sniper-field-hint" class="field-hint error" style="display:none"></div>
+          <div id="sniper-field-hint" class="field-hint muted"></div>
+
         </label>
       </div>
       <div class="bt-param-row">
@@ -176,7 +177,7 @@ function clearRunErrors() {
   const status = document.getElementById('run-status');
   input.classList.remove('bt-field-error');
   group.classList.remove('has-error');
-  hint.style.display = 'none';
+  hint.textContent = '';
   hint.className = 'field-hint muted';
   status.style.display = 'none';
 }
@@ -296,7 +297,6 @@ async function triggerRun() {
     group.classList.add('has-error');
     hint.textContent = 'Enter at least 2 characters (e.g. BTC)';
     hint.className = 'field-hint error';
-    hint.style.display = 'block';
     input.focus();
     return;
   }
@@ -306,7 +306,6 @@ async function triggerRun() {
     group.classList.add('has-error');
     hint.textContent = 'Only letters and numbers, e.g. BTC';
     hint.className = 'field-hint error';
-    hint.style.display = 'block';
     input.focus();
     return;
   }
@@ -378,7 +377,7 @@ function clearSniperErrors() {
   const status = document.getElementById('sniper-status');
   status.style.display = 'none';
   const hint = document.getElementById('sniper-field-hint');
-  if (hint) { hint.className = 'field-hint muted'; hint.textContent = ''; hint.style.display = 'none'; }
+  if (hint) { hint.className = 'field-hint muted'; hint.textContent = ''; }
 }
 
 function toggleBalanceVisibility() {
