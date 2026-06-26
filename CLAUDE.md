@@ -60,8 +60,10 @@ python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
 # Market reconnaissance snapshot
 python scripts/market_recon.py --symbol BTC -p data/prod
 
+python scripts/render_email_html.py -p data/test -f data/prod/sessions/BTCUSDT_session_20260625_104702.json  
+
 # Reverse-engineer strategy from session
-python scripts/export_session.py -f data/prod/sessions/BTCUSDT_session_20260101_120000.json
+python scripts/export_session.py -p data/test -f data/prod/audits/BTCUSDT_audit_20260101_120000.json
 
 # Check Binance cross-margin state
 python scripts/check_margin_state.py
