@@ -384,51 +384,51 @@ TRIGGER → AI Session → Trade Gate → sync_with_opinion()
                                           │
                     ┌─────────────────────┘
                     ▼
-     ┌──────────────────────────────┐
-     │  PHASE 1: ENTRY PENDING      │
-     │                              │
-     │  trade_state:                │
-     │    direction, entry_price,   │
-     │    tp_price, sl_price,       │
-     │    entry_order_id,           │
-     │    entry_placed_at (UTC),    │
-     │    projected_waiting_hours,  │
-     │    projected_holding_hours,  │
-     │    entry_atr                 │
-     │                              │
-     │  Guardian each pulse:        │
-     │    elapsed < waiting? → wait │
-     │    elapsed > waiting? →      │
-     │      cancel + clear state    │
-     └──────────────┬───────────────┘
-                    │  Order FILLED
-                    ▼
-     ┌──────────────────────────────┐
-     │  PHASE 2: OCO PROTECTED      │
-     │                              │
-     │  Guardian detects:           │
-     │    has_position=True         │
-     │    has_oco=False             │
-     │  → Check SL not breached     │
-     │  → Place synthetic OCO       │
-     │    (TP LIMIT + SL STOP_LIMIT)│
-     │  → Record entry_filled_at    │
-     │  → Remove entry_order_id     │
-     │                              │
-     │  Guardian each pulse:        │
-     │    ├─ Time-stop check        │
-     │    ├─ Trailing stop migrate  │
-     │    └─ Orientation check      │
-     └──────────────┬───────────────┘
-                    │
-          ┌─────────┴──────────┐
-          ▼                    ▼
-   ┌──────────────┐    ┌──────────────┐
-   │ NORMAL EXIT  │    │ EMERGENCY    │
-   │ TP/SL filled │    │ Market close │
-   │ Time-stop    │    │ OCO re-place │
-   │              │    │ failure      │
-   └──────────────┘    └──────────────┘
+                        ┌──────────────────────────────┐
+                        │  PHASE 1: ENTRY PENDING      │
+                        │                              │
+                        │  trade_state:                │
+                        │    direction, entry_price,   │
+                        │    tp_price, sl_price,       │
+                        │    entry_order_id,           │
+                        │    entry_placed_at (UTC),    │
+                        │    projected_waiting_hours,  │
+                        │    projected_holding_hours,  │
+                        │    entry_atr                 │
+                        │                              │
+                        │  Guardian each pulse:        │
+                        │    elapsed < waiting? → wait │
+                        │    elapsed > waiting? →      │
+                        │      cancel + clear state    │
+                        └──────────────┬───────────────┘
+                                        │  Order FILLED
+                                        ▼
+                        ┌──────────────────────────────┐
+                        │  PHASE 2: OCO PROTECTED      │
+                        │                              │
+                        │  Guardian detects:           │
+                        │    has_position=True         │
+                        │    has_oco=False             │
+                        │  → Check SL not breached     │
+                        │  → Place synthetic OCO       │
+                        │    (TP LIMIT + SL STOP_LIMIT)│
+                        │  → Record entry_filled_at    │
+                        │  → Remove entry_order_id     │
+                        │                              │
+                        │  Guardian each pulse:        │
+                        │    ├─ Time-stop check        │
+                        │    ├─ Trailing stop migrate  │
+                        │    └─ Orientation check      │
+                        └──────────────┬───────────────┘
+                                        │
+                              ┌─────────┴──────────┐
+                              ▼                    ▼
+                      ┌──────────────┐    ┌──────────────┐
+                      │ NORMAL EXIT  │    │ EMERGENCY    │
+                      │ TP/SL filled │    │ Market close │
+                      │ Time-stop    │    │ OCO re-place │
+                      │              │    │ failure      │
+                      └──────────────┘    └──────────────┘
 ```
 
 #### Phase 1: Entry Pending — Waiting Time Logic
