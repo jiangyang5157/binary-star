@@ -321,24 +321,21 @@ class SessionRenderer(BaseEmailTemplate):
         activated_by = brief.get("activated_by", []) if brief else []
         risk_caveats = brief.get("risk_caveats", []) if brief else []
 
-        # ── Build primary metric cards (only those with real data) ──
-
-        primary_cards = []  # list of (label, value_html, accent_color)
+        # ── Primary metric cards (always all four — consistent layout) ──
 
         # Regime
-        regime_label = str(regime_note)
+        regime_label = str(regime_note) if regime_note else "&mdash;"
         if " — " in regime_label:
             regime_label = regime_label.split(" — ")[0]
         if len(regime_label) > 36:
             regime_label = regime_label[:34] + "…"
-        if regime_label:
-            primary_cards.append(("Regime", regime_label, C["teal"]))
 
         # Confluence
         if confluence is not None:
             dir_color = C["verde"] if confluence_dir == "BULLISH" else (C["crimson"] if confluence_dir == "BEARISH" else C["muted"])
             confluence_html = f'<span style="{_s(fontFamily=F["mono"], fontSize="18px", fontWeight="700", color=C["gold"])}">{confluence:.2f}</span><span style="{_s(fontSize="10px", color=dir_color, display="block", marginTop="2px")}">{confluence_dir}</span>'
-            primary_cards.append(("Confluence", confluence_html, C["gold"]))
+        else:
+            confluence_html = "&mdash;"
 
         # Signals
         if signals_count is not None and signals_count > 0:
@@ -349,7 +346,8 @@ class SessionRenderer(BaseEmailTemplate):
                 gate_bg = C["bg_pass"] if gate_result == "PASS" else (C["bg_terminal"] if gate_result == "FAIL" else C["bg_neutral"])
                 gate_badge = f' <span style="{_s(display="inline-block", padding="2px 8px", borderRadius="4px", fontSize="10px", fontWeight="600", textTransform="uppercase", letterSpacing="0.05em", background=gate_bg, color=gate_color, fontFamily=F["body"])}">{gate_result}</span>'
                 signals_val += gate_badge
-            primary_cards.append(("Signals", signals_val, C["violet"]))
+        else:
+            signals_val = "&mdash;"
 
         # ATR
         if atr_macro is not None:
@@ -357,13 +355,28 @@ class SessionRenderer(BaseEmailTemplate):
                 atr_val = f'{float(atr_macro):.1f}'
             except (ValueError, TypeError):
                 atr_val = str(atr_macro)
-            primary_cards.append(("ATR (1h)", atr_val, C["muted"]))
+        else:
+            atr_val = "&mdash;"
 
-        # ── Build secondary metric row (only those with real data) ──
+        primary_cards = [
+            ("Regime", regime_label),
+            ("Confluence", confluence_html),
+            ("Signals", signals_val),
+            ("ATR (1h)", atr_val),
+        ]
+
+        primary_html = ""
+        for label, value in primary_cards:
+            primary_html += f"""\
+            <td style="{_s(padding='12px 16px', verticalAlign='top', width='25%')}">
+                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='6px', fontFamily=F['body'])}">{label}</span>
+                <span style="{_s(fontSize='13px', fontWeight='600', color=C['text'], fontFamily=F['mono'], lineHeight='1.4')}">{value}</span>
+            </td>"""
+
+        # ── Secondary metric row (supplementary — only show when data exists) ──
 
         secondary_cards = []  # list of (label, value, color)
 
-        # Trend intensity
         trend = regime_data.get("trend_intensity")
         if trend is not None:
             try:
@@ -377,7 +390,6 @@ class SessionRenderer(BaseEmailTemplate):
             except (ValueError, TypeError):
                 pass
 
-        # Squeeze factor
         squeeze = regime_data.get("squeeze_factor")
         if squeeze is not None:
             try:
@@ -385,7 +397,6 @@ class SessionRenderer(BaseEmailTemplate):
             except (ValueError, TypeError):
                 pass
 
-        # POC distance
         poc_dist = struct.get("poc_dist_atr")
         if poc_dist is not None:
             try:
@@ -394,7 +405,6 @@ class SessionRenderer(BaseEmailTemplate):
             except (ValueError, TypeError):
                 pass
 
-        # CVD intensity
         cvd_intensity = sentiment.get("cvd_intensity_ratio")
         if cvd_intensity is not None:
             try:
@@ -403,7 +413,6 @@ class SessionRenderer(BaseEmailTemplate):
             except (ValueError, TypeError):
                 pass
 
-        # OI delta
         oi_delta = sentiment.get("oi_delta_micro")
         if oi_delta is not None:
             try:
@@ -412,7 +421,6 @@ class SessionRenderer(BaseEmailTemplate):
             except (ValueError, TypeError):
                 pass
 
-        # Funding rate
         funding = sentiment.get("funding_rate")
         if funding is not None:
             try:
@@ -421,27 +429,11 @@ class SessionRenderer(BaseEmailTemplate):
             except (ValueError, TypeError):
                 pass
 
-        # ── Decide whether to render ──────────────────────────────
-
-        has_primary = len(primary_cards) >= 2
         has_secondary = len(secondary_cards) > 0
         has_signals = bool(activated_by)
         has_risks = bool(risk_caveats)
 
-        if not has_primary and not has_secondary and not has_signals and not has_risks:
-            return ""
-
-        # ── Render ────────────────────────────────────────────────
-
-        primary_html = ""
-        if has_primary:
-            col_w = f"{100 // len(primary_cards):.0f}%"
-            for label, value, _accent in primary_cards:
-                primary_html += f"""\
-            <td style="{_s(padding='12px 16px', verticalAlign='top', width=col_w)}">
-                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='6px', fontFamily=F['body'])}">{label}</span>
-                <span style="{_s(fontSize='13px', fontWeight='600', color=C['text'], fontFamily=F['mono'], lineHeight='1.4')}">{value}</span>
-            </td>"""
+        # ── Render secondary row ──────────────────────────────────
 
         secondary_html = ""
         if has_secondary:
@@ -490,7 +482,11 @@ class SessionRenderer(BaseEmailTemplate):
     <div style="{_s(padding='14px 24px', borderBottom=f'1px solid {C["border"]}')}">
         <h2 style="{_s(fontFamily=F['display'], fontSize='15px', fontWeight='300', color=C['text'], margin='0', letterSpacing='0.03em')}">Market Context</h2>
     </div>
-    {f'<table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>{primary_html}</tr></table>' if has_primary else ""}
+    <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+            {primary_html}
+        </tr>
+    </table>
     {f'<div style="{_s(padding="0 24px 4px 24px")}"><table cellpadding="0" cellspacing="0" border="0" width="100%"><tr>{secondary_html}</tr>{signals_html}{risk_html}</table></div>' if (has_secondary or has_signals or has_risks) else ""}
 </div>"""
 
