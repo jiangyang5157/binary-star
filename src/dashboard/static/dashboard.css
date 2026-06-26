@@ -1,6 +1,6 @@
 /* ============================================================
-   Singularity Dashboard — Dark Theme
-   Chart background: #0d1117
+   Singularity Dashboard — Void Theme
+   Design tokens aligned with session_html_renderer.py email template
    ============================================================ */
 
 /* --- Reset & Base --- */
@@ -11,30 +11,38 @@
 }
 
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-card: #1c2333;
-  --bg-card-hover: #21283a;
-  --bg-input: #0d1117;
-  --border-color: #30363d;
-  --border-muted: #21262d;
-  --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
-  --accent-blue: #58a6ff;
-  --accent-green: #3fb950;
-  --accent-red: #f85149;
-  --accent-orange: #d29922;
-  --accent-purple: #a371f7;
-  --badge-green-bg: rgba(63, 185, 80, 0.15);
-  --badge-green-text: #3fb950;
-  --badge-green-border: rgba(63, 185, 80, 0.4);
-  --badge-red-bg: rgba(248, 81, 73, 0.15);
-  --badge-red-text: #f85149;
-  --badge-red-border: rgba(248, 81, 73, 0.4);
-  --badge-gray-bg: rgba(139, 148, 158, 0.15);
-  --badge-gray-text: #8b949e;
-  --badge-gray-border: rgba(139, 148, 158, 0.4);
+  --bg-primary: #0c1119;
+  --bg-secondary: #151d28;
+  --bg-card: #1d2a39;
+  --bg-card-hover: #243447;
+  --bg-input: #0c1119;
+  --border-color: #283648;
+  --border-muted: #1f2d3d;
+  --text-primary: #dce3eb;
+  --text-secondary: #8898ac;
+  --text-muted: #6e7d91;
+  --accent-gold: #d4a348;
+  --accent-teal: #54a0a8;
+  --accent-green: #40a85f;
+  --accent-red: #e0554a;
+  --accent-orange: #d98c2e;
+  --accent-purple: #9488d8;
+  --accent-blue: #54a0a8;  /* compat alias — maps to teal */
+  --badge-green-bg: rgba(64, 168, 95, 0.15);
+  --badge-green-text: #40a85f;
+  --badge-green-border: rgba(64, 168, 95, 0.4);
+  --badge-red-bg: rgba(224, 85, 74, 0.15);
+  --badge-red-text: #e0554a;
+  --badge-red-border: rgba(224, 85, 74, 0.4);
+  --badge-gray-bg: rgba(136, 152, 172, 0.12);
+  --badge-gray-text: #8898ac;
+  --badge-gray-border: rgba(136, 152, 172, 0.35);
+  --badge-amber-bg: rgba(217, 140, 46, 0.15);
+  --badge-amber-text: #d98c2e;
+  --badge-amber-border: rgba(217, 140, 46, 0.35);
+  --badge-teal-bg: rgba(84, 160, 168, 0.15);
+  --badge-teal-text: #54a0a8;
+  --badge-teal-border: rgba(84, 160, 168, 0.4);
   --radius: 8px;
   --radius-sm: 4px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -43,20 +51,18 @@
 
 body.dark {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", Arial,
-    sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
   min-height: 100vh;
 }
 
-a { color: var(--accent-blue); text-decoration: none; }
+a { color: var(--accent-teal); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 code, pre, .mono {
-  font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono",
-    "Cascadia Code", Consolas, monospace;
+  font-family: "SF Mono", "Fira Code", "Consolas", "Monaco", monospace;
 }
 
 /* --- App Header --- */
@@ -74,8 +80,8 @@ code, pre, .mono {
 
 .app-header h1 {
   font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--accent-blue);
+  font-weight: 300;
+  color: var(--accent-gold);
   letter-spacing: -0.02em;
 }
 
@@ -101,7 +107,7 @@ code, pre, .mono {
 
 .nav-link.active {
   background: var(--bg-card);
-  color: var(--text-primary);
+  color: var(--accent-gold);
 }
 
 .header-controls {
@@ -157,7 +163,7 @@ code, pre, .mono {
 .card-footer {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid var(--border-muted);
+  border-top: 1px solid var(--border-color);
   color: var(--text-muted);
   font-size: 0.85rem;
 }
@@ -265,6 +271,15 @@ tbody tr:hover {
   text-decoration: none;
 }
 
+.btn-sm.danger {
+  color: var(--accent-red);
+}
+
+.btn-sm.danger:hover {
+  color: var(--accent-red);
+  background: rgba(224, 85, 74, 0.12);
+}
+
 /* --- Audit trigger status --- */
 .audit-status {
   font-size: 0.85rem;
@@ -287,7 +302,7 @@ tbody tr:hover {
 }
 
 .filter-input:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--accent-teal);
 }
 
 .filter-select {
@@ -302,7 +317,7 @@ tbody tr:hover {
 }
 
 .filter-select:focus {
-  border-color: var(--accent-blue);
+  border-color: var(--accent-teal);
 }
 
 /* --- Session Page --- */
@@ -324,7 +339,7 @@ tbody tr:hover {
 
 /* Decision Card */
 .decision-card {
-  border-left: 3px solid var(--accent-blue);
+  border-left: 3px solid var(--accent-gold);
 }
 
 .decision-header {
@@ -347,7 +362,7 @@ tbody tr:hover {
 .confidence-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--accent-blue);
+  color: var(--accent-gold);
 }
 
 .confidence-label {
@@ -409,7 +424,7 @@ tbody tr:hover {
 }
 
 .reasoning-details summary:hover {
-  color: var(--accent-blue);
+  color: var(--accent-teal);
 }
 
 .reasoning-text {
@@ -480,13 +495,13 @@ tbody tr:hover {
 }
 
 .veto-weak {
-  background: rgba(88, 166, 255, 0.15);
-  color: var(--accent-blue);
+  background: var(--badge-teal-bg);
+  color: var(--badge-teal-text);
 }
 
 .veto-constructive {
-  background: rgba(210, 153, 34, 0.15);
-  color: var(--accent-orange);
+  background: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
 }
 
 .veto-terminal {
@@ -668,7 +683,7 @@ tbody tr:hover {
   width: 32px;
   height: 32px;
   border: 3px solid var(--border-color);
-  border-top-color: var(--accent-blue);
+  border-top-color: var(--accent-gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 16px auto;
@@ -705,9 +720,10 @@ tbody tr:hover {
 
 .kpi-card.accent-green  { border-left-color: var(--accent-green); }
 .kpi-card.accent-red    { border-left-color: var(--accent-red); }
-.kpi-card.accent-blue   { border-left-color: var(--accent-blue); }
+.kpi-card.accent-blue   { border-left-color: var(--accent-teal); }
 .kpi-card.accent-purple { border-left-color: var(--accent-purple); }
 .kpi-card.accent-orange { border-left-color: var(--accent-orange); }
+.kpi-card.accent-gold   { border-left-color: var(--accent-gold); }
 
 .kpi-label {
   font-size: 0.72rem;
@@ -781,14 +797,14 @@ tbody tr:hover {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: var(--accent-green);
+  background: var(--accent-gold);
   cursor: pointer;
 }
 
 .slider-value {
   font-size: 0.9rem;
   font-weight: 700;
-  color: var(--accent-green);
+  color: var(--accent-gold);
   font-variant-numeric: tabular-nums;
   min-width: 2.2em;
   text-align: center;
@@ -831,7 +847,7 @@ tbody tr:hover {
 
 /* --- Audit Outcome --- */
 .audit-outcome {
-  border-left: 3px solid var(--accent-purple);
+  border-left: 3px solid var(--accent-teal);
 }
 
 .audit-header {
@@ -857,21 +873,21 @@ tbody tr:hover {
 
 /* --- Result Badges --- */
 .result-tp {
-  background: rgba(63, 185, 80, 0.18);
-  color: #3fb950;
-  border: 1px solid rgba(63, 185, 80, 0.4);
+  background: rgba(64, 168, 95, 0.18);
+  color: var(--accent-green);
+  border: 1px solid rgba(64, 168, 95, 0.4);
 }
 
 .result-sl {
-  background: rgba(248, 81, 73, 0.18);
-  color: #f85149;
-  border: 1px solid rgba(248, 81, 73, 0.4);
+  background: rgba(224, 85, 74, 0.18);
+  color: var(--accent-red);
+  border: 1px solid rgba(224, 85, 74, 0.4);
 }
 
 .result-neither {
-  background: rgba(210, 153, 34, 0.15);
+  background: var(--badge-amber-bg);
   color: var(--accent-orange);
-  border: 1px solid rgba(210, 153, 34, 0.35);
+  border: 1px solid var(--badge-amber-border);
 }
 
 /* --- P&L Colors --- */
@@ -1021,8 +1037,8 @@ tbody tr:hover {
 }
 
 .toggle-input:checked + .toggle-slider {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
+  background: var(--accent-teal);
+  border-color: var(--accent-teal);
 }
 
 .toggle-input:checked + .toggle-slider::after {
@@ -1078,12 +1094,12 @@ tbody tr:hover {
 }
 .run-status-box.run-ok {
   border-color: var(--accent-green);
-  background: rgba(63, 185, 80, 0.08);
+  background: rgba(64, 168, 95, 0.08);
   color: var(--accent-green);
 }
 .run-status-box.run-error {
   border-color: var(--accent-red);
-  background: rgba(248, 81, 73, 0.08);
+  background: rgba(224, 85, 74, 0.08);
   color: var(--accent-red);
 }
 
@@ -1223,7 +1239,7 @@ tbody tr:hover {
 .bt-field-error,
 .bt-field-error:focus {
   border-color: var(--accent-red);
-  box-shadow: 0 0 0 2px rgba(255, 85, 85, 0.15);
+  box-shadow: 0 0 0 2px rgba(224, 85, 74, 0.15);
 }
 
 .bt-suffix {
@@ -1323,18 +1339,18 @@ tbody tr:hover {
 }
 
 .status-running {
-  color: var(--accent-blue);
-  background: rgba(88, 166, 255, 0.12);
+  color: var(--accent-teal);
+  background: rgba(84, 160, 168, 0.12);
 }
 
 .status-completed {
   color: var(--accent-green);
-  background: rgba(63, 185, 80, 0.12);
+  background: rgba(64, 168, 95, 0.12);
 }
 
 .status-failed {
   color: var(--accent-red);
-  background: rgba(248, 81, 73, 0.12);
+  background: rgba(224, 85, 74, 0.12);
 }
 
 /* Hide number spinners on samples input */

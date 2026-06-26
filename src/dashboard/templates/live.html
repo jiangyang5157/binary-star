@@ -156,12 +156,12 @@ function updateRunUI(state) {
     input.disabled = true;
     btn.disabled = false;
     btn.textContent = '⏹ Stop';
-    btn.style.color = 'var(--accent-red)';
+    btn.classList.add('danger');
   } else {
     input.disabled = false;
     btn.disabled = false;
     btn.textContent = '▶ Run';
-    btn.style.color = '';
+    btn.classList.remove('danger');
     runPollInterval = null;
   }
 }
@@ -228,7 +228,7 @@ async function triggerRun() {
         statusEl.textContent = `✗ ${err.detail || 'stop failed'}`;
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
-        btn.style.color = 'var(--accent-red)';
+        btn.classList.add('danger');
         return;
       }
       // Polling will catch the transition to idle
@@ -238,7 +238,7 @@ async function triggerRun() {
       statusEl.textContent = '✗ Request failed';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
-      btn.style.color = 'var(--accent-red)';
+      btn.classList.add('danger');
     }
     return;
   }
@@ -343,7 +343,7 @@ function updateSniperUI(state) {
     balanceInput.disabled = true;
     btn.disabled = false;
     btn.textContent = '⏹ Stop';
-    btn.style.color = 'var(--accent-red)';
+    btn.classList.add('danger');
   } else {
     input.disabled = false;
     tradeToggle.disabled = false;
@@ -352,7 +352,7 @@ function updateSniperUI(state) {
     toggleBalanceVisibility();
     btn.disabled = false;
     btn.textContent = '▶ Run';
-    btn.style.color = '';
+    btn.classList.remove('danger');
     sniperPollInterval = null;
   }
 }

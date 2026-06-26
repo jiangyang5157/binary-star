@@ -1,5 +1,6 @@
 // Shared session detail rendering functions.
 // Used by session.html and audit.html.
+// NOTE: All color values are driven by dashboard.css — no hardcoded hex codes.
 
 function opinionBadge(opinion) {
   const cls = opinion === 'BULLISH' ? 'badge-green' : opinion === 'BEARISH' ? 'badge-red' : 'badge-gray';
@@ -79,6 +80,16 @@ function renderMathCheck(math) {
   return `<pre class="reasoning-text">${JSON.stringify(math.compliance_verdict, null, 2)}</pre>`;
 }
 
+function calcRR(tp, opinion) {
+  const entry = tp?.entry, takeProfit = tp?.take_profit, stopLoss = tp?.stop_loss;
+  if (!entry || !takeProfit || !stopLoss || entry === stopLoss) return '&mdash;';
+  const isBearish = opinion === 'BEARISH';
+  const reward = isBearish ? entry - takeProfit : takeProfit - entry;
+  const risk = isBearish ? stopLoss - entry : entry - stopLoss;
+  if (risk <= 0) return '&mdash;';
+  return (reward / risk).toFixed(2);
+}
+
 function renderDebateRounds(debateHistory) {
   if (!debateHistory || !debateHistory.length) return '';
   return `
@@ -101,7 +112,7 @@ function renderDebateRounds(debateHistory) {
                 <div class="tactical-item"><span class="tactical-label">Entry</span><span class="tactical-value mono">${formatPrice(r.plan.tactical_parameters.entry)}</span></div>
                 <div class="tactical-item"><span class="tactical-label">TP</span><span class="tactical-value mono profit">${formatPrice(r.plan.tactical_parameters.take_profit)}</span></div>
                 <div class="tactical-item"><span class="tactical-label">SL</span><span class="tactical-value mono loss">${formatPrice(r.plan.tactical_parameters.stop_loss)}</span></div>
-                <div class="tactical-item"><span class="tactical-label">RR</span><span class="tactical-value mono">${r.plan.tactical_parameters.rr_ratio != null ? r.plan.tactical_parameters.rr_ratio.toFixed(2) : '&mdash;'}</span></div>
+                <div class="tactical-item"><span class="tactical-label">RR</span><span class="tactical-value mono">${calcRR(r.plan.tactical_parameters, r.plan.opinion)}</span></div>
               </div>` : ''}
               ${r.plan.reasoning_chain ? `<pre class="reasoning-text">${r.plan.reasoning_chain}</pre>` : ''}
             </div>` : ''}

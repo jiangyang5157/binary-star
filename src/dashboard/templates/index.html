@@ -130,7 +130,7 @@ function apiUrl(path, extra = {}) {
 }
 
 // ── Chart config ──
-const gridColor = '#21262d', textMuted = '#6e7681', textBright = '#8b949e';
+const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
 let timelineChart = null, equityChart = null, optimizerChart = null;
 let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
 let confThreshold = 50; // fallback, overridden by /api/config
@@ -223,20 +223,20 @@ function renderTimeline(trades, threshold) {
     const above = t.confidence >= threshold;
     if (t.opinion !== 'NEUTRAL') {
       if (t.is_filled) {
-        if (t.tp_sl_result === 'TP_HIT') color = above ? 'rgba(63, 185, 80, 0.85)' : 'rgba(0,0,0,0)';
-        else if (t.tp_sl_result === 'SL_HIT') color = above ? 'rgba(248, 81, 73, 0.85)' : 'rgba(0,0,0,0)';
-        else if (t.pnl_pct > 0) color = above ? 'rgba(63, 185, 80, 0.35)' : 'rgba(0,0,0,0)';
-        else if (t.pnl_pct < 0) color = above ? 'rgba(248, 81, 73, 0.35)' : 'rgba(0,0,0,0)';
-        else color = above ? 'rgba(100, 116, 139, 0.5)' : 'rgba(0,0,0,0)';
+        if (t.tp_sl_result === 'TP_HIT') color = above ? 'rgba(64, 168, 95, 0.85)' : 'rgba(0,0,0,0)';
+        else if (t.tp_sl_result === 'SL_HIT') color = above ? 'rgba(224, 85, 74, 0.85)' : 'rgba(0,0,0,0)';
+        else if (t.pnl_pct > 0) color = above ? 'rgba(64, 168, 95, 0.35)' : 'rgba(0,0,0,0)';
+        else if (t.pnl_pct < 0) color = above ? 'rgba(224, 85, 74, 0.35)' : 'rgba(0,0,0,0)';
+        else color = above ? 'rgba(136, 152, 172, 0.45)' : 'rgba(0,0,0,0)';
       } else {
-        color = above ? 'rgba(148, 163, 184, 0.4)' : 'rgba(0,0,0,0)';
+        color = above ? 'rgba(136, 152, 172, 0.35)' : 'rgba(0,0,0,0)';
       }
     }
     return {
       x: t.time ? new Date(t.time.replace('Z', '')) : null,
       y: t.confidence,
       r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
-      pnl: t.pnl_pct, op: t.opinion,
+      pnl: t.pnl_pct, op: t.opinion, symbol: t.symbol || '',
       holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
       sessionFile: t.session_filename || '',
       version: t.version || '',
@@ -255,7 +255,7 @@ function renderTimeline(trades, threshold) {
       },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Time: ${d.timeLabel}`, `Direction: ${d.op}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`, `Version: ${d.version || '&mdash;'}`]; } } }
+        tooltip: { callbacks: { label: (ctx) => { const d = ctx.raw; return [`Symbol: ${d.symbol || '&mdash;'}`, `Time: ${d.timeLabel}`, `Direction: ${d.op}`, `PnL: ${d.pnl > 0 ? '+' : ''}${d.pnl}%`, `Holding: ${d.holding}h`, `Version: ${d.version || '&mdash;'}`]; } } }
       },
       onClick: (e) => {
         const points = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
@@ -277,8 +277,8 @@ function renderEquity(curve, netPnL) {
   const ctx = $('equityChart').getContext('2d');
   if (equityChart) equityChart.destroy();
 
-  const color = netPnL >= 0 ? '#3fb950' : '#f85149';
-  const fill = netPnL >= 0 ? 'rgba(63, 185, 80, 0.08)' : 'rgba(248, 81, 73, 0.08)';
+  const color = netPnL >= 0 ? '#40a85f' : '#e0554a';
+  const fill = netPnL >= 0 ? 'rgba(64, 168, 95, 0.08)' : 'rgba(224, 85, 74, 0.08)';
 
   const pointRadius = curve.length <= 2 ? 5 : 0;
 
@@ -311,7 +311,7 @@ function renderOptimizer(filledTrades, minThreshold) {
 
   optimizerChart = new Chart(ctx, {
     type: 'line',
-    data: { labels: thresholds, datasets: [{ data, borderColor: '#58a6ff', backgroundColor: 'rgba(88, 166, 255, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#58a6ff' }] },
+    data: { labels: thresholds, datasets: [{ data, borderColor: '#54a0a8', backgroundColor: 'rgba(84, 160, 168, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#54a0a8' }] },
     options: {
       responsive: true, maintainAspectRatio: false, animation: false,
       plugins: { legend: { display: false } },
