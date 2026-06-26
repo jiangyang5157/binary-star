@@ -156,54 +156,60 @@ python run.py sniper --symbol BTC,XAUT --trade       # + AI + trade (--trade imp
 ### Complete Decision Tree (Phase 2: AI + Execution)
 
 ```
-                      ┌─────────────────────────────┐
-                      │  Scan every 2 minutes       │
-                      │  Guardian ALWAYS runs first │
-                      └────────────┬────────────────┘
-                                   │
-                    ┌──────────────▼──────────────────────┐
-                    │  GUARDIAN: Protect open positions   │
-                    │  • Entry timeout? → Cancel          │
-                    │  • Filled but no OCO? → Place OCO   │
-                    │  • Has OCO? → Migrate trailing stop │
-                    │  • Time-stop? → Market close        │
-                    └──────────────┬──────────────────────┘
-                                   │
-                    ┌──────────────▼────────────────────┐
-                    │  Evaluate Trigger                 │
-                    └──────┬──────────┬─────────────────┘
-                           │          │
-                    No trigger    Trigger hit
-                           │          │
-              ┌────────────▼──┐  ┌───▼───────────────────┐
-              │ Sleep until   │  │ Has position already? │
-              │ next pulse    │  └──┬─────────────────┬──┘
-              └───────────────┘     │ YES             │ NO
-                         ┌──────────▼───────┐  ┌───────▼─────────────────┐
-                         │ Skip AI entirely │  │ Run Binary Star AI      │
-                         │ Guardian manages │  │ Debate → final decision │
-                         │ the position     │  └───────┬─────────────────┘
-                         └──────────────────┘          │
-                                          ┌───────────▼─────────┐
-                                          │ Trade Gates:        │
-                                          │ • BULLISH/BEARISH?  │
-                                          │ • Confidence ≥ 60%? │
-                                          │ • Has entry/TP/SL?  │
-                                          └─────┬────────┬──────┘
-                                                │ PASS   │ FAIL
-                                     ┌──────────▼──┐  ┌──▼──────┐
-                                     │ sync_with_  │  │ Skip    │
-                                     │ opinion()   │  └─────────┘
-                                     └──┬──┬──┬────┘
-                                        │  │  │
-                         FLAT ──────────┘  │  └────────── SAME DIRECTION
-                         • Cancel stale    │              • Pick best TP/SL
-                         • LIMIT entry     │              • Wrap into OCO
-                         • Return order_id │              • Return None
+                        ┌──────────────────────────┐
+                        │  Pulse every 2 minutes   │
+                        │  Guardian runs FIRST     │
+                        └────────────┬─────────────┘
+                                     │
+                  ┌──────────────────▼───────────────────┐
+                  │  GUARDIAN: Protect open positions    │
+                  │  • Entry expired? → Cancel + clear   │
+                  │  • Filled, no OCO? → Place OCO       │
+                  │  • Has OCO? → Trailing stop migrate  │
+                  │  • Time-stop? → Market close         │
+                  └──────────────────┬───────────────────┘
+                                     │
+                  ┌──────────────────▼───────────────────┐
+                  │  SniperTrigger.evaluate()            │
+                  │  ConfluenceEngine → 14 signals       │
+                  └────────┬───────────────┬─────────────┘
+                           │               │
+                      No trigger      Trigger hit
+                           │               │
+               ┌───────────▼──┐  ┌─────────▼──────────────┐
+               │ SLEEP        │  │ Has active position?   │
+               │ until next   │  └──────┬────────────┬────┘
+               │ pulse        │         │ YES        │ NO
+               └──────────────┘         │            │
+                          ┌─────────────▼────┐  ┌─────▼──────────────────┐
+                          │ Skip AI session  │  │ Binary Star AI session │
+                          │ Guardian manages │  │ Debate → decision      │
+                          │ trailing stop    │  └─────────┬──────────────┘
+                          └──────────────────┘            │
+                                            ┌─────────────▼──────────────┐
+                                            │ Trade Gates (3 checks):    │
+                                            │  Gate 1: BULLISH/BEARISH?  │
+                                            │  Gate 2: Confidence ≥ 50%? │
+                                            │  Gate 3: Entry + TP + SL?  │
+                                            └──────┬──────────┬──────────┘
+                                                   │ PASS     │ FAIL
+                                                   │          │
+                                    ┌──────────────▼──┐  ┌────▼─────┐
+                                    │ sync_with_      │  │ SKIP     │
+                                    │ opinion()       │  │ No trade │
+                                    └──────┬──────────┘  └──────────┘
                                            │
-                                    PIVOT ─┘
-                                    ├─ Unprotected: Force-close + new entry
-                                    └─ Protected: Adjust TP + hang new entry
+                         ┌─────────────────┼─────────────────┐
+                         │                 │                 │
+                    FLAT │     SAME DIRECTION │         PIVOT │
+                         │                 │                 │
+           ┌─────────────▼──┐  ┌───────────▼────────┐  ┌─────▼──────────────┐
+           │ Cancel stale   │  │ Pick best TP/SL    │  │ Protected (has SL)?│
+           │ Place LIMIT    │  │ Wrap net qty → OCO │  │ Yes: preserve +    │
+           │ Return order_id│  │ Return None        │  │   adjust TP + new  │
+           └────────────────┘  └────────────────────┘  │ No: force close +  │
+                                                       │   new entry        │
+                                                       └────────────────────┘
 ```
 
 ### Position State Machine (`sync_with_opinion()`)
@@ -382,7 +388,7 @@ TRIGGER → AI Session → Trade Gate → sync_with_opinion()
      │  PHASE 1: ENTRY PENDING      │
      │                              │
      │  trade_state:                │
-     │    direction, entry_price,    │
+     │    direction, entry_price,   │
      │    tp_price, sl_price,       │
      │    entry_order_id,           │
      │    entry_placed_at (UTC),    │
