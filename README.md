@@ -10,14 +10,14 @@ AI-driven crypto quantitative trading engine. Its core innovation is the **Binar
 
 ```
 Entry Points (run.py + standalone run_*.py)
-  → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
+  → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, SessionRenderer (HTML email)
   → Sniper (src/sniper/)                 SniperScout (market harvest), SniperTrigger + ConfluenceEngine (14-signal stack)
   → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator
   → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
   → Trade Execution (src/agent/)         MarginOrderExecutor (order lifecycle + Guardian position protection)
   → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
   → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
-  → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher
+  → Notifications (src/infrastructure/)  SessionNotifier, EmailDispatcher, AlertEmailTemplate
   → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationEstimator,
                                          MathFactChecker, AuditAssembler, AuditController, ChartVisualRenderer,
                                          TopographyEngine, SniperSampler
@@ -509,6 +509,7 @@ python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
 # Market reconnaissance snapshot
 python scripts/market_recon.py --symbol BTC -p data/prod
 
+# Render session as HTML email
 python scripts/render_email_html.py -p data/test -f data/prod/sessions/BTCUSDT_session_20260625_104702.json  
 
 # Reverse-engineer strategy from session
