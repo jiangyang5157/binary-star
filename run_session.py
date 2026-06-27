@@ -307,7 +307,9 @@ class SessionController:
     def _handle_termination(self, signum, frame):
         logger.warning(f"Termination signal received. Cleaning up context caches...")
         try:
-            self.engine.orchestrator.cache_manager.delete_market_cache()
+            cm = self.engine.orchestrator.cache_manager
+            if cm is not None:
+                cm.delete_market_cache()
         except Exception as e:
             logger.warning(f"Failed to delete market cache during shutdown: {e}")
         sys.exit(0)
