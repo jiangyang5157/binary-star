@@ -5,7 +5,7 @@ import threading
 import logging
 from datetime import datetime, timezone
 
-from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
+from src.utils.progress_utils import add_activity_entry, enrich_progress, ACTIVE, COMPLETE, ERROR
 from pathlib import Path
 
 from fastapi import APIRouter, Query, HTTPException, Depends
@@ -567,6 +567,11 @@ def get_status(data_root: str = Query("")):
         }
     else:
         status["overall"] = None
+
+    # Inject stage config into each sample's progress for frontend rendering
+    if status.get("samples"):
+        for sample in status["samples"]:
+            enrich_progress(sample.get("progress"))
 
     if status.get("running"):
         if _is_stale(status):
