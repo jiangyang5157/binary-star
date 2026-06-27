@@ -370,7 +370,6 @@ async function triggerRun() {
 // ── Sniper Control ──
 let sniperPollInterval = null;
 let sniperProgress = null;
-let sniperGeneration = 0;
 let _stopInFlight = false;  // guards against poll re-enabling button mid-stop
 
 function clearSniperErrors() {
@@ -562,16 +561,10 @@ async function checkSniperStatus() {
       if (sniperPollInterval) {
         clearInterval(sniperPollInterval);
         sniperPollInterval = null;
-        const container = document.getElementById('sniper-progress-container');
-        container.innerHTML = '<div class="run-status-box run-ok" style="display:block">✓ Stopped</div>';
         if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
         document.getElementById('sniper-guardian-table-container').innerHTML = '';
+        document.getElementById('sniper-progress-container').innerHTML = '';
         updateSniperUI('idle');
-        const genAtStop = sniperGeneration;
-        setTimeout(function() {
-          if (sniperGeneration !== genAtStop) return;
-          container.innerHTML = '';
-        }, 5000);
       }
     }
   } catch (e) { /* polling failed silently */ }
@@ -678,7 +671,6 @@ async function triggerSniper() {
     }
 
     updateSniperUI('running');
-    sniperGeneration++;
     sniperPollInterval = setInterval(checkSniperStatus, 2000);
     checkSniperStatus();
   } catch (e) {
