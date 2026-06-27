@@ -535,19 +535,43 @@ python run.py patch -f proposal.json --symbol XAUT
 
 ## Key Invariants
 
-These are hard constraints enforced at runtime — violations trigger aborts, not warnings:
+These are hard constraints enforced at runtime — violations trigger aborts or emergency closes, not warnings.
 
-- **Symbol Whitelist**: `MarginOrderExecutor` rejects any symbol not in `symbol_config.yaml`. No trade can execute for unconfigured symbols.
-- **Config Immutability**: `resolve_config()` returns a new dict — never mutates the original. Sub-config dataclasses are frozen.
-- **Emergency Close on OCO Failure**: If synthetic OCO placement fails during a pivot, the position is market-closed immediately (sentinel `-1`). Naked positions are not tolerated.
-- **Circuit Breaker**: `SessionEngine` halts after `llm.max_consecutive_failures` (default: 3) consecutive cycle failures in live mode.
-- **Entry Expiry**: Entries expire after `projected_waiting_hours`. Guardian cancels stale entry orders.
-- **Time Stop** (ATR-adaptive): Positions held beyond `(projected_holding_hours / atr_ratio) × time_stop_multiplier` are market-closed — rising volatility compresses the holding limit proportionally.
-- **Structural Shielding**: Stop-loss must be anchored behind at least one structural level (POC, VAH/VAL, HVN). MathFactChecker enforces this.
-- **Chaos Survival**: Directional momentum signals are blocked in chaos regime (VII > `volatility_extreme_ratio`).
-- **Regime-Gated RR**: Minimum RR adapts to regime — trending requires 1.12, chaos discounts to 0.78, ranging uses 1.0.
-- **Adaptive Cooldown**: Sniper cannot re-trigger within cooldown window unless emergency override (strength ≥ 0.80) or stacked break (3+ signals).
-- **Supersede Detection**: Backtest dashboard mode checks `run_id` before each sample — superseded runs are discarded mid-flight.
+### Guardian: Position Protection
+
+- **Never Naked Position** — the core invariant. Between cancelling old OCO orders and placing new ones, the position is briefly naked. If any re-place step fails (pivot-preserve, same-direction optimize, or trailing stop migration), Guardian performs an emergency market close. The `_EMERGENCY_CLOSED_SENTINEL = -1` signals the SniperDaemon that the position was force-closed.
+- **Emergency Close Paths** — enforced in `MarginOrderExecutor`:
+
+  | Trigger | Location | Recovery |
+  |---------|----------|----------|
+  | SL already breached on Guardian pulse | `guardian_check` → `execute_market_close` | Clear trade state |
+  | Position has no TP/SL prices | `guardian_check` → `execute_market_close` | Clear trade state |
+  | OCO placement fails (first protect) | `guardian_check` → `execute_market_close` | Clear trade state |
+  | OCO re-place fails (pivot-preserve) | `sync_with_opinion` → `execute_market_close` | Place new entry |
+  | OCO re-place fails (same-direction) | `_optimize_same_direction` → `execute_market_close` | Return sentinel `-1` |
+  | OCO re-place fails (trailing stop) | `_migrate_trailing_stop` → `execute_market_close` | Clear trade state |
+  | Position vanishes during migration | `_migrate_trailing_stop` → `execute_market_close` | Clear trade state |
+
+- **Forward-Only SL Migration**: Trailing stop only migrates forward — `target_level > current_level` enforced. SL never moves backward.
+- **Monotonic Trailing Stop Levels**: `_get_guardian_config()` validates `0 < l1 < l2 < l3` and `0 < o2 < o3` at init. Misconfigured levels raise `ConfigurationError`.
+- **Orientation Conflict Detection**: Guardian verifies reality's net_qty direction matches intent (LONG/SHORT). Mismatch is logged and protection is skipped.
+
+### Session & Lifecycle
+
+- **Symbol Whitelist**: `MarginOrderExecutor._get_trade_config()` raises `KeyError` if the symbol lacks `precision_qty` in `symbol_config.yaml`. No trade can execute for unconfigured symbols.
+- **Entry Expiry**: Guardian cancels entry orders when `elapsed_hours > projected_waiting_hours`. Expired entries clear trade state.
+- **Time Stop** (ATR-adaptive): Positions held beyond `(projected_holding_hours / atr_ratio) × time_stop_multiplier` are market-closed. `atr_ratio = current_ATR / entry_ATR` — a 2× ATR increase halves the allowed holding time.
+- **Circuit Breaker**: `SessionEngine` halts after `llm.max_consecutive_failures` (default: 3) consecutive cycle failures in live mode. Raises `RuntimeError` and sends an alert email. Historical/simulation mode is exempt.
+- **Config Immutability**: `resolve_config()` deep-copies via `copy.deepcopy()` — never mutates the original dict. Sub-config dataclasses (`RegimeConfig`, `RiskConfig`, `TemporalConfig`, `AuditConfig`, `VisualConfig`) are `frozen=True`.
+
+### Math & Signal Integrity
+
+- **Non-finite Price Rejection**: `MathFactChecker` rejects `NaN`, `Inf`, `-Inf`, and non-positive values in tactical parameters before any exchange-facing action.
+- **Tactical Parameters Completeness**: `MathFactChecker` requires `entry`, `stop_loss`, and `take_profit` keys — returns `VERIFICATION_FAILURE` if missing.
+- **Structural Shielding**: Stop-loss must be anchored behind at least one structural level (POC, VAH/VAL, HVN). Enforced by `MathFactChecker` → `compliance_verdict.sl_is_shielded`.
+- **Chaos Survival**: Directional momentum signals (`cvd_momentum`, `volatility_surge`) are blocked by the Pre-AI Gate in chaos regime unless accompanied by squeeze or absorption signals. Confluence threshold also scales by 1.50×.
+- **Regime-Gated RR**: Minimum RR adapts to market regime — trending uses `min_rr_trending`, ranging uses `min_rr_ranging`. Chaos applies `chaos_rr_discount` (default ~40%) to allow low-RR survival plans.
+- **Adaptive Cooldown**: Sniper cannot re-trigger within the cooldown window unless emergency override (single signal strength ≥ `emergency_threshold`) or stacked break (3+ fresh signals, or strength > last trigger × `break_on_strength_ratio`). Absolute minimum gap between any two triggers: `break_min_gap_minutes` (10 min).
 
 ---
 
