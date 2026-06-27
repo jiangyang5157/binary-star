@@ -129,7 +129,7 @@ code, pre, .mono {
   background: var(--bg-card);
   border: 1px solid var(--border-muted);
   border-radius: var(--radius);
-  padding: 20px 24px;
+  padding: 16px 16px;
   margin-bottom: 20px;
   box-shadow: var(--shadow);
 }
