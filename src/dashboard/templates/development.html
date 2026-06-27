@@ -300,11 +300,7 @@ async function previewSamples() {
     sampleTimestamps = data.timestamps || [];
     renderSampleList(data);
   } catch (e) {
-    if (e.name === 'AbortError') {
-      statusEl.style.display = 'inline';
-      statusEl.textContent = '⊘ Preview stopped';
-      statusEl.className = 'audit-status audit-error';
-    } else {
+    if (e.name !== 'AbortError') {
       statusEl.style.display = 'inline';
       statusEl.textContent = '⚠ Request failed';
       statusEl.className = 'audit-status audit-error';
