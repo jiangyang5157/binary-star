@@ -152,6 +152,9 @@ class SessionEngine:
             )
             logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
 
+            if progress_callback:
+                progress_callback(stage=5, activity="发送通知…")
+
             # Progress: completed
             if progress_callback:
                 final_decision = session_result.get("final_decision", {})
