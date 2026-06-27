@@ -270,7 +270,7 @@ pip install -e ".[dev]"       # include pytest, coverage
 
 ## Commands
 
-All entry points consolidated under `run.py`. `--symbol` accepts prefix format (BTC, XAUT, ETH); quote currency from `global_config.yaml` (default: USDT).
+All entry points consolidated under `run.py`. `--symbol` accepts prefix format (BTC, XAUT); quote currency from `global_config.yaml` (default: USDT). Data root (`-p`/`--path`) is required for most commands.
 
 ```bash
 # ── Binary Star Sessions ──────────────────────────────────────────
@@ -279,17 +279,19 @@ python run.py session -p data/prod --symbol BTC -ts 2026-06-01T12:34:00Z  # Hist
 python run.py session --start T-15d --end T-1d --samples 14 --symbol BTC -p data/backtest/v26.6.24_r14  # Backtest
 
 # ── Sniper Daemon ─────────────────────────────────────────────────
-python run.py sniper -p data/prod --symbol BTC,XAUT                    # Observe only
-python run.py sniper -p data/prod --symbol BTC,XAUT --llm              # + AI sessions
-python run.py sniper -p data/prod --symbol BTC,XAUT --trade            # + AI + trade (live balance)
-python run.py sniper -p data/prod --symbol BTC,XAUT --trade 1000       # + AI + trade ($1000 fixed)
+python run.py sniper -p data/prod --symbol BTC,XAUT                    # Observe only (zero LLM cost)
+python run.py sniper -p data/prod --symbol BTC,XAUT --llm              # + AI sessions on trigger
+python run.py sniper -p data/prod --symbol BTC,XAUT --trade            # + AI + trade (live balance, --trade implies --llm)
+python run.py sniper -p data/prod --symbol BTC,XAUT --trade 1000       # + AI + trade ($1000 fixed balance)
 
 # ── Audit & Evolution ─────────────────────────────────────────────
-python run.py audit -p data/prod
-python run.py audit -p data/backtest --file data/backtest/.../BTCUSDT_session_....json
-python run.py evolution -p data/prod --symbol BTC --samples 100
-python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_....json
-python run.py patch -f data/backtest/.../XAUTUSDT_evolution_....json --symbol XAUT
+python run.py audit -p data/prod                                       # Batch audit all sessions
+python run.py audit -p data/prod --symbol BTC                          # Batch, filter by symbol
+python run.py audit -p data/backtest --file data/backtest/.../BTCUSDT_session_....json  # Single session
+python run.py audit -p data/prod --force                               # Bypass dedup + maturity checks
+python run.py evolution -p data/prod --symbol BTC --samples 100        # Evolve from audit reports
+python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_....json           # No symbol
+python run.py patch -f data/backtest/.../XAUTUSDT_evolution_....json --symbol XAUT        # Per-symbol
 
 # ── Dashboard ─────────────────────────────────────────────────────
 python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
@@ -297,12 +299,15 @@ python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
 # ── Utilities ─────────────────────────────────────────────────────
 python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_....json
 python scripts/clean_neutral_sessions.py -p data/prod --symbol BTC,XAUT
+python scripts/clean_neutral_sessions.py -p data/prod --dry-run        # Preview without deleting
 python scripts/market_recon.py --symbol BTC -p data/prod
-python scripts/render_email_html.py -p data/test -f data/prod/sessions/BTCUSDT_session_....json
-python scripts/export_session.py -p data/test -f data/prod/audits/BTCUSDT_audit_....json
-python scripts/check_margin_state.py
-python scripts/sandbox_offline.py -p data/prod --symbol BTC --samples 20
-python scripts/sandbox_online.py -p data/prod --symbol BTC
+python scripts/market_recon.py --symbol BTC -p data/prod -ts 2026-06-01T12:34:00Z --email  # Historical + notify
+python scripts/render_email_html.py -p data/prod -f data/prod/sessions/BTCUSDT_session_....json
+python scripts/render_email_html.py -p data/prod -f .../BTCUSDT_session_....json --open     # + open in browser
+python scripts/export_session.py -p data/prod -f data/prod/audits/BTCUSDT_audit_....json
+python scripts/check_margin_state.py --symbol BTC
+python scripts/sandbox_offline.py -p data/prod -f data/prod/evolution/sandbox_results/BTCUSDT_evolution_sandbox_....json
+python scripts/sandbox_online.py -p data/prod -f data/prod/evolution/proposals/BTCUSDT_evolution_....json
 python scripts/diagnostic_models.py
 ```
 
