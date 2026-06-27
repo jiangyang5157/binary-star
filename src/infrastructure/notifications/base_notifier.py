@@ -130,7 +130,7 @@ class EmailDispatcher:
     def dispatch(self, subject: str, html_body: str, attachments: Optional[Dict[str, str]] = None, files: Optional[List[str]] = None) -> bool:
         """Sends a multi-part email with HTML body, image attachments (CID), and file attachments."""
         if not self.config.enabled:
-            logger.warning("Dispatcher: Email notifications are disabled (missing credentials).")
+            logger.warning("email disabled — missing credentials")
             return False
 
         msg = MIMEMultipart('related')
@@ -152,7 +152,7 @@ class EmailDispatcher:
                             img.add_header('Content-Disposition', 'inline', filename=os.path.basename(file_path))
                             msg.attach(img)
                     except Exception as e:
-                        logger.error(f"Dispatcher: Failed to attach image {cid}: {e}")
+                        logger.error(f"image attach failed | cid={cid} | error={e}")
 
         # Attach Regular Files
         if files:
@@ -171,7 +171,7 @@ class EmailDispatcher:
                         part.add_header('Content-Disposition', 'attachment', filename=os.path.basename(file_path))
                         msg.attach(part)
                     except Exception as e:
-                        logger.error(f"Dispatcher: Failed to attach file {file_path}: {e}")
+                        logger.error(f"file attach failed | file={file_path} | error={e}")
 
         # Execute SMTP send
         try:
@@ -181,5 +181,5 @@ class EmailDispatcher:
                 server.send_message(msg)
             return True
         except Exception as e:
-            logger.error(f"Dispatcher: SMTP relay failed: {e}")
+            logger.error(f"SMTP relay failed | error={e}")
             return False

@@ -47,7 +47,7 @@ def build_messages(
             else:
                 # provider doesn't support vision — skip VisualPart entirely
                 # (all chart data is already in the observation JSON)
-                logger.debug("build_messages: Skipping VisualPart (vision not supported)")
+                logger.debug("skipping VisualPart — vision not supported")
         elif isinstance(item, dict):
             role = item.get("role", "user")
             if "text" in item:
@@ -70,7 +70,7 @@ def build_messages(
                     assistant_msg["reasoning_content"] = item["reasoning_content"]
                 messages.append(assistant_msg)
             else:
-                logger.warning("build_messages: Skipping unrecognized content type: %s", type(item).__name__)
+                logger.warning("skipping unrecognized content type | type=%s", type(item).__name__)
     return messages
 
 
@@ -182,6 +182,8 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         self._http_timeout = http_timeout
         self._client = None
 
+        self._model_logged = False
+
     @property
     def supports_context_cache(self) -> bool:
         return False
@@ -220,7 +222,11 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         if http_timeout:
             api_params["timeout"] = http_timeout
 
-        logger.info("%s: → %s", self.provider_label, target_model)
+        if not self._model_logged:
+            logger.info("AI call | provider=%s | model=%s", self.provider_label, target_model)
+            self._model_logged = True
+        else:
+            logger.debug("AI call | provider=%s | model=%s", self.provider_label, target_model)
         response = self._get_client().chat.completions.create(**api_params)
         return self._parse(response, response_json)
 

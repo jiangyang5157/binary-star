@@ -56,12 +56,12 @@ def main():
 
     # 2. Load sandbox report
     if not os.path.exists(args.file):
-        logger.error(f"Sandbox report not found: {args.file}")
+        logger.error(f"sandbox report not found | file={args.file}")
         sys.exit(1)
 
     sandbox_report = load_json(args.file)
     if not sandbox_report:
-        logger.error(f"Failed to parse sandbox report: {args.file}")
+        logger.error(f"failed to parse sandbox report | file={args.file}")
         sys.exit(1)
 
     # 3. Collect ALL cases from sandbox (both accepted and rejected are new audit results)
@@ -72,10 +72,10 @@ def main():
         all_new_cases.append(case)
 
     if not all_new_cases:
-        logger.error("Sandbox report contains no cases to review.")
+        logger.error("sandbox report contains no cases to review")
         sys.exit(1)
 
-    logger.info(f"Loaded {len(all_new_cases)} cases from sandbox report.")
+    logger.info(f"loaded {len(all_new_cases)} cases from sandbox report")
 
     # 4. Initialize Fitness Evaluator
     full_config = load_combined_config()
@@ -96,11 +96,11 @@ def main():
         observed_at = observation.get('observed_at', '')
         session_id = f"{symbol}_{observed_at}"
 
-        logger.info(f"[Case {idx+1}/{len(all_new_cases)}] Reviewing {session_id}...")
+        logger.info(f"[{idx+1}/{len(all_new_cases)}] reviewing | session={session_id}")
 
         # 6. Find matching old audit report by observed_at (session start time = filename key)
         if not observed_at:
-            logger.warning(f"  Case missing 'observed_at' in observation. -> UNKNOWN")
+            logger.warning(f"case missing observed_at | session={session_id} — UNKNOWN")
             unknown_cases.append(new_case)
             continue
 
@@ -108,13 +108,13 @@ def main():
         old_audit_path = os.path.join(audits_dir, old_audit_filename)
 
         if not os.path.exists(old_audit_path):
-            logger.warning(f"  Old audit not found: {old_audit_filename} -> UNKNOWN")
+            logger.warning(f"old audit not found | file={old_audit_filename} — UNKNOWN")
             unknown_cases.append(new_case)
             continue
 
         old_report = load_json(old_audit_path)
         if not old_report:
-            logger.warning(f"  Failed to parse old audit: {old_audit_filename} -> UNKNOWN")
+            logger.warning(f"failed to parse old audit | file={old_audit_filename} — UNKNOWN")
             unknown_cases.append(new_case)
             continue
 
@@ -127,10 +127,10 @@ def main():
 
         if evaluator.is_superior(old_outcome, new_outcome):
             accepted_cases.append(new_case)
-            logger.info(f"  -> ACCEPTED (old={old_score}, new={new_score})")
+            logger.info(f"ACCEPTED | old_score={old_score} | new_score={new_score}")
         else:
             rejected_cases.append(new_case)
-            logger.info(f"  -> REJECTED (old={old_score}, new={new_score})")
+            logger.info(f"REJECTED | old_score={old_score} | new_score={new_score}")
 
     # 8. Calculate acceptance
     total = len(all_new_cases)

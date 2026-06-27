@@ -42,7 +42,7 @@ def is_neutral(session_path: str) -> bool:
         with open(session_path, "r") as fh:
             data = json.load(fh)
     except (json.JSONDecodeError, OSError) as exc:
-        logger.warning("Skipping unreadable file %s: %s", session_path, exc)
+        logger.warning("skipping unreadable file | file=%s | error=%s", session_path, exc)
         return False
 
     final = data.get("final_decision") if isinstance(data, dict) else None
@@ -64,7 +64,7 @@ def collect_session_files(data_root: str, symbol: str | None = None) -> list[str
     """
     sessions_dir = os.path.join(PROJECT_ROOT, data_root, "sessions")
     if not os.path.isdir(sessions_dir):
-        logger.error("Sessions directory not found: %s", sessions_dir)
+        logger.error("sessions directory not found | dir=%s", sessions_dir)
         sys.exit(1)
 
     files = [
@@ -77,13 +77,13 @@ def collect_session_files(data_root: str, symbol: str | None = None) -> list[str
         from src.utils.symbol_utils import resolve_symbols
         resolved = resolve_symbols(symbol)
         resolved_set = set(resolved)
-        logger.info("Filtering by symbol(s): %s", ", ".join(resolved))
+        logger.info("filtering by symbol(s): %s", ", ".join(resolved))
         files = [f for f in files
                  if any(os.path.basename(f).startswith(f"{sym}_") for sym in resolved_set)]
 
     files.sort()
     if not files:
-        logger.warning("No session files found in %s.", sessions_dir)
+        logger.warning("no session files found | dir=%s", sessions_dir)
 
     return files
 
@@ -116,7 +116,7 @@ def main():
 
     # ── Collect ───────────────────────────────────────────────────────────────
     files = collect_session_files(data_root, symbol)
-    logger.info("Scanning %d session file(s) under %s/sessions/ ...", len(files), data_root)
+    logger.info("scanning %d session files | dir=%s/sessions/", len(files), data_root)
 
     # ── Identify NEUTRAL ──────────────────────────────────────────────────────
     neutral_files: list[str] = []
@@ -128,7 +128,7 @@ def main():
         try:
             if is_neutral(filepath):
                 neutral_files.append(filepath)
-                logger.debug("  NEUTRAL  → %s", fname)
+                logger.debug("NEUTRAL → %s", fname)
             else:
                 non_neutral_count += 1
         except Exception:
@@ -136,18 +136,18 @@ def main():
 
     # ── Report ────────────────────────────────────────────────────────────────
     logger.info("")
-    logger.info("Scan complete: %d total, %d NEUTRAL, %d non-NEUTRAL, %d skipped",
-                len(files), len(neutral_files), non_neutral_count, skipped_count)
+    logger.info("scan complete | total=%d | neutral=%d | non_neutral=%d",
+                len(files), len(neutral_files), non_neutral_count)
 
     if not neutral_files:
-        logger.info("No NEUTRAL sessions to delete.")
+        logger.info("no neutral sessions to delete")
         return
 
     if dry_run:
-        logger.info("[DRY RUN] Would delete %d file(s):", len(neutral_files))
+        logger.info("[DRY RUN] would delete %d file(s)", len(neutral_files))
         for fp in neutral_files:
-            logger.info("  → %s", os.path.basename(fp))
-        logger.info("[DRY RUN] No files were actually deleted.")
+            logger.info("→ %s", os.path.basename(fp))
+        logger.info("[DRY RUN] no files were actually deleted")
         return
 
     # ── Delete ────────────────────────────────────────────────────────────────
@@ -155,12 +155,12 @@ def main():
     for fp in neutral_files:
         try:
             os.remove(fp)
-            logger.info("Deleted: %s", os.path.basename(fp))
+            logger.info("deleted | file=%s", os.path.basename(fp))
             deleted += 1
         except OSError as exc:
-            logger.error("Failed to delete %s: %s", os.path.basename(fp), exc)
+            logger.error("delete failed | file=%s | error=%s", os.path.basename(fp), exc)
 
-    logger.info("Done. Deleted %d NEUTRAL session file(s).", deleted)
+    logger.info("deleted %d neutral session file(s)", deleted)
 
 
 if __name__ == "__main__":

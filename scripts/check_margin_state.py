@@ -82,7 +82,7 @@ def main():
         print("\n" + "="*50)
 
     except Exception as e:
-        logger.error(f"Execution failed: {e}")
+        logger.error(f"execution failed | error={e}")
         print(f"\n[ERROR] {e}")
 
 if __name__ == "__main__":

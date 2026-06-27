@@ -77,7 +77,7 @@ class ConfigPatcher:
                 update_count = 1
             else:
                 # 3. Key not in root and no path provided -> Skip and Warn
-                logger.warning(f"ConfigPatcher: Key '{key}' not found at root level. Skipping.")
+                logger.warning(f"key not found at root | key={key} — skipping")
                 return 0
 
             if update_count > 0:
@@ -87,7 +87,7 @@ class ConfigPatcher:
             return update_count
             
         except Exception as e:
-            logger.error(f"ConfigPatcher: Failed to apply patch to {target_path}: {e}")
+            logger.error(f"patch failed | target={target_path} | error={e}")
             return 0
 
 class PromptDistiller:
@@ -173,7 +173,7 @@ class PromptDistiller:
             
             return content
         except Exception as e:
-            logger.error(f"PromptDistiller: Internal distillation failure: {e}")
+            logger.error(f"distillation failed | error={e}")
             return content
 
     @staticmethod
@@ -204,7 +204,7 @@ class PromptDistiller:
             return 0
             
         except Exception as e:
-            logger.error(f"PromptDistiller: Failed to distill file {target_path}: {e}")
+            logger.error(f"distillation failed | file={target_path} | error={e}")
             return 0
 
     @staticmethod

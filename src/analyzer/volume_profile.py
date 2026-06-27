@@ -135,10 +135,9 @@ class VolumeProfileEngine:
         
         # Audit log to trace VP data generation
         logger.debug(
-            f"VolumeProfileEngine: Distribution Complete. "
-            f"Bins: {num_bins}, Total Vol: {total_vol:.2f}, "
-            f"Max Vol/Bin: {v_profile.max():.2f}, "
-            f"VA Bins: {va_idx_max - va_idx_min + 1}"
+            f"distribution complete | bins={num_bins} | total_vol={total_vol:.2f} | "
+            f"max_vol_per_bin={v_profile.max():.2f} | "
+            f"va_bins={va_idx_max - va_idx_min + 1}"
         )
         
         # Prepare profile data for reporting
@@ -184,7 +183,7 @@ class SignificantNodeFinder:
             bin_width = price_range / len(prices)
             bin_dist = max(1, int((atr * self.config.min_node_gap_atr) / bin_width))
 
-        logger.debug(f"SignificantNodeFinder: ATR={atr:.2f} | Gap_ATR={self.config.min_node_gap_atr} | Bin_Dist={bin_dist}")
+        logger.debug(f"significant node | ATR={atr:.2f} | gap_ATR={self.config.min_node_gap_atr} | bin_dist={bin_dist}")
 
         # Detect HVNs (Local Maxima)
         h_peaks, _ = find_peaks(vols, 
@@ -246,7 +245,7 @@ class VolumeProfileAnalyzer:
         Full analysis pipeline: Preprocessing -> Profile calculation -> Node discovery.
         """
         if not klines_data:
-            logger.warning("No kline data provided for Volume Profile analysis.")
+            logger.warning("no kline data for Volume Profile analysis")
             return {
                 "poc": 0.0, "vah": 0.0, "val": 0.0, 
                 "hvn": [], "lvn": [], "market_regime": "UNKNOWN"

@@ -26,9 +26,9 @@ class CongestionController:
         self._lock = threading.Lock()
 
         if self.interval > 0:
-            logger.info(f"CongestionController: Initialized with {self.interval}s pacing (RPM Protection active).")
+            logger.info(f"pacing active | interval={self.interval}s")
         else:
-            logger.info("CongestionController: Pacing is DISABLED (interval=0).")
+            logger.debug("pacing disabled | interval=0")
 
     def pace(self, agent_name: str = "Client"):
         """
@@ -44,7 +44,7 @@ class CongestionController:
 
             if elapsed < self.interval:
                 wait_time = self.interval - elapsed
-                logger.info(f"CongestionController: [{agent_name}] Pacing delay triggered. Waiting {wait_time:.2f}s...")
+                logger.info(f"delay triggered | name={agent_name} | wait={wait_time:.2f}s")
                 time.sleep(wait_time)
 
             # Update last call time AFTER the potential sleep

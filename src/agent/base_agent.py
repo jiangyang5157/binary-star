@@ -115,7 +115,7 @@ class BaseAgent:
 
             return rendered
         except Exception as e:
-            logger.error(f"BaseAgent: Failed to prepare prompt from {template_path}: {e}")
+            logger.error(f"failed to prepare prompt from {template_path} | error={e}")
             raise
 
     def _call_ai_provider(
@@ -157,7 +157,7 @@ class BaseAgent:
         if response.usage:
             u = response.usage
             logger.info(
-                "[%s] Usage: T=%d | P=%d | C=%d | Cache=%d",
+                "[%s] tokens | total=%d | prompt=%d | completion=%d | cache=%d",
                 agent_name, u.total_token_count, u.prompt_token_count,
                 u.candidates_token_count, u.cached_content_token_count,
             )
@@ -205,6 +205,9 @@ class BaseAgent:
             model_msg["reasoning_content"] = reasoning_content
         contents.append(model_msg)
 
+        tool_names = [tc.name for tc in tool_calls]
+        logger.info("dispatching tools | tools=%s", ",".join(tool_names))
+
         tool_responses = []
         for entry, tc in zip(tc_entries, tool_calls):
             result = self._dispatch_tool_call(tc)
@@ -242,13 +245,13 @@ class BaseAgent:
                 )
 
                 if not response.text and not response.tool_calls:
-                    logger.error("BaseAgent: %s returned empty response.", agent_name)
+                    logger.error("%s returned empty response", agent_name)
                     raise EmptyModelResponseError(agent_name=agent_name)
 
                 # No tool calls → termination (check for simulated calls first)
                 if not response.tool_calls:
                     if not response.text.strip():
-                        logger.error("BaseAgent: %s returned empty text.", agent_name)
+                        logger.error("%s returned empty text", agent_name)
                         raise EmptyModelResponseError(agent_name=agent_name)
 
                     parsed = self._parse_and_validate_response(response.text, agent_name)
@@ -256,7 +259,7 @@ class BaseAgent:
 
                     if simulated and "opinion" not in parsed:
                         logger.info(
-                            "BaseAgent: %s simulated %d tool call(s) in text — dispatching.",
+                            "%s simulated %d tool call(s) — dispatching",
                             agent_name, len(simulated),
                         )
                         next_tc_id = self._dispatch_tool_calls_to_contents(
@@ -271,7 +274,7 @@ class BaseAgent:
                     contents, response.tool_calls, next_tc_id, response.reasoning_content,
                 )
 
-            logger.error("%s: max iterations (%d).", agent_name, self.max_tool_iterations)
+            logger.error("%s: max iterations (%d)", agent_name, self.max_tool_iterations)
             raise MaxIterationsError(agent_name=agent_name)
 
         except AgentInferenceError:
@@ -281,10 +284,10 @@ class BaseAgent:
             err_msg = str(actual_error)
             if hasattr(actual_error, "response") and hasattr(actual_error.response, "text"):
                 err_msg = f"{err_msg} | Body: {actual_error.response.text}"
-            logger.error("%s Inference Failure: %s", agent_name, err_msg)
+            logger.error("%s inference failure | error=%s", agent_name, err_msg)
             raise AIProviderError(details=err_msg, agent_name=agent_name) from actual_error
         except Exception as e:
-            logger.error("%s Inference Failure: %s", agent_name, str(e))
+            logger.error("%s inference failure | error=%s", agent_name, str(e))
             raise AIProviderError(details=str(e), agent_name=agent_name) from e
 
     def _parse_and_validate_response(self, text: str, agent_name: str) -> dict[str, Any]:
@@ -299,7 +302,7 @@ class BaseAgent:
         """
         parsed = extract_json_from_text(text)
         if parsed is None:
-            logger.error(f"BaseAgent: {agent_name} returned malformed JSON: {text[:200]}...")
+            logger.error(f"{agent_name} returned malformed JSON: {text[:200]}...")
             raise MalformedJSONError(raw_text=text, agent_name=agent_name)
         # Clamp confidence_score to valid range [0, 100] — guard against hallucinated values
         if "confidence_score" in parsed:
@@ -335,16 +338,15 @@ class BaseAgent:
                 dropped = set(args.keys()) - valid_params
                 if dropped:
                     logger.debug(
-                        "BaseAgent: Dropped extra tool args for '%s': %s",
+                        "dropped extra tool args for '%s' | args=%s",
                         name, sorted(dropped),
                     )
-                logger.info("BaseAgent: Dispatching tool '%s'...", name)
                 return method(**filtered)
             else:
-                logger.error("BaseAgent: Tool '%s' not found.", name)
+                logger.error("tool not found | tool=%s", name)
                 return f"Error: Tool '{name}' missing."
         except Exception as e:
-            logger.error("BaseAgent: Tool '%s' error: %s", name, e)
+            logger.error("tool error | tool=%s | error=%s", name, e)
             return f"Tool Error: {str(e)}"
 
     # --- Tool Delegates (Function Calling Interfaces) ---

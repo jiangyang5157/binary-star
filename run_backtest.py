@@ -90,7 +90,7 @@ class BacktestRunner:
             signal.signal(sig, self._handle_termination)
 
     def _handle_termination(self, signum, frame):
-        logger.warning("Termination signal received. Shutting down BacktestRunner...")
+        logger.warning("termination signal received | shutting down")
         if self.run_id is not None:
             try:
                 current = _read_status(self.data_root)
@@ -102,7 +102,7 @@ class BacktestRunner:
                         "elapsed_seconds": _compute_elapsed(current),
                     })
             except Exception as e:
-                logger.warning("Failed to write final status during shutdown: %s", e)
+                logger.warning("failed to write final status during shutdown | error=%s", e)
         sys.exit(0)
 
     # ── Timestamp collection ─────────────────────────────────────────────
@@ -120,7 +120,7 @@ class BacktestRunner:
             if not ts_list:
                 raise SystemExit("BacktestRunner: no sample timestamps in status file.")
             logger.info(
-                "BacktestRunner: dashboard mode — %d samples for %s (run_id=%d)",
+                "dashboard mode | samples=%d | symbol=%s | run_id=%d",
                 len(ts_list), self.symbol, self.run_id,
             )
             return ts_list
@@ -130,7 +130,7 @@ class BacktestRunner:
             from src.utils.datetime_utils import parse_flexible_date
             dt = parse_flexible_date(self.args.timestamp)
             ts = to_iso_zulu(dt)
-            logger.info("BacktestRunner: single-point — %s", ts)
+            logger.info("single point | ts=%s", ts)
             return [ts]
 
         # Mode C: CLI batch range
@@ -175,7 +175,7 @@ class BacktestRunner:
         limit = int(range_seconds / interval_seconds) + warmup
 
         logger.info(
-            "BacktestRunner: fetching %s klines (limit=%d, warmup=%d)",
+            "fetching klines | interval=%s | limit=%d | warmup=%d",
             macro_interval, limit, warmup,
         )
         binance = BinanceFuturesClient()
@@ -200,13 +200,13 @@ class BacktestRunner:
         timestamps = sampler.sample(klines_range, count)
 
         logger.info(
-            "BacktestRunner: sampled %d noteworthy points from %s → %s",
+            "sampled %d noteworthy points | from=%s | to=%s",
             len(timestamps),
             start_dt.strftime("%Y-%m-%d"),
             end_dt.strftime("%Y-%m-%d"),
         )
         for i, dt in enumerate(timestamps, 1):
-            logger.info("  [%d] %s", i, dt.isoformat())
+            logger.info("  sample [%d] | ts=%s", i, dt.isoformat())
 
         return [to_iso_zulu(dt) for dt in timestamps]
 
@@ -267,7 +267,7 @@ class BacktestRunner:
             for i, ts in enumerate(timestamps):
                 # ── Supersede check (dashboard only) ──
                 if is_dashboard and not self._should_continue():
-                    logger.info("Backtest run %d superseded — discarding.", self.run_id)
+                    logger.info("run %d superseded — discarding", self.run_id)
                     return
 
                 self._update_sample_status(i, "running")
@@ -355,15 +355,15 @@ class BacktestRunner:
 
                 except Exception as e:
                     logger.exception(
-                        "Backtest sample %d/%d failed for %s", i + 1, total, self.symbol,
+                        "backtest failed | symbol=%s | sample=%d/%d", self.symbol, i + 1, total,
                     )
                     self._update_sample_status(i, "failed", error=str(e))
 
             self._finalize()
-            logger.info("BacktestRunner: completed %d samples for %s", total, self.symbol)
+            logger.info("completed %d samples | symbol=%s", total, self.symbol)
 
         except Exception as e:
-            logger.exception("Backtest run failed for %s: %s", self.symbol, e)
+            logger.exception("backtest failed | symbol=%s | error=%s", self.symbol, e)
             if is_dashboard:
                 current = _read_status(self.data_root)
                 if current and current.get("run_id") == self.run_id:

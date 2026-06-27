@@ -23,12 +23,12 @@ class BinanceMarginClient:
         secret = api_secret or os.environ.get("BINANCE_API_SECRET")
 
         if not key or not secret:
-            logger.error("BinanceMarginClient: API Key or Secret missing. Margin operations require authentication.")
+            logger.error("API key or secret missing | margin operations require authentication")
             raise ValueError("Authenticated access required for Margin operations.")
 
         self.client = Spot(api_key=key, api_secret=secret)
         self._precisions_cache: dict = {}  # symbol → (p_qty, p_price, tolerance)
-        logger.info("BinanceMarginClient initialized for authenticated Spot Margin access.")
+        logger.info("initialized for Spot Margin access")
 
     def get_cross_margin_account(self) -> MarginAccountSummary:
         """
@@ -59,10 +59,10 @@ class BinanceMarginClient:
                 assets=assets
             )
         except ClientError as e:
-            logger.error(f"BinanceMarginClient: Failed to fetch margin account: {e.error_message}")
+            logger.error(f"margin account fetch failed | error={e.error_message}")
             raise
         except Exception as e:
-            logger.error(f"BinanceMarginClient: Unexpected error: {e}")
+            logger.error(f"margin account fetch error | error={e}")
             raise
 
     def get_active_orders(self, symbol: Optional[str] = None) -> List[MarginOrder]:
@@ -92,10 +92,10 @@ class BinanceMarginClient:
                         stop_price=float(o.get('stopPrice', 0))
                     ))
                 except Exception as ex:
-                    logger.error(f"Error parsing order: {o}. Error: {ex}")
+                    logger.error(f"order parse failed | order={o} | error={ex}")
             return orders
         except ClientError as e:
-            logger.error(f"BinanceMarginClient: Failed to fetch open orders: {e.error_message}")
+            logger.error(f"open orders fetch failed | error={e.error_message}")
             return []
 
     def get_ticker_price(self, symbol: str) -> float:
@@ -107,7 +107,7 @@ class BinanceMarginClient:
             resp = self.client.ticker_price(symbol=symbol)
             return float(resp.get('price', 0))
         except Exception as e:
-            logger.error(f"BinanceMarginClient: Failed to fetch ticker price for {symbol}: {e}")
+            logger.error(f"ticker price fetch failed | symbol={symbol} | error={e}")
             return 0.0
 
     def get_symbol_position(self, symbol: str) -> Optional[MarginPosition]:
@@ -147,13 +147,13 @@ class BinanceMarginClient:
         """Cancels all active margin orders for a given symbol."""
         try:
             self.client.margin_open_orders_cancellation(symbol=symbol)
-            logger.info(f"BinanceMarginClient: Cancelled all open orders for {symbol}.")
+            logger.info(f"all orders cancelled | symbol={symbol}")
             return True
         except ClientError as e:
             # -2011 represents 'Unknown order sent', indicating no open orders were found.
             if e.error_code == -2011:
                 return True
-            logger.error(f"BinanceMarginClient: Failed to cancel orders for {symbol}: {e.error_message}")
+            logger.error(f"cancel orders failed | symbol={symbol} | error={e.error_message}")
             return False
 
     def _get_precisions(self, symbol: str):
@@ -202,10 +202,10 @@ class BinanceMarginClient:
                 quantity=qty,
                 sideEffectType="MARGIN_BUY"  # Instructs to use auto-borrow logic if necessary
             )
-            logger.info(f"BinanceMarginClient: Market closed {qty} of {symbol} (Side: {side}).")
+            logger.info(f"market closed | symbol={symbol} | qty={qty} | side={side}")
             return True
         except ClientError as e:
-            logger.error(f"BinanceMarginClient: Failed to market close {symbol}: {e.error_message}")
+            logger.error(f"market close failed | symbol={symbol} | error={e.error_message}")
             return False
 
     def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
@@ -222,23 +222,23 @@ class BinanceMarginClient:
                 sideEffectType="MARGIN_BUY"
             )
             order_id = resp.get('orderId')
-            logger.info(f"BinanceMarginClient: Placed LIMIT {side} for {symbol}. OrderId: {order_id}, Price: {price}, Qty: {qty}")
+            logger.info(f"order placed | side={side} | symbol={symbol} | order_id={order_id} | price={price} | qty={qty}")
             return order_id
         except ClientError as e:
-            logger.error(f"BinanceMarginClient: Failed to place LIMIT order for {symbol}: {e.error_message}")
+            logger.error(f"limit order failed | symbol={symbol} | error={e.error_message}")
             return None
 
     def cancel_order(self, symbol: str, order_id: int) -> bool:
         """Cancels a specific margin order by ID."""
         try:
             self.client.cancel_margin_order(symbol=symbol, orderId=order_id)
-            logger.info(f"BinanceMarginClient: Cancelled order {order_id} for {symbol}.")
+            logger.info(f"order cancelled | order_id={order_id} | symbol={symbol}")
             return True
         except ClientError as e:
             if e.error_code == -2011:  # Unknown order (already filled/cancelled)
-                logger.info(f"BinanceMarginClient: Order {order_id} already gone (likely filled/cancelled).")
+                logger.info(f"order already gone | order_id={order_id}")
                 return True
-            logger.error(f"BinanceMarginClient: Failed to cancel order {order_id}: {e.error_message}")
+            logger.error(f"cancel order failed | order_id={order_id} | error={e.error_message}")
             return False
 
     @staticmethod
@@ -273,10 +273,10 @@ class BinanceMarginClient:
                 stopLimitPrice=self._round_price(stop_limit_price, p_price, side),
                 stopLimitTimeInForce="GTC"
             )
-            logger.info(f"BinanceMarginClient: Placed OCO for {symbol}. Side: {side}, Qty: {qty}")
+            logger.info(f"OCO placed | symbol={symbol} | side={side} | qty={qty}")
             return True
         except ClientError as e:
-            logger.error(f"BinanceMarginClient: Failed to place OCO for {symbol}: {e.error_message}")
+            logger.error(f"OCO failed | symbol={symbol} | error={e.error_message}")
             return False
 
     def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_trigger_price: float, sl_limit_price: float) -> bool:
@@ -319,8 +319,8 @@ class BinanceMarginClient:
                 params["pendingAbovePrice"] = self._round_price(sl_limit_price, p_price, pending_side)
             
             resp = self.client.send_request("POST", "/sapi/v1/margin/order/otoco", params)
-            logger.info(f"BinanceMarginClient: Placed OTOCO for {symbol}. Resp: {resp.get('orderListId')}")
+            logger.info(f"OTOCO placed | symbol={symbol} | order_list_id={resp.get('orderListId')}")
             return True
         except Exception as e:
-            logger.error(f"BinanceMarginClient: Failed to place OTOCO for {symbol}: {e}")
+            logger.error(f"OTOCO failed | symbol={symbol} | error={e}")
             return False

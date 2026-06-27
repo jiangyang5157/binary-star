@@ -89,14 +89,14 @@ class SniperScout:
     def scout(self, at_time: Optional[datetime] = None) -> ScoutResult:
         """Harvests market datum and distills it into trigger-ready metrics."""
         ts = at_time or datetime.now(timezone.utc)
-        logger.debug(f"SniperScout [{self.symbol}]: Harvester active...")
+        logger.debug(f"[{self.symbol}] harvester active")
         
         # 1. Harvest raw telemetry (No cache, direct from Binance)
         raw = self.loader.collect(self.symbol, ts)
         
         # 2. Quality Validation
         if len(raw.macro_klines) < int(self.obs_config.macro_context.lookback_candles * 0.9):
-            logger.warning(f"SniperScout [{self.symbol}]: Insufficient telemetry. Skipping.")
+            logger.warning(f"[{self.symbol}] insufficient telemetry — skipping")
             return ScoutResult(self.symbol, ts, {}, raw)
 
         # 3. Refine into metrics (Option A: Full Re-use of VP and Regime math)

@@ -208,15 +208,15 @@ def _cmd_audit(args):
     files_to_audit: list[str] = []
     if args.file:
         if not os.path.exists(args.file):
-            logger_audit.error("Target file not found: %s", args.file)
+            logger_audit.error("target file not found | file=%s", args.file)
             sys.exit(1)
         files_to_audit.append(args.file)
     else:
         sessions_dir = os.path.join(root, data_root, "sessions")
         if not os.path.exists(sessions_dir):
-            logger_audit.error("Sessions directory not found: %s", sessions_dir)
+            logger_audit.error("sessions directory not found | path=%s", sessions_dir)
             sys.exit(1)
-        logger_audit.info("Batch Mode: Scanning %s ...", sessions_dir)
+        logger_audit.info("batch scanning | path=%s", sessions_dir)
         files_to_audit = [os.path.join(sessions_dir, f)
                           for f in os.listdir(sessions_dir)
                           if f.endswith(".json")]
@@ -225,13 +225,13 @@ def _cmd_audit(args):
             from src.utils.symbol_utils import resolve_symbol
             symbol = resolve_symbol(args.symbol)
         if symbol:
-            logger_audit.info("Filtering by symbol: %s", symbol)
+            logger_audit.info("filtering batch | symbol=%s", symbol)
             files_to_audit = [f for f in files_to_audit
                               if os.path.basename(f).startswith(f"{symbol}_")]
         files_to_audit.sort()
 
     if not files_to_audit:
-        logger_audit.warning("No sessions found to audit in %s.", data_root)
+        logger_audit.warning("no sessions found | path=%s", data_root)
         return
 
     # Delegate to the audit runner logic from run_audit.py
@@ -291,7 +291,7 @@ def _cmd_evolution(args):
     try:
         engine.run_cycle(sample_size=args.samples)
     except Exception as e:
-        logger.error(f"Evolution Cycle Failed: {e}")
+        logger.error(f"evolution cycle failed | error={e}")
         sys.exit(1)
 
 
@@ -321,11 +321,11 @@ def _cmd_patch(args):
     logger_patch = _logging.getLogger("PatchRunner")
 
     if not os.path.exists(args.file):
-        logger_patch.error("Proposal JSON NOT found: %s", args.file)
+        logger_patch.error("proposal JSON not found | file=%s", args.file)
         sys.exit(1)
 
     proposal = load_json(args.file)
-    logger_patch.info("Patching from: %s ...", os.path.basename(args.file))
+    logger_patch.info("patching | file=%s", os.path.basename(args.file))
 
     # Resolve symbol if provided (symbol-aware patching)
     symbol = None
@@ -345,15 +345,15 @@ def _cmd_patch(args):
             from src.config.symbol_resolver import patch_config
             updates = patch_config(symbol, t_path, key, val)
             if updates > 0:
-                logger_patch.info("  (+) Updated '%s' for %s (overrides)", key, symbol)
+                logger_patch.info("patch applied | key=%s | symbol=%s", key, symbol)
             else:
-                logger_patch.warning("  (!) FAILED to update '%s' for %s", key, symbol)
+                logger_patch.warning("patch FAILED | key=%s | symbol=%s", key, symbol)
         else:
             updates = ConfigPatcher.apply_patch(config_abs, key, val, t_path)
             if updates > 0:
-                logger_patch.info("  (+) Updated '%s' in %s", key, target_config)
+                logger_patch.info("patch applied | key=%s | config=%s", key, target_config)
             else:
-                logger_patch.warning("  (!) FAILED to update '%s' in %s", key, target_config)
+                logger_patch.warning("patch FAILED | key=%s | config=%s", key, target_config)
 
     PROMPT_MAP = {
         "session": "config/prompts/session.md",
@@ -366,16 +366,16 @@ def _cmd_patch(args):
         logic = p.get("replaced_with")
         rel_path = PROMPT_MAP.get(module)
         if not rel_path:
-            logger_patch.error("  (!) Unknown module: %s. Skipping.", module)
+            logger_patch.error("patch FAILED | module=%s | reason=unknown", module)
             continue
         abs_path = os.path.join(root, rel_path)
         replacements = PromptDistiller.apply_distillation(abs_path, anchor, logic)
         if replacements > 0:
-            logger_patch.info("  (+) Replaced %d instances in %s", replacements, rel_path)
+            logger_patch.info("prompt patched | replacements=%d | path=%s", replacements, rel_path)
         else:
-            logger_patch.warning("  (!) NO MATCH for anchor in %s", rel_path)
+            logger_patch.warning("prompt patch FAILED | reason=no_match | path=%s", rel_path)
 
-    logger_patch.info(f"Physical Sync Successful: {os.path.basename(args.file)} moved to production.")
+    logger_patch.info(f"sync complete | file={os.path.basename(args.file)}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

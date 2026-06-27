@@ -164,7 +164,7 @@ class ConfluenceEngine:
 
         confluence_score = raw_score * noise_factor
         if math.isnan(confluence_score):
-            logger.warning("ConfluenceEngine: NaN confluence detected — returning 0.0")
+            logger.warning("NaN confluence — returning 0.0")
             return 0.0, Direction.NEUTRAL
         return confluence_score, dominant
 
@@ -267,11 +267,10 @@ class SniperTrigger:
         ]
 
         logger.info(
-            f"SniperTrigger: Signal Stack active. "
-            f"Base threshold={self.engine.base_threshold}, "
-            f"Emergency threshold={self.engine.emergency_threshold}, "
-            f"Fallback cooldown={self.cooldown_minutes}m, "
-            f"Detectors={len(self._signal_detectors)}"
+            f"Signal Stack active | base={self.engine.base_threshold} | "
+            f"emergency={self.engine.emergency_threshold} | "
+            f"cooldown={self.cooldown_minutes}m | "
+            f"detectors={len(self._signal_detectors)}"
         )
 
     # ── Helpers ──────────────────────────────────────────────────────────
@@ -1358,7 +1357,7 @@ class SniperTrigger:
         oi_delta = metrics['sentiment_signals'].get('oi_delta_micro', 0.0)
         parts.append(f"oi_surge={'F:'+str(round(s.strength,2)) if s else f'R:|oi_d|={abs(oi_delta):.4f}<=0.02'}")
 
-        logger.info("SIGNAL_DIAG [%s] %s", self.symbol, " | ".join(parts))
+        logger.info("[%s] SIGNAL DIAG | %s", self.symbol, " | ".join(parts))
 
     # ═══════════════════════════════════════════════════════════════════════
     # MAIN EVALUATE — replaces old (bool, str, str) method
@@ -1407,7 +1406,7 @@ class SniperTrigger:
                 if card:
                     fresh_signals.append(card)
             except Exception as e:
-                logger.warning(f"Signal detector {detector.__name__} failed: {e}")
+                logger.warning(f"detector {detector.__name__} failed | error={e}")
 
         # 2b. Per-pulse signal diagnostics — compact log of all detector key metrics
         self._log_signal_diagnostics(current_metrics, fresh_signals)
@@ -1460,11 +1459,11 @@ class SniperTrigger:
 
         if should_trigger:
             logger.info(
-                f"SNIPER WAKE UP! [{dominant_direction.value}] "
-                f"confluence={confluence_score:.2f} "
-                f"signals={len(fresh_signals)} "
-                f"active={[s.sub_type for s in result.active_signals]} "
-                f"gate={gate_result} regime={regime}"
+                f"[{self.symbol}] WAKE | dir={dominant_direction.value} | "
+                f"confluence={confluence_score:.2f} | "
+                f"signals={len(fresh_signals)} | "
+                f"active={[s.sub_type for s in result.active_signals]} | "
+                f"gate={gate_result} | regime={regime}"
             )
 
         return result

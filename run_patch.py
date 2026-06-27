@@ -39,17 +39,17 @@ def main():
         symbol = resolve_symbol(args.symbol)
 
     if not os.path.exists(args.file):
-        logger.error(f"Proposal JSON NOT found: {args.file}")
+        logger.error(f"proposal JSON not found | file={args.file}")
         sys.exit(1)
 
     proposal = load_json(args.file)
-    logger.info(f"Patching: Initiating physical sync from: {os.path.basename(args.file)}...")
+    logger.info(f"patching | file={os.path.basename(args.file)}")
 
     # 3. Synchronize Config Patches
     config_patches = proposal.get('config_patch', [])
 
     if config_patches:
-        logger.info(f"Patching: Applying {len(config_patches)} configuration changes to: {target_config}...")
+        logger.info(f"patching | changes={len(config_patches)} | target={target_config}")
         for p in config_patches:
             key = p.get('target_key')
             val = p.get('replaced_with')
@@ -59,15 +59,15 @@ def main():
                 from src.config.symbol_resolver import patch_config
                 updates = patch_config(symbol, t_path, key, val)
                 if updates > 0:
-                    logger.info(f"Patching:   (+) Updated '{key}' for {symbol} (overrides)")
+                    logger.info(f"patch applied | key={key} | symbol={symbol}")
                 else:
-                    logger.warning(f"Patching:   (!) FAILED to update '{key}' for {symbol}")
+                    logger.warning(f"patch FAILED | key={key} | symbol={symbol}")
             else:
                 updates = ConfigPatcher.apply_patch(config_abs_path, key, val, t_path)
                 if updates > 0:
-                    logger.info(f"Patching:   (+) Updated '{key}' in {target_config}")
+                    logger.info(f"patch applied | key={key} | config={target_config}")
                 else:
-                    logger.warning(f"Patching:   (!) FAILED to update '{key}' in {target_config}")
+                    logger.warning(f"patch FAILED | key={key} | config={target_config}")
                 
     # 4. Synchronize Semantic Refinements (Prompt Patches)
     semantic_patches = proposal.get('semantic_refinement', [])
@@ -78,7 +78,7 @@ def main():
     }
     
     if semantic_patches:
-        logger.info(f"Patching: Applying {len(semantic_patches)} semantic refinements...")
+        logger.info(f"applying semantic refinements | count={len(semantic_patches)}")
         for p in semantic_patches:
             module = p.get('target_module', '').lower()
             anchor = p.get('anchor_text')
@@ -86,18 +86,18 @@ def main():
             
             rel_path = PROMPT_MAP.get(module)
             if not rel_path:
-                logger.error(f"Patching:   (!) Unknown module: {module}. Skipping.")
+                logger.error(f"patch FAILED | module={module} | reason=unknown")
                 continue
                 
             abs_path = os.path.join(root, rel_path)
             replacements = PromptDistiller.apply_distillation(abs_path, anchor, logic)
             
             if replacements > 0:
-                logger.info(f"Patching:   (+) Replaced {replacements} instances in {rel_path}")
+                logger.info(f"prompt patched | replacements={replacements} | path={rel_path}")
             else:
-                logger.warning(f"Patching:   (!) NO MATCH for anchor in {rel_path}. Check target context.")
+                logger.warning(f"prompt patch FAILED | reason=no_match | path={rel_path}")
                 
-    logger.info("Patching: Physical synchronization COMPLETE.")
+    logger.info("sync complete")
     print(f"✅ Physical Sync Successful: {os.path.basename(args.file)} has been moved to production.")
 
 if __name__ == "__main__":

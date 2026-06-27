@@ -47,7 +47,7 @@ class TopographyEngine:
     def reconstruct(self, symbol: str, at_time: Optional[datetime] = None, dispatch_email: bool = False) -> Dict[str, Any]:
         """Scans market topography and returns physical evidence (POC, VAH, VAL, CVD)."""
         at_time = at_time or datetime.now(timezone.utc)
-        self.logger.info(f"TopographyEngine: Reconstructing market topography for {symbol} at {at_time}...")
+        self.logger.info(f"[{symbol}] reconstructing topography | time={at_time}")
         
         try:
             obs_config = MarketObserverConfig.from_dict(self.config)
@@ -73,7 +73,7 @@ class TopographyEngine:
                 
                 # Save local and dispatch audit
                 notifier.notify_market_recon(symbol, strat_result, save_local=True, dispatch_email=True)
-                self.logger.info(f"TopographyEngine: Market audit report dispatched for {symbol}.")
+                self.logger.info(f"[{symbol}] audit report dispatched")
 
             return {"symbol": symbol, "observation": observation}
         finally:

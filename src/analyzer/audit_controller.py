@@ -132,7 +132,7 @@ class AuditController:
             else:
                 t0_dt = parse_iso_to_utc(t0_str)
         except Exception as te:
-            self.logger.error(f"Audit: Failed to parse session timestamp '{t0_str}': {te}")
+            self.logger.error(f"[{symbol}] failed to parse session timestamp | t0={t0_str} | error={te}")
             raise ValueError(f"Invalid timestamp format in session: {t0_str}")
 
         # Strategic T1 Anchoring
@@ -154,7 +154,7 @@ class AuditController:
         now_dt = datetime.now(timezone.utc)
         max_boundary = min(expiry_dt, now_dt)
         
-        self.logger.info(f"Audit: Reviewing {symbol} ({opinion}) from {t0_str} to Bound ({max_boundary.isoformat()})")
+        self.logger.info(f"[{symbol}] auditing | opinion={opinion} | t0={t0_str} | bound={max_boundary.isoformat()}")
         
         try:
             # 1. Fetch Outcome Klines
@@ -170,7 +170,7 @@ class AuditController:
                     endTime=int(max_boundary.timestamp() * 1000)
                 )
             except Exception as ke:
-                self.logger.warning(f"Audit: Could not fetch outcome klines: {ke}")
+                self.logger.warning(f"[{symbol}] failed to fetch outcome klines | error={ke}")
 
             # early exit: If no market data is available, skip expensive visual-only audit.
             if not klines:
@@ -262,7 +262,7 @@ class AuditController:
             
         except Exception as e:
             if "SESSION_MATURING" not in str(e):
-                self.logger.error(f"Audit: Forensic analysis failed for {symbol}: {e}", exc_info=True)
+                self.logger.error(f"[{symbol}] forensic analysis failed | error={e}", exc_info=True)
             raise
 
     def save_report(self, audit_result: Dict[str, Any]) -> str:
@@ -285,5 +285,5 @@ class AuditController:
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(audit_result, f, indent=2, ensure_ascii=False)
             
-        self.logger.info(f"Audit: Forensic report archived: {os.path.basename(output_file)}")
+        self.logger.info(f"[{symbol}] forensic report archived | file={os.path.basename(output_file)}")
         return output_file

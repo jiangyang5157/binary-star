@@ -45,10 +45,10 @@ class EvolutionEngine:
         self.api_key = resolve_api_key()
         
         if not self.api_key:
-            self.logger.critical("API_KEY-VET_FAILED: Evolution Oracle offline.")
+            self.logger.critical("API_KEY not found | evolution oracle offline")
             sys.exit(1)
         
-        self.logger.info(f"Engine: Oracle online [{self.symbol}]. Audit Trail Persistence: {log_path}")
+        self.logger.info(f"oracle online | symbol={self.symbol} | log={log_path}")
 
     def _setup_evolution_dirs(self) -> Dict[str, str]:
         """Ensures the 'Evolution Black Box' directory hierarchy is initialized."""
@@ -62,10 +62,7 @@ class EvolutionEngine:
 
     def run_cycle(self, sample_size: int):
         """Standard Operating Procedure for the Universal Evolver."""
-        self.logger.info("="*60)
-        self.logger.info("=" * 60)
-        self.logger.info(f" EVOLUTION CYCLE START | Symbol: {self.symbol} | Sample: {sample_size} | Time: {datetime.now(timezone.utc).isoformat()}")
-        self.logger.info("=" * 60)
+        self.logger.info(f"═══ EVOLUTION CYCLE START | symbol={self.symbol} | sample={sample_size} ═══")
         evolver_at_dt = datetime.now(timezone.utc)
         evolver_at = evolver_at_dt.isoformat()
         ts_compact = evolver_at_dt.strftime("%Y%m%d_%H%M%S")
@@ -73,7 +70,7 @@ class EvolutionEngine:
         # 1. Ingest Audit Evidence
         audit_dir = os.path.join(self.data_root, "audits")
         if not os.path.exists(audit_dir):
-            self.logger.warning(f"Audit dir not found: {audit_dir}. Aborting cycle.")
+            self.logger.warning(f"audit dir not found | path={audit_dir} | aborting cycle")
             return
 
         # Filter by symbol (Filename prefix + JSON validation)
@@ -89,17 +86,17 @@ class EvolutionEngine:
                     if report_preview.get("symbol") == self.symbol:
                         files.append(f)
                 except Exception as e:
-                    logger.warning(f"Failed to read audit file {f}: {e}")
+                    logger.warning(f"failed to read audit file | file={f} | error={e}")
                     continue
 
         if not files:
-            self.logger.warning(f"No audit reports found for {self.symbol}. No evolutionary pressure detected.")
+            self.logger.warning(f"no audit reports found | symbol={self.symbol} | no evolutionary pressure")
             return
 
-        self.logger.info(f"Ingestion: Found {len(files)} reports for {self.symbol}. Selecting top {min(len(files), sample_size)} for analysis.")
+        self.logger.info(f"found {len(files)} reports | symbol={self.symbol} | selecting top {min(len(files), sample_size)}")
         reports = []
         for f in files[:sample_size]:
-            self.logger.info(f"Ingestion: [INGEST] -> {f}")
+            self.logger.info(f"ingesting report | file={f}")
             report = load_json(os.path.join(audit_dir, f))
             if report: reports.append(report)
 
@@ -137,7 +134,7 @@ class EvolutionEngine:
         }
         
         # 3. Phase: Prototype Generation
-        self.logger.info(f"Evolver: Initiating Neural Meta-Optimization ({ev_cfg.model} Inference)...")
+        self.logger.info(f"evolver started | model={ev_cfg.model}")
         
         # Inject RAW instruction contents to enable byte-perfect semantic refinement
         from src.utils.pipeline_utils import read_prompt_template
@@ -166,11 +163,11 @@ class EvolutionEngine:
         proposal_file = os.path.join(self.dirs['proposals'], f"{ev_id}.json")
         save_json(evolution_result, proposal_file)
         
-        self.logger.info(f"Evolver: [PROPOSAL_GENERATED] -> {ev_id}")
-        self.logger.info(f"Evolver: Rationale: {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
+        self.logger.info(f"proposal generated | id={ev_id}")
+        self.logger.info(f"rationale | {evolution_result.get('rationale', 'No rationale provided')[:200]}...")
 
         timestamp_now = datetime.now(timezone.utc).strftime("%H:%M:%S")
-        self.logger.info(f"--- Evolution Cycle Complete | Duration: {timestamp_now} ---")
+        self.logger.info("─── EVOLUTION CYCLE COMPLETE ───")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine")
@@ -192,7 +189,7 @@ def main():
         engine.run_cycle(sample_size=samples)
     except Exception as e:
         # engine.__init__ guarantees self.logger exists if run_cycle() is reachable
-        engine.logger.error(f"Evolution Cycle Failed: {e}")
+        engine.logger.error(f"evolution cycle failed | error={e}")
         sys.exit(1)
 
 if __name__ == "__main__":

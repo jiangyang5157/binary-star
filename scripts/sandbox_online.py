@@ -36,7 +36,7 @@ def main():
     
     # 2. Load Proposal
     if not os.path.exists(args.file):
-        logger.error(f"Proposal file not found: {args.file}")
+        logger.error(f"proposal file not found | file={args.file}")
         sys.exit(1)
         
     proposal = load_json(args.file)
@@ -45,7 +45,7 @@ def main():
     audit_reports_list = metadata.get("audit_reports", [])
     
     if not audit_reports_list:
-        logger.error(f"Proposal metadata missing 'audit_reports' list. Cannot perform batch validation.")
+        logger.error("proposal metadata missing audit_reports list — cannot perform batch validation")
         sys.exit(1)
         
     # 3. Load All Audit Reports
@@ -57,10 +57,10 @@ def main():
             if report:
                 reports.append(report)
         else:
-            logger.warning(f"Audit report not found: {filename}. Skipping.")
+            logger.warning(f"audit report not found | file={filename} — skipping")
 
     if not reports:
-        logger.error("No valid audit reports found to validate against.")
+        logger.error("no valid audit reports found to validate against")
         sys.exit(1)
         
     # 4. Setup Directories
@@ -78,7 +78,7 @@ def main():
     from src.utils.pipeline_utils import resolve_api_key
     api_key = resolve_api_key()
     if not api_key:
-        logger.critical("API_KEY not found for active provider.")
+        logger.critical("API_KEY not found for active provider")
         sys.exit(1)
     full_config = load_combined_config()
     sandbox = EvolverSandbox(
@@ -126,12 +126,12 @@ def main():
     print(f"{'='*60}\n")
 
     if is_accepted:
-        logger.info(f"Sandbox: [PASS] Routing proposal to 'sandbox_accepted'")
+        logger.info("[PASS] routing proposal → sandbox_accepted")
         target_file = os.path.join(dirs['accepted'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
         print(f"Proposal successfully moved to: {os.path.relpath(target_file, root)}")
     else:
-        logger.warning(f"Sandbox: [FAIL] Routing proposal to 'sandbox_rejected'")
+        logger.warning("[FAIL] routing proposal → sandbox_rejected")
         target_file = os.path.join(dirs['rejected'], os.path.basename(args.file))
         shutil.move(args.file, target_file)
         print(f"Proposal successfully moved to: {os.path.relpath(target_file, root)}")

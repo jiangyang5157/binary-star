@@ -54,7 +54,7 @@ class SessionEngine:
         from src.utils.pipeline_utils import resolve_api_key
         self.api_key = resolve_api_key()
         if not self.api_key:
-            logger.critical("API_KEY not found for active provider. Neural inference disabled.")
+            logger.critical("API_KEY not found | neural inference disabled")
             sys.exit(1)
             
         self.orchestrator = BinaryStarOrchestrator(
@@ -87,7 +87,7 @@ class SessionEngine:
         """
         try:
             mode_label = "PROD" if not timestamp_str else f"SIMULATION @ {timestamp_str}"
-            logger.info(f"--- Session Cycle Start [{mode_label}] ---")
+            logger.info(f"═══ SESSION CYCLE START [{mode_label}] ═══")
 
             # 1. Topographic Fact Gathering
             target_dt = None
@@ -98,7 +98,7 @@ class SessionEngine:
             if progress_callback:
                 progress_callback(stage=1, activity="Fetching kline data…")
 
-            logger.info(f"Observer: Mapping structural topography for {self.symbol}...")
+            logger.info(f"[{self.symbol}] observer mapping topography")
             observation = self.orchestrator.observer.observe(
                 timestamp=target_dt, persist=False,
                 progress_callback=progress_callback,
@@ -112,7 +112,8 @@ class SessionEngine:
             topo = metrics.get('volume_profile', {})
             dyn = metrics.get('price_dynamics', {})
             logger.info(
-                f"Topography Snapshot: POC={topo.get('poc')} | "
+                f"[{self.symbol}] topography snapshot | "
+                f"POC={topo.get('poc')} | "
                 f"VAH={topo.get('vah')} | VAL={topo.get('val')} | "
                 f"ATR={dyn.get('atr_macro')}"
             )
@@ -123,7 +124,7 @@ class SessionEngine:
             if situation_brief:
                 observation['situation_brief'] = situation_brief
 
-            logger.info("BinaryStar: Initiating adversarial debate [Session Analyst VS Critic]...")
+            logger.info(f"[{self.symbol}] initiating Binary Star debate")
             session_result = self.orchestrator.execute_flow(
                 observation, self.symbol,
                 progress_callback=progress_callback,
@@ -148,7 +149,7 @@ class SessionEngine:
                 data_root=self.data_root,
                 target_dir="sessions"
             )
-            logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
+            logger.info(f"pipeline complete | session archived | file={os.path.basename(output_file)}")
 
             if progress_callback:
                 progress_callback(stage=5, activity="Sending notification…")
@@ -179,13 +180,13 @@ class SessionEngine:
 
         except Exception as e:
             self.consecutive_failures += 1
-            logger.error(f"Session Cycle Failure ({self.consecutive_failures}/{self.max_failures_threshold}): {e}", exc_info=True)
+            logger.error(f"session cycle failure ({self.consecutive_failures}/{self.max_failures_threshold}) | error={e}", exc_info=True)
 
             if progress_callback:
                 progress_callback(status="failed", error=str(e))
 
             if self.consecutive_failures >= self.max_failures_threshold and not timestamp_str:
-                logger.critical("CIRCUIT BREAKER: Threshold exceeded — stopping session engine.")
+                logger.critical(f"CIRCUIT BREAKER — threshold exceeded ({self.max_failures_threshold})")
                 self.notifier.notify_alert("PIPELINE_ERROR", self.symbol, str(e))
                 raise RuntimeError(f"Circuit breaker tripped after {self.consecutive_failures} consecutive failures.") from e
 
@@ -198,7 +199,7 @@ class SessionEngine:
                 if cm is not None:
                     cm.delete_market_cache()
             except Exception as e:
-                logger.warning(f"Failed to delete market cache: {e}")
+                logger.warning(f"failed to delete market cache | error={e}")
 
 
 # ── Subprocess status-file progress writer ───────────────────────────────
@@ -304,13 +305,13 @@ class SessionController:
             signal.signal(sig, self._handle_termination)
 
     def _handle_termination(self, signum, frame):
-        logger.warning(f"Termination signal received. Cleaning up context caches...")
+        logger.warning("termination signal received | cleaning up caches")
         try:
             cm = self.engine.orchestrator.cache_manager
             if cm is not None:
                 cm.delete_market_cache()
         except Exception as e:
-            logger.warning(f"Failed to delete market cache during shutdown: {e}")
+            logger.warning(f"failed to delete market cache during shutdown | error={e}")
         sys.exit(0)
 
     def run(self):
@@ -329,7 +330,7 @@ def main():
     if not args.path:
         args.path = "data/prod"
 
-    logger.info("Mode: PROD (live execution)")
+    logger.info("mode=PROD | live execution")
     print("\n")
     controller = SessionController(args)
     controller.run()

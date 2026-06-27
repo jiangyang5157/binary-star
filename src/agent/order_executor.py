@@ -42,6 +42,7 @@ class MarginOrderExecutor:
         self.client = client or BinanceMarginClient()
         self.manual_balance_usdt = manual_balance_usdt
         # Cache global_config to avoid re-reading from disk on every guardian/trade call
+        self._last_conflict_key: dict[str, str] = {}  # throttle orientation conflict logs
         if global_config is not None:
             self._global_config_raw = global_config
         else:
@@ -65,31 +66,31 @@ class MarginOrderExecutor:
         The central brain for syncing the current Binance state with a newly generated AI Opinion.
         Returns the entry order_id if a new LIMIT entry was placed, or None.
         """
-        logger.info(f"Executor [{symbol}]: Syncing with new Opinion: {opinion_direction} (Entry: {entry_price}, TP: {tp_price}, SL: {sl_price})")
+        logger.info(f"[{symbol}] syncing opinion | dir={opinion_direction} | entry={entry_price} | tp={tp_price} | sl={sl_price}")
 
         # [SAFETY GUARD] NEUTRAL opinions require no order action
         if opinion_direction == "NEUTRAL":
-            logger.info(f"Executor [{symbol}]: Opinion is NEUTRAL — no order placement needed.")
+            logger.info(f"[{symbol}] opinion NEUTRAL — no order placement")
             return None
 
         # [SAFETY GUARD] Explicit Whitelist Check
         if not self._is_symbol_whitelisted(symbol):
-            logger.warning(f"Executor: [ABORT] Symbol {symbol} is NOT configured in symbol_config.yaml. Operation halted globally.")
+            logger.warning(f"[{symbol}] symbol not in config — aborting")
             return None
-            
+
         pos = self.client.get_symbol_position(symbol)
         active_orders = self.client.get_active_orders(symbol)
-        
+
         net_qty = pos.net_qty if pos else 0.0
-        
+
         # Load logic limits with strict fail-fast error handling
         try:
             cfg = self._get_trade_config(symbol)
             tolerance = cfg["net_qty_tolerance"]
         except Exception as e:
-            logger.error(f"Executor: [ABORT] Configuration error: {e}. Cannot safely execute orders without strict parameters.")
+            logger.error(f"[{symbol}] config error — aborting | error={e}")
             return None
-        
+
         # Determine Current Direction
         current_direction = "FLAT"
         if net_qty > tolerance:
@@ -97,23 +98,23 @@ class MarginOrderExecutor:
         elif net_qty < -tolerance:
             current_direction = "SHORT"
 
-        logger.info(f"Executor: Current State -> Direction: {current_direction}, Net Qty: {net_qty}")
+        logger.info(f"[{symbol}] current state | dir={current_direction} | net_qty={net_qty}")
 
         # Scenario C: FLAT
         if current_direction == "FLAT":
             if active_orders:
-                logger.info("Executor: [Action] Flat but found active orders. Cancelling all to clear the slate.")
+                logger.info(f"[{symbol}] position flat — cleaning orders")
                 if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.error("Executor: [ABORT] Failed to clear stale orders. Halting new order placement for safety.")
+                    logger.error(f"[{symbol}] failed to clear stale orders — aborting")
                     return None
-            
-            logger.info("Executor: [Action] Placing new LIMIT entry order.")
+
+            logger.info(f"[{symbol}] placing LIMIT entry | dir={opinion_direction}")
             return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
         # Scenario A: PIVOT (Opposite Direction)
         if current_direction != opinion_direction:
-            logger.warning(f"Executor: [Action] PIVOT detected! Current: {current_direction}, New: {opinion_direction}")
-            
+            logger.warning(f"[{symbol}] pivot detected | current={current_direction} | new={opinion_direction}")
+
             # Determine if the opposing position has a stop loss order (i.e., it is protected)
             exit_side_of_current = "BUY" if current_direction == "SHORT" else "SELL"
             existing_sl_order = next(
@@ -123,19 +124,18 @@ class MarginOrderExecutor:
                  and o.stop_price > 0),
                 None
             )
-            
+
             if existing_sl_order:
                 # Case A-2: Opposing position is protected → preserve it with adjusted TP + new entry
                 original_sl_trigger = existing_sl_order.stop_price
                 logger.info(
-                    f"Executor: [Pivot-Preserve] Opposing {current_direction} has a stop loss at "
-                    f"{original_sl_trigger}. Preserving position and adjusting TP."
+                    f"[{symbol}] pivot-preserve | {current_direction} SL at {original_sl_trigger}"
                 )
-                
+
                 # 2. Determine if the flip point has already been overshot
                 current_price = self.client.get_ticker_price(symbol)
                 if current_price is None or current_price <= 0:
-                    logger.error("Executor: [Pivot-Preserve] Failed to get valid ticker price. Aborting pivot.")
+                    logger.error(f"[{symbol}] pivot-preserve failed — no ticker price")
                     return None
                 is_overshot = (
                     (current_direction == "SHORT" and current_price <= entry_price) or
@@ -144,40 +144,39 @@ class MarginOrderExecutor:
 
                 if is_overshot:
                     logger.warning(
-                        f"Executor: [Pivot-Overshot] Price {current_price} already past entry {entry_price}. "
-                        f"Executing immediate Market Close for {current_direction}."
+                        f"[{symbol}] pivot-overshot | price={current_price} past entry={entry_price} | closing {current_direction}"
                     )
                     if not self.client.cancel_all_symbol_orders(symbol):
-                        logger.error("Executor: [ABORT Pivot-Overshot] Failed to cancel orders.")
+                        logger.error(f"[{symbol}] pivot-overshot — failed to cancel orders")
                         return None
                     if not self.client.execute_market_close(symbol):
-                        logger.error("Executor: [ABORT Pivot-Overshot] Failed to Market Close.")
+                        logger.error(f"[{symbol}] pivot-overshot — failed to market close")
                         return None
-                    
+
                     # Proceed to place new entry
-                    logger.info(f"Executor: [Pivot-Overshot] Placing new {opinion_direction} LIMIT entry at {entry_price}.")
+                    logger.info(f"[{symbol}] pivot-overshot — placing LIMIT entry | dir={opinion_direction} | entry={entry_price}")
                     return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
                 # 3. Standard Case: Re-hang OCO with TP aligned to new entry
                 pivot_tp = entry_price
-                logger.info(f"Executor: [Pivot-Preserve] Protecting existing {current_direction} volume. Set its TP to {pivot_tp} (aligned with new entry for seamless flip).")
-                
+                logger.info(f"[{symbol}] pivot-preserve | protecting {current_direction} | tp={pivot_tp}")
+
                 # 1. Cancel all existing orders (clean slate before re-hanging)
                 if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.error("Executor: [ABORT Pivot-Preserve] Failed to cancel existing orders.")
+                    logger.error(f"[{symbol}] pivot-preserve — failed to cancel orders")
                     return None
 
                 # Format to precision
                 p_price = cfg["precision_price"]
                 pivot_tp = round(pivot_tp, p_price)
-                
+
                 # 4. Re-hang OCO for the existing opposing position
                 #    (original SL trigger + pivot TP)
                 buffer = cfg.get("sl_slippage_buffer", 0.0)
                 # SHORT SL is a BUY above current → limit is trigger + buffer
                 # LONG  SL is a SELL below current → limit is trigger - buffer
                 buffered_sl = original_sl_trigger + (buffer if current_direction == "SHORT" else -buffer)
-                
+
                 oco_success = self.client.place_oco_order(
                     symbol=symbol,
                     side=exit_side_of_current,
@@ -188,42 +187,40 @@ class MarginOrderExecutor:
                 )
                 if not oco_success:
                     logger.critical(
-                        "Executor: [EMERGENCY Pivot-Preserve] Failed to place OCO after cancel — "
-                        "existing position is now naked. Emergency market closing."
+                        f"[{symbol}] Guardian EMERGENCY close — OCO failure"
                     )
                     if not self.client.execute_market_close(symbol):
-                        logger.error("Executor: [ABORT Pivot-Preserve] Emergency market close failed. Aborting to prevent double exposure.")
+                        logger.error(f"[{symbol}] pivot-preserve — emergency market close failed")
                         return None
-                    logger.info(f"Executor: [Pivot-Preserve] Emergency close complete. Entering new {opinion_direction} at {entry_price}.")
+                    logger.info(f"[{symbol}] pivot-preserve — emergency close done, entering {opinion_direction}")
                     return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
                 # 4. Place the new opinion's LIMIT entry alongside the preserved position
-                logger.info(f"Executor: [Pivot-Preserve] Pivot setup complete. Entering new {opinion_direction} at {entry_price} (SL: {sl_price}).")
+                logger.info(f"[{symbol}] pivot-preserve — placing entry | dir={opinion_direction} | entry={entry_price}")
                 return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
-            
+
             else:
                 # Case A-1: No stop loss → opposing position is unprotected → force close
                 logger.warning(
-                    f"Executor: [Pivot-ForceClose] Opposing {current_direction} has NO stop loss. "
-                    f"Cancelling all and market closing."
+                    f"[{symbol}] pivot-forceclose | {current_direction} unprotected — closing"
                 )
                 if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.error("Executor: [ABORT PIVOT] Failed to cancel existing orders. Halting pivot.")
+                    logger.error(f"[{symbol}] pivot — failed to cancel orders")
                     return None
-                    
+
                 if not self.client.execute_market_close(symbol):
-                    logger.error("Executor: [ABORT PIVOT] Failed to Market Close existing position. Halting new order placement.")
+                    logger.error(f"[{symbol}] pivot — failed to market close")
                     return None
-                
-                logger.info("Executor: [Pivot-ForceClose] Placing new LIMIT entry after force-close.")
+
+                logger.info(f"[{symbol}] pivot-forceclose — placing LIMIT entry | dir={opinion_direction}")
                 return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
         # Scenario B: SAME DIRECTION (Optimization & Net Qty Protection)
-        logger.info("Executor: [Action] Same direction detected. Optimizing existing position protection.")
+        logger.info(f"[{symbol}] same direction — optimizing protection")
         position_intact = self._optimize_same_direction(symbol, current_direction, net_qty, active_orders, tp_price, sl_price)
         if not position_intact:
             # Emergency close was triggered — return sentinel to signal caller that trade_state should be cleared
-            logger.critical("Executor: [EMERGENCY Same-Direction] Position emergency-closed after OCO failure. Returning sentinel.")
+            logger.critical(f"[{symbol}] Guardian CRITICAL — failed OCO, emergency closing")
             return _EMERGENCY_CLOSED_SENTINEL
         return None
 
@@ -234,17 +231,17 @@ class MarginOrderExecutor:
     def guardian_check(self, symbol: str, trade_state: Dict[str, Any], atr_macro: Optional[float] = None) -> Dict[str, Any]:
         """
         Position Guardian: Runs every Sniper pulse to ensure positions are protected.
-        
+
         Responsibilities:
         1. If PENDING entry order → check timeout (projected_waiting_hours) → cancel if expired
         2. If FILLED position with NO OCO → place OCO or emergency close
         3. If position already protected → progressive trailing stop migration
-        
+
         Args:
             symbol: Trading pair identifier.
             trade_state: Current in-memory trade state dictionary.
             atr_macro: Current ATR value for trailing stop calculations.
-        
+
         Returns updated trade_state.
         """
 
@@ -252,23 +249,23 @@ class MarginOrderExecutor:
         pos = self.client.get_symbol_position(symbol)
         net_qty = pos.net_qty if pos else 0.0
         active_orders = self.client.get_active_orders(symbol)
-        
+
         try:
             cfg = self._get_trade_config(symbol)
             tolerance = cfg["net_qty_tolerance"]
         except Exception as e:
-            logger.error(f"Guardian: [ABORT] Configuration error: {e}")
+            logger.error(f"[{symbol}] guardian config error | error={e}")
             return trade_state
 
         has_position = abs(net_qty) > tolerance
-        logger.debug(f"Guardian Pulse [{symbol}]: NetQty={net_qty}, HasPosition={has_position}, ActiveOrders={len(active_orders)}")
+        logger.debug(f"[{symbol}] guardian pulse | net_qty={net_qty} | has_position={has_position} | active_orders={len(active_orders)}")
 
         # --- STEP 1: Intent Check (Early exit if robot has no skin in the game) ---
         if not trade_state or not trade_state.get("direction"):
             return trade_state  # Nothing to protect for now
-        
+
         direction = trade_state["direction"]
-        
+
         # Determine if OCO protection exists
         exit_side = "SELL" if direction == "LONG" else "BUY"
         has_oco = any(
@@ -287,19 +284,18 @@ class MarginOrderExecutor:
                 if placed_at:
                     elapsed_hours = (datetime.now(timezone.utc) - placed_at).total_seconds() / 3600
                     if elapsed_hours > timeout_hours:
-                        logger.warning(f"Guardian: Entry order {entry_order_id} expired ({elapsed_hours:.1f}h > {timeout_hours}h). Cancelling.")
+                        logger.warning(f"[{symbol}] entry order expired | id={entry_order_id} | elapsed={elapsed_hours:.1f}h > {timeout_hours}h")
                         self.client.cancel_order(symbol, entry_order_id)
                         return {}  # Clear trade state
                     else:
-                        logger.info(f"Guardian: Entry order {entry_order_id} still pending ({elapsed_hours:.1f}h / {timeout_hours}h).")
+                        logger.info(f"[{symbol}] entry order pending | id={entry_order_id} | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
             else:
                 # Position was entered and then closed (net≈0, no entry order).
                 # Possible causes: Pivot-Preserve flip, SL partial fill that left
                 # a residual that was subsequently closed, or bidirectional unwind.
                 # Cancel any stray orders and clear stale trade state.
                 if trade_state.get("entry_filled_at"):
-                    logger.info(f"Guardian: Position flat (was filled at {trade_state['entry_filled_at']}). "
-                                f"Cleaning up stray orders and trade state for {symbol}.")
+                    logger.info(f"[{symbol}] position flat — cleaning orders")
                 self.client.cancel_all_symbol_orders(symbol)
                 return {}
             return trade_state
@@ -311,46 +307,48 @@ class MarginOrderExecutor:
         intent = trade_state["direction"]
 
         if (intent == "LONG" and not is_long_pos) or (intent == "SHORT" and not is_short_pos):
-            logger.warning(f"Guardian: [ORIENTATION CONFLICT] Intent={intent} but NetQty={net_qty}. "
-                           f"Robot will NOT adopt this manual position and will keep tracking entry {trade_state.get('entry_order_id')}.")
+            conflict_key = f"{intent}_{net_qty}"
+            if self._last_conflict_key.get(symbol) != conflict_key:
+                logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty}")
+                self._last_conflict_key[symbol] = conflict_key
             return trade_state
 
         # --- Case 3: Has position and direction matches -> Protect Position ---
         if not has_oco:
             tp = trade_state.get("tp_price")
             sl = trade_state.get("sl_price")
-            
+
             if not tp or not sl:
-                logger.critical("Guardian: Has position but no TP/SL in trade_state. Emergency closing position!")
+                logger.critical(f"[{symbol}] Guardian CRITICAL — position has no TP/SL, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
                 return {}
 
             # Check if price has already breached SL
             current_price = self.client.get_ticker_price(symbol)
-            
+
             sl_breached = (
                 (direction == "LONG" and current_price <= sl) or
                 (direction == "SHORT" and current_price >= sl)
             )
-            
+
             if sl_breached:
-                logger.critical(f"Guardian: [EMERGENCY] Price {current_price} has breached SL {sl}! Market closing position.")
+                logger.critical(f"[{symbol}] Guardian EMERGENCY close — price breached SL | price={current_price} | sl={sl}")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
                 return {}  # Clear trade state
-            
+
             # Normal case: place OCO protection
-            logger.info(f"Guardian: Position detected ({direction}, {net_qty}). Placing OCO protection (TP: {tp}, SL: {sl}).")
-            
+            logger.info(f"[{symbol}] Guardian activated | dir={direction} | qty={net_qty}")
+
             # Clear any stale entry orders first
             entry_order_id = trade_state.get("entry_order_id")
             if entry_order_id:
                 self.client.cancel_order(symbol, entry_order_id)
-            
+
             buffer = cfg.get("sl_slippage_buffer", 0.0)
             buffered_sl = sl + (buffer if direction == "SHORT" else -buffer)
-            
+
             success = self.client.place_oco_order(
                 symbol=symbol,
                 side=exit_side,
@@ -359,9 +357,9 @@ class MarginOrderExecutor:
                 stop_price=sl,
                 stop_limit_price=buffered_sl
             )
-            
+
             if success:
-                logger.info("Guardian: OCO protection successfully placed.")
+                logger.info(f"[{symbol}] Guardian OCO placed | tp={tp} | sl={sl}")
                 # Update state: remove entry tracking, keep direction/prices
                 trade_state.pop("entry_order_id", None)
                 trade_state.pop("entry_placed_at", None)
@@ -369,17 +367,17 @@ class MarginOrderExecutor:
                 if not trade_state.get("entry_filled_at"):
                     trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
             else:
-                logger.critical("Guardian: [CRITICAL] Failed to place OCO protection! Emergency closing position.")
+                logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
                 return {}
 
         # --- Case 4: Position is already protected → Progressive Trailing Stop ---
-        logger.debug(f"Guardian: Position {direction} ({net_qty}) is protected.")
-        
+        logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
+
         if atr_macro is not None and not math.isnan(atr_macro) and atr_macro > 0:
             trade_state = self._migrate_trailing_stop(symbol, direction, trade_state, active_orders, atr_macro)
-        
+
         return trade_state
 
     # ================================================================
@@ -438,8 +436,7 @@ class MarginOrderExecutor:
 
             if elapsed_hours > time_limit:
                 logger.warning(
-                    f"Guardian: [TIME_STOP] Position held {elapsed_hours:.1f}h > limit {time_limit:.1f}h "
-                    f"(base={projected_holding}h, atr_ratio={atr_ratio:.2f}). Market closing {symbol}.")
+                    f"[{symbol}] time stop | elapsed={elapsed_hours:.1f}h > limit={time_limit:.1f}h | closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
                 return {}  # Clear trade state
@@ -451,7 +448,7 @@ class MarginOrderExecutor:
 
         # Safeguard: Prevent division by zero, NaN, or extremely small ATR values
         if atr_macro is None or math.isnan(atr_macro) or atr_macro < 1e-6:
-            logger.warning(f"Guardian: [TRAIL] Invalid ATR value ({atr_macro}). Skipping migration.")
+            logger.warning(f"[{symbol}] trailing stop — invalid ATR ({atr_macro})")
             return trade_state
 
         if direction == "LONG":
@@ -484,16 +481,15 @@ class MarginOrderExecutor:
         elif unrealized_atr >= l1:
             target_level = 1
             target_sl = entry_price  # Breakeven
-        
+
         # Only migrate forward (never move SL backwards, never redundant migration)
         if target_level <= current_level:
-            logger.debug(f"Guardian: [TRAIL] Unrealized={unrealized_atr:.1f}ATR, Level={current_level}. No migration.")
+            logger.debug(f"[{symbol}] trailing stop — no migration | unrealized={unrealized_atr:.1f}ATR | level={current_level}")
             return trade_state
-        
+
         logger.info(
-            f"Guardian: [TRAIL] Migrating SL Level {current_level} → {target_level} | "
-            f"Unrealized={unrealized_atr:.1f}ATR | New SL={target_sl:.2f}")
-        
+            f"[{symbol}] trailing stop migrated | level {current_level} → {target_level} | unrealized={unrealized_atr:.1f}ATR | sl={target_sl:.2f}")
+
         # --- 3. OCO Migration (Cancel + Re-place) ---
         try:
             cfg = self._get_trade_config(symbol)
@@ -501,15 +497,15 @@ class MarginOrderExecutor:
 
             # Step A: Cancel all existing orders
             if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error("Guardian: [TRAIL] Failed to cancel OCO. Keeping existing protection.")
+                logger.error(f"[{symbol}] trailing stop — failed to cancel OCO, keeping existing")
                 return trade_state
-            
+
             # Step B: Place new OCO with migrated SL
             # Direction-aware buffer: LONG SL is SELL (limit < trigger), SHORT SL is BUY (limit > trigger)
             buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
             pos = self.client.get_symbol_position(symbol)
             if not pos:
-                logger.critical("Guardian: [TRAILING STOP] Position vanished after cancel! Emergency closing %s.", symbol)
+                logger.critical(f"[{symbol}] Guardian TRAILING STOP — position vanished, emergency closing")
                 self.client.execute_market_close(symbol)
                 return {}
             success = self.client.place_oco_order(
@@ -520,21 +516,20 @@ class MarginOrderExecutor:
                 stop_price=target_sl,
                 stop_limit_price=buffered_sl
             )
-            
+
             if success:
                 trade_state["sl_price"] = target_sl
                 trade_state["trailing_sl_level"] = target_level
-                logger.info(f"Guardian: [TRAIL] SL successfully migrated to {target_sl:.2f} (Level {target_level}).")
+                logger.info(f"[{symbol}] trailing stop migrated | sl={target_sl:.2f} | level={target_level}")
             else:
                 # Step C: EMERGENCY — OCO re-placement failed, position is now NAKED
                 logger.critical(
-                    f"Guardian: [TRAIL][CRITICAL] OCO re-placement FAILED after cancel! "
-                    f"Position is unprotected. Emergency market closing {symbol}.")
+                    f"[{symbol}] Guardian CRITICAL — OCO re-place failed after cancel, emergency closing")
                 self.client.execute_market_close(symbol)
                 return {}  # Clear trade state
-                
+
         except Exception as e:
-            logger.critical(f"Guardian: [TRAIL] Migration exception after cancel — emergency closing {symbol}: {e}", exc_info=True)
+            logger.critical(f"[{symbol}] Guardian TRAILING STOP — migration exception, emergency closing | error={e}", exc_info=True)
             self.client.execute_market_close(symbol)
             return {}
 
@@ -563,9 +558,9 @@ class MarginOrderExecutor:
                     current_sls.append(order.stop_price if order.stop_price > 0 else order.price)
 
         if current_tps:
-            logger.info(f"Executor: Found existing TPs for {direction}: {current_tps}")
+            logger.info(f"[{symbol}] existing TPs | tps={current_tps}")
         if current_sls:
-            logger.info(f"Executor: Found existing SLs for {direction}: {current_sls}")
+            logger.info(f"[{symbol}] existing SLs | sls={current_sls}")
 
         best_tp = new_tp
         best_sl = new_sl
@@ -583,12 +578,12 @@ class MarginOrderExecutor:
             if current_sls:
                 best_sl = min(min(current_sls), new_sl)  # Lower SL = tighter
 
-        logger.info(f"Executor: Final Strategic Targets -> TP: {best_tp} (Opinion: {new_tp}), SL: {best_sl} (Opinion: {new_sl})")
+        logger.info(f"[{symbol}] final targets | tp={best_tp} (opinion={new_tp}) | sl={best_sl} (opinion={new_sl})")
 
         # Clean slate the orders to apply the unified OCO over the entire Net Qty
-        logger.info(f"Executor: Cancelling existing orders to wrap entire Net Qty ({net_qty}) with new OCO.")
+        logger.info(f"[{symbol}] cancelling orders to wrap net_qty={net_qty} with OCO")
         if not self.client.cancel_all_symbol_orders(symbol):
-            logger.error("Executor: [ABORT OPTIMIZATION] Failed to cancel existing OCOs. Original protection remains active.")
+            logger.error(f"[{symbol}] optimize — failed to cancel OCOs, original protection remains")
             return True  # Position still intact (original OCOs untouched)
 
         # Re-verify position after cancel — a fill during the cancel window can change qty
@@ -596,10 +591,10 @@ class MarginOrderExecutor:
         pos = self.client.get_symbol_position(symbol)
         live_qty = abs(pos.net_qty) if pos else 0.0
         if live_qty <= 0:
-            logger.warning("Executor: [OPTIMIZE] Position vanished after cancel — nothing to protect.")
+            logger.warning(f"[{symbol}] optimize — position vanished after cancel")
             return True
         if abs(live_qty - abs(net_qty)) > trade_cfg.get("net_qty_tolerance", 1e-8):
-            logger.warning(f"Executor: [OPTIMIZE] Qty changed after cancel ({net_qty} → {live_qty}). Using live qty.")
+            logger.warning(f"[{symbol}] optimize — qty changed after cancel | {net_qty} → {live_qty}")
 
         # Calculate buffered SL Limit (Slippage protection)
         buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
@@ -613,10 +608,10 @@ class MarginOrderExecutor:
             qty=live_qty,
             price=best_tp,
             stop_price=best_sl,
-            stop_limit_price=buffered_sl 
+            stop_limit_price=buffered_sl
         )
         if not success:
-            logger.critical("Executor: [EMERGENCY Same-Direction] Cancelled old OCO but failed to place new OCO. Position is now naked. Emergency market closing.")
+            logger.critical(f"[{symbol}] Guardian CRITICAL — cancelled OCO, failed to place new, emergency closing")
             self.client.execute_market_close(symbol)
             return False  # Signal caller: position was emergency-closed
 
@@ -631,7 +626,7 @@ class MarginOrderExecutor:
         gc = self._global_config_raw.get("guardian", {})
         trailing = gc.get("trailing", {})
         time_stop = gc.get("time_stop", {})
-        return {
+        result = {
             "trailing_profit_atr_level_1": float(trailing.get("trailing_profit_atr_level_1", 1.5)),
             "trailing_profit_atr_level_2": float(trailing.get("trailing_profit_atr_level_2", 2.5)),
             "trailing_profit_atr_level_3": float(trailing.get("trailing_profit_atr_level_3", 4.0)),
@@ -680,7 +675,7 @@ class MarginOrderExecutor:
         cfg["precision_price"] = sym_cfg["precision_price"]
         cfg["min_order_qty"] = sym_cfg["min_order_qty"]
         cfg["sl_slippage_buffer"] = sym_cfg["sl_slippage_buffer"]
-        
+
         return cfg
 
     def _calculate_target_qty(self, symbol: str, entry_price: float, sl_price: float) -> float:
@@ -703,33 +698,33 @@ class MarginOrderExecutor:
             current_price = self.client.get_ticker_price(benchmark_symbol)
             total_equity_btc = account.total_net_asset_of_btc
             total_equity_usdt = total_equity_btc * current_price
-        
+
         # 3. Calculate Risk Amount
         max_loss_usdt = total_equity_usdt * risk_pct
-        
+
         # 4. Calculate Distance
         price_delta = abs(entry_price - sl_price)
         if price_delta < 1e-12:
-            logger.error(f"Executor: Invalid Stop Loss (Delta = 0). Fallback to minimal qty: {min_qty}")
+            logger.error(f"[{symbol}] invalid SL delta=0 | fallback qty={min_qty}")
             return min_qty
 
         # 5. Determine Quantity
         target_qty = max_loss_usdt / price_delta
         target_qty = round(target_qty, p_qty)
-        
+
         # Ensure it meets minimum
         target_qty = max(target_qty, min_qty)
-        
-        logger.info(f"Executor [Risk Management]: Equity=${total_equity_usdt:.2f}, Risk=%.2f%%, MaxLoss=${max_loss_usdt:.2f}" % (risk_pct * 100))
-        logger.info(f"Executor [Risk Management]: Entry={entry_price}, SL={sl_price}, Delta=${price_delta:.2f} -> Sized Qty={target_qty}")
+
+        logger.info(f"[{symbol}] risk check | equity=${total_equity_usdt:.2f} | risk=%.2f%% | max_loss=${max_loss_usdt:.2f}" % (risk_pct * 100))
+        logger.info(f"[{symbol}] position sizing | entry={entry_price} | sl={sl_price} | delta=${price_delta:.2f} | qty={target_qty}")
         return target_qty
 
     def _place_entry_order(self, symbol: str, direction: str, entry_price: float, sl_price: float) -> Optional[int]:
         """Places a LIMIT entry order. Returns order_id for Guardian tracking."""
         dynamic_qty = self._calculate_target_qty(symbol, entry_price, sl_price)
-        
-        logger.info(f"Executor: [DEPLOYING] Polarity: {direction} | Entry: {entry_price} | SL Trigger: {sl_price} | Qty: {dynamic_qty}")
-        
+
+        logger.info(f"[{symbol}] deploying | dir={direction} | entry={entry_price} | sl={sl_price} | qty={dynamic_qty}")
+
         side = "BUY" if direction == "LONG" else "SELL"
         order_id = self.client.place_limit_order(
             symbol=symbol,

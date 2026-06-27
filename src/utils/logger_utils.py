@@ -1,6 +1,7 @@
 import logging
 import sys
 import os
+import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Optional
 
@@ -46,6 +47,40 @@ CONSOLE_FORMAT = "%(asctime)s [%(shortlevel)s] %(name)s | %(message)s"  # noqa �
 CONSOLE_DATEFMT = "%H:%M:%S"
 
 
+# ── Structured File Formatter ─────────────────────────────────────────────────
+
+class StructuredFileFormatter(logging.Formatter):
+    """File-only formatter producing compact, scannable log lines.
+
+    Format: ``HH:MM:SS.mmm LVL [tag              ] message``
+
+    - Timestamp is compact (no date — file name carries the date).
+    - Logger name is shortened to its last dotted component, padded to 22 chars.
+    - Level is abbreviated to 3 chars (INF/WRN/ERR/CRT/DBG).
+    - ANSI color codes are NEVER emitted (plain-text safe).
+    """
+
+    TAG_WIDTH = 22
+    LEVEL_SHORT = {
+        logging.DEBUG:    "DBG",
+        logging.INFO:     "INF",
+        logging.WARNING:  "WRN",
+        logging.ERROR:    "ERR",
+        logging.CRITICAL: "CRT",
+    }
+
+    def formatTime(self, record: logging.LogRecord, datefmt=None) -> str:
+        ct = datetime.datetime.fromtimestamp(record.created)
+        return f"{ct.hour:02d}:{ct.minute:02d}:{ct.second:02d}.{int(record.msecs):03d}"
+
+    def format(self, record: logging.LogRecord) -> str:
+        shortname = record.name.rsplit(".", 1)[-1][:self.TAG_WIDTH]
+        level = self.LEVEL_SHORT.get(record.levelno, record.levelname[:3])
+        timestamp = self.formatTime(record)
+        tag = shortname.ljust(self.TAG_WIDTH)
+        return f"{timestamp} {level} [{tag}] {record.getMessage()}"
+
+
 def setup_logger(
     logger_name: str,
     log_level: int = logging.INFO,
@@ -55,6 +90,7 @@ def setup_logger(
     max_bytes: int = 0,
     backup_count: int = 3,
     console_color: bool = False,
+    compact_file: bool = True,
 ) -> logging.Logger:
     """
     Standardizes logger configuration throughout the project.
@@ -69,6 +105,8 @@ def setup_logger(
         max_bytes:    If > 0, enables RotatingFileHandler at this byte limit per file.
                       0 means plain FileHandler (no rotation).
         backup_count: Number of rotated backup files to keep (default: 3).
+        console_color: Whether to emit ANSI color codes on the console (default: False).
+        compact_file:  Whether to use StructuredFileFormatter for file output (default: True).
 
     Returns:
         A configured logging.Logger instance.
@@ -76,6 +114,11 @@ def setup_logger(
     logger = logging.getLogger(logger_name)
     logger.setLevel(log_level)
     logger.propagate = propagate
+
+    # 0. Suppress verbose third-party loggers
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("google_genai").setLevel(logging.WARNING)
 
     # 1. Console Handler Management: Centralized at root to prevent duplicates
     target_for_console = logging.getLogger("") if propagate else logger
@@ -126,7 +169,9 @@ def setup_logger(
                     # Standard mode: plain append, no size limit
                     file_handler = logging.FileHandler(log_file_abs, encoding="utf-8")
 
-                file_handler.setFormatter(file_formatter)
+                file_handler.setFormatter(
+                    StructuredFileFormatter() if compact_file else file_formatter
+                )
                 logger.addHandler(file_handler)
 
         except Exception as e:

@@ -14,7 +14,7 @@ def _spaced_sample(klines: List[KlineData], count: int) -> List[datetime]:
     if not klines or count <= 0:
         return []
     if len(klines) <= count:
-        logger.warning(f"Requested {count} samples but only {len(klines)} available. Returning all.")
+        logger.warning(f"requested {count} samples but only {len(klines)} available — returning all")
         indices = range(len(klines))
     else:
         indices = np.linspace(0, len(klines) - 1, count, dtype=int)
@@ -49,7 +49,7 @@ class SniperSampler:
         if not klines or count <= 0:
             return []
 
-        logger.info(f"SniperSampler: Scanning {len(klines)} candidate points for noteworthy events...")
+        logger.info(f"scanning {len(klines)} candidate points for noteworthy events")
 
         noteworthy_points: List[Tuple[datetime, str, str]] = []
         prev_metrics = None
@@ -70,7 +70,7 @@ class SniperSampler:
                 reason = result.gate_reason
 
                 if is_noteworthy:
-                    logger.info(f"SniperSampler: Found noteworthy event at {dt}: [{event_type}] {reason}")
+                    logger.info(f"noteworthy event found | dt={dt} | type={event_type} | reason={reason}")
                     noteworthy_points.append((dt, event_type, reason))
                     # Reset the trigger cooldown state in memory for sampling
                     self.trigger.last_trigger_time = None
@@ -78,11 +78,11 @@ class SniperSampler:
                 prev_metrics = res.metrics
 
             except Exception as e:
-                logger.error(f"SniperSampler: Error at {dt}: {e}")
+                logger.error(f"error scanning event | dt={dt} | error={e}")
                 continue
 
         if not noteworthy_points:
-            logger.warning("SniperSampler: No noteworthy events found in range. Falling back to evenly-spaced sampling.")
+            logger.warning("no noteworthy events — falling back to evenly-spaced sampling")
             return _spaced_sample(klines, count)
 
         # Proportional Sampling across event types
