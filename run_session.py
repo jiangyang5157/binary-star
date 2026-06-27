@@ -26,6 +26,8 @@ from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc
 from src.utils.market_utils import calculate_indicator_warmup
 from src.utils.path_utils import resolve_project_root
+from src.utils.progress_utils import add_activity_entry, ERROR as PROGRESS_ERROR
+from src.utils.status_file_utils import read_status, write_status
 
 # Initialize central engine logger (colorized when called standalone;
 # dedup-safe: sniper daemon already owns the root console handler)
@@ -201,15 +203,100 @@ class SessionEngine:
                 logger.warning(f"Failed to delete market cache: {e}")
 
 
+# ── Subprocess status-file progress writer ───────────────────────────────
+
+
+def write_status_file_callback(data_root: str):
+    """Create a progress callback that writes to the session status file.
+
+    Used when ``run.py session --write_status`` is spawned as a subprocess
+    (e.g. by the dashboard API).  The subprocess reads the initial status
+    written by the caller, updates only the ``progress`` section, and
+    writes it back so the status can be polled.
+    """
+
+    def on_progress(stage=None, activity=None, status="running",
+                    stage_label=None, result=None, error=None):
+        current = read_status(data_root)
+        if not current:
+            return
+
+        now_utc = datetime.now(timezone.utc)
+        started_str = current.get("started_at", "")
+        elapsed = 0
+        if started_str:
+            try:
+                started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
+                elapsed = round((now_utc - started).total_seconds())
+            except Exception:
+                pass
+
+        progress = current.get("progress", {})
+
+        if status == "running":
+            activities = list(progress.get("activities", []))
+            add_activity_entry(activities, activity)
+            progress = {
+                "status": "running",
+                "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                "stage_label": stage_label or progress.get("stage_label", ""),
+                "activity": activity or progress.get("activity", ""),
+                "elapsed_seconds": elapsed,
+                "activities": activities,
+            }
+        elif status == "completed":
+            current["running"] = False
+            current["last_run"] = {
+                "symbol": current.get("symbol", ""),
+                "result": "success",
+                "at": datetime.now(timezone.utc).isoformat(),
+            }
+            progress = {
+                "status": "completed",
+                "current_stage": 5,
+                "stage_label": "Archive",
+                "elapsed_seconds": elapsed,
+                "result": result or {},
+                "activities": progress.get("activities", []),
+            }
+        elif status == "failed":
+            current["running"] = False
+            current["last_run"] = {
+                "symbol": current.get("symbol", ""),
+                "result": "error",
+                "error_message": error or activity or "Unknown error",
+                "at": datetime.now(timezone.utc).isoformat(),
+            }
+            activities = list(progress.get("activities", []))
+            if activity:
+                activities.append({
+                    "type": PROGRESS_ERROR,
+                    "message": activity,
+                })
+            progress = {
+                "status": "failed",
+                "current_stage": stage if stage is not None else progress.get("current_stage", 1),
+                "elapsed_seconds": elapsed,
+                "error": error or activity or "Unknown error",
+                "activities": activities,
+            }
+
+        current["progress"] = progress
+        write_status(data_root, current)
+
+    return on_progress
+
+
 class SessionController:
     """Manages the lifecycle of the SessionEngine according to user-specified modes."""
-    def __init__(self, args):
+    def __init__(self, args, progress_callback=None):
         self.args = args
         self.data_root = args.path
         self.global_cfg = load_global_config()
         from src.utils.symbol_utils import resolve_symbol
         self.symbol = resolve_symbol(args.symbol)
-        
+        self.progress_callback = progress_callback
+
         self.engine = SessionEngine(self.symbol, self.data_root, args=args)
         self._setup_signals()
 
@@ -227,11 +314,13 @@ class SessionController:
 
     def run(self):
         if self.args.timestamp:
-            self.engine.execute_cycle(timestamp_str=self.args.timestamp)
+            self.engine.execute_cycle(timestamp_str=self.args.timestamp,
+                                       progress_callback=self.progress_callback)
         elif self.args.start:
             self._run_backtest()
         else:
-            self.engine.execute_cycle(timestamp_str=None)
+            self.engine.execute_cycle(timestamp_str=None,
+                                       progress_callback=self.progress_callback)
 
     def _run_backtest(self):
         """Historical simulation orchestration."""

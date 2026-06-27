@@ -62,12 +62,14 @@ def _add_session_parser(subparsers):
                    help="End date for backtest (default: now)")
     p.add_argument("--samples", type=int, default=None,
                    help="Number of historical samples (backtest mode)")
+    p.add_argument("--write_status", action="store_true",
+                   help="Write progress to .session_run_status.json for status polling")
     add_data_path_argument(p)
     p.set_defaults(func=_cmd_session)
 
 
 def _cmd_session(args):
-    from run_session import SessionEngine, SessionController
+    from run_session import SessionEngine, SessionController, write_status_file_callback
 
     # Resolve mode
     if not args.path:
@@ -85,8 +87,13 @@ def _cmd_session(args):
     else:
         logger.info("Mode: PROD (live execution)")
 
+    # Subprocess status-file mode: write progress updates for polling
+    progress_cb = None
+    if getattr(args, "write_status", False):
+        progress_cb = write_status_file_callback(args.path)
+
     print()
-    controller = SessionController(args)
+    controller = SessionController(args, progress_callback=progress_cb)
     controller.run()
 
 
