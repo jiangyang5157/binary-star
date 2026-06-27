@@ -1847,6 +1847,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .bt-sample-row {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
   padding: 8px 12px;
   border-bottom: 1px solid var(--border-muted);

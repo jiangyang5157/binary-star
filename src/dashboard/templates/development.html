@@ -300,7 +300,7 @@ function renderSampleList(data) {
   const countEl = $('bt-sample-count');
 
   list.style.display = 'block';
-  countEl.textContent = `● ${data.count} timestamp${data.count !== 1 ? 's' : ''} selected`;
+  countEl.textContent = `● ${data.count} selected`;
 
   body.innerHTML = data.timestamps.map((ts, i) => {
     const dt = formatTimestamp(ts);
@@ -323,7 +323,14 @@ function renderSampleList(data) {
 
 function formatTimestamp(isoStr) {
   try {
-    return new Date(isoStr).toLocaleString();
+    const d = new Date(isoStr);
+    const Y = d.getUTCFullYear();
+    const M = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const D = String(d.getUTCDate()).padStart(2, '0');
+    const h = String(d.getUTCHours()).padStart(2, '0');
+    const m = String(d.getUTCMinutes()).padStart(2, '0');
+    const s = String(d.getUTCSeconds()).padStart(2, '0');
+    return `${Y}-${M}-${D} ${h}:${m}:${s}`;
   } catch { return isoStr; }
 }
 
