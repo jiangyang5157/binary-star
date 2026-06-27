@@ -4,6 +4,8 @@ import json
 import threading
 import logging
 from datetime import datetime, timezone
+
+from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
 from pathlib import Path
 
 from fastapi import APIRouter, Query, HTTPException, Depends
@@ -315,18 +317,7 @@ def _run_backtest_in_thread(
                     progress = samples3[_sample_idx].get("progress", {})
                     if status == "running":
                         activities = list(progress.get("activities", []))
-                        entry_type = "active"
-                        if activity and ":" in activity and activity.startswith("辩论"):
-                            entry_type = "complete"
-                        elif activity and "完成" in activity:
-                            entry_type = "complete"
-                        activities.append({
-                            "time": now_utc.strftime("%H:%M:%S"),
-                            "type": entry_type,
-                            "message": activity or "",
-                        })
-                        if len(activities) > 10:
-                            activities = activities[-10:]
+                        add_activity_entry(activities, activity, elapsed3)
                         progress = {
                             "status": "running",
                             "current_stage": stage if stage is not None else progress.get("current_stage", 1),
@@ -348,14 +339,14 @@ def _run_backtest_in_thread(
                         if activity:
                             activities.append({
                                 "time": now_utc.strftime("%H:%M:%S"),
-                                "type": "error",
+                                "type": ERROR,
                                 "message": activity,
                             })
                         progress = {
                             "status": "failed",
                             "current_stage": stage if stage is not None else progress.get("current_stage", 1),
                             "elapsed_seconds": elapsed3,
-                            "error": error or activity or "未知错误",
+                            "error": error or activity or "Unknown error",
                             "activities": activities,
                         }
 

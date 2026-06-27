@@ -676,12 +676,12 @@ class MarketObserver:
 
         # 3. [METRIC DISTILLATION]
         if progress_callback:
-            progress_callback(stage=1, activity="计算波动率指标…")
+            progress_callback(stage=1, activity="Computing volatility indicators…")
         metrics, m_df, n_df = self.refiner.refine(raw)
 
         # 4. [MULTIMODAL ASSET GENERATION]
         if progress_callback:
-            progress_callback(stage=1, activity="渲染图表…")
+            progress_callback(stage=1, activity="Rendering charts…")
         snapshots = self._generate_snapshots(raw, metrics, m_df, n_df, data_root or self.data_root, at_time)
 
         # 5. [FORENSIC PACKAGING]
@@ -692,7 +692,7 @@ class MarketObserver:
             indicator_count = len(metrics.__dict__) if hasattr(metrics, '__dict__') else 0
             progress_callback(
                 stage=1,
-                activity=f"采集数据完成 · {kline_count} 条 K 线, {indicator_count} 个指标",
+                activity=f"Data collection done · {kline_count} klines, {indicator_count} indicators",
             )
 
         if persist:

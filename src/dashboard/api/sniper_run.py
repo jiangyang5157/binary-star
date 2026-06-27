@@ -222,6 +222,15 @@ def sniper_status(data_root: str = Query("")):
 
     # Active session (AI session triggered by sniper signal)
     active_session = status.get("active_session")
+    if active_session and active_session.get("progress"):
+        trig_iso = active_session.get("triggered_at_iso", "")
+        if trig_iso:
+            try:
+                trig_dt = datetime.fromisoformat(trig_iso.replace("Z", "+00:00"))
+                session_elapsed = round((datetime.now(timezone.utc) - trig_dt).total_seconds())
+                active_session["progress"]["elapsed_seconds"] = max(session_elapsed, 0)
+            except Exception:
+                pass
     recent_signals = status.get("recent_signals", [])
     pulse_count = status.get("pulse_count", 0)
 

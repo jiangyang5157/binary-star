@@ -9,6 +9,8 @@ from pathlib import Path
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
+from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
+
 router = APIRouter(prefix="/api/session")
 
 
@@ -99,6 +101,7 @@ def _next_id() -> int:
         return _next_run_id
 
 
+
 # ── Background runner ───────────────────────────────────────────────────
 
 def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
@@ -131,19 +134,7 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
             progress = current.get("progress", {})
             if status == "running":
                 activities = list(progress.get("activities", []))
-                # Determine entry type
-                entry_type = "active"
-                if activity and ":" in activity and activity.startswith("辩论"):
-                    entry_type = "complete"
-                elif activity and "完成" in activity:
-                    entry_type = "complete"
-                activities.append({
-                    "time": now_utc.strftime("%H:%M:%S"),
-                    "type": entry_type,
-                    "message": activity or "",
-                })
-                if len(activities) > 10:
-                    activities = activities[-10:]
+                add_activity_entry(activities, activity, elapsed)
 
                 progress = {
                     "status": "running",
@@ -157,7 +148,7 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
                 progress = {
                     "status": "completed",
                     "current_stage": 5,
-                    "stage_label": "归档",
+                    "stage_label": "Archive",
                     "elapsed_seconds": elapsed,
                     "result": result or {},
                     "activities": progress.get("activities", []),
@@ -167,14 +158,14 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
                 if activity:
                     activities.append({
                         "time": now_utc.strftime("%H:%M:%S"),
-                        "type": "error",
+                        "type": ERROR,
                         "message": activity,
                     })
                 progress = {
                     "status": "failed",
                     "current_stage": stage if stage is not None else progress.get("current_stage", 1),
                     "elapsed_seconds": elapsed,
-                    "error": error or activity or "未知错误",
+                    "error": error or activity or "Unknown error",
                     "activities": activities,
                 }
 
@@ -328,12 +319,16 @@ def get_run_status(data_root: str = Query("")):
             except Exception:
                 pass
 
+        progress = status.get("progress")
+        if progress:
+            progress["elapsed_seconds"] = round(elapsed)
+
         return {
             "running": True,
             "symbol": status.get("symbol", ""),
             "started_at": started_str,
             "elapsed_seconds": round(elapsed),
-            "progress": status.get("progress"),
+            "progress": progress,
         }
 
     return {

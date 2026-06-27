@@ -491,8 +491,8 @@ async function checkBacktestStatus() {
               '</div>' +
             '</div>' +
             '<div class="bt-global-summary">' +
-              '<span>' + (ov.completed + ov.failed) + '/' + ov.total + ' 完成</span>' +
-              (ov.running > 0 ? '<span class="running-count">◉ ' + ov.running + ' 运行中</span>' : '') +
+              '<span>' + (ov.completed + ov.failed) + '/' + ov.total + ' done</span>' +
+              (ov.running > 0 ? '<span class="running-count">◉ ' + ov.running + ' running</span>' : '') +
               '<span class="done-count">✓ ' + ov.completed + '</span>' +
               (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + '</span>' : '') +
               '<span>○ ' + ov.pending + '</span>' +
@@ -555,9 +555,9 @@ async function checkBacktestStatus() {
                 '</div>' +
               '</div>' +
               '<div class="bt-global-summary">' +
-                '<span>' + ov.total + '/' + ov.total + ' 完成</span>' +
-                '<span class="done-count">✓ ' + ov.completed + ' 通过</span>' +
-                (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + ' 失败</span>' : '') +
+                '<span>' + ov.total + '/' + ov.total + ' done</span>' +
+                '<span class="done-count">✓ ' + ov.completed + ' passed</span>' +
+                (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + ' failed</span>' : '') +
               '</div>' +
             '</div>';
         }
@@ -613,11 +613,11 @@ function updateSampleStatuses(samples) {
     } else if (s.status === 'failed') {
       if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
       if (progContainer && window._btProgressInstances[i]) {
-        window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || '失败' });
+        window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || 'Failed' });
       }
       if (resultEl) resultEl.textContent = '';
       if (metaEl) metaEl.textContent = '';
-      if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || '失败';
+      if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || 'Failed';
     } else {
       // pending — reset
       if (progContainer && window._btProgressInstances[i]) {

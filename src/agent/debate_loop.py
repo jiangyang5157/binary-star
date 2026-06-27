@@ -51,8 +51,8 @@ class DebateLoop:
             if progress_callback:
                 progress_callback(
                     stage=3,
-                    activity=f"辩论 R{current_round} · Session Agent 思考中…",
-                    stage_label=f"辩论 · Round {current_round}/{self.max_rounds}",
+                    activity=f"Debate R{current_round} · Session Agent reasoning…",
+                    stage_label=f"Debate · Round {current_round}/{self.max_rounds}",
                 )
 
             # Planning / Refinement
@@ -84,7 +84,7 @@ class DebateLoop:
             if progress_callback:
                 progress_callback(
                     stage=3,
-                    activity=f"辩论 R{current_round} · Math 验证…",
+                    activity=f"Debate R{current_round} · Math verification…",
                 )
             logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
             math_fact_check = self.math_checker.verify(last_plan, observation)
@@ -94,7 +94,7 @@ class DebateLoop:
             if progress_callback:
                 progress_callback(
                     stage=3,
-                    activity=f"辩论 R{current_round} · Critic 审计中…",
+                    activity=f"Debate R{current_round} · Critic auditing…",
                 )
             critic_results = self.critic_agent.evaluate(
                 observation=observation,
@@ -115,7 +115,7 @@ class DebateLoop:
             if progress_callback:
                 progress_callback(
                     stage=3,
-                    activity=f"辩论 R{current_round} · Critic: {veto_level}",
+                    activity=f"Debate R{current_round} · Critic: {veto_level}",
                 )
 
             debate_history.append({

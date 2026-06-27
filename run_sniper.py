@@ -20,6 +20,7 @@ from src.sniper.scout import SniperScout
 from src.sniper.trigger import SniperTrigger, TriggerResult, Direction, SignalCard
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
+from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
 
 # Sentinel matching MarginOrderExecutor.EMERGENCY_CLOSED_SENTINEL
 _EMERGENCY_CLOSED_SENTINEL = -1
@@ -108,6 +109,7 @@ class SniperDaemon:
         # Pulse counter (persisted to status file for dashboard display)
         pulse_count = 0
         # Path to the daemon status file (same as dashboard API reads)
+        from src.utils.path_utils import resolve_project_root
         import json as _json_module
         _status_path = os.path.join(resolve_project_root(), self.args.path,
                                     ".sniper_daemon_status.json")
@@ -157,7 +159,17 @@ class SniperDaemon:
                 s = _read_daemon_status()
                 if s:
                     s["pulse_count"] = pulse_count
-                    _write_daemon_status(s)
+                else:
+                    # First pulse or status file missing — seed it
+                    s = {
+                        "running": True,
+                        "symbols": self.symbols,
+                        "pid": os.getpid(),
+                        "trade_enabled": self.trade_enabled,
+                        "started_at": datetime.now(timezone.utc).isoformat(),
+                        "pulse_count": pulse_count,
+                    }
+                _write_daemon_status(s)
 
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
                 for sym in self.symbols:
@@ -257,8 +269,8 @@ class SniperDaemon:
                                     "progress": {
                                         "status": "running",
                                         "current_stage": 1,
-                                        "stage_label": "采集数据",
-                                        "activity": "获取 K 线数据…",
+                                        "stage_label": "Data Collection",
+                                        "activity": "Fetching kline data…",
                                         "elapsed_seconds": 0,
                                         "activities": [],
                                     },
@@ -284,18 +296,7 @@ class SniperDaemon:
                                 progress = s2["active_session"].get("progress", {})
                                 if status == "running":
                                     activities = list(progress.get("activities", []))
-                                    entry_type = "active"
-                                    if activity and ":" in activity and activity.startswith("辩论"):
-                                        entry_type = "complete"
-                                    elif activity and "完成" in activity:
-                                        entry_type = "complete"
-                                    activities.append({
-                                        "time": now_utc.strftime("%H:%M:%S"),
-                                        "type": entry_type,
-                                        "message": activity or "",
-                                    })
-                                    if len(activities) > 10:
-                                        activities = activities[-10:]
+                                    add_activity_entry(activities, activity, elapsed)
                                     progress = {
                                         "status": "running",
                                         "current_stage": stage if stage is not None else progress.get("current_stage", 1),
@@ -317,14 +318,14 @@ class SniperDaemon:
                                     if activity:
                                         activities.append({
                                             "time": now_utc.strftime("%H:%M:%S"),
-                                            "type": "error",
+                                            "type": ERROR,
                                             "message": activity,
                                         })
                                     progress = {
                                         "status": "failed",
                                         "current_stage": stage if stage is not None else progress.get("current_stage", 1),
                                         "elapsed_seconds": elapsed,
-                                        "error": error or activity or "未知错误",
+                                        "error": error or activity or "Unknown error",
                                         "activities": activities,
                                     }
                                 s2["active_session"]["progress"] = progress

@@ -14,7 +14,11 @@
  */
 
 const STAGE_ANCHOR_POSITIONS = [0, 18, 62.5, 87.5, 100]; // % left for stages 1-5
-const STAGE_LABELS = ['采集数据', '准备分析', '辩论', '最终决策', '归档'];
+const STAGE_LABELS = ['Data Collection', 'Prep', 'Debate', 'Decision', 'Archive'];
+
+const ACTIVITY_ACTIVE = 'active';
+const ACTIVITY_COMPLETE = 'complete';
+const ACTIVITY_ERROR = 'error';
 
 class SessionProgress {
   constructor(containerEl, opts) {
@@ -79,7 +83,7 @@ class SessionProgress {
 
     // Signal banner (sniper only)
     if (this.context === 'sniper' && data._triggered_at) {
-      html += '<div class="sp-signal-banner">⚡ 信号触发 · ' +
+      html += '<div class="sp-signal-banner">⚡ Signal · ' +
         this._esc(data._symbol || '') + ' · ' +
         this._esc(data._triggered_at) + '</div>';
     }
@@ -106,7 +110,7 @@ class SessionProgress {
         if (j < stage) lblCls += ' done';
         else if (j === stage) lblCls += ' active';
         var lblText = STAGE_LABELS[j - 1];
-        if (j === 3 && label && label !== '辩论') lblText = label;
+        if (j === 3 && label && label !== 'Debate') lblText = label;
         html += '<span class="' + lblCls + '">' + this._esc(lblText) + '</span>';
       }
       html += '</div>';
@@ -124,20 +128,7 @@ class SessionProgress {
 
     // Activity log (full size, expandable)
     if (this.size === 'full') {
-      var logCls = 'sp-log' + (this.expanded ? '' : ' collapsed');
-      html += '<div class="' + logCls + '">';
-      for (var k = 0; k < activities.length; k++) {
-        var entry = activities[k];
-        var icon = '◉', entryCls = 'active';
-        if (entry.type === 'complete') { icon = '✓'; entryCls = 'complete'; }
-        else if (entry.type === 'error') { icon = '✗'; entryCls = 'error'; }
-        html += '<div class="sp-log-entry ' + entryCls + '">';
-        html += '<span class="sp-log-icon">' + icon + '</span>';
-        html += '<span class="sp-log-time">' + this._esc(entry.time || '') + '</span>';
-        html += '<span class="sp-log-msg">' + this._esc(entry.message || '') + '</span>';
-        html += '</div>';
-      }
-      html += '</div>';
+      html += this._renderActivityLog(activities, !this.expanded);
     }
 
     this.el.innerHTML = html;
@@ -179,7 +170,7 @@ class SessionProgress {
     var html = '<div class="sp-completed">';
     html += '<span>✓</span>';
     html += '<span class="sp-completed-dir">' + this._esc(dir) + '</span>';
-    html += '<span class="sp-completed-meta">· 置信度 ' + conf + '% · 用时 ' + elapsed + '</span>';
+    html += '<span class="sp-completed-meta">· Confidence ' + conf + '% · ' + elapsed + '</span>';
     if (debatePath) {
       html += '<span class="sp-completed-debate">· ' + this._esc(debatePath) + '</span>';
     }
@@ -201,7 +192,7 @@ class SessionProgress {
   _renderFailed(data) {
     this.show();
     var stage = data.current_stage || 1;
-    var errorMsg = data.error || '未知错误';
+    var errorMsg = data.error || 'Unknown error';
     var activities = data.activities || [];
     var fillPct = this._barPct(stage);
 
@@ -238,22 +229,36 @@ class SessionProgress {
 
     // Activity log (auto-expanded for failure)
     if (this.size === 'full' && activities.length > 0) {
-      html += '<div class="sp-log">';
-      for (var k = 0; k < activities.length; k++) {
-        var entry = activities[k];
-        var icon = '◉', entryCls = 'active';
-        if (entry.type === 'complete') { icon = '✓'; entryCls = 'complete'; }
-        else if (entry.type === 'error') { icon = '✗'; entryCls = 'error'; }
-        html += '<div class="sp-log-entry ' + entryCls + '">';
-        html += '<span class="sp-log-icon">' + icon + '</span>';
-        html += '<span class="sp-log-time">' + this._esc(entry.time || '') + '</span>';
-        html += '<span class="sp-log-msg">' + this._esc(entry.message || '') + '</span>';
-        html += '</div>';
-      }
-      html += '</div>';
+      html += this._renderActivityLog(activities, false);
     }
 
     this.el.innerHTML = html;
+  }
+
+  // ── Activity log (shared by running + failed states) ────────────
+
+  _renderActivityLog(activities, collapsed) {
+    var html = '';
+    var logCls = 'sp-log' + (collapsed ? ' collapsed' : '');
+    html += '<div class="' + logCls + '">';
+    var isLast;
+    for (var k = 0; k < activities.length; k++) {
+      var entry = activities[k];
+      isLast = (k === activities.length - 1);
+      var icon = '◉', entryCls = 'active';
+      if (entry.type === ACTIVITY_COMPLETE || (!isLast && entry.type !== ACTIVITY_ERROR)) {
+        icon = '✓'; entryCls = 'complete';
+      } else if (entry.type === ACTIVITY_ERROR) {
+        icon = '✗'; entryCls = 'error';
+      }
+      html += '<div class="sp-log-entry ' + entryCls + '">';
+      html += '<span class="sp-log-icon">' + icon + '</span>';
+      html += '<span class="sp-log-time">' + this._esc(entry.time || '') + '</span>';
+      html += '<span class="sp-log-msg">' + this._esc(entry.message || '') + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
   }
 
   // ── Helpers ────────────────────────────────────────────────────

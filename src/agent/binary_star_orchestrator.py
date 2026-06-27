@@ -323,7 +323,7 @@ class BinaryStarOrchestrator:
         self._inject_regime_benchmarks(observation)
 
         if progress_callback:
-            progress_callback(stage=2, activity="计算市场体制…")
+            progress_callback(stage=2, activity="Computing market regime…")
 
         # Prune observation and extract visual parts
         pruned_observation = observation.copy()
@@ -338,7 +338,7 @@ class BinaryStarOrchestrator:
                 observation_json, symbol, visual_parts)
 
             if progress_callback:
-                progress_callback(stage=2, activity="准备 AI 上下文…")
+                progress_callback(stage=2, activity="Preparing AI context…")
 
             # 3. Adversarial Debate Loop
             self.debate_loop = DebateLoop(
@@ -358,7 +358,7 @@ class BinaryStarOrchestrator:
 
             # 4. Finalize and sanitize decision
             if progress_callback:
-                progress_callback(stage=4, activity="综合决策…")
+                progress_callback(stage=4, activity="Synthesizing decision…")
 
             final_decision = self._finalize_and_sanitize(
                 debate_result, observation, symbol,
@@ -501,7 +501,7 @@ class BinaryStarOrchestrator:
         logger.info("BinaryStar: Final decision sanitized against physical truth.")
 
         if progress_callback:
-            progress_callback(stage=4, activity="参数验证完成")
+            progress_callback(stage=4, activity="Parameter validation done")
 
         return final_decision
 

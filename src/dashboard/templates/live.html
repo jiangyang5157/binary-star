@@ -440,7 +440,7 @@ function _renderSniperIdle(container, data) {
   if (nextScout != null && nextScout >= 0) {
     var nm = Math.floor(nextScout / 60);
     var ns = nextScout % 60;
-    nextScoutText = ' · 下次侦查 ' + nm + ':' + (ns < 10 ? '0' : '') + ns;
+    nextScoutText = ' · Next scout ' + nm + ':' + (ns < 10 ? '0' : '') + ns;
   }
 
   var recentHtml = '';
@@ -451,17 +451,16 @@ function _renderSniperIdle(container, data) {
       else if (dir === 'BEARISH') dir = 'SELL';
       return s.time + ' ' + dir + ' ' + s.confidence + '%';
     }).join('  ·  ');
-    recentHtml = '<br><span class="sniper-idle-recent">最近：' + items + '</span>';
+    recentHtml = '<br><span class="sniper-idle-recent">Recent: ' + items + '</span>';
   }
 
   var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-  var tradeOn = data.trade_enabled;
-  var statusLine = tradeOn ? ' · ' + formatElapsed(pulseAge) + ' since last pulse' : '';
+  var statusLine = ' · ' + formatElapsed(pulseAge) + ' since last pulse';
 
   container.innerHTML =
     '<div class="sniper-idle">' +
       '<span class="sniper-idle-dot"></span>' +
-      '<span class="sniper-idle-info">观察 <strong>' + symbols + '</strong> 中… · 脉冲 #' +
+      '<span class="sniper-idle-info">Watching <strong>' + symbols + '</strong>… · Pulse #' +
         pulseCount + nextScoutText + statusLine + '</span>' +
       recentHtml +
     '</div>';

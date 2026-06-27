@@ -98,7 +98,7 @@ class SessionEngine:
                 target_dt = parse_iso_to_utc(timestamp_str)
 
             if progress_callback:
-                progress_callback(stage=1, activity="获取 K 线数据…")
+                progress_callback(stage=1, activity="Fetching kline data…")
 
             logger.info(f"Observer: Mapping structural topography for {self.symbol}...")
             observation = self.orchestrator.observer.observe(
@@ -133,7 +133,7 @@ class SessionEngine:
 
             # 4. Notification (always attempt; SessionNotifier gates on .env + confidence)
             if progress_callback:
-                progress_callback(stage=5, activity="保存会话…")
+                progress_callback(stage=5, activity="Saving session…")
 
             self.notifier.notify_session(
                 self.symbol,
@@ -153,7 +153,7 @@ class SessionEngine:
             logger.info(f"Pipeline Complete. Session archived: {os.path.basename(output_file)}")
 
             if progress_callback:
-                progress_callback(stage=5, activity="发送通知…")
+                progress_callback(stage=5, activity="Sending notification…")
 
             # Progress: completed
             if progress_callback:

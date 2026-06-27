@@ -1610,6 +1610,18 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 .sp-anchor.done {
   background: var(--accent-green);
+  border-color: var(--accent-green);
+}
+.sp-anchor.done::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 7px;
+  font-weight: bold;
+  line-height: 1;
 }
 .sp-anchor.active {
   background: var(--accent-teal);
