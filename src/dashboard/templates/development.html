@@ -143,6 +143,7 @@ let QUOTE = 'USDT';
 let currentMode = 'timestamp';
 let sampleTimestamps = [];
 let backtestPollInterval = null;
+let previewAbortController = null;
 
 // ── Mode Switching ──
 function switchMode(mode) {
@@ -244,20 +245,27 @@ function setFieldsDisabled(disabled) {
 }
 
 async function previewSamples() {
-  const valid = validateFields();
   const statusEl = $('bt-preview-status');
   const btn = $('bt-preview-btn');
+
+  // Toggle: if already previewing, STOP
+  if (previewAbortController) {
+    previewAbortController.abort();
+    return;
+  }
+
+  const valid = validateFields();
+  if (!valid) return;  // field-level hints already shown by validateFields()
 
   // Clear old samples before generating new ones
   sampleTimestamps = [];
   $('bt-sample-list').style.display = 'none';
-
-  if (!valid) return;  // field-level hints already shown by validateFields()
-
   statusEl.style.display = 'none';
-  setFieldsDisabled(true);
-  btn.disabled = true;
-  btn.textContent = '…';
+
+  // Enter preview mode
+  previewAbortController = new AbortController();
+  btn.textContent = '⏹ Stop';
+  btn.classList.add('danger');
 
   const symbol = $('bt-symbol').value.trim().toUpperCase();
   const body = {
@@ -278,6 +286,7 @@ async function previewSamples() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: previewAbortController.signal,
     });
 
     const data = await resp.json();
@@ -291,13 +300,19 @@ async function previewSamples() {
     sampleTimestamps = data.timestamps || [];
     renderSampleList(data);
   } catch (e) {
-    statusEl.style.display = 'inline';
-    statusEl.textContent = '⚠ Request failed';
-    statusEl.className = 'audit-status audit-error';
+    if (e.name === 'AbortError') {
+      statusEl.style.display = 'inline';
+      statusEl.textContent = '⊘ Preview stopped';
+      statusEl.className = 'audit-status audit-error';
+    } else {
+      statusEl.style.display = 'inline';
+      statusEl.textContent = '⚠ Request failed';
+      statusEl.className = 'audit-status audit-error';
+    }
   } finally {
-    setFieldsDisabled(false);
-    btn.disabled = false;
+    previewAbortController = null;
     btn.textContent = 'Preview Samples';
+    btn.classList.remove('danger');
   }
 }
 
@@ -398,6 +413,8 @@ async function triggerBacktest() {
     body.samples = parseInt($('bt-samples').value) || 14;
   }
 
+  setFieldsDisabled(true);
+  $('bt-preview-btn').disabled = true;
   btn.disabled = true;
   btn.textContent = '…';
 
@@ -413,6 +430,8 @@ async function triggerBacktest() {
       statusEl.style.display = 'block';
       statusEl.className = 'run-status-box run-error';
       statusEl.textContent = '✗ ' + (err.detail || 'request failed');
+      setFieldsDisabled(false);
+      $('bt-preview-btn').disabled = false;
       btn.disabled = false;
       btn.textContent = '▶ Run';
       return;
@@ -428,37 +447,25 @@ async function triggerBacktest() {
     statusEl.style.display = 'block';
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Request failed';
+    setFieldsDisabled(false);
+    $('bt-preview-btn').disabled = false;
     btn.disabled = false;
     btn.textContent = '▶ Run';
   }
 }
 
 function updateRunUI(state) {
-  const input = $('bt-symbol');
   const btn = $('bt-run-btn');
   const previewBtn = $('bt-preview-btn');
-  const radios = document.querySelectorAll('input[name="bt-mode"]');
 
   if (state === 'running') {
-    input.disabled = true;
+    setFieldsDisabled(true);
     previewBtn.disabled = true;
-    $('bt-timestamp').disabled = true;
-    $('bt-start').disabled = true;
-    $('bt-end').disabled = true;
-    $('bt-samples').disabled = true;
-    radios.forEach(r => r.disabled = true);
-    btn.disabled = false;
     btn.textContent = '⏹ Stop';
     btn.classList.add('danger');
   } else {
-    input.disabled = false;
+    setFieldsDisabled(false);
     previewBtn.disabled = false;
-    $('bt-timestamp').disabled = false;
-    $('bt-start').disabled = false;
-    $('bt-end').disabled = false;
-    $('bt-samples').disabled = false;
-    radios.forEach(r => r.disabled = false);
-    btn.disabled = false;
     btn.textContent = '▶ Run';
     btn.classList.remove('danger');
     backtestPollInterval = null;
@@ -641,7 +648,7 @@ function updateSampleStatuses(samples) {
     const resp = await fetch(apiUrl('/api/backtest/status'));
     const data = await resp.json();
     if (data.running) {
-      // Restore UI state
+      // Resume: backtest is actively running
       const symbol = data.symbol || '';
       $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
 
@@ -662,6 +669,37 @@ function updateSampleStatuses(samples) {
       $('bt-run-status').className = 'run-status-box run-active';
       backtestPollInterval = setInterval(checkBacktestStatus, 2000);
       checkBacktestStatus();
+    } else if (data.samples && data.samples.length) {
+      // Restore: backtest completed/stopped — show the sample list with results
+      const symbol = data.symbol || '';
+      $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
+      if (data.mode) {
+        currentMode = data.mode;
+        document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
+        switchMode(data.mode);
+      }
+      sampleTimestamps = data.samples.map(s => s.timestamp);
+      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+      updateSampleStatuses(data.samples);
+      updateRunUI('idle');
+
+      const statusEl = $('bt-run-status');
+      if (data.stopped) {
+        statusEl.style.display = 'block';
+        statusEl.className = 'run-status-box run-ok';
+        statusEl.textContent = '✓ Stopped';
+      } else if (data.error) {
+        statusEl.style.display = 'block';
+        statusEl.className = 'run-status-box run-error';
+        statusEl.textContent = '✗ ' + data.error;
+      } else {
+        const done = data.done_count || 0;
+        const total = data.total_count || 0;
+        const failed = (data.samples || []).filter(s => s.status === 'failed').length;
+        statusEl.style.display = 'block';
+        statusEl.className = failed > 0 ? 'run-status-box run-error' : 'run-status-box run-ok';
+        statusEl.textContent = '✓ Completed ' + done + '/' + total + (failed > 0 ? ' · ' + failed + ' failed' : '');
+      }
     }
   } catch (e) { /* ignore */ }
 })();
