@@ -247,7 +247,7 @@ async function checkRunStatus() {
           if (runGeneration !== genAtComplete) return;  // new run started, skip
           updateRunUI('idle');
           if (runProgress) { runProgress.hide(); }
-        }, isCompleted ? 4200 : 0);
+        }, isCompleted ? 4500 : 0);
       }
     }
   } catch (e) {
