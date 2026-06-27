@@ -530,7 +530,6 @@ python run.py patch -f proposal.json --symbol XAUT
 | `scripts/render_email_html.py` | Render session result as HTML email |
 | `scripts/sandbox_offline.py` | Offline sandbox: replay audit with patch, no live API calls |
 | `scripts/sandbox_online.py` | Online sandbox: full Binary Star replay with live AI |
-| `scripts/diagnostic_models.py` | List available AI models and their capabilities |
 
 ---
 
