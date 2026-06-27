@@ -1243,9 +1243,9 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 /* Runs status box — styled block below inputs */
 .run-status-box {
-  margin-top: 10px;
-  padding: 8px 12px;
-  border-radius: 6px;
+  margin-top: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   font-size: 0.85rem;
