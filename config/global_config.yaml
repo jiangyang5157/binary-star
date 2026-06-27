@@ -12,7 +12,7 @@ llm:
   # --- Central Neural Infrastructure ---
   active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
   api_timeout_seconds: 180
-  max_tool_iterations: 6
+  max_tool_iterations: 5
   retry_count: 3
   retry_strategy:
     multiplier: 2

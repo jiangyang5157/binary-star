@@ -77,7 +77,7 @@ def get_tool_declarations() -> list[dict]:
         },
         {
             "name": "calculate_atr_metrics",
-            "description": "Standardizes entry/exit distances using ATR.",
+            "description": "Standardizes distances using ATR.",
             "parameters": {
                 "type": "OBJECT",
                 "properties": {
@@ -87,6 +87,21 @@ def get_tool_declarations() -> list[dict]:
                     "atr": {"type": "NUMBER"},
                 },
                 "required": ["entry", "stop_loss", "take_profit", "atr"],
+            },
+        },
+        {
+            "name": "calculate_structural_proximity",
+            "description": "Calculates stop-loss distance to structural anchors (POC/VAH/VAL) in ATR units. Positive = SL above anchor; negative = SL below. Use to verify THE SHIELD LAW: for BULLISH, at least one anchor should be negative (SL below it); for BEARISH, at least one anchor should be positive (SL above it).",
+            "parameters": {
+                "type": "OBJECT",
+                "properties": {
+                    "stop_loss": {"type": "NUMBER"},
+                    "atr": {"type": "NUMBER"},
+                    "poc": {"type": "NUMBER"},
+                    "vah": {"type": "NUMBER"},
+                    "val": {"type": "NUMBER"},
+                },
+                "required": ["stop_loss", "atr"],
             },
         },
     ]

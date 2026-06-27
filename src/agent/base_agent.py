@@ -358,3 +358,8 @@ class BaseAgent:
         """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
+
+    def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: float | None = None, vah: float | None = None, val: float | None = None) -> dict[str, Any]:
+        """[TOOL] Calculates stop-loss distance to structural anchors (POC/VAH/VAL) in ATR units."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
