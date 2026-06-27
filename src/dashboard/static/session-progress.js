@@ -13,9 +13,6 @@
  *   sp.destroy();             // cleanup
  */
 
-const STAGE_ANCHOR_POSITIONS = [0, 18, 62.5, 87.5, 100]; // % left for stages 1-5
-const STAGE_LABELS = ['Data Collection', 'Prep', 'Debate', 'Decision', 'Archive'];
-
 const ACTIVITY_ACTIVE = 'active';
 const ACTIVITY_COMPLETE = 'complete';
 const ACTIVITY_ERROR = 'error';
@@ -73,11 +70,12 @@ class SessionProgress {
   _renderRunning(data) {
     this.show();
     var stage = data.current_stage || 1;
-    var label = data.stage_label || STAGE_LABELS[stage - 1];
+    var stages = data.stages || [];
+    var label = data.stage_label || (stages[stage - 1] && stages[stage - 1].label) || '';
     var activity = data.activity || '';
     var elapsed = this._fmtElapsed(data.elapsed_seconds || 0);
     var activities = data.activities || [];
-    var fillPct = this._barPct(stage);
+    var fillPct = this._barPct(stage, stages);
 
     var html = '';
 
@@ -93,24 +91,26 @@ class SessionProgress {
     html += '<div class="sp-bar">';
     html += '<div class="sp-bar-fill' + (stage === 3 ? ' sp-stage-3' : '') +
       '" style="width:' + fillPct + '%"></div>';
-    for (var i = 1; i <= 5; i++) {
-      var cls = 'sp-anchor s' + i;
-      if (i < stage) cls += ' done';
-      else if (i === stage) cls += ' active';
+    for (var i = 0; i < stages.length; i++) {
+      var stg = stages[i];
+      var cls = 'sp-anchor s' + stg.stage;
+      if (stg.stage < stage) cls += ' done';
+      else if (stg.stage === stage) cls += ' active';
       html += '<div class="' + cls + '" style="left:' +
-        STAGE_ANCHOR_POSITIONS[i - 1] + '%"></div>';
+        stg.position_pct + '%"></div>';
     }
     html += '</div></div>';
 
     // Label row (full only)
     if (this.size === 'full') {
       html += '<div class="sp-labels">';
-      for (var j = 1; j <= 5; j++) {
+      for (var j = 0; j < stages.length; j++) {
+        var stg2 = stages[j];
         var lblCls = 'sp-label';
-        if (j < stage) lblCls += ' done';
-        else if (j === stage) lblCls += ' active';
-        var lblText = STAGE_LABELS[j - 1];
-        if (j === 3 && label && label !== 'Debate') lblText = label;
+        if (stg2.stage < stage) lblCls += ' done';
+        else if (stg2.stage === stage) lblCls += ' active';
+        var lblText = stg2.label;
+        if (stg2.stage === 3 && label && label !== 'Debate') lblText = label;
         html += '<span class="' + lblCls + '">' + this._esc(lblText) + '</span>';
       }
       html += '</div>';
@@ -192,9 +192,10 @@ class SessionProgress {
   _renderFailed(data) {
     this.show();
     var stage = data.current_stage || 1;
+    var stages = data.stages || [];
     var errorMsg = data.error || 'Unknown error';
     var activities = data.activities || [];
-    var fillPct = this._barPct(stage);
+    var fillPct = this._barPct(stage, stages);
 
     var html = '';
 
@@ -202,23 +203,25 @@ class SessionProgress {
     html += '<div class="sp-bar-row">';
     html += '<div class="sp-bar">';
     html += '<div class="sp-bar-fill" style="width:' + fillPct + '%"></div>';
-    for (var i = 1; i <= 5; i++) {
-      var cls = 'sp-anchor s' + i;
-      if (i < stage) cls += ' done';
-      else if (i === stage) cls += ' failed';
+    for (var i = 0; i < stages.length; i++) {
+      var stg = stages[i];
+      var cls = 'sp-anchor s' + stg.stage;
+      if (stg.stage < stage) cls += ' done';
+      else if (stg.stage === stage) cls += ' failed';
       html += '<div class="' + cls + '" style="left:' +
-        STAGE_ANCHOR_POSITIONS[i - 1] + '%"></div>';
+        stg.position_pct + '%"></div>';
     }
     html += '</div></div>';
 
     // Labels (full only)
     if (this.size === 'full') {
       html += '<div class="sp-labels">';
-      for (var j = 1; j <= 5; j++) {
+      for (var j = 0; j < stages.length; j++) {
+        var stg2 = stages[j];
         var lblCls = 'sp-label';
-        if (j < stage) lblCls += ' done';
-        else if (j === stage) lblCls += ' failed';
-        html += '<span class="' + lblCls + '">' + STAGE_LABELS[j - 1] + '</span>';
+        if (stg2.stage < stage) lblCls += ' done';
+        else if (stg2.stage === stage) lblCls += ' failed';
+        html += '<span class="' + lblCls + '">' + stg2.label + '</span>';
       }
       html += '</div>';
     }
@@ -262,10 +265,11 @@ class SessionProgress {
 
   // ── Helpers ────────────────────────────────────────────────────
 
-  _barPct(stage) {
+  _barPct(stage, stages) {
     if (stage <= 0) return 0;
-    if (stage >= 5) return 100;
-    return STAGE_ANCHOR_POSITIONS[stage - 1];
+    if (!stages || !stages.length) return 0;
+    if (stage >= stages.length) return 100;
+    return stages[stage - 1].position_pct;
   }
 
   _fmtElapsed(seconds) {
