@@ -176,12 +176,6 @@ class SessionProgress {
     }
     html += '</div>';
     this.el.innerHTML = html;
-
-    // Auto-hide after 4 s (session + sniper, not backtest)
-    if (this.context !== 'backtest') {
-      var self = this;
-      setTimeout(function () { self.hide(); }, 4000);
-    }
   }
 
   // ── Failed state ───────────────────────────────────────────────
