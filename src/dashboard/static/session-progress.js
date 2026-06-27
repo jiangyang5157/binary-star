@@ -51,7 +51,7 @@ class SessionProgress {
 
   destroy() {
     this.el.innerHTML = '';
-    this.el.classList.remove('session-progress', 'sp-fading', 'sp-hidden');
+    this.el.classList.remove('session-progress', 'sp-hidden');
     this.el.style.display = 'none';
   }
 
@@ -62,7 +62,7 @@ class SessionProgress {
 
   show() {
     this.el.style.display = 'block';
-    this.el.classList.remove('sp-hidden', 'sp-fading');
+    this.el.classList.remove('sp-hidden');
   }
 
   // ── Running state ──────────────────────────────────────────────
@@ -177,13 +177,10 @@ class SessionProgress {
     html += '</div>';
     this.el.innerHTML = html;
 
-    // Fade out after 4 s (session + sniper, not backtest)
+    // Auto-hide after 4 s (session + sniper, not backtest)
     if (this.context !== 'backtest') {
       var self = this;
-      setTimeout(function () {
-        self.el.classList.add('sp-fading');
-        setTimeout(function () { self.hide(); }, 500);
-      }, 4000);
+      setTimeout(function () { self.hide(); }, 4000);
     }
   }
 

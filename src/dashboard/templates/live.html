@@ -240,14 +240,15 @@ async function checkRunStatus() {
         }
         if (typeof loadActive === 'function') { loadActive(); }
 
-        // Reset after fade-out (guard against race with new run)
-        const isCompleted = data.progress && data.progress.status === 'completed';
-        const genAtComplete = runGeneration;
-        setTimeout(() => {
+        // Reset after display period (guard against race with new run)
+        var status = data.progress && data.progress.status;
+        var resetDelay = status === 'completed' ? 4000 : (status === 'failed' ? 4000 : 0);
+        var genAtComplete = runGeneration;
+        setTimeout(function () {
           if (runGeneration !== genAtComplete) return;  // new run started, skip
           updateRunUI('idle');
           if (runProgress) { runProgress.hide(); }
-        }, isCompleted ? 4500 : 0);
+        }, resetDelay);
       }
     }
   } catch (e) {

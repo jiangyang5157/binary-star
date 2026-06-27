@@ -1594,11 +1594,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   font-size: 0.82rem;
-  transition: opacity 0.5s ease-out;
-}
-.session-progress.sp-fading {
-  opacity: 0;
-  pointer-events: none;
 }
 .session-progress.sp-hidden {
   display: none;
