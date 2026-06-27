@@ -294,7 +294,7 @@ python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_....json 
 python run.py patch -f data/backtest/.../XAUTUSDT_evolution_....json --symbol XAUT        # Per-symbol
 
 # ── Dashboard ─────────────────────────────────────────────────────
-python -m src.dashboard.server --host 0.0.0.0 --port 8080 -p data/prod
+python -m src.dashboard.server --host 127.0.0.1 --port 8080 -p data/prod
 
 # ── Utilities ─────────────────────────────────────────────────────
 python scripts/calculate_qty.py -b 1000 -f data/prod/sessions/XAUTUSDT_session_....json
