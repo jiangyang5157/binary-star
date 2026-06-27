@@ -167,10 +167,17 @@ def main():
                         help="Server host (default: 127.0.0.1)")
     args = parser.parse_args()
 
+    # Validate data root exists before starting
+    from pathlib import Path
+    data_root_path = Path(args.data_root)
+    if not data_root_path.is_dir():
+        print(f"Error: data root not found: {args.data_root}", file=sys.stderr)
+        sys.exit(1)
+
     # Use env var so uvicorn reload subprocess inherits the value
     os.environ["SINGULARITY_DATA_ROOT"] = args.data_root
 
-    print(f"Dashboard: data_root = {args.data_root}")
+    print(f"Dashboard: data_root = {args.data_root}  ({data_root_path.resolve()})")
     print(f"Dashboard: http://{args.host}:{args.port}")
     uvicorn.run("src.dashboard.server:app", host=args.host, port=args.port,
                 reload=True, reload_excludes=["data", "*.log", "*.png", "*.json"])

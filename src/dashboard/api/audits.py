@@ -325,7 +325,7 @@ def run_audits(data_root: str = Query("")):
 
     sessions_dir = Path(data_root) / "sessions"
     if not sessions_dir.exists():
-        return {"error": f"Sessions directory not found: {sessions_dir}"}
+        sessions_dir.mkdir(parents=True, exist_ok=True)
 
     session_files = sorted(
         [f for f in sessions_dir.glob("*.json")],
