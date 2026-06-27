@@ -402,9 +402,21 @@ class MarginOrderExecutor:
         gc = self._get_guardian_config()
 
         entry_price = trade_state.get("entry_price")
-        current_sl = trade_state.get("sl_price")
-        current_tp = trade_state.get("tp_price")
         current_level = trade_state.get("trailing_sl_level", 0)
+
+        # Resolve current TP/SL from live exchange orders (source of truth),
+        # not from the in-memory trade_state cache which can drift stale after
+        # _optimize_same_direction merges OCO legs without writing back.
+        exit_side = "SELL" if direction == "LONG" else "BUY"
+        current_tp = trade_state.get("tp_price")   # fallback if no live order found
+        current_sl = trade_state.get("sl_price")   # fallback if no live order found
+        for order in active_orders:
+            if order.side != exit_side:
+                continue
+            if order.type in ("LIMIT", "LIMIT_MAKER") and order.price > 0:
+                current_tp = order.price
+            elif order.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and order.stop_price > 0:
+                current_sl = order.stop_price
 
         if not entry_price or not current_sl or not current_tp:
             return trade_state
@@ -486,8 +498,7 @@ class MarginOrderExecutor:
         try:
             cfg = self._get_trade_config(symbol)
             buffer = cfg.get("sl_slippage_buffer", 0.0)
-            exit_side = "SELL" if direction == "LONG" else "BUY"
-            
+
             # Step A: Cancel all existing orders
             if not self.client.cancel_all_symbol_orders(symbol):
                 logger.error("Guardian: [TRAIL] Failed to cancel OCO. Keeping existing protection.")
