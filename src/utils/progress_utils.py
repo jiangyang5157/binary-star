@@ -8,6 +8,26 @@ ERROR = "error"
 
 _MAX_ACTIVITIES = 10
 
+STAGES = [
+    {"stage": 1, "label": "Data Collection", "position_pct": 0},
+    {"stage": 2, "label": "Prep",            "position_pct": 18},
+    {"stage": 3, "label": "Debate",          "position_pct": 62.5},
+    {"stage": 4, "label": "Decision",        "position_pct": 87.5},
+    {"stage": 5, "label": "Archive",         "position_pct": 100},
+]
+
+
+def enrich_progress(progress: dict | None) -> dict | None:
+    """Inject stage definitions into a progress dict for frontend rendering.
+
+    Returns the same dict (mutated in-place) for call-site convenience.
+    Returns None if progress is None.
+    """
+    if progress is None:
+        return None
+    progress["stages"] = STAGES
+    return progress
+
 
 def add_activity_entry(activities: list[dict], activity: str | None) -> None:
     """Mutate *activities* in-place: promote previous active → complete,
