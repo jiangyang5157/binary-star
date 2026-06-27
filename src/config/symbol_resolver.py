@@ -177,7 +177,7 @@ def patch_config(symbol: str, target_path: str, key: str, value: Any) -> int:
 
     # Key not in overrides — fall back to strategy_config.yaml
     logger.info(
-        "patch_config: key '%s' not found in %s overrides — patching strategy_config.yaml instead",
+        "key '%s' not found in %s overrides | patching strategy_config.yaml instead",
         key, symbol,
     )
     from src.utils.evolution_utils import ConfigPatcher

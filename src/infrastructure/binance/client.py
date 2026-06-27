@@ -46,10 +46,10 @@ class BinanceFuturesClient(AbstractExchangeClient):
         secret = api_secret or os.environ.get("BINANCE_API_SECRET")
         
         if key and secret:
-            logger.info("Initializing Binance client with authenticated access.")
+            logger.info("authenticated")
             self.client = UMFutures(key=key, secret=secret)
         else:
-            logger.warning("Initializing Binance client in public (unauthenticated) mode. Some write endpoints will be unavailable.")
+            logger.warning("initialized in public mode | write endpoints unavailable")
             self.client = UMFutures()
         
         # Expose auth state for defensive calls
@@ -67,7 +67,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
             wait=tenacity.wait_random_exponential(multiplier=1, max=10),
             retry=tenacity.retry_if_exception_type((ClientError, requests.exceptions.RequestException)),
             before_sleep=lambda retry_state: logger.warning(
-                f"Binance: {method_name} failed. Retrying ({retry_state.attempt_number}/{self.retry_count})..."
+                f"retrying | method={method_name} | attempt={retry_state.attempt_number}/{self.retry_count}"
             ),
             reraise=True
         )
@@ -80,7 +80,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                 with open(cfg_path, 'r') as f:
                     return yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"CRITICAL: Failed to load global_config.yaml: {e}")
+            logger.error(f"load config failed | file=global_config.yaml | error={e}")
             raise
         return {}
 
@@ -91,7 +91,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
             MAX_CHUNK = 1000
             
             if limit <= MAX_CHUNK:
-                logger.debug(f"Binance: Fetching klines for {symbol} ({interval})")
+                logger.debug(f"fetching klines | symbol={symbol} | interval={interval}")
                 for attempt in self._get_retryer("klines"):
                     with attempt:
                         raw_klines = self.client.klines(symbol=symbol, interval=interval, limit=limit, **kwargs)
@@ -103,7 +103,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
             is_forward = 'startTime' in current_kwargs
             while remaining > 0:
                 fetch_count = min(remaining, MAX_CHUNK)
-                logger.debug(f"Binance: Paginating klines ({'FWD' if is_forward else 'BWD'}) for {symbol} (Rem: {remaining})")
+                logger.debug(f"paginating klines | dir={'FWD' if is_forward else 'BWD'} | symbol={symbol} | remaining={remaining}")
 
                 try:
                     for attempt in self._get_retryer("klines_paginated"):
@@ -137,16 +137,16 @@ class BinanceFuturesClient(AbstractExchangeClient):
             unique_klines = {k[0]: k for k in all_klines}
             sorted_unique = [unique_klines[ts] for ts in sorted(unique_klines.keys())]
 
-            logger.info(f"Binance: Fetched {len(sorted_unique)} klines for {symbol}.")
+            logger.info(f"fetched klines | symbol={symbol} | count={len(sorted_unique)}")
             return self._map_klines(sorted_unique)
             
         except ClientError as e:
-            logger.error(f"Binance: Klines fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"klines fetch failed | symbol={symbol} | error={e.error_message}")
             return []
         except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit)):
                 raise
-            logger.error(f"Binance: Unexpected error during kline pagination: {e}", exc_info=True)
+            logger.error(f"kline pagination error | error={e}", exc_info=True)
             return []
 
     # NOTE: Data mappers below use .get() defaults (e.g., .get('field', 0)).
@@ -194,7 +194,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
 
     def fetch_order_book(self, symbol: str, limit: int = 1000) -> GenericOrderBook:
         try:
-            logger.debug(f"Binance: Fetching Order Book for {symbol} (Limit: {limit})")
+            logger.debug(f"fetching order book | symbol={symbol} | limit={limit}")
             raw_depth = {}
             for attempt in self._get_retryer("depth"):
                 with attempt:
@@ -206,7 +206,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                 timestamp=int(datetime.now(timezone.utc).timestamp() * 1000)
             )
         except ClientError as e:
-            logger.error(f"Binance: Order book fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"order book fetch failed | symbol={symbol} | error={e.error_message}")
             return GenericOrderBook([], [], 0)
 
     def fetch_liquidations(self, symbol: str, limit: int = 100, **kwargs: Any) -> Optional[List[LiquidationData]]:
@@ -231,7 +231,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
             if 'endTime' in kwargs:
                 # 1. Forensic Boundary Check (Binance limit: 30 days)
                 if not self._is_within_30_days(kwargs['endTime']):
-                    logger.debug(f"Binance: Historical OI for {symbol} skipped (30-day limit reached).")
+                    logger.debug(f"OI skipped | symbol={symbol} | reason=30-day limit")
                     return []
                 
                 # 2. Historical Sequence Fetch (Requires Period)
@@ -262,18 +262,18 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         )
                     ]
         except ClientError as e:
-            logger.error(f"Binance: Open Interest fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"OI fetch failed | symbol={symbol} | error={e.error_message}")
             return []
         except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit)):
                 raise
-            logger.error(f"Binance: Unexpected error in OI fetch for {symbol}: {e}")
+            logger.error(f"OI fetch error | symbol={symbol} | error={e}")
             return []
 
     def fetch_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
         try:
             if 'endTime' in kwargs and not self._is_within_30_days(kwargs['endTime']):
-                logger.debug(f"Binance: Historical L/S ratio for {symbol} skipped (30-day limit).")
+                logger.debug(f"L/S ratio skipped | symbol={symbol} | reason=30-day limit")
                 return []
             
             for attempt in self._get_retryer("long_short_account_ratio"):
@@ -286,7 +286,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         ) for r in resp
                     ]
         except ClientError as e:
-            logger.error(f"Binance: L/S Ratio fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"L/S ratio fetch failed | symbol={symbol} | error={e.error_message}")
             return []
 
     def fetch_taker_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
@@ -302,12 +302,12 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         ) for r in resp
                     ]
         except ClientError as e:
-            logger.error(f"Binance: Taker L/S Ratio fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"taker L/S ratio fetch failed | symbol={symbol} | error={e.error_message}")
             return []
         except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit)):
                 raise
-            logger.error(f"Binance: Unexpected error in Taker L/S Ratio fetch: {e}")
+            logger.error(f"taker L/S ratio fetch error | error={e}")
             return []
 
     def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
@@ -322,7 +322,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         ) for r in resp
                     ]
         except ClientError as e:
-            logger.error(f"Binance: Top L/S Ratio fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"top L/S ratio fetch failed | symbol={symbol} | error={e.error_message}")
             return []
 
     def fetch_funding_rate(self, symbol: str, limit: int = 100, **kwargs: Any) -> List[FundingRateData]:
@@ -337,7 +337,7 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         ) for r in resp
                     ]
         except ClientError as e:
-            logger.error(f"Binance: Funding Rate fetch failed for {symbol}: {e.error_message}")
+            logger.error(f"funding rate fetch failed | symbol={symbol} | error={e.error_message}")
             return []
 
     # --- Internal Utilities ---

@@ -650,11 +650,11 @@ class MarketObserver:
             )
             if self.config.macro_context.lookback_candles < macro_warmup:
                 logger.warning(
-                    f"MarketObserver: Macro lookback ({self.config.macro_context.lookback_candles}) "
-                    f"is below recommended warmup ({macro_warmup}). Indicator drift possible."
+                    f"lookback ({self.config.macro_context.lookback_candles}) "
+                    f"below recommended warmup ({macro_warmup}). Possible indicator drift."
                 )
         except Exception as e:
-            logger.warning(f"Warmup audit skipped: {e}")
+            logger.warning(f"warmup audit skipped | error={e}")
 
     def observe(self, timestamp: Optional[datetime] = None, data_root: Optional[str] = None, persist: bool = True,
                 progress_callback=None) -> Dict[str, Any]:
@@ -664,14 +664,14 @@ class MarketObserver:
             progress_callback: Optional fn(stage, activity) for progress reporting.
         """
         at_time = timestamp or get_current_utc_time()
-        logger.info(f"MarketObserver: Capturing topography for {self.symbol}...")
+        logger.info(f"[{self.symbol}] capturing topography")
 
         # 1. [FORENSIC DATA COLLECTION]
         raw = self.loader.collect(self.symbol, at_time)
         
         # 2. [QUALITY VALIDATION]
         if len(raw.macro_klines) < int(self.config.macro_context.lookback_candles * 0.9):
-            logger.error("MarketObserver: Insufficient market telemetry. Aborting observation.")
+            logger.error(f"[{self.symbol}] insufficient telemetry — aborting")
             return {"error": "DATA_INTEGRITY_FAILURE"}
 
         # 3. [METRIC DISTILLATION]
@@ -711,9 +711,9 @@ class MarketObserver:
             json_path = os.path.join(obs_dir, json_filename)
             save_json(observation, json_path)
             
-            logger.info(f"MarketObserver: Market record archived: {os.path.basename(json_path)}")
+            logger.info(f"[{self.symbol}] market record archived | file={os.path.basename(json_path)}")
         except Exception as e:
-            logger.error(f"MarketObserver: Persistence failure: {e}")
+            logger.error(f"persistence failure | error={e}")
 
     def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics,
                             m_df: 'pd.DataFrame', n_df: 'pd.DataFrame',

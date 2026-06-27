@@ -142,7 +142,7 @@ class MarketRegimeAnalyzer:
         warmup = max(self.config.bollinger_window, self.config.keltner_window,
                      self.config.trend_lookback_candles + 1)
         if df.empty or len(df) < warmup:
-            logger.warning("Insufficient data for Market Regime analysis.")
+            logger.warning("insufficient data for regime analysis")
             # Sentinel values: -1 flags "sensor failure" so the LLM can distinguish it
             # from a genuinely balanced market (where values would be ~1.0, ~0.0, ~1.0).
             return asdict(RegimeResult(-1.0, -1.0, -1.0, -1.0))

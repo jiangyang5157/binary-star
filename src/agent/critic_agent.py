@@ -64,10 +64,10 @@ class CriticAgent(BaseAgent):
     Its sole mission is finding flaws in proposals — a purely negating audit,
     not opportunity-seeking.
     """
-    
+
     def __init__(
-        self, 
-        config: CriticConfig, 
+        self,
+        config: CriticConfig,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
@@ -104,7 +104,7 @@ class CriticAgent(BaseAgent):
         and the mandatory CRITIC_CODES table. This is a cold,
         deterministic audit designed to identify structural traps.
         """
-        logger.info(f"CriticAgent: Auditing {symbol} proposal...")
+        logger.info(f"[{symbol}] auditing proposal")
         try:
             context = self._build_context(
                 observation,
@@ -130,7 +130,7 @@ class CriticAgent(BaseAgent):
                 system_instruction=system_instruction
             )
         except Exception as e:
-            logger.error(f"Critic: Critical failure during evaluation of {symbol}: {e}")
+            logger.error(f"[{symbol}] evaluation failed | error={e}")
             raise
 
     def _build_context(

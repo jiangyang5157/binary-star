@@ -149,11 +149,11 @@ class BinaryStarConfig:
 
 class BinaryStarOrchestrator:
     """The central neurological hub for the adversarial reasoning pipeline.
-    
+
     The Orchestrator implements the 'Binary Star' protocol, where the logic is
     standardized into a high-context debate between a Session Analyst (Thesis)
     and an Audit Critic (Antithesis).
-    
+
     Key Innovations:
     1. Truth Bus (Shared Cache): Multimodal market topography is cached once and
        shared across the reasoning triad to eliminate context drift and cost.
@@ -202,7 +202,7 @@ class BinaryStarOrchestrator:
         session_log_path = os.path.join(resolve_project_root(), self.data_root, "session.log")
         setup_logger("src", log_level=logging.INFO, log_file=session_log_path,
                      max_bytes=10 * 1024 * 1024, backup_count=5)
-        logger.info(f"--- Binary Star Session Activated: {self.data_root} ---")
+        logger.debug(f"Binary Star Session activated | root={self.data_root}")
 
         # ── 1. Resolve configuration bundle ─────────────────────────
         if bs_config is None:
@@ -295,7 +295,7 @@ class BinaryStarOrchestrator:
             )
         else:
             if self.enable_context_cache and not self.client.supports_context_cache:
-                logger.info("BinaryStar: Non-Gemini provider detected. Forcing enable_context_cache=False.")
+                logger.info("non-Gemini provider detected, forcing enable_context_cache=False")
             self.cache_manager = None
 
         self.macro_interval = self.obs_config.macro_context.time_interval
@@ -317,7 +317,7 @@ class BinaryStarOrchestrator:
                 for progress reporting. Called at key phase transitions.
         """
         timestamp = self._resolve_timestamp(observation)
-        logger.info(f"BinaryStar: Beginning cycle for {symbol} at {timestamp}...")
+        logger.info(f"[{symbol}] cycle begin | ts={timestamp}")
 
         # 1. Inject regime benchmarks (pre-calculated physical constants)
         self._inject_regime_benchmarks(observation)
@@ -386,7 +386,7 @@ class BinaryStarOrchestrator:
             }
 
         except Exception as e:
-            logger.error(f"BinaryStar Flow failed fatally: {e}", exc_info=True)
+            logger.error(f"Binary Star flow failed | error={e}", exc_info=True)
             raise
         finally:
             self._cleanup_cache()
@@ -429,9 +429,9 @@ class BinaryStarOrchestrator:
                 "unit_atr_holding_hours": unit_atr_holding_hours,
                 "unit_atr_waiting_hours": unit_atr_waiting_hours
             }
-            logger.info(f"BinaryStar: Injected Regime Benchmarks [Holding: {unit_atr_holding_hours}h/ATR, Waiting: {unit_atr_waiting_hours}h/ATR]")
+            logger.info(f"[{self.symbol}] regime benchmarks | hold={unit_atr_holding_hours}h/ATR | wait={unit_atr_waiting_hours}h/ATR")
         except Exception as e:
-            logger.warning(f"BinaryStar: Failed to inject regime benchmarks: {e}")
+            logger.warning(f"failed to inject regime benchmarks | error={e}")
 
     def _prepare_agent_tools(self, observation_json: str, symbol: str,
                              visual_parts: list) -> tuple[str | None, list]:
@@ -451,7 +451,7 @@ class BinaryStarOrchestrator:
                 tools=[types.Tool(function_declarations=tool_declarations)]
             )
         else:
-            logger.info(f"BinaryStar: Context Cache is DISABLED. Routing multimodal visual payload statelessly.")
+            logger.debug(f"[{symbol}] context cache disabled")
 
         # Return dict-format declarations so convert_tools() can forward
         # them to the API.  Dispatch happens by name via hasattr(self, name)
@@ -470,10 +470,10 @@ class BinaryStarOrchestrator:
 
         # Decision Finalization
         if early_exit:
-            logger.info("BinaryStar: Using early-exit plan as final decision.")
+            logger.info(f"[{symbol}] using early-exit plan as final decision")
             final_decision = last_plan
         else:
-            logger.info("BinaryStar: Finalizing consensus decision...")
+            logger.info(f"[{symbol}] finalizing consensus decision")
             final_decision = self.session_agent.execute_session_cycle(
                 observation=observation,
                 symbol=symbol,
@@ -498,7 +498,7 @@ class BinaryStarOrchestrator:
             if rr_v and "rr_ratio" in rr_v:
                 tactical["rr_ratio"] = rr_v["rr_ratio"]
 
-        logger.info("BinaryStar: Final decision sanitized against physical truth.")
+        logger.info(f"[{symbol}] final decision sanitized")
 
         if progress_callback:
             progress_callback(stage=4, activity="Parameter validation done")
@@ -511,7 +511,7 @@ class BinaryStarOrchestrator:
             if self.cache_manager is not None and self.enable_context_cache and self.cache_manager.active_cache_resource_name:
                 self.cache_manager.delete_market_cache()
         except Exception as e:
-            logger.warning(f"BinaryStar: Non-fatal cache cleanup failure: {e}")
+            logger.warning(f"cache cleanup failed | error={e}")
 
 
     def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[VisualPart]:
@@ -528,5 +528,5 @@ class BinaryStarOrchestrator:
                             label=f"[VISUAL_CONTEXT: {key.upper()}]",
                         ))
             except Exception as e:
-                logger.warning(f"BinaryStar: Visual asset ingestion failed for {path}: {e}")
+                logger.warning(f"visual asset ingestion failed | path={path} | error={e}")
         return parts

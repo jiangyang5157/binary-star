@@ -59,7 +59,7 @@ def main():
         print("="*50 + "\n")
         
     except Exception as e:
-        logger.error(f"Market Recon Failed: {e}", exc_info=True)
+        logger.error(f"market recon failed | error={e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

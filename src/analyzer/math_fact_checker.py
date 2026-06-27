@@ -94,7 +94,7 @@ class MathFactChecker:
 
             if is_chaos:
                 min_rr *= (1.0 - self.session_config.risk.chaos_rr_discount)
-                logger.info(f"MathFactChecker: IS_CHAOS detected. Applying {self.session_config.risk.chaos_rr_discount*100}% RR discount. New min_rr={min_rr:.2f}")
+                logger.info(f"IS_CHAOS detected | RR discount={self.session_config.risk.chaos_rr_discount*100:.0f}% | min_rr={min_rr:.2f}")
 
             # Shielding check
             buffer = self.critic_config.risk.structural_buffer_atr
@@ -117,5 +117,5 @@ class MathFactChecker:
                 "compliance_verdict": compliance
             }
         except Exception as e:
-            logger.error(f"MathFactChecker: Math fact check failed: {e}")
+            logger.error(f"math fact check failed | error={e}")
             return {"error": "VERIFICATION_FAILURE", "details": str(e)}

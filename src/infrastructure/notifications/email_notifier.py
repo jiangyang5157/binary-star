@@ -92,7 +92,7 @@ class SessionNotifier:
                 with open(cfg_path, 'r') as f:
                     return yaml.safe_load(f)
         except Exception as e:
-            logger.error(f"Failed to load {filename}: {e}")
+            logger.error(f"config load failed | file={filename} | error={e}")
         return {}
 
     def _get_timestamp_suffix(self, obs: Dict[str, Any]) -> str:
@@ -138,14 +138,14 @@ class SessionNotifier:
         
         # Only notify if confidence >= threshold
         if confidence < self.confidence_threshold:
-            logger.info(f"Notifier: Confidence too low ({confidence}% < {self.confidence_threshold}%). Skipping dispatch.")
+            logger.info(f"dispatch skipped | confidence={confidence}% < {self.confidence_threshold}%")
             return False
 
         opinion = final_decision.get("opinion") or "NEUTRAL"
 
         # Only notify if opinion is BULLISH / BEARISH
         if opinion.upper() not in ["BULLISH", "BEARISH"]:
-            logger.info(f"Notifier: Opinion is {opinion}. Skipping dispatch (only BULLISH / BEARISH allowed).")
+            logger.info(f"dispatch skipped | opinion={opinion} | reason=not BULLISH/BEARISH")
             return False
             
         icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
@@ -154,10 +154,10 @@ class SessionNotifier:
         
         # 2. Dispatch Email
         try:
-            logger.info(f"Notifier: Dispatching alert: {subject}")
+            logger.info(f"alert dispatched | subject={subject}")
             return self.dispatcher.dispatch(subject, html_body, attachments)
         except Exception as e:
-            logger.error(f"Notifier: Failed to dispatch strategy notification: {e}")
+            logger.error(f"alert dispatch failed | error={e}")
             return False
 
     def notify_market_recon(self, symbol: str, session_data: Dict[str, Any], save_local: bool = True, dispatch_email: bool = False):
@@ -184,10 +184,10 @@ class SessionNotifier:
         
         subject = f"🔍 Market Audit | {symbol} | TOPOGRAPHY_RECON"
         try:
-            logger.info(f"Notifier: Dispatching market audit: {subject}")
+            logger.info(f"market audit dispatched | subject={subject}")
             return self.dispatcher.dispatch(subject, html_body, attachments)
         except Exception as e:
-            logger.error(f"Notifier: Failed to dispatch market audit: {e}")
+            logger.error(f"market audit dispatch failed | error={e}")
             return False
 
     def save_html_preview(self, filename: str, html_body: str, attachments: Optional[Dict[str, str]] = None) -> Optional[str]:
@@ -228,10 +228,10 @@ class SessionNotifier:
             except OSError:
                 pass
 
-            logger.info(f"Notifier: HTML preview saved to {file_path}")
+            logger.info(f"HTML preview saved | file={file_path}")
             return file_path
         except Exception as e:
-            logger.error(f"Notifier: Failed to save HTML preview: {e}")
+            logger.error(f"HTML preview save failed | error={e}")
             return None
 
 
@@ -243,10 +243,10 @@ class SessionNotifier:
         html_body = AlertEmailTemplate.render(alert_name, symbol, error_message, metadata)
         subject = f"🛑 {alert_name} | {symbol}"
         
-        logger.error(f"Notifier: DISPATCHING CRITICAL ALERT: {subject}")
+        logger.error(f"CRITICAL alert dispatched | subject={subject}")
         
         try:
             return self.dispatcher.dispatch(subject, html_body)
         except Exception as e:
-            logger.error(f"Notifier: Failed to dispatch critical alert: {e}")
+            logger.error(f"critical alert dispatch failed | error={e}")
             return False

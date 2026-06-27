@@ -79,10 +79,10 @@ class SessionAgent(BaseAgent):
     2. Synthesis (Temp 0.3): Hardens the plan against Critic adversarial feedback in the final round.
        Cold-logic mode enforces alignment with all physical constraints for survivability.
     """
-    
+
     def __init__(
-        self, 
-        config: SessionConfig, 
+        self,
+        config: SessionConfig,
         ai_client: AbstractAIClient,
         api_timeout: int,
         retry_count: int,
@@ -116,7 +116,7 @@ class SessionAgent(BaseAgent):
         system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """Core execution logic for a session reasoning step."""
-        logger.info(f"SessionAgent: {agent_name} for {symbol}...")
+        logger.info(f"[{symbol}] agent {agent_name} starting")
         try:
             # Build multimodal prompt: integrate physical facts, debate history, and global parameters
             prompt = self._build_prompt(
@@ -139,7 +139,7 @@ class SessionAgent(BaseAgent):
                 system_instruction=system_instruction
             )
         except Exception as e:
-            logger.error(f"Session: failure during {agent_name} for {symbol}: {e}")
+            logger.error(f"[{symbol}] agent {agent_name} failed | error={e}")
             raise
 
     def _build_prompt(
@@ -172,7 +172,7 @@ class SessionAgent(BaseAgent):
             "max_entry_distance_atr": self.config.risk.max_entry_distance_atr,
             "chaos_rr_discount": self.config.risk.chaos_rr_discount
         }
-        
+
         return self._prepare_prompt(self.config.instruction_path, **context)
 
 

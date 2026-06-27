@@ -42,13 +42,13 @@ class EvolverConfig(AgentConfig):
 class EvolverAgent(BaseAgent):
     """The Meta-Optimizer for the Singularity Engine.
 
-    Responsible for Darwinian evolution of the strategy and reasoning layers. 
-    Transforms forensic audit failures into 'Physical Laws' (Configuration 
+    Responsible for Darwinian evolution of the strategy and reasoning layers.
+    Transforms forensic audit failures into 'Physical Laws' (Configuration
     Patches) and 'Semantic Refinements' (Prompt Distillation).
     """
     def __init__(
-        self, 
-        config: EvolverConfig, 
+        self,
+        config: EvolverConfig,
         ai_client: AbstractAIClient,
         api_timeout: int,
         retry_count: int,
@@ -81,14 +81,14 @@ class EvolverAgent(BaseAgent):
         )
 
     def evolve(
-        self, 
-        audit_reports: List[Dict[str, Any]], 
+        self,
+        audit_reports: List[Dict[str, Any]],
         active_config: Dict[str, Any],
         current_instructions: Dict[str, str]
     ) -> Dict[str, Any]:
         """Executes the neural meta-optimization cycle.
 
-        Analyzes recent forensic audit reports to identify systematic 
+        Analyzes recent forensic audit reports to identify systematic
         logic failures or edge cases, then generates a corrective mutation.
 
         Args:
@@ -104,17 +104,14 @@ class EvolverAgent(BaseAgent):
             compressed_reports = self._compress_audit_reports(audit_reports)
             reports_json = json.dumps(compressed_reports, indent=2)
             config_json = json.dumps(active_config, indent=2)
-            
+
             # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
             for module, content in current_instructions.items():
                 prompts_md += f"# {module.lower()}_PROMPT\n{content}\n\n"
 
             logger.info(
-                f"Evolver: Injected Context Size: "
-                f"Reports={len(reports_json)} chars | "
-                f"Config={len(config_json)} chars | "
-                f"Prompts={len(prompts_md)} chars"
+                f"context injected | reports={len(reports_json)} chars | config={len(config_json)} chars | prompts={len(prompts_md)} chars"
             )
 
             prompt = self._prepare_prompt(
@@ -134,35 +131,35 @@ class EvolverAgent(BaseAgent):
                 max_rounds=active_config.get('binary_star', {}).get('max_rounds'),
             )
 
-            logger.info("Evolver: Initiating distillation/patching cycle (Neural Meta-Analysis)...")
-            
+            logger.info("initiating distillation/patching cycle")
+
             evolution_result = self._execute_ai_cycle(
                 payload=prompt,
                 temperature=self.config.model_temperature,
                 agent_name="Evolver_Meta",
                 tools=None
             )
-            
+
             # Resilience - Handle cases where the model wraps the JSON in a list
             if isinstance(evolution_result, list) and len(evolution_result) > 0:
-                logger.info("Evolver: AI returned a list. Extracting the first element.")
+                logger.info("AI returned list, extracting first element")
                 evolution_result = evolution_result[0]
-            
+
             if not isinstance(evolution_result, dict):
-                logger.error(f"Evolver: AI returned non-dict result: {type(evolution_result)}")
+                logger.error(f"non-dict result from AI | type={type(evolution_result)}")
                 raise ValueError("AI_RESULT_FORMAT_ERROR: Expected dict, got " + str(type(evolution_result)))
 
             return evolution_result
-            
+
         except Exception as e:
-            logger.error(f"Evolver: Meta-optimization failed: {e}")
+            logger.error(f"meta-optimization failed | error={e}")
             raise
     def _compress_audit_reports(self, reports: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Summarizes forensic audit reports to remove massive topographical noise.
-        
-        Keeps the decision, FULL debate history, and performance metrics, but removes 
+
+        Keeps the decision, FULL debate history, and performance metrics, but removes
         the raw observation data which is often redundant for global strategy evolution.
-        
+
         Debate detail PRESERVED — Evolver needs to understand WHY a plan was
         rejected/approved to identify logical evolution patterns. Only the heavy
         observation topography is pruned.
@@ -173,7 +170,7 @@ class EvolverAgent(BaseAgent):
             obs = report.get("observation", {})
             session = report.get("session", {})
             outcome = report.get("market_outcome", {})
-            
+
             c_report = {
                 "symbol": obs.get("symbol"),
                 "timestamp": obs.get("observed_at"),
@@ -181,7 +178,7 @@ class EvolverAgent(BaseAgent):
                 "performance": outcome,
                 "debate_summary": []
             }
-            
+
             # Preserve FULL debate detail for Evolver analysis
             # (reasoning_chain, audit_evidence, math_fact_check are essential
             # for identifying systematic logic failures and evolution patterns)
@@ -190,14 +187,14 @@ class EvolverAgent(BaseAgent):
                 plan = entry.get("plan", {})
                 critic = entry.get("critic", {})
                 math_fc = entry.get("math_fact_check", {})
-                
+
                 c_report["debate_summary"].append({
                     "round": entry.get("round"),
                     "plan": plan,
                     "critic": critic,
                     "math_fact_check": math_fc
                 })
-            
+
             # Include a high-fidelity summary of quantitative metrics for structural contrast
             metrics = obs.get("quantitative_metrics", {})
             if metrics:
@@ -208,6 +205,6 @@ class EvolverAgent(BaseAgent):
                     "structural_anchors": metrics.get("structural_anchors", {}),
                     "sentiment_signals": metrics.get("sentiment_signals", {})
                 }
-                
+
             compressed.append(c_report)
         return compressed

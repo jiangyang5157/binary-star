@@ -79,7 +79,7 @@ def _load_yaml_file(filepath: str, on_error: str = "raise") -> Dict[str, Any]:
         if on_error == "raise":
             raise
         if on_error == "warn":
-            logger.warning("Failed to load %s: %s — falling back to empty config", filepath, e)
+            logger.warning("failed to load %s | error=%s — using empty config", filepath, e)
         return {}
 
 

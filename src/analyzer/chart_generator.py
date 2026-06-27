@@ -86,7 +86,7 @@ class TechnicalFeatureExtractor:
             
             return trendlines
         except Exception as e:
-            logger.warning(f"Trendline detection failed: {e}")
+            logger.warning(f"trendline detection failed | error={e}")
             return []
 
 class ChartStorageManager:
@@ -180,14 +180,14 @@ class ChartVisualRenderer:
         Orchestrates the generation of an enhanced candlestick chart.
         """
         if df.empty:
-            logger.error(f"Cannot generate chart for {symbol}: DataFrame is empty.")
+            logger.error(f"[{symbol}] chart skipped — empty DataFrame")
             return ""
 
         plot_df = self._prepare_plot_df(df)
         filepath = self.storage.generate_filepath(symbol, time_interval, profile_data.get("timestamp"))
         
         try:
-            logger.info(f"Rendering chart: {symbol} [{time_interval}] -> {filepath}")
+            logger.info(f"[{symbol}] chart rendered | interval={time_interval} | file={filepath}")
             
             # 1. Prepare Horizontal Levels
             poc = profile_data.get("poc", 0)
@@ -371,7 +371,7 @@ class ChartVisualRenderer:
                 
             return filepath
         except Exception as e:
-            logger.error(f"Chart generation failed for {symbol}: {e}")
+            logger.error(f"[{symbol}] chart failed | error={e}")
             return ""
 
     def _overlay_volume_profile(self, ax: plt.Axes, df: pd.DataFrame, profile: List[Dict[str, Any]]):

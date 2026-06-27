@@ -50,10 +50,10 @@ def save_to_json_file(data: Any, file_path: str, indent_level: int = 2) -> bool:
         json_output = convert_to_json_string(data, indent_level=indent_level)
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(json_output)
-        logger.info(f"Successfully saved data to {file_path}")
+        logger.info(f"saved | file={file_path}")
         return True
     except Exception as e:
-        logger.error(f"Failed to save JSON to {file_path}: {e}")
+        logger.error(f"save failed | file={file_path} | error={e}")
         return False
 
 def load_from_json_file(file_path: str) -> Any:
@@ -61,14 +61,14 @@ def load_from_json_file(file_path: str) -> Any:
     Loads data from a JSON file. Returns None if the file is missing or corrupted.
     """
     if not os.path.exists(file_path):
-        logger.warning(f"JSON file not found: {file_path}")
+        logger.warning(f"not found | file={file_path}")
         return None
         
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        logger.error(f"Failed to load JSON from {file_path}: {e}")
+        logger.error(f"load failed | file={file_path} | error={e}")
         return None
 
 def _coerce_to_dict(obj: Any) -> Optional[Dict[str, Any]]:
@@ -77,16 +77,15 @@ def _coerce_to_dict(obj: Any) -> Optional[Dict[str, Any]]:
         return obj
     if isinstance(obj, list):
         if len(obj) == 1 and isinstance(obj[0], dict):
-            logger.debug("extract_json_from_text: Unwrapped single-element JSON array.")
+            logger.debug("unwrapped single-element JSON array")
             return obj[0]
         logger.warning(
-            "extract_json_from_text: Expected JSON object but got list (%d elements). "
-            "Returning None — callers require a dict.",
+            "expected JSON object but got list | elements=%d",
             len(obj),
         )
         return None
     logger.warning(
-        "extract_json_from_text: Expected JSON object but got %s. Returning None.",
+        "expected JSON object but got %s",
         type(obj).__name__,
     )
     return None
@@ -119,7 +118,7 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
             obj, index = decoder.raw_decode(json_text)
             return _coerce_to_dict(obj)
     except Exception as e:
-        logger.debug(f"JSON raw_decode failed: {e}")
+        logger.debug(f"raw_decode failed | error={e}")
 
     # 3. Fallback: Cleanup common LLM artifacts (markdown blocks)
     try:

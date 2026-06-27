@@ -145,7 +145,7 @@ def calculate_risk_reward(
             "risk_distance": round(sl_dist, 4)
         }
     except Exception as e:
-        logger.error(f"MathTools: RR calculation failure: {e}")
+        logger.error(f"RR calc failed | error={e}")
         return {"error": str(e)}
 
 def calculate_atr_metrics(
@@ -175,7 +175,7 @@ def calculate_atr_metrics(
             
         return metrics
     except Exception as e:
-        logger.error(f"MathTools: ATR metrics failure: {e}")
+        logger.error(f"ATR calc failed | error={e}")
         return {"error": str(e)}
 
 def calculate_structural_proximity(
@@ -204,7 +204,7 @@ def calculate_structural_proximity(
             "sl_to_val_atr": dist_to_atr(val)
         }
     except Exception as e:
-        logger.error(f"MathTools: Structural proximity failure: {e}")
+        logger.error(f"structural proximity failed | error={e}")
         return {"error": str(e)}
 
 def get_regime_scalars(
@@ -305,7 +305,7 @@ def project_holding_time(
         }
 
     except Exception as e:
-        logger.error(f"MathTools: Time projection failure: {e}")
+        logger.error(f"time projection failed | error={e}")
         return {"error": str(e)}
 
 
@@ -326,7 +326,7 @@ def calculate_opportunity_cost(
             "is_catastrophic_miss": rel_range > threshold
         }
     except Exception as e:
-        logger.error(f"MathTools: Opportunity cost failure: {e}")
+        logger.error(f"opportunity cost failed | error={e}")
         return {"error": str(e)}
 
 def calculate_mae_stress(
@@ -354,7 +354,7 @@ def calculate_mae_stress(
             "stress_tier": tier
         }
     except Exception as e:
-        logger.error(f"MathTools: MAE stress failure: {e}")
+        logger.error(f"MAE stress failed | error={e}")
         return {"error": str(e)}
 
 def calculate_liquidity_slippage(
@@ -412,7 +412,7 @@ def calculate_liquidity_slippage(
             "is_vacuum_zone": bool(liquidity_quality < 0.1)
         }
     except Exception as e:
-        logger.error(f"MathTools: Slippage calculation failure: {e}")
+        logger.error(f"slippage calc failed | error={e}")
         return {"price_adjusted": price, "slippage_bps": base_slippage_bps, "error": str(e)}
 
 # ── Backward-compatible namespace for MathTools.xxx() callers ──────────────

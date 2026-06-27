@@ -55,7 +55,7 @@ class GeminiCacheManager:
         start_time = time.perf_counter()
 
         display_name = f"{symbol}_{interval}_truth_bus_cache"
-        logger.info(f"GeminiCacheManager: Initializing Truth Bus cache '{display_name}' (TTL: {ttl_minutes}m)...")
+        logger.info(f"cache init | name={display_name} | ttl={ttl_minutes}m")
 
         # Convert provider-agnostic VisualParts to Gemini-native types.Part
         gemini_contents = []
@@ -86,12 +86,12 @@ class GeminiCacheManager:
             )
             
             elapsed = time.perf_counter() - start_time
-            logger.info(f"GeminiCache: Successfully created cache {cache.name} for {symbol} in {elapsed:.2f}s. Expires in {ttl_minutes} minutes.")
+            logger.info(f"cache created | name={cache.name} | symbol={symbol} | elapsed={elapsed:.2f}s")
             self.active_cache_resource_name = cache.name
             return cache.name
             
         except Exception as e:
-            logger.error(f"GeminiCache: Failed to create cache for {symbol}: {e}")
+            logger.error(f"cache create failed | symbol={symbol} | error={e}")
             raise  # Fail Fast per user request
 
     def get_cache(self, cache_resource_name: str) -> Optional[types.CachedContent]:
@@ -99,23 +99,23 @@ class GeminiCacheManager:
         try:
             return self.client.caches.get(name=cache_resource_name)
         except Exception as e:
-            logger.warning(f"CacheManager: Could not retrieve cache {cache_resource_name}: {e}")
+            logger.warning(f"cache not found | name={cache_resource_name} | error={e}")
             return None
 
     def delete_cache(self, cache_resource_name: str) -> bool:
         """Manually deletes a cache resource."""
         try:
             self.client.caches.delete(name=cache_resource_name)
-            logger.info(f"CacheManager: Cache {cache_resource_name} deleted.")
+            logger.info(f"cache deleted | name={cache_resource_name}")
             return True
         except Exception as e:
-            logger.error(f"CacheManager: Failed to delete cache {cache_resource_name}: {e}")
+            logger.error(f"cache delete failed | name={cache_resource_name} | error={e}")
             return False
 
     def delete_market_cache(self) -> bool:
         """Stateful cleanup: deletes the last created session cache if active."""
         if not self.active_cache_resource_name:
-            logger.debug("CacheManager: No active market cache to purge.")
+            logger.debug("no active cache to purge")
             return True
         
         success = self.delete_cache(self.active_cache_resource_name)
@@ -130,5 +130,5 @@ class GeminiCacheManager:
                 self.congestion_controller.pace(agent_name="CacheManager_List")
             return list(self.client.caches.list())
         except Exception as e:
-            logger.error(f"CacheManager: Failed to list caches: {e}")
+            logger.error(f"cache list failed | error={e}")
             return []

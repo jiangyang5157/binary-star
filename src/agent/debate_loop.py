@@ -56,7 +56,7 @@ class DebateLoop:
                 )
 
             # Planning / Refinement
-            logger.info(f"BinaryStar: Round {current_round} - Generating Session Thesis (Planning State)...")
+            logger.info(f"[{symbol}] debate R{current_round} planning | agent=Session_Planning")
             last_plan = self.session_agent.execute_session_cycle(
                 observation=observation,
                 symbol=symbol,
@@ -72,8 +72,8 @@ class DebateLoop:
             # Validate response type before any expensive operations
             if not isinstance(last_plan, dict):
                 logger.error(
-                    "BinaryStar: Session agent returned %s instead of dict. Raw: %s",
-                    type(last_plan).__name__, str(last_plan)[:300],
+                    "[%s] session agent returned %s instead of dict | raw=%s",
+                    symbol, type(last_plan).__name__, str(last_plan)[:300],
                 )
                 raise MalformedJSONError(
                     raw_text=str(last_plan)[:500],
@@ -86,7 +86,7 @@ class DebateLoop:
                     stage=3,
                     activity=f"Debate R{current_round} · Math verification…",
                 )
-            logger.info(f"BinaryStar: Round {current_round} - Performing Adversarial Audit...")
+            logger.info(f"[{symbol}] debate R{current_round} running critic audit")
             math_fact_check = self.math_checker.verify(last_plan, observation)
 
             # Full adversarial review — critic always runs (handles NEUTRAL via
@@ -110,7 +110,7 @@ class DebateLoop:
 
             # Score Telemetry
             veto_level = critic_results.get('veto_level', 'UNKNOWN').upper()
-            logger.info(f"BinaryStar Audit [R{current_round}]: Veto={veto_level}")
+            logger.info(f"[{symbol}] debate R{current_round} audit | veto={veto_level}")
 
             if progress_callback:
                 progress_callback(
@@ -127,7 +127,7 @@ class DebateLoop:
 
             # Smart Round Control (Early Exit on PASS or WEAK)
             if veto_level in ["PASS", "WEAK"]:
-                logger.info(f"BinaryStar: {veto_level} plan detected in Round {current_round}. Triggering early exit.")
+                logger.info(f"[{symbol}] debate R{current_round} {veto_level} → early exit")
                 early_exit = True
                 break
 

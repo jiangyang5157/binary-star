@@ -276,7 +276,7 @@ class AuditAssembler:
         Returns:
             A summary dictionary containing audit status and metrics.
         """
-        logger.info(f"AuditAssembler: Finalizing forensic report...")
+        logger.info("finalizing forensic report")
         
         hist_obs = historical_strategy.get("observation", {})
         metrics = hist_obs.get("quantitative_metrics", {})

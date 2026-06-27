@@ -27,7 +27,7 @@ logger = None
 def process_audit_file(file_path: str, controller: AuditController, data_root: str, force: bool = False) -> str:
     """Handles the full lifecycle of a single session audit."""
     try:
-        logger.info(f"--- Initiating Audit Review: {os.path.basename(file_path)} ---")
+        logger.info(f"auditing | file={os.path.basename(file_path)}")
 
         # 1. Deduplication Gate: Skip if file already exists (unless forced)
         import json
@@ -40,7 +40,7 @@ def process_audit_file(file_path: str, controller: AuditController, data_root: s
         ts_compact = format_timestamp_for_filename(obs_ts)
 
         if not force and controller.is_already_audited(symbol, ts_compact):
-            logger.info(f"[EXISTS] Skipped: {os.path.basename(file_path)} already has a audit report.")
+            logger.info(f"skipped | file={os.path.basename(file_path)} | reason=exists")
             return "EXISTS"
 
         # 2. Execute Analysis (Standardized 3-key Bundle: session, market_outcome, metadata)
@@ -57,12 +57,12 @@ def process_audit_file(file_path: str, controller: AuditController, data_root: s
         return "SUCCESS"
     except Exception as e:
         if "SESSION_MATURING" in str(e):
-            logger.info(f"[WAITING] Skipped: {os.path.basename(file_path)} is still maturing. {e}")
+            logger.info(f"skipped | file={os.path.basename(file_path)} | reason=maturing")
             return "MATURING"
         if "EMPTY_KLINES" in str(e):
-            logger.info(f"[EMPTY DATA] Skipped: {os.path.basename(file_path)} has no market data. {e}")
+            logger.info(f"skipped | file={os.path.basename(file_path)} | reason=empty")
             return "EMPTY"
-        logger.error(f"Failed to audit {file_path}: {e}")
+        logger.error(f"audit failed | file={file_path} | error={e}")
         return "FAILED"
 
 # --- Multiprocessing Glue ---
@@ -118,17 +118,17 @@ def main():
     fail_count = 0
     if args.file:
         if not os.path.exists(args.file):
-            logger.error(f"Target file not found: {args.file}")
+            logger.error(f"target file not found | file={args.file}")
             sys.exit(1)
         files_to_audit.append(args.file)
     else:
         # Batch Mode: Scan data_root/sessions
         sessions_dir = os.path.join(root, data_root, "sessions")
         if not os.path.exists(sessions_dir):
-            logger.error(f"Sessions directory not found: {sessions_dir}")
+            logger.error(f"sessions directory not found | path={sessions_dir}")
             sys.exit(1)
             
-        logger.info(f"Batch Mode: Scanning for sessions in {sessions_dir}...")
+        logger.info(f"batch scanning | path={sessions_dir}")
         files_to_audit = [os.path.join(sessions_dir, f) for f in os.listdir(sessions_dir) if f.endswith(".json")]
         
         # Resolve symbol: optional filter, prefix format
@@ -138,13 +138,13 @@ def main():
             symbol = resolve_symbol(args.symbol)
         
         if symbol:
-            logger.info(f"Filtering batch by symbol: {symbol}")
+            logger.info(f"filtering batch | symbol={symbol}")
             files_to_audit = [f for f in files_to_audit if os.path.basename(f).startswith(f"{symbol}_")]
             
         files_to_audit.sort() # Process in chronological order
         
     if not files_to_audit:
-        logger.warning(f"No sessions found to audit in {data_root}.")
+        logger.warning(f"no sessions found | path={data_root}")
         return
 
     # 5. Parallel Execution Core

@@ -143,10 +143,10 @@ class FitnessEvaluator:
 
         # Dimension 1: Absolute Fitness Resolution
         if new_score > old_score:
-            logger.info(f"[IMPROVEMENT] Darwinian score: {old_score} -> {new_score} ({old_res} -> {new_res})")
+            logger.info(f"[IMPROVEMENT] score {old_score} → {new_score} | result {old_res} → {new_res}")
             return True
         if new_score < old_score:
-            logger.info(f"[NO_IMPROVEMENT] Darwinian score: {old_score} -> {new_score} ({old_res} -> {new_res})")
+            logger.info(f"[NO_IMPROVEMENT] score {old_score} → {new_score}")
             return False
 
         # Dimension 2: Execution Efficiency Tie-Breakers (same score)
@@ -161,7 +161,7 @@ class FitnessEvaluator:
             new_mae = float(new_metrics.get('mae_stress_level_pct', 100.0))
 
             if old_mae > self.cfg.mae_significance_threshold and (old_mae - new_mae) >= self.cfg.mae_improvement_threshold:
-                logger.info(f"[REFINEMENT] MAE tiebreak: {old_mae}% -> {new_mae}%")
+                logger.info(f"[REFINEMENT] MAE tiebreak | {old_mae}% → {new_mae}%")
                 return True
 
         # Tie-breaker B: Capital Velocity (Time Efficiency)
@@ -169,8 +169,8 @@ class FitnessEvaluator:
         new_time = float(new_metrics.get('actual_holding_hours', 1000.0))
         
         if new_res == "TP_HIT" and (old_time - new_time) >= self.cfg.time_improvement_threshold:
-            logger.info(f"[REFINEMENT] Time efficiency: {old_time}h -> {new_time}h")
+            logger.info(f"[REFINEMENT] time efficiency | {old_time}h → {new_time}h")
             return True
 
-        logger.info(f"[STABLE] Darwinian score: {old_score} == {new_score} ({old_res} -> {new_res})")
+        logger.info(f"[STABLE] score {old_score} == {new_score}")
         return False
