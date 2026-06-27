@@ -5,15 +5,15 @@ trade_management:
 
 network:
   binance:
-    api_timeout_seconds: 65
+    api_timeout_seconds: 30
     retry_count: 2
 
 llm:
   # --- Central Neural Infrastructure ---
   active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
-  api_timeout_seconds: 240
-  max_tool_iterations: 9
-  retry_count: 8
+  api_timeout_seconds: 180
+  max_tool_iterations: 5
+  retry_count: 3
   retry_strategy:
     multiplier: 2
     min_seconds: 5
