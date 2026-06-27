@@ -2,437 +2,567 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-AI-driven crypto quantitative trading engine. Its core innovation is the **Binary Star adversarial protocol**: two LLM agents (Session Analyst proposing trades, Critic Agent auditing them) debate in rounds to converge on zero-entropy trade decisions. A third agent (Evolver) uses audit results to mutate strategy parameters.
+AI-driven crypto quantitative trading engine. Its core innovation is the **Binary Star adversarial protocol**: two LLM agents (Session Analyst proposing trades, Critic Agent auditing them) debate in rounds to converge on zero-entropy trade decisions. A third agent (Evolver) uses forensic audit results to mutate strategy parameters via sandbox-validated evolutionary patches.
 
 ---
 
 ## Architecture
 
+```mermaid
+graph TB
+    subgraph Entry["Entry Points"]
+        CLI["run.py (CLI)"]
+        Session["run_session.py"]
+        Sniper["run_sniper.py"]
+        Audit["run_audit.py"]
+        Backtest["run_backtest.py"]
+        Evolution["run_evolution.py"]
+        Patch["run_patch.py"]
+    end
+
+    subgraph Dashboard["Dashboard"]
+        API["FastAPI Server<br/>src/dashboard/server.py"]
+        Routes["session_run | sniper_run<br/>sessions | audits | backtest"]
+        Renderer["SessionRenderer<br/>HTML email + chart"]
+    end
+
+    subgraph Orchestration["Orchestration Layer"]
+        BSO["BinaryStarOrchestrator"]
+        DL["DebateLoop"]
+    end
+
+    subgraph Agents["Agents"]
+        SA["SessionAgent<br/>trade proposal"]
+        CA["CriticAgent<br/>forensic audit"]
+        EA["EvolverAgent<br/>strategy mutation"]
+        ES["EvolverSandbox<br/>batch validation"]
+    end
+
+    subgraph Sniper["Sniper Layer"]
+        Scout["SniperScout<br/>lightweight harvest"]
+        Trigger["SniperTrigger<br/>14-signal confluence"]
+    end
+
+    subgraph Execution["Trade Execution"]
+        MOE["MarginOrderExecutor<br/>sync_with_opinion + guardian_check"]
+    end
+
+    subgraph Analysis["Market Analysis"]
+        MO["MarketObserver"]
+        VP["VolumeProfile"]
+        MR["MarketRegime"]
+        LE["LiquidationEstimator"]
+        MFC["MathFactChecker"]
+        AA["AuditAssembler"]
+        AC["AuditController"]
+        TE["TopographyEngine"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        AIF["AIFactory → AbstractAIClient"]
+        AI_Adapters["Gemini | DeepSeek | Qwen"]
+        Exchange["BinanceFuturesClient<br/>BinanceMarginClient"]
+        Notify["SessionNotifier<br/>EmailDispatcher"]
+    end
+
+    CLI --> Dashboard
+    Session --> BSO
+    Sniper --> Scout --> Trigger --> BSO
+    BSO --> DL
+    DL --> SA --> CA
+    DL --> MFC
+    BSO --> MO
+    BSO --> MOE
+    Audit --> AC --> AA
+    Evolution --> EA --> ES
+    ES --> BSO
+    Patch --> EA
+    AIF --> AI_Adapters
+    SA & CA & EA --> AIF
 ```
-Entry Points (run.py + standalone run_*.py)
-  → Dashboard (src/dashboard/)           FastAPI + Jinja2 templates, API routers, static assets
-  → Orchestration (src/agent/)           DebateLoop, BinaryStarOrchestrator
-  → Agents (src/agent/)                  SessionAgent, CriticAgent, EvolverAgent, EvolverSandbox
-  → AI Backend (src/infrastructure/)     AbstractAIClient + AIFactory at root; adapters in ai/ (Gemini, DeepSeek, Qwen)
-  → Exchange (src/infrastructure/)       AbstractExchangeClient → Binance (binance/), models (exchange/models.py)
-  → Notifications (src/infrastructure/)  EmailNotifier
-  → Market Analysis (src/analyzer/)      MarketObserver, VolumeProfile, MarketRegime, LiquidationRadar,
-                                         MathFactChecker, AuditAssembler, AuditController
-  → Config (src/config/)                 Sub-config dataclasses + YAML loaders
-```
 
-### AI backend (key design pattern)
+### Layer Descriptions
 
-`AbstractAIClient` (in `src/infrastructure/ai_client.py`) is the contract — mirrors the `AbstractExchangeClient` pattern for LLM providers. All agents depend on the interface, not any SDK. `AIFactory.create_client()` (in `src/infrastructure/ai_factory.py`) returns the right adapter based on `global_config.yaml` → `llm.active_provider`. Adapter implementations live in `src/infrastructure/ai/`.
-
-OpenAI-compatible providers (DeepSeek, Qwen) share a single `OpenAICompatibleAdapter` base class. Only `GeminiAdapter` touches Gemini SDK types — the orchestrator and agents use provider-agnostic `VisualPart` for multimodal content.
-
-### Adversarial debate flow
-
-1. `MarketObserver.observe()` collects klines, OI, liquidations, CVD → `observation` dict
-2. `BinaryStarOrchestrator.execute_flow()`:
-   - Injects regime benchmarks into observation
-   - Optionally creates Gemini context cache (Truth Bus)
-   - `DebateLoop.run()` alternates: SessionAgent proposes → MathFactChecker verifies → CriticAgent audits → repeat until PASS/TERMINAL or `max_rounds`
-   - Final synthesis at cold temperature, sanitized against math truth
-3. Result archived as JSON in `<data_root>/sessions/`
+| Layer | Module | Role |
+|-------|--------|------|
+| **Entry Points** | `run.py`, `run_*.py` | CLI + standalone scripts; each `run_*.py` is independently invocable |
+| **Dashboard** | `src/dashboard/` | FastAPI server, Jinja2 templates, REST API for session/sniper/audit/backtest |
+| **Orchestration** | `src/agent/binary_star_orchestrator.py` | Wires Observer → DebateLoop → MathFactChecker → SessionAgent → CriticAgent |
+| **Agents** | `src/agent/session_agent.py`, `critic_agent.py`, `evolver_agent.py` | LLM agents for trade proposal, adversarial critique, and strategy evolution |
+| **Sniper** | `src/sniper/` | Lightweight pulse monitor: Scout harvests market data, Trigger evaluates 14-signal confluence |
+| **Trade Execution** | `src/agent/order_executor.py` | MarginOrderExecutor: position cross-referencing, synthetic OCO, Guardian trailing stops |
+| **Market Analysis** | `src/analyzer/` | Volume profile, regime detection, math fact-checking, forensic audit assembly, topography |
+| **AI Backend** | `src/infrastructure/ai_client.py`, `ai_factory.py`, `ai/` | Provider-agnostic `AbstractAIClient` → Gemini, DeepSeek, Qwen adapters |
+| **Exchange** | `src/infrastructure/binance/` | Futures (market data) + Margin (trade execution) clients |
+| **Config** | `src/config/` | Frozen dataclasses (sub_configs.py), YAML loaders, symbol-aware resolution + patching |
+| **Utilities** | `src/utils/` | Math tools, datetime, evolution patching, fitness evaluation, rate limiting, logging |
 
 ---
 
 ## The Binary Star Protocol
 
-Binary Star is a high-precision, multi-agent quantitative analysis engine. Its kernel simulates a rigorous debate process, eliminating trading bias and hallucination through **adversarial reasoning**.
+Every final trade instruction must survive adversarial debate — purifying chaotic market conditions into deterministic low-entropy parameters.
 
-Every final trade instruction must survive this high-pressure game — purifying chaotic market conditions into calm, deterministic low-entropy parameters.
+```mermaid
+sequenceDiagram
+    participant MO as MarketObserver
+    participant BSO as BinaryStarOrchestrator
+    participant CM as CacheManager
+    participant DL as DebateLoop
+    participant SA as SessionAgent
+    participant MFC as MathFactChecker
+    participant CA as CriticAgent
 
-- **Truth Bus**: Multimodal market topography is cached once and shared across the reasoning triad to eliminate context drift and cost.
-- **Physical Verification**: AI proposals are cross-referenced against Python-native math fact-checks to prevent hallucination in trade geometry.
-- **Adversarial Hardening**: Iterative debate rounds ensure the final trade blueprint is logically sound and structurally shielded.
+    MO->>BSO: observe(symbol) → topography + metrics
+    BSO->>CM: create market cache (Truth Bus)
+    BSO->>DL: run(observation, symbol)
+
+    loop Debate Rounds (1..max_rounds)
+        DL->>SA: execute_session_cycle(debate_history, temperature=0.7)
+        SA-->>DL: {opinion, confidence, tactical_parameters}
+        DL->>MFC: verify(plan, observation)
+        MFC-->>DL: {status, rr_ratio, compliance_verdict}
+        DL->>CA: evaluate(plan, observation, math_result)
+        CA-->>DL: {veto_level: PASS|WEAK|CONSTRUCTIVE|TERMINAL}
+        alt PASS or WEAK
+            DL-->>BSO: early_exit=True
+        else CONSTRUCTIVE or TERMINAL
+            DL->>DL: compress history, next round
+        end
+    end
+
+    opt max_rounds exhausted
+        DL->>SA: cold synthesis (temperature=0.2)
+        SA-->>DL: synthesized final decision
+    end
+
+    DL-->>BSO: {final_decision, debate_history, metadata}
+    BSO->>CM: delete market cache
+    BSO-->>Session: archive session JSON
+```
+
+### Audit Dimensions
+
+The CriticAgent evaluates every trade proposal across these axes:
+
+| Dimension | Check |
+|-----------|-------|
+| **Risk-Reward** | RR ratio ≥ regime-adaptive minimum (trending: 1.12, ranging: 1.0, chaos: discounted) |
+| **Structural Shielding** | Stop-loss anchored behind POC, VAH/VAL, or HVN — not floating in vacuum |
+| **Entry Feasibility** | Entry distance from current price ≤ max_entry_distance_atr (1.6 ATR) |
+| **Directional Sanity** | Counter-trend trades require CVD confirmation; trend pullbacks verified |
+| **Chaos Survival** | Directional momentum signals blocked in chaos regime (VII > 2.2) |
+| **Physical Plausibility** | MathFactChecker: pure-Python verification of RR, ATR metrics, structural proximity |
+
+---
+
+## Sniper System
+
+The Sniper is a lightweight daemon that monitors market topography at 2-minute pulses. It only activates the heavyweight Binary Star reasoning engine when signal confluence exceeds a regime-adaptive threshold — saving LLM tokens during quiet markets.
+
+### Signal Stack (14 Detectors × 5 Categories)
+
+| # | Signal | Category | Weight | Description |
+|---|--------|----------|--------|-------------|
+| 1 | `cvd_momentum` | FLOW | 0.65 | CVD intensity exceeds threshold, growing vs previous pulse |
+| 2 | `cvd_divergence` | FLOW | 0.70 | CVD-price divergence: smart money vs retail direction mismatch |
+| 3 | `cvd_absorption` | FLOW | 0.65 | Extreme CVD with flat price — iceberg absorption detected |
+| 4 | `taker_imbalance` | FLOW | 0.60 | Taker buy/sell ratio derived from CVD intensity |
+| 5 | `volatility_surge` | ENERGY | 0.55 | VII > baseline, VPR > threshold, growing (damped) |
+| 6 | `squeeze` | ENERGY | 0.75 | Bollinger Band squeeze factor below threshold — breakout precursor |
+| 7 | `boundary_test` | STRUCTURAL | 0.50 | Price approaching VAH/VAL within proximity threshold |
+| 8 | `poc_gravity` | STRUCTURAL | 0.55 | Price pulled toward POC — mean-reversion magnet active |
+| 9 | `liquidation_hunt` | STRUCTURAL | 0.60 | Price moving toward liquidation cluster within proximity |
+| 10 | `trend_pullback` | STRUCTURAL | 0.75 | Price pulling back to HVN in strong trend direction |
+| 11 | `retail_extreme` | POSITIONING | 0.42 | LS ratio or funding rate at extreme — contrarian signal |
+| 12 | `oi_divergence` | POSITIONING | 0.70 | OI-price divergence: open interest vs price moving opposite directions |
+| 13 | `oi_surge` | POSITIONING | 0.55 | OI and price moving same direction — trend continuation |
+| 14 | `leader_sync` | CROSS_SYMBOL | 0.40 | Correlated leader (ETH, XAUT) triggered — boost follower |
+
+### Confluence Engine
+
+Signals stack directionally using the formula **1 − ∏(1 − sᵢ · wᵢ)**, with noise cancellation via cross-direction product. Regime-adaptive thresholds:
+
+| Regime | Modifier | Effective Threshold | Rationale |
+|--------|----------|--------------------|-----------|
+| `squeeze` | 0.75 | 0.26 | Lowest — compression is breakout precursor, position early |
+| `trending` | 0.85 | 0.30 | Trend has inertia — lower bar for high-conviction signals |
+| `ranging` | 1.00 | 0.35 | Neutral — noise is symmetric, no bias |
+| `chaos` | 1.50 | 0.53 | Near-lockout — only emergency override (strength ≥ 0.80) breaks through |
+
+### Pulse Flow
 
 ```mermaid
 graph TD
-    classDef input fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#01579b
-    classDef process fill:#fff9c4,stroke:#f57f17,stroke-width:2px,color:#f57f17
-    classDef strict fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#c2185b
-    classDef exec fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1b5e20
-    classDef halt fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#c62828
-
-    subgraph EntropyFunnel ["Entropy Convergence Funnel"]
-        direction TB
-        
-        Inputs[/"High-Entropy Data Stream<br>(Klines / Liquidations / Order Flow)"/]:::input
-        TruthBus["Truth Bus<br>Locks physical timestamp — unified visual context"]:::input
-        
-        subgraph DebateCycle ["Adversarial Debate & Physical Squeeze"]
-            Thesis["Session Agent<br>Proposes tactical hypothesis from structure"]:::process
-            Physics["MathTools Engine<br>RR verification & structural armor detection"]:::strict
-            Critic["Critic Agent<br>Searches for structural flaws and logic blind spots"]:::strict
-            
-            Thesis --> Physics --> Critic
-            Critic -- "Fatal flaw found (force logic rebuild)" --> Thesis
-        end
-        
-        Synthesis["Cold-State Reduction<br>Prunes all adjectives — extracts physical parameters"]:::process
-        Output[/"Low-Entropy Machine Instruction (Final JSON)"/]:::exec
-        Halt[/"Disciplined Abort (NEUTRAL)"/]:::halt
-        
-        Inputs --> TruthBus --> Thesis
-        Critic -- "Physical consensus reached" --> Synthesis
-        Critic -- "Logic fragile (uncloseable)" --> Halt
-        Synthesis --> Output
-    end
+    Pulse["2-min Pulse"] --> Scout["SniperScout.scout()<br/>klines + OI + liquidations + CVD"]
+    Scout --> Trigger["SniperTrigger.evaluate()"]
+    Trigger --> Detect["13 signal detectors run"]
+    Detect --> Memory["SignalMemory.ingest()<br/>merge fresh + decay survivors"]
+    Memory --> Confluence["ConfluenceEngine.evaluate()<br/>directional stack + noise cancel"]
+    Confluence --> Cooldown{"Adaptive Cooldown?"}
+    Cooldown -->|active| CheckBreak{"Stack ≥ 3?<br/>Strength > last × 1.8?"}
+    Cooldown -->|inactive| Gate["Pre-AI Gate<br/>4 deterministic checks"]
+    CheckBreak -->|yes| Gate
+    CheckBreak -->|no| Sleep["💤 SLEEPING"]
+    Gate -->|FAIL| Sleep
+    Gate -->|PASS| Fire["🔫 SNIPER WAKE UP!<br/>Activate Binary Star session"]
+    Fire --> Guardian["Guardian Check<br/>position protection"]
+    Fire --> LeaderSync["Leader Sync<br/>boost correlated followers"]
 ```
 
-### The Zero-Entropy Logic Matrix
+### Adaptive Cooldown
 
-To achieve physically-enforced convergence, all multi-channel data is mapped into a strict set of **logical checkpoints and abort conditions**:
+After a trigger, cooldown prevents spam. Duration adapts to regime:
 
-| Audit Dimension | Identifier | Core Logic |
-| :--- | :--- | :--- |
-| **Order Physics** | `[ORDER_PHYSICS]` | Entry legality: verify entry price hasn't been breached; stop-loss direction is physically correct. |
-| **Anchor Violation** | `[ANCHOR_VIOLATION]` | Stop-loss must be shielded by HVN/POC or liquidation clusters. No "naked" stops. |
-| **Structural Trap** | `[STRUCTURAL_TRAP]` | Avoid volume vacuums (LVN zones) where price can frictionlessly slide. |
-| **Math Violation** | `[MATH_VIOLATION]` | RR ratio and ATR tolerance enforced by the physics engine. Sub-threshold proposals are downgraded. |
-| **Gravity Exhaustion** | `[GRAVITY_EXHAUSTION]` | Mean-reversion pressure: prohibit chasing price beyond the gravity limit of the value area. |
-| **CVD Absorption** | `[CVD_ABSORPTION]` | Wall detection: extreme CVD pulses absorbed without price movement signal iceberg orders. |
-| **Retail Squeeze** | `[RETAIL_LONG_SQUEEZE]` `[RETAIL_SHORT_SQUEEZE]` | Polar reversal: when retail positioning is heavily one-sided, seek the opposite opportunity. |
-| **Opportunity Cost** | `[INACTION_BIAS]` `[OPPORTUNITY_DENIAL]` | Missed-move penalty: when consensus is confirmed and structure is clear, unjustified retreat is prohibited. |
-| **Trend Starvation** | `[TREND_STARVATION]` | Trend capture: detect expanding volatility with strong trend when the system is flat. |
-| **Liquidity Void** | `[LIQUIDITY_VOID]` | Proximity check: nearest LVN distance is too close — risk of violent price movement. |
-| **Protocol Violation** | `[PROTOCOL_VIOLATION]` | Dead-loop protection: prohibit repeating the same failed proposal on the same evidence. |
-| **Endgame** | `[PRISTINE]` `[JUSTIFIED_INACTION]` | Holy grail: fully compliant entry (green light), or disciplined abstention based on physical facts. |
+| Regime | Cooldown | Break Conditions |
+|--------|----------|-----------------|
+| `trending` | 25 min | 3+ stacked signals, or strength > last × 1.8 |
+| `ranging` | 45 min | Same break conditions |
+| `squeeze` | 25 min | Same break conditions |
+| `chaos` | 60 min | Emergency override only (strength ≥ 0.80) |
 
----
+Absolute minimum gap between triggers: **10 minutes**.
 
-## Sniper Trading System
+### Guardian: Position Protection
 
-The Sniper is a two-phase monitoring and trading automaton: a fast, lightweight market scanner identifies "noteworthy" conditions (Phase 1), and an on-demand AI reasoning engine generates precise trade blueprints (Phase 2). Trade execution is managed by a deterministic state machine that cross-references current positions against the AI's fresh opinion.
+Every pulse cycle, Guardian checks and protects open positions — no AI involvement:
 
-### Architecture
+| State | Action |
+|-------|--------|
+| **Flat, no trade state** | No-op |
+| **Entry pending, not expired** | Wait (elapsed < projected_waiting_hours) |
+| **Entry expired** | Cancel entry order, clear trade state |
+| **Position filled, unprotected** | Place synthetic OCO (TP limit + SL limit) |
+| **Position filled, protected** | Check OCO still active, no action |
+| **SL breached** | Emergency market close |
+| **Partial SL fill** | Rebuild OCO with remaining qty |
+| **Position flat (was filled)** | Cancel all orders, clear state |
 
-```
-run.py sniper (SniperDaemon)
-  ├── SniperScout (src/sniper/scout.py)         Lightweight market data harvester
-  ├── SniperTrigger (src/sniper/trigger.py)     Three-type signal evaluator
-  ├── SessionEngine (run.py session)            Binary Star AI reasoning (on-demand)
-  └── MarginOrderExecutor (src/agent/order_executor.py)  Order lifecycle + Guardian
-```
+### Trailing Stop Migration (3-Tier)
 
-### Signal Types (Phase 1: Trigger)
+When profit exceeds ATR-based thresholds, Guardian progressively migrates the stop-loss:
 
-Every 2 minutes, `SniperTrigger.evaluate()` scores three signal types — the strongest wins.
+| Tier | Profit (ATR) | SL Position | Rationale |
+|------|-------------|-------------|-----------|
+| Level 1 | ≥ 1.5 ATR | SL → entry (breakeven) | Lock in safety |
+| Level 2 | ≥ 2.5 ATR | SL → entry + 0.5 ATR | Capture partial profit |
+| Level 3 | ≥ 4.0 ATR | SL → entry + 1.5 ATR | Trail aggressively |
 
-| Type | Sub-Type | Condition | Key Gate |
-|------|----------|-----------|----------|
-| **TYPE_A** (Breakout) | Volatility Expansion + Volume Surge | Vol > 1.25× baseline **and** Volume Participation > 1.5× | Vol must be **accelerating** (>3% pulse-over-pulse growth), not just sustained |
-| **TYPE_A** (Breakout) | Physical Squeeze | Squeeze Factor < 0.75 | Squeeze must be **intensifying** (>2% tighter); 6h state lock |
-| **TYPE_B** (Asymmetry) | CVD Divergence | Price↑ + CVD↓ (distribution) or Price↓ + CVD↑ (accumulation), delta > 0.20 | Requires previous-pulse data |
-| **TYPE_B** (Asymmetry) | CVD Impulse | Single large taker order, delta > 0.30 | Large trader raid detection |
-| **TYPE_B** (Asymmetry) | CVD Absolute Momentum | CVD intensity > 0.1 **and** growing > 1.4× | Growth-gated re-trigger |
-| **TYPE_B** (Asymmetry) | Retail Sentiment Extreme | L/S ratio > 1.5 or < 0.6; Funding > 0.0005 | 6h state lock per key |
-| **TYPE_C** (Structural) | VAH/VAL Boundary Collision | Price within 0.70 ATR of VAH/VAL + Volume Participation > 1.0× | Must be **approaching** the boundary |
-| **TYPE_C** (Structural) | POC Magnet | Price within 0.50 ATR of POC | Must be **approaching** POC |
-| **TYPE_C** (Structural) | Liquidation Cluster Magnet | Price within 0.40 ATR of long/short liquidation clusters | Long liq: price must be **falling**; Short liq: price must be **rising** |
+**Time Stop**: If elapsed > projected_holding_hours × 1.5, position is market-closed regardless of profit.
 
-**Global gates** (evaluated before any signal):
-- **Cooldown**: 45 min after last trigger → `GLOBAL_COOLDOWN`
-- **Chaos Mute**: Volatility > 2.2× extreme ratio **and** within 90 min of last trigger → `CHAOS_MUTE`
+### Order Lifecycle
 
-### Complete Decision Tree (Phase 2: AI + Execution)
-
-```
-                      ┌─────────────────────────────┐
-                      │  Scan every 2 minutes       │
-                      │  Guardian ALWAYS runs first │
-                      └────────────┬────────────────┘
-                                   │
-                    ┌──────────────▼──────────────────────┐
-                    │  GUARDIAN: Protect open positions   │
-                    │  • Entry timeout? → Cancel          │
-                    │  • Filled but no OCO? → Place OCO   │
-                    │  • Has OCO? → Migrate trailing stop │
-                    │  • Time-stop? → Market close        │
-                    └──────────────┬──────────────────────┘
-                                   │
-                    ┌──────────────▼────────────────────┐
-                    │  Evaluate Trigger (A/B/C signals) │
-                    └──────┬──────────┬─────────────────┘
-                           │          │
-                    No trigger    Trigger hit
-                           │          │
-              ┌────────────▼──┐  ┌───▼───────────────────┐
-              │ Sleep until   │  │ Has position already? │
-              │ next pulse    │  └──┬─────────────────┬──┘
-              └───────────────┘     │ YES             │ NO
-                         ┌──────────▼───────┐  ┌───────▼─────────────────┐
-                         │ Skip AI entirely │  │ Run Binary Star AI      │
-                         │ Guardian manages │  │ Debate → final decision │
-                         │ the position     │  └───────┬─────────────────┘
-                         └──────────────────┘          │
-                                          ┌───────────▼─────────┐
-                                          │ Trade Gates:        │
-                                          │ • BULLISH/BEARISH?  │
-                                          │ • Confidence ≥ 60%? │
-                                          │ • Has entry/TP/SL?  │
-                                          └─────┬────────┬──────┘
-                                                │ PASS   │ FAIL
-                                     ┌──────────▼──┐  ┌──▼──────┐
-                                     │ sync_with_  │  │ Skip    │
-                                     │ opinion()   │  └─────────┘
-                                     └──┬──┬──┬────┘
-                                        │  │  │
-                         FLAT ──────────┘  │  └────────── SAME DIRECTION
-                         • Cancel stale    │              • Pick best TP/SL
-                         • LIMIT entry     │              • Wrap into OCO
-                         • Return order_id │              • Return None
-                                           │
-                                    PIVOT ─┘
-                                    ├─ Unprotected: Force-close + new entry
-                                    └─ Protected: Adjust TP + hang new entry
-```
-
-### Position State Machine (`sync_with_opinion()`)
-
-| Current State | AI Opinion | Action |
-|---------------|------------|--------|
-| **FLAT** (no position) | BULLISH/BEARISH | Cancel stale orders → Place LIMIT entry → Return `order_id` for Guardian tracking |
-| **LONG** | BULLISH (same) | Merge best TP (higher) + best SL (higher) → Wrap entire net qty in new OCO → Return `None` |
-| **SHORT** | BEARISH (same) | Merge best TP (lower) + best SL (lower) → Wrap entire net qty in new OCO → Return `None` |
-| **LONG** | BEARISH (pivot) | **Protected** (has SL): Adjust existing TP to new entry price → Re-hang OCO → Place new SHORT LIMIT entry. **Unprotected** (no SL): Market-close LONG → Place new SHORT LIMIT entry |
-| **SHORT** | BULLISH (pivot) | **Protected** (has SL): Adjust existing TP to new entry price → Re-hang OCO → Place new LONG LIMIT entry. **Unprotected** (no SL): Market-close SHORT → Place new LONG LIMIT entry |
-
-**Pivot-Preserve mechanism**: When pivoting a protected position, the existing position's take-profit is moved to the new entry price. This creates a seamless flip — when the old position hits breakeven, the new entry fills at the same price, achieving net-zero-slippage reversal.
-
-### Guardian: Per-Pulse Position Protection
-
-The Guardian runs **every** pulse (regardless of trigger state) and manages the full position lifecycle:
-
-```
-trade_state empty? ────────────────────────► Return (nothing to protect)
-
-Has position (net qty)?
-  ├── NO (entry pending):
-  │     • Elapsed > projected_waiting_hours? → Cancel order, clear state
-  │     • Otherwise → Still waiting, do nothing
-  │
-  ├── YES, but direction mismatch (manual position):
-  │     • Robot does NOT adopt — keeps tracking its own entry
-  │
-  ├── YES, direction matches, NO OCO:
-  │     • Price breached SL? → EMERGENCY market close
-  │     • Otherwise → Cancel stale entry orders → Place OCO (TP + SL-Limit)
-  │     • Record entry_filled_at for time-stop tracking
-  │
-  └── YES, direction matches, HAS OCO:
-        • Check time-stop: elapsed > projected_holding × 1.5? → Market close
-        • Progressive trailing stop migration (forward-only):
-          Level 1 (≥1.5 ATR profit): SL → entry (breakeven)
-          Level 2 (≥2.5 ATR profit): SL → entry + 0.5 ATR (LONG) / entry - 0.5 ATR (SHORT)
-          Level 3 (≥4.0 ATR profit): SL → entry + 1.5 ATR (LONG) / entry - 1.5 ATR (SHORT)
-        • On OCO re-place failure → EMERGENCY market close (never stay naked)
-```
-
-### Position Sizing
-
-```
-qty = (Total Equity × 0.4%) / |entry_price - stop_loss|
-```
-
-Risk per trade is capped at 0.4% of total equity. Quantity is precision-rounded and floored at the symbol's minimum order size.
-
-### Emergency Close Fallback (Risk Control)
-
-When OCO re-placement fails after cancelling existing orders (in Pivot-Preserve and Same-Direction paths), the position would be left **naked** — all protective orders cancelled with no new OCO in place. The system now performs an **emergency market close** in this scenario:
-
-| Path | Failure Point | Recovery |
-|------|--------------|----------|
-| **Pivot-Preserve** | OCO re-place fails after cancel | Emergency close existing position → still place new entry (AI opinion still valid) |
-| **Same-Direction** | OCO re-place fails after cancel | Emergency close position → return sentinel (-1) → clear `trade_state` |
-
-This matches the existing emergency-close pattern in the **Trailing Stop Migration** path, ensuring no position ever sits unprotected.
-
-### Multi-Symbol Architecture
-
-The system supports any number of trading pairs from a single config. Symbols are provided at runtime via `--symbol` (prefix format, e.g., `BTC,XAUT`), and the sniper daemon runs an independent scout → trigger → guardian loop for each. Core analysis parameters in `strategy_config.yaml` are instrument-agnostic — CVD ratios, ATR-normalized distances, and volume participation ratios apply identically across instruments. Timing parameters are tuned for general-purpose balance:
-
-| Parameter | Value | Notes |
-|-----------|-------|-------|
-| **Cooldown** | **45 min** | 15m micro-context × 3.0 multiplier |
-| **Chaos Mute** | **90 min** | Proportional to cooldown (45 × 2.0). Extends protection during vol spikes |
-| **State Lockout** | **6.0 hours** | Prevents structural/sentiment trigger spam without missing setups |
-
-**Why CVD/volatility/squeeze thresholds are instrument-agnostic:**
-
-| Parameter | Why instrument-agnostic |
-|-----------|------------------------|
-| `cvd_divergence_tick_delta` (0.20) | CVD ratio = net_taker / total_volume — already normalized. A 20% directional swing means the same thing for any instrument. |
-| `cvd_impulse_tick_delta` (0.30) | Same normalization logic. 30% single-pulse dominance is extreme regardless of book depth. |
-| `volatility_baseline_ratio` (1.25) | ATR-relative — measures expansion vs. the instrument's own baseline, not an absolute value. |
-| `squeeze_trigger_multiplier` (0.75) | Bollinger/Keltner relationship is a mathematical construct independent of price level. |
-| `proximity_vah_val_atr` (0.70) | All ATR-denominated — structural proximity is measured in the instrument's own volatility units. |
-| `cvd_intensity_threshold` (0.10) | Used by AI agents + debate loop + sniper trigger. Changing it shifts the entire reasoning pipeline's baseline for "significant flow." |
-
-> **Future enhancement**: Per-symbol config overrides (e.g., `sniper.BTC.cvd_divergence_tick_delta`) would allow instrument-specific tuning without duplicating config files. State (cooldowns, lockouts, trade_state) is already per-symbol in the daemon.
-
-### Key Configuration
-
-| Parameter | Value | Purpose |
-|-----------|-------|---------|
-| `pulse_interval_minutes` | 2.0 | Scan frequency |
-| `pulse_cooldown_multiplier` | 3.0 | Post-trigger silence (15m × 3 = 45 min) |
-| `chaos_cooldown_multiplier` | 2.0 | Extreme vol silence (45m × 2 = 90 min) |
-| `state_lockout_hours` | 6.0 | Structural/sentiment repeat suppression |
-| `session_confidence_threshold` | 60 | Minimum AI confidence for execution |
-| `risk_per_trade` | 0.004 | Maximum loss per trade (0.4% equity) |
-| `trailing_profit_atr_level_1/2/3` | 1.5/2.5/4.0 | Trailing stop migration thresholds |
-| `time_stop_multiplier` | 1.5 | Max hold time = projected_holding × 1.5 |
-
----
-
-## Installation
-
-### Prerequisites
-
-- Python 3.12+
-- A supported LLM provider API key (Gemini, DeepSeek, or Qwen)
-
-### Setup
-
-```bash
-git clone <repo-url> && cd singularity
-pip install -e .              # core dependencies
-pip install -e ".[dev]"       # include pytest, coverage
-```
-
-Or with Conda:
-
-```bash
-conda activate ai
-pip install -e .
-```
-
-### Configuration
-
-1. Copy `.env.example` (or create `.env`) with your API key:
-   ```bash
-   GEMINI_API_KEY="your-key-here"    # or DEEPSEEK_API_KEY / QWEN_API_KEY
-   ```
-
-2. Edit `config/global_config.yaml` to set your active provider:
-   ```yaml
-   llm:
-     active_provider: "gemini"  # gemini | deepseek | qwen
-   ```
-
-3. Review `config/strategy_config.yaml` for trading parameters, regime thresholds, and analysis windows.
-
----
-
-## Commands
-
-All entry points are consolidated under `run.py`:
-
-```bash
-# --symbol accepts prefix format (BTC, XAUT, ETH); "USDT" appended internally
-
-# Live analysis
-python run.py session --symbol BTC
-
-# Single historical snapshot
-python run.py session --symbol BTC -ts 2026-01-24T15:42:00Z
-
-# Backtest (sampled historical points)
-python run.py session --symbol BTC --start T-30d --end T-2d --samples 14 --sampling-mode sniper
-python run.py session --symbol XAUT --start T-30d --end T-2d --samples 14 -p data/backtest
-
-# Real-time monitoring daemon (CSV for multi-symbol)
-python run.py sniper --symbol BTC,XAUT --trigger --email
-python run.py sniper --symbol BTC,XAUT --trigger --email --trade
-
-# Forensic audit
-python run.py audit -p data/prod
-python run.py audit -p data/backtest --file data/backtest/sessions/BTCUSDT_session_20260101_120000.json
-python run.py audit -p data/prod --symbol BTC
-
-# Meta-evolution (strategy optimization from audit results)
-python run.py evolution --symbol BTC -p data/backtest --samples 20
-
-# Apply evolution patch
-python run.py patch -f data/backtest/evolution/proposals/BTCUSDT_evolution_20260101_120000.json
-
-# Start dashboard (http://localhost:8080)
-python -m src.dashboard.server
-python -m src.dashboard.server -p data/prod --port 8080
-
-```
-
-### Running tests
-
-```bash
-python -m pytest tests/ -v
-python -m pytest tests/ --cov=src --cov-report=term-missing
+```mermaid
+stateDiagram-v2
+    [*] --> Flat
+    Flat --> EntryPending: AI opinion (sync_with_opinion)
+    EntryPending --> Flat: Entry expired (Guardian)
+    EntryPending --> InPosition: Fill confirmed (Guardian)
+    InPosition --> Protected: OCO placed (Guardian)
+    Protected --> Protected: Trailing stop migrated
+    Protected --> Flat: TP hit / SL hit / Time stop
+    Protected --> Flat: Emergency close (OCO repair failed)
+    InPosition --> Flat: SL breached (emergency close)
 ```
 
 ---
 
 ## AI Providers
 
-The system supports 3 providers through a unified `AbstractAIClient` interface. Switch providers by changing `active_provider` in `global_config.yaml` — no code changes needed.
+`AbstractAIClient` defines the provider-agnostic contract. `AIFactory.create_client()` resolves the active provider from `global_config.yaml` → `llm.active_provider`.
 
-| Provider | Adapter | Vision | Context Cache | Cost |
-|----------|---------|--------|---------------|------|
-| **Gemini** | `GeminiAdapter` | Yes | Yes (Truth Bus) | $$$ |
-| **DeepSeek** | `DeepSeekAdapter` → `OpenAICompatibleAdapter` | — | — | $ |
-| **Qwen** | `QwenAdapter` → `OpenAICompatibleAdapter` | Yes (VL models) | — | $ |
+| Provider | Adapter | Model | Vision | Context Cache | Notes |
+|----------|---------|-------|--------|---------------|-------|
+| **DeepSeek** | `deepseek_adapter.py` | `deepseek-v4-pro` | No | No | OpenAI-compatible; thinking models supported via `reasoning_content` |
+| **Gemini** | `gemini_adapter.py` | `gemini-3.5-flash` | Yes | Yes | Context cache (Truth Bus) for multi-turn debate efficiency |
+| **Qwen** | `qwen_adapter.py` | `qwen3.7-max` | No (configurable) | No | OpenAI-compatible; set `supports_vision: true` for VL models |
 
-All providers support function calling + JSON mode. DeepSeek and Qwen share a single `OpenAICompatibleAdapter` base class — adding a new OpenAI-compatible provider is a ~10-line subclass.
+### Provider-Agnostic Data Types
 
-### Provider-specific setup
+```python
+@dataclass
+class AIResponse:
+    text: str
+    tool_calls: list[ToolCall] | None
+    usage: UsageMetadata | None
+    reasoning_content: str | None  # DeepSeek thinking models
 
-**Gemini** (default — only provider with context caching):
-```yaml
-llm:
-  active_provider: "gemini"
-  gemini:
-    context_cache:
-      enable: true
-      expiration_minutes: 10
-```
-
-**DeepSeek** (best cost-performance ratio):
-```yaml
-llm:
-  active_provider: "deepseek"
-  deepseek:
-    base_url: "https://api.deepseek.com"
-    model: "deepseek-v4-flash"
-```
-
-**Qwen** (Alibaba Cloud — strong Chinese-language understanding):
-```yaml
-llm:
-  active_provider: "qwen"
-  qwen:
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model: "qwen-plus"
+@dataclass
+class VisualPart:           # Provider-agnostic image/chart
+    mime_type: str
+    data: bytes
+    label: str | None
 ```
 
 ---
 
 ## Config System
 
-- `config/strategy_config.yaml` — trading parameters, regime thresholds, analysis windows
-- `config/global_config.yaml` — system settings, LLM provider config, visuals, sniper
-- `config/visual_config.yaml` — chart appearance, color themes, visual rendering options
-- `config/prompts/*.md` — LLM system prompts: `session.md`, `critic.md`, `evolver.md`, `binary_star.md` (sensitive system logic)
-- `src/config/sub_configs.py` — `RegimeConfig`, `TemporalConfig`, `RiskConfig`, `AuditConfig`, `VisualConfig` (frozen dataclasses)
-- `src/config/loader.py` — builds sub-configs from YAML dicts
+### File Tree
+
+```
+config/
+├── global_config.yaml       # LLM providers, binary_star, sniper, guardian, sandbox, evolver
+├── strategy_config.yaml     # Regime detection, temporal physics, audit thresholds, topography
+├── symbol_config.yaml       # Per-symbol trade params + overrides (BTCUSDT, XAUTUSDT, ETHUSDT)
+├── visual_config.yaml       # Chart rendering colors, DPI
+├── auth/                    # Exchange API credentials
+└── prompts/
+    ├── binary_star.md       # Shared system instruction
+    ├── session.md           # SessionAgent role prompt
+    ├── critic.md            # CriticAgent role prompt
+    └── evolver.md           # EvolverAgent role prompt
+```
+
+### Resolution Order
+
+```mermaid
+graph TD
+    Base["strategy_config.yaml<br/>regime + temporal + audit"] --> Merge["deep merge"]
+    Global["global_config.yaml<br/>llm + binary_star + sniper + guardian"] --> Merge
+    Symbol["symbol_config.yaml<br/>per-symbol overrides"] --> Resolve["resolve_config()"]
+    Merge --> Resolve
+    Resolve --> Final["Final resolved config<br/>(frozen dataclasses)"]
+```
+
+**Rule**: Symbol overrides win on conflict. If a symbol has `overrides.regime_parameters.trend.trend_intensity_min_expansion: 0.08`, it replaces the base value. Unknown sections are silently skipped. Original config is never mutated.
+
+### Sub-Config Dataclasses (Frozen)
+
+| Dataclass | Source Section | Key Fields |
+|-----------|---------------|------------|
+| `RegimeConfig` | `regime_parameters` | trend thresholds, volatility ratios, squeeze, CVD, imbalance |
+| `TemporalConfig` | `temporal_parameters` | velocity floor, regime-specific dilation + weights |
+| `RiskConfig` | `regime_parameters.risk` | min RR, structural buffer, chaos discount, max holding hours |
+| `AuditConfig` | `audit_review` | MAE thresholds (pinpoint/standard/luck), missed opportunity, slippage |
+| `VisualConfig` | `visual_config.yaml` | render DPI, up/down/POC/VAH/VAL colors |
+
+### Per-Symbol Overrides
+
+```yaml
+# symbol_config.yaml
+XAUTUSDT:
+  precision_qty: 3
+  precision_price: 1
+  min_order_qty: 0.01
+  sl_slippage_buffer: 0.5
+  overrides:
+    regime_parameters:
+      trend:
+        trend_intensity_min_expansion: 0.08
+    sniper:
+      probes:
+        cvd_divergence_tick_delta: 0.18
+```
+
+---
+
+## Installation & Setup
+
+```bash
+# Clone
+git clone <repo-url> && cd crypto
+
+# Virtual environment
+python -m venv venv && source venv/bin/activate
+
+# Install
+pip install -e .
+
+# Configure
+cp .env.example .env
+# Edit .env — set at least one API key:
+#   DEEPSEEK_API_KEY=sk-...
+#   GEMINI_API_KEY=...
+#   QWEN_API_KEY=...
+
+# Set active provider in config/global_config.yaml → llm.active_provider
+
+# Exchange credentials in config/auth/ (Binance API key + secret)
+
+# Verify setup
+python run.py --version
+```
+
+---
+
+## Commands
+
+All commands support both `python run.py <command>` and direct `python run_<module>.py` invocation. The `run_*.py` scripts are independent entry points — they do not import `run.py`.
+
+### Session
+
+Run a single Binary Star analysis cycle (live market data).
+
+```bash
+# Via unified CLI
+python run.py session --symbol BTC -p data/prod
+
+# Via standalone script
+python run_session.py --symbol BTC
+
+# With status file for dashboard polling
+python run.py session --symbol BTC --write_status -p data/prod
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--symbol` | Yes | — | Trading pair prefix (`BTC`, `ETH`, `XAUT`) |
+| `-p` / `--path` | No | `data/prod` | Data root directory |
+| `--write_status` | No | `false` | Write progress to `.session_run_status.json` |
+
+### Sniper
+
+Run the real-time monitoring daemon. Lightweight pulse (2-min) → signal evaluation → AI session only on trigger.
+
+```bash
+# Observe-only (signals logged, no LLM spend)
+python run.py sniper --symbol BTC,ETH,XAUT -p data/prod
+
+# Enable AI sessions on trigger
+python run.py sniper --symbol BTC,ETH,XAUT --llm -p data/prod
+
+# Enable automated trading (implies --llm)
+python run.py sniper --symbol BTC,ETH,XAUT --trade -p data/prod
+
+# With manual balance override
+python run.py sniper --symbol BTC,ETH,XAUT --trade 1000 -p data/prod
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--symbol` | Yes | — | Trading pair prefix(es), CSV for multiple |
+| `--llm` | No | `false` | Enable AI session dispatch on trigger |
+| `--trade` | No | `false` | Enable automated margin trading (implies `--llm`). Optional float value = manual balance USDT |
+| `-p` / `--path` | No | `data/prod` | Data root directory |
+
+### Backtest
+
+Run session cycles against historical timestamps. Three mutually exclusive modes:
+
+```bash
+# Dashboard mode (reads timestamps from .backtest_status.json)
+python run.py backtest-run --symbol BTC --run-id 1 -p data/prod
+
+# Single historical point
+python run.py backtest-run --symbol BTC --timestamp "2026-06-15T14:00:00Z" -p data/prod
+
+# Batch range with sniper-based sampling
+python run.py backtest-run --symbol BTC --start T-30d --samples 20 -p data/prod
+
+# Batch with custom end date
+python run.py backtest-run --symbol BTC --start 2026-01-01 --end 2026-06-01 --samples 50 -p data/prod
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--symbol` | Yes | — | Trading pair prefix |
+| `--run-id` | Mode A | — | Dashboard mode: read timestamps from status file |
+| `--timestamp` | Mode B | — | Single ISO-8601 timestamp |
+| `--start` | Mode C | — | Start date (`YYYY-MM-DD` or `T-30d`) |
+| `--end` | No | `now` | End date for batch range |
+| `--samples` | With `--start` | — | Number of samples to collect |
+| `--write-status` | No | `false` | Write progress to `.backtest_status.json` |
+| `-p` / `--path` | No | `data/prod` | Data root directory |
+
+### Audit
+
+Forensic audit on completed sessions. Batch mode (all sessions in directory) or single file. Parallel execution via `ProcessPoolExecutor`.
+
+```bash
+# Audit a single session file
+python run.py audit -f data/prod/sessions/BTCUSDT_20260615_140000.json -p data/prod
+
+# Batch audit all sessions for a symbol
+python run.py audit --symbol BTC -p data/prod
+
+# Force re-audit (bypass dedup + maturity checks)
+python run.py audit --symbol BTC --force -p data/prod
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `-f` / `--file` | No | — | Path to a specific session JSON |
+| `--symbol` | No | — | Filter batch by symbol prefix |
+| `--force` | No | `false` | Bypass deduplication and maturity checks |
+| `-p` / `--path` | **Yes** | — | Data root directory |
+
+### Evolution
+
+Meta-evolution cycle: ingest audit reports → AI proposes mutations → sandbox validates → generates proposal JSON.
+
+```bash
+python run.py evolution --symbol BTC --samples 10 -p data/prod
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--symbol` | Yes | — | Trading pair prefix |
+| `--samples` | Yes | — | Number of audit reports to ingest |
+| `-p` / `--path` | **Yes** | — | Data root directory |
+
+### Patch
+
+Apply a validated evolution proposal to config files and prompt templates.
+
+```bash
+# Patch strategy_config.yaml (no symbol)
+python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260615.json
+
+# Patch symbol_config.yaml overrides for a specific symbol
+python run.py patch -f proposal.json --symbol XAUT
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `-f` / `--file` | Yes | — | Path to validated evolution proposal JSON |
+| `--symbol` | No | — | Target symbol for symbol_config.yaml override patching |
+
+### Utility Scripts
+
+| Script | Description |
+|--------|-------------|
+| `scripts/calculate_qty.py` | Position size calculator: equity, risk%, entry, SL → qty |
+| `scripts/check_margin_state.py` | Inspect current Binance margin account state |
+| `scripts/clean_neutral_sessions.py` | Batch-delete neutral/no-op session files from data directory |
+| `scripts/export_session.py` | Export a session JSON to readable markdown summary |
+| `scripts/market_recon.py` | Standalone market reconnaissance (topography snapshot) |
+| `scripts/render_email_html.py` | Render session result as HTML email |
+| `scripts/sandbox_offline.py` | Offline sandbox: replay audit with patch, no live API calls |
+| `scripts/sandbox_online.py` | Online sandbox: full Binary Star replay with live AI |
+| `scripts/diagnostic_models.py` | List available AI models and their capabilities |
 
 ---
 
 ## Key Invariants
 
-- `BinaryStarOrchestrator.execute_flow(observation, symbol)` — public signature must not change
-- `GeminiCacheManager` requires `GeminiAdapter` (only Gemini supports context caching); gated by `enable_context_cache`
-- `run_evolution.py` must use `AIFactory.create_client()`, not raw SDK clients
-- Non-Gemini adapters return `False` for `supports_context_cache`
+These are hard constraints enforced at runtime — violations trigger aborts, not warnings:
+
+- **Symbol Whitelist**: `MarginOrderExecutor` rejects any symbol not in `symbol_config.yaml`. No trade can execute for unconfigured symbols.
+- **Config Immutability**: `resolve_config()` returns a new dict — never mutates the original. Sub-config dataclasses are frozen.
+- **Emergency Close on OCO Failure**: If synthetic OCO placement fails during a pivot, the position is market-closed immediately (sentinel `-1`). Naked positions are not tolerated.
+- **Circuit Breaker**: `SessionEngine` halts after `llm.max_consecutive_failures` (default: 3) consecutive cycle failures in live mode.
+- **Entry Expiry**: Entries expire after `projected_waiting_hours`. Guardian cancels stale entry orders.
+- **Time Stop**: Positions held beyond `projected_holding_hours × guardian.time_stop.time_stop_multiplier` (1.5×) are market-closed.
+- **Structural Shielding**: Stop-loss must be anchored behind at least one structural level (POC, VAH/VAL, HVN). MathFactChecker enforces this.
+- **Chaos Survival**: Directional momentum signals are blocked in chaos regime (VII > `volatility_extreme_ratio`).
+- **Regime-Gated RR**: Minimum RR adapts to regime — trending requires 1.12, chaos discounts to 0.78, ranging uses 1.0.
+- **Adaptive Cooldown**: Sniper cannot re-trigger within cooldown window unless emergency override (strength ≥ 0.80) or stacked break (3+ signals).
+- **Supersede Detection**: Backtest dashboard mode checks `run_id` before each sample — superseded runs are discarded mid-flight.
+
+---
+
+## Development
+
+```bash
+# Run full test suite
+python -m pytest tests/ -v
+
+# Run specific test file
+python -m pytest tests/unit/test_sniper_daemon.py -v
+
+# Run with coverage
+python -m pytest tests/ --cov=src --cov-report=term-missing
+```
+
+**Test suite**: 166 tests across unit, integration, system, and analyzer layers. All tests use mocked external dependencies (exchange clients, AI adapters). Live API tests are skipped unless real API keys are configured.
