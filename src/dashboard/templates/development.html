@@ -112,11 +112,16 @@
 
 {% if "run_backtest" in permissions %}
 <script>
-const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
-const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
+const DATA_ROOT = '{{ data_root }}';
+(function () {
+  const tag = document.createElement('span');
+  tag.className = 'data-root-tag';
+  tag.textContent = DATA_ROOT;
+  document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
+})();
 
 function apiUrl(path) {
-  return DR ? `${path}?${DR}` : path;
+  return path;
 }
 
 const $ = id => document.getElementById(id);

@@ -120,13 +120,18 @@
 </main>
 
 <script>
-const DATA_ROOT = new URLSearchParams(window.location.search).get('data_root') || '';
-const DR = DATA_ROOT ? `data_root=${encodeURIComponent(DATA_ROOT)}` : '';
+const DATA_ROOT = '{{ data_root }}';
+(function () {
+  const tag = document.createElement('span');
+  tag.className = 'data-root-tag';
+  tag.textContent = DATA_ROOT;
+  document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
+})();
 
 const $ = id => document.getElementById(id);
 
 function apiUrl(path, extra = {}) {
-  const p = new URLSearchParams(DR ? DR : '');
+  const p = new URLSearchParams();
   for (const [k, v] of Object.entries(extra)) p.set(k, v);
   const qs = p.toString();
   return qs ? `${path}?${qs}` : path;
@@ -281,7 +286,7 @@ function renderTimeline(trades, threshold) {
         if (points.length) {
           const d = timelineChart.data.datasets[0].data[points[0].index];
           if (d.sessionFile) {
-            window.location = `/audits/${encodeURIComponent(d.sessionFile)}${DR ? '?' + DR : ''}`;
+            window.location = `/audits/${encodeURIComponent(d.sessionFile)}`;
           }
         }
       },
@@ -431,7 +436,7 @@ function renderTable(sessions) {
       <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">UNFILLED</span>' : resultBadge(audit?.tp_sl_result)}</td>
       <td>${pnlSpan(audit?.pnl_pct)}</td>
       <td><span class="text-muted">${s.version || '&mdash;'}</span></td>
-      <td><a href="/audits/${encodeURIComponent(s.filename)}${DR ? '?' + DR : ''}" class="btn-sm">View</a></td>
+      <td><a href="/audits/${encodeURIComponent(s.filename)}" class="btn-sm">View</a></td>
     </tr>`;
   }).join('');
 }

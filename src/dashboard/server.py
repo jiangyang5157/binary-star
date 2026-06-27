@@ -28,10 +28,11 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Mount only chart image subdirectories (not raw session/audit data)
-klines_dir = PROJECT_ROOT / "data" / os.environ.get("DATA_ROOT", "prod") / "klines"
+_data_root = os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+klines_dir = PROJECT_ROOT / "data" / _data_root / "klines"
 if klines_dir.exists():
     app.mount("/klines", StaticFiles(directory=str(klines_dir)), name="klines")
-html_dir = PROJECT_ROOT / "data" / os.environ.get("DATA_ROOT", "prod") / "html"
+html_dir = PROJECT_ROOT / "data" / _data_root / "html"
 if html_dir.exists():
     app.mount("/html", StaticFiles(directory=str(html_dir)), name="html")
 
@@ -104,9 +105,16 @@ def require_permission(perm: str):
     return checker
 
 
-def read_template(name: str) -> str:
-    path = TEMPLATES_DIR / name
-    return path.read_text() if path.exists() else "<h1>Template missing</h1>"
+def _server_data_root() -> str:
+    """Return the server's effective data root (from env or default)."""
+    return os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+
+
+def render_template(name: str, **kwargs) -> HTMLResponse:
+    """Render a Jinja2 template with server data_root always injected."""
+    template = _jinja_env.get_template(name)
+    kwargs.setdefault("data_root", _server_data_root())
+    return HTMLResponse(template.render(**kwargs))
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -116,7 +124,7 @@ def index():
 
 @app.get("/performance", response_class=HTMLResponse, summary="Performance Dashboard", tags=["Pages"])
 def performance():
-    return read_template("index.html")
+    return render_template("index.html")
 
 
 @app.get("/live", response_class=HTMLResponse, summary="Live Sessions", tags=["Pages"])
@@ -125,8 +133,7 @@ def live_view(user: str = Query(None), data_root: str = Query("")):
     global _users_permissions
     _users_permissions = _load_users()
     permissions = _get_user_permissions(user)
-    template = _jinja_env.get_template("live.html")
-    return HTMLResponse(template.render(permissions=permissions))
+    return render_template("live.html", permissions=permissions)
 
 
 @app.get("/development", response_class=HTMLResponse, summary="Development Dashboard", tags=["Pages"])
@@ -134,18 +141,17 @@ def development_view(user: str = Query(None), data_root: str = Query("")):
     global _users_permissions
     _users_permissions = _load_users()
     permissions = _get_user_permissions(user)
-    template = _jinja_env.get_template("development.html")
-    return HTMLResponse(template.render(permissions=permissions))
+    return render_template("development.html", permissions=permissions)
 
 
 @app.get("/audits/{filename}", response_class=HTMLResponse, summary="Audit Detail", tags=["Pages"])
-def audit_view(filename: str, data_root: str = Query("")):
-    return read_template("audit.html")
+def audit_view(filename: str):
+    return render_template("audit.html")
 
 
 @app.get("/sessions/{filename}", response_class=HTMLResponse, summary="Session Detail", tags=["Pages"])
-def session_view(filename: str, data_root: str = Query("")):
-    return read_template("session.html")
+def session_view(filename: str):
+    return render_template("session.html")
 
 
 def main():
@@ -153,8 +159,8 @@ def main():
     import uvicorn
 
     parser = argparse.ArgumentParser(description="Singularity Dashboard")
-    parser.add_argument("-p", "--data-root", default="data/prod",
-                        help="Data directory root (default: data/prod)")
+    parser.add_argument("-p", "--data-root", required=True,
+                        help="Data directory root (e.g. data/v26.6.28)")
     parser.add_argument("--port", type=int, default=8080,
                         help="Server port (default: 8080)")
     parser.add_argument("--host", default="127.0.0.1",
