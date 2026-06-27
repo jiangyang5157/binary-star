@@ -280,10 +280,6 @@ async function previewSamples() {
     sampleTimestamps = data.timestamps || [];
     renderSampleList(data);
     $('backtest-run-btn').disabled = false;
-
-    statusEl.style.display = 'inline';
-    statusEl.textContent = '✓ ' + data.count + ' sample' + (data.count !== 1 ? 's' : '') + ' ready';
-    statusEl.className = 'audit-status audit-ok';
   } catch (e) {
     statusEl.style.display = 'inline';
     statusEl.textContent = '⚠ Request failed';
