@@ -99,12 +99,6 @@
       </div>
       <div class="bt-sample-body" id="bt-sample-body"></div>
     </div>
-
-    <!-- Global Progress Bar -->
-    <div id="bt-global-bar-container" style="display:none"></div>
-
-    <!-- Run Status -->
-    <div id="bt-run-status" class="run-status-box" style="display:none"></div>
   </section>
 {% endif %}
 
@@ -167,7 +161,6 @@ function clearBacktestErrors() {
     el.removeAttribute('data-error');
   });
   // Clear transient UI — keep sample list visible
-  $('bt-run-status').style.display = 'none';
   $('bt-preview-status').style.display = 'none';
 }
 
@@ -337,6 +330,7 @@ async function checkPreviewStatus() {
     clearInterval(previewPollInterval);
     previewPollInterval = null;
     setFieldsDisabled(false);
+    btn.disabled = false;
     btn.textContent = 'Preview Samples';
     btn.classList.remove('danger');
 
@@ -402,40 +396,17 @@ function formatElapsed(seconds) {
 
 // ── Run Backtest ──
 async function triggerBacktest() {
-  const statusEl = $('bt-run-status');
   const btn = $('bt-run-btn');
 
   // Toggle: if running, STOP
   if (backtestPollInterval) {
     btn.disabled = true;
     btn.textContent = '…';
-    try {
-      const resp = await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' });
-      if (!resp.ok) {
-        const err = await resp.json();
-        statusEl.style.display = 'block';
-        statusEl.className = 'run-status-box run-error';
-        statusEl.textContent = '✗ ' + (err.detail || 'stop failed');
-        btn.disabled = false;
-        btn.textContent = '⏹ Stop';
-        return;
-      }
-    } catch (e) {
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-error';
-      statusEl.textContent = '✗ Request failed';
-      btn.disabled = false;
-      btn.textContent = '⏹ Stop';
-    }
+    try { await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' }); } catch (e) {}
     return;
   }
 
-  if (!sampleTimestamps.length) {
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-error';
-    statusEl.textContent = '✗ Preview samples first';
-    return;
-  }
+  if (!sampleTimestamps.length) return;
 
   const symbol = $('bt-symbol').value.trim().toUpperCase();
   const body = {
@@ -464,10 +435,6 @@ async function triggerBacktest() {
     });
 
     if (!resp.ok) {
-      const err = await resp.json();
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-error';
-      statusEl.textContent = '✗ ' + (err.detail || 'request failed');
       setFieldsDisabled(false);
       $('bt-preview-btn').disabled = false;
       btn.disabled = false;
@@ -476,15 +443,9 @@ async function triggerBacktest() {
     }
 
     updateRunUI('running');
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-active';
-    statusEl.textContent = '⟳ Running ' + symbol + QUOTE + '…';
     backtestPollInterval = setInterval(checkBacktestStatus, 2000);
     checkBacktestStatus();
   } catch (e) {
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-error';
-    statusEl.textContent = '✗ Request failed';
     setFieldsDisabled(false);
     $('bt-preview-btn').disabled = false;
     btn.disabled = false;
@@ -499,11 +460,13 @@ function updateRunUI(state) {
   if (state === 'running') {
     setFieldsDisabled(true);
     previewBtn.disabled = true;
+    btn.disabled = false;
     btn.textContent = '⏹ Stop';
     btn.classList.add('danger');
   } else {
     setFieldsDisabled(false);
     previewBtn.disabled = false;
+    btn.disabled = false;
     btn.textContent = '▶ Run';
     btn.classList.remove('danger');
     backtestPollInterval = null;
@@ -517,101 +480,18 @@ async function checkBacktestStatus() {
 
     if (data.running) {
       updateRunUI('running');
-      const statusEl = $('bt-run-status');
-      const done = data.done_count || 0;
-      const total = data.total_count || 0;
-      const elapsed = formatElapsed(data.elapsed_seconds || 0);
-      const symbol = data.symbol || '';
 
       // Update sample list with statuses
       if (data.samples) {
         updateSampleStatuses(data.samples);
       }
 
-      // Update global bar
-      const globalContainer = $('bt-global-bar-container');
-      if (data.overall) {
-        globalContainer.style.display = 'block';
-        const ov = data.overall;
-        const donePct = ov.total > 0 ? Math.round((ov.completed / ov.total) * 100) : 0;
-        globalContainer.innerHTML =
-          '<div class="bt-global-bar">' +
-            '<div class="sp-bar-row">' +
-              '<div class="sp-bar">' +
-                '<div class="sp-bar-fill" style="width:' + donePct + '%"></div>' +
-              '</div>' +
-            '</div>' +
-            '<div class="bt-global-summary">' +
-              '<span>' + (ov.completed + ov.failed) + '/' + ov.total + ' done</span>' +
-              (ov.running > 0 ? '<span class="running-count">◉ ' + ov.running + ' running</span>' : '') +
-              '<span class="done-count">✓ ' + ov.completed + '</span>' +
-              (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + '</span>' : '') +
-              '<span>○ ' + ov.pending + '</span>' +
-            '</div>' +
-          '</div>';
-      }
-
-      // Keep run-status minimal
-      statusEl.style.display = 'block';
-      statusEl.className = 'run-status-box run-active';
-      statusEl.innerHTML = '⟳ ' + symbol + ' · ' +
-        done + '/' + total + ' samples · elapsed ' + elapsed;
     } else {
       if (backtestPollInterval) {
         clearInterval(backtestPollInterval);
         backtestPollInterval = null;
 
-        const statusEl = $('bt-run-status');
-
-        if (data.stopped) {
-          statusEl.style.display = 'block';
-          statusEl.className = 'run-status-box run-ok';
-          statusEl.textContent = '✓ Stopped';
-        } else if (data.error) {
-          statusEl.style.display = 'block';
-          statusEl.className = 'run-status-box run-error';
-          statusEl.textContent = '✗ ' + data.error;
-        } else {
-          // Check if all completed
-          const done = data.done_count || 0;
-          const total = data.total_count || 0;
-          const failed = (data.samples || []).filter(s => s.status === 'failed').length;
-
-          statusEl.style.display = 'block';
-          let cls = 'run-status-box run-ok';
-          let msg = '✓ Completed ' + done + '/' + total + ' samples';
-          if (failed > 0) {
-            cls = 'run-status-box run-error';
-            msg += ' · ' + failed + ' failed';
-          }
-          statusEl.className = cls;
-          statusEl.textContent = msg;
-        }
-
         updateRunUI('idle');
-        setTimeout(() => {
-          statusEl.style.display = 'none';
-        }, 5000);
-
-        // Update global bar for final state
-        if (data.overall) {
-          const globalContainer = $('bt-global-bar-container');
-          globalContainer.style.display = 'block';
-          const ov = data.overall;
-          globalContainer.innerHTML =
-            '<div class="bt-global-bar">' +
-              '<div class="sp-bar-row">' +
-                '<div class="sp-bar">' +
-                  '<div class="sp-bar-fill" style="width:100%"></div>' +
-                '</div>' +
-              '</div>' +
-              '<div class="bt-global-summary">' +
-                '<span>' + ov.total + '/' + ov.total + ' done</span>' +
-                '<span class="done-count">✓ ' + ov.completed + ' passed</span>' +
-                (ov.failed > 0 ? '<span class="failed-count">✗ ' + ov.failed + ' failed</span>' : '') +
-              '</div>' +
-            '</div>';
-        }
       }
     }
   } catch (e) { /* polling failed silently */ }
@@ -715,8 +595,6 @@ function updateSampleStatuses(samples) {
           updateSampleStatuses(data.samples);
         }
         updateRunUI('running');
-        $('bt-run-status').style.display = 'block';
-        $('bt-run-status').className = 'run-status-box run-active';
         backtestPollInterval = setInterval(checkBacktestStatus, 2000);
         checkBacktestStatus();
       }
@@ -732,27 +610,6 @@ function updateSampleStatuses(samples) {
       sampleTimestamps = data.samples.map(s => s.timestamp);
       renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
       updateSampleStatuses(data.samples);
-
-      // Show run-status for completed/stopped runs (not just preview)
-      if (!data.preview) {
-        const statusEl = $('bt-run-status');
-        if (data.stopped) {
-          statusEl.style.display = 'block';
-          statusEl.className = 'run-status-box run-ok';
-          statusEl.textContent = '✓ Stopped';
-        } else if (data.error) {
-          statusEl.style.display = 'block';
-          statusEl.className = 'run-status-box run-error';
-          statusEl.textContent = '✗ ' + data.error;
-        } else {
-          const done = data.done_count || 0;
-          const total = data.total_count || 0;
-          const failed = (data.samples || []).filter(s => s.status === 'failed').length;
-          statusEl.style.display = 'block';
-          statusEl.className = failed > 0 ? 'run-status-box run-error' : 'run-status-box run-ok';
-          statusEl.textContent = '✓ Completed ' + done + '/' + total + (failed > 0 ? ' · ' + failed + ' failed' : '');
-        }
-      }
     }
   } catch (e) { /* ignore */ }
 })();

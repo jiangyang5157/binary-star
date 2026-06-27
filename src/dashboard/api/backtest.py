@@ -5,10 +5,9 @@ import os
 import signal
 import subprocess
 import sys
-import threading
 import time
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from src.utils.progress_utils import enrich_progress
 from pathlib import Path
@@ -111,19 +110,6 @@ def _is_stale(status: dict) -> bool:
         return True
 
 
-# ── Run ID tracking ─────────────────────────────────────────────────────
-
-_run_id_lock = threading.Lock()
-_next_run_id = 0
-
-
-def _next_id() -> int:
-    global _next_run_id
-    with _run_id_lock:
-        _next_run_id += 1
-        return _next_run_id
-
-
 # ── Date helpers ────────────────────────────────────────────────────────
 
 def _parse_date(date_str: str) -> datetime:
@@ -142,7 +128,7 @@ def _parse_date(date_str: str) -> datetime:
 
 def _validate_date_window(dt: datetime, now: datetime) -> None:
     """Ensure dt is not earlier than MAX_LOOKBACK_DAYS ago."""
-    earliest = now - __import__("datetime").timedelta(days=MAX_LOOKBACK_DAYS)
+    earliest = now - timedelta(days=MAX_LOOKBACK_DAYS)
     if dt < earliest:
         raise ValueError(
             f"Date {dt.strftime('%Y-%m-%d %H:%M')} UTC is earlier than "
@@ -224,11 +210,8 @@ def _compute_samples(
         interval_seconds = get_interval_seconds(macro_interval)
         limit = int(range_seconds / interval_seconds) + warmup
 
-        from src.infrastructure.binance.client import (
-            BinanceFuturesClient,
-        )
+        from src.infrastructure.binance.client import BinanceFuturesClient
         from src.analyzer.simulation_sampler import SniperSampler
-        from src.infrastructure.exchange.models import KlineData
 
         binance = BinanceFuturesClient()
         try:
@@ -279,18 +262,6 @@ def _is_pid_alive(pid: int) -> bool:
     except (OSError, ProcessLookupError):
         return False
 
-
-def _compute_elapsed(status: dict) -> int:
-    started_str = status.get("started_at", "")
-    if not started_str:
-        return 0
-    try:
-        started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
-        return round(
-            (datetime.now(timezone.utc) - started).total_seconds()
-        )
-    except Exception:
-        return 0
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────
@@ -346,11 +317,9 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
             "mode": req.mode,
             "symbol": symbol,
             "preview": True,
-            "total_count": len(ts_list),
-            "done_count": len(ts_list),
             "samples": [
-                {"index": i + 1, "timestamp": ts, "status": "pending"}
-                for i, ts in enumerate(ts_list)
+                {"timestamp": ts, "status": "pending"}
+                for ts in ts_list
             ],
         })
         return {
@@ -368,7 +337,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
                 status_code=409,
                 detail=f"Backtest already in progress: {status.get('symbol', '?')}",
             )
-        log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
+        log.warning("Clearing stale backtest lock for %s", status.get("symbol", "?"))
 
     _write_status(data_root, {
         "running": True,
@@ -376,8 +345,6 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
         "symbol": symbol,
         "preview": True,
         "pid": None,
-        "total_count": 0,
-        "done_count": 0,
         "samples": [],
     })
 
@@ -427,10 +394,9 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
         if not _is_stale(status):
             raise HTTPException(
                 status_code=409,
-                detail=f"Backtest already in progress: {status.get('symbol', '?')} "
-                f"({status.get('done_count', 0)}/{status.get('total_count', '?')})",
+                detail=f"Backtest already in progress: {status.get('symbol', '?')}",
             )
-        log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
+        log.warning("Clearing stale backtest lock for %s", status.get("symbol", "?"))
 
     # Validate symbol
     raw = (req.symbol_prefix or "").strip()
@@ -453,32 +419,23 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
 
     # Build initial sample states
     samples_state = [
-        {"index": i + 1, "timestamp": ts, "status": "pending"}
-        for i, ts in enumerate(ts_list)
+        {"timestamp": ts, "status": "pending"}
+        for ts in ts_list
     ]
 
-    run_id = _next_id()
-
     # Write initial status *before* Popen so the subprocess can read it.
-    # pid is None until Popen returns; the subprocess only reads/writes
-    # "progress" and "samples", never "pid".
     _write_status(data_root, {
         "running": True,
         "mode": req.mode,
         "symbol": symbol,
-        "run_id": run_id,
         "pid": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
-        "total_count": len(ts_list),
-        "done_count": 0,
-        "current_index": 0,
         "samples": samples_state,
     })
 
     cmd = [
         sys.executable, "run.py", "backtest-run",
-        "--symbol", raw.upper(),
-        "--run-id", str(run_id),
+        "--symbol", symbol,
         "--write-status",
         "-p", data_root,
     ]
@@ -495,8 +452,6 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     return {
         "accepted": True,
         "symbol": symbol,
-        "total_count": len(ts_list),
-        "run_id": run_id,
     }
 
 
@@ -510,19 +465,6 @@ def get_status(data_root: str = Query("")):
     if not status:
         return {"running": False}
 
-    # Compute overall summary from samples
-    if status and status.get("samples"):
-        samples = status["samples"]
-        status["overall"] = {
-            "total": len(samples),
-            "completed": sum(1 for s in samples if s.get("status") == "completed"),
-            "running": sum(1 for s in samples if s.get("status") == "running"),
-            "failed": sum(1 for s in samples if s.get("status") == "failed"),
-            "pending": sum(1 for s in samples if s.get("status") == "pending"),
-        }
-    else:
-        status["overall"] = None
-
     # Inject stage config into each sample's progress for frontend rendering
     if status.get("samples"):
         for sample in status["samples"]:
@@ -532,8 +474,8 @@ def get_status(data_root: str = Query("")):
         pid = status.get("pid")
         # Check PID first (subprocess mode), then fall back to time-based stale check
         if pid and not _is_pid_alive(pid):
-            log.warning("Clearing stale backtest lock for dead PID %s (run_id %s)",
-                        pid, status.get("run_id"))
+            log.warning("Clearing stale backtest lock for dead PID %s (%s)",
+                        pid, status.get("symbol", "?"))
             _write_status(data_root, {
                 **status,
                 "running": False,
@@ -541,19 +483,13 @@ def get_status(data_root: str = Query("")):
             })
             return {"running": False, "error": "Subprocess died unexpectedly"}
         if not pid and _is_stale(status):
-            log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
+            log.warning("Clearing stale backtest lock for %s", status.get("symbol", "?"))
             _write_status(data_root, {
                 **status,
                 "running": False,
                 "error": "Run timed out — thread likely crashed",
             })
             return {"running": False, "error": "Run timed out — thread likely crashed"}
-
-        elapsed = _compute_elapsed(status)
-        return {
-            **status,
-            "elapsed_seconds": elapsed,
-        }
 
     return status
 
@@ -604,7 +540,5 @@ def stop_run(data_root: str = Query(""),
     _write_status(data_root, {
         **current,
         "running": False,
-        "stopped": True,
-        "elapsed_seconds": _compute_elapsed(current) if current else 0,
     })
     return {"stopped": True, "symbol": symbol}

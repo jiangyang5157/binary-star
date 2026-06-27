@@ -115,15 +115,11 @@ def _add_backtest_runner_parser(subparsers):
     p = subparsers.add_parser(
         "backtest-run",
         help="Run session cycles against historical timestamps",
-        description="Dashboard mode (--run-id) reads timestamps from status file. "
+        description="Dashboard mode (--write-status) reads timestamps from status file. "
                     "CLI modes (--timestamp or --start/--end/--samples) sample independently.",
     )
     p.add_argument("--symbol", type=str, required=True,
-                   help="Trading pair prefix (e.g. BTC)")
-
-    # Dashboard mode
-    p.add_argument("--run-id", type=int, default=None,
-                   help="Read timestamps from .backtest_status.json with supersede detection")
+                   help="Trading pair (e.g. BTCUSDT)")
 
     # CLI: single-point
     p.add_argument("--timestamp", "-ts", type=str, default=None,
@@ -151,17 +147,17 @@ def _cmd_backtest_runner(args):
 
     # Validate mode exclusivity
     modes = sum([
-        args.run_id is not None,
+        args.write_status,
         args.timestamp is not None,
         args.start is not None,
     ])
     if modes == 0:
         raise SystemExit(
-            "Error: one of --run-id, --timestamp, or --start is required."
+            "Error: one of --write-status, --timestamp, or --start is required."
         )
     if modes > 1:
         raise SystemExit(
-            "Error: --run-id, --timestamp, and --start are mutually exclusive."
+            "Error: --write-status, --timestamp, and --start are mutually exclusive."
         )
     if args.start and not args.samples:
         raise SystemExit("Error: --samples is required with --start for batch mode.")

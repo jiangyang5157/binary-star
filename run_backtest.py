@@ -13,11 +13,8 @@ and ``run.py sniper``.
 
 import argparse
 import json
-import logging
-import os
 import signal
 import sys
-import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -59,16 +56,6 @@ def _write_status(data_root: str, status: dict) -> None:
     tmp.replace(path)
 
 
-def _compute_elapsed(status: dict) -> int:
-    started_str = status.get("started_at", "")
-    if not started_str:
-        return 0
-    try:
-        started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
-        return round((datetime.now(timezone.utc) - started).total_seconds())
-    except Exception:
-        return 0
-
 
 # ── Main runner ────────────────────────────────────────────────────────────
 
@@ -79,8 +66,7 @@ class BacktestRunner:
         self.args = args
         self.data_root: str = args.path
         self.symbol: str = args.symbol.upper()
-        self.run_id: int | None = args.run_id
-        self._write_status = getattr(args, "write_status", False)
+        self.is_dashboard = getattr(args, "write_status", False)
         self._setup_signals()
 
     # ── Signal handling ─────────────────────────────────────────────────
@@ -91,15 +77,13 @@ class BacktestRunner:
 
     def _handle_termination(self, signum, frame):
         logger.warning("termination signal received | shutting down")
-        if self.run_id is not None:
+        if self.is_dashboard:
             try:
                 current = _read_status(self.data_root)
-                if current and current.get("run_id") == self.run_id:
+                if current:
                     _write_status(self.data_root, {
                         **current,
                         "running": False,
-                        "stopped": True,
-                        "elapsed_seconds": _compute_elapsed(current),
                     })
             except Exception as e:
                 logger.warning("failed to write final status during shutdown | error=%s", e)
@@ -112,16 +96,16 @@ class BacktestRunner:
         from src.utils.datetime_utils import to_iso_zulu
 
         # Mode A: Dashboard — read from status file
-        if self.run_id is not None:
+        if self.is_dashboard:
             current = _read_status(self.data_root)
-            if not current or current.get("run_id") != self.run_id:
-                raise SystemExit("BacktestRunner: run_id mismatch — aborting.")
+            if not current:
+                raise SystemExit("BacktestRunner: no status file found — aborting.")
             ts_list = [s["timestamp"] for s in (current.get("samples") or [])]
             if not ts_list:
                 raise SystemExit("BacktestRunner: no sample timestamps in status file.")
             logger.info(
-                "dashboard mode | samples=%d | symbol=%s | run_id=%d",
-                len(ts_list), self.symbol, self.run_id,
+                "dashboard mode | samples=%d | symbol=%s",
+                len(ts_list), self.symbol,
             )
             return ts_list
 
@@ -146,12 +130,12 @@ class BacktestRunner:
         count = self.args.samples
 
         from src.utils.datetime_utils import get_interval_seconds, to_iso_zulu
-        from src.config.loader import load_strategy_config
+        from src.utils.pipeline_utils import load_combined_config
         from src.infrastructure.binance.client import BinanceFuturesClient
         from src.analyzer.simulation_sampler import SniperSampler
         from src.utils.market_utils import calculate_indicator_warmup
 
-        strategy_cfg = load_strategy_config()
+        strategy_cfg = load_combined_config()
         macro_interval = strategy_cfg.get(
             "analysis_window", {}
         ).get("macro_context", {}).get("time_interval", "15m")
@@ -212,19 +196,12 @@ class BacktestRunner:
 
     # ── Status helpers (dashboard mode) ───────────────────────────────────
 
-    def _should_continue(self) -> bool:
-        """Check supersede guard (dashboard mode only)."""
-        if self.run_id is None:
-            return True
-        current = _read_status(self.data_root)
-        return current is not None and current.get("run_id") == self.run_id
-
     def _update_sample_status(self, index: int, status: str, **extra):
         """Update one sample's status in the dashboard status file."""
-        if self.run_id is None:
+        if not self.is_dashboard:
             return
         current = _read_status(self.data_root)
-        if not current or current.get("run_id") != self.run_id:
+        if not current:
             return
         samples = list(current.get("samples") or [])
         if index < len(samples):
@@ -234,21 +211,17 @@ class BacktestRunner:
         _write_status(self.data_root, {
             **current,
             "samples": samples,
-            "current_index": index,
-            "done_count": sum(1 for s in samples if s["status"] in ("completed", "failed")),
-            "elapsed_seconds": _compute_elapsed(current),
         })
 
     def _finalize(self):
         """Mark the dashboard status file as complete."""
-        if self.run_id is None:
+        if not self.is_dashboard:
             return
         current = _read_status(self.data_root)
-        if current and current.get("run_id") == self.run_id:
+        if current:
             _write_status(self.data_root, {
                 **current,
                 "running": False,
-                "elapsed_seconds": _compute_elapsed(current),
             })
 
     # ── Run ──────────────────────────────────────────────────────────────
@@ -257,19 +230,12 @@ class BacktestRunner:
         timestamps = self._collect_timestamps()
         total = len(timestamps)
 
-        is_dashboard = self.run_id is not None
-
         try:
             from run_session import SessionEngine
 
             engine = SessionEngine(symbol=self.symbol, data_root=self.data_root)
 
             for i, ts in enumerate(timestamps):
-                # ── Supersede check (dashboard only) ──
-                if is_dashboard and not self._should_continue():
-                    logger.info("run %d superseded — discarding", self.run_id)
-                    return
-
                 self._update_sample_status(i, "running")
 
                 try:
@@ -279,10 +245,10 @@ class BacktestRunner:
                         stage_label=None, result=None, error=None,
                         _sample_idx=i,
                     ):
-                        if not is_dashboard:
+                        if not self.is_dashboard:
                             return
                         current3 = _read_status(self.data_root)
-                        if not current3 or current3.get("run_id") != self.run_id:
+                        if not current3:
                             return
                         samples3 = list(current3.get("samples") or [])
                         if _sample_idx >= len(samples3):
@@ -344,14 +310,10 @@ class BacktestRunner:
 
                     engine.execute_cycle(
                         timestamp_str=ts,
-                        progress_callback=_bt_progress if is_dashboard else None,
+                        progress_callback=_bt_progress if self.is_dashboard else None,
                     )
 
-                    from src.utils.datetime_utils import sanitize_timestamp
-                    self._update_sample_status(
-                        i, "completed",
-                        session_file=f"{self.symbol}_session_{sanitize_timestamp(ts)}.json",
-                    )
+                    self._update_sample_status(i, "completed")
 
                 except Exception as e:
                     logger.exception(
@@ -364,14 +326,13 @@ class BacktestRunner:
 
         except Exception as e:
             logger.exception("backtest failed | symbol=%s | error=%s", self.symbol, e)
-            if is_dashboard:
+            if self.is_dashboard:
                 current = _read_status(self.data_root)
-                if current and current.get("run_id") == self.run_id:
+                if current:
                     _write_status(self.data_root, {
                         **current,
                         "running": False,
                         "error": str(e),
-                        "elapsed_seconds": _compute_elapsed(current),
                     })
 
 
@@ -382,11 +343,7 @@ def main():
     parser = argparse.ArgumentParser(description="Backtest Runner")
 
     parser.add_argument("--symbol", type=str, required=True,
-                        help="Trading pair prefix (e.g. BTC)")
-
-    # Dashboard mode
-    parser.add_argument("--run-id", type=int, default=None,
-                        help="Dashboard mode: read timestamps from .backtest_status.json")
+                        help="Trading pair (e.g. BTCUSDT)")
 
     # CLI: single-point
     parser.add_argument("--timestamp", "-ts", type=str, default=None,
@@ -409,14 +366,14 @@ def main():
 
     # Validate mode exclusivity
     modes = sum([
-        args.run_id is not None,
+        args.write_status,
         args.timestamp is not None,
         args.start is not None,
     ])
     if modes == 0:
-        raise SystemExit("Error: one of --run-id, --timestamp, or --start is required.")
+        raise SystemExit("Error: one of --write-status, --timestamp, or --start is required.")
     if modes > 1:
-        raise SystemExit("Error: --run-id, --timestamp, and --start are mutually exclusive.")
+        raise SystemExit("Error: --write-status, --timestamp, and --start are mutually exclusive.")
     if args.start and not args.samples:
         raise SystemExit("Error: --samples is required with --start for batch mode.")
 

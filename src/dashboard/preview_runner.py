@@ -5,7 +5,6 @@ page refreshes.  Writes results to .backtest_status.json.
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -48,11 +47,9 @@ def main():
             "running": False,
             "mode": mode,
             "symbol": symbol,
-            "total_count": len(ts_list),
-            "done_count": len(ts_list),
             "samples": [
-                {"index": i + 1, "timestamp": ts, "status": "pending"}
-                for i, ts in enumerate(ts_list)
+                {"timestamp": ts, "status": "pending"}
+                for ts in ts_list
             ],
         })
         _write_status(data_root, status)

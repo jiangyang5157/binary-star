@@ -1292,32 +1292,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   user-select: none;
 }
 
-/* Runs status box — styled block below inputs */
-.run-status-box {
-  margin-top: 6px;
-  padding: 4px 10px;
-  border-radius: 4px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-.run-status-box.run-ok {
-  border-color: var(--accent-green);
-  background: rgba(64, 168, 95, 0.08);
-  color: var(--accent-green);
-}
-.run-status-box.run-active {
-  border-color: var(--accent-teal);
-  background: rgba(84, 160, 168, 0.08);
-  color: var(--accent-teal);
-}
-.run-status-box.run-error {
-  border-color: var(--accent-red);
-  background: rgba(224, 85, 74, 0.08);
-  color: var(--accent-red);
-}
-
 /* ── Balance Controls ─────────────────────────── */
 .balance-group {
   display: inline-flex;
@@ -1850,32 +1824,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   color: var(--accent-orange);
   font-weight: 500;
 }
-
-/* ── Backtest global bar ── */
-.bt-global-bar {
-  margin-top: 12px;
-  padding: 10px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-}
-.bt-global-bar .sp-bar-row {
-  height: 24px;
-}
-.bt-global-bar .sp-bar {
-  height: 8px;
-  border-radius: 4px;
-}
-.bt-global-summary {
-  display: flex;
-  gap: 16px;
-  font-size: 0.76rem;
-  color: var(--text-secondary);
-  margin-top: 4px;
-}
-.bt-global-summary .done-count { color: var(--accent-green); }
-.bt-global-summary .failed-count { color: var(--accent-red); }
-.bt-global-summary .running-count { color: var(--accent-teal); }
 
 /* ── Backtest sample row with compact progress ── */
 .bt-sample-row {
