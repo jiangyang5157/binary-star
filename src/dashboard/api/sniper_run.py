@@ -11,6 +11,8 @@ from pathlib import Path
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
+from src.utils.progress_utils import enrich_progress
+
 router = APIRouter(prefix="/api/sniper")
 
 
@@ -231,6 +233,7 @@ def sniper_status(data_root: str = Query("")):
                 active_session["progress"]["elapsed_seconds"] = max(session_elapsed, 0)
             except Exception:
                 pass
+        enrich_progress(active_session["progress"])
     recent_signals = status.get("recent_signals", [])
     pulse_count = status.get("pulse_count", 0)
 
