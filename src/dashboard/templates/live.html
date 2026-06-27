@@ -85,6 +85,7 @@
           </label>
         </div>
       </div>
+      <div id="sniper-guardian-table-container"></div>
       <div id="sniper-progress-container"></div>
     </section>
     {% endif %}
@@ -416,6 +417,8 @@ function updateSniperUI(state) {
     btn.textContent = '▶ Run';
     btn.classList.remove('danger');
     sniperPollInterval = null;
+    var guardianEl = document.getElementById('sniper-guardian-table-container');
+    if (guardianEl) guardianEl.innerHTML = '';
   }
 }
 
@@ -466,6 +469,53 @@ function _renderSniperIdle(container, data) {
     '</div>';
 }
 
+function _renderGuardianTable(container, data) {
+  var guardian = data.guardian;
+  var tradeOn = data.trade_enabled;
+  if (!tradeOn || !guardian || !guardian.symbols) {
+    container.innerHTML = '';
+    return;
+  }
+
+  var symbols = Object.keys(guardian.symbols);
+  if (symbols.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  var html = '<table class="guardian-table"><thead><tr>';
+  html += '<th>Symbol</th><th>Position</th><th>Net Qty</th><th>Orders</th><th>Status</th>';
+  html += '</tr></thead><tbody>';
+
+  for (var i = 0; i < symbols.length; i++) {
+    var sym = symbols[i];
+    var gs = guardian.symbols[sym] || {};
+    var posLabel = gs.has_position
+      ? (gs.net_qty > 0 ? 'LONG' : 'SHORT')
+      : '—';
+    var statusLabel = gs.has_position
+      ? (gs.active_orders > 0 ? 'Protected' : 'Naked')
+      : 'Idle';
+
+    html += '<tr>';
+    html += '<td><strong>' + sym.replace(new RegExp(QUOTE + '$', 'i'), '') + '</strong></td>';
+    html += '<td>' + posLabel + '</td>';
+    html += '<td>' + ((gs.net_qty != null) ? gs.net_qty : '0.0') + '</td>';
+    html += '<td>' + (gs.active_orders || 0) + '</td>';
+    html += '<td>' + statusLabel + '</td>';
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+
+  if (guardian.account_balance != null) {
+    html += '<div class="guardian-summary">Balance: $' +
+      guardian.account_balance.toLocaleString() + ' USDT</div>';
+  }
+
+  container.innerHTML = html;
+}
+
 async function checkSniperStatus() {
   try {
     const resp = await fetch(apiUrl('/api/sniper/status'));
@@ -474,6 +524,10 @@ async function checkSniperStatus() {
     if (data.running) {
       updateSniperUI('running');
       const container = document.getElementById('sniper-progress-container');
+      const guardianContainer = document.getElementById('sniper-guardian-table-container');
+
+      // Render guardian table (per-symbol position/order status) when trade enabled
+      _renderGuardianTable(guardianContainer, data);
 
       // Check if there's an active session (AI reasoning in progress)
       if (data.active_session && data.active_session.progress) {
@@ -501,6 +555,7 @@ async function checkSniperStatus() {
         const container = document.getElementById('sniper-progress-container');
         container.innerHTML = '<div class="run-status-box run-ok" style="display:block">✓ Stopped</div>';
         if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
+        document.getElementById('sniper-guardian-table-container').innerHTML = '';
         updateSniperUI('idle');
         const genAtStop = sniperGeneration;
         setTimeout(function() {
@@ -537,6 +592,7 @@ async function triggerSniper() {
       return;
     }
     container.innerHTML = '';
+    document.getElementById('sniper-guardian-table-container').innerHTML = '';
     if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
     return;
   }
