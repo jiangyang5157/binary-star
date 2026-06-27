@@ -350,7 +350,7 @@ function renderSampleList(data) {
   const countEl = $('bt-sample-count');
 
   list.style.display = 'block';
-  countEl.textContent = `● ${data.count} selected`;
+  countEl.textContent = `${data.count} selected`;
 
   body.innerHTML = data.timestamps.map((ts, i) => {
     const dt = formatTimestamp(ts);

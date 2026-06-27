@@ -324,7 +324,43 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
             detail="Mode must be 'timestamp' or 'range'",
         )
 
-    # Check if already running
+    # Single-timestamp mode: trivially fast, compute inline
+    if req.mode == "timestamp":
+        try:
+            ts_list = _compute_samples(
+                mode=req.mode,
+                symbol=symbol,
+                timestamp_str=req.timestamp,
+                start_str=None,
+                end_str=None,
+                samples=None,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            log.exception("Preview failed for %s", req.symbol_prefix)
+            raise HTTPException(status_code=500, detail=f"Preview failed: {e}")
+        # Persist so page refresh can restore
+        _write_status(data_root, {
+            "running": False,
+            "mode": req.mode,
+            "symbol": symbol,
+            "preview": True,
+            "total_count": len(ts_list),
+            "done_count": len(ts_list),
+            "samples": [
+                {"index": i + 1, "timestamp": ts, "status": "pending"}
+                for i, ts in enumerate(ts_list)
+            ],
+        })
+        return {
+            "mode": req.mode,
+            "symbol": symbol,
+            "count": len(ts_list),
+            "timestamps": ts_list,
+        }
+
+    # Date-range mode: spawn subprocess (heavy SniperSampler work, cancellable)
     status = _read_status(data_root)
     if status and status.get("running"):
         if not _is_stale(status):
@@ -334,7 +370,6 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
             )
         log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
 
-    # Write initial status so the subprocess and frontend can track progress
     _write_status(data_root, {
         "running": True,
         "mode": req.mode,
@@ -346,12 +381,11 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
         "samples": [],
     })
 
-    # Spawn preview subprocess
     payload = json.dumps({
         "data_root": data_root,
         "mode": req.mode,
         "symbol": symbol,
-        "timestamp": req.timestamp,
+        "timestamp": None,
         "start": req.start,
         "end": req.end,
         "samples": req.samples,
@@ -367,7 +401,6 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
     proc.stdin.write(payload.encode())
     proc.stdin.close()
 
-    # Patch in the real PID so /stop can kill it
     status = _read_status(data_root)
     if status is not None:
         status["pid"] = proc.pid
