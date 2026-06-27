@@ -669,37 +669,6 @@ function updateSampleStatuses(samples) {
       $('bt-run-status').className = 'run-status-box run-active';
       backtestPollInterval = setInterval(checkBacktestStatus, 2000);
       checkBacktestStatus();
-    } else if (data.samples && data.samples.length) {
-      // Restore: backtest completed/stopped — show the sample list with results
-      const symbol = data.symbol || '';
-      $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
-      if (data.mode) {
-        currentMode = data.mode;
-        document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
-        switchMode(data.mode);
-      }
-      sampleTimestamps = data.samples.map(s => s.timestamp);
-      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-      updateSampleStatuses(data.samples);
-      updateRunUI('idle');
-
-      const statusEl = $('bt-run-status');
-      if (data.stopped) {
-        statusEl.style.display = 'block';
-        statusEl.className = 'run-status-box run-ok';
-        statusEl.textContent = '✓ Stopped';
-      } else if (data.error) {
-        statusEl.style.display = 'block';
-        statusEl.className = 'run-status-box run-error';
-        statusEl.textContent = '✗ ' + data.error;
-      } else {
-        const done = data.done_count || 0;
-        const total = data.total_count || 0;
-        const failed = (data.samples || []).filter(s => s.status === 'failed').length;
-        statusEl.style.display = 'block';
-        statusEl.className = failed > 0 ? 'run-status-box run-error' : 'run-status-box run-ok';
-        statusEl.textContent = '✓ Completed ' + done + '/' + total + (failed > 0 ? ' · ' + failed + ' failed' : '');
-      }
     }
   } catch (e) { /* ignore */ }
 })();
