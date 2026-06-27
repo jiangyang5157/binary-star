@@ -15,9 +15,20 @@ This skill treats test health as a first-class concern: fix what's broken, remov
 
 ## Workflow
 
-Execute these phases in order. If a phase has nothing to do, move on.
+### Step 0: Choose Mode
 
-### Phase 1: Run Tests
+At the very start, ask the user which mode to run:
+
+| Option | Scope |
+|------|-------|
+| **Quick Fix** (default) | Step 1 → Step 2 → Step 5 → Step 6. Run tests, fix failures, report, verify. |
+| **Full Audit** | Step 1 → Step 2 → Step 3 → Step 4 → Step 5 → Step 6. Everything in Quick Fix plus redundancy removal and complex test splitting. |
+
+Default to Quick Fix. If the user confirms without choosing, run Quick Fix. Only run Full Audit when explicitly selected.
+
+---
+
+### Step 1: Run Tests
 
 Run the full suite and capture structured output:
 
@@ -32,7 +43,7 @@ Extract:
 
 If the test run itself crashes (segfault, import error in conftest, etc.), fix that first — it blocks everything else.
 
-### Phase 2: Diagnose Failures
+### Step 2: Diagnose Failures
 
 For each failed test, read both the **test** and the **code it exercises** to determine root cause. Never guess from the traceback alone — a traceback tells you where it crashed, not why.
 
@@ -46,7 +57,7 @@ Classify every failure into one of:
 
 **How to tell CODE_BUG from TEST_BUG:** Read the function signature and docstring in the source. If the test expects behavior the function clearly wasn't designed to provide, it's a TEST_BUG. If the function should handle the case but doesn't (e.g., returns None when it should return a dict, or crashes on valid input), it's a CODE_BUG. When genuinely uncertain, lean toward CODE_BUG — a test that breaks when the code changes is a healthy test, and we shouldn't weaken it without strong evidence.
 
-### Phase 3: Detect and Remove Redundancy
+### Step 3: Detect and Remove Redundancy
 
 Scan all test files for tests that don't earn their keep. Delete them — don't comment out, don't skip, don't `@pytest.mark.skip`. Delete.
 
@@ -60,7 +71,7 @@ Scan all test files for tests that don't earn their keep. Delete them — don't 
 
 When deleting, explain in the report: what was deleted, why it was safe, and which remaining test covers that behavior.
 
-### Phase 4: Split Complex Tests
+### Step 4: Split Complex Tests
 
 Identify tests that should be split using these heuristics:
 - Test function body > 40 lines
@@ -78,7 +89,7 @@ For each candidate:
 
 **Splitting is not always right.** If the long test is an end-to-end flow where each step depends on the previous one (e.g., "create order → modify → cancel"), keep it together — splitting would create fragile tests that need complex setup to mimic the earlier steps.
 
-### Phase 5: Report
+### Step 5: Report
 
 Present a summary table in conversation:
 
@@ -102,7 +113,7 @@ Present a summary table in conversation:
 | test_big | test_a, test_b, test_c |
 ```
 
-### Phase 6: Verify
+### Step 6: Verify
 
 Run the suite again to confirm everything passes:
 
@@ -110,7 +121,7 @@ Run the suite again to confirm everything passes:
 python -m pytest tests/ -v --tb=short
 ```
 
-If anything still fails, loop back to Phase 2. Don't stop until the suite is green.
+If anything still fails, loop back to Step 2. Don't stop until the suite is green.
 
 ## Important Rules
 
