@@ -141,6 +141,15 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
 
     log.info("Starting sniper: %s", " ".join(cmd))
 
+    # Clean up stale heartbeat files from any previous run so the frontend
+    # doesn't flash old pulse timestamps / guardian data before the first pulse.
+    _data_root_path = Path(data_root)
+    for _hf in (".sniper_alive.json", ".sniper_heartbeat.json"):
+        try:
+            (_data_root_path / _hf).unlink(missing_ok=True)
+        except Exception:
+            pass
+
     proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT))
 
     _write_sniper_status(data_root, {
