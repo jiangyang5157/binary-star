@@ -300,9 +300,19 @@ async function previewSamples() {
       btn.classList.remove('danger');
       return;
     }
-    // Started — begin polling
-    previewPollInterval = setInterval(checkPreviewStatus, 2000);
-    checkPreviewStatus();
+
+    if (data.started) {
+      // Async (range mode) — begin polling
+      previewPollInterval = setInterval(checkPreviewStatus, 2000);
+      checkPreviewStatus();
+    } else {
+      // Sync (timestamp mode) — render immediately
+      sampleTimestamps = data.timestamps || [];
+      renderSampleList(data);
+      setFieldsDisabled(false);
+      btn.textContent = 'Preview Samples';
+      btn.classList.remove('danger');
+    }
   } catch (e) {
     statusEl.style.display = 'inline';
     statusEl.textContent = '⚠ Request failed';
@@ -710,6 +720,17 @@ function updateSampleStatuses(samples) {
         backtestPollInterval = setInterval(checkBacktestStatus, 2000);
         checkBacktestStatus();
       }
+    } else if (data.preview && data.samples && data.samples.length) {
+      // Completed preview (timestamp sync or finished range) — restore sample list
+      const symbol = data.symbol || '';
+      $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
+      if (data.mode) {
+        currentMode = data.mode;
+        document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
+        switchMode(data.mode);
+      }
+      sampleTimestamps = data.samples.map(s => s.timestamp);
+      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
     }
   } catch (e) { /* ignore */ }
 })();
