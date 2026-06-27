@@ -24,7 +24,6 @@
 <section class="card backtest-card">
     <div class="section-header">
       <h2>Backtest</h2>
-      <button id="backtest-run-btn" class="btn-primary" onclick="triggerBacktest()" disabled>▶ Run</button>
     </div>
 
     <!-- Mode Toggle -->
@@ -96,6 +95,7 @@
     <div id="bt-sample-list" class="bt-sample-list" style="display:none">
       <div class="bt-sample-header">
         <span id="bt-sample-count"></span>
+        <button id="bt-run-btn" class="btn-sm" onclick="triggerBacktest()">▶ Run</button>
       </div>
       <div class="bt-sample-body" id="bt-sample-body"></div>
     </div>
@@ -168,7 +168,6 @@ function clearBacktestErrors() {
   // Clear transient UI — keep sample list visible
   $('bt-run-status').style.display = 'none';
   $('bt-preview-status').style.display = 'none';
-  $('backtest-run-btn').disabled = true;
 }
 
 // ── Error tooltip helper ──
@@ -236,6 +235,14 @@ function validateFields() {
 }
 
 // ── Preview ──
+function setFieldsDisabled(disabled) {
+  document.querySelectorAll('input[name="bt-mode"]').forEach(r => r.disabled = disabled);
+  ['bt-symbol', 'bt-timestamp', 'bt-start', 'bt-end', 'bt-samples'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = disabled;
+  });
+}
+
 async function previewSamples() {
   const valid = validateFields();
   const statusEl = $('bt-preview-status');
@@ -248,6 +255,7 @@ async function previewSamples() {
   if (!valid) return;  // field-level hints already shown by validateFields()
 
   statusEl.style.display = 'none';
+  setFieldsDisabled(true);
   btn.disabled = true;
   btn.textContent = '…';
 
@@ -277,19 +285,17 @@ async function previewSamples() {
       statusEl.style.display = 'inline';
       statusEl.textContent = '⚠ ' + (data.detail || 'preview failed');
       statusEl.className = 'audit-status audit-error';
-      btn.disabled = false;
-      btn.textContent = 'Preview Samples';
       return;
     }
 
     sampleTimestamps = data.timestamps || [];
     renderSampleList(data);
-    $('backtest-run-btn').disabled = false;
   } catch (e) {
     statusEl.style.display = 'inline';
     statusEl.textContent = '⚠ Request failed';
     statusEl.className = 'audit-status audit-error';
   } finally {
+    setFieldsDisabled(false);
     btn.disabled = false;
     btn.textContent = 'Preview Samples';
   }
@@ -344,7 +350,7 @@ function formatElapsed(seconds) {
 // ── Run Backtest ──
 async function triggerBacktest() {
   const statusEl = $('bt-run-status');
-  const btn = $('backtest-run-btn');
+  const btn = $('bt-run-btn');
 
   // Toggle: if running, STOP
   if (backtestPollInterval) {
@@ -429,7 +435,7 @@ async function triggerBacktest() {
 
 function updateRunUI(state) {
   const input = $('bt-symbol');
-  const btn = $('backtest-run-btn');
+  const btn = $('bt-run-btn');
   const previewBtn = $('bt-preview-btn');
   const radios = document.querySelectorAll('input[name="bt-mode"]');
 
@@ -649,7 +655,6 @@ function updateSampleStatuses(samples) {
         sampleTimestamps = data.samples.map(s => s.timestamp);
         renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
         updateSampleStatuses(data.samples);
-        $('backtest-run-btn').disabled = false;
       }
 
       updateRunUI('running');

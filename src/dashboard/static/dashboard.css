@@ -1485,6 +1485,25 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 #bt-preview-btn {
   margin-bottom: 4px;
 }
+#bt-preview-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Disabled state for backtest fields */
+.filter-input:disabled,
+.bt-date-input:disabled,
+.bt-samples-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.bt-mode-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 /* Sample list */
 .bt-sample-list {
@@ -1495,6 +1514,9 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 .bt-sample-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 16px;
   background: var(--bg-secondary);
   font-size: 0.85rem;
