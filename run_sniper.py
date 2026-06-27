@@ -121,8 +121,6 @@ class SniperDaemon:
         sym_list = ", ".join(self.symbols)
         logger.info(f"═══ SNIPER MONITORING STARTED | symbols={sym_list} | pulse={pulse_mins}m ═══")
 
-        # Pulse counter (persisted to status file for dashboard display)
-        pulse_count = 0
         # Path to the daemon status file (same as dashboard API reads)
         from src.utils.path_utils import resolve_project_root
         import json as _json_module
@@ -156,7 +154,6 @@ class SniperDaemon:
                 # Always succeeds — proves the daemon is alive even when trade is off
                 # or the heavyweight heartbeat fails on a Binance API blip.
                 self._write_lightweight_heartbeat()
-                pulse_count += 1
 
                 # ── 0.5 GUARDIAN: protect every symbol with skin in the game ──
                 guardian_data: dict[str, dict] = {}
@@ -170,21 +167,17 @@ class SniperDaemon:
                 if self.trade_enabled:
                     self._write_guardian_status(guardian_data)
 
-                # ── 0.7 Update daemon status with pulse count ──
+                # ── 0.7 Seed daemon status on first pulse ──
                 s = _read_daemon_status()
-                if s:
-                    s["pulse_count"] = pulse_count
-                else:
-                    # First pulse or status file missing — seed it
+                if s is None:
                     s = {
                         "running": True,
                         "symbols": self.symbols,
                         "pid": os.getpid(),
                         "trade_enabled": self.trade_enabled,
                         "started_at": datetime.now(timezone.utc).isoformat(),
-                        "pulse_count": pulse_count,
                     }
-                _write_daemon_status(s)
+                    _write_daemon_status(s)
 
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
                 for sym in self.symbols:
