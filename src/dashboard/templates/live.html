@@ -83,6 +83,7 @@
         </div>
       </div>
       <div id="sniper-guardian-table-container"></div>
+      <div id="sniper-status-line"></div>
       <div id="sniper-progress-container"></div>
     </section>
     {% endif %}
@@ -424,27 +425,23 @@ function updateSniperUI(state) {
     btn.textContent = '▶ Run';
     btn.classList.remove('danger');
     sniperPollInterval = null;
+    var statusEl = document.getElementById('sniper-status-line');
+    if (statusEl) statusEl.innerHTML = '';
     var guardianEl = document.getElementById('sniper-guardian-table-container');
     if (guardianEl) guardianEl.innerHTML = '';
   }
 }
 
-function pulseHealthAge(seconds) {
-  if (seconds == null) return { label: '—', cls: '' };
-  if (seconds <= 60) return { label: 'Healthy', cls: 'audit-ok' };
-  if (seconds <= 180) return { label: 'Slow', cls: 'audit-status' };
-  return { label: 'Stale', cls: 'audit-error' };
-}
+// ── Render sniper status line (always visible while sniper runs) ──
+function _renderSniperStatusLine(data) {
+  var el = document.getElementById('sniper-status-line');
+  if (!el) return;
 
-// ── Render sniper IDLE view ──
-function _renderSniperIdle(container, data) {
-  const symbols = (data.symbols || []).map(function(s) {
+  var symbols = (data.symbols || []).map(function(s) {
     return s.replace(new RegExp(QUOTE + '$', 'i'), '');
   }).join(', ');
-  const pulseCount = data.pulse_count || 0;
-  const nextScout = data.next_scout_in_seconds;
-  const health = pulseHealthAge(data.pulse_seconds);
-  const recentSignals = data.recent_signals || [];
+  var pulseCount = data.pulse_count || 0;
+  var nextScout = data.next_scout_in_seconds;
 
   var nextScoutText = '';
   if (nextScout != null && nextScout >= 0) {
@@ -453,26 +450,14 @@ function _renderSniperIdle(container, data) {
     nextScoutText = ' · Next scout ' + nm + ':' + (ns < 10 ? '0' : '') + ns;
   }
 
-  var recentHtml = '';
-  if (recentSignals.length > 0) {
-    var items = recentSignals.map(function(s) {
-      var dir = s.direction;
-      if (dir === 'BULLISH') dir = 'BUY';
-      else if (dir === 'BEARISH') dir = 'SELL';
-      return s.time + ' ' + dir + ' ' + s.confidence + '%';
-    }).join('  ·  ');
-    recentHtml = '<br><span class="sniper-idle-recent">Recent: ' + items + '</span>';
-  }
-
   var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
   var statusLine = ' · ' + formatElapsed(pulseAge) + ' since last pulse';
 
-  container.innerHTML =
+  el.innerHTML =
     '<div class="sniper-idle">' +
       '<span class="sniper-idle-dot"></span>' +
       '<span class="sniper-idle-info">Watching <strong>' + symbols + '</strong>… · Pulse #' +
         pulseCount + nextScoutText + statusLine + '</span>' +
-      recentHtml +
     '</div>';
 }
 
@@ -532,36 +517,39 @@ async function checkSniperStatus() {
       if (!_stopInFlight) {
         updateSniperUI('running');
       }
-      const container = document.getElementById('sniper-progress-container');
+      const progressContainer = document.getElementById('sniper-progress-container');
       const guardianContainer = document.getElementById('sniper-guardian-table-container');
 
-      // Render guardian table (per-symbol position/order status) when trade enabled
+      // Status line — always visible while sniper runs
+      _renderSniperStatusLine(data);
+
+      // Guardian table (per-symbol position/order status) when trade enabled
       _renderGuardianTable(guardianContainer, data);
 
-      // Check if there's an active session (AI reasoning in progress)
+      // Session progress — shown below status line when AI reasoning is active
       if (data.active_session && data.active_session.progress) {
         if (!sniperProgress) {
-          sniperProgress = new SessionProgress(container, {
+          sniperProgress = new SessionProgress(progressContainer, {
             size: 'full', context: 'sniper'
           });
         }
-        const p = data.active_session.progress;
+        var p = data.active_session.progress;
         p._symbol = data.active_session.symbol || '';
         p._triggered_at = data.active_session.triggered_at || '';
         sniperProgress.update(p);
       } else {
-        // IDLE view
         if (sniperProgress) {
           sniperProgress.destroy();
           sniperProgress = null;
         }
-        _renderSniperIdle(container, data);
+        progressContainer.innerHTML = '';
       }
     } else {
       if (sniperPollInterval) {
         clearInterval(sniperPollInterval);
         sniperPollInterval = null;
         if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
+        document.getElementById('sniper-status-line').innerHTML = '';
         document.getElementById('sniper-guardian-table-container').innerHTML = '';
         document.getElementById('sniper-progress-container').innerHTML = '';
         updateSniperUI('idle');
@@ -599,7 +587,7 @@ async function triggerSniper() {
       _stopInFlight = false;
       return;
     }
-    container.innerHTML = '';
+    document.getElementById('sniper-status-line').innerHTML = '';
     document.getElementById('sniper-guardian-table-container').innerHTML = '';
     if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
     return;
