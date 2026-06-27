@@ -9,7 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
-from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
+from src.utils.progress_utils import add_activity_entry, enrich_progress, ACTIVE, COMPLETE, ERROR
 
 router = APIRouter(prefix="/api/session")
 
@@ -327,11 +327,11 @@ def get_run_status(data_root: str = Query("")):
             "symbol": status.get("symbol", ""),
             "started_at": started_str,
             "elapsed_seconds": round(elapsed),
-            "progress": progress,
+            "progress": enrich_progress(progress),
         }
 
     return {
         "running": False,
         "last_run": status.get("last_run"),
-        "progress": status.get("progress"),
+        "progress": enrich_progress(status.get("progress")),
     }
