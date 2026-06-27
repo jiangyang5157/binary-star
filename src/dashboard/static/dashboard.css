@@ -1614,6 +1614,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 .sp-anchor.active {
   background: var(--accent-teal);
+  box-shadow: 0 0 8px 2px rgba(84, 160, 168, 0.5);
+  animation: sp-pulse-glow 2s ease-in-out infinite;
 }
 .sp-anchor.failed {
   background: var(--accent-red);
@@ -1853,6 +1855,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 @media (prefers-reduced-motion: reduce) {
   .sp-bar-fill { transition: none; }
   .sp-bar-fill.sp-stage-3 { animation: none; }
+  .sp-anchor.active { animation: none; }
   .sniper-idle-dot { animation: none; }
   .sp-log { transition: none; }
   .session-progress { transition: none; }
