@@ -143,7 +143,7 @@ let QUOTE = 'USDT';
 let currentMode = 'timestamp';
 let sampleTimestamps = [];
 let backtestPollInterval = null;
-let previewAbortController = null;
+let previewPollInterval = null;
 
 // ── Mode Switching ──
 function switchMode(mode) {
@@ -249,21 +249,24 @@ async function previewSamples() {
   const btn = $('bt-preview-btn');
 
   // Toggle: if already previewing, STOP
-  if (previewAbortController) {
-    previewAbortController.abort();
-    return;
+  if (previewPollInterval) {
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' });
+    } catch (e) { /* ignore */ }
+    return;  // polling loop will detect !running and clean up
   }
 
   const valid = validateFields();
   if (!valid) return;  // field-level hints already shown by validateFields()
 
-  // Clear old samples before generating new ones
+  // Clear old samples and start preview
   sampleTimestamps = [];
   $('bt-sample-list').style.display = 'none';
   statusEl.style.display = 'none';
 
   // Enter preview mode
-  previewAbortController = new AbortController();
   setFieldsDisabled(true);
   btn.textContent = '⏹ Stop';
   btn.classList.add('danger');
@@ -273,7 +276,6 @@ async function previewSamples() {
     mode: currentMode,
     symbol_prefix: symbol,
   };
-
   if (currentMode === 'timestamp') {
     body.timestamp = $('bt-timestamp').value.trim();
   } else {
@@ -287,31 +289,59 @@ async function previewSamples() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      signal: previewAbortController.signal,
     });
-
     const data = await resp.json();
     if (!resp.ok) {
       statusEl.style.display = 'inline';
       statusEl.textContent = '⚠ ' + (data.detail || 'preview failed');
       statusEl.className = 'audit-status audit-error';
+      setFieldsDisabled(false);
+      btn.textContent = 'Preview Samples';
+      btn.classList.remove('danger');
       return;
     }
-
-    sampleTimestamps = data.timestamps || [];
-    renderSampleList(data);
+    // Started — begin polling
+    previewPollInterval = setInterval(checkPreviewStatus, 2000);
+    checkPreviewStatus();
   } catch (e) {
-    if (e.name !== 'AbortError') {
-      statusEl.style.display = 'inline';
-      statusEl.textContent = '⚠ Request failed';
-      statusEl.className = 'audit-status audit-error';
-    }
-  } finally {
-    previewAbortController = null;
+    statusEl.style.display = 'inline';
+    statusEl.textContent = '⚠ Request failed';
+    statusEl.className = 'audit-status audit-error';
     setFieldsDisabled(false);
     btn.textContent = 'Preview Samples';
     btn.classList.remove('danger');
   }
+}
+
+async function checkPreviewStatus() {
+  const statusEl = $('bt-preview-status');
+  const btn = $('bt-preview-btn');
+
+  try {
+    const resp = await fetch(apiUrl('/api/backtest/status'));
+    const data = await resp.json();
+
+    if (data.running) return;  // still computing
+
+    // Done or errored
+    clearInterval(previewPollInterval);
+    previewPollInterval = null;
+    setFieldsDisabled(false);
+    btn.textContent = 'Preview Samples';
+    btn.classList.remove('danger');
+
+    if (data.error) {
+      statusEl.style.display = 'inline';
+      statusEl.textContent = '⚠ ' + data.error;
+      statusEl.className = 'audit-status audit-error';
+      return;
+    }
+
+    if (data.samples && data.samples.length) {
+      sampleTimestamps = data.samples.map(s => s.timestamp);
+      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+    }
+  } catch (e) { /* polling failed */ }
 }
 
 function renderSampleList(data) {
@@ -640,13 +670,13 @@ function updateSampleStatuses(samples) {
   });
 }
 
-// ── Init: check if backtest is already running ──
+// ── Init: check if backtest or preview is already running ──
 (async function initBacktestStatus() {
   try {
     const resp = await fetch(apiUrl('/api/backtest/status'));
     const data = await resp.json();
     if (data.running) {
-      // Resume: backtest is actively running
+      // Restore symbol and mode (shared by preview and run)
       const symbol = data.symbol || '';
       $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
 
@@ -656,17 +686,30 @@ function updateSampleStatuses(samples) {
         switchMode(data.mode);
       }
 
-      if (data.samples) {
-        sampleTimestamps = data.samples.map(s => s.timestamp);
-        renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-        updateSampleStatuses(data.samples);
+      if (data.preview) {
+        // Preview in progress — restore preview UI
+        if (data.samples && data.samples.length) {
+          sampleTimestamps = data.samples.map(s => s.timestamp);
+          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+        }
+        setFieldsDisabled(true);
+        const btn = $('bt-preview-btn');
+        btn.textContent = '⏹ Stop';
+        btn.classList.add('danger');
+        previewPollInterval = setInterval(checkPreviewStatus, 2000);
+      } else {
+        // Run in progress — restore run UI
+        if (data.samples) {
+          sampleTimestamps = data.samples.map(s => s.timestamp);
+          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+          updateSampleStatuses(data.samples);
+        }
+        updateRunUI('running');
+        $('bt-run-status').style.display = 'block';
+        $('bt-run-status').className = 'run-status-box run-active';
+        backtestPollInterval = setInterval(checkBacktestStatus, 2000);
+        checkBacktestStatus();
       }
-
-      updateRunUI('running');
-      $('bt-run-status').style.display = 'block';
-      $('bt-run-status').className = 'run-status-box run-active';
-      backtestPollInterval = setInterval(checkBacktestStatus, 2000);
-      checkBacktestStatus();
     }
   } catch (e) { /* ignore */ }
 })();

@@ -297,7 +297,11 @@ def _compute_elapsed(status: dict) -> int:
 
 @router.post("/preview")
 def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
-    """Validate parameters and return the list of sample timestamps."""
+    """Start a background preview subprocess to compute sample timestamps.
+
+    The subprocess writes results to .backtest_status.json.  The frontend
+    polls GET /status to track progress and render the sample list.
+    """
     from src.dashboard.api.sessions import _resolve_data_root
     data_root = _resolve_data_root(data_root)
 
@@ -320,26 +324,60 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
             detail="Mode must be 'timestamp' or 'range'",
         )
 
-    try:
-        ts_list = _compute_samples(
-            mode=req.mode,
-            symbol=symbol,
-            timestamp_str=req.timestamp,
-            start_str=req.start,
-            end_str=req.end,
-            samples=req.samples,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        log.exception("Preview failed for %s", req.symbol_prefix)
-        raise HTTPException(status_code=500, detail=f"Preview failed: {e}")
+    # Check if already running
+    status = _read_status(data_root)
+    if status and status.get("running"):
+        if not _is_stale(status):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Backtest already in progress: {status.get('symbol', '?')}",
+            )
+        log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
 
-    return {
+    # Write initial status so the subprocess and frontend can track progress
+    _write_status(data_root, {
+        "running": True,
         "mode": req.mode,
         "symbol": symbol,
-        "count": len(ts_list),
-        "timestamps": ts_list,
+        "preview": True,
+        "pid": None,
+        "total_count": 0,
+        "done_count": 0,
+        "samples": [],
+    })
+
+    # Spawn preview subprocess
+    payload = json.dumps({
+        "data_root": data_root,
+        "mode": req.mode,
+        "symbol": symbol,
+        "timestamp": req.timestamp,
+        "start": req.start,
+        "end": req.end,
+        "samples": req.samples,
+    })
+    preview_script = str(
+        Path(__file__).resolve().parent.parent / "preview_runner.py"
+    )
+    proc = subprocess.Popen(
+        [sys.executable, preview_script],
+        stdin=subprocess.PIPE,
+        cwd=str(PROJECT_ROOT),
+    )
+    proc.stdin.write(payload.encode())
+    proc.stdin.close()
+
+    # Patch in the real PID so /stop can kill it
+    status = _read_status(data_root)
+    if status is not None:
+        status["pid"] = proc.pid
+        _write_status(data_root, status)
+
+    log.info("Preview subprocess started: PID %s for %s", proc.pid, symbol)
+    return {
+        "started": True,
+        "symbol": symbol,
+        "mode": req.mode,
     }
 
 
