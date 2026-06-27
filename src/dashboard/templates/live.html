@@ -40,7 +40,6 @@
             <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
         </label>
-        <div id="run-field-hint" class="field-hint muted"></div>
       </div>
       <div id="run-progress-container"></div>
     </section>
@@ -62,8 +61,6 @@
                    oninput="clearSniperErrors()">
             <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
-          <div id="sniper-field-hint" class="field-hint muted"></div>
-
         </label>
       </div>
       <div class="bt-param-row">
@@ -177,11 +174,9 @@ let runGeneration = 0;  // to cancel stale completion timeouts
 function clearRunErrors() {
   const input = document.getElementById('symbol-prefix');
   const group = document.getElementById('symbol-input-group');
-  const hint = document.getElementById('run-field-hint');
   input.classList.remove('bt-field-error');
   group.classList.remove('has-error');
-  hint.textContent = '';
-  hint.className = 'field-hint muted';
+  group.removeAttribute('data-error');
   if (runProgress) { runProgress.destroy(); runProgress = null; }
   document.getElementById('run-progress-container').innerHTML = '';
 }
@@ -259,7 +254,6 @@ async function triggerRun() {
   const btn = document.getElementById('run-session-btn');
   const input = document.getElementById('symbol-prefix');
   const group = document.getElementById('symbol-input-group');
-  const hint = document.getElementById('run-field-hint');
 
   // Toggle: if running, STOP
   if (runPollInterval) {
@@ -303,8 +297,7 @@ async function triggerRun() {
 
   if (!prefix || prefix.length < 2) {
     group.classList.add('has-error');
-    hint.textContent = 'Enter at least 2 characters (e.g. BTC)';
-    hint.className = 'field-hint error';
+    group.setAttribute('data-error', 'Enter at least 2 characters (e.g. BTC)');
     input.focus();
     return;
   }
@@ -312,8 +305,7 @@ async function triggerRun() {
   // Quick sanity: only alphanumeric
   if (!/^[A-Za-z0-9]+$/.test(prefix)) {
     group.classList.add('has-error');
-    hint.textContent = 'Only letters and numbers, e.g. BTC';
-    hint.className = 'field-hint error';
+    group.setAttribute('data-error', 'Only letters and numbers, e.g. BTC');
     input.focus();
     return;
   }
@@ -377,12 +369,16 @@ function clearSniperErrors() {
     if (el) el.classList.remove('bt-field-error');
   });
   const group = document.getElementById('sniper-symbol-group');
-  if (group) group.classList.remove('has-error');
+  if (group) { group.classList.remove('has-error'); group.removeAttribute('data-error'); }
+  // Clear balance input-group error too
+  const balInput = document.getElementById('sniper-balance');
+  if (balInput) {
+    const balGroup = balInput.closest('.input-group');
+    if (balGroup) { balGroup.classList.remove('has-error'); balGroup.removeAttribute('data-error'); }
+  }
   const container = document.getElementById('sniper-progress-container');
   container.innerHTML = '';
   if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
-  const hint = document.getElementById('sniper-field-hint');
-  if (hint) { hint.className = 'field-hint muted'; hint.textContent = ''; }
 }
 
 function toggleBalanceVisibility() {
@@ -602,24 +598,19 @@ async function triggerSniper() {
   // START — validate CSV symbol prefixes
   const input = document.getElementById('sniper-symbol');
   const inputGroup = document.getElementById('sniper-symbol-group');
-  const hint = document.getElementById('sniper-field-hint');
   const raw = input.value.trim();
 
   const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
   if (parts.length === 0) {
-    if (inputGroup) inputGroup.classList.add('has-error');
-    hint.textContent = 'Enter at least one symbol (e.g. BTC)';
-    hint.className = 'field-hint error';
+    if (inputGroup) { inputGroup.classList.add('has-error'); inputGroup.setAttribute('data-error', 'Enter at least one symbol (e.g. BTC)'); }
     input.focus();
     updateSniperUI('idle');
     return;
   }
   for (const p of parts) {
     if (p.length < 2 || !/^[A-Z0-9]+$/.test(p)) {
-      if (inputGroup) inputGroup.classList.add('has-error');
-      hint.textContent = `"${p}" is not a valid symbol — use letters and numbers only`;
-      hint.className = 'field-hint error';
+      if (inputGroup) { inputGroup.classList.add('has-error'); inputGroup.setAttribute('data-error', `"${p}" is not a valid symbol — use letters and numbers only`); }
       input.focus();
       updateSniperUI('idle');
       return;
@@ -632,18 +623,20 @@ async function triggerSniper() {
   const balance = balanceRaw ? parseFloat(balanceRaw) : null;
 
   if (trade && balance === null) {
-    document.getElementById('sniper-balance').classList.add('bt-field-error');
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-error';
-    statusEl.textContent = '✗ Enter a balance to enable trading, or disable trading';
+    const balInput = document.getElementById('sniper-balance');
+    const balGroup = balInput.closest('.input-group');
+    balInput.classList.add('bt-field-error');
+    if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', 'Enter a balance to enable trading'); }
+    document.getElementById('sniper-balance').focus();
     updateSniperUI('idle');
     return;
   }
   if (balance !== null && (isNaN(balance) || balance <= 0)) {
-    document.getElementById('sniper-balance').classList.add('bt-field-error');
-    statusEl.style.display = 'block';
-    statusEl.className = 'run-status-box run-error';
-    statusEl.textContent = '✗ Balance must be a positive number';
+    const balInput = document.getElementById('sniper-balance');
+    const balGroup = balInput.closest('.input-group');
+    balInput.classList.add('bt-field-error');
+    if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', 'Balance must be a positive number'); }
+    document.getElementById('sniper-balance').focus();
     updateSniperUI('idle');
     return;
   }

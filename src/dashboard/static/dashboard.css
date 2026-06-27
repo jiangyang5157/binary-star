@@ -329,15 +329,44 @@ tbody tr:hover {
 .status-inline.ok  { color: var(--accent-green); }
 .status-inline.err { color: var(--accent-red); }
 
-/* --- Field hint (inline validation / help below input) --- */
-.field-hint {
-  font-size: 0.72rem;
-  margin-top: 4px;
-  line-height: 1.4;
-  min-height: 1.4em;        /* reserve space — no layout shift when error appears */
+/* --- Field error tooltip — floats above the invalid field --- */
+.input-group.has-error[data-error],
+.bt-field.has-error[data-error] {
+  position: relative;
 }
-.field-hint.muted  { color: var(--text-muted); }
-.field-hint.error  { color: var(--accent-red); }
+.input-group.has-error[data-error] {
+  overflow: visible;  /* override overflow:hidden so tooltip isn't clipped */
+}
+
+.input-group.has-error[data-error]::before,
+.bt-field.has-error[data-error]::before {
+  content: attr(data-error);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  line-height: 1.3;
+}
+
+.input-group.has-error[data-error]::after,
+.bt-field.has-error[data-error]::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 3px);
+  left: 12px;
+  border: 5px solid transparent;
+  border-top-color: var(--accent-red);
+  z-index: 10;
+  pointer-events: none;
+}
 
 /* --- Input group (input + suffix as a visual unit) --- */
 .input-group {
