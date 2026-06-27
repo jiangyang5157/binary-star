@@ -29,7 +29,6 @@ BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
 # ── ANSI 颜色 ─────────────────────────────────────────────────────────
 C_RESET='\033[0m'
-C_DIM='\033[2m'
 C_GREEN='\033[32m'
 C_YELLOW='\033[33m'
 C_RED='\033[31m'
@@ -74,9 +73,9 @@ case "$EFFORT" in
   low)       EFFORT_ICON="· " ;;
 esac
 
-# ── 构建第 1 段：身份 ──────────────────────────────────────────────────
-SEG1="${C_CYAN}${REPO}${C_RESET}"
-[ -n "$BRANCH" ] && SEG1="${SEG1} ${C_MAGENTA}${BRANCH}${C_RESET}"
+# ── 第 1 段：身份 ──────────────────────────────────────────────────────
+SEG_ID="${C_CYAN}${REPO}${C_RESET}"
+[ -n "$BRANCH" ] && SEG_ID="${SEG_ID} ${C_MAGENTA}${BRANCH}${C_RESET}"
 
 # ── Token 格式化（12500 → 12.5k；prec=0 → 200k）───────────────────────
 fmt_tok() {
@@ -91,15 +90,15 @@ fmt_tok() {
     fi
 }
 
-# ── 构建第 2 段：时长 + 上下文 ─────────────────────────────────────────
+# ── 第 2 段：上下文用量 ─────────────────────────────────────────────────
 TOK_IN_FMT=$(fmt_tok "$TOTAL_IN")
 TOK_OUT_FMT=$(fmt_tok "$TOTAL_OUT")
 TOK_MAX_FMT=$(fmt_tok "$WIN_SIZE" 0)
-SEG2="${BAR_COLOR}${BAR}${C_RESET}  ${C_CYAN}⇣${TOK_IN_FMT}/${TOK_MAX_FMT}${C_RESET} ${C_GREEN}⇡${TOK_OUT_FMT}${C_RESET}  ⏱ ${DUR_FMT}"
+SEG_CTX="${BAR_COLOR}${BAR}${C_RESET}  ${C_CYAN}⇣${TOK_IN_FMT}/${TOK_MAX_FMT}${C_RESET} ${C_GREEN}⇡${TOK_OUT_FMT}${C_RESET}  ⏱ ${DUR_FMT}"
 
-# ── 构建第 3 段：模型 + effort ─────────────────────────────────────────
-SEG3="${MODEL} ${EFFORT_ICON}${EFFORT}"
+# ── 第 3 段：模型 + effort ─────────────────────────────────────────────
+SEG_AI="${MODEL} ${EFFORT_ICON}${EFFORT}"
 
 # ── 渲染 ──────────────────────────────────────────────────────────────
-printf "%b" "${SEG1}  │  ${SEG2}  │  ${SEG3}"
+printf "%b" "${SEG_ID}  │  ${SEG_CTX}  │  ${SEG_AI}"
 echo
