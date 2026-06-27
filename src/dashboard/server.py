@@ -29,10 +29,10 @@ if static_dir.exists():
 
 # Mount only chart image subdirectories (not raw session/audit data)
 _data_root = os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
-klines_dir = PROJECT_ROOT / "data" / _data_root / "klines"
+klines_dir = PROJECT_ROOT / _data_root / "klines"
 if klines_dir.exists():
     app.mount("/klines", StaticFiles(directory=str(klines_dir)), name="klines")
-html_dir = PROJECT_ROOT / "data" / _data_root / "html"
+html_dir = PROJECT_ROOT / _data_root / "html"
 if html_dir.exists():
     app.mount("/html", StaticFiles(directory=str(html_dir)), name="html")
 
