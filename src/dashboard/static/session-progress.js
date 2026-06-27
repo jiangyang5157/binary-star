@@ -177,13 +177,13 @@ class SessionProgress {
     html += '</div>';
     this.el.innerHTML = html;
 
-    // Fade out after 3s (session + sniper, not backtest)
+    // Fade out after 4 s (session + sniper, not backtest)
     if (this.context !== 'backtest') {
       var self = this;
       setTimeout(function () {
         self.el.classList.add('sp-fading');
         setTimeout(function () { self.hide(); }, 500);
-      }, 3000);
+      }, 4000);
     }
   }
 
