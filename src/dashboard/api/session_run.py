@@ -177,6 +177,8 @@ def stop_run(data_root: str = Query(""),
     # Preserve the last progress snapshot so the frontend can render it
     current = _read_status(data_root)
     progress = current.get("progress") if current else None
+    if progress and isinstance(progress, dict):
+        progress["status"] = "stopped"
 
     _write_status(data_root, {
         "running": False,
