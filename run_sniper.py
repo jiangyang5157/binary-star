@@ -2,6 +2,7 @@
 import os
 import sys
 import time
+import signal
 import argparse
 import logging
 from datetime import datetime, timezone
@@ -98,6 +99,20 @@ class SniperDaemon:
 
         # Sniper Quiet-Monitoring Protocol
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
+
+        self._setup_signals()
+
+    def _setup_signals(self):
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, self._handle_termination)
+
+    def _handle_termination(self, signum, frame):
+        logger.warning("Termination signal received. Shutting down SniperDaemon...")
+        try:
+            self.futures_client.close()
+        except Exception as e:
+            logger.warning(f"Failed to close futures client during shutdown: {e}")
+        sys.exit(0)
 
     def run_forever(self):
         pulse_mins = self.global_cfg['sniper']['heartbeat']['pulse_interval_minutes']
