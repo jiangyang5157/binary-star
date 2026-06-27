@@ -7,12 +7,11 @@ COMPLETE = "complete"
 ERROR = "error"
 
 _MAX_ACTIVITIES = 10
-_SECONDS_PER_MINUTE = 60
 
 
-def add_activity_entry(activities: list[dict], activity: str | None, elapsed: int) -> None:
+def add_activity_entry(activities: list[dict], activity: str | None) -> None:
     """Mutate *activities* in-place: promote previous active → complete,
-    then append the new entry with an elapsed-time label.
+    then append the new entry.
 
     Callers should pass a copy of the list if they need the original unchanged.
     """
@@ -29,15 +28,7 @@ def add_activity_entry(activities: list[dict], activity: str | None, elapsed: in
     elif activity and activity.startswith("Debate") and ":" in activity:
         entry_type = COMPLETE
 
-    # Elapsed-time label (e.g. "+15s" or "2:03")
-    if elapsed < _SECONDS_PER_MINUTE:
-        time_str = f"+{elapsed}s"
-    else:
-        m, s = divmod(elapsed, _SECONDS_PER_MINUTE)
-        time_str = f"+{m}:{s:02d}"
-
     activities.append({
-        "time": time_str,
         "type": entry_type,
         "message": activity or "",
     })

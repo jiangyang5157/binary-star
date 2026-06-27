@@ -134,7 +134,7 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
             progress = current.get("progress", {})
             if status == "running":
                 activities = list(progress.get("activities", []))
-                add_activity_entry(activities, activity, elapsed)
+                add_activity_entry(activities, activity)
 
                 progress = {
                     "status": "running",
@@ -157,7 +157,6 @@ def _run_session_in_thread(symbol: str, data_root: str, run_id: int) -> None:
                 activities = list(progress.get("activities", []))
                 if activity:
                     activities.append({
-                        "time": now_utc.strftime("%H:%M:%S"),
                         "type": ERROR,
                         "message": activity,
                     })

@@ -253,7 +253,6 @@ class SessionProgress {
       }
       html += '<div class="sp-log-entry ' + entryCls + '">';
       html += '<span class="sp-log-icon">' + icon + '</span>';
-      html += '<span class="sp-log-time">' + this._esc(entry.time || '') + '</span>';
       html += '<span class="sp-log-msg">' + this._esc(entry.message || '') + '</span>';
       html += '</div>';
     }

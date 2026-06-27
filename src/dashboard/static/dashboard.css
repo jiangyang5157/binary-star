@@ -1612,17 +1612,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   background: var(--accent-green);
   border-color: var(--accent-green);
 }
-.sp-anchor.done::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: #fff;
-  font-size: 7px;
-  font-weight: bold;
-  line-height: 1;
-}
 .sp-anchor.active {
   background: var(--accent-teal);
   box-shadow: 0 0 8px 2px rgba(84, 160, 168, 0.5);
@@ -1717,10 +1706,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   width: 14px;
   flex-shrink: 0;
   text-align: center;
-}
-.sp-log-entry .sp-log-time {
-  color: var(--text-muted);
-  flex-shrink: 0;
 }
 .sp-log-entry .sp-log-msg {
   color: var(--text-secondary);

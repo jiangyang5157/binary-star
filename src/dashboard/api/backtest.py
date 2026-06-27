@@ -317,7 +317,7 @@ def _run_backtest_in_thread(
                     progress = samples3[_sample_idx].get("progress", {})
                     if status == "running":
                         activities = list(progress.get("activities", []))
-                        add_activity_entry(activities, activity, elapsed3)
+                        add_activity_entry(activities, activity)
                         progress = {
                             "status": "running",
                             "current_stage": stage if stage is not None else progress.get("current_stage", 1),
@@ -338,7 +338,6 @@ def _run_backtest_in_thread(
                         activities = list(progress.get("activities", []))
                         if activity:
                             activities.append({
-                                "time": now_utc.strftime("%H:%M:%S"),
                                 "type": ERROR,
                                 "message": activity,
                             })

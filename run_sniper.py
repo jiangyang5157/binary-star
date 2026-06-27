@@ -296,7 +296,7 @@ class SniperDaemon:
                                 progress = s2["active_session"].get("progress", {})
                                 if status == "running":
                                     activities = list(progress.get("activities", []))
-                                    add_activity_entry(activities, activity, elapsed)
+                                    add_activity_entry(activities, activity)
                                     progress = {
                                         "status": "running",
                                         "current_stage": stage if stage is not None else progress.get("current_stage", 1),
@@ -317,7 +317,6 @@ class SniperDaemon:
                                     activities = list(progress.get("activities", []))
                                     if activity:
                                         activities.append({
-                                            "time": now_utc.strftime("%H:%M:%S"),
                                             "type": ERROR,
                                             "message": activity,
                                         })
