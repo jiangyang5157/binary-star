@@ -264,6 +264,7 @@ async function previewSamples() {
 
   // Enter preview mode
   previewAbortController = new AbortController();
+  setFieldsDisabled(true);
   btn.textContent = '⏹ Stop';
   btn.classList.add('danger');
 
@@ -307,6 +308,7 @@ async function previewSamples() {
     }
   } finally {
     previewAbortController = null;
+    setFieldsDisabled(false);
     btn.textContent = 'Preview Samples';
     btn.classList.remove('danger');
   }
