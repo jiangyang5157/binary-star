@@ -232,8 +232,8 @@ Every pulse cycle, Guardian checks and protects open positions — no AI involve
 | **Flat, no trade state** | No-op |
 | **Entry pending, not expired** | Wait (elapsed < projected_waiting_hours) |
 | **Entry expired** | Cancel entry order, clear trade state |
-| **Position filled, unprotected** | Place synthetic OCO (TP limit + SL limit) |
-| **Position filled, protected** | Check OCO still active, no action |
+| **Position filled, unprotected** | Check SL not already breached → place synthetic OCO (TP limit + SL limit). If price already crossed SL: emergency market close |
+| **Position filled, protected** | Proceed to trailing stop migration check |
 | **SL breached** | Emergency market close |
 | **Partial SL fill** | Rebuild OCO with remaining qty |
 | **Position flat (was filled)** | Cancel all orders, clear state |
@@ -245,10 +245,10 @@ When profit exceeds ATR-based thresholds, Guardian progressively migrates the st
 | Tier | Profit (ATR) | SL Position | Rationale |
 |------|-------------|-------------|-----------|
 | Level 1 | ≥ 1.5 ATR | SL → entry (breakeven) | Lock in safety |
-| Level 2 | ≥ 2.5 ATR | SL → entry + 0.5 ATR | Capture partial profit |
-| Level 3 | ≥ 4.0 ATR | SL → entry + 1.5 ATR | Trail aggressively |
+| Level 2 | ≥ 2.5 ATR | SL → entry ± 0.5 ATR | Capture partial profit |
+| Level 3 | ≥ 4.0 ATR | SL → entry ± 1.5 ATR | Trail aggressively |
 
-**Time Stop**: If elapsed > projected_holding_hours × 1.5, position is market-closed regardless of profit.
+**Time Stop** (ATR-adaptive): Holding limit adjusts to volatility changes. If `current ATR > entry ATR` (rising vol), the limit compresses proportionally — a 2× ATR increase halves the allowed holding time. Formula: `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier`. When elapsed exceeds this limit, the position is market-closed regardless of profit.
 
 ### Order Lifecycle
 
@@ -542,7 +542,7 @@ These are hard constraints enforced at runtime — violations trigger aborts, no
 - **Emergency Close on OCO Failure**: If synthetic OCO placement fails during a pivot, the position is market-closed immediately (sentinel `-1`). Naked positions are not tolerated.
 - **Circuit Breaker**: `SessionEngine` halts after `llm.max_consecutive_failures` (default: 3) consecutive cycle failures in live mode.
 - **Entry Expiry**: Entries expire after `projected_waiting_hours`. Guardian cancels stale entry orders.
-- **Time Stop**: Positions held beyond `projected_holding_hours × guardian.time_stop.time_stop_multiplier` (1.5×) are market-closed.
+- **Time Stop** (ATR-adaptive): Positions held beyond `(projected_holding_hours / atr_ratio) × time_stop_multiplier` are market-closed — rising volatility compresses the holding limit proportionally.
 - **Structural Shielding**: Stop-loss must be anchored behind at least one structural level (POC, VAH/VAL, HVN). MathFactChecker enforces this.
 - **Chaos Survival**: Directional momentum signals are blocked in chaos regime (VII > `volatility_extreme_ratio`).
 - **Regime-Gated RR**: Minimum RR adapts to regime — trending requires 1.12, chaos discounts to 0.78, ranging uses 1.0.
