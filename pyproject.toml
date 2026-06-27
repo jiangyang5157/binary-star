@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "singularity"
-version = "26.6.28"
+version = "26.6.29"
 description = "AI-driven crypto quantitative trading engine with Binary Star adversarial protocol"
 readme = "README.md"
 license = {text = "MIT"}
