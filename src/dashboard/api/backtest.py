@@ -196,9 +196,9 @@ def _compute_samples(
 
         # Fetch klines and run SniperSampler
         from src.utils.datetime_utils import get_interval_seconds
-        from src.config.loader import load_strategy_config
+        from src.utils.pipeline_utils import load_combined_config
 
-        strategy_cfg = load_strategy_config()
+        strategy_cfg = load_combined_config()
         macro_interval = strategy_cfg.get(
             "analysis_window", {}
         ).get("macro_context", {}).get("time_interval", "15m")
