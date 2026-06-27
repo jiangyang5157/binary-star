@@ -571,10 +571,12 @@ async function triggerSniper() {
   const container = document.getElementById('sniper-progress-container');
   const btn = document.getElementById('sniper-btn');
 
+  // Disable immediately to prevent double-click races in both START and STOP paths
+  btn.disabled = true;
+  btn.textContent = '…';
+
   // Check if currently running — if so, STOP
   if (sniperPollInterval) {
-    btn.disabled = true;
-    btn.textContent = '…';
     try {
       const resp = await fetch(apiUrl('/api/sniper/stop'), { method: 'POST' });
       if (!resp.ok) {
@@ -610,6 +612,7 @@ async function triggerSniper() {
     hint.textContent = 'Enter at least one symbol (e.g. BTC)';
     hint.className = 'field-hint error';
     input.focus();
+    updateSniperUI('idle');
     return;
   }
   for (const p of parts) {
@@ -618,6 +621,7 @@ async function triggerSniper() {
       hint.textContent = `"${p}" is not a valid symbol — use letters and numbers only`;
       hint.className = 'field-hint error';
       input.focus();
+      updateSniperUI('idle');
       return;
     }
   }
@@ -632,6 +636,7 @@ async function triggerSniper() {
     statusEl.style.display = 'block';
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Enter a balance to enable trading, or disable trading';
+    updateSniperUI('idle');
     return;
   }
   if (balance !== null && (isNaN(balance) || balance <= 0)) {
@@ -639,11 +644,9 @@ async function triggerSniper() {
     statusEl.style.display = 'block';
     statusEl.className = 'run-status-box run-error';
     statusEl.textContent = '✗ Balance must be a positive number';
+    updateSniperUI('idle');
     return;
   }
-
-  btn.disabled = true;
-  btn.textContent = '…';
 
   try {
     const resp = await fetch(apiUrl('/api/sniper/start'), {
