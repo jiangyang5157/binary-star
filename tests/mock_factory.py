@@ -100,7 +100,7 @@ class MockDataFactory:
                     "max_seconds": 10,
                 },
                 "api_pacing_seconds": 0,
-                "circuit_breaker_max_failures": 3,
+                "max_consecutive_failures": 3,
                 "gemini": {
                     "model": "mock-model",
                     "session_temperature": 0.7,

@@ -19,7 +19,7 @@ llm:
     min_seconds: 5
     max_seconds: 40
   api_pacing_seconds: 0
-  circuit_breaker_max_failures: 3
+  max_consecutive_failures: 3
 
   gemini:
     model: "gemini-3.5-flash" # gemini-3.5-flash
