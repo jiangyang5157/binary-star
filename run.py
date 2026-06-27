@@ -27,7 +27,7 @@ load_dotenv()
 logger = setup_logger("Singularity", console_color=True)
 
 
-# ── Date parser (shared between session subcommand and the old run_session) ──
+# ── Date parser (used by backtest-run subcommand) ──
 
 def _parse_date(date_str: str) -> datetime:
     """Parse flexible dates: T-30d, ISO-8601, YYYY-MM-DD, or 'now'."""
@@ -51,17 +51,9 @@ def _resolve_data_path(args: argparse.Namespace, default: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _add_session_parser(subparsers):
-    p = subparsers.add_parser("session", help="Run a Binary Star analysis cycle")
+    p = subparsers.add_parser("session", help="Run a live Binary Star analysis cycle")
     p.add_argument("--symbol", type=str, required=True,
                    help="Trading pair prefix (e.g. BTC)")
-    p.add_argument("--timestamp", "-ts", type=str,
-                   help="Precise historical timestamp (ISO-8601)")
-    p.add_argument("--start", type=_parse_date,
-                   help="Start date for backtest (YYYY-MM-DD or T-30d)")
-    p.add_argument("--end", type=_parse_date, default="now",
-                   help="End date for backtest (default: now)")
-    p.add_argument("--samples", type=int, default=None,
-                   help="Number of historical samples (backtest mode)")
     p.add_argument("--write_status", action="store_true",
                    help="Write progress to .session_run_status.json for status polling")
     add_data_path_argument(p)
@@ -71,28 +63,13 @@ def _add_session_parser(subparsers):
 def _cmd_session(args):
     from run_session import SessionEngine, SessionController, write_status_file_callback
 
-    # Resolve mode
     if not args.path:
         args.path = "data/prod"
 
-    if getattr(args, "timestamp", None):
-        logger.info("Mode: SIMULATION (single historical point)")
-        logger.info("  --timestamp '%s'", args.timestamp)
-    elif getattr(args, "start", None):
-        if args.samples is None:
-            raise SystemExit("Error: --samples is required for backtest mode.")
-        logger.info("Mode: BACKTEST (batch historical)")
-        logger.info("  --start '%s', --end '%s', --samples %s",
-                    args.start, args.end, args.samples)
-    else:
-        logger.info("Mode: PROD (live execution)")
-
-    # Subprocess status-file mode: write progress updates for polling
     progress_cb = None
     if getattr(args, "write_status", False):
         progress_cb = write_status_file_callback(args.path)
 
-    print()
     controller = SessionController(args, progress_callback=progress_cb)
     controller.run()
 
@@ -128,6 +105,69 @@ def _cmd_sniper(args):
 
     daemon = SniperDaemon(args)
     daemon.run_forever()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Subcommand: backtest-run
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _add_backtest_runner_parser(subparsers):
+    p = subparsers.add_parser(
+        "backtest-run",
+        help="Run session cycles against historical timestamps",
+        description="Dashboard mode (--run-id) reads timestamps from status file. "
+                    "CLI modes (--timestamp or --start/--end/--samples) sample independently.",
+    )
+    p.add_argument("--symbol", type=str, required=True,
+                   help="Trading pair prefix (e.g. BTC)")
+
+    # Dashboard mode
+    p.add_argument("--run-id", type=int, default=None,
+                   help="Read timestamps from .backtest_status.json with supersede detection")
+
+    # CLI: single-point
+    p.add_argument("--timestamp", "-ts", type=str, default=None,
+                   help="Run against a single historical timestamp (ISO-8601)")
+
+    # CLI: batch range
+    p.add_argument("--start", type=_parse_date, default=None,
+                   help="Start date for batch sampling (YYYY-MM-DD or T-30d)")
+    p.add_argument("--end", type=_parse_date, default="now",
+                   help="End date for batch sampling (default: now)")
+    p.add_argument("--samples", type=int, default=None,
+                   help="Number of historical samples (requires --start)")
+
+    p.add_argument("--write-status", action="store_true",
+                   help="Write progress to .backtest_status.json for status polling")
+    add_data_path_argument(p)
+    p.set_defaults(func=_cmd_backtest_runner)
+
+
+def _cmd_backtest_runner(args):
+    from run_backtest import BacktestRunner
+
+    if not args.path:
+        args.path = "data/prod"
+
+    # Validate mode exclusivity
+    modes = sum([
+        args.run_id is not None,
+        args.timestamp is not None,
+        args.start is not None,
+    ])
+    if modes == 0:
+        raise SystemExit(
+            "Error: one of --run-id, --timestamp, or --start is required."
+        )
+    if modes > 1:
+        raise SystemExit(
+            "Error: --run-id, --timestamp, and --start are mutually exclusive."
+        )
+    if args.start and not args.samples:
+        raise SystemExit("Error: --samples is required with --start for batch mode.")
+
+    runner = BacktestRunner(args)
+    runner.run()
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -361,6 +401,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command", title="commands")
     _add_session_parser(subparsers)
     _add_sniper_parser(subparsers)
+    _add_backtest_runner_parser(subparsers)
     _add_audit_parser(subparsers)
     _add_evolution_parser(subparsers)
     _add_patch_parser(subparsers)

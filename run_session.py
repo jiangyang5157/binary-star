@@ -4,7 +4,7 @@ import sys
 import argparse
 import signal
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from dotenv import load_dotenv
 
@@ -17,14 +17,11 @@ if PROJECT_ROOT not in sys.path:
 load_dotenv()
 
 from src.infrastructure.exchange.base_client import AbstractExchangeClient
-from src.infrastructure.binance.client import BinanceFuturesClient
 from src.agent.binary_star_orchestrator import BinaryStarOrchestrator
-from src.analyzer.simulation_sampler import SniperSampler
 from src.infrastructure.notifications.email_notifier import SessionNotifier
 from src.utils.pipeline_utils import load_config, load_global_config, archive_strategy_result
 from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc
-from src.utils.market_utils import calculate_indicator_warmup
 from src.utils.path_utils import resolve_project_root
 from src.utils.progress_utils import add_activity_entry, ERROR as PROGRESS_ERROR
 from src.utils.status_file_utils import read_status, write_status
@@ -32,7 +29,6 @@ from src.utils.status_file_utils import read_status, write_status
 # Initialize central engine logger (colorized when called standalone;
 # dedup-safe: sniper daemon already owns the root console handler)
 logger = setup_logger("SessionEngine", console_color=True)
-_session_file_log = logging.getLogger("src.SessionEngine")
 
 class SessionEngine:
     """The Singularity Session Engine.
@@ -198,7 +194,9 @@ class SessionEngine:
         finally:
             # Resource Hygiene: Purge context caches
             try:
-                self.orchestrator.cache_manager.delete_market_cache()
+                cm = self.orchestrator.cache_manager
+                if cm is not None:
+                    cm.delete_market_cache()
             except Exception as e:
                 logger.warning(f"Failed to delete market cache: {e}")
 
@@ -288,7 +286,8 @@ def write_status_file_callback(data_root: str):
 
 
 class SessionController:
-    """Manages the lifecycle of the SessionEngine according to user-specified modes."""
+    """Manages the lifecycle of a live SessionEngine cycle."""
+
     def __init__(self, args, progress_callback=None):
         self.args = args
         self.data_root = args.path
@@ -315,125 +314,23 @@ class SessionController:
         sys.exit(0)
 
     def run(self):
-        if self.args.timestamp:
-            self.engine.execute_cycle(timestamp_str=self.args.timestamp,
-                                       progress_callback=self.progress_callback)
-        elif self.args.start:
-            self._run_backtest()
-        else:
-            self.engine.execute_cycle(timestamp_str=None,
-                                       progress_callback=self.progress_callback)
-
-    def _run_backtest(self):
-        """Historical simulation orchestration."""
-        start_dt = self.args.start
-        end_dt = self.args.end
-        count = self.args.samples
-
-        logger.info(f"Backtest: Sniper-sampling {count} noteworthy points from {start_dt} to {end_dt}")
-        
-        from src.utils.datetime_utils import get_interval_seconds
-        
-        macro_interval = self.engine.config['analysis_window']['macro_context']['time_interval']
-        
-        # 2. Preparation
-        topo_cfg = self.engine.config.get('topography_parameters', {})
-        
-        # Calculate warmup needed for technical indicators
-        fir_period = self.engine.config['analysis_window']['macro_context']['lookback_candles']
-        warmup = calculate_indicator_warmup(
-            iir_periods=[
-                topo_cfg['indicators']['exponential_moving_average_period'],
-                topo_cfg['indicators']['average_true_range_period'],
-            ],
-            fir_periods=[fir_period],
-        )
-        
-        # Calculate needed limit plus buffer
-        range_seconds = (end_dt - start_dt).total_seconds()
-        interval_seconds = get_interval_seconds(macro_interval)
-        limit = int(range_seconds / interval_seconds) + warmup 
-
-        logger.info(f"Backtest Engine: Fetching {macro_interval} klines for simulation (Limit: {limit}, Warmup: {warmup})...")
-        binance = BinanceFuturesClient()
-        klines = binance.fetch_historical_klines(
-            symbol=self.symbol,
-            interval=macro_interval,
-            limit=limit,
-            startTime=int(start_dt.timestamp() * 1000) - (warmup * interval_seconds * 1000),
-            endTime=int(end_dt.timestamp() * 1000)
-        )
-        binance.close()
-        
-        # Prepare KlineData range for sampling
-        klines_range = [
-            k for k in klines 
-            if start_dt <= datetime.fromtimestamp(k.open_time / 1000, tz=timezone.utc) <= end_dt
-        ]
-        
-        # SniperSampler: scans historical range for noteworthy asymmetry events
-        sampler = SniperSampler(self.symbol)
-        timestamps = sampler.sample(klines_range, self.args.samples)
-
-        # Log the full sample list to session.log for traceability
-        _session_file_log.info("Backtest sample selection (%d timestamps):", len(timestamps))
-        for i, dt in enumerate(timestamps, 1):
-            _session_file_log.info("  [%d] %s", i, dt.isoformat())
-
-        # 3. Execution Loop
-        logger.info(f"Simulating {len(timestamps)} temporal snapshots (Requested: {self.args.samples})...")
-        for i, dt in enumerate(timestamps, 1):
-            logger.info(f"\n[BACKTEST PROGRESS: {i}/{len(timestamps)}]")
-            _session_file_log.info("[BACKTEST %d/%d] %s — starting", i, len(timestamps), dt.isoformat())
-            self.engine.execute_cycle(timestamp_str=dt.isoformat())
-
-def parse_date(date_str: str) -> datetime:
-    """Helper to parse flexible dates (T-30d, ISO, now)."""
-    from src.utils.datetime_utils import parse_flexible_date
-    try:
-        return parse_flexible_date(date_str)
-    except ValueError as e:
-        raise argparse.ArgumentTypeError(str(e))
+        self.engine.execute_cycle(timestamp_str=None,
+                                   progress_callback=self.progress_callback)
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Session Engine")
-    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
-
-    # 2. Backtest Configuration Group
-    bt_group = parser.add_argument_group("Backtest Options")
-    bt_group.add_argument("--timestamp", "-ts", type=str, help="Precise historical timestamp")
-    bt_group.add_argument("--start", type=parse_date, help="Start date (YYYY-MM-DD or T-30d)")
-    bt_group.add_argument("--end", type=parse_date, default="now", help="End date (YYYY-MM-DD or now)")
-    bt_group.add_argument("--samples", type=int, default=None, help="Number of historical samples")
-
-    
+    """Entry point for direct invocation: ``python run_session.py --symbol BTC``."""
+    parser = argparse.ArgumentParser(description="Singularity Session Engine (live)")
+    parser.add_argument("--symbol", type=str, required=True,
+                        help="Trading pair prefix (e.g. BTC)")
     from src.utils.pipeline_utils import add_data_path_argument
     add_data_path_argument(parser)
-    
     args = parser.parse_args()
-    
-    # --- Mode Resolution & Parameter Validation ---
+
     if not args.path:
         args.path = "data/prod"
 
-    if getattr(args, 'timestamp', None):
-        logger.info(f"=== Mode Resolved: SIMULATION (One-Off Historical) ===")
-        logger.info(f" => ACTION: Replaying market cross-section at historical point")
-        logger.info(f" => ADOPTED: --timestamp '{args.timestamp}'")
-        logger.info(f" => ARCHIVAL: {args.path}")
-    elif getattr(args, 'start', None):
-        if args.samples is None:
-            raise SystemExit("Error: --samples is required for backtest mode.")
-        logger.info(f"=== Mode Resolved: BACKTEST (Batch Historical) ===")
-        logger.info(f" => ACTION: Simulating multiple historical data points")
-        logger.info(f" => ADOPTED: --start '{args.start}', --end '{args.end}', --samples {args.samples}")
-        logger.info(f" => ARCHIVAL: {args.path}")
-    else:
-        logger.info(f"=== Mode Resolved: PROD (Live Execution) ===")
-        logger.info(f" => ACTION: Fetching current real-time market data")
-        logger.info(f" => ARCHIVAL: {args.path}")
-
-    print("\n") # formatting spacing before engine start
+    logger.info("Mode: PROD (live execution)")
+    print("\n")
     controller = SessionController(args)
     controller.run()
 

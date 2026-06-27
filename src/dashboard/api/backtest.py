@@ -1,11 +1,16 @@
 """API endpoints for triggering and monitoring backtest sessions."""
 
 import json
+import os
+import signal
+import subprocess
+import sys
 import threading
+import time
 import logging
 from datetime import datetime, timezone
 
-from src.utils.progress_utils import add_activity_entry, enrich_progress, ACTIVE, COMPLETE, ERROR
+from src.utils.progress_utils import enrich_progress
 from pathlib import Path
 
 from fastapi import APIRouter, Query, HTTPException, Depends
@@ -38,6 +43,7 @@ log = logging.getLogger("BacktestAPI")
 
 STATUS_FILENAME = ".backtest_status.json"
 MAX_LOOKBACK_DAYS = 28
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
 # ── Models ──────────────────────────────────────────────────────────────
@@ -197,17 +203,22 @@ def _compute_samples(
             "analysis_window", {}
         ).get("macro_context", {}).get("time_interval", "15m")
 
-        # Calculate warmup for indicators
+        # Calculate warmup for indicators (must match run_backtest.py:_sample_batch)
+        from src.utils.market_utils import calculate_indicator_warmup
+
         topo_cfg = strategy_cfg.get("topography_parameters", {})
         indicators = topo_cfg.get("indicators", {})
-        ema_period = indicators.get("exponential_moving_average_period", 200)
-        atr_period = indicators.get("average_true_range_period", 14)
         fir_period = strategy_cfg.get("analysis_window", {}).get(
             "macro_context", {}
         ).get("lookback_candles", 500)
 
-        # Warmup = max(ema, atr) + fir (same as run_session.py)
-        warmup = max(ema_period, atr_period) + fir_period
+        warmup = calculate_indicator_warmup(
+            iir_periods=[
+                indicators.get("exponential_moving_average_period", 200),
+                indicators.get("average_true_range_period", 14),
+            ],
+            fir_periods=[fir_period],
+        )
 
         range_seconds = (end_dt - start_dt).total_seconds()
         interval_seconds = get_interval_seconds(macro_interval)
@@ -260,156 +271,13 @@ def _compute_samples(
 
 # ── Background runner ───────────────────────────────────────────────────
 
-def _run_backtest_in_thread(
-    symbol: str,
-    data_root: str,
-    timestamps: list[str],
-    run_id: int,
-) -> None:
-    """Execute backtest sessions in a background thread, one per timestamp."""
+def _is_pid_alive(pid: int) -> bool:
+    """Check whether a process is still running."""
     try:
-        from run_session import SessionEngine
-
-        engine = SessionEngine(symbol=symbol, data_root=data_root)
-
-        total = len(timestamps)
-        for i, ts in enumerate(timestamps):
-            # Check if superseded
-            current = _read_status(data_root)
-            if not current or current.get("run_id") != run_id:
-                log.info(
-                    "Backtest run %d superseded — discarding", run_id
-                )
-                return
-
-            # Update progress: mark this sample as running
-            samples_state = (current.get("samples") or [])
-            if i < len(samples_state):
-                samples_state[i]["status"] = "running"
-            _write_status(data_root, {
-                **current,
-                "samples": samples_state,
-                "current_index": i,
-            })
-
-            try:
-                # ── Progress callback for this sample ──
-                # Use default-arg capture to bind i at definition time
-                def _bt_progress(stage=None, activity=None, status="running",
-                                 stage_label=None, result=None, error=None,
-                                 _sample_idx=i):
-                    current3 = _read_status(data_root)
-                    if not current3 or current3.get("run_id") != run_id:
-                        return
-                    samples3 = list(current3.get("samples") or [])
-                    if _sample_idx >= len(samples3):
-                        return
-                    now_utc = datetime.now(timezone.utc)
-                    started_str3 = current3.get("started_at", "")
-                    elapsed3 = 0
-                    if started_str3:
-                        try:
-                            started3 = datetime.fromisoformat(started_str3.replace("Z", "+00:00"))
-                            elapsed3 = round((now_utc - started3).total_seconds())
-                        except Exception:
-                            pass
-
-                    progress = samples3[_sample_idx].get("progress", {})
-                    if status == "running":
-                        activities = list(progress.get("activities", []))
-                        add_activity_entry(activities, activity)
-                        progress = {
-                            "status": "running",
-                            "current_stage": stage if stage is not None else progress.get("current_stage", 1),
-                            "stage_label": stage_label or progress.get("stage_label", ""),
-                            "activity": activity or progress.get("activity", ""),
-                            "elapsed_seconds": elapsed3,
-                            "activities": activities,
-                        }
-                    elif status == "completed":
-                        progress = {
-                            "status": "completed",
-                            "current_stage": 5,
-                            "elapsed_seconds": elapsed3,
-                            "result": result or {},
-                            "activities": progress.get("activities", []),
-                        }
-                    elif status == "failed":
-                        activities = list(progress.get("activities", []))
-                        if activity:
-                            activities.append({
-                                "type": ERROR,
-                                "message": activity,
-                            })
-                        progress = {
-                            "status": "failed",
-                            "current_stage": stage if stage is not None else progress.get("current_stage", 1),
-                            "elapsed_seconds": elapsed3,
-                            "error": error or activity or "Unknown error",
-                            "activities": activities,
-                        }
-
-                    samples3[_sample_idx]["progress"] = progress
-                    _write_status(data_root, {**current3, "samples": samples3})
-
-                result = engine.execute_cycle(timestamp_str=ts,
-                                              progress_callback=_bt_progress)
-
-                # Mark as completed
-                current2 = _read_status(data_root)
-                if not current2 or current2.get("run_id") != run_id:
-                    return
-                samples_state2 = current2.get("samples") or []
-                if i < len(samples_state2):
-                    samples_state2[i]["status"] = "completed"
-                    # Build the session filename from the deterministic archive pattern
-                    from src.utils.datetime_utils import sanitize_timestamp
-                    samples_state2[i]["session_file"] = f"{symbol}_session_{sanitize_timestamp(ts)}.json"
-                _write_status(data_root, {
-                    **current2,
-                    "samples": samples_state2,
-                    "current_index": i,
-                    "done_count": i + 1,
-                    "elapsed_seconds": _compute_elapsed(current2),
-                })
-            except Exception as e:
-                log.exception(
-                    "Backtest sample %d/%d failed for %s", i + 1, total, symbol
-                )
-                current2 = _read_status(data_root)
-                if not current2 or current2.get("run_id") != run_id:
-                    return
-                samples_state2 = current2.get("samples") or []
-                if i < len(samples_state2):
-                    samples_state2[i]["status"] = "failed"
-                    samples_state2[i]["error"] = str(e)
-                _write_status(data_root, {
-                    **current2,
-                    "samples": samples_state2,
-                    "current_index": i,
-                    "done_count": i + 1,
-                    "elapsed_seconds": _compute_elapsed(current2),
-                })
-
-        # All done
-        current = _read_status(data_root)
-        if current and current.get("run_id") == run_id:
-            _write_status(data_root, {
-                **current,
-                "running": False,
-                "elapsed_seconds": _compute_elapsed(current),
-            })
-
-    except Exception as e:
-        log.exception("Backtest run thread failed for %s", symbol)
-        current = _read_status(data_root)
-        if current and current.get("run_id") == run_id:
-            _write_status(data_root, {
-                **current,
-                "running": False,
-                "error": str(e),
-                "elapsed_seconds": _compute_elapsed(current),
-            })
+        os.kill(pid, 0)
+        return True
+    except (OSError, ProcessLookupError):
+        return False
 
 
 def _compute_elapsed(status: dict) -> int:
@@ -519,11 +387,16 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     ]
 
     run_id = _next_id()
+
+    # Write initial status *before* Popen so the subprocess can read it.
+    # pid is None until Popen returns; the subprocess only reads/writes
+    # "progress" and "samples", never "pid".
     _write_status(data_root, {
         "running": True,
         "mode": req.mode,
         "symbol": symbol,
         "run_id": run_id,
+        "pid": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "total_count": len(ts_list),
         "done_count": 0,
@@ -531,17 +404,28 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
         "samples": samples_state,
     })
 
-    thread = threading.Thread(
-        target=_run_backtest_in_thread,
-        args=(symbol, data_root, ts_list, run_id),
-        daemon=True,
-    )
-    thread.start()
+    cmd = [
+        sys.executable, "run.py", "backtest-run",
+        "--symbol", raw.upper(),
+        "--run-id", str(run_id),
+        "--write-status",
+        "-p", data_root,
+    ]
+
+    log.info("Starting backtest subprocess: %s", " ".join(cmd))
+    proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT))
+
+    # Patch in the real PID
+    status = _read_status(data_root)
+    if status is not None:
+        status["pid"] = proc.pid
+        _write_status(data_root, status)
 
     return {
         "accepted": True,
         "symbol": symbol,
         "total_count": len(ts_list),
+        "run_id": run_id,
     }
 
 
@@ -574,7 +458,18 @@ def get_status(data_root: str = Query("")):
             enrich_progress(sample.get("progress"))
 
     if status.get("running"):
-        if _is_stale(status):
+        pid = status.get("pid")
+        # Check PID first (subprocess mode), then fall back to time-based stale check
+        if pid and not _is_pid_alive(pid):
+            log.warning("Clearing stale backtest lock for dead PID %s (run_id %s)",
+                        pid, status.get("run_id"))
+            _write_status(data_root, {
+                **status,
+                "running": False,
+                "error": "Subprocess died unexpectedly",
+            })
+            return {"running": False, "error": "Subprocess died unexpectedly"}
+        if not pid and _is_stale(status):
             log.warning("Clearing stale backtest lock for run_id %s", status.get("run_id"))
             _write_status(data_root, {
                 **status,
@@ -595,7 +490,12 @@ def get_status(data_root: str = Query("")):
 @router.post("/stop")
 def stop_run(data_root: str = Query(""),
              _=Depends(_require("run_backtest"))):
-    """Stop the currently running backtest."""
+    """Stop the currently running backtest by sending SIGTERM to its subprocess.
+
+    Escalates to SIGKILL if the process does not exit within ~0.5 s, then
+    writes the final status so the frontend can display the last-known
+    progress.
+    """
     from src.dashboard.api.sessions import _resolve_data_root
     data_root = _resolve_data_root(data_root)
 
@@ -604,10 +504,36 @@ def stop_run(data_root: str = Query(""),
         raise HTTPException(status_code=404, detail="No backtest is running")
 
     symbol = status.get("symbol", "?")
+    pid = status.get("pid")
+
+    if pid and _is_pid_alive(pid):
+        try:
+            os.kill(pid, signal.SIGTERM)
+            log.info("Sent SIGTERM to backtest PID %s (%s)", pid, symbol)
+            for _ in range(5):  # ~0.5 s grace period
+                if not _is_pid_alive(pid):
+                    log.info("Backtest PID %s terminated cleanly.", pid)
+                    break
+                time.sleep(0.1)
+            else:
+                log.warning("Backtest PID %s did not exit after SIGTERM, sending SIGKILL", pid)
+                os.kill(pid, signal.SIGKILL)
+                for _ in range(5):
+                    if not _is_pid_alive(pid):
+                        log.info("Backtest PID %s killed.", pid)
+                        break
+                    time.sleep(0.1)
+        except OSError as e:
+            log.error("Failed to kill backtest PID %s: %s", pid, e)
+    else:
+        log.warning("Backtest PID %s was already dead — clearing lock", pid)
+
+    # Preserve the last progress snapshot so the frontend can render it
+    current = _read_status(data_root)
     _write_status(data_root, {
-        **status,
+        **current,
         "running": False,
         "stopped": True,
+        "elapsed_seconds": _compute_elapsed(current) if current else 0,
     })
-    log.info("Backtest stopped for %s", symbol)
     return {"stopped": True, "symbol": symbol}
