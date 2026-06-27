@@ -493,8 +493,8 @@ async function runAudit() {
       status.textContent = '⚠ ' + data.error;
       status.className = 'audit-status audit-error';
     } else {
-      const { done, total } = data;
-      status.textContent = `✓ ${done}/${total}`;
+      const done = (data.audited || 0) + (data.skipped || 0);
+      status.textContent = `✓ ${done}/${data.total || 0}`;
       status.className = 'audit-status audit-ok';
       btn.style.display = 'none';
     }
