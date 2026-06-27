@@ -170,6 +170,7 @@ let QUOTE = 'USDT'; // fallback, overwritten by /api/config
 let runPollInterval = null;
 let runProgress = null;
 let runGeneration = 0;  // to cancel stale completion timeouts
+let _runStopInFlight = false;  // guards against poll re-enabling button mid-stop
 
 function clearRunErrors() {
   const input = document.getElementById('symbol-prefix');
@@ -186,11 +187,13 @@ function updateRunUI(state) {
   const btn = document.getElementById('run-session-btn');
 
   if (state === 'running') {
+    _runStopInFlight = false;
     input.disabled = true;
     btn.disabled = false;
     btn.textContent = '⏹ Stop';
     btn.classList.add('danger');
   } else {
+    _runStopInFlight = false;
     input.disabled = false;
     btn.disabled = false;
     btn.textContent = '▶ Run';
@@ -205,7 +208,9 @@ async function checkRunStatus() {
     const data = await resp.json();
 
     if (data.running) {
-      updateRunUI('running');
+      if (!_runStopInFlight) {
+        updateRunUI('running');
+      }
       if (data.progress) {
         if (!runProgress) {
           runProgress = new SessionProgress(
@@ -255,10 +260,13 @@ async function triggerRun() {
   const input = document.getElementById('symbol-prefix');
   const group = document.getElementById('symbol-input-group');
 
+  // Disable immediately to prevent double-click races
+  btn.disabled = true;
+  btn.textContent = '…';
+
   // Toggle: if running, STOP
   if (runPollInterval) {
-    btn.disabled = true;
-    btn.textContent = '…';
+    _runStopInFlight = true;
     try {
       const resp = await fetch(apiUrl('/api/session/stop'), { method: 'POST' });
       if (!resp.ok) {
@@ -268,6 +276,7 @@ async function triggerRun() {
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
         btn.classList.add('danger');
+        _runStopInFlight = false;
         return;
       }
     } catch (e) {
@@ -275,6 +284,7 @@ async function triggerRun() {
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
       btn.classList.add('danger');
+      _runStopInFlight = false;
       return;
     }
     container.innerHTML = '';
@@ -299,6 +309,7 @@ async function triggerRun() {
     group.classList.add('has-error');
     group.setAttribute('data-error', 'Enter at least 2 characters (e.g. BTC)');
     input.focus();
+    updateRunUI('idle');
     return;
   }
 
@@ -307,11 +318,9 @@ async function triggerRun() {
     group.classList.add('has-error');
     group.setAttribute('data-error', 'Only letters and numbers, e.g. BTC');
     input.focus();
+    updateRunUI('idle');
     return;
   }
-
-  btn.disabled = true;
-  btn.textContent = '…';
 
   try {
     const resp = await fetch(apiUrl('/api/session/run'), {
@@ -362,6 +371,7 @@ async function triggerRun() {
 let sniperPollInterval = null;
 let sniperProgress = null;
 let sniperGeneration = 0;
+let _stopInFlight = false;  // guards against poll re-enabling button mid-stop
 
 function clearSniperErrors() {
   ['sniper-symbol', 'sniper-balance'].forEach(id => {
@@ -398,6 +408,7 @@ function updateSniperUI(state) {
   const btn = document.getElementById('sniper-btn');
 
   if (state === 'running') {
+    _stopInFlight = false;
     input.disabled = true;
     tradeToggle.disabled = true;
     balanceInput.disabled = true;
@@ -405,6 +416,7 @@ function updateSniperUI(state) {
     btn.textContent = '⏹ Stop';
     btn.classList.add('danger');
   } else {
+    _stopInFlight = false;
     input.disabled = false;
     tradeToggle.disabled = false;
     balanceInput.disabled = false;
@@ -518,7 +530,9 @@ async function checkSniperStatus() {
     const data = await resp.json();
 
     if (data.running) {
-      updateSniperUI('running');
+      if (!_stopInFlight) {
+        updateSniperUI('running');
+      }
       const container = document.getElementById('sniper-progress-container');
       const guardianContainer = document.getElementById('sniper-guardian-table-container');
 
@@ -573,6 +587,7 @@ async function triggerSniper() {
 
   // Check if currently running — if so, STOP
   if (sniperPollInterval) {
+    _stopInFlight = true;
     try {
       const resp = await fetch(apiUrl('/api/sniper/stop'), { method: 'POST' });
       if (!resp.ok) {
@@ -581,12 +596,14 @@ async function triggerSniper() {
           (err.detail || 'stop failed') + '</div>';
         btn.disabled = false;
         btn.textContent = '⏹ Stop';
+        _stopInFlight = false;
         return;
       }
     } catch (e) {
       container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
       btn.disabled = false;
       btn.textContent = '⏹ Stop';
+      _stopInFlight = false;
       return;
     }
     container.innerHTML = '';
