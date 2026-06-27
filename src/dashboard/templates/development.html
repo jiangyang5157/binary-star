@@ -491,13 +491,17 @@ async function checkBacktestStatus() {
         clearInterval(backtestPollInterval);
         backtestPollInterval = null;
 
+        // Clean up progress bars for any still-running samples
+        if (data.samples) {
+          updateSampleStatuses(data.samples, true);
+        }
         updateRunUI('idle');
       }
     }
   } catch (e) { /* polling failed silently */ }
 }
 
-function updateSampleStatuses(samples) {
+function updateSampleStatuses(samples, stopped) {
   samples.forEach((s, i) => {
     const row = document.getElementById('bt-sample-' + i);
     if (!row) return;
@@ -510,7 +514,7 @@ function updateSampleStatuses(samples) {
 
     const progress = s.progress;
 
-    if (s.status === 'running') {
+    if (s.status === 'running' && !stopped) {
       if (iconEl) { iconEl.textContent = '◉'; iconEl.className = 'bt-sample-status-icon running'; }
       if (resultEl) resultEl.textContent = '';
       if (metaEl) metaEl.textContent = '';
@@ -550,12 +554,16 @@ function updateSampleStatuses(samples) {
       if (metaEl) metaEl.textContent = '';
       if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || 'Failed';
     } else {
-      // pending — reset
+      // Unfinished — pending or stopped mid-run
+      if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'bt-sample-status-icon pending'; }
       if (progContainer && window._btProgressInstances[i]) {
         window._btProgressInstances[i].destroy();
         delete window._btProgressInstances[i];
         progContainer.innerHTML = '';
       }
+      if (resultEl) resultEl.textContent = '';
+      if (metaEl) metaEl.textContent = '';
+      if (errorEl) errorEl.textContent = '';
     }
   });
 }
@@ -609,7 +617,8 @@ function updateSampleStatuses(samples) {
       }
       sampleTimestamps = data.samples.map(s => s.timestamp);
       renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-      updateSampleStatuses(data.samples);
+      // Treat as stopped so any still-"running" samples clean up their progress bars
+      updateSampleStatuses(data.samples, true);
     }
   } catch (e) { /* ignore */ }
 })();
