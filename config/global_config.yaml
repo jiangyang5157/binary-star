@@ -1,6 +1,6 @@
 trade_management:
   quote_currency: "USDT"     # Default quote asset (USDT, USDC, etc.)
-  risk_per_trade: 0.004      # Max % loss of total equity allowed per trade
+  risk_per_trade: 0.005      # Max % loss of total equity allowed per trade
   net_qty_tolerance: 0.00001 # Minimal threshold to consider a position FLAT
 
 network:
@@ -12,7 +12,7 @@ llm:
   # --- Central Neural Infrastructure ---
   active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
   api_timeout_seconds: 180
-  max_tool_iterations: 5
+  max_tool_iterations: 6
   retry_count: 3
   retry_strategy:
     multiplier: 2
