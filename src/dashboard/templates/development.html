@@ -720,8 +720,8 @@ function updateSampleStatuses(samples) {
         backtestPollInterval = setInterval(checkBacktestStatus, 2000);
         checkBacktestStatus();
       }
-    } else if (data.preview && data.samples && data.samples.length) {
-      // Completed preview (timestamp sync or finished range) — restore sample list
+    } else if (data.samples && data.samples.length) {
+      // Completed preview or run — restore sample list with status
       const symbol = data.symbol || '';
       $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
       if (data.mode) {
@@ -731,6 +731,28 @@ function updateSampleStatuses(samples) {
       }
       sampleTimestamps = data.samples.map(s => s.timestamp);
       renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+      updateSampleStatuses(data.samples);
+
+      // Show run-status for completed/stopped runs (not just preview)
+      if (!data.preview) {
+        const statusEl = $('bt-run-status');
+        if (data.stopped) {
+          statusEl.style.display = 'block';
+          statusEl.className = 'run-status-box run-ok';
+          statusEl.textContent = '✓ Stopped';
+        } else if (data.error) {
+          statusEl.style.display = 'block';
+          statusEl.className = 'run-status-box run-error';
+          statusEl.textContent = '✗ ' + data.error;
+        } else {
+          const done = data.done_count || 0;
+          const total = data.total_count || 0;
+          const failed = (data.samples || []).filter(s => s.status === 'failed').length;
+          statusEl.style.display = 'block';
+          statusEl.className = failed > 0 ? 'run-status-box run-error' : 'run-status-box run-ok';
+          statusEl.textContent = '✓ Completed ' + done + '/' + total + (failed > 0 ? ' · ' + failed + ' failed' : '');
+        }
+      }
     }
   } catch (e) { /* ignore */ }
 })();
