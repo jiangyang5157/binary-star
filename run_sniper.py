@@ -355,25 +355,9 @@ class SniperDaemon:
                             if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                                 self._attempt_trade_execution(sym, session_result)
 
-                            # ── Clear active_session and update recent signals ──
+                            # ── Clear active_session ──
                             s3 = _read_daemon_status()
                             if s3 and s3.get("active_session"):
-                                direction = "NEUTRAL"
-                                confidence = 0
-                                if session_result and "error" not in session_result:
-                                    fd = session_result.get("final_decision", {})
-                                    direction = str(fd.get("opinion", "NEUTRAL"))
-                                    confidence = int(fd.get("confidence_score", 0))
-                                else:
-                                    direction = "ERROR"
-
-                                recent = list(s3.get("recent_signals", []))
-                                recent.insert(0, {
-                                    "time": datetime.now(timezone.utc).strftime("%H:%M"),
-                                    "direction": direction,
-                                    "confidence": confidence,
-                                })
-                                s3["recent_signals"] = recent[:5]
                                 s3["active_session"] = None
                                 _write_daemon_status(s3)
 

@@ -1811,11 +1811,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .sniper-idle-info strong {
   color: var(--text-primary);
 }
-.sniper-idle-recent {
-  color: var(--text-muted);
-  font-size: 0.76rem;
-}
-
 /* ── Sniper signal trigger banner ── */
 .sp-signal-banner {
   display: flex;

@@ -440,24 +440,14 @@ function _renderSniperStatusLine(data) {
   var symbols = (data.symbols || []).map(function(s) {
     return s.replace(new RegExp(QUOTE + '$', 'i'), '');
   }).join(', ');
-  var pulseCount = data.pulse_count || 0;
-  var nextScout = data.next_scout_in_seconds;
-
-  var nextScoutText = '';
-  if (nextScout != null && nextScout >= 0) {
-    var nm = Math.floor(nextScout / 60);
-    var ns = nextScout % 60;
-    nextScoutText = ' · Next scout ' + nm + ':' + (ns < 10 ? '0' : '') + ns;
-  }
 
   var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-  var statusLine = ' · ' + formatElapsed(pulseAge) + ' since last pulse';
 
   el.innerHTML =
     '<div class="sniper-idle">' +
       '<span class="sniper-idle-dot"></span>' +
-      '<span class="sniper-idle-info">Watching <strong>' + symbols + '</strong>… · Pulse #' +
-        pulseCount + nextScoutText + statusLine + '</span>' +
+      '<span class="sniper-idle-info">Watching <strong>' + symbols + '</strong>… · ' +
+        formatElapsed(pulseAge) + ' since last pulse</span>' +
     '</div>';
 }
 

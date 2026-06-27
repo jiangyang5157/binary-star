@@ -122,7 +122,7 @@ class SessionProgress {
       html += '<div class="sp-activity">';
       html += '<span class="sp-activity-toggle">' + toggleIcon + '</span>';
       html += '<span class="sp-activity-text">' + this._esc(activity) + '</span>';
-      html += '<span class="sp-elapsed">' + elapsed + '</span>';
+      html += '<span class="sp-elapsed">⏱ ' + elapsed + '</span>';
       html += '</div>';
     }
 
@@ -157,7 +157,7 @@ class SessionProgress {
     var debatePath = result.debate_path || '';
 
     if (this.size === 'compact') {
-      var meta = '✓ ' + dir + ' ' + conf + '% · ' + elapsed;
+      var meta = '✓ ' + dir + ' ' + conf + '% · ⏱ ' + elapsed;
       if (debatePath) meta += ' · ' + debatePath;
       this.el.innerHTML = '<div class="bt-sample-result" style="color:var(--accent-green)">' +
         this._esc(meta) + '</div>';
@@ -170,7 +170,7 @@ class SessionProgress {
     var html = '<div class="sp-completed">';
     html += '<span>✓</span>';
     html += '<span class="sp-completed-dir">' + this._esc(dir) + '</span>';
-    html += '<span class="sp-completed-meta">· Confidence ' + conf + '% · ' + elapsed + '</span>';
+    html += '<span class="sp-completed-meta">· Confidence ' + conf + '% · ⏱ ' + elapsed + '</span>';
     if (debatePath) {
       html += '<span class="sp-completed-debate">· ' + this._esc(debatePath) + '</span>';
     }
