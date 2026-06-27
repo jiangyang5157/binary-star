@@ -1608,15 +1608,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   z-index: 2;
   transition: background 0.4s, box-shadow 0.4s;
 }
-.sp-anchor.done {
-  background: var(--accent-green);
-  border-color: var(--accent-green);
-}
-.sp-anchor.active {
-  background: var(--accent-teal);
-  box-shadow: 0 0 8px 2px rgba(84, 160, 168, 0.5);
-  animation: sp-pulse-glow 2s ease-in-out infinite;
-}
 .sp-anchor.failed {
   background: var(--accent-red);
   box-shadow: 0 0 6px 2px rgba(224, 85, 74, 0.4);
@@ -1644,8 +1635,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   white-space: nowrap;
   transition: color 0.4s;
 }
-.sp-label.done { color: var(--accent-green); }
-.sp-label.active { color: var(--accent-teal); }
 .sp-label.failed { color: var(--accent-red); }
 
 /* ── Activity row ── */
@@ -1857,7 +1846,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 @media (prefers-reduced-motion: reduce) {
   .sp-bar-fill { transition: none; }
   .sp-bar-fill.sp-stage-3 { animation: none; }
-  .sp-anchor.active { animation: none; }
   .sniper-idle-dot { animation: none; }
   .sp-log { transition: none; }
   .session-progress { transition: none; }
