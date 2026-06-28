@@ -518,6 +518,36 @@ python run.py patch -f proposal.json --symbol XAUT
 | `-f` / `--file` | Yes | — | Path to validated evolution proposal JSON |
 | `--symbol` | No | — | Target symbol for symbol_config.yaml override patching |
 
+### Dashboard
+
+Start the FastAPI dashboard server for visualizing sessions, audits, and backtest results. The server auto-reloads on code changes.
+
+```bash
+# Start dashboard (default port 8080)
+python src/dashboard/server.py -p data/prod
+
+# Custom port and host
+python src/dashboard/server.py -p data/prod --port 3000 --host 0.0.0.0
+
+# Production data root
+python src/dashboard/server.py -p data/v26.6.28
+```
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `-p` / `--data-root` | **Yes** | — | Data directory root (e.g. `data/prod`, `data/v26.6.28`) |
+| `--port` | No | `8080` | Server port |
+| `--host` | No | `127.0.0.1` | Server bind address |
+
+The server also respects the `SINGULARITY_DATA_ROOT` environment variable — set it to avoid passing `-p` on every invocation:
+
+```bash
+export SINGULARITY_DATA_ROOT=data/prod
+python src/dashboard/server.py
+```
+
+**Pages**: `/performance` (dashboard), `/live` (live sessions), `/development` (dev tools), `/sessions/{filename}` (session detail), `/audits/{filename}` (audit detail).
+
 ### Utility Scripts
 
 | Script | Description |
