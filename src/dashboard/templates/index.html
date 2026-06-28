@@ -190,7 +190,7 @@ function updateAllCharts(threshold) {
     eq *= (1 + t.pnl_pct / 100);
     if (eq > peak) peak = eq;
     dd = Math.max(dd, (peak - eq) / peak);
-    curve.push({ x: new Date(t.time), y: (eq - 1) * 100 });
+    curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: t.time || '', version: t.version || '' });
   });
 
   const netPnL = (eq - 1) * 100, mddPct = dd * 100;
@@ -314,12 +314,17 @@ function renderEquity(curve, netPnL) {
           displayColors: false,
           callbacks: {
             title: (items) => {
-              const d = items[0].raw.x;
-              return d ? d.toLocaleString() : '';
+              const d = items[0].raw;
+              return `${d.symbol || '—'}  ·  ${d.timeLabel || ''}`;
             },
             label: (ctx) => {
-              const y = ctx.raw.y;
-              return `${y >= 0 ? '+' : ''}${y.toFixed(2)}%`;
+              const d = ctx.raw;
+              const pnlStr = d.pnl_pct != null ? `${d.pnl_pct > 0 ? '+' : ''}${d.pnl_pct.toFixed(2)}%` : '—';
+              const eqStr = `${d.y >= 0 ? '+' : ''}${d.y.toFixed(2)}%`;
+              const lines = [`${d.opinion || '—'}  ·  Conf ${d.confidence != null ? d.confidence.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
+              lines.push(`Equity ${eqStr}`);
+              if (d.version) lines.push(`v${d.version}`);
+              return lines;
             }
           }
         }
