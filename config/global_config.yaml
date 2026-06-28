@@ -184,10 +184,7 @@ sniper:
         rr_feasibility: true       # 盈亏比不够 → 拒绝
         directional_sanity: true   # 逆势无 CV D确认 → 拒绝
         chaos_survival: true       # 混沌中追方向信号 → 拒绝
-      # 当前价格离最近 HVN 的最大 ATR 距离。超过此值拒绝触发。
-      # 4.0 对 BTC（ATR~590）≈ $2360，主要过滤极端真空区。
-      # XAUT 通过 symbol_config.yaml 覆盖为 2.0（ATR~26，≈$52）。
-      max_price_to_structure_atr: 4.0
+      max_price_to_structure_atr: 4.0 # 当前价格离最近 HVN 的最大 ATR 距离。超过此值拒绝触发。
 
     # —— 信号置信度权重（可被 Evolution 进化）——
     # 设计原则：结构性/流动性信号 > 情绪/反向信号。
