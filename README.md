@@ -11,85 +11,38 @@ A lightweight **Sniper daemon** monitors market topography at 2-minute pulses. I
 ## Architecture
 
 ```mermaid
-graph TB
-    subgraph Entry["Entry Points"]
-        CLI["run.py (CLI)"]
-        Session["run_session.py"]
-        Sniper["run_sniper.py"]
-        Audit["run_audit.py"]
-        Backtest["run_backtest.py"]
-        Evolution["run_evolution.py"]
-        Patch["run_patch.py"]
-    end
+graph TD
+    CLI["CLI / Dashboard"]
 
-    subgraph Dashboard["Dashboard"]
-        API["FastAPI Server<br/>src/dashboard/server.py"]
-        Routes["session_run | sniper_run<br/>sessions | audits | backtest"]
-        Renderer["SessionRenderer<br/>HTML email + chart"]
-    end
+    CLI -->|"sniper"| Daemon["SniperDaemon<br/>2-min pulse loop"]
+    CLI -->|"session"| BSO["BinaryStarOrchestrator<br/>adversarial debate wire"]
 
-    subgraph Orchestration["Orchestration Layer"]
-        BSO["BinaryStarOrchestrator"]
-        DL["DebateLoop"]
-        SD["SniperDaemon"]
-    end
+    Daemon --> Scout["SniperScout<br/>harvest klines, OI, CVD"]
+    Scout --> Trigger["SniperTrigger<br/>14-signal confluence"]
+    Trigger -->|"score ≥ threshold"| BSO
 
-    subgraph Agents["AI Agents"]
-        SA["SessionAgent<br/>trade thesis (temp 0.5→0.3)"]
-        CA["CriticAgent<br/>adversarial audit (temp 0.1)"]
-        EA["EvolverAgent<br/>strategy mutation (temp 0.0)"]
-        ES["EvolverSandbox<br/>shadow-duel validation"]
-    end
+    BSO --> Observer["MarketObserver<br/>full topography + charts"]
+    Observer --> Exchange["Binance<br/>FuturesClient (data) | MarginClient (trade)"]
 
-    subgraph Sniper["Sniper Layer"]
-        Scout["SniperScout<br/>lightweight harvest"]
-        Trigger["SniperTrigger<br/>14-signal confluence"]
-        Gate["Pre-AI Gate<br/>4 deterministic checks"]
-    end
+    BSO --> Debate["DebateLoop<br/>adversarial rounds"]
+    Debate --> SA["SessionAgent<br/>Thesis (temp 0.5)"]
+    Debate --> CA["CriticAgent<br/>Antithesis (temp 0.1)"]
+    BSO --> MFC["MathFactChecker<br/>deterministic verify"]
+    SA & CA --> AI["LLM Provider<br/>Gemini | DeepSeek | Qwen"]
 
-    subgraph Execution["Trade Execution"]
-        MOE["MarginOrderExecutor<br/>sync_with_opinion + guardian_check"]
-    end
+    BSO --> Executor["MarginOrderExecutor<br/>OCO + Guardian + trailing stop"]
+    Executor --> Exchange
 
-    subgraph Analysis["Market Analysis"]
-        MO["MarketObserver"]
-        VP["VolumeProfileAnalyzer"]
-        MR["MarketRegimeAnalyzer"]
-        LE["LiquidationEstimator"]
-        CG["ChartGenerator"]
-        MFC["MathFactChecker"]
-        AA["AuditAssembler"]
-        AC["AuditController"]
-        TE["TopographyEngine"]
-    end
+    CLI -->|"audit"| Audit["AuditController<br/>forensic batch audit"]
+    Audit --> Observer
+    Audit -->|"reports"| Evolver["EvolverAgent<br/>strategy mutation"]
+    Evolver -->|"patches"| Config["Config System<br/>strategy + global + symbol overrides"]
 
-    subgraph Infra["Infrastructure"]
-        AIF["AIFactory → AbstractAIClient"]
-        AI_Adapters["Gemini | DeepSeek | Qwen"]
-        Exchange["BinanceFuturesClient<br/>BinanceMarginClient"]
-        Notify["SessionNotifier<br/>EmailDispatcher"]
-    end
-
-    subgraph Config["Config + Utils"]
-        CFG["sub_configs.py<br/>5 frozen dataclasses"]
-        RES["symbol_resolver.py<br/>per-symbol overrides"]
-        UTIL["math_utils | exceptions<br/>fitness | rate_limiter"]
-    end
-
-    CLI --> Dashboard
-    Session --> BSO
-    Sniper --> SD --> Scout --> Trigger --> Gate --> BSO
-    BSO --> DL
-    DL --> SA --> CA
-    DL --> MFC
-    BSO --> MO
-    BSO --> MOE
-    Audit --> AC --> AA
-    Evolution --> EA --> ES
-    ES --> BSO
-    Patch --> EA
-    AIF --> AI_Adapters
-    SA & CA & EA --> AIF
+    Config -.-> Trigger
+    Config -.-> Scout
+    Config -.-> Observer
+    Config -.-> BSO
+    Config -.-> Executor
 ```
 
 ### Layer Descriptions
@@ -250,29 +203,16 @@ Signals stack directionally using **1 − ∏(1 − sᵢ · wᵢ)**, with noise 
 
 ```mermaid
 graph TD
-    Pulse["2-min Pulse"] --> Heartbeat["💓 Alive heartbeat<br/>(always, validates daemon liveness)"]
-    Heartbeat --> GuardianPre["Guardian Check<br/>per-symbol position protection"]
-    GuardianPre --> Scout["SniperScout.scout()<br/>klines + OI + liquidations + CVD + funding"]
-    Scout --> AllGood{"Data valid<br/>all symbols?"}
-    AllGood -->|no| Sleep60["Sleep 60s, retry"]
-    AllGood -->|yes| Trigger["SniperTrigger.evaluate()"]
-    Trigger --> Detect["13 signal detectors run"]
-    Detect --> Memory["SignalMemory.ingest()<br/>merge fresh + decay survivors<br/>purge signals < 0.05"]
-    Memory --> Confluence["ConfluenceEngine.evaluate()<br/>directional stack + noise cancel"]
-    Confluence --> Cooldown{"Adaptive Cooldown<br/>active?"}
-    Cooldown -->|active| CheckBreak{"Stack ≥ 3?<br/>Strength > last × 1.8?"}
-    Cooldown -->|inactive| Gate["Pre-AI Gate<br/>4 deterministic checks"]
-    CheckBreak -->|yes| Gate
-    CheckBreak -->|no| LeaderSync["Leader Sync<br/>boost correlated followers"]
-    Gate -->|FAIL| LeaderSync
-    Gate -->|PASS| Fire["🔫 SNIPER WAKE UP!<br/>Activate Binary Star session"]
-    Fire --> TradeGate{"AI opinion<br/>conf ≥ 50%?"}
-    TradeGate -->|yes| Execute["sync_with_opinion()<br/>entry order placed"]
-    TradeGate -->|no| LeaderSync
-    Execute --> LeaderSync
-    LeaderSync --> Sleep["Sleep 2 min"]
-    Sleep60 --> Pulse
-    Sleep --> Pulse
+    PULSE["⏰ 2-min Pulse"] --> H["① Heartbeat<br/>write .sniper_alive.json"]
+    H --> G["② Guardian Check<br/>per-symbol position protection"]
+    G --> S["③ Scout<br/>harvest: klines, OI, CVD, liquidations"]
+    S --> T["④ Trigger Evaluation<br/>13 detectors → memory merge → confluence → cooldown → gate"]
+    T --> LS["⑤ Leader Sync<br/>leader trigger → boost correlated followers"]
+    LS --> AI{"⑥ Any symbol<br/>triggered?"}
+    AI -->|"yes"| SESSION["⑦ AI Session<br/>Binary Star debate → trade execution"]
+    AI -->|"no"| SLEEP["Sleep 2 min"]
+    SESSION --> SLEEP
+    SLEEP --> PULSE
 ```
 
 ### Pre-AI Gate (Deterministic Filters)
@@ -353,15 +293,34 @@ When profit exceeds ATR-based thresholds, Guardian progressively migrates the st
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Flat
-    Flat --> EntryPending: AI opinion (sync_with_opinion)
-    EntryPending --> Flat: Entry expired (Guardian)
-    EntryPending --> InPosition: Fill confirmed (Guardian)
-    InPosition --> Protected: OCO placed (Guardian)
-    Protected --> Protected: Trailing stop migrated
-    Protected --> Flat: TP hit / SL hit / Time stop
-    Protected --> Flat: Emergency close (OCO repair failed)
-    InPosition --> Flat: SL breached (emergency close)
+    [*] --> IDLE
+
+    IDLE --> ENTRY_PENDING: AI opinion<br/>place LIMIT order
+    ENTRY_PENDING --> IDLE: timeout<br/>(elapsed > projected_waiting)
+
+    ENTRY_PENDING --> IN_POSITION: fill confirmed
+
+    IN_POSITION --> EMERGENCY_CLOSE: SL breached<br/>before OCO placed
+    IN_POSITION --> PROTECTED: OCO placed<br/>(TP limit + SL limit)
+
+    PROTECTED --> TRAILING_L1: profit ≥ 1.5 ATR<br/>SL → breakeven
+    PROTECTED --> TRAILING_L2: profit ≥ 2.5 ATR<br/>SL → entry + 0.5 ATR
+    PROTECTED --> TRAILING_L3: profit ≥ 4.0 ATR<br/>SL → entry + 1.5 ATR
+
+    TRAILING_L1 --> TRAILING_L2: profit ≥ 2.5 ATR
+    TRAILING_L2 --> TRAILING_L3: profit ≥ 4.0 ATR
+
+    PROTECTED --> IDLE: TP hit | SL hit | time stop
+    TRAILING_L1 --> IDLE: TP hit | SL hit | time stop
+    TRAILING_L2 --> IDLE: TP hit | SL hit | time stop
+    TRAILING_L3 --> IDLE: TP hit | SL hit | time stop
+
+    PROTECTED --> EMERGENCY_CLOSE: OCO re-place failed
+    TRAILING_L1 --> EMERGENCY_CLOSE: OCO re-place failed
+    TRAILING_L2 --> EMERGENCY_CLOSE: OCO re-place failed
+    TRAILING_L3 --> EMERGENCY_CLOSE: OCO re-place failed
+
+    EMERGENCY_CLOSE --> IDLE: market close executed<br/>state cleared
 ```
 
 ---
