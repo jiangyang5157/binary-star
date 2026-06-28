@@ -28,7 +28,7 @@ function formatLocalTime(isoStr) {
     const local = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
       + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
 
-    const tz = Intl.DateTimeFormat('en', { timeZoneName: 'short' })
+    const tz = Intl.DateTimeFormat('en', { timeZoneName: 'shortOffset' })
       .formatToParts(d).find(p => p.type === 'timeZoneName')?.value;
 
     return utc + ' (' + local + (tz ? ' ' + tz : '') + ')';

@@ -70,7 +70,7 @@ def to_iso_zulu(dt_obj: datetime) -> str:
 def to_html_display(ts_str: str) -> str:
     """
     Converts any timestamp string to a dual UTC/Local format for HTML reports.
-    Format: 2026-03-08 13:00:00Z (2026-03-08 21:00:00 NZDT)
+    Format: 2026-03-08 13:00:00Z (2026-03-08 21:00:00 GMT+12)
     """
     if not ts_str:
         return "N/A"
@@ -87,9 +87,14 @@ def to_html_display(ts_str: str) -> str:
         # 2. Format UTC Part
         utc_part = dt_utc.strftime("%Y-%m-%d %H:%M:%S") + "Z"
         
-        # 3. Format Local Part (Server/System Timezone)
+        # 3. Format Local Part (Server/System Timezone) as GMT±HH:MM
         local_dt = dt_utc.astimezone()
-        local_part = local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+        offset = local_dt.utcoffset()
+        total_seconds = int(offset.total_seconds())
+        hours = total_seconds // 3600
+        minutes = abs(total_seconds) % 3600 // 60
+        tz_str = f"GMT{hours:+d}" + (f":{minutes:02d}" if minutes else "")
+        local_part = local_dt.strftime("%Y-%m-%d %H:%M:%S") + " " + tz_str
         
         return f"{utc_part} ({local_part})"
     except Exception:
