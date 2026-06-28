@@ -640,6 +640,7 @@ python src/dashboard/server.py
 |--------|-------|-------------|
 | `scripts/calculate_qty.py` | `-f session.json -b 1000` | Position size calculator: equity × risk% ÷ (entry − SL) |
 | `scripts/check_margin_state.py` | `--symbol BTC` | Inspect current Binance margin account state |
+| `scripts/archive_sessions.py` | `-p data/prod -v 26.6.29 [--symbol BTC] [--dry-run]` | Move session files into a versioned archive folder |
 | `scripts/clean_neutral_sessions.py` | `-p data/prod [--symbol BTC] [--dry-run]` | Batch-delete NEUTRAL session files from data directory |
 | `scripts/export_session.py` | `-f audit.json -p data/prod` | Extract original session from forensic audit report |
 | `scripts/market_recon.py` | `--symbol BTC [-ts ISO] [--email] -p data/prod` | Standalone market topography snapshot (POC, VAH, VAL, ATR) |
