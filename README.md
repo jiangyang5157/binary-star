@@ -4,6 +4,8 @@
 
 AI-driven crypto quantitative trading engine. Its core innovation is the **Binary Star adversarial protocol**: two LLM agents (Session Analyst proposing trades, Critic Agent auditing them) debate in rounds to converge on zero-entropy trade decisions. A third agent (Evolver) uses forensic audit results to mutate strategy parameters via sandbox-validated evolutionary patches.
 
+A lightweight **Sniper daemon** monitors market topography at 2-minute pulses. Its 14-signal confluence engine only activates the heavyweight Binary Star reasoning engine when signal stacking exceeds a regime-adaptive threshold — saving LLM tokens during quiet markets.
+
 ---
 
 ## Architecture
@@ -29,18 +31,20 @@ graph TB
     subgraph Orchestration["Orchestration Layer"]
         BSO["BinaryStarOrchestrator"]
         DL["DebateLoop"]
+        SD["SniperDaemon"]
     end
 
-    subgraph Agents["Agents"]
-        SA["SessionAgent<br/>trade proposal"]
-        CA["CriticAgent<br/>forensic audit"]
-        EA["EvolverAgent<br/>strategy mutation"]
-        ES["EvolverSandbox<br/>batch validation"]
+    subgraph Agents["AI Agents"]
+        SA["SessionAgent<br/>trade thesis (temp 0.5→0.3)"]
+        CA["CriticAgent<br/>adversarial audit (temp 0.1)"]
+        EA["EvolverAgent<br/>strategy mutation (temp 0.0)"]
+        ES["EvolverSandbox<br/>shadow-duel validation"]
     end
 
     subgraph Sniper["Sniper Layer"]
         Scout["SniperScout<br/>lightweight harvest"]
         Trigger["SniperTrigger<br/>14-signal confluence"]
+        Gate["Pre-AI Gate<br/>4 deterministic checks"]
     end
 
     subgraph Execution["Trade Execution"]
@@ -49,9 +53,10 @@ graph TB
 
     subgraph Analysis["Market Analysis"]
         MO["MarketObserver"]
-        VP["VolumeProfile"]
-        MR["MarketRegime"]
+        VP["VolumeProfileAnalyzer"]
+        MR["MarketRegimeAnalyzer"]
         LE["LiquidationEstimator"]
+        CG["ChartGenerator"]
         MFC["MathFactChecker"]
         AA["AuditAssembler"]
         AC["AuditController"]
@@ -65,9 +70,15 @@ graph TB
         Notify["SessionNotifier<br/>EmailDispatcher"]
     end
 
+    subgraph Config["Config + Utils"]
+        CFG["sub_configs.py<br/>5 frozen dataclasses"]
+        RES["symbol_resolver.py<br/>per-symbol overrides"]
+        UTIL["math_utils | exceptions<br/>fitness | rate_limiter"]
+    end
+
     CLI --> Dashboard
     Session --> BSO
-    Sniper --> Scout --> Trigger --> BSO
+    Sniper --> SD --> Scout --> Trigger --> Gate --> BSO
     BSO --> DL
     DL --> SA --> CA
     DL --> MFC
@@ -87,8 +98,8 @@ graph TB
 |-------|--------|------|
 | **Entry Points** | `run.py`, `run_*.py` | CLI + standalone scripts; each `run_*.py` is independently invocable |
 | **Dashboard** | `src/dashboard/` | FastAPI server, Jinja2 templates, REST API for session/sniper/audit/backtest |
-| **Orchestration** | `src/agent/binary_star_orchestrator.py` | Wires Observer → DebateLoop → MathFactChecker → SessionAgent → CriticAgent |
-| **Agents** | `src/agent/session_agent.py`, `critic_agent.py`, `evolver_agent.py` | LLM agents for trade proposal, adversarial critique, and strategy evolution |
+| **Orchestration** | `binary_star_orchestrator.py`, `debate_loop.py` | Wires MarketObserver → DebateLoop → MathFactChecker → SessionAgent → CriticAgent |
+| **AI Agents** | `session_agent.py`, `critic_agent.py`, `evolver_agent.py` | LLM agents for trade thesis, adversarial critique, and strategy evolution |
 | **Sniper** | `src/sniper/` | Lightweight pulse monitor: Scout harvests market data, Trigger evaluates 14-signal confluence |
 | **Trade Execution** | `src/agent/order_executor.py` | MarginOrderExecutor: position cross-referencing, synthetic OCO, Guardian trailing stops |
 | **Market Analysis** | `src/analyzer/` | Volume profile, regime detection, math fact-checking, forensic audit assembly, topography |
@@ -118,7 +129,7 @@ sequenceDiagram
     BSO->>DL: run(observation, symbol)
 
     loop Debate Rounds (1..max_rounds)
-        DL->>SA: execute_session_cycle(debate_history, temperature=0.7)
+        DL->>SA: planning/refinement (temperature=0.5)
         SA-->>DL: {opinion, confidence, tactical_parameters}
         DL->>MFC: verify(plan, observation)
         MFC-->>DL: {status, rr_ratio, compliance_verdict}
@@ -131,8 +142,8 @@ sequenceDiagram
         end
     end
 
-    opt max_rounds exhausted
-        DL->>SA: cold synthesis (temperature=0.2)
+    opt max_rounds exhausted (no consensus)
+        DL->>SA: cold synthesis (temperature=0.3)
         SA-->>DL: synthesized final decision
     end
 
@@ -141,18 +152,63 @@ sequenceDiagram
     BSO-->>Session: archive session JSON
 ```
 
-### Audit Dimensions
+### Debate Mechanics
 
-The CriticAgent evaluates every trade proposal across these axes:
+1. **Pre-Flight**: MarketObserver harvests klines, OI, liquidations, funding rates. ChartGenerator renders annotated chart images. Regime benchmarks (effective velocity, temporal dilation) are pre-calculated and injected into the observation.
 
-| Dimension | Check |
-|-----------|-------|
-| **Risk-Reward** | RR ratio ≥ regime-adaptive minimum (trending: 1.12, ranging: 1.0, chaos: discounted) |
-| **Structural Shielding** | Stop-loss anchored behind POC, VAH/VAL, or HVN — not floating in vacuum |
-| **Entry Feasibility** | Entry distance from current price ≤ max_entry_distance_atr (1.6 ATR) |
-| **Directional Sanity** | Counter-trend trades require CVD confirmation; trend pullbacks verified |
-| **Chaos Survival** | Directional momentum signals blocked in chaos regime (VII > 2.2) |
-| **Physical Plausibility** | MathFactChecker: pure-Python verification of RR, ATR metrics, structural proximity |
+2. **Debate Rounds** (max 2 by default):
+   - **Round 1** — SessionAgent proposes a trade blueprint at temperature 0.5 (creative exploration)
+   - **MathFactChecker** verifies the geometry deterministically (RR, ATR distances, structural shielding)
+   - **CriticAgent** audits the plan at temperature 0.1 (cold logic) against its CRITIC_CODES table
+   - **Round 2+** — SessionAgent refines based on critique tags, Critic re-audits
+   - **Early Exit** — PASS or WEAK veto terminates the loop immediately
+
+3. **Finalization**: If max_rounds exhausted without consensus, a cold synthesis call (temperature 0.3) processes compressed debate history for hardened output. The result is always run through MathFactChecker one final time to sanitize hallucinated values.
+
+4. **Output**: Structured trade decision with opinion, entry/TP/SL levels, confidence score, and debate history.
+
+### Critic Audit Dimensions (18 Codes)
+
+The CriticAgent applies a structured CRITIC_CODES table. When multiple codes fire, the most severe veto level dominates: **TERMINAL > CONSTRUCTIVE > WEAK > PASS**.
+
+| # | Category | Tag | Veto | What It Checks |
+|---|----------|-----|------|----------------|
+| 1 | Pristine | `[PRISTINE]` | PASS | SL shielded behind structural anchor AND RR valid |
+| 2 | Justified Inaction | `[JUSTIFIED_INACTION]` | PASS | Neutral stance is defensible (prior terminal veto or unsolvable contradiction) |
+| 3 | Order Physics | `[ORDER_PHYSICS]` | TERMINAL | Entry on wrong side of current price OR SL on wrong side of entry |
+| 4 | Structural Trap | `[STRUCTURAL_TRAP]` | TERMINAL | Entry sits in a volume vacuum zone |
+| 5 | Anchor/Shield Failure | `[ANCHOR_VIOLATION]` | TERMINAL | SL not behind structural anchor, or anchor not between entry and SL |
+| 6 | Logic Loop | `[PROTOCOL_VIOLATION]` | TERMINAL | Session repeated a failed plan pattern without paradigm shift |
+| 7 | Retail Long Squeeze | `[RETAIL_LONG_SQUEEZE]` | TERMINAL | Bearish sentiment + bullish plan at resistance with retail long crowding |
+| 8 | Retail Short Squeeze | `[RETAIL_SHORT_SQUEEZE]` | TERMINAL | Bullish sentiment + bearish plan at support with retail short crowding |
+| 9 | Math Violation | `[MATH_VIOLATION]` | CONSTRUCTIVE | RR below minimum threshold, or entry-to-SL exceeds POC gravity distance |
+| 10 | Inaction Bias | `[INACTION_BIAS]` | CONSTRUCTIVE | Market is squeezable or price extreme — neutral stance may be cowardly |
+| 11 | Opportunity Denial | `[OPPORTUNITY_DENIAL]` | CONSTRUCTIVE | Strong directional CVD flow exists without absorption risk |
+| 12 | Trend Starvation | `[TREND_STARVATION]` | CONSTRUCTIVE | Clear trend with momentum — neutral is forfeiting alpha |
+| 13 | Gravity Exhaustion | `[GRAVITY_EXHAUSTION]` | CONSTRUCTIVE | Trading toward distant POC without momentum backing |
+| 14 | Volatility Chop | `[VOLATILITY_CHOP]` | CONSTRUCTIVE | High noise regime — targets should tighten |
+| 15 | Flow Violation | `[FLOW_VIOLATION]` | CONSTRUCTIVE | CVD flow opposes trade direction without mitigation |
+| 16 | Over-Extension | `[OVER_EXTENSION]` | CONSTRUCTIVE | Projected holding time exceeds regime-adjusted maximum |
+| 17 | Liquidity Void | `[LIQUIDITY_VOID]` | CONSTRUCTIVE | SL sits in a liquidity vacuum (near LVN) |
+| 18 | Absorption Trap | `[CVD_ABSORPTION]` | WEAK | CVD absorption against trade direction (smart money absorbing opposite flow) |
+
+### MathFactChecker: Deterministic Verification
+
+A pure-Python engine that validates AI-generated coordinates before any exchange action:
+
+| Check | Method | What It Verifies |
+|-------|--------|-----------------|
+| **RR Ratio** | `calculate_risk_reward()` | `abs(tp - entry) / abs(entry - sl)` ≥ regime-adjusted minimum |
+| **ATR Normalization** | `calculate_atr_metrics()` | SL/TP distances in ATR units; SL must be within `poc_gravity_atr_distance` (3.5 ATR) |
+| **Structural Shielding** | `calculate_structural_proximity()` | SL must be anchored behind POC, VAH/VAL, or HVN with buffer ≥ `structural_buffer_atr` (0.84 ATR) |
+| **Holding Time** | `project_holding_time()` | Flight time × temporal dilation; used for entry expiry and time-based stops |
+
+Regime-adaptive minimum RR:
+| Regime | Min RR | Notes |
+|--------|--------|-------|
+| Trending | 1.12 | Higher bar — trend has inertia, demand better payout |
+| Ranging | 1.00 | Standard — noise is symmetric |
+| Chaos | 0.65 (discounted) | Survival mode — allow low-RR plans, tight stops |
 
 ---
 
@@ -162,26 +218,26 @@ The Sniper is a lightweight daemon that monitors market topography at 2-minute p
 
 ### Signal Stack (14 Detectors × 5 Categories)
 
-| # | Signal | Category | Weight | Description |
-|---|--------|----------|--------|-------------|
-| 1 | `cvd_momentum` | FLOW | 0.65 | CVD intensity exceeds threshold, growing vs previous pulse |
-| 2 | `cvd_divergence` | FLOW | 0.70 | CVD-price divergence: smart money vs retail direction mismatch |
-| 3 | `cvd_absorption` | FLOW | 0.65 | Extreme CVD with flat price — iceberg absorption detected |
-| 4 | `taker_imbalance` | FLOW | 0.60 | Taker buy/sell ratio derived from CVD intensity |
-| 5 | `volatility_surge` | ENERGY | 0.55 | VII > baseline, VPR > threshold, growing (damped) |
-| 6 | `squeeze` | ENERGY | 0.75 | Bollinger Band squeeze factor below threshold — breakout precursor |
-| 7 | `boundary_test` | STRUCTURAL | 0.50 | Price approaching VAH/VAL within proximity threshold |
-| 8 | `poc_gravity` | STRUCTURAL | 0.55 | Price pulled toward POC — mean-reversion magnet active |
-| 9 | `liquidation_hunt` | STRUCTURAL | 0.60 | Price moving toward liquidation cluster within proximity |
-| 10 | `trend_pullback` | STRUCTURAL | 0.75 | Price pulling back to HVN in strong trend direction |
-| 11 | `retail_extreme` | POSITIONING | 0.42 | LS ratio or funding rate at extreme — contrarian signal |
-| 12 | `oi_divergence` | POSITIONING | 0.70 | OI-price divergence: open interest vs price moving opposite directions |
-| 13 | `oi_surge` | POSITIONING | 0.55 | OI and price moving same direction — trend continuation |
-| 14 | `leader_sync` | CROSS_SYMBOL | 0.40 | Correlated leader (ETH, XAUT) triggered — boost follower |
+| # | Signal | Category | Weight | Half-Life | Description |
+|---|--------|----------|--------|-----------|-------------|
+| 1 | `cvd_momentum` | FLOW | 0.65 | 6 min | CVD intensity exceeds threshold, growing vs previous pulse |
+| 2 | `cvd_divergence` | FLOW | 0.70 | 4 min | Price-CVD divergence: smart money vs retail direction mismatch |
+| 3 | `cvd_absorption` | FLOW | 0.65 | 10 min | Extreme CVD with flat price — iceberg absorption detected |
+| 4 | `taker_imbalance` | FLOW | 0.60 | 4 min | Taker buy/sell ratio derived from CVD intensity (>0.60 ratio) |
+| 5 | `volatility_surge` | ENERGY | 0.55 | 20 min | VII > baseline + volume surge — breakout energy (no inherent direction) |
+| 6 | `squeeze` | ENERGY | 0.75 | 20 min | BB squeeze below threshold — compressed spring, breakout precursor |
+| 7 | `boundary_test` | STRUCTURAL | 0.50 | 10 min | Price within 0.70 ATR of VAH/VAL with volume participation |
+| 8 | `poc_gravity` | STRUCTURAL | 0.55 | 10 min | Price within 0.50 ATR of POC — mean-reversion magnet |
+| 9 | `liquidation_hunt` | STRUCTURAL | 0.60 | 10 min | Price within 0.40 ATR of liquidation cluster — sweep incoming |
+| 10 | `trend_pullback` | STRUCTURAL | 0.75 | 10 min | Price pulling back to HVN in strong trend (intensity ≥ 0.35) |
+| 11 | `retail_extreme` | POSITIONING | 0.42 | 60 min | LS ratio >1.5 or <0.6, or funding extreme — contrarian |
+| 12 | `oi_divergence` | POSITIONING | 0.70 | 15 min | OI and price moving opposite directions — positioning reversal signal |
+| 13 | `oi_surge` | POSITIONING | 0.55 | 20 min | OI and price moving same direction — trend continuation |
+| 14 | `leader_sync` | CROSS_SYMBOL | 0.40 | 8 min | Correlated leader symbol triggered — boost follower signals |
 
 ### Confluence Engine
 
-Signals stack directionally using the formula **1 − ∏(1 − sᵢ · wᵢ)**, with noise cancellation via cross-direction product. Regime-adaptive thresholds:
+Signals stack directionally using **1 − ∏(1 − sᵢ · wᵢ)**, with noise cancellation via cross-direction product (`noise_factor = 1 − bullish × bearish`). Single signals below 0.15 strength are ignored. Regime-adaptive thresholds:
 
 | Regime | Modifier | Effective Threshold | Rationale |
 |--------|----------|--------------------|-----------|
@@ -194,21 +250,41 @@ Signals stack directionally using the formula **1 − ∏(1 − sᵢ · wᵢ)**,
 
 ```mermaid
 graph TD
-    Pulse["2-min Pulse"] --> Scout["SniperScout.scout()<br/>klines + OI + liquidations + CVD"]
-    Scout --> Trigger["SniperTrigger.evaluate()"]
+    Pulse["2-min Pulse"] --> Heartbeat["💓 Alive heartbeat<br/>(always, validates daemon liveness)"]
+    Heartbeat --> GuardianPre["Guardian Check<br/>per-symbol position protection"]
+    GuardianPre --> Scout["SniperScout.scout()<br/>klines + OI + liquidations + CVD + funding"]
+    Scout --> AllGood{"Data valid<br/>all symbols?"}
+    AllGood -->|no| Sleep60["Sleep 60s, retry"]
+    AllGood -->|yes| Trigger["SniperTrigger.evaluate()"]
     Trigger --> Detect["13 signal detectors run"]
-    Detect --> Memory["SignalMemory.ingest()<br/>merge fresh + decay survivors"]
+    Detect --> Memory["SignalMemory.ingest()<br/>merge fresh + decay survivors<br/>purge signals < 0.05"]
     Memory --> Confluence["ConfluenceEngine.evaluate()<br/>directional stack + noise cancel"]
-    Confluence --> Cooldown{"Adaptive Cooldown?"}
+    Confluence --> Cooldown{"Adaptive Cooldown<br/>active?"}
     Cooldown -->|active| CheckBreak{"Stack ≥ 3?<br/>Strength > last × 1.8?"}
     Cooldown -->|inactive| Gate["Pre-AI Gate<br/>4 deterministic checks"]
     CheckBreak -->|yes| Gate
-    CheckBreak -->|no| Sleep["💤 SLEEPING"]
-    Gate -->|FAIL| Sleep
+    CheckBreak -->|no| LeaderSync["Leader Sync<br/>boost correlated followers"]
+    Gate -->|FAIL| LeaderSync
     Gate -->|PASS| Fire["🔫 SNIPER WAKE UP!<br/>Activate Binary Star session"]
-    Fire --> Guardian["Guardian Check<br/>position protection"]
-    Fire --> LeaderSync["Leader Sync<br/>boost correlated followers"]
+    Fire --> TradeGate{"AI opinion<br/>conf ≥ 50%?"}
+    TradeGate -->|yes| Execute["sync_with_opinion()<br/>entry order placed"]
+    TradeGate -->|no| LeaderSync
+    Execute --> LeaderSync
+    LeaderSync --> Sleep["Sleep 2 min"]
+    Sleep60 --> Pulse
+    Sleep --> Pulse
 ```
+
+### Pre-AI Gate (Deterministic Filters)
+
+Before spending LLM tokens, four hard checks validate tradability:
+
+| Gate | Check | Rejects |
+|------|-------|---------|
+| **Entry Feasibility** | Distance to nearest HVN ≤ `max_price_to_structure_atr` (4.0 ATR) | Plans too far from structural support |
+| **Directional Sanity** | Counter-trend trades require CVD confirmation | Fading strong trends without flow backing |
+| **Chaos Survival** | Directional momentum signals blocked in chaos unless squeeze/absorption present | Momentum-based entries in chaotic markets |
+| **RR Feasibility** | Minimum price distance exists for valid RR setup | Trades where stop distance makes RR impossible |
 
 ### Adaptive Cooldown
 
@@ -223,6 +299,14 @@ After a trigger, cooldown prevents spam. Duration adapts to regime:
 
 Absolute minimum gap between triggers: **10 minutes**.
 
+### Leader Sync (Cross-Symbol Cascade)
+
+When a leader symbol triggers, its correlated followers get a signal boost:
+- **ETHUSDT**: correlation 0.75, boost factor 0.30
+- **XAUTUSDT**: correlation 0.40, boost factor 0.30
+
+Followers only trigger if the boosted confluence exceeds their regime threshold.
+
 ### Guardian: Position Protection
 
 Every pulse cycle, Guardian checks and protects open positions — no AI involvement:
@@ -235,7 +319,6 @@ Every pulse cycle, Guardian checks and protects open positions — no AI involve
 | **Position filled, unprotected** | Check SL not already breached → place synthetic OCO (TP limit + SL limit). If price already crossed SL: emergency market close |
 | **Position filled, protected** | Proceed to trailing stop migration check |
 | **SL breached** | Emergency market close |
-| **Partial SL fill** | Rebuild OCO with remaining qty |
 | **Position flat (was filled)** | Cancel all orders, clear state |
 
 ### Trailing Stop Migration (3-Tier)
@@ -248,7 +331,23 @@ When profit exceeds ATR-based thresholds, Guardian progressively migrates the st
 | Level 2 | ≥ 2.5 ATR | SL → entry ± 0.5 ATR | Capture partial profit |
 | Level 3 | ≥ 4.0 ATR | SL → entry ± 1.5 ATR | Trail aggressively |
 
-**Time Stop** (ATR-adaptive): Holding limit adjusts to volatility changes. If `current ATR > entry ATR` (rising vol), the limit compresses proportionally — a 2× ATR increase halves the allowed holding time. Formula: `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier`. When elapsed exceeds this limit, the position is market-closed regardless of profit.
+**Migration is forward-only**: target_level must be strictly > current_level. Monotonicity (`0 < l1 < l2 < l3`, `0 < o2 < o3`) is validated at init.
+
+**Time Stop** (ATR-adaptive): Holding limit adjusts to volatility changes. If `current ATR > entry ATR` (rising vol), the limit compresses proportionally. Formula: `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier` (1.5).
+
+### Position × Opinion Cross-Reference
+
+`sync_with_opinion()` resolves new AI opinions against existing positions:
+
+| Current Position | AI Opinion | Action |
+|-------------------|------------|--------|
+| Flat | NEUTRAL | No action |
+| Flat | BULLISH/BEARISH | Cancel stale orders → place new LIMIT entry |
+| LONG/SHORT | Same direction | Optimize: merge TP (max of both), tighten SL, replace OCO |
+| LONG | BEARISH (has SL) | **Pivot-Preserve**: align TP to entry, keep original SL, place new SHORT LIMIT entry |
+| LONG | BEARISH (no SL) | **Force Close**: market close, cancel all orders, place new SHORT LIMIT entry |
+| SHORT | BULLISH (has SL) | **Pivot-Preserve**: align TP to entry, keep original SL, place new LONG LIMIT entry |
+| SHORT | BULLISH (no SL) | **Force Close**: market close, cancel all orders, place new LONG LIMIT entry |
 
 ### Order Lifecycle
 
@@ -271,11 +370,11 @@ stateDiagram-v2
 
 `AbstractAIClient` defines the provider-agnostic contract. `AIFactory.create_client()` resolves the active provider from `global_config.yaml` → `llm.active_provider`.
 
-| Provider | Adapter | Model | Vision | Context Cache | Notes |
-|----------|---------|-------|--------|---------------|-------|
-| **DeepSeek** | `deepseek_adapter.py` | `deepseek-v4-pro` | No | No | OpenAI-compatible; thinking models supported via `reasoning_content` |
-| **Gemini** | `gemini_adapter.py` | `gemini-3.5-flash` | Yes | Yes | Context cache (Truth Bus) for multi-turn debate efficiency |
-| **Qwen** | `qwen_adapter.py` | `qwen3.7-max` | No (configurable) | No | OpenAI-compatible; set `supports_vision: true` for VL models |
+| Provider | Adapter | Default Model | Vision | Context Cache | Reasoning Content | Notes |
+|----------|---------|---------------|--------|---------------|-------------------|-------|
+| **DeepSeek** | `deepseek_adapter.py` | `deepseek-v4-pro` | No | No | Yes | OpenAI-compatible; `reasoning_content` extracted from responses |
+| **Gemini** | `gemini_adapter.py` | `gemini-3.5-flash` | Yes | Yes | No | Context cache (Truth Bus) for multi-turn debate efficiency |
+| **Qwen** | `qwen_adapter.py` | `qwen3.7-max` | Configurable | No | Yes | OpenAI-compatible; set `supports_vision: true` for VL models |
 
 ### Provider-Agnostic Data Types
 
@@ -285,7 +384,7 @@ class AIResponse:
     text: str
     tool_calls: list[ToolCall] | None
     usage: UsageMetadata | None
-    reasoning_content: str | None  # DeepSeek thinking models
+    reasoning_content: str | None  # DeepSeek/Qwen thinking models
 
 @dataclass
 class VisualPart:           # Provider-agnostic image/chart
@@ -293,6 +392,23 @@ class VisualPart:           # Provider-agnostic image/chart
     data: bytes
     label: str | None
 ```
+
+### Agent Temperature Strategy
+
+| Role | Temperature | Purpose |
+|------|------------|---------|
+| SessionAgent (planning rounds) | 0.5 | Creative hypothesis generation |
+| SessionAgent (cold synthesis) | 0.3 | Hardened logic, final structural hardening |
+| CriticAgent (all rounds) | 0.1 | Cold deterministic audit |
+| EvolverAgent | 0.0 | Pure deterministic evolution |
+
+### Current Settings (`global_config.yaml`)
+
+- **Active Provider**: `deepseek` (model: `deepseek-v4-pro`)
+- **API Timeout**: 180s
+- **Max Tool Iterations**: 5
+- **Retry**: 3 attempts, exponential backoff (5s → 40s)
+- **Circuit Breaker**: 3 consecutive failures → halt session cycle
 
 ---
 
@@ -302,16 +418,16 @@ class VisualPart:           # Provider-agnostic image/chart
 
 ```
 config/
-├── global_config.yaml       # LLM providers, binary_star, sniper, guardian, sandbox, evolver
+├── global_config.yaml       # LLM providers, binary_star, sniper, guardian, trade_management
 ├── strategy_config.yaml     # Regime detection, temporal physics, audit thresholds, topography
-├── symbol_config.yaml       # Per-symbol trade params + overrides (BTCUSDT, XAUTUSDT, ETHUSDT)
+├── symbol_config.yaml       # Per-symbol trade params + overrides (BTC, ETH, XAUT)
 ├── visual_config.yaml       # Chart rendering colors, DPI
 ├── auth/                    # Exchange API credentials
 └── prompts/
-    ├── binary_star.md       # Shared system instruction
-    ├── session.md           # SessionAgent role prompt
-    ├── critic.md            # CriticAgent role prompt
-    └── evolver.md           # EvolverAgent role prompt
+    ├── binary_star.md       # Shared system instruction (Truth Bus, Logic Macros)
+    ├── session.md           # SessionAgent role prompt (heuristics, Shield Law, repair patterns)
+    ├── critic.md            # CriticAgent role prompt (CRITIC_CODES table, Neutrality Paradox)
+    └── evolver.md           # EvolverAgent role prompt (mutation patterns, fitness interpretation)
 ```
 
 ### Resolution Order
@@ -325,17 +441,17 @@ graph TD
     Resolve --> Final["Final resolved config<br/>(frozen dataclasses)"]
 ```
 
-**Rule**: Symbol overrides win on conflict. If a symbol has `overrides.regime_parameters.trend.trend_intensity_min_expansion: 0.08`, it replaces the base value. Unknown sections are silently skipped. Original config is never mutated.
+**Rule**: Symbol overrides win on conflict. Resolution deep-copies via `copy.deepcopy()` — original config is never mutated.
 
 ### Sub-Config Dataclasses (Frozen)
 
-| Dataclass | Source Section | Key Fields |
-|-----------|---------------|------------|
-| `RegimeConfig` | `regime_parameters` | trend thresholds, volatility ratios, squeeze, CVD, imbalance |
-| `TemporalConfig` | `temporal_parameters` | velocity floor, regime-specific dilation + weights |
-| `RiskConfig` | `regime_parameters.risk` | min RR, structural buffer, chaos discount, max holding hours |
-| `AuditConfig` | `audit_review` | MAE thresholds (pinpoint/standard/luck), missed opportunity, slippage |
-| `VisualConfig` | `visual_config.yaml` | render DPI, up/down/POC/VAH/VAL colors |
+| Dataclass | Source Section | Key Fields | Count |
+|-----------|---------------|------------|-------|
+| `RegimeConfig` | `regime_parameters` | trend thresholds, volatility ratios, squeeze, CVD, imbalance, structural buffers | 25 |
+| `TemporalConfig` | `temporal_parameters` | velocity floor, regime-specific dilation factors + weights | 9 |
+| `RiskConfig` | `regime_parameters.risk` | min RR (trending/ranging), chaos discount, max holding hours, stop buffers | 9 |
+| `AuditConfig` | `audit_review` | MAE thresholds (pinpoint/standard/luck), missed opportunity | 4 |
+| `VisualConfig` | `visual_config.yaml` | render DPI, up/down/POC/VAH/VAL colors | 8 |
 
 ### Per-Symbol Overrides
 
@@ -345,14 +461,19 @@ XAUTUSDT:
   precision_qty: 3
   precision_price: 1
   min_order_qty: 0.01
-  sl_slippage_buffer: 0.5
+  sl_slippage_buffer: 1.0
   overrides:
     regime_parameters:
       trend:
-        trend_intensity_min_expansion: 0.08
+        trend_intensity_min_expansion: 0.08    # Lower than default 0.12 (XAUT volatility)
+      structural:
+        breakout_frontrun_atr: 0.2             # Tightened from 0.24
     sniper:
       probes:
-        cvd_divergence_tick_delta: 0.18
+        cvd_divergence_tick_delta: 0.18         # Lower than default 0.25 (weaker signals)
+      signal_stack:
+        gate:
+          max_price_to_structure_atr: 2.0       # Lower than default 4.0 (XAUT ATR ~26)
 ```
 
 ---
@@ -388,11 +509,18 @@ python run.py --version
 
 ## Commands
 
-All commands support both `python run.py <command>` and direct `python run_<module>.py` invocation. The `run_*.py` scripts are independent entry points — they do not import `run.py`.
+All commands support both `python run.py <command>` (unified CLI) and direct `python run_<module>.py` invocation. The `run_*.py` scripts are independent entry points — they do not import `run.py`.
+
+A `singularity` console command is also available after `pip install -e .`:
+
+```bash
+singularity session --symbol BTC -p data/prod
+singularity sniper --symbol BTC,ETH --llm -p data/prod
+```
 
 ### Session
 
-Run a single Binary Star analysis cycle (live market data).
+Run a single Binary Star analysis cycle with live market data.
 
 ```bash
 # Via unified CLI
@@ -413,7 +541,7 @@ python run.py session --symbol BTC --write_status -p data/prod
 
 ### Sniper
 
-Run the real-time monitoring daemon. Lightweight pulse (2-min) → signal evaluation → AI session only on trigger.
+Run the real-time monitoring daemon. 2-min pulse → signal evaluation → AI session only on trigger.
 
 ```bash
 # Observe-only (signals logged, no LLM spend)
@@ -442,27 +570,26 @@ Run session cycles against historical timestamps. Three mutually exclusive modes
 
 ```bash
 # Dashboard mode (reads timestamps from .backtest_status.json)
-python run.py backtest-run --symbol BTC --run-id 1 -p data/prod
+python run.py backtest-run --symbol BTCUSDT --write-status -p data/prod
 
 # Single historical point
-python run.py backtest-run --symbol BTC --timestamp "2026-06-15T14:00:00Z" -p data/prod
+python run.py backtest-run --symbol BTCUSDT --timestamp "2026-06-15T14:00:00Z" -p data/prod
 
 # Batch range with sniper-based sampling
-python run.py backtest-run --symbol BTC --start T-30d --samples 20 -p data/prod
+python run.py backtest-run --symbol BTCUSDT --start T-30d --samples 20 -p data/prod
 
 # Batch with custom end date
-python run.py backtest-run --symbol BTC --start 2026-01-01 --end 2026-06-01 --samples 50 -p data/prod
+python run.py backtest-run --symbol BTCUSDT --start 2026-01-01 --end 2026-06-01 --samples 50 -p data/prod
 ```
 
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|
-| `--symbol` | Yes | — | Trading pair prefix |
-| `--run-id` | Mode A | — | Dashboard mode: read timestamps from status file |
-| `--timestamp` | Mode B | — | Single ISO-8601 timestamp |
+| `--symbol` | Yes | — | Trading pair (e.g. `BTCUSDT`) |
+| `--write-status` | Mode A | — | Dashboard mode: read timestamps from `.backtest_status.json` |
+| `--timestamp` / `-ts` | Mode B | — | Single ISO-8601 timestamp |
 | `--start` | Mode C | — | Start date (`YYYY-MM-DD` or `T-30d`) |
 | `--end` | No | `now` | End date for batch range |
-| `--samples` | With `--start` | — | Number of samples to collect |
-| `--write-status` | No | `false` | Write progress to `.backtest_status.json` |
+| `--samples` | With `--start` | — | Number of historical samples |
 | `-p` / `--path` | No | `data/prod` | Data root directory |
 
 ### Audit
@@ -506,7 +633,7 @@ python run.py evolution --symbol BTC --samples 10 -p data/prod
 Apply a validated evolution proposal to config files and prompt templates.
 
 ```bash
-# Patch strategy_config.yaml (no symbol)
+# Patch strategy_config.yaml (no symbol — base config)
 python run.py patch -f data/prod/evolution/proposals/BTCUSDT_evolution_20260615.json
 
 # Patch symbol_config.yaml overrides for a specific symbol
@@ -520,7 +647,7 @@ python run.py patch -f proposal.json --symbol XAUT
 
 ### Dashboard
 
-Start the FastAPI dashboard server for visualizing sessions, audits, and backtest results. The server auto-reloads on code changes.
+Start the FastAPI dashboard server for visualizing sessions, audits, and backtest results.
 
 ```bash
 # Start dashboard (default port 8080)
@@ -539,7 +666,7 @@ python src/dashboard/server.py -p data/v26.6.28
 | `--port` | No | `8080` | Server port |
 | `--host` | No | `127.0.0.1` | Server bind address |
 
-The server also respects the `SINGULARITY_DATA_ROOT` environment variable — set it to avoid passing `-p` on every invocation:
+The server also respects the `SINGULARITY_DATA_ROOT` environment variable:
 
 ```bash
 export SINGULARITY_DATA_ROOT=data/prod
@@ -550,16 +677,16 @@ python src/dashboard/server.py
 
 ### Utility Scripts
 
-| Script | Description |
-|--------|-------------|
-| `scripts/calculate_qty.py` | Position size calculator: equity, risk%, entry, SL → qty |
-| `scripts/check_margin_state.py` | Inspect current Binance margin account state |
-| `scripts/clean_neutral_sessions.py` | Batch-delete neutral/no-op session files from data directory |
-| `scripts/export_session.py` | Export a session JSON to readable markdown summary |
-| `scripts/market_recon.py` | Standalone market reconnaissance (topography snapshot) |
-| `scripts/render_email_html.py` | Render session result as HTML email |
-| `scripts/sandbox_offline.py` | Offline sandbox: replay audit with patch, no live API calls |
-| `scripts/sandbox_online.py` | Online sandbox: full Binary Star replay with live AI |
+| Script | Usage | Description |
+|--------|-------|-------------|
+| `scripts/calculate_qty.py` | `-f session.json -b 1000` | Position size calculator: equity × risk% ÷ (entry − SL) |
+| `scripts/check_margin_state.py` | `--symbol BTC` | Inspect current Binance margin account state |
+| `scripts/clean_neutral_sessions.py` | `-p data/prod [--symbol BTC] [--dry-run]` | Batch-delete NEUTRAL session files from data directory |
+| `scripts/export_session.py` | `-f audit.json -p data/prod` | Extract original session from forensic audit report |
+| `scripts/market_recon.py` | `--symbol BTC [-ts ISO] [--email] -p data/prod` | Standalone market topography snapshot (POC, VAH, VAL, ATR) |
+| `scripts/render_email_html.py` | `-f session.json -p data/prod [--open]` | Render session result as email-safe HTML |
+| `scripts/sandbox_offline.py` | `-f sandbox.json -p data/prod` | Offline sandbox: replay audit with patch, no live API calls |
+| `scripts/sandbox_online.py` | `-f proposal.json -p data/prod` | Online sandbox: full Binary Star replay with live AI validation |
 
 ---
 
@@ -570,6 +697,7 @@ These are hard constraints enforced at runtime — violations trigger aborts or 
 ### Guardian: Position Protection
 
 - **Never Naked Position** — the core invariant. Between cancelling old OCO orders and placing new ones, the position is briefly naked. If any re-place step fails (pivot-preserve, same-direction optimize, or trailing stop migration), Guardian performs an emergency market close. The `_EMERGENCY_CLOSED_SENTINEL = -1` signals the SniperDaemon that the position was force-closed.
+
 - **Emergency Close Paths** — enforced in `MarginOrderExecutor`:
 
   | Trigger | Location | Recovery |
@@ -583,25 +711,36 @@ These are hard constraints enforced at runtime — violations trigger aborts or 
   | Position vanishes during migration | `_migrate_trailing_stop` → `execute_market_close` | Clear trade state |
 
 - **Forward-Only SL Migration**: Trailing stop only migrates forward — `target_level > current_level` enforced. SL never moves backward.
+
 - **Monotonic Trailing Stop Levels**: `_get_guardian_config()` validates `0 < l1 < l2 < l3` and `0 < o2 < o3` at init. Misconfigured levels raise `ConfigurationError`.
-- **Orientation Conflict Detection**: Guardian verifies reality's net_qty direction matches intent (LONG/SHORT). Mismatch is logged and protection is skipped.
+
+- **Orientation Conflict Detection**: Guardian verifies reality's net_qty direction matches intent (LONG/SHORT). Mismatch is logged and protection is skipped — the position is not force-closed.
 
 ### Session & Lifecycle
 
 - **Symbol Whitelist**: `MarginOrderExecutor._get_trade_config()` raises `KeyError` if the symbol lacks `precision_qty` in `symbol_config.yaml`. No trade can execute for unconfigured symbols.
+
 - **Entry Expiry**: Guardian cancels entry orders when `elapsed_hours > projected_waiting_hours`. Expired entries clear trade state.
-- **Time Stop** (ATR-adaptive): Positions held beyond `(projected_holding_hours / atr_ratio) × time_stop_multiplier` are market-closed. `atr_ratio = current_ATR / entry_ATR` — a 2× ATR increase halves the allowed holding time.
+
+- **Time Stop** (ATR-adaptive): Positions held beyond `(projected_holding_hours / atr_ratio) × time_stop_multiplier` (1.5) are market-closed. `atr_ratio = current_ATR / entry_ATR` — a 2× ATR increase halves the allowed holding time.
+
 - **Circuit Breaker**: `SessionEngine` halts after `llm.max_consecutive_failures` (default: 3) consecutive cycle failures in live mode. Raises `RuntimeError` and sends an alert email. Historical/simulation mode is exempt.
+
 - **Config Immutability**: `resolve_config()` deep-copies via `copy.deepcopy()` — never mutates the original dict. Sub-config dataclasses (`RegimeConfig`, `RiskConfig`, `TemporalConfig`, `AuditConfig`, `VisualConfig`) are `frozen=True`.
 
 ### Math & Signal Integrity
 
 - **Non-finite Price Rejection**: `MathFactChecker` rejects `NaN`, `Inf`, `-Inf`, and non-positive values in tactical parameters before any exchange-facing action.
+
 - **Tactical Parameters Completeness**: `MathFactChecker` requires `entry`, `stop_loss`, and `take_profit` keys — returns `VERIFICATION_FAILURE` if missing.
-- **Structural Shielding**: Stop-loss must be anchored behind at least one structural level (POC, VAH/VAL, HVN). Enforced by `MathFactChecker` → `compliance_verdict.sl_is_shielded`.
-- **Chaos Survival**: Directional momentum signals (`cvd_momentum`, `volatility_surge`) are blocked by the Pre-AI Gate in chaos regime unless accompanied by squeeze or absorption signals. Confluence threshold also scales by 1.50×.
-- **Regime-Gated RR**: Minimum RR adapts to market regime — trending uses `min_rr_trending`, ranging uses `min_rr_ranging`. Chaos applies `chaos_rr_discount` (default ~40%) to allow low-RR survival plans.
-- **Adaptive Cooldown**: Sniper cannot re-trigger within the cooldown window unless emergency override (single signal strength ≥ `emergency_threshold`) or stacked break (3+ fresh signals, or strength > last trigger × `break_on_strength_ratio`). Absolute minimum gap between any two triggers: `break_min_gap_minutes` (10 min).
+
+- **Structural Shielding**: Stop-loss must be anchored behind at least one structural level (POC, VAH/VAL, HVN). Enforced by `MathFactChecker` → `compliance_verdict.sl_is_shielded`. Buffer: `structural_buffer_atr` = 0.84 ATR.
+
+- **Chaos Survival**: Directional momentum signals (`cvd_momentum`, `volatility_surge`) are blocked by the Pre-AI Gate in chaos regime unless accompanied by squeeze or absorption signals. Confluence threshold scales by 1.50×.
+
+- **Regime-Gated RR**: Minimum RR adapts to market regime — trending uses `min_rr_trending` (1.12), ranging uses `min_rr_ranging` (1.0). Chaos applies `chaos_rr_discount` (35%) to allow low-RR survival plans.
+
+- **Adaptive Cooldown**: Sniper cannot re-trigger within the cooldown window unless emergency override (single signal strength ≥ 0.80) or stacked break (3+ fresh signals, or strength > last trigger × 1.8). Absolute minimum gap between any two triggers: 10 minutes.
 
 ---
 
