@@ -29,13 +29,16 @@ XAUTUSDT:
       trend:
         # 降低波动扩张期间的趋势强度门槛以匹配其波动特性。
         trend_intensity_min_expansion: 0.08
+        trend_intensity_strong: 0.18    # 0.16-0.20
       structural:
         # 稍微收紧前端抢跑距离以更快捕捉突破信号。
         breakout_frontrun_atr: 0.2
+      volatility:
+        squeeze_threshold: 0.58         # 0.55-0.60
+      micro_sentiment:
+        cvd_intensity_extreme: 0.42     # 0.40-0.48
+        cvd_intensity_threshold: 0.16   # 0.14-0.18
     sniper:
       probes:
         # 降低背离检测阈值以避免漏掉微弱信号。
         cvd_divergence_tick_delta: 0.18
-      signal_stack:
-        gate:
-          max_price_to_structure_atr: 2.0
