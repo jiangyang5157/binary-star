@@ -4,10 +4,6 @@
       "label": "Administrator",
       "permissions": ["view_active_sessions", "run_new_session", "run_sniper", "run_backtest"]
     },
-    "operator": {
-      "label": "Operator",
-      "permissions": ["view_active_sessions", "run_new_session"]
-    },
     "anonymous": {
       "label": "Anonymous",
       "permissions": ["view_active_sessions", "run_new_session", "run_sniper", "run_backtest"]
@@ -16,11 +12,7 @@
   "users": {
     "42": {
       "role": "admin",
-      "label": "Yang J"
-    },
-    "mu": {
-      "role": "operator",
-      "label": "Mu C"
+      "label": "jiangyang"
     }
   }
 }
