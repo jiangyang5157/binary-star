@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live — Singularity</title>
 <link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/dashboard-utils.js"></script>
 <script src="/static/session-progress.js"></script>
 </head>
 <body class="dark">
@@ -150,12 +151,6 @@ const DATA_ROOT = '{{ data_root }}';
 
 function apiUrl(path) {
   return path;
-}
-
-function formatElapsed(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 // ── Dynamic config from backend ──
@@ -685,22 +680,6 @@ async function triggerSniper() {
   } catch (e) { /* ignore */ }
 })();
 {% endif %}
-
-function opinionBadge(o) {
-  const cls = o === 'BULLISH' ? 'badge-green' : o === 'BEARISH' ? 'badge-red' : 'badge-gray';
-  return `<span class="badge ${cls}">${o}</span>`;
-}
-
-function formatLocalTime(isoStr) {
-  if (!isoStr) return '&mdash;';
-  try {
-    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
-  } catch { return isoStr; }
-}
-
-function formatPrice(v) {
-  return (v == null || v === 0) ? '&mdash;' : parseFloat(v).toFixed(2);
-}
 
 function timeRemainingClass(seconds) {
   if (seconds > 43200) return 'time-safe';       // > 12h

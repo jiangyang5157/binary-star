@@ -1,23 +1,7 @@
 // Shared session detail rendering functions.
 // Used by session.html and audit.html.
 // NOTE: All color values are driven by dashboard.css — no hardcoded hex codes.
-
-function opinionBadge(opinion) {
-  const cls = opinion === 'BULLISH' ? 'badge-green' : opinion === 'BEARISH' ? 'badge-red' : 'badge-gray';
-  return `<span class="badge ${cls}">${opinion}</span>`;
-}
-
-function formatPrice(v) {
-  if (v == null || v === 0) return '&mdash;';
-  return parseFloat(v).toFixed(2);
-}
-
-function formatLocalTime(isoStr) {
-  if (!isoStr) return '&mdash;';
-  try {
-    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
-  } catch { return isoStr; }
-}
+// Shared utilities (opinionBadge, formatPrice, formatLocalTime) are in dashboard-utils.js.
 
 function renderDecisionCard(decision) {
   const tp = decision.tactical_parameters || {};

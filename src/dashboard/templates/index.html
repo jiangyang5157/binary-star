@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Performance — Singularity</title>
 <link rel="stylesheet" href="/static/dashboard.css">
+<script src="/static/dashboard-utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
@@ -144,10 +145,6 @@ let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_a
 let confThreshold = 50; // fallback, overridden by /api/config
 
 // ── Helpers ──
-function opinionBadge(o) {
-  const cls = o === 'BULLISH' ? 'badge-green' : o === 'BEARISH' ? 'badge-red' : 'badge-gray';
-  return `<span class="badge ${cls}">${o}</span>`;
-}
 function resultBadge(r) {
   if (!r) return '<span class="text-muted">&mdash;</span>';
   if (r === 'TP_HIT') return '<span class="badge result-tp">TP HIT</span>';
@@ -162,13 +159,6 @@ function pnlSpan(p) {
   const cls = p > 0 ? 'pnl-positive' : p < 0 ? 'pnl-negative' : 'text-muted';
   return `<span class="mono ${cls}">${p > 0 ? '+' : ''}${p.toFixed(2)}%</span>`;
 }
-function formatLocalTime(isoStr) {
-  if (!isoStr) return '&mdash;';
-  try {
-    return new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z')).toLocaleString();
-  } catch { return isoStr; }
-}
-function formatPrice(v) { return (v == null || v === 0) ? '&mdash;' : parseFloat(v).toFixed(2); }
 
 // ── Load trades + render charts ──
 async function loadTrades(symbol) {
