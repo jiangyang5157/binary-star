@@ -424,6 +424,19 @@ async function triggerBacktest() {
       return;
     }
 
+    const result = await resp.json();
+    if (result.all_complete) {
+      // All samples already have session files — nothing to run
+      sampleTimestamps = result.samples.map(s => s.timestamp);
+      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+      updateSampleStatuses(result.samples, true);
+      setFieldsDisabled(false);
+      $('bt-preview-btn').disabled = false;
+      btn.disabled = false;
+      btn.textContent = '▶ Run';
+      return;
+    }
+
     updateRunUI('running');
     backtestPollInterval = setInterval(checkBacktestStatus, 2000);
     checkBacktestStatus();
@@ -550,6 +563,13 @@ function updateSampleStatuses(samples, stopped) {
   });
 }
 
+function restoreRawInputs(data) {
+  if (data.timestamp_value) $('bt-timestamp').value = data.timestamp_value;
+  if (data.start_value) $('bt-start').value = data.start_value;
+  if (data.end_value) $('bt-end').value = data.end_value;
+  if (data.samples_count != null) $('bt-samples').value = data.samples_count;
+}
+
 // ── Init: check if backtest or preview is already running ──
 (async function initBacktestStatus() {
   try {
@@ -583,6 +603,7 @@ function updateSampleStatuses(samples, stopped) {
           sampleTimestamps = data.samples.map(s => s.timestamp);
           renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
           updateSampleStatuses(data.samples);
+          restoreRawInputs(data);
         }
         updateRunUI('running');
         backtestPollInterval = setInterval(checkBacktestStatus, 2000);
@@ -601,6 +622,7 @@ function updateSampleStatuses(samples, stopped) {
       renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
       // Treat as stopped so any still-"running" samples clean up their progress bars
       updateSampleStatuses(data.samples, true);
+      restoreRawInputs(data);
     }
   } catch (e) { /* ignore */ }
 })();

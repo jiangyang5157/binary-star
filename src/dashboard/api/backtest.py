@@ -317,6 +317,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
             "mode": req.mode,
             "symbol": symbol,
             "preview": True,
+            "timestamp_value": req.timestamp,
             "samples": [
                 {"timestamp": ts, "status": "pending"}
                 for ts in ts_list
@@ -346,6 +347,9 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
         "preview": True,
         "pid": None,
         "samples": [],
+        "start_value": req.start,
+        "end_value": req.end,
+        "samples_count": req.samples,
     })
 
     payload = json.dumps({
@@ -417,21 +421,51 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
             status_code=400, detail="No sample timestamps provided"
         )
 
-    # Build initial sample states
-    samples_state = [
-        {"timestamp": ts, "status": "pending"}
-        for ts in ts_list
-    ]
+    # Build initial sample states — check for existing session files
+    from src.utils.datetime_utils import format_timestamp_for_filename
+
+    sessions_dir = Path(data_root) / "sessions"
+    samples_state = []
+    for ts in ts_list:
+        try:
+            compact = format_timestamp_for_filename(ts)
+        except Exception:
+            compact = None
+        session_file = f"{symbol}_session_{compact}.json" if compact else None
+        if session_file and (sessions_dir / session_file).exists():
+            samples_state.append({"timestamp": ts, "status": "completed"})
+        else:
+            samples_state.append({"timestamp": ts, "status": "pending"})
+
+    pending = [s for s in samples_state if s["status"] == "pending"]
+    if not pending:
+        # All samples already have session files — nothing to run
+        _write_status(data_root, {
+            "running": False,
+            "mode": req.mode,
+            "symbol": symbol,
+            "samples": samples_state,
+        })
+        return {
+            "all_complete": True,
+            "symbol": symbol,
+            "samples": samples_state,
+        }
 
     # Write initial status *before* Popen so the subprocess can read it.
-    _write_status(data_root, {
+    # Preserve raw input values from preview (if any) so they survive refresh
+    _run_status = {
         "running": True,
         "mode": req.mode,
         "symbol": symbol,
         "pid": None,
         "started_at": datetime.now(timezone.utc).isoformat(),
         "samples": samples_state,
-    })
+    }
+    for _key in ("timestamp_value", "start_value", "end_value", "samples_count"):
+        if status and _key in status:
+            _run_status[_key] = status[_key]
+    _write_status(data_root, _run_status)
 
     cmd = [
         sys.executable, "run.py", "backtest-run",
@@ -481,7 +515,13 @@ def get_status(data_root: str = Query("")):
                 "running": False,
                 "error": "Subprocess died unexpectedly",
             })
-            return {"running": False, "error": "Subprocess died unexpectedly"}
+            return {
+                "running": False,
+                "error": "Subprocess died unexpectedly",
+                "mode": status.get("mode"),
+                "symbol": status.get("symbol"),
+                "samples": status.get("samples"),
+            }
         if not pid and _is_stale(status):
             log.warning("Clearing stale backtest lock for %s", status.get("symbol", "?"))
             _write_status(data_root, {
@@ -489,7 +529,13 @@ def get_status(data_root: str = Query("")):
                 "running": False,
                 "error": "Run timed out — thread likely crashed",
             })
-            return {"running": False, "error": "Run timed out — thread likely crashed"}
+            return {
+                "running": False,
+                "error": "Run timed out — thread likely crashed",
+                "mode": status.get("mode"),
+                "symbol": status.get("symbol"),
+                "samples": status.get("samples"),
+            }
 
     return status
 

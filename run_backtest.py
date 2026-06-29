@@ -100,12 +100,14 @@ class BacktestRunner:
             current = _read_status(self.data_root)
             if not current:
                 raise SystemExit("BacktestRunner: no status file found — aborting.")
-            ts_list = [s["timestamp"] for s in (current.get("samples") or [])]
+            all_samples = current.get("samples") or []
+            ts_list = [s["timestamp"] for s in all_samples if s.get("status") != "completed"]
             if not ts_list:
-                raise SystemExit("BacktestRunner: no sample timestamps in status file.")
+                logger.info("dashboard mode | all %d samples already completed — exiting.", len(all_samples))
+                raise SystemExit(0)
             logger.info(
-                "dashboard mode | samples=%d | symbol=%s",
-                len(ts_list), self.symbol,
+                "dashboard mode | pending=%d/%d | symbol=%s",
+                len(ts_list), len(all_samples), self.symbol,
             )
             return ts_list
 
