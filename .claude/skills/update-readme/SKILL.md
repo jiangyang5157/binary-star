@@ -87,7 +87,7 @@ For each command, capture:
   - _try_partial_tp() and _migrate_dynamic_sl() logic
   - get_avg_entry_price() FIFO entry calculation (margin_client.py)
   - Entry/exit flow
-→ Read config/strategy_config.yaml — extract current sniper parameters
+→ Read config/global_config.yaml — extract current sniper parameters (sniper.*, guardian.* sections)
 → Read config/symbol_config.yaml — extract per-symbol overrides
 ```
 

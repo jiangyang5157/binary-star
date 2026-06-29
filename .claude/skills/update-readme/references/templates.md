@@ -129,13 +129,15 @@ MarketObserver → BinaryStarOrchestrator → SessionAgent → MathFactChecker �
 ```
 
 **How to extract parameters**:
-1. Read `config/strategy_config.yaml` for:
+1. Read `config/global_config.yaml` for:
    - `sniper.signal_stack.trigger_threshold`
    - `sniper.signal_stack.emergency_threshold`
    - `sniper.signal_stack.cooldown.*`
    - `sniper.signal_stack.gate.*`
-   - `guardian.trailing_profit_atr_level_*`
-   - `guardian.time_stop_multiplier`
+   - `guardian.partial_tp.level_1_atr_threshold`
+   - `guardian.partial_tp.level_1_tp_ratio`
+   - `guardian.trailing.sl_distance_atr`
+   - `guardian.time_stop.time_stop_multiplier`
    - `risk_per_trade`
 2. Use the **actual values** from config, never hardcode
 
@@ -147,7 +149,7 @@ MarketObserver → BinaryStarOrchestrator → SessionAgent → MathFactChecker �
 **How to extract Guardian logic**:
 1. Read `_guardian_check()` method body
 2. Extract each condition → action pair from the if/else branches
-3. Read `_migrate_trailing_stop()` for tier definitions
+3. Read `_migrate_dynamic_sl()` for distance-based dynamic trailing SL logic
 4. Read `sync_with_opinion()` for position cross-reference logic
 
 ---
