@@ -237,6 +237,9 @@ class BinanceMarginClient:
         except ClientError as e:
             logger.error(f"partial market close failed | symbol={symbol} | error={e.error_message}")
             return False
+        except ServerError as e:
+            logger.error(f"partial market close server error | symbol={symbol} | error={e.message}")
+            return False
 
     def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
         """Places a standard LIMIT order on cross-margin. Returns order_id or None on failure."""
