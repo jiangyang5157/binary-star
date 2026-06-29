@@ -101,7 +101,7 @@
         <div class="filter-bar">
           <label class="toggle-label" for="neutral-toggle">
             <span class="toggle-text">Show Neutral</span>
-            <input type="checkbox" id="neutral-toggle" class="toggle-input" onchange="loadActive()">
+            <input type="checkbox" id="neutral-toggle" class="toggle-input" onchange="localStorage.setItem('showNeutral', this.checked); loadActive()">
             <span class="toggle-slider"></span>
           </label>
         </div>
@@ -763,7 +763,9 @@ async function refreshActive() {
   btn.textContent = '⟳ Refresh';
 }
 
-// Initial load
+// Restore Show Neutral preference then load
+const showNeutral = localStorage.getItem('showNeutral') === 'true';
+document.getElementById('neutral-toggle').checked = showNeutral;
 loadActive();
 {% endif %}
 </script>

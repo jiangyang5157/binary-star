@@ -461,9 +461,9 @@ async function loadSessions() {
 }
 
 // ── Events ──
-$('symbol-filter').addEventListener('input', applyFilters);
-$('version-filter').addEventListener('input', applyFilters);
-$('confSlider').addEventListener('input', function() { updateAllCharts(parseInt(this.value)); });
+$('symbol-filter').addEventListener('input', function() { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
+$('version-filter').addEventListener('input', function() { localStorage.setItem('versionFilter', this.value); applyFilters(); });
+$('confSlider').addEventListener('input', function() { const v = parseInt(this.value); localStorage.setItem('confThreshold', v); updateAllCharts(v); });
 document.querySelectorAll('th.sortable').forEach(th => {
   th.addEventListener('click', function() {
     sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
@@ -519,13 +519,24 @@ async function initConfig() {
     if (data.session_confidence_threshold) {
       confThreshold = data.session_confidence_threshold;
       $('confSlider').min = confThreshold;
-      $('confSlider').value = confThreshold;
-      $('confVal').textContent = confThreshold;
     }
   } catch (e) {
     // keep fallback value
   }
+  // Restore user's saved threshold (takes priority over server default)
+  const saved = localStorage.getItem('confThreshold');
+  if (saved !== null) {
+    confThreshold = parseInt(saved);
+  }
+  $('confSlider').value = confThreshold;
+  $('confVal').textContent = confThreshold;
 }
+
+// Restore filter inputs from localStorage
+const savedSymbol = localStorage.getItem('symbolFilter');
+if (savedSymbol) $('symbol-filter').value = savedSymbol;
+const savedVersion = localStorage.getItem('versionFilter');
+if (savedVersion) $('version-filter').value = savedVersion;
 
 initConfig().then(() => Promise.all([loadTrades(), loadSessions()]));
 </script>
