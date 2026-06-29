@@ -678,6 +678,89 @@ class MarginOrderExecutor:
 
         return cfg
 
+    def _try_partial_tp(self, symbol: str, direction: str, net_qty: float,
+                        avg_entry: float, active_orders: list, current_sl: float,
+                        current_tp: float, current_price: float, cfg: dict,
+                        atr_macro: float) -> tuple:
+        """Step 2: Check and execute partial take-profit at Level 1.
+
+        Returns (position_intact: bool, trade_state_update: dict|None).
+        trade_state_update carries new sl_price for the caller to merge.
+        """
+        if avg_entry <= 0 or current_sl <= 0 or atr_macro <= 0:
+            return True, None
+
+        # Idempotency: if SL already at/beyond entry, Level 1 already fired
+        if direction == "LONG" and current_sl >= avg_entry:
+            logger.debug(f"[{symbol}] partial TP — already at breakeven, skipping")
+            return True, None
+        if direction == "SHORT" and current_sl <= avg_entry:
+            logger.debug(f"[{symbol}] partial TP — already at breakeven, skipping")
+            return True, None
+
+        # Trigger check: |price - entry| >= threshold * ATR
+        deviation = abs(current_price - avg_entry)
+        threshold = cfg.get("partial_tp_atr_threshold", 1.5) * atr_macro
+        if deviation < threshold:
+            return True, None
+
+        ratio = cfg.get("partial_tp_ratio", 0.5)
+        tp_qty = abs(net_qty) * ratio
+        remaining_qty = abs(net_qty) * (1.0 - ratio)
+        p_qty = cfg["precision_qty"]
+        tp_qty = max(round(tp_qty, p_qty), cfg["min_order_qty"])
+        remaining_qty = max(round(remaining_qty, p_qty), cfg["min_order_qty"])
+
+        logger.info(
+            f"[{symbol}] partial TP triggered | deviation={deviation:.2f} | "
+            f"tp_qty={tp_qty} | remaining={remaining_qty} | sl→{avg_entry}"
+        )
+
+        # Step A: Cancel all existing orders
+        if not self.client.cancel_all_symbol_orders(symbol):
+            logger.error(f"[{symbol}] partial TP — cancel failed, aborting")
+            return True, None
+
+        # Step B: Market-sell partial qty
+        close_side = "SELL" if direction == "LONG" else "BUY"
+        close_success = self.client.execute_partial_market_close(
+            symbol=symbol,
+            side=close_side,
+            qty=tp_qty
+        )
+        if not close_success:
+            logger.critical(f"[{symbol}] partial TP — market close failed, emergency closing all")
+            self.client.execute_market_close(symbol)
+            return False, None
+
+        # Step C: Re-verify remaining position
+        pos = self.client.get_symbol_position(symbol)
+        live_qty = abs(pos.net_qty) if pos else 0.0
+        if live_qty <= 0:
+            logger.info(f"[{symbol}] partial TP — position fully closed")
+            return True, {}  # Clear trade state
+
+        # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
+        exit_side = "SELL" if direction == "LONG" else "BUY"
+        buffer = cfg.get("sl_slippage_buffer", 0.0)
+        buffered_sl = avg_entry + (buffer if direction == "SHORT" else -buffer)
+
+        oco_success = self.client.place_oco_order(
+            symbol=symbol,
+            side=exit_side,
+            qty=live_qty,
+            price=current_tp,
+            stop_price=avg_entry,
+            stop_limit_price=buffered_sl
+        )
+        if not oco_success:
+            logger.critical(f"[{symbol}] partial TP — OCO re-place failed, emergency closing")
+            self.client.execute_market_close(symbol)
+            return False, None
+
+        logger.info(f"[{symbol}] partial TP complete | remaining={live_qty} | sl={avg_entry}")
+        return True, {"sl_price": avg_entry, "tp_price": current_tp}
+
     def _calculate_target_qty(self, symbol: str, entry_price: float, sl_price: float) -> float:
         """
         Calculates the target quantity based on Risk % and Stop Loss distance.
