@@ -28,6 +28,7 @@ class BinanceMarginClient:
 
         self.client = Spot(api_key=key, api_secret=secret)
         self._precisions_cache: dict = {}  # symbol → (p_qty, p_price, tolerance)
+        self._entry_cache: dict = {}  # symbol → (net_qty, avg_entry)
         logger.info("initialized for Spot Margin access")
 
     def get_cross_margin_account(self) -> MarginAccountSummary:
@@ -220,6 +221,23 @@ class BinanceMarginClient:
             logger.error(f"market close failed (server) | symbol={symbol} | status={e.status_code}")
             return False
 
+    def execute_partial_market_close(self, symbol: str, side: str, qty: float) -> bool:
+        """Market-sell a specific quantity on the given side. For partial TP."""
+        p_qty, _, _ = self._get_precisions(symbol)
+        try:
+            self.client.new_margin_order(
+                symbol=symbol,
+                side=side,
+                type="MARKET",
+                quantity=round(qty, p_qty),
+                sideEffectType="MARGIN_BUY"
+            )
+            logger.info(f"partial market close | symbol={symbol} | qty={qty} | side={side}")
+            return True
+        except ClientError as e:
+            logger.error(f"partial market close failed | symbol={symbol} | error={e.error_message}")
+            return False
+
     def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
         """Places a standard LIMIT order on cross-margin. Returns order_id or None on failure."""
         p_qty, p_price, _ = self._get_precisions(symbol)
@@ -273,6 +291,104 @@ class BinanceMarginClient:
             return math.floor(value * factor) / factor
         else:
             return math.ceil(value * factor) / factor
+
+    @staticmethod
+    def _fifo_avg_entry(trades: list, net_qty: float) -> float:
+        """FIFO weighted average entry price from trade history.
+
+        LONG (net_qty > 0): BUY opens, SELL closes → FIFO deduplicates buys.
+        SHORT (net_qty < 0): SELL opens, BUY closes → FIFO deduplicates sells.
+        Returns 0.0 if insufficient trade history to cover |net_qty|.
+        """
+        abs_qty = abs(net_qty)
+        is_long = net_qty > 0
+        open_side = "BUY" if is_long else "SELL"
+        close_side = "SELL" if is_long else "BUY"
+
+        # Sort by trade ID ascending (chronological)
+        sorted_trades = sorted(trades, key=lambda t: t.get('id', 0))
+
+        queue = []  # list of (price, qty) for open-side trades still "alive"
+        for t in sorted_trades:
+            side = t.get('side', '')
+            price = float(t.get('price', 0))
+            qty = float(t.get('qty', 0))
+
+            if side == open_side:
+                queue.append((price, qty))
+            elif side == close_side:
+                remaining_close = qty
+                while remaining_close > 0 and queue:
+                    oldest_price, oldest_qty = queue[0]
+                    if oldest_qty <= remaining_close:
+                        remaining_close -= oldest_qty
+                        queue.pop(0)
+                    else:
+                        queue[0] = (oldest_price, oldest_qty - remaining_close)
+                        remaining_close = 0
+
+        total_qty = sum(q for _, q in queue)
+        if total_qty <= 0 or total_qty < abs_qty * 0.99:
+            return 0.0  # Insufficient history
+
+        return sum(p * q for p, q in queue) / total_qty
+
+    def get_avg_entry_price(self, symbol: str, net_qty: float) -> float:
+        """Returns average entry price for current net position. Cached per symbol.
+
+        Only calls margin_my_trades when net_qty changed from cached value.
+        Falls back to pagination (fromId) if 500 trades don't cover the position.
+        Returns 0.0 if position is flat or trade history unavailable.
+        """
+        tolerance = 1e-8
+        if abs(net_qty) < tolerance:
+            return 0.0
+
+        cached = self._entry_cache.get(symbol)
+        if cached is not None:
+            cached_qty, cached_entry = cached
+            if abs(cached_qty - net_qty) < tolerance:
+                return cached_entry
+
+        # Net qty changed — fetch trade history and recompute
+        all_trades = []
+        from_id = None
+        abs_qty = abs(net_qty)
+
+        while True:
+            kwargs = {'symbol': symbol, 'limit': 500}
+            if from_id is not None:
+                kwargs['fromId'] = from_id
+            try:
+                trades = self.client.margin_my_trades(**kwargs)
+            except Exception as e:
+                logger.error(f"myTrades fetch failed | symbol={symbol} | error={e}")
+                return cached_entry if cached else 0.0
+
+            if not trades:
+                break
+
+            all_trades.extend(trades)
+            from_id = min(int(t.get('id', 0)) for t in trades) - 1
+
+            # Check if we have enough coverage
+            avg = self._fifo_avg_entry(all_trades, net_qty)
+            if avg > 0:
+                self._entry_cache[symbol] = (net_qty, avg)
+                logger.info(f"avg_entry refreshed | symbol={symbol} | entry={avg:.2f} | qty={net_qty}")
+                return avg
+
+            if len(trades) < 500:
+                break
+
+        # Exhausted all trades, try one final calculation
+        avg = self._fifo_avg_entry(all_trades, net_qty)
+        if avg > 0:
+            self._entry_cache[symbol] = (net_qty, avg)
+            return avg
+
+        logger.warning(f"avg_entry unavailable | symbol={symbol} | qty={net_qty} | trades_scanned={len(all_trades)}")
+        return cached_entry if cached else 0.0
 
     def place_oco_order(self, symbol: str, side: str, qty: float, price: float, stop_price: float, stop_limit_price: float) -> bool:
         """Places a standard OCO order to manage an existing position's exit.
