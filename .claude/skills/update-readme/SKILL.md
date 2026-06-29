@@ -83,8 +83,9 @@ For each command, capture:
 → Read src/sniper/scout.py — understand market data harvesting
 → Read src/agent/order_executor.py — extract:
   - sync_with_opinion() logic (position cross-reference table)
-  - guardian_check() logic (protection steps)
-  - _migrate_trailing_stop() logic (trailing stop tiers)
+  - guardian_check() logic (protection steps: partial TP + dynamic trailing SL)
+  - _try_partial_tp() and _migrate_dynamic_sl() logic
+  - get_avg_entry_price() FIFO entry calculation (margin_client.py)
   - Entry/exit flow
 → Read config/strategy_config.yaml — extract current sniper parameters
 → Read config/symbol_config.yaml — extract per-symbol overrides
@@ -124,6 +125,7 @@ For each section being updated, follow the formatting rules below.
 
 - **Tables over paragraphs** — whenever comparing or listing structured data
 - **Mermaid diagrams over ASCII art** — for flows, sequences, states, relationships
+- **Minimize crossed relationship lines** — diagram flow should be unidirectional where possible. Place nodes to avoid edge crossings: group related nodes, separate clean paths (e.g. emergency-close branch to one side), prefer `graph TB`/`stateDiagram-v2` linear layouts
 - **One-line descriptions** — each module/class gets one crisp line, not a paragraph
 - **Copyable command blocks** — every command should be directly copyable
 - **Developers as audience** — assume technical competence, don't over-explain concepts
