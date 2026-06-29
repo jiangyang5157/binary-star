@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
-from src.utils.progress_utils import enrich_progress
+from src.utils.progress_utils import enrich_progress, elapsed_since_iso
 
 router = APIRouter(prefix="/api/sniper")
 
@@ -213,13 +213,7 @@ def sniper_status(data_root: str = Query("")):
         return {"running": False}
 
     started_str = status.get("started_at", "")
-    elapsed = 0
-    if started_str:
-        try:
-            started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
-            elapsed = (datetime.now(timezone.utc) - started).total_seconds()
-        except Exception:
-            pass
+    elapsed = elapsed_since_iso(started_str)
 
     # Backwards-compatible: if old format with "symbol" (single string), wrap in array
     symbols = status.get("symbols")
@@ -236,12 +230,7 @@ def sniper_status(data_root: str = Query("")):
     if active_session and active_session.get("progress"):
         trig_iso = active_session.get("triggered_at_iso", "")
         if trig_iso:
-            try:
-                trig_dt = datetime.fromisoformat(trig_iso.replace("Z", "+00:00"))
-                session_elapsed = round((datetime.now(timezone.utc) - trig_dt).total_seconds())
-                active_session["progress"]["elapsed_seconds"] = max(session_elapsed, 0)
-            except Exception:
-                pass
+            active_session["progress"]["elapsed_seconds"] = elapsed_since_iso(trig_iso)
         enrich_progress(active_session["progress"])
 
     return {

@@ -18,7 +18,7 @@ from pathlib import Path
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
-from src.utils.progress_utils import enrich_progress
+from src.utils.progress_utils import enrich_progress, elapsed_since_iso
 from src.utils.status_file_utils import read_status as _read_status, write_status as _write_status
 
 router = APIRouter(prefix="/api/session")
@@ -229,23 +229,17 @@ def get_run_status(data_root: str = Query("")):
             }
 
         started_str = status.get("started_at", "")
-        elapsed = 0
-        if started_str:
-            try:
-                started = datetime.fromisoformat(started_str.replace("Z", "+00:00"))
-                elapsed = (datetime.now(timezone.utc) - started).total_seconds()
-            except Exception:
-                pass
+        elapsed = elapsed_since_iso(started_str)
 
         progress = status.get("progress")
         if progress:
-            progress["elapsed_seconds"] = round(elapsed)
+            progress["elapsed_seconds"] = elapsed
 
         return {
             "running": True,
             "symbol": status.get("symbol", ""),
             "started_at": started_str,
-            "elapsed_seconds": round(elapsed),
+            "elapsed_seconds": elapsed,
             "progress": enrich_progress(progress),
         }
 

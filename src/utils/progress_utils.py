@@ -1,6 +1,8 @@
 """Shared progress-log helpers used by both the session-run API and the sniper
 daemon to build activity entries for the dashboard progress bar."""
 
+from datetime import datetime, timezone
+
 # Activity entry types
 ACTIVE = "active"
 COMPLETE = "complete"
@@ -15,6 +17,21 @@ STAGES = [
     {"stage": 4, "label": "Decision",        "position_pct": 87.5},
     {"stage": 5, "label": "Archive",         "position_pct": 100},
 ]
+
+
+def elapsed_since_iso(iso_str: str) -> int:
+    """Seconds elapsed since an ISO-8601 timestamp.
+
+    Returns 0 for empty strings and unparseable timestamps.
+    Clamps negative values (clock skew) to 0.
+    """
+    if not iso_str:
+        return 0
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        return max(0, round((datetime.now(timezone.utc) - dt).total_seconds()))
+    except Exception:
+        return 0
 
 
 def enrich_progress(progress: dict | None) -> dict | None:

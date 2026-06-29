@@ -9,7 +9,7 @@ import time
 import logging
 from datetime import datetime, timezone, timedelta
 
-from src.utils.progress_utils import enrich_progress
+from src.utils.progress_utils import enrich_progress, elapsed_since_iso
 from pathlib import Path
 
 from fastapi import APIRouter, Query, HTTPException, Depends
@@ -503,10 +503,16 @@ def get_status(data_root: str = Query("")):
     if not status:
         return {"running": False}
 
-    # Inject stage config into each sample's progress for frontend rendering
+    # Inject stage config into each sample's progress for frontend rendering.
+    # Also compute fresh elapsed so the timer ticks smoothly between callbacks,
+    # matching the New Session / Sniper progress UX.
     if status.get("samples"):
+        batch_elapsed = elapsed_since_iso(status.get("started_at", ""))
         for sample in status["samples"]:
-            enrich_progress(sample.get("progress"))
+            progress = sample.get("progress")
+            if progress and progress.get("status") == "running":
+                progress["elapsed_seconds"] = batch_elapsed
+            enrich_progress(progress)
 
     if status.get("running"):
         pid = status.get("pid")
