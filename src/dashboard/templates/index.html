@@ -538,7 +538,10 @@ if (savedSymbol) $('symbol-filter').value = savedSymbol;
 const savedVersion = localStorage.getItem('versionFilter');
 if (savedVersion) $('version-filter').value = savedVersion;
 
-initConfig().then(() => Promise.all([loadTrades(), loadSessions()]));
+initConfig().then(async () => {
+  await loadTrades();
+  await loadSessions();
+});
 </script>
 </body>
 </html>
