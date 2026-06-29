@@ -248,18 +248,19 @@ def test_non_whitelisted_symbol():
 def test_guardian_no_trade_state():
 
     executor, client = _make_executor()
-    
-    result = executor.guardian_check("BTCUSDT", {})
-    
+
+    result, level = executor.guardian_check("BTCUSDT", {})
+
     client.get_symbol_position.assert_called_once_with("BTCUSDT")
     assert result == {}
+    assert level is None
 
 def test_guardian_entry_pending_not_expired():
 
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", 0.0, 0.0, 0.0, 0.0)
     client.get_active_orders.return_value = []
-    
+
     trade_state = {
         "direction": "LONG",
         "entry_order_id": 12345,
@@ -268,18 +269,19 @@ def test_guardian_entry_pending_not_expired():
         "tp_price": 76000,
         "sl_price": 73000,
     }
-    
-    result = executor.guardian_check("BTCUSDT", trade_state)
-    
+
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
+
     client.cancel_order.assert_not_called()
     assert result["entry_order_id"] == 12345
+    assert level is None
 
 def test_guardian_entry_expired():
 
     executor, client = _make_executor()
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", 0.0, 0.0, 0.0, 0.0)
     client.get_active_orders.return_value = []
-    
+
     trade_state = {
         "direction": "LONG",
         "entry_order_id": 12345,
@@ -288,9 +290,9 @@ def test_guardian_entry_expired():
         "tp_price": 76000,
         "sl_price": 73000,
     }
-    
-    result = executor.guardian_check("BTCUSDT", trade_state)
-    
+
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
+
     client.cancel_order.assert_called_once_with("BTCUSDT", 12345)
     assert result == {}
 
@@ -302,16 +304,16 @@ def test_guardian_unprotected_position_place_oco():
     # No active orders (no protection!)
     client.get_active_orders.return_value = []
     client.get_ticker_price.return_value = 74000.0  # Price above SL
-    
+
     trade_state = {
         "direction": "LONG",
         "tp_price": 76000.0,
         "sl_price": 73000.0,
         "entry_order_id": 12345,
     }
-    
-    result = executor.guardian_check("BTCUSDT", trade_state)
-    
+
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
+
     client.place_oco_order.assert_called_once_with(
         symbol="BTCUSDT", side="SELL", qty=0.005,
         price=76000.0, stop_price=73000.0, stop_limit_price=72990.0
@@ -324,15 +326,15 @@ def test_guardian_sl_breached_emergency_close():
     client.get_symbol_position.return_value = MarginPosition("BTCUSDT", "BTC", "USDT", 0.005, 0.0, 0.005, 0.0)
     client.get_active_orders.return_value = []
     client.get_ticker_price.return_value = 72500.0  # Price BELOW SL of 73000!
-    
+
     trade_state = {
         "direction": "LONG",
         "tp_price": 76000.0,
         "sl_price": 73000.0,
     }
-    
-    result = executor.guardian_check("BTCUSDT", trade_state)
-    
+
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
+
     client.execute_market_close.assert_called_once_with("BTCUSDT")
     assert result == {}
 
@@ -344,18 +346,20 @@ def test_guardian_position_already_protected():
     sl_order = MarginOrder("BTCUSDT", 99, "", 73000, 0.005, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", "SELL", 0, stop_price=73000)
     tp_order = MarginOrder("BTCUSDT", 100, "", 76000, 0.005, 0.0, "NEW", "GTC", "LIMIT_MAKER", "SELL", 0)
     client.get_active_orders.return_value = [sl_order, tp_order]
-    
+
     trade_state = {
         "direction": "LONG",
         "tp_price": 76000.0,
         "sl_price": 73000.0,
     }
-    
-    result = executor.guardian_check("BTCUSDT", trade_state)
-    
+
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
+
     client.place_oco_order.assert_not_called()
     client.execute_market_close.assert_not_called()
     assert result == trade_state
+    # No ATR → Case 4 skipped, level unchanged (current_level=0 default)
+    assert level == 0
 
 def test_flat_to_short():
     """FLAT → SHORT: places SELL limit entry with SL above entry."""
@@ -388,7 +392,7 @@ def test_guardian_position_flat_no_entry_cleanup():
         "entry_filled_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
     }
 
-    result = executor.guardian_check("BTCUSDT", trade_state)
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
 
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     assert result == {}
@@ -408,7 +412,7 @@ def test_guardian_partial_sl_fill_rebuilds_oco_with_remaining_qty():
         "entry_filled_at": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
     }
 
-    result = executor.guardian_check("BTCUSDT", trade_state)
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
 
     # Should place OCO for remaining qty=0.028
     client.place_oco_order.assert_called_once()
@@ -432,18 +436,20 @@ def test_guardian_position_flat_without_entry_filled_at():
         # no entry_filled_at
     }
 
-    result = executor.guardian_check("BTCUSDT", trade_state)
+    result, level = executor.guardian_check("BTCUSDT", trade_state)
 
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     assert result == {}
 
 
 # ================================================================
-# PARTIAL TP + DYNAMIC TRAILING TESTS (multi-level, config-driven)
+# PARTIAL TP + DYNAMIC TRAILING TESTS (multi-level, daemon-memory driven)
 # ================================================================
+# current_level = next level to check (0=L1, 1=L2, 2=L3, 3=all done)
+# Returned level = updated next level (or None for non-Case-4 paths)
 
 def test_partial_tp_l1_triggers_long():
-    """L1: |price - entry| >= 1.5 ATR -> close 20%, SL = entry, level = 0."""
+    """L1: |price - entry| >= 1.5 ATR -> close 20%, SL = entry, level 0->1."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -457,7 +463,8 @@ def test_partial_tp_l1_triggers_long():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=68000)
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
 
     # Partial close at 20% of 0.5 = 0.1
     client.execute_partial_market_close.assert_called_once()
@@ -470,11 +477,11 @@ def test_partial_tp_l1_triggers_long():
     assert oco_call[1]["stop_price"] == entry
     # Trade state updated
     assert result.get("sl_price") == entry
-    assert result.get("partial_tp_level") == 0
+    assert level == 1  # next to check = L2
 
 
 def test_partial_tp_l1_idempotent_via_level():
-    """partial_tp_level=0 -> L1 skipped, L2 checked."""
+    """current_level=1 -> L1 skipped, L2 checked (not met at 2.0 ATR)."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -488,17 +495,17 @@ def test_partial_tp_l1_idempotent_via_level():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
-    trade_state["partial_tp_level"] = 0  # L1 already done
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=1)
 
     # L1 should NOT fire again
     client.execute_partial_market_close.assert_not_called()
     # L2: 2.0 < 3.5 -> no trigger either
-    assert result.get("partial_tp_level") == 0  # still 0
+    assert level == 1  # unchanged
 
 
 def test_partial_tp_l2_triggers_long():
-    """L1 done, |price - entry| >= 3.5 ATR -> L2 fires, close 20%, SL=entry, level=1."""
+    """L1 done (current_level=1), |price-entry| >= 3.5 ATR -> L2 fires, level 1->2."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -512,19 +519,18 @@ def test_partial_tp_l2_triggers_long():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
-    trade_state["partial_tp_level"] = 0  # L1 done
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=1)
 
     # L2 fired: close 20% of 0.4 = 0.08
     client.execute_partial_market_close.assert_called_once()
     close_call = client.execute_partial_market_close.call_args
     assert close_call[1]["qty"] == 0.08
-    # New level stored
-    assert result.get("partial_tp_level") == 1
+    assert level == 2  # next = L3
 
 
 def test_partial_tp_l3_triggers_long():
-    """L2 done, |price - entry| >= 5.5 ATR -> L3 fires, close 20%, level=2."""
+    """L2 done (current_level=2), |price-entry| >= 5.5 ATR -> L3 fires, level 2->3."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -538,32 +544,25 @@ def test_partial_tp_l3_triggers_long():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
-    trade_state["partial_tp_level"] = 1  # L2 done
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=2)
 
     # L3 fired: close 20% of 0.32 = 0.064
     client.execute_partial_market_close.assert_called_once()
     close_call = client.execute_partial_market_close.call_args
     assert abs(close_call[1]["qty"] - 0.064) < 0.001
-    assert result.get("partial_tp_level") == 2
+    assert level == 3  # all done
 
 
 def test_multi_level_same_pulse():
-    """Price at 6.0 ATR -> L1, L2, L3 all fire in one guardian check."""
+    """Price at 6.0 ATR -> L1, L2, L3 all fire, level 0->3."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
     current_price = entry + 6.0 * atr  # 76000
     client.get_ticker_price.return_value = current_price
-    # Position mock: return progressively smaller qty after each close.
-    # Pad with duplicates for extra calls (OCO qty check, trailing re-verify, etc.)
-    pos_chain = [
-        0.5,  # initial
-        0.4,  # after L1
-        0.32, # after L2
-        0.256,# after L3
-    ]
-    call_count = [0]  # mutable counter
+    pos_chain = [0.5, 0.4, 0.32, 0.256]
+    call_count = [0]
     def pos_side_effect(symbol):
         idx = min(call_count[0], len(pos_chain) - 1)
         qty = pos_chain[idx]
@@ -577,7 +576,8 @@ def test_multi_level_same_pulse():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=80000, sl_price=68000)
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
 
     # All three levels fired: 3 partial closes
     assert client.execute_partial_market_close.call_count == 3
@@ -585,12 +585,11 @@ def test_multi_level_same_pulse():
     assert calls[0][1]["qty"] == 0.1   # L1: 20% of 0.5
     assert calls[1][1]["qty"] == 0.08  # L2: 20% of 0.4
     assert calls[2][1]["qty"] == 0.064 # L3: 20% of 0.32
-    # Level stored as 2 (L3)
-    assert result.get("partial_tp_level") == 2
+    assert level == 3  # all done
 
 
 def test_no_trailing_when_distance_zero():
-    """L1 active (sl_distance_atr=0) -> trailing skipped, SL stays at entry."""
+    """L1 active (sl_distance_atr=0, current_level=1) -> trailing skipped."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -604,23 +603,20 @@ def test_no_trailing_when_distance_zero():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
-    trade_state["partial_tp_level"] = 0
-    # Reset call count to isolate trailing
     client.place_oco_order.reset_mock()
     client.cancel_all_symbol_orders.reset_mock()
 
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=1)
 
     # No partial close (L1 idempotent, L2 not reached at 2.0 ATR)
     client.execute_partial_market_close.assert_not_called()
-    # No trailing migration (sl_distance_atr=0 for L1)
-    # place_oco_order shouldn't be called for trailing (may be called for OCO qty check)
-    # Key: SL should still be at entry
+    assert level == 1  # unchanged
     assert result.get("sl_price") == entry
 
 
 def test_trailing_with_l2_distance():
-    """L2 active (sl_distance_atr=1.0) -> trailing advances SL by 1.0 ATR."""
+    """L2 active (sl_distance_atr=1.0, current_level=2) -> trailing by 1.0 ATR."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -634,23 +630,23 @@ def test_trailing_with_l2_distance():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
-    trade_state["partial_tp_level"] = 1  # L2 active
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=2)
 
     # L3: 4.5 < 5.5 -> not triggered
     client.execute_partial_market_close.assert_not_called()
+    assert level == 2  # unchanged
     # Trailing with 1.0 ATR distance should fire
-    # SL should advance from entry to price - 1.0 ATR
     assert result.get("sl_price") != entry  # SL moved
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
         new_sl = oco_call[1].get("stop_price", 0)
         expected_sl = new_price - 1.0 * atr  # 73500
-        assert abs(new_sl - expected_sl) < 100  # roughly correct
+        assert abs(new_sl - expected_sl) < 100
 
 
 def test_trailing_with_l3_tighter_distance():
-    """L3 active (sl_distance_atr=0.75) -> trailing uses tighter distance."""
+    """L3 active (sl_distance_atr=0.75, current_level=3) -> trailing by 0.75 ATR."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -660,17 +656,17 @@ def test_trailing_with_l3_tighter_distance():
         "BTCUSDT", "BTC", "USDT", net_qty=0.256, borrowed=0.0, free=0.256, locked=0.0
     )
     client.get_avg_entry_price.return_value = entry
-    # SL currently at where L2 trailing left it (~entry + 3.5 ATR - 1.0 ATR area)
     current_sl = entry + 2.5 * atr  # 72500
     orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=80000, sl=current_sl)
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=80000, sl_price=current_sl)
-    trade_state["partial_tp_level"] = 2  # L3 active
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=3)
 
     # All levels exhausted -> no more partial closes
     client.execute_partial_market_close.assert_not_called()
+    assert level == 3  # unchanged (exhausted)
     # Trailing with 0.75 ATR distance
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
@@ -680,7 +676,7 @@ def test_trailing_with_l3_tighter_distance():
 
 
 def test_partial_tp_l1_triggers_short():
-    """SHORT: |entry - price| >= 1.5 ATR -> close 20%, SL = entry, level = 0."""
+    """SHORT: |entry - price| >= 1.5 ATR -> close 20%, SL = entry."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -694,7 +690,8 @@ def test_partial_tp_l1_triggers_short():
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("SHORT", entry, tp_price=65000, sl_price=72000)
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
 
     client.execute_partial_market_close.assert_called_once()
     close_call = client.execute_partial_market_close.call_args
@@ -702,7 +699,7 @@ def test_partial_tp_l1_triggers_short():
     assert close_call[1]["side"] == "BUY"
     client.place_oco_order.assert_called()
     assert result.get("sl_price") == entry
-    assert result.get("partial_tp_level") == 0
+    assert level == 1
 
 
 def test_oco_replace_failure_emergency_closes():
@@ -721,33 +718,233 @@ def test_oco_replace_failure_emergency_closes():
     client.place_oco_order.return_value = False  # OCO fails
 
     trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=68000)
-    result = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
 
     client.execute_market_close.assert_called()
     assert result == {}
 
 
-def test_restart_reconstructs_with_partial_tp_level():
-    """Restart with SL at entry -> reconstructs partial_tp_level=0."""
+def test_restart_reconstructs_trade_state():
+    """Restart: empty trade_state + exchange OCO → reconstructs direction/TP/SL."""
     executor, client = _make_executor()
-    atr = 1000.0
     entry = 70000.0
-    current_price = entry + 2.0 * atr
-    client.get_ticker_price.return_value = current_price
     client.get_symbol_position.return_value = MarginPosition(
         "BTCUSDT", "BTC", "USDT", net_qty=0.4, borrowed=0.0, free=0.4, locked=0.0
     )
     client.get_avg_entry_price.return_value = entry
-    # SL at entry = L1 already fired
     orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=entry)
     client.get_active_orders.return_value = orders
 
-    # Empty trade state (simulates restart)
-    result = executor.guardian_check("BTCUSDT", {}, atr_macro=atr)
+    # Empty trade state (simulates restart). Without ATR, Case 4 is skipped.
+    result, level = executor.guardian_check("BTCUSDT", {})
 
-    # Should reconstruct and NOT fire L1 again
     assert result != {}
     assert result.get("direction") == "LONG"
-    assert result.get("partial_tp_level") == 0
-    # L2 shouldn't fire at 2.0 ATR (< 3.5)
-    client.execute_partial_market_close.assert_not_called()
+    assert result.get("tp_price") == 75000
+    assert result.get("sl_price") == entry
+
+
+def test_find_level_no_tp_yet():
+    """find_level_and_sync_sl: SL < entry (LONG) -> L1 not fired -> returns 0."""
+    executor, client = _make_executor()
+    entry = 70000.0
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.5, borrowed=0.0, free=0.5, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry + 1.0 * 1000  # 71000
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=68000)
+    level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=1000.0)
+    assert level == 0
+
+
+def test_find_level_l2_fired_syncs_sl():
+    """find_level: SL=entry, price at 4.0 ATR -> L2 fired -> returns 2, syncs SL."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.32, borrowed=0.0, free=0.32, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry + 4.0 * atr  # 74000
+    # SL at entry → L1 fired
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=entry)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
+    level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
+
+    # L2 threshold 3.5 ATR < 4.0 → L2 fired, returns 2 (next = L3)
+    assert level == 2
+    # SL should be synced: price - 1.0 ATR = 74000 - 1000 = 73000
+    if client.place_oco_order.called:
+        oco_call = client.place_oco_order.call_args
+        assert abs(oco_call[1]["stop_price"] - 73000) < 100
+
+
+def test_find_level_l3_all_fired():
+    """find_level: SL=entry, price at 6.0 ATR -> all levels fired -> returns 3, SL=0.75 ATR."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.256, borrowed=0.0, free=0.256, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry + 6.0 * atr  # 76000
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=80000, sl=entry)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=80000, sl_price=entry)
+    level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
+
+    # L1+L2+L3 all fired -> next level = 3 (done)
+    assert level == 3
+    # SL should be synced: price - 0.75 ATR = 76000 - 750 = 75250
+    if client.place_oco_order.called:
+        oco_call = client.place_oco_order.call_args
+        assert abs(oco_call[1]["stop_price"] - 75250) < 100
+
+
+def test_find_level_short():
+    """find_level_and_sync_sl: SHORT, SL=entry, price at -4.0 ATR -> L2 fired -> returns 2."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=-0.32, borrowed=0.32, free=0.0, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry - 4.0 * atr  # 66000
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="BUY", tp=60000, sl=entry)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("SHORT", entry, tp_price=60000, sl_price=entry)
+    level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
+
+    # L2 threshold 3.5 ATR < 4.0 -> L2 fired, returns 2 (next = L3)
+    assert level == 2
+    # SL synced: price + 1.0 ATR = 66000 + 1000 = 67000 （ceiling toward safety）
+    # For mock: verify OCO was called with correct stop
+    if client.place_oco_order.called:
+        oco_call = client.place_oco_order.call_args
+        assert abs(oco_call[1]["stop_price"] - 67000) < 100
+
+
+def test_find_level_cancel_fails_returns_next_level():
+    """find_level: cancel fails -> returns next_level anyway (no sync, no crash)."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.32, borrowed=0.0, free=0.32, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry + 4.0 * atr  # 74000
+    # SL != entry -> needs sync, but cancel will fail
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=71000)
+    client.get_active_orders.return_value = orders
+    client.cancel_all_symbol_orders.return_value = False  # cancel fails
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=71000)
+    level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
+
+    # L2 fired (4.0 >= 3.5), returns 2
+    assert level == 2
+    # OCO should NOT be re-placed (cancel failed, skip)
+    client.place_oco_order.assert_not_called()
+
+
+def test_daemon_qty_change_resets_level():
+    """Daemon-level: qty changes -> level reset to None -> find_level re-initialized."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+
+    # --- Pulse 1: L1 fires, daemon stores level=1 ---
+    client.get_ticker_price.return_value = entry + 1.5 * atr  # 71500
+    pos_chain = [0.5, 0.4]
+    call_count = [0]
+    def pos_side_effect(symbol):
+        idx = min(call_count[0], len(pos_chain) - 1)
+        qty = pos_chain[idx]
+        call_count[0] += 1
+        return MarginPosition("BTCUSDT", "BTC", "USDT",
+                              net_qty=qty, borrowed=0.0, free=abs(qty), locked=0.0)
+    client.get_symbol_position.side_effect = pos_side_effect
+    client.get_avg_entry_price.return_value = entry
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000)
+    client.get_active_orders.return_value = orders
+    client.place_oco_order.return_value = True
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=68000)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
+    assert level == 1  # L1 fired, level advanced
+
+    # --- Simulate qty change: daemon detects level is stale ---
+    # In production, daemon compares net_qty to _symbol_last_qty.
+    # Here we verify that re-running find_level correctly re-syncs.
+    client.cancel_all_symbol_orders.reset_mock()
+    client.place_oco_order.reset_mock()
+    client.execute_partial_market_close.reset_mock()
+
+    # Position qty changed (e.g., manual add) -> SL at entry, price at 2.0 ATR
+    client.get_symbol_position.side_effect = None
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.6, borrowed=0.0, free=0.6, locked=0.0
+    )
+    client.get_ticker_price.return_value = entry + 2.0 * atr  # 72000
+    orders2 = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=entry)
+    client.get_active_orders.return_value = orders2
+
+    # Daemon would: reset level → call find_level_and_sync_sl
+    find_level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
+    # SL at entry → L1 fired. 2.0 < 3.5 (L2 not met). next = 1.
+    assert find_level == 1
+
+    # Pass the found level to guardian_check — should skip L1, not re-trigger it
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=find_level)
+    client.execute_partial_market_close.assert_not_called()  # L1 idempotent
+    assert level == 1
+
+
+def test_daemon_position_closed_clears_level():
+    """Daemon-level: guardian returns {} -> level/qty tracking cleared."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+
+    # Position with OCO protection
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.5, borrowed=0.0, free=0.5, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry + 1.5 * atr
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=68000)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
+    assert level == 1  # L1 fired
+    assert result  # trade state intact
+
+    # Now simulate position closed externally: net_qty=0, no OCO
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.0, borrowed=0.0, free=0.0, locked=0.0
+    )
+    client.get_active_orders.return_value = []
+
+    # guardian_check detects flat position (Case 1: no position, has entry_filled_at)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=1)
+    # Should return {} to signal "clear trade state"
+    assert result == {}
+    # Daemon would: pop _symbol_level[symbol], pop _symbol_last_qty[symbol]

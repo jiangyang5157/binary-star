@@ -97,6 +97,10 @@ class SniperDaemon:
         # Per-symbol previous metrics for inter-pulse comparison
         self.prev_metrics: dict[str, dict | None] = {sym: None for sym in self.symbols}
 
+        # Per-symbol partial TP level tracking (in-memory only, lost on restart)
+        self._symbol_level: dict[str, int] = {}  # next level to check (0 = L1)
+        self._symbol_last_qty: dict[str, float] = {}  # detect manual qty changes
+
         # Sniper Quiet-Monitoring Protocol
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
@@ -472,9 +476,8 @@ class SniperDaemon:
     def _guardian_check(self, symbol: str) -> dict | None:
         """Delegates to MarginOrderExecutor.guardian_check() and updates trade_states[symbol].
 
-        Passes ATR from the most recent scout metrics for progressive trailing stop calculations.
-
-        Returns a dict with position/order summary for heartbeat use (no extra API calls needed).
+        Tracks partial TP level in memory (not persisted to trade_state).
+        Detects manual qty changes and re-finds level from exchange state.
         """
         try:
             logger.debug(f"[{symbol}] checking position state")
@@ -486,27 +489,54 @@ class SniperDaemon:
                 atr = prev.get('price_dynamics', {}).get('atr_macro')
 
             trade_state = self.trade_states.get(symbol, {})
-            updated_state = self.executor.guardian_check(symbol, trade_state, atr_macro=atr)
 
-            if updated_state != trade_state:
-                if not updated_state:
-                    logger.info(f"[{symbol}] trade state cleared (position closed or entry expired)")
-                    self.trade_states.pop(symbol, None)
-                else:
-                    self.trade_states[symbol] = updated_state
+            # Detect qty changes that invalidate level memory
+            pos = self.executor.client.get_symbol_position(symbol)
+            net_qty = abs(pos.net_qty) if pos else 0.0
+            last_qty = self._symbol_last_qty.get(symbol, 0.0)
+            if net_qty > 1e-8 and abs(net_qty - last_qty) > 1e-8:
+                # Qty changed: level may be stale → reset
+                self._symbol_level.pop(symbol, None)
+            self._symbol_last_qty[symbol] = net_qty
+
+            # Determine current level
+            next_level = self._symbol_level.get(symbol)
+            if next_level is None and trade_state.get("direction"):
+                # Level uninitialized: find from exchange, sync SL, skip TP
+                next_level = self.executor.find_level_and_sync_sl(
+                    symbol, trade_state, atr_macro=atr
+                )
+                self._symbol_level[symbol] = next_level
+                logger.info(f"[{symbol}] level initialized | next_level={next_level}")
+
+            # Guardian check with known level (default 0 = start from L1)
+            updated_state, new_level = self.executor.guardian_check(
+                symbol, trade_state, atr_macro=atr,
+                current_level=next_level if next_level is not None else 0
+            )
+
+            # Update level if partial TP advanced it
+            if new_level is not None and new_level != next_level:
+                self._symbol_level[symbol] = new_level
+
+            if not updated_state:
+                logger.info(f"[{symbol}] trade state cleared (position closed or entry expired)")
+                self.trade_states.pop(symbol, None)
+                self._symbol_level.pop(symbol, None)
+                self._symbol_last_qty.pop(symbol, None)
+            elif updated_state != trade_state:
+                self.trade_states[symbol] = updated_state
 
             # Return guardian snapshot for heartbeat (harvested during check, no extra API calls)
             try:
-                pos = self.executor.client.get_symbol_position(symbol)
-                active_orders = self.executor.client.get_active_orders(symbol)
                 return {
-                    "net_qty": pos.net_qty if pos else 0.0,
+                    "net_qty": net_qty if pos else 0.0,
                     "has_position": abs(pos.net_qty if pos else 0.0) > 1e-8,
-                    "active_orders": len(active_orders) if active_orders else 0,
+                    "active_orders": len(self.executor.client.get_active_orders(symbol)),
                 }
             except Exception as e:
-                logger.warning(f"[{symbol}] position/order snapshot failed | error={e} | heartbeat will show idle")
-                return {"net_qty": 0.0, "has_position": False, "active_orders": 0}
+                logger.warning(f"[{symbol}] heartbeat snapshot failed | error={e}")
+                return {"net_qty": net_qty, "has_position": net_qty > 1e-8, "active_orders": 0}
 
         except Exception as e:
             logger.error(f"[{symbol}] guardian check failed | error={e}", exc_info=True)

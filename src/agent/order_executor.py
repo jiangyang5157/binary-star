@@ -230,12 +230,14 @@ class MarginOrderExecutor:
     # GUARDIAN LOGIC: Called every Sniper pulse to protect positions
     # ================================================================
 
-    def guardian_check(self, symbol: str, trade_state: Dict[str, Any], atr_macro: Optional[float] = None) -> Dict[str, Any]:
+    def guardian_check(self, symbol: str, trade_state: Dict[str, Any],
+                        atr_macro: Optional[float] = None,
+                        current_level: int = 0) -> tuple:
         """
         Position Guardian: Runs every Sniper pulse to ensure positions are protected.
 
         Responsibilities:
-        1. If PENDING entry order → check timeout (projected_waiting_hours) → cancel if expired
+        1. If PENDING entry order → check timeout → cancel if expired
         2. If FILLED position with NO OCO → place OCO or emergency close
         3. If position already protected → multi-level partial TP + dynamic trailing
 
@@ -243,8 +245,10 @@ class MarginOrderExecutor:
             symbol: Trading pair identifier.
             trade_state: Current in-memory trade state dictionary.
             atr_macro: Current ATR value for trailing stop calculations.
+            current_level: Partial TP level known to daemon memory.
 
-        Returns updated trade_state.
+        Returns (updated_trade_state: dict, level: int|None).
+        level is the current partial TP level for the daemon to track.
         """
 
         # --- STEP 0: Heartbeat Reporting (Always runs if called) ---
@@ -257,7 +261,7 @@ class MarginOrderExecutor:
             tolerance = cfg["net_qty_tolerance"]
         except Exception as e:
             logger.error(f"[{symbol}] guardian config error | error={e}")
-            return trade_state
+            return trade_state, None
 
         has_position = abs(net_qty) > tolerance
         logger.debug(f"[{symbol}] guardian pulse | net_qty={net_qty} | has_position={has_position} | active_orders={len(active_orders)}")
@@ -277,22 +281,12 @@ class MarginOrderExecutor:
                             reconstructed["tp_price"] = o.price
                         if o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
                             reconstructed["sl_price"] = o.stop_price
-                    # Infer partial_tp_level from SL position.
-                    # Only infer L1 when SL is at/near entry (breakeven was set by
-                    # partial TP). If AI placed SL above entry, the SL-to-entry gap
-                    # is typically >> 0.1%; partial-TP-placed SL is exactly entry.
-                    avg_entry = self.client.get_avg_entry_price(symbol, net_qty)
-                    if avg_entry > 0:
-                        sl = reconstructed.get("sl_price", 0)
-                        near_entry = abs(sl - avg_entry) / max(avg_entry, 1.0) < 0.001
-                        if near_entry:
-                            reconstructed["partial_tp_level"] = 0  # L1 fired
                     logger.info(f"[{symbol}] trade_state reconstructed from exchange | dir={reconstructed['direction']}")
                     trade_state = reconstructed
                 else:
-                    return trade_state
+                    return trade_state, None
             else:
-                return trade_state
+                return trade_state, None
 
         direction = trade_state["direction"]
 
@@ -319,7 +313,7 @@ class MarginOrderExecutor:
                     if elapsed_hours > timeout_hours:
                         logger.warning(f"[{symbol}] entry order expired | id={entry_order_id} | elapsed={elapsed_hours:.1f}h > {timeout_hours}h")
                         self.client.cancel_order(symbol, entry_order_id)
-                        return {}  # Clear trade state
+                        return {}, None  # Clear trade state
                     else:
                         logger.info(f"[{symbol}] entry order pending | id={entry_order_id} | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
             else:
@@ -330,8 +324,8 @@ class MarginOrderExecutor:
                 if trade_state.get("entry_filled_at"):
                     logger.info(f"[{symbol}] position flat — cleaning orders")
                 self.client.cancel_all_symbol_orders(symbol)
-                return {}
-            return trade_state
+                return {}, None
+            return trade_state, None
 
         # --- Case 2: Has position -> Direction Sanity Check ---
         # Safeguard: Ensure reality's NetQty aligns with robot's Intent
@@ -344,7 +338,7 @@ class MarginOrderExecutor:
             if self._last_conflict_key.get(symbol) != conflict_key:
                 logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty}")
                 self._last_conflict_key[symbol] = conflict_key
-            return trade_state
+            return trade_state, None
 
         # --- Case 3: Has position and direction matches -> Protect Position ---
         if not has_oco:
@@ -355,7 +349,7 @@ class MarginOrderExecutor:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — position has no TP/SL, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
-                return {}
+                return {}, None
 
             # Check if price has already breached SL
             current_price = self.client.get_ticker_price(symbol)
@@ -369,7 +363,7 @@ class MarginOrderExecutor:
                 logger.critical(f"[{symbol}] Guardian EMERGENCY close — price breached SL | price={current_price} | sl={sl}")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
-                return {}  # Clear trade state
+                return {}, None  # Clear trade state
 
             # Normal case: place OCO protection
             logger.info(f"[{symbol}] Guardian activated | dir={direction} | qty={net_qty}")
@@ -399,12 +393,12 @@ class MarginOrderExecutor:
                 # Record fill time for time-based stop tracking
                 if not trade_state.get("entry_filled_at"):
                     trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
-                return trade_state  # Position just protected, defer trailing to next pulse
+                return trade_state, None  # Position just protected, defer trailing to next pulse
             else:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 self.client.execute_market_close(symbol)
-                return {}
+                return {}, None
 
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
         logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
@@ -447,9 +441,11 @@ class MarginOrderExecutor:
                     logger.critical(f"[{symbol}] OCO re-align failed, emergency closing")
                     self.client.cancel_all_symbol_orders(symbol)
                     self.client.execute_market_close(symbol)
-                    return {}
+                    return {}, None
             else:
                 logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl}")
+
+        new_level = current_level  # unchanged unless partial TP advances it
 
         if atr_macro is not None and not math.isnan(atr_macro) and atr_macro > 0:
             # Extract live SL/TP from active orders (source of truth)
@@ -468,7 +464,6 @@ class MarginOrderExecutor:
                 # Load multi-level config
                 gc = self._get_guardian_config()
                 levels = gc["levels"]
-                current_level = trade_state.get("partial_tp_level", -1)
 
                 # Step 2: Multi-level partial TP (sequential, loop-driven)
                 intact, tp_update = self._try_partial_tp(
@@ -477,21 +472,28 @@ class MarginOrderExecutor:
                     levels, current_level
                 )
                 if not intact:
-                    return {}  # Emergency-closed
+                    return {}, None  # Emergency-closed
 
-                if tp_update:
-                    trade_state.update(tp_update)
-                    # Refresh sl/tp from tp_update for Step 3
+                if tp_update is not None:
+                    if not tp_update:
+                        # Position fully closed by partial TP — clear trade state
+                        return {}, None
+                    # Merge sl/tp into trade_state (not partial_tp_level — that's daemon memory)
+                    for key in ("sl_price", "tp_price"):
+                        if key in tp_update:
+                            trade_state[key] = tp_update[key]
                     current_sl = trade_state.get("sl_price", current_sl)
                     current_tp = trade_state.get("tp_price", current_tp)
-                    current_level = trade_state.get("partial_tp_level", current_level)
+                    if "partial_tp_level" in tp_update:
+                        new_level = tp_update["partial_tp_level"]
 
-                # Step 3: Dynamic trailing — only when an active level has
-                # sl_distance_atr > 0. Before any partial TP (current_level=-1)
-                # we do NOT trail (SL is AI's original SL).
+                # Step 3: Dynamic trailing — uses the LAST triggered level's
+                # distance. new_level is "next to check", so active = new_level - 1.
+                # When no TP yet (new_level=0): no trailing (SL is AI's original).
                 active_sl_distance = 0.0
-                if 0 <= current_level < len(levels):
-                    active_sl_distance = levels[current_level]["sl_distance_atr"]
+                active_idx = new_level - 1
+                if 0 <= active_idx < len(levels):
+                    active_sl_distance = levels[active_idx]["sl_distance_atr"]
 
                 if active_sl_distance > 0:
                     intact, new_sl = self._migrate_dynamic_sl(
@@ -499,12 +501,12 @@ class MarginOrderExecutor:
                         cfg, active_sl_distance, atr_macro
                     )
                     if not intact:
-                        return {}  # Emergency-closed
+                        return {}, None  # Emergency-closed
 
                     if new_sl is not None:
                         trade_state["sl_price"] = new_sl
 
-        return trade_state
+        return trade_state, new_level
 
     # ================================================================
     # SAME-DIRECTION OPTIMIZATION
@@ -649,14 +651,124 @@ class MarginOrderExecutor:
 
         return cfg
 
+    def find_level_and_sync_sl(self, symbol: str, trade_state: dict,
+                                atr_macro: Optional[float] = None) -> int:
+        """
+        Called by daemon when level memory is uninitialized (startup, qty change).
+
+        Determines the NEXT level to check from exchange state:
+          - If SL outside entry → L1 hasn't fired → return 0 (check L1 next)
+          - If SL at/beyond entry → scan |price-entry| → return the first
+            un-triggered level index as next-to-check (1=L2, 2=L3, 3=done).
+
+        Syncs SL to match the found level's trailing configuration.
+        Does NOT execute any TP closes — that happens on the next pulse.
+        """
+        direction = trade_state.get("direction")
+        if not direction:
+            return 0
+
+        pos = self.client.get_symbol_position(symbol)
+        net_qty = pos.net_qty if pos else 0.0
+        active_orders = self.client.get_active_orders(symbol)
+        avg_entry = self.client.get_avg_entry_price(symbol, net_qty)
+
+        if avg_entry <= 0:
+            return 0
+
+        exit_side = "SELL" if direction == "LONG" else "BUY"
+        current_sl = trade_state.get("sl_price", 0)
+        current_tp = trade_state.get("tp_price", 0)
+        for o in active_orders:
+            if o.side != exit_side:
+                continue
+            if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                current_tp = o.price
+            elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                current_sl = o.stop_price
+
+        if current_sl <= 0 or current_tp <= 0:
+            return 0
+
+        current_price = self.client.get_ticker_price(symbol)
+        if not current_price or current_price <= 0:
+            return 0
+
+        cfg = self._get_trade_config(symbol)
+        gc = self._get_guardian_config()
+        levels = gc["levels"]
+        if not levels:
+            return 0
+
+        if atr_macro is None or math.isnan(atr_macro) or atr_macro <= 0:
+            return 0
+
+        deviation = abs(current_price - avg_entry)
+
+        # Step 1: Has L1 fired? (SL at/beyond entry = breakeven placed)
+        l1_fired = ((direction == "LONG" and current_sl >= avg_entry) or
+                     (direction == "SHORT" and current_sl <= avg_entry))
+
+        if not l1_fired:
+            logger.info(f"[{symbol}] find_level: L1 not yet fired | "
+                        f"sl={current_sl:.2f} entry={avg_entry:.2f}")
+            return 0  # next to check = L1
+
+        # Step 2: Scan to find highest triggered level
+        # next_level = first un-triggered level index (1=L2, 2=L3, 3=done)
+        next_level = 1  # L1 has fired, at least L2 is next
+        for i in range(1, len(levels)):
+            if deviation >= levels[i]["atr_threshold"] * atr_macro:
+                next_level = i + 1
+            else:
+                break
+
+        # Step 3: Sync SL to match the last triggered level's trailing distance
+        active_idx = next_level - 1
+        target_distance = levels[active_idx]["sl_distance_atr"]
+        if target_distance > 0:
+            if direction == "LONG":
+                target_sl = max(avg_entry, current_price - target_distance * atr_macro)
+            else:
+                target_sl = min(avg_entry, current_price + target_distance * atr_macro)
+        else:
+            target_sl = avg_entry
+
+        p_price = cfg["precision_price"]
+        target_sl = round(target_sl, p_price)
+
+        if abs(target_sl - current_sl) > 10 ** (-p_price):
+            logger.info(f"[{symbol}] find_level: syncing SL | {current_sl} -> {target_sl} | "
+                        f"level={active_idx} distance={target_distance}")
+            if not self.client.cancel_all_symbol_orders(symbol):
+                logger.error(f"[{symbol}] find_level: cancel failed, SL not synced")
+                return next_level
+
+            pos = self.client.get_symbol_position(symbol)
+            if pos and abs(pos.net_qty) > 0:
+                buffer = cfg.get("sl_slippage_buffer", 0.0)
+                buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
+                if not self.client.place_oco_order(
+                    symbol=symbol, side=exit_side,
+                    qty=abs(pos.net_qty), price=current_tp,
+                    stop_price=target_sl, stop_limit_price=buffered_sl
+                ):
+                    logger.critical(f"[{symbol}] find_level: OCO re-place failed, emergency closing")
+                    self.client.execute_market_close(symbol)
+        else:
+            logger.info(f"[{symbol}] find_level: SL correct | "
+                        f"next_level={next_level} sl={current_sl:.2f}")
+
+        return next_level
+
     def _try_partial_tp(self, symbol: str, direction: str, net_qty: float,
                         avg_entry: float, current_sl: float,
                         current_tp: float, current_price: float,
                         cfg: dict, atr_macro: float, levels: list,
-                        current_level: int) -> tuple:
+                        start_level: int) -> tuple:
         """Step 2: Multi-level partial take-profit.
 
-        Loops through configured levels sequentially (current_level+1 → end).
+        Loops through configured levels sequentially (start_level → end).
         Each level triggers when |price - entry| >= atr_threshold * ATR.
         Multiple levels CAN fire in a single pulse if price has moved far enough.
 
@@ -673,7 +785,7 @@ class MarginOrderExecutor:
         state_update = {}
         live_net_qty = net_qty
 
-        for i in range(current_level + 1, len(levels)):
+        for i in range(start_level, len(levels)):
             level = levels[i]
 
             threshold = level["atr_threshold"] * atr_macro
@@ -746,7 +858,7 @@ class MarginOrderExecutor:
             )
             state_update["sl_price"] = avg_entry
             state_update["tp_price"] = current_tp
-            state_update["partial_tp_level"] = i
+            state_update["partial_tp_level"] = i + 1  # next level to check
 
         return True, state_update if state_update else None
 
