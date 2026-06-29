@@ -761,6 +761,72 @@ class MarginOrderExecutor:
         logger.info(f"[{symbol}] partial TP complete | remaining={live_qty} | sl={avg_entry}")
         return True, {"sl_price": avg_entry, "tp_price": current_tp}
 
+    def _migrate_dynamic_sl(self, symbol: str, direction: str, current_sl: float,
+                             current_tp: float, current_price: float, cfg: dict,
+                             atr_macro: float) -> tuple:
+        """Step 3: Dynamic trailing SL — distance-based, SL itself as anchor.
+
+        LONG:  new_sl = max(current_sl, price - N * ATR)
+        SHORT: new_sl = min(current_sl, price + N * ATR)
+
+        Returns (position_intact: bool, new_sl_or_None: float|None).
+        None means no migration needed. position_intact=False means emergency-closed.
+        """
+        if current_sl <= 0 or atr_macro <= 0:
+            return True, None
+
+        distance = cfg.get("sl_distance_atr", 1.5) * atr_macro
+
+        if direction == "LONG":
+            new_sl = max(current_sl, current_price - distance)
+        else:
+            new_sl = min(current_sl, current_price + distance)
+
+        # Round toward safety
+        p_price = cfg["precision_price"]
+        if direction == "LONG":
+            new_sl = round(new_sl, p_price)  # floor-ish via round
+        else:
+            new_sl = round(new_sl, p_price)
+
+        if abs(new_sl - current_sl) < 1e-8:
+            return True, None  # No change
+
+        logger.info(
+            f"[{symbol}] dynamic SL migrating | {current_sl:.2f} -> {new_sl:.2f} | "
+            f"distance={distance:.2f}"
+        )
+
+        # Cancel -> re-place
+        if not self.client.cancel_all_symbol_orders(symbol):
+            logger.error(f"[{symbol}] dynamic SL -- cancel failed, keeping existing")
+            return True, None
+
+        pos = self.client.get_symbol_position(symbol)
+        if not pos or abs(pos.net_qty) <= 0:
+            logger.critical(f"[{symbol}] dynamic SL -- position vanished, emergency closing")
+            self.client.execute_market_close(symbol)
+            return False, None
+
+        exit_side = "SELL" if direction == "LONG" else "BUY"
+        buffer = cfg.get("sl_slippage_buffer", 0.0)
+        buffered_sl = new_sl + (buffer if direction == "SHORT" else -buffer)
+
+        success = self.client.place_oco_order(
+            symbol=symbol,
+            side=exit_side,
+            qty=abs(pos.net_qty),
+            price=current_tp,
+            stop_price=new_sl,
+            stop_limit_price=buffered_sl
+        )
+        if not success:
+            logger.critical(f"[{symbol}] dynamic SL -- OCO re-place failed, emergency closing")
+            self.client.execute_market_close(symbol)
+            return False, None
+
+        return True, new_sl
+
     def _calculate_target_qty(self, symbol: str, entry_price: float, sl_price: float) -> float:
         """
         Calculates the target quantity based on Risk % and Stop Loss distance.
