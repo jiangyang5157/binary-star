@@ -679,7 +679,7 @@ class MarginOrderExecutor:
         return cfg
 
     def _try_partial_tp(self, symbol: str, direction: str, net_qty: float,
-                        avg_entry: float, active_orders: list, current_sl: float,
+                        avg_entry: float, current_sl: float,
                         current_tp: float, current_price: float, cfg: dict,
                         atr_macro: float) -> tuple:
         """Step 2: Check and execute partial take-profit at Level 1.
@@ -700,11 +700,11 @@ class MarginOrderExecutor:
 
         # Trigger check: |price - entry| >= threshold * ATR
         deviation = abs(current_price - avg_entry)
-        threshold = cfg.get("partial_tp_atr_threshold", 1.5) * atr_macro
+        threshold = cfg.get("level_1_atr_threshold", 1.5) * atr_macro
         if deviation < threshold:
             return True, None
 
-        ratio = cfg.get("partial_tp_ratio", 0.5)
+        ratio = cfg.get("level_1_tp_ratio", 0.5)
         tp_qty = abs(net_qty) * ratio
         remaining_qty = abs(net_qty) * (1.0 - ratio)
         p_qty = cfg["precision_qty"]
