@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 from binance.spot import Spot
-from binance.error import ClientError
+from binance.error import ClientError, ServerError
 from src.utils.logger_utils import setup_logger
 from src.infrastructure.exchange.models import (
     MarginAccountSummary,
@@ -61,6 +61,9 @@ class BinanceMarginClient:
         except ClientError as e:
             logger.error(f"margin account fetch failed | error={e.error_message}")
             raise
+        except ServerError as e:
+            logger.error(f"margin account fetch failed (server) | status={e.status_code}")
+            raise
         except Exception as e:
             logger.error(f"margin account fetch error | error={e}")
             raise
@@ -96,6 +99,9 @@ class BinanceMarginClient:
             return orders
         except ClientError as e:
             logger.error(f"open orders fetch failed | error={e.error_message}")
+            return []
+        except ServerError as e:
+            logger.error(f"open orders fetch failed (server) | status={e.status_code}")
             return []
 
     def get_ticker_price(self, symbol: str) -> float:
@@ -155,6 +161,9 @@ class BinanceMarginClient:
                 return True
             logger.error(f"cancel orders failed | symbol={symbol} | error={e.error_message}")
             return False
+        except ServerError as e:
+            logger.error(f"cancel orders failed (server) | symbol={symbol} | status={e.status_code}")
+            return False
 
     def _get_precisions(self, symbol: str):
         """Loads precisions and tolerances from config. Cached per symbol."""
@@ -207,6 +216,9 @@ class BinanceMarginClient:
         except ClientError as e:
             logger.error(f"market close failed | symbol={symbol} | error={e.error_message}")
             return False
+        except ServerError as e:
+            logger.error(f"market close failed (server) | symbol={symbol} | status={e.status_code}")
+            return False
 
     def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
         """Places a standard LIMIT order on cross-margin. Returns order_id or None on failure."""
@@ -227,6 +239,9 @@ class BinanceMarginClient:
         except ClientError as e:
             logger.error(f"limit order failed | symbol={symbol} | error={e.error_message}")
             return None
+        except ServerError as e:
+            logger.error(f"limit order failed (server) | symbol={symbol} | status={e.status_code}")
+            return None
 
     def cancel_order(self, symbol: str, order_id: int) -> bool:
         """Cancels a specific margin order by ID."""
@@ -239,6 +254,9 @@ class BinanceMarginClient:
                 logger.info(f"order already gone | order_id={order_id}")
                 return True
             logger.error(f"cancel order failed | order_id={order_id} | error={e.error_message}")
+            return False
+        except ServerError as e:
+            logger.error(f"cancel order failed (server) | order_id={order_id} | status={e.status_code}")
             return False
 
     @staticmethod
@@ -277,6 +295,9 @@ class BinanceMarginClient:
             return True
         except ClientError as e:
             logger.error(f"OCO failed | symbol={symbol} | error={e.error_message}")
+            return False
+        except ServerError as e:
+            logger.error(f"OCO failed (server) | symbol={symbol} | status={e.status_code}")
             return False
 
     def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_trigger_price: float, sl_limit_price: float) -> bool:
