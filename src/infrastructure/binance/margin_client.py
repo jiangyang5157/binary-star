@@ -31,6 +31,20 @@ class BinanceMarginClient:
         self._entry_cache: dict = {}  # symbol → (net_qty, avg_entry)
         logger.info("initialized for Spot Margin access")
 
+    def close(self):
+        """Release the underlying HTTP session to prevent connection leaks."""
+        try:
+            if hasattr(self.client, 'session'):
+                self.client.session.close()
+        except Exception as e:
+            logger.warning("margin client close failed | error=%s", e)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
     def get_cross_margin_account(self) -> MarginAccountSummary:
         """
         Fetches Cross Margin account details.

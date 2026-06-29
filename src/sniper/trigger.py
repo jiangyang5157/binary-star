@@ -758,15 +758,16 @@ class SniperTrigger:
         )
 
     # ── FLOW: Taker Imbalance (#4) ─────────────────────────────────────
-    # Derived from cvd_intensity_ratio (taker_imbalance = (cvd + 1) / 2).
-    # No separate data field needed — mathematically equivalent to raw taker ratio.
+    # Derived from cvd_intensity_ratio. Threshold configurable per symbol
+    # via signal_stack.thresholds.taker_imbalance (default 0.20).
 
     def _detect_taker_imbalance(self, curr: Dict[str, Any],
                                  prev: Optional[Dict[str, Any]],
                                  now: datetime) -> Optional[SignalCard]:
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
-        # cvd > 0.20 → taker_imbalance > 0.60; cvd < -0.20 → taker_imbalance < 0.40
-        threshold = 0.20
+        # |cvd| must exceed this threshold to fire (configurable per symbol via
+        # signal_stack.thresholds.taker_imbalance; default 0.20).
+        threshold = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {}).get('taker_imbalance', 0.20)
         if abs(cvd) <= threshold:
             return None
 
@@ -1291,7 +1292,7 @@ class SniperTrigger:
         s = fired.get('cvd_absorption')
         parts.append(f"cvd_absorption={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<=extreme'}")
         s = fired.get('taker_imbalance')
-        taker_thresh = 0.20
+        taker_thresh = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {}).get('taker_imbalance', 0.20)
         parts.append(f"taker_imb={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={taker_thresh}'}")
 
         # ── ENERGY category ──

@@ -211,6 +211,13 @@ sniper:
       # CROSS-SYMBOL — 跨币种联动
       leader_sync: 0.40       # 龙头带动：相关性噪声大，仅作辅助叠加
 
+    # —— 各探测器专属硬阈值 ——
+    # 覆盖 detector 内部的默认判断阈值，可按 symbol override。
+    thresholds:
+      # |cvd_intensity_ratio| 需超过此值才触发 taker_imbalance。
+      # XAUT 等低流动性资产 CVD 方差大，可提高此值减少噪声。
+      taker_imbalance: 0.20
+
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Trailing Stop + Partial TP)
 # ═══════════════════════════════════════════════════════════════════════════

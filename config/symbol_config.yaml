@@ -29,7 +29,6 @@ XAUTUSDT:
       trend:
         # 降低波动扩张期间的趋势强度门槛以匹配其波动特性。
         trend_intensity_min_expansion: 0.08
-        trend_intensity_strong: 0.24    # 0.16-0.20
       structural:
         # 稍微收紧前端抢跑距离以更快捕捉突破信号。
         breakout_frontrun_atr: 0.2
@@ -42,3 +41,7 @@ XAUTUSDT:
       probes:
         # 降低背离检测阈值以避免漏掉微弱信号。
         cvd_divergence_tick_delta: 0.18
+      signal_stack:
+        thresholds:
+          # XAUT CVD 噪声高，提高 taker_imbalance 门槛以减少误触发。
+          taker_imbalance: 0.28

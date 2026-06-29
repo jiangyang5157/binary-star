@@ -116,6 +116,11 @@ class SniperDaemon:
             self.futures_client.close()
         except Exception as e:
             logger.warning(f"failed to close futures client during shutdown | error={e}")
+        try:
+            if self.executor is not None:
+                self.executor.client.close()
+        except Exception as e:
+            logger.warning(f"failed to close margin client during shutdown | error={e}")
         sys.exit(0)
 
     def run_forever(self):

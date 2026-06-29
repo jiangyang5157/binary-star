@@ -351,8 +351,8 @@ class BinanceFuturesClient(AbstractExchangeClient):
         """Closes the underlying HTTP session to prevent connection leaks."""
         try:
             self.client.session.close()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("futures client close failed | error=%s", e)
 
     def __enter__(self):
         return self
