@@ -5,7 +5,6 @@ from typing import Optional, List, Dict, Any
 from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.infrastructure.exchange.models import MarginOrder
 from src.utils.logger_utils import setup_logger
-from src.utils.exceptions import ConfigurationError
 
 logger = setup_logger(__name__)
 
@@ -262,7 +261,25 @@ class MarginOrderExecutor:
 
         # --- STEP 1: Intent Check (Early exit if robot has no skin in the game) ---
         if not trade_state or not trade_state.get("direction"):
-            return trade_state  # Nothing to protect for now
+            # Restart gap: if position + OCO exist on exchange, reconstruct minimal trade_state
+            if has_position:
+                has_sl = any(
+                    o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0
+                    for o in active_orders
+                )
+                if has_sl:
+                    reconstructed = {"direction": "LONG" if net_qty > tolerance else "SHORT"}
+                    for o in active_orders:
+                        if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                            reconstructed["tp_price"] = o.price
+                        if o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                            reconstructed["sl_price"] = o.stop_price
+                    logger.info(f"[{symbol}] trade_state reconstructed from exchange | dir={reconstructed['direction']}")
+                    trade_state = reconstructed
+                else:
+                    return trade_state
+            else:
+                return trade_state
 
         direction = trade_state["direction"]
 
@@ -272,6 +289,9 @@ class MarginOrderExecutor:
             o.side == exit_side and o.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]
             for o in active_orders
         )
+
+        # --- STEP 0: Refresh avg_entry from exchange (cached, only calls API on qty change) ---
+        avg_entry = self.client.get_avg_entry_price(symbol, net_qty)
 
         # --- Case 1: No position yet (entry pending or expired) ---
         if not has_position:
@@ -372,166 +392,54 @@ class MarginOrderExecutor:
                 self.client.execute_market_close(symbol)
                 return {}
 
-        # --- Case 4: Position is already protected → Progressive Trailing Stop ---
+        # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
         logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
 
         if atr_macro is not None and not math.isnan(atr_macro) and atr_macro > 0:
-            trade_state = self._migrate_trailing_stop(symbol, direction, trade_state, active_orders, atr_macro)
+            # Extract live SL/TP from active orders (source of truth)
+            current_sl = trade_state.get("sl_price", 0)
+            current_tp = trade_state.get("tp_price", 0)
+            for o in active_orders:
+                if o.side != exit_side:
+                    continue
+                if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                    current_tp = o.price
+                elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                    current_sl = o.stop_price
+
+            current_price = self.client.get_ticker_price(symbol)
+            if current_price and current_price > 0:
+                # Load config values into cfg dict for the new methods
+                gc = self._get_guardian_config()
+                cfg["level_1_atr_threshold"] = gc.get("partial_tp_atr_threshold", 1.5)
+                cfg["level_1_tp_ratio"] = gc.get("partial_tp_ratio", 0.5)
+                cfg["sl_distance_atr"] = gc.get("sl_distance_atr", 1.5)
+
+                # Step 2: Partial TP
+                intact, tp_update = self._try_partial_tp(
+                    symbol, direction, net_qty, avg_entry,
+                    current_sl, current_tp, current_price, cfg, atr_macro
+                )
+                if not intact:
+                    return {}  # Emergency-closed
+
+                if tp_update:
+                    trade_state.update(tp_update)
+                    # Refresh sl/tp from tp_update for Step 3
+                    current_sl = trade_state.get("sl_price", current_sl)
+                    current_tp = trade_state.get("tp_price", current_tp)
+
+                # Step 3: Dynamic trailing
+                intact, new_sl = self._migrate_dynamic_sl(
+                    symbol, direction, current_sl, current_tp, current_price, cfg, atr_macro
+                )
+                if not intact:
+                    return {}  # Emergency-closed
+
+                if new_sl is not None:
+                    trade_state["sl_price"] = new_sl
 
         return trade_state
-
-    # ================================================================
-    # TRAILING STOP: Progressive SL migration
-    # ================================================================
-
-    def _migrate_trailing_stop(self, symbol: str, direction: str, trade_state: Dict[str, Any],
-                                active_orders: List[MarginOrder], atr_macro: float) -> Dict[str, Any]:
-        """
-        Progressive Trailing Stop Migration (Deterministic, No AI).
-
-        Moves SL based on unrealized profit measured in ATR units.
-        Thresholds and offsets are read from global_config.yaml → guardian.
-        Also enforces TIME-BASED STOP when holding exceeds the configured limit.
-
-        WARNING: Canceling OCO and re-placing creates a brief naked window.
-        On failure to re-place, falls back to emergency market close.
-        """
-        # Load guardian config
-        gc = self._get_guardian_config()
-
-        entry_price = trade_state.get("entry_price")
-        current_level = trade_state.get("trailing_sl_level", 0)
-
-        # Resolve current TP/SL from live exchange orders (source of truth),
-        # not from the in-memory trade_state cache which can drift stale after
-        # _optimize_same_direction merges OCO legs without writing back.
-        exit_side = "SELL" if direction == "LONG" else "BUY"
-        current_tp = trade_state.get("tp_price")   # fallback if no live order found
-        current_sl = trade_state.get("sl_price")   # fallback if no live order found
-        for order in active_orders:
-            if order.side != exit_side:
-                continue
-            if order.type in ("LIMIT", "LIMIT_MAKER") and order.price > 0:
-                current_tp = order.price
-            elif order.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and order.stop_price > 0:
-                current_sl = order.stop_price
-
-        if not entry_price or not current_sl or not current_tp:
-            return trade_state
-
-        # --- 1. Time-Based Stop (adaptive to volatility changes) ---
-        entry_filled_at_str = trade_state.get("entry_filled_at")
-        projected_holding = trade_state.get("projected_holding_hours")
-        if entry_filled_at_str and projected_holding and float(projected_holding) > 0:
-            entry_filled_at = datetime.fromisoformat(entry_filled_at_str)
-            elapsed_hours = (datetime.now(timezone.utc) - entry_filled_at).total_seconds() / 3600
-            # Scale holding limit by current vs entry ATR: rising vol → shorter hold
-            entry_atr = trade_state.get("entry_atr")
-            if entry_atr and atr_macro and entry_atr > 0:
-                atr_ratio = atr_macro / entry_atr
-            else:
-                atr_ratio = 1.0
-            adjusted_holding = float(projected_holding) / max(atr_ratio, 0.1)
-            time_limit = adjusted_holding * gc["time_stop_multiplier"]
-
-            if elapsed_hours > time_limit:
-                logger.warning(
-                    f"[{symbol}] time stop | elapsed={elapsed_hours:.1f}h > limit={time_limit:.1f}h | closing")
-                self.client.cancel_all_symbol_orders(symbol)
-                self.client.execute_market_close(symbol)
-                return {}  # Clear trade state
-
-        # --- 2. Progressive Trailing Stop ---
-        current_price = self.client.get_ticker_price(symbol)
-        if not current_price or current_price <= 0:
-            return trade_state
-
-        # Safeguard: Prevent division by zero, NaN, or extremely small ATR values
-        if atr_macro is None or math.isnan(atr_macro) or atr_macro < 1e-6:
-            logger.warning(f"[{symbol}] trailing stop — invalid ATR ({atr_macro})")
-            return trade_state
-
-        if direction == "LONG":
-            unrealized_atr = (current_price - entry_price) / atr_macro
-        else:  # SHORT
-            unrealized_atr = (entry_price - current_price) / atr_macro
-
-        # Determine target trailing level (thresholds from config)
-        l1 = gc["trailing_profit_atr_level_1"]
-        l2 = gc["trailing_profit_atr_level_2"]
-        l3 = gc["trailing_profit_atr_level_3"]
-        offset_2 = gc["trailing_sl_offset_atr_level_2"]
-        offset_3 = gc["trailing_sl_offset_atr_level_3"]
-
-        target_level = 0
-        target_sl = current_sl
-
-        if unrealized_atr >= l3:
-            target_level = 3
-            if direction == "LONG":
-                target_sl = entry_price + offset_3 * atr_macro
-            else:
-                target_sl = entry_price - offset_3 * atr_macro
-        elif unrealized_atr >= l2:
-            target_level = 2
-            if direction == "LONG":
-                target_sl = entry_price + offset_2 * atr_macro
-            else:
-                target_sl = entry_price - offset_2 * atr_macro
-        elif unrealized_atr >= l1:
-            target_level = 1
-            target_sl = entry_price  # Breakeven
-
-        # Only migrate forward (never move SL backwards, never redundant migration)
-        if target_level <= current_level:
-            logger.debug(f"[{symbol}] trailing stop — no migration | unrealized={unrealized_atr:.1f}ATR | level={current_level}")
-            return trade_state
-
-        logger.info(
-            f"[{symbol}] trailing stop migrated | level {current_level} → {target_level} | unrealized={unrealized_atr:.1f}ATR | sl={target_sl:.2f}")
-
-        # --- 3. OCO Migration (Cancel + Re-place) ---
-        try:
-            cfg = self._get_trade_config(symbol)
-            buffer = cfg.get("sl_slippage_buffer", 0.0)
-
-            # Step A: Cancel all existing orders
-            if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error(f"[{symbol}] trailing stop — failed to cancel OCO, keeping existing")
-                return trade_state
-
-            # Step B: Place new OCO with migrated SL
-            # Direction-aware buffer: LONG SL is SELL (limit < trigger), SHORT SL is BUY (limit > trigger)
-            buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
-            pos = self.client.get_symbol_position(symbol)
-            if not pos:
-                logger.critical(f"[{symbol}] Guardian TRAILING STOP — position vanished, emergency closing")
-                self.client.execute_market_close(symbol)
-                return {}
-            success = self.client.place_oco_order(
-                symbol=symbol,
-                side=exit_side,
-                qty=abs(pos.net_qty),
-                price=current_tp,
-                stop_price=target_sl,
-                stop_limit_price=buffered_sl
-            )
-
-            if success:
-                trade_state["sl_price"] = target_sl
-                trade_state["trailing_sl_level"] = target_level
-                logger.info(f"[{symbol}] trailing stop migrated | sl={target_sl:.2f} | level={target_level}")
-            else:
-                # Step C: EMERGENCY — OCO re-placement failed, position is now NAKED
-                logger.critical(
-                    f"[{symbol}] Guardian CRITICAL — OCO re-place failed after cancel, emergency closing")
-                self.client.execute_market_close(symbol)
-                return {}  # Clear trade state
-
-        except Exception as e:
-            logger.critical(f"[{symbol}] Guardian TRAILING STOP — migration exception, emergency closing | error={e}", exc_info=True)
-            self.client.execute_market_close(symbol)
-            return {}
 
     # ================================================================
     # SAME-DIRECTION OPTIMIZATION
@@ -622,29 +530,17 @@ class MarginOrderExecutor:
     # ================================================================
 
     def _get_guardian_config(self) -> dict:
-        """Returns guardian (trailing stop + time-stop) config from cached global_config."""
+        """Returns guardian (partial TP + trailing stop + time-stop) config."""
         gc = self._global_config_raw.get("guardian", {})
+        partial_tp = gc.get("partial_tp", {})
         trailing = gc.get("trailing", {})
         time_stop = gc.get("time_stop", {})
         result = {
-            "trailing_profit_atr_level_1": float(trailing.get("trailing_profit_atr_level_1", 1.5)),
-            "trailing_profit_atr_level_2": float(trailing.get("trailing_profit_atr_level_2", 2.5)),
-            "trailing_profit_atr_level_3": float(trailing.get("trailing_profit_atr_level_3", 4.0)),
-            "trailing_sl_offset_atr_level_2": float(trailing.get("trailing_sl_offset_atr_level_2", 0.5)),
-            "trailing_sl_offset_atr_level_3": float(trailing.get("trailing_sl_offset_atr_level_3", 1.5)),
+            "partial_tp_atr_threshold": float(partial_tp.get("level_1_atr_threshold", 1.5)),
+            "partial_tp_ratio": float(partial_tp.get("level_1_tp_ratio", 0.5)),
+            "sl_distance_atr": float(trailing.get("sl_distance_atr", 1.5)),
             "time_stop_multiplier": float(time_stop.get("time_stop_multiplier", 1.5)),
         }
-
-        # Validate monotonic ordering — misconfigured levels silently break trailing stop
-        l1 = result["trailing_profit_atr_level_1"]
-        l2 = result["trailing_profit_atr_level_2"]
-        l3 = result["trailing_profit_atr_level_3"]
-        o2 = result["trailing_sl_offset_atr_level_2"]
-        o3 = result["trailing_sl_offset_atr_level_3"]
-        if not (0 < l1 < l2 < l3):
-            raise ConfigurationError(f"guardian.trailing levels must be 0 < l1 < l2 < l3, got {l1}, {l2}, {l3}")
-        if not (0 < o2 < o3):
-            raise ConfigurationError(f"guardian.trailing offsets must be 0 < o2 < o3, got {o2}, {o3}")
         return result
 
     def _get_trade_config(self, symbol: str):
