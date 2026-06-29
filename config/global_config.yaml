@@ -216,16 +216,20 @@ sniper:
 # ═══════════════════════════════════════════════════════════════════════════
 guardian:
 
-  # --- Trailing Stop Migration ---
+  # --- Partial Take-Profit ---
+  partial_tp:
+    # ATR threshold for first (and only) partial take-profit trigger.
+    # When unrealized PnL >= this many ATR units, market-sell level_1_tp_ratio
+    # of the position and move SL to avg_entry (breakeven).
+    level_1_atr_threshold: 1.5
+    # Fraction of net position qty to market-close at Level 1 trigger (0.0–1.0).
+    level_1_tp_ratio: 0.5
+
+  # --- Dynamic Trailing Stop ---
   trailing:
-    # Profit thresholds in ATR units that trigger stop-loss migration.
-    # Level 1: SL → entry (breakeven).  Level 2: SL → entry + 0.5 ATR.  Level 3: SL → entry + 1.5 ATR.
-    trailing_profit_atr_level_1: 1.5
-    trailing_profit_atr_level_2: 2.5
-    trailing_profit_atr_level_3: 4.0
-    # SL offsets (in ATR) past entry for each level.
-    trailing_sl_offset_atr_level_2: 0.5
-    trailing_sl_offset_atr_level_3: 1.5
+    # Distance (in ATR) the SL trails behind the current price.
+    # After Level 1 TP: SL = price ∓ sl_distance_atr × ATR, monotonic.
+    sl_distance_atr: 1.5
 
   # --- Time-Based Stop ---
   time_stop:
