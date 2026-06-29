@@ -443,6 +443,8 @@ class MarketMetricsRefiner:
         wick_skew = (c - l) / (h - l) if (h - l) > 0 else self.config.wick_skew_fallback
         
         atr_m = m_df['atr'].iloc[-1]
+        if pd.isna(atr_m):
+            atr_m = 0.0
         atr_n = n_df['atr'].iloc[-1]
         
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
@@ -457,7 +459,7 @@ class MarketMetricsRefiner:
         trend_lookback = self.config.trend_intensity_macro_lookback_candles
         normalized_velocity = 0.0
         if len(m_df) >= trend_lookback and atr_m > 0:
-            net_displacement = abs(m_df['close'].iloc[-1] - m_df['close'].iloc[-trend_lookback])
+            net_displacement = abs(m_df['close'].iloc[-1] - m_df['close'].iloc[-(trend_lookback + 1)])
             # Velocity = Total ATRs moved / Total candles
             normalized_velocity = (net_displacement / atr_m) / trend_lookback
 

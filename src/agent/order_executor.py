@@ -348,7 +348,9 @@ class MarginOrderExecutor:
             if not tp or not sl:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — position has no TP/SL, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
-                self.client.execute_market_close(symbol)
+                if not self.client.execute_market_close(symbol):
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    return trade_state, None
                 return {}, None
 
             # Check if price has already breached SL
@@ -362,7 +364,9 @@ class MarginOrderExecutor:
             if sl_breached:
                 logger.critical(f"[{symbol}] Guardian EMERGENCY close — price breached SL | price={current_price} | sl={sl}")
                 self.client.cancel_all_symbol_orders(symbol)
-                self.client.execute_market_close(symbol)
+                if not self.client.execute_market_close(symbol):
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    return trade_state, None
                 return {}, None  # Clear trade state
 
             # Normal case: place OCO protection
@@ -397,7 +401,9 @@ class MarginOrderExecutor:
             else:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
-                self.client.execute_market_close(symbol)
+                if not self.client.execute_market_close(symbol):
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    return trade_state, None
                 return {}, None
 
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
@@ -440,7 +446,9 @@ class MarginOrderExecutor:
                 else:
                     logger.critical(f"[{symbol}] OCO re-align failed, emergency closing")
                     self.client.cancel_all_symbol_orders(symbol)
-                    self.client.execute_market_close(symbol)
+                    if not self.client.execute_market_close(symbol):
+                        logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                        return trade_state, None
                     return {}, None
             else:
                 logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl}")
@@ -588,7 +596,9 @@ class MarginOrderExecutor:
         )
         if not success:
             logger.critical(f"[{symbol}] Guardian CRITICAL — cancelled OCO, failed to place new, emergency closing")
-            self.client.execute_market_close(symbol)
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                return True, None  # Signal caller: position still open
             return False, None  # Signal caller: position was emergency-closed
 
         return True, {"tp_price": best_tp, "sl_price": best_sl}
@@ -750,7 +760,8 @@ class MarginOrderExecutor:
                     stop_price=target_sl, stop_limit_price=buffered_sl
                 ):
                     logger.critical(f"[{symbol}] find_level: OCO re-place failed, emergency closing")
-                    self.client.execute_market_close(symbol)
+                    if not self.client.execute_market_close(symbol):
+                        logger.critical(f"[{symbol}] find_level: emergency close FAILED")
         else:
             logger.info(f"[{symbol}] find_level: SL correct | "
                         f"next_level={next_level} sl={current_sl:.2f}")
@@ -815,7 +826,9 @@ class MarginOrderExecutor:
                 logger.critical(
                     f"[{symbol}] partial TP L{i+1} — market close failed, emergency closing all"
                 )
-                self.client.execute_market_close(symbol)
+                if not self.client.execute_market_close(symbol):
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
+                    return True, None
                 return False, None
 
             # Step C: Re-verify remaining position
@@ -845,7 +858,9 @@ class MarginOrderExecutor:
                 logger.critical(
                     f"[{symbol}] partial TP L{i+1} — OCO re-place failed, emergency closing"
                 )
-                self.client.execute_market_close(symbol)
+                if not self.client.execute_market_close(symbol):
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
+                    return True, None
                 return False, None
 
             logger.info(
@@ -906,7 +921,9 @@ class MarginOrderExecutor:
         pos = self.client.get_symbol_position(symbol)
         if not pos or abs(pos.net_qty) <= 0:
             logger.critical(f"[{symbol}] dynamic SL -- position vanished, emergency closing")
-            self.client.execute_market_close(symbol)
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
+                return True, None
             return False, None
 
         exit_side = "SELL" if direction == "LONG" else "BUY"
@@ -923,7 +940,9 @@ class MarginOrderExecutor:
         )
         if not success:
             logger.critical(f"[{symbol}] dynamic SL -- OCO re-place failed, emergency closing")
-            self.client.execute_market_close(symbol)
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                return True, None
             return False, None
 
         return True, new_sl

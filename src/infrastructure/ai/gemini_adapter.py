@@ -157,5 +157,6 @@ class GeminiAdapter(AbstractAIClient):
         try:
             self._client.caches.delete(name=name)
             return True
-        except Exception:
+        except Exception as e:
+            logger.warning("cache delete failed | name=%s | error=%s", name, e)
             return False

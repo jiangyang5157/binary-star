@@ -278,11 +278,13 @@ class SniperTrigger:
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
         """Parse a Binance interval string ('15m', '1h', '1d') into float minutes."""
         val = int(interval_str[:-1])
-        unit = interval_str[-1].lower()
+        unit = interval_str[-1]
         if unit == 'h':
             return val * 60.0
         if unit == 'd':
             return val * 1440.0
+        if unit == 'M':
+            return val * 1440.0 * 30.0  # approximate month
         return float(val)
 
     def _check_state_lock(self, lock_key: str, now: datetime) -> bool:
@@ -665,7 +667,7 @@ class SniperTrigger:
         if prev:
             prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
             growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
-            if abs(cvd) <= abs(prev_cvd) * growth_ratio:
+            if abs(cvd) < abs(prev_cvd) * growth_ratio:
                 return None
 
         direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
@@ -1135,7 +1137,8 @@ class SniperTrigger:
         price_delta = (curr['price_dynamics']['current_price'] -
                        prev['price_dynamics']['current_price'])
 
-        if oi_delta == 0 or price_delta == 0:
+        # Epsilon guard: reject exact/no-change cases (float == 0 is unreliable at 1e-16)
+        if abs(oi_delta) <= 1e-10 or abs(price_delta) <= 1e-10:
             return None
         # Filter micro-noise: require meaningful OI change before calling divergence
         if abs(oi_delta) <= 0.01:

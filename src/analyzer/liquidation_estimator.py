@@ -137,6 +137,8 @@ class LiquidationEstimator:
             return {"long_liquidation": [], "short_liquidation": []}
 
     def _calculate_sma(self, data: np.ndarray, period: int) -> np.ndarray:
+        if period <= 0:
+            return np.full_like(data, np.mean(data))
         if len(data) < period:
             return np.full_like(data, np.mean(data))
         ret = np.cumsum(data, dtype=float)

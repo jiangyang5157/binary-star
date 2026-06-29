@@ -15,9 +15,13 @@ def format_timestamp_for_filename(timestamp_str: str) -> str:
         # Note: fromisoformat on a string without timezone offset produces a naive
         # datetime, which is intentional — we only need strftime output for a filename,
         # so the absolute UTC instant is irrelevant.
-        normalized_ts = timestamp_str.replace('Z', '').strip()
+        normalized_ts = timestamp_str.strip()
+        if normalized_ts.endswith('Z'):
+            normalized_ts = normalized_ts[:-1] + '+00:00'
         dt_obj = datetime.fromisoformat(normalized_ts)
-        return dt_obj.strftime(FILE_TIMESTAMP_FORMAT)
+        if dt_obj.tzinfo is None:
+            dt_obj = dt_obj.replace(tzinfo=timezone.utc)
+        return dt_obj.astimezone(timezone.utc).strftime(FILE_TIMESTAMP_FORMAT)
     except (ValueError, TypeError):
         # Fallback for non-ISO or malformed strings
         return timestamp_str.replace(' ', '_').replace(':', '').replace('Z', '').replace('.', '_')
@@ -76,7 +80,7 @@ def to_html_display(ts_str: str) -> str:
         return "N/A"
     
     try:
-        from src.utils.datetime_utils import parse_iso_to_utc, convert_utc_to_nz
+        from src.utils.datetime_utils import parse_iso_to_utc
         
         # 1. Parse to UTC
         if "_" in ts_str and "-" not in ts_str:
@@ -97,7 +101,9 @@ def to_html_display(ts_str: str) -> str:
         local_part = local_dt.strftime("%Y-%m-%d %H:%M:%S") + " " + tz_str
         
         return f"{utc_part} ({local_part})"
-    except Exception:
+    except Exception as e:
+        logger = __import__('logging').getLogger(__name__)
+        logger.warning("to_html_display failed | ts=%s | error=%s", ts_str, e)
         return ts_str
 
 def to_compact_timestamp(dt_obj: datetime) -> str:
