@@ -212,7 +212,7 @@ sniper:
       leader_sync: 0.40       # 龙头带动：相关性噪声大，仅作辅助叠加
 
 # ═══════════════════════════════════════════════════════════════════════════
-# GUARDIAN — Position Management (Trailing Stop + Time Stop)
+# GUARDIAN — Position Management (Trailing Stop + Partial TP)
 # ═══════════════════════════════════════════════════════════════════════════
 guardian:
 
@@ -232,12 +232,6 @@ guardian:
       - atr_threshold: 5.5
         tp_ratio: 0.20
         sl_distance_atr: 0.75    # tighten
-
-  # --- Time-Based Stop ---
-  time_stop:
-    # Multiplier on projected_holding_hours. Position is market-closed
-    # when elapsed > projected_holding × this value.
-    time_stop_multiplier: 1.5
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring

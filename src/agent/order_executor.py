@@ -598,14 +598,13 @@ class MarginOrderExecutor:
     # ================================================================
 
     def _get_guardian_config(self) -> dict:
-        """Returns guardian (partial TP levels + time-stop) config.
+        """Returns guardian partial TP levels config.
 
         Dynamic trailing distance is per-level (sl_distance_atr field);
         before any partial TP fires, no trailing occurs (SL = AI's original).
         """
         gc = self._global_config_raw.get("guardian", {})
         partial_tp = gc.get("partial_tp", {})
-        time_stop = gc.get("time_stop", {})
 
         levels = []
         for lv in partial_tp.get("levels", []):
@@ -615,10 +614,7 @@ class MarginOrderExecutor:
                 "sl_distance_atr": float(lv.get("sl_distance_atr", 0.0)),
             })
 
-        return {
-            "levels": levels,
-            "time_stop_multiplier": float(time_stop.get("time_stop_multiplier", 1.5)),
-        }
+        return {"levels": levels}
 
     def _get_trade_config(self, symbol: str):
         """Returns strict trade configuration. Raises KeyError if symbol not configured."""
