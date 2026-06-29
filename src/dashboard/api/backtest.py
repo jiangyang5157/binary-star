@@ -440,12 +440,16 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     pending = [s for s in samples_state if s["status"] == "pending"]
     if not pending:
         # All samples already have session files — nothing to run
-        _write_status(data_root, {
+        _done_status = {
             "running": False,
             "mode": req.mode,
             "symbol": symbol,
             "samples": samples_state,
-        })
+        }
+        for _key in ("timestamp_value", "start_value", "end_value", "samples_count"):
+            if status and _key in status:
+                _done_status[_key] = status[_key]
+        _write_status(data_root, _done_status)
         return {
             "all_complete": True,
             "symbol": symbol,
