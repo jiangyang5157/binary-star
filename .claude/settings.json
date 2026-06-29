@@ -33,11 +33,6 @@
       "Bash(python run.py sniper * --trade *)"
     ]
   },
-  "statusLine": {
-    "type": "command",
-    "command": ".claude/statusline.sh",
-    "padding": 2
-  },
   "hooks": {
     "PostToolUse": [
       {
