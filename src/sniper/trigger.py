@@ -1136,6 +1136,9 @@ class SniperTrigger:
 
         if oi_delta == 0 or price_delta == 0:
             return None
+        # Filter micro-noise: require meaningful OI change before calling divergence
+        if abs(oi_delta) <= 0.01:
+            return None
         # Must be divergent: OI and price move OPPOSITE
         if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
             return None
