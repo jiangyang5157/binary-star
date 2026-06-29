@@ -54,7 +54,7 @@ graph TD
 | **Orchestration** | `binary_star_orchestrator.py`, `debate_loop.py` | Wires MarketObserver → DebateLoop → MathFactChecker → SessionAgent → CriticAgent |
 | **AI Agents** | `session_agent.py`, `critic_agent.py`, `evolver_agent.py` | LLM agents for trade thesis, adversarial critique, and strategy evolution |
 | **Sniper** | `src/sniper/` | Lightweight pulse monitor: Scout harvests market data, Trigger evaluates 14-signal confluence |
-| **Trade Execution** | `src/agent/order_executor.py` | MarginOrderExecutor: position cross-referencing, synthetic OCO, Guardian partial TP + dynamic trailing SL, FIFO entry-price calculation |
+| **Trade Execution** | `src/agent/order_executor.py` | MarginOrderExecutor: position cross-referencing, synthetic OCO, Guardian multi-level partial TP + tiered dynamic trailing SL, FIFO entry-price calculation |
 | **Market Analysis** | `src/analyzer/` | Volume profile, regime detection, math fact-checking, forensic audit assembly, topography |
 | **AI Backend** | `src/infrastructure/ai_client.py`, `ai_factory.py`, `ai/` | Provider-agnostic `AbstractAIClient` → Gemini, DeepSeek, Qwen adapters |
 | **Exchange** | `src/infrastructure/binance/` | Futures (market data) + Margin (trade execution, `get_avg_entry_price` via FIFO, OCO, market close) |
@@ -249,54 +249,99 @@ Followers only trigger if the boosted confluence exceeds their regime threshold.
 
 ### Guardian: Position Protection
 
-Every pulse cycle, Guardian checks and protects open positions — no AI involvement. All decisions derive from exchange live data (zero persistent state). Position entry price is computed via FIFO from `margin_myTrades` on each net-qty change, cached in-memory between changes.
+Every pulse cycle, Guardian checks and protects open positions — no AI involvement. All decisions derive from exchange live data. Position entry price via FIFO from `margin_myTrades`, cached per symbol on net-qty change.
 
 | State | Action |
 |-------|--------|
 | **Flat, no trade state** | No-op |
-| **Restart gap** (trade_state empty, position + OCO exist) | Reconstruct minimal trade_state from exchange orders (direction, TP/SL prices) |
+| **Restart gap** (trade_state empty, position + OCO exist) | Reconstruct minimal trade_state from exchange (direction, TP/SL). Next pulse: `find_level_and_sync_sl()` determines partial TP level from SL-entry relationship + `|price−entry|` scan, syncs trailing distance. |
 | **Entry pending, not expired** | Wait (elapsed < projected_waiting_hours) |
 | **Entry expired** | Cancel entry order, clear trade state |
 | **Position filled, unprotected** | Check SL not already breached → place synthetic OCO (TP limit + SL limit). If price already crossed SL: emergency market close |
-| **Position filled, protected** | **Step 2** (Partial TP): if SL not yet at breakeven AND profit ≥ 1.5× ATR → market-sell 50% qty, SL → entry. **Step 3** (Dynamic SL): SL = max(SL, price ∓ 1.5 ATR) — monotonic, distance-based trailing |
+| **Position filled, protected** | **Step 2:** Multi-level partial TP — loop config levels from `current_level`; triggers at `|price−entry| ≥ atr_threshold×ATR`, market-sells `tp_ratio` of current qty, SL→entry. **Step 3:** Dynamic trailing SL at the last triggered level's `sl_distance_atr` (0 = breakeven, no trailing). Monotonic — never retreats. |
+| **OCO qty mismatch** | Re-align OCO legs to match position qty (handles partial SL fill / pivot scenarios A & C) |
 | **SL breached** | Emergency market close |
 | **Position flat** (was filled) | Cancel all orders, clear state |
 
-### Partial TP + Dynamic Trailing SL (Stateless)
+### Multi-Level Partial TP + Tiered Dynamic Trailing
 
-No hardcoded tier levels. No persistent state. All decisions driven by exchange live data.
+Config-driven, loop-based. **No persistence** — level tracked in daemon memory (`_symbol_level: dict[str, int]`). Levels defined in `global_config.yaml` → `guardian.partial_tp.levels[]`; add/remove/reorder without code changes.
 
-**Step 2 — Partial Take-Profit (Level 1):**
+**Level Index Convention (0-based, "next to check"):**
 
-| Condition | Action |
-|-----------|--------|
-| SL not yet at breakeven | Check: `|price − avg_entry| ≥ 1.5 × ATR_macro` |
-| Triggered | Market-sell 50% of net position, SL → entry (breakeven), place OCO on remaining 50% with original TP |
-| Idempotent | If SL already ≥ entry (LONG) / ≤ entry (SHORT) → skip, already done |
+| Value | Meaning |
+|:---|:---|
+| 0 | Check L1 next (no TP yet) |
+| 1 | L1 done, check L2 next |
+| 2 | L2 done, check L3 next |
+| 3 | All levels exhausted, trailing only |
 
-**Step 3 — Dynamic Trailing SL:**
+**Step 2 — Multi-Level Partial TP (`_try_partial_tp`):**
+
+Loops levels sequentially from `start_level` (= `current_level`):
 
 ```
-LONG:  new_sl = max(current_sl, price − 1.5 × ATR_macro)
-SHORT: new_sl = min(current_sl, price + 1.5 × ATR_macro)
+for i in range(start_level, len(levels)):
+    if |price − avg_entry| < levels[i].atr_threshold × ATR → break (sequential)
+    market-sell: qty × levels[i].tp_ratio   (of CURRENT remaining qty)
+    place OCO on remainder: SL = entry, TP = original TP
+    state_update["partial_tp_level"] = i + 1   (next level to check)
 ```
 
-- SL is the anchor — migration uses current SL position, not entry price
-- Monotonic: SL only moves forward (max for LONG, min for SHORT)
+- Multiple levels CAN fire in one pulse if price has moved far enough
+- Between each level: cancel → close → re-verify position → re-place OCO
+- Any step fails → emergency market close
+
+**Step 3 — Dynamic Trailing SL (`_migrate_dynamic_sl`):**
+
+```
+LONG:  new_sl = max(current_sl, price − sl_distance_atr × ATR)
+SHORT: new_sl = min(current_sl, price + sl_distance_atr × ATR)
+```
+
+- Distance from **last triggered level's** `sl_distance_atr`; `active_idx = new_level − 1`
+- `sl_distance_atr = 0` → no trailing (SL fixed at entry/breakeven)
+- Monotonic: SL only moves forward; no-op when `abs(new_sl − current_sl) < 1e-8`
 - Cancel → re-verify position → re-place OCO; failure → emergency market close
-- No change when `abs(new_sl − current_sl) < 1e-8`
+- After all levels exhausted, trailing continues at the last level's distance
 
-**Configurable parameters** (`global_config.yaml` → `guardian`):
+**Restart / Qty-Change Recovery (`find_level_and_sync_sl`):**
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `partial_tp.level_1_atr_threshold` | 1.5 | ATR threshold for first partial TP trigger |
-| `partial_tp.level_1_tp_ratio` | 0.5 | Fraction of net qty to market-close at trigger |
-| `trailing.sl_distance_atr` | 1.5 | Distance (ATR) SL trails behind current price |
+Called by daemon when level memory is uninitialized (startup, qty change):
 
-**Entry Price Calculation**: `get_avg_entry_price()` — FIFO from `margin_myTrades`, cached per symbol. Only re-fetches on net-qty change. Paginates via `fromId` if 500 trades insufficient. Returns 0.0 on failure → Step 2 skips (safe), Step 3 still operates.
+1. SL outside entry → L1 not yet fired → return 0 (check L1 next)
+2. SL at/beyond entry → scan `|price−entry|` against level thresholds
+3. Sync SL to the highest triggered level's `sl_distance_atr` (cancel + re-place OCO)
+4. Return first un-triggered level index (1/2/3). Does NOT execute TP closes — next pulse does.
 
-**Time Stop** (unchanged, ATR-adaptive): `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier` (1.5).
+**Daemon Tracking (`run_sniper.py`):**
+
+| Mechanism | Detail |
+|:---|:---|
+| `_symbol_level[symbol]: int` | Next level to check (absent = uninitialized → call `find_level_and_sync_sl`) |
+| `_symbol_last_qty[symbol]: float` | Detect external qty changes → reset level to uninitialized |
+| Level update | After `guardian_check` returns new level ≠ current |
+| Level clear | On position close (`updated_state == {}`) |
+
+**Config** (`global_config.yaml` → `guardian.partial_tp.levels[]`):
+
+| Field | Type | Description |
+|:---|:---|:---|
+| `atr_threshold` | float | Trigger when `|price−entry| ≥ N × ATR` |
+| `tp_ratio` | float | Fraction of **current** remaining qty to close |
+| `sl_distance_atr` | float | Trailing distance after this level (0 = breakeven) |
+
+Current levels:
+
+| Level | atr_threshold | tp_ratio | sl_distance_atr | Effect |
+|:---|:---|:---|:---|:---|
+| L1 | 1.5 | 0.20 | 0.0 | Close 20%, SL→entry, no trailing |
+| L2 | 3.5 | 0.20 | 1.0 | Close 20% of remainder, start 1.0 ATR trailing |
+| L3 | 5.5 | 0.20 | 0.75 | Close 20% of remainder, tighten to 0.75 ATR |
+
+Cumulative lock-in: after L3, 48.8% of original qty closed; remaining 51.2% trails at 0.75 ATR.
+
+**Time Stop** (ATR-adaptive): `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier` (1.5).
 
 ### Position × Opinion Cross-Reference
 
@@ -318,31 +363,21 @@ SHORT: new_sl = min(current_sl, price + 1.5 × ATR_macro)
 stateDiagram-v2
     [*] --> IDLE
 
-    IDLE --> ENTRY_PENDING: AI opinion<br/>place LIMIT order
-    ENTRY_PENDING --> IDLE: timeout<br/>(elapsed > projected_waiting)
+    IDLE --> ENTRY_PENDING: AI opinion → LIMIT entry
+    ENTRY_PENDING --> IDLE: entry timeout
 
     ENTRY_PENDING --> IN_POSITION: fill confirmed
 
-    IN_POSITION --> EMERGENCY_CLOSE: SL breached<br/>before OCO placed
-    IN_POSITION --> PROTECTED: OCO placed<br/>(TP limit + SL limit)
+    IN_POSITION --> EMERGENCY_CLOSE: SL breached before OCO
+    IN_POSITION --> PROTECTED: OCO placed (TP + SL limits)
 
-    PROTECTED --> PARTIAL_TP: |price − entry| ≥ 1.5 ATR<br/>& SL not at breakeven<br/>→ market-sell 50% qty
-
-    PARTIAL_TP --> DYNAMIC_TRAILING: SL = entry<br/>remaining 50% with original TP
-
-    PROTECTED --> DYNAMIC_TRAILING: SL already ≥ entry<br/>skip TP, enter trailing
-
-    DYNAMIC_TRAILING --> DYNAMIC_TRAILING: SL = max(SL, price ∓ 1.5 ATR)<br/>monotonic, distance-based
+    PROTECTED --> PROTECTED: each pulse:<br/>① multi-level partial TP<br/>② trail SL at active distance
 
     PROTECTED --> IDLE: TP hit | SL hit | time stop
-    PARTIAL_TP --> IDLE: TP hit | SL hit | time stop
-    DYNAMIC_TRAILING --> IDLE: TP hit | SL hit | time stop
 
     PROTECTED --> EMERGENCY_CLOSE: OCO re-place failed
-    PARTIAL_TP --> EMERGENCY_CLOSE: OCO re-place failed
-    DYNAMIC_TRAILING --> EMERGENCY_CLOSE: OCO re-place failed
 
-    EMERGENCY_CLOSE --> IDLE: market close executed<br/>state cleared
+    EMERGENCY_CLOSE --> IDLE: market close executed
 ```
 
 ---
@@ -696,9 +731,9 @@ These are hard constraints enforced at runtime — violations trigger aborts or 
 
 - **Forward-Only SL Migration**: Dynamic trailing uses `max(current_sl, price − N×ATR)` for LONG and `min` for SHORT. SL never moves backward — mathematically enforced.
 
-- **Stateless Design**: All Guardian decisions derive from exchange live data. Entry price via FIFO from `margin_myTrades` (cached, refreshed on qty change only). SL/TP prices from active OCO orders. Trade state reconstructed on restart when position + OCO detected. Zero file-based persistence needed for position protection.
+- **Stateless Design**: All Guardian decisions derive from exchange live data. Entry price via FIFO from `margin_myTrades` (cached, refreshed on qty change only). SL/TP prices from active OCO orders. Trade state reconstructed on restart when position + OCO detected. Partial TP level tracked in daemon memory only (lost on restart, recovered via `find_level_and_sync_sl`). No file-based persistence.
 
-- **Idempotent Partial TP**: Level 1 checks `api.SL ≥ api.entry` (LONG) or `api.SL ≤ api.entry` (SHORT) before triggering. SL at breakeven = TP already done → skip. Restart-safe without persistent level tracking.
+- **Multi-Level Partial TP**: Config-driven, loop-based. Levels trigger sequentially at `|price−entry| ≥ atr_threshold × ATR`. `current_level` parameter ensures idempotency (already-completed levels are skipped). Level recovered on restart by scanning SL position and `|price−entry|` deviation against level thresholds.
 
 - **Orientation Conflict Detection**: Guardian verifies reality's net_qty direction matches intent (LONG/SHORT). Mismatch is logged and protection is skipped — the position is not force-closed.
 
