@@ -237,7 +237,7 @@ class MarginOrderExecutor:
         Responsibilities:
         1. If PENDING entry order → check timeout (projected_waiting_hours) → cancel if expired
         2. If FILLED position with NO OCO → place OCO or emergency close
-        3. If position already protected → progressive trailing stop migration
+        3. If position already protected → multi-level partial TP + dynamic trailing
 
         Args:
             symbol: Trading pair identifier.
@@ -277,6 +277,16 @@ class MarginOrderExecutor:
                             reconstructed["tp_price"] = o.price
                         if o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
                             reconstructed["sl_price"] = o.stop_price
+                    # Infer partial_tp_level from SL position.
+                    # Only infer L1 when SL is at/near entry (breakeven was set by
+                    # partial TP). If AI placed SL above entry, the SL-to-entry gap
+                    # is typically >> 0.1%; partial-TP-placed SL is exactly entry.
+                    avg_entry = self.client.get_avg_entry_price(symbol, net_qty)
+                    if avg_entry > 0:
+                        sl = reconstructed.get("sl_price", 0)
+                        near_entry = abs(sl - avg_entry) / max(avg_entry, 1.0) < 0.001
+                        if near_entry:
+                            reconstructed["partial_tp_level"] = 0  # L1 fired
                     logger.info(f"[{symbol}] trade_state reconstructed from exchange | dir={reconstructed['direction']}")
                     trade_state = reconstructed
                 else:
@@ -455,16 +465,16 @@ class MarginOrderExecutor:
 
             current_price = self.client.get_ticker_price(symbol)
             if current_price and current_price > 0:
-                # Load config values into cfg dict for the new methods
+                # Load multi-level config
                 gc = self._get_guardian_config()
-                cfg["level_1_atr_threshold"] = gc.get("partial_tp_atr_threshold", 1.5)
-                cfg["level_1_tp_ratio"] = gc.get("partial_tp_ratio", 0.5)
-                cfg["sl_distance_atr"] = gc.get("sl_distance_atr", 1.5)
+                levels = gc["levels"]
+                current_level = trade_state.get("partial_tp_level", -1)
 
-                # Step 2: Partial TP
+                # Step 2: Multi-level partial TP (sequential, loop-driven)
                 intact, tp_update = self._try_partial_tp(
                     symbol, direction, net_qty, avg_entry,
-                    current_sl, current_tp, current_price, cfg, atr_macro
+                    current_sl, current_tp, current_price, cfg, atr_macro,
+                    levels, current_level
                 )
                 if not intact:
                     return {}  # Emergency-closed
@@ -474,16 +484,25 @@ class MarginOrderExecutor:
                     # Refresh sl/tp from tp_update for Step 3
                     current_sl = trade_state.get("sl_price", current_sl)
                     current_tp = trade_state.get("tp_price", current_tp)
+                    current_level = trade_state.get("partial_tp_level", current_level)
 
-                # Step 3: Dynamic trailing
-                intact, new_sl = self._migrate_dynamic_sl(
-                    symbol, direction, current_sl, current_tp, current_price, cfg, atr_macro
-                )
-                if not intact:
-                    return {}  # Emergency-closed
+                # Step 3: Dynamic trailing — only when an active level has
+                # sl_distance_atr > 0. Before any partial TP (current_level=-1)
+                # we do NOT trail (SL is AI's original SL).
+                active_sl_distance = 0.0
+                if 0 <= current_level < len(levels):
+                    active_sl_distance = levels[current_level]["sl_distance_atr"]
 
-                if new_sl is not None:
-                    trade_state["sl_price"] = new_sl
+                if active_sl_distance > 0:
+                    intact, new_sl = self._migrate_dynamic_sl(
+                        symbol, direction, current_sl, current_tp, current_price,
+                        cfg, active_sl_distance, atr_macro
+                    )
+                    if not intact:
+                        return {}  # Emergency-closed
+
+                    if new_sl is not None:
+                        trade_state["sl_price"] = new_sl
 
         return trade_state
 
@@ -577,18 +596,27 @@ class MarginOrderExecutor:
     # ================================================================
 
     def _get_guardian_config(self) -> dict:
-        """Returns guardian (partial TP + trailing stop + time-stop) config."""
+        """Returns guardian (partial TP levels + time-stop) config.
+
+        Dynamic trailing distance is per-level (sl_distance_atr field);
+        before any partial TP fires, no trailing occurs (SL = AI's original).
+        """
         gc = self._global_config_raw.get("guardian", {})
         partial_tp = gc.get("partial_tp", {})
-        trailing = gc.get("trailing", {})
         time_stop = gc.get("time_stop", {})
-        result = {
-            "partial_tp_atr_threshold": float(partial_tp.get("level_1_atr_threshold", 1.5)),
-            "partial_tp_ratio": float(partial_tp.get("level_1_tp_ratio", 0.5)),
-            "sl_distance_atr": float(trailing.get("sl_distance_atr", 1.5)),
+
+        levels = []
+        for lv in partial_tp.get("levels", []):
+            levels.append({
+                "atr_threshold": float(lv.get("atr_threshold", 1.5)),
+                "tp_ratio": float(lv.get("tp_ratio", 0.5)),
+                "sl_distance_atr": float(lv.get("sl_distance_atr", 0.0)),
+            })
+
+        return {
+            "levels": levels,
             "time_stop_multiplier": float(time_stop.get("time_stop_multiplier", 1.5)),
         }
-        return result
 
     def _get_trade_config(self, symbol: str):
         """Returns strict trade configuration. Raises KeyError if symbol not configured."""
@@ -623,102 +651,124 @@ class MarginOrderExecutor:
 
     def _try_partial_tp(self, symbol: str, direction: str, net_qty: float,
                         avg_entry: float, current_sl: float,
-                        current_tp: float, current_price: float, cfg: dict,
-                        atr_macro: float) -> tuple:
-        """Step 2: Check and execute partial take-profit at Level 1.
+                        current_tp: float, current_price: float,
+                        cfg: dict, atr_macro: float, levels: list,
+                        current_level: int) -> tuple:
+        """Step 2: Multi-level partial take-profit.
+
+        Loops through configured levels sequentially (current_level+1 → end).
+        Each level triggers when |price - entry| >= atr_threshold * ATR.
+        Multiple levels CAN fire in a single pulse if price has moved far enough.
 
         Returns (position_intact: bool, trade_state_update: dict|None).
-        trade_state_update carries new sl_price for the caller to merge.
+        trade_state_update carries sl_price, tp_price, partial_tp_level.
         """
         if avg_entry <= 0 or current_sl <= 0 or atr_macro <= 0:
             return True, None
 
-        # Idempotency: if SL already at/beyond entry, Level 1 already fired
-        if direction == "LONG" and current_sl >= avg_entry:
-            logger.debug(f"[{symbol}] partial TP — already at breakeven, skipping")
-            return True, None
-        if direction == "SHORT" and current_sl <= avg_entry:
-            logger.debug(f"[{symbol}] partial TP — already at breakeven, skipping")
+        if not levels:
             return True, None
 
-        # Trigger check: |price - entry| >= threshold * ATR
         deviation = abs(current_price - avg_entry)
-        threshold = cfg.get("level_1_atr_threshold", 1.5) * atr_macro
-        if deviation < threshold:
-            return True, None
+        state_update = {}
+        live_net_qty = net_qty
 
-        ratio = cfg.get("level_1_tp_ratio", 0.5)
-        tp_qty = abs(net_qty) * ratio
-        remaining_qty = abs(net_qty) * (1.0 - ratio)
-        p_qty = cfg["precision_qty"]
-        tp_qty = max(round(tp_qty, p_qty), cfg["min_order_qty"])
-        remaining_qty = max(round(remaining_qty, p_qty), cfg["min_order_qty"])
+        for i in range(current_level + 1, len(levels)):
+            level = levels[i]
 
-        logger.info(
-            f"[{symbol}] partial TP triggered | deviation={deviation:.2f} | "
-            f"tp_qty={tp_qty} | remaining={remaining_qty} | sl→{avg_entry}"
-        )
+            threshold = level["atr_threshold"] * atr_macro
 
-        # Step A: Cancel all existing orders
-        if not self.client.cancel_all_symbol_orders(symbol):
-            logger.error(f"[{symbol}] partial TP — cancel failed, aborting")
-            return True, None
+            if deviation < threshold:
+                break  # Sequential: stop at first unmet threshold
 
-        # Step B: Market-sell partial qty
-        close_side = "SELL" if direction == "LONG" else "BUY"
-        close_success = self.client.execute_partial_market_close(
-            symbol=symbol,
-            side=close_side,
-            qty=tp_qty
-        )
-        if not close_success:
-            logger.critical(f"[{symbol}] partial TP — market close failed, emergency closing all")
-            self.client.execute_market_close(symbol)
-            return False, None
+            ratio = level["tp_ratio"]
+            tp_qty = abs(live_net_qty) * ratio
+            p_qty = cfg["precision_qty"]
+            tp_qty = max(round(tp_qty, p_qty), cfg["min_order_qty"])
 
-        # Step C: Re-verify remaining position
-        pos = self.client.get_symbol_position(symbol)
-        live_qty = abs(pos.net_qty) if pos else 0.0
-        if live_qty <= 0:
-            logger.info(f"[{symbol}] partial TP — position fully closed")
-            return True, {}  # Clear trade state
+            logger.info(
+                f"[{symbol}] partial TP L{i+1} triggered | "
+                f"deviation={deviation:.2f} | tp_qty={tp_qty}"
+            )
 
-        # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
-        exit_side = "SELL" if direction == "LONG" else "BUY"
-        buffer = cfg.get("sl_slippage_buffer", 0.0)
-        buffered_sl = avg_entry + (buffer if direction == "SHORT" else -buffer)
+            # Step A: Cancel all existing orders
+            if not self.client.cancel_all_symbol_orders(symbol):
+                logger.error(f"[{symbol}] partial TP L{i+1} — cancel failed, aborting")
+                return True, state_update if state_update else None
 
-        oco_success = self.client.place_oco_order(
-            symbol=symbol,
-            side=exit_side,
-            qty=live_qty,
-            price=current_tp,
-            stop_price=avg_entry,
-            stop_limit_price=buffered_sl
-        )
-        if not oco_success:
-            logger.critical(f"[{symbol}] partial TP — OCO re-place failed, emergency closing")
-            self.client.execute_market_close(symbol)
-            return False, None
+            # Step B: Market-sell partial qty
+            close_side = "SELL" if direction == "LONG" else "BUY"
+            close_success = self.client.execute_partial_market_close(
+                symbol=symbol,
+                side=close_side,
+                qty=tp_qty
+            )
+            if not close_success:
+                logger.critical(
+                    f"[{symbol}] partial TP L{i+1} — market close failed, emergency closing all"
+                )
+                self.client.execute_market_close(symbol)
+                return False, None
 
-        logger.info(f"[{symbol}] partial TP complete | remaining={live_qty} | sl={avg_entry}")
-        return True, {"sl_price": avg_entry, "tp_price": current_tp}
+            # Step C: Re-verify remaining position
+            pos = self.client.get_symbol_position(symbol)
+            live_qty = abs(pos.net_qty) if pos else 0.0
+            if live_qty <= 0:
+                logger.info(f"[{symbol}] partial TP L{i+1} — position fully closed")
+                return True, {}  # Clear trade state
+
+            sign = 1 if direction == "LONG" else -1
+            live_net_qty = live_qty * sign
+
+            # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
+            exit_side = "SELL" if direction == "LONG" else "BUY"
+            buffer = cfg.get("sl_slippage_buffer", 0.0)
+            buffered_sl = avg_entry + (buffer if direction == "SHORT" else -buffer)
+
+            oco_success = self.client.place_oco_order(
+                symbol=symbol,
+                side=exit_side,
+                qty=live_qty,
+                price=current_tp,
+                stop_price=avg_entry,
+                stop_limit_price=buffered_sl
+            )
+            if not oco_success:
+                logger.critical(
+                    f"[{symbol}] partial TP L{i+1} — OCO re-place failed, emergency closing"
+                )
+                self.client.execute_market_close(symbol)
+                return False, None
+
+            logger.info(
+                f"[{symbol}] partial TP L{i+1} complete | "
+                f"remaining={live_qty} | sl={avg_entry}"
+            )
+            state_update["sl_price"] = avg_entry
+            state_update["tp_price"] = current_tp
+            state_update["partial_tp_level"] = i
+
+        return True, state_update if state_update else None
 
     def _migrate_dynamic_sl(self, symbol: str, direction: str, current_sl: float,
-                             current_tp: float, current_price: float, cfg: dict,
+                             current_tp: float, current_price: float,
+                             cfg: dict, sl_distance_atr: float,
                              atr_macro: float) -> tuple:
         """Step 3: Dynamic trailing SL — distance-based, SL itself as anchor.
 
         LONG:  new_sl = max(current_sl, price - N * ATR)
         SHORT: new_sl = min(current_sl, price + N * ATR)
 
+        sl_distance_atr is passed explicitly from the active partial-TP level.
+        This call is a no-op when distance <= 0.
+
         Returns (position_intact: bool, new_sl_or_None: float|None).
         None means no migration needed. position_intact=False means emergency-closed.
         """
-        if current_sl <= 0 or atr_macro <= 0:
+        if current_sl <= 0 or atr_macro <= 0 or sl_distance_atr <= 0:
             return True, None
 
-        distance = cfg.get("sl_distance_atr", 1.5) * atr_macro
+        distance = sl_distance_atr * atr_macro
 
         if direction == "LONG":
             new_sl = max(current_sl, current_price - distance)
