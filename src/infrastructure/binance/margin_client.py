@@ -313,7 +313,8 @@ class BinanceMarginClient:
 
         queue = []  # list of (price, qty) for open-side trades still "alive"
         for t in sorted_trades:
-            side = t.get('side', '')
+            is_buyer = t.get('isBuyer')
+            side = "BUY" if is_buyer else "SELL"
             price = float(t.get('price', 0))
             qty = float(t.get('qty', 0))
 
