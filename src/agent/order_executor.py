@@ -389,6 +389,7 @@ class MarginOrderExecutor:
                 # Record fill time for time-based stop tracking
                 if not trade_state.get("entry_filled_at"):
                     trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
+                return trade_state  # Position just protected, defer trailing to next pulse
             else:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
@@ -397,6 +398,48 @@ class MarginOrderExecutor:
 
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
         logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
+
+        # OCO qty sanity: re-align if position changed since OCO was placed
+        oco_sl_qty = sum(
+            o.orig_qty for o in active_orders
+            if o.side == exit_side and o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT")
+        )
+        if abs(oco_sl_qty - abs(net_qty)) > tolerance:
+            logger.info(
+                f"[{symbol}] OCO qty mismatch | oco_qty={oco_sl_qty} | position={abs(net_qty)} — re-aligning"
+            )
+            oco_tp = trade_state.get("tp_price", 0)
+            oco_sl = trade_state.get("sl_price", 0)
+            for o in active_orders:
+                if o.side != exit_side:
+                    continue
+                if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                    oco_tp = o.price
+                elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                    oco_sl = o.stop_price
+            if oco_tp > 0 and oco_sl > 0:
+                self.client.cancel_all_symbol_orders(symbol)
+                buffer = cfg.get("sl_slippage_buffer", 0.0)
+                buffered_sl = oco_sl + (buffer if direction == "SHORT" else -buffer)
+                success = self.client.place_oco_order(
+                    symbol=symbol,
+                    side=exit_side,
+                    qty=abs(net_qty),
+                    price=oco_tp,
+                    stop_price=oco_sl,
+                    stop_limit_price=buffered_sl
+                )
+                if success:
+                    logger.info(f"[{symbol}] OCO re-aligned | qty={abs(net_qty)} | tp={oco_tp} | sl={oco_sl}")
+                    trade_state["tp_price"] = oco_tp
+                    trade_state["sl_price"] = oco_sl
+                else:
+                    logger.critical(f"[{symbol}] OCO re-align failed, emergency closing")
+                    self.client.cancel_all_symbol_orders(symbol)
+                    self.client.execute_market_close(symbol)
+                    return {}
+            else:
+                logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl}")
 
         if atr_macro is not None and not math.isnan(atr_macro) and atr_macro > 0:
             # Extract live SL/TP from active orders (source of truth)
