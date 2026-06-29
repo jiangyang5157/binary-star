@@ -54,10 +54,10 @@ graph TD
 | **Orchestration** | `binary_star_orchestrator.py`, `debate_loop.py` | Wires MarketObserver → DebateLoop → MathFactChecker → SessionAgent → CriticAgent |
 | **AI Agents** | `session_agent.py`, `critic_agent.py`, `evolver_agent.py` | LLM agents for trade thesis, adversarial critique, and strategy evolution |
 | **Sniper** | `src/sniper/` | Lightweight pulse monitor: Scout harvests market data, Trigger evaluates 14-signal confluence |
-| **Trade Execution** | `src/agent/order_executor.py` | MarginOrderExecutor: position cross-referencing, synthetic OCO, Guardian trailing stops |
+| **Trade Execution** | `src/agent/order_executor.py` | MarginOrderExecutor: position cross-referencing, synthetic OCO, Guardian partial TP + dynamic trailing SL, FIFO entry-price calculation |
 | **Market Analysis** | `src/analyzer/` | Volume profile, regime detection, math fact-checking, forensic audit assembly, topography |
 | **AI Backend** | `src/infrastructure/ai_client.py`, `ai_factory.py`, `ai/` | Provider-agnostic `AbstractAIClient` → Gemini, DeepSeek, Qwen adapters |
-| **Exchange** | `src/infrastructure/binance/` | Futures (market data) + Margin (trade execution) clients |
+| **Exchange** | `src/infrastructure/binance/` | Futures (market data) + Margin (trade execution, `get_avg_entry_price` via FIFO, OCO, market close) |
 | **Config** | `src/config/` | Frozen dataclasses (sub_configs.py), YAML loaders, symbol-aware resolution + patching |
 | **Utilities** | `src/utils/` | Math tools, datetime, evolution patching, fitness evaluation, rate limiting, logging |
 
@@ -249,31 +249,54 @@ Followers only trigger if the boosted confluence exceeds their regime threshold.
 
 ### Guardian: Position Protection
 
-Every pulse cycle, Guardian checks and protects open positions — no AI involvement:
+Every pulse cycle, Guardian checks and protects open positions — no AI involvement. All decisions derive from exchange live data (zero persistent state). Position entry price is computed via FIFO from `margin_myTrades` on each net-qty change, cached in-memory between changes.
 
 | State | Action |
 |-------|--------|
 | **Flat, no trade state** | No-op |
+| **Restart gap** (trade_state empty, position + OCO exist) | Reconstruct minimal trade_state from exchange orders (direction, TP/SL prices) |
 | **Entry pending, not expired** | Wait (elapsed < projected_waiting_hours) |
 | **Entry expired** | Cancel entry order, clear trade state |
 | **Position filled, unprotected** | Check SL not already breached → place synthetic OCO (TP limit + SL limit). If price already crossed SL: emergency market close |
-| **Position filled, protected** | Proceed to trailing stop migration check |
+| **Position filled, protected** | **Step 2** (Partial TP): if SL not yet at breakeven AND profit ≥ 1.5× ATR → market-sell 50% qty, SL → entry. **Step 3** (Dynamic SL): SL = max(SL, price ∓ 1.5 ATR) — monotonic, distance-based trailing |
 | **SL breached** | Emergency market close |
-| **Position flat (was filled)** | Cancel all orders, clear state |
+| **Position flat** (was filled) | Cancel all orders, clear state |
 
-### Trailing Stop Migration (3-Tier)
+### Partial TP + Dynamic Trailing SL (Stateless)
 
-When profit exceeds ATR-based thresholds, Guardian progressively migrates the stop-loss:
+No hardcoded tier levels. No persistent state. All decisions driven by exchange live data.
 
-| Tier | Profit (ATR) | SL Position | Rationale |
-|------|-------------|-------------|-----------|
-| Level 1 | ≥ 1.5 ATR | SL → entry (breakeven) | Lock in safety |
-| Level 2 | ≥ 2.5 ATR | SL → entry ± 0.5 ATR | Capture partial profit |
-| Level 3 | ≥ 4.0 ATR | SL → entry ± 1.5 ATR | Trail aggressively |
+**Step 2 — Partial Take-Profit (Level 1):**
 
-**Migration is forward-only**: target_level must be strictly > current_level. Monotonicity (`0 < l1 < l2 < l3`, `0 < o2 < o3`) is validated at init.
+| Condition | Action |
+|-----------|--------|
+| SL not yet at breakeven | Check: `|price − avg_entry| ≥ 1.5 × ATR_macro` |
+| Triggered | Market-sell 50% of net position, SL → entry (breakeven), place OCO on remaining 50% with original TP |
+| Idempotent | If SL already ≥ entry (LONG) / ≤ entry (SHORT) → skip, already done |
 
-**Time Stop** (ATR-adaptive): Holding limit adjusts to volatility changes. If `current ATR > entry ATR` (rising vol), the limit compresses proportionally. Formula: `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier` (1.5).
+**Step 3 — Dynamic Trailing SL:**
+
+```
+LONG:  new_sl = max(current_sl, price − 1.5 × ATR_macro)
+SHORT: new_sl = min(current_sl, price + 1.5 × ATR_macro)
+```
+
+- SL is the anchor — migration uses current SL position, not entry price
+- Monotonic: SL only moves forward (max for LONG, min for SHORT)
+- Cancel → re-verify position → re-place OCO; failure → emergency market close
+- No change when `abs(new_sl − current_sl) < 1e-8`
+
+**Configurable parameters** (`global_config.yaml` → `guardian`):
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `partial_tp.level_1_atr_threshold` | 1.5 | ATR threshold for first partial TP trigger |
+| `partial_tp.level_1_tp_ratio` | 0.5 | Fraction of net qty to market-close at trigger |
+| `trailing.sl_distance_atr` | 1.5 | Distance (ATR) SL trails behind current price |
+
+**Entry Price Calculation**: `get_avg_entry_price()` — FIFO from `margin_myTrades`, cached per symbol. Only re-fetches on net-qty change. Paginates via `fromId` if 500 trades insufficient. Returns 0.0 on failure → Step 2 skips (safe), Step 3 still operates.
+
+**Time Stop** (unchanged, ATR-adaptive): `max_hold = (projected_holding_hours / atr_ratio) × time_stop_multiplier` (1.5).
 
 ### Position × Opinion Cross-Reference
 
@@ -283,7 +306,7 @@ When profit exceeds ATR-based thresholds, Guardian progressively migrates the st
 |-------------------|------------|--------|
 | Flat | NEUTRAL | No action |
 | Flat | BULLISH/BEARISH | Cancel stale orders → place new LIMIT entry |
-| LONG/SHORT | Same direction | Optimize: merge TP (max of both), tighten SL, replace OCO |
+| LONG/SHORT | Same direction | Optimize: merge TP (max of both), tighten SL, replace OCO. Returns state_update dict → merged into trade_state |
 | LONG | BEARISH (has SL) | **Pivot-Preserve**: align TP to entry, keep original SL, place new SHORT LIMIT entry |
 | LONG | BEARISH (no SL) | **Force Close**: market close, cancel all orders, place new SHORT LIMIT entry |
 | SHORT | BULLISH (has SL) | **Pivot-Preserve**: align TP to entry, keep original SL, place new LONG LIMIT entry |
@@ -303,22 +326,21 @@ stateDiagram-v2
     IN_POSITION --> EMERGENCY_CLOSE: SL breached<br/>before OCO placed
     IN_POSITION --> PROTECTED: OCO placed<br/>(TP limit + SL limit)
 
-    PROTECTED --> TRAILING_L1: profit ≥ 1.5 ATR<br/>SL → breakeven
-    PROTECTED --> TRAILING_L2: profit ≥ 2.5 ATR<br/>SL → entry + 0.5 ATR
-    PROTECTED --> TRAILING_L3: profit ≥ 4.0 ATR<br/>SL → entry + 1.5 ATR
+    PROTECTED --> PARTIAL_TP: |price − entry| ≥ 1.5 ATR<br/>& SL not at breakeven<br/>→ market-sell 50% qty
 
-    TRAILING_L1 --> TRAILING_L2: profit ≥ 2.5 ATR
-    TRAILING_L2 --> TRAILING_L3: profit ≥ 4.0 ATR
+    PARTIAL_TP --> DYNAMIC_TRAILING: SL = entry<br/>remaining 50% with original TP
+
+    PROTECTED --> DYNAMIC_TRAILING: SL already ≥ entry<br/>skip TP, enter trailing
+
+    DYNAMIC_TRAILING --> DYNAMIC_TRAILING: SL = max(SL, price ∓ 1.5 ATR)<br/>monotonic, distance-based
 
     PROTECTED --> IDLE: TP hit | SL hit | time stop
-    TRAILING_L1 --> IDLE: TP hit | SL hit | time stop
-    TRAILING_L2 --> IDLE: TP hit | SL hit | time stop
-    TRAILING_L3 --> IDLE: TP hit | SL hit | time stop
+    PARTIAL_TP --> IDLE: TP hit | SL hit | time stop
+    DYNAMIC_TRAILING --> IDLE: TP hit | SL hit | time stop
 
     PROTECTED --> EMERGENCY_CLOSE: OCO re-place failed
-    TRAILING_L1 --> EMERGENCY_CLOSE: OCO re-place failed
-    TRAILING_L2 --> EMERGENCY_CLOSE: OCO re-place failed
-    TRAILING_L3 --> EMERGENCY_CLOSE: OCO re-place failed
+    PARTIAL_TP --> EMERGENCY_CLOSE: OCO re-place failed
+    DYNAMIC_TRAILING --> EMERGENCY_CLOSE: OCO re-place failed
 
     EMERGENCY_CLOSE --> IDLE: market close executed<br/>state cleared
 ```
@@ -656,7 +678,7 @@ These are hard constraints enforced at runtime — violations trigger aborts or 
 
 ### Guardian: Position Protection
 
-- **Never Naked Position** — the core invariant. Between cancelling old OCO orders and placing new ones, the position is briefly naked. If any re-place step fails (pivot-preserve, same-direction optimize, or trailing stop migration), Guardian performs an emergency market close. The `_EMERGENCY_CLOSED_SENTINEL = -1` signals the SniperDaemon that the position was force-closed.
+- **Never Naked Position** — the core invariant. Between cancelling old OCO orders and placing new ones, the position is briefly naked. If any re-place step fails (pivot-preserve, same-direction optimize, partial TP, or dynamic SL migration), Guardian performs an emergency market close. The `_EMERGENCY_CLOSED_SENTINEL = -1` signals the SniperDaemon that the position was force-closed.
 
 - **Emergency Close Paths** — enforced in `MarginOrderExecutor`:
 
@@ -667,12 +689,16 @@ These are hard constraints enforced at runtime — violations trigger aborts or 
   | OCO placement fails (first protect) | `guardian_check` → `execute_market_close` | Clear trade state |
   | OCO re-place fails (pivot-preserve) | `sync_with_opinion` → `execute_market_close` | Place new entry |
   | OCO re-place fails (same-direction) | `_optimize_same_direction` → `execute_market_close` | Return sentinel `-1` |
-  | OCO re-place fails (trailing stop) | `_migrate_trailing_stop` → `execute_market_close` | Clear trade state |
-  | Position vanishes during migration | `_migrate_trailing_stop` → `execute_market_close` | Clear trade state |
+  | OCO re-place fails (partial TP) | `_try_partial_tp` → `execute_market_close` | Clear trade state |
+  | OCO re-place fails (dynamic trailing) | `_migrate_dynamic_sl` → `execute_market_close` | Clear trade state |
+  | Position vanishes during migration | `_migrate_dynamic_sl` → `execute_market_close` | Clear trade state |
+  | Partial market-close fails | `_try_partial_tp` → `execute_market_close` | Clear trade state |
 
-- **Forward-Only SL Migration**: Trailing stop only migrates forward — `target_level > current_level` enforced. SL never moves backward.
+- **Forward-Only SL Migration**: Dynamic trailing uses `max(current_sl, price − N×ATR)` for LONG and `min` for SHORT. SL never moves backward — mathematically enforced.
 
-- **Monotonic Trailing Stop Levels**: `_get_guardian_config()` validates `0 < l1 < l2 < l3` and `0 < o2 < o3` at init. Misconfigured levels raise `ConfigurationError`.
+- **Stateless Design**: All Guardian decisions derive from exchange live data. Entry price via FIFO from `margin_myTrades` (cached, refreshed on qty change only). SL/TP prices from active OCO orders. Trade state reconstructed on restart when position + OCO detected. Zero file-based persistence needed for position protection.
+
+- **Idempotent Partial TP**: Level 1 checks `api.SL ≥ api.entry` (LONG) or `api.SL ≤ api.entry` (SHORT) before triggering. SL at breakeven = TP already done → skip. Restart-safe without persistent level tracking.
 
 - **Orientation Conflict Detection**: Guardian verifies reality's net_qty direction matches intent (LONG/SHORT). Mismatch is logged and protection is skipped — the position is not force-closed.
 
@@ -717,4 +743,4 @@ python -m pytest tests/unit/test_sniper_daemon.py -v
 python -m pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-**Test suite**: 166 tests across unit, integration, system, and analyzer layers. All tests use mocked external dependencies (exchange clients, AI adapters). Live API tests are skipped unless real API keys are configured.
+**Test suite**: 172 tests across unit, integration, system, and analyzer layers. All tests use mocked external dependencies (exchange clients, AI adapters). Live API tests are skipped unless real API keys are configured.
