@@ -345,6 +345,7 @@ async function checkPreviewStatus() {
     if (data.samples && data.samples.length) {
       sampleTimestamps = data.samples.map(s => s.timestamp);
       renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+      restoreRawInputs(data);
     }
   } catch (e) { /* polling failed */ }
 }
@@ -592,6 +593,7 @@ function restoreRawInputs(data) {
           sampleTimestamps = data.samples.map(s => s.timestamp);
           renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
         }
+        restoreRawInputs(data);
         setFieldsDisabled(true);
         const btn = $('bt-preview-btn');
         btn.textContent = '⏹ Stop';
