@@ -207,7 +207,8 @@ def test_same_direction_optimization():
         symbol="BTCUSDT", side="SELL", qty=2.0,
         price=76000, stop_price=73000, stop_limit_price=72990.0
     )
-    assert order_id is None  # No new entry order for same-direction
+    # sync_with_opinion now returns state_update dict for same-direction optimization
+    assert order_id == {"tp_price": 76000, "sl_price": 73000}
 
 def test_non_whitelisted_symbol():
 

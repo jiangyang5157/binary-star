@@ -427,7 +427,7 @@ class SniperDaemon:
                         f"confidence={confidence}% | entry={entry} | tp={tp} | sl={sl} | "
                         f"wait={projected_waiting}h | hold={projected_holding}h")
 
-            order_id = self.executor.sync_with_opinion(
+            result = self.executor.sync_with_opinion(
                 symbol=symbol,
                 opinion_direction=direction,
                 entry_price=float(entry),
@@ -436,22 +436,28 @@ class SniperDaemon:
             )
 
             # Update trade state for Guardian tracking
-            if order_id and order_id > 0:
+            if result == _EMERGENCY_CLOSED_SENTINEL:
+                self.trade_states.pop(symbol, None)
+                logger.warning(f"[{symbol}] emergency-closed by executor (OCO re-place failure) | trade state cleared")
+            elif isinstance(result, dict):
+                # _optimize_same_direction returned state update — merge into existing trade_state
+                existing = self.trade_states.get(symbol, {})
+                existing.update(result)
+                self.trade_states[symbol] = existing
+                logger.info(f"[{symbol}] trade_state updated from optimize | {existing}")
+            elif isinstance(result, int) and result > 0:
                 self.trade_states[symbol] = {
                     "direction": direction,
                     "entry_price": float(entry),
                     "tp_price": float(tp),
                     "sl_price": float(sl),
-                    "entry_order_id": order_id,
+                    "entry_order_id": result,
                     "entry_placed_at": datetime.now(timezone.utc),
                     "projected_waiting_hours": float(projected_waiting),
                     "projected_holding_hours": float(projected_holding),
                     "entry_atr": entry_atr,
                 }
-                logger.info(f"[{symbol}] trade state updated | order={order_id}")
-            elif order_id == _EMERGENCY_CLOSED_SENTINEL:
-                self.trade_states.pop(symbol, None)
-                logger.warning(f"[{symbol}] emergency-closed by executor (OCO re-place failure) | trade state cleared")
+                logger.info(f"[{symbol}] trade state updated | order={result}")
             else:
                 if not self.trade_states.get(symbol, {}).get("direction"):
                     logger.info(f"[{symbol}] no entry order placed | no active trade state")

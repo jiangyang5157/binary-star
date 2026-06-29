@@ -216,12 +216,15 @@ class MarginOrderExecutor:
 
         # Scenario B: SAME DIRECTION (Optimization & Net Qty Protection)
         logger.info(f"[{symbol}] same direction — optimizing protection")
-        position_intact = self._optimize_same_direction(symbol, current_direction, net_qty, active_orders, tp_price, sl_price)
+        position_intact, state_update = self._optimize_same_direction(
+            symbol, current_direction, net_qty, active_orders, tp_price, sl_price
+        )
         if not position_intact:
             # Emergency close was triggered — return sentinel to signal caller that trade_state should be cleared
             logger.critical(f"[{symbol}] Guardian CRITICAL — failed OCO, emergency closing")
             return _EMERGENCY_CLOSED_SENTINEL
-        return None
+        # Return state_update so _attempt_trade_execution can merge into trade_state
+        return state_update
 
     # ================================================================
     # GUARDIAN LOGIC: Called every Sniper pulse to protect positions
@@ -445,13 +448,14 @@ class MarginOrderExecutor:
     # SAME-DIRECTION OPTIMIZATION
     # ================================================================
 
-    def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float) -> bool:
+    def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float) -> tuple:
         """
         Calculates the best TP/SL comparing existing manual/script orders vs new opinion.
         Protects the ENTIRE net_qty.
 
         Returns:
-            True if position remains protected, False if emergency-closed due to OCO failure.
+            (position_intact: bool, state_update: dict|None)
+            state_update carries {tp_price, sl_price} for the caller to merge into trade_state.
         """
         current_tps = []
         current_sls = []
@@ -492,7 +496,7 @@ class MarginOrderExecutor:
         logger.info(f"[{symbol}] cancelling orders to wrap net_qty={net_qty} with OCO")
         if not self.client.cancel_all_symbol_orders(symbol):
             logger.error(f"[{symbol}] optimize — failed to cancel OCOs, original protection remains")
-            return True  # Position still intact (original OCOs untouched)
+            return True, {"tp_price": best_tp, "sl_price": best_sl}
 
         # Re-verify position after cancel — a fill during the cancel window can change qty
         trade_cfg = self._get_trade_config(symbol)
@@ -500,7 +504,7 @@ class MarginOrderExecutor:
         live_qty = abs(pos.net_qty) if pos else 0.0
         if live_qty <= 0:
             logger.warning(f"[{symbol}] optimize — position vanished after cancel")
-            return True
+            return True, None
         if abs(live_qty - abs(net_qty)) > trade_cfg.get("net_qty_tolerance", 1e-8):
             logger.warning(f"[{symbol}] optimize — qty changed after cancel | {net_qty} → {live_qty}")
 
@@ -521,9 +525,9 @@ class MarginOrderExecutor:
         if not success:
             logger.critical(f"[{symbol}] Guardian CRITICAL — cancelled OCO, failed to place new, emergency closing")
             self.client.execute_market_close(symbol)
-            return False  # Signal caller: position was emergency-closed
+            return False, None  # Signal caller: position was emergency-closed
 
-        return True  # Position remains protected
+        return True, {"tp_price": best_tp, "sl_price": best_sl}
 
     # ================================================================
     # INTERNAL HELPERS
