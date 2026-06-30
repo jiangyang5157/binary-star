@@ -767,6 +767,9 @@ class MarginOrderExecutor:
                     logger.critical(f"[{symbol}] find_level: OCO re-place failed, emergency closing")
                     if not self.client.execute_market_close(symbol):
                         logger.critical(f"[{symbol}] find_level: emergency close FAILED")
+                    else:
+                        logger.info(f"[{symbol}] find_level: emergency close succeeded, position closed")
+                    return 0  # reset level — position gone or needs re-evaluation
         else:
             logger.info(f"[{symbol}] find_level: SL correct | "
                         f"next_level={next_level} sl={current_sl:.2f}")
