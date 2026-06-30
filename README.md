@@ -308,9 +308,14 @@ git clone <repo-url> && cd crypto
 
 # 2. Create virtual environment
 python3.12 -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
 
-# 3. Configure environment
+# 3. Install project (editable mode) + dependencies from pyproject.toml
+pip install -e .
+
+# Optional: include dev dependencies (pytest, etc.)
+# pip install -e ".[dev]"
+
+# 4. Configure environment
 cp .env.example .env
 # Edit .env with your keys:
 #   BINANCE_API_KEY, BINANCE_API_SECRET
