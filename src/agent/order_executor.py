@@ -355,6 +355,9 @@ class MarginOrderExecutor:
 
             # Check if price has already breached SL
             current_price = self.client.get_ticker_price(symbol)
+            if not current_price or current_price <= 0:
+                logger.error(f"[{symbol}] ticker unavailable (price={current_price}) — deferring SL breach check")
+                return trade_state, None
 
             sl_breached = (
                 (direction == "LONG" and current_price <= sl) or
