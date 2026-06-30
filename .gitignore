@@ -6,9 +6,6 @@ tmp/
 htmlcov/
 docs/superpowers/
 
-# IDE
-.vscode/
-
 # Superpowers
 .superpowers/
 
