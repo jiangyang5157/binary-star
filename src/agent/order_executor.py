@@ -784,7 +784,8 @@ class MarginOrderExecutor:
         """Step 2: Multi-level partial take-profit.
 
         Loops through configured levels sequentially (start_level → end).
-        Each level triggers when |price - entry| >= atr_threshold * ATR.
+        Each level triggers when the position is in profit AND |price - entry| >= atr_threshold * ATR.
+        Only triggers when price exceeds entry in the favorable direction (LONG↑, SHORT↓).
         Multiple levels CAN fire in a single pulse if price has moved far enough.
 
         Returns (position_intact: bool, trade_state_update: dict|None).
@@ -796,7 +797,11 @@ class MarginOrderExecutor:
         if not levels:
             return True, None
 
-        deviation = abs(current_price - avg_entry)
+        # Direction-aware deviation: partial TP only triggers when IN profit.
+        # LONG: price above entry; SHORT: price below entry.
+        deviation = (current_price - avg_entry) if direction == "LONG" else (avg_entry - current_price)
+        if deviation <= 0:
+            return True, None  # Not in profit, nothing to take
         state_update = {}
         live_net_qty = net_qty
 
@@ -839,14 +844,16 @@ class MarginOrderExecutor:
                     return True, None
                 return False, None
 
-            # Step C: Re-verify remaining position
-            pos = self.client.get_symbol_position(symbol)
-            live_qty = abs(pos.net_qty) if pos else 0.0
-            if live_qty <= 0:
+            # Step C: Compute remaining qty (don't re-verify from exchange — settlement may be stale)
+            remaining_qty = abs(live_net_qty) - tp_qty
+            if remaining_qty < cfg.get("min_order_qty", 0):
                 logger.info(f"[{symbol}] partial TP L{i+1} — position fully closed")
                 return True, {}  # Clear trade state
 
             sign = 1 if direction == "LONG" else -1
+            live_qty = max(round(remaining_qty, p_qty), 0)
+            if live_qty <= 0:
+                return True, {}  # Dust — effectively closed
             live_net_qty = live_qty * sign
 
             # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
@@ -866,7 +873,7 @@ class MarginOrderExecutor:
                 logger.critical(
                     f"[{symbol}] partial TP L{i+1} — OCO re-place failed, emergency closing"
                 )
-                if not self.client.execute_market_close(symbol):
+                if not self.client.execute_partial_market_close(symbol=symbol, side=exit_side, qty=live_qty):
                     logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
                     return True, None
                 return False, None

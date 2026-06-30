@@ -703,6 +703,48 @@ def test_partial_tp_l1_triggers_short():
     assert level == 1
 
 
+def test_partial_tp_skips_when_long_in_loss():
+    """LONG in loss: deviation <= 0 → partial TP does NOT fire."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+    current_price = entry - 1.5 * atr  # price BELOW entry (in loss)
+    client.get_ticker_price.return_value = current_price
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.5, borrowed=0.0, free=0.5, locked=0.0)
+    client.get_avg_entry_price.return_value = entry
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=68000)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
+
+    client.execute_partial_market_close.assert_not_called()
+    assert result != {}
+
+
+def test_partial_tp_skips_when_short_in_loss():
+    """SHORT in loss: deviation <= 0 → partial TP does NOT fire."""
+    executor, client = _make_executor()
+    atr = 1000.0
+    entry = 70000.0
+    current_price = entry + 1.5 * atr  # price ABOVE entry (in loss for SHORT)
+    client.get_ticker_price.return_value = current_price
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=-0.5, borrowed=0.5, free=0.0, locked=0.0)
+    client.get_avg_entry_price.return_value = entry
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="BUY", tp=65000, sl=72000)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("SHORT", entry, tp_price=65000, sl_price=72000)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
+                                            current_level=0)
+
+    client.execute_partial_market_close.assert_not_called()
+    assert result != {}
+
+
 def test_oco_replace_failure_emergency_closes():
     """When OCO re-place fails after cancel, emergency market close."""
     executor, client = _make_executor()
@@ -722,7 +764,10 @@ def test_oco_replace_failure_emergency_closes():
     result, level = executor.guardian_check("BTCUSDT", trade_state, atr_macro=atr,
                                             current_level=0)
 
-    client.execute_market_close.assert_called()
+    client.execute_partial_market_close.assert_any_call(
+        symbol="BTCUSDT", side="SELL", qty=0.4
+    )
+    client.execute_market_close.assert_not_called()
     assert result == {}
 
 
