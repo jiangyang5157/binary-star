@@ -177,7 +177,39 @@ Signals stack directionally using a **1 − ∏(1 − s·c)** formula — multip
 | Squeeze | ×0.75 | 0.263 | 25 min |
 | Chaos | ×1.50 | 0.525 | 60 min |
 
-**Emergency override:** Any single signal with raw strength ≥ 0.80 bypasses cooldown and threshold.
+**Outcome-aware cooldown:** The cooldown duration adapts based on what happened last trigger:
+
+| Last Trigger Type | Cooldown Multiplier | Typical Duration | Reason |
+|-------------------|---------------------|------------------|--------|
+| `TRADED` / `ACTIVE_POSITION` | ×1.0 (full) | 25–60 min | Capital deployed — wait for resolution |
+| `NEUTRAL` / `OBSERVE_ONLY` | ×0.5 (shortened) | 12.5–30 min | No capital deployed — re-evaluate sooner |
+
+**Cooldown break conditions** (bypass remaining cooldown):
+- **Stacked signals:** ≥ 3 fresh signals in the same direction
+- **Strength ratio:** Any fresh signal's weighted score > 1.8× last trigger score
+- **Minimum gap:** At least 10 minutes must have elapsed since last trigger (hard floor)
+
+**Emergency override:** Any single signal with raw strength ≥ 0.80 bypasses cooldown and threshold entirely.
+
+### Outcome-Aware Adaptive Cooldown
+
+When a trigger fires, the trigger type is recorded and affects the **next** cooldown:
+
+| Session Outcome | Trigger Type | Cooldown Effect |
+|----------------|-------------|-----------------|
+| Capital deployed (BULLISH/BEARISH + `--trade`) | `TRADED` | Full regime cooldown (25–60 min) |
+| Active position already open | `ACTIVE_POSITION` | Full regime cooldown — Guardian manages |
+| AI ran but opinion = NEUTRAL | `NEUTRAL` | **×0.5** shortened (12.5–30 min) — no capital at risk |
+| `--llm` observe-only mode | `OBSERVE_ONLY` | **×0.5** shortened — no capital at risk |
+
+**Cooldown can still be broken** mid-cooldown (bypass remaining wait):
+- ≥ 3 fresh signals stack in same direction (`stacked_break_count`)
+- Any signal's weighted score > 1.8× the last trigger score (`break_on_strength_ratio`)
+- Hard minimum gap: 10 min (`break_min_gap_minutes`) — prevents same-signal re-trigger
+
+### Trigger Diagnostics
+
+Every pulse logs a compact **SIGNAL DIAG** line showing all 13 detector key metrics — fired strength for active detectors, rejection reason (vs threshold) for silent ones. Enables tuning without re-running full traces.
 
 ### Sniper Pulse Flow
 
@@ -188,8 +220,8 @@ graph TD
     Scout --> Detect["13 signal detectors<br/>each pulse, fresh detection"]
     Detect --> Merge["Merge with decayed memory<br/>half-life decay on old signals"]
     Merge --> Confluence["ConfluenceEngine<br/>directional stack + noise cancel"]
-    Confluence --> Cooldown{"Adaptive<br/>Cooldown?"}
-    Cooldown -->|active| Break{"Cooldown<br/>Break?<br/>3+ stacked or 1.8× strength"}
+    Confluence --> Cooldown{"Adaptive<br/>Cooldown?<br/>outcome-aware"}
+    Cooldown -->|active| Break{"Cooldown Break?<br/>• 3+ stacked signals<br/>• 1.8× strength ratio<br/>• emergency ≥0.80"}
     Break -->|yes| Gate
     Cooldown -->|no| Gate["Pre-AI Gate<br/>entry feasibility<br/>directional sanity<br/>chaos survival"]
     Gate -->|PASS| AI["AI Session<br/>Binary Star debate<br/>~30-90s"]
@@ -207,10 +239,21 @@ Every pulse with `--trade` enabled, the Guardian runs for each symbol with an op
 
 | Step | Check | Action |
 |------|-------|--------|
-| 1 | Entry order pending | Cancel if timeout exceeded |
-| 2 | Position unprotected (no OCO) | Place synthetic OCO (TP limit + SL limit) |
+| 0 | No trade state (daemon restart) | Reconstruct from exchange — detect pending LIMIT orders or existing OCO |
+| 1 | Entry order pending | Cancel if timeout exceeded (`projected_waiting_hours`) |
+| 2 | Position unprotected (no OCO) | Place synthetic OCO (TP limit + SL limit) — **SL-breach guard:** skip if ticker price is 0 or None |
 | 3 | SL breached (price past SL) | Emergency market close |
 | 4 | Position protected | Multi-level partial TP + dynamic trailing SL |
+| 5 | OCO qty mismatch | Re-align OCO qty to current position; cancel-and-replace emergency-close on failure |
+
+**Key fixes (2026-06-30):**
+
+| Fix | Issue | Resolution |
+|-----|-------|------------|
+| **A** | `get_ticker_price()` returns 0 → false emergency close on LONG | Added `current_price <= 0` guard before SL-breach check — defers to next pulse |
+| **B** | pivot-preserve: cancel orders before placing new OCO (naked window) | Reversed order: **place new OCO first**, cancel old orders only on success; if OCO fails, original protection remains |
+| **D** | Direction conflict (LONG intent vs SHORT position) detected but not fixed | On conflict: `cancel_all_symbol_orders()` → position goes naked → next pulse re-protects |
+| **E** | `find_level_and_sync_sl` falls through after emergency close | Returns `0` after emergency close — daemon resets level tracking instead of storing stale state |
 
 **Partial TP Levels** (sequential, fire when `|price − entry| ≥ N × ATR`):
 
@@ -410,12 +453,16 @@ graph TD
 - Fill → synthetic OCO placed (TP limit + SL limit, two independent orders)
 - Protection → Guardian cross-manages: if one fills, cancel the other
 - Trailing → cancel old SL → place new SL → if fail, emergency market close
+- **Pivot-preserve:** Place new OCO **before** cancelling old one — no naked window; if OCO fails, original protection stays intact
 
 ### Guardian
 - **No naked positions.** Any OCO re-place failure triggers immediate market close
-- **SL breach on protection:** If price has already passed SL when OCO is about to be placed, market close
+- **SL breach on protection:** If price has already passed SL when OCO is about to be placed, market close. **Guard:** ticker_price == 0 skips SL-breach check (defers to next pulse)
+- **Direction sanity:** If `trade_state.direction` disagrees with actual position (`net_qty` sign), all orders are cancelled — the position goes naked, next pulse re-protects or emergency-closes
 - **Partial TP is sequential.** Level N fires only after Level N−1. Multiple levels can fire in a single pulse
 - **SL migrates to breakeven after L1.** Then trails with distance from the active level's config
+- **`find_level_and_sync_sl`** returns `0` after emergency close — daemon resets level tracking rather than storing stale state
+- **Post-restart reconstruction:** On daemon restart with empty `trade_state`, Guardian detects pending LIMIT orders or existing positions on the exchange and reconstructs trade state from exchange data
 
 ### Circuit Breaker
 - 3 consecutive session failures → `RuntimeError`, pipeline halted, alert notification sent
