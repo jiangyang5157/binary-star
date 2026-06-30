@@ -466,10 +466,11 @@ function _renderGuardianTable(container, data) {
   for (var i = 0; i < symbols.length; i++) {
     var sym = symbols[i];
     var gs = guardian.symbols[sym] || {};
-    var posLabel = gs.has_position
+    var hasPos = gs.net_qty != null && Math.abs(gs.net_qty) > 1e-8;
+    var posLabel = hasPos
       ? (gs.net_qty > 0 ? 'LONG' : 'SHORT')
       : '—';
-    var statusLabel = gs.has_position
+    var statusLabel = hasPos
       ? (gs.active_orders > 0 ? 'Protected' : 'Naked')
       : 'Idle';
 

@@ -548,13 +548,12 @@ class SniperDaemon:
             # Return guardian snapshot for heartbeat (harvested during check, no extra API calls)
             try:
                 return {
-                    "net_qty": net_qty if pos else 0.0,
-                    "has_position": abs(pos.net_qty if pos else 0.0) > 1e-8,
+                    "net_qty": pos.net_qty if pos else 0.0,
                     "active_orders": len(self.executor.client.get_active_orders(symbol)),
                 }
             except Exception as e:
                 logger.warning(f"[{symbol}] heartbeat snapshot failed | error={e}")
-                return {"net_qty": net_qty, "has_position": net_qty > 1e-8, "active_orders": 0}
+                return {"net_qty": pos.net_qty if pos else 0.0, "active_orders": 0}
 
         except Exception as e:
             logger.error(f"[{symbol}] guardian check failed | error={e}", exc_info=True)
@@ -607,7 +606,7 @@ class SniperDaemon:
             for sym in self.symbols:
                 gs = (guardian_data or {}).get(sym)
                 symbols_data[sym] = gs if gs else {
-                    "net_qty": 0.0, "has_position": False, "active_orders": 0,
+                    "net_qty": 0.0, "active_orders": 0,
                 }
 
             guardian = {
