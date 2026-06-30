@@ -160,17 +160,13 @@ class MarginOrderExecutor:
                 pivot_tp = entry_price
                 logger.info(f"[{symbol}] pivot-preserve | protecting {current_direction} | tp={pivot_tp}")
 
-                # 1. Cancel all existing orders (clean slate before re-hanging)
-                if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.error(f"[{symbol}] pivot-preserve — failed to cancel orders")
-                    return None
-
                 # Format to precision
                 p_price = cfg["precision_price"]
                 pivot_tp = round(pivot_tp, p_price)
 
                 # 4. Re-hang OCO for the existing opposing position
                 #    (original SL trigger + pivot TP)
+                #    Place new OCO BEFORE cancelling old — avoids naked window.
                 buffer = cfg.get("sl_slippage_buffer", 0.0)
                 # SHORT SL is a BUY above current → limit is trigger + buffer
                 # LONG  SL is a SELL below current → limit is trigger - buffer
@@ -193,6 +189,10 @@ class MarginOrderExecutor:
                         return None
                     logger.info(f"[{symbol}] pivot-preserve — emergency close done, entering {opinion_direction}")
                     return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
+
+                # New OCO is live — now safe to clean up old orders
+                if not self.client.cancel_all_symbol_orders(symbol):
+                    logger.warning(f"[{symbol}] pivot-preserve — failed to cancel old orders (new OCO already active)")
 
                 # 4. Place the new opinion's LIMIT entry alongside the preserved position
                 logger.info(f"[{symbol}] pivot-preserve — placing entry | dir={opinion_direction} | entry={entry_price}")
@@ -336,8 +336,10 @@ class MarginOrderExecutor:
         if (intent == "LONG" and not is_long_pos) or (intent == "SHORT" and not is_short_pos):
             conflict_key = f"{intent}_{net_qty}"
             if self._last_conflict_key.get(symbol) != conflict_key:
-                logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty}")
+                logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty} — cancelling all orders")
                 self._last_conflict_key[symbol] = conflict_key
+            # Cancel wrong-side orders — next pulse Case 3 will emergency-close
+            self.client.cancel_all_symbol_orders(symbol)
             return trade_state, None
 
         # --- Case 3: Has position and direction matches -> Protect Position ---

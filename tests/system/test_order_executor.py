@@ -200,7 +200,8 @@ def test_pivot_short_with_sl_oco_fails_abort():
 
     order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=82000, tp_price=80000, sl_price=85000)
 
-    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
+    # New OCO placed BEFORE cancelling old — on failure, old OCO stays (no cancel)
+    client.cancel_all_symbol_orders.assert_not_called()
     client.place_oco_order.assert_called_once()  # Attempted but failed
     # Emergency close instead of leaving position naked
     client.execute_market_close.assert_called_once_with("BTCUSDT")
