@@ -36,7 +36,7 @@ XAUTUSDT:
         squeeze_threshold: 0.58         # 0.55-0.60
       micro_sentiment:
         cvd_intensity_extreme: 0.42     # 0.40-0.48
-        cvd_intensity_threshold: 0.16   # 0.14-0.18
+        cvd_intensity_threshold: 0.14   # 0.14-0.18
     sniper:
       probes:
         # 降低背离检测阈值以避免漏掉微弱信号。
@@ -44,7 +44,7 @@ XAUTUSDT:
       signal_stack:
         # XAUT 单独触发阈值（覆盖全局 0.35）
         # 0.30：cvd_momentum 单独能过，TPB+弱信号叠加能过，TPB 单独不够
-        trigger_threshold: 0.30
+        trigger_threshold: 0.28
         thresholds:
           # XAUT CVD 噪声高，提高 taker_imbalance 门槛以减少误触发。
           taker_imbalance: 0.28
