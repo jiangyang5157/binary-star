@@ -260,9 +260,11 @@ class SniperDaemon:
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
                 for sym, result in triggered:
                     has_active = bool(self.trade_states.get(sym, {}).get("direction"))
+                    trigger_type: str = "NEUTRAL"  # default fallback
 
                     if self.session_engines.get(sym) and not has_active:
                         if not self.llm_enabled:
+                            trigger_type = "OBSERVE_ONLY"
                             logger.info(
                                 f"[{sym}] OBSERVE-ONLY | would fire AI session | "
                                 f"dir={result.confluence_direction.value} | "
@@ -355,6 +357,16 @@ class SniperDaemon:
                             if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                                 self._attempt_trade_execution(sym, session_result)
 
+                            # Outcome-aware cooldown: TRADED vs NEUTRAL
+                            opinion = (
+                                session_result.get("final_decision", {}).get("opinion", "NEUTRAL")
+                                if session_result else "NEUTRAL"
+                            )
+                            trigger_type = (
+                                "TRADED" if (opinion in ("BULLISH", "BEARISH") and self.trade_enabled)
+                                else "NEUTRAL"
+                            )
+
                             # ── Clear active_session ──
                             s3 = _read_daemon_status()
                             if s3 and s3.get("active_session"):
@@ -363,11 +375,12 @@ class SniperDaemon:
 
                             logger.info(f"[{sym}] session complete — returning to monitoring")
                     elif has_active:
+                        trigger_type = "ACTIVE_POSITION"
                         logger.info(
                             f"[{sym}] active position ({self.trade_states[sym]['direction']}) | "
                             f"skipping AI session — Guardian manages")
 
-                    self.triggers[sym].set_triggered(result)
+                    self.triggers[sym].set_triggered(result, trigger_type)
 
                 # ── 4. HOUSEKEEPING ──
                 if metrics:

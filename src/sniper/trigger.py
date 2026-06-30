@@ -218,6 +218,7 @@ class SniperTrigger:
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):
         self.last_trigger_time: Optional[datetime] = None
         self.last_trigger_score: Optional[float] = None
+        self._last_trigger_type: Optional[str] = None  # TRADED | NEUTRAL | OBSERVE_ONLY | ACTIVE_POSITION
         self.symbol: Optional[str] = symbol
 
         # Config loading
@@ -332,6 +333,11 @@ class SniperTrigger:
 
         regime_minutes = cooldown_cfg.get('regime_base_minutes', {})
         cooldown_mins = regime_minutes.get(regime, self.cooldown_minutes)
+
+        # Outcome-aware: NEUTRAL/OBSERVE_ONLY get shortened cooldown (no capital deployed)
+        if self._last_trigger_type in ("NEUTRAL", "OBSERVE_ONLY"):
+            neutral_mult = cooldown_cfg.get('neutral_multiplier', 1.0)
+            cooldown_mins = cooldown_mins * neutral_mult
 
         elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
 
@@ -1474,7 +1480,13 @@ class SniperTrigger:
 
         return result
 
-    def set_triggered(self, result: TriggerResult):
-        """Record trigger time and score for cooldown tracking."""
+    def set_triggered(self, result: TriggerResult, trigger_type: str = "ACTIVE"):
+        """Record trigger time and score for cooldown tracking.
+
+        trigger_type controls cooldown duration:
+        - TRADED / ACTIVE_POSITION → full regime cooldown (capital deployed)
+        - NEUTRAL / OBSERVE_ONLY → shortened (× neutral_multiplier)
+        """
         self.last_trigger_time = datetime.now(timezone.utc)
         self.last_trigger_score = result.confluence_score
+        self._last_trigger_type = trigger_type

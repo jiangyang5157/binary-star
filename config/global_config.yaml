@@ -173,6 +173,7 @@ sniper:
       break_on_strength_ratio: 1.8     # 新信号强度 > 上次 × 1.8 才破例
       break_min_gap_minutes: 10        # 绝对最小间隔，同信号不重复
       stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
+      neutral_multiplier: 0.5          # NEUTRAL/OBSERVE_ONLY cooldown = regime × this (floor: break_min_gap_minutes)
 
     # —— 预触发确定性门禁 (Pre-Trigger Gate) ——
     # 在消耗 LLM token 之前，用纯数学过滤不可交易场景。
