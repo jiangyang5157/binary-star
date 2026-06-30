@@ -60,7 +60,7 @@ def resolve_symbols(raw: str) -> list[str]:
     """Resolve a CSV of symbol prefixes to a deduplicated list of full symbols.
 
     Args:
-        raw: Comma-separated symbol prefixes (e.g., "BTC,ETH,XAUT").
+        raw: Comma-separated symbol prefixes (e.g., "BTC,XAUT").
 
     Returns:
         List of full symbol strings in original order, with duplicates removed.

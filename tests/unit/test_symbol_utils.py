@@ -14,7 +14,7 @@ class TestResolveSymbol:
         assert resolve_symbol("BTCUSDT") == "BTCUSDT"
 
     def test_strips_whitespace(self):
-        assert resolve_symbol("  eth  ") == "ETHUSDT"
+        assert resolve_symbol("  btc  ") == "BTCUSDT"
 
     def test_xaut(self):
         assert resolve_symbol("XAUT") == "XAUTUSDT"
@@ -37,19 +37,19 @@ class TestResolveSymbols:
         assert resolve_symbols("BTC") == ["BTCUSDT"]
 
     def test_csv_list(self):
-        assert resolve_symbols("BTC,ETH,XAUT") == ["BTCUSDT", "ETHUSDT", "XAUTUSDT"]
+        assert resolve_symbols("BTC,SOL,XAUT") == ["BTCUSDT", "SOLUSDT", "XAUTUSDT"]
 
     def test_csv_with_spaces(self):
-        assert resolve_symbols(" BTC , ETH , XAUT ") == ["BTCUSDT", "ETHUSDT", "XAUTUSDT"]
+        assert resolve_symbols(" BTC , SOL , XAUT ") == ["BTCUSDT", "SOLUSDT", "XAUTUSDT"]
 
     def test_deduplicates(self):
-        assert resolve_symbols("BTC,BTC,ETH") == ["BTCUSDT", "ETHUSDT"]
+        assert resolve_symbols("BTC,BTC,SOL") == ["BTCUSDT", "SOLUSDT"]
 
     def test_preserves_order(self):
-        assert resolve_symbols("XAUT,BTC,ETH") == ["XAUTUSDT", "BTCUSDT", "ETHUSDT"]
+        assert resolve_symbols("XAUT,BTC,SOL") == ["XAUTUSDT", "BTCUSDT", "SOLUSDT"]
 
     def test_mixed_formats(self):
-        assert resolve_symbols("BTC,ETHUSDT") == ["BTCUSDT", "ETHUSDT"]
+        assert resolve_symbols("BTC,XAUTUSDT") == ["BTCUSDT", "XAUTUSDT"]
 
     def test_empty_string(self):
         with pytest.raises(ValueError, match="At least one symbol required"):

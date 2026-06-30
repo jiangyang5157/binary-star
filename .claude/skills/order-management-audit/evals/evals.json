@@ -1,0 +1,23 @@
+{
+  "skill_name": "order-management-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run an order management audit on my trading system. Focus on the OCO lifecycle and guardian protection. I want to know if there are any gaps where positions could run naked — especially during trailing stop migration and partial TP. Are my emergency close fallbacks complete? Just review, don't fix anything.",
+      "expected_output": "A structured audit report covering OCO lifecycle, guardian protection gaps, emergency close completeness. Report should have file:line citations, severity ratings, and a risk assessment. No code modifications.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I've been restarting my sniper daemon a lot recently and I'm worried about what happens to open positions when it comes back up. Can you trace through the restart/recovery logic — specifically: what happens if there's an active trade with OCO when I restart, vs if the entry order was still pending, vs if the position was unprotected? And if there's a manual position change while the daemon is down, does it recover correctly?",
+      "expected_output": "End-to-end trace of restart/recovery scenarios. Should cover: trade state reconstruction from exchange OCO, pending entry after restart, unprotected position after restart, manual change during downtime. File:line citations for each decision point.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "ok so i was looking at my order executor code and i noticed the ticker price can return 0 on API failure. In the guardian SL breach check it looks like this could cause a false emergency close on a LONG position. can you audit that specific code path and also check every other place get_ticker_price is called in the guardian to see if there are similar issues? --fix if you find real bugs",
+      "expected_output": "Audit of get_ticker_price usage in guardian/executor. Should confirm the ticker=0 false-emergency-close bug, check all call sites, and if --fix is implied, propose and (after approval) apply the fix (add current_price > 0 guard).",
+      "files": []
+    }
+  ]
+}

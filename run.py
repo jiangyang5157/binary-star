@@ -81,7 +81,7 @@ def _cmd_session(args):
 def _add_sniper_parser(subparsers):
     p = subparsers.add_parser("sniper", help="Run the real-time Sniper monitoring daemon")
     p.add_argument("--symbol", type=str, required=True,
-                   help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
+                   help="Trading pair prefix(es), CSV for multiple (e.g. BTC,XAUT)")
     p.add_argument("--llm", action="store_true", default=False,
                    help="Enable AI session dispatch on trigger. Without this, "
                         "signals are evaluated and logged but no LLM tokens are spent.")

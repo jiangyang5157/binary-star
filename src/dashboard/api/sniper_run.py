@@ -97,7 +97,7 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
 
     data_root = _resolve_data_root(data_root)
 
-    # Validate and resolve symbols (CSV: "BTC,ETH,XAUT")
+    # Validate and resolve symbols (CSV: "BTC,XAUT")
     raw = (req.symbol_prefix or "").strip()
     try:
         symbols = resolve_symbols(raw)

@@ -47,7 +47,7 @@ class SniperDaemon:
         self.args = args
         self.global_cfg = load_global_config()
 
-        # Parse CSV symbol list (e.g., "BTC,ETH,XAUT" → ["BTCUSDT", "ETHUSDT", "XAUTUSDT"])
+        # Parse CSV symbol list (e.g., "BTC,XAUT" → ["BTCUSDT", "XAUTUSDT"])
         raw_symbols = getattr(args, 'symbol', '') or ''
         self.symbols = resolve_symbols(raw_symbols)
 
@@ -615,7 +615,7 @@ class SniperDaemon:
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")
-    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,ETH,XAUT)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,XAUT)")
     parser.add_argument("--trade", nargs='?', const=True, default=False, type=float,
                         help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "
                              "Without a value, uses real Binance cross-margin balance.")

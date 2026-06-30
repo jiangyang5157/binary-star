@@ -251,7 +251,6 @@ stateDiagram-v2
 ### Cross-Symbol Leader Sync
 
 When a symbol triggers, correlated followers receive a boost signal:
-- **ETHUSDT** → correlation 0.75 with BTC
 - **XAUTUSDT** → correlation 0.40 with BTC
 
 The boost re-evaluates confluence for the follower — if it tips over threshold, the follower also triggers an AI session.
@@ -311,7 +310,7 @@ python run.py sniper --symbol BTC -p data/prod                          # observ
 python run.py sniper --symbol BTC --llm -p data/prod                    # AI sessions, no trade
 python run.py sniper --symbol BTC --trade -p data/prod                  # live margin trading
 python run.py sniper --symbol BTC --trade 1000 -p data/prod            # manual balance override
-python run.py sniper --symbol "BTC,ETH,XAUT" --trade -p data/prod      # multi-symbol
+python run.py sniper --symbol "BTC,XAUT" --trade -p data/prod      # multi-symbol
 
 # Historical backtest
 python run.py backtest-run --symbol BTC --timestamp "2025-01-15T14:00:00Z" -p data/prod

@@ -213,7 +213,6 @@ class SniperTrigger:
     # Cross-symbol correlation defaults (fixed, not yet dynamically computed)
     CROSS_CORRELATIONS: Dict[str, float] = {
         'XAUTUSDT': 0.40,
-        'ETHUSDT': 0.75,
     }
 
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):

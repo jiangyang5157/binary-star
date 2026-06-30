@@ -235,7 +235,7 @@ def test_non_whitelisted_symbol():
 
     executor, client = _make_executor()
     
-    order_id = executor.sync_with_opinion("ETHUSDT", "LONG", entry_price=2000, tp_price=2200, sl_price=1900)
+    order_id = executor.sync_with_opinion("SOLUSDT", "LONG", entry_price=2000, tp_price=2200, sl_price=1900)
     
     client.get_symbol_position.assert_not_called()
     client.place_limit_order.assert_not_called()

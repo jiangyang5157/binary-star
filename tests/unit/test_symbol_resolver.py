@@ -90,7 +90,7 @@ def test_is_symbol_configured_positive():
 
 
 def test_is_symbol_configured_negative():
-    assert is_symbol_configured("ETHUSDT") is False
+    assert is_symbol_configured("SOLUSDT") is False
     assert is_symbol_configured("") is False
 
 
@@ -141,7 +141,7 @@ def test_resolve_config_no_overrides(sample_base_config, sample_symbol_config):
 
 def test_resolve_config_unknown_symbol(sample_base_config, sample_symbol_config):
     """Unknown symbol — result equals base (no overrides to apply)."""
-    result = resolve_config(sample_base_config, "ETHUSDT", sample_symbol_config)
+    result = resolve_config(sample_base_config, "SOLUSDT", sample_symbol_config)
     assert result == sample_base_config
 
 
