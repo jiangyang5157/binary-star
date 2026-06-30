@@ -605,9 +605,12 @@ class SniperDaemon:
             symbols_data = {}
             for sym in self.symbols:
                 gs = (guardian_data or {}).get(sym)
-                symbols_data[sym] = gs if gs else {
+                entry = dict(gs) if gs else {
                     "net_qty": 0.0, "active_orders": 0,
                 }
+                if sym in self.triggers and self.triggers[sym].cooldown_active:
+                    entry['cooldown_active'] = True
+                symbols_data[sym] = entry
 
             guardian = {
                 "last_pulse_at": datetime.now(timezone.utc).isoformat(),
