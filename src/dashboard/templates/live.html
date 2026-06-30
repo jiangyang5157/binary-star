@@ -431,16 +431,20 @@ function _renderSniperStatusLine(data) {
   var el = document.getElementById('sniper-status-line');
   if (!el) return;
 
-  var symbols = (data.symbols || []).map(function(s) {
-    return s.replace(new RegExp(QUOTE + '$', 'i'), '');
-  }).join(', ');
+  var parts = (data.symbols || []).map(function(s) {
+    var stripped = s.replace(new RegExp(QUOTE + '$', 'i'), '');
+    var label = '<strong>' + stripped + '</strong>';
+    var gs = data.guardian ? data.guardian.symbols[s] : null;
+    return (gs && gs.cooldown_active ? '❄ ' : '') + label;
+  });
+  var symbols = parts.join(', ');
 
   var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
 
   el.innerHTML =
     '<div class="sniper-idle">' +
       '<span class="sniper-idle-dot"></span>' +
-      '<span class="sniper-idle-info">Watching <strong>' + symbols + '</strong>… · ' +
+      '<span class="sniper-idle-info">Watching ' + symbols + '… · ' +
         formatElapsed(pulseAge) + ' since last pulse</span>' +
     '</div>';
 }

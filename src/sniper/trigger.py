@@ -219,6 +219,7 @@ class SniperTrigger:
         self.last_trigger_time: Optional[datetime] = None
         self.last_trigger_score: Optional[float] = None
         self._last_trigger_type: Optional[str] = None  # TRADED | NEUTRAL | OBSERVE_ONLY | ACTIVE_POSITION
+        self.cooldown_active: bool = False
         self.symbol: Optional[str] = symbol
 
         # Config loading
@@ -1433,6 +1434,7 @@ class SniperTrigger:
 
         # 5. Compute confluence
         effective_cooldown = cooldown_active and not cooldown_break
+        self.cooldown_active = effective_cooldown
         confluence_score, dominant_direction, should_trigger = self.engine.evaluate(
             all_signals, regime, is_cooldown_active=effective_cooldown
         )
@@ -1490,3 +1492,4 @@ class SniperTrigger:
         self.last_trigger_time = datetime.now(timezone.utc)
         self.last_trigger_score = result.confluence_score
         self._last_trigger_type = trigger_type
+        self.cooldown_active = True
