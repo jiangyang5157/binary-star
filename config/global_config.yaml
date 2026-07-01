@@ -124,7 +124,7 @@ sniper:
     # confluence_score ≥ 此值即触发 AI session（regime 会乘修正系数）。
     # 要达到 0.35，约需 2-3 个弱信号协同或 1 个中强信号。
     # 设太低 → 噪声误触发；设太高 → 永远不触发。
-    trigger_threshold: 0.35
+    trigger_threshold: 0.34
 
     # —— 紧急越级通道 ——
     # 当任意单个信号的 raw strength（不加权）≥ 此值时，绕过所有冷却和门槛直接触发。
