@@ -218,53 +218,46 @@ class SessionRenderer(BaseEmailTemplate):
         wait_h = tp.get("projected_waiting_hours")
         hold_h = tp.get("projected_holding_hours")
 
+        # Price grid cells: 4 inline-block divs that wrap to 2×2 on mobile
+        price_cells = f"""\
+            <div style="{_s(display='inline-block', verticalAlign='top', padding='8px 12px', minWidth='70px', textAlign='center')}">
+                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='3px', fontFamily=F['body'])}">Current</span>
+                <span style="{_s(fontSize='13px', fontWeight='600', color=C['text'], fontFamily=F['mono'])}">{current}</span>
+            </div>
+            <div style="{_s(display='inline-block', verticalAlign='top', padding='8px 12px', minWidth='70px', textAlign='center')}">
+                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='3px', fontFamily=F['body'])}">Entry</span>
+                <span style="{_s(fontSize='13px', fontWeight='600', color=C['gold'], fontFamily=F['mono'])}">{entry}</span>
+            </div>
+            <div style="{_s(display='inline-block', verticalAlign='top', padding='8px 12px', minWidth='70px', textAlign='center')}">
+                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='3px', fontFamily=F['body'])}">Profit</span>
+                <span style="{_s(fontSize='13px', fontWeight='600', color=C['verde'], fontFamily=F['mono'])}">{take_profit}</span>
+            </div>
+            <div style="{_s(display='inline-block', verticalAlign='top', padding='8px 12px', minWidth='70px', textAlign='center')}">
+                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='3px', fontFamily=F['body'])}">Stop</span>
+                <span style="{_s(fontSize='13px', fontWeight='600', color=C['crimson'], fontFamily=F['mono'])}">{stop_loss}</span>
+            </div>"""
+
         return f"""\
 <div style="{_s(background=C['surface'], border=f'1px solid {C["border"]}', borderRadius='10px', padding='0', marginBottom='24px', overflow='hidden')}">
 
     <!-- Hero strip: opinion · confidence · price levels -->
-    <table cellpadding="0" cellspacing="0" border="0" width="100%" style="{_s(tableLayout='fixed')}">
-        <tr>
-            <!-- Opinion -->
-            <td style="{_s(padding='20px 24px', verticalAlign='middle', width='25%')}">
-                {SessionRenderer._opinion_badge(opinion, size="hero")}
-            </td>
-            <!-- Confidence -->
-            <td style="{_s(padding='20px 8px', verticalAlign='middle', width='20%', textAlign='center')}">
-                <span style="{_s(fontSize='36px', fontWeight='700', color=C['gold'], fontFamily=F['mono'], lineHeight='1.1', display='block')}">{conf_val}</span>
-                <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.08em', display='block', marginTop='2px')}">Confidence</span>
-            </td>
-            <!-- Divider -->
-            <td style="{_s(padding='20px 0', verticalAlign='middle', width='1')}">
-                <div style="{_s(width='1px', height='56px', background=C['border'])}"></div>
-            </td>
-            <!-- Price levels -->
-            <td style="{_s(padding='12px 24px', verticalAlign='middle', width='54%')}">
-                <table cellpadding="0" cellspacing="0" border="0" width="100%">
-                    <tr>
-                        <td style="{_s(padding='4px 12px 4px 0')}">
-                            <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block')}">Current</span>
-                            <span style="{_s(fontSize='13px', fontWeight='600', color=C['text'], fontFamily=F['mono'])}">{current}</span>
-                        </td>
-                        <td style="{_s(padding='4px 12px')}">
-                            <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block')}">Entry</span>
-                            <span style="{_s(fontSize='13px', fontWeight='600', color=C['gold'], fontFamily=F['mono'])}">{entry}</span>
-                        </td>
-                        <td style="{_s(padding='4px 12px')}">
-                            <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block')}">Profit</span>
-                            <span style="{_s(fontSize='13px', fontWeight='600', color=C['verde'], fontFamily=F['mono'])}">{take_profit}</span>
-                        </td>
-                        <td style="{_s(padding='4px 0 4px 12px')}">
-                            <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block')}">Stop</span>
-                            <span style="{_s(fontSize='13px', fontWeight='600', color=C['crimson'], fontFamily=F['mono'])}">{stop_loss}</span>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
+    <div style="{_s(padding='20px 24px 12px 24px', textAlign='center')}">
+        <div style="{_s(display='inline-block', verticalAlign='middle', padding='4px 16px')}">
+            {SessionRenderer._opinion_badge(opinion, size="hero")}
+        </div>
+        <div style="{_s(display='inline-block', verticalAlign='middle', padding='4px 16px', textAlign='center')}">
+            <span style="{_s(fontSize='36px', fontWeight='700', color=C['gold'], fontFamily=F['mono'], lineHeight='1.1', display='block')}">{conf_val}</span>
+            <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.08em', display='block', marginTop='2px')}">Confidence</span>
+        </div>
+    </div>
+
+    <!-- Price grid -->
+    <div style="{_s(padding='4px 18px 14px 18px', textAlign='center')}">
+        {price_cells}
+    </div>
 
     <!-- Bottom bar: RR · wait/hold -->
-    <div style="{_s(padding='10px 24px', background=C['elevated'], borderTop=f'1px solid {C["border"]}')}">
+    <div style="{_s(padding='10px 20px', background=C['elevated'], borderTop=f'1px solid {C["border"]}')}">
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
             <tr>
                 <td style="{_s(fontSize='11px', color=C['muted'])}">
