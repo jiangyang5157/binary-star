@@ -43,6 +43,10 @@ def main():
     metadata = proposal.get("metadata", {})
     symbol = metadata['symbol']
     audit_reports_list = metadata.get("audit_reports", [])
+    evolver_at = metadata.get("evolver_at")
+    if not evolver_at:
+        logger.error("proposal metadata missing evolver_at — cannot construct sandbox ID")
+        sys.exit(1)
     
     if not audit_reports_list:
         logger.error("proposal metadata missing audit_reports list — cannot perform batch validation")
@@ -95,7 +99,7 @@ def main():
     is_accepted = validation.get('is_accepted', False)
     
     # 6. Save Detailed Sandbox Result
-    evolver_at = metadata["evolver_at"]
+    # evolver_at already validated after loading metadata (above)
     # Unified forensic timestamp conversion (ISO -> YYYYMMDD_HHMMSS)
     ts_compact = evolver_at.replace("-", "").replace(":", "").replace("T", "_").split(".")[0].split("+")[0]
     

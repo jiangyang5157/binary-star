@@ -1,3 +1,4 @@
+import math
 import pytest
 from src.utils.math_utils import MathTools, RegimePhysicsConfig
 
@@ -123,3 +124,61 @@ class TestMathTools:
         # 灾难性踏空 (Miss 2.5, ATR 1.0 => 2.5 > 2.0)
         res = MathTools.calculate_opportunity_cost(2.5, 1.0, 2.0)
         assert res['is_catastrophic_miss'] is True
+
+    # ── Boundary tests: NaN, Inf, zero, negative ──────────────────────
+
+    @pytest.mark.parametrize("entry, tp, sl", [
+        (math.nan, 100, 90),          # NaN entry
+        (100, math.nan, 90),          # NaN tp
+        (100, 110, math.nan),         # NaN sl
+        (math.inf, 100, 90),          # Inf entry
+        (100, -math.inf, 90),         # -Inf tp
+        (0, 100, 90),                 # zero entry → error (positive check)
+    ])
+    def test_risk_reward_nan_inf(self, entry, tp, sl):
+        res = MathTools.calculate_risk_reward(entry, tp, sl)
+        assert 'error' in res
+
+    @pytest.mark.parametrize("entry, sl, tp, atr", [
+        (100, 90, 110, math.nan),     # NaN ATR
+        (100, 90, 110, math.inf),     # Inf ATR
+        (100, 90, 110, -math.inf),    # -Inf ATR
+        (100, 90, 110, -1),           # negative ATR → error
+    ])
+    def test_atr_metrics_nan_inf(self, entry, sl, tp, atr):
+        res = MathTools.calculate_atr_metrics(entry, sl, tp, atr)
+        assert 'error' in res
+
+    @pytest.mark.parametrize("entry, tp, velocity, atr, trend, vol_idx", [
+        (50000, 52000, math.nan, 200, 0.5, 1.0),   # NaN velocity
+        (50000, 52000, 0.0, 0, 0.5, 1.0),           # zero atr → error
+        (50000, 52000, 1.0, 200, math.inf, 1.0),    # Inf trend
+        (50000, 52000, 1.0, 200, 0.5, math.nan),    # NaN vol_idx
+    ])
+    def test_holding_time_nan_inf(self, entry, tp, velocity, atr, trend, vol_idx):
+        res = MathTools.project_holding_time(
+            current_price=49000, entry=entry, take_profit=tp, atr=atr,
+            trend_intensity=trend, volatility_intensity_index=vol_idx,
+            normalized_velocity=velocity, interval_minutes=60,
+            physics=self._physics,
+        )
+        assert 'error' in res
+
+    def test_mae_stress_zero_atr(self):
+        res = MathTools.calculate_mae_stress(10, 0, 15, 50, 80)
+        assert 'error' in res
+
+    def test_slippage_empty_profile(self):
+        res = MathTools.calculate_liquidity_slippage(100, [], 200, 5, 50)
+        assert 'warning' in res
+
+    @pytest.mark.parametrize("mae, max_atr, pinpoint, standard, luck", [
+        (0, 100, 15, 50, 80),          # zero MAE → PINPOINT
+        (math.nan, 100, 15, 50, 80),   # NaN MAE
+    ])
+    def test_mae_stress_boundary(self, mae, max_atr, pinpoint, standard, luck):
+        res = MathTools.calculate_mae_stress(mae, max_atr, pinpoint, standard, luck)
+        if max_atr <= 0:
+            assert 'error' in res
+        else:
+            assert 'stress_tier' in res

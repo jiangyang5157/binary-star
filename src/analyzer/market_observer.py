@@ -446,6 +446,8 @@ class MarketMetricsRefiner:
         if pd.isna(atr_m):
             atr_m = 0.0
         atr_n = n_df['atr'].iloc[-1]
+        if pd.isna(atr_n):
+            atr_n = 0.0
         
         ratio = get_interval_seconds(self.config.macro_context.time_interval) / get_interval_seconds(self.config.micro_context.time_interval)
         volatility_expansion_index = atr_n / (atr_m / (ratio ** 0.5)) if atr_m > 0 else 1.0
@@ -458,7 +460,7 @@ class MarketMetricsRefiner:
         # Calculates the actual physical speed of the trend for Zero-Entropy time projections.
         trend_lookback = self.config.trend_intensity_macro_lookback_candles
         normalized_velocity = 0.0
-        if len(m_df) >= trend_lookback and atr_m > 0:
+        if len(m_df) >= trend_lookback + 1 and atr_m > 0:
             net_displacement = abs(m_df['close'].iloc[-1] - m_df['close'].iloc[-(trend_lookback + 1)])
             # Velocity = Total ATRs moved / Total candles
             normalized_velocity = (net_displacement / atr_m) / trend_lookback
@@ -501,11 +503,14 @@ class MarketMetricsRefiner:
         anchors_below = sorted([n for n in all_nodes if n['price'] < current_price], key=lambda x: x['price'], reverse=True)[:limit]
         
         # Calculate tactical proximity for hard-predicate checks
-        hvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "HVN"]
-        lvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "LVN"]
-        
-        nearest_hvn_dist_atr = min(hvn_proximities) if hvn_proximities else self.config.default_structural_distance_atr
-        nearest_lvn_dist_atr = min(lvn_proximities) if lvn_proximities else self.config.default_structural_distance_atr
+        if atr_macro <= 0:
+            nearest_hvn_dist_atr = self.config.default_structural_distance_atr
+            nearest_lvn_dist_atr = self.config.default_structural_distance_atr
+        else:
+            hvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "HVN"]
+            lvn_proximities = [abs(n['price'] - current_price) / atr_macro for n in all_nodes if n['type'] == "LVN"]
+            nearest_hvn_dist_atr = min(hvn_proximities) if hvn_proximities else self.config.default_structural_distance_atr
+            nearest_lvn_dist_atr = min(lvn_proximities) if lvn_proximities else self.config.default_structural_distance_atr
 
         return {
             "poc": poc, "vah": vah, "val": val,

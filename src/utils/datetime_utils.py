@@ -80,8 +80,6 @@ def to_html_display(ts_str: str) -> str:
         return "N/A"
     
     try:
-        from src.utils.datetime_utils import parse_iso_to_utc
-        
         # 1. Parse to UTC
         if "_" in ts_str and "-" not in ts_str:
             dt_utc = datetime.strptime(ts_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
@@ -116,6 +114,8 @@ def get_interval_seconds(interval: str) -> int:
     """
     Converts a Binance interval string (e.g., '1h', '15m', '1d') to seconds.
     """
+    if not interval:
+        return 60
     unit = interval[-1]
     try:
         value = int(interval[:-1])

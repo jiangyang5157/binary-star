@@ -1,3 +1,4 @@
+import math
 import logging
 from dataclasses import dataclass
 import numpy as np
@@ -122,9 +123,11 @@ def calculate_risk_reward(
         Dict containing rr_ratio, profit_distance, and risk_distance.
     """
     try:
-        # Basic validation: ensure inputs are positive
+        # Basic validation: ensure inputs are positive and finite
         if entry <= 0 or take_profit <= 0 or stop_loss <= 0:
             return {"error": "All price inputs must be positive numbers."}
+        if any(math.isnan(x) or math.isinf(x) for x in (entry, take_profit, stop_loss)):
+            return {"error": "Invalid price input (NaN or Infinity)."}
 
         sl_dist = abs(entry - stop_loss)
         tp_dist = abs(take_profit - entry)
@@ -161,8 +164,10 @@ def calculate_atr_metrics(
     evaluate risk relative to current market granularity.
     """
     try:
-        if atr <= 0:
+        if atr <= 0 or math.isnan(atr) or math.isinf(atr):
             return {"error": "ATR must be > 0 for topographical normalization."}
+        if any(x is not None and (math.isnan(x) or math.isinf(x)) for x in (entry, stop_loss, take_profit)):
+            return {"error": "Invalid numeric input (NaN or Infinity)."}
             
         metrics = {
             "entry_to_sl_atr": round(abs(entry - stop_loss) / atr, 3),
@@ -271,6 +276,8 @@ def project_holding_time(
     try:
         if atr <= 0 or interval_minutes <= 0:
             return {"error": "ATR and interval_minutes must be > 0."}
+        if any(math.isnan(x) or math.isinf(x) for x in (trend_intensity, volatility_intensity_index, normalized_velocity)):
+            return {"error": "Invalid numeric input (NaN or Infinity)."}
 
         scalars = get_regime_scalars(
             trend_intensity=trend_intensity,

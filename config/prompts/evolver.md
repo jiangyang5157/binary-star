@@ -12,8 +12,8 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 
 # LOGIC_MACROS
 To ensure Zero-Entropy convergence, evaluate these batch-level boolean states before drafting evolution:
-- `IS_BATCH_SIGNIFICANT`: (Count of failures in `{audit_reports_json}`) >= 2
-- `IS_FAILURE_RATIO_ALARM`: (Count of failures / Total Instances) > 0.2
+- `IS_BATCH_SIGNIFICANT`: (number of audit reports where `outcome != "PROFIT"` in `{audit_reports_json}`) >= 2
+- `IS_FAILURE_RATIO_ALARM`: (number of audit reports where `outcome != "PROFIT"` in `{audit_reports_json}` / total audit reports in batch) > 0.2
 - `HAS_SYSTEMIC_PATHOLOGY`: `IS_BATCH_SIGNIFICANT` AND `IS_FAILURE_RATIO_ALARM`
 - `IS_OVERFIT_RISK`: Historical fix would invalidate > 5% of "Pristine" success records.
 - `REQUIRES_TIME_RECALIBRATION`: Average MAPE across batches > 20%

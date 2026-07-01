@@ -61,7 +61,7 @@ class SignalCard:
     def weighted_score(self) -> float:
         """Effective score used in confluence stacking."""
         result = self.strength * self.confidence
-        return 0.0 if math.isnan(result) else result
+        return 0.0 if math.isnan(result) or math.isinf(result) else result
 
     def decayed_strength(self, now: datetime) -> float:
         """Strength after applying temporal decay (half-life formula)."""
@@ -749,7 +749,8 @@ class SniperTrigger:
             return None
 
         direction = Direction.BEARISH if cvd > 0 else Direction.BULLISH
-        strength = min((abs(cvd) - extreme_threshold) / 0.15, 1.0)
+        saturation_denom = max(extreme_threshold * 1.5, 0.15)
+        strength = min((abs(cvd) - extreme_threshold) / saturation_denom, 1.0)
         confidence = self.signal_weights.get('cvd_absorption', 0.65)
 
         return SignalCard(
@@ -780,7 +781,9 @@ class SniperTrigger:
             return None
 
         direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
-        strength = min((abs(cvd) - threshold) / 0.40, 1.0)  # saturates at cvd=0.60
+        # Saturate denominator scales with threshold so calibration holds across symbols
+        saturation_denom = max(threshold * 2, 0.40)
+        strength = min((abs(cvd) - threshold) / saturation_denom, 1.0)
         confidence = self.signal_weights.get('taker_imbalance', 0.60)
 
         return SignalCard(
