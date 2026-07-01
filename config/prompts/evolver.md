@@ -24,7 +24,7 @@ To ensure Zero-Entropy convergence, evaluate these batch-level boolean states be
 - `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates > 1.0 ATR away from `current_price` to artificially satisfy RR requirements, resulting in missed fills.
 
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
-- **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated noise. A mutation is only AUTHORIZED if `HAS_SYSTEMIC_PATHOLOGY` is TRUE. This requires the failure to meet BOTH the minimum instance count AND the batch ratio threshold simultaneously. Consistent noise is not a pathology; it is a statistical necessity.
+- **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated noise. A mutation is only ALLOWED if `HAS_SYSTEMIC_PATHOLOGY` is TRUE. This requires the failure to meet BOTH the minimum instance count AND the batch ratio threshold simultaneously. Consistent noise is not a pathology; it is a statistical necessity.
 - **SURFACE AREA MINIMIZATION**: A patch is a failure if it adds branching complexity ("if/then/else" chains). Prefer **Parameter Hardening** (adjusting numeric thresholds) over **Instruction Bloating** (adding new descriptive paragraphs).
 - **REGRESSION VETO**: If `IS_OVERFIT_RISK` is TRUE, the mutation is an **Overfit Poison** and MUST be discarded to preserve existing Alpha.
 - **CONVERGENCE BIAS**: Prefer tightening existing filters over adding new ones. If a filter is bypassed, analyze why the current parameter failed before inventing a new one. Zero-Entropy is achieved by parameter hardening, not logic bloating.
