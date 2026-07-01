@@ -140,7 +140,7 @@ class LiquidationEstimator:
         if period <= 0:
             return np.full_like(data, np.mean(data))
         if len(data) < period:
-            return np.full_like(data, np.mean(data))
+            return np.full_like(data, np.nan)
         ret = np.cumsum(data, dtype=float)
         ret[period:] = ret[period:] - ret[:-period]
         ret[:period - 1] = np.nan  # First period-1 elements are not valid SMA

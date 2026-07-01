@@ -152,8 +152,10 @@ class ChartVisualRenderer:
 
     def _prepare_plot_df(self, df: pd.DataFrame) -> pd.DataFrame:
         """Standardizes DataFrame columns for mplfinance."""
+        df = df.copy()
+        df.columns = df.columns.str.lower()
         return df.rename(columns={
-            "open": "Open", "high": "High", "low": "Low", 
+            "open": "Open", "high": "High", "low": "Low",
             "close": "Close", "volume": "Volume"
         })
 

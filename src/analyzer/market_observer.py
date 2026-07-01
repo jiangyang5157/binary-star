@@ -460,7 +460,7 @@ class MarketMetricsRefiner:
         # Calculates the actual physical speed of the trend for Zero-Entropy time projections.
         trend_lookback = self.config.trend_intensity_macro_lookback_candles
         normalized_velocity = 0.0
-        if len(m_df) >= trend_lookback + 1 and atr_m > 0:
+        if len(m_df) >= trend_lookback + 1 and atr_m > 0 and trend_lookback > 0:
             net_displacement = abs(m_df['close'].iloc[-1] - m_df['close'].iloc[-(trend_lookback + 1)])
             # Velocity = Total ATRs moved / Total candles
             normalized_velocity = (net_displacement / atr_m) / trend_lookback

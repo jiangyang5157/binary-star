@@ -127,7 +127,8 @@ class TestCalculateSMA:
         data = np.array([1.0, 2.0])
         result = estimator._calculate_sma(data, 5)
         assert len(result) == 2
-        assert result[0] == pytest.approx(1.5)
+        assert np.isnan(result[0])
+        assert np.isnan(result[1])
 
     def test_normal_sma(self, estimator):
         data = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
