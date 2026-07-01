@@ -312,3 +312,54 @@ def test_executor_returns_none_preserves_existing_state():
     )
 
     assert daemon.trade_states["BTCUSDT"] == existing  # untouched
+
+
+# ── Pulse loop & phase isolation tests (#22) ────────────────────────────
+
+def test_pulse_neutral_skips_trade_execution():
+    """Low confidence or NEUTRAL opinion skips sync_with_opinion."""
+    executor = MagicMock()
+    daemon = _make_daemon(executor=executor)
+
+    daemon._attempt_trade_execution(
+        "BTCUSDT",
+        _session_result(
+            opinion="NEUTRAL", confidence=0,
+            tactical={"entry": 60000, "take_profit": 61000, "stop_loss": 59000},
+        ),
+    )
+    executor.sync_with_opinion.assert_not_called()
+
+
+def test_pulse_no_cross_symbol_contamination():
+    """Trade execution for one symbol does not affect another's state."""
+    executor = MagicMock()
+    executor.sync_with_opinion.return_value = 99999
+
+    daemon = _make_daemon(executor=executor, prev_metrics={
+        "BTCUSDT": {"price_dynamics": {"atr_macro": 200, "current_price": 60000}},
+        "XAUTUSDT": {"price_dynamics": {"atr_macro": 20, "current_price": 4000}},
+    })
+    daemon.trade_states = {"BTCUSDT": {"direction": "LONG"}, "XAUTUSDT": {}}
+
+    daemon._attempt_trade_execution(
+        "BTCUSDT",
+        _session_result(opinion="BULLISH", confidence=80, tactical={
+            "entry": 60500, "take_profit": 62000, "stop_loss": 59500,
+        }),
+    )
+
+    assert "entry_price" in daemon.trade_states["BTCUSDT"]
+    # XAUTUSDT trade state should be untouched
+    assert daemon.trade_states["XAUTUSDT"] == {}
+
+
+def test_pulse_guardian_check_returns_none_when_no_state():
+    """Guardian returns None when no trade state exists for symbol."""
+    executor = MagicMock()
+    daemon = _make_daemon(executor=executor)
+    daemon.executor = executor
+    daemon.trade_states = {}
+
+    result = daemon._guardian_check("BTCUSDT")
+    assert result is None

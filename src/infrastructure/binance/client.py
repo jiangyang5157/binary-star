@@ -44,22 +44,26 @@ class BinanceFuturesClient(AbstractExchangeClient):
         """
         key = api_key or os.environ.get("BINANCE_API_KEY")
         secret = api_secret or os.environ.get("BINANCE_API_SECRET")
-        
+
+        # Load network config BEFORE creating client — fail fast on bad config
+        self.network_cfg = self._load_network_config()
+        binance_net = self.network_cfg.get('network', {}).get('binance', {})
+        try:
+            self.timeout = int(binance_net.get('api_timeout_seconds', 30))
+            self.retry_count = int(binance_net.get('retry_count', 3))
+        except (ValueError, TypeError) as e:
+            logger.error(f"invalid network config | error={e}")
+            self.timeout = 30
+            self.retry_count = 3
+
         if key and secret:
             logger.info("authenticated")
             self.client = UMFutures(key=key, secret=secret)
         else:
             logger.warning("initialized in public mode | write endpoints unavailable")
             self.client = UMFutures()
-        
-        # Expose auth state for defensive calls
+
         self.is_authenticated = bool(key and secret)
-            
-        self.network_cfg = self._load_network_config()
-        # Strict sourcing from global_config.yaml (network section)
-        binance_net = self.network_cfg.get('network', {}).get('binance', {})
-        self.timeout = int(binance_net['api_timeout_seconds'])
-        self.retry_count = int(binance_net['retry_count'])
 
     def _get_retryer(self, method_name: str) -> tenacity.Retrying:
         return tenacity.Retrying(
@@ -262,12 +266,12 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         )
                     ]
         except ClientError as e:
-            logger.error(f"OI fetch failed | symbol={symbol} | error={e.error_message}")
+            logger.error(f"OI fetch failed | symbol={symbol} | error={e.error_message}", exc_info=True)
             return []
         except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit)):
                 raise
-            logger.error(f"OI fetch error | symbol={symbol} | error={e}")
+            logger.error(f"OI fetch error | symbol={symbol} | error={e}", exc_info=True)
             return []
 
     def fetch_long_short_ratio(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:
@@ -302,12 +306,12 @@ class BinanceFuturesClient(AbstractExchangeClient):
                         ) for r in resp
                     ]
         except ClientError as e:
-            logger.error(f"taker L/S ratio fetch failed | symbol={symbol} | error={e.error_message}")
+            logger.error(f"taker L/S ratio fetch failed | symbol={symbol} | error={e.error_message}", exc_info=True)
             return []
         except Exception as e:
             if isinstance(e, (KeyboardInterrupt, SystemExit)):
                 raise
-            logger.error(f"taker L/S ratio fetch error | error={e}")
+            logger.error(f"taker L/S ratio fetch error | error={e}", exc_info=True)
             return []
 
     def fetch_top_long_short_accounts(self, symbol: str, period: str, limit: int = 1, **kwargs: Any) -> List[RatioData]:

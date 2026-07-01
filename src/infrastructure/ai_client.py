@@ -66,6 +66,10 @@ class AbstractAIClient(ABC):
         """
         ...
 
+    def close(self) -> None:
+        """Release any held resources. Override in subclasses that hold connections (HTTP, WS)."""
+        pass
+
     @property
     def supports_context_cache(self) -> bool:
         return False

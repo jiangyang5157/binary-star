@@ -287,7 +287,8 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
     try:
         symbol = _resolve_symbol(raw)
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        log.exception("Symbol resolution failed for prefix=%s", raw)
+        raise HTTPException(status_code=400, detail="Symbol resolution failed — check symbol exists in config")
 
     if req.mode not in ("timestamp", "range"):
         raise HTTPException(

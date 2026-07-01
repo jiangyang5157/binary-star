@@ -13,6 +13,7 @@ scan.
 """
 
 import json
+import html as _html
 from typing import Dict, Any, Optional
 
 from src.infrastructure.notifications.base_notifier import BaseEmailTemplate
@@ -394,6 +395,11 @@ class SessionRenderer(BaseEmailTemplate):
     # ── Reasoning ───────────────────────────────────────────────────
 
     @staticmethod
+    def _h(text: str) -> str:
+        """HTML-escape a string for safe interpolation."""
+        return _html.escape(str(text), quote=True)
+
+    @staticmethod
     def _render_reasoning(decision: Dict[str, Any], fmt) -> str:
         reasoning = decision.get("reasoning_chain")
         critic_impact = decision.get("critic_impact")
@@ -407,14 +413,14 @@ class SessionRenderer(BaseEmailTemplate):
             sections += f"""\
 <div style="{_s(padding='16px 24px')}">
     <span style="{_s(fontSize='11px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='10px', fontFamily=F['body'])}">Reasoning Chain</span>
-    <pre style="{_s(fontSize='12px', lineHeight='1.7', color=C['text'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['body'], opacity='0.92')}">{reasoning}</pre>
+    <pre style="{_s(fontSize='12px', lineHeight='1.7', color=C['text'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['body'], opacity='0.92')}">{SessionRenderer._h(reasoning)}</pre>
 </div>"""
 
         if critic_impact:
             sections += f"""\
 <div style="{_s(padding='16px 24px', background=C['elevated'], borderTop=f'1px solid {C["border"]}')}">
     <span style="{_s(fontSize='11px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='10px', fontFamily=F['body'])}">Critic Impact</span>
-    <pre style="{_s(fontSize='12px', lineHeight='1.7', color=C['text'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['body'], opacity='0.85')}">{fmt(critic_impact)}</pre>
+    <pre style="{_s(fontSize='12px', lineHeight='1.7', color=C['text'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['body'], opacity='0.85')}">{SessionRenderer._h(critic_impact)}</pre>
 </div>"""
 
         return f"""\
@@ -479,7 +485,7 @@ class SessionRenderer(BaseEmailTemplate):
             <table cellpadding="0" cellspacing="0" border="0" width="100%" style="{_s(marginBottom=tactic_rows and '14px' or '0')}">
                 <tr>{tactic_rows}</tr>
             </table>
-            {f'<pre style="{_s(fontSize="12px", lineHeight="1.65", color=C["text"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily=F["body"], opacity="0.88", maxHeight="280px", overflowY="auto")}">{plan_reasoning}</pre>' if plan_reasoning else ""}
+            {f'<pre style="{_s(fontSize="12px", lineHeight="1.65", color=C["text"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0", fontFamily=F["body"], opacity="0.88", maxHeight="280px", overflowY="auto")}">{SessionRenderer._h(plan_reasoning)}</pre>' if plan_reasoning else ""}
         </div>"""
 
             # Critic section
@@ -492,12 +498,12 @@ class SessionRenderer(BaseEmailTemplate):
             if critic:
                 critic_body = ""
                 if critic_summary:
-                    critic_body += f'<pre style="{_s(fontSize="12px", lineHeight="1.65", color=C["text"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0 0 12px 0", fontFamily=F["body"], opacity="0.85")}">{critic_summary}</pre>'
+                    critic_body += f'<pre style="{_s(fontSize="12px", lineHeight="1.65", color=C["text"], whiteSpace="pre-wrap", wordBreak="break-word", margin="0 0 12px 0", fontFamily=F["body"], opacity="0.85")}">{SessionRenderer._h(critic_summary)}</pre>'
                 if critic_evidence:
                     critic_body += f"""\
 <div style="{_s(padding='12px', background=C['elevated'], borderRadius='6px', border=f'1px solid {C["border"]}', marginBottom='8px')}">
     <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.05em', display='block', marginBottom='6px', fontFamily=F['body'])}">Audit Evidence</span>
-    <pre style="{_s(fontSize='11px', lineHeight='1.5', color=C['muted'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['mono'])}">{fmt(critic_evidence)}</pre>
+    <pre style="{_s(fontSize='11px', lineHeight='1.5', color=C['muted'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['mono'])}">{SessionRenderer._h(critic_evidence)}</pre>
 </div>"""
 
                 critic_section = f"""\
@@ -516,7 +522,7 @@ class SessionRenderer(BaseEmailTemplate):
         <div style="{_s(padding='0 20px 16px 20px')}">
             <div style="{_s(padding='10px 12px', background=C['elevated'], borderRadius='6px', border=f'1px solid {C["border"]}')}">
                 <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.05em', display='block', marginBottom='6px', fontFamily=F['body'])}">Math Fact Check</span>
-                <pre style="{_s(fontSize='10px', lineHeight='1.5', color=C['muted'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['mono'])}">{json.dumps(math_verdict, indent=2)}</pre>
+                <pre style="{_s(fontSize='10px', lineHeight='1.5', color=C['muted'], whiteSpace='pre-wrap', wordBreak='break-word', margin='0', fontFamily=F['mono'])}">{SessionRenderer._h(json.dumps(math_verdict, indent=2))}</pre>
             </div>
         </div>"""
 

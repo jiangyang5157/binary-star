@@ -11,10 +11,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fastapi import FastAPI, Query, Depends, HTTPException
+from fastapi import FastAPI, Query, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
 from jinja2 import Environment, FileSystemLoader
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+import time
 from src.dashboard.api.sessions import router as sessions_router
 from src.dashboard.api.audits import router as audits_router
 from src.dashboard.api.session_run import router as session_run_router
@@ -22,6 +25,84 @@ from src.dashboard.api.sniper_run import router as sniper_run_router
 from src.dashboard.api.backtest import router as backtest_router
 
 app = FastAPI(title="Singularity Dashboard", version="2.0")
+
+# ── Security Headers Middleware ─────────────────────────────────────────
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Sets security headers on every response."""
+    async def dispatch(self, request: Request, call_next: ASGIApp) -> Response:
+        resp = await call_next(request)
+        resp.headers["X-Content-Type-Options"] = "nosniff"
+        resp.headers["X-Frame-Options"] = "DENY"
+        resp.headers["X-XSS-Protection"] = "1; mode=block"
+        resp.headers["Referrer-Policy"] = "same-origin"
+        # Restrictive CSP — inline styles permitted for dashboard rendering
+        resp.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "script-src 'self' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: blob:; "
+            "font-src 'self' data:; "
+            "connect-src 'self'; "
+            "form-action 'self'; "
+            "frame-ancestors 'none';"
+        )
+        return resp
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# ── Rate Limiter ────────────────────────────────────────────────────────
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Simple in-memory rate limiter: 60 requests/min per client IP.
+
+    Respects X-Forwarded-For for reverse-proxy deployments. Stale client
+    entries are pruned on each request to prevent unbounded memory growth.
+    """
+    def __init__(self, app: ASGIApp, max_requests: int = 60, window_seconds: int = 60):
+        super().__init__(app)
+        self.max_requests = max_requests
+        self.window_seconds = window_seconds
+        self._clients: dict[str, list[float]] = {}
+        self._prune_counter: int = 0
+
+    def _resolve_client_ip(self, request: Request) -> str:
+        """Extract real client IP, preferring X-Forwarded-For when present."""
+        forwarded = request.headers.get("X-Forwarded-For")
+        if forwarded:
+            # Take the leftmost (original client) IP
+            return forwarded.split(",")[0].strip()
+        return request.client.host if request.client else "unknown"
+
+    async def dispatch(self, request: Request, call_next: ASGIApp) -> Response:
+        # Skip rate limiting for static files
+        if request.url.path.startswith("/static/"):
+            return await call_next(request)
+
+        client_ip = self._resolve_client_ip(request)
+        now = time.time()
+        window_start = now - self.window_seconds
+
+        if client_ip in self._clients:
+            self._clients[client_ip] = [t for t in self._clients[client_ip] if t > window_start]
+        else:
+            self._clients[client_ip] = []
+
+        if len(self._clients[client_ip]) >= self.max_requests:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded — try again shortly")
+
+        self._clients[client_ip].append(now)
+
+        # Periodic prune: purge clients with no recent activity every 1000 requests
+        self._prune_counter += 1
+        if self._prune_counter >= 1000:
+            self._prune_counter = 0
+            self._clients = {
+                ip: stamps for ip, stamps in self._clients.items()
+                if stamps and stamps[-1] > window_start
+            }
+
+        return await call_next(request)
+
+app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
 
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
@@ -43,7 +124,7 @@ app.include_router(sniper_run_router)
 app.include_router(backtest_router)
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
-_jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)))
+_jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
 
 
 # ── User permissions (loaded once at startup) ────────────────────────────

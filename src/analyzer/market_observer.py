@@ -653,7 +653,7 @@ class MarketObserver:
             # Check Macro Context
             macro_warmup = calculate_indicator_warmup(
                 iir_periods=[self.config.atr_period, self.config.bb_period, self.config.kc_period],
-                fir_periods=[int(self.config.trend_intensity_lookback_hours)],
+                fir_periods=[self.config.trend_intensity_macro_lookback_candles],
             )
             if self.config.macro_context.lookback_candles < macro_warmup:
                 logger.warning(

@@ -3,6 +3,16 @@
 // NOTE: All color values are driven by dashboard.css — no hardcoded hex codes.
 // Shared utilities (opinionBadge, formatPrice, formatLocalTime) are in dashboard-utils.js.
 
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function renderDecisionCard(decision) {
   const tp = decision.tactical_parameters || {};
   return `
@@ -48,20 +58,20 @@ function renderDecisionCard(decision) {
       ${decision.reasoning_chain ? `
       <details class="reasoning-details">
         <summary>Reasoning Chain</summary>
-        <pre class="reasoning-text">${decision.reasoning_chain}</pre>
+        <pre class="reasoning-text">${escapeHtml(decision.reasoning_chain)}</pre>
       </details>` : ''}
       ${decision.critic_impact ? `
       <details class="reasoning-details">
         <summary>Critic Impact</summary>
-        <pre class="reasoning-text">${decision.critic_impact}</pre>
+        <pre class="reasoning-text">${escapeHtml(decision.critic_impact)}</pre>
       </details>` : ''}
     </section>`;
 }
 
 function renderMathCheck(math) {
   if (!math || !math.compliance_verdict) return '';
-  if (typeof math.compliance_verdict === 'string') return `<p>${math.compliance_verdict}</p>`;
-  return `<pre class="reasoning-text">${JSON.stringify(math.compliance_verdict, null, 2)}</pre>`;
+  if (typeof math.compliance_verdict === 'string') return `<p>${escapeHtml(math.compliance_verdict)}</p>`;
+  return `<pre class="reasoning-text">${escapeHtml(JSON.stringify(math.compliance_verdict, null, 2))}</pre>`;
 }
 
 function calcRR(tp, opinion) {
@@ -98,15 +108,15 @@ function renderDebateRounds(debateHistory) {
                 <div class="tactical-item"><span class="tactical-label">SL</span><span class="tactical-value mono loss">${formatPrice(r.plan.tactical_parameters.stop_loss)}</span></div>
                 <div class="tactical-item"><span class="tactical-label">RR</span><span class="tactical-value mono">${calcRR(r.plan.tactical_parameters, r.plan.opinion)}</span></div>
               </div>` : ''}
-              ${r.plan.reasoning_chain ? `<pre class="reasoning-text">${r.plan.reasoning_chain}</pre>` : ''}
+              ${r.plan.reasoning_chain ? `<pre class="reasoning-text">${escapeHtml(r.plan.reasoning_chain)}</pre>` : ''}
             </div>` : ''}
             ${r.critic ? `
             <div class="debate-section">
               <h4>Critic Review <span class="round-veto veto-${(r.critic.veto_level || '').toLowerCase()}">${r.critic.veto_level || ''}</span></h4>
-              ${r.critic.critic_summary ? `<pre class="reasoning-text">${r.critic.critic_summary}</pre>` : ''}
+              ${r.critic.critic_summary ? `<pre class="reasoning-text">${escapeHtml(r.critic.critic_summary)}</pre>` : ''}
               ${r.critic.audit_evidence ? `
               <h5>Audit Evidence</h5>
-              <pre class="reasoning-text">${r.critic.audit_evidence}</pre>` : ''}
+              <pre class="reasoning-text">${escapeHtml(r.critic.audit_evidence)}</pre>` : ''}
             </div>` : ''}
             ${r.math_fact_check ? `
             <div class="debate-section">
@@ -146,12 +156,12 @@ function renderMetadata(metadata) {
     <section class="card">
       <h2>Metadata</h2>
       <div class="metadata-grid">
-        ${vc.project_version ? `<div class="metadata-item"><span class="metadata-label">Project Version</span><code>${vc.project_version}</code></div>` : ''}
-        ${vc.git_commit ? `<div class="metadata-item"><span class="metadata-label">Git Commit</span><code>${vc.git_commit}</code></div>` : ''}
-        ${vc.session_hash ? `<div class="metadata-item"><span class="metadata-label">Session Hash</span><code>${vc.session_hash}</code></div>` : ''}
-        ${vc.critic_hash ? `<div class="metadata-item"><span class="metadata-label">Critic Hash</span><code>${vc.critic_hash}</code></div>` : ''}
-        ${vc.binary_star_hash ? `<div class="metadata-item"><span class="metadata-label">Binary Star Hash</span><code>${vc.binary_star_hash}</code></div>` : ''}
-        ${vc.config_hash ? `<div class="metadata-item"><span class="metadata-label">Config Hash</span><code>${vc.config_hash}</code></div>` : ''}
+        ${vc.project_version ? `<div class="metadata-item"><span class="metadata-label">Project Version</span><code>${escapeHtml(vc.project_version)}</code></div>` : ''}
+        ${vc.git_commit ? `<div class="metadata-item"><span class="metadata-label">Git Commit</span><code>${escapeHtml(vc.git_commit)}</code></div>` : ''}
+        ${vc.session_hash ? `<div class="metadata-item"><span class="metadata-label">Session Hash</span><code>${escapeHtml(vc.session_hash)}</code></div>` : ''}
+        ${vc.critic_hash ? `<div class="metadata-item"><span class="metadata-label">Critic Hash</span><code>${escapeHtml(vc.critic_hash)}</code></div>` : ''}
+        ${vc.binary_star_hash ? `<div class="metadata-item"><span class="metadata-label">Binary Star Hash</span><code>${escapeHtml(vc.binary_star_hash)}</code></div>` : ''}
+        ${vc.config_hash ? `<div class="metadata-item"><span class="metadata-label">Config Hash</span><code>${escapeHtml(vc.config_hash)}</code></div>` : ''}
       </div>
     </section>`;
 }
