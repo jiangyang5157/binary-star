@@ -346,6 +346,22 @@ class BinanceMarginClient:
                         remaining_close = 0
 
         total_qty = sum(q for _, q in queue)
+
+        # Trim excess from oldest end: when queue qty exceeds position qty,
+        # older trades are residual from prior positions that were never fully
+        # closed (e.g. manual partial exit).  Discard them so the weighted
+        # average reflects only the current position's entry.
+        while total_qty > abs_qty * 1.01 and queue:
+            excess = total_qty - abs_qty
+            oldest_price, oldest_qty = queue[0]
+            if oldest_qty <= excess:
+                total_qty -= oldest_qty
+                queue.pop(0)
+            else:
+                queue[0] = (oldest_price, oldest_qty - excess)
+                total_qty = abs_qty
+                break
+
         if total_qty <= 0 or total_qty < abs_qty * 0.99:
             return 0.0  # Insufficient history
 
