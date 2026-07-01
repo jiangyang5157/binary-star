@@ -374,22 +374,22 @@ class SessionRenderer(BaseEmailTemplate):
         if not cells:
             return ""
 
-        row = ""
+        cells_html = ""
         for label, value, color in cells:
-            row += f"""\
-            <td style="{_s(padding='10px 16px', verticalAlign='top')}">
+            cells_html += f"""\
+            <div style="{_s(display='inline-block', verticalAlign='top', padding='10px 12px', minWidth='80px', textAlign='center')}">
                 <span style="{_s(fontSize='10px', color=C['muted'], textTransform='uppercase', letterSpacing='0.06em', display='block', marginBottom='3px', fontFamily=F['body'])}">{label}</span>
                 <span style="{_s(fontSize='12px', fontWeight='600', color=color, fontFamily=F['mono'])}">{value}</span>
-            </td>"""
+            </div>"""
 
         return f"""\
 <div style="{_s(background=C['surface'], border=f'1px solid {C["border"]}', borderRadius='10px', padding='0', marginBottom='24px', overflow='hidden')}">
     <div style="{_s(padding='14px 24px', borderBottom=f'1px solid {C["border"]}')}">
         <h2 style="{_s(fontFamily=F['display'], fontSize='15px', fontWeight='300', color=C['text'], margin='0', letterSpacing='0.03em')}">Market Context</h2>
     </div>
-    <table cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr>{row}</tr>
-    </table>
+    <div style="{_s(padding='10px 18px', textAlign='center')}">
+        {cells_html}
+    </div>
 </div>"""
 
     # ── Reasoning ───────────────────────────────────────────────────
