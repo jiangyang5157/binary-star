@@ -100,6 +100,7 @@ When history contains specific veto tags, apply these technical repair protocols
 - **Physical Validation**: Invoke `MathTools` protocols. Recalibrate if tool returns valid but suboptimal results.
 - **Confidence Calculus (MANDATORY)**: Compute `confidence_score` [0–100]. Start from 0. Award points only for VERIFIABLE protections backed by specific telemetry. No citation = no points. Score each item 0 to its stated maximum, not all-or-nothing.
   **Core Principle**: Confidence = SURVIVAL PROBABILITY, not thesis conviction. When uncertain, score DOWN.
+  **Data**: All scoring inputs come from `observation_json`, `debate_history_json`, your own computed `projected_holding_hours`/`projected_waiting_hours`, and the already-returned `math_fact_check`. No additional tool calls — just read and score.
   **Zero-Score Overrides**: NEUTRAL → 0. `rr_is_valid: false` → 0.
 
   - **D1: Topographical Armor (0–40)** — "Will the stop-loss survive?"
@@ -108,7 +109,7 @@ When history contains specific veto tags, apply these technical repair protocols
       0.5–0.8 ......  8–11
       < 0.5 or LVN .  3–7
       None .........  0
-      Deductions: −3 per liquidation cluster between anchor and stop-loss. −5 if anchor > 2 ATR from stop-loss.
+      Deductions: −3 per liquidation cluster between anchor and stop-loss. −5 if anchor > 2 ATR from stop-loss. Floor sub-item at 0.
     - 0–10: BETWEENNESS — anchor strictly between entry and stop-loss. Gap ≥ 0.3 ATR both sides → 10 | boundary-adjacent (< 0.3) → 5–8 | DKS-substituted → 3–5 | none → 0.
     - 0–5: Entry ≤ `{max_entry_distance_atr}` ATR from price. ≤ 0.5 → 5 | 0.5–1.2 → 3–4 | 1.2–max → 1–2 | exceeds → 0.
     - 0–5: Entry not in vacuum. On HVN/POC → 5 | LVN ≥ `{structural_buffer_atr}` → 3–4 | vacuum + nearby HVN → 1–2 | pure vacuum → 0.
@@ -124,10 +125,10 @@ When history contains specific veto tags, apply these technical repair protocols
     - 0–10: Holding ratio = `projected_holding_hours` / (abs(`entry` − `take_profit`) / `atr_macro` × `unit_atr_holding_hours`). ≈ 0.7–1.5 → 8–10 | 0.5–0.7 or 1.5–2.0 → 4–7 | > 2.0 or < 0.3 → 1–3.
     - 0–8: Wait/Hold ≤ 0.3. ≤ 0.15 → 8 | 0.15–0.30 → 5–7 | 0.30–0.50 → 2–4 | > 0.50 → 0–1.
     - 0–5: Squeeze/chaos compression. Tight → 5 | loose → 2–3 | ignored → 0.
-    - 0–7: Sentiment risk. Balanced → 7 | retail extreme aligned with direction → 4–6 | retail extreme against direction → 0–2 | funding extreme against → −2.
+    - 0–7: Sentiment risk. Balanced → 7 | retail extreme aligned with direction → 4–6 | retail extreme against direction → 0–2 | funding extreme (abs(funding_rate) > {funding_extreme_threshold}) against → −2.
 
   - **Debate Penalty (IS_SYNTHESIS only)** — subtract from D1+D2+D3:
-    TERMINAL veto: −10 (paradigm shift) to −20 (cosmetic), capped at 80. CONSTRUCTIVE 2+ rounds without PASS: −5 to −10. CONSTRUCTIVE→PASS (genuine repair), PASS/WEAK R1, or IS_PLANNING: 0.
+    TERMINAL veto: −10 (paradigm shift) to −20 (cosmetic). Final score after penalty cannot exceed 80. CONSTRUCTIVE 2+ rounds without PASS: −5 to −10. CONSTRUCTIVE→PASS (genuine repair), PASS/WEAK R1, or IS_PLANNING: 0.
 
   - **Constraint**: Clamp [0, 100]. 90+ requires max-strength anchor (≥ 0.9), perfect betweenness, canonical regime fit, bilateral strong flow, no retail extreme, clean debate — exceedingly rare.
 - **Finalization**: Output JSON.
