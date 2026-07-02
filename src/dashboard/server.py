@@ -52,7 +52,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 # ── Rate Limiter ────────────────────────────────────────────────────────
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Simple in-memory rate limiter: 60 requests/min per client IP.
+    """Simple in-memory rate limiter: 500 requests/min per client IP.
 
     Respects X-Forwarded-For for reverse-proxy deployments. Stale client
     entries are pruned on each request to prevent unbounded memory growth.
@@ -102,7 +102,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         return await call_next(request)
 
-app.add_middleware(RateLimitMiddleware, max_requests=60, window_seconds=60)
+app.add_middleware(RateLimitMiddleware, max_requests=500, window_seconds=60)
 
 static_dir = Path(__file__).parent / "static"
 if static_dir.exists():
