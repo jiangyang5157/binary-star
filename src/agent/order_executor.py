@@ -714,11 +714,16 @@ class MarginOrderExecutor:
         if atr_macro is None or math.isnan(atr_macro) or atr_macro <= 0:
             return 0
 
+        p_price = cfg["precision_price"]
         deviation = abs(current_price - avg_entry)
 
         # Step 1: Has L1 fired? (SL at/beyond entry = breakeven placed)
-        l1_fired = ((direction == "LONG" and current_sl >= avg_entry) or
-                     (direction == "SHORT" and current_sl <= avg_entry))
+        # SL on exchange is directionally rounded (SELL→floor, BUY→ceil),
+        # so a raw float comparison against avg_entry can spuriouly fail
+        # when rounding moved the SL one tick away from entry.
+        eps = 10 ** (-p_price)  # one tick tolerance for rounding direction
+        l1_fired = ((direction == "LONG" and current_sl + eps >= avg_entry) or
+                     (direction == "SHORT" and current_sl - eps <= avg_entry))
 
         if not l1_fired:
             logger.info(f"[{symbol}] find_level: L1 not yet fired | "
@@ -745,7 +750,6 @@ class MarginOrderExecutor:
         else:
             target_sl = avg_entry
 
-        p_price = cfg["precision_price"]
         target_sl = round(target_sl, p_price)
 
         if abs(target_sl - current_sl) > 10 ** (-p_price):
