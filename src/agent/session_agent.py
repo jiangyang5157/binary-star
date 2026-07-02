@@ -170,7 +170,8 @@ class SessionAgent(BaseAgent):
             "poc_gravity_atr_distance": self.config.risk.poc_gravity_atr_distance,
             "breakout_frontrun_atr": self.config.regime.breakout_frontrun_atr,
             "max_entry_distance_atr": self.config.risk.max_entry_distance_atr,
-            "chaos_rr_discount": self.config.risk.chaos_rr_discount
+            "chaos_rr_discount": self.config.risk.chaos_rr_discount,
+            "funding_extreme_threshold": self.config.regime.funding_extreme_threshold
         }
 
         return self._prepare_prompt(self.config.instruction_path, **context)
