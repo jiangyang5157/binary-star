@@ -57,7 +57,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     Respects X-Forwarded-For for reverse-proxy deployments. Stale client
     entries are pruned on each request to prevent unbounded memory growth.
     """
-    def __init__(self, app: ASGIApp, max_requests: int = 60, window_seconds: int = 60):
+    def __init__(self, app: ASGIApp, max_requests: int = 120, window_seconds: int = 60):
         super().__init__(app)
         self.max_requests = max_requests
         self.window_seconds = window_seconds
@@ -87,7 +87,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             self._clients[client_ip] = []
 
         if len(self._clients[client_ip]) >= self.max_requests:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded — try again shortly")
+            return Response("Rate limit exceeded — try again shortly", status_code=429, media_type="text/plain")
 
         self._clients[client_ip].append(now)
 
