@@ -99,23 +99,52 @@ When history contains specific veto tags, apply these technical repair protocols
   - Apply **THE SHIELD LAW** and **LIMIT ORDER PHYSICS**.
 - **Physical Validation**: Invoke `MathTools` protocols. Recalibrate if tool returns valid but suboptimal results.
 - **Confidence Calculus (MANDATORY)**: Compute `confidence_score` [0–100]. Start from 0 — award points only for VERIFIABLE protections backed by specific telemetry values. No citation = no points. Each item is scored **0 to its stated maximum**, not all-or-nothing. Award partial credit when the evidence is ambiguous or the protection is imperfect.
+
+  **Core Principle**: Confidence = SURVIVAL PROBABILITY, not thesis conviction. A boring plan with unbreakable structural armor deserves higher confidence than a brilliant idea with weak shielding. When uncertain, score DOWN — overconfidence destroys capital silently.
+
   - **Zero-Score Overrides**: NEUTRAL opinion → 0. `math_fact_check` failure (`rr_is_valid: false`) → 0.
-  - **Dimension 1: Topographical Armor (0–40)**:
-    - 0–15: Verified anchor (HVN/POC/VAH/VAL) shields the `stop_loss` path. Cite the anchor's name, price, and strength (or vacuum_score for LVN). Maximum when the anchor is a confirmed high-strength HVN/POC with no nearby liquidation cluster between it and the stop. Reduce for weak anchors, single-LVN shields, or liquidation clusters inside the shield zone.
-    - 0–10: BETWEENNESS Law satisfied — the cited anchor sits strictly between `entry` and `stop_loss` (see **THE SHIELD LAW** above for directional enforcement and **MOMENTUM EXEMPTION** for Dynamic Kinetic Shield). Maximum when unambiguously between. Reduce for partial satisfaction, boundary-adjacent anchors, or DKS-substituted stops. Zero when neither an anchor nor a DKS shields the stop.
-    - 0–5: `entry` ≤ `{max_entry_distance_atr}` ATR from `current_price`. Maximum when well within limit. Reduce as distance approaches the boundary.
-    - 0–5: Entry zone not a volume vacuum — `nearest_lvn_dist_atr` ≥ `{structural_buffer_atr}` OR a proximal HVN/POC compensates. Maximum when clearly outside any vacuum.
+
+  - **Dimension 1: Topographical Armor (0–40)** — "Will the stop-loss survive a normal adverse excursion?"
+    - 0–15: Anchor shield quality. Cite the anchor's name, price, and strength (or vacuum_score for LVN).
+      - HVN/POC with strength ≥ 0.8: **12–15**. HVN/POC strength 0.5–0.8: **8–11**. HVN/POC strength < 0.5 or LVN-only shield: **3–7**. No anchor at all: **0**.
+      - **Mandatory deduction**: −3 per liquidation cluster sitting between the anchor and `stop_loss` (these act as magnetic sweep targets). −5 if the nearest anchor is > 2 ATR from `stop_loss` (structurally distant shield — the anchor must be close enough to absorb the initial shock).
+    - 0–10: BETWEENNESS Law — anchor sits strictly between `entry` and `stop_loss` (see **THE SHIELD LAW** for directional enforcement; **MOMENTUM EXEMPTION** for DKS substitution).
+      - Anchor ≥ 0.3 ATR from both entry and SL (clear gap): **10**. Anchor within 0.3 ATR of entry or SL (boundary-adjacent): **5–8**. DKS-substituted (momentum exemption, no physical anchor): **3–5**. Neither anchor nor DKS: **0**.
+    - 0–5: `entry` ≤ `{max_entry_distance_atr}` ATR from `current_price`.
+      - ≤ 0.5 ATR: **5**. 0.5–1.2 ATR: **3–4**. 1.2–`{max_entry_distance_atr}`: **1–2**. Exceeds limit: **0** (phantom order risk).
+    - 0–5: Entry zone not a volume vacuum.
+      - Entry directly on HVN/POC: **5**. `nearest_lvn_dist_atr` ≥ `{structural_buffer_atr}`: **3–4**. Vacuum but proximal HVN compensates: **1–2**. Pure vacuum with no compensation: **0**.
     - 0–5: Multi-anchor reinforcement — a second independent structural anchor (HVN/POC/VAH/VAL) further shields the stop-loss path.
-  - **Dimension 2: Regime & Gravity Synchronization (0–30)**:
-    - 0–10: Direction aligns with institutional flow — CVD sign and trend direction agree (e.g. `HAS_BULL_FLOW` with `IS_TREND` positive, or `HAS_BEAR_FLOW` with `IS_TREND` negative). Maximum when both agree strongly. Reduce when one is neutral or the signals are borderline. Zero when they directly contradict.
-    - 0–10: Entry type matches regime — momentum/shallow-pullback in trending/squeeze, mean-reversion in ranging, hit-and-run in chaos. Maximum when the entry strategy is the canonical fit for the active regime. Reduce for defensible but suboptimal choices. Zero for CHAOS with directional momentum.
-    - 0–5: TP distance matches regime demands — compressed at first structural boundary under `IS_SQUEEZING` or `IS_CHAOS`, proportional to ATR distance under trending/ranging.
-    - 0–5: No polarity contradiction — direction does not oppose the dominant regime signal. Maximum when all regime flags are consistent with the chosen direction.
-  - **Dimension 3: Temporal & Sentiment Convexity (0–30)**:
-    - 0–15: `projected_holding_hours` is proportional to the ATR-scaled target distance. Ratio = `projected_holding_hours` / (abs(`entry` − `take_profit`) / `atr_macro` × `unit_atr_holding_hours`). Maximum when ratio ≈ 0.7–1.5. Reduce for extended holds (ratio > 2.0) that lock capital unnecessarily.
-    - 0–10: `projected_waiting_hours` / `projected_holding_hours` ≤ 0.3 — entry fills quickly relative to total hold. Maximum when near-instant fill. Reduce when the order risks sitting unfilled for a large fraction of the holding window.
-    - 0–5: Squeeze/chaos → compressed time horizon, not a multi-day hold. Maximum when the plan accounts for imminent violent expansion with a tight timeframe.
-  - **Constraint**: Three dimensions sum to a maximum of 100. 100 = flawless, exceedingly rare.
+      - Second anchor strong (HVN/POC, strength ≥ 0.5): **5**. Weak or distal (> 3 ATR from SL): **2–3**. No second anchor: **0**.
+
+  - **Dimension 2: Regime & Gravity Synchronization (0–30)** — "Does the market regime support this trade right now?"
+    - 0–10: Direction aligns with institutional flow — CVD sign and trend direction agree with the chosen direction.
+      - Both strong and aligned (e.g. `HAS_BULL_FLOW` + `IS_TREND` positive + BULLISH): **10**. One strong, one neutral/borderline: **5–8**. Both neutral/borderline: **2–4**. Direct contradiction (e.g. `HAS_BULL_FLOW` + BEARISH): **0**.
+    - 0–10: Entry type matches regime.
+      - Canonical fit: momentum/shallow-pullback in trending, mean-reversion in ranging, hit-and-run in chaos → **10**. Defensible but suboptimal (e.g. DLE in trending without momentum, momentum entry in ranging) → **4–7**. Regime mismatch (directional momentum in CHAOS, deep mean-reversion against IS_TREND_STRONG) → **0–3**.
+      - **GRAVITY CAP**: If `poc_dist_atr` > `{poc_gravity_atr_distance}` AND `IS_TREND_STRONG` is FALSE — cap this entire sub-score at **5**. Extreme POC distance without institutional momentum backing means the plan is fighting gravity, regardless of how well the entry type nominally matches the regime. The POC exerts a physical pull that will degrade any entry.
+    - 0–5: TP distance matches regime demands.
+      - Compressed to first structural boundary under `IS_SQUEEZING` or `IS_CHAOS`: **5**. Proportional to ATR under trending/ranging: **3–4**. Disproportionately distant (multi-day hold in chaos, or targeting distal POC from extreme distance): **0–2**.
+    - 0–5: No polarity contradiction — all active regime flags consistent with direction: **5**. One minor contradiction: **2–4**. Major contradiction (counter-trend against `IS_TREND_STRONG`, or fighting `HAS_BULL_FLOW`/`HAS_BEAR_FLOW`): **0**.
+
+  - **Dimension 3: Temporal & Sentiment Convexity (0–30)** — "Is the timing realistic and is sentiment a headwind?"
+    - 0–10: `projected_holding_hours` proportional to ATR-scaled target distance. Ratio = `projected_holding_hours` / (abs(`entry` − `take_profit`) / `atr_macro` × `unit_atr_holding_hours`).
+      - Ratio ≈ 0.7–1.5: **8–10**. Ratio 0.5–0.7 or 1.5–2.0: **4–7**. Ratio > 2.0 (capital locked excessively) or < 0.3 (unrealistically fast): **1–3**.
+    - 0–8: `projected_waiting_hours` / `projected_holding_hours` ≤ 0.3 — entry fills quickly relative to hold.
+      - ≤ 0.15 (near-instant fill): **8**. 0.15–0.30: **5–7**. 0.30–0.50 (order risks sitting): **2–4**. > 0.50 (more time waiting than half the hold): **0–1**.
+    - 0–5: Squeeze/chaos → compressed time horizon.
+      - Plan accounts for imminent violent expansion with tight timeframe: **5**. Plan acknowledges squeeze but doesn't compress: **2–3**. Plan ignores squeeze/chaos entirely (multi-day hold in squeeze): **0**.
+    - 0–7: **Sentiment risk** — is retail positioning a headwind or tailwind?
+      - No sentiment extreme; retail balanced: **7**. Mild imbalance but direction is aligned (e.g. retail short + BULLISH = squeeze fuel): **4–6**. `HAS_RETAIL_LONG_IMBALANCE` + BULLISH, or `HAS_RETAIL_SHORT_IMBALANCE` + BEARISH — you are joining the crowd: **0–2**. Funding rate extreme against direction (> `{funding_extreme_threshold}`): **−2** from this sub-score (can go negative).
+
+  - **Debate History Penalty (IS_SYNTHESIS only)**:
+    After summing D1+D2+D3, apply a flat deduction based on how cleanly the debate resolved. A plan that required patching is intrinsically less reliable than one that passed on the first attempt — reflect this in the score.
+    - TERMINAL veto in any prior round: **−10 to −20**. Use −10 if you executed a genuine paradigm shift (entirely new anchor zone, polarity pivot, or fundamentally different thesis). Use −20 if you only hardened coordinates cosmetically (slightly wider SL, slightly deeper entry) without changing the core approach. A plan that survived TERMINAL veto cannot score above 80 by definition.
+    - CONSTRUCTIVE veto for 2+ rounds without reaching PASS: **−5 to −10**. A plan that the Critic repeatedly flagged but never fully accepted carries unresolved risk.
+    - CONSTRUCTIVE → PASS in subsequent round with genuine repair: **No deduction**. The system worked as designed.
+    - PASS or WEAK in first round (or IS_PLANNING with no debate history): **No deduction**.
+
+  - **Constraint**: D1+D2+D3 maximum = 100 before debate penalty. After debate penalty, clamp to [0, 100]. 100 = flawless, which requires: max-strength anchor (≥ 0.9), perfect betweenness, canonical regime fit, strong bilateral flow alignment, no retail extreme, and clean debate (PASS R1 or genuine repair to PASS). Scores above 90 are exceedingly rare — do not give them without extraordinary evidence across all dimensions.
 - **Finalization**: Output JSON.
 
 # OUTPUT_SCHEMA
