@@ -11,13 +11,12 @@ For each site that cancels then re-places OCO, answer:
 - [ ] Is there a re-verify step between cancel and place? (checks position still exists)
 
 Sites to audit:
-1. `_optimize_same_direction()` — `order_executor.py:~569-603`
-2. `_try_partial_tp()` — `order_executor.py:~813-870`
-3. `_migrate_dynamic_sl()` — `order_executor.py:~917-946`
-4. `sync_with_opinion()` pivot-preserve — `order_executor.py:~164-199`
-5. `guardian_check()` Case 3 OCO placement — `order_executor.py:~372-407`
-6. `guardian_check()` Case 4 qty re-align — `order_executor.py:~418-454`
-7. `find_level_and_sync_sl()` — `order_executor.py:~749-768`
+1. `_optimize_same_direction()` — `order_executor.py:~481-516`
+2. `_try_partial_tp()` — `order_executor.py:~665-775`
+3. `_migrate_dynamic_sl()` — `order_executor.py:~843-859`
+4. `guardian_check()` Case 3 OCO placement — `order_executor.py:~284-319`
+5. `guardian_check()` Case 4 qty re-align — `order_executor.py:~325-366`
+6. `find_level_and_sync_sl()` — order_executor.py (dynamic SL sync)
 
 ### 1.2 Emergency Close Completeness
 For every `place_oco_order` call site, verify:
@@ -38,33 +37,40 @@ For every `place_oco_order` call site, verify:
 ### 1.4 SL Slippage Buffer
 - [ ] LONG direction: `buffered_sl = sl - buffer` at every SELL-exit call site
 - [ ] SHORT direction: `buffered_sl = sl + buffer` at every BUY-exit call site
-- [ ] Check `_optimize_same_direction` line 586
-- [ ] Check `sync_with_opinion` pivot-preserve line 177
-- [ ] Check `guardian_check` Case 3 line 381
-- [ ] Check `guardian_check` Case 4 line 433
-- [ ] Check `_try_partial_tp` line 847
-- [ ] Check `_migrate_dynamic_sl` line 931
-- [ ] Check `find_level_and_sync_sl` line 756
+- [ ] Check `_optimize_same_direction` line 498
+- [ ] Check `guardian_check` Case 3 line 293
+- [ ] Check `guardian_check` Case 4 line 345
+- [ ] Check `_try_partial_tp`
+- [ ] Check `_migrate_dynamic_sl`
+- [ ] Check `find_level_and_sync_sl`
 
 ## D2: Pivot Logic
 
-### 2.1 Case A-1 (Unprotected Opposing)
-- [ ] Cancel fails → returns None. Position still open. OK?
-- [ ] Market close fails → returns None. Position still open. Should retry?
-- [ ] Partial fill during market close: residual qty handling?
-- [ ] New entry placed after successful close. What if entry placement fails?
+**Current behavior**: Pivots are blocked. `sync_with_opinion` Scenario A returns `None` when `current_direction != opinion_direction`.
 
-### 2.2 Case A-2 (Protected Opposing)
-- [ ] Overshot detection: `<=` vs `<` at line 140-141?
-- [ ] Ticker price returns 0 or None → handled at line 136-138?
-- [ ] After OCO placed for opposing position, new entry placed. What if entry fills first?
-- [ ] OCO placement fails → emergency close → new entry. What if emergency close fails?
-- [ ] The pivot TP is always `entry_price`. Is this always correct?
+### 2.1 Pivot Block Correctness
+- [ ] Verify Scenario A (line 114-124): returns None, logs "pivot blocked"
+- [ ] Guardian continues protecting existing position. Is the SL still valid for the current price?
+- [ ] Risk: if AI correctly calls a reversal, bot rides position into SL. Acceptable?
+- [ ] Trade-off: blocking pivots prevents interference with manual positions and restart-gap reconstruction.
 
-### 2.3 Pivot + Stale Orders
-- [ ] What if there are 3+ active orders (SL + TP + stale LIMIT)?
-- [ ] The code only looks for `STOP_LOSS`/`STOP_LOSS_LIMIT` to detect protection.
-- [ ] A stale LIMIT order on the exit side could be mistaken for something. Check.
+### 2.2 Scenario B: Same-Direction Optimization
+- [ ] `current_direction == opinion_direction` → calls `_optimize_same_direction()`
+- [ ] TP selection: greedy (widest) — correct for maximizing reward
+- [ ] SL selection: tightest (most protective) — correct for risk minimization
+- [ ] Cancel-all → verify position → place new OCO sequence is correct
+- [ ] OCO placement failure → emergency market close
+- [ ] `_EMERGENCY_CLOSED_SENTINEL` (-1) correctly signals daemon to clear trade_state
+
+### 2.3 Scenario C: FLAT → New Entry
+- [ ] Position is flat → clears stale orders → places LIMIT entry
+- [ ] `cancel_all_symbol_orders` failure → returns None (safe abort)
+- [ ] Entry qty from `_calculate_target_qty` — verify risk-per-trade and precision
+
+### 2.4 Safety Gates
+- [ ] NEUTRAL opinions → return None immediately (line 72-74)
+- [ ] Symbol whitelist: unconfigured symbols rejected (line 77-79)
+- [ ] Config validation: missing/corrupt config → abort (line 87-92)
 
 ## D3: Guardian Pulse Cycle
 
@@ -87,8 +93,9 @@ For every `place_oco_order` call site, verify:
 ### 3.3 Direction Sanity (Case 2)
 - [ ] Intent vs reality mismatch detected
 - [ ] Logging throttled (good)
-- [ ] But NO corrective action taken
-- [ ] Position with wrong-side OCO: what's the blast radius?
+- [ ] Orders cancelled via `cancel_all_symbol_orders()` — removes wrong-side OCO
+- [ ] But trade_state NOT cleared — direction mismatch persists, Case 2 loops each pulse
+- [ ] Should Case 2 clear trade_state so Case 3 can emergency-close on the next pulse?
 
 ### 3.4 Restart Reconstruction
 - [ ] trade_state reconstructed from exchange OCO

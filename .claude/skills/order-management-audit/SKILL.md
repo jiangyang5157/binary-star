@@ -39,8 +39,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 2. **Emergency Close Completeness**
    - Every `place_oco_order` call that returns False must trigger `execute_market_close`. Audit every call site:
-     - `sync_with_opinion()` pivot-preserve path (line ~187)
-     - `_optimize_same_direction()` (line ~597)
+     - `_optimize_same_direction()` (line ~500)
      - `guardian_check()` Case 3 (line ~401)
      - `guardian_check()` Case 4 qty re-align (line ~446)
      - `_try_partial_tp()` (line ~857)
@@ -61,26 +60,32 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 ### D2: Pivot Logic — Direction Changes While Holding
 
-**Source file**: `src/agent/order_executor.py` (sync_with_opinion, lines 114-215)
+**Source file**: `src/agent/order_executor.py` (sync_with_opinion, lines 64-136)
 
-1. **Case A-1: Unprotected Opposing → Force Close**
-   - Trigger: opposing position has NO stop loss order.
-   - Path: cancel_all → market_close → place_entry.
-   - Check: what if `execute_market_close` fails? Code returns None (line 211-212). Is the position still open? Should it retry?
-   - Check: what if partial fill during market close leaves residual?
+**Current behavior**: Pivots are **blocked**. When the AI opinion opposes an existing position (Scenario A), the bot returns `None` and takes zero action — no force close, no new entry, no OCO manipulation. The Guardian continues protecting the existing position.
 
-2. **Case A-2: Protected Opposing → Preserve + New Entry**
-   - Trigger: opposing position HAS a stop loss order.
-   - Sub-case: Overshot entry (price already past entry point). Path: cancel_all → market_close → place_entry.
-   - Sub-case: Standard. Path: cancel_all → place_oco (preserving SL, TP=entry) → place_entry.
-   - Check: The overshot detection (line 136-141) uses `current_price <= entry_price` for SHORT. What if price is exactly at entry? Is `<=` correct or should it be `<?` (Answer: `<=` means "overshot" — correct, you wouldn't want to enter at the same price you're exiting.)
-   - Check: After OCO is placed for the opposing position (line 179-186), the new entry is placed (line 198-199). What if the new entry fills BEFORE the OCO is placed? The opposing position is still naked during the OCO placement window.
-   - Check: The pivot-preserve OCO failure path (line 187-195): emergency close → place new entry. What if emergency close fails?
+1. **Pivot Block Correctness**
+   - Verify `sync_with_opinion` Scenario A (line 114-124): `current_direction != opinion_direction` → log warning, return None.
+   - The existing position is left under Guardian protection. Is this always safe?
+   - Risk: if the AI is right about the pivot (e.g., trend reversal), the bot will ride the position into a loss until Guardian's SL is hit. The bot relies on the original SL to limit damage.
+   - Trade-off: blocking pivots prevents the bot from interfering with manual positions or restart-gap reconstruction. The cost is delayed reaction to genuine trend reversals.
 
-3. **Case A-2b: Pivot TP Selection**
-   - Code explicitly uses `entry_price` as the pivot TP (line 160: `pivot_tp = entry_price`).
-   - The comment says "Seamless Flip" — the old position's TP becomes the new entry. Verify this is intentional and correct.
-   - Old test `test_pivot_short_with_optimal_tp_to_long` verifies this behavior. Check if the test expectation (`price=82000.0`) matches the code logic.
+2. **Scenario B: Same-Direction Optimization**
+   - When `current_direction == opinion_direction` (Scenario B), the bot optimizes TP/SL: greedy TP (widest), tightest SL (most protective).
+   - `_optimize_same_direction()` (line 435-516): cancels old OCO → re-verifies position → places new OCO for full net_qty.
+   - Audit: the cancel-before-place creates a naked window. On OCO placement failure → emergency market close.
+   - Check: `best_tp` and `best_sl` comparison logic is directionally correct (lines 466-475).
+
+3. **Scenario C: FLAT → New Entry**
+   - No position exists → clears stale orders → places LIMIT entry (line 103-112).
+   - Audit: qty calculation uses `_calculate_target_qty` — verify risk-per-trade and precision rounding.
+   - Check: what if `cancel_all_symbol_orders` fails? Code returns None (aborts). Position remains flat — safe.
+
+4. **Safety Gates**
+   - NEUTRAL opinions → immediate return (line 72-74). No order action.
+   - Symbol whitelist check (line 77-79): unconfigured symbols rejected before any API calls.
+   - Config validation (line 87-92): missing/corrupt config → abort before touching exchange.
+   - `_EMERGENCY_CLOSED_SENTINEL` (-1) from Scenario B signals daemon to clear trade_state without cooldown reset.
 
 ### D3: Guardian Pulse Cycle — Protection State Machine
 
@@ -98,10 +103,11 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Flat with entry_filled_at: cancel_all → return {}. This clears trade state. Good.
 
 3. **Case 2: Direction Sanity Check**
-   - Compares intent direction vs actual net_qty sign (line 332-341).
+   - Compares intent direction vs actual net_qty sign (line 238-250).
    - Throttles logging via `_last_conflict_key` to avoid spam. Good.
-   - But: does NOT take action on conflict — just returns trade_state unchanged. If net_qty flipped sign (e.g., SL triggered and reversed), the trade_state still says LONG but position is SHORT. The OCO protection (placed for LONG exit=SELL) would be for the WRONG side. Is this handled?
-   - Trace: if direction=LONG but net_qty < -tolerance → returns early at line 341 → no OCO check/repair. Position runs with wrong-side orders or no orders.
+   - On conflict: cancels all orders via `cancel_all_symbol_orders()`. This removes any wrong-side OCO protection.
+   - But: does NOT clear trade_state — returns it unchanged. Since `trade_state["direction"]` still disagrees with the actual position sign, Case 2 will fire again on the next pulse (looping). The position stays naked until external intervention (manual close) or until the trade_state is cleared elsewhere.
+   - Audit question: should Case 2 clear trade_state so that Case 3 (unprotected position) can emergency-close on the next pulse? Currently the direction mismatch creates a persistent loop.
 
 4. **Case 3: Position Without OCO — Emergency or Place**
    - Missing TP/SL in trade_state → emergency close (line 349-354).
