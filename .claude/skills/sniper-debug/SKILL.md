@@ -226,6 +226,11 @@ Cooldown break conditions (either one suffices):
 To check cooldown state, find the most recent WAKE line before the target window.
 If none exists in the log, cooldown is inactive.
 
+**Cooldown can also be reset mid-lifecycle** when the Guardian clears a trade state
+(entry expired or position closed via TP/SL). This sets `last_trigger_time = None`,
+completely releasing the cooldown. Emergency close paths do NOT trigger this reset.
+Check the sniper log for `cooldown reset (trade cleared)` lines near the target window.
+
 ## Step 6: Check Pre-AI Gate
 
 If confluence exceeded the effective threshold and cooldown didn't block it,

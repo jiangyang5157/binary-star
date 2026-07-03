@@ -139,8 +139,12 @@ For every `place_oco_order` call site, verify:
 
 ### 5.2 Guardian-AI Interaction
 - [ ] Guardian runs before AI session in pulse loop
-- [ ] If guardian clears trade_state, AI CAN fire in same pulse
-- [ ] Could this cause overtrading? (emergency close → immediate re-entry)
+- [ ] `has_active` is trade_state-based: `bool(self.trade_states.get(sym, {}).get("direction"))`
+- [ ] Manual positions (no trade_state) allowed through — `sync_with_opinion` + cooldown regulate
+- [ ] If guardian clears trade_state (entry expired / position closed), AI CAN fire in same pulse
+- [ ] Guardian trade_state clear now **also resets cooldown** (`last_trigger_time = None`), amplifying same-pulse re-entry risk
+- [ ] Emergency close (`_EMERGENCY_CLOSED_SENTINEL`) does NOT reset cooldown — cooling-off preserved
+- [ ] Could this cause overtrading? (position closed → immediate re-entry with no cooldown barrier)
 
 ### 5.3 Level/Qty Tracking
 - [ ] `_symbol_level` reset on qty change

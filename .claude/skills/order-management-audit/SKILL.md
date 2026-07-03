@@ -150,8 +150,8 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Created in `_attempt_trade_execution()` (lines 458-468): after `sync_with_opinion` returns an order_id.
    - Updated by `_optimize_same_direction` return value (lines 451-456): merged into existing state.
    - Updated by `_guardian_check()` (lines 481-534): replaces trade_state when executor returns modified dict.
-   - Cleared when executor returns `{}` (line 527-531): pops trade_state, level, last_qty.
-   - Cleared on `_EMERGENCY_CLOSED_SENTINEL` (line 448-449): pops trade_state.
+   - Cleared when executor returns `{}`: pops trade_state, level, last_qty, **and resets cooldown** (`last_trigger_time = None`, `cooldown_active = False`).
+   - Cleared on `_EMERGENCY_CLOSED_SENTINEL`: pops trade_state. Cooldown is **NOT** reset — emergency closes retain the cooling-off period.
 
 2. **Qty Change Detection**
    - `_guardian_check()` compares `net_qty` to `_symbol_last_qty[symbol]` (line 502).
@@ -163,10 +163,13 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - This happens on: daemon start, qty change, or first pulse after trade entry.
    - Check: `find_level_and_sync_sl` may call `cancel_all_symbol_orders` and `place_oco_order` — API mutations during what's supposed to be a "find" operation. The function name undersells its side effects. This is intentional (syncs SL to match found level) but the caller should be aware.
 
-4. **Concurrency Between Guardian and AI Session**
-   - In `run_forever()`: Guardian runs FIRST (step 0.5), then AI session runs (step 3).
-   - AI session only fires if `not has_active` (no existing trade_state). This prevents AI from interfering with Guardian-managed positions.
-   - But: what if Guardian emergency-closes a position, clearing trade_state, and then AI fires in the SAME pulse? The `has_active` check at line 262 was evaluated BEFORE guardian ran — so it would still be True if guardian hadn't cleared yet. Wait — guardian runs at line 172, AI check at line 262. `has_active` is checked AFTER guardian runs. So if guardian clears trade_state, `has_active` is False and AI CAN fire. This means in a single pulse: position emergency-closed → AI immediately opens a new one. Is this intentional or could it lead to overtrading?
+4. **Session Dispatch Gate (`has_active`)**
+   - `has_active` is trade_state-based: `bool(self.trade_states.get(sym, {}).get("direction"))`.
+   - This blocks new sessions when the bot has an active trade (pending entry or filled position). Manual positions without trade_state are allowed through — `sync_with_opinion` handles conflicts, and cooldown regulates frequency.
+   - Guardian runs FIRST (step 0.5), then AI session dispatch (step 3). `has_active` is evaluated AFTER guardian — so if guardian clears trade_state (entry expired or position closed), `has_active` becomes False and AI CAN fire in the same pulse.
+   - **Cooldown auto-reset amplifies this**: Guardian clearing trade_state also resets cooldown (`last_trigger_time = None`). This means a trigger on the very next pulse has zero barriers — no trade_state, no cooldown. The risk of overtrading (position closed → immediate re-entry) is higher than before.
+   - Emergency close (`_EMERGENCY_CLOSED_SENTINEL`) does NOT go through this path — cooldown is preserved, providing a cooling-off period after forced exits.
+   - Audit question: is same-pulse re-entry after a Guardian-cleared position desirable, or should there be a minimum gap?
 
 ### D6: Manual Intervention Scenarios
 
