@@ -311,7 +311,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
             raise HTTPException(status_code=400, detail=str(e))
         except Exception as e:
             log.exception("Preview failed for %s", req.symbol_prefix)
-            raise HTTPException(status_code=500, detail=f"Preview failed: {e}")
+            raise HTTPException(status_code=500, detail="Preview failed")
         # Persist so page refresh can restore
         _write_status(data_root, {
             "running": False,

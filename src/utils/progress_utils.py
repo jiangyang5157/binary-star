@@ -72,4 +72,4 @@ def add_activity_entry(activities: list[dict], activity: str | None) -> None:
 
     # Keep only the last N entries
     if len(activities) > _MAX_ACTIVITIES:
-        del activities[:-_MAX_ACTIVITIES]
+        activities[:] = activities[-_MAX_ACTIVITIES:]
