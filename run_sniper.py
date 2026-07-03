@@ -258,6 +258,7 @@ class SniperDaemon:
                                 )
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
+                session_ran = False
                 for sym, result in triggered:
                     # has_active = position exists on exchange (not just pending entry).
                     # Pending entries are allowed through so new sessions can override them.
@@ -355,6 +356,7 @@ class SniperDaemon:
                                 s2["active_session"]["progress"] = progress
                                 _write_daemon_status(s2)
 
+                            session_ran = True
                             session_result = self.session_engines[sym].execute_cycle(
                                 situation_brief=result.situation_brief,
                                 progress_callback=_sniper_progress,
@@ -406,8 +408,15 @@ class SniperDaemon:
             except Exception as e:
                 logger.error(f"loop failure | error={e}", exc_info=True)
 
-            # Sleep until next pulse (shorter retry on empty scout)
-            sleep_secs = pulse_mins * 60 if metrics else 60
+            # Sleep until next pulse (shorter retry on empty scout).
+            # If a session just completed, skip the wait — the market has moved
+            # during the 3-10 min session and a fresh scout is warranted.
+            if session_ran:
+                sleep_secs = 10
+            elif metrics:
+                sleep_secs = pulse_mins * 60
+            else:
+                sleep_secs = 60
             logger.debug(f"waiting {sleep_secs}s for next pulse")
             time.sleep(sleep_secs)
 
