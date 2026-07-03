@@ -229,12 +229,18 @@ Every pulse with `--trade` enabled, the Guardian runs for each symbol with an op
 
 ### Order Lifecycle
 
-When the AI generates a new opinion:
-- **Scenario C (FLAT):** Place new LIMIT entry → state becomes EntryPending
-- **Scenario B (SAME DIRECTION):** Optimize existing TP/SL (greedy TP + tightest SL), re-place OCO
-- **Scenario A (PIVOT):** **Blocked** — bot does not intervene with existing positions. Guardian continues protecting. The AI opinion is discarded for trading purposes.
+When the AI generates a new opinion, the system follows one of three scenarios:
 
-The lifecycle is split into two focused diagrams — entry flow and position management — to avoid line crossings. TP progression is detailed in the next section.
+```mermaid
+graph TD
+    AI["AI generates<br/>new opinion"] --> HasPos{"Has position?"}
+    HasPos -->|"No — FLAT"| SC["Scenario C — FLAT<br/>Place LIMIT entry order<br/>→ EntryPending state"]
+    HasPos -->|"Yes"| SameDir{"Same direction<br/>as position?"}
+    SameDir -->|"Yes"| SB["Scenario B — SAME<br/>Optimize TP/SL, re-place OCO<br/>Stays in Protected state"]
+    SameDir -->|"No — PIVOT"| SA["Scenario A — PIVOT<br/>Discard AI opinion<br/>Guardian continues protecting<br/>Stays in Protected state"]
+```
+
+The state transitions below show the detailed mechanics. TP progression is in the next section.
 
 #### Entry Flow
 
@@ -254,7 +260,8 @@ stateDiagram-v2
     InPosition --> Protected: Synthetic OCO placed<br/>(TP limit + SL limit)
     InPosition --> Flat: Direction conflict / SL breach
     Protected --> Flat: TP fill / SL fill / Emergency close
-    Protected --> Protected: Scenario B — same-direction<br/>TP/SL optimized, OCO re-placed
+    Protected --> Protected: Scenario B — SAME<br/>optimize TP/SL, re-place OCO
+    Protected --> Protected: Scenario A — PIVOT<br/>opposite direction, discarded
 ```
 
 Partial take-profit closes from the Protected state are detailed in the next diagram.
