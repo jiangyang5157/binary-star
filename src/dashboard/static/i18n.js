@@ -110,10 +110,10 @@ function applyTranslations(lang) {
       el.classList.toggle('active', el.classList.contains('lang-' + lang));
     });
   // 同步内部链接 ?hl= 参数，确保切换语言后 nav 链接立即更新
-  document.querySelectorAll('a[href^="/"]').forEach(a => {
+  document.querySelectorAll('a').forEach(a => {
     try {
       const url = new URL(a.href);
-      if (url.origin === location.origin) {
+      if (url.origin === location.origin && !url.hash) {
         url.searchParams.set('hl', lang);
         a.href = url.toString();
       }
