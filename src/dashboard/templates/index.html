@@ -231,7 +231,7 @@ function renderTimeline(trades, threshold) {
       }
     }
     return {
-      x: t.time ? new Date(t.time.replace('Z', '')) : null,
+      x: t.time ? new Date(t.time) : null,
       y: t.confidence,
       r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
       pnl: t.pnl_pct, op: t.opinion, symbol: t.symbol || '',
