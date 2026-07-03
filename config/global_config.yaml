@@ -80,10 +80,6 @@ sniper:
     # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
     # 2.5 = 37.5 min. Balanced for dual BTC use: faster throughput than 45 min.
     pulse_cooldown_multiplier: 2.5
-    # [Mute]: Multiplier for cooldown during extreme volatility expansion.
-    # 2.0 = double the standard wait time when volatility is in 'Chaos' regime.
-    # 37.5 min × 2.0 = 75 min chaos mute.
-    chaos_cooldown_multiplier: 2.0
     # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
     # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
     # 8.0h. Covers full Asian session; prevents retail-sentiment re-trigger spam after daemon restart.

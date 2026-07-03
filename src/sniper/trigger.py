@@ -1414,18 +1414,6 @@ class SniperTrigger:
         # 1. Cooldown check
         cooldown_active, cooldown_reason = self._check_adaptive_cooldown(now, regime)
 
-        # Also check the old chaos mute logic for backward compat
-        if not cooldown_active:
-            vii = current_metrics['price_dynamics']['volatility_intensity_index']
-            if vii > self.regime_cfg['volatility']['volatility_extreme_ratio']:
-                if self.last_trigger_time:
-                    elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-                    chaos_mult = self.sniper_cfg['muting']['chaos_cooldown_multiplier']
-                    chaos_cooldown = self.cooldown_minutes * chaos_mult
-                    if elapsed < chaos_cooldown:
-                        cooldown_active = True
-                        cooldown_reason = f"CHAOS_MUTE (VII={vii:.2f}, elapsed={elapsed:.1f}m/{chaos_cooldown:.1f}m)"
-
         # 2. Detect all signals from current pulse
         fresh_signals: List[SignalCard] = []
         for detector in self._signal_detectors:
