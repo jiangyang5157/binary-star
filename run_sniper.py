@@ -258,7 +258,6 @@ class SniperDaemon:
                                 )
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
-                session_ran = False
                 for sym, result in triggered:
                     # Block new sessions only when the bot itself has an active trade.
                     # Manual positions (no trade_state) are allowed through — the
@@ -352,7 +351,6 @@ class SniperDaemon:
                                 s2["active_session"]["progress"] = progress
                                 _write_daemon_status(s2)
 
-                            session_ran = True
                             session_result = self.session_engines[sym].execute_cycle(
                                 situation_brief=result.situation_brief,
                                 progress_callback=_sniper_progress,
@@ -403,11 +401,7 @@ class SniperDaemon:
                 logger.error(f"loop failure | error={e}", exc_info=True)
 
             # Sleep until next pulse (shorter retry on empty scout).
-            # If a session just completed, skip the wait — the market has moved
-            # during the 3-10 min session and a fresh scout is warranted.
-            if session_ran:
-                sleep_secs = 10
-            elif metrics:
+            if metrics:
                 sleep_secs = pulse_mins * 60
             else:
                 sleep_secs = 60
