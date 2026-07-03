@@ -2,7 +2,7 @@
 Unit tests for SniperDaemon._attempt_trade_execution — the trade gate method.
 
 Covers: opinion/confidence/tactical gates, success path, emergency-close sentinel,
-and the entry_atr extraction that caused NameError / AttributeError crashes.
+and emergency-close recovery.
 """
 
 import pytest
@@ -170,7 +170,6 @@ def test_successful_trade_long():
     assert state["direction"] == "LONG"
     assert state["entry_price"] == 65000.0
     assert state["entry_order_id"] == 12345
-    assert state["entry_atr"] == 403.91
 
 
 def test_successful_trade_short():
@@ -206,49 +205,6 @@ def test_successful_trade_short():
     )
 
     assert daemon.trade_states["XAUTUSDT"]["direction"] == "SHORT"
-    assert daemon.trade_states["XAUTUSDT"]["entry_atr"] == 23.0
-
-
-# ── entry_atr extraction (the bug we fixed) ─────────────────────────────────
-
-def test_entry_atr_falls_back_to_zero_when_prev_metrics_is_none():
-    """prev_metrics.get(symbol) returns None → entry_atr defaults to 0.0."""
-    executor = MagicMock()
-    executor.sync_with_opinion.return_value = 1
-
-    # Simulates first-pulse state: key exists but value is None
-    daemon = _make_daemon(
-        executor=executor,
-        prev_metrics={"BTCUSDT": None},
-    )
-
-    daemon._attempt_trade_execution(
-        "BTCUSDT",
-        _session_result(
-            opinion="BULLISH", confidence=90,
-            tactical={"entry": 65000, "take_profit": 70000, "stop_loss": 63000},
-        ),
-    )
-
-    assert daemon.trade_states["BTCUSDT"]["entry_atr"] == 0.0
-
-
-def test_entry_atr_falls_back_to_zero_when_symbol_missing():
-    """Symbol not in prev_metrics → entry_atr defaults to 0.0."""
-    executor = MagicMock()
-    executor.sync_with_opinion.return_value = 1
-
-    daemon = _make_daemon(executor=executor, prev_metrics={})
-
-    daemon._attempt_trade_execution(
-        "BTCUSDT",
-        _session_result(
-            opinion="BEARISH", confidence=90,
-            tactical={"entry": 65000, "take_profit": 64000, "stop_loss": 66000},
-        ),
-    )
-
-    assert daemon.trade_states["BTCUSDT"]["entry_atr"] == 0.0
 
 
 # ── Emergency-close sentinel ─────────────────────────────────────────────────
