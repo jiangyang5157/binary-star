@@ -70,11 +70,6 @@ class SignalCard:
             return self.strength
         return self.strength * (0.5 ** (elapsed / max(self.decay_half_life_minutes, 1.0)))
 
-    def decayed_weighted_score(self, now: datetime) -> float:
-        """Weighted score after temporal decay."""
-        return self.decayed_strength(now) * self.confidence
-
-
 @dataclass
 class TriggerResult:
     """Output of trigger evaluation — replaces old (bool, str, str) tuple."""
@@ -132,7 +127,7 @@ class ConfluenceEngine:
         self.base_threshold = config.get('trigger_threshold', 0.35)
         self.emergency_threshold = config.get('emergency_threshold', 0.85)
         self.regime_modifiers = config.get('regime_modifiers', {
-            'trending': 0.85, 'ranging': 1.15, 'squeeze': 0.70, 'chaos': 1.50,
+            'trending': 0.85, 'ranging': 1.0, 'squeeze': 0.75, 'chaos': 1.50,
         })
         self.signal_weights = config.get('weights', {})
         self.min_strength_for_stack = 0.15

@@ -59,14 +59,6 @@ class TestSignalCard:
         assert result > 0.0
         assert result < 1.0
 
-    def test_decayed_weighted_score(self):
-        c = self._card(strength=1.0, confidence=0.5, decay=10.0)
-        later = c.timestamp + timedelta(minutes=10)
-        # strength=0.5 after 10min, * confidence=0.5 → 0.25
-        result = c.decayed_weighted_score(later)
-        assert result == pytest.approx(0.25)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # SignalMemory
 # ═══════════════════════════════════════════════════════════════════════════
