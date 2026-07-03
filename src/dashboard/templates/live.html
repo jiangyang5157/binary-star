@@ -13,10 +13,17 @@
 <header class="app-header">
   <h1>Singularity</h1>
   <nav>
-    <a href="/performance" class="nav-link">Performance</a>
-    <a href="/live" class="nav-link active">Live</a>
-    <a href="/development" class="nav-link">Development</a>
+    <a href="/performance" class="nav-link" data-i18n="nav.performance">Performance</a>
+    <a href="/live" class="nav-link active" data-i18n="nav.live">Live</a>
+    <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
   </nav>
+  <div class="header-controls">
+    <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
+      <span class="lang-en active">EN</span>
+      <span class="lang-sep">│</span>
+      <span class="lang-zh">中文</span>
+    </button>
+  </div>
 </header>
 
 <main class="container">
@@ -29,12 +36,12 @@
     <!-- New Session -->
     <section class="card run-panel">
       <div class="section-header">
-        <h2>New Session</h2>
+        <h2 data-i18n="section.new_session">New Session</h2>
         <button id="run-session-btn" class="btn-primary" onclick="triggerRun()">▶ Run</button>
       </div>
       <div class="bt-param-row">
         <label class="bt-field bt-field-wide">
-          <span class="bt-label">Trading Pair</span>
+          <span class="bt-label" data-i18n="bt.trading_pair">Trading Pair</span>
           <span class="input-group" id="symbol-input-group">
             <input type="text" id="symbol-prefix" class="input-group-field"
                    placeholder="BTC" maxlength="10" autocomplete="off"
@@ -51,12 +58,12 @@
     <!-- Sniper Control -->
     <section class="card run-panel">
       <div class="section-header">
-        <h2>Sniper Control</h2>
+        <h2 data-i18n="section.sniper_control">Sniper Control</h2>
         <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()">▶ Run</button>
       </div>
       <div class="bt-param-row">
         <label class="bt-field bt-field-wide">
-          <span class="bt-label">Trading Pairs</span>
+          <span class="bt-label" data-i18n="bt.trading_pair">Trading Pairs</span>
           <span class="input-group" id="sniper-symbol-group">
             <input type="text" id="sniper-symbol" class="input-group-field"
                    placeholder="BTC, XAUT" maxlength="50" autocomplete="off"
@@ -68,7 +75,7 @@
       <div class="bt-param-row">
         <div class="bt-range-grid">
           <label class="bt-field" id="sniper-balance-field" style="display:none; max-width:180px">
-            <span class="bt-label">Balance</span>
+            <span class="bt-label" data-i18n="sniper.balance">Balance</span>
             <span class="input-group">
               <input type="number" id="sniper-balance" class="input-group-field"
                      placeholder="1000" min="0" step="any"
@@ -78,7 +85,7 @@
             </span>
           </label>
           <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
-            <span class="toggle-text">Enable Trading</span>
+            <span class="toggle-text" data-i18n="sniper.enable_trading">Enable Trading</span>
             <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
             <span class="toggle-slider"></span>
           </label>
@@ -97,11 +104,11 @@
   {% if "view_active_sessions" in permissions %}
   <section class="card">
     <div class="section-header">
-      <h2>Active Sessions</h2>
+      <h2 data-i18n="section.active_sessions">Active Sessions</h2>
       <div class="section-controls">
         <div class="filter-bar">
           <label class="toggle-label" for="neutral-toggle">
-            <span class="toggle-text">Show Neutral</span>
+            <span class="toggle-text" data-i18n="filter.show_neutral">Show Neutral</span>
             <input type="checkbox" id="neutral-toggle" class="toggle-input" onchange="localStorage.setItem('showNeutral', this.checked); loadActive()">
             <span class="toggle-slider"></span>
           </label>
@@ -115,23 +122,23 @@
       <table id="active-table">
         <thead>
           <tr>
-            <th>Symbol</th>
-            <th>Observed At</th>
-            <th>Direction</th>
-            <th>Conf</th>
-            <th>Entry</th>
-            <th>TP</th>
-            <th>SL</th>
-            <th>RR</th>
-            <th>Waiting</th>
-            <th>Holding</th>
-            <th>Time Left</th>
-            <th>Version</th>
+            <th data-i18n="th.symbol">Symbol</th>
+            <th data-i18n="th.observed_at">Observed At</th>
+            <th data-i18n="th.direction">Direction</th>
+            <th data-i18n="th.conf">Conf</th>
+            <th data-i18n="th.entry">Entry</th>
+            <th data-i18n="th.tp">TP</th>
+            <th data-i18n="th.sl">SL</th>
+            <th data-i18n="th.rr">RR</th>
+            <th data-i18n="th.waiting">Waiting</th>
+            <th data-i18n="th.holding">Holding</th>
+            <th data-i18n="th.time_left">Time Left</th>
+            <th data-i18n="th.version">Version</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="active-body">
-          <tr><td colspan="13" class="loading">Loading...</td></tr>
+          <tr><td colspan="13" class="loading">Loading sessions...</td></tr>
         </tbody>
       </table>
     </div>
@@ -710,6 +717,9 @@ async function loadActive() {
   const tbody = document.getElementById('active-body');
   const countEl = document.getElementById('active-count');
 
+  tbody.innerHTML = '<tr><td colspan="13" class="loading">' +
+    (TRANSLATIONS['msg.loading_sessions']?.[getLang()] || 'Loading sessions...') + '</td></tr>';
+
   try {
     const includeNeutral = document.getElementById('neutral-toggle').checked;
     let url = apiUrl('/api/live-sessions');
@@ -721,7 +731,8 @@ async function loadActive() {
     countEl.textContent = `${sessions.length} record${sessions.length !== 1 ? 's' : ''}`;
 
     if (!sessions.length) {
-      tbody.innerHTML = '<tr><td colspan="13" class="empty">No records — all clear</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="13" class="empty">' +
+        (TRANSLATIONS['msg.no_records_active']?.[getLang()] || 'No records — all clear') + '</td></tr>';
       return;
     }
 
@@ -750,7 +761,8 @@ async function loadActive() {
     const tsEl = document.getElementById('active-refreshed-at');
     if (tsEl) tsEl.textContent = new Date().toLocaleTimeString();
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="13" class="error">Failed to load records</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="13" class="error">' +
+      (TRANSLATIONS['msg.load_failed']?.[getLang()] || 'Failed to load records') + '</td></tr>';
   }
 }
 
