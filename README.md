@@ -191,6 +191,8 @@ Signals stack directionally using a **1 − ∏(1 − s·c)** formula — multip
 
 **Emergency override:** Any single signal with raw strength ≥ 0.80 bypasses cooldown and threshold entirely.
 
+**Cooldown auto-reset:** When the Guardian clears a trade state (entry expired or position closed), cooldown is immediately reset — the bot has no capital at risk and is ready for new signals on the next pulse. Emergency close paths do NOT trigger this reset.
+
 ### Outcome-Aware Adaptive Cooldown
 
 When a trigger fires, the trigger type is recorded and affects the **next** cooldown:
@@ -479,7 +481,7 @@ graph TD
 - Ambient sentiment (retail extreme) locked for 8 hours
 
 ### Entry Timeout
-- If an entry LIMIT order doesn't fill within `projected_waiting_hours`, Guardian cancels it and clears trade state
+- If an entry LIMIT order doesn't fill within `projected_waiting_hours`, Guardian cancels it, clears trade state, and resets cooldown
 - Hard timeout: projected_holding × 1.5 further enforced by time-stop check
 
 ### Synthetic OCO (not native)
