@@ -91,8 +91,8 @@ const TRANSLATIONS = {
 
 /** 获取当前语言，优先级: URL 参数 → localStorage → 'en' */
 function getLang() {
-  const url = new URLSearchParams(location.search);
-  const hl = url.get('hl');
+  const params = new URLSearchParams(location.search);
+  const hl = params.get('hl');
   if (hl === 'zh' || hl === 'en') return hl;
   return localStorage.getItem('hl') || 'en';
 }
@@ -128,17 +128,24 @@ function toggleLang() {
 
 // ── 页面加载时初始化 ──
 (function initI18n() {
-  const lang = getLang();
-  applyTranslations(lang);
+  function apply() {
+    const lang = getLang();
+    applyTranslations(lang);
 
-  // 为所有内部链接追加 ?hl=，保持跨页语言
-  document.querySelectorAll('a[href^="/"]').forEach(a => {
-    try {
-      const url = new URL(a.href);
-      if (url.origin === location.origin) {
-        url.searchParams.set('hl', lang);
-        a.href = url.toString();
-      }
-    } catch (e) { /* 忽略无效链接 */ }
-  });
+    // 为所有内部链接追加 ?hl=，保持跨页语言
+    document.querySelectorAll('a[href^="/"]').forEach(a => {
+      try {
+        const url = new URL(a.href);
+        if (url.origin === location.origin) {
+          url.searchParams.set('hl', lang);
+          a.href = url.toString();
+        }
+      } catch (e) { /* 忽略无效链接 */ }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', apply);
+  } else {
+    apply();
+  }
 })();
