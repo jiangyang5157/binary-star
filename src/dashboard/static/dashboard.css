@@ -1872,3 +1872,28 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .sp-log { transition: none; }
   .session-progress { transition: none; }
 }
+
+/* ── Language Toggle ── */
+.lang-toggle {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-family: inherit;
+  line-height: 1.5;
+  transition: border-color 0.15s;
+}
+.lang-toggle:hover {
+  border-color: var(--text-muted);
+}
+.lang-toggle .lang-sep {
+  color: var(--border-color);
+  margin: 0 2px;
+}
+.lang-toggle .active {
+  color: var(--accent-gold);
+  font-weight: 600;
+}
