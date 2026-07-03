@@ -13,14 +13,21 @@
 <header class="app-header">
   <h1>Singularity</h1>
   <nav>
-    <a href="/performance" class="nav-link">Performance</a>
-    <a href="/live" class="nav-link">Live</a>
-    <a href="/development" class="nav-link">Development</a>
+    <a href="/performance" class="nav-link" data-i18n="nav.performance">Performance</a>
+    <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
+    <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
   </nav>
+  <div class="header-controls">
+    <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
+      <span class="lang-en active">EN</span>
+      <span class="lang-sep">│</span>
+      <span class="lang-zh">中文</span>
+    </button>
+  </div>
 </header>
 
 <main class="container" id="app-main">
-  <div class="loading-spinner">Loading session...</div>
+  <div class="loading-spinner" data-i18n="msg.loading">Loading session...</div>
 </main>
 
 <script>
