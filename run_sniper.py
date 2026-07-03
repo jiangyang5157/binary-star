@@ -450,8 +450,6 @@ class SniperDaemon:
             # Extract projected holding/waiting time and entry ATR for adaptive guardian
             projected_waiting = tactical.get('projected_waiting_hours', 0)
             projected_holding = tactical.get('projected_holding_hours', 0)
-            entry_atr = float((self.prev_metrics.get(symbol) or {}).get('price_dynamics', {}).get('atr_macro', 0))
-
             logger.info(f"[{symbol}] ALL GATES PASSED | executing {direction} | "
                         f"confidence={confidence}% | entry={entry} | tp={tp} | sl={sl} | "
                         f"wait={projected_waiting}h | hold={projected_holding}h")
@@ -484,7 +482,6 @@ class SniperDaemon:
                     "entry_placed_at": datetime.now(timezone.utc),
                     "projected_waiting_hours": float(projected_waiting),
                     "projected_holding_hours": float(projected_holding),
-                    "entry_atr": entry_atr,
                 }
                 logger.info(f"[{symbol}] trade state updated | order={result}")
             else:
