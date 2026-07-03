@@ -16,8 +16,9 @@ _EMERGENCY_CLOSED_SENTINEL = -1
 class MarginOrderExecutor:
     """
     Orchestrates the order management lifecycle for Margin trading.
-    Implements the "Conflict Decider" logic to protect Net Qty, pivot positions,
-    and handle OCO/LIMIT executions.
+    Handles OCO/LIMIT executions. Does not intervene with existing positions —
+    Guardian owns position protection end-to-end. New sessions that disagree
+    with an existing position are silently skipped.
 
     Architecture: Synthetic OCO via Two-Step Execution
     1. Entry via LIMIT order
@@ -111,108 +112,16 @@ class MarginOrderExecutor:
             return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
 
         # Scenario A: PIVOT (Opposite Direction)
+        # Position exists — let Guardian manage it. Bot does not intervene with
+        # existing positions regardless of origin (manual, previous session, or
+        # restart gap). Guardian will protect via OCO or reconstruct trade_state
+        # from exchange state.
         if current_direction != opinion_direction:
-            logger.warning(f"[{symbol}] pivot detected | current={current_direction} | new={opinion_direction}")
-
-            # Determine if the opposing position has a stop loss order (i.e., it is protected)
-            exit_side_of_current = "BUY" if current_direction == "SHORT" else "SELL"
-            existing_sl_order = next(
-                (o for o in active_orders
-                 if o.side == exit_side_of_current
-                 and o.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]
-                 and o.stop_price > 0),
-                None
+            logger.warning(
+                f"[{symbol}] pivot blocked | current={current_direction} | "
+                f"new={opinion_direction} — position exists, Guardian manages"
             )
-
-            if existing_sl_order:
-                # Case A-2: Opposing position is protected → preserve it with adjusted TP + new entry
-                original_sl_trigger = existing_sl_order.stop_price
-                logger.info(
-                    f"[{symbol}] pivot-preserve | {current_direction} SL at {original_sl_trigger}"
-                )
-
-                # 2. Determine if the flip point has already been overshot
-                current_price = self.client.get_ticker_price(symbol)
-                if current_price is None or current_price <= 0:
-                    logger.error(f"[{symbol}] pivot-preserve failed — no ticker price")
-                    return None
-                is_overshot = (
-                    (current_direction == "SHORT" and current_price <= entry_price) or
-                    (current_direction == "LONG" and current_price >= entry_price)
-                )
-
-                if is_overshot:
-                    logger.warning(
-                        f"[{symbol}] pivot-overshot | price={current_price} past entry={entry_price} | closing {current_direction}"
-                    )
-                    if not self.client.cancel_all_symbol_orders(symbol):
-                        logger.error(f"[{symbol}] pivot-overshot — failed to cancel orders")
-                        return None
-                    if not self.client.execute_market_close(symbol):
-                        logger.error(f"[{symbol}] pivot-overshot — failed to market close")
-                        return None
-
-                    # Proceed to place new entry
-                    logger.info(f"[{symbol}] pivot-overshot — placing LIMIT entry | dir={opinion_direction} | entry={entry_price}")
-                    return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
-
-                # 3. Standard Case: Re-hang OCO with TP aligned to new entry
-                pivot_tp = entry_price
-                logger.info(f"[{symbol}] pivot-preserve | protecting {current_direction} | tp={pivot_tp}")
-
-                # Format to precision
-                p_price = cfg["precision_price"]
-                pivot_tp = round(pivot_tp, p_price)
-
-                # 4. Re-hang OCO for the existing opposing position
-                #    (original SL trigger + pivot TP)
-                #    Place new OCO BEFORE cancelling old — avoids naked window.
-                buffer = cfg.get("sl_slippage_buffer", 0.0)
-                # SHORT SL is a BUY above current → limit is trigger + buffer
-                # LONG  SL is a SELL below current → limit is trigger - buffer
-                buffered_sl = original_sl_trigger + (buffer if current_direction == "SHORT" else -buffer)
-
-                oco_success = self.client.place_oco_order(
-                    symbol=symbol,
-                    side=exit_side_of_current,
-                    qty=abs(net_qty),
-                    price=pivot_tp,
-                    stop_price=original_sl_trigger,
-                    stop_limit_price=buffered_sl
-                )
-                if not oco_success:
-                    logger.critical(
-                        f"[{symbol}] Guardian EMERGENCY close — OCO failure"
-                    )
-                    if not self.client.execute_market_close(symbol):
-                        logger.error(f"[{symbol}] pivot-preserve — emergency market close failed")
-                        return None
-                    logger.info(f"[{symbol}] pivot-preserve — emergency close done, entering {opinion_direction}")
-                    return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
-
-                # New OCO is live — now safe to clean up old orders
-                if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.warning(f"[{symbol}] pivot-preserve — failed to cancel old orders (new OCO already active)")
-
-                # 4. Place the new opinion's LIMIT entry alongside the preserved position
-                logger.info(f"[{symbol}] pivot-preserve — placing entry | dir={opinion_direction} | entry={entry_price}")
-                return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
-
-            else:
-                # Case A-1: No stop loss → opposing position is unprotected → force close
-                logger.warning(
-                    f"[{symbol}] pivot-forceclose | {current_direction} unprotected — closing"
-                )
-                if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.error(f"[{symbol}] pivot — failed to cancel orders")
-                    return None
-
-                if not self.client.execute_market_close(symbol):
-                    logger.error(f"[{symbol}] pivot — failed to market close")
-                    return None
-
-                logger.info(f"[{symbol}] pivot-forceclose — placing LIMIT entry | dir={opinion_direction}")
-                return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
+            return None
 
         # Scenario B: SAME DIRECTION (Optimization & Net Qty Protection)
         logger.info(f"[{symbol}] same direction — optimizing protection")
@@ -318,8 +227,7 @@ class MarginOrderExecutor:
                         logger.info(f"[{symbol}] entry order pending | id={entry_order_id} | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
             else:
                 # Position was entered and then closed (net≈0, no entry order).
-                # Possible causes: Pivot-Preserve flip, SL partial fill that left
-                # a residual that was subsequently closed, or bidirectional unwind.
+                # Cancel any stray orders and clear stale trade state.
                 # Cancel any stray orders and clear stale trade state.
                 if trade_state.get("entry_filled_at"):
                     logger.info(f"[{symbol}] position flat — cleaning orders")
