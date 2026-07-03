@@ -753,7 +753,7 @@ async function loadActive() {
         <td>${s.projected_holding_hours != null ? s.projected_holding_hours + 'h' : '&mdash;'}</td>
         <td><span class="time-remaining ${urgencyCls}">${s.time_remaining}</span></td>
         <td><span class="text-muted">${s.version || '&mdash;'}</span></td>
-        <td><a href="/sessions/${encodeURIComponent(s.filename)}" class="btn-sm">View</a></td>
+        <td><a href="/sessions/${encodeURIComponent(s.filename)}" class="btn-sm">${TRANSLATIONS['btn.view']?.[getLang()] || 'View'}</a></td>
       </tr>`;
     }).join('');
 
@@ -771,7 +771,7 @@ async function refreshActive() {
   const btn = document.getElementById('refresh-active-btn');
   const status = document.getElementById('refresh-active-status');
   btn.disabled = true;
-  btn.textContent = '⟳ Refreshing…';
+  btn.textContent = TRANSLATIONS['btn.refresh']?.[getLang()] || '⟳ Refresh';
 
   try {
     await loadActive();
@@ -784,7 +784,7 @@ async function refreshActive() {
   status.style.display = 'inline';
   setTimeout(() => { status.style.display = 'none'; }, 2500);
   btn.disabled = false;
-  btn.textContent = '⟳ Refresh';
+  btn.textContent = TRANSLATIONS['btn.refresh']?.[getLang()] || '⟳ Refresh';
 }
 
 // Restore Show Neutral preference then load

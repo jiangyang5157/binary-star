@@ -5,8 +5,6 @@ const TRANSLATIONS = {
   "nav.performance":    { en: "Performance",     zh: "绩效" },
   "nav.live":           { en: "Live",            zh: "实时" },
   "nav.development":    { en: "Development",     zh: "开发" },
-  "nav.session":        { en: "Session Detail",  zh: "会话详情" },
-  "nav.audit":          { en: "Audit Detail",    zh: "审计详情" },
 
   // KPI
   "kpi.net_pnl":        { en: "Net P&L",         zh: "净盈亏" },
@@ -40,12 +38,8 @@ const TRANSLATIONS = {
   "th.waiting":       { en: "Waiting",      zh: "等待" },
   "th.holding":       { en: "Holding",      zh: "持有" },
   "th.time_left":     { en: "Time Left",    zh: "剩余时间" },
-  "th.orders":        { en: "Orders",       zh: "订单" },
-  "th.status":        { en: "Status",       zh: "状态" },
 
   // 按钮
-  "btn.run":          { en: "▶ Run",        zh: "▶ 运行" },
-  "btn.stop":         { en: "⏹ Stop",      zh: "⏹ 停止" },
   "btn.audit":        { en: "▶ Audit",     zh: "▶ 审计" },
   "btn.refresh":      { en: "⟳ Refresh",   zh: "⟳ 刷新" },
   "btn.view":         { en: "View",         zh: "查看" },
@@ -69,7 +63,6 @@ const TRANSLATIONS = {
   "bt.start":         { en: "Start",            zh: "开始" },
   "bt.end":           { en: "End",              zh: "结束" },
   "bt.samples":       { en: "Samples",          zh: "采样数" },
-  "bt.samples_count": { en: "{n} selected",     zh: "已选 {n} 个" },
   "bt.hint":          { en: "Format: T-Nd, T-Nh, YYYY-MM-DD HH:MM:SS, or ISO-8601 · Valid window: last 28 days · Start must be before End",
     zh: "格式: T-Nd, T-Nh, YYYY-MM-DD HH:MM:SS 或 ISO-8601 · 有效窗口: 最近 28 天 · 开始时间须早于结束时间" },
 
@@ -83,8 +76,6 @@ const TRANSLATIONS = {
   // Sniper
   "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
   "sniper.balance":  { en: "Balance",     zh: "余额" },
-  "sniper.watching": { en: "Watching {symbols}… · {time} since last pulse",
-    zh: "监控 {symbols}… · 距上次脉冲 {time}" },
 };
 
 // ── 引擎函数 ──
