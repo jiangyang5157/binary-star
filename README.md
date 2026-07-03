@@ -177,25 +177,7 @@ Signals stack directionally using a **1 − ∏(1 − s·c)** formula — multip
 | Squeeze | ×0.75 | 0.263 | 25 min |
 | Chaos | ×1.50 | 0.525 | 60 min |
 
-**Outcome-aware cooldown:** The cooldown duration adapts based on what happened last trigger:
-
-| Last Trigger Type | Cooldown Multiplier | Typical Duration | Reason |
-|-------------------|---------------------|------------------|--------|
-| `TRADED` / `ACTIVE_POSITION` | ×1.0 (full) | 25–60 min | Capital deployed — wait for resolution |
-| `NEUTRAL` / `OBSERVE_ONLY` | ×0.5 (shortened) | 12.5–30 min | No capital deployed — re-evaluate sooner |
-
-**Cooldown break conditions** (bypass remaining cooldown):
-- **Stacked signals:** ≥ 3 fresh signals in the same direction
-- **Strength ratio:** Any fresh signal's weighted score > 1.8× last trigger score
-- **Minimum gap:** At least 10 minutes must have elapsed since last trigger (hard floor)
-
-**Emergency override:** Any single signal with raw strength ≥ 0.80 bypasses cooldown and threshold entirely.
-
-**Cooldown auto-reset:** When the Guardian clears a trade state (entry expired or position closed), cooldown is immediately reset — the bot has no capital at risk and is ready for new signals on the next pulse. Emergency close paths do NOT trigger this reset.
-
-### Outcome-Aware Adaptive Cooldown
-
-When a trigger fires, the trigger type is recorded and affects the **next** cooldown:
+**Outcome-aware cooldown:** The cooldown duration adapts based on the last trigger type:
 
 | Session Outcome | Trigger Type | Cooldown Effect |
 |----------------|-------------|-----------------|
@@ -204,10 +186,14 @@ When a trigger fires, the trigger type is recorded and affects the **next** cool
 | AI ran but opinion = NEUTRAL | `NEUTRAL` | **×0.5** shortened (12.5–30 min) — no capital at risk |
 | `--llm` observe-only mode | `OBSERVE_ONLY` | **×0.5** shortened — no capital at risk |
 
-**Cooldown can still be broken** mid-cooldown (bypass remaining wait):
-- ≥ 3 fresh signals stack in same direction (`stacked_break_count`)
-- Any signal's weighted score > 1.8× the last trigger score (`break_on_strength_ratio`)
-- Hard minimum gap: 10 min (`break_min_gap_minutes`) — prevents same-signal re-trigger
+**Cooldown break conditions** (bypass remaining cooldown):
+- **Stacked signals:** ≥ 3 fresh signals in the same direction (`stacked_break_count`)
+- **Strength ratio:** Any fresh signal's weighted score > 1.8× last trigger score (`break_on_strength_ratio`)
+- **Minimum gap:** 10 minutes must have elapsed since last trigger (`break_min_gap_minutes`) — hard floor
+
+**Emergency override:** Any single signal with raw strength ≥ 0.80 bypasses cooldown and threshold entirely.
+
+**Cooldown auto-reset:** When the Guardian clears a trade state (entry expired or position closed), cooldown is immediately reset — the bot has no capital at risk and is ready for new signals on the next pulse. Emergency close paths do NOT trigger this reset.
 
 ### Trigger Diagnostics
 
@@ -239,22 +225,20 @@ graph TD
 
 Every pulse with `--trade` enabled, the Guardian runs for each symbol with an open position:
 
-| Step | Check | Action |
-|------|-------|--------|
-| 0 | No trade state (daemon restart) | Reconstruct from exchange — detect pending LIMIT orders or existing OCO |
-| 1 | Entry order pending | Cancel if timeout exceeded (`projected_waiting_hours`) |
-| 2 | Position unprotected (no OCO) | Place synthetic OCO (TP limit + SL limit) — **SL-breach guard:** skip if ticker price is 0 or None |
-| 3 | SL breached (price past SL) | Emergency market close |
-| 4 | Position protected | Multi-level partial TP + dynamic trailing SL |
-| 5 | OCO qty mismatch | Re-align OCO qty to current position; cancel-and-replace emergency-close on failure |
+| Case | Condition | Action |
+|------|-----------|--------|
+| — | No trade state (daemon restart) | Reconstruct from exchange — detect pending LIMIT orders or existing OCO |
+| 1 | No position — entry pending | Cancel if timeout exceeded (`projected_waiting_hours`) |
+| 2 | Direction conflict (intent ≠ net_qty sign) | Cancel all orders; next pulse Case 3 emergency-closes the position |
+| 3 | Position unprotected (no OCO) | Place synthetic OCO (TP limit + SL limit). **SL-breach guard:** skip if ticker = 0 or None; emergency close if price already past SL |
+| 4 | Position protected | OCO qty re-alignment → multi-level partial TP → dynamic trailing SL |
 
 **Key fixes (2026-06-30):**
 
 | Fix | Issue | Resolution |
 |-----|-------|------------|
 | **A** | `get_ticker_price()` returns 0 → false emergency close on LONG | Added `current_price <= 0` guard before SL-breach check — defers to next pulse |
-| **B** | pivot-preserve: cancel orders before placing new OCO (naked window) | Reversed order: **place new OCO first**, cancel old orders only on success; if OCO fails, original protection remains |
-| **D** | Direction conflict (LONG intent vs SHORT position) detected but not fixed | On conflict: `cancel_all_symbol_orders()` → position goes naked → next pulse re-protects |
+| **D** | Direction conflict (LONG intent vs SHORT position) detected but not fixed | On conflict: `cancel_all_symbol_orders()` → position goes naked → next pulse Case 3 emergency-closes |
 | **E** | `find_level_and_sync_sl` falls through after emergency close | Returns `0` after emergency close — daemon resets level tracking instead of storing stale state |
 
 **Partial TP Levels** (sequential, fire when `|price − entry| ≥ N × ATR`):
@@ -271,14 +255,22 @@ Every pulse with `--trade` enabled, the Guardian runs for each symbol with an op
 
 ### Order Lifecycle
 
+When the AI generates a new opinion:
+- **Scenario C (FLAT):** Place new LIMIT entry → state becomes EntryPending
+- **Scenario B (SAME DIRECTION):** Optimize existing TP/SL (greedy TP + tightest SL), re-place OCO
+- **Scenario A (PIVOT):** **Blocked** — bot does not intervene with existing positions. Guardian continues protecting. The AI opinion is discarded for trading purposes.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Flat
-    Flat --> EntryPending: AI opinion ≥ threshold<br/>LIMIT order placed
+    Flat --> EntryPending: Scenario C — FLAT<br/>LIMIT order placed
     EntryPending --> InPosition: Fill confirmed
-    EntryPending --> Flat: Timeout (projected_waiting × 1.5)
+    EntryPending --> Flat: Timeout (projected_waiting_hours)
 
     InPosition --> Protected: Synthetic OCO placed<br/>(TP limit + SL limit)
+    InPosition --> Flat: Direction conflict<br/>intent ≠ position sign → cancel orders
+    InPosition --> Flat: SL breached (emergency)
+
     Protected --> PartialTP: |price − entry| ≥ 1.5×ATR<br/>20% market-closed, SL → breakeven
     PartialTP --> PartialTP: |price − entry| ≥ 3.5×ATR<br/>20% closed, SL trail starts
     PartialTP --> PartialTP: |price − entry| ≥ 5.5×ATR<br/>20% closed, SL tightened
@@ -286,11 +278,8 @@ stateDiagram-v2
 
     Protected --> Flat: TP fill / SL fill / Emergency close
     PartialTP --> Flat: TP fill / SL fill / Emergency close
-    InPosition --> Flat: SL breached (emergency)
 
-    EntryPending --> Flat: Pivot detected<br/>opposite AI opinion
-    Protected --> Flat: Pivot with overshoot<br/>market close → new entry
-    Protected --> EntryPending: Pivot-preserve<br/>re-hang OCO + new entry
+    Protected --> Protected: Scenario B — same-direction<br/>TP/SL optimized, OCO re-placed
 ```
 
 ### Cross-Symbol Leader Sync
@@ -460,7 +449,7 @@ graph TD
 - Fill → synthetic OCO placed (TP limit + SL limit, two independent orders)
 - Protection → Guardian cross-manages: if one fills, cancel the other
 - Trailing → cancel old SL → place new SL → if fail, emergency market close
-- **Pivot-preserve:** Place new OCO **before** cancelling old one — no naked window; if OCO fails, original protection stays intact
+- **OCO replace:** Cancel old OCO first → verify position → place new OCO. If cancel fails → original protection remains. If cancel succeeds but new OCO fails → emergency market close. A brief naked window exists between cancel and re-place; the emergency-close path is the safety net
 
 ### Guardian
 - **No naked positions.** Any OCO re-place failure triggers immediate market close
@@ -481,8 +470,7 @@ graph TD
 - Ambient sentiment (retail extreme) locked for 8 hours
 
 ### Entry Timeout
-- If an entry LIMIT order doesn't fill within `projected_waiting_hours`, Guardian cancels it, clears trade state, and resets cooldown
-- Hard timeout: projected_holding × 1.5 further enforced by time-stop check
+- If an entry LIMIT order doesn't fill within `projected_waiting_hours` (from session agent), Guardian cancels it, clears trade state, and resets cooldown
 
 ### Synthetic OCO (not native)
 - Binance Spot Margin (SAPI) does not expose OCO/OTOCO endpoints. The system places two independent LIMIT orders and cross-manages them in Guardian
