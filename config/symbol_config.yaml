@@ -32,8 +32,6 @@ XAUTUSDT:
       structural:
         # 稍微收紧前端抢跑距离以更快捕捉突破信号。
         breakout_frontrun_atr: 0.2
-      volatility:
-        squeeze_threshold: 0.58         # 0.55-0.60
       micro_sentiment:
         cvd_intensity_extreme: 0.42     # 0.40-0.48
         cvd_intensity_threshold: 0.16   # 0.14-0.18
