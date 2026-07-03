@@ -887,12 +887,14 @@ class MarginOrderExecutor:
         # 2. Get Total Net Equity in USDT
         if self.manual_balance_usdt is not None:
             total_equity_usdt = self.manual_balance_usdt
+            equity_label = "manual_balance"
         else:
             account = self.client.get_cross_margin_account()
             # Converts absolute BTC equity value into USDT
             current_price = self.client.get_ticker_price(benchmark_symbol)
             total_equity_btc = account.total_net_asset_of_btc
             total_equity_usdt = total_equity_btc * current_price
+            equity_label = "live_equity"
 
         # 3. Calculate Risk Amount
         max_loss_usdt = total_equity_usdt * risk_pct
@@ -910,7 +912,7 @@ class MarginOrderExecutor:
         # Ensure it meets minimum
         target_qty = max(target_qty, min_qty)
 
-        logger.info(f"[{symbol}] risk check | equity=${total_equity_usdt:.2f} | risk=%.2f%% | max_loss=${max_loss_usdt:.2f}" % (risk_pct * 100))
+        logger.info(f"[{symbol}] risk check | {equity_label}=${total_equity_usdt:.2f} | risk=%.2f%% | max_loss=${max_loss_usdt:.2f}" % (risk_pct * 100))
         logger.info(f"[{symbol}] position sizing | entry={entry_price} | sl={sl_price} | delta=${price_delta:.2f} | qty={target_qty}")
         return target_qty
 
