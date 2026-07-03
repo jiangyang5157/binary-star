@@ -37,7 +37,7 @@
     <section class="card run-panel">
       <div class="section-header">
         <h2 data-i18n="section.new_session">New Session</h2>
-        <button id="run-session-btn" class="btn-primary" onclick="triggerRun()">▶ Run</button>
+        <button id="run-session-btn" class="btn-primary" onclick="triggerRun()" data-i18n="btn.run">▶ Run</button>
       </div>
       <div class="bt-param-row">
         <label class="bt-field bt-field-wide">
@@ -59,7 +59,7 @@
     <section class="card run-panel">
       <div class="section-header">
         <h2 data-i18n="section.sniper_control">Sniper Control</h2>
-        <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()">▶ Run</button>
+        <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run">▶ Run</button>
       </div>
       <div class="bt-param-row">
         <label class="bt-field bt-field-wide">
@@ -199,13 +199,13 @@ function updateRunUI(state) {
     _runStopInFlight = false;
     input.disabled = true;
     btn.disabled = false;
-    btn.textContent = '⏹ Stop';
+    btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
     btn.classList.add('danger');
   } else {
     _runStopInFlight = false;
     input.disabled = false;
     btn.disabled = false;
-    btn.textContent = '▶ Run';
+    btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
     btn.classList.remove('danger');
     runPollInterval = null;
   }
@@ -277,7 +277,7 @@ async function triggerRun() {
         container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
           (err.detail || 'stop failed') + '</div>';
         btn.disabled = false;
-        btn.textContent = '⏹ Stop';
+        btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
         btn.classList.add('danger');
         _runStopInFlight = false;
         return;
@@ -285,7 +285,7 @@ async function triggerRun() {
     } catch (e) {
       container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
       btn.disabled = false;
-      btn.textContent = '⏹ Stop';
+      btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
       btn.classList.add('danger');
       _runStopInFlight = false;
       return;
@@ -416,7 +416,7 @@ function updateSniperUI(state) {
     tradeToggle.disabled = true;
     balanceInput.disabled = true;
     btn.disabled = false;
-    btn.textContent = '⏹ Stop';
+    btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
     btn.classList.add('danger');
   } else {
     _stopInFlight = false;
@@ -425,7 +425,7 @@ function updateSniperUI(state) {
     balanceInput.disabled = false;
     toggleBalanceVisibility();
     btn.disabled = false;
-    btn.textContent = '▶ Run';
+    btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
     btn.classList.remove('danger');
     sniperPollInterval = null;
     var statusEl = document.getElementById('sniper-status-line');
@@ -579,14 +579,14 @@ async function triggerSniper() {
         container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
           (err.detail || 'stop failed') + '</div>';
         btn.disabled = false;
-        btn.textContent = '⏹ Stop';
+        btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
         _stopInFlight = false;
         return;
       }
     } catch (e) {
       container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
       btn.disabled = false;
-      btn.textContent = '⏹ Stop';
+      btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
       _stopInFlight = false;
       return;
     }
