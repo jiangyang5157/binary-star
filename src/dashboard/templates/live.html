@@ -366,6 +366,7 @@ async function triggerRun() {
 let sniperPollInterval = null;
 let sniperProgress = null;
 let _stopInFlight = false;  // guards against poll re-enabling button mid-stop
+let _sniperHadActiveSession = false;  // detect session completion → refresh active table
 
 function clearSniperErrors() {
   ['sniper-symbol', 'sniper-balance'].forEach(id => {
@@ -517,6 +518,7 @@ async function checkSniperStatus() {
 
       // Session progress — shown below status line when AI reasoning is active
       if (data.active_session && data.active_session.progress) {
+        _sniperHadActiveSession = true;
         if (!sniperProgress) {
           sniperProgress = new SessionProgress(progressContainer, {
             size: 'full', context: 'sniper'
@@ -527,6 +529,10 @@ async function checkSniperStatus() {
         p._triggered_at = data.active_session.triggered_at || '';
         sniperProgress.update(p);
       } else {
+        if (_sniperHadActiveSession) {
+          _sniperHadActiveSession = false;
+          if (typeof loadActive === 'function') { loadActive(); }
+        }
         if (sniperProgress) {
           sniperProgress.destroy();
           sniperProgress = null;
