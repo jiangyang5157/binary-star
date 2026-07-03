@@ -1,4 +1,5 @@
 import os
+import time
 from typing import List, Optional
 from binance.spot import Spot
 from binance.error import ClientError, ServerError
@@ -258,6 +259,7 @@ class BinanceMarginClient:
     def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
         """Places a standard LIMIT order on cross-margin. Returns order_id or None on failure."""
         p_qty, p_price, _ = self._get_precisions(symbol)
+        tag = self._make_tag(symbol, "entry")
         try:
             resp = self.client.new_margin_order(
                 symbol=symbol,
@@ -266,10 +268,11 @@ class BinanceMarginClient:
                 quantity=round(qty, p_qty),
                 price=round(price, p_price),
                 timeInForce="GTC",
+                newClientOrderId=tag,
                 sideEffectType="MARGIN_BUY"
             )
             order_id = resp.get('orderId')
-            logger.info(f"order placed | side={side} | symbol={symbol} | order_id={order_id} | price={price} | qty={qty}")
+            logger.info(f"order placed | tag={tag} | side={side} | symbol={symbol} | order_id={order_id} | price={price} | qty={qty}")
             return order_id
         except ClientError as e:
             logger.error(f"limit order failed | symbol={symbol} | error={e.error_message}")
@@ -308,6 +311,17 @@ class BinanceMarginClient:
             return math.floor(value * factor) / factor
         else:
             return math.ceil(value * factor) / factor
+
+    @staticmethod
+    def _make_tag(symbol: str, tag_type: str) -> str:
+        """Build order tag for bot identification on exchange.
+
+        Tag is set via newClientOrderId (entry) or listClientOrderId (OCO),
+        so bot orders can be distinguished from user's manual orders.
+
+        Format: bot_{symbol}_{type}_{ms_timestamp}
+        """
+        return f"bot_{symbol}_{tag_type}_{int(time.time() * 1000)}"
 
     @staticmethod
     def _fifo_avg_entry(trades: list, net_qty: float) -> float:
@@ -431,6 +445,7 @@ class BinanceMarginClient:
         SL trigger away from current price (safe, earlier activation).
         """
         p_qty, p_price, _ = self._get_precisions(symbol)
+        tag = self._make_tag(symbol, "oco")
         try:
             self.client.new_margin_oco_order(
                 symbol=symbol,
@@ -439,9 +454,10 @@ class BinanceMarginClient:
                 price=self._round_price(price, p_price, side),
                 stopPrice=self._round_price(stop_price, p_price, side),
                 stopLimitPrice=self._round_price(stop_limit_price, p_price, side),
-                stopLimitTimeInForce="GTC"
+                stopLimitTimeInForce="GTC",
+                listClientOrderId=tag,
             )
-            logger.info(f"OCO placed | symbol={symbol} | side={side} | qty={qty}")
+            logger.info(f"OCO placed | tag={tag} | symbol={symbol} | side={side} | qty={qty}")
             return True
         except ClientError as e:
             logger.error(f"OCO failed | symbol={symbol} | error={e.error_message}")
