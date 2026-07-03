@@ -14,10 +14,17 @@
 <header class="app-header">
   <h1>Singularity</h1>
   <nav>
-    <a href="/performance" class="nav-link active">Performance</a>
-    <a href="/live" class="nav-link">Live</a>
-    <a href="/development" class="nav-link">Development</a>
+    <a href="/performance" class="nav-link active" data-i18n="nav.performance">Performance</a>
+    <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
+    <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
   </nav>
+  <div class="header-controls">
+    <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
+      <span class="lang-en active">EN</span>
+      <span class="lang-sep">│</span>
+      <span class="lang-zh">中文</span>
+    </button>
+  </div>
 </header>
 
 <main class="container">
@@ -25,23 +32,23 @@
   <!-- ═══════ KPI Cards ═══════ -->
   <section class="kpi-grid" id="kpi-grid">
     <div class="kpi-card accent-green">
-      <span class="kpi-label">Net P&amp;L</span>
+      <span class="kpi-label" data-i18n="kpi.net_pnl">Net P&amp;L</span>
       <span class="kpi-value" id="kpi-pnl">--</span>
     </div>
     <div class="kpi-card accent-blue">
-      <span class="kpi-label">Win Rate</span>
+      <span class="kpi-label" data-i18n="kpi.win_rate">Win Rate</span>
       <span class="kpi-value" id="kpi-winrate">--</span>
     </div>
     <div class="kpi-card accent-green">
-      <span class="kpi-label">Calmar Ratio</span>
+      <span class="kpi-label" data-i18n="kpi.calmar">Calmar Ratio</span>
       <span class="kpi-value" id="kpi-calmar">--</span>
     </div>
     <div class="kpi-card accent-red">
-      <span class="kpi-label">Max Drawdown</span>
+      <span class="kpi-label" data-i18n="kpi.max_drawdown">Max Drawdown</span>
       <span class="kpi-value" id="kpi-mdd">--</span>
     </div>
     <div class="kpi-card accent-purple">
-      <span class="kpi-label">Executed / Total</span>
+      <span class="kpi-label" data-i18n="kpi.executed">Executed / Total</span>
       <span class="kpi-value" id="kpi-executed">--</span>
     </div>
   </section>
@@ -49,25 +56,25 @@
   <!-- ═══════ Decision Timeline ═══════ -->
   <section class="card chart-card">
     <div class="chart-header">
-      <h2>Decision Timeline</h2>
+      <h2 data-i18n="section.decision_timeline">Decision Timeline</h2>
       <div class="chart-controls">
-        <label class="slider-label">Min Confidence:</label>
+        <label class="slider-label" data-i18n="chart.min_confidence">Min Confidence:</label>
         <input type="range" id="confSlider" min="50" max="100" value="50" class="slider">
         <span id="confVal" class="slider-value">50</span>
       </div>
     </div>
-    <p class="chart-hint">Click a bubble to open the session audit report</p>
+    <p class="chart-hint" data-i18n="chart.click_hint">Click a bubble to open the session audit report</p>
     <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
   </section>
 
   <!-- ═══════ Charts Row ═══════ -->
   <div class="chart-row">
     <section class="card chart-card">
-      <h2>Equity Growth Curve</h2>
+      <h2 data-i18n="section.equity_curve">Equity Growth Curve</h2>
       <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
     </section>
     <section class="card chart-card">
-      <h2>Confidence Threshold Optimizer</h2>
+      <h2 data-i18n="section.conf_optimizer">Confidence Threshold Optimizer</h2>
       <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
       <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
     </section>
@@ -76,20 +83,20 @@
   <!-- ═══════ Session Table ═══════ -->
   <section class="card">
     <div class="section-header">
-      <h2>Trade Ledger</h2>
+      <h2 data-i18n="section.trade_ledger">Trade Ledger</h2>
       <div class="section-controls">
         <div class="filter-bar">
           <div class="filter-group">
-            <span class="filter-label">Symbol</span>
+            <span class="filter-label" data-i18n="filter.symbol">Symbol</span>
             <input type="text" id="symbol-filter" class="filter-input" placeholder="BTC" style="width:80px">
           </div>
           <div class="filter-sep"></div>
           <div class="filter-group">
-            <span class="filter-label">Version</span>
+            <span class="filter-label" data-i18n="filter.version">Version</span>
             <input type="text" id="version-filter" class="filter-input" placeholder="26.6.24" style="width:70px">
           </div>
         </div>
-        <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" title="Run forensic audit against all un-audited sessions">▶ Audit</button>
+        <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" data-i18n="btn.audit" title="Run forensic audit against all un-audited sessions">▶ Audit</button>
         <span id="run-audit-status" class="audit-status" style="display:none"></span>
       </div>
     </div>
@@ -97,17 +104,17 @@
       <table id="sessions-table">
         <thead>
           <tr>
-            <th>Symbol</th>
-            <th class="sortable" data-sort="observed_at">OBSERVED AT</th>
-            <th>Direction</th>
-            <th class="sortable" data-sort="confidence">Conf</th>
-            <th>Entry</th>
-            <th>TP</th>
-            <th>SL</th>
-            <th class="sortable" data-sort="rr_ratio">RR</th>
-            <th>Result</th>
-            <th>P&amp;L</th>
-            <th>Version</th>
+            <th data-i18n="th.symbol">Symbol</th>
+            <th class="sortable" data-sort="observed_at" data-i18n="th.observed_at">OBSERVED AT</th>
+            <th data-i18n="th.direction">Direction</th>
+            <th class="sortable" data-sort="confidence" data-i18n="th.conf">Conf</th>
+            <th data-i18n="th.entry">Entry</th>
+            <th data-i18n="th.tp">TP</th>
+            <th data-i18n="th.sl">SL</th>
+            <th class="sortable" data-sort="rr_ratio" data-i18n="th.rr">RR</th>
+            <th data-i18n="th.result">Result</th>
+            <th data-i18n="th.pnl">P&amp;L</th>
+            <th data-i18n="th.version">Version</th>
             <th></th>
           </tr>
         </thead>
