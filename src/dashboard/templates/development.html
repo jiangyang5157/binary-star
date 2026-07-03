@@ -364,7 +364,7 @@ function renderSampleList(data) {
   const countEl = $('bt-sample-count');
 
   list.style.display = 'block';
-  countEl.textContent = `${data.count} selected`;
+  countEl.textContent = (TRANSLATIONS['bt.samples_count']?.[getLang()] || '{n} selected').replace('{n}', data.count);
 
   body.innerHTML = data.timestamps.map((ts, i) => {
     const dt = formatLocalTime(ts);

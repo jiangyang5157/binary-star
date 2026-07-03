@@ -450,11 +450,13 @@ function _renderSniperStatusLine(data) {
 
   var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
 
+  var watchingText = (TRANSLATIONS['sniper.watching']?.[getLang()] || 'Watching {symbols}… · {time} since last pulse')
+    .replace('{symbols}', symbols)
+    .replace('{time}', formatElapsed(pulseAge));
   el.innerHTML =
     '<div class="sniper-idle">' +
       '<span class="sniper-idle-dot"></span>' +
-      '<span class="sniper-idle-info">Watching ' + symbols + '… · ' +
-        formatElapsed(pulseAge) + ' since last pulse</span>' +
+      '<span class="sniper-idle-info">' + watchingText + '</span>' +
     '</div>';
 }
 
@@ -473,7 +475,8 @@ function _renderGuardianTable(container, data) {
   }
 
   var html = '<table class="guardian-table"><thead><tr>';
-  html += '<th>Symbol</th><th>Position</th><th>Net Qty</th><th>Orders</th><th>Status</th>';
+  var ordersLabel = TRANSLATIONS['th.orders']?.[getLang()] || 'Orders';
+  html += '<th>Symbol</th><th>Position</th><th>Net Qty</th><th>' + ordersLabel + '</th><th>Status</th>';
   html += '</tr></thead><tbody>';
 
   for (var i = 0; i < symbols.length; i++) {
