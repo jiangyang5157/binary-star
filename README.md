@@ -234,6 +234,10 @@ When the AI generates a new opinion:
 - **Scenario B (SAME DIRECTION):** Optimize existing TP/SL (greedy TP + tightest SL), re-place OCO
 - **Scenario A (PIVOT):** **Blocked** — bot does not intervene with existing positions. Guardian continues protecting. The AI opinion is discarded for trading purposes.
 
+Split into two diagrams — core lifecycle and partial TP detail — to keep each free of crossed lines.
+
+#### Core Lifecycle
+
 ```mermaid
 stateDiagram-v2
     [*] --> Flat
@@ -242,18 +246,29 @@ stateDiagram-v2
     EntryPending --> Flat: Timeout (projected_waiting_hours)
 
     InPosition --> Protected: Synthetic OCO placed<br/>(TP limit + SL limit)
-    InPosition --> Flat: Direction conflict<br/>intent ≠ position sign → cancel orders
-    InPosition --> Flat: SL breached (emergency)
+    InPosition --> Flat: Direction conflict / SL breach
 
-    Protected --> PartialTP: |price − entry| ≥ 1.5×ATR<br/>20% market-closed, SL → breakeven
-    PartialTP --> PartialTP: |price − entry| ≥ 3.5×ATR<br/>20% closed, SL trail starts
-    PartialTP --> PartialTP: |price − entry| ≥ 5.5×ATR<br/>20% closed, SL tightened
-    PartialTP --> Flat: Remaining qty → 0
+    Protected --> BatchTP: 分批TP<br/>L1→L2→L3 sequential partial closes
+    BatchTP --> Flat: All qty closed
 
     Protected --> Flat: TP fill / SL fill / Emergency close
-    PartialTP --> Flat: TP fill / SL fill / Emergency close
-
     Protected --> Protected: Scenario B — same-direction<br/>TP/SL optimized, OCO re-placed
+```
+
+#### Partial TP Sequence (3 progressive levels)
+
+```mermaid
+stateDiagram-v2
+    [*] --> L1_Wait
+    L1_Wait --> L1_Fire: |price − entry| ≥ 1.5×ATR<br/>close 20%, SL → breakeven
+    L1_Fire --> L2_Wait
+
+    L2_Wait --> L2_Fire: |price − entry| ≥ 3.5×ATR<br/>close 20%, SL trail 1.0×ATR
+    L2_Fire --> L3_Wait
+
+    L3_Wait --> L3_Fire: |price − entry| ≥ 5.5×ATR<br/>close 20%, SL tightened 0.75×ATR
+    L3_Fire --> Closed
+    Closed --> [*]
 ```
 
 ### Cross-Symbol Leader Sync
