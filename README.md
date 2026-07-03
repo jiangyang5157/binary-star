@@ -234,9 +234,9 @@ When the AI generates a new opinion:
 - **Scenario B (SAME DIRECTION):** Optimize existing TP/SL (greedy TP + tightest SL), re-place OCO
 - **Scenario A (PIVOT):** **Blocked** — bot does not intervene with existing positions. Guardian continues protecting. The AI opinion is discarded for trading purposes.
 
-Split into two diagrams — core lifecycle and partial TP detail — to keep each free of crossed lines.
+The lifecycle is split into two focused diagrams — entry flow and position management — to avoid line crossings. TP progression is detailed in the next section.
 
-#### Core Lifecycle
+#### Entry Flow
 
 ```mermaid
 stateDiagram-v2
@@ -244,16 +244,20 @@ stateDiagram-v2
     Flat --> EntryPending: Scenario C — FLAT<br/>LIMIT order placed
     EntryPending --> InPosition: Fill confirmed
     EntryPending --> Flat: Timeout (projected_waiting_hours)
+```
 
+#### Position Management
+
+```mermaid
+stateDiagram-v2
+    [*] --> InPosition
     InPosition --> Protected: Synthetic OCO placed<br/>(TP limit + SL limit)
     InPosition --> Flat: Direction conflict / SL breach
-
-    Protected --> BatchTP: 分批TP<br/>L1→L2→L3 sequential partial closes
-    BatchTP --> Flat: All qty closed
-
     Protected --> Flat: TP fill / SL fill / Emergency close
     Protected --> Protected: Scenario B — same-direction<br/>TP/SL optimized, OCO re-placed
 ```
+
+Partial take-profit closes from the Protected state are detailed in the next diagram.
 
 #### Partial TP Sequence (3 progressive levels)
 
