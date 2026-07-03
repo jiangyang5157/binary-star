@@ -114,10 +114,10 @@ class BinanceMarginClient:
             return orders
         except ClientError as e:
             logger.error(f"open orders fetch failed | error={e.error_message}")
-            return []
+            raise
         except ServerError as e:
             logger.error(f"open orders fetch failed (server) | status={e.status_code}")
-            return []
+            raise
 
     def get_ticker_price(self, symbol: str) -> float:
         """

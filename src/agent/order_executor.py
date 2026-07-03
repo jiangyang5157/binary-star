@@ -245,9 +245,12 @@ class MarginOrderExecutor:
             if self._last_conflict_key.get(symbol) != conflict_key:
                 logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty} — cancelling all orders")
                 self._last_conflict_key[symbol] = conflict_key
-            # Cancel wrong-side orders — next pulse Case 3 will emergency-close
+            # Direction mismatch: bot's intent disagrees with exchange reality.
+            # Cancel wrong-side orders and clear trade_state.  The position is
+            # now the operator's responsibility — the bot steps aside and will
+            # not interfere until the next AI session issues a fresh opinion.
             self.client.cancel_all_symbol_orders(symbol)
-            return trade_state, None
+            return {}, None
 
         # --- Case 3: Has position and direction matches -> Protect Position ---
         if not has_oco:
@@ -363,7 +366,7 @@ class MarginOrderExecutor:
                         return trade_state, None
                     return {}, None
             else:
-                logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl}")
+                logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl} — only one OCO leg remains, manual review recommended")
 
         new_level = current_level  # unchanged unless partial TP advances it
 
