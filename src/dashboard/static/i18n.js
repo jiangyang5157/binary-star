@@ -109,6 +109,16 @@ function applyTranslations(lang) {
     .forEach(el => {
       el.classList.toggle('active', el.classList.contains('lang-' + lang));
     });
+  // 同步内部链接 ?hl= 参数，确保切换语言后 nav 链接立即更新
+  document.querySelectorAll('a[href^="/"]').forEach(a => {
+    try {
+      const url = new URL(a.href);
+      if (url.origin === location.origin) {
+        url.searchParams.set('hl', lang);
+        a.href = url.toString();
+      }
+    } catch (e) { /* 忽略无效链接 */ }
+  });
 }
 
 /** 设置语言（切换 + 持久化） */
@@ -131,17 +141,6 @@ function toggleLang() {
   function apply() {
     const lang = getLang();
     applyTranslations(lang);
-
-    // 为所有内部链接追加 ?hl=，保持跨页语言
-    document.querySelectorAll('a[href^="/"]').forEach(a => {
-      try {
-        const url = new URL(a.href);
-        if (url.origin === location.origin) {
-          url.searchParams.set('hl', lang);
-          a.href = url.toString();
-        }
-      } catch (e) { /* 忽略无效链接 */ }
-    });
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', apply);
