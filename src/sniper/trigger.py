@@ -369,14 +369,26 @@ class SniperTrigger:
         for s in fresh_signals:
             if s.direction != Direction.NEUTRAL and s.strength >= 0.15:
                 dir_counts[s.direction] = dir_counts.get(s.direction, 0) + 1
-        if any(c >= stacked_count for c in dir_counts.values()):
-            return True
+        for direction, count in dir_counts.items():
+            if count >= stacked_count:
+                logger.info(
+                    "[%s] cooldown break: stacked | dir=%s count=%d threshold=%d",
+                    self.symbol, direction.value, count, stacked_count,
+                )
+                return True
 
         # Break if any fresh signal exceeds strength ratio vs last trigger
         if self.last_trigger_score is not None:
             break_ratio = cooldown_cfg.get('break_on_strength_ratio', 1.8)
+            ratio_threshold = self.last_trigger_score * break_ratio
             for s in fresh_signals:
-                if s.weighted_score >= self.last_trigger_score * break_ratio:
+                if s.weighted_score >= ratio_threshold:
+                    logger.info(
+                        "[%s] cooldown break: strength_ratio | signal=%s "
+                        "weighted=%.3f threshold=%.3f (last_score=%.3f × %.1f)",
+                        self.symbol, s.sub_type, s.weighted_score,
+                        ratio_threshold, self.last_trigger_score, break_ratio,
+                    )
                     return True
 
         return False
