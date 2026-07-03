@@ -88,8 +88,8 @@ class SniperDaemon:
         if self.trade_enabled:
             from src.infrastructure.binance.margin_client import BinanceMarginClient
             from src.agent.order_executor import MarginOrderExecutor
-            margin_client = BinanceMarginClient()
-            self.executor = MarginOrderExecutor(client=margin_client, manual_balance_usdt=self.manual_balance)
+            self.margin_client = BinanceMarginClient()
+            self.executor = MarginOrderExecutor(client=self.margin_client, manual_balance_usdt=self.manual_balance)
             if self.manual_balance:
                 logger.info(f"manual balance | ${self.manual_balance:.2f} USDT")
             logger.info(f"trade execution ENABLED | symbols={self.symbols}")
@@ -259,7 +259,15 @@ class SniperDaemon:
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
                 for sym, result in triggered:
-                    has_active = bool(self.trade_states.get(sym, {}).get("direction"))
+                    # has_active = position exists on exchange (not just pending entry).
+                    # Pending entries are allowed through so new sessions can override them.
+                    # Manual positions without trade_state are also correctly blocked.
+                    if self.executor is not None:
+                        pos = self.executor.client.get_symbol_position(sym)
+                        tolerance = self.global_cfg['trade_management']['net_qty_tolerance']
+                        has_active = pos is not None and abs(pos.net_qty) > tolerance
+                    else:
+                        has_active = False
                     trigger_type: str = "NEUTRAL"  # default fallback
 
                     if self.session_engines.get(sym) and not has_active:
@@ -376,8 +384,10 @@ class SniperDaemon:
                             logger.info(f"[{sym}] session complete — returning to monitoring")
                     elif has_active:
                         trigger_type = "ACTIVE_POSITION"
+                        ts = self.trade_states.get(sym, {})
+                        direction = ts.get("direction", "UNKNOWN")
                         logger.info(
-                            f"[{sym}] active position ({self.trade_states[sym]['direction']}) | "
+                            f"[{sym}] active position ({direction}) | "
                             f"skipping AI session — Guardian manages")
 
                     self.triggers[sym].set_triggered(result, trigger_type)

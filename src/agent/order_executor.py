@@ -228,7 +228,6 @@ class MarginOrderExecutor:
             else:
                 # Position was entered and then closed (net≈0, no entry order).
                 # Cancel any stray orders and clear stale trade state.
-                # Cancel any stray orders and clear stale trade state.
                 if trade_state.get("entry_filled_at"):
                     logger.info(f"[{symbol}] position flat — cleaning orders")
                 self.client.cancel_all_symbol_orders(symbol)
