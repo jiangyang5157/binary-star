@@ -8,59 +8,38 @@ AI-driven crypto quantitative trading engine. Core innovation is the **Binary St
 
 ## Architecture
 
+Two complementary flows — a signal pipeline and a reasoning/evolution cycle — with no crossed lines in either.
+
+### Signal Pipeline
+
 ```mermaid
-graph TB
-    subgraph Entry["Entry Points"]
-        CLI["run.py<br/>unified CLI"]
-        Standalone["run_session.py<br/>run_sniper.py<br/>run_backtest.py<br/>run_audit.py<br/>run_evolution.py<br/>run_patch.py"]
-    end
-
-    subgraph Orchestration["Orchestration"]
-        BSO["BinaryStarOrchestrator<br/>wire: observer + debate + math finalize"]
-        Daemon["SniperDaemon<br/>2-min pulse: scout → trigger → session → guardian"]
-    end
-
-    subgraph Agents["Reasoning Agents"]
-        SA["SessionAgent<br/>Thesis proposer<br/>temp 0.5"]
-        CA["CriticAgent<br/>Antithesis auditor<br/>temp 0.1"]
-        MFC["MathFactChecker<br/>deterministic geometry<br/>RR, ATR, holding-time"]
-        Debate["DebateLoop<br/>round-by-round<br/>PASS/WEAK → early exit"]
-    end
-
-    subgraph Sniper["Sniper Layer"]
-        Scout["SniperScout<br/>klines, OI, CVD, liquidation"]
-        Trigger["SniperTrigger<br/>14-signal confluence engine<br/>adaptive cooldown"]
-        Executor["MarginOrderExecutor<br/>OCO + Guardian<br/>partial TP + trailing SL"]
-    end
-
-    subgraph Data["Data & Infrastructure"]
-        Observer["MarketObserver<br/>topography + chart gen"]
-        Exchange["Binance<br/>FuturesClient | MarginClient"]
-        AI["LLM Provider<br/>Gemini | DeepSeek | Qwen"]
-        Cache["GeminiCacheManager<br/>context cache"]
-    end
-
-    subgraph Evolution["Evolution Loop"]
-        Audit["AuditController<br/>forensic batch audit"]
-        Evolver["EvolverAgent<br/>strategy mutation<br/>sandbox-validated patches"]
-        Config["Config System<br/>strategy + global + symbol<br/>deep-merge resolution"]
-    end
-
-    CLI --> BSO
-    CLI --> Daemon
-    Daemon --> Scout --> Trigger --> BSO
-    BSO --> Observer --> Exchange
-    BSO --> Debate --> SA & CA & MFC
-    SA & CA --> AI
-    BSO --> Cache
-    Daemon --> Executor --> Exchange
-    BSO --> Audit --> Evolver --> Config
-    Config -.-> Trigger
-    Config -.-> Scout
-    Config -.-> Observer
-    Config -.-> BSO
-    Config -.-> Executor
+graph LR
+    CLI["run.py"] --> DAEMON["SniperDaemon"]
+    DAEMON --> SCOUT["SniperScout<br/>klines · OI · CVD · liquidation"]
+    SCOUT --> TRIG["SniperTrigger<br/>14-signal confluence + cooldown"]
+    TRIG --> BSO["BinaryStarOrchestrator"]
+    BSO --> OBS["MarketObserver<br/>topography + charts"]
+    OBS --> EXCHANGE["Binance API"]
+    BSO --> DL["DebateLoop<br/>max 2 rounds"]
+    DL --> AGENTS["SessionAgent · CriticAgent · MathFactChecker"]
+    AGENTS --> AI["AI Provider<br/>DeepSeek / Gemini / Qwen"]
+    DAEMON --> EXEC["MarginOrderExecutor<br/>synthetic OCO · Guardian"]
+    EXEC --> EXCHANGE
 ```
+
+### Evolution Loop
+
+```mermaid
+graph LR
+    CLI["run.py"] --> BSO["BinaryStarOrchestrator"]
+    BSO --> SES["Session archives"]
+    SES --> AUDIT["AuditController<br/>forensic batch audit"]
+    AUDIT --> EVOLVER["EvolverAgent<br/>strategy mutation"]
+    EVOLVER --> PATCH["EvolverSandbox<br/>sandbox-validated patches"]
+    PATCH --> CONFIG["Config System<br/>global · strategy · symbol"]
+```
+
+Config patches feed back into BSO and SniperDaemon on the next pulse.
 
 ### Layer Descriptions
 
@@ -71,11 +50,11 @@ graph TB
 | **Reasoning** | `SessionAgent`, `CriticAgent`, `DebateLoop`, `MathFactChecker` | Adversarial debate with deterministic math anchoring |
 | **Sniper** | `SniperScout`, `SniperTrigger`, `MarginOrderExecutor` | Lightweight monitoring, signal stack, position protection |
 | **Analyzer** | `MarketObserver`, `VolumeProfile`, `MarketRegime`, `LiquidationEstimator`, `TopographyEngine`, `ChartGenerator` | Market data harvesting and topography computation |
-| **Data** | `BinanceFuturesClient`, `BinanceMarginClient`, `AbstractExchangeClient` | Exchange API abstraction |
-| **AI** | `AIFactory`, adapters for Gemini/DeepSeek/Qwen, `GeminiCacheManager` | Provider-agnostic LLM interface, context caching |
+| **Data** | `BinanceFuturesClient`, `BinanceMarginClient`, `AbstractExchangeClient` | Exchange API abstraction (futures + cross-margin) |
+| **AI** | `AIFactory`, adapters for DeepSeek/Gemini/Qwen, `GeminiCacheManager` | Provider-agnostic LLM interface, context caching |
 | **Evolution** | `AuditController`, `AuditAssembler`, `EvolverAgent`, `EvolverSandbox` | Forensic audit → strategy patches |
 | **Config** | `Loader`, `SymbolResolver`, `SubConfigs` | YAML resolution with per-symbol overrides |
-| **Dashboard** | `server.py`, `api/`, `SessionHTMLRenderer` | Web UI for session/sniper/backtest/audit |
+| **Dashboard** | `server.py` (FastAPI), `api/`, `SessionHTMLRenderer` | Web UI for performance, live sessions, backtest, audit |
 | **Utils** | `MathUtils`, `Exceptions`, `RateLimiter`, `Logger`, `Datetime`, `Pipeline` | Cross-cutting utilities |
 
 ---
@@ -124,7 +103,7 @@ sequenceDiagram
 
 | Dimension | Check | Verdict |
 |-----------|-------|---------|
-| **RR Ratio** | `|TP - Entry| / |Entry - SL|` | PASS / FAIL / WARNING |
+| **RR Ratio** | `\|TP - Entry\| / \|Entry - SL\|` | PASS / FAIL / WARNING |
 | **ATR Metrics** | SL distance in ATR, TP distance in ATR | Realistic / Extended / Extreme |
 | **Structural Proximity** | SL relative to POC/VAH/VAL | Anchored / Floating / Exposed |
 | **Holding Time** | Physics-projected hours to reach TP | Within projected window / Extended |
@@ -172,10 +151,10 @@ Signals stack directionally using a **1 − ∏(1 − s·c)** formula — multip
 
 | Regime | Modifier | Effective Threshold | Cooldown |
 |--------|----------|--------------------|----------|
-| Trending | ×0.85 | 0.298 | 25 min |
-| Ranging | ×1.00 | 0.350 | 45 min |
-| Squeeze | ×0.75 | 0.263 | 25 min |
-| Chaos | ×1.50 | 0.525 | 60 min |
+| Trending | ×0.85 | 0.289 | 25 min |
+| Ranging | ×1.00 | 0.340 | 45 min |
+| Squeeze | ×0.75 | 0.255 | 25 min |
+| Chaos | ×1.50 | 0.510 | 60 min |
 
 **Outcome-aware cooldown:** The cooldown duration adapts based on the last trigger type:
 
@@ -197,28 +176,31 @@ Signals stack directionally using a **1 − ∏(1 − s·c)** formula — multip
 
 ### Trigger Diagnostics
 
-Every pulse logs a compact **SIGNAL DIAG** line showing all 13 detector key metrics — fired strength for active detectors, rejection reason (vs threshold) for silent ones. Enables tuning without re-running full traces.
+Every pulse logs a compact **SIGNAL DIAG** line showing all detector key metrics — fired strength for active detectors, rejection reason (vs threshold) for silent ones. Enables tuning without re-running full traces.
 
 ### Sniper Pulse Flow
 
 ```mermaid
-graph TD
-    Pulse["2-min Pulse"] --> LW["Lightweight heartbeat<br/>zero API calls"]
-    Pulse --> Scout["SniperScout<br/>harvest: klines, OI, CVD, liquidation"]
-    Scout --> Detect["13 signal detectors<br/>each pulse, fresh detection"]
-    Detect --> Merge["Merge with decayed memory<br/>half-life decay on old signals"]
-    Merge --> Confluence["ConfluenceEngine<br/>directional stack + noise cancel"]
-    Confluence --> Cooldown{"Adaptive<br/>Cooldown?<br/>outcome-aware"}
-    Cooldown -->|active| Break{"Cooldown Break?<br/>• 3+ stacked signals<br/>• 1.8× strength ratio<br/>• emergency ≥0.80"}
-    Break -->|yes| Gate
-    Cooldown -->|no| Gate["Pre-AI Gate<br/>entry feasibility<br/>directional sanity<br/>chaos survival"]
-    Gate -->|PASS| AI["AI Session<br/>Binary Star debate<br/>~30-90s"]
-    Gate -->|FAIL| Sleep
-    AI --> Trade{"--trade?"}
-    Trade -->|yes| Guardian["Guardian Check<br/>protect • partial TP • trail"]
-    Trade -->|no| Sleep["Sleep until next pulse"]
-    Guardian --> Sleep
+graph LR
+    Pulse["2-min Pulse"]
+    Pulse --> Scout["SniperScout<br/>klines, OI, CVD, liq"]
+    Scout --> Detect["13 detectors + decay"]
+    Detect --> Score["ConfluenceEngine"]
+    Score --> Gate{"Pre-AI Gate<br/>3 safety checks"}
+
+    Gate -->|PASS| Cooldown{"In cooldown?"}
+    Gate -->|FAIL| Sleep["Sleep 2 min"]
+
+    Cooldown -->|no| Debate["Binary Star Debate<br/>~30-90s"]
+    Cooldown -->|yes| Break{"Cooldown<br/>break?"}
+
+    Break -->|yes| Debate
     Break -->|no| Sleep
+
+    Debate --> Trade{"--trade?"}
+    Trade -->|yes| Guardian["Guardian<br/>partial TP + trailing"]
+    Trade -->|no| Sleep
+    Guardian --> Sleep
 ```
 
 ### Guardian: Position Protection
@@ -233,15 +215,7 @@ Every pulse with `--trade` enabled, the Guardian runs for each symbol with an op
 | 3 | Position unprotected (no OCO) | Place synthetic OCO (TP limit + SL limit). **SL-breach guard:** skip if ticker = 0 or None; emergency close if price already past SL |
 | 4 | Position protected | OCO qty re-alignment → multi-level partial TP → dynamic trailing SL |
 
-**Key fixes (2026-06-30):**
-
-| Fix | Issue | Resolution |
-|-----|-------|------------|
-| **A** | `get_ticker_price()` returns 0 → false emergency close on LONG | Added `current_price <= 0` guard before SL-breach check — defers to next pulse |
-| **D** | Direction conflict (LONG intent vs SHORT position) detected but not fixed | On conflict: `cancel_all_symbol_orders()` → position goes naked → next pulse Case 3 emergency-closes |
-| **E** | `find_level_and_sync_sl` falls through after emergency close | Returns `0` after emergency close — daemon resets level tracking instead of storing stale state |
-
-**Partial TP Levels** (sequential, fire when `|price − entry| ≥ N × ATR`):
+**Partial TP Levels** (sequential, fire when `\|price − entry\| ≥ N × ATR`):
 
 | Level | ATR Threshold | Close % | SL Behavior |
 |-------|---------------|---------|-------------|
@@ -285,7 +259,7 @@ stateDiagram-v2
 ### Cross-Symbol Leader Sync
 
 When a symbol triggers, correlated followers receive a boost signal:
-- **XAUTUSDT** → correlation 0.40 with BTC
+- **XAUTUSDT** → correlation 0.40 with BTCUSDT
 
 The boost re-evaluates confluence for the follower — if it tips over threshold, the follower also triggers an AI session.
 
@@ -310,10 +284,10 @@ pip install -e .
 cp .env.example .env
 # Edit .env with your keys:
 #   BINANCE_API_KEY, BINANCE_API_SECRET
-#   GEMINI_API_KEY / DEEPSEEK_API_KEY / QWEN_API_KEY
+#   DEEPSEEK_API_KEY / GEMINI_API_KEY / QWEN_API_KEY
 #   EMAIL_* (optional, for session notifications)
 
-# 4. Configure per-symbol trading parameters
+# 5. Configure per-symbol trading parameters
 # Edit config/symbol_config.yaml — ensure precision_qty, precision_price,
 # min_order_qty, and sl_slippage_buffer are set for each symbol you trade.
 ```
@@ -322,15 +296,19 @@ cp .env.example .env
 ```
 data/prod/
 ├── sessions/        # Session JSON archives
-├── klines/           # Chart PNGs
-├── audits/           # Audit reports
-├── evolution/        # Evolution proposals
-├── session.log       # Session engine logs
-├── sniper.log        # Sniper daemon logs
-├── audit.log         # Audit worker logs
-├── .sniper_alive.json      # Lightweight heartbeat
-├── .sniper_heartbeat.json  # Guardian heartbeat
-└── .sniper_daemon_status.json  # Daemon status
+├── klines/          # Chart PNGs
+├── audits/          # Audit reports
+├── evolution/       # Evolution proposals and sandbox results
+├── html/            # Rendered email previews
+├── market/          # Historical market observation snapshots
+├── session.log      # Session engine logs
+├── sniper.log       # Sniper daemon logs
+├── audit.log        # Audit worker logs
+├── .sniper_alive.json           # Lightweight heartbeat (zero API calls)
+├── .sniper_heartbeat.json       # Guardian heartbeat (balance + positions)
+├── .sniper_daemon_status.json   # Daemon status (runtime metadata)
+├── .session_run_status.json     # Session run progress
+└── .backtest_status.json        # Backtest run progress
 ```
 
 ---
@@ -352,9 +330,9 @@ python run.py sniper --symbol BTC --trade 1000 -p data/prod            # manual 
 python run.py sniper --symbol "BTC,XAUT" --trade -p data/prod      # multi-symbol
 
 # Historical backtest
-python run.py backtest-run --symbol BTC --timestamp "2025-01-15T14:00:00Z" -p data/prod
-python run.py backtest-run --symbol BTC --start T-30d --end now --samples 50 -p data/prod
-python run.py backtest-run --symbol BTC --write_status -p data/prod     # dashboard mode
+python run.py backtest-run --symbol BTCUSDT --timestamp "2025-01-15T14:00:00Z" -p data/prod
+python run.py backtest-run --symbol BTCUSDT --start T-30d --end now --samples 50 -p data/prod
+python run.py backtest-run --symbol BTCUSDT --write_status -p data/prod     # dashboard mode
 
 # Forensic audit
 python run.py audit -p data/prod                                        # batch all sessions
@@ -376,7 +354,7 @@ python run.py patch -f data/prod/evolution/proposal_001.json --symbol XAUT
 # Direct invocation (same args as run.py subcommands)
 python run_session.py --symbol BTC -p data/prod
 python run_sniper.py --symbol BTC --trade -p data/prod
-python run_backtest.py --symbol BTC --start T-30d --end now --samples 50 -p data/prod
+python run_backtest.py --symbol BTCUSDT --start T-30d --end now --samples 50 -p data/prod
 python run_audit.py -p data/prod
 python run_evolution.py --symbol BTC --samples 100 -p data/prod
 python run_patch.py -f data/prod/evolution/proposal_001.json --symbol BTC
@@ -386,29 +364,49 @@ python run_patch.py -f data/prod/evolution/proposal_001.json --symbol BTC
 
 | Script | Description |
 |--------|-------------|
-| `scripts/archive_sessions.py` | Archive old session JSONs to dated subdirectories |
-| `scripts/calculate_qty.py --symbol BTC --entry 90000 --sl 89500` | Calculate position size from risk parameters |
+| `scripts/archive_sessions.py -p <path> -v <version>` | Archive old session JSONs to versioned subdirectories |
+| `scripts/calculate_qty.py -f <session.json> -b <balance>` | Calculate position size from session tactical parameters |
 | `scripts/check_margin_state.py --symbol BTC` | Inspect Binance cross-margin state, positions, orders |
-| `scripts/clean_neutral_sessions.py` | Remove sessions where opinion was NEUTRAL (cleanup) |
-| `scripts/export_session.py` | Export a session JSON to readable format |
-| `scripts/market_recon.py` | Quick topography snapshot without AI inference |
-| `scripts/render_email_html.py` | Render session notification HTML for debugging |
-| `scripts/sandbox_offline.py` | Run evolver sandbox simulations offline |
-| `scripts/sandbox_online.py` | Run evolver sandbox against live paper account |
+| `scripts/clean_neutral_sessions.py -p <path>` | Remove sessions where opinion was NEUTRAL (cleanup) |
+| `scripts/clean_version_sessions.py -p <path> -v <version>` | Remove sessions from a specific software version |
+| `scripts/clean_orphan_artifacts.py -p <path>` | Delete kline/audit/HTML files with no matching session |
+| `scripts/export_session.py -f <report.json> -p <path>` | Extract a session from a forensic report |
+| `scripts/market_recon.py --symbol BTC -p <path>` | Quick topography snapshot without AI inference |
+| `scripts/render_email_html.py -f <session.json> -p <path>` | Render session notification HTML for debugging |
+| `scripts/sandbox_offline.py -f <sandbox.json> -p <path>` | Re-run sandbox validation offline |
+| `scripts/sandbox_online.py -f <proposal.json> -p <path>` | Run evolver sandbox against live paper account |
+
+### Dashboard
+
+A web UI served by FastAPI at `http://localhost:8080`:
+
+```bash
+python -m src.dashboard.server --data-root data/prod
+```
+
+| Page | Route | Description |
+|------|-------|-------------|
+| Performance | `/performance` | Aggregated KPIs, PnL, win rate, equity curve |
+| Live | `/live` | Live daemon status, active sessions, guardian state |
+| Development | `/development` | Development diagnostics and controls |
+| Sessions | `/sessions/{filename}` | Individual session detail reports |
+| Audits | `/audits/{filename}` | Individual audit detail reports |
+
+The dashboard requires user authentication via `config/auth/users.json` with role-based permissions. Access the API directly at `/api/*` endpoints for sessions, audits, sniper, and backtest operations.
 
 ---
 
 ## AI Providers
 
-| Provider | Model | Vision | Context Cache | Notes |
-|----------|-------|--------|---------------|-------|
-| **Gemini** | `gemini-3.5-flash` | ✅ | ✅ | Native multimodal, context caching for lower cost |
-| **DeepSeek** | `deepseek-v4-pro` | ❌ | ❌ | Thinking/reasoning models, lowest cost |
-| **Qwen** | `qwen3.7-max` | ❌ | ❌ | Strong on structured JSON output |
+| Provider | Model | Vision | Context Cache | Architecture | Notes |
+|----------|-------|--------|---------------|-------------|-------|
+| **DeepSeek** (active) | `deepseek-v4-pro` | ❌ | ❌ | OpenAI-compatible (`OpenAICompatibleAdapter`) | Thinking/reasoning models, lowest cost |
+| **Gemini** | `gemini-3.5-flash` | ✅ | ✅ | Native `google-genai` SDK | Native multimodal, context caching for lower cost |
+| **Qwen** | `qwen3.7-max` | ❌ | ❌ | OpenAI-compatible (`OpenAICompatibleAdapter`) | Strong on structured JSON output |
 
-Provider is selected via `llm.active_provider` in `config/global_config.yaml`. Each provider has independent model, temperature, and timeout settings.
+Provider is selected via `llm.active_provider` in `config/global_config.yaml`. Each provider has independent model, temperature, and timeout settings. All agents are provider-agnostic — no agent code imports a provider SDK.
 
-**Abstract interface:** All providers implement `AbstractAIClient.generate_content()` — agents are decoupled from SDKs via provider-agnostic `AIResponse`, `ToolCall`, `VisualPart`, and `UsageMetadata` types.
+**Provider-agnostic types:** `AbstractAIClient.generate_content()` returns `AIResponse` containing `text`, `tool_calls`, `usage`, and optional `reasoning_content` (DeepSeek thinking models). Visual data is passed as `VisualPart` (mime_type + raw bytes).
 
 ---
 
@@ -416,29 +414,32 @@ Provider is selected via `llm.active_provider` in `config/global_config.yaml`. E
 
 ```
 config/
-├── global_config.yaml     # LLM, sniper, guardian, binary_star, evolver, sandbox, trade
-├── strategy_config.yaml   # Analysis windows, topography, regime, structural nodes
+├── global_config.yaml     # LLM, trade management, sniper, guardian, binary_star, evolver, sandbox
+├── strategy_config.yaml   # Analysis windows, topography, regime, temporal physics, audit
 ├── symbol_config.yaml     # Per-symbol precision + strategy overrides
-├── visual_config.yaml     # Chart colors, rendering parameters
+├── visual_config.yaml     # Chart colors, rendering parameters, liquidation heatmap
 ├── prompts/
 │   ├── binary_star.md     # Shared system instruction (both agents)
 │   ├── session.md         # Session Analyst role prompt
 │   ├── critic.md          # Critic Agent role prompt
 │   └── evolver.md         # Evolver Agent role prompt
-└── auth/                  # API credentials (gitignored)
+├── auth/                  # API credentials / user permissions (gitignored)
 ```
 
 ### Resolution Order
 
 ```mermaid
-graph TD
-    Base["strategy_config.yaml<br/>+ global_config.yaml"] --> Merge["deep merge<br/>per-symbol overrides"]
-    Symbol["symbol_config.yaml<br/>symbol.overrides section"] --> Merge
-    Merge --> Resolved["resolved config<br/>used by all modules"]
-    Evolution["evolution patches"] -->|"patch overrides first,<br/>then fall back to base"| Symbol
+graph LR
+    Global["global_config.yaml<br/>LLM · sniper · guardian"] --> Merge1["deep merge"]
+    Strategy["strategy_config.yaml<br/>regime · temporal · audit"] --> Merge1
+    Merge1 --> Base["base config"]
+    Base --> Merge2["deep merge<br/>per-symbol overrides"]
+    Symbol["symbol_config.yaml<br/>precision · overrides"] --> Merge2
+    Merge2 --> Resolved["resolved config<br/>used by all modules"]
+    Evolution["evolution patches"] -.->|patch overrides| Symbol
 ```
 
-**Per-symbol overrides:** `symbol_config.yaml` entries (e.g., `XAUTUSDT.overrides`) are deep-merged onto the corresponding base config sections. This allows per-instrument tuning of regime thresholds, volatility parameters, CVD sensitivity, and sniper probe thresholds without duplicating config files.
+**Per-symbol overrides:** `symbol_config.yaml` entries (e.g., `XAUTUSDT.overrides`) are deep-merged onto the corresponding base config sections. This allows per-instrument tuning of regime thresholds, volatility parameters, CVD sensitivity, and sniper probe thresholds without duplicating config files. Override keys mirror the base config structure exactly.
 
 ---
 
@@ -479,17 +480,5 @@ graph TD
 - Symbols not in `symbol_config.yaml` are rejected by the order executor — no implicit defaults
 - `net_qty_tolerance` (1e-5) defines FLAT: positions below this are considered closed
 
----
-
-## Dashboard
-
-A web UI (Bottle server) accessible at `http://localhost:8080`:
-
-| Page | Route | Description |
-|------|-------|-------------|
-| Sessions | `/` | Session history, detailed reports, charts |
-| Sniper | `/sniper` | Live daemon status, heartbeats, active session progress |
-| Backtest | `/backtest` | Batch backtest controls and results |
-| Audit | `/audit` | Audit report browser |
-
-Start with: `python -m src.dashboard.server` (serves from `data/prod/`).
+### FIFO Entry Price
+- Average entry price is calculated FIFO via trade history. BUYs open lots, SELLs close oldest lots first. Cached per symbol, invalidated when `net_qty` changes
