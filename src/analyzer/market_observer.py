@@ -10,6 +10,7 @@ from src.infrastructure.exchange.models import KlineData, OpenInterestData, Rati
 from src.analyzer.volume_profile import VolumeProfileAnalyzer, VolumeProfileConfig
 from src.analyzer.market_regime import MarketRegimeAnalyzer, MarketRegimeConfig
 from src.analyzer.chart_generator import ChartGenerator
+from src.analyzer.visual_context_summarizer import VisualContextSummarizer
 from src.analyzer.liquidation_estimator import LiquidationEstimator
 from src.config.sub_configs import RegimeConfig, VisualConfig
 from src.utils.datetime_utils import (
@@ -604,6 +605,7 @@ class MarketObserver:
         self._volume_profile_analyzer = self._init_volume_profile()
         self._regime_analyzer = self._init_regime()
         self._charting = chart_generator
+        self._summarizer = VisualContextSummarizer()
 
         # Hardening: Dynamic re-configuration of charting engine from global tokens
         self._charting.config = self._charting.config.__class__(
@@ -725,29 +727,67 @@ class MarketObserver:
     def _generate_snapshots(self, raw: RawMarketData, metrics: ProcessedMarketMetrics,
                             m_df: 'pd.DataFrame', n_df: 'pd.DataFrame',
                             data_root: str, at_time: datetime) -> Dict[str, str]:
-        """Triggers high-fidelity chart generation for Macro and Micro contexts.
-
-        Accepts pre-processed DataFrames from refine() to avoid redundant kline processing.
-        """
+        """Triggers high-fidelity chart generation and text summaries for Macro and Micro contexts."""
         img_dir = os.path.join(data_root, "klines")
         self._charting.storage.output_dir = img_dir
 
         ctx = {**metrics.volume_profile, "timestamp": format_datetime(at_time, FILE_TIMESTAMP_FORMAT)}
-        
         liq_clusters = metrics.sentiment_signals.get("liquidation_clusters")
-        
+        atr_macro = metrics.price_dynamics['atr_macro']
+
+        # Macro
+        macro_png = self._charting.generate_chart(
+            self.symbol, m_df, ctx, liq_clusters,
+            time_interval=self.config.macro_context.time_interval,
+            atr=atr_macro,
+        )
+        macro_md = self._write_summary(
+            self.symbol, m_df, ctx, liq_clusters,
+            time_interval=self.config.macro_context.time_interval,
+            atr=atr_macro, output_dir=img_dir,
+        )
+
+        # Micro
+        micro_png = self._charting.generate_chart(
+            self.symbol, n_df, ctx, liq_clusters,
+            time_interval=self.config.micro_context.time_interval,
+            atr=atr_macro,
+        )
+        micro_md = self._write_summary(
+            self.symbol, n_df, ctx, liq_clusters,
+            time_interval=self.config.micro_context.time_interval,
+            atr=atr_macro, output_dir=img_dir,
+        )
+
         return {
-            "macro_snapshot": self._charting.generate_chart(
-                self.symbol, m_df, ctx, liq_clusters, 
-                time_interval=self.config.macro_context.time_interval,
-                atr=metrics.price_dynamics['atr_macro']
-            ),
-            "micro_snapshot": self._charting.generate_chart(
-                self.symbol, n_df, ctx, liq_clusters, 
-                time_interval=self.config.micro_context.time_interval,
-                atr=metrics.price_dynamics['atr_macro']
-            )
+            "macro_snapshot": macro_png,
+            "micro_snapshot": micro_png,
+            "macro_snapshot_summary": macro_md,
+            "micro_snapshot_summary": micro_md,
         }
+
+    def _write_summary(self, symbol: str, df: 'pd.DataFrame',
+                       profile_data: Dict[str, Any],
+                       liquidations, time_interval: str,
+                       atr: float, output_dir: str) -> str:
+        """Generate visual context summary .md file and return its path."""
+        os.makedirs(output_dir, exist_ok=True)
+        # Derive .md path from same naming convention as .png
+        from src.utils.datetime_utils import format_timestamp_for_filename
+        ts = profile_data.get("timestamp", "")
+        ts_readable = format_timestamp_for_filename(ts)
+        filename = f"{symbol}_klines_{time_interval}_{ts_readable}.md"
+        filepath = os.path.join(output_dir, filename)
+
+        text = self._summarizer.generate(
+            symbol=symbol, df=df, profile_data=profile_data,
+            liquidations=liquidations, time_interval=time_interval, atr=atr,
+        )
+        with open(filepath, 'w') as f:
+            f.write(text)
+
+        logger.info(f"[{symbol}] visual summary written | interval={time_interval} | file={filepath}")
+        return filepath
 
     def _package_observation(self, metrics: ProcessedMarketMetrics, charts: Dict[str, str], at_time: datetime) -> Dict[str, Any]:
         """Assembles the final forensic JSON bundle."""
