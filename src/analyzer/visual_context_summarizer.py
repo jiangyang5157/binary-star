@@ -49,37 +49,41 @@ class VisualContextSummarizer:
             logger.warning("VisualContextSummarizer: empty DataFrame — returning minimal output")
             return f"# {symbol} — {time_interval} STRUCTURAL PANORAMA\n\n(no data)"
 
-        current_price = float(df['close'].iloc[-1])
-        atr_val = atr or (
-            float(df['atr'].iloc[-1]) if 'atr' in df.columns and not pd.isna(df['atr'].iloc[-1]) else 0.0
-        )
+        try:
+            current_price = float(df['close'].iloc[-1])
+            atr_val = atr if atr is not None else (
+                float(df['atr'].iloc[-1]) if 'atr' in df.columns and not pd.isna(df['atr'].iloc[-1]) else 0.0
+            )
 
-        timestamp = profile_data.get("timestamp", "")
-        poc = float(profile_data.get("poc", 0))
-        vah = float(profile_data.get("vah", 0))
-        val = float(profile_data.get("val", 0))
-        va_span = vah - val
+            timestamp = profile_data.get("timestamp", "")
+            poc = float(profile_data.get("poc") or 0)
+            vah = float(profile_data.get("vah") or 0)
+            val = float(profile_data.get("val") or 0)
+            va_span = vah - val
 
-        liq_dict = self._normalize_liquidations(liquidations)
-        anchors_above = list(profile_data.get("anchors_above", []) or [])
-        anchors_below = list(profile_data.get("anchors_below", []) or [])
-        raw_histogram = list(profile_data.get("profile_data", []) or [])
+            liq_dict = self._normalize_liquidations(liquidations)
+            anchors_above = list(profile_data.get("anchors_above", []) or [])
+            anchors_below = list(profile_data.get("anchors_below", []) or [])
+            raw_histogram = list(profile_data.get("profile_data", []) or [])
 
-        sections = [
-            self._section_header(symbol, time_interval, timestamp),
-            self._section_price_ladder(current_price, atr_val, va_span,
-                                       poc, vah, val, anchors_above, anchors_below,
-                                       liq_dict),
-            self._section_candlestick(df, time_interval),
-            self._section_volume_at_time(df),
-            self._section_volume_profile(poc, vah, val, va_span, current_price,
-                                         anchors_above, anchors_below, raw_histogram),
-            self._section_liquidation(liq_dict, poc, vah, val,
-                                      anchors_above, anchors_below, current_price),
-            self._section_key_levels(current_price, poc, vah, val,
-                                     anchors_above, anchors_below, liq_dict),
-        ]
-        return "\n\n".join(s for s in sections if s)
+            sections = [
+                self._section_header(symbol, time_interval, timestamp),
+                self._section_price_ladder(current_price, atr_val, va_span,
+                                           poc, vah, val, anchors_above, anchors_below,
+                                           liq_dict),
+                self._section_candlestick(df, time_interval),
+                self._section_volume_at_time(df),
+                self._section_volume_profile(poc, vah, val, va_span, current_price,
+                                             anchors_above, anchors_below, raw_histogram),
+                self._section_liquidation(liq_dict, poc, vah, val,
+                                          anchors_above, anchors_below, current_price),
+                self._section_key_levels(current_price, poc, vah, val,
+                                         anchors_above, anchors_below, liq_dict),
+            ]
+            return "\n\n".join(s for s in sections if s)
+        except Exception as e:
+            logger.warning(f"VisualContextSummarizer failed: {e}", exc_info=True)
+            return f"# {symbol} — {time_interval} STRUCTURAL PANORAMA\n\n(generation error: {e})"
 
     # ── Section 1: Header ──────────────────────────────────────────────────
 
@@ -489,8 +493,8 @@ class VisualContextSummarizer:
             direction = "+" if nearest[0] > current_price else "−"
             lines.append(f"  Nearest cluster: {nearest[2].capitalize()} @ {direction}{nearest_dist:.2f}%")
 
-            above_threat = [(liq['price'], liq['intensity']) for liq in above_shorts]
-            below_threat = [(liq['price'], liq['intensity']) for liq in below_longs]
+            above_threat = [(liq['price'], liq.get('intensity', 0)) for liq in above_shorts]
+            below_threat = [(liq['price'], liq.get('intensity', 0)) for liq in below_longs]
             all_threat = above_threat + below_threat
             if all_threat:
                 threat = max(all_threat, key=lambda x: x[1])
