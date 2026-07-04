@@ -1,10 +1,9 @@
 """DeepSeekAdapter — thin subclass of OpenAICompatibleAdapter."""
-import json
 import logging
 from typing import Any
 
-from src.infrastructure.ai._openai_helpers import OpenAICompatibleAdapter, clean_json_text, convert_tools, build_messages
-from src.infrastructure.ai_client import AIResponse, ToolCall, UsageMetadata, VisualMode
+from src.infrastructure.ai._openai_helpers import OpenAICompatibleAdapter, convert_tools, build_messages
+from src.infrastructure.ai_client import AIResponse, VisualMode
 
 logger = logging.getLogger(__name__)
 
