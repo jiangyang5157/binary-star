@@ -94,10 +94,8 @@ class CriticAgent(BaseAgent):
         last_plan: Dict[str, Any],
         symbol: str,
         debate_history: Optional[List[Dict[str, Any]]] = None,
-        cache_resource_name: Optional[str] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None,
-        visual_parts: Optional[List[Any]] = None,
         visual_text: Optional[str] = None,
         system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -108,11 +106,9 @@ class CriticAgent(BaseAgent):
         logger.info(f"[{symbol}] auditing proposal")
         try:
             context = self._build_context(
-                observation,
-                last_plan,
+                observation, last_plan,
                 debate_history=debate_history,
                 math_fact_check=math_fact_check,
-                cache_resource_name=cache_resource_name
             )
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
 
@@ -120,18 +116,12 @@ class CriticAgent(BaseAgent):
             if visual_text:
                 prompt = prompt + '\n\n' + visual_text
 
-            payload = [prompt]
-            if not cache_resource_name and visual_parts:
-                payload.extend(visual_parts)
-
-            # Execute audit at cold temperature for logical rigor and determinism
             return self._execute_ai_cycle(
-                payload=payload,
+                payload=[prompt],
                 temperature=self.config.model_temperature,
                 agent_name="Critic_Evaluation",
-                cache_resource_name=cache_resource_name,
                 tools=tools,
-                system_instruction=system_instruction
+                system_instruction=system_instruction,
             )
         except Exception as e:
             logger.error(f"[{symbol}] evaluation failed | error={e}")
@@ -143,12 +133,9 @@ class CriticAgent(BaseAgent):
         last_plan: Dict[str, Any],
         debate_history: Optional[List[Dict[str, Any]]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
-        cache_resource_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """Internal logic for constructing the adversarial audit context."""
-        if cache_resource_name:
-            observation_json = "[CONTEXT_PROVIDED_VIA_GEMINI_CACHE]"
-        elif observation:
+        if observation:
             observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
         else:
             raise ValueError("Critic: Audit attempted without baseline telemetry.")
