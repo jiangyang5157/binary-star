@@ -15,7 +15,7 @@ class DebateLoop:
                  max_rounds: int, cache_resource_name: str | None,
                  tools: list, visual_parts: list, shared_instruction: str,
                  session_config, critic_config,
-                 visual_context_text: str | None = None):
+                 visual_text: str | None = None):
         self.session_agent = session_agent
         self.critic_agent = critic_agent
         self.math_checker = math_checker
@@ -26,7 +26,7 @@ class DebateLoop:
         self.shared_instruction = shared_instruction
         self.session_config = session_config
         self.critic_config = critic_config
-        self.visual_context_text = visual_context_text
+        self.visual_text = visual_text
 
     def run(self, observation: dict, symbol: str,
             progress_callback=None) -> dict[str, Any]:
@@ -68,7 +68,7 @@ class DebateLoop:
                 tools=self.tools,
                 debate_history=compressed_history,
                 visual_parts=self.visual_parts,
-                visual_context_text=self.visual_context_text,
+                visual_text=self.visual_text,
                 system_instruction=self.shared_instruction
             )
 
@@ -108,7 +108,7 @@ class DebateLoop:
                 math_fact_check=math_fact_check,
                 tools=None,
                 visual_parts=self.visual_parts,
-                visual_context_text=self.visual_context_text,
+                visual_text=self.visual_text,
                 system_instruction=self.shared_instruction
             )
 
