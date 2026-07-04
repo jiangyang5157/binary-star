@@ -204,7 +204,7 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         target_model = self.default_model if "gemini" in model.lower() else model
         messages = build_messages(system_instruction, contents,
                                   response_json=response_json,
-                                  supports_vision=self.visual_mode != VisualMode.NONE)
+                                  supports_vision=(self.visual_mode == VisualMode.IMAGE))
         openai_tools = convert_tools(tools) if tools else None
 
         api_params: dict[str, Any] = {
