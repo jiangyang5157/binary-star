@@ -197,7 +197,7 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
-        target_model = self.default_model if "gemini" in model.lower() else model
+        target_model = model or self.default_model
         messages = build_messages(system_instruction, contents,
                                   response_json=response_json,
                                   supports_vision=(self.visual_mode == VisualMode.IMAGE))
