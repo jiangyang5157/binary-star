@@ -28,6 +28,8 @@ class VisualContextSummarizer:
     PEAK_SHARPNESS = 2.0
     MARUBOZU_BODY_RATIO = 0.8
     DOJI_BODY_RATIO = 0.2
+    LARGE_BODY_RATIO = 0.7
+    SMALL_BODY_RATIO = 0.3
 
     def __init__(self):
         pass
@@ -117,6 +119,16 @@ class VisualContextSummarizer:
             if p > current_price:
                 above_entries.append((p, f"Short Liq #{i+1}", liq.get("intensity", 0), ""))
 
+        if poc and poc >= current_price:
+            poc_strength = 0.0
+            for a in anchors_above:
+                if abs(a.get("price", 0) - poc) < 0.01:
+                    poc_strength = a.get("strength", a.get("volume", 0))
+                    break
+            if not poc_strength:
+                poc_strength = 0.94
+            above_entries.append((poc, "POC", poc_strength, "Point of Control"))
+
         above_entries.sort(key=lambda x: x[0], reverse=True)
 
         for price, label, str_val, note in above_entries:
@@ -143,16 +155,6 @@ class VisualContextSummarizer:
             if not poc_strength:
                 poc_strength = 0.94
             below_entries.append((poc, "POC", poc_strength, "Point of Control"))
-
-        elif poc and poc >= current_price:
-            poc_strength = 0.0
-            for a in anchors_above:
-                if abs(a.get("price", 0) - poc) < 0.01:
-                    poc_strength = a.get("strength", a.get("volume", 0))
-                    break
-            if not poc_strength:
-                poc_strength = 0.94
-            above_entries.append((poc, "POC", poc_strength, "Point of Control"))
 
         for a in anchors_below:
             p = a.get("price", 0)
@@ -215,9 +217,9 @@ class VisualContextSummarizer:
             else:
                 bar_type = ""
 
-            if body_ratio > 0.7:
+            if body_ratio > self.LARGE_BODY_RATIO:
                 size = "dominant"
-            elif body_ratio < 0.3:
+            elif body_ratio < self.SMALL_BODY_RATIO:
                 size = "small"
             else:
                 size = "moderate"

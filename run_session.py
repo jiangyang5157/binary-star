@@ -192,14 +192,6 @@ class SessionEngine:
 
             return {"error": str(e)}
 
-        finally:
-            # Resource Hygiene: Purge context caches
-            try:
-                cm = self.orchestrator.cache_manager
-                if cm is not None:
-                    cm.delete_market_cache()
-            except Exception as e:
-                logger.warning(f"failed to delete market cache | error={e}")
 
 
 # ── Subprocess status-file progress writer ───────────────────────────────
@@ -305,13 +297,6 @@ class SessionController:
             signal.signal(sig, self._handle_termination)
 
     def _handle_termination(self, signum, frame):
-        logger.warning("termination signal received | cleaning up caches")
-        try:
-            cm = self.engine.orchestrator.cache_manager
-            if cm is not None:
-                cm.delete_market_cache()
-        except Exception as e:
-            logger.warning(f"failed to delete market cache during shutdown | error={e}")
         sys.exit(0)
 
     def run(self):
