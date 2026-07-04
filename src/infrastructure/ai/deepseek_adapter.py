@@ -33,7 +33,8 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
-        target_model = self.default_model if "gemini" in model.lower() else model
+        # model param is always the orchestrator's shared_model — use as-is
+        target_model = model or self.default_model
         messages = build_messages(system_instruction, contents,
                                   response_json=response_json,
                                   supports_vision=(self.visual_mode == VisualMode.IMAGE))
