@@ -1,10 +1,19 @@
 """DeepSeekAdapter — thin subclass of OpenAICompatibleAdapter."""
-from src.infrastructure.ai._openai_helpers import OpenAICompatibleAdapter
-from src.infrastructure.ai_client import VisualMode
+import json
+import logging
+from typing import Any
+
+from src.infrastructure.ai._openai_helpers import OpenAICompatibleAdapter, clean_json_text, convert_tools, build_messages
+from src.infrastructure.ai_client import AIResponse, ToolCall, UsageMetadata, VisualMode
+
+logger = logging.getLogger(__name__)
 
 
 class DeepSeekAdapter(OpenAICompatibleAdapter):
-    """Talks to DeepSeek API via the shared OpenAI-compatible protocol."""
+    """Talks to DeepSeek API via the shared OpenAI-compatible protocol.
+
+    Enables thinking mode (reasoning_effort=high) which disables temperature.
+    """
 
     def __init__(self, api_key: str, default_model: str = "deepseek-v4-flash",
                  base_url: str = "https://api.deepseek.com",
@@ -16,3 +25,40 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
     @property
     def visual_mode(self) -> "VisualMode":
         return VisualMode.TEXT
+
+    def generate_content(
+        self, model: str, contents: list[Any], *,
+        system_instruction: str | None = None,
+        tools: list[Any] | None = None,
+        temperature: float = 0.5,
+        response_json: bool = False,
+        http_timeout: int | None = None,
+    ) -> AIResponse:
+        target_model = self.default_model if "gemini" in model.lower() else model
+        messages = build_messages(system_instruction, contents,
+                                  response_json=response_json,
+                                  supports_vision=(self.visual_mode == VisualMode.IMAGE))
+        openai_tools = convert_tools(tools) if tools else None
+
+        api_params: dict[str, Any] = {
+            "model": target_model,
+            "messages": messages,
+            "reasoning_effort": "high",
+            "extra_body": {"thinking": {"type": "enabled"}},
+        }
+        # thinking mode disables temperature — omit it
+        if openai_tools:
+            api_params["tools"] = openai_tools
+            api_params["tool_choice"] = "auto"
+        if response_json:
+            api_params["response_format"] = {"type": "json_object"}
+        if http_timeout:
+            api_params["timeout"] = http_timeout
+
+        if not self._model_logged:
+            logger.info("AI call | provider=%s | model=%s | thinking=high", self.provider_label, target_model)
+            self._model_logged = True
+        else:
+            logger.debug("AI call | provider=%s | model=%s | thinking=high", self.provider_label, target_model)
+        response = self._get_client().chat.completions.create(**api_params)
+        return self._parse(response, response_json)
