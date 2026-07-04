@@ -123,7 +123,6 @@ class BaseAgent:
         contents: list[Any],
         temperature: float,
         agent_name: str,
-        cache_resource_name: str | None,
         tools: list[Any] | None,
         system_instruction: str | None,
     ) -> AIResponse:
@@ -138,7 +137,7 @@ class BaseAgent:
             ),
             retry=retry_if_exception(lambda e: not isinstance(e, _NON_RETRYABLE)),
         )
-        use_json_mode = not tools and not cache_resource_name
+        use_json_mode = not tools
 
         if self.congestion_controller:
             self.congestion_controller.pace(agent_name=agent_name)
@@ -147,8 +146,8 @@ class BaseAgent:
             self.client.generate_content,
             model=self.model,
             contents=contents,
-            system_instruction=system_instruction if not cache_resource_name else None,
-            tools=tools if not cache_resource_name else None,
+            system_instruction=system_instruction,
+            tools=tools,
             temperature=temperature,
             response_json=use_json_mode,
             http_timeout=self.api_timeout,
@@ -222,7 +221,6 @@ class BaseAgent:
         payload: str | list[Any],
         temperature: float | None = None,
         agent_name: str = "Agent",
-        cache_resource_name: str | None = None,
         tools: list[Any] | None = None,
         system_instruction: str | None = None,
     ) -> dict[str, Any]:
@@ -241,7 +239,7 @@ class BaseAgent:
 
                 response = self._call_ai_provider(
                     contents, temp, agent_name,
-                    cache_resource_name, tools, system_instruction,
+                    tools, system_instruction,
                 )
 
                 if not response.text and not response.tool_calls:
