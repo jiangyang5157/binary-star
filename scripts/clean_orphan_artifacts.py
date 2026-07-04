@@ -45,7 +45,7 @@ def setup_logger(verbose: bool = False):
 #     klines:   BTCUSDT_klines_15m_20260703_084400.png
 #     audit:    BTCUSDT_audit_20260703_084400.json
 #     html:     BTCUSDT_session_20260703_084400.html
-ARTIFACT_RE = re.compile(r'^([A-Z0-9]+)_.*_(\d{8})_(\d{6})\.(json|png|html)$')
+ARTIFACT_RE = re.compile(r'^([A-Z0-9]+)_.*_(\d{8})_(\d{6})\.(json|png|html|md)$')
 
 
 def extract_key(filename: str) -> str | None:
