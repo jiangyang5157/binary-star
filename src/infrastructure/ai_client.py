@@ -83,13 +83,16 @@ class AbstractAIClient(ABC):
         """How this provider receives visual context."""
         return VisualMode.NONE
 
-    @property
-    def supports_context_cache(self) -> bool:
-        return False
+    def begin_session(
+        self,
+        system_instruction: str | None = None,
+        tools: list | None = None,
+        visual_parts: list | None = None,
+        model: str | None = None,
+    ) -> None:
+        """Prepare session context. Adapter may create cache, preload, etc."""
+        pass
 
-    # Cache hooks (Gemini only — no-op by default)
-    def create_cache(self, **kwargs) -> str | None:
-        return None
-
-    def delete_cache(self, name: str) -> bool:
-        return False
+    def end_session(self) -> None:
+        """Release session resources (cache, connections, etc.)."""
+        pass

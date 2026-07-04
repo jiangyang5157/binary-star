@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 class GeminiAdapter(AbstractAIClient):
     """Wraps Google GenAI SDK to match AbstractAIClient."""
 
+    CACHE_TTL_MINUTES = 10
+
     def __init__(self, api_key: str, http_timeout: int = 240):
         # Per Python 3.14 + google-genai 2.9.0 compatibility: http_options
         # must live on the Client (not per-request config dict) to avoid
@@ -23,6 +25,7 @@ class GeminiAdapter(AbstractAIClient):
             api_key=api_key,
             http_options={'timeout': http_timeout * 1000},
         )
+        self._active_cache_name: str | None = None
 
     @property
     def raw_client(self) -> genai.Client:
@@ -50,12 +53,15 @@ class GeminiAdapter(AbstractAIClient):
         gen_config: dict[str, Any] = {
             "temperature": temperature,
         }
-        if tools:
-            gen_config["tools"] = self._normalize_tools(tools)
+        if self._active_cache_name:
+            gen_config["cached_content"] = self._active_cache_name
+        else:
+            if tools:
+                gen_config["tools"] = self._normalize_tools(tools)
+            if system_instruction is not None:
+                gen_config["system_instruction"] = system_instruction
         if response_json:
             gen_config["response_mime_type"] = "application/json"
-        if system_instruction is not None:
-            gen_config["system_instruction"] = system_instruction
 
         gemini_contents = self._to_gemini_contents(contents)
         response = self._client.models.generate_content(
@@ -153,14 +159,34 @@ class GeminiAdapter(AbstractAIClient):
             )
         return AIResponse(text=text, tool_calls=tool_calls, usage=usage)
 
-    def create_cache(self, **kwargs) -> str | None:
-        cache = self._client.caches.create(**kwargs)
-        return cache.name
+    def begin_session(self, system_instruction, tools, visual_parts, model):
+        """Create context cache: images + system_instruction + tools only.
 
-    def delete_cache(self, name: str) -> bool:
-        try:
-            self._client.caches.delete(name=name)
-            return True
-        except Exception as e:
-            logger.warning("cache delete failed | name=%s | error=%s", name, e)
-            return False
+        Observation JSON intentionally excluded — all models send it in prompt text.
+        """
+        cache_contents: list = []
+        for vp in (visual_parts or []):
+            cache_contents.append(
+                types.Part.from_bytes(data=vp.data, mime_type=vp.mime_type)
+            )
+        if not cache_contents:
+            return  # nothing to cache
+
+        cache = self._client.caches.create(
+            model=model,
+            config=types.CreateCachedContentConfig(
+                contents=cache_contents,
+                system_instruction=system_instruction,
+                tools=self._normalize_tools(tools) if tools else None,
+            ),
+            ttl=f'{self.CACHE_TTL_MINUTES}m',
+        )
+        self._active_cache_name = cache.name
+
+    def end_session(self):
+        if self._active_cache_name:
+            try:
+                self._client.caches.delete(name=self._active_cache_name)
+            except Exception as e:
+                logger.warning(f"cache delete failed: {e}")
+            self._active_cache_name = None
