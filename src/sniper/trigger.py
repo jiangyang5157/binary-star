@@ -1361,7 +1361,7 @@ class SniperTrigger:
         trend = metrics['market_regime'].get('trend_intensity', 0)
         strong_t = self.regime_cfg['trend']['trend_intensity_strong']
         s = fired.get('trend_pullback')
-        parts.append(f"trend_pullback={'F:'+str(round(s.strength,2)) if s else f'R:|trend|={abs(trend):.3f}<={strong_t}'}")
+        parts.append(f"trend_pullback={'F:'+str(round(s.strength,2)) if s else f'R:trend={abs(trend):.3f}<={strong_t}'}")
 
         # ── POSITIONING category ──
         ls = metrics['sentiment_signals'].get('ls_ratio_micro', 1.0)
@@ -1378,7 +1378,7 @@ class SniperTrigger:
         parts.append(f"oi_div={'F:'+str(round(s.strength,2)) if s else 'R:no-div/no-prev'}")
         s = fired.get('oi_surge')
         oi_delta = metrics['sentiment_signals'].get('oi_delta_micro', 0.0)
-        parts.append(f"oi_surge={'F:'+str(round(s.strength,2)) if s else f'R:|oi_d|={abs(oi_delta):.4f}<=0.02'}")
+        parts.append(f"oi_surge={'F:'+str(round(s.strength,2)) if s else f'R:oi_delta={abs(oi_delta):.4f}<=0.02'}")
 
         logger.info("[%s] SIGNAL DIAG | %s", self.symbol, " | ".join(parts))
 
