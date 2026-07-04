@@ -68,10 +68,6 @@ sniper:
 
   # --- Alert Muting (Baseline silence rules) ---
   muting:
-    # The duration the Sniper remains "muted" after successfully waking up the AI.
-    # Based on the micro_context candle (usually 15m). 1.0 = strictly muted for 15 minutes post-alert.
-    # 2.5 = 37.5 min. Balanced for dual BTC use: faster throughput than 45 min.
-    pulse_cooldown_multiplier: 2.5
     # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
     # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
     # 8.0h. Covers full Asian session; prevents retail-sentiment re-trigger spam after daemon restart.
@@ -80,10 +76,6 @@ sniper:
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
   probes:
-    # [Tick-Scale Probes]: Micro-sensitivity for intra-pulse CVD swings.
-    # These measure change in the CVD ratio (net_taker / total_volume) between 2-min pulses.
-    # The ratio is instrument-agnostic — 0.20 means the same directional dominance shift for BTC.
-    cvd_divergence_tick_delta: 0.25     # FLOW_ASYMMETRY (CVD 背离)
     # [Damping]: Minimum growth required in CVD intensity between pulses to trigger a repeat wake-up.
     # 1.0 = any increase, 1.1 = 10% growth required.
     cvd_growth_significance_ratio: 1.4
@@ -99,9 +91,9 @@ sniper:
     # Direct ATR-distance thresholds for STRUCTURAL_APPROACH triggers.
     # Price must be within this many ATR units of the structure to fire.
     # NOTE: ATR-normalized thresholds are instrument-agnostic — kept at original values.
-    proximity_vah_val_atr: 0.70   # VAH/VAL boundary test
-    proximity_poc_atr: 0.50       # POC magnet / gravity test
-    proximity_liq_atr: 0.40       # Liquidation cluster magnet
+    vah_val_atr: 0.70             # VAH/VAL boundary test
+    poc_atr: 0.50                 # POC magnet / gravity test
+    liq_atr: 0.40                 # Liquidation cluster magnet
 
   # --- 信号栈引擎 (Signal Stack Engine) ---
   # 14 个信号检测器 × 5 个类别，0-1 连续打分，方向堆叠 + 噪声抵消。
@@ -153,6 +145,8 @@ sniper:
     #   2) 累积 ≥ stacked_break_count 个新信号 → 打破冷却
     #   3) 自上次触发已过 break_min_gap_minutes（绝对最小间隔）
     cooldown:
+      # 全局冷却乘数：effective_cooldown = regime_base_minutes × base_multiplier
+      base_multiplier: 2.5
       regime_base_minutes:
         trending: 25     # 趋势中允许较快重新触发
         ranging: 45      # 震荡中延长，减少反复触发
@@ -202,6 +196,8 @@ sniper:
     # —— 各探测器专属硬阈值 ——
     # 覆盖 detector 内部的默认判断阈值，可按 symbol override。
     thresholds:
+      # 脉冲间 CVD 比率变化幅度。超过此值触发 cvd_divergence 检测。
+      cvd_divergence_tick_delta: 0.25
       # |cvd_intensity_ratio| 需超过此值才触发 taker_imbalance。
       # XAUT 等低流动性资产 CVD 方差大，可提高此值减少噪声。
       taker_imbalance: 0.18

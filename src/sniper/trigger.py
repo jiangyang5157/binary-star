@@ -227,7 +227,7 @@ class SniperTrigger:
         # Default cooldown (used as fallback; adaptive cooldown is primary)
         micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
         base_cooldown = self._parse_interval_to_minutes(micro_interval)
-        self.cooldown_minutes = base_cooldown * self.sniper_cfg['muting']['pulse_cooldown_multiplier']
+        self.cooldown_minutes = base_cooldown * self.sniper_cfg['signal_stack']['cooldown']['base_multiplier']
 
         # Confluence engine (receives signal_stack sub-config only)
         self.engine = ConfluenceEngine(self.sniper_cfg.get('signal_stack', {}))
@@ -710,7 +710,7 @@ class SniperTrigger:
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
         prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
         cvd_delta = cvd - prev_cvd
-        threshold = self.sniper_cfg['probes']['cvd_divergence_tick_delta']
+        threshold = self.sniper_cfg['signal_stack']['thresholds']['cvd_divergence_tick_delta']
         if abs(cvd_delta) <= threshold:
             return None
 
@@ -895,7 +895,7 @@ class SniperTrigger:
 
         dist_vh = abs(price - topo['vah']) / atr
         dist_val = abs(price - topo['val']) / atr
-        threshold = self.sniper_cfg['proximity']['proximity_vah_val_atr']
+        threshold = self.sniper_cfg['proximity']['vah_val_atr']
 
         nearest_dist = min(dist_vh, dist_val)
         nearest = 'VAH' if dist_vh < dist_val else 'VAL'
@@ -936,7 +936,7 @@ class SniperTrigger:
                              prev: Optional[Dict[str, Any]],
                              now: datetime) -> Optional[SignalCard]:
         poc_dist = curr['structural_anchors'].get('poc_dist_atr', 0)
-        threshold = self.sniper_cfg['proximity']['proximity_poc_atr']
+        threshold = self.sniper_cfg['proximity']['poc_atr']
         if abs(poc_dist) >= threshold:
             return None  # too far from POC — gravity not active
 
@@ -981,7 +981,7 @@ class SniperTrigger:
         if atr <= 0:
             return None
         price = curr['price_dynamics']['current_price']
-        threshold = self.sniper_cfg['proximity']['proximity_liq_atr']
+        threshold = self.sniper_cfg['proximity']['liq_atr']
 
         # Check long liquidation clusters (price moving DOWN to sweep)
         for cluster in liq_clusters.get('long_liquidation', []):
@@ -1342,14 +1342,14 @@ class SniperTrigger:
         if atr > 0:
             dist_vh = abs(price - topo['vah']) / atr
             dist_val = abs(price - topo['val']) / atr
-            prox_thresh = self.sniper_cfg['proximity']['proximity_vah_val_atr']
+            prox_thresh = self.sniper_cfg['proximity']['vah_val_atr']
             parts.append(f"boundary_test={'F:'+str(round(s.strength,2)) if s else f'R:dist_vh={dist_vh:.1f},dist_val={dist_val:.1f}>={prox_thresh}'}")
         else:
             parts.append("boundary_test=R:atr=0")
 
         # poc_gravity
         poc_dist = anchors.get('poc_dist_atr', 0)
-        poc_thresh = self.sniper_cfg['proximity']['proximity_poc_atr']
+        poc_thresh = self.sniper_cfg['proximity']['poc_atr']
         s = fired.get('poc_gravity')
         parts.append(f"poc_gravity={'F:'+str(round(s.strength,2)) if s else f'R:poc_dist={abs(poc_dist):.2f}>={poc_thresh}'}")
 

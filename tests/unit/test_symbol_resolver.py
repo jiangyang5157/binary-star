@@ -30,8 +30,10 @@ def sample_base_config():
             },
         },
         "sniper": {
-            "probes": {
-                "cvd_divergence_tick_delta": 0.20,
+            "signal_stack": {
+                "thresholds": {
+                    "cvd_divergence_tick_delta": 0.20,
+                }
             }
         },
     }
@@ -59,8 +61,10 @@ def sample_symbol_config():
                     },
                 },
                 "sniper": {
-                    "probes": {
-                        "cvd_divergence_tick_delta": 0.18,
+                    "signal_stack": {
+                        "thresholds": {
+                            "cvd_divergence_tick_delta": 0.18,
+                        },
                     },
                 },
             },
@@ -127,7 +131,7 @@ def test_resolve_config_applies_overrides(sample_base_config, sample_symbol_conf
     result = resolve_config(sample_base_config, "XAUTUSDT", sample_symbol_config)
     # Overridden values
     assert result["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
-    assert result["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
+    assert result["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
     # Non-overridden values preserved
     assert result["regime_parameters"]["trend"]["trend_intensity_threshold"] == 0.2
     assert result["regime_parameters"]["volatility"]["volatility_baseline_ratio"] == 1.25
@@ -200,7 +204,7 @@ def test_resolve_config_with_real_files():
     """Integration: resolve against actual YAML files."""
     cfg = load_and_resolve_for_symbol("XAUTUSDT")
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
-    assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
+    assert cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
     # Non-overridden values from base
     assert cfg["regime_parameters"]["volatility"]["volatility_extreme_ratio"] == 2.2
     assert cfg["sniper"]["probes"]["cvd_growth_significance_ratio"] == 1.4
@@ -209,7 +213,7 @@ def test_resolve_config_with_real_files():
 def test_load_and_resolve_btc_no_overrides():
     cfg = load_and_resolve_for_symbol("BTCUSDT")
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.12
-    assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.25
+    assert cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.25
 
 
 # ── Data flow: full config pipeline ──────────────────────────────────────────
@@ -247,7 +251,7 @@ def test_full_config_pipeline_evolution():
     cfg = load_and_resolve_for_symbol("XAUTUSDT")
 
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
-    assert cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
+    assert cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
     assert "strategy_intent" in cfg  # from strategy_config
 
 
@@ -262,8 +266,8 @@ def test_full_config_pipeline_sniper():
     strategy = resolve_config(strategy, "XAUTUSDT")
     global_cfg = resolve_config(global_cfg, "XAUTUSDT")
 
-    # Sniper trigger reads sniper config from global_cfg
-    assert global_cfg["sniper"]["probes"]["cvd_divergence_tick_delta"] == 0.18
+    # Sniper trigger reads threshold from signal_stack
+    assert global_cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
     # cvd_impulse_tick_delta removed — verify trend override still resolves
     assert strategy["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     # Non-overridden sniper values
