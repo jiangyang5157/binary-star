@@ -827,12 +827,14 @@ class MarginOrderExecutor:
         else:
             new_sl = min(current_sl, current_price + distance)
 
-        # Round toward safety
-        p_price = cfg["precision_price"]
+        # Round toward safety: floor for LONG (SELL SL), ceil for SHORT (BUY SL).
+        # Uses deterministic rounding — Python's round() is banker's rounding and
+        # can round either direction on .5 boundaries.
+        factor = 10 ** cfg["precision_price"]
         if direction == "LONG":
-            new_sl = round(new_sl, p_price)  # floor-ish via round
+            new_sl = math.floor(new_sl * factor) / factor
         else:
-            new_sl = round(new_sl, p_price)
+            new_sl = math.ceil(new_sl * factor) / factor
 
         if abs(new_sl - current_sl) < 1e-8:
             return True, None  # No change

@@ -297,9 +297,11 @@ class SniperTrigger:
 
     def _determine_regime(self, curr: Dict[str, Any]) -> str:
         """Classify current market regime for threshold modulation."""
-        vii = curr['price_dynamics']['volatility_intensity_index']
-        sf = curr['market_regime']['squeeze_factor']
-        trend = abs(curr['market_regime'].get('trend_intensity', 0))
+        pd = curr.get('price_dynamics', {})
+        mr = curr.get('market_regime', {})
+        vii = pd.get('volatility_intensity_index', 0)
+        sf = mr.get('squeeze_factor', 1.0)
+        trend = abs(mr.get('trend_intensity', 0))
         trend_strong = self.regime_cfg['trend']['trend_intensity_strong']
         squeeze_threshold = self.regime_cfg['volatility']['squeeze_threshold']
         extreme_ratio = self.regime_cfg['volatility']['volatility_extreme_ratio']

@@ -303,11 +303,14 @@ def list_audits(
 def get_audit(filename: str, data_root: str = Query("")):
     """Return the full audit JSON for the given audit filename."""
     data_root = _resolve_data_root(data_root)
-    path = Path(data_root) / "audits" / filename
-    if not path.exists():
+    filepath = (Path(data_root) / "audits" / filename).resolve()
+    audits_dir = (Path(data_root) / "audits").resolve()
+    if not str(filepath).startswith(str(audits_dir) + os.sep) and str(filepath) != str(audits_dir):
+        raise HTTPException(status_code=404, detail="Not found")
+    if not filepath.exists():
         return {"error": "Not found"}
     try:
-        return json.loads(path.read_text())
+        return json.loads(filepath.read_text())
     except Exception:
         return {"error": "Failed to parse"}
 
