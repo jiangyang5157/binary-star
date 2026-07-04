@@ -23,21 +23,12 @@ llm:
 
   gemini:
     model: "gemini-3.5-flash" # gemini-3.5-flash
-    session_temperature: 0.5
-    critic_temperature: 0.1
-    evolver_temperature: 0.0
   deepseek:
     base_url: "https://api.deepseek.com"
     model: "deepseek-v4-pro"  # deepseek-v4-pro deepseek-v4-flash
-    session_temperature: 0.5
-    critic_temperature: 0.1
-    evolver_temperature: 0.0
   qwen:
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model: "qwen3.7-max"  # qwen3.7-max, qwen3.7-plus
-    session_temperature: 0.5
-    critic_temperature: 0.1
-    evolver_temperature: 0.0
 # ═══════════════════════════════════════════════════════════════════════════
 # BINARY STAR — Adversarial Debate Protocol
 # ═══════════════════════════════════════════════════════════════════════════
@@ -47,12 +38,15 @@ binary_star:
   critic_role_prompt: "config/prompts/critic.md"
   max_rounds: 2
   session_confidence_threshold: 20
+  session_temperature: 0.5
+  critic_temperature: 0.1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # EVOLVER — Strategy Evolution Agent
 # ═══════════════════════════════════════════════════════════════════════════
 evolver:
   role_prompt: "config/prompts/evolver.md"
+  evolver_temperature: 0.0
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SNIPER — Monitoring Daemon Trigger Sensitivity

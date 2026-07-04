@@ -38,10 +38,11 @@ class CriticConfig(AgentConfig):
         provider = llm_cfg.get("active_provider", "gemini").lower()
         provider_cfg = llm_cfg.get(provider, {})
         sampling = cfg["analysis_window"]
+        bs_cfg = cfg["binary_star"]
 
         return cls(
             model=str(provider_cfg.get("model")),
-            model_temperature=float(provider_cfg.get("critic_temperature", 0.1)),
+            model_temperature=float(bs_cfg.get("critic_temperature", 0.1)),
             instruction_path=os.path.join(resolve_project_root(), cfg["binary_star"]["critic_role_prompt"]),
             max_tool_iterations=int(cfg["llm"]["max_tool_iterations"]),
             regime=load_regime_config(cfg),
