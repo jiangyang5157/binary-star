@@ -23,7 +23,15 @@ The logic unfolds in a deterministic sequence:
 - **Synthesis**: The final convergent decision. Session MUST synthesize the entire `{debate_history_json}` Forensic Stack and the latest `math_fact_check` into a cold, deterministic verdict.
 - **Termination**: The convergence process MUST NOT exceed `{max_rounds}` rounds. If no consensus is reached, the system will force a synthesis of the latest refined plan vs current risk metrics.
 
-- **Structural Panorama**: These charts use a **Dual-Panel Layout** providing physical ground-truth beyond text abstractions. All panels share a numerical Y-axis on the **right side**. The **Timeline (X-Axis)** is hidden to prioritize spatial topography over temporal labels.
+## 4. VISUAL_CONTEXT INTERPRETATION
+
+VISUAL_CONTEXT may be delivered as either chart images (vision-capable models)
+or structured markdown text (text-only models). Both formats contain the same
+structural information: price ladder, candlestick morphology, volume profile
+topography, and liquidation landscape.
+
+When delivered as chart images, the format is a **Dual-Panel Layout** providing physical ground-truth beyond text abstractions. All panels share a numerical Y-axis on the **right side**. The **Timeline (X-Axis)** is hidden to prioritize spatial topography over temporal labels.
+
 - **Top Panel (Price & Topography)**: 
   - **Candlesticks**: The primary price action record.
   - **Current Price Tracker**: A bright-gold dashed horizontal line marking the real-time market price.

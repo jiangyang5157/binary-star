@@ -10,7 +10,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 - **Proposed Plan**: `{last_plan}` (Target for Audit).
 - **Math Fact Check**: `{math_fact_check}` (Deterministic physical validation of the Proposed Plan).
 - **Debate History**: `{debate_history_json}` (Cumulative record of previous Planning/Auditing rounds).
-- **Visual Evidence**: Multi-timeframe charts are labeled as `VISUAL_CONTEXT: MACRO_SNAPSHOT` and `VISUAL_CONTEXT: MICRO_SNAPSHOT`. These snapshots provide the physical ground-truth of market structure. As a multimodal logic-driver, you are expected to switch between text and visual observation at any time, and integrate them into your thinking to ensure your audit is also anchored in physical reality, not just numerical abstractions (Refer to the **VISUAL_CONTEXT INTERPRETATION** in the system preamble (**`SHARED_TRUTH_BUS_PROTOCOL`**) for structural interpretation).
+- **Visual Evidence**: Multi-timeframe VISUAL_CONTEXT are labeled as `VISUAL_CONTEXT: MACRO_SNAPSHOT` and `VISUAL_CONTEXT: MICRO_SNAPSHOT`. These snapshots provide the physical ground-truth of market structure. As a multimodal logic-driver, you are expected to switch between text and visual observation at any time, and integrate them into your thinking to ensure your audit is also anchored in physical reality, not just numerical abstractions (Refer to the **VISUAL_CONTEXT INTERPRETATION** in the system preamble (**`SHARED_TRUTH_BUS_PROTOCOL`**) for structural interpretation).
 
 # OPERATING_PROTOCOLS
 - **SINGLE-PASS AUDIT**: You must intake the provided `{math_fact_check}` as the absolute physical truth. Output your final RAW JSON verdict in a single pass.
