@@ -68,6 +68,7 @@ class DebateLoop:
                 tools=self.tools,
                 debate_history=compressed_history,
                 visual_parts=self.visual_parts,
+                visual_context_text=self.visual_context_text,
                 system_instruction=self.shared_instruction
             )
 
@@ -107,6 +108,7 @@ class DebateLoop:
                 math_fact_check=math_fact_check,
                 tools=None,
                 visual_parts=self.visual_parts,
+                visual_context_text=self.visual_context_text,
                 system_instruction=self.shared_instruction
             )
 
