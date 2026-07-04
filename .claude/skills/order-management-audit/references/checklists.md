@@ -11,12 +11,12 @@ For each site that cancels then re-places OCO, answer:
 - [ ] Is there a re-verify step between cancel and place? (checks position still exists)
 
 Sites to audit:
-1. `_optimize_same_direction()` — `order_executor.py:~481-516`
-2. `_try_partial_tp()` — `order_executor.py:~665-775`
-3. `_migrate_dynamic_sl()` — `order_executor.py:~843-859`
-4. `guardian_check()` Case 3 OCO placement — `order_executor.py:~284-319`
-5. `guardian_check()` Case 4 qty re-align — `order_executor.py:~325-366`
-6. `find_level_and_sync_sl()` — order_executor.py (dynamic SL sync)
+1. `_optimize_same_direction()` — `order_executor.py:~438-520`
+2. `_try_partial_tp()` — `order_executor.py:~693-804`
+3. `_migrate_dynamic_sl()` — `order_executor.py:~805-935`
+4. `guardian_check()` Case 3 OCO placement — `order_executor.py:~255-320`
+5. `guardian_check()` Case 4 qty re-align — `order_executor.py:~324-371`
+6. `find_level_and_sync_sl()` — `order_executor.py:~575-691`
 
 ### 1.2 Emergency Close Completeness
 For every `place_oco_order` call site, verify:
@@ -37,9 +37,9 @@ For every `place_oco_order` call site, verify:
 ### 1.4 SL Slippage Buffer
 - [ ] LONG direction: `buffered_sl = sl - buffer` at every SELL-exit call site
 - [ ] SHORT direction: `buffered_sl = sl + buffer` at every BUY-exit call site
-- [ ] Check `_optimize_same_direction` line 498
-- [ ] Check `guardian_check` Case 3 line 293
-- [ ] Check `guardian_check` Case 4 line 345
+- [ ] Check `_optimize_same_direction` line 501
+- [ ] Check `guardian_check` Case 3 line 296
+- [ ] Check `guardian_check` Case 4 line 348
 - [ ] Check `_try_partial_tp`
 - [ ] Check `_migrate_dynamic_sl`
 - [ ] Check `find_level_and_sync_sl`
@@ -68,9 +68,9 @@ For every `place_oco_order` call site, verify:
 - [ ] Entry qty from `_calculate_target_qty` — verify risk-per-trade and precision
 
 ### 2.4 Safety Gates
-- [ ] NEUTRAL opinions → return None immediately (line 72-74)
-- [ ] Symbol whitelist: unconfigured symbols rejected (line 77-79)
-- [ ] Config validation: missing/corrupt config → abort (line 87-92)
+- [ ] NEUTRAL opinions → return None immediately (line 71-73)
+- [ ] Symbol whitelist: unconfigured symbols rejected (line 55-60)
+- [ ] Config validation: missing/corrupt config → abort (line 86-94)
 
 ## D3: Guardian Pulse Cycle
 
@@ -210,7 +210,7 @@ For every `place_oco_order` call site, verify:
 - [ ] `place_limit_order` fails → returns None → no trade_state created
 
 ### 8.3 Specific Bug: Ticker=0 Triggers Emergency Close
-- [ ] `guardian_check` line 359-370: if ticker returns 0, SL appears breached
+- [ ] `guardian_check` line 269-287: if ticker returns 0, SL appears breached
 - [ ] LONG: `0 <= sl` → True (for any positive SL) → emergency close!
 - [ ] SHORT: `0 >= sl` → False (for any positive SL) → no trigger
 - [ ] Mitigation: check `current_price > 0` before SL breach check

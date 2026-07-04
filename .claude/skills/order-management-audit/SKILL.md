@@ -32,25 +32,25 @@ Run these in parallel for efficiency. Each dimension spawns a subagent that read
 Trace every path where OCO orders are placed, cancelled, or replaced:
 
 1. **Cancel-Place Gap (Naked Window)**
-   - In `_optimize_same_direction()`: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
-   - In `_try_partial_tp()`: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
-   - In `_migrate_dynamic_sl()`: cancel_all → re-verify → place_oco. Same exposure.
+   - In `_optimize_same_direction()` line 438: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
+   - In `_try_partial_tp()` line 693: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
+   - In `_migrate_dynamic_sl()` line 805: cancel_all → re-verify → place_oco. Same exposure.
    - Measure: for each site, estimate the wall-clock duration of the naked window. Flag any site missing the re-verify step.
 
 2. **Emergency Close Completeness**
    - Every `place_oco_order` call that returns False must trigger `execute_market_close`. Audit every call site:
-     - `_optimize_same_direction()` (line ~500)
-     - `guardian_check()` Case 3 (line ~401)
-     - `guardian_check()` Case 4 qty re-align (line ~446)
-     - `_try_partial_tp()` (line ~857)
-     - `_migrate_dynamic_sl()` (line ~941)
-     - `find_level_and_sync_sl()` (line ~761)
+     - `_optimize_same_direction()` (line ~504)
+     - `guardian_check()` Case 3 (line ~298)
+     - `guardian_check()` Case 4 qty re-align (line ~349)
+     - `_try_partial_tp()` (line ~740)
+     - `_migrate_dynamic_sl()` (line ~830)
+     - `find_level_and_sync_sl()` (line ~678)
    - For each: verify the emergency close itself is checked for failure (`if not self.client.execute_market_close`), and that the caller correctly handles the failure (retry next pulse vs. clear state vs. sentinel).
 
 3. **OCO Qty Re-alignment (Case 4)**
-   - The qty mismatch detection (line ~413-418) compares `oco_sl_qty` to `abs(net_qty)`.
+   - The qty mismatch detection (line ~332) compares `oco_sl_qty` to `abs(net_qty)`.
    - Check: does it correctly handle partial fills? (SL partially executed but remaining qty > 0)
-   - Check: the re-align re-reads TP/SL from active orders. If both TP and SL orders exist, this works. What if only one leg remains? (line ~453 logs critical but does NOT emergency close — is this correct?)
+   - Check: the re-align re-reads TP/SL from active orders. If both TP and SL orders exist, this works. What if only one leg remains? (line ~369 logs critical but does NOT emergency close — is this correct?)
 
 4. **SL Slippage Buffer Direction**
    - Verify `buffered_sl` calculation is directionally correct at every call site:
@@ -72,108 +72,108 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 2. **Scenario B: Same-Direction Optimization**
    - When `current_direction == opinion_direction` (Scenario B), the bot optimizes TP/SL: greedy TP (widest), tightest SL (most protective).
-   - `_optimize_same_direction()` (line 435-516): cancels old OCO → re-verifies position → places new OCO for full net_qty.
+   - `_optimize_same_direction()` (line 438-520): cancels old OCO → re-verifies position → places new OCO for full net_qty.
    - Audit: the cancel-before-place creates a naked window. On OCO placement failure → emergency market close.
-   - Check: `best_tp` and `best_sl` comparison logic is directionally correct (lines 466-475).
+   - Check: `best_tp` and `best_sl` comparison logic is directionally correct (lines 464-478).
 
 3. **Scenario C: FLAT → New Entry**
-   - No position exists → clears stale orders → places LIMIT entry (line 103-112).
+   - No position exists → clears stale orders → places LIMIT entry (line 103-108).
    - Audit: qty calculation uses `_calculate_target_qty` — verify risk-per-trade and precision rounding.
    - Check: what if `cancel_all_symbol_orders` fails? Code returns None (aborts). Position remains flat — safe.
 
 4. **Safety Gates**
-   - NEUTRAL opinions → immediate return (line 72-74). No order action.
-   - Symbol whitelist check (line 77-79): unconfigured symbols rejected before any API calls.
-   - Config validation (line 87-92): missing/corrupt config → abort before touching exchange.
+   - NEUTRAL opinions → immediate return (line 71-73). No order action.
+   - Symbol whitelist check (line 55-60): unconfigured symbols rejected before any API calls.
+   - Config validation (line 86-94): missing/corrupt config → abort before touching exchange.
    - `_EMERGENCY_CLOSED_SENTINEL` (-1) from Scenario B signals daemon to clear trade_state without cooldown reset.
 
 ### D3: Guardian Pulse Cycle — Protection State Machine
 
-**Source file**: `src/agent/order_executor.py` (guardian_check, lines 233-517)
+**Source file**: `src/agent/order_executor.py` (guardian_check, lines 142-432)
 
 1. **Intent Check (STEP 1)**
    - Empty trade_state + no position → early return. Correct.
-   - Empty trade_state + position WITH OCO → reconstruct (line 272-285). 
+   - Empty trade_state + position WITH OCO → reconstruct (line 187-205). 
    - Check: reconstruction only sets direction, tp_price, sl_price. It does NOT set `entry_filled_at`, `projected_holding_hours`, or `entry_atr`. Does downstream code (partial TP, trailing) require these? (Answer: partial TP uses avg_entry from exchange API, trailing uses current_price vs current_sl — neither needs those fields. OK.)
-   - Empty trade_state + position WITHOUT OCO → returns without action (line 287). This means an unprotected position after restart is NOT protected until the next AI session! Is this intentional? (It's a trade-off: the daemon doesn't know the AI's intended TP/SL, so it can't place protection. But it means the position runs naked until the next trigger.)
+   - Empty trade_state + position WITHOUT OCO → returns without action (line ~231). This means an unprotected position after restart is NOT protected until the next AI session! Is this intentional? (It's a trade-off: the daemon doesn't know the AI's intended TP/SL, so it can't place protection. But it means the position runs naked until the next trigger.)
 
 2. **Case 1: No Position — Entry Pending/Expired**
-   - Entry timeout check (line 311-316): uses `projected_waiting_hours`. What if this field is missing from trade_state? (Defaults to 24.0 — reasonable.)
+   - Entry timeout check (line ~218): uses `projected_waiting_hours`. What if this field is missing from trade_state? (Defaults to 24.0 — reasonable.)
    - Expired entry: cancel_order → return {}. What if cancel fails? (Order may already be filled — cancel returns True for unknown orders. OK.)
    - Flat with entry_filled_at: cancel_all → return {}. This clears trade state. Good.
 
 3. **Case 2: Direction Sanity Check**
-   - Compares intent direction vs actual net_qty sign (line 238-250).
+   - Compares intent direction vs actual net_qty sign (line 237-253).
    - Throttles logging via `_last_conflict_key` to avoid spam. Good.
    - On conflict: cancels all orders via `cancel_all_symbol_orders()`. This removes any wrong-side OCO protection.
    - But: does NOT clear trade_state — returns it unchanged. Since `trade_state["direction"]` still disagrees with the actual position sign, Case 2 will fire again on the next pulse (looping). The position stays naked until external intervention (manual close) or until the trade_state is cleared elsewhere.
    - Audit question: should Case 2 clear trade_state so that Case 3 (unprotected position) can emergency-close on the next pulse? Currently the direction mismatch creates a persistent loop.
 
 4. **Case 3: Position Without OCO — Emergency or Place**
-   - Missing TP/SL in trade_state → emergency close (line 349-354).
-   - SL breached check (line 359-370): uses current ticker price. What if ticker is stale or zero?
+   - Missing TP/SL in trade_state → emergency close (line 262-267).
+   - SL breached check (line 269-287): uses current ticker price. What if ticker is stale or zero?
    - Normal case: place OCO. Stale entry order cancelled first. Good.
-   - Check: `entry_filled_at` is set to now() even if the position was entered hours ago (line 398-399). This timestamp is used nowhere downstream — harmless but confusing.
+   - Check: `entry_filled_at` is set to now() even if the position was entered hours ago (line 313-314). This timestamp is used nowhere downstream — harmless but confusing.
 
 5. **Case 4: Protected Position — Partial TP + Trailing**
    - Covered in detail in D4 below.
 
 ### D4: Partial TP + Dynamic Trailing — Sequential Correctness
 
-**Source file**: `src/agent/order_executor.py` (lines 456-516, 771-948)
+**Source file**: `src/agent/order_executor.py` (_try_partial_tp: line 693, _migrate_dynamic_sl: line 805, Case 4 trailing dispatch: line 413-432)
 
 1. **Level Loop Correctness**
-   - `_try_partial_tp` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (`break` at line 801).
+   - `_try_partial_tp` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (`break` at ~740).
    - This is sequential: L1 must fire before L2, etc. Correct and intentional.
-   - Check: after each partial close, it re-verifies position (line 835-842). If position dropped below min_qty after partial close, the remaining OCO may be for a dust amount. The `place_oco_order` call at line 849 uses `live_qty` which could be very small — is there a min-notional check?
+   - Check: after each partial close, it re-verifies position (line ~720). If position dropped below min_qty after partial close, the remaining OCO may be for a dust amount. Is there a min-notional check?
 
 2. **SL Migration Direction**
    - `_migrate_dynamic_sl()`: LONG → `max(current_sl, price - N*ATR)`, SHORT → `min(current_sl, price + N*ATR)`.
    - This means SL only moves in the favorable direction (up for LONG, down for SHORT). Correct.
-   - But: rounding toward safety uses standard `round()` for both directions (line 903-906). The comment says "floor-ish via round" but `round()` is banker's rounding, not floor. For LONG SL, rounding .5 up could move SL slightly higher than intended (more conservative). For SHORT SL, rounding .5 down could move SL slightly lower (more conservative). In both cases the bias is toward safety — acceptable.
+   - But: rounding toward safety uses standard `round()` for both directions (line ~830). The comment says "floor-ish via round" but `round()` is banker's rounding, not floor. For LONG SL, rounding .5 up could move SL slightly higher than intended (more conservative). For SHORT SL, rounding .5 down could move SL slightly lower (more conservative). In both cases the bias is toward safety — acceptable.
 
 3. **Trailing Distance Source**
-   - The trailing distance comes from `levels[active_idx]["sl_distance_atr"]` where `active_idx = new_level - 1` (line 501-502).
+   - The trailing distance comes from `levels[active_idx]["sl_distance_atr"]` where `active_idx = new_level - 1` (line 417-419).
    - After L1 fires, `new_level=1`, `active_idx=0` → uses L1's `sl_distance_atr` (0.0 → no trailing). Correct.
    - After L2 fires, `new_level=2`, `active_idx=1` → uses L2's `sl_distance_atr` (1.0). Correct.
    - After L3 fires, `new_level=3`, `active_idx=2` → uses L3's `sl_distance_atr` (0.75). Correct.
-   - Edge case: if `active_idx >= len(levels)` (all levels exhausted), trailing is skipped (line 503). Correct.
+   - Edge case: if `active_idx >= len(levels)` (all levels exhausted), trailing is skipped (line ~418). Correct.
 
 4. **Level Memory Across Pulses**
    - The daemon tracks `_symbol_level[symbol]` in memory — not persisted.
    - On qty change: level is reset to None, re-initialized via `find_level_and_sync_sl` on next pulse.
    - On daemon restart: level is None, re-initialized same way.
-   - `find_level_and_sync_sl()` (lines 660-769) determines level from exchange state:
+   - `find_level_and_sync_sl()` (lines 575-691) determines level from exchange state:
      - If SL < entry (LONG) → L1 not fired → return 0.
      - If SL >= entry → scan deviation against level thresholds → return first unmet.
-   - Check: the scan loop (line 726-730) uses `for i in range(1, len(levels))` starting at index 1 (L2). This means L1 is detected by SL position, L2+ by deviation. Is this correct when multi-level fired in a single pulse? (The loop advances `next_level` for each met threshold → yes.)
+   - Check: the scan loop uses `for i in range(1, len(levels))` starting at index 1 (L2). This means L1 is detected by SL position, L2+ by deviation. Is this correct when multi-level fired in a single pulse? (The loop advances `next_level` for each met threshold → yes.)
 
 ### D5: Daemon Integration — SniperDaemon + Executor Boundary
 
-**Source file**: `run_sniper.py` (lines 391-548)
+**Source file**: `run_sniper.py` (_guardian_check: line 498, _attempt_trade_execution: line 415)
 
 1. **Trade State Lifecycle**
-   - Created in `_attempt_trade_execution()` (lines 458-468): after `sync_with_opinion` returns an order_id.
-   - Updated by `_optimize_same_direction` return value (lines 451-456): merged into existing state.
-   - Updated by `_guardian_check()` (lines 481-534): replaces trade_state when executor returns modified dict.
-   - Cleared when executor returns `{}`: pops trade_state, level, last_qty, **and resets cooldown** (`last_trigger_time = None`, `cooldown_active = False`).
-   - Cleared on `_EMERGENCY_CLOSED_SENTINEL`: pops trade_state. Cooldown is **NOT** reset — emergency closes retain the cooling-off period.
+   - Created in `_attempt_trade_execution()` (line 415-477): after `sync_with_opinion` returns an order_id.
+   - Updated by `_optimize_same_direction` return value: merged into existing state.
+   - Updated by `_guardian_check()` (line 498-558): replaces trade_state when executor returns modified dict.
+   - Cleared when executor returns `{}`: pops trade_state, level, last_qty, **and resets cooldown** (`last_trigger_time = None`, line ~553).
+   - Cleared on `_EMERGENCY_CLOSED_SENTINEL` (line 466-467): pops trade_state. Cooldown is **NOT** reset — emergency closes retain the cooling-off period.
 
 2. **Qty Change Detection**
-   - `_guardian_check()` compares `net_qty` to `_symbol_last_qty[symbol]` (line 502).
-   - If changed: resets `_symbol_level` (line 504). Correct.
+   - `_guardian_check()` compares `net_qty` to `_symbol_last_qty[symbol]` (line 518).
+   - If changed: resets `_symbol_level` (line 521). Correct.
    - But: the comparison uses `1e-8` tolerance. A round-trip precision truncation (e.g., 0.1 → 0.1000000001) could trigger a spurious reset. The threshold seems fine for meaningful changes but flag if this causes issues.
 
 3. **Level Initialization on Missing**
-   - When `_symbol_level.get(symbol) is None` and trade_state has direction → calls `find_level_and_sync_sl()` (line 511).
+   - When `_symbol_level.get(symbol) is None` and trade_state has direction → calls `find_level_and_sync_sl()` (line 525-531).
    - This happens on: daemon start, qty change, or first pulse after trade entry.
    - Check: `find_level_and_sync_sl` may call `cancel_all_symbol_orders` and `place_oco_order` — API mutations during what's supposed to be a "find" operation. The function name undersells its side effects. This is intentional (syncs SL to match found level) but the caller should be aware.
 
 4. **Session Dispatch Gate (`has_active`)**
-   - `has_active` is trade_state-based: `bool(self.trade_states.get(sym, {}).get("direction"))`.
+   - `has_active` is trade_state-based: `bool(self.trade_states.get(sym, {}).get("direction"))` (line 266).
    - This blocks new sessions when the bot has an active trade (pending entry or filled position). Manual positions without trade_state are allowed through — `sync_with_opinion` handles conflicts, and cooldown regulates frequency.
-   - Guardian runs FIRST (step 0.5), then AI session dispatch (step 3). `has_active` is evaluated AFTER guardian — so if guardian clears trade_state (entry expired or position closed), `has_active` becomes False and AI CAN fire in the same pulse.
-   - **Cooldown auto-reset amplifies this**: Guardian clearing trade_state also resets cooldown (`last_trigger_time = None`). This means a trigger on the very next pulse has zero barriers — no trade_state, no cooldown. The risk of overtrading (position closed → immediate re-entry) is higher than before.
+   - Guardian runs FIRST (step 0.5, line ~171), then AI session dispatch (step 3, line ~269). `has_active` is evaluated AFTER guardian — so if guardian clears trade_state (entry expired or position closed), `has_active` becomes False and AI CAN fire in the same pulse.
+   - **Cooldown auto-reset amplifies this**: Guardian clearing trade_state also resets cooldown (`last_trigger_time = None`, line ~553). This means a trigger on the very next pulse has zero barriers — no trade_state, no cooldown. The risk of overtrading (position closed → immediate re-entry) is higher than before.
    - Emergency close (`_EMERGENCY_CLOSED_SENTINEL`) does NOT go through this path — cooldown is preserved, providing a cooling-off period after forced exits.
    - Audit question: is same-pulse re-entry after a Guardian-cleared position desirable, or should there be a minimum gap?
 
@@ -217,7 +217,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Check: what happens during the FIRST pulse after restart? Guardian runs with reconstructed trade_state. If OCO exists, Case 4 (protected) runs. But `entry_filled_at` is not in reconstructed state — is it needed? (Only for the "flat with entry_filled_at" cleanup path — not needed for active protection.)
 
 3. **Restart With Unprotected Position**
-   - Empty trade_state + position + NO OCO → guardian returns early (line 287).
+   - Empty trade_state + position + NO OCO → guardian returns early (line ~231).
    - Position runs naked until next AI trigger.
    - Risk window: up to `pulse_interval * cooldown` minutes.
 
@@ -230,9 +230,9 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 For every API call in the execution path, check failure handling:
 
-1. **get_symbol_position / get_active_orders**: Called at start of guardian and sync. Failures propagate as exceptions caught by daemon's outer try/except (line 383) — entire pulse skipped. Position unprotected for one pulse.
+1. **get_symbol_position / get_active_orders**: Called at start of guardian and sync. Failures propagate as exceptions caught by daemon's outer try/except (line ~130) — entire pulse skipped. Position unprotected for one pulse.
 
-2. **get_ticker_price**: Returns 0.0 on failure. SL breach check (line 359-370) uses `<=` — if price=0 and SL>0, `0 <= sl` is True for LONG → triggers emergency close! This is a **potential bug**: a ticker failure could emergency-close a perfectly good position.
+2. **get_ticker_price**: Returns 0.0 on failure. SL breach check (line 269-287) uses `<=` — if price=0 and SL>0, `0 <= sl` is True for LONG → triggers emergency close! This is a **potential bug**: a ticker failure could emergency-close a perfectly good position.
 
 3. **cancel_all_symbol_orders**: Returns False on failure. Every call site checks this and either aborts (returns early) or proceeds anyway. Audit each site for the correct behavior.
 
