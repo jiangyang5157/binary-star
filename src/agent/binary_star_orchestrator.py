@@ -1,11 +1,9 @@
-import json
 import os
 import logging
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 
 from src.infrastructure.ai_client import VisualPart, VisualMode
-from src.infrastructure.gemini.cache_manager import GeminiCacheManager
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.math_fact_checker import MathFactChecker
 from src.agent.debate_loop import DebateLoop
@@ -48,10 +46,6 @@ class BinaryStarConfig:
     shared_instruction: str
     bs_instruction_path: str
 
-    # ── Context cache ───────────────────────────────────────────────
-    enable_context_cache: bool
-    cache_expiration_minutes: int
-
     # ── Sub-configs ─────────────────────────────────────────────────
     obs_config: MarketObserverConfig
     session_config: SessionConfig
@@ -85,11 +79,6 @@ class BinaryStarConfig:
         shared_model = provider_cfg.get("model")
         if not shared_model:
             raise ValueError(f"Missing 'model' in llm.{active_provider} configuration.")
-
-        # Context cache
-        cache_cfg = provider_cfg.get("context_cache", {})
-        enable_context_cache = bool(cache_cfg.get("enable", False))
-        cache_expiration_minutes = int(cache_cfg.get("expiration_minutes", 10))
 
         # Shared instruction
         bs_instruction_path = os.path.join(
@@ -139,8 +128,6 @@ class BinaryStarConfig:
             shared_model=str(shared_model),
             shared_instruction=shared_instruction,
             bs_instruction_path=bs_instruction_path,
-            enable_context_cache=enable_context_cache,
-            cache_expiration_minutes=cache_expiration_minutes,
             obs_config=obs_config,
             session_config=session_config,
             critic_config=critic_config,
@@ -225,8 +212,6 @@ class BinaryStarOrchestrator:
         self.shared_model = bs_config.shared_model
         self.shared_instruction = bs_config.shared_instruction
         self.bs_instruction_path = bs_config.bs_instruction_path
-        self.enable_context_cache = bs_config.enable_context_cache
-        self.cache_expiration_minutes = bs_config.cache_expiration_minutes
 
         # ── 2. Infrastructure clients ───────────────────────────────
         self.client = AIFactory.create_client(api_key=api_key, config_dict=self.global_config)
@@ -289,16 +274,6 @@ class BinaryStarOrchestrator:
         self.session_agent.congestion_controller = self.congestion_controller
         self.critic_agent.congestion_controller = self.congestion_controller
 
-        if self.enable_context_cache and self.client.supports_context_cache:
-            self.cache_manager = GeminiCacheManager(
-                adapter=self.client,
-                congestion_controller=self.congestion_controller,
-            )
-        else:
-            if self.enable_context_cache and not self.client.supports_context_cache:
-                logger.info("non-Gemini provider detected, forcing enable_context_cache=False")
-            self.cache_manager = None
-
         self.macro_interval = self.obs_config.macro_context.time_interval
         self.math_checker = MathFactChecker(
             math_tools=self.math_tools,
@@ -326,34 +301,35 @@ class BinaryStarOrchestrator:
         if progress_callback:
             progress_callback(stage=2, activity="Computing market regime…")
 
-        # Prune observation and extract visual parts
-        pruned_observation = observation.copy()
-        if 'visual_context' in pruned_observation:
-            del pruned_observation['visual_context']
-        observation_json = json.dumps(pruned_observation, indent=2, ensure_ascii=False)
         visual_parts, visual_text = self._load_visual_assets(observation)
 
-        # Correct report visual_context paths for non-vision models
+        # Correct report visual_context paths for TEXT mode
         if self._visual_mode == VisualMode.TEXT:
             vc = observation.get('visual_context', {})
             vc['macro_snapshot'] = vc.get('macro_snapshot_summary', vc.get('macro_snapshot', ''))
             vc['micro_snapshot'] = vc.get('micro_snapshot_summary', vc.get('micro_snapshot', ''))
 
-        try:
-            # 2. Set up context cache and agent tools
-            cache_resource_name, tools = self._prepare_agent_tools(
-                observation_json, symbol, visual_parts)
+        tool_declarations = MathTools.get_tool_declarations()
 
+        # Session begin — adapter manages cache internally
+        self.client.begin_session(
+            system_instruction=self.shared_instruction,
+            tools=tool_declarations,
+            visual_parts=visual_parts,
+            model=self.shared_model,
+        )
+
+        try:
+            # Debate Loop
             if progress_callback:
                 progress_callback(stage=2, activity="Preparing AI context…")
 
-            # 3. Adversarial Debate Loop
             self.debate_loop = DebateLoop(
                 session_agent=self.session_agent,
                 critic_agent=self.critic_agent,
                 math_checker=self.math_checker,
                 max_rounds=self.max_rounds,
-                tools=tools,
+                tools=tool_declarations,
                 visual_text=visual_text,
                 shared_instruction=self.shared_instruction,
                 session_config=self.session_config,
@@ -362,17 +338,18 @@ class BinaryStarOrchestrator:
             debate_result = self.debate_loop.run(observation, symbol,
                                                    progress_callback=progress_callback)
 
-            # 4. Finalize and sanitize decision
+            # Finalize
             if progress_callback:
                 progress_callback(stage=4, activity="Synthesizing decision…")
 
             final_decision = self._finalize_and_sanitize(
                 debate_result, observation, symbol,
-                cache_resource_name, tools, visual_parts,
-                visual_text,
-                progress_callback=progress_callback)
+                tools=tool_declarations,
+                visual_text=visual_text,
+                progress_callback=progress_callback,
+            )
 
-            # 5. Package forensic output
+            # Package
             project_root = resolve_project_root()
             config_path = os.path.join(project_root, 'config', 'strategy_config.yaml')
             return {
@@ -396,7 +373,7 @@ class BinaryStarOrchestrator:
             logger.error(f"Binary Star flow failed | error={e}", exc_info=True)
             raise
         finally:
-            self._cleanup_cache()
+            self.client.end_session()
 
     # ── Private helper methods ──────────────────────────────────────────────
 
@@ -440,35 +417,9 @@ class BinaryStarOrchestrator:
         except Exception as e:
             logger.warning(f"failed to inject regime benchmarks | error={e}")
 
-    def _prepare_agent_tools(self, observation_json: str, symbol: str,
-                             visual_parts: list) -> tuple[str | None, list]:
-        """Set up context cache and return the cache resource name and tool list."""
-        tool_declarations = MathTools.get_tool_declarations()
-
-        cache_resource_name = None
-        if self.enable_context_cache:
-            from google.genai import types  # isolated Gemini import for cache
-            cache_resource_name = self.cache_manager.create_market_cache(
-                symbol=symbol,
-                interval=self.macro_interval,
-                contents=[observation_json] + visual_parts,
-                system_instruction=self.shared_instruction,
-                model=self.shared_model,
-                ttl_minutes=self.cache_expiration_minutes,
-                tools=[types.Tool(function_declarations=tool_declarations)]
-            )
-        else:
-            logger.debug(f"[{symbol}] context cache disabled")
-
-        # Return dict-format declarations so convert_tools() can forward
-        # them to the API.  Dispatch happens by name via hasattr(self, name)
-        # on the agent instance, so callables are not needed here.
-        tools = tool_declarations
-        return cache_resource_name, tools
-
     def _finalize_and_sanitize(self, debate_result: dict, observation: dict,
-                               symbol: str, cache_resource_name: str | None,
-                               tools: list, visual_parts: list,
+                               symbol: str,
+                               tools: list,
                                visual_text: str | None,
                                progress_callback=None) -> dict:
         """Run final synthesis (if needed) and sanitize the decision against math truth."""
@@ -487,12 +438,10 @@ class BinaryStarOrchestrator:
                 symbol=symbol,
                 temperature=self.critic_config.model_temperature,
                 agent_name="Session_Synthesis",
-                cache_resource_name=cache_resource_name,
                 tools=tools,
                 debate_history=self.debate_loop._compress_debate_history(debate_history),
-                visual_parts=visual_parts,
                 visual_text=visual_text,
-                system_instruction=self.shared_instruction
+                system_instruction=self.shared_instruction,
             )
 
         # Physical Parameter Sanitization
@@ -514,13 +463,6 @@ class BinaryStarOrchestrator:
 
         return final_decision
 
-    def _cleanup_cache(self) -> None:
-        """Proactively purge the session context cache."""
-        try:
-            if self.cache_manager is not None and self.enable_context_cache and self.cache_manager.active_cache_resource_name:
-                self.cache_manager.delete_market_cache()
-        except Exception as e:
-            logger.warning(f"cache cleanup failed | error={e}")
 
 
     def _load_visual_assets(self, observation: Dict[str, Any]) -> tuple[List[VisualPart], str | None]:

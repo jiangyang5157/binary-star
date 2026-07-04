@@ -182,10 +182,6 @@ class OpenAICompatibleAdapter(AbstractAIClient):
 
         self._model_logged = False
 
-    @property
-    def supports_context_cache(self) -> bool:
-        return False
-
     def _get_client(self):
         if self._client is None:
             from openai import OpenAI

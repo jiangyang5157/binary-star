@@ -33,10 +33,6 @@ class GeminiAdapter(AbstractAIClient):
         return self._client
 
     @property
-    def supports_context_cache(self) -> bool:
-        return True
-
-    @property
     def visual_mode(self) -> VisualMode:
         return VisualMode.IMAGE
 

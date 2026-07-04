@@ -17,21 +17,6 @@ def test_all_adapters_implement_interface():
             f"{type(adapter).__name__} does not implement AbstractAIClient"
 
 
-def test_gemini_adapter_supports_cache():
-    adapter = GeminiAdapter("test-key")
-    assert adapter.supports_context_cache is True
-
-
-def test_openai_adapters_no_cache():
-    adapters = [
-        DeepSeekAdapter("test-key", default_model="test-model"),
-        QwenAdapter("test-key", default_model="test-model"),
-    ]
-    for adapter in adapters:
-        assert adapter.supports_context_cache is False, \
-            f"{type(adapter).__name__} should not support context cache"
-
-
 def test_ai_response_dataclass():
     r = AIResponse(text="{}", usage=UsageMetadata(total_token_count=100))
     assert r.text == "{}"
