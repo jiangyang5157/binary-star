@@ -29,7 +29,7 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
         self, model: str, contents: list[Any], *,
         system_instruction: str | None = None,
         tools: list[Any] | None = None,
-        temperature: float = 0.5,
+        temperature: float = 0.5,          # ignored — thinking mode hardcoded enabled
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
