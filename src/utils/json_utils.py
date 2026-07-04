@@ -104,7 +104,9 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
 
     # 1. Quick try: standard parse
     try:
-        return _coerce_to_dict(json.loads(text))
+        result = _coerce_to_dict(json.loads(text))
+        logger.debug("JSON extracted via standard parse")
+        return result
     except Exception:
         pass
 
@@ -116,7 +118,9 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
             decoder = json.JSONDecoder()
             # raw_decode returns the object and the byte index where it stopped
             obj, index = decoder.raw_decode(json_text)
-            return _coerce_to_dict(obj)
+            result = _coerce_to_dict(obj)
+            logger.debug("JSON extracted via raw_decode (offset=%d, end=%d)", start_idx, index)
+            return result
     except Exception as e:
         logger.debug(f"raw_decode failed | error={e}")
 
@@ -127,9 +131,11 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
         start = cleaned.find('{')
         end = cleaned.rfind('}')
         if start != -1 and end != -1:
-            return _coerce_to_dict(json.loads(cleaned[start:end+1]))
-    except Exception:
-        pass
+            result = _coerce_to_dict(json.loads(cleaned[start:end+1]))
+            logger.debug("JSON extracted via fallback cleanup (start=%d, end=%d)", start, end)
+            return result
+    except Exception as e:
+        logger.debug(f"fallback cleanup failed | error={e}")
 
     return None
 

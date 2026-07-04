@@ -300,7 +300,10 @@ class BaseAgent:
         """
         parsed = extract_json_from_text(text)
         if parsed is None:
-            logger.error(f"{agent_name} returned malformed JSON: {text[:200]}...")
+            logger.error(
+                "%s returned malformed JSON — raw response (%d chars):\n%s",
+                agent_name, len(text), text,
+            )
             raise MalformedJSONError(raw_text=text, agent_name=agent_name)
         # Clamp confidence_score to valid range [0, 100] — guard against hallucinated values
         if "confidence_score" in parsed:
