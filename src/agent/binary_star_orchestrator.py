@@ -538,12 +538,15 @@ class BinaryStarOrchestrator:
             for key in ('macro_snapshot', 'micro_snapshot'):
                 path = vc.get(key)
                 if path and os.path.exists(path):
-                    with open(path, 'rb') as f:
-                        parts.append(VisualPart(
-                            mime_type='image/png',
-                            data=f.read(),
-                            label=f'[VISUAL_CONTEXT: {key.upper()}]',
-                        ))
+                    try:
+                        with open(path, 'rb') as f:
+                            parts.append(VisualPart(
+                                mime_type='image/png',
+                                data=f.read(),
+                                label=f'[VISUAL_CONTEXT: {key.upper()}]',
+                            ))
+                    except Exception as e:
+                        logger.warning(f"failed to read visual asset {path}: {e}")
             return parts, None
         else:
             text_blocks: list[str] = []
@@ -553,7 +556,10 @@ class BinaryStarOrchestrator:
             ]:
                 path = vc.get(key)
                 if path and os.path.exists(path):
-                    with open(path, 'r') as f:
-                        text_blocks.append(f'{label}\n\n{f.read()}')
+                    try:
+                        with open(path, 'r') as f:
+                            text_blocks.append(f'{label}\n\n{f.read()}')
+                    except Exception as e:
+                        logger.warning(f"failed to read visual asset {path}: {e}")
             text = '\n\n'.join(text_blocks) if text_blocks else None
             return [], text

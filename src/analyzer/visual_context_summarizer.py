@@ -108,7 +108,7 @@ class VisualContextSummarizer:
 
         for a in anchors_above:
             p = a.get("price", 0)
-            if p > current_price:
+            if p > current_price and abs(p - poc) > 0.01:
                 s_val = a.get("strength", a.get("volume", 0))
                 above_entries.append((p, f"HVN", s_val, ""))
 
@@ -143,6 +143,16 @@ class VisualContextSummarizer:
             if not poc_strength:
                 poc_strength = 0.94
             below_entries.append((poc, "POC", poc_strength, "Point of Control"))
+
+        elif poc and poc >= current_price:
+            poc_strength = 0.0
+            for a in anchors_above:
+                if abs(a.get("price", 0) - poc) < 0.01:
+                    poc_strength = a.get("strength", a.get("volume", 0))
+                    break
+            if not poc_strength:
+                poc_strength = 0.94
+            above_entries.append((poc, "POC", poc_strength, "Point of Control"))
 
         for a in anchors_below:
             p = a.get("price", 0)
