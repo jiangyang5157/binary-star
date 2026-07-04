@@ -21,17 +21,6 @@ def test_deepseek_adapter_constructs():
     assert adapter is not None
 
 
-def test_qwen_adapter_constructs():
-    """QwenAdapter can be constructed with an API key."""
-    from src.infrastructure.ai.qwen_adapter import QwenAdapter
-    adapter = QwenAdapter(
-        api_key="test-key",
-        default_model="qwen-plus",
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    )
-    assert adapter is not None
-
-
 def test_gemini_adapter_constructs():
     """GeminiAdapter can be constructed with an API key."""
     from src.infrastructure.ai.gemini_adapter import GeminiAdapter
@@ -67,25 +56,3 @@ def test_deepseek_live_query():
     assert response.text is not None
     assert '"answer"' in response.text
 
-
-@pytest.mark.skipif(
-    not os.getenv("QWEN_API_KEY") or "your-qwen-api-key" in os.getenv("QWEN_API_KEY", ""),
-    reason="QWEN_API_KEY not configured in .env",
-)
-def test_qwen_live_query():
-    """Qwen adapter can send a live query and receive a response."""
-    from src.infrastructure.ai.qwen_adapter import QwenAdapter
-    api_key = os.getenv("QWEN_API_KEY")
-    adapter = QwenAdapter(
-        api_key=api_key,
-        default_model="qwen-plus",
-        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
-    )
-    response = adapter.generate_content(
-        model="qwen-plus",
-        contents=['What is 3+3? Respond with JSON: {"answer": number}'],
-        response_json=True,
-        temperature=0.1,
-    )
-    assert response.text is not None
-    assert '"answer"' in response.text

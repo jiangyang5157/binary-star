@@ -31,18 +31,6 @@ class AIFactory:
                 base_url=cfg.get("base_url", "https://api.deepseek.com"),
                 http_timeout=int(llm_cfg.get("api_timeout_seconds", 240)),
             )
-        elif provider == "qwen":
-            from src.infrastructure.ai.qwen_adapter import QwenAdapter
-            cfg = llm_cfg.get("qwen", {})
-            key = api_key or os.getenv("QWEN_API_KEY")
-            if not key:
-                raise ValueError("QWEN_API_KEY not found")
-            return QwenAdapter(
-                api_key=key,
-                default_model=cfg.get("model", "qwen-plus"),
-                base_url=cfg.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-                http_timeout=int(llm_cfg.get("api_timeout_seconds", 240)),
-            )
         elif provider == "gemini":
             from src.infrastructure.ai.gemini_adapter import GeminiAdapter
             return GeminiAdapter(api_key=api_key)

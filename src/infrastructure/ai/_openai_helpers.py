@@ -1,4 +1,4 @@
-"""Shared helpers and base class for OpenAI-compatible adapters (DeepSeek, Qwen)."""
+"""Shared helpers and base class for OpenAI-compatible adapters (e.g. DeepSeek)."""
 import base64
 import json
 import logging
@@ -167,7 +167,7 @@ def clean_json_text(raw_text: str) -> str:
 class OpenAICompatibleAdapter(AbstractAIClient):
     """Base adapter for providers that speak the OpenAI chat completions protocol.
 
-    DeepSeek, Qwen, and any future OpenAI-compatible provider extend this
+    DeepSeek and any future OpenAI-compatible provider extend this
     with only their default model and base URL overrides.
     """
 

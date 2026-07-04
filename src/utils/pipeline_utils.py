@@ -99,7 +99,6 @@ def resolve_api_key() -> Optional[str]:
     _ENV_MAP = {
         'gemini':   'GEMINI_API_KEY',
         'deepseek': 'DEEPSEEK_API_KEY',
-        'qwen':     'QWEN_API_KEY',
     }
     global_cfg = load_global_config()
     active_provider = global_cfg.get('llm', {}).get('active_provider')

@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 class DeepSeekAdapter(OpenAICompatibleAdapter):
     """Talks to DeepSeek API via the shared OpenAI-compatible protocol.
 
-    Enables thinking mode (reasoning_effort=high) which disables temperature.
+    Enables thinking mode (reasoning_effort) which disables temperature.
     """
 
     def __init__(self, api_key: str, default_model: str = "deepseek-v4-flash",

@@ -228,7 +228,6 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
 |----------|---------|--------|---------------|------|
 | Gemini | ... | Yes | Yes | $$$ |
 | DeepSeek | ... | — | — | $ |
-| Qwen | ... | Yes | — | $ |
 
 ### Provider Setup
 

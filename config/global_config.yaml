@@ -10,7 +10,7 @@ network:
 
 llm:
   # --- Central Neural Infrastructure ---
-  active_provider: "deepseek" # Options: "gemini", "deepseek", "qwen"
+  active_provider: "deepseek" # Options: "gemini", "deepseek"
   api_timeout_seconds: 180
   max_tool_iterations: 5
   retry_count: 3
@@ -26,9 +26,6 @@ llm:
   deepseek:
     base_url: "https://api.deepseek.com"
     model: "deepseek-v4-pro"  # deepseek-v4-pro deepseek-v4-flash
-  qwen:
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model: "qwen3.7-max"  # qwen3.7-max, qwen3.7-plus
 # ═══════════════════════════════════════════════════════════════════════════
 # BINARY STAR — Adversarial Debate Protocol
 # ═══════════════════════════════════════════════════════════════════════════

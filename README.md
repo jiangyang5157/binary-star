@@ -22,7 +22,7 @@ graph LR
     OBS --> EXCHANGE["Binance API"]
     BSO --> DL["DebateLoop<br/>max 2 rounds"]
     DL --> AGENTS["SessionAgent · CriticAgent · MathFactChecker"]
-    AGENTS --> AI["AI Provider<br/>DeepSeek / Gemini / Qwen"]
+    AGENTS --> AI["AI Provider<br/>DeepSeek / Gemini"]
     DAEMON --> EXEC["MarginOrderExecutor<br/>synthetic OCO · Guardian"]
     EXEC --> EXCHANGE
 ```
@@ -51,7 +51,7 @@ Config patches feed back into BSO and SniperDaemon on the next pulse.
 | **Sniper** | `SniperScout`, `SniperTrigger`, `MarginOrderExecutor` | Lightweight monitoring, signal stack, position protection |
 | **Analyzer** | `MarketObserver`, `VolumeProfile`, `MarketRegime`, `LiquidationEstimator`, `TopographyEngine`, `ChartGenerator` | Market data harvesting and topography computation |
 | **Data** | `BinanceFuturesClient`, `BinanceMarginClient`, `AbstractExchangeClient` | Exchange API abstraction (futures + cross-margin) |
-| **AI** | `AIFactory`, adapters for DeepSeek/Gemini/Qwen, `GeminiCacheManager` | Provider-agnostic LLM interface, context caching |
+| **AI** | `AIFactory`, adapters for DeepSeek/Gemini, `GeminiCacheManager` | Provider-agnostic LLM interface, context caching |
 | **Evolution** | `AuditController`, `AuditAssembler`, `EvolverAgent`, `EvolverSandbox` | Forensic audit → strategy patches |
 | **Config** | `Loader`, `SymbolResolver`, `SubConfigs` | YAML resolution with per-symbol overrides |
 | **Dashboard** | `server.py` (FastAPI), `api/`, `SessionHTMLRenderer` | Web UI for performance, live sessions, backtest, audit |
@@ -310,7 +310,7 @@ pip install -e .
 cp .env.example .env
 # Edit .env with your keys:
 #   BINANCE_API_KEY, BINANCE_API_SECRET
-#   DEEPSEEK_API_KEY / GEMINI_API_KEY / QWEN_API_KEY
+#   DEEPSEEK_API_KEY / GEMINI_API_KEY
 #   EMAIL_* (optional, for session notifications)
 
 # 5. Configure per-symbol trading parameters
@@ -428,7 +428,6 @@ The dashboard requires user authentication via `config/auth/users.json` with rol
 |----------|-------|--------|---------------|-------------|-------|
 | **DeepSeek** (active) | `deepseek-v4-pro` | ❌ | ❌ | OpenAI-compatible (`OpenAICompatibleAdapter`) | Thinking/reasoning models, lowest cost |
 | **Gemini** | `gemini-3.5-flash` | ✅ | ✅ | Native `google-genai` SDK | Native multimodal, context caching for lower cost |
-| **Qwen** | `qwen3.7-max` | ❌ | ❌ | OpenAI-compatible (`OpenAICompatibleAdapter`) | Strong on structured JSON output |
 
 Provider is selected via `llm.active_provider` in `config/global_config.yaml`. Each provider has independent model, temperature, and timeout settings. All agents are provider-agnostic — no agent code imports a provider SDK.
 

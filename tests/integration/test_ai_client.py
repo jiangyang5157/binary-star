@@ -3,14 +3,12 @@ import pytest
 from src.infrastructure.ai_client import AbstractAIClient, AIResponse, ToolCall, UsageMetadata
 from src.infrastructure.ai.gemini_adapter import GeminiAdapter
 from src.infrastructure.ai.deepseek_adapter import DeepSeekAdapter
-from src.infrastructure.ai.qwen_adapter import QwenAdapter
 
 
 def test_all_adapters_implement_interface():
     adapters = [
         GeminiAdapter("test-key"),
         DeepSeekAdapter("test-key", default_model="test-model"),
-        QwenAdapter("test-key", default_model="test-model"),
     ]
     for adapter in adapters:
         assert isinstance(adapter, AbstractAIClient), \
