@@ -172,13 +172,11 @@ class OpenAICompatibleAdapter(AbstractAIClient):
     """
 
     def __init__(self, api_key: str, default_model: str, base_url: str,
-                 provider_label: str, *, supports_vision: bool = False,
-                 http_timeout: int = 240):
+                 provider_label: str, *, http_timeout: int = 240):
         self.api_key = api_key
         self.default_model = default_model
         self.base_url = base_url
         self.provider_label = provider_label
-        self._supports_vision = supports_vision
         self._http_timeout = http_timeout
         self._client = None
 
@@ -206,7 +204,7 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         target_model = self.default_model if "gemini" in model.lower() else model
         messages = build_messages(system_instruction, contents,
                                   response_json=response_json,
-                                  supports_vision=self._supports_vision)
+                                  supports_vision=self.supports_vision)
         openai_tools = convert_tools(tools) if tools else None
 
         api_params: dict[str, Any] = {

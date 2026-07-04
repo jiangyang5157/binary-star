@@ -7,8 +7,7 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
 
     def __init__(self, api_key: str, default_model: str = "deepseek-v4-flash",
                  base_url: str = "https://api.deepseek.com",
-                 *, supports_vision: bool = False, http_timeout: int = 240):
+                 *, http_timeout: int = 240):
         super().__init__(api_key=api_key, default_model=default_model,
                          base_url=base_url, provider_label="DeepSeekAdapter",
-                         supports_vision=supports_vision,
                          http_timeout=http_timeout)
