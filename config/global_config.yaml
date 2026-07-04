@@ -208,7 +208,7 @@ sniper:
     thresholds:
       # |cvd_intensity_ratio| 需超过此值才触发 taker_imbalance。
       # XAUT 等低流动性资产 CVD 方差大，可提高此值减少噪声。
-      taker_imbalance: 0.20
+      taker_imbalance: 0.18
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Trailing Stop + Partial TP)
