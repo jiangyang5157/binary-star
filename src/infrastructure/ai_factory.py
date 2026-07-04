@@ -43,6 +43,8 @@ class AIFactory:
                 base_url=cfg.get("base_url", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
                 http_timeout=int(llm_cfg.get("api_timeout_seconds", 240)),
             )
-        else:  # gemini
+        elif provider == "gemini":
             from src.infrastructure.ai.gemini_adapter import GeminiAdapter
             return GeminiAdapter(api_key=api_key)
+        else:
+            raise ValueError(f"Unknown LLM provider: {provider}")
