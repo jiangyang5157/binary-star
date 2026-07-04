@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 
-from src.infrastructure.ai_client import VisualPart
+from src.infrastructure.ai_client import VisualPart, VisualMode
 from src.infrastructure.gemini.cache_manager import GeminiCacheManager
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.math_fact_checker import MathFactChecker
@@ -230,7 +230,7 @@ class BinaryStarOrchestrator:
 
         # ── 2. Infrastructure clients ───────────────────────────────
         self.client = AIFactory.create_client(api_key=api_key, config_dict=self.global_config)
-        self._supports_vision = self.client.supports_vision
+        self._supports_vision = self.client.visual_mode != VisualMode.NONE
         self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
 
         # ── 3. Visualization pipeline ───────────────────────────────

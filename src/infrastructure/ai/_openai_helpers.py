@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from src.infrastructure.ai_client import (
-    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart,
+    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart, VisualMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -204,7 +204,7 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         target_model = self.default_model if "gemini" in model.lower() else model
         messages = build_messages(system_instruction, contents,
                                   response_json=response_json,
-                                  supports_vision=self.supports_vision)
+                                  supports_vision=self.visual_mode != VisualMode.NONE)
         openai_tools = convert_tools(tools) if tools else None
 
         api_params: dict[str, Any] = {

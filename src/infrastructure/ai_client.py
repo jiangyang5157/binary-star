@@ -1,6 +1,7 @@
 """Abstract AI client interface — decouples agents from LLM SDKs."""
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any
 
 
@@ -15,6 +16,13 @@ class VisualPart:
     mime_type: str
     data: bytes
     label: str | None = None
+
+
+class VisualMode(Enum):
+    """How visual context is delivered to the model."""
+    NONE = "none"    # skip entirely (save tokens)
+    TEXT = "text"    # inject .md text summary into prompt
+    IMAGE = "image"  # attach .png images as VisualPart
 
 
 @dataclass
@@ -71,9 +79,9 @@ class AbstractAIClient(ABC):
         pass
 
     @property
-    def supports_vision(self) -> bool:
-        """Whether this provider natively consumes image data (VisualPart)."""
-        return False
+    def visual_mode(self) -> VisualMode:
+        """How this provider receives visual context."""
+        return VisualMode.NONE
 
     @property
     def supports_context_cache(self) -> bool:

@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 
 from src.infrastructure.ai_client import (
-    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart,
+    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart, VisualMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,8 +34,8 @@ class GeminiAdapter(AbstractAIClient):
         return True
 
     @property
-    def supports_vision(self) -> bool:
-        return True
+    def visual_mode(self) -> VisualMode:
+        return VisualMode.IMAGE
 
     def generate_content(
         self, model: str, contents: list[Any], *,
