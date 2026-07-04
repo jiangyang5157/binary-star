@@ -33,6 +33,10 @@ class GeminiAdapter(AbstractAIClient):
     def supports_context_cache(self) -> bool:
         return True
 
+    @property
+    def supports_vision(self) -> bool:
+        return True
+
     def generate_content(
         self, model: str, contents: list[Any], *,
         system_instruction: str | None = None,

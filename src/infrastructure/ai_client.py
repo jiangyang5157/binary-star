@@ -71,6 +71,11 @@ class AbstractAIClient(ABC):
         pass
 
     @property
+    def supports_vision(self) -> bool:
+        """Whether this provider natively consumes image data (VisualPart)."""
+        return False
+
+    @property
     def supports_context_cache(self) -> bool:
         return False
 
