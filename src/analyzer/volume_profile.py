@@ -130,7 +130,7 @@ class VolumeProfileEngine:
             else:
                 break # No more bins to expand into
                 
-        vah = price_bins[va_idx_max]
+        vah = price_bins[va_idx_max + 1]  # upper edge of the highest VA bin
         val = price_bins[va_idx_min]
         
         # Audit log to trace VP data generation

@@ -314,6 +314,16 @@ class BaseAgent:
                 parsed["confidence_score"] = max(0.0, min(100.0, cs))
             except (TypeError, ValueError):
                 parsed["confidence_score"] = 0.0
+        # Validate opinion enum — any non-standard value bypasses downstream safety gates
+        if "opinion" in parsed:
+            opinion = str(parsed["opinion"]).strip().upper()
+            if opinion not in ("BULLISH", "BEARISH", "NEUTRAL"):
+                logger.error(
+                    "%s returned invalid opinion=%r — raw response (%d chars):\n%s",
+                    agent_name, parsed.get("opinion"), len(text), text,
+                )
+                raise MalformedJSONError(raw_text=text, agent_name=agent_name)
+            parsed["opinion"] = opinion
         return parsed
 
     def _dispatch_tool_call(self, tc: ToolCall) -> Any:
