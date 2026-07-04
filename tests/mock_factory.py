@@ -103,13 +103,6 @@ class MockDataFactory:
                 "max_consecutive_failures": 3,
                 "gemini": {
                     "model": "mock-model",
-                    "session_temperature": 0.7,
-                    "critic_temperature": 0.2,
-                    "evolver_temperature": 0.0,
-                    "context_cache": {
-                        "enable": True,
-                        "expiration_minutes": 60,
-                    },
                 },
             },
             # ── Binary Star / Evolver ────────────────────────────────
@@ -119,9 +112,12 @@ class MockDataFactory:
                 "session_role_prompt": "config/prompts/session.md",
                 "critic_role_prompt": "config/prompts/critic.md",
                 "session_confidence_threshold": 60,
+                "session_temperature": 0.7,
+                "critic_temperature": 0.2,
             },
             "evolver": {
                 "role_prompt": "config/prompts/evolver.md",
+                "evolver_temperature": 0.0,
             },
             # ── Strategy — temporal parameters ────────────────────
             "temporal_parameters": {
