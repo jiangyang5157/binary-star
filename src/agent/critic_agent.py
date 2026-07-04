@@ -98,6 +98,7 @@ class CriticAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None,
         visual_parts: Optional[List[Any]] = None,
+        visual_context_text: Optional[str] = None,
         system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """Evaluates the proposed plan against physical market topography
@@ -113,8 +114,11 @@ class CriticAgent(BaseAgent):
                 math_fact_check=math_fact_check,
                 cache_resource_name=cache_resource_name
             )
-            # Inject physical truth (Math Fact Check) as the absolute audit baseline
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
+
+            # Inject VISUAL_CONTEXT text block for non-vision models
+            if visual_context_text:
+                prompt = prompt + '\n\n' + visual_context_text
 
             payload = [prompt]
             if not cache_resource_name and visual_parts:
