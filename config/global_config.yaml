@@ -26,6 +26,7 @@ llm:
   deepseek:
     base_url: "https://api.deepseek.com"
     model: "deepseek-v4-pro"  # deepseek-v4-pro deepseek-v4-flash
+    reasoning_effort: "high"  # high max
 # ═══════════════════════════════════════════════════════════════════════════
 # BINARY STAR — Adversarial Debate Protocol
 # ═══════════════════════════════════════════════════════════════════════════

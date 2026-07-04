@@ -16,10 +16,11 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
 
     def __init__(self, api_key: str, default_model: str = "deepseek-v4-flash",
                  base_url: str = "https://api.deepseek.com",
-                 *, http_timeout: int = 240):
+                 *, reasoning_effort: str = "high", http_timeout: int = 240):
         super().__init__(api_key=api_key, default_model=default_model,
                          base_url=base_url, provider_label="DeepSeekAdapter",
                          http_timeout=http_timeout)
+        self._reasoning_effort = reasoning_effort
 
     @property
     def visual_mode(self) -> "VisualMode":
@@ -43,7 +44,7 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
         api_params: dict[str, Any] = {
             "model": target_model,
             "messages": messages,
-            "reasoning_effort": "high",
+            "reasoning_effort": self._reasoning_effort,
             "extra_body": {"thinking": {"type": "enabled"}},
         }
         # thinking mode disables temperature — omit it
@@ -56,9 +57,9 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
             api_params["timeout"] = http_timeout
 
         if not self._model_logged:
-            logger.info("AI call | provider=%s | model=%s | thinking=high", self.provider_label, target_model)
+            logger.info("AI call | provider=%s | model=%s | thinking=%s", self.provider_label, target_model, self._reasoning_effort)
             self._model_logged = True
         else:
-            logger.debug("AI call | provider=%s | model=%s | thinking=high", self.provider_label, target_model)
+            logger.debug("AI call | provider=%s | model=%s | thinking=%s", self.provider_label, target_model, self._reasoning_effort)
         response = self._get_client().chat.completions.create(**api_params)
         return self._parse(response, response_json)

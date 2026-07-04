@@ -29,6 +29,7 @@ class AIFactory:
                 api_key=key,
                 default_model=cfg.get("model", "deepseek-v4-flash"),
                 base_url=cfg.get("base_url", "https://api.deepseek.com"),
+                reasoning_effort=cfg.get("reasoning_effort", "high"),
                 http_timeout=int(llm_cfg.get("api_timeout_seconds", 240)),
             )
         elif provider == "gemini":
