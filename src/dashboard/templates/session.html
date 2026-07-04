@@ -67,7 +67,7 @@ async function loadSession() {
       ${renderMetadata(session.metadata)}
     `;
   } catch (err) {
-    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/live" class="btn-sm">&larr; Back to Live</a></div>`;
+    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/live" class="btn-sm" style="margin-top:1rem;display:inline-block">&larr; Back to Live</a></div>`;
   }
 }
 
