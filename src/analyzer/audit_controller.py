@@ -241,8 +241,10 @@ class AuditController:
             )
             
             outcome["visual_context"] = {
-                "t1_macro": t1_assets.get("macro_snapshot"),
-                "t1_micro": t1_assets.get("micro_snapshot")
+                "t1_macro_snapshot": t1_assets.get("macro_snapshot"),
+                "t1_micro_snapshot": t1_assets.get("micro_snapshot"),
+                "t1_macro_snapshot_summary": t1_assets.get("macro_snapshot_summary"),
+                "t1_micro_snapshot_summary": t1_assets.get("micro_snapshot_summary"),
             }
 
             report = self.assembler.review(session, outcome)
