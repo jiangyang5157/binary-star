@@ -51,7 +51,7 @@ Config patches feed back into BSO and SniperDaemon on the next pulse.
 | **Sniper** | `SniperScout`, `SniperTrigger`, `MarginOrderExecutor` | Lightweight monitoring, signal stack, position protection |
 | **Analyzer** | `MarketObserver`, `VolumeProfile`, `MarketRegime`, `LiquidationEstimator`, `TopographyEngine`, `ChartGenerator` | Market data harvesting and topography computation |
 | **Data** | `BinanceFuturesClient`, `BinanceMarginClient`, `AbstractExchangeClient` | Exchange API abstraction (futures + cross-margin) |
-| **AI** | `AIFactory`, adapters for DeepSeek/Gemini, `GeminiCacheManager` | Provider-agnostic LLM interface, context caching |
+| **AI** | `AIFactory`, `DeepSeekAdapter`, `GeminiAdapter` | Provider-agnostic LLM interface with `VisualMode` enum; caching is adapter-internal via `begin_session`/`end_session` |
 | **Evolution** | `AuditController`, `AuditAssembler`, `EvolverAgent`, `EvolverSandbox` | Forensic audit → strategy patches |
 | **Config** | `Loader`, `SymbolResolver`, `SubConfigs` | YAML resolution with per-symbol overrides |
 | **Dashboard** | `server.py` (FastAPI), `api/`, `SessionHTMLRenderer` | Web UI for performance, live sessions, backtest, audit |
@@ -426,12 +426,12 @@ The dashboard requires user authentication via `config/auth/users.json` with rol
 
 | Provider | Model | Vision | Context Cache | Architecture | Notes |
 |----------|-------|--------|---------------|-------------|-------|
-| **DeepSeek** (active) | `deepseek-v4-pro` | ❌ | ❌ | OpenAI-compatible (`OpenAICompatibleAdapter`) | Thinking/reasoning models, lowest cost |
-| **Gemini** | `gemini-3.5-flash` | ✅ | ✅ | Native `google-genai` SDK | Native multimodal, context caching for lower cost |
+| **DeepSeek** (active) | `deepseek-v4-pro` | ❌ | ❌ | OpenAI-compatible (`DeepSeekAdapter`) | Thinking/reasoning models (`reasoning_effort: high`), lowest cost |
+| **Gemini** | `gemini-3.5-flash` | ✅ | ✅ (internal) | Native `google-genai` SDK | Native multimodal; caching via `begin_session`/`end_session` lifecycle |
 
-Provider is selected via `llm.active_provider` in `config/global_config.yaml`. Each provider has independent model, temperature, and timeout settings. All agents are provider-agnostic — no agent code imports a provider SDK.
+Provider is selected via `llm.active_provider` in `config/global_config.yaml`. Temperature is configured per-agent under `binary_star` (`session_temperature`, `critic_temperature`) and `evolver` (`evolver_temperature`), not per-provider. All agents are provider-agnostic — no agent code imports a provider SDK.
 
-**Provider-agnostic types:** `AbstractAIClient.generate_content()` returns `AIResponse` containing `text`, `tool_calls`, `usage`, and optional `reasoning_content` (DeepSeek thinking models). Visual data is passed as `VisualPart` (mime_type + raw bytes).
+**Provider-agnostic types:** `AbstractAIClient.generate_content()` returns `AIResponse` containing `text`, `tool_calls`, `usage`, and optional `reasoning_content` (DeepSeek thinking models). Each adapter declares its `VisualMode` (NONE/TEXT/IMAGE) — the orchestrator reads this to decide how to deliver chart data. Visual data is passed as `VisualPart` (mime_type + raw bytes). Session lifecycle is managed via `begin_session()` / `end_session()` — adapters use these for cache creation/teardown without the orchestrator knowing the caching mechanism.
 
 ---
 

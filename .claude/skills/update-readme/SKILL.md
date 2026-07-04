@@ -94,10 +94,11 @@ For each command, capture:
 #### AI Providers
 
 ```
-→ Read src/infrastructure/ai_client.py — AbstractAIClient contract
+→ Read src/infrastructure/ai_client.py — AbstractAIClient contract, VisualMode enum, VisualPart, AIResponse, begin_session/end_session lifecycle
 → Read src/infrastructure/ai_factory.py — provider registry
-→ Read each adapter in src/infrastructure/ai/ — capabilities, models
-→ Check global_config.yaml for current provider settings
+→ Read each adapter in src/infrastructure/ai/ — capabilities, models, visual_mode
+→ Check global_config.yaml for current provider settings (active_provider, model, reasoning_effort)
+→ Check global_config.yaml binary_star + evolver sections for temperature config (no longer per-provider)
 ```
 
 #### Config System
