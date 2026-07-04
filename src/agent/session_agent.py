@@ -124,6 +124,10 @@ class SessionAgent(BaseAgent):
 
             if visual_text:
                 prompt = prompt + '\n\n' + visual_text
+                logger.info(
+                    "[%s] %s visual_text injected | chars=%d",
+                    symbol, agent_name, len(visual_text),
+                )
 
             return self._execute_ai_cycle(
                 payload=[prompt],

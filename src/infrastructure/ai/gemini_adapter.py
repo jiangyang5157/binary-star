@@ -178,6 +178,7 @@ class GeminiAdapter(AbstractAIClient):
             ttl=f'{self.CACHE_TTL_MINUTES}m',
         )
         self._active_cache_name = cache.name
+        logger.info("cache created | name=%s | ttl=%sm", cache.name, self.CACHE_TTL_MINUTES)
 
     def end_session(self):
         if self._active_cache_name:

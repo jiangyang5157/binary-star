@@ -303,15 +303,20 @@ class BinaryStarOrchestrator:
 
         visual_parts, visual_text = self._load_visual_assets(observation)
 
-        # Correct report visual_context paths for TEXT mode
-        if self._visual_mode == VisualMode.TEXT:
-            vc = observation.get('visual_context', {})
-            vc['macro_snapshot'] = vc.get('macro_snapshot_summary', vc.get('macro_snapshot', ''))
-            vc['micro_snapshot'] = vc.get('micro_snapshot_summary', vc.get('micro_snapshot', ''))
-
         tool_declarations = MathTools.get_tool_declarations()
 
+        logger.info(
+            "[%s] visual assets loaded | mode=%s | images=%d | text=%s",
+            symbol, self._visual_mode.value,
+            len(visual_parts),
+            f"{len(visual_text)} chars" if visual_text else "none",
+        )
+
         # Session begin — adapter manages cache internally
+        logger.info(
+            "[%s] session begin | model=%s | visual_parts=%d | tools=%d",
+            symbol, self.shared_model, len(visual_parts), len(tool_declarations),
+        )
         self.client.begin_session(
             system_instruction=self.shared_instruction,
             tools=tool_declarations,
@@ -373,6 +378,7 @@ class BinaryStarOrchestrator:
             logger.error(f"Binary Star flow failed | error={e}", exc_info=True)
             raise
         finally:
+            logger.info("[%s] session released", symbol)
             self.client.end_session()
 
     # ── Private helper methods ──────────────────────────────────────────────

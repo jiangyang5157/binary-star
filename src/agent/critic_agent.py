@@ -115,6 +115,10 @@ class CriticAgent(BaseAgent):
             # Inject VISUAL_CONTEXT text block for non-vision models
             if visual_text:
                 prompt = prompt + '\n\n' + visual_text
+                logger.info(
+                    "[%s] Critic_Evaluation visual_text injected | chars=%d",
+                    symbol, len(visual_text),
+                )
 
             return self._execute_ai_cycle(
                 payload=[prompt],
