@@ -230,6 +230,7 @@ class BinaryStarOrchestrator:
 
         # ── 2. Infrastructure clients ───────────────────────────────
         self.client = AIFactory.create_client(api_key=api_key, config_dict=self.global_config)
+        self._supports_vision = self.client.supports_vision
         self.exchange_client: AbstractExchangeClient = exchange_client or BinanceFuturesClient()
 
         # ── 3. Visualization pipeline ───────────────────────────────
@@ -330,7 +331,13 @@ class BinaryStarOrchestrator:
         if 'visual_context' in pruned_observation:
             del pruned_observation['visual_context']
         observation_json = json.dumps(pruned_observation, indent=2, ensure_ascii=False)
-        visual_parts = self._extract_visual_parts(observation)
+        visual_parts, visual_context_text = self._load_visual_assets(observation)
+
+        # Correct report visual_context paths for non-vision models
+        if not self._supports_vision:
+            vc = observation.get('visual_context', {})
+            vc['macro_snapshot'] = vc.get('macro_snapshot_summary', vc.get('macro_snapshot', ''))
+            vc['micro_snapshot'] = vc.get('micro_snapshot_summary', vc.get('micro_snapshot', ''))
 
         try:
             # 2. Set up context cache and agent tools
@@ -349,6 +356,7 @@ class BinaryStarOrchestrator:
                 cache_resource_name=cache_resource_name,
                 tools=tools,
                 visual_parts=visual_parts,
+                visual_context_text=visual_context_text,
                 shared_instruction=self.shared_instruction,
                 session_config=self.session_config,
                 critic_config=self.critic_config,
@@ -363,6 +371,7 @@ class BinaryStarOrchestrator:
             final_decision = self._finalize_and_sanitize(
                 debate_result, observation, symbol,
                 cache_resource_name, tools, visual_parts,
+                visual_context_text,
                 progress_callback=progress_callback)
 
             # 5. Package forensic output
@@ -462,6 +471,7 @@ class BinaryStarOrchestrator:
     def _finalize_and_sanitize(self, debate_result: dict, observation: dict,
                                symbol: str, cache_resource_name: str | None,
                                tools: list, visual_parts: list,
+                               visual_context_text: str | None,
                                progress_callback=None) -> dict:
         """Run final synthesis (if needed) and sanitize the decision against math truth."""
         last_plan = debate_result["final_decision"]
@@ -483,6 +493,7 @@ class BinaryStarOrchestrator:
                 tools=tools,
                 debate_history=self.debate_loop._compress_debate_history(debate_history),
                 visual_parts=visual_parts,
+                visual_context_text=visual_context_text,
                 system_instruction=self.shared_instruction
             )
 
@@ -514,19 +525,35 @@ class BinaryStarOrchestrator:
             logger.warning(f"cache cleanup failed | error={e}")
 
 
-    def _extract_visual_parts(self, observation: Dict[str, Any]) -> List[VisualPart]:
-        """Converts observation visual assets into provider-agnostic VisualParts."""
-        parts: list[VisualPart] = []
-        assets = observation.get('visual_context', {})
-        for key, path in assets.items():
-            try:
+    def _load_visual_assets(self, observation: Dict[str, Any]) -> tuple[List[VisualPart], str | None]:
+        """Load visual assets based on provider capability.
+
+        supports_vision=True  → read .png files into VisualPart list
+        supports_vision=False → read .md files into visual_context_text string
+        """
+        vc = observation.get('visual_context', {})
+
+        if self._supports_vision:
+            parts: list[VisualPart] = []
+            for key in ('macro_snapshot', 'micro_snapshot'):
+                path = vc.get(key)
                 if path and os.path.exists(path):
                     with open(path, 'rb') as f:
                         parts.append(VisualPart(
                             mime_type='image/png',
                             data=f.read(),
-                            label=f"[VISUAL_CONTEXT: {key.upper()}]",
+                            label=f'[VISUAL_CONTEXT: {key.upper()}]',
                         ))
-            except Exception as e:
-                logger.warning(f"visual asset ingestion failed | path={path} | error={e}")
-        return parts
+            return parts, None
+        else:
+            text_blocks: list[str] = []
+            for label, key in [
+                ('VISUAL_CONTEXT: MACRO_SNAPSHOT', 'macro_snapshot_summary'),
+                ('VISUAL_CONTEXT: MICRO_SNAPSHOT', 'micro_snapshot_summary'),
+            ]:
+                path = vc.get(key)
+                if path and os.path.exists(path):
+                    with open(path, 'r') as f:
+                        text_blocks.append(f'{label}\n\n{f.read()}')
+            text = '\n\n'.join(text_blocks) if text_blocks else None
+            return [], text

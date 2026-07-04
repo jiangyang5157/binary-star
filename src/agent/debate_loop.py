@@ -14,7 +14,8 @@ class DebateLoop:
     def __init__(self, session_agent, critic_agent, math_checker: MathFactChecker,
                  max_rounds: int, cache_resource_name: str | None,
                  tools: list, visual_parts: list, shared_instruction: str,
-                 session_config, critic_config):
+                 session_config, critic_config,
+                 visual_context_text: str | None = None):
         self.session_agent = session_agent
         self.critic_agent = critic_agent
         self.math_checker = math_checker
@@ -25,6 +26,7 @@ class DebateLoop:
         self.shared_instruction = shared_instruction
         self.session_config = session_config
         self.critic_config = critic_config
+        self.visual_context_text = visual_context_text
 
     def run(self, observation: dict, symbol: str,
             progress_callback=None) -> dict[str, Any]:
