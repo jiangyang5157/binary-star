@@ -50,7 +50,7 @@ binary_star:
   session_role_prompt: "config/prompts/session.md"
   critic_role_prompt: "config/prompts/critic.md"
   max_rounds: 2
-  session_confidence_threshold: 40
+  session_confidence_threshold: 20
 
 # ═══════════════════════════════════════════════════════════════════════════
 # EVOLVER — Strategy Evolution Agent
