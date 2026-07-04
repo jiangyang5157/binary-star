@@ -12,17 +12,15 @@ class DebateLoop:
     """Manages the round-by-round adversarial debate between Session and Critic."""
 
     def __init__(self, session_agent, critic_agent, math_checker: MathFactChecker,
-                 max_rounds: int, cache_resource_name: str | None,
-                 tools: list, visual_parts: list, shared_instruction: str,
+                 max_rounds: int,
+                 tools: list, shared_instruction: str,
                  session_config, critic_config,
                  visual_text: str | None = None):
         self.session_agent = session_agent
         self.critic_agent = critic_agent
         self.math_checker = math_checker
         self.max_rounds = max_rounds
-        self.cache_resource_name = cache_resource_name
         self.tools = tools
-        self.visual_parts = visual_parts
         self.shared_instruction = shared_instruction
         self.session_config = session_config
         self.critic_config = critic_config
@@ -64,10 +62,8 @@ class DebateLoop:
                 symbol=symbol,
                 temperature=self.session_config.model_temperature,
                 agent_name=f"Session_Planning_R{current_round}",
-                cache_resource_name=self.cache_resource_name,
                 tools=self.tools,
                 debate_history=compressed_history,
-                visual_parts=self.visual_parts,
                 visual_text=self.visual_text,
                 system_instruction=self.shared_instruction
             )
@@ -104,10 +100,8 @@ class DebateLoop:
                 last_plan=last_plan,
                 symbol=symbol,
                 debate_history=compressed_history,
-                cache_resource_name=self.cache_resource_name,
                 math_fact_check=math_fact_check,
                 tools=None,
-                visual_parts=self.visual_parts,
                 visual_text=self.visual_text,
                 system_instruction=self.shared_instruction
             )
