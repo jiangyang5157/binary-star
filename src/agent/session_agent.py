@@ -113,6 +113,7 @@ class SessionAgent(BaseAgent):
         cache_resource_name: Optional[str] = None,
         tools: Optional[List[Any]] = None,
         visual_parts: Optional[List[Any]] = None,
+        visual_context_text: Optional[str] = None,
         system_instruction: Optional[str] = None
     ) -> Dict[str, Any]:
         """Core execution logic for a session reasoning step."""
@@ -124,6 +125,10 @@ class SessionAgent(BaseAgent):
                 debate_history=debate_history,
                 cache_resource_name=cache_resource_name
             )
+
+            # Inject VISUAL_CONTEXT text block for non-vision models
+            if visual_context_text:
+                prompt = prompt + '\n\n' + visual_context_text
 
             payload = [prompt]
             if not cache_resource_name and visual_parts:
