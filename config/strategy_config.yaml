@@ -143,7 +143,7 @@ regime_parameters:
     # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
     cvd_intensity_threshold: 0.1
     # Extreme single-sided imbalance that triggers immediate absorption audit.
-    cvd_intensity_extreme: 0.18
+    cvd_intensity_extreme: 0.16
     # Absolute funding threshold for Retail Squeeze detection.
     funding_extreme_threshold: 0.0005
 
