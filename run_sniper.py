@@ -533,7 +533,7 @@ class SniperDaemon:
 
             # Guardian check with known level (default 0 = start from L1)
             updated_state, new_level = self.executor.guardian_check(
-                symbol, trade_state, atr_macro=atr,
+                symbol, trade_state,
                 current_level=next_level if next_level is not None else 0
             )
 

@@ -140,7 +140,6 @@ class MarginOrderExecutor:
     # ================================================================
 
     def guardian_check(self, symbol: str, trade_state: Dict[str, Any],
-                        atr_macro: Optional[float] = None,
                         current_level: int = 0) -> tuple:
         """
         Position Guardian: Runs every Sniper pulse to ensure positions are protected.
@@ -153,7 +152,6 @@ class MarginOrderExecutor:
         Args:
             symbol: Trading pair identifier.
             trade_state: Current in-memory trade state dictionary.
-            atr_macro: Current ATR value for trailing stop calculations.
             current_level: Partial TP level known to daemon memory.
 
         Returns (updated_trade_state: dict, level: int|None).
@@ -370,64 +368,63 @@ class MarginOrderExecutor:
 
         new_level = current_level  # unchanged unless partial TP advances it
 
-        if atr_macro is not None and not math.isnan(atr_macro) and atr_macro > 0:
-            # Extract live SL/TP from active orders (source of truth)
-            current_sl = trade_state.get("sl_price", 0)
-            current_tp = trade_state.get("tp_price", 0)
-            for o in active_orders:
-                if o.side != exit_side:
-                    continue
-                if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
-                    current_tp = o.price
-                elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
-                    current_sl = o.stop_price
+        # Extract live SL/TP from active orders (source of truth)
+        current_sl = trade_state.get("sl_price", 0)
+        current_tp = trade_state.get("tp_price", 0)
+        for o in active_orders:
+            if o.side != exit_side:
+                continue
+            if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                current_tp = o.price
+            elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                current_sl = o.stop_price
 
-            current_price = self.client.get_ticker_price(symbol)
-            if current_price and current_price > 0:
-                # Load multi-level config
-                gc = self._get_guardian_config()
-                levels = gc["levels"]
+        current_price = self.client.get_ticker_price(symbol)
+        if current_price and current_price > 0:
+            # Load multi-level config
+            gc = self._get_guardian_config()
+            levels = gc["levels"]
 
-                # Step 2: Multi-level partial TP (sequential, loop-driven)
-                intact, tp_update = self._try_exit_ladder(
-                    symbol, direction, net_qty, avg_entry,
-                    current_sl, current_tp, current_price, cfg,
-                    levels, current_level
+            # Step 2: Multi-level partial TP (sequential, loop-driven)
+            intact, tp_update = self._try_exit_ladder(
+                symbol, direction, net_qty, avg_entry,
+                current_sl, current_tp, current_price, cfg,
+                levels, current_level
+            )
+            if not intact:
+                return {}, None  # Emergency-closed
+
+            if tp_update is not None:
+                if not tp_update:
+                    # Position fully closed by partial TP — clear trade state
+                    return {}, None
+                # Merge sl/tp into trade_state (not exit_ladder_level — that's daemon memory)
+                for key in ("sl_price", "tp_price"):
+                    if key in tp_update:
+                        trade_state[key] = tp_update[key]
+                current_sl = trade_state.get("sl_price", current_sl)
+                current_tp = trade_state.get("tp_price", current_tp)
+                if "exit_ladder_level" in tp_update:
+                    new_level = tp_update["exit_ladder_level"]
+
+            # Step 3: Dynamic trailing — uses the LAST triggered level's
+            # sl_lock. new_level is "next to check", so active = new_level - 1.
+            # When no TP yet (new_level=0): no trailing (SL is AI's original).
+            sl_lock = 0.0
+            active_idx = new_level - 1
+            if 0 <= active_idx < len(levels):
+                sl_lock = levels[active_idx]["sl_lock"]
+
+            if sl_lock > 0:
+                intact, new_sl = self._migrate_dynamic_sl(
+                    symbol, direction, current_sl, current_tp, avg_entry,
+                    cfg, sl_lock
                 )
                 if not intact:
                     return {}, None  # Emergency-closed
 
-                if tp_update is not None:
-                    if not tp_update:
-                        # Position fully closed by partial TP — clear trade state
-                        return {}, None
-                    # Merge sl/tp into trade_state (not exit_ladder_level — that's daemon memory)
-                    for key in ("sl_price", "tp_price"):
-                        if key in tp_update:
-                            trade_state[key] = tp_update[key]
-                    current_sl = trade_state.get("sl_price", current_sl)
-                    current_tp = trade_state.get("tp_price", current_tp)
-                    if "exit_ladder_level" in tp_update:
-                        new_level = tp_update["exit_ladder_level"]
-
-                # Step 3: Dynamic trailing — uses the LAST triggered level's
-                # sl_lock. new_level is "next to check", so active = new_level - 1.
-                # When no TP yet (new_level=0): no trailing (SL is AI's original).
-                sl_lock = 0.0
-                active_idx = new_level - 1
-                if 0 <= active_idx < len(levels):
-                    sl_lock = levels[active_idx]["sl_lock"]
-
-                if sl_lock > 0:
-                    intact, new_sl = self._migrate_dynamic_sl(
-                        symbol, direction, current_sl, current_tp, current_price,
-                        cfg, sl_lock
-                    )
-                    if not intact:
-                        return {}, None  # Emergency-closed
-
-                    if new_sl is not None:
-                        trade_state["sl_price"] = new_sl
+                if new_sl is not None:
+                    trade_state["sl_price"] = new_sl
 
         return trade_state, new_level
 
