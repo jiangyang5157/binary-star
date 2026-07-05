@@ -310,7 +310,7 @@ class MarginOrderExecutor:
                 trade_state.pop("entry_placed_at", None)
                 # Record fill time for time-based stop tracking
                 if not trade_state.get("entry_filled_at"):
-                    trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
+                    trade_state["entry_filled_at"] = datetime.now(timezone.utc)
                 return trade_state, None  # Position just protected, defer trailing to next pulse
             else:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
@@ -323,7 +323,7 @@ class MarginOrderExecutor:
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
         # Guard: record fill time on first protected pulse (OTOCO skips Case 3 setter)
         if not trade_state.get("entry_filled_at"):
-            trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
+            trade_state["entry_filled_at"] = datetime.now(timezone.utc)
         logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
 
         # OCO qty sanity: re-align if position changed since OCO was placed
