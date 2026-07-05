@@ -811,17 +811,15 @@ class MarginOrderExecutor:
         return True, state_update if state_update else None
 
     def _migrate_dynamic_sl(self, symbol: str, direction: str, current_sl: float,
-                             current_tp: float, current_price: float,
+                             current_tp: float, avg_entry: float,
                              cfg: dict, sl_lock: float) -> tuple:
-        """Step 3: Dynamic trailing SL — gap-based profit locking.
+        """Step 3: Dynamic trailing SL — TP-relative profit locking.
 
-        LONG:  gap = current_price - current_sl
-               new_sl = current_sl + gap * sl_lock
-        SHORT: gap = current_sl - current_price
-               new_sl = current_sl - gap * sl_lock
+        LONG:  new_sl = avg_entry + (current_tp - avg_entry) * sl_lock
+        SHORT: new_sl = avg_entry - (avg_entry - current_tp) * sl_lock
 
         sl_lock is from the active exit-ladder level.
-        0.0 = no trail. 1.0 = SL moves to current price.
+        0.0 = SL at entry. 1.0 = SL at TP (disallowed by config assert).
 
         Returns (position_intact: bool, new_sl_or_None: float|None).
         None means no migration needed. position_intact=False means emergency-closed.
@@ -830,19 +828,15 @@ class MarginOrderExecutor:
             return True, None
 
         if direction == "LONG":
-            gap = current_price - current_sl
-            if gap <= 0:
-                return True, None  # SL already at/above price
-            new_sl = current_sl + gap * sl_lock
+            new_sl = avg_entry + (current_tp - avg_entry) * sl_lock
+            if new_sl <= current_sl:
+                return True, None  # No improvement
         else:
-            gap = current_sl - current_price
-            if gap <= 0:
-                return True, None  # SL already at/below price
-            new_sl = current_sl - gap * sl_lock
+            new_sl = avg_entry - (avg_entry - current_tp) * sl_lock
+            if new_sl >= current_sl:
+                return True, None  # No improvement
 
         # Round toward safety: floor for LONG (SELL SL), ceil for SHORT (BUY SL).
-        # Uses deterministic rounding — Python's round() is banker's rounding and
-        # can round either direction on .5 boundaries.
         factor = 10 ** cfg["precision_price"]
         if direction == "LONG":
             new_sl = math.floor(new_sl * factor) / factor
@@ -854,7 +848,7 @@ class MarginOrderExecutor:
 
         logger.info(
             f"[{symbol}] dynamic SL migrating | {current_sl:.2f} -> {new_sl:.2f} | "
-            f"gap={gap:.2f} | lock={sl_lock:.0%}"
+            f"sl_at={sl_lock:.0%}"
         )
 
         # Cancel -> re-place
@@ -870,22 +864,20 @@ class MarginOrderExecutor:
                 return True, None
             return False, None
 
-        exit_side = "SELL" if direction == "LONG" else "BUY"
         buffer = cfg.get("sl_slippage_buffer", 0.0)
-        buffered_sl = new_sl + (buffer if direction == "SHORT" else -buffer)
+        exit_side = "SELL" if direction == "LONG" else "BUY"
+        tp_price = current_tp
+        sl_price = new_sl
+        buffered_sl = sl_price + (buffer if direction == "SHORT" else -buffer)
+        qty = round(abs(pos.net_qty), cfg["precision_qty"])
 
-        success = self.client.place_oco_order(
-            symbol=symbol,
-            side=exit_side,
-            qty=abs(pos.net_qty),
-            price=current_tp,
-            stop_price=new_sl,
-            stop_limit_price=buffered_sl
-        )
-        if not success:
+        if not self.client.place_oco_order(
+            symbol=symbol, side=exit_side, qty=qty,
+            price=tp_price, stop_price=sl_price, stop_limit_price=buffered_sl
+        ):
             logger.critical(f"[{symbol}] dynamic SL -- OCO re-place failed, emergency closing")
             if not self.client.execute_market_close(symbol):
-                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
                 return True, None
             return False, None
 
