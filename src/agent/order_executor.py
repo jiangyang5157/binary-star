@@ -322,6 +322,9 @@ class MarginOrderExecutor:
                 return {}, None
 
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
+        # Guard: record fill time on first protected pulse (OTOCO skips Case 3 setter)
+        if not trade_state.get("entry_filled_at"):
+            trade_state["entry_filled_at"] = datetime.now(timezone.utc).isoformat()
         logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
 
         # OCO qty sanity: re-align if position changed since OCO was placed
