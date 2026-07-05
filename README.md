@@ -407,7 +407,7 @@ python run_patch.py -f data/prod/evolution/proposal_001.json --symbol BTC
 A web UI served by FastAPI at `http://localhost:8080`:
 
 ```bash
-python -m src.dashboard.server --data-root data/prod
+python -m src.dashboard.server --host 127.0.0.1 --port 8080 --data-root data/prod
 ```
 
 | Page | Route | Description |
