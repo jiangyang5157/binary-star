@@ -518,8 +518,8 @@ class MarginOrderExecutor:
         if not success:
             logger.critical(f"[{symbol}] Guardian CRITICAL — cancelled OCO, failed to place new, emergency closing")
             if not self.client.execute_market_close(symbol):
-                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
-                return True, None  # Signal caller: position still open
+                logger.critical(f"[{symbol}] emergency close FAILED — position naked, keeping trade_state for retry next pulse")
+                return True, None  # Position still open — Guardian Case 3 retries next pulse
             return False, None  # Signal caller: position was emergency-closed
 
         return True, {"tp_price": best_tp, "sl_price": best_sl}
