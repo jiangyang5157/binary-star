@@ -1261,7 +1261,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .run-panel .section-header {
