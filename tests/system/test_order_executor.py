@@ -782,7 +782,7 @@ def test_find_level_no_tp_yet():
 
 
 def test_find_level_l2_fired_syncs_sl():
-    """find_level: SL=entry, price at 4.0 ATR -> L2 fired -> returns 2, syncs SL."""
+    """find_level: SL=entry, progress 66.7% -> L2 fired -> returns 2, syncs SL."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -792,22 +792,22 @@ def test_find_level_l2_fired_syncs_sl():
     client.get_avg_entry_price.return_value = entry
     client.get_ticker_price.return_value = entry + 4.0 * atr  # 74000
     # SL at entry → L1 fired
-    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=entry)
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=76000, sl=entry)
     client.get_active_orders.return_value = orders
 
-    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=entry)
+    trade_state = _make_trade_state("LONG", entry, tp_price=76000, sl_price=entry)
     level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
 
-    # L2 threshold 3.5 ATR < 4.0 → L2 fired, returns 2 (next = L3)
+    # progress = 4000/6000 ≈ 0.667, L2 target=0.60 → fires, L3 target=0.80 → not
     assert level == 2
-    # SL should be synced: price - 1.0 ATR = 74000 - 1000 = 73000
+    # L2 sl_lock=0.65: new_sl = 70000 + 0.65 * 4000 = 72600
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
-        assert abs(oco_call[1]["stop_price"] - 73000) < 100
+        assert abs(oco_call[1]["stop_price"] - 72600) < 100
 
 
 def test_find_level_l3_all_fired():
-    """find_level: SL=entry, price at 6.0 ATR -> all levels fired -> returns 3, SL=0.75 ATR."""
+    """find_level: SL=entry, progress 85.7% -> all levels fired -> returns 3."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -816,22 +816,22 @@ def test_find_level_l3_all_fired():
     )
     client.get_avg_entry_price.return_value = entry
     client.get_ticker_price.return_value = entry + 6.0 * atr  # 76000
-    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=80000, sl=entry)
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=77000, sl=entry)
     client.get_active_orders.return_value = orders
 
-    trade_state = _make_trade_state("LONG", entry, tp_price=80000, sl_price=entry)
+    trade_state = _make_trade_state("LONG", entry, tp_price=77000, sl_price=entry)
     level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
 
-    # L1+L2+L3 all fired -> next level = 3 (done)
+    # progress = 6000/7000 ≈ 0.857, L3 target=0.80 → all fired
     assert level == 3
-    # SL should be synced: price - 0.75 ATR = 76000 - 750 = 75250
+    # L3 sl_lock=0.85: new_sl = 70000 + 0.85 * 6000 = 75100
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
-        assert abs(oco_call[1]["stop_price"] - 75250) < 100
+        assert abs(oco_call[1]["stop_price"] - 75100) < 100
 
 
 def test_find_level_short():
-    """find_level_and_sync_sl: SHORT, SL=entry, price at -4.0 ATR -> L2 fired -> returns 2."""
+    """find_level_and_sync_sl: SHORT, progress 66.7% -> L2 fired -> returns 2."""
     executor, client = _make_executor()
     atr = 1000.0
     entry = 70000.0
@@ -840,19 +840,18 @@ def test_find_level_short():
     )
     client.get_avg_entry_price.return_value = entry
     client.get_ticker_price.return_value = entry - 4.0 * atr  # 66000
-    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="BUY", tp=60000, sl=entry)
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="BUY", tp=64000, sl=entry)
     client.get_active_orders.return_value = orders
 
-    trade_state = _make_trade_state("SHORT", entry, tp_price=60000, sl_price=entry)
+    trade_state = _make_trade_state("SHORT", entry, tp_price=64000, sl_price=entry)
     level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
 
-    # L2 threshold 3.5 ATR < 4.0 -> L2 fired, returns 2 (next = L3)
+    # progress = 4000/6000 ≈ 0.667, L2 target=0.60 → fires, L3 target=0.80 → not
     assert level == 2
-    # SL synced: price + 1.0 ATR = 66000 + 1000 = 67000 （ceiling toward safety）
-    # For mock: verify OCO was called with correct stop
+    # L2 sl_lock=0.65: new_sl = 70000 - 0.65 * 4000 = 67400
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
-        assert abs(oco_call[1]["stop_price"] - 67000) < 100
+        assert abs(oco_call[1]["stop_price"] - 67400) < 100
 
 
 def test_find_level_cancel_fails_returns_next_level():
@@ -866,14 +865,14 @@ def test_find_level_cancel_fails_returns_next_level():
     client.get_avg_entry_price.return_value = entry
     client.get_ticker_price.return_value = entry + 4.0 * atr  # 74000
     # SL != entry -> needs sync, but cancel will fail
-    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=71000)
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=76000, sl=71000)
     client.get_active_orders.return_value = orders
     client.cancel_all_symbol_orders.return_value = False  # cancel fails
 
-    trade_state = _make_trade_state("LONG", entry, tp_price=75000, sl_price=71000)
+    trade_state = _make_trade_state("LONG", entry, tp_price=76000, sl_price=71000)
     level = executor.find_level_and_sync_sl("BTCUSDT", trade_state, atr_macro=atr)
 
-    # L2 fired (4.0 >= 3.5), returns 2
+    # progress = 4000/6000 ≈ 0.667, L2 target=0.60 → fires, L3 target=0.80 → not
     assert level == 2
     # OCO should NOT be re-placed (cancel failed, skip)
     client.place_oco_order.assert_not_called()
@@ -886,7 +885,7 @@ def test_daemon_qty_change_resets_level():
     entry = 70000.0
 
     # --- Pulse 1: L1 fires, daemon stores level=1 ---
-    client.get_ticker_price.return_value = entry + 1.5 * atr  # 71500
+    client.get_ticker_price.return_value = entry + 1.75 * atr  # 71750
     pos_chain = [0.5, 0.4]
     call_count = [0]
     def pos_side_effect(symbol):
@@ -945,7 +944,7 @@ def test_daemon_position_closed_clears_level():
         "BTCUSDT", "BTC", "USDT", net_qty=0.5, borrowed=0.0, free=0.5, locked=0.0
     )
     client.get_avg_entry_price.return_value = entry
-    client.get_ticker_price.return_value = entry + 1.5 * atr
+    client.get_ticker_price.return_value = entry + 1.75 * atr
     orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000)
     client.get_active_orders.return_value = orders
 

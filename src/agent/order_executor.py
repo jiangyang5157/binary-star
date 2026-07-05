@@ -401,7 +401,7 @@ class MarginOrderExecutor:
                     if not tp_update:
                         # Position fully closed by partial TP — clear trade state
                         return {}, None
-                    # Merge sl/tp into trade_state (not partial_tp_level — that's daemon memory)
+                    # Merge sl/tp into trade_state (not exit_ladder_level — that's daemon memory)
                     for key in ("sl_price", "tp_price"):
                         if key in tp_update:
                             trade_state[key] = tp_update[key]
