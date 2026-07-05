@@ -62,6 +62,7 @@ class AbstractAIClient(ABC):
         system_instruction: str | None = None,
         tools: list[Any] | None = None,
         temperature: float = 0.5,
+        reasoning_effort: str | None = None,
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
@@ -71,6 +72,9 @@ class AbstractAIClient(ABC):
           {"role": "user"|"model", "text": str}
           {"role": "model", "tool_calls": [{"id": str, "name": str, "args": dict}]}
           {"role": "user", "tool_responses": [{"id": str, "name": str, "result": any}]}
+
+        `reasoning_effort`: "high" | "max" | None. Enables DeepSeek thinking mode
+        when set; ignored by providers that don't support it. None = standard mode.
         """
         ...
 
