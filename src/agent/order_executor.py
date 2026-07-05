@@ -207,24 +207,20 @@ class MarginOrderExecutor:
         # --- STEP 0: Refresh avg_entry from exchange (cached, only calls API on qty change) ---
         avg_entry = self.client.get_avg_entry_price(symbol, net_qty)
 
-        # --- Case 1: No position yet (entry pending or expired) ---
+        # --- Case 1: No position yet (OTOCO pending or position closed) ---
         if not has_position:
-            entry_order_id = trade_state.get("entry_order_id")
-            if entry_order_id:
-                # Check timeout
-                placed_at = trade_state.get("entry_placed_at")
+            otoco_placed_at = trade_state.get("otoco_placed_at")
+            if otoco_placed_at:
                 timeout_hours = trade_state.get("projected_waiting_hours", 24.0)
-
-                if placed_at:
-                    elapsed_hours = (datetime.now(timezone.utc) - placed_at).total_seconds() / 3600
-                    if elapsed_hours > timeout_hours:
-                        logger.warning(f"[{symbol}] entry order expired | id={entry_order_id} | elapsed={elapsed_hours:.1f}h > {timeout_hours}h")
-                        self.client.cancel_order(symbol, entry_order_id)
-                        return {}, None  # Clear trade state
-                    else:
-                        logger.info(f"[{symbol}] entry order pending | id={entry_order_id} | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
+                elapsed_hours = (datetime.now(timezone.utc) - otoco_placed_at).total_seconds() / 3600
+                if elapsed_hours > timeout_hours:
+                    logger.warning(f"[{symbol}] OTOCO entry expired | elapsed={elapsed_hours:.1f}h > {timeout_hours}h")
+                    self.client.cancel_all_symbol_orders(symbol)
+                    return {}, None  # Clear trade state
+                else:
+                    logger.info(f"[{symbol}] OTOCO entry pending | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
             else:
-                # Position was entered and then closed (net≈0, no entry order).
+                # Position was entered and then closed (net≈0, no pending OTOCO).
                 # Cancel any stray orders and clear stale trade state.
                 if trade_state.get("entry_filled_at"):
                     logger.info(f"[{symbol}] position flat — cleaning orders")

@@ -240,8 +240,7 @@ def test_guardian_entry_pending_not_expired():
 
     trade_state = {
         "direction": "LONG",
-        "entry_order_id": 12345,
-        "entry_placed_at": datetime.now(timezone.utc) - timedelta(hours=1),
+        "otoco_placed_at": datetime.now(timezone.utc) - timedelta(hours=1),
         "projected_waiting_hours": 4.0,
         "tp_price": 76000,
         "sl_price": 73000,
@@ -249,8 +248,8 @@ def test_guardian_entry_pending_not_expired():
 
     result, level = executor.guardian_check("BTCUSDT", trade_state)
 
-    client.cancel_order.assert_not_called()
-    assert result["entry_order_id"] == 12345
+    client.cancel_all_symbol_orders.assert_not_called()
+    assert result["direction"] == "LONG"
     assert level is None
 
 def test_guardian_entry_expired():
@@ -261,8 +260,7 @@ def test_guardian_entry_expired():
 
     trade_state = {
         "direction": "LONG",
-        "entry_order_id": 12345,
-        "entry_placed_at": datetime.now(timezone.utc) - timedelta(hours=5),
+        "otoco_placed_at": datetime.now(timezone.utc) - timedelta(hours=5),
         "projected_waiting_hours": 4.0,
         "tp_price": 76000,
         "sl_price": 73000,
@@ -270,7 +268,7 @@ def test_guardian_entry_expired():
 
     result, level = executor.guardian_check("BTCUSDT", trade_state)
 
-    client.cancel_order.assert_called_once_with("BTCUSDT", 12345)
+    client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
     assert result == {}
 
 def test_guardian_unprotected_position_place_oco():
