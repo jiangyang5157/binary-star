@@ -917,7 +917,7 @@ class MarginOrderExecutor:
             account = self.client.get_cross_margin_account()
             # Converts absolute BTC equity value into USDT
             current_price = self.client.get_ticker_price(benchmark_symbol)
-            if current_price <= 0:
+            if not current_price or current_price <= 0:
                 raise ValueError(
                     f"[{symbol}] invalid benchmark price for {benchmark_symbol}: {current_price}"
                 )
