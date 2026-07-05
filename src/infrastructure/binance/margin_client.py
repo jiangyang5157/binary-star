@@ -466,6 +466,9 @@ class BinanceMarginClient:
         except ServerError as e:
             logger.error(f"OCO failed (server) | symbol={symbol} | status={e.status_code}")
             return False
+        except Exception as e:
+            logger.error(f"OCO failed (network) | symbol={symbol} | error={e}")
+            return False
 
     def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_trigger_price: float, sl_limit_price: float) -> Optional[int]:
         """Places an OTOCO order specifying entry, and nested TP/SL.
