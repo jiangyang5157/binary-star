@@ -169,7 +169,7 @@ def test_successful_trade_long():
     state = daemon.trade_states["BTCUSDT"]
     assert state["direction"] == "LONG"
     assert state["entry_price"] == 65000.0
-    assert state["entry_order_id"] == 12345
+    assert state["otoco_placed_at"]
 
 
 def test_successful_trade_short():

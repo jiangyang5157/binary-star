@@ -18,6 +18,7 @@ def _make_executor():
     client.cancel_all_symbol_orders.return_value = True
     client.execute_market_close.return_value = True
     client.place_limit_order.return_value = 12345  # Mock order ID
+    client.place_otoco_order.return_value = 12345  # Mock orderListId
     client.place_oco_order.return_value = True
     client.cancel_order.return_value = True
     client.get_avg_entry_price.return_value = 70000.0
@@ -59,7 +60,7 @@ def test_flat_to_long():
     # Assertions
     client.cancel_all_symbol_orders.assert_not_called()
     client.execute_market_close.assert_not_called()
-    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=74000)
+    client.place_otoco_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, entry_price=74000, tp_price=76000, sl_trigger_price=73000, sl_limit_price=ANY)
     assert order_id == 12345
 
 def test_flat_with_stale_orders_to_long():
@@ -72,7 +73,7 @@ def test_flat_with_stale_orders_to_long():
     order_id = executor.sync_with_opinion("BTCUSDT", "LONG", entry_price=74000, tp_price=76000, sl_price=73000)
     
     client.cancel_all_symbol_orders.assert_called_once_with("BTCUSDT")
-    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, price=74000)
+    client.place_otoco_order.assert_called_once_with(symbol="BTCUSDT", side="BUY", qty=ANY, entry_price=74000, tp_price=76000, sl_trigger_price=73000, sl_limit_price=ANY)
     assert order_id == 12345
 
 def test_pivot_short_to_long_no_sl():
@@ -347,7 +348,7 @@ def test_flat_to_short():
 
     client.cancel_all_symbol_orders.assert_not_called()
     client.execute_market_close.assert_not_called()
-    client.place_limit_order.assert_called_once_with(symbol="BTCUSDT", side="SELL", qty=ANY, price=66000)
+    client.place_otoco_order.assert_called_once_with(symbol="BTCUSDT", side="SELL", qty=ANY, entry_price=66000, tp_price=64000, sl_trigger_price=67000, sl_limit_price=ANY)
     assert order_id == 12345
 
 

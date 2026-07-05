@@ -108,8 +108,8 @@ class MarginOrderExecutor:
                     logger.error(f"[{symbol}] failed to clear stale orders — aborting")
                     return None
 
-            logger.info(f"[{symbol}] placing LIMIT entry | dir={opinion_direction}")
-            return self._place_entry_order(symbol, opinion_direction, entry_price, sl_price)
+            logger.info(f"[{symbol}] placing OTOCO entry | dir={opinion_direction}")
+            return self._place_otoco_entry(symbol, opinion_direction, entry_price, tp_price, sl_price)
 
         # Scenario A: PIVOT (Opposite Direction)
         # Position exists — let Guardian manage it. Bot does not intervene with
@@ -937,3 +937,28 @@ class MarginOrderExecutor:
             price=entry_price
         )
         return order_id
+
+    def _place_otoco_entry(self, symbol: str, direction: str, entry_price: float, tp_price: float, sl_price: float) -> Optional[int]:
+        """Places an OTOCO order (entry + nested TP/SL). Returns orderListId for Guardian tracking."""
+        dynamic_qty = self._calculate_target_qty(symbol, entry_price, sl_price)
+
+        side = "BUY" if direction == "LONG" else "SELL"
+
+        # Calculate buffered SL Limit (same as _place_entry_order direction logic)
+        cfg = self._get_trade_config(symbol)
+        buffer = cfg.get("sl_slippage_buffer", 0.0)
+        # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
+        buffered_sl = sl_price + (buffer if direction == "SHORT" else -buffer)
+
+        logger.info(f"[{symbol}] deploying OTOCO | dir={direction} | entry={entry_price} | tp={tp_price} | sl={sl_price} | qty={dynamic_qty}")
+
+        order_list_id = self.client.place_otoco_order(
+            symbol=symbol,
+            side=side,
+            qty=dynamic_qty,
+            entry_price=entry_price,
+            tp_price=tp_price,
+            sl_trigger_price=sl_price,
+            sl_limit_price=buffered_sl,
+        )
+        return order_list_id

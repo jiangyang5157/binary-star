@@ -478,8 +478,7 @@ class SniperDaemon:
                     "entry_price": float(entry),
                     "tp_price": float(tp),
                     "sl_price": float(sl),
-                    "entry_order_id": result,
-                    "entry_placed_at": datetime.now(timezone.utc),
+                    "otoco_placed_at": datetime.now(timezone.utc),
                     "projected_waiting_hours": float(projected_waiting),
                     "projected_holding_hours": float(projected_holding),
                 }
