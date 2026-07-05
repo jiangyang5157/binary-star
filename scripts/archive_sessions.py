@@ -6,10 +6,10 @@ Move all session JSON files from <data_root>/sessions/ into <data_root>/<version
 Creates the target folder if it doesn't exist; overwrites on name collision.
 
 Usage:
-    python scripts/archive_sessions.py -p data/prod -v 26.6.29
-    python scripts/archive_sessions.py -p data/prod -v 26.6.29 --symbol BTC
-    python scripts/archive_sessions.py -p data/prod -v 26.6.29 --symbol BTC,XAUT
-    python scripts/archive_sessions.py -p data/prod -v 26.6.29 --dry-run
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol BTC
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol BTC,XAUT
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --dry-run
 """
 
 import os
@@ -73,7 +73,7 @@ def main():
     parser.add_argument(
         "-v", "--version",
         type=str, required=True,
-        help="Version folder name, e.g. 26.6.29.  Sessions will be moved to <data_root>/<version>/."
+        help="Version folder name, e.g. 26.7.8.  Sessions will be moved to <data_root>/<version>/."
     )
     parser.add_argument(
         "--symbol", type=str,

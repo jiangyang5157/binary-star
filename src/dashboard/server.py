@@ -247,7 +247,7 @@ def main():
 
     parser = argparse.ArgumentParser(description="Singularity Dashboard")
     parser.add_argument("-p", "--data-root", required=True,
-                        help="Data directory root (e.g. data/v26.6.28)")
+                        help="Data directory root (e.g. data/prod)")
     parser.add_argument("--port", type=int, default=8080,
                         help="Server port (default: 8080)")
     parser.add_argument("--host", default="127.0.0.1",

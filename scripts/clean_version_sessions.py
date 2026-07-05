@@ -6,10 +6,10 @@ Delete all session reports under <data_root>/sessions/ whose
 metadata.version_control.project_version matches the given version.
 
 Usage:
-    python scripts/clean_version_sessions.py -p data/prod -v 26.7.04
-    python scripts/clean_version_sessions.py -p data/backtest -v 26.6.29 --symbol BTC
-    python scripts/clean_version_sessions.py -p data/backtest -v 26.6.29 --symbol BTC,XAUT
-    python scripts/clean_version_sessions.py -p data/prod -v 26.7.04 --dry-run
+    python scripts/clean_version_sessions.py -p data/prod -v 26.7.8
+    python scripts/clean_version_sessions.py -p data/backtest -v 26.7.8 --symbol BTC
+    python scripts/clean_version_sessions.py -p data/backtest -v 26.7.8 --symbol BTC,XAUT
+    python scripts/clean_version_sessions.py -p data/prod -v 26.7.8 --dry-run
 """
 
 import os
@@ -99,7 +99,7 @@ def main():
     parser.add_argument(
         "-v", "--version",
         type=str, required=True,
-        help="Project version to match, e.g. 26.7.04.  Sessions with this "
+        help="Project version to match, e.g. 26.7.8.  Sessions with this "
              "metadata.version_control.project_version will be deleted."
     )
     parser.add_argument(
