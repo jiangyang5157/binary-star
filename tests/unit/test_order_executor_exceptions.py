@@ -12,7 +12,7 @@ def _make_executor():
     executor.client = MagicMock()
     executor.global_cfg = {
         "trade_management": {"risk_per_trade": 0.02, "net_qty_tolerance": 1e-8},
-        "guardian": {"partial_tp": {"levels": []}},
+        "guardian": {"exit_ladder": {"levels": []}},
     }
     executor.manual_balance_usdt = 10000.0
     executor._last_conflict_key = {}
@@ -91,22 +91,22 @@ class TestOptimizeExceptionHandling:
 
 
 class TestMigrationExceptionHandling:
-    def test_dynamic_sl_zero_atr_returns_noop(self):
-        """ATR <= 0 returns no migration needed."""
+    def test_dynamic_sl_zero_sl_lock_returns_noop(self):
+        """sl_lock <= 0 returns no migration needed."""
         executor = _make_executor()
         intact, new_sl = executor._migrate_dynamic_sl(
             "BTCUSDT", "LONG", 58000, 62000, 60000,
-            executor._trade_config_cache["BTCUSDT"], 0, 0,
+            executor._trade_config_cache["BTCUSDT"], 0,
         )
         assert intact is True
         assert new_sl is None
 
     def test_dynamic_sl_no_change_returns_noop(self):
-        """When current SL is already at or beyond calculated distance, no migration."""
+        """sl_lock=0 means no migration requested."""
         executor = _make_executor()
         intact, new_sl = executor._migrate_dynamic_sl(
             "BTCUSDT", "LONG", 59500, 62000, 60000,
-            executor._trade_config_cache["BTCUSDT"], 3.0, 200,
+            executor._trade_config_cache["BTCUSDT"], 0,
         )
         assert intact is True
         assert new_sl is None
