@@ -759,8 +759,8 @@ class MarginOrderExecutor:
                     f"[{symbol}] exit ladder L{i+1} — market close failed, emergency closing all"
                 )
                 if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
-                    return True, None
+                    logger.critical(f"[{symbol}] emergency close FAILED — position naked, clearing trade state")
+                    return False, None  # Report position not intact — orders cancelled, naked
                 return False, None
 
             # Step C: Compute remaining qty (don't re-verify from exchange — settlement may be stale)
@@ -793,8 +793,8 @@ class MarginOrderExecutor:
                     f"[{symbol}] exit ladder L{i+1} — OCO re-place failed, emergency closing"
                 )
                 if not self.client.execute_partial_market_close(symbol=symbol, side=exit_side, qty=live_qty):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
-                    return True, None
+                    logger.critical(f"[{symbol}] emergency close FAILED — position naked, clearing trade state")
+                    return False, None  # Report position not intact
                 return False, None
 
             logger.info(
