@@ -102,12 +102,16 @@ class TestMigrationExceptionHandling:
         assert new_sl is None
 
     def test_dynamic_sl_no_change_returns_noop(self):
-        """SL already at price — zero gap means no migration needed."""
+        """SL already at lock value — no migration needed."""
         executor = _make_executor()
-        sl_lock = 0.65
-        sl = 60000  # SL at current_price — gap is 0
+        sl_lock = 0.24
+        avg_entry = 70000.0
+        current_tp = 75000.0
+        # current_sl already at avg_entry (SL = entry after L1), new_sl would be 71200
+        # but we set current_sl=71200 (already there) → no migration needed
+        current_sl = avg_entry + (current_tp - avg_entry) * 0.24  # 71200
         intact, new_sl = executor._migrate_dynamic_sl(
-            "BTCUSDT", "LONG", sl, 62000, 60000,
+            "BTCUSDT", "LONG", current_sl, current_tp, avg_entry,
             executor._trade_config_cache["BTCUSDT"], sl_lock,
         )
         assert intact is True
