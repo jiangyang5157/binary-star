@@ -456,6 +456,7 @@ class BinanceMarginClient:
                 stopLimitPrice=self._round_price(stop_limit_price, p_price, side),
                 stopLimitTimeInForce="GTC",
                 listClientOrderId=tag,
+                sideEffectType="MARGIN_BUY",
             )
             logger.info(f"OCO placed | tag={tag} | symbol={symbol} | side={side} | qty={qty}")
             return True
@@ -486,6 +487,7 @@ class BinanceMarginClient:
                 "workingTimeInForce": "GTC",
                 "pendingSide": pending_side,
                 "pendingAboveTimeInForce": "GTC",
+                "sideEffectType": "MARGIN_BUY",
             }
 
             if side == "BUY":
