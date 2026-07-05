@@ -104,20 +104,29 @@ class MockDataFactory:
                 "gemini": {
                     "model": "mock-model",
                 },
+                "agents": {
+                    "session": {
+                        "role_prompt": "config/prompts/session.md",
+                        "temperature": 0.7,
+                        "reasoning_effort": None,
+                    },
+                    "critic": {
+                        "role_prompt": "config/prompts/critic.md",
+                        "temperature": 0.2,
+                        "reasoning_effort": None,
+                    },
+                    "evolver": {
+                        "role_prompt": "config/prompts/evolver.md",
+                        "temperature": 0.0,
+                        "reasoning_effort": None,
+                    },
+                },
             },
-            # ── Binary Star / Evolver ────────────────────────────────
+            # ── Binary Star ───────────────────────────────────────────
             "binary_star": {
                 "system_instruction": "config/prompts/binary_star.md",
                 "max_rounds": 3,
-                "session_role_prompt": "config/prompts/session.md",
-                "critic_role_prompt": "config/prompts/critic.md",
-                "session_confidence_threshold": 60,
-                "session_temperature": 0.7,
-                "critic_temperature": 0.2,
-            },
-            "evolver": {
-                "role_prompt": "config/prompts/evolver.md",
-                "evolver_temperature": 0.0,
+                "confidence_threshold": 60,
             },
             # ── Strategy — temporal parameters ────────────────────
             "temporal_parameters": {

@@ -20,7 +20,7 @@ def _make_daemon(executor=None, trade_states=None, prev_metrics=None,
     daemon.global_cfg = {
         "llm": {},
         "binary_star": {
-            "session_confidence_threshold": confidence_threshold,
+            "confidence_threshold": confidence_threshold,
         },
     }
     daemon.executor = executor

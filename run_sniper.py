@@ -431,7 +431,7 @@ class SniperDaemon:
                 return
 
             # Gate 2: Confidence threshold
-            threshold = int(self.global_cfg['binary_star']['session_confidence_threshold'])
+            threshold = int(self.global_cfg['binary_star']['confidence_threshold'])
             if confidence < threshold:
                 logger.info(f"[{symbol}] confidence {confidence}% < threshold {threshold}% | skipping trade")
                 return
