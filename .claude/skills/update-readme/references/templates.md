@@ -6,51 +6,72 @@ convey the architecture.
 
 ---
 
+## Opening (CRITICAL — first thing the reader sees)
+
+**Format**: One paragraph, no heading. Goes right after the title + badges.
+
+**Template**:
+```markdown
+# Singularity
+
+[badges]
+
+What if two LLMs debated your trade before it hit the market? **Binary Star**
+pits a Planner against a Critic, with a Math Auditor anchoring both to physical
+reality. When signal confluence crosses a regime-adaptive threshold, the
+debate fires — and the winner (or forced consensus) becomes the order on-chain.
+```
+
+**Rules**:
+- Lead with the HOOK — Binary Star debate, not a feature list
+- Skip jargon: no "multi-agent protocol," no "adversarial framework," no "quantitative engine"
+- Write like you're explaining it to a sharp engineer, not pitching investors
+- One short paragraph. If it's two, cut one.
+
+---
+
 ## Binary Star Protocol (HERO — most detailed section)
 
-**Format**: Mermaid sequence diagram + audit dimensions table + agent roles table
+**Format**: Mermaid sequence diagram + veto table
 
-**Scan**: `src/agent/binary_star_orchestrator.py`, `src/agent/debate_loop.py`, `src/agent/session_agent.py`, `src/agent/critic_agent.py`, `src/analyzer/math_fact_checker.py`
+**Scan**: `src/agent/binary_star_orchestrator.py`, `src/agent/debate_loop.py`, `src/agent/critic_agent.py`
 
 **Template**:
 ```markdown
 ## Binary Star Protocol
 
-[One-paragraph overview: multi-agent debate system. Planner proposes a trade,
-Critic audits it across 7 dimensions, Math Auditor verifies physics (RR,
-betweenness, ATR). Debate converges when Critic passes or forced synthesis
-after max rounds. 2-3 sentences.]
+[One sentence: three agents — Planner proposes, Critic audits, Math Auditor verifies.]
 
-### Debate Flow
+[Mermaid sequence diagram: Orchestrator → Planner → Math Auditor → Critic, loop 2 rounds, PASS early exit]
 
-[Sequence diagram: Planner → Critic → Math Auditor, loop until converge/limit]
+### Veto Levels
 
-### Agent Roles
+| Veto | Effect |
+|------|--------|
+| PASS | Plan accepted — early exit |
+| CONSTRUCTIVE | Fixable flaws — Planner refines |
+| TERMINAL | Unfixable — forced convergence |
 
-| Agent | Role | Model |
-|-------|------|-------|
-| Planner | Generates trade plan with tactical parameters | deepseek-v4-pro |
-| Critic | Audits against 7 dimensions, issues veto | deepseek-v4-pro |
-| Math Auditor | Verifies RR, betweenness, ATR volatility | (tool-call) |
+Plans are scored 0-100 across three confidence dimensions (topographical
+armor, regime sync, temporal physics). Scores below threshold are rejected.
+Two LLM adapters (DeepSeek and Gemini) power the agents via a shared config.
 
-### Audit Dimensions
-
-| Dimension | Check |
-|-----------|-------|
-| [NAME] | One-line description |
+[Note: AI providers and confidence scoring are mentioned inline — no separate
+sections needed.]
 ```
 
 **Rules**:
-- This is the HERO section — give it the most detail. The reader should understand how the debate works after reading this.
-- Show agent collaboration clearly in the sequence diagram
-- Keep audit dimensions table to 5-8 rows max
+- This is the HERO section. Everything else exists to serve it.
+- Veto table: 3 rows max
+- Fold AI provider mention + confidence scoring INTO this section naturally
+- Do NOT create separate "AI Providers" or "Confidence Scoring" sections
 - Do NOT list code files or line numbers
 
 ---
 
 ## Architecture
 
-**Format**: One `graph LR` mermaid diagram — clean system boundaries
+**Format**: One `graph LR` mermaid diagram
 
 **Scan**: `src/` top-level packages only (depth 1)
 
@@ -58,16 +79,15 @@ after max rounds. 2-3 sentences.]
 ```markdown
 ## Architecture
 
-[One diagram showing: Sniper triggers → Binary Star debates → Order Executor acts → Evolution feeds back]
+[One diagram: Sniper triggers → Binary Star debates → Order Executor acts → Evolution feeds back]
 
-[No layer table. No code paths. One diagram tells the whole story.]
+[No layer table. No text. One diagram tells the whole story.]
 ```
 
 **Rules**:
-- ONE diagram only. If it needs two, the scope is wrong.
-- Show system boundaries, not modules
+- ONE diagram only
 - Zero crossing lines
-- No text beyond the diagram caption
+- No prose — the diagram and its labels are self-explanatory
 
 ---
 
@@ -75,23 +95,20 @@ after max rounds. 2-3 sentences.]
 
 **Format**: One paragraph
 
-**Scan**: `src/sniper/trigger.py` (count signals), `config/global_config.yaml` (thresholds)
+**Scan**: `src/sniper/trigger.py` (count signals)
 
 **Template**:
 ```markdown
 ## Sniper
 
-A local signal stack monitors 13 market signals across 5 categories (flow,
-energy, structural, positioning, cross-symbol). A regime-adaptive confluence
-engine determines when market conditions warrant activation. Its sole purpose
-is providing high-quality entry timing for the Binary Star debate system.
+A local signal stack (13 signals, 5 categories) monitors the market at
+2-minute pulses. A regime-adaptive confluence engine decides when to
+activate Binary Star. Its sole job is timing — it does not trade.
 ```
 
 **Rules**:
-- Do NOT list individual signals
-- Do NOT show signal weights or thresholds
-- Do NOT include the pulse flow diagram
-- One paragraph only. If it needs more, it's too long.
+- Do NOT list signals, weights, thresholds, or cooldown details
+- One paragraph only
 
 ---
 
@@ -99,24 +116,21 @@ is providing high-quality entry timing for the Binary Star debate system.
 
 **Format**: One table
 
-**Scan**: `src/agent/order_executor.py` (confirm guardian phases exist)
-
 **Template**:
 ```markdown
 ## Order Management
 
 | Phase | Mechanism |
 |-------|-----------|
-| Entry | OTOCO (atomic entry + nested TP/SL) |
+| Entry | OTOCO — atomic limit entry with nested TP/SL |
 | Protection | Guardian OCO — every position wrapped in TP+SL |
-| Profit-taking | 3-level exit ladder — partial closes at 44/64/84% TP progress |
-| Stop migration | Dynamic trailing SL — locks in profit as ladder levels fire |
+| Profit-taking | 3-level exit ladder (44/64/84% TP progress) |
+| Stop migration | Dynamic trailing SL as ladder levels fire |
 ```
 
 **Rules**:
-- ONE table only. No prose needed.
-- Do NOT describe code paths or function names
-- Do NOT include margin/risk/sizing details
+- ONE table. No prose.
+- No code paths, no config values beyond what's in the table.
 
 ---
 
@@ -128,79 +142,41 @@ is providing high-quality entry timing for the Binary Star debate system.
 ```markdown
 ## Evolution
 
-A sandboxed strategy evolution loop runs offline, evaluating candidate
-configurations against historical sessions. Successful variants produce
-config patches — updated strategy logic and parameter overrides — that
-feed back into Binary Star's decision framework.
+An offline sandbox evaluates strategy variants against historical sessions.
+Winners produce config patches that feed back into Binary Star.
 ```
 
 **Rules**:
-- One paragraph only
-- Do NOT describe population size, generations, or fitness metrics
-- Do NOT mention file paths or class names
+- One paragraph. Two sentences max.
+- No population/generations details
 
 ---
 
-## AI Providers
+## Installation
 
-**Format**: One comparison table + one config block
-
-**Scan**: `src/infrastructure/ai_factory.py`, adapters in `src/infrastructure/ai/`, `config/global_config.yaml`
+**Format**: One code block
 
 **Template**:
 ```markdown
-## AI Providers
+## Installation
 
-| Provider | Model | Vision | Cost |
-|----------|-------|--------|------|
-| DeepSeek | deepseek-v4-pro | — | $ |
-| Gemini | gemini-3.5-flash | Yes | $$$ |
-
-### Config
-
-```yaml
-llm:
-  active_provider: "deepseek"
-  agents:
-    session:
-      temperature: 0.5
-      reasoning_effort: "high"
-    critic:
-      temperature: 0.1
-      reasoning_effort: null
+```bash
+pip install -e .
+cp .env.example .env  # add your provider API key
 ```
 ```
+
+**Rules**:
+- Two lines only. No git clone, no Python version, no prerequisites list.
+- The `.env.example` hint is the only configuration instruction needed.
 
 ---
 
-## Config System
+## Commands (placed LAST)
 
-**Format**: Directory tree + one mermaid resolution diagram
+**Format**: Grouped code blocks — exactly 5 groups
 
-**Scan**: `config/` directory
-
-**Template**:
-```markdown
-## Config System
-
-```
-config/
-├── global_config.yaml      # Guardian, sniper, LLM, binary star
-├── strategy_config.yaml    # Regime detection, temporal physics
-├── symbol_config.yaml      # Per-symbol precision overrides
-└── prompts/                # AI role prompts
-```
-
-[Simple mermaid: base config → symbol overrides → merge → final config]
-```
-
----
-
-## Commands & Scripts (placed LAST)
-
-**Format**: Grouped code blocks with inline comments
-
-**Scan**: `run.py` (argparse), `run_*.py`, `scripts/*.py`
+**Scan**: `run.py` (argparse), `scripts/*.py`
 
 **Template**:
 ```markdown
@@ -208,12 +184,17 @@ config/
 
 ```bash
 # ── Sessions ────────────────────────────────────────────
-python run.py session --symbol BTC -p data/prod    # Live trading session
-python run.py session --symbol XAUT -p data/prod --historical 2026-01-01  # Historical
+python run.py session --symbol BTC -p data/prod
 
 # ── Sniper ──────────────────────────────────────────────
-python run.py sniper --symbol BTC,XAUT -p data/prod --trade 640  # Live monitoring
-...
+python run.py sniper --symbol BTC,XAUT -p data/prod --trade 640
+
+# ── Backtest ────────────────────────────────────────────
+python run.py backtest-run --symbol BTCUSDT --start 2026-01-01 --samples 100
+
+# ── Audit & Evolution ───────────────────────────────────
+python run.py audit -p data/prod
+python run.py evolution --symbol BTC --samples 50 -p data/prod
 
 # ── Dashboard ───────────────────────────────────────────
 python run.py dashboard -p data/prod
@@ -221,31 +202,8 @@ python run.py dashboard -p data/prod
 ```
 
 **Rules**:
-- Only list commands that actually exist — parse argparse, never guess
-- Group by category: Sessions, Sniper, Dashboard, Utilities
+- EXACTLY 5 groups: Sessions, Sniper, Backtest, Audit & Evolution, Dashboard
+- One representative command per group (two for Audit & Evolution)
 - One inline comment per command
-- This section goes LAST after everything else
-
----
-
-## Installation & Setup
-
-**Format**: 3 steps with code blocks
-
-**Template**:
-```markdown
-## Installation
-
-### Prerequisites
-- Python 3.12+
-- Provider API key
-
-### Setup
-```bash
-git clone <repo> && cd crypto
-pip install -e .
-cp .env.example .env  # add your API key
-```
-```
-
-**Rules**: Read Python version from `pyproject.toml`. Keep to 3 steps.
+- No "Utilities" section, no scripts
+- This section goes LAST

@@ -20,16 +20,16 @@ diagram-rich documentation.
 
 The README tells this story, in this order:
 
-1. **Binary Star** (hero) — multi-agent debate protocol: how Planner, Critic, and Math Auditor collaborate to produce a physically-verified trading decision
-2. **Architecture** (context) — one clean diagram showing how the pieces connect
-3. **Sniper** (minimal) — local signal stack that provides timing/trigger context for Binary Star
-4. **Order Management** (minimal) — position protection: partial TP + trailing SL
-5. **Evolution** (minimal) — sandbox that generates strategy/config patches for Binary Star
-6. **AI Providers** — which models power which agents
-7. **Config System** — how configuration flows from files to agents
-8. **Commands** — what the operator actually runs
+1. **Opening** (hook) — one punchy paragraph. Lead with Binary Star: "two LLMs debate your trade." Not a feature list.
+2. **Binary Star** (hero) — debate protocol: Planner, Critic, Math Auditor, veto levels. AI providers and confidence scoring are mentioned inline here — no separate sections for them.
+3. **Architecture** — one clean diagram
+4. **Sniper** (minimal) — signal stack provides timing
+5. **Order Management** (minimal) — one table
+6. **Evolution** (minimal) — one paragraph
+7. **Installation** — two lines: `pip install -e .` + `.env.example`
+8. **Commands** (last) — 5 groups: Sessions, Sniper, Backtest, Audit & Evolution, Dashboard
 
-**DO NOT** include: code layer stacks, file paths, implementation details, or backtest descriptions. The reader came to understand the architecture, not the codebase.
+**DO NOT** include: code layer stacks, file paths, implementation details, backtest descriptions, standalone AI Provider or Config System sections, signal weight tables, prerequisites lists, or "Utilities" command groups. The reader came to see Binary Star, not the build system.
 
 ## Workflow
 
@@ -42,15 +42,14 @@ The README tells this story, in this order:
 3. **📋 仅更新 Commands (Commands Only)** — quick refresh of the commands/scripts reference section only
 
 For option 2, also ask which sections to update:
-- Binary Star Protocol (debate flow, multi-agent architecture, audit dimensions)
+- Opening (hook paragraph)
+- Binary Star Protocol (debate flow, veto levels — AI providers + confidence scoring mentioned inline)
 - Architecture (overview diagram)
-- Sniper (signal stack overview, trigger timing)
-- Order Management (position protection, partial TP, trailing SL)
+- Sniper (signal stack overview)
+- Order Management (OTOCO, OCO, exit ladder, trailing SL)
 - Evolution (sandbox + patch generation)
-- AI Providers
-- Config System
-- Commands & Scripts
-- Installation & Setup
+- Installation
+- Commands (Sessions, Sniper, Backtest, Audit & Evolution, Dashboard)
 
 Let the user pick one or more, or "all of the above". If they pick "all", treat it as a full rewrite (option 1).
 
@@ -112,34 +111,23 @@ Capture only: "OTOCO atomic entry, Guardian OCO protection, 3-level partial TP, 
 
 Capture only: "Sandboxed strategy evolution that outputs config patches consumed by Binary Star."
 
-#### AI Providers
+#### AI Providers + Config (inline, not standalone sections)
 
 ```
-→ Read src/infrastructure/ai_factory.py — provider registry
-→ List adapters in src/infrastructure/ai/ — capabilities, models, vision support
-→ Check config/global_config.yaml for active_provider, model, temperature settings
+→ Count adapters in src/infrastructure/ai/ (just the number — 2)
+→ Note active_provider from config/global_config.yaml
 ```
 
-#### Config System
+These get a one-line mention inside the Binary Star section. No separate sections.
+
+#### Commands (5 groups only)
 
 ```
-→ List config/ directory (top level only)
-→ Note resolution order: global → strategy → symbol → session opinion
+→ Read run.py — extract subcommands for: session, sniper, backtest-run, audit, evolution, dashboard
+→ Ignore scripts/*.py entirely
 ```
 
-#### Commands
-
-```
-→ Read run.py — extract all subcommands, their arguments, help text
-→ Read each run_*.py — extract argparse definitions
-→ List scripts/*.py — for each, extract argparse or parse docstring for usage
-```
-
-For each command, capture:
-- The exact CLI invocation
-- Required vs optional arguments
-- A one-line description
-- Any variants (live vs historical vs backtest)
+Capture one representative invocation per group. Groups: Sessions, Sniper, Backtest, Audit & Evolution, Dashboard.
 
 ### Step 2: Generate Content
 
@@ -218,16 +206,14 @@ Each section has a preferred format. See `references/templates.md` for full temp
 
 1. Generate each section independently
 2. Assemble in this order:
-   - Title + badges + one-liner description
-   - Binary Star Protocol (hero — multi-agent debate diagram + audit dimensions)
-   - Architecture (one clean pipeline diagram, no layer table)
-   - Sniper (minimal — signal stack triggers Binary Star timing)
-   - Order Management (minimal — OTOCO entry + OCO protection + exit ladder)
-   - Evolution (minimal — sandbox that outputs config patches)
-   - AI Providers (comparison table)
-   - Config System (tree + resolution diagram)
-   - Installation & Setup (3 steps)
-   - Commands (grouped code blocks, placed last)
+   - Title + badges + opening hook (punchy, Binary Star focus)
+   - Binary Star Protocol (debate diagram + veto table — AI providers + confidence scoring mentioned inline here)
+   - Architecture (one clean diagram)
+   - Sniper (one paragraph)
+   - Order Management (one table)
+   - Evolution (one paragraph)
+   - Installation (two lines: pip install + .env.example)
+   - Commands (5 groups, placed last)
 3. For partial update: replace only the selected sections in the existing README
 4. For commands only: replace only the Commands section
 
