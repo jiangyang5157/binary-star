@@ -44,7 +44,7 @@ binary_star:
 # ═══════════════════════════════════════════════════════════════════════════
 evolver:
   role_prompt: "config/prompts/evolver.md"
-  evolver_temperature: 0.0
+  evolver_temperature: 0.3
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SNIPER — Monitoring Daemon Trigger Sensitivity
