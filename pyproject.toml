@@ -32,6 +32,7 @@ dependencies = [
     "ruamel.yaml>=0.18.0",
     "fastapi>=0.115.0",
     "uvicorn>=0.34.0",
+    "watchfiles>=0.24.0",
     "binance-connector>=3.5.0",
 ]
 

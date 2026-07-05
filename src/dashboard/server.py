@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from fastapi import FastAPI, Query, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -201,6 +201,12 @@ def render_template(name: str, **kwargs) -> HTMLResponse:
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 def index():
     return RedirectResponse(url="/performance")
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Serve favicon to prevent browser 404s."""
+    return FileResponse(str(static_dir / "favicon.svg"), media_type="image/svg+xml")
 
 
 @app.get("/performance", response_class=HTMLResponse, summary="Performance Dashboard", tags=["Pages"])
