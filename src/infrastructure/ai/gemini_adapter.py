@@ -41,6 +41,7 @@ class GeminiAdapter(AbstractAIClient):
         system_instruction: str | None = None,
         tools: list[Any] | None = None,
         temperature: float = 0.5,
+        reasoning_effort: str | None = None,
         response_json: bool = False,
         http_timeout: int | None = None,
     ) -> AIResponse:
