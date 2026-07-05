@@ -583,8 +583,7 @@ class MarginOrderExecutor:
 
         return cfg
 
-    def find_level_and_sync_sl(self, symbol: str, trade_state: dict,
-                                atr_macro: Optional[float] = None) -> int:
+    def find_level_and_sync_sl(self, symbol: str, trade_state: dict) -> int:
         """
         Called by daemon when level memory is uninitialized (startup, qty change).
 
@@ -632,9 +631,6 @@ class MarginOrderExecutor:
         if not levels:
             return 0
 
-        if atr_macro is None or math.isnan(atr_macro) or atr_macro <= 0:
-            return 0
-
         p_price = cfg["precision_price"]
         # Direction-aware price progress from entry toward TP.
         # Negative = price on the WRONG side of entry (e.g. below entry for LONG).
@@ -679,7 +675,7 @@ class MarginOrderExecutor:
         sl_lock = levels[active_idx]["sl_lock"]
         if sl_lock > 0:
             intact, new_sl = self._migrate_dynamic_sl(
-                symbol, direction, current_sl, current_tp, current_price,
+                symbol, direction, current_sl, current_tp, avg_entry,
                 cfg, sl_lock
             )
             if not intact:
