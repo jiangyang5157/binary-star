@@ -259,7 +259,8 @@ class MarginOrderExecutor:
 
             if not tp or not sl:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — position has no TP/SL, emergency closing")
-                self.client.cancel_all_symbol_orders(symbol)
+                if not self.client.cancel_all_symbol_orders(symbol):
+                    logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
                 if not self.client.execute_market_close(symbol):
                     logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
                     return trade_state, None
@@ -278,7 +279,8 @@ class MarginOrderExecutor:
 
             if sl_breached:
                 logger.critical(f"[{symbol}] Guardian EMERGENCY close — price breached SL | price={current_price} | sl={sl}")
-                self.client.cancel_all_symbol_orders(symbol)
+                if not self.client.cancel_all_symbol_orders(symbol):
+                    logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
                 if not self.client.execute_market_close(symbol):
                     logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
                     return trade_state, None
@@ -289,7 +291,9 @@ class MarginOrderExecutor:
 
             # Clear all stale orders before placing OCO (covers both
             # two-step stale entry and OTOCO pending-leg activation race)
-            self.client.cancel_all_symbol_orders(symbol)
+            if not self.client.cancel_all_symbol_orders(symbol):
+                logger.error(f"[{symbol}] cancel failed before OCO — aborting, retry next pulse")
+                return trade_state, None
 
             buffer = cfg.get("sl_slippage_buffer", 0.0)
             buffered_sl = sl + (buffer if direction == "SHORT" else -buffer)
@@ -345,7 +349,9 @@ class MarginOrderExecutor:
                 elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
                     oco_sl = o.stop_price
             if oco_tp > 0 and oco_sl > 0:
-                self.client.cancel_all_symbol_orders(symbol)
+                if not self.client.cancel_all_symbol_orders(symbol):
+                    logger.error(f"[{symbol}] cancel failed before OCO re-align — aborting, retry next pulse")
+                    return trade_state, None
                 buffer = cfg.get("sl_slippage_buffer", 0.0)
                 buffered_sl = oco_sl + (buffer if direction == "SHORT" else -buffer)
                 success = self.client.place_oco_order(
@@ -362,7 +368,8 @@ class MarginOrderExecutor:
                     trade_state["sl_price"] = oco_sl
                 else:
                     logger.critical(f"[{symbol}] OCO re-align failed, emergency closing")
-                    self.client.cancel_all_symbol_orders(symbol)
+                    if not self.client.cancel_all_symbol_orders(symbol):
+                        logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
                     if not self.client.execute_market_close(symbol):
                         logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
                         return trade_state, None
