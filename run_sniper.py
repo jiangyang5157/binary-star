@@ -504,12 +504,6 @@ class SniperDaemon:
         try:
             logger.debug(f"[{symbol}] checking position state")
 
-            # Extract ATR from previous scout metrics for trailing stop
-            atr = None
-            prev = self.prev_metrics.get(symbol)
-            if prev:
-                atr = prev.get('price_dynamics', {}).get('atr_macro')
-
             trade_state = self.trade_states.get(symbol, {})
 
             # Detect qty changes that invalidate level memory
@@ -526,15 +520,14 @@ class SniperDaemon:
             if next_level is None and trade_state.get("direction"):
                 # Level uninitialized: find from exchange, sync SL, skip TP
                 next_level = self.executor.find_level_and_sync_sl(
-                    symbol, trade_state, atr_macro=atr
+                    symbol, trade_state
                 )
                 self._symbol_level[symbol] = next_level
                 logger.info(f"[{symbol}] level initialized | next_level={next_level}")
 
             # Guardian check with known level (default 0 = start from L1)
             updated_state, new_level = self.executor.guardian_check(
-                symbol, trade_state,
-                current_level=next_level if next_level is not None else 0
+                symbol, trade_state, current_level=next_level if next_level is not None else 0
             )
 
             # Update level if partial TP advanced it
