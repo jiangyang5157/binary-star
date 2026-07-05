@@ -411,17 +411,17 @@ class MarginOrderExecutor:
                         new_level = tp_update["exit_ladder_level"]
 
                 # Step 3: Dynamic trailing — uses the LAST triggered level's
-                # distance. new_level is "next to check", so active = new_level - 1.
+                # sl_lock. new_level is "next to check", so active = new_level - 1.
                 # When no TP yet (new_level=0): no trailing (SL is AI's original).
-                active_sl_distance = 0.0
+                sl_lock = 0.0
                 active_idx = new_level - 1
                 if 0 <= active_idx < len(levels):
-                    active_sl_distance = levels[active_idx]["sl_distance_atr"]
+                    sl_lock = levels[active_idx]["sl_lock"]
 
-                if active_sl_distance > 0:
+                if sl_lock > 0:
                     intact, new_sl = self._migrate_dynamic_sl(
                         symbol, direction, current_sl, current_tp, current_price,
-                        cfg, active_sl_distance, atr_macro
+                        cfg, sl_lock
                     )
                     if not intact:
                         return {}, None  # Emergency-closed
@@ -824,28 +824,33 @@ class MarginOrderExecutor:
 
     def _migrate_dynamic_sl(self, symbol: str, direction: str, current_sl: float,
                              current_tp: float, current_price: float,
-                             cfg: dict, sl_distance_atr: float,
-                             atr_macro: float) -> tuple:
-        """Step 3: Dynamic trailing SL — distance-based, SL itself as anchor.
+                             cfg: dict, sl_lock: float) -> tuple:
+        """Step 3: Dynamic trailing SL — gap-based profit locking.
 
-        LONG:  new_sl = max(current_sl, price - N * ATR)
-        SHORT: new_sl = min(current_sl, price + N * ATR)
+        LONG:  gap = current_price - current_sl
+               new_sl = current_sl + gap * sl_lock
+        SHORT: gap = current_sl - current_price
+               new_sl = current_sl - gap * sl_lock
 
-        sl_distance_atr is passed explicitly from the active partial-TP level.
-        This call is a no-op when distance <= 0.
+        sl_lock is from the active exit-ladder level.
+        0.0 = no trail. 1.0 = SL moves to current price.
 
         Returns (position_intact: bool, new_sl_or_None: float|None).
         None means no migration needed. position_intact=False means emergency-closed.
         """
-        if current_sl <= 0 or atr_macro <= 0 or sl_distance_atr <= 0:
+        if current_sl <= 0 or sl_lock <= 0:
             return True, None
 
-        distance = sl_distance_atr * atr_macro
-
         if direction == "LONG":
-            new_sl = max(current_sl, current_price - distance)
+            gap = current_price - current_sl
+            if gap <= 0:
+                return True, None  # SL already at/above price
+            new_sl = current_sl + gap * sl_lock
         else:
-            new_sl = min(current_sl, current_price + distance)
+            gap = current_sl - current_price
+            if gap <= 0:
+                return True, None  # SL already at/below price
+            new_sl = current_sl - gap * sl_lock
 
         # Round toward safety: floor for LONG (SELL SL), ceil for SHORT (BUY SL).
         # Uses deterministic rounding — Python's round() is banker's rounding and
@@ -861,7 +866,7 @@ class MarginOrderExecutor:
 
         logger.info(
             f"[{symbol}] dynamic SL migrating | {current_sl:.2f} -> {new_sl:.2f} | "
-            f"distance={distance:.2f}"
+            f"gap={gap:.2f} | lock={sl_lock:.0%}"
         )
 
         # Cancel -> re-place
