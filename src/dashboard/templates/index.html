@@ -524,8 +524,8 @@ async function initConfig() {
   try {
     const resp = await fetch(apiUrl('/api/config'));
     const data = await resp.json();
-    if (data.session_confidence_threshold) {
-      confThreshold = data.session_confidence_threshold;
+    if (data.confidence_threshold) {
+      confThreshold = data.confidence_threshold;
       $('confSlider').min = confThreshold;
     }
   } catch (e) {

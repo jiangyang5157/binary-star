@@ -427,8 +427,8 @@ def get_config():
     from src.utils.pipeline_utils import load_combined_config
     from src.utils.symbol_utils import get_quote_currency
     config = load_combined_config()
-    threshold = int(config["binary_star"]["session_confidence_threshold"])
+    threshold = int(config["binary_star"]["confidence_threshold"])
     return {
-        "session_confidence_threshold": threshold,
+        "confidence_threshold": threshold,
         "quote_currency": get_quote_currency(),
     }
