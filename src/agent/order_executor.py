@@ -652,53 +652,30 @@ class MarginOrderExecutor:
                         f"sl={current_sl:.2f} entry={avg_entry:.2f}")
             return 0  # next to check = L1
 
+        tp_distance = abs(current_tp - avg_entry)
+        if tp_distance <= 0:
+            return 0
+
         # Step 2: Scan to find highest triggered level
         # next_level = first un-triggered level index (1=L2, 2=L3, 3=done)
         next_level = 1  # L1 has fired, at least L2 is next
         for i in range(1, len(levels)):
-            if deviation >= levels[i]["atr_threshold"] * atr_macro:
+            progress = deviation / tp_distance
+            if progress >= levels[i]["target"]:
                 next_level = i + 1
             else:
                 break
 
-        # Step 3: Sync SL to match the last triggered level's trailing distance
+        # Step 3: Sync SL to match the last triggered level's locking
         active_idx = next_level - 1
-        target_distance = levels[active_idx]["sl_distance_atr"]
-        if target_distance > 0:
-            if direction == "LONG":
-                target_sl = max(avg_entry, current_price - target_distance * atr_macro)
-            else:
-                target_sl = min(avg_entry, current_price + target_distance * atr_macro)
-        else:
-            target_sl = avg_entry
-
-        target_sl = round(target_sl, p_price)
-
-        if abs(target_sl - current_sl) > 10 ** (-p_price):
-            logger.info(f"[{symbol}] find_level: syncing SL | {current_sl} -> {target_sl} | "
-                        f"level={active_idx} distance={target_distance}")
-            if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error(f"[{symbol}] find_level: cancel failed, SL not synced")
-                return next_level
-
-            pos = self.client.get_symbol_position(symbol)
-            if pos and abs(pos.net_qty) > 0:
-                buffer = cfg.get("sl_slippage_buffer", 0.0)
-                buffered_sl = target_sl + (buffer if direction == "SHORT" else -buffer)
-                if not self.client.place_oco_order(
-                    symbol=symbol, side=exit_side,
-                    qty=abs(pos.net_qty), price=current_tp,
-                    stop_price=target_sl, stop_limit_price=buffered_sl
-                ):
-                    logger.critical(f"[{symbol}] find_level: OCO re-place failed, emergency closing")
-                    if not self.client.execute_market_close(symbol):
-                        logger.critical(f"[{symbol}] find_level: emergency close FAILED")
-                    else:
-                        logger.info(f"[{symbol}] find_level: emergency close succeeded, position closed")
-                    return 0  # reset level — position gone or needs re-evaluation
-        else:
-            logger.info(f"[{symbol}] find_level: SL correct | "
-                        f"next_level={next_level} sl={current_sl:.2f}")
+        sl_lock = levels[active_idx]["sl_lock"]
+        if sl_lock > 0:
+            intact, new_sl = self._migrate_dynamic_sl(
+                symbol, direction, current_sl, current_tp, current_price,
+                cfg, sl_lock
+            )
+            if not intact:
+                return 0  # reset level — position gone or needs re-evaluation
 
         return next_level
 
