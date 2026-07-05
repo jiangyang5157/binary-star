@@ -211,6 +211,12 @@ class MarginOrderExecutor:
         if not has_position:
             otoco_placed_at = trade_state.get("otoco_placed_at")
             if otoco_placed_at:
+                # Position was entered and later closed — clear stale state immediately
+                if trade_state.get("entry_filled_at"):
+                    logger.info(f"[{symbol}] position flat — cleaning orders")
+                    self.client.cancel_all_symbol_orders(symbol)
+                    return {}, None
+                # OTOCO still pending — check timeout
                 timeout_hours = trade_state.get("projected_waiting_hours", 24.0)
                 elapsed_hours = (datetime.now(timezone.utc) - otoco_placed_at).total_seconds() / 3600
                 if elapsed_hours > timeout_hours:
