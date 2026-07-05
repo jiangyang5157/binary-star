@@ -20,9 +20,8 @@ class EvolverConfig(AgentConfig):
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":
-        """Factory method to extract evolver config from the standalone evolver node."""
+        """Factory method to extract evolver config from llm.agents.evolver."""
         llm_cfg = cfg['llm']
-        evolver_cfg = cfg['evolver']
         active_provider = llm_cfg.get('active_provider')
         if not active_provider:
             raise ValueError("active_provider is not set in llm configuration.")
@@ -30,13 +29,14 @@ class EvolverConfig(AgentConfig):
         provider_cfg = llm_cfg.get(active_provider, {})
         model = provider_cfg.get('model')
 
-        model_temperature = float(cfg.get('evolver', {}).get('evolver_temperature', 0.0))
+        agent_cfg = cfg['llm']['agents']['evolver']
 
         return cls(
             model=str(model),
-            instruction_path=os.path.join(resolve_project_root(), evolver_cfg['role_prompt']),
-            model_temperature=model_temperature,
-            max_tool_iterations=int(cfg['llm']['max_tool_iterations'])
+            instruction_path=os.path.join(resolve_project_root(), agent_cfg['role_prompt']),
+            model_temperature=float(agent_cfg['temperature']),
+            max_tool_iterations=int(cfg['llm']['max_tool_iterations']),
+            reasoning_effort=agent_cfg.get('reasoning_effort'),
         )
 
 class EvolverAgent(BaseAgent):
