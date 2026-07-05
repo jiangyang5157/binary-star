@@ -16,6 +16,21 @@ Update the project README.md by scanning the codebase for current commands,
 architecture, processes, and configuration — then generating accurate,
 diagram-rich documentation.
 
+## Content Priorities
+
+The README tells this story, in this order:
+
+1. **Binary Star** (hero) — multi-agent debate protocol: how Planner, Critic, and Math Auditor collaborate to produce a physically-verified trading decision
+2. **Architecture** (context) — one clean diagram showing how the pieces connect
+3. **Sniper** (minimal) — local signal stack that provides timing/trigger context for Binary Star
+4. **Order Management** (minimal) — position protection: partial TP + trailing SL
+5. **Evolution** (minimal) — sandbox that generates strategy/config patches for Binary Star
+6. **AI Providers** — which models power which agents
+7. **Config System** — how configuration flows from files to agents
+8. **Commands** — what the operator actually runs
+
+**DO NOT** include: code layer stacks, file paths, implementation details, or backtest descriptions. The reader came to understand the architecture, not the codebase.
+
 ## Workflow
 
 ### Step 0: Determine Update Mode
@@ -27,96 +42,104 @@ diagram-rich documentation.
 3. **📋 仅更新 Commands (Commands Only)** — quick refresh of the commands/scripts reference section only
 
 For option 2, also ask which sections to update:
-- Architecture & Layer Stack
-- Binary Star Protocol (debate flow, audit dimensions)
-- Sniper System (signals, pulse flow, order lifecycle, Guardian)
+- Binary Star Protocol (debate flow, multi-agent architecture, audit dimensions)
+- Architecture (overview diagram)
+- Sniper (signal stack overview, trigger timing)
+- Order Management (position protection, partial TP, trailing SL)
+- Evolution (sandbox + patch generation)
 - AI Providers
 - Config System
 - Commands & Scripts
 - Installation & Setup
-- Key Invariants
 
 Let the user pick one or more, or "all of the above". If they pick "all", treat it as a full rewrite (option 1).
 
 ### Step 1: Scan the Codebase
 
-Based on the selected mode/sections, scan the corresponding parts of the codebase.
+Based on the selected sections, scan only what's needed.
 
-#### Commands & Entry Points
-
-```
-→ Read run.py — extract all subcommands, their arguments, help text
-→ Read each run_*.py — extract argparse definitions, standalone usage
-→ List scripts/*.py — for each, extract argparse or parse docstring for usage
-→ Check setup.py / pyproject.toml for console_scripts entry points
-```
-
-For each command, capture:
-- The exact CLI invocation (e.g., `python run.py session --symbol BTC -p data/prod`)
-- Required vs optional arguments
-- A one-line description of what it does
-- Any variants (live vs historical vs backtest)
-
-#### Architecture
+#### Binary Star Protocol (PRIMARY — deep scan)
 
 ```
-→ List src/ directory tree (depth 2-3)
-→ For each top-level package: identify its role and key classes
-→ Map inter-package dependencies (look at imports)
-→ Identify the layer stack: entry points → orchestration → agents → analysis → infrastructure
+→ Read src/agent/binary_star_orchestrator.py — overall flow, entry point
+→ Read src/agent/debate_loop.py — round mechanics, convergence criteria
+→ Read src/agent/session_agent.py — Planner agent: what it sees, what it produces
+→ Read src/agent/critic_agent.py — Critic agent: veto levels, audit dimensions
+→ Read src/analyzer/math_fact_checker.py — Math Auditor: RR, betweenness, ATR checks
 ```
 
-#### Binary Star Protocol
+Extract the multi-agent architecture:
+- Which agents participate, in what role
+- How debate rounds work (plan → audit → converge or loop)
+- Early exit criteria vs forced convergence
+- The critic's veto system (PASS / CONSTRUCTIVE / TERMINAL)
+- Confidence scoring dimensions (D1 topographical, D2 regime, D3 temporal)
+
+#### Architecture (light scan)
 
 ```
-→ Read src/agent/binary_star_orchestrator.py — extract execute_flow() logic
-→ Read src/agent/debate_loop.py — extract debate round mechanics
-→ Read src/agent/session_agent.py — understand what the session agent does
-→ Read src/agent/critic_agent.py — understand critique dimensions
-→ Read src/analyzer/math_fact_checker.py — understand physical verification
+→ List src/ directory top-level packages only (depth 1)
+→ Identify the major system boundaries: trigger → debate → execution → evolution
 ```
 
-#### Sniper System
+Produce ONE clean diagram showing these boundaries, nothing more.
+
+#### Sniper System (minimal scan)
 
 ```
-→ Read src/sniper/trigger.py — extract signal categories, types, thresholds
-→ Read src/sniper/scout.py — understand market data harvesting
-→ Read src/agent/order_executor.py — extract:
-  - sync_with_opinion() logic (position cross-reference table)
-  - guardian_check() logic (protection steps: exit ladder + SL lock)
-  - _try_exit_ladder() and _apply_sl_lock() logic
-  - get_avg_entry_price() FIFO entry calculation (margin_client.py)
-  - Entry/exit flow
-→ Read config/global_config.yaml — extract current sniper parameters (sniper.*, guardian.* sections)
-→ Read config/symbol_config.yaml — extract per-symbol overrides
+→ Read src/sniper/trigger.py — count signal categories and types (don't list them all)
+→ Read config/global_config.yaml — extract sniper.signal_stack trigger_threshold, cooldown
 ```
+
+Capture only: "13 signals in 5 categories, regime-adaptive threshold, adaptive cooldown." The Sniper's job is to find good entry timing for Binary Star — nothing more.
+
+#### Order Management (minimal scan)
+
+```
+→ Read src/agent/order_executor.py — confirm guardian_check has three cases:
+  Case 1 (entry pending), Case 3 (place OCO), Case 4 (exit ladder + trailing)
+→ Read config/global_config.yaml — guardian.exit_ladder levels (just count them)
+```
+
+Capture only: "OTOCO atomic entry, Guardian OCO protection, 3-level partial TP, dynamic trailing SL."
+
+#### Evolution (minimal scan)
+
+```
+→ Read src/agent/evolver.py or equivalent — confirm it runs as a sandbox
+→ Read config/global_config.yaml — evolution parameters (population, generations)
+```
+
+Capture only: "Sandboxed strategy evolution that outputs config patches consumed by Binary Star."
 
 #### AI Providers
 
 ```
-→ Read src/infrastructure/ai_client.py — AbstractAIClient contract, VisualMode enum, VisualPart, AIResponse, begin_session/end_session lifecycle
 → Read src/infrastructure/ai_factory.py — provider registry
-→ Read each adapter in src/infrastructure/ai/ — capabilities, models, visual_mode
-→ Check global_config.yaml for current provider settings (active_provider, model, reasoning_effort)
-→ Check global_config.yaml binary_star + evolver sections for temperature config (no longer per-provider)
+→ List adapters in src/infrastructure/ai/ — capabilities, models, vision support
+→ Check config/global_config.yaml for active_provider, model, temperature settings
 ```
 
 #### Config System
 
 ```
-→ List config/ directory
-→ Read src/config/sub_configs.py — config dataclass names
-→ Read src/config/symbol_resolver.py — resolution logic
-→ Read src/config/loader.py — load order
+→ List config/ directory (top level only)
+→ Note resolution order: global → strategy → symbol → session opinion
 ```
 
-#### Key Invariants
+#### Commands
 
 ```
-→ Scan critical modules for docstrings mentioning invariants/contracts
-→ Read src/utils/exceptions.py for error hierarchy
-→ Check CLAUDE.md for documented invariants
+→ Read run.py — extract all subcommands, their arguments, help text
+→ Read each run_*.py — extract argparse definitions
+→ List scripts/*.py — for each, extract argparse or parse docstring for usage
 ```
+
+For each command, capture:
+- The exact CLI invocation
+- Required vs optional arguments
+- A one-line description
+- Any variants (live vs historical vs backtest)
 
 ### Step 2: Generate Content
 
@@ -126,13 +149,13 @@ The README must be **scannable at a glance** — a reader who spends 10 seconds 
 
 - **Visual hierarchy**: diagram first, then table, then text. The eye lands on the diagram, reads the table for detail, skips the text.
 - **Breathing room**: generous whitespace between sections. Short paragraphs (2-3 sentences). No walls of text.
-- **Progressive disclosure**: architecture diagram → layer table with one-liners → deep-dive sections for those who scroll further.
+- **Progressive disclosure**: architecture diagram → deep-dive sections for those who scroll further.
 - **Low cognitive load**: if a section makes the reader stop and re-read, it is too complex. Split it or simplify it.
 
 #### Content Rules
 
 - **Diagram > table > paragraph** — a picture first, then structured data, then prose only if nothing else works
-- **One-liner descriptions** — each module, signal, or concept gets exactly one crisp line
+- **One-liner descriptions** — each agent, signal, or concept gets exactly one crisp line
 - **Assume competence** — the reader is technical; skip tutorial-level exposition
 - **Hard word budget** — any section longer than a table + 3 sentences is too long. Cut it
 
@@ -194,16 +217,17 @@ Each section has a preferred format. See `references/templates.md` for full temp
 ### Step 3: Assemble README
 
 1. Generate each section independently
-2. For full rewrite: assemble in this order:
+2. Assemble in this order:
    - Title + badges + one-liner description
-   - Architecture (mermaid diagram + layer descriptions)
-   - Binary Star Protocol (mermaid sequence + audit table)
-   - Sniper System (signal table + pulse flow diagram + Guardian table + order lifecycle diagram)
-   - Installation & Setup
-   - Commands (grouped by category)
+   - Binary Star Protocol (hero — multi-agent debate diagram + audit dimensions)
+   - Architecture (one clean pipeline diagram, no layer table)
+   - Sniper (minimal — signal stack triggers Binary Star timing)
+   - Order Management (minimal — OTOCO entry + OCO protection + exit ladder)
+   - Evolution (minimal — sandbox that outputs config patches)
    - AI Providers (comparison table)
    - Config System (tree + resolution diagram)
-   - Key Invariants (bullet list)
+   - Installation & Setup (3 steps)
+   - Commands (grouped code blocks, placed last)
 3. For partial update: replace only the selected sections in the existing README
 4. For commands only: replace only the Commands section
 
@@ -221,3 +245,4 @@ Each section has a preferred format. See `references/templates.md` for full temp
 3. **Preserve existing content** — in partial update mode, never touch unselected sections.
 4. **Conciseness is correctness** — every sentence must earn its place. If a section exceeds a table + 3 sentences, cut it. Prefer one crisp line over a paragraph.
 5. **Grounded in code** — `git diff --name-only HEAD~10` for recent additions; verify file existence before referencing.
+6. **No code paths** — never mention file names, line numbers, or class names in the README output. The reader did not come for a code tour.

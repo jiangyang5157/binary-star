@@ -6,52 +6,32 @@ convey the architecture.
 
 ---
 
-## Architecture & Layer Stack
+## Binary Star Protocol (HERO — most detailed section)
 
-**Format**: Two `graph LR` mermaid diagrams (split by concern) + one layer table
+**Format**: Mermaid sequence diagram + audit dimensions table + agent roles table
 
-**Scan**: `src/` directory tree, `src/agent/`, `src/sniper/`, `src/analyzer/`, `src/infrastructure/`
-
-**Template**:
-```markdown
-## Architecture
-
-Two complementary flows — separated to keep diagrams clean.
-
-### Signal Pipeline
-
-[Mermaid: entry → daemon → scout → trigger → orchestrator → debate → execution]
-
-### Evolution Loop
-
-[Mermaid: orchestrator → sessions → audit → evolver → patches → config]
-
-### Layer Descriptions
-
-| Layer | Module | Role |
-|-------|--------|------|
-| ... | ... | ... |
-```
-
-**Rules**:
-- Split into 2 diagrams minimum — never try to fit everything into one
-- Layer table: one row per layer, one module per row (use the most representative module, not all)
-
----
-
-## Binary Star Protocol
-
-**Format**: Mermaid sequence diagram + audit dimensions table
-
-**Scan**: `src/agent/binary_star_orchestrator.py`, `src/agent/debate_loop.py`, `src/agent/critic_agent.py`, `src/analyzer/math_fact_checker.py`
+**Scan**: `src/agent/binary_star_orchestrator.py`, `src/agent/debate_loop.py`, `src/agent/session_agent.py`, `src/agent/critic_agent.py`, `src/analyzer/math_fact_checker.py`
 
 **Template**:
 ```markdown
 ## Binary Star Protocol
 
-[One-paragraph overview: what it is, why it exists. 2-3 sentences max.]
+[One-paragraph overview: multi-agent debate system. Planner proposes a trade,
+Critic audits it across 7 dimensions, Math Auditor verifies physics (RR,
+betweenness, ATR). Debate converges when Critic passes or forced synthesis
+after max rounds. 2-3 sentences.]
 
-[Mermaid sequence diagram: participants → loop → decision]
+### Debate Flow
+
+[Sequence diagram: Planner → Critic → Math Auditor, loop until converge/limit]
+
+### Agent Roles
+
+| Agent | Role | Model |
+|-------|------|-------|
+| Planner | Generates trade plan with tactical parameters | deepseek-v4-pro |
+| Critic | Audits against 7 dimensions, issues veto | deepseek-v4-pro |
+| Math Auditor | Verifies RR, betweenness, ATR volatility | (tool-call) |
 
 ### Audit Dimensions
 
@@ -60,77 +40,104 @@ Two complementary flows — separated to keep diagrams clean.
 | [NAME] | One-line description |
 ```
 
----
-
-## Sniper System
-
-**Format**: Three concise sections — signal table, pulse flow diagram, one Guardian table
-
-**Scan**: `src/sniper/trigger.py`, `src/sniper/scout.py`, `src/agent/order_executor.py`, `config/global_config.yaml`
-
-**Template**:
-```markdown
-## Sniper System
-
-[One-paragraph overview. 2-3 sentences.]
-
-### Signal Stack
-
-| Category | Signal | Direction | Weight |
-|----------|--------|-----------|--------|
-| FLOW | cvd_momentum | BULLISH/BEARISH | 0.65 |
-| ... | ... | ... | ... |
-
-[13 signals across 5 categories. Read from `config/global_config.yaml` `signal_stack.weights`.]
-
-### Pulse Flow
-
-[Mermaid flowchart: 2-min pulse → Guardian → Trigger → Session → Trade Gate]
-
-### Guardian
-
-| State | Guardian Action |
-|-------|----------------|
-| Entry pending | Check timeout |
-| Filled, no OCO | Place OCO |
-| Protected | Exit ladder progress check + sl_lock |
-```
+**Rules**:
+- This is the HERO section — give it the most detail. The reader should understand how the debate works after reading this.
+- Show agent collaboration clearly in the sequence diagram
+- Keep audit dimensions table to 5-8 rows max
+- Do NOT list code files or line numbers
 
 ---
 
-## Commands & Scripts
+## Architecture
 
-**Format**: Grouped code blocks with inline comments
+**Format**: One `graph LR` mermaid diagram — clean system boundaries
 
-**Scan**: `run.py` (argparse), `run_*.py`, `scripts/*.py`
+**Scan**: `src/` top-level packages only (depth 1)
 
 **Template**:
 ```markdown
-## Commands
+## Architecture
 
-```bash
-# ── Sessions ────────────────────────────────────────────
-python run.py session --symbol BTC -p data/prod    # Live trading session
-python run.py session --symbol XAUT -p data/prod --historical 2026-01-01  # Historical
+[One diagram showing: Sniper triggers → Binary Star debates → Order Executor acts → Evolution feeds back]
 
-# ── Sniper ──────────────────────────────────────────────
-python run.py sniper --symbol BTC,XAUT -p data/prod --trade 640  # Live monitoring
-...
-
-# ── Audit & Evolution ───────────────────────────────────
-python run.py audit -p data/prod
-python run.py evolve -p data/prod --population 8
-...
-
-# ── Dashboard ───────────────────────────────────────────
-python run.py dashboard -p data/prod
-```
+[No layer table. No code paths. One diagram tells the whole story.]
 ```
 
 **Rules**:
-- Only list commands that actually exist — parse argparse, never guess
-- Group by category: Sessions, Sniper, Audit & Evolution, Dashboard, Utilities
-- One inline comment per command is enough
+- ONE diagram only. If it needs two, the scope is wrong.
+- Show system boundaries, not modules
+- Zero crossing lines
+- No text beyond the diagram caption
+
+---
+
+## Sniper (MINIMAL)
+
+**Format**: One paragraph
+
+**Scan**: `src/sniper/trigger.py` (count signals), `config/global_config.yaml` (thresholds)
+
+**Template**:
+```markdown
+## Sniper
+
+A local signal stack monitors 13 market signals across 5 categories (flow,
+energy, structural, positioning, cross-symbol). A regime-adaptive confluence
+engine determines when market conditions warrant activation. Its sole purpose
+is providing high-quality entry timing for the Binary Star debate system.
+```
+
+**Rules**:
+- Do NOT list individual signals
+- Do NOT show signal weights or thresholds
+- Do NOT include the pulse flow diagram
+- One paragraph only. If it needs more, it's too long.
+
+---
+
+## Order Management (MINIMAL)
+
+**Format**: One table
+
+**Scan**: `src/agent/order_executor.py` (confirm guardian phases exist)
+
+**Template**:
+```markdown
+## Order Management
+
+| Phase | Mechanism |
+|-------|-----------|
+| Entry | OTOCO (atomic entry + nested TP/SL) |
+| Protection | Guardian OCO — every position wrapped in TP+SL |
+| Profit-taking | 3-level exit ladder — partial closes at 44/64/84% TP progress |
+| Stop migration | Dynamic trailing SL — locks in profit as ladder levels fire |
+```
+
+**Rules**:
+- ONE table only. No prose needed.
+- Do NOT describe code paths or function names
+- Do NOT include margin/risk/sizing details
+
+---
+
+## Evolution (MINIMAL)
+
+**Format**: One paragraph
+
+**Template**:
+```markdown
+## Evolution
+
+A sandboxed strategy evolution loop runs offline, evaluating candidate
+configurations against historical sessions. Successful variants produce
+config patches — updated strategy logic and parameter overrides — that
+feed back into Binary Star's decision framework.
+```
+
+**Rules**:
+- One paragraph only
+- Do NOT describe population size, generations, or fitness metrics
+- Do NOT mention file paths or class names
 
 ---
 
@@ -138,7 +145,7 @@ python run.py dashboard -p data/prod
 
 **Format**: One comparison table + one config block
 
-**Scan**: `src/infrastructure/ai/*.py`, `config/global_config.yaml`
+**Scan**: `src/infrastructure/ai_factory.py`, adapters in `src/infrastructure/ai/`, `config/global_config.yaml`
 
 **Template**:
 ```markdown
@@ -170,7 +177,7 @@ llm:
 
 **Format**: Directory tree + one mermaid resolution diagram
 
-**Scan**: `config/` directory, `src/config/`
+**Scan**: `config/` directory
 
 **Template**:
 ```markdown
@@ -189,23 +196,35 @@ config/
 
 ---
 
-## Key Invariants
+## Commands & Scripts (placed LAST)
 
-**Format**: Compact bullet list. 5-8 items max.
+**Format**: Grouped code blocks with inline comments
 
-**Scan**: CLAUDE.md, critical module docstrings
+**Scan**: `run.py` (argparse), `run_*.py`, `scripts/*.py`
 
 **Template**:
 ```markdown
-## Key Invariants
+## Commands
 
-- **Invariant** (`file.py`): one-line description
+```bash
+# ── Sessions ────────────────────────────────────────────
+python run.py session --symbol BTC -p data/prod    # Live trading session
+python run.py session --symbol XAUT -p data/prod --historical 2026-01-01  # Historical
+
+# ── Sniper ──────────────────────────────────────────────
+python run.py sniper --symbol BTC,XAUT -p data/prod --trade 640  # Live monitoring
+...
+
+# ── Dashboard ───────────────────────────────────────────
+python run.py dashboard -p data/prod
+```
 ```
 
 **Rules**:
-- Only list invariants a developer could violate
-- Skip implementation details
-- Keep to 8 items maximum
+- Only list commands that actually exist — parse argparse, never guess
+- Group by category: Sessions, Sniper, Dashboard, Utilities
+- One inline comment per command
+- This section goes LAST after everything else
 
 ---
 
