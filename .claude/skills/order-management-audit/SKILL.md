@@ -115,28 +115,28 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Normal case: place OCO. Stale entry order cancelled first. Good.
    - Check: `entry_filled_at` is set to now() even if the position was entered hours ago (line 313-314). This timestamp is used nowhere downstream — harmless but confusing.
 
-5. **Case 4: Protected Position — Partial TP + Trailing**
+5. **Case 4: Protected Position — Exit Ladder + sl_lock**
    - Covered in detail in D4 below.
 
 ### D4: Exit Ladder + sl_lock — Sequential Correctness
 
-**Source file**: `src/agent/order_executor.py` (_try_partial_tp: line 693, _migrate_dynamic_sl: line 805, Case 4 trailing dispatch: line 413-432)
+**Source file**: `src/agent/order_executor.py` (_try_exit_ladder: line 686, _apply_sl_lock: line 806, Case 4 trailing dispatch: line 413-432)
 
 1. **Level Loop Correctness**
-   - `_try_partial_tp` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (`break` at ~728).
+   - `_try_exit_ladder` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (`break` at ~728).
    - This is sequential: L1 must fire before L2, etc. Correct and intentional.
    - Check: after each partial close, the remaining qty is **not** re-read from the exchange — it is computed deterministically as `abs(live_net_qty) - tp_qty`. If the deterministic remainder drops below min_qty, the remaining OCO may be for a dust amount. Is there a min-notional check?
 
-2. **SL Migration Direction**
-   - `_migrate_dynamic_sl()`: LONG → `max(current_sl, price - N*ATR)`, SHORT → `min(current_sl, price + N*ATR)`.
-   - This means SL only moves in the favorable direction (up for LONG, down for SHORT). Correct.
-   - Rounding toward safety uses `math.floor()` for LONG and `math.ceil()` for SHORT (lines 833-837 in current code). This is correct: LONG SL rounds down (slightly tighter), SHORT SL rounds up (slightly tighter) — both bias toward safety.
+2. **SL Lock Direction**
+   - `_apply_sl_lock()`: `avg_entry + (tp - avg_entry) * sl_lock`. Symmetric formula — SL moves from entry toward TP as sl_lock increases (favorable direction for both LONG and SHORT).
+   - This means SL moves monotonically toward TP without any ATR dependence. Correct.
+   - Rounding toward safety: LONG rounds down (tighter), SHORT rounds up (tighter).
 
 3. **Trailing Distance Source**
-   - The trailing distance comes from `levels[active_idx]["sl_distance_atr"]` where `active_idx = new_level - 1` (line 417-419).
-   - After L1 fires, `new_level=1`, `active_idx=0` → uses L1's `sl_distance_atr` (0.0 → no trailing). Correct.
-   - After L2 fires, `new_level=2`, `active_idx=1` → uses L2's `sl_distance_atr` (1.0). Correct.
-   - After L3 fires, `new_level=3`, `active_idx=2` → uses L3's `sl_distance_atr` (0.75). Correct.
+   - The trailing distance comes from `levels[active_idx]["sl_lock"]` where `active_idx = new_level - 1` (line 417-419).
+   - After L1 fires, `new_level=1`, `active_idx=0` → uses L1's `sl_lock` (0.04 → near-entry lock). Correct.
+   - After L2 fires, `new_level=2`, `active_idx=1` → uses L2's `sl_lock` (0.24). Correct.
+   - After L3 fires, `new_level=3`, `active_idx=2` → uses L3's `sl_lock` (0.44). Correct.
    - Edge case: if `active_idx >= len(levels)` (all levels exhausted), trailing is skipped (line ~418). Correct.
 
 4. **Level Memory Across Pulses**
@@ -144,8 +144,8 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - On qty change: level is reset to None, re-initialized via `find_level_and_sync_sl` on next pulse.
    - On daemon restart: level is None, re-initialized same way.
    - `find_level_and_sync_sl()` (lines 575-691) determines level from exchange state:
-     - If SL < entry (LONG) → L1 not fired → return 0.
-     - If SL >= entry → scan deviation against level thresholds → return first unmet.
+     - If SL == entry → L1 not fired → return 0.
+     - If SL != entry → scan progress (`deviation / tp_distance`) against level targets → return first unmet.
    - Check: the scan loop uses `for i in range(1, len(levels))` starting at index 1 (L2). This means L1 is detected by SL position, L2+ by deviation. Is this correct when multi-level fired in a single pulse? (The loop advances `next_level` for each met threshold → yes.)
 
 ### D5: Daemon Integration — SniperDaemon + Executor Boundary

@@ -12,8 +12,8 @@ For each site that cancels then re-places OCO, answer:
 
 Sites to audit:
 1. `_optimize_same_direction()` — `order_executor.py:~438-520`
-2. `_try_partial_tp()` — `order_executor.py:~693-804`
-3. `_migrate_dynamic_sl()` — `order_executor.py:~805-880`
+2. `_try_exit_ladder()` — `order_executor.py:~693-804`
+3. `_apply_sl_lock()` — `order_executor.py:~805-880`
 4. `guardian_check()` Case 3 OCO placement — `order_executor.py:~255-320`
 5. `guardian_check()` Case 4 qty re-align — `order_executor.py:~324-371`
 6. `find_level_and_sync_sl()` — `order_executor.py:~575-691`
