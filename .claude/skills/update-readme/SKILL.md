@@ -83,8 +83,8 @@ For each command, capture:
 → Read src/sniper/scout.py — understand market data harvesting
 → Read src/agent/order_executor.py — extract:
   - sync_with_opinion() logic (position cross-reference table)
-  - guardian_check() logic (protection steps: partial TP + dynamic trailing SL)
-  - _try_partial_tp() and _migrate_dynamic_sl() logic
+  - guardian_check() logic (protection steps: exit ladder + SL lock)
+  - _try_exit_ladder() and _apply_sl_lock() logic
   - get_avg_entry_price() FIFO entry calculation (margin_client.py)
   - Entry/exit flow
 → Read config/global_config.yaml — extract current sniper parameters (sniper.*, guardian.* sections)

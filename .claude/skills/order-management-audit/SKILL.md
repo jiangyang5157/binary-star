@@ -1,6 +1,6 @@
 ---
 name: order-management-audit
-description: Run a forensic audit on the order management and execution system. Use when the user wants to review order execution logic, audit MarginOrderExecutor or SniperDaemon guardian behavior, check OCO lifecycle risks, verify pivot/preserve/force-close scenarios, assess partial-TP and trailing-stop correctness, evaluate restart/recovery edge cases, find order-management bugs, or assess risk of naked-position windows. Triggers on: "order management review", "execution audit", "guardian audit", "check order executor", "review sniper trade logic", "audit OCO handling", "position management risk", "trailing stop review", "partial TP audit". Always use when the user asks about the safety or correctness of the trade execution pipeline.
+description: Run a forensic audit on the order management and execution system. Use when the user wants to review order execution logic, audit MarginOrderExecutor or SniperDaemon guardian behavior, check OCO lifecycle risks, verify pivot/preserve/force-close scenarios, assess exit-ladder and sl_lock correctness, evaluate restart/recovery edge cases, find order-management bugs, or assess risk of naked-position windows. Triggers on: "order management review", "execution audit", "guardian audit", "check order executor", "review sniper trade logic", "audit OCO handling", "position management risk", "trailing stop review", "exit ladder audit". Always use when the user asks about the safety or correctness of the trade execution pipeline.
 compatibility: Requires read access to src/agent/order_executor.py, src/infrastructure/binance/margin_client.py, run_sniper.py (guardian section), config/global_config.yaml (guardian section), and tests/system/test_order_executor.py.
 ---
 
@@ -8,7 +8,7 @@ compatibility: Requires read access to src/agent/order_executor.py, src/infrastr
 
 ## Overview
 
-Run a structured, multi-dimensional audit of the order management and execution pipeline. The audit traces through the full lifecycle — from AI opinion to entry, through Guardian protection, partial take-profit, trailing stop migration, and eventual exit — checking every branch, every failure path, and every edge case.
+Run a structured, multi-dimensional audit of the order management and execution pipeline. The audit traces through the full lifecycle — from AI opinion to entry, through Guardian protection, exit ladder, sl_lock, and eventual exit — checking every branch, every failure path, and every edge case.
 
 **Default mode**: read-only analysis producing a structured report. **--fix mode**: also applies verified fixes (after review).
 
@@ -17,7 +17,7 @@ Run a structured, multi-dimensional audit of the order management and execution 
 The user may pass these flags (parse from their message):
 - `--fix`: After presenting findings, apply fixes for confirmed bugs. Each fix is shown as a diff for user approval before applying.
 - `--symbol <BTC|XAUT>`: Focus the audit on a specific symbol's configuration path. Affects which precision/qty/buffer values are checked.
-- `--dimension <name>`: Run only one audit dimension (e.g., `oco-lifecycle`, `pivot`, `partial-tp`). Without this, run all.
+- `--dimension <name>`: Run only one audit dimension (e.g., `oco-lifecycle`, `pivot`, `exit-ladder`). Without this, run all.
 
 If no flags: run all dimensions, report-only.
 
@@ -33,8 +33,8 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 1. **Cancel-Place Gap (Naked Window)**
    - In `_optimize_same_direction()` line 438: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
-   - In `_try_partial_tp()` line 693: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
-   - In `_migrate_dynamic_sl()` line 805: cancel_all → re-verify → place_oco. Same exposure.
+   - In `_try_exit_ladder()` line 693: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
+   - In `_apply_sl_lock()` line 805: cancel_all → re-verify → place_oco. Same exposure.
    - Measure: for each site, estimate the wall-clock duration of the naked window. Flag any site missing the re-verify step.
 
 2. **Emergency Close Completeness**
@@ -42,8 +42,8 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
      - `_optimize_same_direction()` (line ~504)
      - `guardian_check()` Case 3 (line ~298)
      - `guardian_check()` Case 4 qty re-align (line ~349)
-     - `_try_partial_tp()` (line ~740)
-     - `_migrate_dynamic_sl()` (line ~830)
+     - `_try_exit_ladder()` (line ~740)
+     - `_apply_sl_lock()` (line ~830)
      - `find_level_and_sync_sl()` (line ~678)
    - For each: verify the emergency close itself is checked for failure (`if not self.client.execute_market_close`), and that the caller correctly handles the failure (retry next pulse vs. clear state vs. sentinel).
 
@@ -94,7 +94,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 1. **Intent Check (STEP 1)**
    - Empty trade_state + no position → early return. Correct.
    - Empty trade_state + position WITH OCO → reconstruct (line 187-205). 
-   - Check: reconstruction only sets direction, tp_price, sl_price. It does NOT set `entry_filled_at`, `projected_holding_hours`, or `entry_atr`. Does downstream code (partial TP, trailing) require these? (Answer: partial TP uses avg_entry from exchange API, trailing uses current_price vs current_sl — neither needs those fields. OK.)
+   - Check: reconstruction only sets direction, tp_price, sl_price. It does NOT set `entry_filled_at`, `projected_holding_hours`, or `entry_atr`. Does downstream code (exit ladder, sl_lock) require these? (Answer: exit ladder uses avg_entry from exchange API, sl_lock uses avg_entry + (tp - avg_entry) * sl_lock — neither needs those fields. OK.)
    - Empty trade_state + position WITHOUT OCO → returns without action (line ~231). This means an unprotected position after restart is NOT protected until the next AI session! Is this intentional? (It's a trade-off: the daemon doesn't know the AI's intended TP/SL, so it can't place protection. But it means the position runs naked until the next trigger.)
 
 2. **Case 1: No Position — Entry Pending/Expired**
@@ -118,7 +118,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 5. **Case 4: Protected Position — Partial TP + Trailing**
    - Covered in detail in D4 below.
 
-### D4: Partial TP + Dynamic Trailing — Sequential Correctness
+### D4: Exit Ladder + sl_lock — Sequential Correctness
 
 **Source file**: `src/agent/order_executor.py` (_try_partial_tp: line 693, _migrate_dynamic_sl: line 805, Case 4 trailing dispatch: line 413-432)
 
