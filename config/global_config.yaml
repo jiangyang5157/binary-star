@@ -197,26 +197,28 @@ sniper:
       taker_imbalance: 0.18
 
 # ═══════════════════════════════════════════════════════════════════════════
-# GUARDIAN — Position Management (Trailing Stop + Partial TP)
+# GUARDIAN — Position Management (Exit Ladder + Trailing Stop)
 # ═══════════════════════════════════════════════════════════════════════════
 guardian:
 
-  # --- Partial Take-Profit (multi-level, sequential) ---
-  # Each level: atr_threshold triggers when |price-entry| >= X * ATR,
-  # tp_ratio closes that fraction of CURRENT qty, sl_distance_atr sets
-  # trailing distance (0 = breakeven, no trailing). Levels fire in order.
-  # Add/remove/reorder freely — code loops the list, no code changes needed.
-  partial_tp:
+  # --- Exit Ladder (TP-relative partial exits + profit locking) ---
+  # Each level: target fires when progress% toward TP is reached,
+  # tp_ratio closes that fraction of current qty, sl_lock moves SL
+  # by that fraction of the SL→price gap.
+  #   target ∈ [0.0, 1.0) — 0 = at entry, 1 = at TP (excluded: = full TP)
+  #   tp_ratio ∈ (0.0, 1.0] — fraction of position to close
+  #   sl_lock ∈ [0.0, 1.0] — 0 = no trail, 1 = SL moves to current price
+  exit_ladder:
     levels:
-      - atr_threshold: 1.5
+      - target: 0.35
         tp_ratio: 0.20
-        sl_distance_atr: 0.0     # SL → entry, no trailing yet
-      - atr_threshold: 3.5
+        sl_lock: 0.0       # no trail yet
+      - target: 0.60
         tp_ratio: 0.20
-        sl_distance_atr: 1.0     # start trailing
-      - atr_threshold: 5.5
+        sl_lock: 0.65      # lock 65% of SL→price gap
+      - target: 0.80
         tp_ratio: 0.20
-        sl_distance_atr: 0.75    # tighten
+        sl_lock: 0.85      # tighter lock
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring
