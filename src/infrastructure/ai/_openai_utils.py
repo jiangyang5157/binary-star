@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from src.infrastructure.ai_client import (
-    AbstractAIClient, AIResponse, ToolCall, UsageMetadata, VisualPart, VisualMode,
+    AIResponse, ToolCall, UsageMetadata, VisualPart, VisualMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -162,82 +162,29 @@ def clean_json_text(raw_text: str) -> str:
     return text
 
 
-# ── OpenAI-compatible adapter base ────────────────────────────────────────────
+# ── OpenAI response parser ──────────────────────────────────────────────────
 
-class OpenAICompatibleAdapter(AbstractAIClient):
-    """Base adapter for providers that speak the OpenAI chat completions protocol.
 
-    DeepSeek and any future OpenAI-compatible provider extend this
-    with only their default model and base URL overrides.
-    """
-
-    def __init__(self, api_key: str, default_model: str, base_url: str,
-                 provider_label: str, *, http_timeout: int = 240):
-        self.api_key = api_key
-        self.default_model = default_model
-        self.base_url = base_url
-        self.provider_label = provider_label
-        self._http_timeout = http_timeout
-        self._client = None
-
-    def _get_client(self):
-        if self._client is None:
-            from openai import OpenAI
-            self._client = OpenAI(api_key=self.api_key, base_url=self.base_url,
-                                  timeout=self._http_timeout)
-        return self._client
-
-    def generate_content(
-        self, model: str, contents: list[Any], *,
-        system_instruction: str | None = None,
-        tools: list[Any] | None = None,
-        temperature: float = 0.5,
-        reasoning_effort: str | None = None,
-        response_json: bool = False,
-        http_timeout: int | None = None,
-    ) -> AIResponse:
-        target_model = model or self.default_model
-        messages = build_messages(system_instruction, contents,
-                                  response_json=response_json,
-                                  supports_vision=(self.visual_mode == VisualMode.IMAGE))
-        openai_tools = convert_tools(tools) if tools else None
-
-        api_params: dict[str, Any] = {
-            "model": target_model, "messages": messages,
-            "temperature": temperature,
-        }
-        if openai_tools:
-            api_params["tools"] = openai_tools
-            api_params["tool_choice"] = "auto"
-        if response_json:
-            api_params["response_format"] = {"type": "json_object"}
-
-        if http_timeout:
-            api_params["timeout"] = http_timeout
-
-        logger.info("AI call | provider=%s | model=%s | temp=%.2f", self.provider_label, target_model, temperature)
-        response = self._get_client().chat.completions.create(**api_params)
-        return self._parse(response, response_json)
-
-    def _parse(self, response, is_json: bool) -> AIResponse:
-        msg = response.choices[0].message
-        text = clean_json_text(msg.content or "") if is_json else (msg.content or "")
-        tool_calls = None
-        if msg.tool_calls:
-            tool_calls = []
-            for tc in msg.tool_calls:
-                try:
-                    args = json.loads(tc.function.arguments) if tc.function.arguments else {}
-                except json.JSONDecodeError:
-                    args = {}
-                tool_calls.append(ToolCall(name=tc.function.name, args=args))
-        usage = None
-        if response.usage:
-            usage = UsageMetadata(
-                total_token_count=response.usage.total_tokens or 0,
-                prompt_token_count=response.usage.prompt_tokens or 0,
-                candidates_token_count=response.usage.completion_tokens or 0,
-            )
-        reasoning = getattr(msg, "reasoning_content", None) or None
-        return AIResponse(text=text, tool_calls=tool_calls, usage=usage,
-                          reasoning_content=reasoning)
+def parse_openai_response(response, is_json: bool) -> AIResponse:
+    """Parse an OpenAI chat completions response into a provider-agnostic AIResponse."""
+    msg = response.choices[0].message
+    text = clean_json_text(msg.content or "") if is_json else (msg.content or "")
+    tool_calls = None
+    if msg.tool_calls:
+        tool_calls = []
+        for tc in msg.tool_calls:
+            try:
+                args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+            except json.JSONDecodeError:
+                args = {}
+            tool_calls.append(ToolCall(name=tc.function.name, args=args))
+    usage = None
+    if response.usage:
+        usage = UsageMetadata(
+            total_token_count=response.usage.total_tokens or 0,
+            prompt_token_count=response.usage.prompt_tokens or 0,
+            candidates_token_count=response.usage.completion_tokens or 0,
+        )
+    reasoning = getattr(msg, "reasoning_content", None) or None
+    return AIResponse(text=text, tool_calls=tool_calls, usage=usage,
+                      reasoning_content=reasoning)

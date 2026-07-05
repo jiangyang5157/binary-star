@@ -1,14 +1,16 @@
-"""DeepSeekAdapter — thin subclass of OpenAICompatibleAdapter."""
+"""DeepSeekAdapter — talks to DeepSeek API via the OpenAI-compatible protocol."""
 import logging
 from typing import Any
 
-from src.infrastructure.ai._openai_helpers import OpenAICompatibleAdapter, convert_tools, build_messages
-from src.infrastructure.ai_client import AIResponse, VisualMode
+from src.infrastructure.ai._openai_utils import (
+    build_messages, convert_tools, parse_openai_response,
+)
+from src.infrastructure.ai_client import AbstractAIClient, AIResponse, VisualMode
 
 logger = logging.getLogger(__name__)
 
 
-class DeepSeekAdapter(OpenAICompatibleAdapter):
+class DeepSeekAdapter(AbstractAIClient):
     """Talks to DeepSeek API via the shared OpenAI-compatible protocol.
 
     Enables thinking mode when ``reasoning_effort`` is passed to
@@ -19,9 +21,19 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
     def __init__(self, api_key: str, default_model: str = "deepseek-v4-flash",
                  base_url: str = "https://api.deepseek.com",
                  *, http_timeout: int = 240):
-        super().__init__(api_key=api_key, default_model=default_model,
-                         base_url=base_url, provider_label="DeepSeekAdapter",
-                         http_timeout=http_timeout)
+        self.api_key = api_key
+        self.default_model = default_model
+        self.base_url = base_url
+        self.provider_label = "DeepSeekAdapter"
+        self._http_timeout = http_timeout
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            from openai import OpenAI
+            self._client = OpenAI(api_key=self.api_key, base_url=self.base_url,
+                                  timeout=self._http_timeout)
+        return self._client
 
     @property
     def visual_mode(self) -> "VisualMode":
@@ -68,4 +80,4 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
         else:
             logger.info("AI call | provider=%s | model=%s | temp=%.2f", self.provider_label, target_model, temperature)
         response = self._get_client().chat.completions.create(**api_params)
-        return self._parse(response, response_json)
+        return parse_openai_response(response, response_json)
