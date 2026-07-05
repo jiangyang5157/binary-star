@@ -85,9 +85,8 @@ class TestOptimizeExceptionHandling:
             "BTCUSDT", "LONG", 1.0, [], 62000, 58000,
         )
         assert intact is True
-        # State update preserves old TP/SL
-        assert "tp_price" in update
-        assert "sl_price" in update
+        # Cancel failed — no state update (old OCO still active on exchange)
+        assert update is None
 
 
 class TestMigrationExceptionHandling:

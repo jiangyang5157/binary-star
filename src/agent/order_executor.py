@@ -488,8 +488,10 @@ class MarginOrderExecutor:
         # Clean slate the orders to apply the unified OCO over the entire Net Qty
         logger.info(f"[{symbol}] cancelling orders to wrap net_qty={net_qty} with OCO")
         if not self.client.cancel_all_symbol_orders(symbol):
+            # Cancel failed — old OCO still active on exchange. Return no state
+            # update to avoid drift: optimized TP/SL were never applied.
             logger.error(f"[{symbol}] optimize — failed to cancel OCOs, original protection remains")
-            return True, {"tp_price": best_tp, "sl_price": best_sl}
+            return True, None
 
         # Re-verify position after cancel — a fill during the cancel window can change qty
         trade_cfg = self._get_trade_config(symbol)
