@@ -11,12 +11,12 @@ For each site that cancels then re-places OCO, answer:
 - [ ] Is there a re-verify step between cancel and place? (checks position still exists)
 
 Sites to audit:
-1. `_optimize_same_direction()` — `order_executor.py:~438-520`
-2. `_try_exit_ladder()` — `order_executor.py:~693-804`
-3. `_apply_sl_lock()` — `order_executor.py:~805-880`
-4. `guardian_check()` Case 3 OCO placement — `order_executor.py:~255-320`
-5. `guardian_check()` Case 4 qty re-align — `order_executor.py:~324-371`
-6. `find_level_and_sync_sl()` — `order_executor.py:~575-691`
+1. `_optimize_same_direction()` — `order_executor.py:starts at 439`
+2. `_try_exit_ladder()` — `order_executor.py:starts at 690`
+3. `_apply_sl_lock()` — `order_executor.py:starts at 810`
+4. `guardian_check()` Case 3 OCO placement — `order_executor.py:Case 3 OCO placement block`
+5. `guardian_check()` Case 4 qty re-align — `order_executor.py:Case 4 qty re-align block`
+6. `find_level_and_sync_sl()` — `order_executor.py:starts at 590`
 
 ### 1.2 Emergency Close Completeness
 For every `place_oco_order` call site, verify:
@@ -37,9 +37,9 @@ For every `place_oco_order` call site, verify:
 ### 1.4 SL Slippage Buffer
 - [ ] LONG direction: `buffered_sl = sl - buffer` at every SELL-exit call site
 - [ ] SHORT direction: `buffered_sl = sl + buffer` at every BUY-exit call site
-- [ ] Check `_optimize_same_direction` line 501
-- [ ] Check `guardian_check` Case 3 line 296
-- [ ] Check `guardian_check` Case 4 line 348
+- [ ] Check `_optimize_same_direction` OCO placement
+- [ ] Check `guardian_check` Case 3 OCO placement
+- [ ] Check `guardian_check` Case 4 qty re-align
 - [ ] Check `_try_partial_tp`
 - [ ] Check `_migrate_dynamic_sl`
 - [ ] Check `find_level_and_sync_sl`
@@ -49,7 +49,7 @@ For every `place_oco_order` call site, verify:
 **Current behavior**: Pivots are blocked. `sync_with_opinion` Scenario A returns `None` when `current_direction != opinion_direction`.
 
 ### 2.1 Pivot Block Correctness
-- [ ] Verify Scenario A (line 114-124): returns None, logs "pivot blocked"
+- [ ] Verify Scenario A (`sync_with_opinion` Scenario A): returns None, logs "pivot blocked"
 - [ ] Guardian continues protecting existing position. Is the SL still valid for the current price?
 - [ ] Risk: if AI correctly calls a reversal, bot rides position into SL. Acceptable?
 - [ ] Trade-off: blocking pivots prevents interference with manual positions and restart-gap reconstruction.
@@ -68,9 +68,9 @@ For every `place_oco_order` call site, verify:
 - [ ] Entry qty from `_calculate_target_qty` — verify risk-per-trade and precision
 
 ### 2.4 Safety Gates
-- [ ] NEUTRAL opinions → return None immediately (line 71-73)
-- [ ] Symbol whitelist: unconfigured symbols rejected (line 55-60)
-- [ ] Config validation: missing/corrupt config → abort (line 86-94)
+- [ ] NEUTRAL opinions → return None immediately (NEUTRAL guard in `sync_with_opinion`)
+- [ ] Symbol whitelist: unconfigured symbols rejected (`_is_symbol_whitelisted` check in `sync_with_opinion`)
+- [ ] Config validation: missing/corrupt config → abort (config validation in `sync_with_opinion`)
 
 ## D3: Guardian Pulse Cycle
 
@@ -210,8 +210,8 @@ For every `place_oco_order` call site, verify:
 - [ ] `place_limit_order` fails → returns None → no trade_state created
 
 ### 8.3 Specific Bug: Ticker=0 Triggers Emergency Close — **FIXED**
-- [x] `guardian_check` line 269-287: if ticker returns 0, SL appears breached
+- [x] `guardian_check` Case 3 SL breach check: if ticker returns 0, SL appears breached
 - [x] LONG: `0 <= sl` → True (for any positive SL) → emergency close!
 - [x] SHORT: `0 >= sl` → False (for any positive SL) → no trigger
 - [x] Mitigation: check `current_price > 0` before SL breach check
-- FIX: Code now has explicit guard at `src/agent/order_executor.py` lines 270-272: `if not current_price or current_price <= 0` catches price=0 before the SL breach check.
+- FIX: Code now has explicit guard at `src/agent/order_executor.py` (ticker guard in Case 3): `if not current_price or current_price <= 0` catches price=0 before the SL breach check.

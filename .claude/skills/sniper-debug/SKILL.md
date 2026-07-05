@@ -139,7 +139,7 @@ def parse_diag_line(line, date_str):
 ## Step 3: Determine Regime and Thresholds
 
 From the metrics in each pulse, classify the regime using the same logic as
-`SniperTrigger._determine_regime()` (see `src/sniper/trigger.py` lines 301–316):
+`SniperTrigger._determine_regime()` (see `src/sniper/trigger.py` starts at line 298):
 
 ```python
 def classify_regime(vii, squeeze_factor, trend_intensity):
@@ -238,7 +238,7 @@ Check the sniper log for `cooldown reset (trade cleared)` lines near the target 
 ## Step 6: Check Pre-AI Gate
 
 If confluence exceeded the effective threshold and cooldown didn't block it,
-the pre-AI gate applies these checks (from `src/sniper/trigger.py` lines 395–453):
+the pre-AI gate applies these checks (from `src/sniper/trigger.py` starts at line 395):
 
 1. **Entry Feasibility**: is there a structural anchor (HVN/LVN) within
    `max_price_to_structure_atr` (4.0 ATR) of current price? If not → FAIL.
