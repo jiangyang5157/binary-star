@@ -24,7 +24,7 @@ from src.utils.rate_limiter import CongestionController
 # Initialize session-specific logger
 logger = setup_logger(__name__, propagate=True)
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SessionConfig(AgentConfig):
     """Strategic configuration for the Session Analyst (the Thesis agent in Binary Star).
 

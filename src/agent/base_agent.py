@@ -26,15 +26,18 @@ class AgentConfig:
     """Base configuration for neural agents.
 
     Attributes:
-        model: The Gemini model identifier (e.g., 'gemini-2.0-flash').
+        model: The model identifier (e.g., 'deepseek-v4-pro').
         model_temperature: Model creativity override.
         instruction_path: Absolute path to the system instruction template.
         max_tool_iterations: Safety ceiling for autonomous tool-looping.
+        reasoning_effort: "high" | "max" | None. Enables DeepSeek thinking
+            mode; ignored by providers that don't support it.
     """
     model: str
     model_temperature: float
     instruction_path: str
     max_tool_iterations: int
+    reasoning_effort: str | None = None
 
 class BaseAgent:
     """Abstract Base Class for all AI-driven agents in the Singularity pipeline.
@@ -149,6 +152,7 @@ class BaseAgent:
             system_instruction=system_instruction,
             tools=tools,
             temperature=temperature,
+            reasoning_effort=self.config.reasoning_effort,
             response_json=use_json_mode,
             http_timeout=self.api_timeout,
         )

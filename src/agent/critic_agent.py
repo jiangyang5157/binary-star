@@ -13,7 +13,7 @@ from src.utils.rate_limiter import CongestionController
 # Initialize critic-specific logger
 logger = setup_logger(__name__)
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class CriticConfig(AgentConfig):
     """Risk-centric configuration composed from logical sub-configs."""
     regime: RegimeConfig
