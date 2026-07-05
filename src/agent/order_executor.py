@@ -741,6 +741,8 @@ class MarginOrderExecutor:
             p_qty = cfg["precision_qty"]
             # Floor rounding: never oversell on partial TP
             tp_qty = max(math.floor(tp_qty * 10**p_qty) / 10**p_qty, cfg["min_order_qty"])
+            # Clamp to position — min_order_qty bump must not exceed remaining qty
+            tp_qty = min(tp_qty, abs(live_net_qty))
 
             logger.info(
                 f"[{symbol}] exit ladder L{i+1} triggered | "
