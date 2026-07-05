@@ -160,9 +160,9 @@ class BaseAgent:
         if response.usage:
             u = response.usage
             logger.info(
-                "[%s] tokens | total=%d | prompt=%d | completion=%d | cache=%d",
+                "[%s] tokens | total=%d | in=%d | out=%d",
                 agent_name, u.total_token_count, u.prompt_token_count,
-                u.candidates_token_count, u.cached_content_token_count,
+                u.candidates_token_count,
             )
         return response
 

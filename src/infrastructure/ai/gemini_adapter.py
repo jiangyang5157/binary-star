@@ -155,6 +155,12 @@ class GeminiAdapter(AbstractAIClient):
                 candidates_token_count=m.candidates_token_count,
                 cached_content_token_count=m.cached_content_token_count or 0,
             )
+            if usage.cached_content_token_count:
+                logger.info(
+                    "context cache hit | tokens=%d | saved=%.0f%%",
+                    usage.cached_content_token_count,
+                    usage.cached_content_token_count / max(1, usage.total_token_count) * 100,
+                )
         return AIResponse(text=text, tool_calls=tool_calls, usage=usage)
 
     def begin_session(self, system_instruction, tools, visual_parts, model):
