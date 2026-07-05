@@ -1,433 +1,439 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Performance — Singularity</title>
-<link rel="stylesheet" href="/static/dashboard.css">
-<script src="/static/i18n.js"></script>
-<script src="/static/dashboard-utils.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Performance — Singularity</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <script src="/static/i18n.js"></script>
+  <script src="/static/dashboard-utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 </head>
+
 <body class="dark">
-<header class="app-header">
-  <h1>Singularity</h1>
-  <nav>
-    <a href="/performance" class="nav-link active" data-i18n="nav.performance">Performance</a>
-    <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
-    <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
-  </nav>
-  <div class="header-controls">
-    <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
-      <span class="lang-en active">EN</span>
-      <span class="lang-sep">│</span>
-      <span class="lang-zh">中文</span>
-    </button>
-  </div>
-</header>
+  <header class="app-header">
+    <h1>Singularity</h1>
+    <nav>
+      <a href="/performance" class="nav-link active" data-i18n="nav.performance">Performance</a>
+      <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
+      <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
+    </nav>
+    <div class="header-controls">
+      <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
+        <span class="lang-en active">EN</span>
+        <span class="lang-sep">│</span>
+        <span class="lang-zh">中文</span>
+      </button>
+    </div>
+  </header>
 
-<main class="container">
+  <main class="container">
 
-  <!-- ═══════ KPI Cards ═══════ -->
-  <section class="kpi-grid" id="kpi-grid">
-    <div class="kpi-card accent-green">
-      <span class="kpi-label" data-i18n="kpi.net_pnl">Net P&amp;L</span>
-      <span class="kpi-value" id="kpi-pnl">--</span>
-    </div>
-    <div class="kpi-card accent-blue">
-      <span class="kpi-label" data-i18n="kpi.win_rate">Win Rate</span>
-      <span class="kpi-value" id="kpi-winrate">--</span>
-    </div>
-    <div class="kpi-card accent-green">
-      <span class="kpi-label" data-i18n="kpi.calmar">Calmar Ratio</span>
-      <span class="kpi-value" id="kpi-calmar">--</span>
-    </div>
-    <div class="kpi-card accent-red">
-      <span class="kpi-label" data-i18n="kpi.max_drawdown">Max Drawdown</span>
-      <span class="kpi-value" id="kpi-mdd">--</span>
-    </div>
-    <div class="kpi-card accent-purple">
-      <span class="kpi-label" data-i18n="kpi.executed">Executed / Total</span>
-      <span class="kpi-value" id="kpi-executed">--</span>
-    </div>
-  </section>
-
-  <!-- ═══════ Decision Timeline ═══════ -->
-  <section class="card chart-card">
-    <div class="chart-header">
-      <h2 data-i18n="section.decision_timeline">Decision Timeline</h2>
-      <div class="chart-controls">
-        <label class="slider-label" data-i18n="chart.min_confidence">Min Confidence:</label>
-        <input type="range" id="confSlider" min="50" max="100" value="50" class="slider">
-        <span id="confVal" class="slider-value">50</span>
+    <!-- ═══════ KPI Cards ═══════ -->
+    <section class="kpi-grid" id="kpi-grid">
+      <div class="kpi-card accent-green">
+        <span class="kpi-label" data-i18n="kpi.net_pnl">Net P&amp;L</span>
+        <span class="kpi-value" id="kpi-pnl">--</span>
       </div>
-    </div>
-    <p class="chart-hint" data-i18n="chart.click_hint">Click a bubble to open the session audit report</p>
-    <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
-  </section>
-
-  <!-- ═══════ Charts Row ═══════ -->
-  <div class="chart-row">
-    <section class="card chart-card">
-      <h2 data-i18n="section.equity_curve">Equity Growth Curve</h2>
-      <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+      <div class="kpi-card accent-blue">
+        <span class="kpi-label" data-i18n="kpi.win_rate">Win Rate</span>
+        <span class="kpi-value" id="kpi-winrate">--</span>
+      </div>
+      <div class="kpi-card accent-green">
+        <span class="kpi-label" data-i18n="kpi.calmar">Calmar Ratio</span>
+        <span class="kpi-value" id="kpi-calmar">--</span>
+      </div>
+      <div class="kpi-card accent-red">
+        <span class="kpi-label" data-i18n="kpi.max_drawdown">Max Drawdown</span>
+        <span class="kpi-value" id="kpi-mdd">--</span>
+      </div>
+      <div class="kpi-card accent-purple">
+        <span class="kpi-label" data-i18n="kpi.executed">Executed / Total</span>
+        <span class="kpi-value" id="kpi-executed">--</span>
+      </div>
     </section>
-    <section class="card chart-card">
-      <h2 data-i18n="section.conf_optimizer">Confidence Threshold Optimizer</h2>
-      <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
-      <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
-    </section>
-  </div>
 
-  <!-- ═══════ Session Table ═══════ -->
-  <section class="card">
-    <div class="section-header">
-      <h2 data-i18n="section.trade_ledger">Trade Ledger</h2>
-      <div class="section-controls">
-        <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label" data-i18n="filter.symbol">Symbol</span>
-            <input type="text" id="symbol-filter" class="filter-input" placeholder="BTC" style="width:80px">
-          </div>
-          <div class="filter-sep"></div>
-          <div class="filter-group">
-            <span class="filter-label" data-i18n="filter.version">Version</span>
-            <input type="text" id="version-filter" class="filter-input" placeholder="26.6.24" style="width:70px">
-          </div>
+    <!-- ═══════ Decision Timeline ═══════ -->
+    <section class="card chart-card">
+      <div class="chart-header">
+        <h2 data-i18n="section.decision_timeline">Decision Timeline</h2>
+        <div class="chart-controls">
+          <label class="slider-label" data-i18n="chart.min_confidence">Min Confidence:</label>
+          <input type="range" id="confSlider" min="50" max="100" value="50" class="slider">
+          <span id="confVal" class="slider-value">50</span>
         </div>
-        <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" data-i18n="btn.audit" title="Run forensic audit against all un-audited sessions">▶ Audit</button>
-        <span id="run-audit-status" class="audit-status" style="display:none"></span>
       </div>
+      <p class="chart-hint" data-i18n="chart.click_hint">Click a bubble to open the session audit report</p>
+      <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
+    </section>
+
+    <!-- ═══════ Charts Row ═══════ -->
+    <div class="chart-row">
+      <section class="card chart-card">
+        <h2 data-i18n="section.equity_curve">Equity Growth Curve</h2>
+        <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
+      </section>
+      <section class="card chart-card">
+        <h2 data-i18n="section.conf_optimizer">Confidence Threshold Optimizer</h2>
+        <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
+        <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
+      </section>
     </div>
-    <div class="table-wrapper">
-      <table id="sessions-table">
-        <thead>
-          <tr>
-            <th data-i18n="th.symbol">Symbol</th>
-            <th class="sortable" data-sort="observed_at" data-i18n="th.observed_at">OBSERVED AT</th>
-            <th data-i18n="th.direction">Direction</th>
-            <th class="sortable" data-sort="confidence" data-i18n="th.conf">Conf</th>
-            <th data-i18n="th.entry">Entry</th>
-            <th data-i18n="th.tp">TP</th>
-            <th data-i18n="th.sl">SL</th>
-            <th class="sortable" data-sort="rr_ratio" data-i18n="th.rr">RR</th>
-            <th data-i18n="th.result">Result</th>
-            <th data-i18n="th.pnl">P&amp;L</th>
-            <th data-i18n="th.version">Version</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="sessions-body">
-          <tr><td colspan="12" class="loading">Loading sessions...</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="card-footer"><span id="session-count"></span></div>
-  </section>
 
-</main>
+    <!-- ═══════ Session Table ═══════ -->
+    <section class="card">
+      <div class="section-header">
+        <h2 data-i18n="section.trade_ledger">Trade Ledger</h2>
+        <div class="section-controls">
+          <div class="filter-bar">
+            <div class="filter-group">
+              <span class="filter-label" data-i18n="filter.symbol">Symbol</span>
+              <input type="text" id="symbol-filter" class="filter-input" placeholder="BTC" style="width:80px">
+            </div>
+            <div class="filter-sep"></div>
+            <div class="filter-group">
+              <span class="filter-label" data-i18n="filter.version">Version</span>
+              <input type="text" id="version-filter" class="filter-input" placeholder="26.7.8" style="width:70px">
+            </div>
+          </div>
+          <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" data-i18n="btn.audit"
+            title="Run forensic audit against all un-audited sessions">▶ Audit</button>
+          <span id="run-audit-status" class="audit-status" style="display:none"></span>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="sessions-table">
+          <thead>
+            <tr>
+              <th data-i18n="th.symbol">Symbol</th>
+              <th class="sortable" data-sort="observed_at" data-i18n="th.observed_at">OBSERVED AT</th>
+              <th data-i18n="th.direction">Direction</th>
+              <th class="sortable" data-sort="confidence" data-i18n="th.conf">Conf</th>
+              <th data-i18n="th.entry">Entry</th>
+              <th data-i18n="th.tp">TP</th>
+              <th data-i18n="th.sl">SL</th>
+              <th class="sortable" data-sort="rr_ratio" data-i18n="th.rr">RR</th>
+              <th data-i18n="th.result">Result</th>
+              <th data-i18n="th.pnl">P&amp;L</th>
+              <th data-i18n="th.version">Version</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="sessions-body">
+            <tr>
+              <td colspan="12" class="loading">Loading sessions...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer"><span id="session-count"></span></div>
+    </section>
 
-<script>
-const DATA_ROOT = '{{ data_root }}';
-(function () {
-  const tag = document.createElement('span');
-  tag.className = 'data-root-tag';
-  tag.textContent = DATA_ROOT;
-  document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
-})();
+  </main>
 
-const $ = id => document.getElementById(id);
+  <script>
+    const DATA_ROOT = '{{ data_root }}';
+    (function () {
+      const tag = document.createElement('span');
+      tag.className = 'data-root-tag';
+      tag.textContent = DATA_ROOT;
+      document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
+    })();
 
-function apiUrl(path, extra = {}) {
-  const p = new URLSearchParams();
-  for (const [k, v] of Object.entries(extra)) p.set(k, v);
-  const qs = p.toString();
-  return qs ? `${path}?${qs}` : path;
-}
+    const $ = id => document.getElementById(id);
 
-// ── Chart config ──
-const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
-let timelineChart = null, equityChart = null, optimizerChart = null;
-let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
-let confThreshold = 50; // fallback, overridden by /api/config
-
-// ── Helpers ──
-function resultBadge(r) {
-  if (!r) return '<span class="text-muted">&mdash;</span>';
-  if (r === 'TP_HIT') return '<span class="badge result-tp">TP HIT</span>';
-  if (r === 'SL_HIT') return '<span class="badge result-sl">SL HIT</span>';
-  if (r === 'NEITHER') {
-    return '<span class="badge result-neither">EXPIRED</span>';
-  }
-  return `<span class="text-muted">${r}</span>`;
-}
-function pnlSpan(p) {
-  if (p == null) return '<span class="text-muted">&mdash;</span>';
-  const cls = p > 0 ? 'pnl-positive' : p < 0 ? 'pnl-negative' : 'text-muted';
-  return `<span class="mono ${cls}">${p > 0 ? '+' : ''}${p.toFixed(2)}%</span>`;
-}
-
-// ── Load trades + render charts ──
-async function loadTrades(symbol) {
-  const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
-  const data = await resp.json();
-  allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
-  filteredTrades = allTrades;
-  updateAllCharts(confThreshold);
-}
-
-function updateAllCharts(threshold) {
-  const trades = filteredTrades.length ? filteredTrades : allTrades;
-  const filledTrades = trades.filter(t => t.is_filled);
-  const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
-
-  if (!filledTrades.length) {
-    for (const id of ['kpi-pnl','kpi-winrate','kpi-calmar','kpi-mdd','kpi-executed'])
-      $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
-    $('confVal').textContent = threshold;
-    return;
-  }
-
-  // Only filled trades contribute to KPIs and equity curve
-  const activeTrades = filledTrades.filter(t => t.confidence >= threshold);
-
-  let eq = 1.0, peak = 1.0, dd = 0;
-  const curve = [];
-  activeTrades.forEach(t => {
-    eq *= (1 + t.pnl_pct / 100);
-    if (eq > peak) peak = eq;
-    dd = Math.max(dd, (peak - eq) / peak);
-    curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: t.time || '', version: t.version || '' });
-  });
-
-  const netPnL = (eq - 1) * 100, mddPct = dd * 100;
-  const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
-  const wins = activeTrades.filter(t => t.pnl_pct > 0).length;
-  const winRate = activeTrades.length ? (wins / activeTrades.length * 100) : 0;
-
-  $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
-  $('kpi-pnl').className = 'kpi-value ' + (netPnL >= 0 ? 'positive' : 'negative');
-  $('kpi-winrate').textContent = winRate.toFixed(1) + '%';
-  $('kpi-calmar').textContent = calmar.toFixed(2);
-  $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
-  $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
-  $('confVal').textContent = threshold;
-
-  renderTimeline(trades, threshold);
-  renderEquity(curve, netPnL);
-  renderOptimizer(filledTrades, threshold);
-}
-
-// ── Charts ──
-function renderTimeline(trades, threshold) {
-  const ctx = $('timelineChart').getContext('2d');
-  if (timelineChart) timelineChart.destroy();
-
-  const points = trades.map(t => {
-    let color = 'rgba(148, 163, 184, 0.08)';
-    const above = t.confidence >= threshold;
-    if (t.opinion !== 'NEUTRAL') {
-      if (t.is_filled) {
-        if (t.tp_sl_result === 'TP_HIT') color = above ? 'rgba(64, 168, 95, 0.85)' : 'rgba(0,0,0,0)';
-        else if (t.tp_sl_result === 'SL_HIT') color = above ? 'rgba(224, 85, 74, 0.85)' : 'rgba(0,0,0,0)';
-        else if (t.pnl_pct > 0) color = above ? 'rgba(64, 168, 95, 0.35)' : 'rgba(0,0,0,0)';
-        else if (t.pnl_pct < 0) color = above ? 'rgba(224, 85, 74, 0.35)' : 'rgba(0,0,0,0)';
-        else color = above ? 'rgba(136, 152, 172, 0.45)' : 'rgba(0,0,0,0)';
-      } else {
-        color = above ? 'rgba(136, 152, 172, 0.35)' : 'rgba(0,0,0,0)';
-      }
+    function apiUrl(path, extra = {}) {
+      const p = new URLSearchParams();
+      for (const [k, v] of Object.entries(extra)) p.set(k, v);
+      const qs = p.toString();
+      return qs ? `${path}?${qs}` : path;
     }
-    return {
-      x: t.time ? new Date(t.time) : null,
-      y: t.confidence,
-      r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
-      pnl: t.pnl_pct, op: t.opinion, symbol: t.symbol || '',
-      holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
-      sessionFile: t.session_filename || '',
-      version: t.version || '',
-      backgroundColor: color, borderColor: above ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0)',
-    };
-  });
 
-  timelineChart = new Chart(ctx, {
-    type: 'bubble',
-    data: { datasets: [{ data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      scales: {
-        x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
-        y: { ticks: { color: textBright }, grid: { color: gridColor } }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          displayColors: false,
-          callbacks: {
-            title: (items) => {
-              const d = items[0].raw;
-              return `${d.symbol || '&mdash;'}  ·  ${d.timeLabel}`;
-            },
-            label: (ctx) => {
-              const d = ctx.raw;
-              const pnlStr = d.pnl != null ? `${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%` : '—';
-              const lines = [`${d.op}  ·  Conf ${d.y != null ? d.y.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
-              if (d.holding) lines.push(`Holding: ${d.holding}h`);
-              if (d.version) lines.push(`v${d.version}`);
-              return lines;
+    // ── Chart config ──
+    const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
+    let timelineChart = null, equityChart = null, optimizerChart = null;
+    let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
+    let confThreshold = 50; // fallback, overridden by /api/config
+
+    // ── Helpers ──
+    function resultBadge(r) {
+      if (!r) return '<span class="text-muted">&mdash;</span>';
+      if (r === 'TP_HIT') return '<span class="badge result-tp">TP HIT</span>';
+      if (r === 'SL_HIT') return '<span class="badge result-sl">SL HIT</span>';
+      if (r === 'NEITHER') {
+        return '<span class="badge result-neither">EXPIRED</span>';
+      }
+      return `<span class="text-muted">${r}</span>`;
+    }
+    function pnlSpan(p) {
+      if (p == null) return '<span class="text-muted">&mdash;</span>';
+      const cls = p > 0 ? 'pnl-positive' : p < 0 ? 'pnl-negative' : 'text-muted';
+      return `<span class="mono ${cls}">${p > 0 ? '+' : ''}${p.toFixed(2)}%</span>`;
+    }
+
+    // ── Load trades + render charts ──
+    async function loadTrades(symbol) {
+      const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
+      const data = await resp.json();
+      allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
+      filteredTrades = allTrades;
+      updateAllCharts(confThreshold);
+    }
+
+    function updateAllCharts(threshold) {
+      const trades = filteredTrades.length ? filteredTrades : allTrades;
+      const filledTrades = trades.filter(t => t.is_filled);
+      const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
+
+      if (!filledTrades.length) {
+        for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-calmar', 'kpi-mdd', 'kpi-executed'])
+          $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
+        $('confVal').textContent = threshold;
+        return;
+      }
+
+      // Only filled trades contribute to KPIs and equity curve
+      const activeTrades = filledTrades.filter(t => t.confidence >= threshold);
+
+      let eq = 1.0, peak = 1.0, dd = 0;
+      const curve = [];
+      activeTrades.forEach(t => {
+        eq *= (1 + t.pnl_pct / 100);
+        if (eq > peak) peak = eq;
+        dd = Math.max(dd, (peak - eq) / peak);
+        curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: t.time || '', version: t.version || '' });
+      });
+
+      const netPnL = (eq - 1) * 100, mddPct = dd * 100;
+      const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
+      const wins = activeTrades.filter(t => t.pnl_pct > 0).length;
+      const winRate = activeTrades.length ? (wins / activeTrades.length * 100) : 0;
+
+      $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
+      $('kpi-pnl').className = 'kpi-value ' + (netPnL >= 0 ? 'positive' : 'negative');
+      $('kpi-winrate').textContent = winRate.toFixed(1) + '%';
+      $('kpi-calmar').textContent = calmar.toFixed(2);
+      $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
+      $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
+      $('confVal').textContent = threshold;
+
+      renderTimeline(trades, threshold);
+      renderEquity(curve, netPnL);
+      renderOptimizer(filledTrades, threshold);
+    }
+
+    // ── Charts ──
+    function renderTimeline(trades, threshold) {
+      const ctx = $('timelineChart').getContext('2d');
+      if (timelineChart) timelineChart.destroy();
+
+      const points = trades.map(t => {
+        let color = 'rgba(148, 163, 184, 0.08)';
+        const above = t.confidence >= threshold;
+        if (t.opinion !== 'NEUTRAL') {
+          if (t.is_filled) {
+            if (t.tp_sl_result === 'TP_HIT') color = above ? 'rgba(64, 168, 95, 0.85)' : 'rgba(0,0,0,0)';
+            else if (t.tp_sl_result === 'SL_HIT') color = above ? 'rgba(224, 85, 74, 0.85)' : 'rgba(0,0,0,0)';
+            else if (t.pnl_pct > 0) color = above ? 'rgba(64, 168, 95, 0.35)' : 'rgba(0,0,0,0)';
+            else if (t.pnl_pct < 0) color = above ? 'rgba(224, 85, 74, 0.35)' : 'rgba(0,0,0,0)';
+            else color = above ? 'rgba(136, 152, 172, 0.45)' : 'rgba(0,0,0,0)';
+          } else {
+            color = above ? 'rgba(136, 152, 172, 0.35)' : 'rgba(0,0,0,0)';
+          }
+        }
+        return {
+          x: t.time ? new Date(t.time) : null,
+          y: t.confidence,
+          r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
+          pnl: t.pnl_pct, op: t.opinion, symbol: t.symbol || '',
+          holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
+          sessionFile: t.session_filename || '',
+          version: t.version || '',
+          backgroundColor: color, borderColor: above ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0)',
+        };
+      });
+
+      timelineChart = new Chart(ctx, {
+        type: 'bubble',
+        data: { datasets: [{ data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          scales: {
+            x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
+            y: { ticks: { color: textBright }, grid: { color: gridColor } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                title: (items) => {
+                  const d = items[0].raw;
+                  return `${d.symbol || '&mdash;'}  ·  ${d.timeLabel}`;
+                },
+                label: (ctx) => {
+                  const d = ctx.raw;
+                  const pnlStr = d.pnl != null ? `${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%` : '—';
+                  const lines = [`${d.op}  ·  Conf ${d.y != null ? d.y.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
+                  if (d.holding) lines.push(`Holding: ${d.holding}h`);
+                  if (d.version) lines.push(`v${d.version}`);
+                  return lines;
+                }
+              }
+            }
+          },
+          onClick: (e) => {
+            const points = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
+            if (points.length) {
+              const d = timelineChart.data.datasets[0].data[points[0].index];
+              if (d.sessionFile) {
+                window.location = `/audits/${encodeURIComponent(d.sessionFile)}`;
+              }
+            }
+          },
+          onHover: (e) => {
+            e.native.target.style.cursor = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false).length ? 'pointer' : 'default';
+          }
+        }
+      });
+    }
+
+    function renderEquity(curve, netPnL) {
+      const ctx = $('equityChart').getContext('2d');
+      if (equityChart) equityChart.destroy();
+
+      const color = netPnL >= 0 ? '#40a85f' : '#e0554a';
+      const fill = netPnL >= 0 ? 'rgba(64, 168, 95, 0.08)' : 'rgba(224, 85, 74, 0.08)';
+
+      // Dots only on sparse data; crosshair handles dense-data tooltips
+      const pointRadius = curve.length <= 5 ? 4 : 0;
+      const pointHoverRadius = curve.length <= 5 ? 6 : 4;
+
+      equityChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius, pointHoverRadius, pointBackgroundColor: color, pointBorderColor: 'rgba(255,255,255,0.2)', fill: true, backgroundColor: fill, tension: 0.15 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          interaction: { mode: 'nearest', axis: 'x', intersect: false },
+          scales: {
+            x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
+            y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                title: (items) => {
+                  const d = items[0].raw;
+                  return `${d.symbol || '—'}  ·  ${d.timeLabel || ''}`;
+                },
+                label: (ctx) => {
+                  const d = ctx.raw;
+                  const pnlStr = d.pnl_pct != null ? `${d.pnl_pct > 0 ? '+' : ''}${d.pnl_pct.toFixed(2)}%` : '—';
+                  const eqStr = `${d.y >= 0 ? '+' : ''}${d.y.toFixed(2)}%`;
+                  const lines = [`${d.opinion || '—'}  ·  Conf ${d.confidence != null ? d.confidence.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
+                  lines.push(`Equity ${eqStr}`);
+                  if (d.version) lines.push(`v${d.version}`);
+                  return lines;
+                }
+              }
             }
           }
         }
-      },
-      onClick: (e) => {
-        const points = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
-        if (points.length) {
-          const d = timelineChart.data.datasets[0].data[points[0].index];
-          if (d.sessionFile) {
-            window.location = `/audits/${encodeURIComponent(d.sessionFile)}`;
-          }
-        }
-      },
-      onHover: (e) => {
-        e.native.target.style.cursor = timelineChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false).length ? 'pointer' : 'default';
-      }
+      });
     }
-  });
-}
 
-function renderEquity(curve, netPnL) {
-  const ctx = $('equityChart').getContext('2d');
-  if (equityChart) equityChart.destroy();
+    function renderOptimizer(filledTrades, minThreshold) {
+      const ctx = $('optimizerChart').getContext('2d');
+      if (optimizerChart) optimizerChart.destroy();
 
-  const color = netPnL >= 0 ? '#40a85f' : '#e0554a';
-  const fill = netPnL >= 0 ? 'rgba(64, 168, 95, 0.08)' : 'rgba(224, 85, 74, 0.08)';
+      // Align step to nearest 5 (e.g. 42 → 40, 43 → 45)
+      const start = Math.round(minThreshold / 5) * 5;
+      const thresholds = [], data = [];
+      // Also count trades passing each threshold for richer tooltip
+      const counts = [];
+      for (let t = start; t <= 100; t += 5) {
+        let sum = 0, cnt = 0;
+        filledTrades.forEach(tr => { if (tr.confidence >= t) { sum += tr.pnl_pct; cnt++; } });
+        thresholds.push(t); data.push(sum); counts.push(cnt);
+      }
 
-  // Dots only on sparse data; crosshair handles dense-data tooltips
-  const pointRadius = curve.length <= 5 ? 4 : 0;
-  const pointHoverRadius = curve.length <= 5 ? 6 : 4;
-
-  equityChart = new Chart(ctx, {
-    type: 'line',
-    data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius, pointHoverRadius, pointBackgroundColor: color, pointBorderColor: 'rgba(255,255,255,0.2)', fill: true, backgroundColor: fill, tension: 0.15 }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      interaction: { mode: 'nearest', axis: 'x', intersect: false },
-      scales: {
-        x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
-        y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          displayColors: false,
-          callbacks: {
-            title: (items) => {
-              const d = items[0].raw;
-              return `${d.symbol || '—'}  ·  ${d.timeLabel || ''}`;
-            },
-            label: (ctx) => {
-              const d = ctx.raw;
-              const pnlStr = d.pnl_pct != null ? `${d.pnl_pct > 0 ? '+' : ''}${d.pnl_pct.toFixed(2)}%` : '—';
-              const eqStr = `${d.y >= 0 ? '+' : ''}${d.y.toFixed(2)}%`;
-              const lines = [`${d.opinion || '—'}  ·  Conf ${d.confidence != null ? d.confidence.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
-              lines.push(`Equity ${eqStr}`);
-              if (d.version) lines.push(`v${d.version}`);
-              return lines;
+      optimizerChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: thresholds, datasets: [{ data, borderColor: '#54a0a8', backgroundColor: 'rgba(84, 160, 168, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#54a0a8' }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              displayColors: false,
+              callbacks: {
+                title: (items) => `Confidence Threshold ≥ ${items[0].label}%`,
+                label: (ctx) => {
+                  const pnl = ctx.raw;
+                  const count = counts[ctx.dataIndex];
+                  const sign = pnl >= 0 ? '+' : '';
+                  const color = pnl >= 0 ? '#40a85f' : '#e0554a';
+                  return [`Cumulative P&L: ${sign}${pnl.toFixed(2)}%`, `${count} trade${count !== 1 ? 's' : ''} qualify`];
+                }
+              }
             }
+          },
+          scales: {
+            x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: textBright }, ticks: { color: textMuted } },
+            y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
           }
         }
+      });
+    }
+
+    // ── Session Table ──
+    function getSortValue(session, key) {
+      const tp = session.tactical || {};
+      switch (key) {
+        case 'symbol': return session.symbol || '';
+        case 'observed_at': return session.observed_at || '';
+        case 'opinion': return session.opinion || '';
+        case 'confidence': return session.confidence != null ? session.confidence : -1;
+        case 'entry': return tp.current_price || tp.entry || 0;
+        case 'take_profit': return tp.take_profit || 0;
+        case 'stop_loss': return tp.stop_loss || 0;
+        case 'rr_ratio': return tp.rr_ratio != null ? tp.rr_ratio : -1;
+        default: return '';
       }
     }
-  });
-}
 
-function renderOptimizer(filledTrades, minThreshold) {
-  const ctx = $('optimizerChart').getContext('2d');
-  if (optimizerChart) optimizerChart.destroy();
-
-  // Align step to nearest 5 (e.g. 42 → 40, 43 → 45)
-  const start = Math.round(minThreshold / 5) * 5;
-  const thresholds = [], data = [];
-  // Also count trades passing each threshold for richer tooltip
-  const counts = [];
-  for (let t = start; t <= 100; t += 5) {
-    let sum = 0, cnt = 0;
-    filledTrades.forEach(tr => { if (tr.confidence >= t) { sum += tr.pnl_pct; cnt++; } });
-    thresholds.push(t); data.push(sum); counts.push(cnt);
-  }
-
-  optimizerChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels: thresholds, datasets: [{ data, borderColor: '#54a0a8', backgroundColor: 'rgba(84, 160, 168, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#54a0a8' }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, animation: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          displayColors: false,
-          callbacks: {
-            title: (items) => `Confidence Threshold ≥ ${items[0].label}%`,
-            label: (ctx) => {
-              const pnl = ctx.raw;
-              const count = counts[ctx.dataIndex];
-              const sign = pnl >= 0 ? '+' : '';
-              const color = pnl >= 0 ? '#40a85f' : '#e0554a';
-              return [`Cumulative P&L: ${sign}${pnl.toFixed(2)}%`, `${count} trade${count !== 1 ? 's' : ''} qualify`];
-            }
-          }
+    function sortSessions(sessions, key, dir) {
+      return [...sessions].sort((a, b) => {
+        const va = getSortValue(a, key), vb = getSortValue(b, key);
+        if (typeof va === 'number' && typeof vb === 'number') {
+          if (va === -1 && vb === -1) return 0; if (va === -1) return 1; if (vb === -1) return -1;
+          return (va - vb) * dir;
         }
-      },
-      scales: {
-        x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: textBright }, ticks: { color: textMuted } },
-        y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
-      }
+        return String(va).localeCompare(String(vb)) * dir;
+      });
     }
-  });
-}
 
-// ── Session Table ──
-function getSortValue(session, key) {
-  const tp = session.tactical || {};
-  switch (key) {
-    case 'symbol': return session.symbol || '';
-    case 'observed_at': return session.observed_at || '';
-    case 'opinion': return session.opinion || '';
-    case 'confidence': return session.confidence != null ? session.confidence : -1;
-    case 'entry': return tp.current_price || tp.entry || 0;
-    case 'take_profit': return tp.take_profit || 0;
-    case 'stop_loss': return tp.stop_loss || 0;
-    case 'rr_ratio': return tp.rr_ratio != null ? tp.rr_ratio : -1;
-    default: return '';
-  }
-}
-
-function sortSessions(sessions, key, dir) {
-  return [...sessions].sort((a, b) => {
-    const va = getSortValue(a, key), vb = getSortValue(b, key);
-    if (typeof va === 'number' && typeof vb === 'number') {
-      if (va === -1 && vb === -1) return 0; if (va === -1) return 1; if (vb === -1) return -1;
-      return (va - vb) * dir;
-    }
-    return String(va).localeCompare(String(vb)) * dir;
-  });
-}
-
-function renderTable(sessions) {
-  const tbody = $('sessions-body');
-  $('session-count').textContent = `${sessions.length} records`;
-  if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No records match filters</td></tr>'; return; }
-  tbody.innerHTML = sessions.map(s => {
-    const tp = s.tactical || {}, audit = s.audit;
-    const entry = tp.current_price || tp.entry;
-    // Row accent color matches result
-    let rowCls = '';
-    if (audit) {
-      if (!audit.is_filled) rowCls = 'row-unfilled';
-      else if (audit.tp_sl_result === 'TP_HIT') rowCls = 'row-tp';
-      else if (audit.tp_sl_result === 'SL_HIT') rowCls = 'row-sl';
-      else rowCls = 'row-expired';
-    }
-    return `<tr class="${rowCls}">
+    function renderTable(sessions) {
+      const tbody = $('sessions-body');
+      $('session-count').textContent = `${sessions.length} records`;
+      if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No records match filters</td></tr>'; return; }
+      tbody.innerHTML = sessions.map(s => {
+        const tp = s.tactical || {}, audit = s.audit;
+        const entry = tp.current_price || tp.entry;
+        // Row accent color matches result
+        let rowCls = '';
+        if (audit) {
+          if (!audit.is_filled) rowCls = 'row-unfilled';
+          else if (audit.tp_sl_result === 'TP_HIT') rowCls = 'row-tp';
+          else if (audit.tp_sl_result === 'SL_HIT') rowCls = 'row-sl';
+          else rowCls = 'row-expired';
+        }
+        return `<tr class="${rowCls}">
       <td><strong>${s.symbol}</strong></td>
       <td>${formatLocalTime(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>
@@ -441,115 +447,116 @@ function renderTable(sessions) {
       <td><span class="text-muted">${s.version || '&mdash;'}</span></td>
       <td><a href="/audits/${encodeURIComponent(s.filename)}" class="btn-sm">View</a></td>
     </tr>`;
-  }).join('');
-}
-
-function applyFilters() {
-  const sym = $('symbol-filter').value.trim().toUpperCase();
-  const ver = $('version-filter').value.trim();
-  let f = allSessions;
-  if (sym) f = f.filter(s => (s.symbol || '').includes(sym));
-  if (ver) f = f.filter(s => (s.version || '').includes(ver));
-  renderTable(sortSessions(f, sortKey, sortDir));
-
-  // Drive KPIs and charts from the same filtered set
-  const visibleFiles = new Set(f.map(s => s.filename));
-  filteredTrades = (allTrades || []).filter(t => t.session_filename && visibleFiles.has(t.session_filename));
-  updateAllCharts(confThreshold);
-}
-
-async function loadSessions() {
-  const tbody = $('sessions-body');
-  tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading sessions...</td></tr>';
-  const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
-  const data = await resp.json();
-  allSessions = data.sessions || [];
-  $('session-count').textContent = `${data.total} records`;
-  applyFilters();
-}
-
-// ── Events ──
-$('symbol-filter').addEventListener('input', function() { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
-$('version-filter').addEventListener('input', function() { localStorage.setItem('versionFilter', this.value); applyFilters(); });
-$('confSlider').addEventListener('input', function() { const v = parseInt(this.value); localStorage.setItem('confThreshold', v); updateAllCharts(v); });
-document.querySelectorAll('th.sortable').forEach(th => {
-  th.addEventListener('click', function() {
-    sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
-    sortKey = this.dataset.sort;
-    applyFilters();
-  });
-});
-
-// ── Run Audit (trigger backend audit then refresh) ──
-async function runAudit() {
-  const btn = $('run-audit-btn');
-  const status = $('run-audit-status');
-  btn.disabled = true;
-  btn.textContent = '⟳ Auditing...';
-  status.style.display = 'none';
-
-  try {
-    const resp = await fetch(apiUrl('/api/audits/run'), { method: 'POST' });
-    const data = await resp.json();
-
-    if (data.error) {
-      status.textContent = '⚠ ' + data.error;
-      status.className = 'audit-status audit-error';
-    } else {
-      const done = (data.audited || 0) + (data.skipped || 0);
-      status.textContent = `✓ ${done}/${data.total || 0}`;
-      status.className = 'audit-status audit-ok';
-      btn.style.display = 'none';
+      }).join('');
     }
-    status.style.display = 'inline';
-    setTimeout(() => {
+
+    function applyFilters() {
+      const sym = $('symbol-filter').value.trim().toUpperCase();
+      const ver = $('version-filter').value.trim();
+      let f = allSessions;
+      if (sym) f = f.filter(s => (s.symbol || '').includes(sym));
+      if (ver) f = f.filter(s => (s.version || '').includes(ver));
+      renderTable(sortSessions(f, sortKey, sortDir));
+
+      // Drive KPIs and charts from the same filtered set
+      const visibleFiles = new Set(f.map(s => s.filename));
+      filteredTrades = (allTrades || []).filter(t => t.session_filename && visibleFiles.has(t.session_filename));
+      updateAllCharts(confThreshold);
+    }
+
+    async function loadSessions() {
+      const tbody = $('sessions-body');
+      tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading sessions...</td></tr>';
+      const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
+      const data = await resp.json();
+      allSessions = data.sessions || [];
+      $('session-count').textContent = `${data.total} records`;
+      applyFilters();
+    }
+
+    // ── Events ──
+    $('symbol-filter').addEventListener('input', function () { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
+    $('version-filter').addEventListener('input', function () { localStorage.setItem('versionFilter', this.value); applyFilters(); });
+    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); localStorage.setItem('confThreshold', v); updateAllCharts(v); });
+    document.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', function () {
+        sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
+        sortKey = this.dataset.sort;
+        applyFilters();
+      });
+    });
+
+    // ── Run Audit (trigger backend audit then refresh) ──
+    async function runAudit() {
+      const btn = $('run-audit-btn');
+      const status = $('run-audit-status');
+      btn.disabled = true;
+      btn.textContent = '⟳ Auditing...';
       status.style.display = 'none';
-      btn.style.display = '';
-    }, 3000);
-  } catch (e) {
-    status.textContent = '⚠ Request failed';
-    status.className = 'audit-status audit-error';
-    status.style.display = 'inline';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '▶ Audit';
-  }
 
-  // Refresh table and charts regardless of outcome
-  await Promise.all([loadSessions(), loadTrades()]);
-}
+      try {
+        const resp = await fetch(apiUrl('/api/audits/run'), { method: 'POST' });
+        const data = await resp.json();
 
-// ── Init ──
-async function initConfig() {
-  try {
-    const resp = await fetch(apiUrl('/api/config'));
-    const data = await resp.json();
-    if (data.confidence_threshold) {
-      confThreshold = data.confidence_threshold;
-      $('confSlider').min = confThreshold;
+        if (data.error) {
+          status.textContent = '⚠ ' + data.error;
+          status.className = 'audit-status audit-error';
+        } else {
+          const done = (data.audited || 0) + (data.skipped || 0);
+          status.textContent = `✓ ${done}/${data.total || 0}`;
+          status.className = 'audit-status audit-ok';
+          btn.style.display = 'none';
+        }
+        status.style.display = 'inline';
+        setTimeout(() => {
+          status.style.display = 'none';
+          btn.style.display = '';
+        }, 3000);
+      } catch (e) {
+        status.textContent = '⚠ Request failed';
+        status.className = 'audit-status audit-error';
+        status.style.display = 'inline';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '▶ Audit';
+      }
+
+      // Refresh table and charts regardless of outcome
+      await Promise.all([loadSessions(), loadTrades()]);
     }
-  } catch (e) {
-    // keep fallback value
-  }
-  // Restore user's saved threshold (takes priority over server default)
-  const saved = localStorage.getItem('confThreshold');
-  if (saved !== null) {
-    confThreshold = parseInt(saved);
-  }
-  $('confSlider').value = confThreshold;
-  $('confVal').textContent = confThreshold;
-}
 
-// Restore filter inputs from localStorage
-const savedSymbol = localStorage.getItem('symbolFilter');
-if (savedSymbol) $('symbol-filter').value = savedSymbol;
-const savedVersion = localStorage.getItem('versionFilter');
-if (savedVersion) $('version-filter').value = savedVersion;
+    // ── Init ──
+    async function initConfig() {
+      try {
+        const resp = await fetch(apiUrl('/api/config'));
+        const data = await resp.json();
+        if (data.confidence_threshold) {
+          confThreshold = data.confidence_threshold;
+          $('confSlider').min = confThreshold;
+        }
+      } catch (e) {
+        // keep fallback value
+      }
+      // Restore user's saved threshold (takes priority over server default)
+      const saved = localStorage.getItem('confThreshold');
+      if (saved !== null) {
+        confThreshold = parseInt(saved);
+      }
+      $('confSlider').value = confThreshold;
+      $('confVal').textContent = confThreshold;
+    }
 
-initConfig().then(async () => {
-  await loadTrades();
-  await loadSessions();
-});
-</script>
+    // Restore filter inputs from localStorage
+    const savedSymbol = localStorage.getItem('symbolFilter');
+    if (savedSymbol) $('symbol-filter').value = savedSymbol;
+    const savedVersion = localStorage.getItem('versionFilter');
+    if (savedVersion) $('version-filter').value = savedVersion;
+
+    initConfig().then(async () => {
+      await loadTrades();
+      await loadSessions();
+    });
+  </script>
 </body>
+
 </html>
