@@ -83,7 +83,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 4. **Safety Gates**
    - NEUTRAL opinions → immediate return (line 71-73). No order action.
-   - Symbol whitelist check (line 55-60): unconfigured symbols rejected before any API calls.
+   - Symbol whitelist check (line ~77): unconfigured symbols rejected before any API calls.
    - Config validation (line 86-94): missing/corrupt config → abort before touching exchange.
    - `_EMERGENCY_CLOSED_SENTINEL` (-1) from Scenario B signals daemon to clear trade_state without cooldown reset.
 
@@ -123,14 +123,14 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 **Source file**: `src/agent/order_executor.py` (_try_partial_tp: line 693, _migrate_dynamic_sl: line 805, Case 4 trailing dispatch: line 413-432)
 
 1. **Level Loop Correctness**
-   - `_try_partial_tp` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (`break` at ~740).
+   - `_try_partial_tp` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (`break` at ~728).
    - This is sequential: L1 must fire before L2, etc. Correct and intentional.
-   - Check: after each partial close, it re-verifies position (line ~720). If position dropped below min_qty after partial close, the remaining OCO may be for a dust amount. Is there a min-notional check?
+   - Check: after each partial close, the remaining qty is **not** re-read from the exchange — it is computed deterministically as `abs(live_net_qty) - tp_qty`. If the deterministic remainder drops below min_qty, the remaining OCO may be for a dust amount. Is there a min-notional check?
 
 2. **SL Migration Direction**
    - `_migrate_dynamic_sl()`: LONG → `max(current_sl, price - N*ATR)`, SHORT → `min(current_sl, price + N*ATR)`.
    - This means SL only moves in the favorable direction (up for LONG, down for SHORT). Correct.
-   - But: rounding toward safety uses standard `round()` for both directions (line ~830). The comment says "floor-ish via round" but `round()` is banker's rounding, not floor. For LONG SL, rounding .5 up could move SL slightly higher than intended (more conservative). For SHORT SL, rounding .5 down could move SL slightly lower (more conservative). In both cases the bias is toward safety — acceptable.
+   - Rounding toward safety uses `math.floor()` for LONG and `math.ceil()` for SHORT (lines 833-837 in current code). This is correct: LONG SL rounds down (slightly tighter), SHORT SL rounds up (slightly tighter) — both bias toward safety.
 
 3. **Trailing Distance Source**
    - The trailing distance comes from `levels[active_idx]["sl_distance_atr"]` where `active_idx = new_level - 1` (line 417-419).
@@ -232,7 +232,7 @@ For every API call in the execution path, check failure handling:
 
 1. **get_symbol_position / get_active_orders**: Called at start of guardian and sync. Failures propagate as exceptions caught by daemon's outer try/except (line ~130) — entire pulse skipped. Position unprotected for one pulse.
 
-2. **get_ticker_price**: Returns 0.0 on failure. SL breach check (line 269-287) uses `<=` — if price=0 and SL>0, `0 <= sl` is True for LONG → triggers emergency close! This is a **potential bug**: a ticker failure could emergency-close a perfectly good position.
+2. **get_ticker_price**: Returns 0.0 on failure. ~~FIXED/MITIGATED~~ There is now an explicit guard at lines 270-272: `if not current_price or current_price <= 0: return trade_state, None`. Price=0 (or falsy) is caught and returned early, before the SL breach check ever runs. This prevents a ticker failure from triggering a false emergency close.
 
 3. **cancel_all_symbol_orders**: Returns False on failure. Every call site checks this and either aborts (returns early) or proceeds anyway. Audit each site for the correct behavior.
 

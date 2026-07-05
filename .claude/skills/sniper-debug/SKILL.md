@@ -154,13 +154,15 @@ def classify_regime(vii, squeeze_factor, trend_intensity):
     return 'ranging'
 ```
 
-Regime modifiers (from `config/global_config.yaml` → `signal_stack.regime_modifiers`):
-- trending: ×0.85 → effective threshold 0.298
-- ranging: ×1.00 → effective threshold 0.350
-- squeeze: ×0.75 → effective threshold 0.263
-- chaos: ×1.50 → effective threshold 0.525
+⚠️ These thresholds come from `config/strategy_config.yaml` — verify against current config values before debugging.
 
-Base threshold: 0.35 (from `signal_stack.trigger_threshold`).
+Regime modifiers (from `config/global_config.yaml` → `signal_stack.regime_modifiers`):
+- trending: ×0.85 → effective threshold 0.289
+- ranging: ×1.00 → effective threshold 0.340
+- squeeze: ×0.75 → effective threshold 0.255
+- chaos: ×1.50 → effective threshold 0.510
+
+Base threshold: 0.34 (from `signal_stack.trigger_threshold`).
 
 ## Step 4: Reconstruct the Confluence Score
 
@@ -217,6 +219,8 @@ Cooldown is determined by regime and time since last trigger:
 | squeeze | 25 |
 | chaos | 60 |
 
+_Note: config applies `base_multiplier: 2.5` — effective values are trending 62.5 min, ranging 112.5 min, squeeze 62.5 min, chaos 150 min._
+
 Absolute minimum gap between triggers: 10 minutes (any regime).
 
 Cooldown break conditions (either one suffices):
@@ -234,7 +238,7 @@ Check the sniper log for `cooldown reset (trade cleared)` lines near the target 
 ## Step 6: Check Pre-AI Gate
 
 If confluence exceeded the effective threshold and cooldown didn't block it,
-the pre-AI gate applies these checks (from `src/sniper/trigger.py` lines 379–432):
+the pre-AI gate applies these checks (from `src/sniper/trigger.py` lines 395–453):
 
 1. **Entry Feasibility**: is there a structural anchor (HVN/LVN) within
    `max_price_to_structure_atr` (4.0 ATR) of current price? If not → FAIL.

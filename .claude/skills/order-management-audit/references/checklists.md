@@ -13,7 +13,7 @@ For each site that cancels then re-places OCO, answer:
 Sites to audit:
 1. `_optimize_same_direction()` — `order_executor.py:~438-520`
 2. `_try_partial_tp()` — `order_executor.py:~693-804`
-3. `_migrate_dynamic_sl()` — `order_executor.py:~805-935`
+3. `_migrate_dynamic_sl()` — `order_executor.py:~805-880`
 4. `guardian_check()` Case 3 OCO placement — `order_executor.py:~255-320`
 5. `guardian_check()` Case 4 qty re-align — `order_executor.py:~324-371`
 6. `find_level_and_sync_sl()` — `order_executor.py:~575-691`
@@ -209,8 +209,9 @@ For every `place_oco_order` call site, verify:
 - [ ] `execute_market_close` fails → returns False → keeps trade_state for retry
 - [ ] `place_limit_order` fails → returns None → no trade_state created
 
-### 8.3 Specific Bug: Ticker=0 Triggers Emergency Close
-- [ ] `guardian_check` line 269-287: if ticker returns 0, SL appears breached
-- [ ] LONG: `0 <= sl` → True (for any positive SL) → emergency close!
-- [ ] SHORT: `0 >= sl` → False (for any positive SL) → no trigger
-- [ ] Mitigation: check `current_price > 0` before SL breach check
+### 8.3 Specific Bug: Ticker=0 Triggers Emergency Close — **FIXED**
+- [x] `guardian_check` line 269-287: if ticker returns 0, SL appears breached
+- [x] LONG: `0 <= sl` → True (for any positive SL) → emergency close!
+- [x] SHORT: `0 >= sl` → False (for any positive SL) → no trigger
+- [x] Mitigation: check `current_price > 0` before SL breach check
+- FIX: Code now has explicit guard at `src/agent/order_executor.py` lines 270-272: `if not current_price or current_price <= 0` catches price=0 before the SL breach check.
