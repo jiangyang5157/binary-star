@@ -467,7 +467,7 @@ class BinanceMarginClient:
             logger.error(f"OCO failed (server) | symbol={symbol} | status={e.status_code}")
             return False
 
-    def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_trigger_price: float, sl_limit_price: float) -> bool:
+    def place_otoco_order(self, symbol: str, side: str, qty: float, entry_price: float, tp_price: float, sl_trigger_price: float, sl_limit_price: float) -> Optional[int]:
         """Places an OTOCO order specifying entry, and nested TP/SL.
 
         TP/SL prices are directionally rounded using the pending (exit) side:
@@ -484,6 +484,7 @@ class BinanceMarginClient:
                 "workingSide": side,
                 "workingPrice": self._round_price(entry_price, p_price, side),
                 "workingQuantity": round(qty, p_qty),
+                "pendingQuantity": round(qty, p_qty),
                 "workingTimeInForce": "GTC",
                 "pendingSide": pending_side,
                 "pendingAboveTimeInForce": "GTC",
@@ -507,9 +508,10 @@ class BinanceMarginClient:
                 params["pendingAboveStopPrice"] = self._round_price(sl_trigger_price, p_price, pending_side)
                 params["pendingAbovePrice"] = self._round_price(sl_limit_price, p_price, pending_side)
             
-            resp = self.client.send_request("POST", "/sapi/v1/margin/order/otoco", params)
-            logger.info(f"OTOCO placed | symbol={symbol} | order_list_id={resp.get('orderListId')}")
-            return True
+            resp = self.client.sign_request("POST", "/sapi/v1/margin/order/otoco", params)
+            order_list_id = resp.get("orderListId")
+            logger.info(f"OTOCO placed | symbol={symbol} | order_list_id={order_list_id}")
+            return order_list_id
         except Exception as e:
             logger.error(f"OTOCO failed | symbol={symbol} | error={e}")
-            return False
+            return None
