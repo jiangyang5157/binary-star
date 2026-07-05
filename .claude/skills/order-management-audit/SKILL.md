@@ -32,9 +32,9 @@ Run these in parallel for efficiency. Each dimension spawns a subagent that read
 Trace every path where OCO orders are placed, cancelled, or replaced:
 
 1. **Cancel-Place Gap (Naked Window)**
-   - In `_optimize_same_direction()` starts at 439: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
-   - In `_try_exit_ladder()` starts at 690: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
-   - In `_apply_sl_lock()` starts at 810: cancel_all → re-verify → place_oco. Same exposure.
+   - In `_optimize_same_direction()` starts at 451: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
+   - In `_try_exit_ladder()` starts at 704: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
+   - In `_apply_sl_lock()` starts at 828: cancel_all → re-verify → place_oco. Same exposure.
    - Measure: for each site, estimate the wall-clock duration of the naked window. Flag any site missing the re-verify step.
 
 2. **Emergency Close Completeness**
@@ -120,7 +120,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 ### D4: Exit Ladder + sl_lock — Sequential Correctness
 
-**Source file**: `src/agent/order_executor.py` (_try_exit_ladder at line 690, _apply_sl_lock at line 810, Case 4 trailing dispatch)
+**Source file**: `src/agent/order_executor.py` (_try_exit_ladder at line 704, _apply_sl_lock at line 828, Case 4 trailing dispatch)
 
 1. **Level Loop Correctness**
    - `_try_exit_ladder` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (break when threshold not met).
@@ -143,7 +143,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - The daemon tracks `_symbol_level[symbol]` in memory — not persisted.
    - On qty change: level is reset to None, re-initialized via `find_level_and_sync_sl` on next pulse.
    - On daemon restart: level is None, re-initialized same way.
-   - `find_level_and_sync_sl()` (starts at 590) determines level from exchange state:
+   - `find_level_and_sync_sl()` starts at 604) determines level from exchange state:
      - If SL == entry → L1 not fired → return 0.
      - If SL != entry → scan progress (`deviation / tp_distance`) against level targets → return first unmet.
    - Check: the scan loop uses `for i in range(1, len(levels))` starting at index 1 (L2). This means L1 is detected by SL position, L2+ by deviation. Is this correct when multi-level fired in a single pulse? (The loop advances `next_level` for each met threshold → yes.)
