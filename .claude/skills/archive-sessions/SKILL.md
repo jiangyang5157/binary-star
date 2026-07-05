@@ -4,7 +4,7 @@ description: >
   Use when the user wants to archive, move, or organize session report files
   into a version folder (e.g., "archive all BTC sessions to 26.7.8",
   "move my sessions to a new version folder", "organize sessions by version",
-  "archive sessions to v26.7.01"). Also trigger when the user mentions moving
+  "archive sessions to v26.7.8"). Also trigger when the user mentions moving
   session JSON files under data/prod/sessions/ into a subfolder. Supports
   --symbol filtering (BTC, XAUT, or comma-separated) and --dry-run preview.
 ---
