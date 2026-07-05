@@ -532,18 +532,18 @@ class MarginOrderExecutor:
         exit_ladder = gc.get("exit_ladder", {})
 
         levels = []
-        for lv in exit_ladder.get("levels", []):
+        for i, lv in enumerate(exit_ladder.get("levels", []), start=1):
             target = float(lv.get("target", 0.35))
             tp_ratio = float(lv.get("tp_ratio", 0.20))
             sl_lock = float(lv.get("sl_lock", 0.0))
 
             # startup assertions — catch misconfiguration early
             assert 0.0 <= target < 1.0, \
-                f"exit_ladder: target={target} must be in [0.0, 1.0)"
+                f"exit_ladder L{i}: target={target} must be in [0.0, 1.0)"
             assert 0.0 < tp_ratio <= 1.0, \
-                f"exit_ladder: tp_ratio={tp_ratio} must be in (0.0, 1.0]"
+                f"exit_ladder L{i}: tp_ratio={tp_ratio} must be in (0.0, 1.0]"
             assert 0.0 <= sl_lock <= 1.0, \
-                f"exit_ladder: sl_lock={sl_lock} must be in [0.0, 1.0]"
+                f"exit_ladder L{i}: sl_lock={sl_lock} must be in [0.0, 1.0]"
 
             levels.append({
                 "target": target,
