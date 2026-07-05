@@ -210,15 +210,15 @@ guardian:
   #   sl_lock ∈ [0.0, 1.0] — 0 = no trail, 1 = SL moves to current price
   exit_ladder:
     levels:
-      - target: 0.35
-        tp_ratio: 0.20
-        sl_lock: 0.0       # no trail yet
-      - target: 0.60
-        tp_ratio: 0.20
-        sl_lock: 0.65      # lock 65% of SL→price gap
-      - target: 0.80
-        tp_ratio: 0.20
-        sl_lock: 0.85      # tighter lock
+      - target: 0.44
+        tp_ratio: 0.24
+        sl_lock: 0.04
+      - target: 0.64
+        tp_ratio: 0.24
+        sl_lock: 0.24
+      - target: 0.84
+        tp_ratio: 0.24
+        sl_lock: 0.44
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring

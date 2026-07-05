@@ -525,7 +525,7 @@ class MarginOrderExecutor:
     def _get_guardian_config(self) -> dict:
         """Returns exit-ladder levels with config validation.
 
-        Levels use TP-relative progress (target) and gap-based SL locking
+        Levels use TP-relative progress (target) and TP-relative SL locking
         (sl_lock). All values are range-checked at startup.
         """
         gc = self._global_config_raw.get("guardian", {})
@@ -544,6 +544,8 @@ class MarginOrderExecutor:
                 f"exit_ladder L{i}: tp_ratio={tp_ratio} must be in (0.0, 1.0]"
             assert 0.0 <= sl_lock <= 1.0, \
                 f"exit_ladder L{i}: sl_lock={sl_lock} must be in [0.0, 1.0]"
+            assert sl_lock < target, \
+                f"exit_ladder L{i}: sl_lock={sl_lock} must be < target={target}"
 
             levels.append({
                 "target": target,
@@ -637,7 +639,9 @@ class MarginOrderExecutor:
             return 0
 
         p_price = cfg["precision_price"]
-        deviation = abs(current_price - avg_entry)
+        # Direction-aware price progress from entry toward TP.
+        # Negative = price on the WRONG side of entry (e.g. below entry for LONG).
+        price_progress = (current_price - avg_entry) if direction == "LONG" else (avg_entry - current_price)
 
         # Step 1: Has L1 fired? (SL at/beyond entry = breakeven placed)
         # SL on exchange is directionally rounded (SELL→floor, BUY→ceil),
@@ -652,6 +656,13 @@ class MarginOrderExecutor:
                         f"sl={current_sl:.2f} entry={avg_entry:.2f}")
             return 0  # next to check = L1
 
+        # Guard: price on wrong side of entry after L1 has fired.
+        # No new levels can be triggered until price recovers past entry.
+        if price_progress <= 0:
+            logger.info(f"[{symbol}] find_level: price on wrong side of entry | "
+                        f"price_progress={price_progress:.2f}")
+            return 1  # L1 is the last triggered level, L2 is next-to-check
+
         tp_distance = abs(current_tp - avg_entry)
         if tp_distance <= 0:
             return 0
@@ -660,7 +671,7 @@ class MarginOrderExecutor:
         # next_level = first un-triggered level index (1=L2, 2=L3, 3=done)
         next_level = 1  # L1 has fired, at least L2 is next
         for i in range(1, len(levels)):
-            progress = deviation / tp_distance
+            progress = price_progress / tp_distance
             if progress >= levels[i]["target"]:
                 next_level = i + 1
             else:
