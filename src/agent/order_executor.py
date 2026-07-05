@@ -262,7 +262,7 @@ class MarginOrderExecutor:
                 if not self.client.cancel_all_symbol_orders(symbol):
                     logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
                 if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                     return trade_state, None
                 return {}, None
 
@@ -282,7 +282,7 @@ class MarginOrderExecutor:
                 if not self.client.cancel_all_symbol_orders(symbol):
                     logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
                 if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                     return trade_state, None
                 return {}, None  # Clear trade state
 
@@ -320,7 +320,7 @@ class MarginOrderExecutor:
                 logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                     return trade_state, None
                 return {}, None
 
@@ -371,14 +371,14 @@ class MarginOrderExecutor:
                     if not self.client.cancel_all_symbol_orders(symbol):
                         logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
                     if not self.client.execute_market_close(symbol):
-                        logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                        logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                         return trade_state, None
                     return {}, None
             else:
                 logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl} — single OCO leg remains, emergency closing")
                 self.client.cancel_all_symbol_orders(symbol)
                 if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                     return trade_state, None
                 return {}, None
 
@@ -875,7 +875,7 @@ class MarginOrderExecutor:
         if not pos or abs(pos.net_qty) <= 0:
             logger.critical(f"[{symbol}] dynamic SL -- position vanished, emergency closing")
             if not self.client.execute_market_close(symbol):
-                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                 return True, None
             return False, None
 
@@ -892,7 +892,7 @@ class MarginOrderExecutor:
         ):
             logger.critical(f"[{symbol}] dynamic SL -- OCO re-place failed, emergency closing")
             if not self.client.execute_market_close(symbol):
-                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                 return True, None
             return False, None
 
