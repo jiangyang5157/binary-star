@@ -287,10 +287,9 @@ class MarginOrderExecutor:
             # Normal case: place OCO protection
             logger.info(f"[{symbol}] Guardian activated | dir={direction} | qty={net_qty}")
 
-            # Clear any stale entry orders first
-            entry_order_id = trade_state.get("entry_order_id")
-            if entry_order_id:
-                self.client.cancel_order(symbol, entry_order_id)
+            # Clear all stale orders before placing OCO (covers both
+            # two-step stale entry and OTOCO pending-leg activation race)
+            self.client.cancel_all_symbol_orders(symbol)
 
             buffer = cfg.get("sl_slippage_buffer", 0.0)
             buffered_sl = sl + (buffer if direction == "SHORT" else -buffer)
