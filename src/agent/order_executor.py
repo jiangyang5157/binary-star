@@ -523,20 +523,32 @@ class MarginOrderExecutor:
     # ================================================================
 
     def _get_guardian_config(self) -> dict:
-        """Returns guardian partial TP levels config.
+        """Returns exit-ladder levels with config validation.
 
-        Dynamic trailing distance is per-level (sl_distance_atr field);
-        before any partial TP fires, no trailing occurs (SL = AI's original).
+        Levels use TP-relative progress (target) and gap-based SL locking
+        (sl_lock). All values are range-checked at startup.
         """
         gc = self._global_config_raw.get("guardian", {})
-        partial_tp = gc.get("partial_tp", {})
+        exit_ladder = gc.get("exit_ladder", {})
 
         levels = []
-        for lv in partial_tp.get("levels", []):
+        for lv in exit_ladder.get("levels", []):
+            target = float(lv.get("target", 0.35))
+            tp_ratio = float(lv.get("tp_ratio", 0.20))
+            sl_lock = float(lv.get("sl_lock", 0.0))
+
+            # startup assertions — catch misconfiguration early
+            assert 0.0 <= target < 1.0, \
+                f"exit_ladder: target={target} must be in [0.0, 1.0)"
+            assert 0.0 < tp_ratio <= 1.0, \
+                f"exit_ladder: tp_ratio={tp_ratio} must be in (0.0, 1.0]"
+            assert 0.0 <= sl_lock <= 1.0, \
+                f"exit_ladder: sl_lock={sl_lock} must be in [0.0, 1.0]"
+
             levels.append({
-                "atr_threshold": float(lv.get("atr_threshold", 1.5)),
-                "tp_ratio": float(lv.get("tp_ratio", 0.5)),
-                "sl_distance_atr": float(lv.get("sl_distance_atr", 0.0)),
+                "target": target,
+                "tp_ratio": tp_ratio,
+                "sl_lock": sl_lock,
             })
 
         return {"levels": levels}
