@@ -416,7 +416,7 @@ class MarginOrderExecutor:
                 sl_lock = levels[active_idx]["sl_lock"]
 
             if sl_lock > 0:
-                intact, new_sl = self._migrate_dynamic_sl(
+                intact, new_sl = self._apply_sl_lock(
                     symbol, direction, current_sl, current_tp, avg_entry,
                     cfg, sl_lock
                 )
@@ -674,7 +674,7 @@ class MarginOrderExecutor:
         active_idx = next_level - 1
         sl_lock = levels[active_idx]["sl_lock"]
         if sl_lock > 0:
-            intact, new_sl = self._migrate_dynamic_sl(
+            intact, new_sl = self._apply_sl_lock(
                 symbol, direction, current_sl, current_tp, avg_entry,
                 cfg, sl_lock
             )
@@ -803,7 +803,7 @@ class MarginOrderExecutor:
 
         return True, state_update if state_update else None
 
-    def _migrate_dynamic_sl(self, symbol: str, direction: str, current_sl: float,
+    def _apply_sl_lock(self, symbol: str, direction: str, current_sl: float,
                              current_tp: float, avg_entry: float,
                              cfg: dict, sl_lock: float) -> tuple:
         """Step 3: Dynamic trailing SL — TP-relative profit locking.

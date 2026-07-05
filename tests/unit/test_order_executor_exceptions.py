@@ -94,7 +94,7 @@ class TestMigrationExceptionHandling:
     def test_dynamic_sl_zero_sl_lock_returns_noop(self):
         """sl_lock <= 0 returns no migration needed."""
         executor = _make_executor()
-        intact, new_sl = executor._migrate_dynamic_sl(
+        intact, new_sl = executor._apply_sl_lock(
             "BTCUSDT", "LONG", 58000, 62000, 60000,
             executor._trade_config_cache["BTCUSDT"], 0,
         )
@@ -110,7 +110,7 @@ class TestMigrationExceptionHandling:
         # current_sl already at avg_entry (SL = entry after L1), new_sl would be 71200
         # but we set current_sl=71200 (already there) → no migration needed
         current_sl = avg_entry + (current_tp - avg_entry) * 0.24  # 71200
-        intact, new_sl = executor._migrate_dynamic_sl(
+        intact, new_sl = executor._apply_sl_lock(
             "BTCUSDT", "LONG", current_sl, current_tp, avg_entry,
             executor._trade_config_cache["BTCUSDT"], sl_lock,
         )
