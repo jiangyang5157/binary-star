@@ -738,10 +738,9 @@ def test_oco_replace_failure_emergency_closes():
     result, level = executor.guardian_check("BTCUSDT", trade_state,
                                             current_level=0)
 
-    client.execute_partial_market_close.assert_any_call(
-        symbol="BTCUSDT", side="SELL", qty=0.38
-    )
-    client.execute_market_close.assert_not_called()
+    # OCO re-place failure emergency close now uses execute_market_close
+    # (re-reads position from exchange, safer than pre-computed qty)
+    client.execute_market_close.assert_any_call("BTCUSDT")
     assert result == {}
 
 
