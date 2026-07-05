@@ -1,38 +1,41 @@
 # README Section Templates
 
-Each section below shows the preferred format, the source files to scan,
-and how to structure the generated content.
+Use these as rough guides, not fill-in-the-blank forms. Each section should be
+**as short as possible while still accurate**. Prefer the fewest words that
+convey the architecture.
 
 ---
 
 ## Architecture & Layer Stack
 
-**Format**: Mermaid flowchart + compact layer descriptions
+**Format**: Two `graph LR` mermaid diagrams (split by concern) + one layer table
 
-**Source files**: `src/` directory listing, key class docstrings
+**Scan**: `src/` directory tree, `src/agent/`, `src/sniper/`, `src/analyzer/`, `src/infrastructure/`
 
 **Template**:
 ```markdown
 ## Architecture
 
-[Mermaid flowchart showing entry points → orchestration → agents → analysis → infrastructure.
-Use subgraphs to group related modules. Each node should be a concise label.]
+Two complementary flows — separated to keep diagrams clean.
 
-### Layer Stack
+### Signal Pipeline
 
-| Layer | Module(s) | Role |
-|:------|:----------|:-----|
-| Entry Points | `run.py`, `run_*.py` | CLI + daemon entry points |
-| Dashboard | `src/dashboard/` | FastAPI web UI |
+[Mermaid: entry → daemon → scout → trigger → orchestrator → debate → execution]
+
+### Evolution Loop
+
+[Mermaid: orchestrator → sessions → audit → evolver → patches → config]
+
+### Layer Descriptions
+
+| Layer | Module | Role |
+|-------|--------|------|
 | ... | ... | ... |
 ```
 
-**How to build the diagram**:
-1. `ls src/*/` to get top-level packages
-2. For each package, `ls src/<pkg>/` to get modules
-3. Read each module's docstring or class definitions for its role
-4. Trace imports to understand inter-package dependencies
-5. Build the mermaid flowchart with subgraphs per layer
+**Rules**:
+- Split into 2 diagrams minimum — never try to fit everything into one
+- Layer table: one row per layer, one module per row (use the most representative module, not all)
 
 ---
 
@@ -40,217 +43,134 @@ Use subgraphs to group related modules. Each node should be a concise label.]
 
 **Format**: Mermaid sequence diagram + audit dimensions table
 
-**Source files**:
-- `src/agent/binary_star_orchestrator.py` — `execute_flow()`
-- `src/agent/debate_loop.py` — `run()`
-- `src/agent/session_agent.py` — role
-- `src/agent/critic_agent.py` — role
-- `src/analyzer/math_fact_checker.py` — verification
+**Scan**: `src/agent/binary_star_orchestrator.py`, `src/agent/debate_loop.py`, `src/agent/critic_agent.py`, `src/analyzer/math_fact_checker.py`
 
 **Template**:
 ```markdown
-## The Binary Star Protocol
+## Binary Star Protocol
 
-[One-paragraph overview: what it is, why it exists]
+[One-paragraph overview: what it is, why it exists. 2-3 sentences max.]
 
-### Debate Flow
-
-[Mermaid sequence diagram:
-MarketObserver → BinaryStarOrchestrator → SessionAgent → MathFactChecker → CriticAgent → (loop back or exit)]
+[Mermaid sequence diagram: participants → loop → decision]
 
 ### Audit Dimensions
 
-| Dimension | Identifier | Logic |
-|:---|:---|:---|
-| ... | `[DIMENSION]` | One-line description |
+| Dimension | Check |
+|-----------|-------|
+| [NAME] | One-line description |
 ```
-
-**How to extract audit dimensions**:
-1. Search for `[A-Z_]+` patterns in `critic_agent.py` and `math_fact_checker.py`
-2. Each dimension should have a clear identifier and one-sentence logic description
-3. If dimensions are defined in a data structure (enum, dict), extract from there
 
 ---
 
 ## Sniper System
 
-**Format**: Mermaid state diagram + signal table + pulse flow + Guardian tables
+**Format**: Three concise sections — signal table, pulse flow diagram, one Guardian table
 
-**Source files**:
-- `src/sniper/trigger.py` — signal types, categories, thresholds, ConfluenceEngine
-- `src/sniper/scout.py` — market data harvesting
-- `src/agent/order_executor.py` — Guardian, sync_with_opinion, trailing stops
-- `config/strategy_config.yaml` — sniper parameters
+**Scan**: `src/sniper/trigger.py`, `src/sniper/scout.py`, `src/agent/order_executor.py`, `config/global_config.yaml`
 
 **Template**:
 ```markdown
-## Sniper Trading System
+## Sniper System
 
-[One-paragraph overview]
+[One-paragraph overview. 2-3 sentences.]
 
 ### Signal Stack
 
-| Category | Signal | Direction | Detection |
-|----------|--------|-----------|-----------|
-| FLOW | CVD Momentum | ... | ... |
-| ENERGY | Volatility Surge | ... | ... |
-| STRUCTURAL | Boundary Test | ... | ... |
-| POSITIONING | Retail Extreme | ... | ... |
-| CROSS-SYMBOL | Leader Sync | ... | ... |
+| Category | Signal | Direction | Weight |
+|----------|--------|-----------|--------|
+| FLOW | cvd_momentum | BULLISH/BEARISH | 0.65 |
+| ... | ... | ... | ... |
+
+[13 signals across 5 categories. Read from `config/global_config.yaml` `signal_stack.weights`.]
 
 ### Pulse Flow
 
-[Mermaid flowchart: 2-min pulse → Guardian → Trigger → AI Session → Trade Gate → sync_with_opinion]
+[Mermaid flowchart: 2-min pulse → Guardian → Trigger → Session → Trade Gate]
 
-### Order Lifecycle
+### Guardian
 
-[Mermaid state diagram: Flat → EntryPending → InPosition → Protected → (trailing) → Closed]
-
-### Guardian Protection
-
-| Condition | Action |
-|-----------|--------|
-| ... | ... |
-
-### Trailing Stop Tiers
-
-| Tier | Trigger | Action |
-|------|---------|--------|
-| L1 | Profit >= X ATR | SL → entry |
-| ... | ... | ... |
-
-### Position Cross-Reference
-
-| Current State | AI Opinion | Action |
-|:---|:---|:---|
-| FLAT | BULLISH/BEARISH | ... |
-| LONG | BULLISH | Merge + tighten |
-| ... | ... | ... |
+| State | Guardian Action |
+|-------|----------------|
+| Entry pending | Check timeout |
+| Filled, no OCO | Place OCO |
+| Protected | Exit ladder progress check + sl_lock |
 ```
-
-**How to extract parameters**:
-1. Read `config/global_config.yaml` for:
-   - `sniper.signal_stack.trigger_threshold`
-   - `sniper.signal_stack.emergency_threshold`
-   - `sniper.signal_stack.cooldown.*`
-   - `sniper.signal_stack.gate.*`
-   - `guardian.exit_ladder.levels[].target`
-   - `guardian.exit_ladder.levels[].sl_lock`
-   - `risk_per_trade`
-2. Use the **actual values** from config, never hardcode
-
-**How to extract signal types**:
-1. Search `src/sniper/trigger.py` for signal name constants, enums, or class attributes
-2. Group by category (FLOW, ENERGY, STRUCTURAL, POSITIONING, CROSS-SYMBOL)
-3. For each signal: capture direction logic and detection criteria
-
-**How to extract Guardian logic**:
-1. Read `_guardian_check()` method body
-2. Extract each condition → action pair from the if/else branches
-3. Read `_apply_sl_lock()` for SL lock logic
-4. Read `sync_with_opinion()` for position cross-reference logic
 
 ---
 
 ## Commands & Scripts
 
-**Format**: Grouped code blocks with comments
+**Format**: Grouped code blocks with inline comments
 
-**Source files**:
-- `run.py` — argparser definitions
-- `run_*.py` — standalone entry points
-- `scripts/*.py` — utility scripts
+**Scan**: `run.py` (argparse), `run_*.py`, `scripts/*.py`
 
 **Template**:
 ```markdown
 ## Commands
 
-All entry points consolidated under `run.py`.
-
 ```bash
-# ── Category Name ──────────────────────────────────────────
-python run.py <subcommand> [args]    # Description
-python run.py <subcommand> [args]    # Description (variant)
+# ── Sessions ────────────────────────────────────────────
+python run.py session --symbol BTC -p data/prod    # Live trading session
+python run.py session --symbol XAUT -p data/prod --historical 2026-01-01  # Historical
 
-# ── Another Category ───────────────────────────────────────
-python run.py <subcommand> [args]    # Description
-```
+# ── Sniper ──────────────────────────────────────────────
+python run.py sniper --symbol BTC,XAUT -p data/prod --trade 640  # Live monitoring
+...
 
-### Utility Scripts
+# ── Audit & Evolution ───────────────────────────────────
+python run.py audit -p data/prod
+python run.py evolve -p data/prod --population 8
+...
 
-```bash
-python scripts/<name>.py [args]      # Description
-```
-
-### Tests
-
-```bash
-python -m pytest tests/ -v
-python -m pytest tests/ --cov=src --cov-report=term-missing
+# ── Dashboard ───────────────────────────────────────────
+python run.py dashboard -p data/prod
 ```
 ```
-
-**How to extract commands**:
-1. Parse `run.py`: find all `_add_*_parser()` functions → extract subcommand name, arguments, help text
-2. Parse each `run_*.py`: find `argparse` definitions → extract standalone usage
-3. List `scripts/*.py`: for each, check `if __name__ == "__main__"` block or argparse for usage
-4. For each command, write the most common invocation with required args
-5. Add inline comments for variants (historical, backtest, etc.)
-6. Group by category: Sessions, Sniper, Audit & Evolution, Dashboard, Utilities
 
 **Rules**:
-- Only list commands that actually exist and run
-- Use actual argument names from argparse (not guesses)
-- Include `-p` / `--path` where required
-- Mark optional args with brackets in comments, not in the command itself
+- Only list commands that actually exist — parse argparse, never guess
+- Group by category: Sessions, Sniper, Audit & Evolution, Dashboard, Utilities
+- One inline comment per command is enough
 
 ---
 
 ## AI Providers
 
-**Format**: Comparison table + setup code blocks
+**Format**: One comparison table + one config block
 
-**Source files**:
-- `src/infrastructure/ai_client.py` — interface
-- `src/infrastructure/ai_factory.py` — provider registry
-- `src/infrastructure/ai/*.py` — adapters
-- `config/global_config.yaml` — current settings
+**Scan**: `src/infrastructure/ai/*.py`, `config/global_config.yaml`
 
 **Template**:
 ```markdown
 ## AI Providers
 
-[One-sentence overview of the AI backend architecture]
+| Provider | Model | Vision | Cost |
+|----------|-------|--------|------|
+| DeepSeek | deepseek-v4-pro | — | $ |
+| Gemini | gemini-3.5-flash | Yes | $$$ |
 
-| Provider | Adapter | Vision | Context Cache | Cost |
-|----------|---------|--------|---------------|------|
-| Gemini | ... | Yes | Yes | $$$ |
-| DeepSeek | ... | — | — | $ |
+### Config
 
-### Provider Setup
-
-[YAML code block showing config for each provider]
+```yaml
+llm:
+  active_provider: "deepseek"
+  agents:
+    session:
+      temperature: 0.5
+      reasoning_effort: "high"
+    critic:
+      temperature: 0.1
+      reasoning_effort: null
 ```
-
-**How to determine capabilities**:
-1. For each adapter class, check:
-   - `supports_vision` or presence of image handling methods
-   - `supports_context_cache` or presence of cache methods
-   - Model names from the adapter's `_get_model_name()` or equivalent
-2. Read `global_config.yaml` for current default provider and settings
-3. Cost tier is subjective: Gemini=$$$, DeepSeek/DeepSeek=$ (infer from model size/pricing)
+```
 
 ---
 
 ## Config System
 
-**Format**: Directory tree + mermaid resolution flowchart
+**Format**: Directory tree + one mermaid resolution diagram
 
-**Source files**:
-- `config/` directory listing
-- `src/config/sub_configs.py`
-- `src/config/symbol_resolver.py`
-- `src/config/loader.py`
+**Scan**: `config/` directory, `src/config/`
 
 **Template**:
 ```markdown
@@ -258,52 +178,40 @@ python -m pytest tests/ --cov=src --cov-report=term-missing
 
 ```
 config/
-├── strategy_config.yaml    # role
-├── global_config.yaml      # role
-├── ...
-└── prompts/                # role
+├── global_config.yaml      # Guardian, sniper, LLM, binary star
+├── strategy_config.yaml    # Regime detection, temporal physics
+├── symbol_config.yaml      # Per-symbol precision overrides
+└── prompts/                # AI role prompts
 ```
 
-[Mermaid flowchart: base config → symbol overrides → deep merge → final config]
-
-[Brief explanation of resolution order and evolution patching]
+[Simple mermaid: base config → symbol overrides → merge → final config]
 ```
 
 ---
 
 ## Key Invariants
 
-**Format**: Compact bullet list
+**Format**: Compact bullet list. 5-8 items max.
 
-**Source files**:
-- CLAUDE.md — documented invariants
-- Critical module docstrings
-- `src/utils/exceptions.py`
+**Scan**: CLAUDE.md, critical module docstrings
 
 **Template**:
 ```markdown
 ## Key Invariants
 
-- **Invariant name** (`file.py`): description
-- ...
+- **Invariant** (`file.py`): one-line description
 ```
 
-**How to extract**:
-1. Read CLAUDE.md "Key invariants" section
-2. Search for comments/docstrings containing "must", "invariant", "never", "always"
-3. Focus on architectural contracts, not implementation details
-4. Each invariant should be actionable — something a developer could violate
+**Rules**:
+- Only list invariants a developer could violate
+- Skip implementation details
+- Keep to 8 items maximum
 
 ---
 
 ## Installation & Setup
 
-**Format**: Code blocks + numbered steps
-
-**Source files**:
-- `pyproject.toml` or `setup.py` — dependencies
-- `.env.example` or documentation — API keys
-- `config/global_config.yaml` — provider setup
+**Format**: 3 steps with code blocks
 
 **Template**:
 ```markdown
@@ -311,22 +219,14 @@ config/
 
 ### Prerequisites
 - Python 3.12+
-- API key for at least one supported LLM provider
+- Provider API key
 
 ### Setup
 ```bash
-git clone <repo-url> && cd crypto
+git clone <repo> && cd crypto
 pip install -e .
-pip install -e ".[dev]"
+cp .env.example .env  # add your API key
+```
 ```
 
-### Configuration
-1. Create `.env` file with API key
-2. Edit `config/global_config.yaml` to set active provider
-3. Review `config/strategy_config.yaml` for trading parameters
-```
-
-**Rules**:
-- Check actual Python version requirement from `pyproject.toml`
-- Verify `.env.example` exists; if not, mention the expected keys
-- Keep setup steps minimal — 3 steps max
+**Rules**: Read Python version from `pyproject.toml`. Keep to 3 steps.

@@ -120,68 +120,64 @@ For each command, capture:
 
 ### Step 2: Generate Content
 
-For each section being updated, follow the formatting rules below.
-
 #### General Principles
 
-- **Tables over paragraphs** — whenever comparing or listing structured data
-- **Mermaid diagrams over ASCII art** — for flows, sequences, states, relationships
-- **Minimize crossed relationship lines** — diagram flow should be unidirectional where possible. Place nodes to avoid edge crossings: group related nodes, separate clean paths (e.g. emergency-close branch to one side), prefer `graph TB`/`stateDiagram-v2` linear layouts
-- **One-line descriptions** — each module/class gets one crisp line, not a paragraph
-- **Copyable command blocks** — every command should be directly copyable
-- **Developers as audience** — assume technical competence, don't over-explain concepts
+- **High-level, not tutorial** — assume a technically competent reader. One paragraph per section, then tables/diagrams. Skip implementation detail unless it is architecturally significant.
+- **Tables over paragraphs** — compare, list, contrast
+- **Diagrams over tables** — flows, sequences, states go in mermaid
+- **One-liner descriptions** — each module/class gets one crisp line
+- **Copyable commands** — every command directly copyable
+- **Low word count** — if a section exceeds a table + 3 sentences, it is too long
 
-#### Mermaid Diagram Templates
+#### Diagram Principles (CRITICAL)
 
-**Architecture Layer Stack** — use a flowchart:
+- **ZERO crossing lines** — the strongest signal of a well-structured diagram. If ANY two edges cross, restructure or split
+- **One diagram, one story** — if a single diagram tries to tell two stories (e.g. signal flow AND evolution), split them. Multiple smaller diagrams are ALWAYS better than one complex one
+- **`graph LR` for linear pipelines** — left-to-right flow with unidirectional arrows
+- **`sequenceDiagram` for time-ordered flows** — when participants exchange messages in order
+- **`stateDiagram-v2` for state machines** — when an entity transitions between states
+- **No backtracking arrows** — every arrow should move forward. Side-loops (like debate rounds) use `loop` blocks in sequence diagrams or separate subgraphs
+- **Group with subgraphs** — related nodes go in `subgraph` containers; never let edges cross subgraph boundaries diagonally
+
+#### Diagram Types
+
+**Linear pipeline** (`graph LR`):
 ```mermaid
-graph TB
-    subgraph Entry["Entry Points"]
-        CLI["run.py (CLI)"] --> Session["run_session.py"]
-        CLI --> Sniper["run_sniper.py"]
-        CLI --> Audit["run_audit.py"]
+graph LR
+    subgraph Phase1["Phase Name"]
+        A["Node"] --> B["Node"]
     end
-    subgraph Orchestration["Orchestration"]
-        ...
-    end
-    Entry --> Orchestration --> ...
+    Phase1 --> Phase2
+    Phase2 --> Phase3
 ```
 
-**Binary Star Debate** — use a sequence diagram:
+**Time-based protocol** (`sequenceDiagram`):
 ```mermaid
 sequenceDiagram
-    participant MO as MarketObserver
-    participant BSO as BinaryStarOrchestrator
-    participant SA as SessionAgent
-    participant MFC as MathFactChecker
-    participant CA as CriticAgent
-    ...
+    participant A as ShortName
+    participant B as ShortName
+    A->>B: action
+    B-->>A: response
+    loop each round
+        A->>B: step
+    end
 ```
 
-**Sniper Pulse Flow** — use a state diagram or flowchart:
-```mermaid
-graph TD
-    Pulse["2-min Pulse"] --> Guardian["Guardian Check"]
-    Guardian --> Position{Position?}
-    ...
-```
-
-**Order Lifecycle** — use a state diagram:
+**State machine** (`stateDiagram-v2`):
 ```mermaid
 stateDiagram-v2
-    [*] --> Flat
-    Flat --> EntryPending: AI opinion
-    EntryPending --> InPosition: Fill confirmed
-    InPosition --> Protected: OCO placed
-    ...
+    [*] --> State1
+    State1 --> State2: condition
+    State2 --> State1: reversal
+    State2 --> [*]: terminal
 ```
 
-**Config Resolution** — use a flowchart:
+**Config / data flow** (`graph LR`):
 ```mermaid
-graph TD
-    Base["base config"] --> Merge["deep merge"]
-    Symbol["symbol_config.yaml overrides"] --> Merge
-    Merge --> Final["final config"]
+graph LR
+    Source1 --> Merge
+    Source2 --> Merge
+    Merge --> Output
 ```
 
 #### Section-Specific Templates
@@ -213,10 +209,8 @@ Each section has a preferred format. See `references/templates.md` for full temp
 
 ## Important Rules
 
-1. **Never guess CLI arguments** — always read them from the actual argparse/add_argument calls in the source code
-2. **Never hardcode tier levels** — read trailing stop tiers, thresholds, and parameters from the actual config YAML files
-3. **Verify module existence** — before listing a module in architecture, confirm the file exists
-4. **Keep mermaid syntax valid** — test that diagram syntax is correct (balanced brackets, valid node IDs, proper arrow syntax)
-5. **Preserve manual content** — in partial update mode, never touch sections the user didn't select
-6. **Match writing style** — the current README uses clean, technical English. Maintain that tone.
-7. **Use git to check for new files** — `git diff --name-only HEAD~10` can surface recently added modules the scan might miss
+1. **Read from source** — CLI args from argparse, config values from YAML, module names from filesystem. Never guess.
+2. **Keep mermaid valid** — balanced brackets, valid syntax, ZERO crossing lines. Split before crossing.
+3. **Preserve existing content** — in partial update mode, never touch unselected sections.
+4. **Conciseness is correctness** — every sentence must earn its place. If a section exceeds a table + 3 sentences, cut it. Prefer one crisp line over a paragraph.
+5. **Grounded in code** — `git diff --name-only HEAD~10` for recent additions; verify file existence before referencing.
