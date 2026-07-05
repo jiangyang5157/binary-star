@@ -389,9 +389,9 @@ class MarginOrderExecutor:
                 levels = gc["levels"]
 
                 # Step 2: Multi-level partial TP (sequential, loop-driven)
-                intact, tp_update = self._try_partial_tp(
+                intact, tp_update = self._try_exit_ladder(
                     symbol, direction, net_qty, avg_entry,
-                    current_sl, current_tp, current_price, cfg, atr_macro,
+                    current_sl, current_tp, current_price, cfg,
                     levels, current_level
                 )
                 if not intact:
@@ -407,8 +407,8 @@ class MarginOrderExecutor:
                             trade_state[key] = tp_update[key]
                     current_sl = trade_state.get("sl_price", current_sl)
                     current_tp = trade_state.get("tp_price", current_tp)
-                    if "partial_tp_level" in tp_update:
-                        new_level = tp_update["partial_tp_level"]
+                    if "exit_ladder_level" in tp_update:
+                        new_level = tp_update["exit_ladder_level"]
 
                 # Step 3: Dynamic trailing — uses the LAST triggered level's
                 # distance. new_level is "next to check", so active = new_level - 1.
@@ -702,56 +702,64 @@ class MarginOrderExecutor:
 
         return next_level
 
-    def _try_partial_tp(self, symbol: str, direction: str, net_qty: float,
-                        avg_entry: float, current_sl: float,
-                        current_tp: float, current_price: float,
-                        cfg: dict, atr_macro: float, levels: list,
-                        start_level: int) -> tuple:
-        """Step 2: Multi-level partial take-profit.
+    def _try_exit_ladder(self, symbol: str, direction: str, net_qty: float,
+                         avg_entry: float, current_sl: float,
+                         current_tp: float, current_price: float,
+                         cfg: dict, levels: list,
+                         start_level: int) -> tuple:
+        """Step 2: Multi-level exit ladder.
 
         Loops through configured levels sequentially (start_level → end).
-        Each level triggers when the position is in profit AND |price - entry| >= atr_threshold * ATR.
-        Only triggers when price exceeds entry in the favorable direction (LONG↑, SHORT↓).
-        Multiple levels CAN fire in a single pulse if price has moved far enough.
+        Each level triggers when progress toward TP >= target:
+            progress = (current_price - entry) / (tp - entry)   # LONG
+            progress = (entry - current_price) / (entry - tp)   # SHORT
+        Multiple levels CAN fire in a single pulse if price has gapped.
 
         Returns (position_intact: bool, trade_state_update: dict|None).
-        trade_state_update carries sl_price, tp_price, partial_tp_level.
+        trade_state_update carries sl_price, tp_price, exit_ladder_level.
         """
-        if avg_entry <= 0 or current_sl <= 0 or atr_macro <= 0:
+        if avg_entry <= 0 or current_sl <= 0 or current_tp <= 0:
             return True, None
 
         if not levels:
             return True, None
 
         # Direction-aware deviation: partial TP only triggers when IN profit.
-        # LONG: price above entry; SHORT: price below entry.
         deviation = (current_price - avg_entry) if direction == "LONG" else (avg_entry - current_price)
         if deviation <= 0:
             return True, None  # Not in profit, nothing to take
+
+        # TP distance for progress calculation
+        tp_distance = (current_tp - avg_entry) if direction == "LONG" else (avg_entry - current_tp)
+        if tp_distance <= 0:
+            return True, None  # Guard: malformed TP
+
         state_update = {}
         live_net_qty = net_qty
 
         for i in range(start_level, len(levels)):
             level = levels[i]
 
-            threshold = level["atr_threshold"] * atr_macro
-
-            if deviation < threshold:
-                break  # Sequential: stop at first unmet threshold
+            # New: TP-relative progress trigger
+            target = level["target"]
+            progress = deviation / tp_distance
+            if progress < target:
+                break  # Sequential: stop at first unmet target
 
             ratio = level["tp_ratio"]
             tp_qty = abs(live_net_qty) * ratio
             p_qty = cfg["precision_qty"]
-            tp_qty = max(round(tp_qty, p_qty), cfg["min_order_qty"])
+            # Floor rounding: never oversell on partial TP
+            tp_qty = max(math.floor(tp_qty * 10**p_qty) / 10**p_qty, cfg["min_order_qty"])
 
             logger.info(
-                f"[{symbol}] partial TP L{i+1} triggered | "
-                f"deviation={deviation:.2f} | tp_qty={tp_qty}"
+                f"[{symbol}] exit ladder L{i+1} triggered | "
+                f"progress={progress:.1%} | tp_qty={tp_qty}"
             )
 
             # Step A: Cancel all existing orders
             if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error(f"[{symbol}] partial TP L{i+1} — cancel failed, aborting")
+                logger.error(f"[{symbol}] exit ladder L{i+1} — cancel failed, aborting")
                 return True, state_update if state_update else None
 
             # Step B: Market-sell partial qty
@@ -763,7 +771,7 @@ class MarginOrderExecutor:
             )
             if not close_success:
                 logger.critical(
-                    f"[{symbol}] partial TP L{i+1} — market close failed, emergency closing all"
+                    f"[{symbol}] exit ladder L{i+1} — market close failed, emergency closing all"
                 )
                 if not self.client.execute_market_close(symbol):
                     logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
@@ -773,7 +781,7 @@ class MarginOrderExecutor:
             # Step C: Compute remaining qty (don't re-verify from exchange — settlement may be stale)
             remaining_qty = abs(live_net_qty) - tp_qty
             if remaining_qty < cfg.get("min_order_qty", 0):
-                logger.info(f"[{symbol}] partial TP L{i+1} — position fully closed")
+                logger.info(f"[{symbol}] exit ladder L{i+1} — position fully closed")
                 return True, {}  # Clear trade state
 
             sign = 1 if direction == "LONG" else -1
@@ -797,7 +805,7 @@ class MarginOrderExecutor:
             )
             if not oco_success:
                 logger.critical(
-                    f"[{symbol}] partial TP L{i+1} — OCO re-place failed, emergency closing"
+                    f"[{symbol}] exit ladder L{i+1} — OCO re-place failed, emergency closing"
                 )
                 if not self.client.execute_partial_market_close(symbol=symbol, side=exit_side, qty=live_qty):
                     logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state")
@@ -805,12 +813,12 @@ class MarginOrderExecutor:
                 return False, None
 
             logger.info(
-                f"[{symbol}] partial TP L{i+1} complete | "
+                f"[{symbol}] exit ladder L{i+1} complete | "
                 f"remaining={live_qty} | sl={avg_entry}"
             )
             state_update["sl_price"] = avg_entry
             state_update["tp_price"] = current_tp
-            state_update["partial_tp_level"] = i + 1  # next level to check
+            state_update["exit_ladder_level"] = i + 1  # next level to check
 
         return True, state_update if state_update else None
 
