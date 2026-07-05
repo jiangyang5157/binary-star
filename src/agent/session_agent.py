@@ -52,13 +52,14 @@ class SessionConfig(AgentConfig):
         provider = llm_cfg.get("active_provider", "gemini").lower()
         provider_cfg = llm_cfg.get(provider, {})
         sampling = cfg["analysis_window"]
-        bs_cfg = cfg["binary_star"]
+        agent_cfg = cfg["llm"]["agents"]["session"]
 
         return cls(
             model=str(provider_cfg.get("model")),
-            model_temperature=float(bs_cfg.get("session_temperature", 0.5)),
-            instruction_path=os.path.join(resolve_project_root(), cfg["binary_star"]["session_role_prompt"]),
+            model_temperature=float(agent_cfg["temperature"]),
+            instruction_path=os.path.join(resolve_project_root(), agent_cfg["role_prompt"]),
             max_tool_iterations=int(cfg["llm"]["max_tool_iterations"]),
+            reasoning_effort=agent_cfg.get("reasoning_effort"),
             regime=load_regime_config(cfg),
             temporal=load_temporal_config(cfg),
             risk=load_risk_config(cfg),
