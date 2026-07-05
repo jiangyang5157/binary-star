@@ -542,7 +542,8 @@ class SniperDaemon:
                 self._symbol_level[symbol] = new_level
 
             if not updated_state:
-                logger.info(f"[{symbol}] trade state cleared (position closed or entry expired)")
+                if trade_state:
+                    logger.info(f"[{symbol}] trade state cleared (position closed or entry expired)")
                 self.trade_states.pop(symbol, None)
                 self._symbol_level.pop(symbol, None)
                 self._symbol_last_qty.pop(symbol, None)
@@ -552,7 +553,8 @@ class SniperDaemon:
                 if symbol in self.triggers:
                     self.triggers[symbol].last_trigger_time = None
                     self.triggers[symbol].cooldown_active = False
-                    logger.info(f"[{symbol}] cooldown reset (trade cleared)")
+                    if trade_state:
+                        logger.info(f"[{symbol}] cooldown reset (trade cleared)")
             elif updated_state != trade_state:
                 self.trade_states[symbol] = updated_state
 
