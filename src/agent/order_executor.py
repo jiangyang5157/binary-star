@@ -368,7 +368,12 @@ class MarginOrderExecutor:
                         return trade_state, None
                     return {}, None
             else:
-                logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl} — only one OCO leg remains, manual review recommended")
+                logger.critical(f"[{symbol}] OCO qty mismatch but no TP/SL available | tp={oco_tp} | sl={oco_sl} — single OCO leg remains, emergency closing")
+                self.client.cancel_all_symbol_orders(symbol)
+                if not self.client.execute_market_close(symbol):
+                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry")
+                    return trade_state, None
+                return {}, None
 
         new_level = current_level  # unchanged unless partial TP advances it
 
