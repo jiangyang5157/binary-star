@@ -180,8 +180,6 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         self._http_timeout = http_timeout
         self._client = None
 
-        self._model_logged = False
-
     def _get_client(self):
         if self._client is None:
             from openai import OpenAI
@@ -217,11 +215,7 @@ class OpenAICompatibleAdapter(AbstractAIClient):
         if http_timeout:
             api_params["timeout"] = http_timeout
 
-        if not self._model_logged:
-            logger.info("AI call | provider=%s | model=%s", self.provider_label, target_model)
-            self._model_logged = True
-        else:
-            logger.debug("AI call | provider=%s | model=%s", self.provider_label, target_model)
+        logger.info("AI call | provider=%s | model=%s | temp=%.2f", self.provider_label, target_model, temperature)
         response = self._get_client().chat.completions.create(**api_params)
         return self._parse(response, response_json)
 

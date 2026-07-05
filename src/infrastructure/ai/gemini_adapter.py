@@ -61,6 +61,7 @@ class GeminiAdapter(AbstractAIClient):
             gen_config["response_mime_type"] = "application/json"
 
         gemini_contents = self._to_gemini_contents(contents)
+        logger.info("AI call | provider=GeminiAdapter | model=%s | temp=%.2f", model, temperature)
         response = self._client.models.generate_content(
             model=model, contents=gemini_contents, config=gen_config,
         )

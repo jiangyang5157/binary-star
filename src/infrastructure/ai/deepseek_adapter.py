@@ -63,11 +63,9 @@ class DeepSeekAdapter(OpenAICompatibleAdapter):
         if http_timeout:
             api_params["timeout"] = http_timeout
 
-        think_label = reasoning_effort if reasoning_effort else "off"
-        if not self._model_logged:
-            logger.info("AI call | provider=%s | model=%s | thinking=%s", self.provider_label, target_model, think_label)
-            self._model_logged = True
+        if reasoning_effort is not None:
+            logger.info("AI call | provider=%s | model=%s | thinking=%s", self.provider_label, target_model, reasoning_effort)
         else:
-            logger.debug("AI call | provider=%s | model=%s | thinking=%s", self.provider_label, target_model, think_label)
+            logger.info("AI call | provider=%s | model=%s | temp=%.2f", self.provider_label, target_model, temperature)
         response = self._get_client().chat.completions.create(**api_params)
         return self._parse(response, response_json)
