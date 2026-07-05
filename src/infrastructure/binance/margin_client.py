@@ -488,6 +488,7 @@ class BinanceMarginClient:
                 "workingTimeInForce": "GTC",
                 "pendingSide": pending_side,
                 "pendingAboveTimeInForce": "GTC",
+                "pendingBelowTimeInForce": "GTC",
                 "sideEffectType": "MARGIN_BUY",
             }
 
