@@ -51,7 +51,7 @@ Config patches feed back into BSO and SniperDaemon on the next pulse.
 | **Sniper** | `SniperScout`, `SniperTrigger`, `MarginOrderExecutor` | Lightweight monitoring, signal stack, position protection |
 | **Analyzer** | `MarketObserver`, `VolumeProfile`, `MarketRegime`, `LiquidationEstimator`, `TopographyEngine`, `ChartGenerator` | Market data harvesting and topography computation |
 | **Data** | `BinanceFuturesClient`, `BinanceMarginClient`, `AbstractExchangeClient` | Exchange API abstraction (futures + cross-margin) |
-| **AI** | `AIFactory`, `DeepSeekAdapter`, `GeminiAdapter` | Provider-agnostic LLM interface with `VisualMode` enum; caching is adapter-internal via `begin_session`/`end_session` |
+| **AI** | `AIFactory`, `DeepSeekAdapter`, `GeminiAdapter`, `OpenAICompatibleAdapter` | Provider-agnostic LLM interface; each adapter declares its `VisualMode` (TEXT/IMAGE) for chart delivery; session lifecycle via `begin_session`/`end_session` |
 | **Evolution** | `AuditController`, `AuditAssembler`, `EvolverAgent`, `EvolverSandbox` | Forensic audit → strategy patches |
 | **Config** | `Loader`, `SymbolResolver`, `SubConfigs` | YAML resolution with per-symbol overrides |
 | **Dashboard** | `server.py` (FastAPI), `api/`, `SessionHTMLRenderer` | Web UI for performance, live sessions, backtest, audit |
@@ -67,6 +67,7 @@ The adversarial reasoning engine that produces trade decisions. A Session Analys
 sequenceDiagram
     participant BSO as BinaryStarOrchestrator
     participant Obs as MarketObserver
+    participant Client as AIClient (adapter)
     participant DL as DebateLoop
     participant SA as SessionAgent
     participant MFC as MathFactChecker
@@ -75,7 +76,7 @@ sequenceDiagram
     BSO->>Obs: observe(kline, OI, CVD, liquidation)
     Obs-->>BSO: topography + charts + metrics
     BSO->>BSO: inject regime benchmarks (temporal physics)
-    BSO->>BSO: setup context cache (Gemini)
+    BSO->>Client: begin_session (adapter manages cache internally)
     BSO->>DL: run(observation, symbol)
 
     loop each round (max 2)
@@ -424,14 +425,25 @@ The dashboard requires user authentication via `config/auth/users.json` with rol
 
 ## AI Providers
 
-| Provider | Model | Vision | Context Cache | Architecture | Notes |
-|----------|-------|--------|---------------|-------------|-------|
-| **DeepSeek** (active) | `deepseek-v4-pro` | ❌ | ❌ | OpenAI-compatible (`DeepSeekAdapter`) | Thinking/reasoning models (`reasoning_effort: high`), lowest cost |
-| **Gemini** | `gemini-3.5-flash` | ✅ | ✅ (internal) | Native `google-genai` SDK | Native multimodal; caching via `begin_session`/`end_session` lifecycle |
+| Provider | Model | Adapter | Vision Handling | Notes |
+|----------|-------|---------|----------------|-------|
+| **DeepSeek** (active) | `deepseek-v4-pro` | `DeepSeekAdapter` → `OpenAICompatibleAdapter` (OpenAI SDK) | **TEXT** — charts pre-rendered as markdown summaries, injected into prompt text | Thinking/reasoning mode (`reasoning_effort: high`), temperature disabled when thinking is on |
+| **Gemini** | `gemini-3.5-flash` | `GeminiAdapter` (native `google-genai` SDK) | **IMAGE** — PNG bytes sent as `VisualPart`, converted to `genai.types.Part.from_bytes()` for native multimodal processing | `begin_session`/`end_session` creates/deletes a context cache (images + system prompt + tools, TTL 10 min) |
 
 Provider is selected via `llm.active_provider` in `config/global_config.yaml`. Temperature is configured per-agent under `binary_star` (`session_temperature`, `critic_temperature`) and `evolver` (`evolver_temperature`), not per-provider. All agents are provider-agnostic — no agent code imports a provider SDK.
 
-**Provider-agnostic types:** `AbstractAIClient.generate_content()` returns `AIResponse` containing `text`, `tool_calls`, `usage`, and optional `reasoning_content` (DeepSeek thinking models). Each adapter declares its `VisualMode` (NONE/TEXT/IMAGE) — the orchestrator reads this to decide how to deliver chart data. Visual data is passed as `VisualPart` (mime_type + raw bytes). Session lifecycle is managed via `begin_session()` / `end_session()` — adapters use these for cache creation/teardown without the orchestrator knowing the caching mechanism.
+### Visual Mode & Session Lifecycle
+
+Each adapter declares its `VisualMode` (NONE / TEXT / IMAGE) via the `visual_mode` property. The orchestrator reads this at startup and routes chart data accordingly:
+
+| VisualMode | Adapter | How Charts Are Delivered |
+|-----------|---------|--------------------------|
+| `TEXT` | DeepSeekAdapter | Pre-generated markdown summaries (`macro_snapshot_summary`, `micro_snapshot_summary`) read from disk and injected into the prompt as text blocks |
+| `IMAGE` | GeminiAdapter | PNG chart files read as bytes → wrapped in `VisualPart(mime_type, data, label)` → converted to `genai.types.Part.from_bytes()` for native multimodal input |
+
+Visual data is passed as `VisualPart` (mime_type + raw bytes). The `begin_session()` / `end_session()` lifecycle is called by the orchestrator around each debate cycle — adapters use these hooks for session-level setup/teardown (e.g., Gemini creates a context cache) without the orchestrator knowing the mechanism.
+
+**Provider-agnostic types:** `AbstractAIClient.generate_content()` returns `AIResponse` containing `text`, `tool_calls`, `usage`, and optional `reasoning_content` (DeepSeek thinking models). The `OpenAICompatibleAdapter` base class (`_openai_helpers.py`) provides shared message-building, tool-conversion, and response-parsing for any OpenAI-compatible provider.
 
 ---
 
