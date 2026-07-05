@@ -120,14 +120,21 @@ For each command, capture:
 
 ### Step 2: Generate Content
 
-#### General Principles
+#### Design Philosophy
 
-- **High-level, not tutorial** — assume a technically competent reader. One paragraph per section, then tables/diagrams. Skip implementation detail unless it is architecturally significant.
-- **Tables over paragraphs** — compare, list, contrast
-- **Diagrams over tables** — flows, sequences, states go in mermaid
-- **One-liner descriptions** — each module/class gets one crisp line
-- **Copyable commands** — every command directly copyable
-- **Low word count** — if a section exceeds a table + 3 sentences, it is too long
+The README must be **scannable at a glance** — a reader who spends 10 seconds scrolling should already understand what this project does and whether it is interesting. Every design decision flows from this:
+
+- **Visual hierarchy**: diagram first, then table, then text. The eye lands on the diagram, reads the table for detail, skips the text.
+- **Breathing room**: generous whitespace between sections. Short paragraphs (2-3 sentences). No walls of text.
+- **Progressive disclosure**: architecture diagram → layer table with one-liners → deep-dive sections for those who scroll further.
+- **Low cognitive load**: if a section makes the reader stop and re-read, it is too complex. Split it or simplify it.
+
+#### Content Rules
+
+- **Diagram > table > paragraph** — a picture first, then structured data, then prose only if nothing else works
+- **One-liner descriptions** — each module, signal, or concept gets exactly one crisp line
+- **Assume competence** — the reader is technical; skip tutorial-level exposition
+- **Hard word budget** — any section longer than a table + 3 sentences is too long. Cut it
 
 #### Diagram Principles (CRITICAL)
 
