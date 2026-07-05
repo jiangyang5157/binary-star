@@ -1,4 +1,4 @@
-"""Shared helpers and base class for OpenAI-compatible adapters (e.g. DeepSeek)."""
+"""Shared utilities for OpenAI-compatible providers (e.g. DeepSeek)."""
 import base64
 import json
 import logging
