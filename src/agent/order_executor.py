@@ -799,7 +799,9 @@ class MarginOrderExecutor:
                 logger.critical(
                     f"[{symbol}] exit ladder L{i+1} — OCO re-place failed, emergency closing"
                 )
-                if not self.client.execute_partial_market_close(symbol=symbol, side=exit_side, qty=live_qty):
+                # Use execute_market_close (re-reads position from exchange) instead of
+                # execute_partial_market_close (uses pre-computed qty that may be stale)
+                if not self.client.execute_market_close(symbol):
                     logger.critical(f"[{symbol}] emergency close FAILED — position naked, clearing trade state")
                     return False, None  # Report position not intact
                 return False, None
