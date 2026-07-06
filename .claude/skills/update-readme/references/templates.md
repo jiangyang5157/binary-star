@@ -101,7 +101,7 @@ sections needed.]
 ```markdown
 ## Sniper
 
-A local signal stack (13 signals, 5 categories) monitors the market at
+A local signal stack (9 signals, 5 categories) monitors the market at
 2-minute pulses. A regime-adaptive confluence engine decides when to
 activate Binary Star. Its sole job is timing — it does not trade.
 ```

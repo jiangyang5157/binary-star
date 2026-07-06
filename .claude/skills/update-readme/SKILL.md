@@ -99,7 +99,7 @@ Produce TWO diagrams:
 → Read config/global_config.yaml — extract sniper.signal_stack trigger_threshold, regime_modifiers, cooldown
 ```
 
-Capture only: "13 signals in 5 categories, regime-adaptive threshold (base threshold × per-regime modifier from config), emergency override, adaptive cooldown." Always read actual threshold values from `config/global_config.yaml` — do NOT hardcode them. The Sniper's job is to find good entry timing for Binary Star — nothing more.
+Capture only: "9 signals in 5 categories, regime-adaptive threshold (base threshold × per-regime modifier from config), emergency override, adaptive cooldown." Always read actual threshold values from `config/global_config.yaml` — do NOT hardcode them. The Sniper's job is to find good entry timing for Binary Star — nothing more.
 
 #### Order Management (minimal scan)
 
@@ -218,7 +218,7 @@ graph LR
         Critic --> Planner
     end
 
-    Sniper["Sniper<br/>13 signals"] --> Debate
+    Sniper["Sniper<br/>9 signals"] --> Debate
     Debate --> Executor["Order Executor"]
     Executor --> Binance["Binance"]
 ```

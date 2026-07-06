@@ -40,24 +40,22 @@ The primary data source is `data/prod/sniper.log`. Each pulse (~2 min) writes a
 
 ```
 HH:MM:SS.sss INF [trigger] [SYMBOL] SIGNAL DIAG |
-  cvd=<float> | cvd_momentum=<F:strength|R:reason> |
+  cvd=<float> | cvd_momentum=<F:strength(path)|R:reason> |
   cvd_divergence=<F:strength|R:reason> |
   cvd_absorption=<F:strength|R:reason> |
-  taker_imb=<F:strength|R:reason> |
+  trade_sz=<float>/n=<int> | large_trade=<F:strength(z=N.N)|R:warmup(N/5)|R:z=N.N<=thresh> |
   vii=<float>,vpr=<float> | vol_surge=<F:strength|R:reason> |
   squeeze=<F:strength|R:reason> |
   price=<float>,atr=<float> |
   boundary_test=<F:strength|R:reason> |
-  poc_gravity=<F:strength|R:reason> |
   liq_hunt=<F:strength|R:reason> |
-  trend_pullback=<F:strength|R:reason> |
-  ls=<float>,fund=<float> | retail_ext=<F:strength|R:reason> |
-  oi_div=<F:strength|R:reason> |
-  oi_surge=<F:strength|R:reason>
+  ls=<float>,fund=<float>,oi_d=<float> | pos_ext=<F:strength|R:reason>
 ```
 
 Each detector shows either `F:0.XX` (fired, with raw strength 0–1) or
 `R:<reason>` (rejected, with the threshold comparison that failed).
+cvd_momentum also shows the trigger path: `(growth)` or `(extreme)`.
+large_trade shows `warmup(N/5)` for the first 5 pulses after daemon start.
 
 ### WAKE line format
 
@@ -117,7 +115,8 @@ def parse_diag_line(line, date_str):
     atr_match = re.search(r'atr=(-?[\d.]+)', line)
     ls_match = re.search(r'ls=(-?[\d.]+)', line)
     fund_match = re.search(r'fund=(-?[\d.]+)', line)
-    trend_match = re.search(r'\|trend\|=(-?[\d.]+)', line)
+    oi_d_match = re.search(r'oi_d=(-?[\d.]+)', line)
+    trade_sz_match = re.search(r'trade_sz=(-?[\d.]+)', line)
 
     return {
         'timestamp': ts,
@@ -130,7 +129,8 @@ def parse_diag_line(line, date_str):
             'atr': float(atr_match.group(1)) if atr_match else None,
             'ls_ratio': float(ls_match.group(1)) if ls_match else None,
             'funding': float(fund_match.group(1)) if fund_match else None,
-            'trend_intensity': float(trend_match.group(1)) if trend_match else None,
+            'oi_delta': float(oi_d_match.group(1)) if oi_d_match else None,
+            'avg_trade_size': float(trade_sz_match.group(1)) if trade_sz_match else None,
         },
         'detectors': detectors,
     }
@@ -182,17 +182,14 @@ Signal confidence values (from `config/global_config.yaml` → `signal_stack.wei
 |--------|-----------|
 | cvd_momentum | 0.65 |
 | cvd_divergence | 0.70 |
-| cvd_absorption | 0.65 |
-| taker_imb | 0.60 |
+| cvd_absorption | 0.50 |
+| large_trade | 0.55 |
 | volatility_surge | 0.55 |
 | squeeze | 0.75 |
 | boundary_test | 0.50 |
-| poc_gravity | 0.55 |
 | liquidation_hunt | 0.60 |
-| trend_pullback | 0.75 |
-| retail_extreme | 0.42 |
-| oi_divergence | 0.70 |
-| oi_surge | 0.55 |
+| positioning_extreme | 0.50 |
+| leader_sync | 0.40 |
 
 ### Noise cancellation
 
@@ -287,7 +284,7 @@ Always produce this structured report:
 |------------|--------|--------|----------|------------|----------|-----------|
 | ... | cvd_momentum | FIRED:0.45 | 0.45 | 0.65 | 0.29 | BEARISH |
 | ... | cvd_divergence | REJECTED | — | — | — | — |
-| ... (all 13) | ... | ... | ... | ... | ... | ... |
+| ... (all 9) | ... | ... | ... | ... | ... | ... |
 
 ## 3. Confluence Engine
 | Pulse Time | Bullish Score | Bearish Score | Raw | Noise Factor | Final | Eff. Threshold | Pass? |
@@ -322,10 +319,9 @@ regime suppression, or noise cancellation.]
   follower — check for cross-symbol correlation.
 - **Confluence says trigger but WAKE line absent**: the pre-AI gate likely
   rejected it. Check gate conditions carefully.
-- **Signal locked out by state lock**: structural signals (boundary_test,
-  poc_gravity, liquidation_hunt) and retail_extreme each lock for 8 hours
-  after firing. If a signal fired recently but isn't showing up, check the
-  lockout period.
+- **Signal locked out by state lock**: boundary_test and positioning_extreme
+  each lock for 8 hours after firing. If a signal fired recently but isn't
+  showing up, check the lockout period.
 
 ## Reference Files
 
