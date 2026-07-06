@@ -542,6 +542,18 @@ class MarketMetricsRefiner:
             
         cvd_intensity_ratio = cvd_vol_delta / (cvd_total_vol + 1e-9)
 
+        # 2. Calculate avg trade size (large-player activity proxy)
+        avg_trade_size = 0.0
+        trade_count = 0
+        if len(raw.micro_klines) >= lookback_candles:
+            curr_window = raw.micro_klines[-lookback_candles:]
+            total_trades = sum(
+                k.trades for k in curr_window if k.trades is not None
+            )
+            if total_trades > 0 and cvd_total_vol > 0:
+                avg_trade_size = cvd_total_vol / total_trades
+                trade_count = total_trades
+
         cur_oi = raw.current_oi.open_interest if raw.current_oi else 0.0
         def raw_oi_delta(hist):
             if not hist: return 0.0
@@ -563,6 +575,8 @@ class MarketMetricsRefiner:
             "cvd_volume_delta": cvd_vol_delta,
             "cvd_total_volume": cvd_total_vol,
             "cvd_lookback_candles": lookback_candles,
+            "avg_trade_size": avg_trade_size,
+            "trade_count": trade_count,
             "funding_rate": f_rate,
             "funding_rate_delta": f_delta,
             "funding_rate_lookback_candles": self.config.funding_rate_macro_lookback_candles,
