@@ -561,7 +561,8 @@ class SniperTrigger:
         if s.sub_type == 'cvd_absorption':
             return f"CVD {ev.get('cvd_intensity', 0.0):.3f} with flat price (delta {ev.get('price_delta', 0.0):.1f})"
         if s.sub_type == 'large_trade':
-            return f"Avg trade size {ev.get('avg_trade_size', 0.0):.3f} BTC (z={ev.get('z_score', 0.0):.1f})"
+            unit = self.symbol.replace('USDT', '') if self.symbol else 'BTC'
+            return f"Avg trade size {ev.get('avg_trade_size', 0.0):.3f} {unit} (z={ev.get('z_score', 0.0):.1f})"
         if s.sub_type == 'volatility_surge':
             return f"VII={ev.get('vii', 0.0):.2f}, VPR={ev.get('vpr', 0.0):.2f}"
         if s.sub_type == 'squeeze':
@@ -696,13 +697,12 @@ class SniperTrigger:
             return None
 
         direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
-        if path_b:
-            strength = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0)
-        else:
-            strength = min(abs(cvd) / (base_threshold * 3), 1.0)
+        strength_a = min(abs(cvd) / (base_threshold * 3), 1.0) if path_a else 0.0
+        strength_b = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0) if path_b else 0.0
+        strength = max(strength_a, strength_b)
         confidence = self.signal_weights.get('cvd_momentum', 0.65)
 
-        trigger_path = 'extreme' if path_b else 'growth'
+        trigger_path = 'extreme' if path_b and strength_b >= strength_a else 'growth'
         return SignalCard(
             signal_id=self._make_id('cvd_momentum', now),
             category=SignalCategory.FLOW,
@@ -1084,7 +1084,7 @@ class SniperTrigger:
                                          'price_delta': price_delta}
 
         # Path 4: OI surge (OI and price move same direction)
-        if prev and best_direction is None:
+        if prev:
             oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
             price_delta = (curr['price_dynamics']['current_price'] -
                            prev['price_dynamics']['current_price'])
