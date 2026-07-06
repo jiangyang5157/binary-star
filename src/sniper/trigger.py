@@ -203,7 +203,7 @@ class SniperTrigger:
     Signal Stack trigger engine.
 
     Replaces the old binary-trigger model. Every 2-minute pulse, detects up to
-    14 signal types, stacks them directionally via ConfluenceEngine, and fires
+    9 signal types, stacks them directionally via ConfluenceEngine, and fires
     an AI session only when confluence exceeds a regime-adaptive threshold.
     """
 
@@ -663,7 +663,7 @@ class SniperTrigger:
         return notes.get(regime, f"Regime: {regime}")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # SIGNAL DETECTORS (13 direct + 1 cross-symbol = 14 total)
+    # SIGNAL DETECTORS (9 direct + 1 cross-symbol = 10 total)
     # ═══════════════════════════════════════════════════════════════════════
 
     def _make_id(self, sub_type: str, now: datetime) -> str:
@@ -1138,9 +1138,13 @@ class SniperTrigger:
         if not should_trigger:
             return None
 
-        gate_result, gate_reason = self._run_pre_ai_gate(
-            metrics, boosted_signals, dominant_direction, regime
-        )
+        try:
+            gate_result, gate_reason = self._run_pre_ai_gate(
+                metrics, boosted_signals, dominant_direction, regime
+            )
+        except Exception as e:
+            logger.warning(f"pre-AI gate crashed in reevaluate_with_boost | error={e}")
+            return None
         if gate_result == 'FAIL':
             return None
 
@@ -1283,7 +1287,7 @@ class SniperTrigger:
 
         Algorithm:
         1. Check adaptive cooldown
-        2. Detect all 13 direct signal types
+        2. Detect all 9 direct signal types
         3. Merge with decayed signal memory
         4. Compute confluence via ConfluenceEngine
         5. Check emergency override and cooldown break
@@ -1331,9 +1335,14 @@ class SniperTrigger:
         gate_result = "PASS"
         gate_reason = ""
         if should_trigger:
-            gate_result, gate_reason = self._run_pre_ai_gate(
-                current_metrics, all_signals, dominant_direction, regime
-            )
+            try:
+                gate_result, gate_reason = self._run_pre_ai_gate(
+                    current_metrics, all_signals, dominant_direction, regime
+                )
+            except Exception as e:
+                logger.warning(f"pre-AI gate crashed | error={e}")
+                gate_result = "FAIL"
+                gate_reason = f"GATE_CRASH: {e}"
             if gate_result == "FAIL":
                 should_trigger = False
 
