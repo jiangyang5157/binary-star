@@ -205,8 +205,10 @@ class SniperTrigger:
     an AI session only when confluence exceeds a regime-adaptive threshold.
     """
 
-    # Cross-symbol correlation defaults (fixed, not yet dynamically computed)
-    CROSS_CORRELATIONS: Dict[str, float] = {}
+    # Cross-symbol correlation matrix: leader → {follower: coefficient}.
+    # Only leaders listed as keys can propagate to followers.  Currently empty
+    # (BTC and XAUT are independent); add entries when introducing ETH/SOL.
+    CROSS_CORRELATIONS: Dict[str, Dict[str, float]] = {}
 
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):
         self.last_trigger_time: Optional[datetime] = None

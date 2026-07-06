@@ -232,9 +232,10 @@ class SniperDaemon:
                         if follower.triggered:
                             continue  # already firing, no boost needed
 
+                        # Matrix lookup: leader → {follower: coefficient}
                         correlation = self.triggers[follower_sym].CROSS_CORRELATIONS.get(
-                            follower_sym, 0
-                        )
+                            sym, {}
+                        ).get(follower_sym, 0)
                         leader_card = self.triggers[follower_sym].apply_leader_sync(
                             own_signals=follower.signals,
                             leader_confluence_score=result.confluence_score,
