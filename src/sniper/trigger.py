@@ -206,9 +206,7 @@ class SniperTrigger:
     """
 
     # Cross-symbol correlation defaults (fixed, not yet dynamically computed)
-    CROSS_CORRELATIONS: Dict[str, float] = {
-        'XAUTUSDT': 0.40,
-    }
+    CROSS_CORRELATIONS: Dict[str, float] = {}
 
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):
         self.last_trigger_time: Optional[datetime] = None
@@ -1271,7 +1269,7 @@ class SniperTrigger:
         if not aligned:
             return None
 
-        boost = min(leader_confluence_score * correlation * 0.30, 0.15)
+        boost = min(leader_confluence_score * correlation * 0.25, 0.10)
         confidence = self.signal_weights.get('leader_sync', 0.40)
 
         return SignalCard(
