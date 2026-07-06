@@ -118,6 +118,46 @@ class SignalMemory:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Calibration Constants — detector strength saturation curves
+# ═══════════════════════════════════════════════════════════════════════════
+# These control how raw measurements map to 0–1 signal strengths.
+# They are NOT config-driven because they encode the physical relationship
+# between each measurement type and "how extreme is this?" — changing them
+# would alter the signal stack's calibration, not its sensitivity.
+# For sensitivity tuning, use config thresholds and weights instead.
+
+# FLOW — CVD-based detectors saturate fast (CVD is noisy, needs aggressive scaling)
+CVD_SATURATION_FACTOR = 3.0
+CVD_ABSORPTION_SATURATION = 1.5
+CVD_ABSORPTION_MIN_DENOM = 0.15
+
+# SIZE — Z-score to strength mapping
+LARGE_TRADE_SATURATION = 2.0
+MIN_LARGE_TRADE_SAMPLES = 5
+
+# ENERGY
+VOLATILITY_SATURATION = 2.0
+SQUEEZE_DECLINE_THRESHOLD = 0.98
+
+# STRUCTURAL — proximity-based detectors saturate slowly (ATR distance is precise)
+BOUNDARY_STRENGTH_SCALE = 0.25
+LIQUIDATION_STRENGTH_SCALE = 0.15
+
+# POSITIONING
+FUNDING_SATURATION = 4.0
+OI_DIVERGENCE_SATURATION = 0.03
+OI_SURGE_MIN_DELTA = 0.02
+OI_SURGE_SATURATION = 0.04
+
+# General
+MIN_STACK_STRENGTH = 0.15
+ABSORPTION_PRICE_STALL_ATR = 0.3
+LEADER_SYNC_CAP = 0.10
+LEADER_SYNC_SCALE = 0.25
+CVD_NEUTRAL_EPSILON = 0.01
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Confluence Engine
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -132,7 +172,7 @@ class ConfluenceEngine:
             'trending': 0.85, 'ranging': 1.0, 'squeeze': 0.75, 'chaos': 1.50,
         })
         self.signal_weights = config.get('weights', {})
-        self.min_strength_for_stack = 0.15
+        self.min_strength_for_stack = MIN_STACK_STRENGTH
 
     def _directional_score(self, signals: List[SignalCard], direction: Direction) -> float:
         """1 - ∏(1 - s.weighted_score) for all signals matching direction."""
@@ -315,6 +355,13 @@ class SniperTrigger:
         self.state_locks[lock_key] = now
         return True
 
+    def _signal_cfg(self, *path, default=None):
+        """Walk sniper_cfg → signal_stack → ... safely. e.g. _signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18)."""
+        node = self.sniper_cfg.get('signal_stack', {})
+        for key in path:
+            node = node.get(key, {}) if isinstance(node, dict) else {}
+        return node if node else default
+
     # ── Regime Detection ─────────────────────────────────────────────────
 
     def _determine_regime(self, curr: Dict[str, Any]) -> str:
@@ -386,7 +433,7 @@ class SniperTrigger:
         stacked_count = cooldown_cfg.get('stacked_break_count', 3)
         dir_counts: Dict[Direction, int] = {}
         for s in fresh_signals:
-            if s.direction != Direction.NEUTRAL and s.strength >= 0.15:
+            if s.direction != Direction.NEUTRAL and s.strength >= MIN_STACK_STRENGTH:
                 dir_counts[s.direction] = dir_counts.get(s.direction, 0) + 1
         for direction, count in dir_counts.items():
             if count >= stacked_count:
@@ -478,7 +525,7 @@ class SniperTrigger:
                          gate_result: str) -> Dict[str, Any]:
         """Build the pre-brief JSON injected into the SessionAgent's observation."""
         active = [s for s in all_signals
-                  if s.strength >= 0.15 and s.direction in (direction, Direction.NEUTRAL)]
+                  if s.strength >= MIN_STACK_STRENGTH and s.direction in (direction, Direction.NEUTRAL)]
 
         activated_by = []
         for s in sorted(all_signals, key=lambda x: x.weighted_score, reverse=True)[:5]:
@@ -676,8 +723,7 @@ class SniperTrigger:
                               now: datetime) -> Optional[SignalCard]:
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
         base_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
-        extreme_threshold = self.sniper_cfg.get('signal_stack', {}).get(
-            'thresholds', {}).get('cvd_extreme_threshold', 0.18)
+        extreme_threshold = self._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18)
 
         # Path A (growth): CVD above base threshold AND still growing
         path_a = False
@@ -697,7 +743,7 @@ class SniperTrigger:
             return None
 
         direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
-        strength_a = min(abs(cvd) / (base_threshold * 3), 1.0) if path_a else 0.0
+        strength_a = min(abs(cvd) / (base_threshold * CVD_SATURATION_FACTOR), 1.0) if path_a else 0.0
         strength_b = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0) if path_b else 0.0
         strength = max(strength_a, strength_b)
         confidence = self.signal_weights.get('cvd_momentum', 0.65)
@@ -737,7 +783,7 @@ class SniperTrigger:
             return None
 
         direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
-        strength = min(abs(cvd_delta) / (threshold * 3), 1.0)
+        strength = min(abs(cvd_delta) / (threshold * CVD_SATURATION_FACTOR), 1.0)
         confidence = self.signal_weights.get('cvd_divergence', 0.70)
 
         return SignalCard(
@@ -769,11 +815,11 @@ class SniperTrigger:
         atr_micro = curr['price_dynamics'].get('atr_micro', 0)
         if atr_micro <= 0:
             return None
-        if price_delta >= 0.3 * atr_micro:
+        if price_delta >= ABSORPTION_PRICE_STALL_ATR * atr_micro:
             return None
 
         direction = Direction.BEARISH if cvd > 0 else Direction.BULLISH
-        saturation_denom = max(extreme_threshold * 1.5, 0.15)
+        saturation_denom = max(extreme_threshold * CVD_ABSORPTION_SATURATION, CVD_ABSORPTION_MIN_DENOM)
         strength = min((abs(cvd) - extreme_threshold) / saturation_denom, 1.0)
         confidence = self.signal_weights.get('cvd_absorption', 0.65)
 
@@ -800,11 +846,11 @@ class SniperTrigger:
             return None
 
         thresholds = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
-        zscore_threshold = thresholds.get('large_trade_zscore', 2.0)
+        zscore_threshold = thresholds.get('large_trade_zscore', LARGE_TRADE_SATURATION)
 
         # Record current value in rolling window
         self._trade_size_window.append(avg_size)
-        if len(self._trade_size_window) < 5:
+        if len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
             return None  # need minimum history for meaningful Z-score
 
         mean = sum(self._trade_size_window) / len(self._trade_size_window)
@@ -818,12 +864,12 @@ class SniperTrigger:
             return None
 
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
-        if abs(cvd) <= 0.01:
+        if abs(cvd) <= CVD_NEUTRAL_EPSILON:
             direction = Direction.NEUTRAL
         else:
             direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
 
-        strength = min(z_score / (zscore_threshold * 2), 1.0)
+        strength = min(z_score / (zscore_threshold * LARGE_TRADE_SATURATION), 1.0)
         confidence = self.signal_weights.get('large_trade', 0.55)
 
         return SignalCard(
@@ -867,7 +913,7 @@ class SniperTrigger:
         else:
             direction = Direction.NEUTRAL  # flat — no directional bias
 
-        strength = min((vii - baseline) / (baseline * 2), 1.0)
+        strength = min((vii - baseline) / (baseline * VOLATILITY_SATURATION), 1.0)
         confidence = self.signal_weights.get('volatility_surge', 0.55)
 
         return SignalCard(
@@ -896,7 +942,7 @@ class SniperTrigger:
 
         if prev:
             prev_sf = prev['market_regime']['squeeze_factor']
-            if sf >= prev_sf * 0.98:
+            if sf >= prev_sf * SQUEEZE_DECLINE_THRESHOLD:
                 return None
 
         strength = min((threshold - sf) / threshold, 1.0)
@@ -948,7 +994,7 @@ class SniperTrigger:
             return None
 
         direction = Direction.BULLISH if nearest == 'VAH' else Direction.BEARISH
-        strength = min(threshold / max(nearest_dist, 0.01) * 0.25, 1.0)
+        strength = min(threshold / max(nearest_dist, 0.01) * BOUNDARY_STRENGTH_SCALE, 1.0)
         confidence = self.signal_weights.get('boundary_test', 0.50)
 
         return SignalCard(
@@ -989,7 +1035,7 @@ class SniperTrigger:
                     if price >= prev_price:
                         continue
                 if self._check_state_lock(f"LONG_LIQ_{int(p/100)*100}", now):
-                    strength = min(threshold / max(dist_atr, 0.01) * 0.15, 1.0)
+                    strength = min(threshold / max(dist_atr, 0.01) * LIQUIDATION_STRENGTH_SCALE, 1.0)
                     return SignalCard(
                         signal_id=self._make_id('liquidation_hunt', now),
                         category=SignalCategory.STRUCTURAL,
@@ -1013,7 +1059,7 @@ class SniperTrigger:
                     if price <= prev_price:
                         continue
                 if self._check_state_lock(f"SHORT_LIQ_{int(p/100)*100}", now):
-                    strength = min(threshold / max(dist_atr, 0.01) * 0.15, 1.0)
+                    strength = min(threshold / max(dist_atr, 0.01) * LIQUIDATION_STRENGTH_SCALE, 1.0)
                     return SignalCard(
                         signal_id=self._make_id('liquidation_hunt', now),
                         category=SignalCategory.STRUCTURAL,
@@ -1062,7 +1108,7 @@ class SniperTrigger:
         funding_threshold = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
         if abs(funding) > funding_threshold:
             f_direction = Direction.BEARISH if funding > 0 else Direction.BULLISH
-            f_strength = min(abs(funding) / (funding_threshold * 4), 1.0)
+            f_strength = min(abs(funding) / (funding_threshold * FUNDING_SATURATION), 1.0)
             if f_strength > best_strength:
                 best_direction = f_direction
                 best_strength = f_strength
@@ -1076,7 +1122,7 @@ class SniperTrigger:
             if abs(oi_delta) > 1e-10 and abs(price_delta) > 1e-10 and abs(oi_delta) > 0.01:
                 if (oi_delta > 0 and price_delta < 0) or (oi_delta < 0 and price_delta > 0):
                     oi_dir = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
-                    oi_strength = min(abs(oi_delta) / 0.03, 1.0)
+                    oi_strength = min(abs(oi_delta) / OI_DIVERGENCE_SATURATION, 1.0)
                     if oi_strength > best_strength:
                         best_direction = oi_dir
                         best_strength = oi_strength
@@ -1088,10 +1134,10 @@ class SniperTrigger:
             oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
             price_delta = (curr['price_dynamics']['current_price'] -
                            prev['price_dynamics']['current_price'])
-            if abs(oi_delta) > 0.02:
+            if abs(oi_delta) > OI_SURGE_MIN_DELTA:
                 if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
                     oi_dir = Direction.BULLISH if price_delta > 0 else Direction.BEARISH
-                    oi_strength = min((abs(oi_delta) - 0.02) / 0.04, 1.0)
+                    oi_strength = min((abs(oi_delta) - OI_SURGE_MIN_DELTA) / OI_SURGE_SATURATION, 1.0)
                     if oi_strength > best_strength:
                         best_direction = oi_dir
                         best_strength = oi_strength
@@ -1159,7 +1205,7 @@ class SniperTrigger:
             confluence_direction=dominant_direction,
             signals=boosted_signals,
             active_signals=[s for s in boosted_signals
-                           if s.strength >= 0.15 and s.sub_type != 'leader_sync'],
+                           if s.strength >= MIN_STACK_STRENGTH and s.sub_type != 'leader_sync'],
             gate_result=gate_result,
             gate_reason=gate_reason,
             situation_brief=situation_brief,
@@ -1179,7 +1225,7 @@ class SniperTrigger:
         if not aligned:
             return None
 
-        boost = min(leader_confluence_score * correlation * 0.25, 0.10)
+        boost = min(leader_confluence_score * correlation * LEADER_SYNC_SCALE, LEADER_SYNC_CAP)
         confidence = self.signal_weights.get('leader_sync', 0.40)
 
         return SignalCard(
@@ -1361,7 +1407,7 @@ class SniperTrigger:
             confluence_score=confluence_score,
             confluence_direction=dominant_direction,
             signals=all_signals,
-            active_signals=[s for s in fresh_signals if s.strength >= 0.15],
+            active_signals=[s for s in fresh_signals if s.strength >= MIN_STACK_STRENGTH],
             gate_result=gate_result,
             gate_reason=gate_reason or (cooldown_reason if cooldown_active and not should_trigger else ""),
             situation_brief=situation_brief,
