@@ -2,7 +2,7 @@
 Singularity Sniper Trigger — Signal Stack Architecture.
 
 Replaces the old binary-trigger model with a continuous multi-signal confluence
-engine. 14 signal types across 5 categories are detected per pulse, scored on
+engine. 9 signal types across 5 categories are detected per pulse, scored on
 a 0–1 continuum, stacked directionally, and only fire an AI session when the
 confluence score exceeds a regime-adaptive threshold.
 
@@ -463,7 +463,7 @@ class SniperTrigger:
                               if s.sub_type in ('cvd_momentum', 'volatility_surge')
                               and s.direction == direction]
             if momentum_signals and not any(
-                s.sub_type in ('squeeze', 'cvd_absorption') for s in signals
+                s.sub_type in ('squeeze', 'cvd_absorption', 'large_trade') for s in signals
             ):
                 return "FAIL", "CHAOS_SURVIVAL: directional momentum prohibited in chaos regime"
 
@@ -521,14 +521,14 @@ class SniperTrigger:
                 "Accumulation detected — smart money buying into weakness, prepare long"
             ),
             'cvd_absorption': (
-                "Iceberg selling absorption — large player accumulating shorts, expect downside"
+                "Selling absorption suspected — large player may be accumulating shorts"
                 if direction == Direction.BEARISH else
-                "Iceberg buying absorption — large player accumulating longs, expect upside"
+                "Buying absorption suspected — large player may be accumulating longs"
             ),
-            'taker_imbalance': (
-                "Aggressive selling pressure — follow the flow short"
+            'large_trade': (
+                "Institutional selling detected — large avg trade size with bearish flow"
                 if direction == Direction.BEARISH else
-                "Aggressive buying pressure — follow the flow long"
+                "Institutional buying detected — large avg trade size with bullish flow"
             ),
             'volatility_surge': (
                 "Breakout energy with bearish flow — momentum short entry"
@@ -541,27 +541,11 @@ class SniperTrigger:
                 if direction == Direction.BULLISH else
                 "Testing support — if rejection, fade long; if breakdown with volume, follow"
             ),
-            'poc_gravity': "Mean-reversion gravity active — price pulled toward fair value (POC)",
             'liquidation_hunt': "Liquidity sweep in progress — enter after cluster is cleared",
-            'trend_pullback': (
-                "Trend pullback to structure — high-probability entry in trend direction (BEARISH)"
-                if direction == Direction.BEARISH else
-                "Trend pullback to structure — high-probability entry in trend direction (BULLISH)"
-            ),
-            'retail_extreme': (
-                "Retail overcrowded long — squeeze fuel for downside cascade"
+            'positioning_extreme': (
+                "Retail overcrowded — squeeze fuel for downside cascade"
                 if direction == Direction.BEARISH else
                 "Retail overcrowded short — squeeze fuel for upside cascade"
-            ),
-            'oi_divergence': (
-                "OI dropping while price rises — short-squeeze exhaustion, bearish reversal ahead"
-                if direction == Direction.BEARISH else
-                "OI rising while price drops — accumulation, bullish reversal ahead"
-            ),
-            'oi_surge': (
-                "Fresh capital entering shorts — trend continuation fuel"
-                if direction == Direction.BEARISH else
-                "Fresh capital entering longs — trend continuation fuel"
             ),
         }
         return theses.get(sub_type, f"Signal detected — evaluate against market structure")
@@ -570,26 +554,23 @@ class SniperTrigger:
         """One-line summary of signal evidence for the pre-brief."""
         ev = s.evidence
         if s.sub_type == 'cvd_momentum':
-            return f"CVD intensity {ev.get('cvd_intensity', 0.0):.3f}"
+            path = ev.get('trigger_path', 'growth')
+            return f"CVD intensity {ev.get('cvd_intensity', 0.0):.3f} (path={path})"
         if s.sub_type == 'cvd_divergence':
             return f"CVD delta {ev.get('cvd_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
         if s.sub_type == 'cvd_absorption':
             return f"CVD {ev.get('cvd_intensity', 0.0):.3f} with flat price (delta {ev.get('price_delta', 0.0):.1f})"
-        if s.sub_type == 'taker_imbalance':
-            return f"CVD {ev.get('cvd_intensity', 0.0):.3f} (taker imbalance equivalent)"
+        if s.sub_type == 'large_trade':
+            return f"Avg trade size {ev.get('avg_trade_size', 0.0):.3f} BTC (z={ev.get('z_score', 0.0):.1f})"
         if s.sub_type == 'volatility_surge':
             return f"VII={ev.get('vii', 0.0):.2f}, VPR={ev.get('vpr', 0.0):.2f}"
         if s.sub_type == 'squeeze':
             return f"Squeeze factor {ev.get('squeeze_factor', 0.0):.2f}"
         if s.sub_type == 'boundary_test':
             return f"Distance to {ev.get('boundary', '?')}: {ev.get('dist_atr', 0.0):.2f} ATR"
-        if s.sub_type == 'poc_gravity':
-            return f"POC distance: {ev.get('poc_dist_atr', 0.0):.2f} ATR"
         if s.sub_type == 'liquidation_hunt':
             return f"Cluster at {ev.get('cluster_price', 0.0):.1f}, distance: {ev.get('dist_atr', 0.0):.2f} ATR"
-        if s.sub_type == 'trend_pullback':
-            return f"Trend={ev.get('trend_intensity', 0.0):.2f}, dist to structure={ev.get('dist_to_structure_atr', 0.0):.2f} ATR"
-        if s.sub_type == 'retail_extreme':
+        if s.sub_type == 'positioning_extreme':
             trigger = ev.get('trigger', '?')
             if trigger == 'ls_long':
                 return f"LS ratio {ev.get('ls_ratio', 0.0):.2f} — retail heavily long"
@@ -597,10 +578,10 @@ class SniperTrigger:
                 return f"LS ratio {ev.get('ls_ratio', 0.0):.2f} — retail heavily short"
             elif trigger == 'funding':
                 return f"Funding rate {ev.get('funding_rate', 0.0):.5f} — extreme"
-        if s.sub_type == 'oi_divergence':
-            return f"OI delta {ev.get('oi_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
-        if s.sub_type == 'oi_surge':
-            return f"OI delta {ev.get('oi_delta', 0.0):.3f} aligned with price delta {ev.get('price_delta', 0.0):.1f}"
+            elif trigger == 'oi_divergence':
+                return f"OI delta {ev.get('oi_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
+            elif trigger == 'oi_surge':
+                return f"OI delta {ev.get('oi_delta', 0.0):.3f} aligned with price delta {ev.get('price_delta', 0.0):.1f}"
         return str(ev)[:120]
 
     def _build_risk_caveats(self, signals: List[SignalCard],
@@ -608,17 +589,13 @@ class SniperTrigger:
         caveats = []
         sub_types = {s.sub_type for s in signals}
 
-        if 'retail_extreme' in sub_types:
+        if 'positioning_extreme' in sub_types:
             caveats.append(
-                "Retail extreme can persist for hours — do not force entry without structural confirmation"
+                "Positioning extreme can persist for hours — do not force entry without structural confirmation"
             )
         if 'cvd_momentum' in sub_types and 'cvd_absorption' not in sub_types:
             caveats.append(
                 "CVD momentum is strong but watch for absorption — extreme CVD without price movement = reversal risk"
-            )
-        if 'trend_pullback' in sub_types:
-            caveats.append(
-                "Trend pullback is the highest-quality setup — prioritize structure-anchored entry"
             )
         if regime == 'chaos':
             caveats.append(
@@ -642,15 +619,15 @@ class SniperTrigger:
             "max_distance_atr": max_dist,
         }
 
-        if any(s.sub_type == 'trend_pullback' for s in signals):
-            suggestion["type"] = "trend_pullback_dle"
-            suggestion["target_area"] = "nearest HVN in trend direction"
-        elif any(s.sub_type == 'cvd_divergence' for s in signals):
+        if any(s.sub_type == 'cvd_divergence' for s in signals):
             suggestion["type"] = "divergence_fade"
             suggestion["target_area"] = "proximal structural boundary"
         elif any(s.sub_type == 'squeeze' for s in signals):
             suggestion["type"] = "squeeze_breakout"
             suggestion["target_area"] = "beyond VAH/VAL on confirmed breakout direction"
+        elif any(s.sub_type == 'large_trade' for s in signals):
+            suggestion["type"] = "institutional_follow"
+            suggestion["target_area"] = "nearest HVN in flow direction"
         elif regime == 'chaos':
             suggestion["type"] = "hit_and_run"
             suggestion["target_area"] = "nearest liquidation cluster or VAH/VAL boundary"
@@ -1220,10 +1197,8 @@ class SniperTrigger:
 
     def _log_signal_diagnostics(self, metrics: Dict[str, Any],
                                  fresh_signals: List[SignalCard]) -> None:
-        """Log a compact per-pulse summary of key decision metrics for all 14
-        signal detectors.  Fired detectors show their strength; silent detectors
-        show the primary rejection metric vs threshold so operators can tune
-        sensitivity or detect silent failures."""
+        """Log a compact per-pulse summary of key decision metrics for all 9
+        signal detectors."""
         fired = {s.sub_type: s for s in fresh_signals}
         parts: List[str] = []
 
@@ -1233,15 +1208,21 @@ class SniperTrigger:
         parts.append(f"cvd={cvd:+.3f}")
 
         s = fired.get('cvd_momentum')
-        parts.append(f"cvd_momentum={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={cvd_thresh}'}")
+        extreme_thresh = self.sniper_cfg.get('signal_stack', {}).get(
+            'thresholds', {}).get('cvd_extreme_threshold', 0.18)
+        parts.append(f"cvd_momentum={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={cvd_thresh}&<={extreme_thresh}'}")
 
         s = fired.get('cvd_divergence')
         parts.append(f"cvd_divergence={'F:'+str(round(s.strength,2)) if s else 'R:no-prev/div-low'}")
         s = fired.get('cvd_absorption')
         parts.append(f"cvd_absorption={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<=extreme'}")
-        s = fired.get('taker_imbalance')
-        taker_thresh = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {}).get('taker_imbalance', 0.20)
-        parts.append(f"taker_imb={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={taker_thresh}'}")
+
+        # ── SIZE category ──
+        avg_size = metrics['sentiment_signals'].get('avg_trade_size', 0.0)
+        trade_n = metrics['sentiment_signals'].get('trade_count', 0)
+        z_thresh = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {}).get('large_trade_zscore', 2.0)
+        s = fired.get('large_trade')
+        parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade={'F:'+str(round(s.strength,2)) if s else f'R:z<={z_thresh}'}")
 
         # ── ENERGY category ──
         vii = metrics['price_dynamics']['volatility_intensity_index']
@@ -1263,10 +1244,8 @@ class SniperTrigger:
         price = metrics['price_dynamics']['current_price']
         atr = metrics['price_dynamics'].get('atr_macro', 0)
         topo = metrics['volume_profile']
-        anchors = metrics.get('structural_anchors', {})
         parts.append(f"price={price:.1f},atr={atr:.2f}")
 
-        # boundary_test
         s = fired.get('boundary_test')
         if atr > 0:
             dist_vh = abs(price - topo['vah']) / atr
@@ -1276,38 +1255,20 @@ class SniperTrigger:
         else:
             parts.append("boundary_test=R:atr=0")
 
-        # poc_gravity
-        poc_dist = anchors.get('poc_dist_atr', 0)
-        poc_thresh = self.sniper_cfg['proximity']['poc_atr']
-        s = fired.get('poc_gravity')
-        parts.append(f"poc_gravity={'F:'+str(round(s.strength,2)) if s else f'R:poc_dist={abs(poc_dist):.2f}>={poc_thresh}'}")
-
-        # liquidation_hunt — already tracked via evidence in SignalCard, just show count
         s = fired.get('liquidation_hunt')
         parts.append(f"liq_hunt={'F:'+str(round(s.strength,2)) if s else 'R:no-cluster-in-range'}")
-
-        # trend_pullback
-        trend = metrics['market_regime'].get('trend_intensity', 0)
-        strong_t = self.regime_cfg['trend']['trend_intensity_strong']
-        s = fired.get('trend_pullback')
-        parts.append(f"trend_pullback={'F:'+str(round(s.strength,2)) if s else f'R:trend={abs(trend):.3f}<={strong_t}'}")
 
         # ── POSITIONING category ──
         ls = metrics['sentiment_signals'].get('ls_ratio_micro', 1.0)
         funding = metrics['sentiment_signals'].get('funding_rate', 0.0)
-        parts.append(f"ls={ls:.2f},fund={funding:.4f}")
+        oi_delta = metrics['sentiment_signals'].get('oi_delta_micro', 0.0)
+        parts.append(f"ls={ls:.2f},fund={funding:.4f},oi_d={oi_delta:.4f}")
 
-        s = fired.get('retail_extreme')
+        s = fired.get('positioning_extreme')
         ls_imb = self.regime_cfg['imbalance']['long_short_imbalance_ratio']
         ls_short = self.regime_cfg['imbalance']['short_heavy_imbalance_ratio']
         fund_ext = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
-        parts.append(f"retail_ext={'F:'+str(round(s.strength,2)) if s else f'R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}'}")
-
-        s = fired.get('oi_divergence')
-        parts.append(f"oi_div={'F:'+str(round(s.strength,2)) if s else 'R:no-div/no-prev'}")
-        s = fired.get('oi_surge')
-        oi_delta = metrics['sentiment_signals'].get('oi_delta_micro', 0.0)
-        parts.append(f"oi_surge={'F:'+str(round(s.strength,2)) if s else f'R:oi_delta={abs(oi_delta):.4f}<=0.02'}")
+        parts.append(f"pos_ext={'F:'+str(round(s.strength,2)) if s else f'R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01'}")
 
         logger.info("[%s] SIGNAL DIAG | %s", self.symbol, " | ".join(parts))
 
