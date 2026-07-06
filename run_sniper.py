@@ -71,7 +71,7 @@ class SniperDaemon:
                 global_cfg=self.scouts[sym].global_cfg,
                 symbol=sym,
             )
-            logger.info(f"[{sym}] trigger cooldown active | remaining={self.triggers[sym].cooldown_minutes}m")
+            logger.info(f"[{sym}] trigger cooldown configured | default_cooldown={self.triggers[sym].cooldown_minutes}m")
 
         # 2. Initialize Heavyweight Session Engines (one per symbol, always)
         self.session_engines: dict = {}

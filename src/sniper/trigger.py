@@ -1491,10 +1491,11 @@ class SniperTrigger:
         )
 
         if should_trigger:
+            memory_signal_count = len(all_signals) - len(fresh_signals)
             logger.info(
                 f"[{self.symbol}] WAKE | dir={dominant_direction.value} | "
                 f"confluence={confluence_score:.2f} | "
-                f"signals={len(fresh_signals)} | "
+                f"fresh={len(fresh_signals)} | memory={memory_signal_count} | "
                 f"active={[s.sub_type for s in result.active_signals]} | "
                 f"gate={gate_result} | regime={regime}"
             )
