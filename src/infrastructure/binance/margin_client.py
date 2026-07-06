@@ -490,8 +490,6 @@ class BinanceMarginClient:
                 "pendingQuantity": round(qty, p_qty),
                 "workingTimeInForce": "GTC",
                 "pendingSide": pending_side,
-                "pendingAboveTimeInForce": "GTC",
-                "pendingBelowTimeInForce": "GTC",
                 "sideEffectType": "MARGIN_BUY",
             }
 
@@ -499,6 +497,7 @@ class BinanceMarginClient:
                 # Entry lower -> TP is higher(ABOVE), SL is lower(BELOW)
                 params["pendingAboveType"] = "LIMIT_MAKER"
                 params["pendingBelowType"] = "STOP_LOSS_LIMIT"
+                params["pendingBelowTimeInForce"] = "GTC"
 
                 params["pendingAbovePrice"] = self._round_price(tp_price, p_price, pending_side)
                 params["pendingBelowStopPrice"] = self._round_price(sl_trigger_price, p_price, pending_side)
@@ -507,6 +506,7 @@ class BinanceMarginClient:
                 # Entry higher -> TP is lower(BELOW), SL is higher(ABOVE)
                 params["pendingAboveType"] = "STOP_LOSS_LIMIT"
                 params["pendingBelowType"] = "LIMIT_MAKER"
+                params["pendingAboveTimeInForce"] = "GTC"
 
                 params["pendingBelowPrice"] = self._round_price(tp_price, p_price, pending_side)
                 params["pendingAboveStopPrice"] = self._round_price(sl_trigger_price, p_price, pending_side)
