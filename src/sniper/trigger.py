@@ -208,6 +208,25 @@ class SniperTrigger:
     # Cross-symbol correlation matrix: leader → {follower: coefficient}.
     # Only leaders listed as keys can propagate to followers.  Currently empty
     # (BTC and XAUT are independent); add entries when introducing ETH/SOL.
+    #
+    # Usage — when a leader symbol fires (WAKE), the daemon pushes a leader_sync
+    # signal card to each follower listed under that leader.  The boost strength
+    # is capped at 0.10 and only nudges a follower that is already close to its
+    # own trigger threshold.  A single leader_sync card cannot cause a trigger on
+    # its own.
+    #
+    # Calibration — effective correlation range is 0.50–0.80 (cap flattens
+    # everything above 0.80).  For crypto majors that track BTC closely
+    # (ETH, SOL), 0.70 is a good starting point.  For weaker relationships,
+    # 0.50–0.60 gives a barely-felt nudge.  Tune based on backtest results.
+    #
+    # Example with ETH + SOL tracking BTC:
+    #   CROSS_CORRELATIONS = {
+    #       'BTCUSDT': {
+    #           'ETHUSDT': 0.70,
+    #           'SOLUSDT': 0.70,
+    #       },
+    #   }
     CROSS_CORRELATIONS: Dict[str, Dict[str, float]] = {}
 
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):
