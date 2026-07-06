@@ -168,22 +168,19 @@ sniper:
     # retail_extreme 和 leader_sync 权重最低——反向指标可能更极端，跨币种相关性噪声大。
     weights:
       # FLOW — 资金流（快变量，可靠但短命）
-      cvd_momentum: 0.65      # CVD 方向：可靠，但可能瞬间翻转
+      cvd_momentum: 0.65      # CVD 方向+极端：合并原 taker_imbalance 的静态检测
       cvd_divergence: 0.70    # CVD-价格背离：强信号，聪明钱 vs 散户
-      cvd_absorption: 0.65    # CVD 吸收：挂单墙被吃掉，方向确认
-      taker_imbalance: 0.60   # 主动买卖比：中等可靠，需配合
+      cvd_absorption: 0.50    # CVD 吸收：无 OB 数据佐证，降权（原 0.65）
+      # SIZE — 大单/机构活动
+      large_trade: 0.55       # 大资金进场 proxy，基于 avg_trade_size Z-score
       # ENERGY — 波动能量
       volatility_surge: 0.55  # 波动率激增：不具方向性，需叠加其他信号
       squeeze: 0.75           # 布林带压缩：最佳前置信号，突破 precursor
       # STRUCTURAL — 结构锚点
       boundary_test: 0.50     # VAH/VAL 触碰：假突破多，权重最低
-      poc_gravity: 0.55       # POC 磁吸：成交量最大处有引力
       liquidation_hunt: 0.60  # 猎杀流动性：需方向配合，单独不够
-      trend_pullback: 0.75    # 趋势回调到结构位：高胜率 setup
-      # POSITIONING — 持仓情绪（反向指标，可能更极端）
-      retail_extreme: 0.42    # 散户极端持仓：反向信号但散户可以更疯
-      oi_divergence: 0.70     # OI-价格背离：强信号，持仓 vs 价格方向矛盾
-      oi_surge: 0.55          # OI 单边激增：方向不明，可能开仓也可能平仓
+      # POSITIONING — 持仓极端（合并 retail_extreme + oi_divergence + oi_surge）
+      positioning_extreme: 0.50  # LS/费率/OI 三者任一极端：反向信号，降权
       # CROSS-SYMBOL — 跨币种联动
       leader_sync: 0.40       # 龙头带动：相关性噪声大，仅作辅助叠加
 
@@ -192,9 +189,13 @@ sniper:
     thresholds:
       # 脉冲间 CVD 比率变化幅度。超过此值触发 cvd_divergence 检测。
       cvd_divergence_tick_delta: 0.25
-      # |cvd_intensity_ratio| 需超过此值才触发 taker_imbalance。
-      # XAUT 等低流动性资产 CVD 方差大，可提高此值减少噪声。
-      taker_imbalance: 0.18
+      # CVD 极端阈值（替代原 taker_imbalance）。|cvd| 超过此值直接触发 cvd_momentum
+      # 静态路径。XAUT 等低流动性资产可提高此值减少噪声。
+      cvd_extreme_threshold: 0.18
+      # large_trade: avg_trade_size Z-score 超过此值触发
+      large_trade_zscore: 2.0
+      # large_trade: 滚动窗口脉冲数（每个 pulse ≈ 2min）
+      large_trade_lookback: 30
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Exit Ladder + Trailing Stop)
