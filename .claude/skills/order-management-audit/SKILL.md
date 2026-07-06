@@ -1,7 +1,7 @@
 ---
 name: order-management-audit
 description: Run a forensic audit on the order management and execution system. Use when the user wants to review order execution logic, audit MarginOrderExecutor or SniperDaemon guardian behavior, check OCO lifecycle risks, verify pivot/preserve/force-close scenarios, assess exit-ladder and sl_lock correctness, evaluate restart/recovery edge cases, find order-management bugs, or assess risk of naked-position windows. Triggers on: "order management review", "execution audit", "guardian audit", "check order executor", "review sniper trade logic", "audit OCO handling", "position management risk", "trailing stop review", "exit ladder audit". Always use when the user asks about the safety or correctness of the trade execution pipeline.
-compatibility: Requires read access to src/agent/order_executor.py, src/infrastructure/binance/margin_client.py, run_sniper.py (guardian section), config/global_config.yaml (guardian section), and tests/system/test_order_executor.py.
+compatibility: Requires read access to src/agent/order_executor.py, src/infrastructure/binance/margin_client.py, run_sniper.py (guardian section), config/global_config.yaml (guardian section), config/symbol_config.yaml (per-symbol precision and buffers), scripts/place_otoco.py (standalone OTOCO entry), and tests/system/test_order_executor.py.
 ---
 
 # Order Management Audit
@@ -240,12 +240,46 @@ For every API call in the execution path, check failure handling:
 
 5. **execute_market_close**: Returns False on failure. Caller retries next pulse (keeps trade_state). But: the position is naked until the retry succeeds.
 
+### D9: OTOCO Entry Placement — Initial Entry Flow
+
+**Source files**: `src/agent/order_executor.py` (`sync_with_opinion` at line 64, `_place_otoco_entry` at line 963), `src/infrastructure/binance/margin_client.py` (`place_otoco_order` at line 473)
+
+The OTOCO (One-Triggers-One-Cancels-Other) is the entry mechanism: a LIMIT entry order with nested TP (LIMIT_MAKER) and SL (STOP_LOSS_LIMIT) that activate atomically when the entry fills. This is distinct from the post-entry OCO used by Guardian — OTOCO is the initial entry, OCO is ongoing protection.
+
+1. **OTOCO API Parameter Correctness**
+   - `place_otoco_order()` (margin_client.py line 473): constructs params for `POST /sapi/v1/margin/order/otoco`.
+   - `pendingAboveTimeInForce` and `pendingBelowTimeInForce` must ONLY be sent for STOP_LOSS_LIMIT legs — LIMIT_MAKER legs do NOT accept timeInForce. Verified at commit `3f7c0a5`:
+     - BUY (LONG): `pendingAboveType=LIMIT_MAKER` → no timeInForce. `pendingBelowType=STOP_LOSS_LIMIT` → `pendingBelowTimeInForce=GTC`.
+     - SELL (SHORT): `pendingAboveType=STOP_LOSS_LIMIT` → `pendingAboveTimeInForce=GTC`. `pendingBelowType=LIMIT_MAKER` → no timeInForce.
+   - Audit: verify no regression — both branches send timeInForce ONLY for the STOP_LOSS_LIMIT leg.
+
+2. **OTOCO Failure Handling**
+   - `_place_otoco_entry()` (order_executor.py line 963) calls `client.place_otoco_order()` and returns the result directly. A `None` return (API failure) propagates to `sync_with_opinion` → SniperDaemon's `_attempt_trade_execution` sees `None` → "no entry order placed" → trade_state is NOT created.
+   - The position remains flat. No emergency close needed (there's nothing to close). The daemon returns to monitoring and the next signal pulse may trigger a new session.
+   - **Risk**: silent failure. The AI session produces a valid trade decision but the OTOCO fails silently (e.g., API parameter error like the timeInForce bug). The operator sees "no entry order placed" in logs but the underlying cause may be buried. The Binance error IS logged at ERROR level — verify this log is visible and actionable.
+
+3. **OTOCO Pending Window (Entry Unfilled)**
+   - After OTOCO placement: the entry LIMIT order sits on the exchange with nested TP/SL in pending state. No position exists yet.
+   - SniperDaemon's `trade_states[symbol]` contains `otoco_placed_at` and `projected_waiting_hours` — Guardian checks timeout on each pulse.
+   - Guardian Case 1 (no position, pending OTOCO): if elapsed > projected_waiting_hours → cancel entry order → clear trade_state → reset cooldown.
+   - **External OTOCO risk**: if OTOCO is placed outside the daemon (e.g., `scripts/place_otoco.py`), trade_state is empty `{}`. Guardian sees no trade_state, no position → skips. The pending OTOCO is invisible to the daemon. If a new AI session fires before the OTOCO fills, `sync_with_opinion` finds FLAT with active orders → calls `cancel_all_symbol_orders()` → cancels the external OTOCO. Mitigation: the operator is responsible for ensuring the symbol is quiet before using the external script.
+
+4. **OTOCO Fill → Guardian Handoff**
+   - When the entry fills: position appears on exchange, nested TP/SL activate as live OCO orders.
+   - Next Guardian pulse: `has_position=True`, `has_sl=True`, trade_state may be `{}` if OTOCO was external.
+   - Guardian reconstructs trade_state from exchange (restart recovery path in STEP 1): sets direction, tp_price, sl_price from active orders. Does NOT set `otoco_placed_at`, `entry_filled_at`, or `projected_holding_hours` — these fields are not needed for protection (exit ladder uses exchange API for avg_entry, sl_lock uses avg_entry + TP distance).
+   - After reconstruction: Guardian enters Case 4 (protected position) → partial TP ladder + trailing SL active. New AI sessions blocked via `has_active=True`.
+
+5. **Entry Price Qty Slippage Buffer**
+   - `_place_otoco_entry` uses `sl_slippage_buffer` from `symbol_config.yaml` — same buffer as post-entry OCO placements. Directionally correct per the existing D1.4 audit.
+   - Entry qty is calculated via `_calculate_target_qty()` — uses risk_per_trade % of equity. Verify no double-counting: the standalone script (`place_otoco.py`) bypasses this calculation entirely (user provides qty directly). If the daemon later reconstructs trade_state from an external OTOCO, the original qty rationale is lost — this is acceptable since protection uses exchange qty, not calculated qty.
+
 ## Execution Workflow
 
 ### Step 1: Scope & Triage
 
 Ask the user (or infer from flags):
-- Which dimensions? (all 8, or specific ones)
+- Which dimensions? (all 9, or specific ones)
 - Which symbol? (affects config path and precision checks)
 - Report-only or --fix?
 
