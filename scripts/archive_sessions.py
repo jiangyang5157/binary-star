@@ -2,14 +2,15 @@
 """
 Archive Session Reports to Version Folder
 ------------------------------------------
-Move all session JSON files from <data_root>/sessions/ into <data_root>/<version>/.
+Move session JSON files from <data_root>/sessions/ into <data_root>/<version>/,
+filtered by metadata.version_control.project_version matching the version argument.
 Creates the target folder if it doesn't exist; overwrites on name collision.
 
 Usage:
-    python scripts/archive_sessions.py -p data/prod -v 26.7.8
-    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol BTC
-    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol BTC,XAUT
-    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --dry-run
+    python scripts/archive_sessions.py -p data/prod -v v26.6.26
+    python scripts/archive_sessions.py -p data/prod -v v26.6.26 --symbol BTC
+    python scripts/archive_sessions.py -p data/prod -v v26.6.26 --symbol BTC,XAUT
+    python scripts/archive_sessions.py -p data/prod -v v26.6.26 --dry-run
 """
 
 import os
@@ -22,6 +23,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 import argparse
+import json
 import logging
 import shutil
 
@@ -37,18 +39,46 @@ def setup_logger(verbose: bool = False):
     logging.basicConfig(level=level, format=fmt)
 
 
-def collect_session_files(data_root: str, symbol: str | None = None) -> list[str]:
-    """Collect session JSON paths under <data_root>/sessions/, optionally filtered by symbol."""
+def collect_session_files(data_root: str, version: str, symbol: str | None = None) -> list[str]:
+    """Collect session JSON paths under <data_root>/sessions/ where metadata.version_control.project_version
+    matches the given version string.  Optionally further filtered by symbol prefix."""
     sessions_dir = os.path.join(PROJECT_ROOT, data_root, "sessions")
     if not os.path.isdir(sessions_dir):
         logger.error("sessions directory not found | dir=%s", sessions_dir)
         sys.exit(1)
 
-    files = [
+    candidates = [
         os.path.join(sessions_dir, f)
         for f in os.listdir(sessions_dir)
         if f.endswith(".json")
     ]
+
+    # Filter by version_control.project_version inside the session JSON
+    files: list[str] = []
+    skipped_no_meta = 0
+    skipped_version_mismatch = 0
+    for fp in candidates:
+        try:
+            with open(fp, "r") as fh:
+                data = json.load(fh)
+        except (json.JSONDecodeError, OSError) as exc:
+            logger.warning("skipping unreadable file | file=%s | error=%s", os.path.basename(fp), exc)
+            continue
+
+        pv = data.get("metadata", {}).get("version_control", {}).get("project_version")
+        if pv is None:
+            skipped_no_meta += 1
+            continue
+        if str(pv) != version:
+            skipped_version_mismatch += 1
+            continue
+        files.append(fp)
+
+    if skipped_no_meta or skipped_version_mismatch:
+        logger.info(
+            "version filter | matched=%d | skipped_no_project_version=%d | skipped_version_mismatch=%d",
+            len(files), skipped_no_meta, skipped_version_mismatch,
+        )
 
     if symbol:
         from src.utils.symbol_utils import resolve_symbols
@@ -60,7 +90,7 @@ def collect_session_files(data_root: str, symbol: str | None = None) -> list[str
 
     files.sort()
     if not files:
-        logger.warning("no session files found | dir=%s", sessions_dir)
+        logger.warning("no matching session files found | dir=%s | version=%s", sessions_dir, version)
 
     return files
 
@@ -73,7 +103,9 @@ def main():
     parser.add_argument(
         "-v", "--version",
         type=str, required=True,
-        help="Version folder name, e.g. 26.7.8.  Sessions will be moved to <data_root>/<version>/."
+        help="Project version to match against metadata.version_control.project_version "
+             "in each session JSON (e.g. v26.6.26).  Only sessions whose project_version "
+             "matches will be moved.  Also used as the target folder name: <data_root>/<version>/."
     )
     parser.add_argument(
         "--symbol", type=str,
@@ -102,7 +134,7 @@ def main():
     target_dir = os.path.join(PROJECT_ROOT, data_root, version)
 
     # ── Collect ────────────────────────────────────────────────────────────────
-    files = collect_session_files(data_root, symbol)
+    files = collect_session_files(data_root, version, symbol)
     logger.info("scanning %d session files | source=%s", len(files), sessions_dir)
 
     if not files:
