@@ -1258,9 +1258,12 @@ class SniperTrigger:
         parts.append(f"cvd={cvd:+.3f}")
 
         s = fired.get('cvd_momentum')
-        extreme_thresh = self.sniper_cfg.get('signal_stack', {}).get(
-            'thresholds', {}).get('cvd_extreme_threshold', 0.18)
-        parts.append(f"cvd_momentum={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<={cvd_thresh}&<={extreme_thresh}'}")
+        extreme_thresh = self._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18)
+        if s:
+            path = s.evidence.get('trigger_path', '?')
+            parts.append(f"cvd_momentum=F:{s.strength:.2f}({path})")
+        else:
+            parts.append(f"cvd_momentum=R:|cvd|<={cvd_thresh}&<={extreme_thresh}")
 
         s = fired.get('cvd_divergence')
         parts.append(f"cvd_divergence={'F:'+str(round(s.strength,2)) if s else 'R:no-prev/div-low'}")
@@ -1270,9 +1273,18 @@ class SniperTrigger:
         # ── SIZE category ──
         avg_size = metrics['sentiment_signals'].get('avg_trade_size', 0.0)
         trade_n = metrics['sentiment_signals'].get('trade_count', 0)
-        z_thresh = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {}).get('large_trade_zscore', 2.0)
+        z_thresh = self._signal_cfg('thresholds', 'large_trade_zscore', default=2.0)
         s = fired.get('large_trade')
-        parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade={'F:'+str(round(s.strength,2)) if s else f'R:z<={z_thresh}'}")
+        if s:
+            z = s.evidence.get('z_score', 0.0)
+            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=F:{s.strength:.2f}(z={z:.1f})")
+        elif len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
+            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=R:warmup({len(self._trade_size_window)}/{MIN_LARGE_TRADE_SAMPLES})")
+        else:
+            mean = sum(self._trade_size_window) / len(self._trade_size_window)
+            std = (sum((x - mean) ** 2 for x in self._trade_size_window) / len(self._trade_size_window)) ** 0.5
+            z = (avg_size - mean) / std if std > 1e-9 else 0.0
+            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=R:z={z:.1f}<={z_thresh}")
 
         # ── ENERGY category ──
         vii = metrics['price_dynamics']['volatility_intensity_index']
