@@ -32,9 +32,9 @@ Run these in parallel for efficiency. Each dimension spawns a subagent that read
 Trace every path where OCO orders are placed, cancelled, or replaced:
 
 1. **Cancel-Place Gap (Naked Window)**
-   - In `_optimize_same_direction()` starts at 451: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
-   - In `_try_exit_ladder()` starts at 704: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
-   - In `_apply_sl_lock()` starts at 828: cancel_all → re-verify → place_oco. Same exposure.
+   - In `_optimize_same_direction()`: cancel_all → re-verify position → place_oco. What if price moves through SL during this window?
+   - In `_try_exit_ladder()`: cancel_all → partial_close → re-verify → place_oco. Three API calls with position exposed between them.
+   - In `_apply_sl_lock()`: cancel_all → re-verify → place_oco. Same exposure.
    - Measure: for each site, estimate the wall-clock duration of the naked window. Flag any site missing the re-verify step.
 
 2. **Emergency Close Completeness**
@@ -60,7 +60,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 ### D2: Pivot Logic — Direction Changes While Holding
 
-**Source file**: `src/agent/order_executor.py` (`sync_with_opinion`, starts at line 64)
+**Source file**: `src/agent/order_executor.py` (`sync_with_opinion`)
 
 **Current behavior**: Pivots are **blocked**. When the AI opinion opposes an existing position (Scenario A), the bot returns `None` and takes zero action — no force close, no new entry, no OCO manipulation. The Guardian continues protecting the existing position.
 
@@ -89,7 +89,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 ### D3: Guardian Pulse Cycle — Protection State Machine
 
-**Source file**: `src/agent/order_executor.py` (`guardian_check`, starts at line 142)
+**Source file**: `src/agent/order_executor.py` (`guardian_check`)
 
 1. **Intent Check (STEP 1)**
    - Empty trade_state + no position → early return. Correct.
@@ -120,7 +120,7 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 ### D4: Exit Ladder + sl_lock — Sequential Correctness
 
-**Source file**: `src/agent/order_executor.py` (_try_exit_ladder at line 704, _apply_sl_lock at line 828, Case 4 trailing dispatch)
+**Source file**: `src/agent/order_executor.py` (`_try_exit_ladder`, `_apply_sl_lock`, `_guardian_case_4_protected`)
 
 1. **Level Loop Correctness**
    - `_try_exit_ladder` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (break when threshold not met).
@@ -143,14 +143,14 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - The daemon tracks `_symbol_level[symbol]` in memory — not persisted.
    - On qty change: level is reset to None, re-initialized via `find_level_and_sync_sl` on next pulse.
    - On daemon restart: level is None, re-initialized same way.
-   - `find_level_and_sync_sl()` starts at 604) determines level from exchange state:
+   - `find_level_and_sync_sl()` determines level from exchange state:
      - If SL == entry → L1 not fired → return 0.
      - If SL != entry → scan progress (`deviation / tp_distance`) against level targets → return first unmet.
    - Check: the scan loop uses `for i in range(1, len(levels))` starting at index 1 (L2). This means L1 is detected by SL position, L2+ by deviation. Is this correct when multi-level fired in a single pulse? (The loop advances `next_level` for each met threshold → yes.)
 
 ### D5: Daemon Integration — SniperDaemon + Executor Boundary
 
-**Source file**: `run_sniper.py` (_guardian_check starts at line 497, _attempt_trade_execution starts at line 415)
+**Source file**: `run_sniper.py` (`_guardian_check` and `_attempt_trade_execution` in SniperDaemon)
 
 1. **Trade State Lifecycle**
    - Created in `_attempt_trade_execution()` (within _attempt_trade_execution): after `sync_with_opinion` returns an order_id.
@@ -242,19 +242,19 @@ For every API call in the execution path, check failure handling:
 
 ### D9: OTOCO Entry Placement — Initial Entry Flow
 
-**Source files**: `src/agent/order_executor.py` (`sync_with_opinion` at line 64, `_place_otoco_entry` at line 963), `src/infrastructure/binance/margin_client.py` (`place_otoco_order` at line 473)
+**Source files**: `src/agent/order_executor.py` (`sync_with_opinion`, `_place_otoco_entry`), `src/infrastructure/binance/margin_client.py` (`place_otoco_order`)
 
 The OTOCO (One-Triggers-One-Cancels-Other) is the entry mechanism: a LIMIT entry order with nested TP (LIMIT_MAKER) and SL (STOP_LOSS_LIMIT) that activate atomically when the entry fills. This is distinct from the post-entry OCO used by Guardian — OTOCO is the initial entry, OCO is ongoing protection.
 
 1. **OTOCO API Parameter Correctness**
-   - `place_otoco_order()` (margin_client.py line 473): constructs params for `POST /sapi/v1/margin/order/otoco`.
+   - `place_otoco_order()` (in `margin_client.py`): constructs params for `POST /sapi/v1/margin/order/otoco`.
    - `pendingAboveTimeInForce` and `pendingBelowTimeInForce` must ONLY be sent for STOP_LOSS_LIMIT legs — LIMIT_MAKER legs do NOT accept timeInForce. Verified at commit `3f7c0a5`:
      - BUY (LONG): `pendingAboveType=LIMIT_MAKER` → no timeInForce. `pendingBelowType=STOP_LOSS_LIMIT` → `pendingBelowTimeInForce=GTC`.
      - SELL (SHORT): `pendingAboveType=STOP_LOSS_LIMIT` → `pendingAboveTimeInForce=GTC`. `pendingBelowType=LIMIT_MAKER` → no timeInForce.
    - Audit: verify no regression — both branches send timeInForce ONLY for the STOP_LOSS_LIMIT leg.
 
 2. **OTOCO Failure Handling**
-   - `_place_otoco_entry()` (order_executor.py line 963) calls `client.place_otoco_order()` and returns the result directly. A `None` return (API failure) propagates to `sync_with_opinion` → SniperDaemon's `_attempt_trade_execution` sees `None` → "no entry order placed" → trade_state is NOT created.
+   - `_place_otoco_entry()` calls `client.place_otoco_order()` and returns the result directly. A `None` return (API failure) propagates to `sync_with_opinion` → SniperDaemon's `_attempt_trade_execution` sees `None` → "no entry order placed" → trade_state is NOT created.
    - The position remains flat. No emergency close needed (there's nothing to close). The daemon returns to monitoring and the next signal pulse may trigger a new session.
    - **Risk**: silent failure. The AI session produces a valid trade decision but the OTOCO fails silently (e.g., API parameter error like the timeInForce bug). The operator sees "no entry order placed" in logs but the underlying cause may be buried. The Binance error IS logged at ERROR level — verify this log is visible and actionable.
 

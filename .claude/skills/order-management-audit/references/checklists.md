@@ -11,12 +11,12 @@ For each site that cancels then re-places OCO, answer:
 - [ ] Is there a re-verify step between cancel and place? (checks position still exists)
 
 Sites to audit:
-1. `_optimize_same_direction()` — `order_executor.py:starts at 451`
-2. `_try_exit_ladder()` — `order_executor.py:starts at 704`
-3. `_apply_sl_lock()` — `order_executor.py:starts at 828`
-4. `guardian_check()` Case 3 OCO placement — `order_executor.py:Case 3 OCO placement block`
-5. `guardian_check()` Case 4 qty re-align — `order_executor.py:Case 4 qty re-align block`
-6. `find_level_and_sync_sl()` — `order_executor.py:starts at 604`
+1. `_optimize_same_direction()` — in `order_executor.py`
+2. `_try_exit_ladder()` — in `order_executor.py`
+3. `_apply_sl_lock()` — in `order_executor.py`
+4. `_guardian_case_3_protect()` — OCO placement block (extracted from guardian_check)
+5. `_guardian_case_4_protected()` — qty re-align block (extracted from guardian_check)
+6. `find_level_and_sync_sl()` — in `order_executor.py`
 
 ### 1.2 Emergency Close Completeness
 For every `place_oco_order` call site, verify:
