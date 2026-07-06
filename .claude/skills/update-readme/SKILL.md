@@ -21,13 +21,13 @@ diagram-rich documentation.
 The README tells this story, in this order:
 
 1. **Opening** (hook) — one punchy paragraph. Lead with Binary Star: "two LLMs debate your trade." Not a feature list.
-2. **Binary Star** (hero) — debate protocol: Planner, Critic, Math Auditor, veto levels. AI providers and confidence scoring are mentioned inline here — no separate sections for them.
-3. **Architecture** — one clean diagram
+2. **Binary Star** (hero) — debate protocol: Planner, Critic, Math Tools, veto levels. AI providers and confidence scoring are mentioned inline here — no separate sections for them.
+3. **Architecture** — TWO diagrams: runtime pipeline + offline evolution loop (see Architecture Rules below)
 4. **Sniper** (minimal) — signal stack provides timing
 5. **Order Management** (minimal) — one table
 6. **Evolution** (minimal) — one paragraph
 7. **Installation** — two lines: `pip install -e .` + `.env.example`
-8. **Commands** (last) — 5 groups: Sessions, Sniper, Backtest, Audit & Evolution, Dashboard
+8. **Commands** (last) — 5 groups: Sessions, Sniper, Backtest, Audit & Evolution
 
 **DO NOT** include: code layer stacks, file paths, implementation details, backtest descriptions, standalone AI Provider or Config System sections, signal weight tables, prerequisites lists, or "Utilities" command groups. The reader came to see Binary Star, not the build system.
 
@@ -62,35 +62,44 @@ Based on the selected sections, scan only what's needed.
 ```
 → Read src/agent/binary_star_orchestrator.py — overall flow, entry point
 → Read src/agent/debate_loop.py — round mechanics, convergence criteria
-→ Read src/agent/session_agent.py — Planner agent: what it sees, what it produces
+→ Read src/agent/session_agent.py — Session agent (the Planner role): what it sees, what it produces
 → Read src/agent/critic_agent.py — Critic agent: veto levels, audit dimensions
-→ Read src/analyzer/math_fact_checker.py — Math Auditor: RR, betweenness, ATR checks
+→ Read src/analyzer/math_fact_checker.py — Math Tools: deterministic RR, ATR, structural checks
 ```
 
 Extract the multi-agent architecture:
 - Which agents participate, in what role
-- How debate rounds work (plan → audit → converge or loop)
+- How debate rounds work (plan → verify → audit → converge or loop)
 - Early exit criteria vs forced convergence
-- The critic's veto system (PASS / CONSTRUCTIVE / TERMINAL)
-- Confidence scoring dimensions (D1 topographical, D2 regime, D3 temporal)
+- The critic's veto system — ALL FOUR levels: PASS, WEAK, CONSTRUCTIVE, TERMINAL
+- Confidence scoring dimensions (topographical armor, regime sync, temporal physics)
+- Math Tools is NOT an LLM agent — it's a deterministic Python-side verifier (RR, ATR, structural shielding). Use "Math Tools" not "Math Auditor" to avoid confusion with the Critic role.
 
 #### Architecture (light scan)
 
 ```
 → List src/ directory top-level packages only (depth 1)
-→ Identify the major system boundaries: trigger → debate → execution → evolution
+→ Identify the major system boundaries: trigger → debate → execution
+→ Identify the offline loop: session archives → audit → evolution → config patches
 ```
 
-Produce ONE clean diagram showing these boundaries, nothing more.
+Produce TWO diagrams:
+1. **Runtime pipeline** — Sniper → Binary Star Debate (subgraph) → Order Executor → Binance
+2. **Evolution loop** — Session Archives → Audit → Evolver Sandbox → Config Patches → Binary Star Config
+
+**Architecture Rules:**
+- Only Binary Star Debate gets a `subgraph` wrapper — it's the hero. Other nodes are standalone.
+- Subgraph labels must be short: `"Binary Star · 2 rounds"`, not `"Binary Star Debate — max 2 rounds"`.
+- The Evolution loop does NOT connect to Sniper — it feeds into Binary Star Config, which is outside the signal pipeline scope.
 
 #### Sniper System (minimal scan)
 
 ```
-→ Read src/sniper/trigger.py — count signal categories and types (don't list them all)
-→ Read config/global_config.yaml — extract sniper.signal_stack trigger_threshold, cooldown
+→ Read src/sniper/trigger.py — count registered signal detectors (should be 13, NOT 14 — leader_sync is separate cross-symbol propagation)
+→ Read config/global_config.yaml — extract sniper.signal_stack trigger_threshold, regime_modifiers, cooldown
 ```
 
-Capture only: "13 signals in 5 categories, regime-adaptive threshold, adaptive cooldown." The Sniper's job is to find good entry timing for Binary Star — nothing more.
+Capture only: "13 signals in 5 categories, regime-adaptive threshold (base threshold × per-regime modifier from config), emergency override, adaptive cooldown." Always read actual threshold values from `config/global_config.yaml` — do NOT hardcode them. The Sniper's job is to find good entry timing for Binary Star — nothing more.
 
 #### Order Management (minimal scan)
 
@@ -123,11 +132,13 @@ These get a one-line mention inside the Binary Star section. No separate section
 #### Commands (5 groups only)
 
 ```
-→ Read run.py — extract subcommands for: session, sniper, backtest-run, audit, evolution, dashboard
+→ Read run.py — extract subcommands for: session, sniper, backtest-run, audit, evolution, patch
 → Ignore scripts/*.py entirely
 ```
 
-Capture one representative invocation per group. Groups: Sessions, Sniper, Backtest, Audit & Evolution, Dashboard.
+Capture one representative invocation per group. Groups: Sessions, Sniper, Backtest, Audit & Evolution.
+Include `patch` as a subcommand within the Audit & Evolution group — it applies evolution proposals to config.
+Sniper example MUST include `--llm` and `--trade`. Do NOT include a Dashboard command unless it actually exists in `run.py`.
 
 ### Step 2: Generate Content
 
@@ -150,12 +161,13 @@ The README must be **scannable at a glance** — a reader who spends 10 seconds 
 #### Diagram Principles (CRITICAL)
 
 - **ZERO crossing lines** — the strongest signal of a well-structured diagram. If ANY two edges cross, restructure or split
-- **One diagram, one story** — if a single diagram tries to tell two stories (e.g. signal flow AND evolution), split them. Multiple smaller diagrams are ALWAYS better than one complex one
+- **One diagram, one story** — if a single diagram tries to tell two stories (e.g. signal flow AND evolution), split them. Multiple smaller diagrams are ALWAYS better than one complex one. This project specifically needs TWO architecture diagrams: runtime pipeline + offline evolution loop.
 - **`graph LR` for linear pipelines** — left-to-right flow with unidirectional arrows
-- **`sequenceDiagram` for time-ordered flows** — when participants exchange messages in order
+- **`sequenceDiagram` for time-ordered flows** — when participants exchange messages in order. Every agent gets its own `participant` column — never hide an agent as a self-loop on another participant. The Binary Star diagram MUST have 4 participants: Orchestrator, Session, Math Tools, Critic.
 - **`stateDiagram-v2` for state machines** — when an entity transitions between states
 - **No backtracking arrows** — every arrow should move forward. Side-loops (like debate rounds) use `loop` blocks in sequence diagrams or separate subgraphs
-- **Group with subgraphs** — related nodes go in `subgraph` containers; never let edges cross subgraph boundaries diagonally
+- **Subgraphs are selective** — only highlight the hero component (Binary Star Debate). Don't wrap every node in a subgraph. If a node stands alone, let it be a standalone node.
+- **Subgraph labels must be short** — `"Binary Star · 2 rounds"` not `"Binary Star Debate — max 2 rounds"`. Long labels overflow and look broken.
 
 #### Diagram Types
 
@@ -169,33 +181,55 @@ graph LR
     Phase2 --> Phase3
 ```
 
-**Time-based protocol** (`sequenceDiagram`):
+**Time-based protocol** (`sequenceDiagram`) — every agent is an explicit column:
 ```mermaid
 sequenceDiagram
-    participant A as ShortName
-    participant B as ShortName
-    A->>B: action
-    B-->>A: response
-    loop each round
-        A->>B: step
+    participant BSO as Orchestrator
+    participant S as Session
+    participant M as Math Tools
+    participant C as Critic
+
+    BSO->>BSO: harvest
+    loop max 2 rounds
+        BSO->>S: dispatch
+        S-->>BSO: trade plan
+        BSO->>M: verify
+        M-->>BSO: results
+        BSO->>C: audit
+        alt PASS / WEAK
+            C-->>BSO: early exit
+        else CONSTRUCTIVE
+            C-->>BSO: refine
+        else TERMINAL
+            C-->>BSO: forced convergence
+        end
     end
 ```
 
-**State machine** (`stateDiagram-v2`):
-```mermaid
-stateDiagram-v2
-    [*] --> State1
-    State1 --> State2: condition
-    State2 --> State1: reversal
-    State2 --> [*]: terminal
-```
-
-**Config / data flow** (`graph LR`):
+**Runtime pipeline** (`graph LR`) — only the hero component gets a subgraph:
 ```mermaid
 graph LR
-    Source1 --> Merge
-    Source2 --> Merge
-    Merge --> Output
+    subgraph Debate["Binary Star · 2 rounds"]
+        Planner["Planner"]
+        Critic["Critic"]
+        Math["Math Tools"]
+        Planner --> Math
+        Math --> Critic
+        Critic --> Planner
+    end
+
+    Sniper["Sniper<br/>13 signals"] --> Debate
+    Debate --> Executor["Order Executor"]
+    Executor --> Binance["Binance"]
+```
+
+**Evolution loop** (`graph LR`) — offline, separate from runtime:
+```mermaid
+graph LR
+    Archives["Session Archives"] --> Audit["Audit"]
+    Audit --> Evolver["Evolver Sandbox"]
+    Evolver --> Config["Config Patches"]
+    Config --> BinaryStar["Binary Star Config"]
 ```
 
 #### Section-Specific Templates
@@ -207,13 +241,13 @@ Each section has a preferred format. See `references/templates.md` for full temp
 1. Generate each section independently
 2. Assemble in this order:
    - Title + badges + opening hook (punchy, Binary Star focus)
-   - Binary Star Protocol (debate diagram + veto table — AI providers + confidence scoring mentioned inline here)
-   - Architecture (one clean diagram)
-   - Sniper (one paragraph)
+   - Binary Star Protocol (4-participant sequenceDiagram + 4-row veto table — AI providers + confidence scoring mentioned inline)
+   - Architecture (TWO diagrams: runtime pipeline + evolution loop)
+   - Sniper (one paragraph with actual threshold values)
    - Order Management (one table)
    - Evolution (one paragraph)
-   - Installation (two lines: pip install + .env.example)
-   - Commands (5 groups, placed last)
+   - Installation (two lines: pip install + .env.example, mention exchange + LLM keys)
+   - Commands (4 groups + patch, placed last)
 3. For partial update: replace only the selected sections in the existing README
 4. For commands only: replace only the Commands section
 
@@ -227,8 +261,14 @@ Each section has a preferred format. See `references/templates.md` for full temp
 ## Important Rules
 
 1. **Read from source** — CLI args from argparse, config values from YAML, module names from filesystem. Never guess.
-2. **Keep mermaid valid** — balanced brackets, valid syntax, ZERO crossing lines. Split before crossing.
-3. **Preserve existing content** — in partial update mode, never touch unselected sections.
-4. **Conciseness is correctness** — every sentence must earn its place. If a section exceeds a table + 3 sentences, cut it. Prefer one crisp line over a paragraph.
-5. **Grounded in code** — `git diff --name-only HEAD~10` for recent additions; verify file existence before referencing.
-6. **No code paths** — never mention file names, line numbers, or class names in the README output. The reader did not come for a code tour.
+2. **Verify signal count** — count registered detectors in `trigger.py` (should be 13). `leader_sync` is a separate mechanism, not a detector.
+3. **Veto levels are 4, not 3** — PASS, WEAK, CONSTRUCTIVE, TERMINAL. Check `config/prompts/critic.md` for the full 18-condition code table.
+4. **Math Tools, not Math Auditor** — it's a deterministic Python verifier, not an LLM agent. Using "Auditor" confuses it with the Critic role.
+5. **Architecture is TWO diagrams** — runtime pipeline (Sniper → Binary Star → Executor → Binance) and evolution loop (Archives → Audit → Evolver → Config → Binary Star Config). Do NOT merge them. Only Binary Star gets a subgraph wrapper.
+6. **Subgraph labels must be short** — max ~20 characters. Use `"Binary Star · 2 rounds"` not `"Binary Star Debate — max 2 rounds"`.
+7. **Sequence diagram needs all 4 columns** — Orchestrator, Session, Math Tools, Critic. Never hide an agent as a self-loop.
+8. **Keep mermaid valid** — balanced brackets, valid syntax, ZERO crossing lines. Split before crossing.
+9. **Preserve existing content** — in partial update mode, never touch unselected sections.
+10. **Conciseness is correctness** — every sentence must earn its place. Prefer one crisp line over a paragraph.
+11. **Grounded in code** — verify file existence before referencing. Run `git diff --name-only HEAD~10` for recent additions.
+12. **No code paths** — never mention file names, line numbers, or class names in the README output.
