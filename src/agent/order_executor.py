@@ -221,6 +221,109 @@ class MarginOrderExecutor:
             return self._guardian_case_3_protect(symbol, trade_state, direction, net_qty, exit_side, cfg)
 
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
+        return self._guardian_case_4_protected(
+            symbol, trade_state, direction, net_qty, avg_entry,
+            exit_side, active_orders, cfg, current_level, tolerance)
+
+    # ================================================================
+    # SAME-DIRECTION OPTIMIZATION
+    # ================================================================
+
+    def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float) -> tuple:
+        """
+        Calculates the best TP/SL comparing existing manual/script orders vs new opinion.
+        Protects the ENTIRE net_qty.
+
+        Returns:
+            (position_intact: bool, state_update: dict|None)
+            state_update carries {tp_price, sl_price} for the caller to merge into trade_state.
+        """
+        current_tps = []
+        current_sls = []
+
+        # Analyze current active orders for existing TP/SL
+        exit_side = self._exit_side(direction)
+        for order in active_orders:
+            if order.side == exit_side:
+                if order.type in ["LIMIT", "LIMIT_MAKER"]:
+                    current_tps.append(order.price)
+                elif order.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]:
+                    current_sls.append(order.stop_price if order.stop_price > 0 else order.price)
+
+        if current_tps:
+            logger.info(f"[{symbol}] existing TPs | tps={current_tps}")
+        if current_sls:
+            logger.info(f"[{symbol}] existing SLs | sls={current_sls}")
+
+        best_tp = new_tp
+        best_sl = new_sl
+
+        # TP: greedy mode — keep widest TP (more reward)
+        # SL: risk mode — keep tightest SL (less loss)
+        if direction == "LONG":
+            if current_tps:
+                best_tp = max(max(current_tps), new_tp)  # Higher TP = wider
+            if current_sls:
+                best_sl = max(max(current_sls), new_sl)  # Higher SL = tighter
+        else:  # SHORT
+            if current_tps:
+                best_tp = min(min(current_tps), new_tp)  # Lower TP = wider
+            if current_sls:
+                best_sl = min(min(current_sls), new_sl)  # Lower SL = tighter
+
+        logger.info(f"[{symbol}] final targets | tp={best_tp} (opinion={new_tp}) | sl={best_sl} (opinion={new_sl})")
+
+        # Clean slate the orders to apply the unified OCO over the entire Net Qty
+        logger.info(f"[{symbol}] cancelling orders to wrap net_qty={net_qty} with OCO")
+        if not self.client.cancel_all_symbol_orders(symbol):
+            # Cancel failed — old OCO still active on exchange. Return no state
+            # update to avoid drift: optimized TP/SL were never applied.
+            logger.error(f"[{symbol}] optimize — failed to cancel OCOs, original protection remains")
+            return True, None
+
+        # Re-verify position after cancel — a fill during the cancel window can change qty
+        trade_cfg = self._get_trade_config(symbol)
+        pos = self.client.get_symbol_position(symbol)
+        live_qty = abs(pos.net_qty) if pos else 0.0
+        if live_qty <= 0:
+            logger.warning(f"[{symbol}] optimize — position vanished after cancel")
+            return True, None
+        if abs(live_qty - abs(net_qty)) > trade_cfg.get("net_qty_tolerance", 1e-8):
+            logger.warning(f"[{symbol}] optimize — qty changed after cancel | {net_qty} → {live_qty}")
+
+        # Calculate buffered SL Limit (Slippage protection)
+        buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
+        # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
+        buffered_sl = self._buffered_sl(best_sl, buffer, direction)
+
+        # Place the OCO for the full position
+        success = self.client.place_oco_order(
+            symbol=symbol,
+            side=exit_side,
+            qty=live_qty,
+            price=best_tp,
+            stop_price=best_sl,
+            stop_limit_price=buffered_sl
+        )
+        if not success:
+            logger.critical(f"[{symbol}] Guardian CRITICAL — cancelled OCO, failed to place new, emergency closing")
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — position naked, keeping trade_state for retry next pulse")
+                return True, None  # Position still open — Guardian Case 3 retries next pulse
+            return False, None  # Signal caller: position was emergency-closed
+
+        return True, {"tp_price": best_tp, "sl_price": best_sl}
+
+    # ================================================================
+    # GUARDIAN CASE METHODS (extracted from guardian_check)
+    # ================================================================
+
+    def _guardian_case_4_protected(self, symbol: str, trade_state: dict,
+                                     direction: str, net_qty: float,
+                                     avg_entry: float, exit_side: str,
+                                     active_orders, cfg: dict,
+                                     current_level: int, tolerance: float) -> tuple:
+        """Case 4: Position protected. OCO re-align → exit ladder → trailing SL."""
         # Guard: record fill time on first protected pulse (OTOCO skips Case 3 setter)
         if not trade_state.get("entry_filled_at"):
             trade_state["entry_filled_at"] = datetime.now(timezone.utc)
@@ -334,99 +437,6 @@ class MarginOrderExecutor:
                     trade_state["sl_price"] = new_sl
 
         return trade_state, new_level
-
-    # ================================================================
-    # SAME-DIRECTION OPTIMIZATION
-    # ================================================================
-
-    def _optimize_same_direction(self, symbol: str, direction: str, net_qty: float, active_orders: List[MarginOrder], new_tp: float, new_sl: float) -> tuple:
-        """
-        Calculates the best TP/SL comparing existing manual/script orders vs new opinion.
-        Protects the ENTIRE net_qty.
-
-        Returns:
-            (position_intact: bool, state_update: dict|None)
-            state_update carries {tp_price, sl_price} for the caller to merge into trade_state.
-        """
-        current_tps = []
-        current_sls = []
-
-        # Analyze current active orders for existing TP/SL
-        exit_side = self._exit_side(direction)
-        for order in active_orders:
-            if order.side == exit_side:
-                if order.type in ["LIMIT", "LIMIT_MAKER"]:
-                    current_tps.append(order.price)
-                elif order.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]:
-                    current_sls.append(order.stop_price if order.stop_price > 0 else order.price)
-
-        if current_tps:
-            logger.info(f"[{symbol}] existing TPs | tps={current_tps}")
-        if current_sls:
-            logger.info(f"[{symbol}] existing SLs | sls={current_sls}")
-
-        best_tp = new_tp
-        best_sl = new_sl
-
-        # TP: greedy mode — keep widest TP (more reward)
-        # SL: risk mode — keep tightest SL (less loss)
-        if direction == "LONG":
-            if current_tps:
-                best_tp = max(max(current_tps), new_tp)  # Higher TP = wider
-            if current_sls:
-                best_sl = max(max(current_sls), new_sl)  # Higher SL = tighter
-        else:  # SHORT
-            if current_tps:
-                best_tp = min(min(current_tps), new_tp)  # Lower TP = wider
-            if current_sls:
-                best_sl = min(min(current_sls), new_sl)  # Lower SL = tighter
-
-        logger.info(f"[{symbol}] final targets | tp={best_tp} (opinion={new_tp}) | sl={best_sl} (opinion={new_sl})")
-
-        # Clean slate the orders to apply the unified OCO over the entire Net Qty
-        logger.info(f"[{symbol}] cancelling orders to wrap net_qty={net_qty} with OCO")
-        if not self.client.cancel_all_symbol_orders(symbol):
-            # Cancel failed — old OCO still active on exchange. Return no state
-            # update to avoid drift: optimized TP/SL were never applied.
-            logger.error(f"[{symbol}] optimize — failed to cancel OCOs, original protection remains")
-            return True, None
-
-        # Re-verify position after cancel — a fill during the cancel window can change qty
-        trade_cfg = self._get_trade_config(symbol)
-        pos = self.client.get_symbol_position(symbol)
-        live_qty = abs(pos.net_qty) if pos else 0.0
-        if live_qty <= 0:
-            logger.warning(f"[{symbol}] optimize — position vanished after cancel")
-            return True, None
-        if abs(live_qty - abs(net_qty)) > trade_cfg.get("net_qty_tolerance", 1e-8):
-            logger.warning(f"[{symbol}] optimize — qty changed after cancel | {net_qty} → {live_qty}")
-
-        # Calculate buffered SL Limit (Slippage protection)
-        buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
-        # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
-        buffered_sl = self._buffered_sl(best_sl, buffer, direction)
-
-        # Place the OCO for the full position
-        success = self.client.place_oco_order(
-            symbol=symbol,
-            side=exit_side,
-            qty=live_qty,
-            price=best_tp,
-            stop_price=best_sl,
-            stop_limit_price=buffered_sl
-        )
-        if not success:
-            logger.critical(f"[{symbol}] Guardian CRITICAL — cancelled OCO, failed to place new, emergency closing")
-            if not self.client.execute_market_close(symbol):
-                logger.critical(f"[{symbol}] emergency close FAILED — position naked, keeping trade_state for retry next pulse")
-                return True, None  # Position still open — Guardian Case 3 retries next pulse
-            return False, None  # Signal caller: position was emergency-closed
-
-        return True, {"tp_price": best_tp, "sl_price": best_sl}
-
-    # ================================================================
-    # GUARDIAN CASE METHODS (extracted from guardian_check)
-    # ================================================================
 
     def _guardian_case_3_protect(self, symbol: str, trade_state: dict,
                                     direction: str, net_qty: float,
