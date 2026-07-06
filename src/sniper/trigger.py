@@ -10,6 +10,7 @@ See docs/trigger-design-20260625.md for the full design specification.
 """
 
 import math
+from collections import deque
 from enum import Enum
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -26,6 +27,7 @@ logger = setup_logger(__name__)
 
 class SignalCategory(str, Enum):
     FLOW = "FLOW"
+    SIZE = "SIZE"           # NEW — large-trade / institutional activity
     ENERGY = "ENERGY"
     STRUCTURAL = "STRUCTURAL"
     POSITIONING = "POSITIONING"
@@ -257,6 +259,10 @@ class SniperTrigger:
         # State locks for structural/sentiment patterns (ported from old trigger)
         self.state_locks: Dict[str, datetime] = {}
 
+        # Rolling stats for large_trade detector (per-symbol deque of avg_trade_size)
+        large_trade_cfg = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
+        self._trade_size_window = deque(maxlen=large_trade_cfg.get('large_trade_lookback', 30))
+
         # Signal confidence weights (convenience accessor)
         self.signal_weights = self.sniper_cfg.get('signal_stack', {}).get('weights', {})
 
@@ -266,19 +272,16 @@ class SniperTrigger:
             self._detect_cvd_momentum,
             self._detect_cvd_divergence,
             self._detect_cvd_absorption,
-            self._detect_taker_imbalance,
+            # SIZE
+            self._detect_large_trade,
             # ENERGY
             self._detect_volatility_surge,
             self._detect_squeeze,
             # STRUCTURAL
             self._detect_boundary_test,
-            self._detect_poc_gravity,
             self._detect_liquidation_hunt,
-            self._detect_trend_pullback,
             # POSITIONING
-            self._detect_retail_extreme,
-            self._detect_oi_divergence,
-            self._detect_oi_surge,
+            self._detect_positioning_extreme,
         ]
 
         logger.info(
@@ -694,20 +697,35 @@ class SniperTrigger:
                               prev: Optional[Dict[str, Any]],
                               now: datetime) -> Optional[SignalCard]:
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
-        threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
-        if abs(cvd) <= threshold:
+        base_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
+        extreme_threshold = self.sniper_cfg.get('signal_stack', {}).get(
+            'thresholds', {}).get('cvd_extreme_threshold', 0.18)
+
+        # Path A (growth): CVD above base threshold AND still growing
+        path_a = False
+        if abs(cvd) > base_threshold:
+            if prev:
+                prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
+                growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
+                if abs(cvd) >= abs(prev_cvd) * growth_ratio:
+                    path_a = True
+            else:
+                path_a = True  # first pulse, no growth check possible
+
+        # Path B (extreme static): CVD above the higher extreme threshold
+        path_b = abs(cvd) > extreme_threshold
+
+        if not (path_a or path_b):
             return None
 
-        if prev:
-            prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
-            growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
-            if abs(cvd) < abs(prev_cvd) * growth_ratio:
-                return None
-
         direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
-        strength = min(abs(cvd) / (threshold * 3), 1.0)
+        if path_b:
+            strength = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0)
+        else:
+            strength = min(abs(cvd) / (base_threshold * 3), 1.0)
         confidence = self.signal_weights.get('cvd_momentum', 0.65)
 
+        trigger_path = 'extreme' if path_b else 'growth'
         return SignalCard(
             signal_id=self._make_id('cvd_momentum', now),
             category=SignalCategory.FLOW,
@@ -718,7 +736,8 @@ class SniperTrigger:
             urgency=0.5,
             timestamp=now,
             decay_half_life_minutes=15.0,
-            evidence={'cvd_intensity': cvd, 'threshold': threshold},
+            evidence={'cvd_intensity': cvd, 'threshold': base_threshold,
+                      'trigger_path': trigger_path},
         )
 
     # ── FLOW: CVD Divergence (#2) ──────────────────────────────────────
@@ -794,37 +813,54 @@ class SniperTrigger:
             evidence={'cvd_intensity': cvd, 'price_delta': price_delta},
         )
 
-    # ── FLOW: Taker Imbalance (#4) ─────────────────────────────────────
-    # Derived from cvd_intensity_ratio. Threshold configurable per symbol
-    # via signal_stack.thresholds.taker_imbalance (default 0.20).
+    # ── SIZE: Large Trade / Institutional Activity (#4) ─────────────────
 
-    def _detect_taker_imbalance(self, curr: Dict[str, Any],
-                                 prev: Optional[Dict[str, Any]],
-                                 now: datetime) -> Optional[SignalCard]:
-        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
-        # |cvd| must exceed this threshold to fire (configurable per symbol via
-        # signal_stack.thresholds.taker_imbalance; default 0.20).
-        threshold = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {}).get('taker_imbalance', 0.20)
-        if abs(cvd) <= threshold:
+    def _detect_large_trade(self, curr: Dict[str, Any],
+                             prev: Optional[Dict[str, Any]],
+                             now: datetime) -> Optional[SignalCard]:
+        avg_size = curr['sentiment_signals'].get('avg_trade_size', 0.0)
+        if avg_size <= 0:
             return None
 
-        direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
-        # Saturate denominator scales with threshold so calibration holds across symbols
-        saturation_denom = max(threshold * 2, 0.40)
-        strength = min((abs(cvd) - threshold) / saturation_denom, 1.0)
-        confidence = self.signal_weights.get('taker_imbalance', 0.60)
+        thresholds = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
+        zscore_threshold = thresholds.get('large_trade_zscore', 2.0)
+
+        # Record current value in rolling window
+        self._trade_size_window.append(avg_size)
+        if len(self._trade_size_window) < 5:
+            return None  # need minimum history for meaningful Z-score
+
+        mean = sum(self._trade_size_window) / len(self._trade_size_window)
+        variance = sum((x - mean) ** 2 for x in self._trade_size_window) / len(self._trade_size_window)
+        std = variance ** 0.5
+        if std <= 1e-9:
+            return None
+
+        z_score = (avg_size - mean) / std
+        if z_score <= zscore_threshold:
+            return None
+
+        cvd = curr['sentiment_signals']['cvd_intensity_ratio']
+        if abs(cvd) <= 0.01:
+            direction = Direction.NEUTRAL
+        else:
+            direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
+
+        strength = min(z_score / (zscore_threshold * 2), 1.0)
+        confidence = self.signal_weights.get('large_trade', 0.55)
 
         return SignalCard(
-            signal_id=self._make_id('taker_imbalance', now),
-            category=SignalCategory.FLOW,
-            sub_type='taker_imbalance',
+            signal_id=self._make_id('large_trade', now),
+            category=SignalCategory.SIZE,
+            sub_type='large_trade',
             direction=direction,
             strength=strength,
             confidence=confidence,
-            urgency=0.6,
+            urgency=0.7,
             timestamp=now,
-            decay_half_life_minutes=4.0,
-            evidence={'cvd_intensity': cvd},
+            decay_half_life_minutes=10.0,
+            evidence={'avg_trade_size': avg_size, 'z_score': z_score,
+                      'trade_count': curr['sentiment_signals'].get('trade_count', 0)},
         )
 
     # ── ENERGY: Volatility Surge (#5) ───────────────────────────────────
@@ -951,44 +987,6 @@ class SniperTrigger:
             evidence={'boundary': nearest, 'dist_atr': nearest_dist, 'threshold': threshold},
         )
 
-    # ── STRUCTURAL: POC Gravity (#8) ────────────────────────────────────
-
-    def _detect_poc_gravity(self, curr: Dict[str, Any],
-                             prev: Optional[Dict[str, Any]],
-                             now: datetime) -> Optional[SignalCard]:
-        poc_dist = curr['structural_anchors'].get('poc_dist_atr', 0)
-        threshold = self.sniper_cfg['proximity']['poc_atr']
-        if abs(poc_dist) >= threshold:
-            return None  # too far from POC — gravity not active
-
-        if prev:
-            prev_price = prev['price_dynamics']['current_price']
-            price = curr['price_dynamics']['current_price']
-            poc = curr['volume_profile']['poc']
-            approaching = (price < poc and price > prev_price) or (price > poc and price < prev_price)
-            if not approaching:
-                return None
-
-        if not self._check_state_lock("POC_MAGNET", now):
-            return None
-
-        direction = Direction.BULLISH if poc_dist < 0 else Direction.BEARISH
-        strength = min(threshold / max(abs(poc_dist), 0.01) * 0.20, 1.0)
-        confidence = self.signal_weights.get('poc_gravity', 0.55)
-
-        return SignalCard(
-            signal_id=self._make_id('poc_gravity', now),
-            category=SignalCategory.STRUCTURAL,
-            sub_type='poc_gravity',
-            direction=direction,
-            strength=strength,
-            confidence=confidence,
-            urgency=0.3,
-            timestamp=now,
-            decay_half_life_minutes=10.0,
-            evidence={'poc_dist_atr': poc_dist, 'threshold': threshold},
-        )
-
     # ── STRUCTURAL: Liquidation Hunt (#9) ────────────────────────────────
 
     def _detect_liquidation_hunt(self, curr: Dict[str, Any],
@@ -1054,184 +1052,94 @@ class SniperTrigger:
 
         return None
 
-    # ── STRUCTURAL: Trend Pullback (#10) ─────────────────────────────────
+    # ── POSITIONING: Unified Positioning Extreme (#9) ───────────────────
 
-    def _detect_trend_pullback(self, curr: Dict[str, Any],
-                                prev: Optional[Dict[str, Any]],
-                                now: datetime) -> Optional[SignalCard]:
-        trend = curr['market_regime'].get('trend_intensity', 0)
-        strong_threshold = self.regime_cfg['trend']['trend_intensity_strong']
-        if abs(trend) <= strong_threshold:
-            return None
+    def _detect_positioning_extreme(self, curr: Dict[str, Any],
+                                     prev: Optional[Dict[str, Any]],
+                                     now: datetime) -> Optional[SignalCard]:
+        """Unifies retail_extreme, oi_divergence, and oi_surge into one detector.
+        Three independent trigger paths — strongest one wins if multiple fire."""
 
-        direction = Direction.BULLISH if trend > 0 else Direction.BEARISH
-        price = curr['price_dynamics']['current_price']
-        atr = curr['price_dynamics'].get('atr_macro', 0)
-        if atr <= 0:
-            return None
-        vp = curr['volume_profile']
-        max_dist = self.sniper_cfg.get('signal_stack', {}).get('gate', {}).get(
-            'max_price_to_structure_atr', 1.0)
+        best_direction = None
+        best_strength = 0.0
+        best_evidence: Dict[str, Any] = {}
 
-        if direction == Direction.BULLISH:
-            target_price = vp.get('poc', price)
-            for anchor in vp.get('anchors_below', []):
-                if anchor.get('type') == 'HVN':
-                    target_price = anchor['price']
-                    break
-            dist_atr = abs(price - target_price) / atr
-            if price <= target_price:
-                return None
-        else:
-            target_price = vp.get('poc', price)
-            for anchor in vp.get('anchors_above', []):
-                if anchor.get('type') == 'HVN':
-                    target_price = anchor['price']
-                    break
-            dist_atr = abs(price - target_price) / atr
-            if price >= target_price:
-                return None
-
-        if dist_atr > max_dist:
-            return None
-
-        strength = min(abs(trend) * (1.0 - dist_atr / max_dist), 1.0)
-        confidence = self.signal_weights.get('trend_pullback', 0.75)
-
-        return SignalCard(
-            signal_id=self._make_id('trend_pullback', now),
-            category=SignalCategory.STRUCTURAL,
-            sub_type='trend_pullback',
-            direction=direction,
-            strength=strength,
-            confidence=confidence,
-            urgency=0.6,
-            timestamp=now,
-            decay_half_life_minutes=10.0,
-            evidence={'trend_intensity': trend, 'dist_to_structure_atr': dist_atr},
-        )
-
-    # ── POSITIONING: Retail Extreme (#11) ───────────────────────────────
-
-    def _detect_retail_extreme(self, curr: Dict[str, Any],
-                                prev: Optional[Dict[str, Any]],
-                                now: datetime) -> Optional[SignalCard]:
+        # Path 1: LS extreme (retail positioning)
         ls = curr['sentiment_signals'].get('ls_ratio_micro', 1.0)
-        funding = curr['sentiment_signals'].get('funding_rate', 0.0)
         cfg = self.regime_cfg['imbalance']
-
-        direction = None
-        strength = 0.0
-        evidence: Dict[str, Any] = {}
-
         if ls > cfg['long_short_imbalance_ratio']:
-            direction = Direction.BEARISH
             strength = min((ls - 1.0) / (cfg['long_short_imbalance_ratio'] * 2), 1.0)
-            evidence = {'trigger': 'ls_long', 'ls_ratio': ls}
+            if strength > best_strength:
+                best_direction = Direction.BEARISH
+                best_strength = strength
+                best_evidence = {'trigger': 'ls_long', 'ls_ratio': ls}
         elif ls < cfg['short_heavy_imbalance_ratio']:
-            direction = Direction.BULLISH
             strength = min((1.0 - ls) / ((1.0 - cfg['short_heavy_imbalance_ratio']) * 2), 1.0)
-            evidence = {'trigger': 'ls_short', 'ls_ratio': ls}
+            if strength > best_strength:
+                best_direction = Direction.BULLISH
+                best_strength = strength
+                best_evidence = {'trigger': 'ls_short', 'ls_ratio': ls}
 
+        # Path 2: Funding extreme
+        funding = curr['sentiment_signals'].get('funding_rate', 0.0)
         funding_threshold = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
         if abs(funding) > funding_threshold:
             f_direction = Direction.BEARISH if funding > 0 else Direction.BULLISH
             f_strength = min(abs(funding) / (funding_threshold * 4), 1.0)
-            if direction is None or f_strength > strength:
-                direction = f_direction
-                strength = f_strength
-                evidence = {'trigger': 'funding', 'funding_rate': funding}
+            if f_strength > best_strength:
+                best_direction = f_direction
+                best_strength = f_strength
+                best_evidence = {'trigger': 'funding', 'funding_rate': funding}
 
-        if direction is None:
+        # Path 3: OI divergence (OI and price move opposite)
+        if prev:
+            oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
+            price_delta = (curr['price_dynamics']['current_price'] -
+                           prev['price_dynamics']['current_price'])
+            if abs(oi_delta) > 1e-10 and abs(price_delta) > 1e-10 and abs(oi_delta) > 0.01:
+                if (oi_delta > 0 and price_delta < 0) or (oi_delta < 0 and price_delta > 0):
+                    oi_dir = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
+                    oi_strength = min(abs(oi_delta) / 0.03, 1.0)
+                    if oi_strength > best_strength:
+                        best_direction = oi_dir
+                        best_strength = oi_strength
+                        best_evidence = {'trigger': 'oi_divergence', 'oi_delta': oi_delta,
+                                         'price_delta': price_delta}
+
+        # Path 4: OI surge (OI and price move same direction)
+        if prev and best_direction is None:
+            oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
+            price_delta = (curr['price_dynamics']['current_price'] -
+                           prev['price_dynamics']['current_price'])
+            if abs(oi_delta) > 0.02:
+                if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
+                    oi_dir = Direction.BULLISH if price_delta > 0 else Direction.BEARISH
+                    oi_strength = min((abs(oi_delta) - 0.02) / 0.04, 1.0)
+                    if oi_strength > best_strength:
+                        best_direction = oi_dir
+                        best_strength = oi_strength
+                        best_evidence = {'trigger': 'oi_surge', 'oi_delta': oi_delta,
+                                         'price_delta': price_delta}
+
+        if best_direction is None:
             return None
 
-        if not self._check_state_lock("AMBIENT_SENTIMENT", now):
+        if not self._check_state_lock("POSITIONING_EXTREME", now):
             return None
 
-        confidence = self.signal_weights.get('retail_extreme', 0.42)
+        confidence = self.signal_weights.get('positioning_extreme', 0.50)
 
         return SignalCard(
-            signal_id=self._make_id('retail_extreme', now),
+            signal_id=self._make_id('positioning_extreme', now),
             category=SignalCategory.POSITIONING,
-            sub_type='retail_extreme',
-            direction=direction,
-            strength=strength,
+            sub_type='positioning_extreme',
+            direction=best_direction,
+            strength=best_strength,
             confidence=confidence,
             urgency=0.3,
             timestamp=now,
             decay_half_life_minutes=60.0,
-            evidence=evidence,
-        )
-
-    # ── POSITIONING: OI Divergence (#12) ────────────────────────────────
-
-    def _detect_oi_divergence(self, curr: Dict[str, Any],
-                               prev: Optional[Dict[str, Any]],
-                               now: datetime) -> Optional[SignalCard]:
-        if not prev:
-            return None
-        oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
-        price_delta = (curr['price_dynamics']['current_price'] -
-                       prev['price_dynamics']['current_price'])
-
-        # Epsilon guard: reject exact/no-change cases (float == 0 is unreliable at 1e-16)
-        if abs(oi_delta) <= 1e-10 or abs(price_delta) <= 1e-10:
-            return None
-        # Filter micro-noise: require meaningful OI change before calling divergence
-        if abs(oi_delta) <= 0.01:
-            return None
-        # Must be divergent: OI and price move OPPOSITE
-        if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
-            return None
-
-        direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
-        strength = min(abs(oi_delta) / 0.03, 1.0)
-        confidence = self.signal_weights.get('oi_divergence', 0.70)
-
-        return SignalCard(
-            signal_id=self._make_id('oi_divergence', now),
-            category=SignalCategory.POSITIONING,
-            sub_type='oi_divergence',
-            direction=direction,
-            strength=strength,
-            confidence=confidence,
-            urgency=0.5,
-            timestamp=now,
-            decay_half_life_minutes=15.0,
-            evidence={'oi_delta': oi_delta, 'price_delta': price_delta},
-        )
-
-    # ── POSITIONING: OI Surge (#13) ─────────────────────────────────────
-
-    def _detect_oi_surge(self, curr: Dict[str, Any],
-                          prev: Optional[Dict[str, Any]],
-                          now: datetime) -> Optional[SignalCard]:
-        oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
-        if abs(oi_delta) <= 0.02:
-            return None
-        if not prev:
-            return None
-        price_delta = (curr['price_dynamics']['current_price'] -
-                       prev['price_dynamics']['current_price'])
-        # Must be aligned: OI and price same direction
-        if (oi_delta > 0 and price_delta <= 0) or (oi_delta < 0 and price_delta >= 0):
-            return None
-
-        direction = Direction.BULLISH if price_delta > 0 else Direction.BEARISH
-        strength = min((abs(oi_delta) - 0.02) / 0.04, 1.0)
-        confidence = self.signal_weights.get('oi_surge', 0.55)
-
-        return SignalCard(
-            signal_id=self._make_id('oi_surge', now),
-            category=SignalCategory.POSITIONING,
-            sub_type='oi_surge',
-            direction=direction,
-            strength=strength,
-            confidence=confidence,
-            urgency=0.4,
-            timestamp=now,
-            decay_half_life_minutes=20.0,
-            evidence={'oi_delta': oi_delta, 'price_delta': price_delta},
+            evidence=best_evidence,
         )
 
     # ── CROSS-SYMBOL / Re-evaluation ───────────────────────────────────
