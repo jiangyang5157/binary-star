@@ -40,4 +40,4 @@ XAUTUSDT:
         thresholds:
           # XAUT CVD 噪声高，提高门槛以减少误触发。
           cvd_divergence_tick_delta: 0.18
-          taker_imbalance: 0.36
+          cvd_extreme_threshold: 0.36
