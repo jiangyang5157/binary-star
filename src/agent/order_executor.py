@@ -218,75 +218,7 @@ class MarginOrderExecutor:
 
         # --- Case 3: Has position and direction matches -> Protect Position ---
         if not has_oco:
-            tp = trade_state.get("tp_price")
-            sl = trade_state.get("sl_price")
-
-            if not tp or not sl:
-                logger.critical(f"[{symbol}] Guardian CRITICAL — position has no TP/SL, emergency closing")
-                if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
-                if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
-                    return trade_state, None
-                return {}, None
-
-            # Check if price has already breached SL
-            current_price = self.client.get_ticker_price(symbol)
-            if not current_price or current_price <= 0:
-                logger.error(f"[{symbol}] ticker unavailable (price={current_price}) — deferring SL breach check")
-                return trade_state, None
-
-            sl_breached = (
-                (direction == "LONG" and current_price <= sl) or
-                (direction == "SHORT" and current_price >= sl)
-            )
-
-            if sl_breached:
-                logger.critical(f"[{symbol}] Guardian EMERGENCY close — price breached SL | price={current_price} | sl={sl}")
-                if not self.client.cancel_all_symbol_orders(symbol):
-                    logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
-                if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
-                    return trade_state, None
-                return {}, None  # Clear trade state
-
-            # Normal case: place OCO protection
-            logger.info(f"[{symbol}] Guardian activated | dir={direction} | qty={net_qty}")
-
-            # Clear all stale orders before placing OCO (covers both
-            # two-step stale entry and OTOCO pending-leg activation race)
-            if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error(f"[{symbol}] cancel failed before OCO — aborting, retry next pulse")
-                return trade_state, None
-
-            buffer = cfg.get("sl_slippage_buffer", 0.0)
-            buffered_sl = self._buffered_sl(sl, buffer, direction)
-
-            success = self.client.place_oco_order(
-                symbol=symbol,
-                side=exit_side,
-                qty=abs(net_qty),
-                price=tp,
-                stop_price=sl,
-                stop_limit_price=buffered_sl
-            )
-
-            if success:
-                logger.info(f"[{symbol}] Guardian OCO placed | tp={tp} | sl={sl}")
-                # Update state: remove entry tracking, keep direction/prices
-                trade_state.pop("entry_order_id", None)
-                trade_state.pop("entry_placed_at", None)
-                # Record fill time for time-based stop tracking
-                if not trade_state.get("entry_filled_at"):
-                    trade_state["entry_filled_at"] = datetime.now(timezone.utc)
-                return trade_state, None  # Position just protected, defer trailing to next pulse
-            else:
-                logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
-                self.client.cancel_all_symbol_orders(symbol)
-                if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
-                    return trade_state, None
-                return {}, None
+            return self._guardian_case_3_protect(symbol, trade_state, direction, net_qty, exit_side, cfg)
 
         # --- Case 4: Position is already protected → Partial TP + Dynamic Trailing ---
         # Guard: record fill time on first protected pulse (OTOCO skips Case 3 setter)
@@ -495,6 +427,80 @@ class MarginOrderExecutor:
     # ================================================================
     # GUARDIAN CASE METHODS (extracted from guardian_check)
     # ================================================================
+
+    def _guardian_case_3_protect(self, symbol: str, trade_state: dict,
+                                    direction: str, net_qty: float,
+                                    exit_side: str, cfg: dict) -> tuple:
+        """Case 3: Position unprotected. Check SL breach → place OCO or emergency close."""
+        tp = trade_state.get("tp_price")
+        sl = trade_state.get("sl_price")
+
+        if not tp or not sl:
+            logger.critical(f"[{symbol}] Guardian CRITICAL — position has no TP/SL, emergency closing")
+            if not self.client.cancel_all_symbol_orders(symbol):
+                logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
+                return trade_state, None
+            return {}, None
+
+        # Check if price has already breached SL
+        current_price = self.client.get_ticker_price(symbol)
+        if not current_price or current_price <= 0:
+            logger.error(f"[{symbol}] ticker unavailable (price={current_price}) — deferring SL breach check")
+            return trade_state, None
+
+        sl_breached = (
+            (direction == "LONG" and current_price <= sl) or
+            (direction == "SHORT" and current_price >= sl)
+        )
+
+        if sl_breached:
+            logger.critical(f"[{symbol}] Guardian EMERGENCY close — price breached SL | price={current_price} | sl={sl}")
+            if not self.client.cancel_all_symbol_orders(symbol):
+                logger.warning(f"[{symbol}] cancel failed during emergency close — proceeding anyway")
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
+                return trade_state, None
+            return {}, None  # Clear trade state
+
+        # Normal case: place OCO protection
+        logger.info(f"[{symbol}] Guardian activated | dir={direction} | qty={net_qty}")
+
+        # Clear all stale orders before placing OCO (covers both
+        # two-step stale entry and OTOCO pending-leg activation race)
+        if not self.client.cancel_all_symbol_orders(symbol):
+            logger.error(f"[{symbol}] cancel failed before OCO — aborting, retry next pulse")
+            return trade_state, None
+
+        buffer = cfg.get("sl_slippage_buffer", 0.0)
+        buffered_sl = self._buffered_sl(sl, buffer, direction)
+
+        success = self.client.place_oco_order(
+            symbol=symbol,
+            side=exit_side,
+            qty=abs(net_qty),
+            price=tp,
+            stop_price=sl,
+            stop_limit_price=buffered_sl
+        )
+
+        if success:
+            logger.info(f"[{symbol}] Guardian OCO placed | tp={tp} | sl={sl}")
+            # Update state: remove entry tracking, keep direction/prices
+            trade_state.pop("entry_order_id", None)
+            trade_state.pop("entry_placed_at", None)
+            # Record fill time for time-based stop tracking
+            if not trade_state.get("entry_filled_at"):
+                trade_state["entry_filled_at"] = datetime.now(timezone.utc)
+            return trade_state, None  # Position just protected, defer trailing to next pulse
+        else:
+            logger.critical(f"[{symbol}] Guardian CRITICAL — failed to place OCO, emergency closing")
+            self.client.cancel_all_symbol_orders(symbol)
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
+                return trade_state, None
+            return {}, None
 
     def _guardian_case_2_direction_mismatch(self, symbol: str, trade_state: dict,
                                               net_qty: float, tolerance: float):
