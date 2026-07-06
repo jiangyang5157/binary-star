@@ -296,7 +296,7 @@ class MarginOrderExecutor:
                 return trade_state, None
 
             buffer = cfg.get("sl_slippage_buffer", 0.0)
-            buffered_sl = sl + (buffer if direction == "SHORT" else -buffer)
+            buffered_sl = self._buffered_sl(sl, buffer, direction)
 
             success = self.client.place_oco_order(
                 symbol=symbol,
@@ -353,7 +353,7 @@ class MarginOrderExecutor:
                     logger.error(f"[{symbol}] cancel failed before OCO re-align — aborting, retry next pulse")
                     return trade_state, None
                 buffer = cfg.get("sl_slippage_buffer", 0.0)
-                buffered_sl = oco_sl + (buffer if direction == "SHORT" else -buffer)
+                buffered_sl = self._buffered_sl(oco_sl, buffer, direction)
                 success = self.client.place_oco_order(
                     symbol=symbol,
                     side=exit_side,
@@ -513,7 +513,7 @@ class MarginOrderExecutor:
         # Calculate buffered SL Limit (Slippage protection)
         buffer = trade_cfg.get("sl_slippage_buffer", 0.0)
         # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
-        buffered_sl = best_sl + (buffer if direction == "SHORT" else -buffer)
+        buffered_sl = self._buffered_sl(best_sl, buffer, direction)
 
         # Place the OCO for the full position
         success = self.client.place_oco_order(
@@ -554,6 +554,12 @@ class MarginOrderExecutor:
         SHORT: (b - a)   e.g. entry - current_price
         """
         return (a - b) if direction == "LONG" else (b - a)
+
+    @staticmethod
+    def _buffered_sl(base_price: float, buffer: float, direction: str) -> float:
+        """SL limit offset: +buffer for SHORT (BUY SL above trigger),
+        -buffer for LONG (SELL SL below trigger)."""
+        return base_price + (buffer if direction == "SHORT" else -buffer)
 
     def _get_guardian_config(self) -> dict:
         """Returns exit-ladder levels with config validation.
@@ -812,7 +818,7 @@ class MarginOrderExecutor:
             # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
             exit_side = self._exit_side(direction)
             buffer = cfg.get("sl_slippage_buffer", 0.0)
-            buffered_sl = avg_entry + (buffer if direction == "SHORT" else -buffer)
+            buffered_sl = self._buffered_sl(avg_entry, buffer, direction)
 
             oco_success = self.client.place_oco_order(
                 symbol=symbol,
@@ -901,7 +907,7 @@ class MarginOrderExecutor:
         exit_side = self._exit_side(direction)
         tp_price = current_tp
         sl_price = new_sl
-        buffered_sl = sl_price + (buffer if direction == "SHORT" else -buffer)
+        buffered_sl = self._buffered_sl(sl_price, buffer, direction)
         qty = round(abs(pos.net_qty), cfg["precision_qty"])
 
         if not self.client.place_oco_order(
@@ -988,7 +994,7 @@ class MarginOrderExecutor:
         cfg = self._get_trade_config(symbol)
         buffer = cfg.get("sl_slippage_buffer", 0.0)
         # LONG SL (Sell): Limit < Trigger | SHORT SL (Buy): Limit > Trigger
-        buffered_sl = sl_price + (buffer if direction == "SHORT" else -buffer)
+        buffered_sl = self._buffered_sl(sl_price, buffer, direction)
 
         logger.info(f"[{symbol}] deploying OTOCO | dir={direction} | entry={entry_price} | tp={tp_price} | sl={sl_price} | qty={dynamic_qty}")
 

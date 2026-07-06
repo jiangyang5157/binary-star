@@ -20,7 +20,19 @@ class TestEntrySide:
         assert MarginOrderExecutor._entry_side("SHORT") == "SELL"
 
 
-class TestPriceDelta:
+class TestBufferedSL:
+    def test_long_sl_below_trigger(self):
+        """LONG: -buffer → SL limit below trigger price."""
+        assert MarginOrderExecutor._buffered_sl(68000, 10, "LONG") == 67990
+
+    def test_short_sl_above_trigger(self):
+        """SHORT: +buffer → SL limit above trigger price."""
+        assert MarginOrderExecutor._buffered_sl(68000, 10, "SHORT") == 68010
+
+    def test_zero_buffer_no_change(self):
+        """buffer=0 → no offset."""
+        assert MarginOrderExecutor._buffered_sl(100, 0, "LONG") == 100
+        assert MarginOrderExecutor._buffered_sl(100, 0, "SHORT") == 100
     def test_long_in_profit(self):
         """LONG: current > entry → positive."""
         assert MarginOrderExecutor._price_delta("LONG", 100, 90) == 10
