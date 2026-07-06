@@ -198,7 +198,7 @@ class MarginOrderExecutor:
         direction = trade_state["direction"]
 
         # Determine if OCO protection exists
-        exit_side = "SELL" if direction == "LONG" else "BUY"
+        exit_side = self._exit_side(direction)
         has_oco = any(
             o.side == exit_side and o.type in ["STOP_LOSS", "STOP_LOSS_LIMIT"]
             for o in active_orders
@@ -461,7 +461,7 @@ class MarginOrderExecutor:
         current_sls = []
 
         # Analyze current active orders for existing TP/SL
-        exit_side = "SELL" if direction == "LONG" else "BUY"
+        exit_side = self._exit_side(direction)
         for order in active_orders:
             if order.side == exit_side:
                 if order.type in ["LIMIT", "LIMIT_MAKER"]:
@@ -536,6 +536,24 @@ class MarginOrderExecutor:
     # ================================================================
     # INTERNAL HELPERS
     # ================================================================
+
+    @staticmethod
+    def _exit_side(direction: str) -> str:
+        """The side that closes a position: SELL for LONG, BUY for SHORT."""
+        return "SELL" if direction == "LONG" else "BUY"
+
+    @staticmethod
+    def _entry_side(direction: str) -> str:
+        """The side that opens a position: BUY for LONG, SELL for SHORT."""
+        return "BUY" if direction == "LONG" else "SELL"
+
+    @staticmethod
+    def _price_delta(direction: str, a: float, b: float) -> float:
+        """Direction-aware price delta. Positive = in profit.
+        LONG:  (a - b)   e.g. current_price - entry
+        SHORT: (b - a)   e.g. entry - current_price
+        """
+        return (a - b) if direction == "LONG" else (b - a)
 
     def _get_guardian_config(self) -> dict:
         """Returns exit-ladder levels with config validation.
@@ -625,7 +643,7 @@ class MarginOrderExecutor:
         if avg_entry <= 0:
             return 0
 
-        exit_side = "SELL" if direction == "LONG" else "BUY"
+        exit_side = self._exit_side(direction)
         current_sl = trade_state.get("sl_price", 0)
         current_tp = trade_state.get("tp_price", 0)
         for o in active_orders:
@@ -652,7 +670,7 @@ class MarginOrderExecutor:
         p_price = cfg["precision_price"]
         # Direction-aware price progress from entry toward TP.
         # Negative = price on the WRONG side of entry (e.g. below entry for LONG).
-        price_progress = (current_price - avg_entry) if direction == "LONG" else (avg_entry - current_price)
+        price_progress = self._price_delta(direction, current_price, avg_entry)
 
         # Step 1: Has L1 fired? (SL at/beyond entry = breakeven placed)
         # SL on exchange is directionally rounded (SELL→floor, BUY→ceil),
@@ -724,12 +742,12 @@ class MarginOrderExecutor:
             return True, None
 
         # Direction-aware deviation: partial TP only triggers when IN profit.
-        deviation = (current_price - avg_entry) if direction == "LONG" else (avg_entry - current_price)
+        deviation = self._price_delta(direction, current_price, avg_entry)
         if deviation <= 0:
             return True, None  # Not in profit, nothing to take
 
         # TP distance for progress calculation
-        tp_distance = (current_tp - avg_entry) if direction == "LONG" else (avg_entry - current_tp)
+        tp_distance = self._price_delta(direction, current_tp, avg_entry)
         if tp_distance <= 0:
             return True, None  # Guard: malformed TP
 
@@ -764,7 +782,7 @@ class MarginOrderExecutor:
                 return True, state_update if state_update else None
 
             # Step B: Market-sell partial qty
-            close_side = "SELL" if direction == "LONG" else "BUY"
+            close_side = self._exit_side(direction)
             close_success = self.client.execute_partial_market_close(
                 symbol=symbol,
                 side=close_side,
@@ -792,7 +810,7 @@ class MarginOrderExecutor:
             live_net_qty = live_qty * sign
 
             # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
-            exit_side = "SELL" if direction == "LONG" else "BUY"
+            exit_side = self._exit_side(direction)
             buffer = cfg.get("sl_slippage_buffer", 0.0)
             buffered_sl = avg_entry + (buffer if direction == "SHORT" else -buffer)
 
@@ -880,7 +898,7 @@ class MarginOrderExecutor:
             return False, None
 
         buffer = cfg.get("sl_slippage_buffer", 0.0)
-        exit_side = "SELL" if direction == "LONG" else "BUY"
+        exit_side = self._exit_side(direction)
         tp_price = current_tp
         sl_price = new_sl
         buffered_sl = sl_price + (buffer if direction == "SHORT" else -buffer)
@@ -951,7 +969,7 @@ class MarginOrderExecutor:
 
         logger.info(f"[{symbol}] deploying | dir={direction} | entry={entry_price} | sl={sl_price} | qty={dynamic_qty}")
 
-        side = "BUY" if direction == "LONG" else "SELL"
+        side = self._entry_side(direction)
         order_id = self.client.place_limit_order(
             symbol=symbol,
             side=side,
@@ -964,7 +982,7 @@ class MarginOrderExecutor:
         """Places an OTOCO order (entry + nested TP/SL). Returns orderListId for Guardian tracking."""
         dynamic_qty = self._calculate_target_qty(symbol, entry_price, sl_price)
 
-        side = "BUY" if direction == "LONG" else "SELL"
+        side = self._entry_side(direction)
 
         # Calculate buffered SL Limit (same as _place_entry_order direction logic)
         cfg = self._get_trade_config(symbol)
