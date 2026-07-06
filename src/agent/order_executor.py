@@ -338,15 +338,10 @@ class MarginOrderExecutor:
             logger.info(
                 f"[{symbol}] OCO qty mismatch | oco_qty={oco_sl_qty} | position={abs(net_qty)} — re-aligning"
             )
-            oco_tp = trade_state.get("tp_price", 0)
-            oco_sl = trade_state.get("sl_price", 0)
-            for o in active_orders:
-                if o.side != exit_side:
-                    continue
-                if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
-                    oco_tp = o.price
-                elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
-                    oco_sl = o.stop_price
+            oco_tp, oco_sl = self._extract_oco_prices(
+                active_orders, exit_side,
+                default_tp=trade_state.get("tp_price", 0),
+                default_sl=trade_state.get("sl_price", 0))
             if oco_tp > 0 and oco_sl > 0:
                 if not self.client.cancel_all_symbol_orders(symbol):
                     logger.error(f"[{symbol}] cancel failed before OCO re-align — aborting, retry next pulse")
