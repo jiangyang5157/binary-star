@@ -209,30 +209,7 @@ class MarginOrderExecutor:
 
         # --- Case 1: No position yet (OTOCO pending or position closed) ---
         if not has_position:
-            otoco_placed_at = trade_state.get("otoco_placed_at")
-            if otoco_placed_at:
-                # Position was entered and later closed — clear stale state immediately
-                if trade_state.get("entry_filled_at"):
-                    logger.info(f"[{symbol}] position flat — cleaning orders")
-                    self.client.cancel_all_symbol_orders(symbol)
-                    return {}, None
-                # OTOCO still pending — check timeout
-                timeout_hours = trade_state.get("projected_waiting_hours", 24.0)
-                elapsed_hours = (datetime.now(timezone.utc) - otoco_placed_at).total_seconds() / 3600
-                if elapsed_hours > timeout_hours:
-                    logger.warning(f"[{symbol}] OTOCO entry expired | elapsed={elapsed_hours:.1f}h > {timeout_hours}h")
-                    self.client.cancel_all_symbol_orders(symbol)
-                    return {}, None  # Clear trade state
-                else:
-                    logger.info(f"[{symbol}] OTOCO entry pending | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
-            else:
-                # Position was entered and then closed (net≈0, no pending OTOCO).
-                # Cancel any stray orders and clear stale trade state.
-                if trade_state.get("entry_filled_at"):
-                    logger.info(f"[{symbol}] position flat — cleaning orders")
-                self.client.cancel_all_symbol_orders(symbol)
-                return {}, None
-            return trade_state, None
+            return self._guardian_case_1_no_position(symbol, trade_state)
 
         # --- Case 2: Has position -> Direction Sanity Check ---
         # Safeguard: Ensure reality's NetQty aligns with robot's Intent
@@ -527,6 +504,37 @@ class MarginOrderExecutor:
             return False, None  # Signal caller: position was emergency-closed
 
         return True, {"tp_price": best_tp, "sl_price": best_sl}
+
+    # ================================================================
+    # GUARDIAN CASE METHODS (extracted from guardian_check)
+    # ================================================================
+
+    def _guardian_case_1_no_position(self, symbol: str, trade_state: dict) -> tuple:
+        """Case 1: No position. Handle OTOCO pending timeout or position-closed cleanup."""
+        otoco_placed_at = trade_state.get("otoco_placed_at")
+        if otoco_placed_at:
+            # Position was entered and later closed — clear stale state immediately
+            if trade_state.get("entry_filled_at"):
+                logger.info(f"[{symbol}] position flat — cleaning orders")
+                self.client.cancel_all_symbol_orders(symbol)
+                return {}, None
+            # OTOCO still pending — check timeout
+            timeout_hours = trade_state.get("projected_waiting_hours", 24.0)
+            elapsed_hours = (datetime.now(timezone.utc) - otoco_placed_at).total_seconds() / 3600
+            if elapsed_hours > timeout_hours:
+                logger.warning(f"[{symbol}] OTOCO entry expired | elapsed={elapsed_hours:.1f}h > {timeout_hours}h")
+                self.client.cancel_all_symbol_orders(symbol)
+                return {}, None  # Clear trade state
+            else:
+                logger.info(f"[{symbol}] OTOCO entry pending | elapsed={elapsed_hours:.1f}h / {timeout_hours}h")
+        else:
+            # Position was entered and then closed (net≈0, no pending OTOCO).
+            # Cancel any stray orders and clear stale trade state.
+            if trade_state.get("entry_filled_at"):
+                logger.info(f"[{symbol}] position flat — cleaning orders")
+            self.client.cancel_all_symbol_orders(symbol)
+            return {}, None
+        return trade_state, None
 
     # ================================================================
     # INTERNAL HELPERS
