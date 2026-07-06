@@ -385,15 +385,10 @@ class MarginOrderExecutor:
         new_level = current_level  # unchanged unless partial TP advances it
 
         # Extract live SL/TP from active orders (source of truth)
-        current_sl = trade_state.get("sl_price", 0)
-        current_tp = trade_state.get("tp_price", 0)
-        for o in active_orders:
-            if o.side != exit_side:
-                continue
-            if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
-                current_tp = o.price
-            elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
-                current_sl = o.stop_price
+        current_tp, current_sl = self._extract_oco_prices(
+            active_orders, exit_side,
+            default_tp=trade_state.get("tp_price", 0),
+            default_sl=trade_state.get("sl_price", 0))
 
         current_price = self.client.get_ticker_price(symbol)
         if current_price and current_price > 0:
@@ -561,6 +556,20 @@ class MarginOrderExecutor:
         -buffer for LONG (SELL SL below trigger)."""
         return base_price + (buffer if direction == "SHORT" else -buffer)
 
+    @staticmethod
+    def _extract_oco_prices(active_orders, exit_side, default_tp=0.0, default_sl=0.0):
+        """Extract live TP/SL prices from active OCO orders.
+        Returns (tp_price, sl_price) — falls back to defaults if no orders found."""
+        tp_price, sl_price = default_tp, default_sl
+        for o in active_orders:
+            if o.side != exit_side:
+                continue
+            if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                tp_price = o.price
+            elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                sl_price = o.stop_price
+        return tp_price, sl_price
+
     def _get_guardian_config(self) -> dict:
         """Returns exit-ladder levels with config validation.
 
@@ -650,15 +659,10 @@ class MarginOrderExecutor:
             return 0
 
         exit_side = self._exit_side(direction)
-        current_sl = trade_state.get("sl_price", 0)
-        current_tp = trade_state.get("tp_price", 0)
-        for o in active_orders:
-            if o.side != exit_side:
-                continue
-            if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
-                current_tp = o.price
-            elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
-                current_sl = o.stop_price
+        current_tp, current_sl = self._extract_oco_prices(
+            active_orders, exit_side,
+            default_tp=trade_state.get("tp_price", 0),
+            default_sl=trade_state.get("sl_price", 0))
 
         if current_sl <= 0 or current_tp <= 0:
             return 0
