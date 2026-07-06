@@ -212,22 +212,9 @@ class MarginOrderExecutor:
             return self._guardian_case_1_no_position(symbol, trade_state)
 
         # --- Case 2: Has position -> Direction Sanity Check ---
-        # Safeguard: Ensure reality's NetQty aligns with robot's Intent
-        is_long_pos = net_qty > tolerance
-        is_short_pos = net_qty < -tolerance
-        intent = trade_state["direction"]
-
-        if (intent == "LONG" and not is_long_pos) or (intent == "SHORT" and not is_short_pos):
-            conflict_key = f"{intent}_{net_qty}"
-            if self._last_conflict_key.get(symbol) != conflict_key:
-                logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty} — cancelling all orders")
-                self._last_conflict_key[symbol] = conflict_key
-            # Direction mismatch: bot's intent disagrees with exchange reality.
-            # Cancel wrong-side orders and clear trade_state.  The position is
-            # now the operator's responsibility — the bot steps aside and will
-            # not interfere until the next AI session issues a fresh opinion.
-            self.client.cancel_all_symbol_orders(symbol)
-            return {}, None
+        mismatch = self._guardian_case_2_direction_mismatch(symbol, trade_state, net_qty, tolerance)
+        if mismatch is not None:
+            return mismatch
 
         # --- Case 3: Has position and direction matches -> Protect Position ---
         if not has_oco:
@@ -508,6 +495,27 @@ class MarginOrderExecutor:
     # ================================================================
     # GUARDIAN CASE METHODS (extracted from guardian_check)
     # ================================================================
+
+    def _guardian_case_2_direction_mismatch(self, symbol: str, trade_state: dict,
+                                              net_qty: float, tolerance: float):
+        """Case 2: Direction mismatch — cancel orders, clear state. Returns None if no conflict."""
+        is_long_pos = net_qty > tolerance
+        is_short_pos = net_qty < -tolerance
+        intent = trade_state["direction"]
+
+        if not ((intent == "LONG" and not is_long_pos) or (intent == "SHORT" and not is_short_pos)):
+            return None  # No conflict — caller continues to Case 3/4
+
+        conflict_key = f"{intent}_{net_qty}"
+        if self._last_conflict_key.get(symbol) != conflict_key:
+            logger.warning(f"[{symbol}] orientation conflict | intent={intent} | net_qty={net_qty} — cancelling all orders")
+            self._last_conflict_key[symbol] = conflict_key
+        # Direction mismatch: bot's intent disagrees with exchange reality.
+        # Cancel wrong-side orders and clear trade_state.  The position is
+        # now the operator's responsibility — the bot steps aside and will
+        # not interfere until the next AI session issues a fresh opinion.
+        self.client.cancel_all_symbol_orders(symbol)
+        return {}, None
 
     def _guardian_case_1_no_position(self, symbol: str, trade_state: dict) -> tuple:
         """Case 1: No position. Handle OTOCO pending timeout or position-closed cleanup."""
