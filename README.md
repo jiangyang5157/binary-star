@@ -15,22 +15,23 @@ sequenceDiagram
     participant M as Math Tools
     participant C as Critic
 
-    BSO->>BSO: harvest market topography
+    Note over BSO: harvest market data
     loop max 2 rounds
-        BSO->>S: dispatch
-        S-->>BSO: trade plan (entry · TP · SL · timing)
-        BSO->>M: verify(plan)
-        M-->>BSO: RR · ATR · structural proximity
-        BSO->>C: audit
+        BSO->>+S: dispatch
+        S-->>-BSO: trade plan
+        BSO->>+M: verify plan
+        M-->>-BSO: RR · ATR · structural check
+        BSO->>+C: audit (plan + math facts)
         alt PASS / WEAK
-            C-->>BSO: early exit
+            C-->>BSO: ✓ early exit
         else CONSTRUCTIVE
-            C-->>BSO: weaknesses — refine
+            C-->>BSO: ✗ weaknesses found
+            Note right of BSO: feedback loops back → Session refines
         else TERMINAL
-            C-->>BSO: forced convergence
+            C-->>-BSO: ⊗ forced convergence
         end
     end
-    BSO->>BSO: sanitize → confidence gate → dispatch
+    Note over BSO: confidence gate → dispatch to Order Executor
 ```
 
 ### Veto Levels
