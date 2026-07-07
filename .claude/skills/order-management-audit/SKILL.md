@@ -134,9 +134,9 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 3. **Trailing Distance Source**
    - The trailing distance comes from `levels[active_idx]["sl_lock"]` where `active_idx = new_level - 1` (Case 4 trailing dispatch).
-   - After L1 fires, `new_level=1`, `active_idx=0` → uses L1's `sl_lock` (0.04 → near-entry lock). Correct.
-   - After L2 fires, `new_level=2`, `active_idx=1` → uses L2's `sl_lock` (0.24). Correct.
-   - After L3 fires, `new_level=3`, `active_idx=2` → uses L3's `sl_lock` (0.44). Correct.
+   - After L1 fires, `new_level=1`, `active_idx=0` → uses L1's `sl_lock` (0.1 → near-entry lock). Correct.
+   - After L2 fires, `new_level=2`, `active_idx=1` → uses L2's `sl_lock` (0.3). Correct.
+   - After L3 fires, `new_level=3`, `active_idx=2` → uses L3's `sl_lock` (0.5). Correct.
    - Edge case: if `active_idx >= len(levels)` (all levels exhausted), trailing is skipped (all-levels-exhausted guard). Correct.
 
 4. **Level Memory Across Pulses**
