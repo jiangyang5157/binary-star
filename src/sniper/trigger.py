@@ -345,14 +345,22 @@ class SniperTrigger:
             return val * 1440.0 * 30.0  # approximate month
         return float(val)
 
-    def _check_state_lock(self, lock_key: str, now: datetime) -> bool:
-        """Returns True if permitted to trigger, False if muted by state lock."""
-        cooldown_hours = self.sniper_cfg['muting']['state_lockout_hours']
+    def _check_state_lock(self, lock_key: str, now: datetime,
+                          duration_hours: Optional[float] = None) -> bool:
+        """Returns True if permitted to trigger, False if muted by state lock.
+
+        duration_hours overrides the config default, allowing per-call-site
+        tuning (e.g. strength-scaled lockouts). The duration is captured at
+        SET time — subsequent checks use the stored duration, not the new
+        call's duration_hours (which may differ when strength varies).
+        """
+        cooldown_hours = duration_hours if duration_hours is not None else self.sniper_cfg['muting']['state_lockout_hours']
         if lock_key in self.state_locks:
-            elapsed_hours = (now - self.state_locks[lock_key]).total_seconds() / 3600.0
-            if elapsed_hours < cooldown_hours:
+            lock_time, lock_duration = self.state_locks[lock_key]
+            elapsed_hours = (now - lock_time).total_seconds() / 3600.0
+            if elapsed_hours < lock_duration:
                 return False
-        self.state_locks[lock_key] = now
+        self.state_locks[lock_key] = (now, cooldown_hours)
         return True
 
     def _signal_cfg(self, *path, default=None):
@@ -733,8 +741,7 @@ class SniperTrigger:
                 growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
                 if abs(cvd) >= abs(prev_cvd) * growth_ratio:
                     path_a = True
-            else:
-                path_a = True  # first pulse, no growth check possible
+            # else: first pulse — no growth check possible; require extreme path (path_b)
 
         # Path B (extreme static): CVD above the higher extreme threshold
         path_b = abs(cvd) > extreme_threshold
@@ -1147,7 +1154,12 @@ class SniperTrigger:
         if best_direction is None:
             return None
 
-        if not self._check_state_lock("POSITIONING_EXTREME", now):
+        # Strength-scaled lockout: weak signal → short lock, strong → long lock
+        min_lockout = 1.0
+        max_lockout = self.sniper_cfg['muting']['state_lockout_hours']
+        scaled_hours = min_lockout + best_strength * (max_lockout - min_lockout)
+        lock_key = f"POSITIONING_EXTREME_{best_direction.value}"
+        if not self._check_state_lock(lock_key, now, duration_hours=scaled_hours):
             return None
 
         confidence = self.signal_weights.get('positioning_extreme', 0.50)
@@ -1263,7 +1275,10 @@ class SniperTrigger:
             path = s.evidence.get('trigger_path', '?')
             parts.append(f"cvd_momentum=F:{s.strength:.2f}({path})")
         else:
-            parts.append(f"cvd_momentum=R:|cvd|<={cvd_thresh}&<={extreme_thresh}")
+            if abs(cvd) <= cvd_thresh:
+                parts.append(f"cvd_momentum=R:|cvd|={abs(cvd):.3f}<={cvd_thresh}")
+            else:
+                parts.append(f"cvd_momentum=R:no_growth(|cvd|={abs(cvd):.3f}>{cvd_thresh})")
 
         s = fired.get('cvd_divergence')
         parts.append(f"cvd_divergence={'F:'+str(round(s.strength,2)) if s else 'R:no-prev/div-low'}")
