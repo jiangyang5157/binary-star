@@ -26,7 +26,7 @@ BTCUSDT:
 
   overrides:
     trade_management:
-      net_qty_tolerance: 0.000001  # BTC 最小合约 0.001，比 XAUT 精细 10 倍
+      net_qty_tolerance: 0.00001   # BTC lot 0.001，比 XAUT 精细 10 倍
     regime_parameters:
       trend:
         # 波动扩张期间提高趋势强度门槛，过滤假突破噪声。
