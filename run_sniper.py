@@ -269,6 +269,10 @@ class SniperDaemon:
                                     f"was={follower.confluence_score:.2f}"
                                 )
 
+                # ── 2.8 Persist pulse signal state for dashboard ──
+                triggered_syms = {sym for sym, _ in triggered}
+                self._write_pulse_signals(symbol_results, triggered_syms)
+
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
                 for sym, result in triggered:
                     # Block new sessions only when the bot itself has an active trade.
@@ -643,6 +647,56 @@ class SniperDaemon:
             os.replace(tmp_path, guardian_path)
         except Exception as e:
             logger.warning(f"heavyweight heartbeat write failed | error={e}")
+
+    def _write_pulse_signals(self, symbol_results: dict, triggered_symbols: set):
+        """Persist per-symbol signal state after each pulse's trigger evaluation."""
+        from src.utils.path_utils import resolve_project_root
+        import json as _json
+        from datetime import timezone as _timezone
+
+        symbols_data = {}
+        for sym, result in symbol_results.items():
+            active_signals = []
+            for sig in result.active_signals:
+                active_signals.append({
+                    "type": sig.sub_type,
+                    "score": round(sig.weighted_score, 2),
+                    "strength": round(sig.strength, 2),
+                })
+
+            # cooldown_minutes is the full duration; convert to seconds
+            cooldown_remaining = int(result.cooldown_minutes * 60)
+            trigger = self.triggers.get(sym)
+            cooldown_active = trigger.cooldown_active if trigger else False
+
+            # threshold lives on the ConfluenceEngine
+            threshold = round(trigger.engine.base_threshold, 2) if trigger else 0.35
+
+            symbols_data[sym] = {
+                "triggered": sym in triggered_symbols,
+                "confluence_score": round(result.confluence_score, 2),
+                "threshold": threshold,
+                "direction": result.confluence_direction.value,
+                "active_signals": active_signals,
+                "cooldown_active": cooldown_active,
+                "cooldown_remaining_seconds": cooldown_remaining,
+                "gate_reason": result.gate_reason,
+            }
+
+        payload = {
+            "pulse_at": datetime.now(_timezone.utc).isoformat(),
+            "symbols": symbols_data,
+        }
+
+        path = os.path.join(resolve_project_root(), self.args.path, ".sniper_pulse_signals.json")
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            tmp = path + ".tmp"
+            with open(tmp, "w") as f:
+                _json.dump(payload, f, default=str)
+            os.replace(tmp, path)
+        except Exception as e:
+            logger.warning(f"pulse signals write failed | error={e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")
