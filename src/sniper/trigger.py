@@ -190,6 +190,10 @@ class ConfluenceEngine:
         bullish_score = self._directional_score(signals, Direction.BULLISH)
         bearish_score = self._directional_score(signals, Direction.BEARISH)
 
+        # No directional signal at all — stay neutral
+        if bullish_score == 0.0 and bearish_score == 0.0:
+            return 0.0, Direction.NEUTRAL
+
         noise_factor = 1.0 - (bullish_score * bearish_score)
 
         if bullish_score >= bearish_score:
