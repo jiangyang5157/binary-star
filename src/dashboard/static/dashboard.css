@@ -1934,8 +1934,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 .signal-card {
-  background: var(--card-bg, #1a2233);
-  border: 1px solid var(--card-border, #2a3a4e);
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
   border-radius: 8px;
   padding: 14px;
 }
@@ -1990,9 +1990,9 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   transition: width 0.5s ease;
 }
 
-.threshold-far   { background: var(--badge-gray-text, #6e7d91); }
-.threshold-close { background: #d4a03c; }
-.threshold-near  { background: var(--accent-green, #40a85f); }
+.threshold-far   { background: var(--badge-gray-text); }
+.threshold-close { background: var(--accent-gold); }
+.threshold-near  { background: var(--accent-green); }
 
 /* Signal summary row */
 .signal-summary {
@@ -2019,7 +2019,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: none;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--card-border, #2a3a4e);
+  border-top: 1px solid var(--border-muted);
 }
 
 .signal-detail.open {
@@ -2080,5 +2080,5 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .signal-card-session {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--card-border, #2a3a4e);
+  border-top: 1px solid var(--border-muted);
 }

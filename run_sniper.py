@@ -664,10 +664,16 @@ class SniperDaemon:
                     "strength": round(sig.strength, 2),
                 })
 
-            # cooldown_minutes is the full duration; convert to seconds
-            cooldown_remaining = int(result.cooldown_minutes * 60)
             trigger = self.triggers.get(sym)
             cooldown_active = trigger.cooldown_active if trigger else False
+
+            # Compute actual remaining cooldown (not just total duration)
+            cooldown_total_s = int(result.cooldown_minutes * 60)
+            if cooldown_active and trigger and trigger.last_trigger_time:
+                elapsed = (datetime.now(_timezone.utc) - trigger.last_trigger_time).total_seconds()
+                cooldown_remaining = max(0, int(cooldown_total_s - elapsed))
+            else:
+                cooldown_remaining = cooldown_total_s
 
             # threshold lives on the ConfluenceEngine
             threshold = round(trigger.engine.base_threshold, 2) if trigger else 0.35

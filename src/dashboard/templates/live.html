@@ -608,7 +608,7 @@
           if (symbols[j] === activeSym) {
             var sessContainer = document.getElementById('sniper-signal-session-' + j);
             if (sessContainer && sniperProgress) {
-              sessContainer.appendChild(sniperProgress.container || sniperProgress.el);
+              sessContainer.appendChild(sniperProgress.el);
             }
             break;
           }
