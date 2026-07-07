@@ -608,10 +608,6 @@
             formatElapsed(s.cooldown_remaining_seconds) + '</div>';
         }
 
-        if (activeSession && sym === activeSym && activeSession.progress) {
-          html += '<div class="signal-card-session" id="sniper-signal-session-' + i + '"></div>';
-        }
-
         html += '</div>';
       }
 
@@ -631,17 +627,6 @@
         }
       }
 
-      if (activeSession && activeSession.progress) {
-        for (var j = 0; j < symbols.length; j++) {
-          if (symbols[j] === activeSym) {
-            var sessContainer = document.getElementById('sniper-signal-session-' + j);
-            if (sessContainer && sniperProgress) {
-              sessContainer.appendChild(sniperProgress.el);
-            }
-            break;
-          }
-        }
-      }
     }
 
     async function checkSniperStatus() {

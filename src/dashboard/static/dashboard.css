@@ -2073,9 +2073,3 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-top: 8px;
 }
 
-/* Session progress inside signal card (replaces detail) */
-.signal-card-session {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-muted);
-}

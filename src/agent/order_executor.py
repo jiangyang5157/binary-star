@@ -808,6 +808,22 @@ class MarginOrderExecutor:
             # Clamp to position — min_order_qty bump must not exceed remaining qty
             tp_qty = min(tp_qty, abs(live_net_qty))
 
+            # Dust-avoidance: if this level's partial close would leave a
+            # residual below min_order_qty (too small to place OCO for),
+            # skip the close but advance the counter so SL migration can
+            # still tighten to this level's sl_lock. The position stays
+            # fully protected by the existing OCO and exits at full TP.
+            remaining_if_close = abs(live_net_qty) - tp_qty
+            if 0 < remaining_if_close < cfg.get("min_order_qty", 0):
+                logger.info(
+                    f"[{symbol}] exit ladder L{i+1} skipped — "
+                    f"remaining {remaining_if_close} would be below min_order_qty {cfg['min_order_qty']}"
+                )
+                state_update["sl_price"] = current_sl
+                state_update["tp_price"] = current_tp
+                state_update["exit_ladder_level"] = i + 1
+                break
+
             logger.info(
                 f"[{symbol}] exit ladder L{i+1} triggered | "
                 f"progress={progress:.1%} | tp_qty={tp_qty}"
