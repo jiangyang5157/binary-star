@@ -511,6 +511,8 @@
       container.innerHTML = html;
     }
 
+    var _expandedSignalCards = {};  // preserves expand state across poll re-renders
+
     function _renderSignalCards(data) {
       var container = document.getElementById('sniper-signal-cards');
       if (!container) return;
@@ -524,6 +526,18 @@
       var symbols = data.symbols || Object.keys(signals.symbols);
       var activeSession = data.active_session;
       var activeSym = activeSession ? activeSession.symbol : null;
+
+      // Save which signal cards are expanded before re-rendering
+      var details = container.querySelectorAll('.signal-detail');
+      for (var di = 0; di < details.length; di++) {
+        var header = details[di].previousElementSibling;
+        if (header && header.classList.contains('signal-summary')) {
+          var symEl = header.parentElement.querySelector('.signal-card-symbol');
+          if (symEl) {
+            _expandedSignalCards[symEl.textContent] = details[di].classList.contains('open');
+          }
+        }
+      }
 
       container.style.display = '';
       var html = '';
@@ -602,6 +616,20 @@
       }
 
       container.innerHTML = html;
+
+      // Restore expanded state on signal cards that were open before re-render
+      var restoredDetails = container.querySelectorAll('.signal-detail');
+      for (var ri = 0; ri < restoredDetails.length; ri++) {
+        var rHeader = restoredDetails[ri].previousElementSibling;
+        if (rHeader && rHeader.classList.contains('signal-summary')) {
+          var rSymEl = rHeader.parentElement.querySelector('.signal-card-symbol');
+          if (rSymEl && _expandedSignalCards[rSymEl.textContent]) {
+            restoredDetails[ri].classList.add('open');
+            var chevron = rHeader.querySelector('.signal-summary-chevron');
+            if (chevron) chevron.classList.add('open');
+          }
+        }
+      }
 
       if (activeSession && activeSession.progress) {
         for (var j = 0; j < symbols.length; j++) {
