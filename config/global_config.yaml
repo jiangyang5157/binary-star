@@ -153,14 +153,11 @@ sniper:
 
     # —— 预触发确定性门禁 (Pre-Trigger Gate) ——
     # 在消耗 LLM token 之前，用纯数学过滤不可交易场景。
-    # 四项检查全部可独立开关。
     gate:
       enabled: true
       checks:
-        entry_feasibility: true    # 价格离最近结构锚点太远 → 拒绝（结构真空区不能交易）
-        directional_sanity: true   # 逆势无 CV D确认 → 拒绝
+        directional_sanity: true   # 逆势无 CVD 确认 → 拒绝
         chaos_survival: true       # 混沌中追方向信号 → 拒绝
-      max_price_to_structure_atr: 4.0 # 当前价格离最近 HVN 的最大 ATR 距离。超过此值拒绝触发。
 
     # —— 信号置信度权重（可被 Evolution 进化）——
     # 设计原则：结构性/流动性信号 > 情绪/反向信号。
