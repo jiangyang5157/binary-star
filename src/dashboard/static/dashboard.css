@@ -1923,3 +1923,162 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   color: var(--accent-gold);
   font-weight: 600;
 }
+
+/* ── Sniper Pulse Signal Cards ────────────────────────────────── */
+
+.signal-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.signal-card {
+  background: var(--card-bg, #1a2233);
+  border: 1px solid var(--card-border, #2a3a4e);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.signal-card.triggered {
+  border-color: var(--accent-green, #40a85f);
+  box-shadow: 0 0 8px rgba(64, 168, 95, 0.15);
+}
+
+.signal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.signal-card-symbol {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.signal-card-badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 8px;
+  text-transform: uppercase;
+}
+
+.badge-bullish {
+  background: rgba(64, 168, 95, 0.15);
+  color: var(--accent-green, #40a85f);
+}
+
+.badge-bearish {
+  background: rgba(224, 85, 74, 0.15);
+  color: var(--accent-red, #e0554a);
+}
+
+/* Threshold bar */
+.threshold-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--badge-gray-bg);
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.threshold-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.threshold-far   { background: var(--badge-gray-text, #6e7d91); }
+.threshold-close { background: #d4a03c; }
+.threshold-near  { background: var(--accent-green, #40a85f); }
+
+/* Signal summary row */
+.signal-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted, #8898ac);
+  cursor: pointer;
+  user-select: none;
+}
+
+.signal-summary-chevron {
+  font-size: 0.65rem;
+  transition: transform 0.2s;
+}
+
+.signal-summary-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Signal detail (expandable) */
+.signal-detail {
+  display: none;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--card-border, #2a3a4e);
+}
+
+.signal-detail.open {
+  display: block;
+}
+
+.signal-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.76rem;
+}
+
+.signal-name {
+  flex: 1;
+  font-family: monospace;
+  color: var(--text-muted, #8898ac);
+}
+
+.signal-score {
+  min-width: 42px;
+  text-align: right;
+  font-family: monospace;
+}
+
+.signal-score.positive { color: var(--accent-green, #40a85f); }
+.signal-score.negative { color: var(--accent-red, #e0554a); }
+
+/* Strength bars */
+.signal-strength {
+  display: flex;
+  gap: 2px;
+}
+
+.signal-strength-seg {
+  width: 10px;
+  height: 5px;
+  border-radius: 1px;
+  background: var(--badge-gray-bg);
+}
+
+.signal-strength-seg.active {
+  background: var(--accent-blue, #4a8fe7);
+}
+
+/* Cooldown tag */
+.signal-cooldown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: var(--text-muted, #8898ac);
+  margin-top: 8px;
+}
+
+/* Session progress inside signal card (replaces detail) */
+.signal-card-session {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--card-border, #2a3a4e);
+}
