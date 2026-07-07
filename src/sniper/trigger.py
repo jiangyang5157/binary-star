@@ -1270,7 +1270,6 @@ class SniperTrigger:
         parts.append(f"cvd={cvd:+.3f}")
 
         s = fired.get('cvd_momentum')
-        extreme_thresh = self._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18)
         if s:
             path = s.evidence.get('trigger_path', '?')
             parts.append(f"cvd_momentum=F:{s.strength:.2f}({path})")
