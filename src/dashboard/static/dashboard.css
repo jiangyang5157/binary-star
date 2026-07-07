@@ -119,14 +119,6 @@ code, pre, .mono {
 
 .panel-lock-overlay {
   opacity: 0.55;
-}
-
-/* Disable interactivity on form elements only — status text and
-   progress bars inside the overlay remain readable and animating */
-.panel-lock-overlay input,
-.panel-lock-overlay select,
-.panel-lock-overlay textarea,
-.panel-lock-overlay button {
   pointer-events: none;
   user-select: none;
 }
