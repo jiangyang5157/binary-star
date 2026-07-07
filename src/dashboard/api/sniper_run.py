@@ -243,6 +243,7 @@ def sniper_status(data_root: str = Query("")):
         "pulse_seconds": pulse_seconds,
         "active_session": active_session,
         "guardian": _read_guardian_status(data_root),
+        "pulse_signals": _read_pulse_signals(data_root),
     }
 
 
@@ -284,6 +285,17 @@ def _read_pulse_seconds(data_root: str, fallback_elapsed: int = 0) -> int:
 
     # Last resort: daemon uptime (inaccurate but non-zero proves it's running)
     return fallback_elapsed
+
+
+def _read_pulse_signals(data_root: str) -> dict | None:
+    """Read the most recent per-symbol pulse signal state."""
+    path = Path(data_root) / ".sniper_pulse_signals.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
 
 
 def _read_guardian_status(data_root: str) -> dict | None:
