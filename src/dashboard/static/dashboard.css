@@ -1199,6 +1199,11 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   white-space: nowrap;
 }
 
+@media (max-width: 700px) {
+  .bt-date-input { width: 100%; }
+  .bt-field-sm { max-width: none; }
+}
+
 .toggle-input {
   display: none;
 }
