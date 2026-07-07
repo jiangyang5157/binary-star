@@ -743,7 +743,7 @@
           const rowCls = isNeutral ? '' : timeRemainingRowClass(s.time_remaining_seconds);
           return `<tr class="${rowCls}">
         <td><strong>${s.symbol}</strong></td>
-        <td>${formatLocalTime(s.observed_at).replace('Z (', 'Z<br>(')}</td>
+        <td>${formatLocalTime(s.observed_at)}</td>
         <td>${opinionBadge(s.opinion)}</td>
         <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.entry)}</td>
