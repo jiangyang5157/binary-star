@@ -1290,10 +1290,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-bottom: 0;
 }
 
-.run-panel .section-header {
-  margin-bottom: 12px;
-}
-
 .sniper-trade-toggle {
   margin-left: auto;
 }
@@ -1360,9 +1356,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 /* ── Backtest Section ─────────────────────────── */
-.backtest-card .section-header {
-  margin-bottom: 20px;
-}
 
 /* Mode toggle row */
 .bt-mode-row {
