@@ -212,13 +212,13 @@ guardian:
   exit_ladder:
     levels:
       - target: 0.5
-        tp_ratio: 0.15
+        tp_ratio: 0.1
         sl_lock: 0.1
       - target: 0.7
-        tp_ratio: 0.25
+        tp_ratio: 0.2
         sl_lock: 0.3
       - target: 0.9
-        tp_ratio: 0.35
+        tp_ratio: 0.4
         sl_lock: 0.5
 
 # ═══════════════════════════════════════════════════════════════════════════
