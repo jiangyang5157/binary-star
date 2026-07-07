@@ -655,14 +655,39 @@ class SniperDaemon:
         from datetime import timezone as _timezone
 
         symbols_data = {}
+        # Fixed list of all 10 signal types — ensures every symbol card has the same rows
+        ALL_SIGNAL_TYPES = [
+            'cvd_momentum', 'cvd_divergence', 'cvd_absorption',
+            'large_trade', 'volatility_surge', 'squeeze',
+            'boundary_test', 'liquidation_hunt', 'positioning_extreme',
+            'leader_sync',
+        ]
         for sym, result in symbol_results.items():
-            active_signals = []
-            for sig in result.active_signals:
-                active_signals.append({
-                    "type": sig.sub_type,
-                    "score": round(sig.weighted_score, 2),
-                    "strength": round(sig.strength, 2),
-                })
+            # Build set of active signal sub_types for O(1) lookup
+            active_types = {sig.sub_type for sig in result.active_signals}
+
+            # Index existing signals by sub_type
+            sig_by_type = {sig.sub_type: sig for sig in result.signals}
+
+            all_signals = []
+            for sub_type in ALL_SIGNAL_TYPES:
+                sig = sig_by_type.get(sub_type)
+                if sig:
+                    all_signals.append({
+                        "type": sig.sub_type,
+                        "score": round(sig.weighted_score, 2),
+                        "strength": round(sig.strength, 2),
+                        "direction": sig.direction.value,
+                        "is_active": sig.sub_type in active_types,
+                    })
+                else:
+                    all_signals.append({
+                        "type": sub_type,
+                        "score": 0,
+                        "strength": 0,
+                        "direction": "NEUTRAL",
+                        "is_active": False,
+                    })
 
             trigger = self.triggers.get(sym)
             cooldown_active = trigger.cooldown_active if trigger else False
@@ -683,7 +708,7 @@ class SniperDaemon:
                 "confluence_score": round(result.confluence_score, 2),
                 "threshold": threshold,
                 "direction": result.confluence_direction.value,
-                "active_signals": active_signals,
+                "all_signals": all_signals,
                 "cooldown_active": cooldown_active,
                 "cooldown_remaining_seconds": cooldown_remaining,
                 "gate_reason": result.gate_reason,

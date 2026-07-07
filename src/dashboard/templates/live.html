@@ -294,8 +294,6 @@
       container.innerHTML = html;
     }
 
-    var _expandedSignalCards = {};  // preserves expand state across poll re-renders
-
     function _renderSignalCards(data) {
       var container = document.getElementById('sniper-signal-cards');
       if (!container) return;
@@ -307,18 +305,7 @@
       }
 
       var symbols = data.symbols || Object.keys(signals.symbols);
-
-      // Save which signal cards are expanded before re-rendering
-      var details = container.querySelectorAll('.signal-detail');
-      for (var di = 0; di < details.length; di++) {
-        var header = details[di].previousElementSibling;
-        if (header && header.classList.contains('signal-summary')) {
-          var symEl = header.parentElement.querySelector('.signal-card-symbol');
-          if (symEl) {
-            _expandedSignalCards[symEl.textContent] = details[di].classList.contains('open');
-          }
-        }
-      }
+      var maxStrength = 3;
 
       container.style.display = '';
       var html = '';
@@ -334,7 +321,6 @@
         var pct = threshold > 0 ? Math.min(100, Math.round((score / threshold) * 100)) : 0;
 
         var fillCls = pct < 50 ? 'threshold-far' : pct < 100 ? 'threshold-close' : 'threshold-near';
-        var cardCls = 'signal-card';
 
         var dirBadge = '';
         if (s.direction === 'BULLISH') {
@@ -343,12 +329,7 @@
           dirBadge = '<span class="signal-card-badge badge-bearish">BEARISH</span>';
         }
 
-        var sigCount = (s.active_signals || []).length;
-        var countText = (TRANSLATIONS['sniper.signals_count']?.[getLang()] || '{n} signal{s}')
-          .replace('{n}', sigCount)
-          .replace('{s}', sigCount !== 1 ? 's' : '');
-
-        html += '<div class="' + cardCls + '">';
+        html += '<div class="signal-card">';
         html += '<div class="signal-card-header">';
         html += '<span class="signal-card-symbol">' + stripped + '</span>';
         html += dirBadge;
@@ -358,29 +339,29 @@
         }
         html += '</div>';
 
+        html += '<div class="threshold-row">';
+        html += '<span class="threshold-val">' + score.toFixed(2) + '</span>';
         html += '<div class="threshold-bar"><div class="threshold-bar-fill ' + fillCls +
           '" style="width:' + pct + '%"></div></div>';
-
-        html += '<div class="signal-summary" onclick="this.nextElementSibling.classList.toggle(\'open\');'
-          + 'this.querySelector(\'.signal-summary-chevron\').classList.toggle(\'open\')">';
-        html += '<span>' + countText + ' · ' + score.toFixed(2) + ' / ' + threshold.toFixed(2) + '</span>';
-        html += '<span class="signal-summary-chevron">&#9660;</span>';
+        html += '<span class="threshold-val">' + threshold.toFixed(2) + '</span>';
         html += '</div>';
 
         html += '<div class="signal-detail">';
-        for (var j = 0; j < (s.active_signals || []).length; j++) {
-          var sig = s.active_signals[j];
-          var scoreCls = sig.score >= 0 ? 'positive' : 'negative';
-          var scoreStr = (sig.score >= 0 ? '+' : '') + sig.score.toFixed(1);
-          var strength = sig.strength || 1;
-          var maxStrength = 3;
+        var allSignals = s.all_signals || [];
+        for (var j = 0; j < allSignals.length; j++) {
+          var sig = allSignals[j];
+          var active = sig.is_active;
+          var scoreStr = active ? ((sig.score >= 0 ? '+' : '') + sig.score.toFixed(2)) : '0';
+          var scoreCls = active ? (sig.score >= 0 ? 'positive' : 'negative') : 'inactive';
+          var strength = active ? (sig.strength || 1) : 0;
 
           html += '<div class="signal-row">';
           html += '<span class="signal-name">' + sig.type + '</span>';
           html += '<span class="signal-score ' + scoreCls + '">' + scoreStr + '</span>';
           html += '<span class="signal-strength">';
           for (var k = 0; k < maxStrength; k++) {
-            html += '<span class="signal-strength-seg' + (k < strength * maxStrength ? ' active' : '') + '"></span>';
+            var segActive = k < strength * maxStrength;
+            html += '<span class="signal-strength-seg' + (segActive ? ' active' : '') + '"></span>';
           }
           html += '</span>';
           html += '</div>';
@@ -391,21 +372,6 @@
       }
 
       container.innerHTML = html;
-
-      // Restore expanded state on signal cards that were open before re-render
-      var restoredDetails = container.querySelectorAll('.signal-detail');
-      for (var ri = 0; ri < restoredDetails.length; ri++) {
-        var rHeader = restoredDetails[ri].previousElementSibling;
-        if (rHeader && rHeader.classList.contains('signal-summary')) {
-          var rSymEl = rHeader.parentElement.querySelector('.signal-card-symbol');
-          if (rSymEl && _expandedSignalCards[rSymEl.textContent]) {
-            restoredDetails[ri].classList.add('open');
-            var chevron = rHeader.querySelector('.signal-summary-chevron');
-            if (chevron) chevron.classList.add('open');
-          }
-        }
-      }
-
     }
 
     async function checkSniperStatus() {

@@ -86,7 +86,6 @@ const TRANSLATIONS = {
   // 状态提示
   "msg.loading": { en: "Loading...", zh: "加载中..." },
   "msg.loading_sessions": { en: "Loading sessions...", zh: "加载会话中..." },
-  "msg.no_records": { en: "No records match filters", zh: "无匹配记录" },
   "msg.no_records_active": { en: "No records — all clear", zh: "无记录 — 一切正常" },
   "msg.load_failed": { en: "Failed to load records", zh: "加载失败" },
 
@@ -96,14 +95,6 @@ const TRANSLATIONS = {
   "sniper.pulse_age": {
     en: "{time} since last pulse",
     zh: "距上次脉冲 {time}"
-  },
-  "sniper.signals_count": {
-    en: "{n} signal{s}",
-    zh: "{n} 个信号"
-  },
-  "sniper.threshold": {
-    en: "threshold",
-    zh: "阈值"
   },
 };
 

@@ -172,7 +172,6 @@
     // ── Session Run Trigger ──
     let runPollInterval = null;
     let runProgress = null;
-    let runGeneration = 0;  // to cancel stale completion timeouts
     let _runStopInFlight = false;  // guards against poll re-enabling button mid-stop
 
     function clearRunErrors() {
@@ -240,7 +239,6 @@
               }
               runProgress.update(data.progress);
             }
-            if (typeof loadActive === 'function') { loadActive(); }
 
             // Re-enable UI immediately but keep result visible
             updateSessionRunUI('idle');
@@ -336,7 +334,6 @@
 
         const data = await resp.json();
         updateSessionRunUI('running');
-        runGeneration++;  // invalidate any stale completion timeout
         // Progress component will be created by checkRunStatus on first poll
         runPollInterval = setInterval(checkRunStatus, 2000);
         checkRunStatus();

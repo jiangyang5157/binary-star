@@ -6,7 +6,7 @@
  *
  * Usage:
  *   const sp = new SessionProgress(document.getElementById('container'), {
- *     size: 'full',        // 'full' | 'compact' | 'mini'
+ *     size: 'full',        // 'full' | 'compact'
  *     context: 'session',  // 'session' | 'sniper' | 'backtest'
  *   });
  *   sp.update(progressData);  // called every 2s poll cycle
@@ -116,15 +116,13 @@ class SessionProgress {
       html += '</div>';
     }
 
-    // Activity row (full and compact)
-    if (this.size !== 'mini') {
-      var toggleIcon = this.expanded ? '▾' : '▸';
-      html += '<div class="sp-activity">';
-      html += '<span class="sp-activity-toggle">' + toggleIcon + '</span>';
-      html += '<span class="sp-activity-text">' + this._esc(activity) + '</span>';
-      html += '<span class="sp-elapsed">⏱ ' + elapsed + '</span>';
-      html += '</div>';
-    }
+    // Activity row
+    var toggleIcon = this.expanded ? '▾' : '▸';
+    html += '<div class="sp-activity">';
+    html += '<span class="sp-activity-toggle">' + toggleIcon + '</span>';
+    html += '<span class="sp-activity-text">' + this._esc(activity) + '</span>';
+    html += '<span class="sp-elapsed">⏱ ' + elapsed + '</span>';
+    html += '</div>';
 
     // Activity log (full size, expandable)
     if (this.size === 'full') {
@@ -163,8 +161,6 @@ class SessionProgress {
         this._esc(meta) + '</div>';
       return;
     }
-
-    if (this.size === 'mini') { this.hide(); return; }
 
     // Full size
     var html = '<div class="sp-completed">';

@@ -447,18 +447,6 @@ tbody tr:hover {
 .input-group .input-group-field[type="number"] {
   -moz-appearance: textfield;
 }
-.input-group .input-group-prefix {
-  padding: 6px 10px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-muted);
-  font-family: "SF Mono", "Fira Code", Consolas, monospace;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
-  user-select: none;
-  white-space: nowrap;
-}
-
 .input-group .input-group-suffix {
   padding: 6px 10px;
   font-size: 0.8rem;
@@ -488,21 +476,6 @@ tbody tr:hover {
 }
 
 .filter-input:focus {
-  border-color: var(--accent-teal);
-}
-
-.filter-select {
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-color);
-  background: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 0.85rem;
-  outline: none;
-  cursor: pointer;
-}
-
-.filter-select:focus {
   border-color: var(--accent-teal);
 }
 
@@ -735,11 +708,6 @@ tbody tr:hover {
 }
 
 /* kept for backward compatibility with any hardcoded usage */
-.veto-critical {
-  background: var(--badge-red-bg);
-  color: var(--badge-red-text);
-}
-
 .round-math {
   padding: 1px 8px;
   border-radius: 10px;
@@ -947,9 +915,6 @@ tbody tr:hover {
 .kpi-card.accent-red    { border-left-color: var(--accent-red); }
 .kpi-card.accent-blue   { border-left-color: var(--accent-teal); }
 .kpi-card.accent-purple { border-left-color: var(--accent-purple); }
-.kpi-card.accent-orange { border-left-color: var(--accent-orange); }
-.kpi-card.accent-gold   { border-left-color: var(--accent-gold); }
-
 .kpi-label {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -969,10 +934,6 @@ tbody tr:hover {
 .kpi-value.negative { color: var(--accent-red); }
 
 /* --- Chart Card --- */
-.chart-card {
-  /* Extends .card */
-}
-
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -1049,13 +1010,6 @@ tbody tr:hover {
 .chart-wrap canvas {
   width: 100% !important;
   height: 100% !important;
-}
-
-.chart-empty {
-  text-align: center;
-  color: var(--text-muted);
-  padding: 40px 0;
-  font-style: italic;
 }
 
 .chart-row {
@@ -1294,45 +1248,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-left: auto;
 }
 
-/* --- New Session Section --- */
-.run-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.run-symbol-input {
-  width: 180px;
-}
-
-.run-suffix {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  font-family: "SF Mono", "Fira Code", Consolas, monospace;
-  user-select: none;
-}
-
-/* ── Balance Controls ─────────────────────────── */
-.balance-group {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.balance-input {
-  width: 140px;
-}
-/* Hide number-input spinners */
-.balance-input::-webkit-outer-spin-button,
-.balance-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.balance-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
 /* ── Multi-symbol Guardian Table ─────────────────────────── */
 .guardian-table {
   width: 100%;
@@ -1426,16 +1341,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   font-weight: 600;
 }
 
-.bt-input-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.bt-symbol-input {
-  width: 120px;
-}
-
 .bt-date-input {
   width: 220px;
 }
@@ -1448,14 +1353,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .bt-field-error:focus {
   border-color: var(--accent-red);
   box-shadow: 0 0 0 2px rgba(224, 85, 74, 0.15);
-}
-
-.bt-suffix {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  font-weight: 500;
-  font-family: "SF Mono", "Fira Code", Consolas, monospace;
-  user-select: none;
 }
 
 .bt-hint {
@@ -1521,89 +1418,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .bt-sample-body {
   max-height: 320px;
   overflow-y: auto;
-}
-
-.bt-sample-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 16px;
-  border-bottom: 1px solid var(--border-muted);
-  font-size: 0.82rem;
-}
-
-.bt-sample-row:last-child {
-  border-bottom: none;
-}
-
-.bt-sample-row:hover {
-  background: var(--bg-card-hover);
-}
-
-.bt-sample-idx {
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  min-width: 2em;
-  font-size: 0.75rem;
-}
-
-.bt-sample-ts {
-  color: var(--text-primary);
-  font-family: "SF Mono", "Fira Code", Consolas, monospace;
-  font-size: 0.8rem;
-  flex: 1;
-}
-
-.bt-sample-status {
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 2px 10px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.status-pending {
-  color: var(--text-muted);
-  background: var(--bg-secondary);
-}
-
-.status-running {
-  color: var(--accent-teal);
-  background: rgba(84, 160, 168, 0.12);
-}
-
-.status-completed {
-  color: var(--accent-green);
-  background: rgba(64, 168, 95, 0.12);
-}
-
-.status-failed {
-  color: var(--accent-red);
-  background: rgba(224, 85, 74, 0.12);
-}
-
-/* Hide number spinners on samples input */
-.bt-samples-input::-webkit-outer-spin-button,
-.bt-samples-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.bt-samples-input[type="number"] {
-  -moz-appearance: textfield;
-}
-
-/* ── Responsive — stack panels at narrow widths ── */
-@media (max-width: 700px) {
-  .run-panels {
-    grid-template-columns: 1fr;
-  }
-  .bt-date-input {
-    width: 100%;
-  }
-  .bt-field-sm {
-    max-width: none;
-  }
 }
 
 /* ============================================================
@@ -1959,12 +1773,29 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   color: var(--accent-red, #e0554a);
 }
 
-/* Threshold bar */
+/* Threshold bar with score / threshold flanking */
+.threshold-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.threshold-val {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: var(--text-muted, #8898ac);
+  min-width: 34px;
+}
+
+.threshold-val:first-child { text-align: left; }
+.threshold-val:last-child  { text-align: right; }
+
 .threshold-bar {
+  flex: 1;
   height: 6px;
   border-radius: 3px;
   background: var(--badge-gray-bg);
-  margin-bottom: 8px;
   overflow: hidden;
 }
 
@@ -1978,36 +1809,11 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .threshold-close { background: var(--accent-gold); }
 .threshold-near  { background: var(--accent-green); }
 
-/* Signal summary row */
-.signal-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: var(--text-muted, #8898ac);
-  cursor: pointer;
-  user-select: none;
-}
-
-.signal-summary-chevron {
-  font-size: 0.65rem;
-  transition: transform 0.2s;
-}
-
-.signal-summary-chevron.open {
-  transform: rotate(180deg);
-}
-
-/* Signal detail (expandable) */
+/* Signal detail (always visible, fixed-height list) */
 .signal-detail {
-  display: none;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border-muted);
-}
-
-.signal-detail.open {
-  display: block;
 }
 
 .signal-row {
@@ -2032,8 +1838,9 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 .signal-score.positive { color: var(--accent-green, #40a85f); }
 .signal-score.negative { color: var(--accent-red, #e0554a); }
+.signal-score.inactive { color: var(--text-muted, #8898ac); }
 
-/* Strength bars */
+/* Strength bars (3 segments) */
 .signal-strength {
   display: flex;
   gap: 2px;
