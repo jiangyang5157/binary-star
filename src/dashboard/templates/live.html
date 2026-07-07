@@ -9,6 +9,7 @@
   <script src="/static/i18n.js"></script>
   <script src="/static/dashboard-utils.js"></script>
   <script src="/static/session-progress.js"></script>
+  {% from "_macros.html" import permission_gated with context %}
 </head>
 
 <body class="dark">
@@ -31,10 +32,9 @@
   <main class="container">
 
     <!-- ═══════ New Session & Sniper Control ═══════ -->
-    {% if "run_new_session" in permissions or "run_sniper" in permissions %}
     <div class="run-panels">
 
-      {% if "run_new_session" in permissions %}
+      {% call permission_gated("run_new_session", permissions) %}
       <!-- New Session -->
       <section class="card run-panel">
         <div class="section-header">
@@ -53,9 +53,9 @@
         </div>
         <div id="run-progress-container"></div>
       </section>
-      {% endif %}
+      {% endcall %}
 
-      {% if "run_sniper" in permissions %}
+      {% call permission_gated("run_sniper", permissions) %}
       <!-- Sniper Control -->
       <section class="card run-panel">
         <div class="section-header">
@@ -94,10 +94,9 @@
         <div id="sniper-status-line"></div>
         <div id="sniper-progress-container"></div>
       </section>
-      {% endif %}
+      {% endcall %}
 
     </div>
-    {% endif %}
 
     <!-- ═══════ Active Sessions Table ═══════ -->
     {% if "view_active_sessions" in permissions %}
@@ -177,7 +176,6 @@
       } catch (e) { /* keep fallback */ }
     })();
 
-    {% if "run_new_session" in permissions %}
     // ── Session Run Trigger ──
     let runPollInterval = null;
     let runProgress = null;
@@ -370,9 +368,7 @@
         }
       } catch (e) { /* ignore */ }
     })();
-    {% endif %}
 
-    {% if "run_sniper" in permissions %}
     // ── Sniper Control ──
     let sniperPollInterval = null;
     let sniperProgress = null;
@@ -704,7 +700,6 @@
         }
       } catch (e) { /* ignore */ }
     })();
-    {% endif %}
 
     function timeRemainingClass(seconds) {
       if (seconds > 43200) return 'time-safe';       // > 12h
