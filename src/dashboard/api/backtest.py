@@ -18,25 +18,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/backtest")
 
 
-def _require(perm: str):
-    import json
-    _users_path = Path(__file__).resolve().parent.parent.parent.parent / "config" / "auth" / "users.json"
-
-    def checker(user: str = Query(None)):
-        perms: set[str] = set()
-        if _users_path.exists():
-            try:
-                cfg = json.loads(_users_path.read_text())
-            except json.JSONDecodeError:
-                cfg = {}
-            roles = cfg.get("roles", {})
-            users_data = cfg.get("users", {})
-            role_key = users_data.get(user, {}).get("role", "") if user else ""
-            role = roles.get(role_key, roles.get("anonymous", {}))
-            perms = set(role.get("permissions", []))
-        if perm not in perms:
-            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
-    return checker
+from src.dashboard.auth import require_permission
 
 log = logging.getLogger("BacktestAPI")
 
@@ -268,7 +250,7 @@ def _is_pid_alive(pid: int) -> bool:
 
 @router.post("/preview")
 def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
-             _=Depends(_require("run_backtest"))):
+             _=Depends(require_permission("run_backtest"))):
     """Start a background preview subprocess to compute sample timestamps.
 
     The subprocess writes results to .backtest_status.json.  The frontend
@@ -389,7 +371,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
 
 @router.post("/run")
 def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
-                _=Depends(_require("run_backtest"))):
+                _=Depends(require_permission("run_backtest"))):
     """Start a backtest run against the pre-computed sample timestamps."""
     from src.dashboard.api.sessions import _resolve_data_root
     data_root = _resolve_data_root(data_root)
@@ -554,7 +536,7 @@ def get_status(data_root: str = Query("")):
 
 @router.post("/stop")
 def stop_run(data_root: str = Query(""),
-             _=Depends(_require("run_backtest"))):
+             _=Depends(require_permission("run_backtest"))):
     """Stop the currently running backtest by sending SIGTERM to its subprocess.
 
     Escalates to SIGKILL if the process does not exit within ~0.5 s, then

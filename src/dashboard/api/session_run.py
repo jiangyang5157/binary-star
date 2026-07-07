@@ -26,26 +26,7 @@ router = APIRouter(prefix="/api/session")
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 
-def _require(perm: str):
-    import json
-    _users_path = PROJECT_ROOT / "config" / "auth" / "users.json"
-
-    def checker(user: str = Query(None)):
-        perms: set[str] = set()
-        if _users_path.exists():
-            try:
-                cfg = json.loads(_users_path.read_text())
-            except json.JSONDecodeError:
-                cfg = {}
-            roles = cfg.get("roles", {})
-            users = cfg.get("users", {})
-            role_key = users.get(user, {}).get("role", "") if user else ""
-            role = roles.get(role_key, roles.get("anonymous", {}))
-            perms = set(role.get("permissions", []))
-        if perm not in perms:
-            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
-    return checker
-
+from src.dashboard.auth import require_permission
 
 # ── Models ──────────────────────────────────────────────────────────────
 
@@ -69,7 +50,7 @@ def _is_pid_alive(pid: int) -> bool:
 
 @router.post("/run")
 def trigger_run(req: RunRequest, data_root: str = Query(""),
-                _=Depends(_require("run_new_session"))):
+                _=Depends(require_permission("run_new_session"))):
     """Trigger a one-time session run for the given symbol prefix.
 
     Spawns ``run.py session --write_status`` as an independent subprocess so
@@ -133,7 +114,7 @@ def trigger_run(req: RunRequest, data_root: str = Query(""),
 
 @router.post("/stop")
 def stop_run(data_root: str = Query(""),
-             _=Depends(_require("run_new_session"))):
+             _=Depends(require_permission("run_new_session"))):
     """Stop the currently running session by sending SIGTERM to its subprocess.
 
     Escalates to SIGKILL if the process does not exit within ~0.5 s, then

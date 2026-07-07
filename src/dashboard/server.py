@@ -127,63 +127,8 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 _jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)
 
 
-# ── User permissions (loaded once at startup) ────────────────────────────
-
-_users_permissions: dict[str, set[str]] = {}
-
-
-def _load_users() -> dict[str, set[str]]:
-    """Load users.json and resolve effective permissions per user ID.
-
-    Returns a dict mapping user_id → set of permission strings.
-    Returns an empty dict if the file is missing or malformed.
-    """
-    users_path = PROJECT_ROOT / "config" / "auth" / "users.json"
-    if not users_path.exists():
-        return {}
-    try:
-        config = json.loads(users_path.read_text())
-    except json.JSONDecodeError:
-        return {}
-
-    roles = config.get("roles", {})
-    users = config.get("users", {})
-    result: dict[str, set[str]] = {}
-
-    # Stash anonymous role as fallback for unknown/missing user IDs
-    anon_role = roles.get("anonymous", {})
-    result["__role_anonymous__"] = set(anon_role.get("permissions", []))
-
-    for user_id, user_data in users.items():
-        role_key = user_data.get("role", "")
-        role = roles.get(role_key, {})
-        perms = set(role.get("permissions", []))
-        result[user_id] = perms
-    return result
-
-
-_users_permissions = _load_users()
-
-
-def _get_user_permissions(user_id: str | None) -> set[str]:
-    """Resolve permissions for a user ID.
-
-    Falls back to the "anonymous" role when no user is specified or the
-    user ID is unknown.
-    """
-    if user_id and user_id in _users_permissions:
-        return _users_permissions[user_id]
-    # Fallback to anonymous role
-    return _users_permissions.get("__role_anonymous__", set())
-
-
-def require_permission(perm: str):
-    """FastAPI dependency: reject requests lacking the named permission."""
-    def checker(user: str = Query(None)):
-        perms = _get_user_permissions(user)
-        if perm not in perms:
-            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
-    return checker
+# ── User permissions ─────────────────────────────────────────────────────
+from src.dashboard.auth import get_user_permissions
 
 
 def _server_data_root() -> str:
@@ -216,18 +161,13 @@ def performance():
 
 @app.get("/live", response_class=HTMLResponse, summary="Live Sessions", tags=["Pages"])
 def live_view(user: str = Query(None), data_root: str = Query("")):
-    # Reload users.json on every request — edits take effect without restart
-    global _users_permissions
-    _users_permissions = _load_users()
-    permissions = _get_user_permissions(user)
+    permissions = get_user_permissions(user)
     return render_template("live.html", permissions=permissions)
 
 
 @app.get("/development", response_class=HTMLResponse, summary="Development Dashboard", tags=["Pages"])
 def development_view(user: str = Query(None), data_root: str = Query("")):
-    global _users_permissions
-    _users_permissions = _load_users()
-    permissions = _get_user_permissions(user)
+    permissions = get_user_permissions(user)
     return render_template("development.html", permissions=permissions)
 
 

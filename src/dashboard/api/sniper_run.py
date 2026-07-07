@@ -16,27 +16,7 @@ from src.utils.progress_utils import enrich_progress, elapsed_since_iso
 router = APIRouter(prefix="/api/sniper")
 
 
-def _require(perm: str):
-    """Reject requests lacking the named permission (matches config/auth/users.json)."""
-    import json
-    from pathlib import Path
-    _users_path = Path(__file__).resolve().parent.parent.parent.parent / "config" / "auth" / "users.json"
-
-    def checker(user: str = Query(None)):
-        perms: set[str] = set()
-        if _users_path.exists():
-            try:
-                cfg = json.loads(_users_path.read_text())
-            except json.JSONDecodeError:
-                cfg = {}
-            roles = cfg.get("roles", {})
-            users = cfg.get("users", {})
-            role_key = users.get(user, {}).get("role", "") if user else ""
-            role = roles.get(role_key, roles.get("anonymous", {}))
-            perms = set(role.get("permissions", []))
-        if perm not in perms:
-            raise HTTPException(status_code=403, detail=f"Missing permission: {perm}")
-    return checker
+from src.dashboard.auth import require_permission
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 STATUS_FILENAME = ".sniper_daemon_status.json"
@@ -91,7 +71,7 @@ def _is_pid_alive(pid: int) -> bool:
 
 @router.post("/start")
 def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
-                 _=Depends(_require("run_sniper"))):
+                 _=Depends(require_permission("run_sniper"))):
     """Start the Sniper daemon for the given symbol prefix(es)."""
     from src.utils.symbol_utils import resolve_symbols
 
@@ -166,7 +146,7 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
 
 @router.post("/stop")
 def sniper_stop(data_root: str = Query(""),
-                _=Depends(_require("run_sniper"))):
+                _=Depends(require_permission("run_sniper"))):
     """Stop the running Sniper daemon."""
     data_root = _resolve_data_root(data_root)
 
