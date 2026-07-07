@@ -196,7 +196,7 @@ class ConfluenceEngine:
 
         noise_factor = 1.0 - (bullish_score * bearish_score)
 
-        if bullish_score >= bearish_score:
+        if bullish_score > bearish_score:
             dominant = Direction.BULLISH
             raw_score = bullish_score
         else:
