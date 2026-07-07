@@ -184,7 +184,7 @@
     }
 
     function updateAllCharts(threshold) {
-      const trades = filteredTrades.length ? filteredTrades : allTrades;
+      const trades = filteredTrades;
       const filledTrades = trades.filter(t => t.is_filled);
       const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
 
@@ -192,6 +192,9 @@
         for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-calmar', 'kpi-mdd', 'kpi-executed'])
           $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
         $('confVal').textContent = threshold;
+        renderTimeline(trades, threshold);
+        renderEquity([], 0);
+        renderOptimizer([], threshold);
         return;
       }
 
@@ -477,7 +480,7 @@
     // ── Events ──
     $('symbol-filter').addEventListener('input', function () { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
     $('version-filter').addEventListener('input', function () { localStorage.setItem('versionFilter', this.value); applyFilters(); });
-    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); localStorage.setItem('confThreshold', v); updateAllCharts(v); });
+    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); confThreshold = v; localStorage.setItem('confThreshold', v); updateAllCharts(v); });
     document.querySelectorAll('th.sortable').forEach(th => {
       th.addEventListener('click', function () {
         sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
