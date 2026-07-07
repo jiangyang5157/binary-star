@@ -676,7 +676,7 @@ class SniperDaemon:
                 cooldown_remaining = cooldown_total_s
 
             # threshold lives on the ConfluenceEngine
-            threshold = round(trigger.engine.base_threshold, 2) if trigger else 0.35
+            threshold = round(trigger.engine.effective_threshold, 2) if trigger else 0.35
 
             symbols_data[sym] = {
                 "triggered": sym in triggered_symbols,

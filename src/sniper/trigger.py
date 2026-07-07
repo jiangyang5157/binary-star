@@ -167,6 +167,7 @@ class ConfluenceEngine:
     def __init__(self, config: dict):
         # config is the signal_stack sub-dict
         self.base_threshold = config.get('trigger_threshold', 0.35)
+        self.effective_threshold = self.base_threshold  # updated per-evaluate with regime modifier
         self.emergency_threshold = config.get('emergency_threshold', 0.85)
         self.regime_modifiers = config.get('regime_modifiers', {
             'trending': 0.85, 'ranging': 1.0, 'squeeze': 0.75, 'chaos': 1.50,
@@ -217,7 +218,8 @@ class ConfluenceEngine:
         confluence_score, dominant_direction = self._compute_confluence(signals)
 
         modifier = self.regime_modifiers.get(regime, 1.0)
-        effective_threshold = self.base_threshold * modifier
+        self.effective_threshold = self.base_threshold * modifier
+        effective_threshold = self.effective_threshold
 
         # Emergency override: fire if any single fresh signal exceeds emergency threshold
         emergency = any(
