@@ -7,8 +7,8 @@ metadata.version_control.project_version matches the given version.
 
 Usage:
     python scripts/clean_version_sessions.py -p data/prod -v 26.7.8
-    python scripts/clean_version_sessions.py -p data/backtest -v 26.7.8 --symbol BTC
-    python scripts/clean_version_sessions.py -p data/backtest -v 26.7.8 --symbol BTC,XAUT
+    python scripts/clean_version_sessions.py -p data/backtest -v 26.7.8 --symbol XAUT
+    python scripts/clean_version_sessions.py -p data/backtest -v 26.7.8 --symbol XAUT,BTC
     python scripts/clean_version_sessions.py -p data/prod -v 26.7.8 --dry-run
 """
 
@@ -104,7 +104,7 @@ def main():
     )
     parser.add_argument(
         "--symbol", type=str,
-        help="Optional: filter by symbol prefix (e.g. BTC, BTC,XAUT). "
+        help="Optional: filter by symbol prefix (e.g. XAUT, XAUT,BTC). "
              "Accepts comma-separated list. Without --symbol, ALL symbols are processed."
     )
     parser.add_argument(

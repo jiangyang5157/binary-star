@@ -7,7 +7,7 @@ is "NEUTRAL" — i.e. sessions where the Binary Star debate converged on no trad
 
 Usage:
     python scripts/clean_neutral_sessions.py -p data/prod
-    python scripts/clean_neutral_sessions.py -p data/backtest --symbol BTC,XAUT
+    python scripts/clean_neutral_sessions.py -p data/backtest --symbol XAUT,BTC
     python scripts/clean_neutral_sessions.py -p data/prod --dry-run
 """
 
@@ -94,7 +94,7 @@ def main():
     )
     parser.add_argument(
         "--symbol", type=str,
-        help="Optional: filter by symbol prefix (e.g. BTC, BTC,XAUT). "
+        help="Optional: filter by symbol prefix (e.g. XAUT, XAUT,BTC). "
              "Accepts comma-separated list. Without --symbol, ALL symbols are processed."
     )
     parser.add_argument(

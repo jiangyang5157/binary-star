@@ -7,10 +7,10 @@ filtered by metadata.version_control.project_version matching the version argume
 Creates the target folder if it doesn't exist; overwrites on name collision.
 
 Usage:
-    python scripts/archive_sessions.py -p data/prod -v v26.6.26
-    python scripts/archive_sessions.py -p data/prod -v v26.6.26 --symbol BTC
-    python scripts/archive_sessions.py -p data/prod -v v26.6.26 --symbol BTC,XAUT
-    python scripts/archive_sessions.py -p data/prod -v v26.6.26 --dry-run
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol XAUT
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol XAUT,BTC
+    python scripts/archive_sessions.py -p data/prod -v 26.7.8 --dry-run
 """
 
 import os
@@ -104,12 +104,12 @@ def main():
         "-v", "--version",
         type=str, required=True,
         help="Project version to match against metadata.version_control.project_version "
-             "in each session JSON (e.g. v26.6.26).  Only sessions whose project_version "
+             "in each session JSON.  Only sessions whose project_version "
              "matches will be moved.  Also used as the target folder name: <data_root>/<version>/."
     )
     parser.add_argument(
         "--symbol", type=str,
-        help="Optional: filter by symbol prefix (e.g. BTC, BTC,XAUT). "
+        help="Optional: filter by symbol prefix (e.g. XAUT, XAUT,BTC). "
              "Accepts comma-separated list. Without --symbol, ALL symbols are processed."
     )
     parser.add_argument(

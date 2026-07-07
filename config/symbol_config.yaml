@@ -19,18 +19,18 @@ XAUTUSDT:
   overrides: {}
 
 BTCUSDT:
-  precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
-  precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
+  precision_qty: 4           # Decimal places for order quantity
+  precision_price: 1         # Decimal places for order price
   min_order_qty: 0.001       # Fallback safety quantity if delta is zero
-  sl_slippage_buffer: 10.0   # SL Limit offset from Trigger (e.g., -10.0 for LONG SL)
+  sl_slippage_buffer: 10.0   # SL Limit offset from Trigger
 
   overrides:
     regime_parameters:
       trend:
-        # BTC 波动扩张期间需更高趋势强度门槛，过滤假突破噪声。
+        # 波动扩张期间提高趋势强度门槛，过滤假突破噪声。
         trend_intensity_min_expansion: 0.12
       structural:
-        # BTC 流动性厚，不需要过紧的前端抢跑距离，放宽以避免过早入场。
+        # 流动性厚的资产放宽前端抢跑距离，避免过早入场。
         breakout_frontrun_atr: 0.24
       micro_sentiment:
         cvd_intensity_extreme: 0.16     # 0.14-0.18
@@ -38,6 +38,6 @@ BTCUSDT:
     sniper:
       signal_stack:
         thresholds:
-          # BTC 流动性深、CVD 信号更干净，降低门槛以捕捉更早的背离信号。
+          # 高流动性资产 CVD 信号更干净，降低门槛以捕捉更早的背离。
           cvd_divergence_tick_delta: 0.25
           cvd_extreme_threshold: 0.18

@@ -249,7 +249,7 @@ class SniperTrigger:
 
     # Cross-symbol correlation matrix: leader → {follower: coefficient}.
     # Only leaders listed as keys can propagate to followers.  Currently empty
-    # (BTC and XAUT are independent); add entries when introducing ETH/SOL.
+    # (all symbols trade independently); add entries when introducing ETH/SOL.
     #
     # Usage — when a leader symbol fires (WAKE), the daemon pushes a leader_sync
     # signal card to each follower listed under that leader.  The boost strength
@@ -258,11 +258,11 @@ class SniperTrigger:
     # its own.
     #
     # Calibration — effective correlation range is 0.50–0.80 (cap flattens
-    # everything above 0.80).  For crypto majors that track BTC closely
+    # everything above 0.80).  For majors that track a common leader
     # (ETH, SOL), 0.70 is a good starting point.  For weaker relationships,
     # 0.50–0.60 gives a barely-felt nudge.  Tune based on backtest results.
     #
-    # Example with ETH + SOL tracking BTC:
+    # Example:
     #   CROSS_CORRELATIONS = {
     #       'BTCUSDT': {
     #           'ETHUSDT': 0.70,
@@ -608,7 +608,7 @@ class SniperTrigger:
         if s.sub_type == 'cvd_absorption':
             return f"CVD {ev.get('cvd_intensity', 0.0):.3f} with flat price (delta {ev.get('price_delta', 0.0):.1f})"
         if s.sub_type == 'large_trade':
-            unit = self.symbol.replace('USDT', '') if self.symbol else 'BTC'
+            unit = self.symbol.replace('USDT', '') if self.symbol else '?'
             return f"Avg trade size {ev.get('avg_trade_size', 0.0):.3f} {unit} (z={ev.get('z_score', 0.0):.1f})"
         if s.sub_type == 'volatility_surge':
             return f"VII={ev.get('vii', 0.0):.2f}, VPR={ev.get('vpr', 0.0):.2f}"

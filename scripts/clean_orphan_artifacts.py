@@ -10,7 +10,7 @@ clean-neutral-sessions), run this to purge their orphaned artifacts.
 
 Usage:
     python scripts/clean_orphan_artifacts.py -p data/prod
-    python scripts/clean_orphan_artifacts.py -p data/prod --symbol BTC
+    python scripts/clean_orphan_artifacts.py -p data/prod --symbol XAUT
     python scripts/clean_orphan_artifacts.py -p data/prod --dry-run
 """
 
@@ -41,10 +41,10 @@ def setup_logger(verbose: bool = False):
 
 # Regex to extract (symbol, date, time) from any artifact filename.
 # All artifact types share a trailing  YYYYMMDD_HHMMSS  before the extension.
-#     session:  BTCUSDT_session_20260703_084400.json
-#     klines:   BTCUSDT_klines_15m_20260703_084400.png
-#     audit:    BTCUSDT_audit_20260703_084400.json
-#     html:     BTCUSDT_session_20260703_084400.html
+#     session:  XAUTUSDT_session_20260703_084400.json
+#     klines:   XAUTUSDT_klines_15m_20260703_084400.png
+#     audit:    XAUTUSDT_audit_20260703_084400.json
+#     html:     XAUTUSDT_session_20260703_084400.html
 ARTIFACT_RE = re.compile(r'^([A-Z0-9]+)_.*_(\d{8})_(\d{6})\.(json|png|html|md)$')
 
 
@@ -163,7 +163,7 @@ def main():
     )
     parser.add_argument(
         "--symbol", type=str,
-        help="Optional: filter by symbol (e.g. BTC, BTC,XAUT). "
+        help="Optional: filter by symbol (e.g. XAUT, XAUT,BTC). "
              "Accepts comma-separated list. Without --symbol, ALL symbols are processed."
     )
     parser.add_argument(

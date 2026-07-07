@@ -15,7 +15,7 @@ logger = setup_logger("check_margin")
 
 def main():
     parser = argparse.ArgumentParser(description="Check Binance Spot Cross Margin Status")
-    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. XAUT)")
     args = parser.parse_args()
 
     # Load environment variables from .env

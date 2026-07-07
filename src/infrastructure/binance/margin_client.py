@@ -134,16 +134,15 @@ class BinanceMarginClient:
 
     def get_symbol_position(self, symbol: str) -> Optional[MarginPosition]:
         """
-        Derived helper to get the net position for a specific symbol (e.g. BTCUSDT).
+        Derived helper to get the net position for a specific symbol.
         Calculates net quantity for the base asset.
         """
         # This is a bit complex in Spot Margin because it's asset-based, not symbol-based.
-        # For BTCUSDT, we look at BTC asset.
+        # We look at the base asset corresponding to the symbol.
         summary = self.get_cross_margin_account()
         
         # Assumption: standard pairs. This is a simplified version.
         # We'll just look for the base asset of the symbol.
-        # e.g. for BTCUSDT, we look for BTC.
         from src.utils.symbol_utils import get_quote_currency
         quote = get_quote_currency()
         base_asset = symbol[:-len(quote)] if symbol.endswith(quote) else symbol.replace(quote, "")

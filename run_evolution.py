@@ -31,6 +31,16 @@ class EvolutionEngine:
         self.root = resolve_project_root()
         self.data_root = os.path.join(self.root, data_root)
         self.symbol = symbol
+
+        # Validate symbol is explicitly configured — no silent fallback
+        from src.config.symbol_resolver import is_symbol_configured
+        if not is_symbol_configured(self.symbol):
+            self.logger = logging.getLogger("EvolutionEngine")
+            self.logger.critical(
+                "symbol '%s' is not configured in symbol_config.yaml", self.symbol
+            )
+            sys.exit(1)
+
         self.dirs = self._setup_evolution_dirs()
         load_dotenv()
         

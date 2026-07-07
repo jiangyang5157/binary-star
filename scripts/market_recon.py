@@ -17,7 +17,7 @@ logger = setup_logger("MarketRecon")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Market Recon Tool")
-    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
+    parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. XAUT)")
     parser.add_argument("--timestamp", "-ts", type=str, help="ISO-8601 timestamp (e.g., 2026-04-05T00:23:34Z)")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification of the market scan.")
     from src.utils.pipeline_utils import add_data_path_argument

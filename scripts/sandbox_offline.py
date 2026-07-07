@@ -32,7 +32,7 @@ def _observed_at_to_audit_filename(symbol: str, observed_at: str) -> str:
     """
     Converts an observed_at ISO timestamp to the standard audit filename.
     Audit files are named by session start time (observed_at), NOT audit completion time.
-    Example: '2026-03-10T01:00:00Z' -> 'BTCUSDT_audit_20260310_010000.json'
+    Example: '2026-03-10T01:00:00Z' -> 'XAUTUSDT_audit_20260310_010000.json'
     """
     ts_compact = format_timestamp_for_filename(observed_at)
     return f"{symbol}_audit_{ts_compact}.json"

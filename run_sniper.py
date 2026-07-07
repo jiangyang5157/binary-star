@@ -47,9 +47,20 @@ class SniperDaemon:
         self.args = args
         self.global_cfg = load_global_config()
 
-        # Parse CSV symbol list (e.g., "BTC,XAUT" → ["BTCUSDT", "XAUTUSDT"])
+        # Parse CSV symbol list (e.g., "XAUT,BTC" → ["XAUTUSDT", "BTCUSDT"])
         raw_symbols = getattr(args, 'symbol', '') or ''
         self.symbols = resolve_symbols(raw_symbols)
+
+        # Validate all symbols are explicitly configured — no silent fallback
+        from src.config.symbol_resolver import is_symbol_configured
+        for sym in self.symbols:
+            if not is_symbol_configured(sym):
+                logger.critical(
+                    "symbol '%s' is not configured in symbol_config.yaml | "
+                    "add precision_qty, precision_price, min_order_qty, sl_slippage_buffer",
+                    sym,
+                )
+                sys.exit(1)
 
         # 0. Global Forensic Logging Initialization
         from src.utils.path_utils import resolve_project_root

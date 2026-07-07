@@ -40,7 +40,7 @@ class SniperScout:
         self.strategy_cfg = load_config()
         self.global_cfg = load_global_config()
 
-        # Apply per-symbol config overrides (XAUTUSDT vs BTCUSDT baseline)
+        # Apply per-symbol config overrides on top of base config
         from src.config.symbol_resolver import resolve_config
         self.strategy_cfg = resolve_config(self.strategy_cfg, symbol)
         self.global_cfg = resolve_config(self.global_cfg, symbol)

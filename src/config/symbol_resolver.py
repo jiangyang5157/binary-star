@@ -49,14 +49,20 @@ def get_symbol_trade_params(symbol: str) -> Dict[str, Any]:
     """Return execution parameters for a symbol.
 
     Returns {precision_qty, precision_price, min_order_qty, sl_slippage_buffer}.
-    Falls back to defaults if the symbol is not configured.
+    Raises KeyError if the symbol is not configured — there are no safe defaults.
     """
-    sym_cfg = load_symbol_config().get(symbol, {})
+    sym_cfg = load_symbol_config().get(symbol)
+    if sym_cfg is None:
+        raise KeyError(
+            f"Symbol '{symbol}' is not configured in symbol_config.yaml. "
+            f"Every traded symbol must have explicit precision_qty, precision_price, "
+            f"min_order_qty, and sl_slippage_buffer."
+        )
     return {
-        "precision_qty": sym_cfg.get("precision_qty", 4),
-        "precision_price": sym_cfg.get("precision_price", 1),
-        "min_order_qty": sym_cfg.get("min_order_qty", 0.001),
-        "sl_slippage_buffer": sym_cfg.get("sl_slippage_buffer", 0.0),
+        "precision_qty": sym_cfg["precision_qty"],
+        "precision_price": sym_cfg["precision_price"],
+        "min_order_qty": sym_cfg["min_order_qty"],
+        "sl_slippage_buffer": sym_cfg["sl_slippage_buffer"],
     }
 
 
@@ -64,8 +70,7 @@ def resolve_config(base_config: dict, symbol: str, symbol_config: Optional[dict]
     """Deep-merge symbol overrides into a copy of base_config.
 
     Resolution: base_config + symbol.overrides → resolved (symbol wins).
-    If the symbol has no overrides or is not configured, returns a deep copy
-    of base_config unchanged.
+    Raises KeyError if the symbol is not configured.
 
     Args:
         base_config: The base config dict (e.g., strategy_config.yaml content).
@@ -79,7 +84,14 @@ def resolve_config(base_config: dict, symbol: str, symbol_config: Optional[dict]
     if symbol_config is None:
         symbol_config = load_symbol_config()
 
-    sym_cfg = symbol_config.get(symbol, {})
+    sym_cfg = symbol_config.get(symbol)
+    if sym_cfg is None:
+        raise KeyError(
+            f"Symbol '{symbol}' is not configured in symbol_config.yaml. "
+            f"Every traded symbol must have an entry with at minimum precision_qty, "
+            f"precision_price, min_order_qty, and sl_slippage_buffer."
+        )
+
     overrides = sym_cfg.get("overrides", {})
 
     if isinstance(overrides, dict) and overrides:

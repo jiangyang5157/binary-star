@@ -3,8 +3,8 @@
 Render a session JSON file to an email-safe HTML template for development/testing.
 
 Usage:
-    python scripts/render_email_html.py -f data/prod/sessions/BTCUSDT_session_20260101_120000.json -p data/prod
-    python scripts/render_email_html.py -f data/prod/sessions/BTCUSDT_session_20260101_120000.json -p data/prod --open
+    python scripts/render_email_html.py -f data/prod/sessions/XAUTUSDT_session_20260101_120000.json -p data/prod
+    python scripts/render_email_html.py -f data/prod/sessions/XAUTUSDT_session_20260101_120000.json -p data/prod --open
 """
 
 import os
@@ -34,7 +34,7 @@ def main():
     parser.add_argument(
         "--file", "-f",
         required=True,
-        help="Path to the session JSON file (e.g., data/prod/sessions/BTCUSDT_session_20260101_120000.json)",
+        help="Path to the session JSON file (e.g., data/prod/sessions/XAUTUSDT_session_20260101_120000.json)",
     )
     add_data_path_argument(parser, required=True)
     parser.add_argument(

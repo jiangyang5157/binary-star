@@ -42,28 +42,28 @@ def sample_base_config():
 @pytest.fixture
 def sample_symbol_config():
     return {
-        "BTCUSDT": {
-            "precision_qty": 4,
-            "precision_price": 1,
-            "min_order_qty": 0.001,
-            "sl_slippage_buffer": 10.0,
-            "overrides": {},
-        },
         "XAUTUSDT": {
             "precision_qty": 3,
             "precision_price": 1,
             "min_order_qty": 0.01,
             "sl_slippage_buffer": 0.5,
+            "overrides": {},
+        },
+        "BTCUSDT": {
+            "precision_qty": 4,
+            "precision_price": 1,
+            "min_order_qty": 0.001,
+            "sl_slippage_buffer": 10.0,
             "overrides": {
                 "regime_parameters": {
                     "trend": {
-                        "trend_intensity_min_expansion": 0.08,
+                        "trend_intensity_min_expansion": 0.12,
                     },
                 },
                 "sniper": {
                     "signal_stack": {
                         "thresholds": {
-                            "cvd_divergence_tick_delta": 0.18,
+                            "cvd_divergence_tick_delta": 0.25,
                         },
                     },
                 },
@@ -115,38 +115,35 @@ def test_get_symbol_trade_params_xaut():
     assert params["sl_slippage_buffer"] == 1
 
 
-def test_get_symbol_trade_params_unknown_falls_back():
-    """Unknown symbol returns sensible defaults."""
-    params = get_symbol_trade_params("UNKNOWN")
-    assert params["precision_qty"] == 4  # default
-    assert params["precision_price"] == 1
-    assert params["min_order_qty"] == 0.001
-    assert params["sl_slippage_buffer"] == 0.0
+def test_get_symbol_trade_params_unknown_raises():
+    """Unknown symbol raises KeyError — no silent fallback."""
+    with pytest.raises(KeyError, match="not configured"):
+        get_symbol_trade_params("UNKNOWN")
 
 
 # ── resolve_config ──────────────────────────────────────────────────────────
 
 
 def test_resolve_config_applies_overrides(sample_base_config, sample_symbol_config):
-    result = resolve_config(sample_base_config, "XAUTUSDT", sample_symbol_config)
+    result = resolve_config(sample_base_config, "BTCUSDT", sample_symbol_config)
     # Overridden values
-    assert result["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
-    assert result["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
+    assert result["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.12
+    assert result["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.25
     # Non-overridden values preserved
     assert result["regime_parameters"]["trend"]["trend_intensity_threshold"] == 0.2
     assert result["regime_parameters"]["volatility"]["volatility_baseline_ratio"] == 1.25
 
 
 def test_resolve_config_no_overrides(sample_base_config, sample_symbol_config):
-    """BTCUSDT has empty overrides — result equals base."""
-    result = resolve_config(sample_base_config, "BTCUSDT", sample_symbol_config)
+    """XAUTUSDT has empty overrides — result equals base."""
+    result = resolve_config(sample_base_config, "XAUTUSDT", sample_symbol_config)
     assert result == sample_base_config
 
 
-def test_resolve_config_unknown_symbol(sample_base_config, sample_symbol_config):
-    """Unknown symbol — result equals base (no overrides to apply)."""
-    result = resolve_config(sample_base_config, "SOLUSDT", sample_symbol_config)
-    assert result == sample_base_config
+def test_resolve_config_unknown_symbol_raises(sample_base_config, sample_symbol_config):
+    """Unknown symbol raises KeyError — no silent fallback."""
+    with pytest.raises(KeyError, match="not configured"):
+        resolve_config(sample_base_config, "SOLUSDT", sample_symbol_config)
 
 
 def test_resolve_config_does_not_mutate_original(sample_base_config, sample_symbol_config):
@@ -203,15 +200,17 @@ def test_resolve_config_deeply_nested_override():
 def test_resolve_config_with_real_files():
     """Integration: resolve against actual YAML files."""
     cfg = load_and_resolve_for_symbol("XAUTUSDT")
+    # Base values (XAUTUSDT has no overrides)
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     assert cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
-    # Non-overridden values from base
+    # Other base values preserved
     assert cfg["regime_parameters"]["volatility"]["volatility_extreme_ratio"] == 2.2
     assert cfg["sniper"]["probes"]["cvd_growth_significance_ratio"] == 1.4
 
 
-def test_load_and_resolve_btc_no_overrides():
+def test_load_and_resolve_btc_with_overrides():
     cfg = load_and_resolve_for_symbol("BTCUSDT")
+    # BTC overrides push values away from the base
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.12
     assert cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.25
 
@@ -239,17 +238,18 @@ def test_full_config_pipeline_session():
     t = load_temporal_config(full)
     k = load_risk_config(full)
 
-    # Verify
-    assert r.trend_intensity_min_expansion == 0.08  # XAUT override
-    assert r.trend_intensity_threshold == 0.2       # default
-    assert t.min_trade_velocity == 0.4              # default
-    assert k.max_holding_hours == 72.0              # default
+    # Verify — XAUTUSDT uses base values (no overrides)
+    assert r.trend_intensity_min_expansion == 0.08
+    assert r.trend_intensity_threshold == 0.2
+    assert t.min_trade_velocity == 0.4
+    assert k.max_holding_hours == 72.0
 
 
 def test_full_config_pipeline_evolution():
     """Simulate the run_evolution.py data flow."""
     cfg = load_and_resolve_for_symbol("XAUTUSDT")
 
+    # XAUTUSDT uses base values (no overrides)
     assert cfg["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     assert cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
     assert "strategy_intent" in cfg  # from strategy_config
@@ -266,9 +266,8 @@ def test_full_config_pipeline_sniper():
     strategy = resolve_config(strategy, "XAUTUSDT")
     global_cfg = resolve_config(global_cfg, "XAUTUSDT")
 
-    # Sniper trigger reads threshold from signal_stack
+    # Base values (XAUTUSDT has no overrides)
     assert global_cfg["sniper"]["signal_stack"]["thresholds"]["cvd_divergence_tick_delta"] == 0.18
-    # cvd_impulse_tick_delta removed — verify trend override still resolves
     assert strategy["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
     # Non-overridden sniper values
     assert global_cfg["sniper"]["probes"]["cvd_growth_significance_ratio"] == 1.4
@@ -293,6 +292,7 @@ def test_loaders_work_with_resolved_config():
     a = load_audit_config(cfg)
     v = load_visual_config(cfg)
 
+    # Base values (XAUTUSDT has no overrides)
     assert r.trend_intensity_min_expansion == 0.08
     assert k.stop_loss_buffer_min == 1.4
     assert t.min_trade_velocity == 0.4
@@ -305,11 +305,11 @@ def test_config_snapshot_consistency():
     xaut = load_and_resolve_for_symbol("XAUTUSDT")
     btc = load_and_resolve_for_symbol("BTCUSDT")
 
-    # XAUTUSDT uses overrides
+    # XAUTUSDT uses base values (no overrides)
     assert xaut["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.08
-    # BTCUSDT uses defaults
+    # BTCUSDT overrides push above base
     assert btc["regime_parameters"]["trend"]["trend_intensity_min_expansion"] == 0.12
-    # Both share the same base defaults
+    # Both share other base defaults
     assert xaut["regime_parameters"]["volatility"]["volatility_extreme_ratio"] == 2.2
     assert btc["regime_parameters"]["volatility"]["volatility_extreme_ratio"] == 2.2
 

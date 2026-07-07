@@ -45,7 +45,7 @@ class SessionEngine:
         self.config = load_config()
         self.global_cfg = load_global_config()
 
-        # Apply per-symbol config overrides (XAUTUSDT vs BTCUSDT baseline)
+        # Apply per-symbol config overrides on top of base config
         from src.config.symbol_resolver import resolve_config
         self.config = resolve_config(self.config, symbol)
         self.global_cfg = resolve_config(self.global_cfg, symbol)
@@ -287,6 +287,16 @@ class SessionController:
         self.global_cfg = load_global_config()
         from src.utils.symbol_utils import resolve_symbol
         self.symbol = resolve_symbol(args.symbol)
+
+        # Validate symbol is explicitly configured — no silent fallback
+        from src.config.symbol_resolver import is_symbol_configured
+        if not is_symbol_configured(self.symbol):
+            logger.critical(
+                "symbol '%s' is not configured in symbol_config.yaml | "
+                "add precision_qty, precision_price, min_order_qty, sl_slippage_buffer",
+                self.symbol,
+            )
+            sys.exit(1)
         self.progress_callback = progress_callback
 
         self.engine = SessionEngine(self.symbol, self.data_root, args=args)
