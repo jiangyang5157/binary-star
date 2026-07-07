@@ -1,49 +1,269 @@
 ---
 name: sniper-debug
 description: >
-  Trace why the Sniper did or did not trigger at a specific time window.
-  Use when the user asks: "why did sniper trigger here?", "why didn't it trigger?",
-  "debug this signal", "what happened at 2pm yesterday?", "trace the confluence",
-  "check the cooldown state", "why was this session fired?", "analyze the trigger log".
-  Also use when the user mentions a specific session file and wants to understand
-  what caused it, or when they report unexpected sniper behavior (missed entries,
-  false triggers, suspicious signal patterns).
+  Trace why the Sniper did or did not trigger, and audit signal health across
+  symbols over a time window. Use when the user asks: "why did sniper trigger
+  here?", "why didn't it trigger?", "debug this signal", "what happened at 2pm
+  yesterday?", "trace the confluence", "check the cooldown state", "why was this
+  session fired?", "analyze the trigger log", "compare signals across symbols",
+  "audit signal quality", "sniper health check", "how is the sniper doing?".
+  Also use when the user reports unexpected sniper behavior (missed entries,
+  false triggers, suspicious signal patterns) or wants a broad health check
+  across all watched symbols.
 ---
 
-# Sniper Debug — Signal Trace & Trigger Forensics
+# Sniper Debug — Signal Trace & Multi-Symbol Audit
 
-Trace through the Sniper's decision pipeline at a specific point in time: which
-signals activated, what the confluence engine computed, whether cooldown or the
-pre-AI gate blocked it, and why the final trigger decision was made.
+Two modes. The user almost always wants **Mode B** unless they name a specific
+session file or a narrow time point.
 
-## Input Modes
+## Implicit Parameters (extract from user's words)
 
-The skill supports three ways to specify what to debug. Ask the user which they
-prefer if it's ambiguous.
+The skill takes no formal arguments. Extract these from what the user says:
 
-| Mode | Input | Use case |
-|------|-------|----------|
-| **Time window** | Symbol + datetime (or "around 14:30 yesterday") | "Why didn't it trigger at 2pm?" |
-| **Session file** | Path to a session JSON | "Debug why this session fired" |
-| **Signal focus** | Signal name + time window | "Why is cvd_divergence never firing?" |
+| Parameter | How to extract | Default |
+|-----------|---------------|---------|
+| **Time window** | "昨天", "last 3 hours", "since restart", "10:00-16:00" | Since last sniper restart |
+| **Symbol(s)** | "BTCUSDT", "XAUTUSDT", "all", or omit | All symbols in log |
+| **Mode** | Session file path → Mode A; everything else → Mode B | Mode B |
 
-If the user gives a session file path, extract the timestamp from
-`observation.observed_at` and the symbol from `observation.symbol` — then debug
-the time window around that session.
+If ambiguous, ask: "All symbols or a specific one? What time window?"
 
-## Step 1: Read the Sniper Log
+| Mode | When to use | Output |
+|------|------------|--------|
+| **A — Single Trace** | Specific session file, "why did X fire at Y time?" | Pulse-by-pulse reconstruction |
+| **B — Multi-Symbol Audit** | "How is the sniper doing?", time-window comparison, signal health | Signal health table + anomaly report |
 
-The primary data source is `data/prod/sniper.log`. Each pulse (~2 min) writes a
-`SIGNAL DIAG` line. When the confluence engine fires, a `WAKE` line appears.
+⚠️ **Timezone**: Sniper log timestamps are in the **machine's local timezone**.
+Session filenames and `observed_at` fields are **UTC**. Always convert before
+comparing. Check the machine timezone first:
 
-### SIGNAL DIAG line format
+```bash
+date +%Z  # e.g., NZST = UTC+12
+```
 
+---
+
+# Mode A — Single Trace Forensics
+
+Trace through one trigger event: which signals fired, confluence score, gate
+result, and root cause.
+
+## A1. Locate the data
+
+```bash
+grep '\[trigger\].*\[SYMBOL\]' data/prod/sniper.log | grep -E 'SIGNAL DIAG|WAKE'
+```
+
+Narrow with `sed -n '/<start>/,/<end>/p'` for large logs. If the log doesn't
+go back far enough, fall back to the session JSON's `observation.situation_brief`.
+
+## A2. Parse SIGNAL DIAG lines
+
+Each detector produces either `F:0.XX` (fired, strength) or `R:<reason>`
+(rejected). Parse with inline Python — see `references/log_parsing.md`.
+
+## A3. Reconstruct the trigger decision
+
+For the target pulse(s):
+1. Which signals fired and at what strength?
+2. What was the effective threshold? (regime × modifier from config)
+3. Did confluence pass? (directional stacking + noise cancellation)
+4. Was cooldown active? Any break condition met?
+5. Did the pre-AI gate pass?
+
+## A4. Cross-reference with session JSON
+
+Compare `situation_brief.activated_by` with your reconstruction. Discrepancies
+between what the sniper logged and what the session records are findings.
+Remember: session `observed_at` is UTC — convert to local time before comparing
+with log timestamps.
+
+## A5. Output (Mode A)
+
+```markdown
+# Sniper Trace: {SYMBOL} @ {TIME}
+
+## Signal Activation
+| Pulse | Signal | Status | Strength | Direction |
+|-------|--------|--------|----------|-----------|
+
+## Confluence
+| Bullish | Bearish | Raw | Noise | Final | Threshold | Pass? |
+|---------|---------|-----|-------|-------|-----------|-------|
+
+## Cooldown & Gate
+- Last trigger: {time or "none"}
+- Cooldown: {active/inactive} ({N} min remaining)
+- Gate: {PASS/FAIL: reason}
+
+## Root Cause
+[One paragraph: why the trigger did or didn't fire.]
+```
+
+---
+
+# Mode B — Multi-Symbol Audit (DEFAULT)
+
+Analyze all watched symbols over a time window. Produce:
+
+1. **Signal health table** — per signal, per symbol, with threshold gaps
+2. **Anomaly scan** — suspicious patterns, cooldown violations, bugs
+3. **Sniper feedback** — what's working, what needs attention
+
+## B1. Determine scope and timezone
+
+Ask for the time window if not specified. Default: since last sniper restart
+(or last 24 hours if log is long-running).
+
+**Determine the machine timezone first** — it affects all timestamp comparisons:
+
+```bash
+date +%Z
+```
+
+Identify watched symbols:
+
+```bash
+grep 'SIGNAL DIAG' data/prod/sniper.log | \
+  sed -n 's/.*\[\([A-Z]*\)\] SIGNAL DIAG.*/\1/p' | sort -u
+```
+
+## B2. Extract signal data AND rejection reasons
+
+For each symbol, parse all SIGNAL DIAG lines in the window. For each signal:
+
+- **FIRED count**, strength distribution (min, max, avg)
+- **REJECTED count**
+- **Rejection reason breakdown** — collect the unique `R:reason` strings and
+  count how often each appears. This tells you WHY a signal isn't firing.
+
+Use inline Python — the parsing logic is in `references/log_parsing.md`.
+
+## B3. Read config thresholds for each signal
+
+Read the relevant config files to understand what thresholds each signal is
+measured against. Key files:
+
+- `config/global_config.yaml` → `sniper.signal_stack.thresholds` — per-signal
+  strength thresholds, confidence weights
+- `config/strategy_config.yaml` → `regime_parameters` — VII, squeeze, volume,
+  CVD thresholds
+
+For each signal, identify the config key and its current value. Example
+extraction:
+
+```bash
+grep -A20 'signal_stack' config/global_config.yaml
+grep -A5 'cvd_intensity_threshold\|squeeze_threshold\|volatility_baseline' config/strategy_config.yaml
+```
+
+## B4. Build the Signal Health table
+
+Combining log data (B2) with config thresholds (B3), produce a single table
+that shows both **what happened** and **how close/far it was from triggering**:
+
+| Signal | Symbol | Fired | Rejected | Fire Rate | Avg Str | Threshold (config key) | Threshold Gap |
+|--------|--------|-------|----------|-----------|---------|------------------------|---------------|
+| cvd_momentum | BTCUSDT | 30 | 110 | 21.4% | 0.21 | `cvd_intensity_threshold: 0.10` | avg strength 0.21 (2.1× threshold) |
+| vol_surge | XAUTUSDT | 0 | 140 | 0% | — | `vii > 1.25 AND vpr > 1.5` | VII avg=1.18 (gap: -0.07), VPR avg=0.11 (gap: -1.39) |
+| squeeze | BTCUSDT | 0 | 140 | 0% | — | `sf < 0.75` (×0.75 multiplier) | sf range=[1.0, 2.2] (gap: +0.25 above threshold) |
+| pos_ext | XAUTUSDT | 0 | 140 | 0% | — | `ls∉[0.6,1.5] OR \|fund\|>0.0005 OR oi>0.01` | all metrics in normal range |
+| cvd_divergence | BTCUSDT | 0 | 140 | 0% | — | `needs prev CVD + div gap` | 280/282 pulses: `no-prev/div-low` |
+
+**Threshold Gap column**: For fired signals, show how the avg strength compares
+to the threshold. For rejected signals, extract the actual metric values from
+the rejection reasons and show the gap to the threshold. This tells the user
+whether a "dead" signal is truly dead or just slightly below the bar.
+
+### How to extract threshold gaps from rejection reasons
+
+The rejection reason strings contain the actual values. Examples:
+
+| Rejection reason | Extraction |
+|-----------------|------------|
+| `vii<=1.25\|vpr<=1.5` | VII ≤ 1.25 AND VPR ≤ 1.5 → both must exceed for fire. Get actual VII/VPR from the log line's metrics. |
+| `sf=1.031>=0.750` | sf=1.031, threshold=0.750. Signal requires sf < threshold (squeeze = compression). Gap = 1.031 - 0.750 = +0.281. |
+| `ls<=1.5&ls>=0.6&\|fund\|<=0.0005&oi<0.01` | All 4 conditions are true (metrics inside normal bands). Signal needs at least one to break. |
+| `no-cluster-in-range` | No liquidation cluster within configured ATR radius. |
+| `no-prev/div-low` | No previous CVD reading, or divergence magnitude too small. |
+
+Parse these programmatically — extract numeric values where present, compute
+the gap to threshold.
+
+## B5. Signal Evaluations
+
+For each signal, write a one-line assessment. Use these heuristics:
+
+| Red flag | What it means |
+|----------|---------------|
+| Fire rate < 5% AND threshold gap large | Signal is far from triggering — expected in this market, not a bug |
+| Fire rate < 5% AND threshold gap small | Signal is near the edge — small threshold tweak could activate it |
+| Fire rate = 0% AND reason is "no data" (e.g. no-cluster, no-prev) | Signal depends on rare events — may be inherently sparse |
+| Fire rate > 50% with low avg strength | May be firing on noise — check if it discriminates |
+| Always fires alone (never part of multi-signal wake) | Low conviction — sniper may ignore it |
+| Only fires on one symbol | Symbol-specific bias — verify calibration |
+
+## B6. Anomaly Scan
+
+Check for these patterns:
+
+1. **Dead with small gap**: fire rate = 0% but gap to threshold < 10%. Signal
+   is one small market move away from activating — not a bug, but worth noting.
+2. **Cooldown violation**: two `[trigger] WAKE` lines for the same symbol less
+   than 10 min apart without a `cooldown reset` between them. Note: multiple
+   wakes clustering around the same session time is normal (debate latency).
+   Only flag if the gap is clearly below the configured cooldown.
+3. **Gate fail spike**: gate fail > 50% on a symbol — pre-AI gate is blocking
+   most triggers.
+4. **Directional lock**: all wakes in one direction with 5+ wakes. Could be
+   market trend or signal bias.
+5. **Confluence cliff**: avg confluence within 0.05 of threshold — signals
+   barely scraping through.
+
+## B7. Sniper Feedback
+
+Three short paragraphs:
+
+1. **What's working well** — discriminating signals, well-calibrated thresholds
+2. **What needs attention** — signals that are too strict/loose, anomalies
+3. **Suggested changes** — concrete and actionable, with config keys
+
+No speculation without log evidence.
+
+## B8. Output (Mode B)
+
+```markdown
+# Sniper Audit: {TIME_WINDOW} ({TIMEZONE})
+
+## 1. Signal Health
+[Table from B4 — signal health with threshold gaps]
+
+## 2. Signal Evaluations
+[One-line per signal from B5]
+
+## 3. Anomalies
+[Findings from B6, or "None detected."]
+
+## 4. Sniper Feedback
+[Three paragraphs from B7]
+```
+
+---
+
+# Shared Reference
+
+## Log Format Reference
+
+Sniper log uses **local machine time**. Session files and `observed_at` use **UTC**.
+
+### SIGNAL DIAG
 ```
 HH:MM:SS.sss INF [trigger] [SYMBOL] SIGNAL DIAG |
   cvd=<float> | cvd_momentum=<F:strength(path)|R:reason> |
   cvd_divergence=<F:strength|R:reason> |
   cvd_absorption=<F:strength|R:reason> |
-  trade_sz=<float>/n=<int> | large_trade=<F:strength(z=N.N)|R:warmup(N/5)|R:z=N.N<=thresh> |
+  trade_sz=<float>/n=<int> | large_trade=<F:strength(z=N)|R:warmup(N/5)|R:reason> |
   vii=<float>,vpr=<float> | vol_surge=<F:strength|R:reason> |
   squeeze=<F:strength|R:reason> |
   price=<float>,atr=<float> |
@@ -52,286 +272,37 @@ HH:MM:SS.sss INF [trigger] [SYMBOL] SIGNAL DIAG |
   ls=<float>,fund=<float>,oi_d=<float> | pos_ext=<F:strength|R:reason>
 ```
 
-Each detector shows either `F:0.XX` (fired, with raw strength 0–1) or
-`R:<reason>` (rejected, with the threshold comparison that failed).
-cvd_momentum also shows the trigger path: `(growth)` or `(extreme)`.
-large_trade shows `warmup(N/5)` for the first 5 pulses after daemon start.
+9 signals: `cvd_momentum`, `cvd_divergence`, `cvd_absorption`, `large_trade`,
+`volatility_surge` (`vol_surge` in log), `squeeze`, `boundary_test`,
+`liquidation_hunt` (`liq_hunt`), `positioning_extreme` (`pos_ext`).
 
-### WAKE line format
+### WAKE (two distinct lines — don't confuse them)
 
 ```
+# Trigger-engine WAKE — has confluence, gate, regime:
 HH:MM:SS.sss INF [trigger] [SYMBOL] WAKE |
-  dir=<BULLISH|BEARISH> | confluence=<0.XX> | signals=<N> |
-  active=['signal_name',...] | gate=<PASS|FAIL> | regime=<regime_name>
+  dir=<BULLISH|BEARISH> | confluence=<0.XX> |
+  fresh=<N> | memory=<N> |
+  active=['signal',...] | gate=<PASS|FAIL> | regime=<name>
+
+# Daemon WAKE UP — simpler, used for session correlation:
+HH:MM:SS.sss INF [SniperDaemon] 🔫 [SYMBOL] WAKE UP |
+  dir=<BULLISH|BEARISH> | confluence=<0.XX> |
+  signals=['signal',...]
 ```
 
-### Locating relevant lines
-
-Use `grep` to find the SIGNAL DIAG and WAKE lines for the target symbol and
-time window. Example for a 30-minute window around 14:30:
-
-```bash
-grep '\[trigger\].*\[BTCUSDT\]' data/prod/sniper.log | grep -E 'SIGNAL DIAG|WAKE'
-```
-
-For large log files, narrow with `sed -n '/<start_pattern>/,/<end_pattern>/p'`.
-
-If the sniper log doesn't go back far enough, tell the user and fall back to
-analyzing the session JSON's `observation.situation_brief` (which captures the
-trigger state at session time, but not the pulse-by-pulse history).
-
-## Step 2: Parse and Structure the Data
-
-For each SIGNAL DIAG line in the target window, extract a structured record.
-Use inline Python to parse reliably:
-
-```python
-import re
-from datetime import datetime
-
-# Parse one SIGNAL DIAG line
-def parse_diag_line(line, date_str):
-    # Extract timestamp
-    ts_match = re.match(r'(\d{2}:\d{2}:\d{2}\.\d+)', line)
-    ts = datetime.strptime(f"{date_str} {ts_match.group(1)}", "%Y-%m-%d %H:%M:%S.%f")
-
-    # Parse each detector: F:0.XX = fired, R:... = rejected
-    detectors = {}
-    # Pattern: detector_name=F:0.XX or detector_name=R:reason-text
-    for m in re.finditer(r'(\w+)=(F:[0-9.]+|R:[^|]+)', line):
-        name = m.group(1)
-        value = m.group(2)
-        if value.startswith('F:'):
-            detectors[name] = {'status': 'FIRED', 'strength': float(value[2:])}
-        else:
-            detectors[name] = {'status': 'REJECTED', 'reason': value[2:].strip()}
-
-    # Parse contextual metrics
-    cvd_match = re.search(r'cvd=(-?[\d.]+)', line)
-    vii_match = re.search(r'vii=(-?[\d.]+)', line)
-    vpr_match = re.search(r'vpr=(-?[\d.]+)', line)
-    sf_match = re.search(r'sf=(-?[\d.]+)', line)
-    price_match = re.search(r'price=(-?[\d.]+)', line)
-    atr_match = re.search(r'atr=(-?[\d.]+)', line)
-    ls_match = re.search(r'ls=(-?[\d.]+)', line)
-    fund_match = re.search(r'fund=(-?[\d.]+)', line)
-    oi_d_match = re.search(r'oi_d=(-?[\d.]+)', line)
-    trade_sz_match = re.search(r'trade_sz=(-?[\d.]+)', line)
-
-    return {
-        'timestamp': ts,
-        'metrics': {
-            'cvd': float(cvd_match.group(1)) if cvd_match else None,
-            'vii': float(vii_match.group(1)) if vii_match else None,
-            'vpr': float(vpr_match.group(1)) if vpr_match else None,
-            'squeeze_factor': float(sf_match.group(1)) if sf_match else None,
-            'price': float(price_match.group(1)) if price_match else None,
-            'atr': float(atr_match.group(1)) if atr_match else None,
-            'ls_ratio': float(ls_match.group(1)) if ls_match else None,
-            'funding': float(fund_match.group(1)) if fund_match else None,
-            'oi_delta': float(oi_d_match.group(1)) if oi_d_match else None,
-            'avg_trade_size': float(trade_sz_match.group(1)) if trade_sz_match else None,
-        },
-        'detectors': detectors,
-    }
-```
-
-## Step 3: Determine Regime and Thresholds
-
-From the metrics in each pulse, classify the regime using the same logic as
-`SniperTrigger._determine_regime()` (in `src/sniper/trigger.py`):
-```python
-def classify_regime(vii, squeeze_factor, trend_intensity):
-    if vii is None or squeeze_factor is None or trend_intensity is None:
-        return 'unknown'
-    if vii > 2.2:
-        return 'chaos'
-    if squeeze_factor < 1.0:    # squeeze_threshold from strategy_config
-        return 'squeeze'
-    if abs(trend_intensity) > 0.35:
-        return 'trending'
-    return 'ranging'
-```
-
-⚠️ These thresholds come from `config/strategy_config.yaml` — verify against current config values before debugging.
-
-Regime modifiers (from `config/global_config.yaml` → `signal_stack.regime_modifiers`):
-- trending: ×0.85 → effective threshold 0.289
-- ranging: ×1.00 → effective threshold 0.340
-- squeeze: ×0.75 → effective threshold 0.255
-- chaos: ×1.50 → effective threshold 0.510
-
-Base threshold: 0.34 (from `signal_stack.trigger_threshold`).
-
-## Step 4: Reconstruct the Confluence Score
-
-For each pulse, compute what the confluence engine would have produced.
-
-### Directional stacking formula
-
-For each direction (BULLISH / BEARISH):
-
-```
-directional_score = 1 − ∏(1 − s.strength × s.confidence)
-    for all signals s with that direction AND strength ≥ 0.15
-```
-
-Signal confidence values (from `config/global_config.yaml` → `signal_stack.weights`):
-
-| Signal | Confidence |
-|--------|-----------|
-| cvd_momentum | 0.65 |
-| cvd_divergence | 0.70 |
-| cvd_absorption | 0.50 |
-| large_trade | 0.55 |
-| volatility_surge | 0.55 |
-| squeeze | 0.75 |
-| boundary_test | 0.50 |
-| liquidation_hunt | 0.60 |
-| positioning_extreme | 0.50 |
-| leader_sync | 0.40 |
-
-### Noise cancellation
-
-```
-noise_factor = 1.0 − (bullish_score × bearish_score)
-raw_confluence = max(bullish_score, bearish_score)
-final_confluence = raw_confluence × noise_factor
-```
-
-### Emergency override
-
-Any single signal with raw `strength ≥ 0.80` bypasses cooldown and threshold
-entirely. Check for this explicitly in the output.
-
-## Step 5: Check Cooldown State
-
-Cooldown is determined by regime and time since last trigger:
-
-| Regime | Cooldown (minutes) |
-|--------|-------------------|
-| trending | 25 |
-| ranging | 45 |
-| squeeze | 25 |
-| chaos | 60 |
-
-_Note: config applies `base_multiplier: 2.5` — effective values are trending 62.5 min, ranging 112.5 min, squeeze 62.5 min, chaos 150 min._
-
-Absolute minimum gap between triggers: 10 minutes (any regime).
-
-Cooldown break conditions (either one suffices):
-1. **Stacked break**: 3+ fresh signals in the same direction (strength ≥ 0.15)
-2. **Strength ratio break**: any fresh signal's `weighted_score ≥ last_trigger_score × 1.8`
-
-To check cooldown state, find the most recent WAKE line before the target window.
-If none exists in the log, cooldown is inactive.
-
-**Cooldown can also be reset mid-lifecycle** when the Guardian clears a trade state
-(entry expired or position closed via TP/SL). This sets `last_trigger_time = None`,
-completely releasing the cooldown. Emergency close paths do NOT trigger this reset.
-Check the sniper log for `cooldown reset (trade cleared)` lines near the target window.
-
-## Step 6: Check Pre-AI Gate
-
-If confluence exceeded the effective threshold and cooldown didn't block it,
-the pre-AI gate applies these checks (in `src/sniper/trigger.py`):
-
-1. **Entry Feasibility**: is there a structural anchor (HVN/LVN) within
-   `max_price_to_structure_atr` (4.0 ATR) of current price? If not → FAIL.
-   Requires `observation.quantitative_metrics.volume_profile.anchors_above/below`
-   from a session JSON or chart data.
-
-2. **Directional Sanity**: if the signal direction contradicts trend
-   (`|trend| > 0.35`) AND CVD is weak (`|cvd| < 0.1`) → FAIL (no counter-trend
-   without flow confirmation).
-
-3. **Chaos Survival** (chaos regime only): if the only active signals are
-   directional momentum (`cvd_momentum`, `volatility_surge`) without squeeze
-   or absorption as balance → FAIL.
-
-Note: gate check #4 (RR feasibility) is in config but not implemented in code.
-
-## Step 7: Cross-Reference with Session JSON
-
-If a session exists for the trigger event, load the session JSON and extract:
-
-- `observation.situation_brief` — contains `activated_by[]` (which signals the
-  sniper itself identified as the trigger cause), `confluence_score`,
-  `confluence_direction`, `gate_result`, `regime_note`.
-- `observation.quantitative_metrics.market_regime` — squeeze_factor,
-  trend_intensity, volume_participation_ratio, temporal_physics.
-- `final_decision.opinion` and `final_decision.confidence_score` — did the AI
-  agree with the trigger?
-
-Compare the session's `situation_brief.activated_by` with your reconstructed
-signal analysis — discrepancies between what the sniper recorded and what the
-log shows are themselves useful findings.
-
-## Output Format
-
-Always produce this structured report:
-
-```markdown
-# Sniper Trace: {SYMBOL} @ {TIME_WINDOW}
-
-## 1. Regime & Threshold
-| Pulse Time | VII | Squeeze | Trend | Regime | Modifier | Eff. Threshold |
-|------------|-----|---------|-------|--------|----------|---------------|
-| ... | ... | ... | ... | ... | ... | ... |
-
-## 2. Signal Activation (per pulse)
-| Pulse Time | Signal | Status | Strength | Confidence | Weighted | Direction |
-|------------|--------|--------|----------|------------|----------|-----------|
-| ... | cvd_momentum | FIRED:0.45 | 0.45 | 0.65 | 0.29 | BEARISH |
-| ... | cvd_divergence | REJECTED | — | — | — | — |
-| ... (all 9) | ... | ... | ... | ... | ... | ... |
-
-## 3. Confluence Engine
-| Pulse Time | Bullish Score | Bearish Score | Raw | Noise Factor | Final | Eff. Threshold | Pass? |
-|------------|--------------|--------------|-----|-------------|-------|---------------|-------|
-
-## 4. Cooldown & Gate
-- Last trigger: {timestamp or "none in log"}
-- Cooldown status: {active/inactive} ({N} min remaining)
-- Cooldown break: {none / stacked(3 signals) / strength_ratio(2.1×)}
-- Emergency override: {none / signal_name: strength 0.XX}
-- Gate result: {PASS / FAIL: reason}
-
-## 5. Root Cause
-[One paragraph explaining WHY the trigger did or didn't fire at this moment.
-Name the dominant factor: signal weakness, cooldown block, gate rejection,
-regime suppression, or noise cancellation.]
-
-## 6. Session Correlation (if applicable)
-- Session file: {path}
-- Sniper recorded: {activated_by signals}
-- AI opinion: {BULLISH/BEARISH/NEUTRAL} @ confidence {N}%
-- Agreement with trigger: {consistent / discrepancy: explain}
-```
-
-## Edge Cases
-
-- **Log doesn't go back far enough**: tell the user the earliest available
-  timestamp in the log, fall back to session JSON analysis only.
-- **No SIGNAL DIAG lines for that symbol**: check if the symbol name format
-  matches (e.g. `BTCUSDT` not `BTC`), try both.
-- **Multiple WAKE lines close together**: leader sync may have boosted a
-  follower — check for cross-symbol correlation.
-- **Confluence says trigger but WAKE line absent**: the pre-AI gate likely
-  rejected it. Check gate conditions carefully.
-- **Signal locked out by state lock**: boundary_test and positioning_extreme
-  each lock for 8 hours after firing. If a signal fired recently but isn't
-  showing up, check the lockout period.
+When counting "wakes", decide whether you want trigger-level (the engine's
+decision) or daemon-level (what actually reached the executor). Usually the
+trigger WAKE is more useful for signal analysis.
 
 ## Reference Files
 
-- `src/sniper/trigger.py` — signal detectors, ConfluenceEngine, gate logic,
-  cooldown system, regime classification (the source of truth for all logic).
-- `src/sniper/scout.py` — how market metrics are harvested before trigger evaluation.
+- `src/sniper/trigger.py` — signal detectors, ConfluenceEngine, gate, cooldown.
+- `src/sniper/scout.py` — market metrics harvesting.
 - `config/global_config.yaml` → `sniper.signal_stack` — thresholds, weights,
-  cooldown minutes, regime modifiers, gate flags.
+  cooldown, regime modifiers.
 - `config/strategy_config.yaml` → `regime_parameters` — VII/squeeze/trend
-  thresholds, CVD intensity thresholds, volume participation thresholds.
-- `data/prod/sniper.log` — runtime SIGNAL DIAG and WAKE lines.
-- `data/prod/sessions/{SYMBOL}_session_*.json` — session archives with
-  situation_brief for cross-reference.
+  thresholds, CVD intensity, volume participation.
+- `data/prod/sniper.log` — SIGNAL DIAG and WAKE lines (local time).
+- `data/prod/sessions/` — session JSONs (UTC timestamps).
+- `references/log_parsing.md` — reusable Python parser for log lines.
