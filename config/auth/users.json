@@ -2,11 +2,21 @@
   "roles": {
     "admin": {
       "label": "Administrator",
-      "permissions": ["view_active_sessions", "run_new_session", "run_sniper", "run_backtest"]
+      "permissions": [
+        "view_active_sessions",
+        "run_new_session",
+        "run_sniper",
+        "run_backtest"
+      ]
     },
     "anonymous": {
       "label": "Anonymous",
-      "permissions": ["view_active_sessions", "run_new_session", "run_sniper", "run_backtest"]
+      "permissions": [
+        "view_active_sessions",
+        "run_new_session",
+        "run_sniper",
+        "run_backtest"
+      ]
     }
   },
   "users": {

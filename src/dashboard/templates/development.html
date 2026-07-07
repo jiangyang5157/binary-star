@@ -113,7 +113,6 @@
 
   </main>
 
-  {% if "run_backtest" in permissions %}
   <script>
     const DATA_ROOT = '{{ data_root }}';
     (function () {
@@ -123,6 +122,7 @@
       document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
     })();
 
+    {% if "run_backtest" in permissions %}
     function apiUrl(path) {
       return path;
     }
@@ -636,8 +636,8 @@
         }
       } catch (e) { /* ignore */ }
     })();
-  </script>
   {% endif %}
+  </script>
 </body>
 
 </html>
