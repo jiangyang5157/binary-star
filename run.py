@@ -300,7 +300,7 @@ def _add_patch_parser(subparsers):
     p.add_argument("--file", "-f", required=True,
                    help="Path to the validated evolution proposal JSON")
     p.add_argument("--symbol", type=str,
-                   help="Trading symbol (e.g., BTC, XAUT). If provided, patches "
+                   help="Trading symbol (e.g., XAUT, BTC). If provided, patches "
                         "symbol_config.yaml overrides first, then falls back to "
                         "strategy_config.yaml.")
     p.set_defaults(func=_cmd_patch)
