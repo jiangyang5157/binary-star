@@ -87,7 +87,7 @@ A local signal stack (**9 signals, 5 categories**) monitors the market every 2 m
 |-------|-----------|
 | Entry | OTOCO — atomic limit entry with nested TP/SL |
 | Protection | Guardian OCO — every position wrapped in TP + SL |
-| Profit-taking | 3-level exit ladder (15/25/35% at 50/70/90% TP progress) |
+| Profit-taking | 3-level exit ladder — ascending partial close with progressive SL lock |
 | Stop migration | Dynamic trailing SL as ladder levels fire |
 
 ---
