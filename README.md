@@ -111,16 +111,16 @@ cp .env.example .env  # add your exchange + LLM API keys
 
 ```bash
 # ── Sessions ────────────────────────────────────────────
-python run.py session --symbol BTC
+python run.py session --symbol XAUT
 
 # ── Sniper ──────────────────────────────────────────────
-python run.py sniper --symbol BTC,XAUT --llm --trade 500
+python run.py sniper --symbol XAUT,BTC --llm --trade 500
 
 # ── Backtest ────────────────────────────────────────────
-python run.py backtest-run --symbol BTCUSDT --start 2025-01-01 --samples 100
+python run.py backtest-run --symbol XAUTUSDT --start 2025-01-01 --samples 100
 
 # ── Audit & Evolution ───────────────────────────────────
-python run.py audit --symbol BTC -p data/prod
-python run.py evolution --symbol BTC --samples 50 -p data/prod
-python run.py patch -f proposals/BTC_evolution.json --symbol BTC
+python run.py audit --symbol XAUT -p data/prod
+python run.py evolution --symbol XAUT --samples 50 -p data/prod
+python run.py patch -f proposals/evolution.json --symbol XAUT
 ```

@@ -16,7 +16,7 @@ Run a structured, multi-dimensional audit of the order management and execution 
 
 The user may pass these flags (parse from their message):
 - `--fix`: After presenting findings, apply fixes for confirmed bugs. Each fix is shown as a diff for user approval before applying.
-- `--symbol <BTC|XAUT>`: Focus the audit on a specific symbol's configuration path. Affects which precision/qty/buffer values are checked.
+- `--symbol <XAUT|BTC>`: Focus the audit on a specific symbol's configuration path. Affects which precision/qty/buffer values are checked.
 - `--dimension <name>`: Run only one audit dimension (e.g., `oco-lifecycle`, `pivot`, `exit-ladder`). Without this, run all.
 
 If no flags: run all dimensions, report-only.

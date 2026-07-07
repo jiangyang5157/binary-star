@@ -24,7 +24,7 @@ The skill takes no formal arguments. Extract these from what the user says:
 | Parameter | How to extract | Default |
 |-----------|---------------|---------|
 | **Time window** | "昨天", "last 3 hours", "since restart", "10:00-16:00" | Since last sniper restart |
-| **Symbol(s)** | "BTCUSDT", "XAUTUSDT", "all", or omit | All symbols in log |
+| **Symbol(s)** | "XAUTUSDT", "BTCUSDT", "all", or omit | All symbols in log |
 | **Mode** | Session file path → Mode A; everything else → Mode B | Mode B |
 
 If ambiguous, ask: "All symbols or a specific one? What time window?"
@@ -165,10 +165,10 @@ that shows both **what happened** and **how close/far it was from triggering**:
 
 | Signal | Symbol | Fired | Rejected | Fire Rate | Avg Str | Threshold (config key) | Threshold Gap |
 |--------|--------|-------|----------|-----------|---------|------------------------|---------------|
-| cvd_momentum | BTCUSDT | 30 | 110 | 21.4% | 0.21 | `cvd_intensity_threshold: 0.10` | avg strength 0.21 (2.1× threshold) |
 | vol_surge | XAUTUSDT | 0 | 140 | 0% | — | `vii > 1.25 AND vpr > 1.5` | VII avg=1.18 (gap: -0.07), VPR avg=0.11 (gap: -1.39) |
-| squeeze | BTCUSDT | 0 | 140 | 0% | — | `sf < 0.75` (×0.75 multiplier) | sf range=[1.0, 2.2] (gap: +0.25 above threshold) |
 | pos_ext | XAUTUSDT | 0 | 140 | 0% | — | `ls∉[0.6,1.5] OR \|fund\|>0.0005 OR oi>0.01` | all metrics in normal range |
+| cvd_momentum | BTCUSDT | 30 | 110 | 21.4% | 0.21 | `cvd_intensity_threshold: 0.10` | avg strength 0.21 (2.1× threshold) |
+| squeeze | BTCUSDT | 0 | 140 | 0% | — | `sf < 0.75` (×0.75 multiplier) | sf range=[1.0, 2.2] (gap: +0.25 above threshold) |
 | cvd_divergence | BTCUSDT | 0 | 140 | 0% | — | `needs prev CVD + div gap` | 280/282 pulses: `no-prev/div-low` |
 
 **Threshold Gap column**: For fired signals, show how the avg strength compares

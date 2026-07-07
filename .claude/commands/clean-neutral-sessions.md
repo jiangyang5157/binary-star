@@ -2,7 +2,7 @@ Delete NEUTRAL session reports — sessions where the Binary Star debate converg
 
 Ask the user for:
 - **Path** (-p, required) — data root directory (e.g., data/prod, data/backtest/v226.7.8_r14)
-- **Symbol** (--symbol, optional) — comma-separated symbol list (e.g., BTC, BTC,XAUT). If omitted, all symbols are processed.
+- **Symbol** (--symbol, optional) — comma-separated symbol list (e.g., XAUT,BTC). If omitted, all symbols are processed.
 - **Dry run** (--dry-run, optional) — scan and report without deleting.
 
 Then run:

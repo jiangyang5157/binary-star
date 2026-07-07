@@ -184,17 +184,17 @@ cp .env.example .env  # add your provider API key
 
 ```bash
 # ── Sessions ────────────────────────────────────────────
-python run.py session --symbol BTC -p data/prod
+python run.py session --symbol XAUT -p data/prod
 
 # ── Sniper ──────────────────────────────────────────────
-python run.py sniper --symbol BTC,XAUT -p data/prod --trade 640
+python run.py sniper --symbol XAUT,BTC -p data/prod --trade 640
 
 # ── Backtest ────────────────────────────────────────────
-python run.py backtest-run --symbol BTCUSDT --start 2026-01-01 --samples 100
+python run.py backtest-run --symbol XAUTUSDT --start 2026-01-01 --samples 100
 
 # ── Audit & Evolution ───────────────────────────────────
 python run.py audit -p data/prod
-python run.py evolution --symbol BTC --samples 50 -p data/prod
+python run.py evolution --symbol XAUT --samples 50 -p data/prod
 
 # ── Dashboard ───────────────────────────────────────────
 python run.py dashboard -p data/prod

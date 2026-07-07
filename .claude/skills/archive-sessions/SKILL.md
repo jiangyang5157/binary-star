@@ -2,13 +2,13 @@
 name: archive-sessions
 description: >
   Use when the user wants to archive, move, or organize session report files
-  into a version folder (e.g., "archive all BTC sessions to v26.6.26",
+  into a version folder (e.g., "archive all XAUT sessions to 26.7.8",
   "move my sessions to a new version folder", "organize sessions by version",
   "archive sessions by project version"). Also trigger when the user mentions
   moving session JSON files under data/prod/sessions/ into a subfolder.
   The -v argument matches against metadata.version_control.project_version
   inside each session JSON, so only sessions from that project version are
-  moved. Supports --symbol filtering (BTC, XAUT, or comma-separated) and
+  moved. Supports --symbol filtering (XAUT, BTC, or comma-separated) and
   --dry-run preview.
 ---
 
@@ -34,8 +34,8 @@ python scripts/archive_sessions.py -p <data_root> -v <version> [--symbol SYM] [-
 | Arg | Required | Description |
 |-----|----------|-------------|
 | `-p`, `--path` | yes | Data root directory, e.g. `data/prod` |
-| `-v`, `--version` | yes | Project version to match against `metadata.version_control.project_version` in session JSONs, e.g. `v26.6.26`. Also used as target folder name. |
-| `--symbol` | no | Comma-separated symbol filter, e.g. `BTC` or `BTC,XAUT` |
+| `-v`, `--version` | yes | Project version to match against `metadata.version_control.project_version` in session JSONs, e.g. `26.7.8`. Also used as target folder name. |
+| `--symbol` | no | Comma-separated symbol filter, e.g. `XAUT` or `XAUT,BTC` |
 | `--dry-run` | no | Preview without moving files |
 | `--verbose` | no | Debug-level logging |
 
@@ -53,14 +53,14 @@ Sessions with a missing or `null` `project_version` are skipped (logged as `skip
 ## Examples
 
 ```bash
-# Archive only sessions whose project_version is exactly "26.6.26"
-python scripts/archive_sessions.py -p data/prod -v 26.6.26
+# Archive only sessions whose project_version is exactly match
+python scripts/archive_sessions.py -p data/prod -v 26.7.8
 
-# Same, but only BTC sessions
-python scripts/archive_sessions.py -p data/prod -v 26.6.26 --symbol BTC
+# Same, but only XAUT sessions
+python scripts/archive_sessions.py -p data/prod -v 26.7.8 --symbol XAUT
 
 # Preview first
-python scripts/archive_sessions.py -p data/prod -v 26.6.26 --dry-run
+python scripts/archive_sessions.py -p data/prod -v 26.7.8 --dry-run
 ```
 
 ## Important Rules

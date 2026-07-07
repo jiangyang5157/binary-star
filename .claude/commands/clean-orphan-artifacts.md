@@ -4,7 +4,7 @@ Session reports under `sessions/` are the source of truth. After deleting sessio
 
 Ask the user for:
 - **Path** (-p, required) — data root directory (e.g., data/prod, data/backtest/v26.7.8_r14)
-- **Symbol** (--symbol, optional) — comma-separated symbol list (e.g., BTC, BTC,XAUT). If omitted, all symbols are processed.
+- **Symbol** (--symbol, optional) — comma-separated symbol list (e.g., XAUT,BTC). If omitted, all symbols are processed.
 - **Dry run** (--dry-run / -n, optional) — scan and report without deleting.
 
 Then run:

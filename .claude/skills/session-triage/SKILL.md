@@ -18,8 +18,8 @@ and rank/classify them to surface the sessions most worth human review.
 
 Default scan directory: `data/prod/sessions/`. Accept user overrides for:
 - A different directory path
-- A symbol filter (`BTCUSDT` only, `XAUTUSDT` only)
-- A date range (`--since 2026-06-25`, `--between 2026-06-20 2026-06-28`)
+- A symbol filter (`XAUTUSDT` only, `BTCUSDT` only)
+- A date range (`--since 2026-05-01`, `--between 2026-05-01 2026-06-01`)
 - A limit (`--last 20`)
 
 ```bash
