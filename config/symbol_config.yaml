@@ -10,34 +10,34 @@
 # Config resolution order: base config + symbol.overrides → resolved
 # Evolution patching: overrides first, then base config
 
-BTCUSDT:
-  precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
-  precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
-  min_order_qty: 0.001       # Fallback safety quantity if delta is zero
-  sl_slippage_buffer: 10.0   # SL Limit offset from Trigger (e.g., -10.0 for LONG SL)
-
-  overrides: {}
-
 XAUTUSDT:
   precision_qty: 3
   precision_price: 1
   min_order_qty: 0.01
   sl_slippage_buffer: 1
 
+  overrides: {}
+
+BTCUSDT:
+  precision_qty: 4           # Decimal places for order quantity (e.g., BTC = 4)
+  precision_price: 1         # Decimal places for order price (e.g., BTCUSDT = 1)
+  min_order_qty: 0.001       # Fallback safety quantity if delta is zero
+  sl_slippage_buffer: 10.0   # SL Limit offset from Trigger (e.g., -10.0 for LONG SL)
+
   overrides:
     regime_parameters:
       trend:
-        # 降低波动扩张期间的趋势强度门槛以匹配其波动特性。
-        trend_intensity_min_expansion: 0.08
+        # BTC 波动扩张期间需更高趋势强度门槛，过滤假突破噪声。
+        trend_intensity_min_expansion: 0.12
       structural:
-        # 稍微收紧前端抢跑距离以更快捕捉突破信号。
-        breakout_frontrun_atr: 0.2
+        # BTC 流动性厚，不需要过紧的前端抢跑距离，放宽以避免过早入场。
+        breakout_frontrun_atr: 0.24
       micro_sentiment:
-        cvd_intensity_extreme: 0.44     # 0.40-0.48
-        cvd_intensity_threshold: 0.18   # 0.14-0.18
+        cvd_intensity_extreme: 0.16     # 0.14-0.18
+        cvd_intensity_threshold: 0.10   # 0.08-0.12
     sniper:
       signal_stack:
         thresholds:
-          # XAUT CVD 噪声高，提高门槛以减少误触发。
-          cvd_divergence_tick_delta: 0.18
-          cvd_extreme_threshold: 0.36
+          # BTC 流动性深、CVD 信号更干净，降低门槛以捕捉更早的背离信号。
+          cvd_divergence_tick_delta: 0.25
+          cvd_extreme_threshold: 0.18

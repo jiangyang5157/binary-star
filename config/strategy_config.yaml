@@ -90,7 +90,7 @@ regime_parameters:
     # Threshold for 'High Conviction' trends where aggressive participation is enabled.
     trend_intensity_strong: 0.35
     # Minimum trend intensity required to justify directional trades during volatility expansion.
-    trend_intensity_min_expansion: 0.12
+    trend_intensity_min_expansion: 0.08
 
   # --- Volatility & Risk Fractals (Noise Management) ---
   volatility:
@@ -132,7 +132,7 @@ regime_parameters:
     # The 'Magnetic Field' range of the POC in ATR units.
     poc_gravity_atr_distance: 3.5
     # Aggressive offset for 'Front-Running' institutional liquidity clusters.
-    breakout_frontrun_atr: 0.24
+    breakout_frontrun_atr: 0.2
     # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
     max_entry_distance_atr: 1.6
 
@@ -141,9 +141,9 @@ regime_parameters:
     # Degree of wick skewness required to signal buyer/seller exhaustion.
     wick_skew_exhaustion: 0.6
     # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
-    cvd_intensity_threshold: 0.1
+    cvd_intensity_threshold: 0.18
     # Extreme single-sided imbalance that triggers immediate absorption audit.
-    cvd_intensity_extreme: 0.16
+    cvd_intensity_extreme: 0.44
     # Absolute funding threshold for Retail Squeeze detection.
     funding_extreme_threshold: 0.0005
 

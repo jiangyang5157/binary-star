@@ -188,10 +188,10 @@ sniper:
     # 覆盖 detector 内部的默认判断阈值，可按 symbol override。
     thresholds:
       # 脉冲间 CVD 比率变化幅度。超过此值触发 cvd_divergence 检测。
-      cvd_divergence_tick_delta: 0.25
+      cvd_divergence_tick_delta: 0.18
       # CVD 极端阈值（替代原 taker_imbalance）。|cvd| 超过此值直接触发 cvd_momentum
       # 静态路径。XAUT 等低流动性资产可提高此值减少噪声。
-      cvd_extreme_threshold: 0.18
+      cvd_extreme_threshold: 0.36
       # large_trade: avg_trade_size Z-score 超过此值触发
       large_trade_zscore: 2.0
       # large_trade: 滚动窗口脉冲数（每个 pulse ≈ 2min）
