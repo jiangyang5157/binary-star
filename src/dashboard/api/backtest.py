@@ -267,7 +267,8 @@ def _is_pid_alive(pid: int) -> bool:
 # ── Endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/preview")
-def preview(req: BacktestPreviewRequest, data_root: str = Query("")):
+def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
+             _=Depends(_require("run_backtest"))):
     """Start a background preview subprocess to compute sample timestamps.
 
     The subprocess writes results to .backtest_status.json.  The frontend
