@@ -1,7 +1,6 @@
 {
   "roles": {
     "admin": {
-      "label": "Administrator",
       "permissions": [
         "view_active_sessions",
         "run_new_session",
@@ -10,7 +9,6 @@
       ]
     },
     "anonymous": {
-      "label": "Anonymous",
       "permissions": [
         "view_active_sessions",
         "run_new_session",
@@ -21,8 +19,7 @@
   },
   "users": {
     "42": {
-      "role": "admin",
-      "label": "jiangyang"
+      "role": "admin"
     }
   }
 }
