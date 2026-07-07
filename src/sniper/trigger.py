@@ -482,25 +482,8 @@ class SniperTrigger:
             return "PASS", "gate disabled"
 
         checks = gate_cfg.get('checks', {})
-        atr = curr['price_dynamics'].get('atr_macro', 0)
-        price = curr['price_dynamics'].get('current_price', 0)
-        topo = curr.get('volume_profile', {})
 
-        # 1. Entry feasibility
-        if checks.get('entry_feasibility', True):
-            max_dist = gate_cfg.get('max_price_to_structure_atr', 1.0)
-            if direction == Direction.BULLISH:
-                # Need structure BELOW for entry
-                anchors = topo.get('anchors_below', [])
-            else:
-                anchors = topo.get('anchors_above', [])
-            nearest_hvn = next((a for a in (anchors or []) if a.get('type') == 'HVN'), None)
-            if nearest_hvn and atr > 0:
-                dist = abs(price - nearest_hvn['price']) / atr
-                if dist > max_dist:
-                    return "FAIL", f"ENTRY_FEASIBILITY: nearest structure at {dist:.1f} ATR > {max_dist}"
-
-        # 2. Directional sanity
+        # 1. Directional sanity
         if checks.get('directional_sanity', True):
             trend = curr['market_regime'].get('trend_intensity', 0)
             trend_strong = self.regime_cfg['trend']['trend_intensity_strong']
@@ -514,7 +497,7 @@ class SniperTrigger:
                 if abs(cvd) < cvd_threshold:
                     return "FAIL", "DIRECTIONAL_SANITY: BEARISH against strong bullish trend without CVD confirmation"
 
-        # 3. Chaos survival
+        # 2. Chaos survival
         if checks.get('chaos_survival', True) and regime == 'chaos':
             # Directional momentum signals in chaos are prohibited
             momentum_signals = [s for s in signals
@@ -672,11 +655,7 @@ class SniperTrigger:
 
     def _build_entry_suggestion(self, signals: List[SignalCard],
                                  direction: Direction, regime: str) -> Dict[str, Any]:
-        max_dist = self.sniper_cfg.get('signal_stack', {}).get('gate', {}).get(
-            'max_price_to_structure_atr', 1.0)
-        suggestion = {
-            "max_distance_atr": max_dist,
-        }
+        suggestion: Dict[str, Any] = {}
 
         if any(s.sub_type == 'cvd_divergence' for s in signals):
             suggestion["type"] = "divergence_fade"
