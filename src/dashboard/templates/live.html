@@ -596,7 +596,7 @@
           html += '<span class="signal-score ' + scoreCls + '">' + scoreStr + '</span>';
           html += '<span class="signal-strength">';
           for (var k = 0; k < maxStrength; k++) {
-            html += '<span class="signal-strength-seg' + (k < strength ? ' active' : '') + '"></span>';
+            html += '<span class="signal-strength-seg' + (k < strength * maxStrength ? ' active' : '') + '"></span>';
           }
           html += '</span>';
           html += '</div>';
