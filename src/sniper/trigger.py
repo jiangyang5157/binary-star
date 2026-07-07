@@ -190,19 +190,16 @@ class ConfluenceEngine:
         bullish_score = self._directional_score(signals, Direction.BULLISH)
         bearish_score = self._directional_score(signals, Direction.BEARISH)
 
-        # No dominant direction — scores are equal or both zero
-        if bullish_score == bearish_score:
-            return 0.0, Direction.NEUTRAL
-
-        noise_factor = 1.0 - (bullish_score * bearish_score)
-
         if bullish_score > bearish_score:
             dominant = Direction.BULLISH
             raw_score = bullish_score
-        else:
+        elif bearish_score > bullish_score:
             dominant = Direction.BEARISH
             raw_score = bearish_score
+        else:
+            return 0.0, Direction.NEUTRAL
 
+        noise_factor = 1.0 - (bullish_score * bearish_score)
         confluence_score = raw_score * noise_factor
         if math.isnan(confluence_score):
             logger.warning("NaN confluence — returning 0.0")
