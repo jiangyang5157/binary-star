@@ -196,6 +196,7 @@ code, pre, .mono {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .card-footer {
