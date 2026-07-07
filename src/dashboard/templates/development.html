@@ -1,374 +1,374 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Development — Singularity</title>
-<link rel="stylesheet" href="/static/dashboard.css">
-<script src="/static/i18n.js"></script>
-<script src="/static/dashboard-utils.js"></script>
-<script src="/static/session-progress.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Development — Singularity</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+  <script src="/static/i18n.js"></script>
+  <script src="/static/dashboard-utils.js"></script>
+  <script src="/static/session-progress.js"></script>
 </head>
+
 <body class="dark">
-<header class="app-header">
-  <h1>Singularity</h1>
-  <nav>
-    <a href="/performance" class="nav-link" data-i18n="nav.performance">Performance</a>
-    <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
-    <a href="/development" class="nav-link active" data-i18n="nav.development">Development</a>
-  </nav>
-  <div class="header-controls">
-    <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
-      <span class="lang-en active">EN</span>
-      <span class="lang-sep">│</span>
-      <span class="lang-zh">中文</span>
-    </button>
-  </div>
-</header>
+  <header class="app-header">
+    <h1>Singularity</h1>
+    <nav>
+      <a href="/performance" class="nav-link" data-i18n="nav.performance">Performance</a>
+      <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
+      <a href="/development" class="nav-link active" data-i18n="nav.development">Development</a>
+    </nav>
+    <div class="header-controls">
+      <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
+        <span class="lang-en active">EN</span>
+        <span class="lang-sep">│</span>
+        <span class="lang-zh">中文</span>
+      </button>
+    </div>
+  </header>
 
-<main class="container">
+  <main class="container">
 
-  <!-- ═══════ Backtest ═══════ -->
+    <!-- ═══════ Backtest ═══════ -->
+    {% if "run_backtest" in permissions %}
+    <section class="card backtest-card">
+      <div class="section-header">
+        <h2 data-i18n="section.backtest">Backtest</h2>
+      </div>
+
+      <!-- Mode Toggle -->
+      <div class="bt-mode-row">
+        <label class="bt-mode-option">
+          <input type="radio" name="bt-mode" value="timestamp" onchange="switchMode('timestamp')" checked>
+          <span class="bt-mode-label" data-i18n="bt.single_ts">Single Timestamp</span>
+        </label>
+        <label class="bt-mode-option">
+          <input type="radio" name="bt-mode" value="range" onchange="switchMode('range')">
+          <span class="bt-mode-label" data-i18n="bt.date_range">Date Range</span>
+        </label>
+      </div>
+
+      <!-- Symbol -->
+      <div class="bt-param-row">
+        <label class="bt-field bt-field-wide">
+          <span class="bt-label" data-i18n="bt.trading_pair">Trading Pair</span>
+          <span class="input-group" id="bt-symbol-group">
+            <input type="text" id="bt-symbol" class="input-group-field" placeholder="BTC" maxlength="10"
+              autocomplete="off" oninput="clearBacktestErrors()">
+            <span class="input-group-suffix quote-suffix">USDT</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- Shared config area: show/hide fields by mode -->
+      <div class="bt-param-row" id="bt-timestamp-row">
+        <label class="bt-field bt-field-wide">
+          <span class="bt-label" data-i18n="bt.timestamp">Timestamp</span>
+          <input type="text" id="bt-timestamp" class="filter-input bt-date-input" placeholder="" autocomplete="off"
+            oninput="clearBacktestErrors()">
+        </label>
+      </div>
+
+      <div id="bt-range-rows" style="display:none">
+        <div class="bt-param-row bt-range-grid">
+          <label class="bt-field">
+            <span class="bt-label" data-i18n="bt.start">Start</span>
+            <input type="text" id="bt-start" class="filter-input bt-date-input" placeholder="T-15d" autocomplete="off"
+              oninput="clearBacktestErrors()">
+          </label>
+          <label class="bt-field">
+            <span class="bt-label" data-i18n="bt.end">End</span>
+            <input type="text" id="bt-end" class="filter-input bt-date-input" placeholder="T-1d" autocomplete="off"
+              oninput="clearBacktestErrors()">
+          </label>
+          <label class="bt-field bt-field-sm">
+            <span class="bt-label" data-i18n="bt.samples">Samples</span>
+            <input type="number" id="bt-samples" class="filter-input bt-samples-input" placeholder="14" min="1"
+              max="200" step="1" oninput="clearBacktestErrors()">
+          </label>
+        </div>
+      </div>
+
+      <!-- Format hint -->
+      <p class="bt-hint" data-i18n="bt.hint">Format: <code>T-Nd</code>, <code>T-Nh</code>,
+        <code>YYYY-MM-DD HH:MM:SS</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start
+        must be before End</p>
+
+      <!-- Preview button -->
+      <button id="bt-preview-btn" class="btn-sm" onclick="previewSamples()" data-i18n="btn.preview">Preview
+        Samples</button>
+      <span id="bt-preview-status" class="audit-status" style="display:none"></span>
+
+      <!-- Sample List -->
+      <div id="bt-sample-list" class="bt-sample-list" style="display:none">
+        <div class="bt-sample-header">
+          <span id="bt-sample-count"></span>
+          <button id="bt-run-btn" class="btn-sm" onclick="triggerBacktest()">▶ Run</button>
+        </div>
+        <div class="bt-sample-body" id="bt-sample-body"></div>
+      </div>
+    </section>
+    {% endif %}
+
+  </main>
+
   {% if "run_backtest" in permissions %}
-<section class="card backtest-card">
-    <div class="section-header">
-      <h2 data-i18n="section.backtest">Backtest</h2>
-    </div>
+  <script>
+    const DATA_ROOT = '{{ data_root }}';
+    (function () {
+      const tag = document.createElement('span');
+      tag.className = 'data-root-tag';
+      tag.textContent = DATA_ROOT;
+      document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
+    })();
 
-    <!-- Mode Toggle -->
-    <div class="bt-mode-row">
-      <label class="bt-mode-option">
-        <input type="radio" name="bt-mode" value="timestamp" onchange="switchMode('timestamp')" checked>
-        <span class="bt-mode-label" data-i18n="bt.single_ts">Single Timestamp</span>
-      </label>
-      <label class="bt-mode-option">
-        <input type="radio" name="bt-mode" value="range" onchange="switchMode('range')">
-        <span class="bt-mode-label" data-i18n="bt.date_range">Date Range</span>
-      </label>
-    </div>
-
-    <!-- Symbol -->
-    <div class="bt-param-row">
-      <label class="bt-field bt-field-wide">
-        <span class="bt-label" data-i18n="bt.trading_pair">Trading Pair</span>
-        <span class="input-group" id="bt-symbol-group">
-          <input type="text" id="bt-symbol" class="input-group-field"
-                 placeholder="BTC" maxlength="10" autocomplete="off"
-                 oninput="clearBacktestErrors()">
-          <span class="input-group-suffix quote-suffix">USDT</span>
-        </span>
-      </label>
-    </div>
-
-    <!-- Shared config area: show/hide fields by mode -->
-    <div class="bt-param-row" id="bt-timestamp-row">
-      <label class="bt-field bt-field-wide">
-        <span class="bt-label" data-i18n="bt.timestamp">Timestamp</span>
-        <input type="text" id="bt-timestamp" class="filter-input bt-date-input"
-               placeholder="2026-06-01T12:34:00Z" autocomplete="off"
-               oninput="clearBacktestErrors()">
-      </label>
-    </div>
-
-    <div id="bt-range-rows" style="display:none">
-      <div class="bt-param-row bt-range-grid">
-        <label class="bt-field">
-          <span class="bt-label" data-i18n="bt.start">Start</span>
-          <input type="text" id="bt-start" class="filter-input bt-date-input"
-                 placeholder="T-15d" autocomplete="off"
-                 oninput="clearBacktestErrors()">
-        </label>
-        <label class="bt-field">
-          <span class="bt-label" data-i18n="bt.end">End</span>
-          <input type="text" id="bt-end" class="filter-input bt-date-input"
-                 placeholder="T-1d" autocomplete="off"
-                 oninput="clearBacktestErrors()">
-        </label>
-        <label class="bt-field bt-field-sm">
-          <span class="bt-label" data-i18n="bt.samples">Samples</span>
-          <input type="number" id="bt-samples" class="filter-input bt-samples-input"
-                 placeholder="14" min="1" max="200" step="1"
-                 oninput="clearBacktestErrors()">
-        </label>
-      </div>
-    </div>
-
-    <!-- Format hint -->
-    <p class="bt-hint" data-i18n="bt.hint">Format: <code>T-Nd</code>, <code>T-Nh</code>, <code>YYYY-MM-DD HH:MM:SS</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start must be before End</p>
-
-    <!-- Preview button -->
-    <button id="bt-preview-btn" class="btn-sm" onclick="previewSamples()" data-i18n="btn.preview">Preview Samples</button>
-    <span id="bt-preview-status" class="audit-status" style="display:none"></span>
-
-    <!-- Sample List -->
-    <div id="bt-sample-list" class="bt-sample-list" style="display:none">
-      <div class="bt-sample-header">
-        <span id="bt-sample-count"></span>
-        <button id="bt-run-btn" class="btn-sm" onclick="triggerBacktest()">▶ Run</button>
-      </div>
-      <div class="bt-sample-body" id="bt-sample-body"></div>
-    </div>
-  </section>
-{% endif %}
-
-</main>
-
-{% if "run_backtest" in permissions %}
-<script>
-const DATA_ROOT = '{{ data_root }}';
-(function () {
-  const tag = document.createElement('span');
-  tag.className = 'data-root-tag';
-  tag.textContent = DATA_ROOT;
-  document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
-})();
-
-function apiUrl(path) {
-  return path;
-}
-
-const $ = id => document.getElementById(id);
-
-// ── Dynamic config from backend ──
-let QUOTE = 'USDT';
-(async function initConfig() {
-  try {
-    const resp = await fetch(apiUrl('/api/config'));
-    const data = await resp.json();
-    if (data.quote_currency) {
-      QUOTE = data.quote_currency;
-      document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
-    }
-  } catch (e) { /* keep fallback */ }
-})();
-
-// ── State ──
-let currentMode = 'timestamp';
-let sampleTimestamps = [];
-let backtestPollInterval = null;
-let previewPollInterval = null;
-
-// ── Mode Switching ──
-function switchMode(mode) {
-  currentMode = mode;
-  $('bt-timestamp-row').style.display = mode === 'timestamp' ? '' : 'none';
-  $('bt-range-rows').style.display = mode === 'range' ? '' : 'none';
-  clearBacktestErrors();
-}
-
-function clearBacktestErrors() {
-  // Clear field-level errors
-  ['bt-symbol', 'bt-timestamp', 'bt-start', 'bt-end', 'bt-samples'].forEach(id => {
-    const el = $(id);
-    if (el) el.classList.remove('bt-field-error');
-  });
-  const group = $('bt-symbol-group');
-  if (group) { group.classList.remove('has-error'); group.removeAttribute('data-error'); }
-  // Clear error tooltips on bt-field labels
-  document.querySelectorAll('.bt-field.has-error').forEach(el => {
-    el.classList.remove('has-error');
-    el.removeAttribute('data-error');
-  });
-  // Clear transient UI — keep sample list visible
-  $('bt-preview-status').style.display = 'none';
-}
-
-// ── Error tooltip helper ──
-function showFieldError(inputId, msg) {
-  const input = $(inputId);
-  if (input) {
-    input.classList.add('bt-field-error');
-    const field = input.closest('.bt-field');
-    if (field) { field.classList.add('has-error'); field.setAttribute('data-error', msg); }
-  }
-}
-
-// ── Validation ──
-function validateFields() {
-  clearBacktestErrors();
-
-  const group = $('bt-symbol-group');
-
-  const symbol = $('bt-symbol').value.trim();
-  if (!symbol || symbol.length < 2 || !/^[A-Za-z0-9]+$/.test(symbol)) {
-    if (group) { group.classList.add('has-error'); group.setAttribute('data-error', 'Enter at least 2 characters (e.g. BTC)'); }
-    $('bt-symbol').focus();
-    return false;
-  }
-
-  if (currentMode === 'timestamp') {
-    const ts = $('bt-timestamp').value.trim();
-    if (!ts) {
-      showFieldError('bt-timestamp', 'Timestamp is required');
-      $('bt-timestamp').focus();
-      return false;
-    }
-  } else {
-    const start = $('bt-start').value.trim();
-    const end = $('bt-end').value.trim();
-    const samplesRaw = $('bt-samples').value.trim();
-    if (!start) {
-      showFieldError('bt-start', 'Start date is required');
-      $('bt-start').focus();
-      return false;
-    }
-    if (!end) {
-      showFieldError('bt-end', 'End date is required');
-      $('bt-end').focus();
-      return false;
-    }
-    if (!samplesRaw) {
-      showFieldError('bt-samples', 'Number of samples is required');
-      $('bt-samples').focus();
-      return false;
-    }
-    const samples = parseInt(samplesRaw, 10);
-    if (!Number.isInteger(samples) || samples < 1) {
-      showFieldError('bt-samples', 'Must be ≥ 1');
-      $('bt-samples').focus();
-      return false;
-    }
-    if (samples > 200) {
-      showFieldError('bt-samples', 'Max 200 samples');
-      $('bt-samples').focus();
-      return false;
-    }
-  }
-  return true;
-}
-
-// ── Preview ──
-function setFieldsDisabled(disabled) {
-  document.querySelectorAll('input[name="bt-mode"]').forEach(r => r.disabled = disabled);
-  ['bt-symbol', 'bt-timestamp', 'bt-start', 'bt-end', 'bt-samples'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.disabled = disabled;
-  });
-}
-
-async function previewSamples() {
-  const statusEl = $('bt-preview-status');
-  const btn = $('bt-preview-btn');
-
-  // Toggle: if already previewing, STOP
-  if (previewPollInterval) {
-    btn.disabled = true;
-    btn.textContent = '…';
-    try {
-      await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' });
-    } catch (e) { /* ignore */ }
-    return;  // polling loop will detect !running and clean up
-  }
-
-  const valid = validateFields();
-  if (!valid) return;  // field-level hints already shown by validateFields()
-
-  // Clear old samples and start preview
-  sampleTimestamps = [];
-  $('bt-sample-list').style.display = 'none';
-  statusEl.style.display = 'none';
-
-  // Enter preview mode
-  setFieldsDisabled(true);
-  btn.textContent = '⏹ Stop';
-  btn.classList.add('danger');
-
-  const symbol = $('bt-symbol').value.trim().toUpperCase();
-  const body = {
-    mode: currentMode,
-    symbol_prefix: symbol,
-  };
-  if (currentMode === 'timestamp') {
-    body.timestamp = $('bt-timestamp').value.trim();
-  } else {
-    body.start = $('bt-start').value.trim();
-    body.end = $('bt-end').value.trim();
-    body.samples = parseInt($('bt-samples').value) || 14;
-  }
-
-  try {
-    const resp = await fetch(apiUrl('/api/backtest/preview'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await resp.json();
-    if (!resp.ok) {
-      statusEl.style.display = 'inline';
-      statusEl.textContent = '⚠ ' + (data.detail || 'preview failed');
-      statusEl.className = 'audit-status audit-error';
-      setFieldsDisabled(false);
-      btn.textContent = 'Preview Samples';
-      btn.classList.remove('danger');
-      return;
+    function apiUrl(path) {
+      return path;
     }
 
-    if (data.started) {
-      // Async (range mode) — begin polling
-      previewPollInterval = setInterval(checkPreviewStatus, 2000);
-      checkPreviewStatus();
-    } else {
-      // Sync (timestamp mode) — render immediately
-      sampleTimestamps = data.timestamps || [];
-      renderSampleList(data);
-      setFieldsDisabled(false);
-      btn.textContent = 'Preview Samples';
-      btn.classList.remove('danger');
-    }
-  } catch (e) {
-    statusEl.style.display = 'inline';
-    statusEl.textContent = '⚠ Request failed';
-    statusEl.className = 'audit-status audit-error';
-    setFieldsDisabled(false);
-    btn.textContent = 'Preview Samples';
-    btn.classList.remove('danger');
-  }
-}
+    const $ = id => document.getElementById(id);
 
-async function checkPreviewStatus() {
-  const statusEl = $('bt-preview-status');
-  const btn = $('bt-preview-btn');
+    // ── Dynamic config from backend ──
+    let QUOTE = 'USDT';
+    (async function initConfig() {
+      try {
+        const resp = await fetch(apiUrl('/api/config'));
+        const data = await resp.json();
+        if (data.quote_currency) {
+          QUOTE = data.quote_currency;
+          document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
+        }
+      } catch (e) { /* keep fallback */ }
+    })();
 
-  try {
-    const resp = await fetch(apiUrl('/api/backtest/status'));
-    const data = await resp.json();
+    // ── State ──
+    let currentMode = 'timestamp';
+    let sampleTimestamps = [];
+    let backtestPollInterval = null;
+    let previewPollInterval = null;
 
-    if (data.running) return;  // still computing
-
-    // Done or errored
-    clearInterval(previewPollInterval);
-    previewPollInterval = null;
-    setFieldsDisabled(false);
-    btn.disabled = false;
-    btn.textContent = 'Preview Samples';
-    btn.classList.remove('danger');
-
-    if (data.error) {
-      statusEl.style.display = 'inline';
-      statusEl.textContent = '⚠ ' + data.error;
-      statusEl.className = 'audit-status audit-error';
-      return;
+    // ── Mode Switching ──
+    function switchMode(mode) {
+      currentMode = mode;
+      $('bt-timestamp-row').style.display = mode === 'timestamp' ? '' : 'none';
+      $('bt-range-rows').style.display = mode === 'range' ? '' : 'none';
+      clearBacktestErrors();
     }
 
-    if (data.samples && data.samples.length) {
-      sampleTimestamps = data.samples.map(s => s.timestamp);
-      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-      restoreRawInputs(data);
+    function clearBacktestErrors() {
+      // Clear field-level errors
+      ['bt-symbol', 'bt-timestamp', 'bt-start', 'bt-end', 'bt-samples'].forEach(id => {
+        const el = $(id);
+        if (el) el.classList.remove('bt-field-error');
+      });
+      const group = $('bt-symbol-group');
+      if (group) { group.classList.remove('has-error'); group.removeAttribute('data-error'); }
+      // Clear error tooltips on bt-field labels
+      document.querySelectorAll('.bt-field.has-error').forEach(el => {
+        el.classList.remove('has-error');
+        el.removeAttribute('data-error');
+      });
+      // Clear transient UI — keep sample list visible
+      $('bt-preview-status').style.display = 'none';
     }
-  } catch (e) { /* polling failed */ }
-}
 
-function renderSampleList(data) {
-  const list = $('bt-sample-list');
-  const body = $('bt-sample-body');
-  const countEl = $('bt-sample-count');
+    // ── Error tooltip helper ──
+    function showFieldError(inputId, msg) {
+      const input = $(inputId);
+      if (input) {
+        input.classList.add('bt-field-error');
+        const field = input.closest('.bt-field');
+        if (field) { field.classList.add('has-error'); field.setAttribute('data-error', msg); }
+      }
+    }
 
-  list.style.display = 'block';
-  countEl.textContent = (TRANSLATIONS['bt.samples_count']?.[getLang()] || '{n} selected').replace('{n}', data.count);
+    // ── Validation ──
+    function validateFields() {
+      clearBacktestErrors();
 
-  body.innerHTML = data.timestamps.map((ts, i) => {
-    const dt = formatLocalTime(ts);
-    return `<div class="bt-sample-row" id="bt-sample-${i}">
+      const group = $('bt-symbol-group');
+
+      const symbol = $('bt-symbol').value.trim();
+      if (!symbol || symbol.length < 2 || !/^[A-Za-z0-9]+$/.test(symbol)) {
+        if (group) { group.classList.add('has-error'); group.setAttribute('data-error', 'Enter at least 2 characters (e.g. BTC)'); }
+        $('bt-symbol').focus();
+        return false;
+      }
+
+      if (currentMode === 'timestamp') {
+        const ts = $('bt-timestamp').value.trim();
+        if (!ts) {
+          showFieldError('bt-timestamp', 'Timestamp is required');
+          $('bt-timestamp').focus();
+          return false;
+        }
+      } else {
+        const start = $('bt-start').value.trim();
+        const end = $('bt-end').value.trim();
+        const samplesRaw = $('bt-samples').value.trim();
+        if (!start) {
+          showFieldError('bt-start', 'Start date is required');
+          $('bt-start').focus();
+          return false;
+        }
+        if (!end) {
+          showFieldError('bt-end', 'End date is required');
+          $('bt-end').focus();
+          return false;
+        }
+        if (!samplesRaw) {
+          showFieldError('bt-samples', 'Number of samples is required');
+          $('bt-samples').focus();
+          return false;
+        }
+        const samples = parseInt(samplesRaw, 10);
+        if (!Number.isInteger(samples) || samples < 1) {
+          showFieldError('bt-samples', 'Must be ≥ 1');
+          $('bt-samples').focus();
+          return false;
+        }
+        if (samples > 200) {
+          showFieldError('bt-samples', 'Max 200 samples');
+          $('bt-samples').focus();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // ── Preview ──
+    function setFieldsDisabled(disabled) {
+      document.querySelectorAll('input[name="bt-mode"]').forEach(r => r.disabled = disabled);
+      ['bt-symbol', 'bt-timestamp', 'bt-start', 'bt-end', 'bt-samples'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = disabled;
+      });
+    }
+
+    async function previewSamples() {
+      const statusEl = $('bt-preview-status');
+      const btn = $('bt-preview-btn');
+
+      // Toggle: if already previewing, STOP
+      if (previewPollInterval) {
+        btn.disabled = true;
+        btn.textContent = '…';
+        try {
+          await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' });
+        } catch (e) { /* ignore */ }
+        return;  // polling loop will detect !running and clean up
+      }
+
+      const valid = validateFields();
+      if (!valid) return;  // field-level hints already shown by validateFields()
+
+      // Clear old samples and start preview
+      sampleTimestamps = [];
+      $('bt-sample-list').style.display = 'none';
+      statusEl.style.display = 'none';
+
+      // Enter preview mode
+      setFieldsDisabled(true);
+      btn.textContent = '⏹ Stop';
+      btn.classList.add('danger');
+
+      const symbol = $('bt-symbol').value.trim().toUpperCase();
+      const body = {
+        mode: currentMode,
+        symbol_prefix: symbol,
+      };
+      if (currentMode === 'timestamp') {
+        body.timestamp = $('bt-timestamp').value.trim();
+      } else {
+        body.start = $('bt-start').value.trim();
+        body.end = $('bt-end').value.trim();
+        body.samples = parseInt($('bt-samples').value) || 14;
+      }
+
+      try {
+        const resp = await fetch(apiUrl('/api/backtest/preview'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+        if (!resp.ok) {
+          statusEl.style.display = 'inline';
+          statusEl.textContent = '⚠ ' + (data.detail || 'preview failed');
+          statusEl.className = 'audit-status audit-error';
+          setFieldsDisabled(false);
+          btn.textContent = 'Preview Samples';
+          btn.classList.remove('danger');
+          return;
+        }
+
+        if (data.started) {
+          // Async (range mode) — begin polling
+          previewPollInterval = setInterval(checkPreviewStatus, 2000);
+          checkPreviewStatus();
+        } else {
+          // Sync (timestamp mode) — render immediately
+          sampleTimestamps = data.timestamps || [];
+          renderSampleList(data);
+          setFieldsDisabled(false);
+          btn.textContent = 'Preview Samples';
+          btn.classList.remove('danger');
+        }
+      } catch (e) {
+        statusEl.style.display = 'inline';
+        statusEl.textContent = '⚠ Request failed';
+        statusEl.className = 'audit-status audit-error';
+        setFieldsDisabled(false);
+        btn.textContent = 'Preview Samples';
+        btn.classList.remove('danger');
+      }
+    }
+
+    async function checkPreviewStatus() {
+      const statusEl = $('bt-preview-status');
+      const btn = $('bt-preview-btn');
+
+      try {
+        const resp = await fetch(apiUrl('/api/backtest/status'));
+        const data = await resp.json();
+
+        if (data.running) return;  // still computing
+
+        // Done or errored
+        clearInterval(previewPollInterval);
+        previewPollInterval = null;
+        setFieldsDisabled(false);
+        btn.disabled = false;
+        btn.textContent = 'Preview Samples';
+        btn.classList.remove('danger');
+
+        if (data.error) {
+          statusEl.style.display = 'inline';
+          statusEl.textContent = '⚠ ' + data.error;
+          statusEl.className = 'audit-status audit-error';
+          return;
+        }
+
+        if (data.samples && data.samples.length) {
+          sampleTimestamps = data.samples.map(s => s.timestamp);
+          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+          restoreRawInputs(data);
+        }
+      } catch (e) { /* polling failed */ }
+    }
+
+    function renderSampleList(data) {
+      const list = $('bt-sample-list');
+      const body = $('bt-sample-body');
+      const countEl = $('bt-sample-count');
+
+      list.style.display = 'block';
+      countEl.textContent = (TRANSLATIONS['bt.samples_count']?.[getLang()] || '{n} selected').replace('{n}', data.count);
+
+      body.innerHTML = data.timestamps.map((ts, i) => {
+        const dt = formatLocalTime(ts);
+        return `<div class="bt-sample-row" id="bt-sample-${i}">
       <div class="bt-sample-info">
         <span class="bt-sample-idx">${i + 1}</span>
         <span class="bt-sample-ts">${dt}</span>
@@ -379,264 +379,265 @@ function renderSampleList(data) {
       </div>
       <div class="bt-sample-progress" id="bt-sp-${i}"></div>
     </div>`;
-  }).join('');
+      }).join('');
 
-  // Reset progress instances
-  window._btProgressInstances = {};
-}
-
-// ── Run Backtest ──
-async function triggerBacktest() {
-  const btn = $('bt-run-btn');
-
-  // Toggle: if running, STOP
-  if (backtestPollInterval) {
-    btn.disabled = true;
-    btn.textContent = '…';
-    try { await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' }); } catch (e) {}
-    return;
-  }
-
-  if (!sampleTimestamps.length) return;
-
-  const symbol = $('bt-symbol').value.trim().toUpperCase();
-  const body = {
-    mode: currentMode,
-    symbol_prefix: symbol,
-    sample_timestamps: sampleTimestamps,
-  };
-  if (currentMode === 'timestamp') {
-    body.timestamp = $('bt-timestamp').value.trim();
-  } else {
-    body.start = $('bt-start').value.trim();
-    body.end = $('bt-end').value.trim();
-    body.samples = parseInt($('bt-samples').value) || 14;
-  }
-
-  setFieldsDisabled(true);
-  $('bt-preview-btn').disabled = true;
-  btn.disabled = true;
-  btn.textContent = '…';
-
-  try {
-    const resp = await fetch(apiUrl('/api/backtest/run'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    if (!resp.ok) {
-      setFieldsDisabled(false);
-      $('bt-preview-btn').disabled = false;
-      btn.disabled = false;
-      btn.textContent = '▶ Run';
-      return;
+      // Reset progress instances
+      window._btProgressInstances = {};
     }
 
-    const result = await resp.json();
-    if (result.all_complete) {
-      // All samples already have session files — nothing to run
-      sampleTimestamps = result.samples.map(s => s.timestamp);
-      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-      updateSampleStatuses(result.samples, true);
-      setFieldsDisabled(false);
-      $('bt-preview-btn').disabled = false;
-      btn.disabled = false;
-      btn.textContent = '▶ Run';
-      return;
-    }
+    // ── Run Backtest ──
+    async function triggerBacktest() {
+      const btn = $('bt-run-btn');
 
-    updateRunUI('running');
-    backtestPollInterval = setInterval(checkBacktestStatus, 2000);
-    checkBacktestStatus();
-  } catch (e) {
-    setFieldsDisabled(false);
-    $('bt-preview-btn').disabled = false;
-    btn.disabled = false;
-    btn.textContent = '▶ Run';
-  }
-}
-
-function updateRunUI(state) {
-  const btn = $('bt-run-btn');
-  const previewBtn = $('bt-preview-btn');
-
-  if (state === 'running') {
-    setFieldsDisabled(true);
-    previewBtn.disabled = true;
-    btn.disabled = false;
-    btn.textContent = '⏹ Stop';
-    btn.classList.add('danger');
-  } else {
-    setFieldsDisabled(false);
-    previewBtn.disabled = false;
-    btn.disabled = false;
-    btn.textContent = '▶ Run';
-    btn.classList.remove('danger');
-    backtestPollInterval = null;
-  }
-}
-
-async function checkBacktestStatus() {
-  try {
-    const resp = await fetch(apiUrl('/api/backtest/status'));
-    const data = await resp.json();
-
-    if (data.running) {
-      updateRunUI('running');
-
-      // Update sample list with statuses
-      if (data.samples) {
-        updateSampleStatuses(data.samples);
-      }
-
-    } else {
+      // Toggle: if running, STOP
       if (backtestPollInterval) {
-        clearInterval(backtestPollInterval);
-        backtestPollInterval = null;
-
-        // Clean up progress bars for any still-running samples
-        if (data.samples) {
-          updateSampleStatuses(data.samples, true);
-        }
-        updateRunUI('idle');
-      }
-    }
-  } catch (e) { /* polling failed silently */ }
-}
-
-function updateSampleStatuses(samples, stopped) {
-  samples.forEach((s, i) => {
-    const row = document.getElementById('bt-sample-' + i);
-    if (!row) return;
-
-    const iconEl = row.querySelector('.bt-sample-status-icon');
-    const resultEl = row.querySelector('.bt-sample-result');
-    const metaEl = row.querySelector('.bt-sample-meta');
-    const errorEl = row.querySelector('.bt-sample-error');
-    const progContainer = document.getElementById('bt-sp-' + i);
-
-    const progress = s.progress;
-
-    if (s.status === 'running' && !stopped) {
-      if (iconEl) { iconEl.textContent = '◉'; iconEl.className = 'bt-sample-status-icon running'; }
-      if (resultEl) resultEl.textContent = '';
-      if (metaEl) metaEl.textContent = '';
-      if (errorEl) errorEl.textContent = '';
-
-      if (progress && progContainer) {
-        if (!window._btProgressInstances[i]) {
-          window._btProgressInstances[i] = new SessionProgress(progContainer, {
-            size: 'compact', context: 'backtest'
-          });
-        }
-        window._btProgressInstances[i].update(progress);
-      }
-    } else if (s.status === 'completed') {
-      if (iconEl) { iconEl.textContent = '✓'; iconEl.className = 'bt-sample-status-icon ok'; }
-      if (progContainer && window._btProgressInstances[i]) {
-        window._btProgressInstances[i].update(progress || { status: 'completed', result: {}, elapsed_seconds: 0 });
-      }
-      if (progress && progress.result) {
-        const r = progress.result;
-        if (resultEl) resultEl.textContent = (r.direction || '?') + ' ' + (r.confidence || 0) + '%';
-        if (metaEl) {
-          let meta = formatElapsed(progress.elapsed_seconds || 0);
-          if (r.debate_path) meta += ' · ' + r.debate_path;
-          metaEl.textContent = meta;
-        }
-      } else if (resultEl) {
-        resultEl.textContent = 'completed';
-      }
-      if (errorEl) errorEl.textContent = '';
-    } else if (s.status === 'failed') {
-      if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
-      if (progContainer && window._btProgressInstances[i]) {
-        window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || 'Failed' });
-      }
-      if (resultEl) resultEl.textContent = '';
-      if (metaEl) metaEl.textContent = '';
-      if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || 'Failed';
-    } else {
-      // Unfinished — pending or stopped mid-run
-      if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'bt-sample-status-icon pending'; }
-      if (progContainer && window._btProgressInstances[i]) {
-        window._btProgressInstances[i].destroy();
-        delete window._btProgressInstances[i];
-        progContainer.innerHTML = '';
-      }
-      if (resultEl) resultEl.textContent = '';
-      if (metaEl) metaEl.textContent = '';
-      if (errorEl) errorEl.textContent = '';
-    }
-  });
-}
-
-function restoreRawInputs(data) {
-  if (data.timestamp_value) $('bt-timestamp').value = data.timestamp_value;
-  if (data.start_value) $('bt-start').value = data.start_value;
-  if (data.end_value) $('bt-end').value = data.end_value;
-  if (data.samples_count != null) $('bt-samples').value = data.samples_count;
-}
-
-// ── Init: check if backtest or preview is already running ──
-(async function initBacktestStatus() {
-  try {
-    const resp = await fetch(apiUrl('/api/backtest/status'));
-    const data = await resp.json();
-    if (data.running) {
-      // Restore symbol and mode (shared by preview and run)
-      const symbol = data.symbol || '';
-      $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
-
-      if (data.mode) {
-        currentMode = data.mode;
-        document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
-        switchMode(data.mode);
+        btn.disabled = true;
+        btn.textContent = '…';
+        try { await fetch(apiUrl('/api/backtest/stop'), { method: 'POST' }); } catch (e) { }
+        return;
       }
 
-      if (data.preview) {
-        // Preview in progress — restore preview UI
-        if (data.samples && data.samples.length) {
-          sampleTimestamps = data.samples.map(s => s.timestamp);
-          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-        }
-        restoreRawInputs(data);
-        setFieldsDisabled(true);
-        const btn = $('bt-preview-btn');
-        btn.textContent = '⏹ Stop';
-        btn.classList.add('danger');
-        previewPollInterval = setInterval(checkPreviewStatus, 2000);
+      if (!sampleTimestamps.length) return;
+
+      const symbol = $('bt-symbol').value.trim().toUpperCase();
+      const body = {
+        mode: currentMode,
+        symbol_prefix: symbol,
+        sample_timestamps: sampleTimestamps,
+      };
+      if (currentMode === 'timestamp') {
+        body.timestamp = $('bt-timestamp').value.trim();
       } else {
-        // Run in progress — restore run UI
-        if (data.samples) {
-          sampleTimestamps = data.samples.map(s => s.timestamp);
-          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-          updateSampleStatuses(data.samples);
-          restoreRawInputs(data);
+        body.start = $('bt-start').value.trim();
+        body.end = $('bt-end').value.trim();
+        body.samples = parseInt($('bt-samples').value) || 14;
+      }
+
+      setFieldsDisabled(true);
+      $('bt-preview-btn').disabled = true;
+      btn.disabled = true;
+      btn.textContent = '…';
+
+      try {
+        const resp = await fetch(apiUrl('/api/backtest/run'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (!resp.ok) {
+          setFieldsDisabled(false);
+          $('bt-preview-btn').disabled = false;
+          btn.disabled = false;
+          btn.textContent = '▶ Run';
+          return;
         }
+
+        const result = await resp.json();
+        if (result.all_complete) {
+          // All samples already have session files — nothing to run
+          sampleTimestamps = result.samples.map(s => s.timestamp);
+          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+          updateSampleStatuses(result.samples, true);
+          setFieldsDisabled(false);
+          $('bt-preview-btn').disabled = false;
+          btn.disabled = false;
+          btn.textContent = '▶ Run';
+          return;
+        }
+
         updateRunUI('running');
         backtestPollInterval = setInterval(checkBacktestStatus, 2000);
         checkBacktestStatus();
+      } catch (e) {
+        setFieldsDisabled(false);
+        $('bt-preview-btn').disabled = false;
+        btn.disabled = false;
+        btn.textContent = '▶ Run';
       }
-    } else if (data.samples && data.samples.length) {
-      // Completed preview or run — restore sample list with status
-      const symbol = data.symbol || '';
-      $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
-      if (data.mode) {
-        currentMode = data.mode;
-        document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
-        switchMode(data.mode);
-      }
-      sampleTimestamps = data.samples.map(s => s.timestamp);
-      renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
-      // Treat as stopped so any still-"running" samples clean up their progress bars
-      updateSampleStatuses(data.samples, true);
-      restoreRawInputs(data);
     }
-  } catch (e) { /* ignore */ }
-})();
-</script>
-{% endif %}
+
+    function updateRunUI(state) {
+      const btn = $('bt-run-btn');
+      const previewBtn = $('bt-preview-btn');
+
+      if (state === 'running') {
+        setFieldsDisabled(true);
+        previewBtn.disabled = true;
+        btn.disabled = false;
+        btn.textContent = '⏹ Stop';
+        btn.classList.add('danger');
+      } else {
+        setFieldsDisabled(false);
+        previewBtn.disabled = false;
+        btn.disabled = false;
+        btn.textContent = '▶ Run';
+        btn.classList.remove('danger');
+        backtestPollInterval = null;
+      }
+    }
+
+    async function checkBacktestStatus() {
+      try {
+        const resp = await fetch(apiUrl('/api/backtest/status'));
+        const data = await resp.json();
+
+        if (data.running) {
+          updateRunUI('running');
+
+          // Update sample list with statuses
+          if (data.samples) {
+            updateSampleStatuses(data.samples);
+          }
+
+        } else {
+          if (backtestPollInterval) {
+            clearInterval(backtestPollInterval);
+            backtestPollInterval = null;
+
+            // Clean up progress bars for any still-running samples
+            if (data.samples) {
+              updateSampleStatuses(data.samples, true);
+            }
+            updateRunUI('idle');
+          }
+        }
+      } catch (e) { /* polling failed silently */ }
+    }
+
+    function updateSampleStatuses(samples, stopped) {
+      samples.forEach((s, i) => {
+        const row = document.getElementById('bt-sample-' + i);
+        if (!row) return;
+
+        const iconEl = row.querySelector('.bt-sample-status-icon');
+        const resultEl = row.querySelector('.bt-sample-result');
+        const metaEl = row.querySelector('.bt-sample-meta');
+        const errorEl = row.querySelector('.bt-sample-error');
+        const progContainer = document.getElementById('bt-sp-' + i);
+
+        const progress = s.progress;
+
+        if (s.status === 'running' && !stopped) {
+          if (iconEl) { iconEl.textContent = '◉'; iconEl.className = 'bt-sample-status-icon running'; }
+          if (resultEl) resultEl.textContent = '';
+          if (metaEl) metaEl.textContent = '';
+          if (errorEl) errorEl.textContent = '';
+
+          if (progress && progContainer) {
+            if (!window._btProgressInstances[i]) {
+              window._btProgressInstances[i] = new SessionProgress(progContainer, {
+                size: 'compact', context: 'backtest'
+              });
+            }
+            window._btProgressInstances[i].update(progress);
+          }
+        } else if (s.status === 'completed') {
+          if (iconEl) { iconEl.textContent = '✓'; iconEl.className = 'bt-sample-status-icon ok'; }
+          if (progContainer && window._btProgressInstances[i]) {
+            window._btProgressInstances[i].update(progress || { status: 'completed', result: {}, elapsed_seconds: 0 });
+          }
+          if (progress && progress.result) {
+            const r = progress.result;
+            if (resultEl) resultEl.textContent = (r.direction || '?') + ' ' + (r.confidence || 0) + '%';
+            if (metaEl) {
+              let meta = formatElapsed(progress.elapsed_seconds || 0);
+              if (r.debate_path) meta += ' · ' + r.debate_path;
+              metaEl.textContent = meta;
+            }
+          } else if (resultEl) {
+            resultEl.textContent = 'completed';
+          }
+          if (errorEl) errorEl.textContent = '';
+        } else if (s.status === 'failed') {
+          if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
+          if (progContainer && window._btProgressInstances[i]) {
+            window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || 'Failed' });
+          }
+          if (resultEl) resultEl.textContent = '';
+          if (metaEl) metaEl.textContent = '';
+          if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || 'Failed';
+        } else {
+          // Unfinished — pending or stopped mid-run
+          if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'bt-sample-status-icon pending'; }
+          if (progContainer && window._btProgressInstances[i]) {
+            window._btProgressInstances[i].destroy();
+            delete window._btProgressInstances[i];
+            progContainer.innerHTML = '';
+          }
+          if (resultEl) resultEl.textContent = '';
+          if (metaEl) metaEl.textContent = '';
+          if (errorEl) errorEl.textContent = '';
+        }
+      });
+    }
+
+    function restoreRawInputs(data) {
+      if (data.timestamp_value) $('bt-timestamp').value = data.timestamp_value;
+      if (data.start_value) $('bt-start').value = data.start_value;
+      if (data.end_value) $('bt-end').value = data.end_value;
+      if (data.samples_count != null) $('bt-samples').value = data.samples_count;
+    }
+
+    // ── Init: check if backtest or preview is already running ──
+    (async function initBacktestStatus() {
+      try {
+        const resp = await fetch(apiUrl('/api/backtest/status'));
+        const data = await resp.json();
+        if (data.running) {
+          // Restore symbol and mode (shared by preview and run)
+          const symbol = data.symbol || '';
+          $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
+
+          if (data.mode) {
+            currentMode = data.mode;
+            document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
+            switchMode(data.mode);
+          }
+
+          if (data.preview) {
+            // Preview in progress — restore preview UI
+            if (data.samples && data.samples.length) {
+              sampleTimestamps = data.samples.map(s => s.timestamp);
+              renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+            }
+            restoreRawInputs(data);
+            setFieldsDisabled(true);
+            const btn = $('bt-preview-btn');
+            btn.textContent = '⏹ Stop';
+            btn.classList.add('danger');
+            previewPollInterval = setInterval(checkPreviewStatus, 2000);
+          } else {
+            // Run in progress — restore run UI
+            if (data.samples) {
+              sampleTimestamps = data.samples.map(s => s.timestamp);
+              renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+              updateSampleStatuses(data.samples);
+              restoreRawInputs(data);
+            }
+            updateRunUI('running');
+            backtestPollInterval = setInterval(checkBacktestStatus, 2000);
+            checkBacktestStatus();
+          }
+        } else if (data.samples && data.samples.length) {
+          // Completed preview or run — restore sample list with status
+          const symbol = data.symbol || '';
+          $('bt-symbol').value = symbol.replace(new RegExp(QUOTE + '$', 'i'), '');
+          if (data.mode) {
+            currentMode = data.mode;
+            document.querySelector('input[name="bt-mode"][value="' + data.mode + '"]').checked = true;
+            switchMode(data.mode);
+          }
+          sampleTimestamps = data.samples.map(s => s.timestamp);
+          renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+          // Treat as stopped so any still-"running" samples clean up their progress bars
+          updateSampleStatuses(data.samples, true);
+          restoreRawInputs(data);
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+  {% endif %}
 </body>
+
 </html>
