@@ -44,7 +44,7 @@
           <span class="bt-label" data-i18n="bt.trading_pair">Trading Pair</span>
           <span class="input-group" id="symbol-input-group">
             <input type="text" id="symbol-prefix" class="input-group-field"
-                   placeholder="BTC" maxlength="10" autocomplete="off"
+                   maxlength="10" autocomplete="off"
                    oninput="clearRunErrors()">
             <span class="input-group-suffix quote-suffix">USDT</span>
           </span>
@@ -78,7 +78,7 @@
             <span class="bt-label" data-i18n="sniper.balance">Balance</span>
             <span class="input-group">
               <input type="number" id="sniper-balance" class="input-group-field"
-                     placeholder="1000" min="0" step="any"
+                     min="0" step="any"
                      onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                      oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
               <span class="input-group-suffix quote-suffix">USDT</span>
