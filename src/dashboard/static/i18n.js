@@ -8,6 +8,12 @@ const TRANSLATIONS = {
   "nav.session": { en: "Session Detail", zh: "会话详情" },
   "nav.audit": { en: "Audit Detail", zh: "审计详情" },
 
+  // 锁横幅
+  "lock.read_only": {
+    en: "🔒 Read-only — operator access required",
+    zh: "🔒 只读 — 需要操作员权限"
+  },
+
   // KPI
   "kpi.net_pnl": { en: "Net P&L", zh: "净盈亏" },
   "kpi.win_rate": { en: "Win Rate", zh: "胜率" },
