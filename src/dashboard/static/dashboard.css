@@ -1605,9 +1605,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .run-panels {
     grid-template-columns: 1fr;
   }
-  .bt-range-grid {
-    flex-direction: column;
-  }
   .bt-date-input {
     width: 100%;
   }
