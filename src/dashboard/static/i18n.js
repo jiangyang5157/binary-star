@@ -97,6 +97,14 @@ const TRANSLATIONS = {
     en: "Watching {symbols}… · {time} since last pulse",
     zh: "监控 {symbols}… · 距上次脉冲 {time}"
   },
+  "sniper.signals_count": {
+    en: "{n} signal{s}",
+    zh: "{n} 个信号"
+  },
+  "sniper.threshold": {
+    en: "threshold",
+    zh: "阈值"
+  },
 };
 
 // ── 引擎函数 ──
