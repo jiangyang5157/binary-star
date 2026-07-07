@@ -97,6 +97,40 @@ code, pre, .mono {
   border: 1px solid var(--badge-gray-border);
 }
 
+/* ── Permission-Gated Locked Panel ──────────────────────────────── */
+
+.panel-locked {
+  position: relative;
+}
+
+.panel-lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--badge-gray-bg);
+  color: var(--badge-gray-text);
+  border: 1px solid var(--badge-gray-border);
+}
+
+.panel-lock-overlay {
+  opacity: 0.55;
+}
+
+/* Disable interactivity on form elements only — status text and
+   progress bars inside the overlay remain readable and animating */
+.panel-lock-overlay input,
+.panel-lock-overlay select,
+.panel-lock-overlay textarea,
+.panel-lock-overlay button {
+  pointer-events: none;
+  user-select: none;
+}
+
 .app-header nav {
   display: flex;
   gap: 4px;
