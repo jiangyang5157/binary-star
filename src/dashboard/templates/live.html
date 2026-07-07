@@ -351,7 +351,7 @@
         for (var j = 0; j < allSignals.length; j++) {
           var sig = allSignals[j];
           var active = sig.is_active;
-          var scoreStr = active ? ((sig.score >= 0 ? '+' : '') + sig.score.toFixed(2)) : '0';
+          var scoreStr = sig.score > 0 ? '+' + sig.score.toFixed(2) : sig.score.toFixed(2);
           var scoreCls = active ? (sig.score >= 0 ? 'positive' : 'negative') : 'inactive';
           var strength = active ? (sig.strength || 1) : 0;
 
