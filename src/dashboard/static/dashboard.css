@@ -1256,10 +1256,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   background: #fff;
 }
 
-/* --- Side-by-side Run Panels --- */
+/* --- Stacked Run Panels --- */
 .run-panels {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 20px;
   margin-bottom: 0;
 }
