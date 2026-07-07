@@ -4,8 +4,7 @@ data/
 tmp/
 .coverage
 htmlcov/
-docs/todos/
-docs/superpowers/
+docs/
 
 # Superpowers
 .superpowers/
