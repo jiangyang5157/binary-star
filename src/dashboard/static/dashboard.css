@@ -170,6 +170,7 @@ code, pre, .mono {
   padding: 16px 16px;
   margin-bottom: 20px;
   box-shadow: var(--shadow);
+  overflow-x: hidden;
 }
 
 .card h2 {
@@ -1182,6 +1183,15 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
     align-items: flex-start;
     gap: 8px;
   }
+
+  .sniper-trade-toggle {
+    margin-left: 0;
+  }
+
+  .bt-range-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 /* --- Toggle Switch --- */
@@ -1738,7 +1748,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 .signal-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
   gap: 12px;
   margin: 12px 0;
 }
