@@ -1853,6 +1853,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 .signal-score.positive { color: var(--accent-green, #40a85f); }
 .signal-score.negative { color: var(--accent-red, #e0554a); }
+.signal-score.neutral  { color: var(--accent-teal, #54a0a8); }
 .signal-score.inactive { color: var(--text-muted, #8898ac); }
 
 /* Strength bars (3 segments) */

@@ -62,7 +62,7 @@
         <h2 data-i18n="section.decision_timeline">Decision Timeline</h2>
         <div class="chart-controls">
           <label class="slider-label" data-i18n="chart.min_confidence">Min Confidence:</label>
-          <input type="range" id="confSlider" min="50" max="100" value="50" class="slider">
+          <input type="range" id="confSlider" min="0" max="100" value="0" class="slider">
           <span id="confVal" class="slider-value">50</span>
         </div>
       </div>
@@ -159,7 +159,7 @@
     const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
     let timelineChart = null, equityChart = null, optimizerChart = null;
     let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
-    let confThreshold = 50; // fallback, overridden by /api/config
+    let confThreshold = 0;  // start unfiltered, user adjusts slider to explore
 
     // ── Helpers ──
     function resultBadge(r) {
@@ -483,7 +483,7 @@
     // ── Events ──
     $('symbol-filter').addEventListener('input', function () { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
     $('version-filter').addEventListener('input', function () { localStorage.setItem('versionFilter', this.value); applyFilters(); });
-    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); confThreshold = v; localStorage.setItem('confThreshold', v); updateAllCharts(v); });
+    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); confThreshold = v; localStorage.setItem('dashboardConfThreshold', v); updateAllCharts(v); });
     document.querySelectorAll('th.sortable').forEach(th => {
       th.addEventListener('click', function () {
         sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
@@ -532,25 +532,17 @@
     }
 
     // ── Init ──
-    async function initConfig() {
-      try {
-        const resp = await fetch(apiUrl('/api/config'));
-        const data = await resp.json();
-        if (data.confidence_threshold) {
-          confThreshold = data.confidence_threshold;
-          $('confSlider').min = confThreshold;
-        }
-      } catch (e) {
-        // keep fallback value
-      }
-      // Restore user's saved threshold (takes priority over server default)
-      const saved = localStorage.getItem('confThreshold');
+    // Slider always starts at 0 — config min_conf is for production trade gating,
+    // not for the dashboard. User can explore all sessions and use the slider
+    // to study confidence vs P&amp;L trade-offs.
+    (function initSlider() {
+      const saved = localStorage.getItem('dashboardConfThreshold');
       if (saved !== null) {
         confThreshold = parseInt(saved);
       }
       $('confSlider').value = confThreshold;
       $('confVal').textContent = confThreshold;
-    }
+    })();
 
     // Restore filter inputs from localStorage
     const savedSymbol = localStorage.getItem('symbolFilter');
@@ -558,10 +550,10 @@
     const savedVersion = localStorage.getItem('versionFilter');
     if (savedVersion) $('version-filter').value = savedVersion;
 
-    initConfig().then(async () => {
+    (async function () {
       await loadTrades();
       await loadSessions();
-    });
+    })();
   </script>
 </body>
 

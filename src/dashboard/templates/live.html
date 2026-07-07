@@ -347,12 +347,12 @@
         html += '</div>';
 
         html += '<div class="signal-detail">';
-        var allSignals = s.all_signals || [];
+        var allSignals = (s.all_signals || []).filter(function(sig) { return sig.score > 0; });
         for (var j = 0; j < allSignals.length; j++) {
           var sig = allSignals[j];
           var active = sig.is_active;
-          var scoreStr = sig.score > 0 ? '+' + sig.score.toFixed(2) : sig.score.toFixed(2);
-          var scoreCls = active ? (sig.score >= 0 ? 'positive' : 'negative') : 'inactive';
+          var scoreStr = sig.score.toFixed(2);
+          var scoreCls = active ? (sig.direction === 'BEARISH' ? 'negative' : sig.direction === 'BULLISH' ? 'positive' : 'neutral') : 'inactive';
           var strength = active ? (sig.strength || 1) : 0;
 
           html += '<div class="signal-row">';
