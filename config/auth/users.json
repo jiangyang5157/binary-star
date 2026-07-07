@@ -3,8 +3,8 @@
     "admin": {
       "permissions": [
         "view_active_sessions",
-        "run_new_session",
         "run_sniper",
+        "run_new_session",
         "run_backtest"
       ]
     },
