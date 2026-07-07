@@ -170,7 +170,6 @@ code, pre, .mono {
   padding: 16px 16px;
   margin-bottom: 20px;
   box-shadow: var(--shadow);
-  overflow-x: hidden;
 }
 
 .card h2 {
