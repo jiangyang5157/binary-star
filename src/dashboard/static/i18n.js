@@ -10,8 +10,8 @@ const TRANSLATIONS = {
 
   // 锁横幅
   "lock.read_only": {
-    en: "🔒 Read-only — operator access required",
-    zh: "🔒 只读 — 需要操作员权限"
+    en: "🔒 Read-only",
+    zh: "🔒 只读"
   },
 
   // KPI

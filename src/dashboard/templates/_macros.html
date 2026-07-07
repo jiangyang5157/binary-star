@@ -3,7 +3,7 @@
     {{ caller() }}
   {% else %}
     <div class="panel-locked" data-locked-by="{{ perm }}">
-      <div class="panel-lock-banner" data-i18n="lock.read_only">🔒 Read-only — operator access required</div>
+      <div class="panel-lock-banner" data-i18n="lock.read_only">🔒 Read-only</div>
       <div class="panel-lock-overlay">
         {{ caller() }}
       </div>
