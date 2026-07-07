@@ -93,9 +93,9 @@ const TRANSLATIONS = {
   // Sniper
   "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
   "sniper.balance": { en: "Balance", zh: "余额" },
-  "sniper.watching": {
-    en: "Watching {symbols}… · {time} since last pulse",
-    zh: "监控 {symbols}… · 距上次脉冲 {time}"
+  "sniper.pulse_age": {
+    en: "{time} since last pulse",
+    zh: "距上次脉冲 {time}"
   },
   "sniper.signals_count": {
     en: "{n} signal{s}",

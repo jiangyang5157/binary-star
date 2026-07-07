@@ -1937,20 +1937,14 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   padding: 14px;
 }
 
-.signal-card.triggered {
-  border-color: var(--accent-green, #40a85f);
-  box-shadow: 0 0 8px rgba(64, 168, 95, 0.15);
-}
-
 .signal-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
 .signal-card-symbol {
-  font-weight: 700;
   font-size: 0.9rem;
 }
 
@@ -2063,13 +2057,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   background: var(--accent-blue, #4a8fe7);
 }
 
-/* Cooldown tag */
-.signal-cooldown {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.72rem;
+/* Cooldown tag in card header */
+.signal-card-cooldown {
+  font-size: 0.7rem;
   color: var(--text-muted, #8898ac);
-  margin-top: 8px;
+  margin-left: auto;
 }
 

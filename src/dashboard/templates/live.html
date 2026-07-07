@@ -90,9 +90,9 @@
             </label>
           </div>
         </div>
+        <div id="sniper-status-line"></div>
         <div id="sniper-signal-cards" class="signal-cards" style="display:none"></div>
         <div id="sniper-guardian-table-container"></div>
-        <div id="sniper-status-line"></div>
         <div id="sniper-progress-container"></div>
       </section>
       {% endcall %}
@@ -442,23 +442,14 @@
       var el = document.getElementById('sniper-status-line');
       if (!el) return;
 
-      var parts = (data.symbols || []).map(function (s) {
-        var stripped = s.replace(new RegExp(QUOTE + '$', 'i'), '');
-        var label = '<strong>' + stripped + '</strong>';
-        var gs = data.guardian ? data.guardian.symbols[s] : null;
-        return (gs && gs.cooldown_active ? '❄ ' : '') + label;
-      });
-      var symbols = parts.join(', ');
-
       var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
 
-      var watchingText = (TRANSLATIONS['sniper.watching']?.[getLang()] || 'Watching {symbols}… · {time} since last pulse')
-        .replace('{symbols}', symbols)
+      var label = (TRANSLATIONS['sniper.pulse_age']?.[getLang()] || '{time} since last pulse')
         .replace('{time}', formatElapsed(pulseAge));
       el.innerHTML =
         '<div class="sniper-idle">' +
         '<span class="sniper-idle-dot"></span>' +
-        '<span class="sniper-idle-info">' + watchingText + '</span>' +
+        '<span class="sniper-idle-info">' + label + '</span>' +
         '</div>';
     }
 
@@ -524,8 +515,6 @@
       }
 
       var symbols = data.symbols || Object.keys(signals.symbols);
-      var activeSession = data.active_session;
-      var activeSym = activeSession ? activeSession.symbol : null;
 
       // Save which signal cards are expanded before re-rendering
       var details = container.querySelectorAll('.signal-detail');
@@ -548,13 +537,12 @@
         if (!s) continue;
 
         var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
-        var triggered = s.triggered;
         var score = s.confluence_score || 0;
         var threshold = s.threshold || 0.35;
         var pct = threshold > 0 ? Math.min(100, Math.round((score / threshold) * 100)) : 0;
 
-        var fillCls = pct < 40 ? 'threshold-far' : pct < 70 ? 'threshold-close' : 'threshold-near';
-        var cardCls = triggered ? 'signal-card triggered' : 'signal-card';
+        var fillCls = pct < 50 ? 'threshold-far' : pct < 100 ? 'threshold-close' : 'threshold-near';
+        var cardCls = 'signal-card';
 
         var dirBadge = '';
         if (s.direction === 'BULLISH') {
@@ -572,6 +560,10 @@
         html += '<div class="signal-card-header">';
         html += '<span class="signal-card-symbol">' + stripped + '</span>';
         html += dirBadge;
+        if (s.cooldown_active && s.cooldown_remaining_seconds > 0) {
+          html += '<span class="signal-card-cooldown">&#10052; ' +
+            formatElapsed(s.cooldown_remaining_seconds) + '</span>';
+        }
         html += '</div>';
 
         html += '<div class="threshold-bar"><div class="threshold-bar-fill ' + fillCls +
@@ -602,11 +594,6 @@
           html += '</div>';
         }
         html += '</div>';
-
-        if (s.cooldown_active && s.cooldown_remaining_seconds > 0) {
-          html += '<div class="signal-cooldown">&#10052; cooldown ' +
-            formatElapsed(s.cooldown_remaining_seconds) + '</div>';
-        }
 
         html += '</div>';
       }
