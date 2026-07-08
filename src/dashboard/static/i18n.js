@@ -16,10 +16,11 @@ const TRANSLATIONS = {
 
   // KPI
   "kpi.net_pnl": { en: "Net P&L", zh: "净盈亏" },
-  "kpi.win_rate": { en: "Win Rate", zh: "胜率" },
-  "kpi.calmar": { en: "Calmar Ratio", zh: "卡玛比率" },
-  "kpi.max_drawdown": { en: "Max Drawdown", zh: "最大回撤" },
   "kpi.executed": { en: "Executed / Total", zh: "已执行 / 总计" },
+  "kpi.win_rate": { en: "Win Rate", zh: "胜率" },
+  "kpi.win_loss": { en: "Win / Loss", zh: "盈亏比" },
+  "kpi.max_drawdown": { en: "Max Drawdown", zh: "最大回撤" },
+  "kpi.sharpe": { en: "Sharpe Ratio", zh: "夏普比率" },
 
   // Section 标题
   "section.trade_ledger": { en: "Trade Ledger", zh: "交易台账" },

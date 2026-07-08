@@ -119,11 +119,16 @@ sniper:
     # 给其他 detector 的信号留足组队时间，否则信号"即生即灭"失去堆叠意义。
     # 按信号物理生命周期从快到慢排列：
     decay:
-      flow_tick: 6       # 6min = 3× pulse_interval（2min），1 pulse 后剩 79%，3 pulse 后剩 50%
-      flow_macro: 15     # CVD 15 分钟级趋势，7.5 pulse 后半衰，比 tick 流稳定
-      energy: 20         # 波动率体制变化慢，ATR 不会瞬间翻倍，10 pulse 后半衰
-      sentiment: 60      # LS ratio / funding rate 是慢变量，散户不会几分钟集体转向
-      structural: 10     # VP HVN/LVN 锚点随新 K 线漂移，比 tick 慢但比 sentiment 快
+      cvd_momentum: 15        # sustained order-flow imbalance
+      cvd_divergence: 6        # fleeting tick-level divergence
+      cvd_absorption: 15       # sustained absorption pattern
+      large_trade: 15          # institutional footprint
+      volatility_surge: 20     # regime shift — slow to build, slow to fade
+      squeeze: 20              # same as vol_surge — compression is persistent
+      boundary_test: 10        # anchors drift with new candles
+      liquidation_hunt: 10     # clusters dissolve quickly
+      positioning_extreme: 60  # retail sentiment is sticky
+      leader_sync: 8           # cross-symbol correlation fades fast
 
     # —— 自适应冷却 (Adaptive Cooldown) ——
     # 触发后进入冷却期，防止同一信号反复触发浪费 token。
@@ -144,10 +149,8 @@ sniper:
     # —— 预触发确定性门禁 (Pre-Trigger Gate) ——
     # 在消耗 LLM token 之前，用纯数学过滤不可交易场景。
     gate:
-      enabled: true
-      checks:
-        directional_sanity: true   # 逆势无 CVD 确认 → 拒绝
-        chaos_survival: true       # 混沌中追方向信号 → 拒绝
+      directional_sanity: true   # 逆势无 CVD 确认 → 拒绝
+      chaos_survival: true       # 混沌中追方向信号 → 拒绝
 
     # —— 信号置信度权重（可被 Evolution 进化）——
     # 设计原则：结构性/流动性信号 > 情绪/反向信号。
@@ -225,11 +228,11 @@ sandbox:
   # --- Fitness Scoring Ladder ---
   # Base scores for different market outcomes (TP/SL/Neutral/Neither)
   base_scores:
-    tp_hit: 100.0
-    neutral: 70.0
-    neither: 40.0
-    sl_hit: 5.0
-    na: 0.0
+    tp_hit: 100.0      # perfect execution — hit take-profit
+    neutral: 70.0       # disciplined inaction — avoided a bad trade
+    neither: 40.0       # expired unresolved — indecisive
+    sl_hit: 5.0         # stopped out but at least had a plan
+    na: 0.0             # not applicable — un-audited or no trade outcome
 
   # --- Forensic Modifiers ---
   # Execution quality and logic integrity adjustments
