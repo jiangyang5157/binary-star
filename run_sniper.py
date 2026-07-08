@@ -4,6 +4,7 @@ import sys
 import time
 import signal
 import argparse
+import json
 import logging
 from datetime import datetime, timezone
 from dotenv import load_dotenv
@@ -40,7 +41,18 @@ class SniperDaemon:
     When --trade is enabled, also acts as the Position Guardian,
     protecting open positions with OCO orders every pulse cycle.
     """
-    
+
+    # Fixed list of all 10 signal types — ensures every symbol card has identical rows
+    _SIGNAL_TYPES = [
+        'cvd_momentum', 'cvd_divergence', 'cvd_absorption',
+        'large_trade', 'volatility_surge', 'squeeze',
+        'boundary_test', 'liquidation_hunt', 'positioning_extreme',
+        'leader_sync',
+    ]
+
+    _STATE_FILE = ".sniper_state.json"
+    _PULSE_FILE = ".sniper_pulse.json"
+
     def __init__(self, args):
         from src.utils.symbol_utils import resolve_symbols
 
@@ -64,7 +76,9 @@ class SniperDaemon:
 
         # 0. Global Forensic Logging Initialization
         from src.utils.path_utils import resolve_project_root
-        session_log_path = os.path.join(resolve_project_root(), args.path, "sniper.log")
+        _project_root = resolve_project_root()
+        _data_root = os.path.join(_project_root, args.path)
+        session_log_path = os.path.join(_data_root, "sniper.log")
         setup_logger("", log_level=logging.INFO, log_file=session_log_path,
                      max_bytes=10 * 1024 * 1024, backup_count=5,
                      console_color=True)
@@ -117,6 +131,11 @@ class SniperDaemon:
         # Sniper Quiet-Monitoring Protocol
         logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
+        # Persistence paths (reuse _data_root from logger setup above)
+        os.makedirs(_data_root, exist_ok=True)
+        self._state_path = os.path.join(_data_root, self._STATE_FILE)
+        self._pulse_path = os.path.join(_data_root, self._PULSE_FILE)
+
         self._setup_signals()
 
     def _setup_signals(self):
@@ -125,6 +144,10 @@ class SniperDaemon:
 
     def _handle_termination(self, signum, frame):
         logger.warning("termination signal received | shutting down")
+        try:
+            self._write_state(running=False)
+        except Exception:
+            pass
         try:
             self.futures_client.close()
         except Exception as e:
@@ -143,39 +166,27 @@ class SniperDaemon:
         sym_list = ", ".join(self.symbols)
         logger.info(f"═══ SNIPER MONITORING STARTED | symbols={sym_list} | pulse={pulse_mins}m ═══")
 
-        # Path to the daemon status file (same as dashboard API reads)
-        from src.utils.path_utils import resolve_project_root
-        import json as _json_module
-        _status_path = os.path.join(resolve_project_root(), self.args.path,
-                                    ".sniper_daemon_status.json")
-
-        def _read_daemon_status():
-            try:
-                if os.path.exists(_status_path):
-                    with open(_status_path, 'r') as f:
-                        return _json_module.load(f)
-            except Exception:
-                pass
-            return None
-
-        def _write_daemon_status(s):
-            try:
-                tmp = _status_path + ".tmp"
-                with open(tmp, 'w') as f:
-                    _json_module.dump(s, f, default=str)
-                os.replace(tmp, _status_path)
-            except Exception:
-                pass
-
         while True:
             try:
                 metrics: dict[str, dict] = {}
                 triggered: list[tuple[str, 'TriggerResult']] = []
 
-                # ── 0. LIGHTWEIGHT HEARTBEAT: written unconditionally, zero API calls ──
-                # Always succeeds — proves the daemon is alive even when trade is off
-                # or the heavyweight heartbeat fails on a Binance API blip.
-                self._write_lightweight_heartbeat()
+                # ── 0. STATE: pulse timestamp (unconditional, zero API calls) ──
+                self._write_state(last_pulse_at=datetime.now(timezone.utc).isoformat())
+
+                # Seed state on first pulse if dashboard didn't pre-populate it
+                # (e.g., sniper started from CLI instead of dashboard API)
+                if not getattr(self, '_state_seeded', False):
+                    self._state_seeded = True
+                    if "running" not in self._read_state():
+                        self._write_state(
+                            running=True,
+                            symbols=self.symbols,
+                            pid=os.getpid(),
+                            trade_enabled=self.trade_enabled,
+                            balance=self.manual_balance,
+                            started_at=datetime.now(timezone.utc).isoformat(),
+                        )
 
                 # ── 0.5 GUARDIAN: protect every symbol with skin in the game ──
                 guardian_data: dict[str, dict] = {}
@@ -184,22 +195,6 @@ class SniperDaemon:
                         gs = self._guardian_check(sym)
                         if gs:
                             guardian_data[sym] = gs
-
-                # ── 0.6 HEAVYWEIGHT HEARTBEAT: fed with guardian data, no extra API calls ──
-                if self.trade_enabled:
-                    self._write_guardian_status(guardian_data)
-
-                # ── 0.7 Seed daemon status on first pulse ──
-                s = _read_daemon_status()
-                if s is None:
-                    s = {
-                        "running": True,
-                        "symbols": self.symbols,
-                        "pid": os.getpid(),
-                        "trade_enabled": self.trade_enabled,
-                        "started_at": datetime.now(timezone.utc).isoformat(),
-                    }
-                    _write_daemon_status(s)
 
                 # ── 1. SCOUT: lightweight data collection per symbol (sequential) ──
                 for sym in self.symbols:
@@ -210,7 +205,6 @@ class SniperDaemon:
                 # ── 2. TRIGGER: independent evaluation per symbol ──
                 if not metrics:
                     logger.warning("all scouts returned empty metrics | skipping trigger/AI phase")
-                now_str = datetime.now(timezone.utc).strftime("%H:%M:%S")
                 symbol_results: dict[str, 'TriggerResult'] = {}
 
                 for sym in self.symbols:
@@ -271,9 +265,9 @@ class SniperDaemon:
                                     f"was={follower.confluence_score:.2f}"
                                 )
 
-                # ── 2.8 Persist pulse signal state for dashboard ──
+                # ── 2.8 PULSE: combined guardian + signal state (single atomic write) ──
                 triggered_syms = {sym for sym, _ in triggered}
-                self._write_pulse_signals(symbol_results, triggered_syms)
+                self._write_pulse(guardian_data, symbol_results, triggered_syms)
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
                 for sym, result in triggered:
@@ -297,33 +291,31 @@ class SniperDaemon:
                             logger.info(f"[{sym}] activating Binary Star reasoning loop")
                             logging.getLogger("src.infrastructure.binance.client").setLevel(logging.INFO)
 
-                            # ── Write active_session to status before execution ──
+                            # ── Write active_session to state before execution ──
                             triggered_at = datetime.now(timezone.utc)
-                            s = _read_daemon_status()
-                            if s:
-                                s["active_session"] = {
-                                    "symbol": sym,
-                                    "triggered_at": triggered_at.strftime("%H:%M:%S"),
-                                    "triggered_at_iso": triggered_at.isoformat(),
-                                    "progress": {
-                                        "status": "running",
-                                        "current_stage": 1,
-                                        "stage_label": "Data Collection",
-                                        "activity": "Fetching kline data…",
-                                        "elapsed_seconds": 0,
-                                        "activities": [],
-                                    },
-                                }
-                                _write_daemon_status(s)
+                            self._write_state(active_session={
+                                "symbol": sym,
+                                "triggered_at": triggered_at.strftime("%H:%M:%S"),
+                                "triggered_at_iso": triggered_at.isoformat(),
+                                "progress": {
+                                    "status": "running",
+                                    "current_stage": 1,
+                                    "stage_label": "Data Collection",
+                                    "activity": "Fetching kline data…",
+                                    "elapsed_seconds": 0,
+                                    "activities": [],
+                                },
+                            })
 
                             # ── Progress callback for session execution ──
                             def _sniper_progress(stage=None, activity=None, status="running",
                                                   stage_label=None, result=None, error=None):
-                                s2 = _read_daemon_status()
-                                if not s2 or not s2.get("active_session"):
+                                current = self._read_state()
+                                active_session = current.get("active_session") if current else None
+                                if not active_session:
                                     return
                                 now_utc = datetime.now(timezone.utc)
-                                trig_iso = s2["active_session"].get("triggered_at_iso", "")
+                                trig_iso = active_session.get("triggered_at_iso", "")
                                 elapsed = 0
                                 if trig_iso:
                                     try:
@@ -332,7 +324,7 @@ class SniperDaemon:
                                     except Exception:
                                         pass
 
-                                progress = s2["active_session"].get("progress", {})
+                                progress = active_session.get("progress", {})
                                 if status == "running":
                                     activities = list(progress.get("activities", []))
                                     add_activity_entry(activities, activity)
@@ -366,34 +358,32 @@ class SniperDaemon:
                                         "error": error or activity or "Unknown error",
                                         "activities": activities,
                                     }
-                                s2["active_session"]["progress"] = progress
-                                _write_daemon_status(s2)
+                                active_session["progress"] = progress
+                                self._write_state(active_session=active_session)
 
-                            session_result = self.session_engines[sym].execute_cycle(
-                                situation_brief=result.situation_brief,
-                                progress_callback=_sniper_progress,
-                            )
+                            try:
+                                session_result = self.session_engines[sym].execute_cycle(
+                                    situation_brief=result.situation_brief,
+                                    progress_callback=_sniper_progress,
+                                )
 
-                            logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
+                                logging.getLogger("src.infrastructure.binance.client").setLevel(logging.CRITICAL)
 
-                            if self.trade_enabled and self.executor and session_result and "error" not in session_result:
-                                self._attempt_trade_execution(sym, session_result)
+                                if self.trade_enabled and self.executor and session_result and "error" not in session_result:
+                                    self._attempt_trade_execution(sym, session_result)
 
-                            # Outcome-aware cooldown: TRADED vs NEUTRAL
-                            opinion = (
-                                session_result.get("final_decision", {}).get("opinion", "NEUTRAL")
-                                if session_result else "NEUTRAL"
-                            )
-                            trigger_type = (
-                                "TRADED" if (opinion in ("BULLISH", "BEARISH") and self.trade_enabled)
-                                else "NEUTRAL"
-                            )
-
-                            # ── Clear active_session ──
-                            s3 = _read_daemon_status()
-                            if s3 and s3.get("active_session"):
-                                s3["active_session"] = None
-                                _write_daemon_status(s3)
+                                # Outcome-aware cooldown: TRADED vs NEUTRAL
+                                opinion = (
+                                    session_result.get("final_decision", {}).get("opinion", "NEUTRAL")
+                                    if session_result else "NEUTRAL"
+                                )
+                                trigger_type = (
+                                    "TRADED" if (opinion in ("BULLISH", "BEARISH") and self.trade_enabled)
+                                    else "NEUTRAL"
+                                )
+                            finally:
+                                # ── Always clear active_session, even if execute_cycle raises ──
+                                self._write_state(active_session=None)
 
                             logger.info(f"[{sym}] session complete — returning to monitoring")
                     elif has_active:
@@ -407,10 +397,6 @@ class SniperDaemon:
                 # ── 4. HOUSEKEEPING ──
                 if metrics:
                     self.prev_metrics = metrics
-
-                # ── 5. Refresh heartbeat with latest guardian state ──
-                if self.trade_enabled:
-                    self._write_guardian_status(guardian_data)
 
             except KeyboardInterrupt:
                 logger.warning("terminated by user")
@@ -581,155 +567,152 @@ class SniperDaemon:
             logger.error(f"[{symbol}] guardian check failed | error={e}", exc_info=True)
             return None
 
-    def _write_lightweight_heartbeat(self):
-        """Zero-API-call liveness proof. Always succeeds — never blocks on Binance.
+    # ── Persistence ───────────────────────────────────────────────────────
 
-        Written unconditionally every pulse so the dashboard always has a fresh
-        pulse timer, regardless of --trade flag or API health.
+    def _read_state(self) -> dict:
+        """Read .sniper_state.json, returning empty dict on any failure."""
+        try:
+            if os.path.exists(self._state_path):
+                with open(self._state_path, 'r') as f:
+                    return json.load(f)
+        except Exception:
+            pass
+        return {}
+
+    def _write_state(self, **kwargs):
+        """Atomically update .sniper_state.json with given key-value pairs.
+
+        Reads current state, merges kwargs, writes atomically via tmp+rename.
+        Used for: pulse timestamp (every pulse), active_session lifecycle.
         """
         try:
-            from src.utils.path_utils import resolve_project_root
-            import json as _json
-            path = os.path.join(resolve_project_root(), self.args.path, ".sniper_alive.json")
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            tmp = path + ".tmp"
-            with open(tmp, "w") as f:
-                _json.dump({"last_pulse_at": datetime.now(timezone.utc).isoformat()}, f)
-            os.replace(tmp, path)
+            state = self._read_state()
+            state.update(kwargs)
+            tmp = self._state_path + ".tmp"
+            with open(tmp, 'w') as f:
+                json.dump(state, f, default=str, indent=2)
+            os.replace(tmp, self._state_path)
         except Exception as e:
-            logger.warning(f"lightweight heartbeat write failed | error={e}")
+            logger.warning(f"state write failed | error={e}")
 
-    def _write_guardian_status(self, guardian_data: dict[str, dict] | None = None):
-        """Write combined guardian heartbeat for all symbols (once per pulse).
+    def _write_pulse(self, guardian_data: dict[str, dict] | None,
+                     symbol_results: dict, triggered_syms: set):
+        """Write .sniper_pulse.json — guardian state + signal diagnostics.
 
-        Accepts guardian_data harvested during _guardian_check() to avoid
-        duplicate Binance API calls. Falls back to empty per-symbol entries
-        for any missing symbols.
+        Guardian data comes from the pre-collected guardian_data dict
+        (no extra API calls). Signal data is extracted from trigger
+        evaluation results. Single atomic write per pulse.
         """
         try:
-            from src.utils.path_utils import resolve_project_root
-            import json as _json
-
-            # Fetch account balance (one API call, shared cross-margin account)
+            # Account balance (one API call, shared cross-margin account)
             account_balance = None
-            try:
-                from src.utils.symbol_utils import get_quote_currency
-                quote = get_quote_currency()
-                account = self.executor.client.get_cross_margin_account()
-                for a in (account.assets or []):
-                    if a.asset == quote and a.net_asset > 0:
-                        account_balance = round(a.net_asset, 2)
-                        break
-            except Exception as e:
-                logger.warning(f"account balance fetch skipped | error={e}")
+            if self.trade_enabled and self.executor:
+                try:
+                    from src.utils.symbol_utils import get_quote_currency
+                    quote = get_quote_currency()
+                    account = self.executor.client.get_cross_margin_account()
+                    for a in (account.assets or []):
+                        if a.asset == quote and a.net_asset > 0:
+                            account_balance = round(a.net_asset, 2)
+                            break
+                except Exception as e:
+                    logger.warning(f"account balance fetch skipped | error={e}")
 
-            # Use guardian data already harvested — no extra position/order API calls
             symbols_data = {}
             for sym in self.symbols:
+                # ── Guardian fields ──
                 gs = (guardian_data or {}).get(sym)
-                entry = dict(gs) if gs else {
-                    "net_qty": 0.0, "active_orders": 0,
-                }
-                if sym in self.triggers and self.triggers[sym].cooldown_active:
-                    entry['cooldown_active'] = True
+                entry = dict(gs) if gs else {"net_qty": 0.0, "active_orders": 0}
+
+                trigger = self.triggers.get(sym)
+                cooldown_active = trigger.cooldown_active if trigger else False
+
+                # ── Signal fields ──
+                result = symbol_results.get(sym)
+                if result:
+                    active_types = {sig.sub_type for sig in result.active_signals}
+                    sig_by_type = {sig.sub_type: sig for sig in result.signals}
+
+                    all_signals = []
+                    for sub_type in self._SIGNAL_TYPES:
+                        sig = sig_by_type.get(sub_type)
+                        if sig:
+                            all_signals.append({
+                                "type": sig.sub_type,
+                                "score": round(sig.weighted_score, 2),
+                                "strength": round(sig.strength, 2),
+                                "direction": sig.direction.value,
+                                "is_active": sig.sub_type in active_types,
+                            })
+                        else:
+                            all_signals.append({
+                                "type": sub_type,
+                                "score": 0,
+                                "strength": 0,
+                                "direction": "NEUTRAL",
+                                "is_active": False,
+                            })
+
+                    cooldown_total_s = int(result.cooldown_minutes * 60)
+                    if cooldown_active and trigger and trigger.last_trigger_time:
+                        elapsed_cd = (datetime.now(timezone.utc) - trigger.last_trigger_time).total_seconds()
+                        cooldown_remaining = max(0, int(cooldown_total_s - elapsed_cd))
+                    else:
+                        cooldown_remaining = cooldown_total_s
+
+                    threshold = round(trigger.engine.effective_threshold, 2) if trigger else 0.35
+
+                    entry.update({
+                        "triggered": sym in triggered_syms,
+                        "confluence_score": round(result.confluence_score, 2),
+                        "threshold": threshold,
+                        "direction": result.confluence_direction.value,
+                        "signals": all_signals,
+                        "cooldown_active": cooldown_active,
+                        "cooldown_remaining_seconds": cooldown_remaining,
+                        "gate_reason": result.gate_reason,
+                    })
+                else:
+                    # No trigger result for this symbol — fill defaults
+                    if cooldown_active and trigger and trigger.last_trigger_time:
+                        # cooldown_minutes lives on TriggerResult, not SniperTrigger.
+                        # Read duration from config; use max regime as conservative fallback.
+                        cd_cfg = trigger.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
+                        regime_mins = cd_cfg.get('regime_base_minutes', {})
+                        cd_minutes = max(regime_mins.values()) if regime_mins else 40
+                        cd_remaining = max(0, int(
+                            cd_minutes * 60 -
+                            (datetime.now(timezone.utc) - trigger.last_trigger_time).total_seconds()
+                        ))
+                    else:
+                        cd_remaining = 0
+                    entry.update({
+                        "triggered": False,
+                        "confluence_score": 0.0,
+                        "threshold": 0.35,
+                        "direction": "NEUTRAL",
+                        "signals": [{"type": t, "score": 0, "strength": 0,
+                                      "direction": "NEUTRAL", "is_active": False}
+                                     for t in self._SIGNAL_TYPES],
+                        "cooldown_active": cooldown_active,
+                        "cooldown_remaining_seconds": cd_remaining,
+                        "gate_reason": "",
+                    })
+
                 symbols_data[sym] = entry
 
-            guardian = {
-                "last_pulse_at": datetime.now(timezone.utc).isoformat(),
+            payload = {
+                "pulse_at": datetime.now(timezone.utc).isoformat(),
                 "account_balance": account_balance,
                 "symbols": symbols_data,
             }
 
-            # Atomic write
-            guardian_path = os.path.join(resolve_project_root(), self.args.path, ".sniper_heartbeat.json")
-            os.makedirs(os.path.dirname(guardian_path), exist_ok=True)
-            tmp_path = guardian_path + ".tmp"
-            with open(tmp_path, "w") as f:
-                _json.dump(guardian, f, default=str)
-            os.replace(tmp_path, guardian_path)
+            tmp = self._pulse_path + ".tmp"
+            with open(tmp, 'w') as f:
+                json.dump(payload, f, default=str, indent=2)
+            os.replace(tmp, self._pulse_path)
         except Exception as e:
-            logger.warning(f"heavyweight heartbeat write failed | error={e}")
-
-    def _write_pulse_signals(self, symbol_results: dict, triggered_symbols: set):
-        """Persist per-symbol signal state after each pulse's trigger evaluation."""
-        from src.utils.path_utils import resolve_project_root
-        import json as _json
-        from datetime import timezone as _timezone
-
-        symbols_data = {}
-        # Fixed list of all 10 signal types — ensures every symbol card has the same rows
-        ALL_SIGNAL_TYPES = [
-            'cvd_momentum', 'cvd_divergence', 'cvd_absorption',
-            'large_trade', 'volatility_surge', 'squeeze',
-            'boundary_test', 'liquidation_hunt', 'positioning_extreme',
-            'leader_sync',
-        ]
-        for sym, result in symbol_results.items():
-            # Build set of active signal sub_types for O(1) lookup
-            active_types = {sig.sub_type for sig in result.active_signals}
-
-            # Index existing signals by sub_type
-            sig_by_type = {sig.sub_type: sig for sig in result.signals}
-
-            all_signals = []
-            for sub_type in ALL_SIGNAL_TYPES:
-                sig = sig_by_type.get(sub_type)
-                if sig:
-                    all_signals.append({
-                        "type": sig.sub_type,
-                        "score": round(sig.weighted_score, 2),
-                        "strength": round(sig.strength, 2),
-                        "direction": sig.direction.value,
-                        "is_active": sig.sub_type in active_types,
-                    })
-                else:
-                    all_signals.append({
-                        "type": sub_type,
-                        "score": 0,
-                        "strength": 0,
-                        "direction": "NEUTRAL",
-                        "is_active": False,
-                    })
-
-            trigger = self.triggers.get(sym)
-            cooldown_active = trigger.cooldown_active if trigger else False
-
-            # Compute actual remaining cooldown (not just total duration)
-            cooldown_total_s = int(result.cooldown_minutes * 60)
-            if cooldown_active and trigger and trigger.last_trigger_time:
-                elapsed = (datetime.now(_timezone.utc) - trigger.last_trigger_time).total_seconds()
-                cooldown_remaining = max(0, int(cooldown_total_s - elapsed))
-            else:
-                cooldown_remaining = cooldown_total_s
-
-            # threshold lives on the ConfluenceEngine
-            threshold = round(trigger.engine.effective_threshold, 2) if trigger else 0.35
-
-            symbols_data[sym] = {
-                "triggered": sym in triggered_symbols,
-                "confluence_score": round(result.confluence_score, 2),
-                "threshold": threshold,
-                "direction": result.confluence_direction.value,
-                "all_signals": all_signals,
-                "cooldown_active": cooldown_active,
-                "cooldown_remaining_seconds": cooldown_remaining,
-                "gate_reason": result.gate_reason,
-            }
-
-        payload = {
-            "pulse_at": datetime.now(_timezone.utc).isoformat(),
-            "symbols": symbols_data,
-        }
-
-        path = os.path.join(resolve_project_root(), self.args.path, ".sniper_pulse_signals.json")
-        try:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            tmp = path + ".tmp"
-            with open(tmp, "w") as f:
-                _json.dump(payload, f, default=str)
-            os.replace(tmp, path)
-        except Exception as e:
-            logger.warning(f"pulse signals write failed | error={e}")
+            logger.warning(f"pulse write failed | error={e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")

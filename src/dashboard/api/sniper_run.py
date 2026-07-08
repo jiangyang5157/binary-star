@@ -19,7 +19,8 @@ router = APIRouter(prefix="/api/sniper")
 from src.dashboard.auth import require_permission
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-STATUS_FILENAME = ".sniper_daemon_status.json"
+STATUS_FILENAME = ".sniper_state.json"
+PULSE_FILENAME = ".sniper_pulse.json"
 log = logging.getLogger("SniperRunAPI")
 
 
@@ -51,11 +52,19 @@ def _read_sniper_status(data_root: str) -> dict | None:
         return None
 
 
-def _write_sniper_status(data_root: str, status: dict) -> None:
+def _write_sniper_status(data_root: str, updates: dict) -> None:
+    """Read-modify-write .sniper_state.json — preserves fields not in updates."""
     path = Path(data_root) / STATUS_FILENAME
     path.parent.mkdir(parents=True, exist_ok=True)
+    current = {}
+    if path.exists():
+        try:
+            current = json.loads(path.read_text())
+        except Exception:
+            pass
+    current.update(updates)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(status, default=str))
+    tmp.write_text(json.dumps(current, default=str, indent=2))
     tmp.replace(path)
 
 
@@ -90,7 +99,7 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
         pid = status.get("pid")
         if pid and _is_pid_alive(pid):
             started = status.get("started_at", "unknown")
-            existing = status.get("symbols", [status.get("symbol", "?")])
+            existing = status.get("symbols", [])
             raise HTTPException(
                 status_code=409,
                 detail=f"Sniper already running: {existing} (started {started})",
@@ -121,14 +130,13 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
 
     log.info("Starting sniper: %s", " ".join(cmd))
 
-    # Clean up stale heartbeat files from any previous run so the frontend
-    # doesn't flash old pulse timestamps / guardian data before the first pulse.
+    # Clean up stale pulse file from any previous run so the frontend
+    # doesn't flash old guardian data / signal state before the first pulse.
     _data_root_path = Path(data_root)
-    for _hf in (".sniper_alive.json", ".sniper_heartbeat.json"):
-        try:
-            (_data_root_path / _hf).unlink(missing_ok=True)
-        except Exception:
-            pass
+    try:
+        (_data_root_path / PULSE_FILENAME).unlink(missing_ok=True)
+    except Exception:
+        pass
 
     proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT))
 
@@ -139,6 +147,8 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
         "trade_enabled": req.trade,
         "balance": balance,
         "started_at": datetime.now(timezone.utc).isoformat(),
+        "last_pulse_at": None,
+        "active_session": None,
     })
 
     return {"accepted": True, "symbols": symbols}
@@ -155,7 +165,7 @@ def sniper_stop(data_root: str = Query(""),
         raise HTTPException(status_code=404, detail="No sniper is running")
 
     pid = status.get("pid")
-    symbols = status.get("symbols", [status.get("symbol", "?")])
+    symbols = status.get("symbols", [])
 
     if pid and _is_pid_alive(pid):
         try:
@@ -195,15 +205,13 @@ def sniper_status(data_root: str = Query("")):
     started_str = status.get("started_at", "")
     elapsed = elapsed_since_iso(started_str)
 
-    # Backwards-compatible: if old format with "symbol" (single string), wrap in array
-    symbols = status.get("symbols")
-    if not symbols:
-        single = status.get("symbol")
-        symbols = [single] if single else []
+    symbols = status.get("symbols", [])
 
-    # Pulse timer: prefer lightweight heartbeat (always fresh), fall back to
-    # heavy heartbeat, then daemon uptime as last resort.
+    # Pulse timer: from state file's last_pulse_at (always fresh, zero-API)
     pulse_seconds = _read_pulse_seconds(data_root, fallback_elapsed=round(elapsed))
+
+    # Combined pulse file: guardian + signal diagnostics (single read)
+    guardian, pulse_signals = _read_pulse(data_root)
 
     # Active session (AI session triggered by sniper signal)
     active_session = status.get("active_session")
@@ -222,68 +230,71 @@ def sniper_status(data_root: str = Query("")):
         "elapsed_seconds": round(elapsed),
         "pulse_seconds": pulse_seconds,
         "active_session": active_session,
-        "guardian": _read_guardian_status(data_root),
-        "pulse_signals": _read_pulse_signals(data_root),
+        "guardian": guardian,
+        "pulse_signals": pulse_signals,
     }
 
 
-def _seconds_since_iso(ts: str) -> int | None:
-    """Parse an ISO timestamp string and return seconds elapsed since then."""
-    try:
-        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
-        return round((datetime.now(timezone.utc) - dt).total_seconds())
-    except Exception:
-        return None
-
-
 def _read_pulse_seconds(data_root: str, fallback_elapsed: int = 0) -> int:
-    """Seconds since the last daemon pulse, using the most reliable heartbeat.
-
-    Priority: lightweight heartbeat > heavyweight heartbeat > daemon uptime.
-    """
-    # Try lightweight heartbeat first (zero-API-call, always written)
-    light = Path(data_root) / ".sniper_alive.json"
-    if light.exists():
+    """Seconds since the last daemon pulse, from the state file's last_pulse_at."""
+    path = Path(data_root) / STATUS_FILENAME
+    if path.exists():
         try:
-            data = json.loads(light.read_text())
+            data = json.loads(path.read_text())
             last_str = data.get("last_pulse_at", "")
             if last_str:
-                secs = _seconds_since_iso(last_str)
-                if secs is not None:
-                    return max(secs, 0)  # clamp negative (clock skew) to zero
+                return elapsed_since_iso(last_str)
         except Exception:
             pass
-
-    # Fall back to heavyweight heartbeat
-    heavy = _read_guardian_status(data_root)
-    if heavy:
-        last_str = heavy.get("last_pulse_at", "")
-        if last_str:
-            secs = _seconds_since_iso(last_str)
-            if secs is not None:
-                return max(secs, 0)
-
-    # Last resort: daemon uptime (inaccurate but non-zero proves it's running)
     return fallback_elapsed
 
 
-def _read_pulse_signals(data_root: str) -> dict | None:
-    """Read the most recent per-symbol pulse signal state."""
-    path = Path(data_root) / ".sniper_pulse_signals.json"
+def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
+    """Read .sniper_pulse.json, return (guardian_dict, pulse_signals_dict).
+
+    Splits the combined pulse file into the two shapes the frontend expects.
+    Returns (None, None) if the file is missing or unreadable.
+    """
+    path = Path(data_root) / PULSE_FILENAME
     if not path.exists():
-        return None
+        return None, None
     try:
-        return json.loads(path.read_text())
+        data = json.loads(path.read_text())
     except (json.JSONDecodeError, OSError):
-        return None
+        return None, None
 
+    # Guardian shape: account_balance + per-symbol position/order state
+    guardian = {
+        "account_balance": data.get("account_balance"),
+        "symbols": {},
+    }
 
-def _read_guardian_status(data_root: str) -> dict | None:
-    """Read the guardian pulse file written by the sniper daemon."""
-    path = Path(data_root) / ".sniper_heartbeat.json"
-    if not path.exists():
-        return None
+    # Pulse signals shape: per-symbol signal diagnostics for the frontend
+    pulse_signals = {
+        "pulse_at": data.get("pulse_at", ""),
+        "symbols": {},
+    }
+
     try:
-        return json.loads(path.read_text())
-    except Exception:
-        return None
+        for sym, entry in data.get("symbols", {}).items():
+            if not isinstance(entry, dict):
+                continue
+            guardian["symbols"][sym] = {
+                "net_qty": entry.get("net_qty", 0.0),
+                "active_orders": entry.get("active_orders", 0),
+            }
+
+            pulse_signals["symbols"][sym] = {
+                "triggered": entry.get("triggered", False),
+                "confluence_score": entry.get("confluence_score", 0.0),
+                "threshold": entry.get("threshold", 0.35),
+                "direction": entry.get("direction", "NEUTRAL"),
+                "all_signals": entry.get("signals", []),
+                "cooldown_active": entry.get("cooldown_active", False),
+                "cooldown_remaining_seconds": entry.get("cooldown_remaining_seconds", 0),
+                "gate_reason": entry.get("gate_reason", ""),
+            }
+    except Exception as e:
+        log.warning("pulse entry iteration failed | error=%s", e)
+
+    return guardian, pulse_signals
