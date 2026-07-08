@@ -1182,15 +1182,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
     align-items: flex-start;
     gap: 8px;
   }
-
-  .sniper-trade-toggle {
-    margin-left: 0;
-  }
-
-  .bt-range-grid {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 
 /* --- Toggle Switch --- */
@@ -1254,7 +1245,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 /* --- Stacked Run Panels --- */
 .run-panels {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   margin-bottom: 0;
 }
@@ -1264,6 +1255,11 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 /* ── Multi-symbol Guardian Table ─────────────────────────── */
+#sniper-guardian-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .guardian-table {
   width: 100%;
   border-collapse: collapse;
