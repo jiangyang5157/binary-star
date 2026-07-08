@@ -2,7 +2,7 @@
 Singularity Sniper Trigger — Signal Stack Architecture.
 
 Replaces the old binary-trigger model with a continuous multi-signal confluence
-engine. 9 signal types across 5 categories are detected per pulse, scored on
+engine. 10 signal detectors are evaluated per pulse, each scored on
 a 0–1 continuum, stacked directionally, and only fire an AI session when the
 confluence score exceeds a regime-adaptive threshold.
 
@@ -25,15 +25,6 @@ logger = setup_logger(__name__)
 # Enums
 # ═══════════════════════════════════════════════════════════════════════════
 
-class SignalCategory(str, Enum):
-    FLOW = "FLOW"
-    SIZE = "SIZE"           # NEW — large-trade / institutional activity
-    ENERGY = "ENERGY"
-    STRUCTURAL = "STRUCTURAL"
-    POSITIONING = "POSITIONING"
-    CROSS_SYMBOL = "CROSS_SYMBOL"
-
-
 class Direction(str, Enum):
     BULLISH = "BULLISH"
     BEARISH = "BEARISH"
@@ -48,21 +39,18 @@ class Direction(str, Enum):
 class SignalCard:
     """A single detected market signal with continuous 0–1 scoring."""
     signal_id: str
-    category: SignalCategory
     sub_type: str
     direction: Direction
     strength: float                         # 0.0–1.0
-    confidence: float                       # 0.0–1.0, per-signal-type reliability weight
-    urgency: float                          # 0.0–1.0, time-sensitivity
+    weight: float                           # 0.0–1.0, detector weight
     timestamp: datetime
     decay_half_life_minutes: float
     evidence: Dict[str, Any] = field(default_factory=dict)
-    regime_compatibility: float = 1.0
 
     @property
     def weighted_score(self) -> float:
         """Effective score used in confluence stacking."""
-        result = self.strength * self.confidence
+        result = self.strength * self.weight
         return 0.0 if math.isnan(result) or math.isinf(result) else result
 
     def decayed_strength(self, now: datetime) -> float:
@@ -80,7 +68,7 @@ class TriggerResult:
     confluence_direction: Direction
     signals: List[SignalCard]               # all signals (including decayed survivors)
     active_signals: List[SignalCard]        # fresh signals that contributed to trigger
-    gate_result: str                        # "PASS" | "WEAK_PASS" | "FAIL"
+    gate_result: str                        # "PASS" | "FAIL"
     gate_reason: str
     situation_brief: Optional[Dict[str, Any]]  # None if not triggered
     cooldown_minutes: float
@@ -288,8 +276,7 @@ class SniperTrigger:
         self.regime_cfg = self.strat_cfg['regime_parameters']
         self.sniper_cfg = self.global_cfg['sniper']
 
-        # Default cooldown (used as fallback; adaptive cooldown is primary)
-        # State lockout default: one macro candle (from strategy config timeframe)
+        # State lock duration: one macro candle
         macro_interval = self.strat_cfg['analysis_window']['macro_context']['time_interval']
         self.macro_hours = self._parse_interval_to_minutes(macro_interval) / 60.0
 
@@ -306,8 +293,11 @@ class SniperTrigger:
         large_trade_cfg = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
         self._trade_size_window = deque(maxlen=large_trade_cfg.get('large_trade_lookback', 30))
 
-        # Signal confidence weights (convenience accessor)
+        # Signal weights (convenience accessor)
         self.signal_weights = self.sniper_cfg.get('signal_stack', {}).get('weights', {})
+
+        # Signal decay half-lives (minutes) — keyed by detector sub_type
+        self._decay = self.sniper_cfg['signal_stack']['decay']
 
         # Ordered signal detection registry
         self._signal_detectors = [
@@ -415,8 +405,7 @@ class SniperTrigger:
         regime_minutes = cooldown_cfg.get('regime_base_minutes', {})
         return regime_minutes[regime]
 
-    def _check_cooldown_break(self, fresh_signals: List[SignalCard],
-                              regime: str) -> bool:
+    def _check_cooldown_break(self, fresh_signals: List[SignalCard]) -> bool:
         """Check if cooldown should break due to stacked signals or strength ratio."""
         cooldown_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
 
@@ -458,13 +447,9 @@ class SniperTrigger:
                          regime: str) -> Tuple[str, str]:
         """Deterministic pre-check before spending AI tokens. Returns (result, reason)."""
         gate_cfg = self.sniper_cfg.get('signal_stack', {}).get('gate', {})
-        if not gate_cfg.get('enabled', True):
-            return "PASS", "gate disabled"
-
-        checks = gate_cfg.get('checks', {})
 
         # 1. Directional sanity
-        if checks.get('directional_sanity', True):
+        if gate_cfg.get('directional_sanity', True):
             trend = curr['market_regime'].get('trend_intensity', 0)
             trend_strong = self.regime_cfg['trend']['trend_intensity_strong']
             cvd = curr['sentiment_signals'].get('cvd_intensity_ratio', 0)
@@ -478,7 +463,7 @@ class SniperTrigger:
                     return "FAIL", "DIRECTIONAL_SANITY: BEARISH against strong bullish trend without CVD confirmation"
 
         # 2. Chaos survival
-        if checks.get('chaos_survival', True) and regime == 'chaos':
+        if gate_cfg.get('chaos_survival', True) and regime == 'chaos':
             # Directional momentum signals in chaos are prohibited
             momentum_signals = [s for s in signals
                               if s.sub_type in ('cvd_momentum', 'volatility_surge')
@@ -494,187 +479,23 @@ class SniperTrigger:
 
     def _build_situation_brief(self, all_signals: List[SignalCard],
                          confluence_score: float,
-                         direction: Direction,
-                         regime: str) -> Dict[str, Any]:
+                         direction: Direction) -> Dict[str, Any]:
         """Build the pre-brief JSON injected into the SessionAgent's observation."""
-        active = [s for s in all_signals
-                  if s.strength >= MIN_STACK_STRENGTH and s.direction in (direction, Direction.NEUTRAL)]
-
         activated_by = []
         for s in sorted(all_signals, key=lambda x: x.weighted_score, reverse=True)[:5]:
             if s.direction != Direction.NEUTRAL or s.sub_type == 'squeeze':
-                thesis = self._suggest_thesis(s.sub_type, s.direction)
                 activated_by.append({
-                    "signal": s.sub_type.upper(),
+                    "signal": s.sub_type,
                     "direction": s.direction.value,
                     "strength": round(s.strength, 2),
-                    "confidence": round(s.confidence, 2),
-                    "key_evidence": self._format_evidence(s),
-                    "suggested_thesis": thesis,
                 })
-
-        risk_caveats = self._build_risk_caveats(all_signals, direction, regime)
-
-        suggested_entry = self._build_entry_suggestion(all_signals, direction, regime)
 
         return {
             "confluence_score": round(confluence_score, 2),
             "confluence_direction": direction.value,
-            "regime_note": self._build_regime_note(direction, regime),
             "activated_by": activated_by,
-            "risk_caveats": risk_caveats,
-            "suggested_entry_zone": suggested_entry,
         }
 
-    def _suggest_thesis(self, sub_type: str, direction: Direction) -> str:
-        theses = {
-            'cvd_momentum': (
-                "Bearish momentum building — seek short on pullback to nearest HVN"
-                if direction == Direction.BEARISH else
-                "Bullish momentum building — seek long on dip to nearest HVN"
-            ),
-            'cvd_divergence': (
-                "Distribution detected — smart money selling into strength, prepare short"
-                if direction == Direction.BEARISH else
-                "Accumulation detected — smart money buying into weakness, prepare long"
-            ),
-            'cvd_absorption': (
-                "Selling absorption suspected — large player may be accumulating shorts"
-                if direction == Direction.BEARISH else
-                "Buying absorption suspected — large player may be accumulating longs"
-            ),
-            'large_trade': (
-                "Institutional selling detected — large avg trade size with bearish flow"
-                if direction == Direction.BEARISH else
-                "Institutional buying detected — large avg trade size with bullish flow"
-            ),
-            'volatility_surge': (
-                "Breakout energy with bearish flow — momentum short entry"
-                if direction == Direction.BEARISH else
-                "Breakout energy with bullish flow — momentum long entry"
-            ),
-            'squeeze': "Coiling spring — prepare for violent expansion, direction TBD on breakout",
-            'boundary_test': (
-                "Testing resistance — if rejection, fade short; if breakout with volume, follow"
-                if direction == Direction.BULLISH else
-                "Testing support — if rejection, fade long; if breakdown with volume, follow"
-            ),
-            'liquidation_hunt': "Liquidity sweep in progress — enter after cluster is cleared",
-            'positioning_extreme': (
-                "Retail overcrowded — squeeze fuel for downside cascade"
-                if direction == Direction.BEARISH else
-                "Retail overcrowded short — squeeze fuel for upside cascade"
-            ),
-        }
-        return theses.get(sub_type, f"Signal detected — evaluate against market structure")
-
-    def _format_evidence(self, s: SignalCard) -> str:
-        """One-line summary of signal evidence for the pre-brief."""
-        ev = s.evidence
-        if s.sub_type == 'cvd_momentum':
-            path = ev.get('trigger_path', 'growth')
-            return f"CVD intensity {ev.get('cvd_intensity', 0.0):.3f} (path={path})"
-        if s.sub_type == 'cvd_divergence':
-            return f"CVD delta {ev.get('cvd_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
-        if s.sub_type == 'cvd_absorption':
-            return f"CVD {ev.get('cvd_intensity', 0.0):.3f} with flat price (delta {ev.get('price_delta', 0.0):.1f})"
-        if s.sub_type == 'large_trade':
-            unit = self.symbol.replace('USDT', '') if self.symbol else '?'
-            return f"Avg trade size {ev.get('avg_trade_size', 0.0):.3f} {unit} (z={ev.get('z_score', 0.0):.1f})"
-        if s.sub_type == 'volatility_surge':
-            return f"VII={ev.get('vii', 0.0):.2f}, VPR={ev.get('vpr', 0.0):.2f}"
-        if s.sub_type == 'squeeze':
-            return f"Squeeze factor {ev.get('squeeze_factor', 0.0):.2f}"
-        if s.sub_type == 'boundary_test':
-            return f"Distance to {ev.get('boundary', '?')}: {ev.get('dist_atr', 0.0):.2f} ATR"
-        if s.sub_type == 'liquidation_hunt':
-            return f"Cluster at {ev.get('cluster_price', 0.0):.1f}, distance: {ev.get('dist_atr', 0.0):.2f} ATR"
-        if s.sub_type == 'positioning_extreme':
-            trigger = ev.get('trigger', '?')
-            if trigger == 'ls_long':
-                return f"LS ratio {ev.get('ls_ratio', 0.0):.2f} — retail heavily long"
-            elif trigger == 'ls_short':
-                return f"LS ratio {ev.get('ls_ratio', 0.0):.2f} — retail heavily short"
-            elif trigger == 'funding':
-                return f"Funding rate {ev.get('funding_rate', 0.0):.5f} — extreme"
-            elif trigger == 'oi_divergence':
-                return f"OI delta {ev.get('oi_delta', 0.0):.3f} vs price delta {ev.get('price_delta', 0.0):.1f}"
-            elif trigger == 'oi_surge':
-                return f"OI delta {ev.get('oi_delta', 0.0):.3f} aligned with price delta {ev.get('price_delta', 0.0):.1f}"
-        return str(ev)[:120]
-
-    def _build_risk_caveats(self, signals: List[SignalCard],
-                            direction: Direction, regime: str) -> List[str]:
-        caveats = []
-        sub_types = {s.sub_type for s in signals}
-
-        if 'positioning_extreme' in sub_types:
-            caveats.append(
-                "Positioning extreme can persist for hours — do not force entry without structural confirmation"
-            )
-        if 'cvd_momentum' in sub_types and 'cvd_absorption' not in sub_types:
-            caveats.append(
-                "CVD momentum is strong but watch for absorption — extreme CVD without price movement = reversal risk"
-            )
-        if regime == 'chaos':
-            caveats.append(
-                "CHAOS regime active — use hit-and-run strategy, compress TP to first structural boundary"
-            )
-        if regime == 'squeeze':
-            caveats.append(
-                "Squeeze active — expect violent breakout, use wider stop or wait for direction confirmation"
-            )
-        if 'cvd_divergence' in sub_types and direction == Direction.BEARISH:
-            caveats.append(
-                "Distribution divergence — smart money may be selling into strength, size conservatively"
-            )
-        return caveats
-
-    def _build_entry_suggestion(self, signals: List[SignalCard],
-                                 direction: Direction, regime: str) -> Dict[str, Any]:
-        suggestion: Dict[str, Any] = {}
-
-        if any(s.sub_type == 'cvd_divergence' for s in signals):
-            suggestion["type"] = "divergence_fade"
-            suggestion["target_area"] = "proximal structural boundary"
-        elif any(s.sub_type == 'squeeze' for s in signals):
-            suggestion["type"] = "squeeze_breakout"
-            suggestion["target_area"] = "beyond VAH/VAL on confirmed breakout direction"
-        elif any(s.sub_type == 'large_trade' for s in signals):
-            suggestion["type"] = "institutional_follow"
-            suggestion["target_area"] = "nearest HVN in flow direction"
-        elif regime == 'chaos':
-            suggestion["type"] = "hit_and_run"
-            suggestion["target_area"] = "nearest liquidation cluster or VAH/VAL boundary"
-        elif direction == Direction.BEARISH:
-            suggestion["type"] = "shallow_pullback_dle"
-            suggestion["target_area"] = "nearest HVN above current price"
-        else:
-            suggestion["type"] = "shallow_dip_dle"
-            suggestion["target_area"] = "nearest HVN below current price"
-
-        return suggestion
-
-    def _build_regime_note(self, direction: Direction, regime: str) -> str:
-        notes = {
-            'trending': (
-                f"IS_TREND_STRONG {direction.value} — momentum entries authorized, "
-                f"Dynamic Kinetic Shield available, counter-trend prohibited"
-            ),
-            'ranging': (
-                "Ranging regime — mean-reversion entries preferred, "
-                "tighten TP to nearest structural boundary"
-            ),
-            'squeeze': (
-                "Squeeze regime — coiling spring, prepare for breakout, "
-                "direction TBD on expansion, use wider stops"
-            ),
-            'chaos': (
-                "CHAOS regime — hit-and-run only, directional momentum PROHIBITED, "
-                "survival priority, compress TP aggressively"
-            ),
-        }
-        return notes.get(regime, f"Regime: {regime}")
 
     # ═══════════════════════════════════════════════════════════════════════
     # SIGNAL DETECTORS (9 direct + 1 cross-symbol = 10 total)
@@ -712,19 +533,17 @@ class SniperTrigger:
         strength_a = min(abs(cvd) / (base_threshold * CVD_SATURATION_FACTOR), 1.0) if path_a else 0.0
         strength_b = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0) if path_b else 0.0
         strength = max(strength_a, strength_b)
-        confidence = self.signal_weights.get('cvd_momentum', 0.65)
+        weight = self.signal_weights.get('cvd_momentum')
 
         trigger_path = 'extreme' if path_b and strength_b >= strength_a else 'growth'
         return SignalCard(
             signal_id=self._make_id('cvd_momentum', now),
-            category=SignalCategory.FLOW,
             sub_type='cvd_momentum',
             direction=direction,
             strength=strength,
-            confidence=confidence,
-            urgency=0.5,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=15.0,
+            decay_half_life_minutes=self._decay['cvd_momentum'],
             evidence={'cvd_intensity': cvd, 'threshold': base_threshold,
                       'trigger_path': trigger_path},
         )
@@ -750,18 +569,16 @@ class SniperTrigger:
 
         direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
         strength = min(abs(cvd_delta) / (threshold * CVD_SATURATION_FACTOR), 1.0)
-        confidence = self.signal_weights.get('cvd_divergence', 0.70)
+        weight = self.signal_weights.get('cvd_divergence')
 
         return SignalCard(
             signal_id=self._make_id('cvd_divergence', now),
-            category=SignalCategory.FLOW,
             sub_type='cvd_divergence',
             direction=direction,
             strength=strength,
-            confidence=confidence,
-            urgency=0.7,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=4.0,
+            decay_half_life_minutes=self._decay['cvd_divergence'],
             evidence={'cvd_delta': cvd_delta, 'price_delta': price_delta, 'threshold': threshold},
         )
 
@@ -787,18 +604,16 @@ class SniperTrigger:
         direction = Direction.BEARISH if cvd > 0 else Direction.BULLISH
         saturation_denom = max(extreme_threshold * CVD_ABSORPTION_SATURATION, CVD_ABSORPTION_MIN_DENOM)
         strength = min((abs(cvd) - extreme_threshold) / saturation_denom, 1.0)
-        confidence = self.signal_weights.get('cvd_absorption', 0.65)
+        weight = self.signal_weights.get('cvd_absorption')
 
         return SignalCard(
             signal_id=self._make_id('cvd_absorption', now),
-            category=SignalCategory.FLOW,
             sub_type='cvd_absorption',
             direction=direction,
             strength=strength,
-            confidence=confidence,
-            urgency=0.6,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=10.0,
+            decay_half_life_minutes=self._decay['cvd_absorption'],
             evidence={'cvd_intensity': cvd, 'price_delta': price_delta},
         )
 
@@ -836,18 +651,16 @@ class SniperTrigger:
             direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
 
         strength = min(z_score / (zscore_threshold * LARGE_TRADE_SATURATION), 1.0)
-        confidence = self.signal_weights.get('large_trade', 0.55)
+        weight = self.signal_weights.get('large_trade', 0.55)
 
         return SignalCard(
             signal_id=self._make_id('large_trade', now),
-            category=SignalCategory.SIZE,
             sub_type='large_trade',
             direction=direction,
             strength=strength,
-            confidence=confidence,
-            urgency=0.7,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=10.0,
+            decay_half_life_minutes=self._decay['large_trade'],
             evidence={'avg_trade_size': avg_size, 'z_score': z_score,
                       'trade_count': curr['sentiment_signals'].get('trade_count', 0)},
         )
@@ -880,18 +693,16 @@ class SniperTrigger:
             direction = Direction.NEUTRAL  # flat — no directional bias
 
         strength = min((vii - baseline) / (baseline * VOLATILITY_SATURATION), 1.0)
-        confidence = self.signal_weights.get('volatility_surge', 0.55)
+        weight = self.signal_weights.get('volatility_surge')
 
         return SignalCard(
             signal_id=self._make_id('volatility_surge', now),
-            category=SignalCategory.ENERGY,
             sub_type='volatility_surge',
             direction=direction,
             strength=strength,
-            confidence=confidence,
-            urgency=0.5,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=20.0,
+            decay_half_life_minutes=self._decay['volatility_surge'],
             evidence={'vii': vii, 'vpr': vpr},
         )
 
@@ -912,18 +723,16 @@ class SniperTrigger:
                 return None
 
         strength = min((threshold - sf) / threshold, 1.0)
-        confidence = self.signal_weights.get('squeeze', 0.75)
+        weight = self.signal_weights.get('squeeze')
 
         return SignalCard(
             signal_id=self._make_id('squeeze', now),
-            category=SignalCategory.ENERGY,
             sub_type='squeeze',
             direction=Direction.NEUTRAL,
             strength=strength,
-            confidence=confidence,
-            urgency=0.9,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=20.0,
+            decay_half_life_minutes=self._decay['squeeze'],
             evidence={'squeeze_factor': sf, 'threshold': threshold},
         )
 
@@ -961,22 +770,20 @@ class SniperTrigger:
 
         direction = Direction.BULLISH if nearest == 'VAH' else Direction.BEARISH
         strength = min(threshold / max(nearest_dist, 0.01) * BOUNDARY_STRENGTH_SCALE, 1.0)
-        confidence = self.signal_weights.get('boundary_test', 0.50)
+        weight = self.signal_weights.get('boundary_test')
 
         return SignalCard(
             signal_id=self._make_id('boundary_test', now),
-            category=SignalCategory.STRUCTURAL,
             sub_type='boundary_test',
             direction=direction,
             strength=strength,
-            confidence=confidence,
-            urgency=0.4,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=10.0,
+            decay_half_life_minutes=self._decay['boundary_test'],
             evidence={'boundary': nearest, 'dist_atr': nearest_dist, 'threshold': threshold},
         )
 
-    # ── STRUCTURAL: Liquidation Hunt (#9) ────────────────────────────────
+    # ── STRUCTURAL: Liquidation Hunt (#8) ────────────────────────────────
 
     def _detect_liquidation_hunt(self, curr: Dict[str, Any],
                                   prev: Optional[Dict[str, Any]],
@@ -1004,14 +811,12 @@ class SniperTrigger:
                     strength = min(threshold / max(dist_atr, 0.01) * LIQUIDATION_STRENGTH_SCALE, 1.0)
                     return SignalCard(
                         signal_id=self._make_id('liquidation_hunt', now),
-                        category=SignalCategory.STRUCTURAL,
-                        sub_type='liquidation_hunt',
+                                sub_type='liquidation_hunt',
                         direction=Direction.BEARISH,
                         strength=strength,
-                        confidence=self.signal_weights.get('liquidation_hunt', 0.60),
-                        urgency=0.5,
-                        timestamp=now,
-                        decay_half_life_minutes=10.0,
+                        weight=self.signal_weights.get('liquidation_hunt'),
+                                timestamp=now,
+                        decay_half_life_minutes=self._decay['liquidation_hunt'],
                         evidence={'cluster_price': p, 'dist_atr': dist_atr, 'type': 'long'},
                     )
 
@@ -1028,14 +833,12 @@ class SniperTrigger:
                     strength = min(threshold / max(dist_atr, 0.01) * LIQUIDATION_STRENGTH_SCALE, 1.0)
                     return SignalCard(
                         signal_id=self._make_id('liquidation_hunt', now),
-                        category=SignalCategory.STRUCTURAL,
-                        sub_type='liquidation_hunt',
+                                sub_type='liquidation_hunt',
                         direction=Direction.BULLISH,
                         strength=strength,
-                        confidence=self.signal_weights.get('liquidation_hunt', 0.60),
-                        urgency=0.5,
-                        timestamp=now,
-                        decay_half_life_minutes=10.0,
+                        weight=self.signal_weights.get('liquidation_hunt'),
+                                timestamp=now,
+                        decay_half_life_minutes=self._decay['liquidation_hunt'],
                         evidence={'cluster_price': p, 'dist_atr': dist_atr, 'type': 'short'},
                     )
 
@@ -1117,18 +920,16 @@ class SniperTrigger:
         if not self._check_state_lock(lock_key, now):
             return None
 
-        confidence = self.signal_weights.get('positioning_extreme', 0.50)
+        weight = self.signal_weights.get('positioning_extreme')
 
         return SignalCard(
             signal_id=self._make_id('positioning_extreme', now),
-            category=SignalCategory.POSITIONING,
             sub_type='positioning_extreme',
             direction=best_direction,
             strength=best_strength,
-            confidence=confidence,
-            urgency=0.3,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=60.0,
+            decay_half_life_minutes=self._decay['positioning_extreme'],
             evidence=best_evidence,
         )
 
@@ -1162,7 +963,7 @@ class SniperTrigger:
             return None
 
         situation_brief = self._build_situation_brief(
-            boosted_signals, confluence_score, dominant_direction, regime
+            boosted_signals, confluence_score, dominant_direction
         )
         cooldown_mins = self._get_regime_cooldown(regime)
 
@@ -1193,18 +994,16 @@ class SniperTrigger:
             return None
 
         boost = min(leader_confluence_score * correlation * LEADER_SYNC_SCALE, LEADER_SYNC_CAP)
-        confidence = self.signal_weights.get('leader_sync', 0.40)
+        weight = self.signal_weights.get('leader_sync', 0.40)
 
         return SignalCard(
             signal_id=self._make_id('leader_sync', now),
-            category=SignalCategory.CROSS_SYMBOL,
             sub_type='leader_sync',
             direction=leader_direction,
             strength=boost,
-            confidence=confidence,
-            urgency=0.5,
+            weight=weight,
             timestamp=now,
-            decay_half_life_minutes=8.0,
+            decay_half_life_minutes=self._decay['leader_sync'],
             evidence={'leader_score': leader_confluence_score, 'correlation': correlation},
         )
 
@@ -1349,7 +1148,7 @@ class SniperTrigger:
         # 4. Check cooldown break (stacked signals or strength ratio)
         cooldown_break = False
         if cooldown_active:
-            cooldown_break = self._check_cooldown_break(fresh_signals, regime)
+            cooldown_break = self._check_cooldown_break(fresh_signals)
 
         # 5. Compute confluence
         effective_cooldown = cooldown_active and not cooldown_break

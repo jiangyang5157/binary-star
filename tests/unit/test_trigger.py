@@ -16,8 +16,7 @@ class TestSignalCard:
     def _card(self, strength=0.5, weight=0.8, decay=10.0):
         return SignalCard(
             signal_id="test_1", sub_type="test",
-            direction=Direction.BULLISH, strength=strength, weight=weight,
-            urgency=0.5, timestamp=datetime.now(timezone.utc),
+            direction=Direction.BULLISH, strength=strength, weight=weight, timestamp=datetime.now(timezone.utc),
             decay_half_life_minutes=decay,
         )
 
@@ -67,8 +66,7 @@ class TestSignalMemory:
     def _card(self, sid="flow.cvd_1", sub_type="cvd_divergence", strength=0.5, ts=None):
         return SignalCard(
             signal_id=sid, sub_type=sub_type,
-            direction=Direction.BULLISH, strength=strength, weight=0.8,
-            urgency=0.5, timestamp=ts or datetime.now(timezone.utc),
+            direction=Direction.BULLISH, strength=strength, weight=0.8, timestamp=ts or datetime.now(timezone.utc),
             decay_half_life_minutes=10.0,
         )
 
@@ -129,8 +127,7 @@ class TestConfluenceEngine:
     def _card(self, direction=Direction.BULLISH, strength=0.5, weight=0.8):
         return SignalCard(
             signal_id="t", sub_type="test",
-            direction=direction, strength=strength, weight=weight,
-            urgency=0.5, timestamp=datetime.now(timezone.utc),
+            direction=direction, strength=strength, weight=weight, timestamp=datetime.now(timezone.utc),
             decay_half_life_minutes=10.0,
         )
 
