@@ -1176,7 +1176,7 @@ class SniperTrigger:
         situation_brief = None
         if should_trigger:
             situation_brief = self._build_situation_brief(
-                all_signals, confluence_score, dominant_direction, regime
+                all_signals, confluence_score, dominant_direction
             )
 
         # 8. Cooldown for this trigger
