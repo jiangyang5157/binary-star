@@ -60,13 +60,6 @@ sniper:
     # for the impulse/divergence probes. Do NOT change arbitrarily.
     pulse_interval_minutes: 2.0
 
-  # --- Alert Muting (Baseline silence rules) ---
-  muting:
-    # [State Lockout]: Prevents Phantom Triggers (spam loops) during prolonged physical stalemates.
-    # Applies to: Structural Magnets, Squeeze phases, and Ambient Sentiment extremes.
-    # 8.0h. Covers full Asian session; prevents retail-sentiment re-trigger spam after daemon restart.
-    state_lockout_hours: 8.0
-
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
   probes:
@@ -135,21 +128,18 @@ sniper:
     # —— 自适应冷却 (Adaptive Cooldown) ——
     # 触发后进入冷却期，防止同一信号反复触发浪费 token。
     # 体制越不可靠，冷却越长。三种破例方式：
-    #   1) 新信号强度 > 上次触发分 × break_on_strength_ratio → 打破冷却
-    #   2) 累积 ≥ stacked_break_count 个新信号 → 打破冷却
-    #   3) 自上次触发已过 break_min_gap_minutes（绝对最小间隔）
+    #   1) 无需最小间隔——NEUTRAL 后冷却为 0，session 本身耗时已足够
+    #   2) 新信号强度 > 上次触发分 × break_on_strength_ratio → 打破冷却
+    #   3) 累积 ≥ stacked_break_count 个新信号 → 打破冷却
     cooldown:
-      # 全局冷却乘数：effective_cooldown = regime_base_minutes × base_multiplier
-      base_multiplier: 2.5
       regime_base_minutes:
-        trending: 25     # 趋势中允许较快重新触发
-        ranging: 45      # 震荡中延长，减少反复触发
-        squeeze: 25      # 对齐 trending
+        trending: 20     # 趋势中允许较快重新触发
+        ranging: 40      # 震荡中延长，减少反复触发
+        squeeze: 20      # 对齐 trending
         chaos: 60        # 混沌中几乎禁止
-      break_on_strength_ratio: 1.8     # 新信号强度 > 上次 × 1.8 才破例
-      break_min_gap_minutes: 10        # 绝对最小间隔，同信号不重复
+      neutral_multiplier: 0.0          # NEUTRAL → 零冷却，下个 pulse 直接重评
+      break_on_strength_ratio: 1.6     # 新信号强度 > 上次 × 1.6 才破例
       stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
-      neutral_multiplier: 0.5          # NEUTRAL/OBSERVE_ONLY cooldown = regime × this (floor: break_min_gap_minutes)
 
     # —— 预触发确定性门禁 (Pre-Trigger Gate) ——
     # 在消耗 LLM token 之前，用纯数学过滤不可交易场景。

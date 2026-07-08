@@ -289,9 +289,9 @@ class SniperTrigger:
         self.sniper_cfg = self.global_cfg['sniper']
 
         # Default cooldown (used as fallback; adaptive cooldown is primary)
-        micro_interval = self.strat_cfg['analysis_window']['micro_context']['time_interval']
-        base_cooldown = self._parse_interval_to_minutes(micro_interval)
-        self.cooldown_minutes = base_cooldown * self.sniper_cfg['signal_stack']['cooldown']['base_multiplier']
+        # State lockout default: one macro candle (from strategy config timeframe)
+        macro_interval = self.strat_cfg['analysis_window']['macro_context']['time_interval']
+        self.macro_hours = self._parse_interval_to_minutes(macro_interval) / 60.0
 
         # Confluence engine (receives signal_stack sub-config only)
         self.engine = ConfluenceEngine(self.sniper_cfg.get('signal_stack', {}))
@@ -330,7 +330,6 @@ class SniperTrigger:
         logger.info(
             f"Signal Stack active | base={self.engine.base_threshold} | "
             f"emergency={self.engine.emergency_threshold} | "
-            f"cooldown={self.cooldown_minutes}m | "
             f"detectors={len(self._signal_detectors)}"
         )
 
@@ -348,22 +347,15 @@ class SniperTrigger:
             return val * 1440.0 * 30.0  # approximate month
         return float(val)
 
-    def _check_state_lock(self, lock_key: str, now: datetime,
-                          duration_hours: Optional[float] = None) -> bool:
-        """Returns True if permitted to trigger, False if muted by state lock.
-
-        duration_hours overrides the config default, allowing per-call-site
-        tuning (e.g. strength-scaled lockouts). The duration is captured at
-        SET time — subsequent checks use the stored duration, not the new
-        call's duration_hours (which may differ when strength varies).
-        """
-        cooldown_hours = duration_hours if duration_hours is not None else self.sniper_cfg['muting']['state_lockout_hours']
+    def _check_state_lock(self, lock_key: str, now: datetime) -> bool:
+        """Returns True if permitted to trigger, False if muted by state lock."""
+        lock_hours = self.macro_hours
         if lock_key in self.state_locks:
             lock_time, lock_duration = self.state_locks[lock_key]
             elapsed_hours = (now - lock_time).total_seconds() / 3600.0
             if elapsed_hours < lock_duration:
                 return False
-        self.state_locks[lock_key] = (now, cooldown_hours)
+        self.state_locks[lock_key] = (now, lock_hours)
         return True
 
     def _signal_cfg(self, *path, default=None):
@@ -402,15 +394,8 @@ class SniperTrigger:
             return False, ""
 
         cooldown_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
-        if not cooldown_cfg:
-            # No adaptive cooldown configured — fallback to fixed cooldown
-            elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-            if elapsed < self.cooldown_minutes:
-                return True, f"GLOBAL_COOLDOWN ({elapsed:.1f}m/{self.cooldown_minutes}m)"
-            return False, ""
-
         regime_minutes = cooldown_cfg.get('regime_base_minutes', {})
-        cooldown_mins = regime_minutes.get(regime, self.cooldown_minutes)
+        cooldown_mins = regime_minutes[regime]
 
         # Outcome-aware: NEUTRAL/OBSERVE_ONLY get shortened cooldown (no capital deployed)
         if self._last_trigger_type in ("NEUTRAL", "OBSERVE_ONLY"):
@@ -418,11 +403,6 @@ class SniperTrigger:
             cooldown_mins = cooldown_mins * neutral_mult
 
         elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
-
-        # Enforce minimum gap after any cooldown break
-        min_gap = cooldown_cfg.get('break_min_gap_minutes', 10)
-        if elapsed < min_gap:
-            return True, f"MIN_GAP ({elapsed:.1f}m/{min_gap}m)"
 
         if elapsed < cooldown_mins:
             return True, f"COOLDOWN_{regime.upper()} ({elapsed:.1f}m/{cooldown_mins}m)"
@@ -433,7 +413,7 @@ class SniperTrigger:
         """Return the cooldown that will be applied after a trigger in this regime."""
         cooldown_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
         regime_minutes = cooldown_cfg.get('regime_base_minutes', {})
-        return regime_minutes.get(regime, self.cooldown_minutes)
+        return regime_minutes[regime]
 
     def _check_cooldown_break(self, fresh_signals: List[SignalCard],
                               regime: str) -> bool:
@@ -1136,12 +1116,8 @@ class SniperTrigger:
         if best_direction is None:
             return None
 
-        # Strength-scaled lockout: weak signal → short lock, strong → long lock
-        min_lockout = 1.0
-        max_lockout = self.sniper_cfg['muting']['state_lockout_hours']
-        scaled_hours = min_lockout + best_strength * (max_lockout - min_lockout)
         lock_key = f"POSITIONING_EXTREME_{best_direction.value}"
-        if not self._check_state_lock(lock_key, now, duration_hours=scaled_hours):
+        if not self._check_state_lock(lock_key, now):
             return None
 
         confidence = self.signal_weights.get('positioning_extreme', 0.50)
