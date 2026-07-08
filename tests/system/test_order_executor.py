@@ -1,15 +1,28 @@
 import os
 import sys
+import yaml
 from unittest.mock import MagicMock, ANY, patch
 from datetime import datetime, timezone, timedelta
 
 # Ensure the project root is in the path
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_tests_dir = os.path.dirname(os.path.abspath(__file__))          # .../tests/system
+project_root = os.path.dirname(os.path.dirname(_tests_dir))      # .../
 sys.path.append(project_root)
 
 from src.infrastructure.exchange.models import MarginPosition, MarginOrder
 from src.agent.order_executor import MarginOrderExecutor
 from tests.executor_fixtures import make_executor as _make_executor
+
+# Load production config for ratio-based test expectations.
+# Tests compute expected values from config — changing exit_ladder
+# in global_config.yaml does NOT break these tests.
+_config_path = os.path.join(project_root, "config", "global_config.yaml")
+with open(_config_path) as f:
+    _cfg = yaml.safe_load(f)
+_LV = _cfg["guardian"]["exit_ladder"]["levels"]
+L1_TP, L1_SL = _LV[0]["tp_ratio"], _LV[0]["sl_lock"]
+L2_TP, L2_SL = _LV[1]["tp_ratio"], _LV[1]["sl_lock"]
+L3_TP, L3_SL = _LV[2]["tp_ratio"], _LV[2]["sl_lock"]
 
 
 def _make_trade_state(direction="LONG", entry_price=70000, tp_price=75000, sl_price=68000):
@@ -429,11 +442,11 @@ def test_exit_ladder_l1_triggers_long():
 
     client.execute_partial_market_close.assert_called_once()
     close_call = client.execute_partial_market_close.call_args
-    assert close_call[1]["qty"] == 0.05
+    assert abs(close_call[1]["qty"] - 0.5 * L1_TP) < 0.001
     assert close_call[1]["side"] == "SELL"
     client.place_oco_order.assert_called()
     oco_call = client.place_oco_order.call_args
-    expected_sl = entry + (tp - entry) * 0.10
+    expected_sl = entry + (tp - entry) * L1_SL
     assert abs(oco_call[1]["stop_price"] - expected_sl) < 10
     assert abs(result.get("sl_price") - expected_sl) < 10
     assert level == 1
@@ -461,7 +474,7 @@ def test_exit_ladder_l1_idempotent_via_level():
 
 
 def test_exit_ladder_l2_triggers_long():
-    """L1 done, progress >= L2 target -> L2 fires."""
+    """L1 done, L2 placeholder (tp_ratio=0) → no close, advance to L3 check."""
     executor, client = _make_executor()
     entry = 70000.0
     tp = 75000.0
@@ -478,9 +491,7 @@ def test_exit_ladder_l2_triggers_long():
     result, level = executor.guardian_check("BTCUSDT", trade_state,
                                             current_level=1)
 
-    client.execute_partial_market_close.assert_called_once()
-    close_call = client.execute_partial_market_close.call_args
-    assert close_call[1]["qty"] == 0.08
+    client.execute_partial_market_close.assert_not_called()
     assert level == 2
 
 
@@ -504,7 +515,7 @@ def test_exit_ladder_l3_triggers_long():
 
     client.execute_partial_market_close.assert_called_once()
     close_call = client.execute_partial_market_close.call_args
-    assert abs(close_call[1]["qty"] - 0.128) < 0.001
+    assert abs(close_call[1]["qty"] - 0.32 * L3_TP) < 0.001
     assert level == 3
 
 
@@ -533,11 +544,15 @@ def test_multi_level_same_pulse():
     result, level = executor.guardian_check("BTCUSDT", trade_state,
                                             current_level=0)
 
-    assert client.execute_partial_market_close.call_count == 3
     calls = client.execute_partial_market_close.call_args_list
-    assert calls[0][1]["qty"] == 0.05
-    assert calls[1][1]["qty"] == 0.09
-    assert calls[2][1]["qty"] == 0.144
+    assert abs(calls[0][1]["qty"] - 0.5 * L1_TP) < 0.001
+    idx = 1
+    qty_remaining = 0.5 * (1 - L1_TP)
+    if L2_TP > 0:
+        assert abs(calls[idx][1]["qty"] - qty_remaining * L2_TP) < 0.001
+        qty_remaining *= (1 - L2_TP)
+        idx += 1
+    assert abs(calls[idx][1]["qty"] - qty_remaining * L3_TP) < 0.001
     assert level == 3
 
 
@@ -567,12 +582,12 @@ def test_trailing_at_l1_with_sl_lock():
     assert client.place_oco_order.called
     oco_call = client.place_oco_order.call_args
     new_sl = oco_call[1]["stop_price"]
-    expected_sl = entry + (tp - entry) * 0.10
+    expected_sl = entry + (tp - entry) * L1_SL
     assert abs(new_sl - expected_sl) < 10
 
 
 def test_trailing_at_l2_with_sl_lock():
-    """L2 active, no further trigger -> trailing SL applied with L2 sl_lock."""
+    """L3 active, no further trigger -> trailing SL applied with L3 sl_lock."""
     executor, client = _make_executor()
     entry = 70000.0
     tp = 75000.0
@@ -587,13 +602,13 @@ def test_trailing_at_l2_with_sl_lock():
 
     trade_state = _make_trade_state("LONG", entry, tp_price=tp, sl_price=entry)
     result, level = executor.guardian_check("BTCUSDT", trade_state,
-                                            current_level=2)
+                                            current_level=3)
 
     assert client.cancel_all_symbol_orders.called
     assert client.place_oco_order.called
     oco_call = client.place_oco_order.call_args
     new_sl = oco_call[1]["stop_price"]
-    expected_sl = entry + (tp - entry) * 0.30
+    expected_sl = entry + (tp - entry) * L3_SL
     assert abs(new_sl - expected_sl) < 10
 
 
@@ -617,7 +632,7 @@ def test_trailing_at_l3_with_tight_sl_lock():
 
     oco_call = client.place_oco_order.call_args
     new_sl = oco_call[1]["stop_price"]
-    expected_sl = entry + (tp - entry) * 0.50
+    expected_sl = entry + (tp - entry) * L3_SL
     assert abs(new_sl - expected_sl) < 10
 
 
@@ -641,10 +656,10 @@ def test_exit_ladder_l1_triggers_short():
 
     client.execute_partial_market_close.assert_called_once()
     close_call = client.execute_partial_market_close.call_args
-    assert close_call[1]["qty"] == 0.05
+    assert abs(close_call[1]["qty"] - 0.5 * L1_TP) < 0.001
     assert close_call[1]["side"] == "BUY"
     client.place_oco_order.assert_called()
-    expected_sl = entry - (entry - tp) * 0.10
+    expected_sl = entry - (entry - tp) * L1_SL
     assert abs(result.get("sl_price") - expected_sl) < 10
     assert level == 1
 
@@ -770,7 +785,7 @@ def test_find_level_l2_fired_syncs_sl():
     assert level == 2
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
-        expected_sl = entry + (75000 - entry) * 0.30
+        expected_sl = entry + (75000 - entry) * L2_SL
         assert abs(oco_call[1]["stop_price"] - expected_sl) < 100
 
 
@@ -793,7 +808,7 @@ def test_find_level_l3_all_fired():
     assert level == 3
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
-        expected_sl = entry + (76500 - entry) * 0.50
+        expected_sl = entry + (76500 - entry) * L3_SL
         assert abs(oco_call[1]["stop_price"] - expected_sl) < 100
 
 
@@ -816,7 +831,7 @@ def test_find_level_short():
     assert level == 2
     if client.place_oco_order.called:
         oco_call = client.place_oco_order.call_args
-        expected_sl = entry - (entry - 65000) * 0.30
+        expected_sl = entry - (entry - 65000) * L2_SL
         assert abs(oco_call[1]["stop_price"] - expected_sl) < 100
 
 
