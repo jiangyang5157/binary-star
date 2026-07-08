@@ -17,9 +17,9 @@
   <header class="app-header">
     <h1>Singularity</h1>
     <nav>
-      <a href="/performance" class="nav-link active" data-i18n="nav.performance">Performance</a>
-      <a href="/live" class="nav-link" data-i18n="nav.live">Live</a>
-      <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
+      <a href="/performance" class="nav-link active" data-i18n="nav.performance"></a>
+      <a href="/live" class="nav-link" data-i18n="nav.live"></a>
+      <a href="/development" class="nav-link" data-i18n="nav.development"></a>
     </nav>
     <div class="header-controls">
       <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
@@ -35,49 +35,53 @@
     <!-- ═══════ KPI Cards ═══════ -->
     <section class="kpi-grid" id="kpi-grid">
       <div class="kpi-card accent-green">
-        <span class="kpi-label" data-i18n="kpi.net_pnl">Net P&amp;L</span>
+        <span class="kpi-label" data-i18n="kpi.net_pnl"></span>
         <span class="kpi-value" id="kpi-pnl">--</span>
       </div>
+      <div class="kpi-card accent-teal">
+        <span class="kpi-label" data-i18n="kpi.executed"></span>
+        <span class="kpi-value" id="kpi-executed">--</span>
+      </div>
       <div class="kpi-card accent-blue">
-        <span class="kpi-label" data-i18n="kpi.win_rate">Win Rate</span>
+        <span class="kpi-label" data-i18n="kpi.win_rate"></span>
         <span class="kpi-value" id="kpi-winrate">--</span>
       </div>
-      <div class="kpi-card accent-green">
-        <span class="kpi-label" data-i18n="kpi.calmar">Calmar Ratio</span>
-        <span class="kpi-value" id="kpi-calmar">--</span>
+      <div class="kpi-card accent-purple">
+        <span class="kpi-label" data-i18n="kpi.win_loss"></span>
+        <span class="kpi-value" id="kpi-winloss">--</span>
       </div>
       <div class="kpi-card accent-red">
-        <span class="kpi-label" data-i18n="kpi.max_drawdown">Max Drawdown</span>
+        <span class="kpi-label" data-i18n="kpi.max_drawdown"></span>
         <span class="kpi-value" id="kpi-mdd">--</span>
       </div>
-      <div class="kpi-card accent-purple">
-        <span class="kpi-label" data-i18n="kpi.executed">Executed / Total</span>
-        <span class="kpi-value" id="kpi-executed">--</span>
+      <div class="kpi-card accent-green">
+        <span class="kpi-label" data-i18n="kpi.sharpe"></span>
+        <span class="kpi-value" id="kpi-sharpe">--</span>
       </div>
     </section>
 
     <!-- ═══════ Decision Timeline ═══════ -->
     <section class="card chart-card">
       <div class="chart-header">
-        <h2 data-i18n="section.decision_timeline">Decision Timeline</h2>
+        <h2 data-i18n="section.decision_timeline"></h2>
         <div class="chart-controls">
-          <label class="slider-label" data-i18n="chart.min_confidence">Min Confidence:</label>
+          <label class="slider-label" data-i18n="chart.min_confidence"></label>
           <input type="range" id="confSlider" min="0" max="100" value="0" class="slider">
           <span id="confVal" class="slider-value">50</span>
         </div>
       </div>
-      <p class="chart-hint" data-i18n="chart.click_hint">Click a bubble to open the session audit report</p>
+      <p class="chart-hint" data-i18n="chart.click_hint"></p>
       <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
     </section>
 
     <!-- ═══════ Charts Row ═══════ -->
     <div class="chart-row">
       <section class="card chart-card">
-        <h2 data-i18n="section.equity_curve">Equity Growth Curve</h2>
+        <h2 data-i18n="section.equity_curve"></h2>
         <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
       </section>
       <section class="card chart-card">
-        <h2 data-i18n="section.conf_optimizer">Confidence Threshold Optimizer</h2>
+        <h2 data-i18n="section.conf_optimizer"></h2>
         <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
         <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
       </section>
@@ -86,21 +90,21 @@
     <!-- ═══════ Session Table ═══════ -->
     <section class="card">
       <div class="section-header">
-        <h2 data-i18n="section.trade_ledger">Trade Ledger</h2>
+        <h2 data-i18n="section.trade_ledger"></h2>
         <div class="section-controls">
           <div class="filter-bar">
             <div class="filter-group">
-              <span class="filter-label" data-i18n="filter.symbol">Symbol</span>
+              <span class="filter-label" data-i18n="filter.symbol"></span>
               <input type="text" id="symbol-filter" class="filter-input" style="width:80px">
             </div>
             <div class="filter-sep"></div>
             <div class="filter-group">
-              <span class="filter-label" data-i18n="filter.version">Version</span>
+              <span class="filter-label" data-i18n="filter.version"></span>
               <input type="text" id="version-filter" class="filter-input" style="width:70px">
             </div>
           </div>
           <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" data-i18n="btn.audit"
-            title="Run forensic audit against all un-audited sessions">▶ Audit</button>
+            title="Run forensic audit against all un-audited sessions"></button>
           <span id="run-audit-status" class="audit-status" style="display:none"></span>
         </div>
       </div>
@@ -108,17 +112,17 @@
         <table id="sessions-table">
           <thead>
             <tr>
-              <th data-i18n="th.symbol">Symbol</th>
-              <th class="sortable" data-sort="observed_at" data-i18n="th.observed_at">OBSERVED AT</th>
-              <th data-i18n="th.direction">Direction</th>
-              <th class="sortable" data-sort="confidence" data-i18n="th.conf">Conf</th>
-              <th data-i18n="th.entry">Entry</th>
-              <th data-i18n="th.tp">TP</th>
-              <th data-i18n="th.sl">SL</th>
-              <th class="sortable" data-sort="rr_ratio" data-i18n="th.rr">RR</th>
-              <th data-i18n="th.result">Result</th>
-              <th data-i18n="th.pnl">P&amp;L</th>
-              <th data-i18n="th.version">Version</th>
+              <th data-i18n="th.symbol"></th>
+              <th class="sortable" data-sort="observed_at" data-i18n="th.observed_at"></th>
+              <th data-i18n="th.direction"></th>
+              <th class="sortable" data-sort="confidence" data-i18n="th.conf"></th>
+              <th data-i18n="th.entry"></th>
+              <th data-i18n="th.tp"></th>
+              <th data-i18n="th.sl"></th>
+              <th class="sortable" data-sort="rr_ratio" data-i18n="th.rr"></th>
+              <th data-i18n="th.result"></th>
+              <th data-i18n="th.pnl"></th>
+              <th data-i18n="th.version"></th>
               <th></th>
             </tr>
           </thead>
@@ -192,7 +196,7 @@
       const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
 
       if (!filledTrades.length) {
-        for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-calmar', 'kpi-mdd', 'kpi-executed'])
+        for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-sharpe', 'kpi-mdd', 'kpi-winloss', 'kpi-executed'])
           $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
         $('confVal').textContent = threshold;
         renderTimeline(trades, threshold);
@@ -214,15 +218,23 @@
       });
 
       const netPnL = (eq - 1) * 100, mddPct = dd * 100;
-      const calmar = mddPct > 0 ? (netPnL / mddPct) : 0;
-      const wins = activeTrades.filter(t => t.pnl_pct > 0).length;
-      const winRate = activeTrades.length ? (wins / activeTrades.length * 100) : 0;
+      const returns = activeTrades.map(t => t.pnl_pct);
+      const wins = returns.filter(r => r > 0);
+      const losses = returns.filter(r => r < 0);
+      const winRate = returns.length ? (wins.length / returns.length * 100) : 0;
+      const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
+      const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
+      const meanReturn = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+      const variance = returns.length > 1 ? returns.reduce((s, r) => s + (r - meanReturn) ** 2, 0) / (returns.length - 1) : 0;
+      const sharpe = variance > 0 ? meanReturn / Math.sqrt(variance) : 0;
 
       $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
       $('kpi-pnl').className = 'kpi-value ' + (netPnL >= 0 ? 'positive' : 'negative');
-      $('kpi-winrate').textContent = winRate.toFixed(1) + '%';
-      $('kpi-calmar').textContent = calmar.toFixed(2);
+      $('kpi-winrate').textContent = winRate.toFixed(0) + '%';
+      $('kpi-sharpe').textContent = sharpe.toFixed(2);
+      $('kpi-sharpe').className = 'kpi-value ' + (sharpe >= 0 ? 'positive' : 'negative');
       $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
+      $('kpi-winloss').textContent = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '--';
       $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
       $('confVal').textContent = threshold;
 
@@ -283,7 +295,7 @@
                 label: (ctx) => {
                   const d = ctx.raw;
                   const pnlStr = d.pnl != null ? `${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%` : '—';
-                  const lines = [`${d.op}  ·  Conf ${d.y != null ? d.y.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
+                  const lines = [`${d.op}  ·  Conf ${d.y != null ? d.y.toFixed(0) : '—'}%  ·  P&L ${pnlStr}`];
                   if (d.holding) lines.push(`Holding: ${d.holding}h`);
                   if (d.version) lines.push(`v${d.version}`);
                   return lines;
@@ -341,7 +353,7 @@
                   const d = ctx.raw;
                   const pnlStr = d.pnl_pct != null ? `${d.pnl_pct > 0 ? '+' : ''}${d.pnl_pct.toFixed(2)}%` : '—';
                   const eqStr = `${d.y >= 0 ? '+' : ''}${d.y.toFixed(2)}%`;
-                  const lines = [`${d.opinion || '—'}  ·  Conf ${d.confidence != null ? d.confidence.toFixed(1) : '—'}%  ·  P&L ${pnlStr}`];
+                  const lines = [`${d.opinion || '—'}  ·  Conf ${d.confidence != null ? d.confidence.toFixed(0) : '—'}%  ·  P&L ${pnlStr}`];
                   lines.push(`Equity ${eqStr}`);
                   if (d.version) lines.push(`v${d.version}`);
                   return lines;
@@ -443,7 +455,7 @@
       <td><strong>${s.symbol}</strong></td>
       <td>${formatLocalTimeShort(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>
-      <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
+      <td>${s.confidence != null ? s.confidence.toFixed(0) + '%' : '&mdash;'}</td>
       <td class="mono">${formatPrice(entry)}</td>
       <td class="mono">${formatPrice(tp.take_profit)}</td>
       <td class="mono">${formatPrice(tp.stop_loss)}</td>

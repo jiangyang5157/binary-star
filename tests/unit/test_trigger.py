@@ -3,8 +3,7 @@ import math
 from datetime import datetime, timezone, timedelta
 import pytest
 from src.sniper.trigger import (
-    SignalCard, SignalMemory, ConfluenceEngine,
-    SignalCategory, Direction,
+    SignalCard, SignalMemory, ConfluenceEngine, Direction,
 )
 
 
@@ -14,28 +13,28 @@ from src.sniper.trigger import (
 
 class TestSignalCard:
 
-    def _card(self, strength=0.5, confidence=0.8, decay=10.0):
+    def _card(self, strength=0.5, weight=0.8, decay=10.0):
         return SignalCard(
-            signal_id="test_1", category=SignalCategory.FLOW, sub_type="test",
-            direction=Direction.BULLISH, strength=strength, confidence=confidence,
+            signal_id="test_1", sub_type="test",
+            direction=Direction.BULLISH, strength=strength, weight=weight,
             urgency=0.5, timestamp=datetime.now(timezone.utc),
             decay_half_life_minutes=decay,
         )
 
     def test_weighted_score_normal(self):
-        c = self._card(strength=0.5, confidence=0.8)
+        c = self._card(strength=0.5, weight=0.8)
         assert c.weighted_score == pytest.approx(0.4)
 
     def test_weighted_score_zero_strength(self):
-        c = self._card(strength=0.0, confidence=0.8)
+        c = self._card(strength=0.0, weight=0.8)
         assert c.weighted_score == pytest.approx(0.0)
 
     def test_weighted_score_nan_strength(self):
-        c = self._card(strength=math.nan, confidence=0.8)
+        c = self._card(strength=math.nan, weight=0.8)
         assert c.weighted_score == pytest.approx(0.0)
 
-    def test_weighted_score_inf_confidence(self):
-        c = self._card(strength=0.5, confidence=math.inf)
+    def test_weighted_score_inf_weight(self):
+        c = self._card(strength=0.5, weight=math.inf)
         assert c.weighted_score == pytest.approx(0.0)
 
     def test_decayed_strength_no_elapsed(self):
@@ -67,8 +66,8 @@ class TestSignalMemory:
 
     def _card(self, sid="flow.cvd_1", sub_type="cvd_divergence", strength=0.5, ts=None):
         return SignalCard(
-            signal_id=sid, category=SignalCategory.FLOW, sub_type=sub_type,
-            direction=Direction.BULLISH, strength=strength, confidence=0.8,
+            signal_id=sid, sub_type=sub_type,
+            direction=Direction.BULLISH, strength=strength, weight=0.8,
             urgency=0.5, timestamp=ts or datetime.now(timezone.utc),
             decay_half_life_minutes=10.0,
         )
@@ -127,10 +126,10 @@ def engine():
 
 class TestConfluenceEngine:
 
-    def _card(self, direction=Direction.BULLISH, strength=0.5, confidence=0.8):
+    def _card(self, direction=Direction.BULLISH, strength=0.5, weight=0.8):
         return SignalCard(
-            signal_id="t", category=SignalCategory.FLOW, sub_type="test",
-            direction=direction, strength=strength, confidence=confidence,
+            signal_id="t", sub_type="test",
+            direction=direction, strength=strength, weight=weight,
             urgency=0.5, timestamp=datetime.now(timezone.utc),
             decay_half_life_minutes=10.0,
         )
@@ -141,50 +140,50 @@ class TestConfluenceEngine:
         assert trigger is False
 
     def test_single_bullish_strong(self, engine):
-        signals = [self._card(Direction.BULLISH, strength=0.9, confidence=1.0)]
+        signals = [self._card(Direction.BULLISH, strength=0.9, weight=1.0)]
         score, direction, trigger = engine.evaluate(signals, "trending")
         assert direction == Direction.BULLISH
         assert trigger is True
 
     def test_single_weak_below_threshold(self, engine):
-        signals = [self._card(Direction.BULLISH, strength=0.1, confidence=0.3)]
+        signals = [self._card(Direction.BULLISH, strength=0.1, weight=0.3)]
         score, direction, trigger = engine.evaluate(signals, "ranging")
         # threshold = 0.35 * 1.15 = 0.4025
         assert trigger is False
 
     def test_regime_modifier_chaos_raises_threshold(self, engine):
         """Chaos modifier (1.50) raises effective threshold to 0.525."""
-        signals = [self._card(Direction.BULLISH, strength=0.4, confidence=1.0)]
+        signals = [self._card(Direction.BULLISH, strength=0.4, weight=1.0)]
         score, direction, trigger = engine.evaluate(signals, "chaos")
         # effective_threshold = 0.35 * 1.50 = 0.525, score = 0.4 < 0.525
         assert trigger is False
 
     def test_regime_modifier_squeeze_lowers_threshold(self, engine):
         """Squeeze modifier (0.70) lowers effective threshold to 0.245."""
-        signals = [self._card(Direction.BULLISH, strength=0.3, confidence=1.0)]
+        signals = [self._card(Direction.BULLISH, strength=0.3, weight=1.0)]
         score, direction, trigger = engine.evaluate(signals, "squeeze")
         assert trigger is True
 
     def test_emergency_override_triggers_during_cooldown(self, engine):
-        signals = [self._card(Direction.BULLISH, strength=0.9, confidence=1.0)]
+        signals = [self._card(Direction.BULLISH, strength=0.9, weight=1.0)]
         score, direction, trigger = engine.evaluate(signals, "ranging", is_cooldown_active=True)
         assert trigger is True  # emergency: strength=0.9 >= 0.85
 
     def test_cooldown_blocks_non_emergency(self, engine):
-        signals = [self._card(Direction.BULLISH, strength=0.5, confidence=1.0)]
+        signals = [self._card(Direction.BULLISH, strength=0.5, weight=1.0)]
         score, direction, trigger = engine.evaluate(signals, "ranging", is_cooldown_active=True)
         assert trigger is False  # strength=0.5 < 0.85 emergency
 
     def test_neutral_signals_dont_trigger_emergency(self, engine):
         """NEUTRAL direction signals should not count as emergency override."""
-        signals = [self._card(Direction.NEUTRAL, strength=0.9, confidence=1.0)]
+        signals = [self._card(Direction.NEUTRAL, strength=0.9, weight=1.0)]
         score, direction, trigger = engine.evaluate(signals, "ranging")
         assert trigger is False
 
     def test_bullish_wins_over_bearish(self, engine):
         signals = [
-            self._card(Direction.BULLISH, strength=0.6, confidence=1.0),
-            self._card(Direction.BEARISH, strength=0.3, confidence=1.0),
+            self._card(Direction.BULLISH, strength=0.6, weight=1.0),
+            self._card(Direction.BEARISH, strength=0.3, weight=1.0),
         ]
         score, direction, trigger = engine.evaluate(signals, "trending")
         assert direction == Direction.BULLISH
@@ -192,7 +191,7 @@ class TestConfluenceEngine:
     def test_directional_score_below_min_strength_ignored(self, engine):
         """strength < 0.15 should be excluded from stacking."""
         signals = [
-            self._card(Direction.BULLISH, strength=0.05, confidence=1.0),
+            self._card(Direction.BULLISH, strength=0.05, weight=1.0),
         ]
         score, direction, trigger = engine.evaluate(signals, "trending")
         # No matching signal (below min_strength_for_stack=0.15)
@@ -201,7 +200,7 @@ class TestConfluenceEngine:
 
     def test_nan_score_returns_zero_trigger(self, engine):
         """NaN confluence returns 0.0 score and False trigger."""
-        signals = [self._card(Direction.BULLISH, strength=math.nan, confidence=math.nan)]
+        signals = [self._card(Direction.BULLISH, strength=math.nan, weight=math.nan)]
         score, direction, trigger = engine.evaluate(signals, "ranging")
         assert score == pytest.approx(0.0)
         assert trigger is False

@@ -16,9 +16,9 @@
   <header class="app-header">
     <h1>Singularity</h1>
     <nav>
-      <a href="/performance" class="nav-link" data-i18n="nav.performance">Performance</a>
-      <a href="/live" class="nav-link active" data-i18n="nav.live">Live</a>
-      <a href="/development" class="nav-link" data-i18n="nav.development">Development</a>
+      <a href="/performance" class="nav-link" data-i18n="nav.performance"></a>
+      <a href="/live" class="nav-link active" data-i18n="nav.live"></a>
+      <a href="/development" class="nav-link" data-i18n="nav.development"></a>
     </nav>
     <div class="header-controls">
       <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
@@ -38,12 +38,12 @@
       <!-- Sniper Control -->
       <section class="card run-panel">
         <div class="section-header">
-          <h2 data-i18n="section.sniper_control">Sniper Control</h2>
-          <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run">▶ Run</button>
+          <h2 data-i18n="section.sniper_control"></h2>
+          <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
         </div>
         <div class="bt-param-row">
           <label class="bt-field bt-field-wide">
-            <span class="bt-label" data-i18n="bt.trading_pair">Trading Pairs</span>
+            <span class="bt-label" data-i18n="bt.trading_pair"></span>
             <span class="input-group" id="sniper-symbol-group">
               <input type="text" id="sniper-symbol" class="input-group-field" placeholder="XAUT, BTC" maxlength="50"
                 autocomplete="off" oninput="clearSniperErrors()">
@@ -54,7 +54,7 @@
         <div class="bt-param-row">
           <div class="bt-range-grid">
             <label class="bt-field" id="sniper-balance-field" style="display:none; max-width:180px">
-              <span class="bt-label" data-i18n="sniper.balance">Balance</span>
+              <span class="bt-label" data-i18n="sniper.balance"></span>
               <span class="input-group">
                 <input type="number" id="sniper-balance" class="input-group-field" min="0" step="any"
                   onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
@@ -63,7 +63,7 @@
               </span>
             </label>
             <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
-              <span class="toggle-text" data-i18n="sniper.enable_trading">Enable Trading</span>
+              <span class="toggle-text" data-i18n="sniper.enable_trading"></span>
               <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
               <span class="toggle-slider"></span>
             </label>
@@ -82,11 +82,11 @@
     {% if "view_active_sessions" in permissions %}
     <section class="card">
       <div class="section-header">
-        <h2 data-i18n="section.active_sessions">Active Sessions</h2>
+        <h2 data-i18n="section.active_sessions"></h2>
         <div class="section-controls">
           <div class="filter-bar">
             <label class="toggle-label" for="neutral-toggle">
-              <span class="toggle-text" data-i18n="filter.show_neutral">Show Neutral</span>
+              <span class="toggle-text" data-i18n="filter.show_neutral"></span>
               <input type="checkbox" id="neutral-toggle" class="toggle-input"
                 onchange="localStorage.setItem('showNeutral', this.checked); loadActive()">
               <span class="toggle-slider"></span>
@@ -102,18 +102,18 @@
         <table id="active-table">
           <thead>
             <tr>
-              <th data-i18n="th.symbol">Symbol</th>
-              <th data-i18n="th.observed_at">Observed At</th>
-              <th data-i18n="th.direction">Direction</th>
-              <th data-i18n="th.conf">Conf</th>
-              <th data-i18n="th.entry">Entry</th>
-              <th data-i18n="th.tp">TP</th>
-              <th data-i18n="th.sl">SL</th>
-              <th data-i18n="th.rr">RR</th>
-              <th data-i18n="th.waiting">Waiting</th>
-              <th data-i18n="th.holding">Holding</th>
-              <th data-i18n="th.time_left">Time Left</th>
-              <th data-i18n="th.version">Version</th>
+              <th data-i18n="th.symbol"></th>
+              <th data-i18n="th.observed_at"></th>
+              <th data-i18n="th.direction"></th>
+              <th data-i18n="th.conf"></th>
+              <th data-i18n="th.entry"></th>
+              <th data-i18n="th.tp"></th>
+              <th data-i18n="th.sl"></th>
+              <th data-i18n="th.rr"></th>
+              <th data-i18n="th.waiting"></th>
+              <th data-i18n="th.holding"></th>
+              <th data-i18n="th.time_left"></th>
+              <th data-i18n="th.version"></th>
               <th></th>
             </tr>
           </thead>
@@ -616,7 +616,7 @@
         <td><strong>${s.symbol}</strong></td>
         <td>${formatLocalTimeShort(s.observed_at)}</td>
         <td>${opinionBadge(s.opinion)}</td>
-        <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
+        <td>${s.confidence != null ? s.confidence.toFixed(0) + '%' : '&mdash;'}</td>
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.entry)}</td>
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.take_profit)}</td>
         <td class="mono">${isNeutral ? '&mdash;' : formatPrice(s.stop_loss)}</td>
