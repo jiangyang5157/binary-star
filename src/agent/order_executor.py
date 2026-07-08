@@ -6,7 +6,7 @@ from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.infrastructure.exchange.models import MarginOrder
 from src.utils.logger_utils import setup_logger
 
-logger = setup_logger(__name__)
+logger = setup_logger("OrderExecutor")
 
 # Sentinel returned by sync_with_opinion when the position is emergency-closed
 # during a failed synthetic-OCO repair. See MarginOrderExecutor docstring for
