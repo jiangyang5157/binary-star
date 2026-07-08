@@ -210,7 +210,7 @@
         eq *= (1 + t.pnl_pct / 100);
         if (eq > peak) peak = eq;
         dd = Math.max(dd, (peak - eq) / peak);
-        curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: t.time || '', version: t.version || '' });
+        curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: formatLocalTimeShort(t.time), version: t.version || '' });
       });
 
       const netPnL = (eq - 1) * 100, mddPct = dd * 100;
@@ -255,7 +255,7 @@
           y: t.confidence,
           r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
           pnl: t.pnl_pct, op: t.opinion, symbol: t.symbol || '',
-          holding: t.projected_holding_hours, timeLabel: t.time || 'Unknown',
+          holding: t.projected_holding_hours, timeLabel: formatLocalTimeShort(t.time),
           sessionFile: t.session_filename || '',
           version: t.version || '',
           backgroundColor: color, borderColor: above ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0)',
@@ -441,7 +441,7 @@
         }
         return `<tr class="${rowCls}">
       <td><strong>${s.symbol}</strong></td>
-      <td>${formatLocalTime(s.observed_at)}</td>
+      <td>${formatLocalTimeShort(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>
       <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
       <td class="mono">${formatPrice(entry)}</td>

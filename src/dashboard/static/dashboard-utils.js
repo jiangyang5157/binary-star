@@ -35,6 +35,18 @@ function formatLocalTime(isoStr) {
   } catch { return isoStr; }
 }
 
+/** Compact local time for table columns: MM-DD HH:MM */
+function formatLocalTimeShort(isoStr) {
+  if (!isoStr) return '&mdash;';
+  try {
+    const d = new Date(isoStr + (isoStr.endsWith('Z') ? '' : 'Z'));
+    if (isNaN(d.getTime())) return isoStr;
+    const pad = (n) => String(n).padStart(2, '0');
+    return pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+      + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  } catch { return isoStr; }
+}
+
 function formatElapsed(seconds) {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
