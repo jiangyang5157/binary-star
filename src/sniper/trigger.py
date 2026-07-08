@@ -495,8 +495,7 @@ class SniperTrigger:
     def _build_situation_brief(self, all_signals: List[SignalCard],
                          confluence_score: float,
                          direction: Direction,
-                         regime: str,
-                         gate_result: str) -> Dict[str, Any]:
+                         regime: str) -> Dict[str, Any]:
         """Build the pre-brief JSON injected into the SessionAgent's observation."""
         active = [s for s in all_signals
                   if s.strength >= MIN_STACK_STRENGTH and s.direction in (direction, Direction.NEUTRAL)]
@@ -521,9 +520,7 @@ class SniperTrigger:
         return {
             "confluence_score": round(confluence_score, 2),
             "confluence_direction": direction.value,
-            "stacked_signals_count": len(active),
             "regime_note": self._build_regime_note(direction, regime),
-            "gate_result": gate_result,
             "activated_by": activated_by,
             "risk_caveats": risk_caveats,
             "suggested_entry_zone": suggested_entry,
@@ -1165,7 +1162,7 @@ class SniperTrigger:
             return None
 
         situation_brief = self._build_situation_brief(
-            boosted_signals, confluence_score, dominant_direction, regime, gate_result
+            boosted_signals, confluence_score, dominant_direction, regime
         )
         cooldown_mins = self._get_regime_cooldown(regime)
 
@@ -1380,7 +1377,7 @@ class SniperTrigger:
         situation_brief = None
         if should_trigger:
             situation_brief = self._build_situation_brief(
-                all_signals, confluence_score, dominant_direction, regime, gate_result
+                all_signals, confluence_score, dominant_direction, regime
             )
 
         # 8. Cooldown for this trigger
