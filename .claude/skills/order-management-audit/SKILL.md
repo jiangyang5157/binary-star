@@ -125,19 +125,21 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 1. **Level Loop Correctness**
    - `_try_exit_ladder` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (break when threshold not met).
    - This is sequential: L1 must fire before L2, etc. Correct and intentional.
-   - Check: after each partial close, the remaining qty is **not** re-read from the exchange — it is computed deterministically as `abs(live_net_qty) - tp_qty`. If the deterministic remainder drops below min_qty, the remaining OCO may be for a dust amount. Is there a min-notional check?
+   - Each triggered level handles BOTH its TP and SL independently within the loop body:
+     - TP: `tp_ratio == 0` skips the market sell (advance counter only); `tp_ratio > 0` with dust avoidance skips but still applies SL lock; normal path executes partial close + OCO re-place.
+     - SL: `sl_lock > 0` calls `_apply_sl_lock` immediately for this level (one-way ratchet — only tightens, never loosens).
+   - After the loop, if no new levels triggered this pulse (`tp_update is None`), the post-loop applies sl_lock from the current active level (`new_level - 1`) to maintain the trailing SL across pulses.
 
 2. **SL Lock Direction**
    - `_apply_sl_lock()`: `avg_entry + (tp - avg_entry) * sl_lock`. Symmetric formula — SL moves from entry toward TP as sl_lock increases (favorable direction for both LONG and SHORT).
    - This means SL moves monotonically toward TP without any ATR dependence. Correct.
    - Rounding toward safety: LONG rounds down (tighter), SHORT rounds up (tighter).
 
-3. **Trailing Distance Source**
-   - The trailing distance comes from `levels[active_idx]["sl_lock"]` where `active_idx = new_level - 1` (Case 4 trailing dispatch).
-   - After L1 fires, `new_level=1`, `active_idx=0` → uses L1's configured `sl_lock`. Correct.
-   - After L2 fires, `new_level=2`, `active_idx=1` → uses L2's configured `sl_lock`. Correct.
-   - After L3 fires, `new_level=3`, `active_idx=2` → uses L3's configured `sl_lock`. Correct.
-   - Edge case: if `active_idx >= len(levels)` (all levels exhausted), trailing is skipped (all-levels-exhausted guard). Correct.
+3. **SL Lock Per-Level (no longer post-loop only)**
+   - Each level applies its own `sl_lock` immediately when triggered (in-loop, line ~882). No longer deferred to a single post-loop trailing step.
+   - Multi-level same-pulse: each level's SL lock builds on the previous level's tightened SL, accumulating the tightest lock.
+   - Cross-pulse: when no new level triggers, the post-loop (`if tp_update is None`) maintains SL from `levels[new_level - 1]["sl_lock"]`, preserving the last active level's tightness.
+   - Previously (pre-refactor): SL lock was applied once after the loop using only the deepest triggered level's sl_lock. Now each level self-contains its TP + SL, making the skip path (`tp_ratio=0`, `sl_lock > 0`) safe — SL locks even when TP is skipped.
 
 4. **Level Memory Across Pulses**
    - The daemon tracks `_symbol_level[symbol]` in memory — not persisted.

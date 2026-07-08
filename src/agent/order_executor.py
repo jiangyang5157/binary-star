@@ -401,9 +401,7 @@ class MarginOrderExecutor:
 
             if tp_update is not None:
                 if not tp_update:
-                    # Position fully closed by partial TP — clear trade state
-                    return {}, None
-                # Merge sl/tp into trade_state (not exit_ladder_level — that's daemon memory)
+                    return {}, None  # Position fully closed
                 for key in ("sl_price", "tp_price"):
                     if key in tp_update:
                         trade_state[key] = tp_update[key]
@@ -411,25 +409,18 @@ class MarginOrderExecutor:
                 current_tp = trade_state.get("tp_price", current_tp)
                 if "exit_ladder_level" in tp_update:
                     new_level = tp_update["exit_ladder_level"]
-
-            # Step 3: Dynamic trailing — uses the LAST triggered level's
-            # sl_lock. new_level is "next to check", so active = new_level - 1.
-            # When no TP yet (new_level=0): no trailing (SL is AI's original).
-            sl_lock = 0.0
-            active_idx = new_level - 1
-            if 0 <= active_idx < len(levels):
-                sl_lock = levels[active_idx]["sl_lock"]
-
-            if sl_lock > 0:
-                intact, new_sl = self._apply_sl_lock(
-                    symbol, direction, current_sl, current_tp, avg_entry,
-                    cfg, sl_lock
-                )
-                if not intact:
-                    return {}, None  # Emergency-closed
-
-                if new_sl is not None:
-                    trade_state["sl_price"] = new_sl
+            else:
+                # No new levels triggered — maintain sl_lock from current active level
+                active_idx = new_level - 1
+                if 0 <= active_idx < len(levels) and levels[active_idx]["sl_lock"] > 0:
+                    intact, new_sl = self._apply_sl_lock(
+                        symbol, direction, current_sl, current_tp, avg_entry,
+                        cfg, levels[active_idx]["sl_lock"]
+                    )
+                    if not intact:
+                        return {}, None
+                    if new_sl is not None:
+                        trade_state["sl_price"] = new_sl
 
         return trade_state, new_level
 
@@ -615,12 +606,12 @@ class MarginOrderExecutor:
             # startup assertions — catch misconfiguration early
             assert 0.0 <= target < 1.0, \
                 f"exit_ladder L{i}: target={target} must be in [0.0, 1.0)"
-            assert 0.0 < tp_ratio <= 1.0, \
-                f"exit_ladder L{i}: tp_ratio={tp_ratio} must be in (0.0, 1.0]"
+            assert 0.0 <= tp_ratio <= 1.0, \
+                f"exit_ladder L{i}: tp_ratio={tp_ratio} must be in [0.0, 1.0]"
             assert 0.0 <= sl_lock <= 1.0, \
                 f"exit_ladder L{i}: sl_lock={sl_lock} must be in [0.0, 1.0]"
-            assert sl_lock < target, \
-                f"exit_ladder L{i}: sl_lock={sl_lock} must be < target={target}"
+            assert sl_lock <= target, \
+                f"exit_ladder L{i}: sl_lock={sl_lock} must be <= target={target}"
 
             levels.append({
                 "target": target,
@@ -761,7 +752,7 @@ class MarginOrderExecutor:
                          current_tp: float, current_price: float,
                          cfg: dict, levels: list,
                          start_level: int) -> tuple:
-        """Step 2: Multi-level exit ladder.
+        """Multi-level exit ladder — sequential TP + SL per triggered level.
 
         Loops through configured levels sequentially (start_level → end).
         Each level triggers when progress toward TP >= target:
@@ -800,106 +791,119 @@ class MarginOrderExecutor:
             if progress < target:
                 break  # Sequential: stop at first unmet target
 
+            # ── TP ──────────────────────────────────────────────────
             ratio = level["tp_ratio"]
-            tp_qty = abs(live_net_qty) * ratio
-            p_qty = cfg["precision_qty"]
-            # Floor rounding: never oversell on partial TP
-            tp_qty = max(math.floor(tp_qty * 10**p_qty) / 10**p_qty, cfg["min_order_qty"])
-            # Clamp to position — min_order_qty bump must not exceed remaining qty
-            tp_qty = min(tp_qty, abs(live_net_qty))
-
-            # Dust-avoidance: if this level's partial close would leave a
-            # residual below min_order_qty (too small to place OCO for),
-            # skip the close but advance the counter so SL migration can
-            # still tighten to this level's sl_lock. The position stays
-            # fully protected by the existing OCO and exits at full TP.
-            remaining_if_close = abs(live_net_qty) - tp_qty
-            if 0 < remaining_if_close < cfg.get("min_order_qty", 0):
+            remaining_if_close = 0.0  # set in ratio>0 branch, checked after
+            if ratio == 0:
                 logger.info(
-                    f"[{symbol}] exit ladder L{i+1} skipped — "
-                    f"remaining {remaining_if_close} would be below min_order_qty {cfg['min_order_qty']}"
+                    f"[{symbol}] exit ladder L{i+1} tp skipped (ratio=0) — advancing level"
                 )
-                state_update["sl_price"] = current_sl
                 state_update["tp_price"] = current_tp
                 state_update["exit_ladder_level"] = i + 1
+            else:
+                tp_qty = abs(live_net_qty) * ratio
+                p_qty = cfg["precision_qty"]
+                tp_qty = max(math.floor(tp_qty * 10**p_qty) / 10**p_qty, cfg["min_order_qty"])
+                tp_qty = min(tp_qty, abs(live_net_qty))
+
+                # Dust-avoidance: closing would leave residual below min_order_qty
+                remaining_if_close = abs(live_net_qty) - tp_qty
+                if 0 < remaining_if_close < cfg.get("min_order_qty", 0):
+                    logger.info(
+                        f"[{symbol}] exit ladder L{i+1} tp skipped (dust) — "
+                        f"remaining {remaining_if_close} < min {cfg['min_order_qty']}"
+                    )
+                    state_update["sl_price"] = current_sl
+                    state_update["tp_price"] = current_tp
+                    state_update["exit_ladder_level"] = i + 1
+                    # still apply SL lock below before breaking
+
+                else:
+                    logger.info(
+                        f"[{symbol}] exit ladder L{i+1} triggered | "
+                        f"progress={progress:.1%} | tp_qty={tp_qty}"
+                    )
+
+                    if not self.client.cancel_all_symbol_orders(symbol):
+                        logger.error(f"[{symbol}] exit ladder L{i+1} — cancel failed, aborting")
+                        return True, state_update if state_update else None
+
+                    close_side = self._exit_side(direction)
+                    if not self.client.execute_partial_market_close(
+                        symbol=symbol, side=close_side, qty=tp_qty
+                    ):
+                        logger.critical(
+                            f"[{symbol}] exit ladder L{i+1} — market close failed, emergency closing all"
+                        )
+                        if not self.client.execute_market_close(symbol):
+                            logger.critical(f"[{symbol}] emergency close FAILED — position naked")
+                            return False, None
+                        return False, None
+
+                    remaining_qty = abs(live_net_qty) - tp_qty
+                    if remaining_qty < cfg.get("min_order_qty", 0):
+                        logger.info(f"[{symbol}] exit ladder L{i+1} — position fully closed")
+                        return True, {}
+
+                    sign = 1 if direction == "LONG" else -1
+                    live_qty = max(round(remaining_qty, p_qty), 0)
+                    if live_qty <= 0:
+                        return True, {}
+                    live_net_qty = live_qty * sign
+
+                    # Re-place OCO for remaining qty (SL back to entry)
+                    exit_side = self._exit_side(direction)
+                    buffer = cfg.get("sl_slippage_buffer", 0.0)
+                    buffered_sl = self._buffered_sl(avg_entry, buffer, direction)
+
+                    if not self.client.place_oco_order(
+                        symbol=symbol, side=exit_side, qty=live_qty,
+                        price=current_tp, stop_price=avg_entry,
+                        stop_limit_price=buffered_sl
+                    ):
+                        logger.critical(
+                            f"[{symbol}] exit ladder L{i+1} — OCO re-place failed, emergency closing"
+                        )
+                        if not self.client.execute_market_close(symbol):
+                            logger.critical(f"[{symbol}] emergency close FAILED — position naked")
+                            return False, None
+                        return False, None
+
+                    logger.info(
+                        f"[{symbol}] exit ladder L{i+1} complete | "
+                        f"remaining={live_qty} | sl={avg_entry}"
+                    )
+                    state_update["sl_price"] = avg_entry
+                    state_update["tp_price"] = current_tp
+                    state_update["exit_ladder_level"] = i + 1
+                    current_sl = avg_entry
+
+            # ── SL lock (every triggered level, independent of TP) ──
+            if level["sl_lock"] > 0:
+                intact, new_sl = self._apply_sl_lock(
+                    symbol, direction, current_sl, current_tp, avg_entry,
+                    cfg, level["sl_lock"]
+                )
+                if not intact:
+                    return False, None
+                if new_sl is not None:
+                    current_sl = new_sl
+                    state_update["sl_price"] = new_sl
+            else:
+                logger.debug(
+                    f"[{symbol}] exit ladder L{i+1} sl_lock=0 — SL unchanged"
+                )
+
+            # Dust-avoidance: break (SL already applied above)
+            if 0 < remaining_if_close < cfg.get("min_order_qty", 0):
                 break
-
-            logger.info(
-                f"[{symbol}] exit ladder L{i+1} triggered | "
-                f"progress={progress:.1%} | tp_qty={tp_qty}"
-            )
-
-            # Step A: Cancel all existing orders
-            if not self.client.cancel_all_symbol_orders(symbol):
-                logger.error(f"[{symbol}] exit ladder L{i+1} — cancel failed, aborting")
-                return True, state_update if state_update else None
-
-            # Step B: Market-sell partial qty
-            close_side = self._exit_side(direction)
-            close_success = self.client.execute_partial_market_close(
-                symbol=symbol,
-                side=close_side,
-                qty=tp_qty
-            )
-            if not close_success:
-                logger.critical(
-                    f"[{symbol}] exit ladder L{i+1} — market close failed, emergency closing all"
-                )
-                if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — position naked, clearing trade state")
-                    return False, None  # Report position not intact — orders cancelled, naked
-                return False, None
-
-            # Step C: Compute remaining qty (don't re-verify from exchange — settlement may be stale)
-            remaining_qty = abs(live_net_qty) - tp_qty
-            if remaining_qty < cfg.get("min_order_qty", 0):
-                logger.info(f"[{symbol}] exit ladder L{i+1} — position fully closed")
-                return True, {}  # Clear trade state
-
-            sign = 1 if direction == "LONG" else -1
-            live_qty = max(round(remaining_qty, p_qty), 0)
-            if live_qty <= 0:
-                return True, {}  # Dust — effectively closed
-            live_net_qty = live_qty * sign
-
-            # Step D: Place new OCO for remaining qty (SL = entry, TP = original TP)
-            exit_side = self._exit_side(direction)
-            buffer = cfg.get("sl_slippage_buffer", 0.0)
-            buffered_sl = self._buffered_sl(avg_entry, buffer, direction)
-
-            oco_success = self.client.place_oco_order(
-                symbol=symbol,
-                side=exit_side,
-                qty=live_qty,
-                price=current_tp,
-                stop_price=avg_entry,
-                stop_limit_price=buffered_sl
-            )
-            if not oco_success:
-                logger.critical(
-                    f"[{symbol}] exit ladder L{i+1} — OCO re-place failed, emergency closing"
-                )
-                # Use execute_market_close (re-reads position from exchange) instead of
-                # execute_partial_market_close (uses pre-computed qty that may be stale)
-                if not self.client.execute_market_close(symbol):
-                    logger.critical(f"[{symbol}] emergency close FAILED — position naked, clearing trade state")
-                    return False, None  # Report position not intact
-                return False, None
-
-            logger.info(
-                f"[{symbol}] exit ladder L{i+1} complete | "
-                f"remaining={live_qty} | sl={avg_entry}"
-            )
-            state_update["sl_price"] = avg_entry
-            state_update["tp_price"] = current_tp
-            state_update["exit_ladder_level"] = i + 1  # next level to check
 
         return True, state_update if state_update else None
 
     def _apply_sl_lock(self, symbol: str, direction: str, current_sl: float,
                              current_tp: float, avg_entry: float,
                              cfg: dict, sl_lock: float) -> tuple:
-        """Step 3: Dynamic trailing SL — TP-relative profit locking.
+        """Apply a single level's SL lock — TP-relative profit locking.
 
         LONG:  new_sl = avg_entry + (current_tp - avg_entry) * sl_lock
         SHORT: new_sl = avg_entry - (avg_entry - current_tp) * sl_lock

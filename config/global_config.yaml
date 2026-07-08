@@ -202,14 +202,14 @@ guardian:
   exit_ladder:
     levels:
       - target: 0.5
-        tp_ratio: 0.1
-        sl_lock: 0.1
-      - target: 0.7
-        tp_ratio: 0.2
+        tp_ratio: 0.3
         sl_lock: 0.3
+      - target: 0.7
+        tp_ratio: 0.0
+        sl_lock: 0.0
       - target: 0.9
-        tp_ratio: 0.4
-        sl_lock: 0.5
+        tp_ratio: 0.5
+        sl_lock: 0.7
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring
