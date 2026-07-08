@@ -60,7 +60,7 @@ graph LR
         Critic --> Planner
     end
 
-    Sniper["Sniper<br/>10 detectors · 2-min pulse"] --> Debate
+    Sniper["Sniper<br/>9 detectors · 2-min pulse"] --> Debate
     Debate --> Executor["Order Executor<br/>OTOCO · OCO · exit ladder"]
     Executor --> Binance["Binance"]
 ```
@@ -77,7 +77,7 @@ graph LR
 
 ## Sniper
 
-A local signal stack (**10 detectors**) monitors the market every 2 minutes. A regime-adaptive confluence engine weights directional agreement and cancels opposing noise, adjusting its effective threshold per regime (trending 0.29, ranging 0.34, squeeze 0.26, chaos 0.51). Any single signal exceeding 0.80 overrides cooldown and threshold entirely. Its sole job is timing — it does not trade.
+A local signal stack (**9 detectors** + 1 cross-symbol boost) monitors the market every 2 minutes. A regime-adaptive confluence engine weights directional agreement and cancels opposing noise, adjusting its effective threshold per regime (trending 0.29, ranging 0.34, squeeze 0.26, chaos 0.51). Any single signal exceeding 0.80 overrides cooldown and threshold entirely. Its sole job is timing — it does not trade.
 
 ---
 
