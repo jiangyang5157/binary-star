@@ -187,8 +187,9 @@ class BinaryStarOrchestrator:
         else:
             self.global_config = load_config('config/global_config.yaml')
         session_log_path = os.path.join(resolve_project_root(), self.data_root, "session.log")
-        setup_logger("src", log_level=logging.INFO, log_file=session_log_path,
-                     max_bytes=10 * 1024 * 1024, backup_count=5)
+        setup_logger("src.agent", log_level=logging.INFO, log_file=session_log_path,
+                     max_bytes=10 * 1024 * 1024, backup_count=5,
+                     propagate=False)
         logger.debug(f"Binary Star Session activated | root={self.data_root}")
 
         # ── 1. Resolve configuration bundle ─────────────────────────
