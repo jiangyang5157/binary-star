@@ -217,13 +217,31 @@
         curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: formatLocalTimeShort(t.time), version: t.version || '' });
       });
 
+      // ── Max Drawdown ───────────────────────────────────────────────
+      // Largest peak-to-trough decline in cumulative equity.  Path-dependent
+      // metric capturing worst-case pain — a strategy can have high Sharpe
+      // but still suffer a catastrophic single-trade drawdown.
+      //   < 10%   mild       10–25%  moderate      > 25%  severe
       const netPnL = (eq - 1) * 100, mddPct = dd * 100;
+
       const returns = activeTrades.map(t => t.pnl_pct);
       const wins = returns.filter(r => r > 0);
       const losses = returns.filter(r => r < 0);
       const winRate = returns.length ? (wins.length / returns.length * 100) : 0;
+
+      // ── Win / Loss (profit factor per unit risk) ────────────────────
+      // avgWin% / |avgLoss%| — how much you earn for every 1% you risk.
+      // NOT win rate.  A Win/Loss > 2 means average winner is 2× the
+      // average loser; the strategy profits even with a 40% win rate.
+      //   < 1   losing      1–2   breakeven-ish      > 2   excellent
       const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
       const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
+
+      // ── Sharpe Ratio (return per unit of risk) ──────────────────────
+      // meanReturn / stddev(returns).  How much reward you get for the
+      // volatility you endure.  Sensitive to small-sample outliers —
+      // one large PnL swing inflates stddev and drags Sharpe down.
+      //   < 0   losing      0–1    volatile       1–2   good       > 2   great
       const meanReturn = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
       const variance = returns.length > 1 ? returns.reduce((s, r) => s + (r - meanReturn) ** 2, 0) / (returns.length - 1) : 0;
       const sharpe = variance > 0 ? meanReturn / Math.sqrt(variance) : 0;
