@@ -660,26 +660,22 @@ class SniperDaemon:
                     else:
                         cooldown_remaining = cooldown_total_s
 
-                    threshold = round(trigger.engine.effective_threshold, 2) if trigger else 0.35
-
                     entry.update({
                         "triggered": sym in triggered_syms,
                         "confluence_score": round(result.confluence_score, 2),
-                        "threshold": threshold,
+                        "threshold": round(trigger.engine.effective_threshold, 2),
                         "direction": result.confluence_direction.value,
                         "signals": all_signals,
                         "cooldown_active": cooldown_active,
                         "cooldown_remaining_seconds": cooldown_remaining,
-                        "gate_reason": result.gate_reason,
+                        "gate_reason": result.gate_reason or "",
                     })
                 else:
                     # No trigger result for this symbol — fill defaults
                     if cooldown_active and trigger and trigger.last_trigger_time:
-                        # cooldown_minutes lives on TriggerResult, not SniperTrigger.
-                        # Read duration from config; use max regime as conservative fallback.
                         cd_cfg = trigger.sniper_cfg.get('signal_stack', {}).get('cooldown', {})
-                        regime_mins = cd_cfg.get('regime_base_minutes', {})
-                        cd_minutes = max(regime_mins.values()) if regime_mins else 40
+                        regime_mins = cd_cfg['regime_base_minutes']
+                        cd_minutes = max(regime_mins.values())
                         cd_remaining = max(0, int(
                             cd_minutes * 60 -
                             (datetime.now(timezone.utc) - trigger.last_trigger_time).total_seconds()
@@ -689,7 +685,7 @@ class SniperDaemon:
                     entry.update({
                         "triggered": False,
                         "confluence_score": 0.0,
-                        "threshold": 0.35,
+                        "threshold": round(trigger.engine.effective_threshold, 2),
                         "direction": "NEUTRAL",
                         "signals": [{"type": t, "score": 0, "strength": 0,
                                       "direction": "NEUTRAL", "is_active": False}

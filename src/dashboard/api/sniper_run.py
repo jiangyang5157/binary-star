@@ -287,12 +287,12 @@ def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
             pulse_signals["symbols"][sym] = {
                 "triggered": entry.get("triggered", False),
                 "confluence_score": entry.get("confluence_score", 0.0),
-                "threshold": entry.get("threshold", 0.35),
+                "threshold": entry.get("threshold") or 0.0,
                 "direction": entry.get("direction", "NEUTRAL"),
                 "all_signals": entry.get("signals", []),
                 "cooldown_active": entry.get("cooldown_active", False),
                 "cooldown_remaining_seconds": entry.get("cooldown_remaining_seconds", 0),
-                "gate_reason": entry.get("gate_reason", ""),
+                "gate_reason": entry.get("gate_reason") or "",
             }
     except Exception as e:
         log.warning("pulse entry iteration failed | error=%s", e)
