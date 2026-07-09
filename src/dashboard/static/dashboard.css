@@ -1854,17 +1854,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   animation: bar-breathe 2s ease-in-out infinite;
 }
 
-.pulse-bar.session-active::after {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: var(--text-primary, #e0e0e0);
-  border-radius: 1px;
-}
-
 @keyframes bar-breathe {
   0%, 100% { filter: brightness(1.0); }
   50%      { filter: brightness(1.4); }
