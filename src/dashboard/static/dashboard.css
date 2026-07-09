@@ -1825,6 +1825,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 .pulse-bar {
   width: 8px;
+  flex-shrink: 0;
   border-radius: 2px;
   min-height: 1px;
   padding-bottom: 3px;
@@ -1848,8 +1849,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   top: -5px;
   left: 50%;
   transform: translateX(-50%);
-  width: 3px;
-  height: 3px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   background: inherit;
 }
