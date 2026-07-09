@@ -301,7 +301,7 @@
       }
 
       // Adaptive N: fit as many 5px bars (3px width + 2px gap) as container allows
-      var barStep = 5;  // 3px bar + 2px gap
+      var barStep = 12;  // 8px bar + 4px gap
       var maxBars = Math.max(1, Math.floor(container.offsetWidth / barStep));
       var slice = history.length > maxBars ? history.slice(-maxBars) : history;
 
@@ -319,9 +319,6 @@
         else if (s.direction === 'BEARISH') color = 'var(--accent-red)';
         else                                 color = 'var(--text-muted)';
 
-        var wakeClass = ratio >= 1.0 ? ' wake' : '';
-        var sessionClass = s.session_active ? ' session-active' : '';
-
         var timeLabel = '';
         if (entry.at) {
           var m = entry.at.match(/T(\d{2}:\d{2})/);
@@ -331,7 +328,7 @@
         var tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
 
         bars.push(
-          '<div class="pulse-bar' + wakeClass + sessionClass + '"' +
+          '<div class="pulse-bar"' +
           ' style="height:' + heightPx + 'px;background:' + color + '"' +
           ' data-tooltip="' + tooltip + '">' +
           '</div>'
