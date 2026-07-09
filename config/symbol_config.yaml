@@ -32,11 +32,15 @@ BTCUSDT:
         # 波动扩张期间提高趋势强度门槛，过滤假突破噪声。
         trend_intensity_min_expansion: 0.12
       structural:
+        structural_buffer_atr: 1.0
         # 流动性厚的资产放宽前端抢跑距离，避免过早入场。
         breakout_frontrun_atr: 0.24
+        max_entry_distance_atr: 1.6
       micro_sentiment:
         cvd_intensity_extreme: 0.16     # 0.14-0.18
         cvd_intensity_threshold: 0.10   # 0.08-0.12
+      volume:
+        vacuum_risk_score: 0.5
     sniper:
       signal_stack:
         thresholds:
