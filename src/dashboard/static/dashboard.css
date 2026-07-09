@@ -1700,8 +1700,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   50% { opacity: 1; }
 }
 @keyframes sp-pulse-glow {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(84, 160, 168, 0.3); }
-  50% { box-shadow: 0 0 10px 3px rgba(84, 160, 168, 0.55); }
+  0%, 100% { filter: brightness(1.0); }
+  50%      { filter: brightness(1.6); }
 }
 
 /* ── Reduced motion ── */
@@ -1852,7 +1852,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 @keyframes bar-breathe {
   0%, 100% { filter: brightness(1.0); }
-  50%      { filter: brightness(1.4); }
+  50%      { filter: brightness(1.6); }
 }
 
 .pulse-bar:hover::before {
