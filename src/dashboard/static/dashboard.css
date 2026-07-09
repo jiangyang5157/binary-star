@@ -1855,6 +1855,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   width: 3px;
   border-radius: 1.5px;
   min-height: 1px;
+  padding-bottom: 3px;
+  background-clip: content-box;
   transition: height 0.3s ease, background 0.3s ease;
   position: relative;
 }
