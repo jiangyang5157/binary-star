@@ -263,13 +263,14 @@ function applyTranslations(lang) {
   });
 }
 
-/** 设置语言（切换 + 持久化） */
+/** 设置语言（切换 + 持久化 + 重载页面以刷新动态内容） */
 function setLang(lang) {
   localStorage.setItem('hl', lang);
   const url = new URL(window.location);
   url.searchParams.set('hl', lang);
-  window.history.replaceState({}, '', url);
-  applyTranslations(lang);
+  // Use replaceState then reload so dynamic JS-rendered content (t() calls)
+  // re-evaluates with the new language, not just data-i18n elements.
+  window.location.href = url.toString();
 }
 
 /** 切换中/英 */
