@@ -1846,7 +1846,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   align-items: flex-end;
   justify-content: flex-end;
   gap: 2px;
-  height: 32px;
+  height: 24px;
   margin-bottom: 6px;
   position: relative;
 }
@@ -1871,7 +1871,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .pulse-bar:hover::before {
   content: attr(data-tooltip);
   position: absolute;
-  bottom: calc(100% + 18px);
+  bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
   background: var(--bg-card, #1a1f2e);
