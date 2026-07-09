@@ -351,8 +351,6 @@
       }
 
       var symbols = data.symbols || Object.keys(signals.symbols);
-      var maxStrength = 3;
-
       container.style.display = '';
       var html = '';
 
@@ -383,27 +381,23 @@
         // Pulse history bar chart
         html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
 
-        html += '<div class="signal-detail">';
-        var allSignals = (s.all_signals || []).filter(function(sig) { return sig.score > 0; });
+        // Compact signal strip (10 blocks, order matches _SIGNAL_TYPES)
+        html += '<div class="signal-strip">';
+        var allSignals = s.all_signals || [];
         for (var j = 0; j < allSignals.length; j++) {
           var sig = allSignals[j];
-          var active = sig.is_active;
-          var scoreStr = sig.score.toFixed(2);
-          var scoreCls = active ? (sig.direction === 'BEARISH' ? 'negative' : sig.direction === 'BULLISH' ? 'positive' : 'neutral') : 'inactive';
-          var strength = active ? (sig.strength || 1) : 0;
-
-          html += '<div class="signal-row">';
-          html += '<span class="signal-name">' + sig.type + '</span>';
-          html += '<span class="signal-score ' + scoreCls + '">' + scoreStr + '</span>';
-          html += '<span class="signal-strength">';
-          for (var k = 0; k < maxStrength; k++) {
-            var segActive = k < strength * maxStrength;
-            html += '<span class="signal-strength-seg' + (segActive ? ' active' : '') + '"></span>';
-          }
-          html += '</span>';
-          html += '</div>';
+          var dir = sig.is_active ? sig.direction : 'NEUTRAL';
+          var opacity = sig.score > 0 ? 1.0 : 0.25;
+          var tooltip = sig.type + ': ' + sig.score.toFixed(2) + ' ' + dir;
+          html += '<div class="signal-strip-block" data-direction="' + dir + '"' +
+            ' style="opacity:' + opacity + ';background:' +
+            (dir === 'BULLISH' ? 'var(--accent-green)' :
+             dir === 'BEARISH' ? 'var(--accent-red)' :
+             'var(--badge-gray-bg)') + '"' +
+            ' data-tooltip="' + tooltip + '">' +
+            '</div>';
         }
-        html += '</div>';  // close signal-detail
+        html += '</div>';
 
         html += '</div>';  // close signal-card
       }

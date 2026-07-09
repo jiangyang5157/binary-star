@@ -1784,53 +1784,40 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   background: rgba(224, 85, 74, 0.15);
   color: var(--accent-red, #e0554a);
 }
-/* Signal detail (always visible, fixed-height list) */
-.signal-detail {
+/* ── Signal Compact Strip ── */
+.signal-strip {
+  display: flex;
+  gap: 2px;
+  height: 10px;
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--border-muted);
 }
 
-.signal-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 0;
-  font-size: 0.76rem;
-}
-
-.signal-name {
+.signal-strip-block {
   flex: 1;
-  font-family: monospace;
-  color: var(--text-muted, #8898ac);
-}
-
-.signal-score {
-  min-width: 42px;
-  text-align: right;
-  font-family: monospace;
-}
-
-.signal-score.positive { color: var(--accent-green, #40a85f); }
-.signal-score.negative { color: var(--accent-red, #e0554a); }
-.signal-score.neutral  { color: var(--accent-teal, #54a0a8); }
-.signal-score.inactive { color: var(--text-muted, #8898ac); }
-
-/* Strength bars (3 segments) */
-.signal-strength {
-  display: flex;
-  gap: 2px;
-}
-
-.signal-strength-seg {
-  width: 10px;
-  height: 5px;
-  border-radius: 1px;
+  min-width: 2px;
+  border-radius: 1.5px;
   background: var(--badge-gray-bg);
+  transition: background 0.3s ease;
+  position: relative;
 }
 
-.signal-strength-seg.active {
-  background: var(--accent-blue, #4a8fe7);
+.signal-strip-block:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--text-primary);
 }
 
 /* Cooldown tag in card header */
