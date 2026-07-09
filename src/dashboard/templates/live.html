@@ -294,6 +294,49 @@
       container.innerHTML = html;
     }
 
+    function _renderPulseHistory(container, history, symbol) {
+      if (!history || !history.length) {
+        container.innerHTML = '';
+        return;
+      }
+
+      var bars = [];
+      for (var i = 0; i < history.length; i++) {
+        var entry = history[i];
+        var s = entry.symbols && entry.symbols[symbol];
+        if (!s) continue;
+
+        var ratio = s.threshold > 0 ? Math.min(s.confluence_score / s.threshold, 1.0) : 0;
+        var heightPx = Math.max(1, Math.round(ratio * 22));
+
+        var color;
+        if (s.direction === 'BULLISH')      color = 'var(--accent-green)';
+        else if (s.direction === 'BEARISH') color = 'var(--accent-red)';
+        else                                 color = 'var(--text-muted)';
+
+        var sessionClass = s.session_active ? ' pulse-bar session-marker' : '';
+
+        var timeLabel = '';
+        if (entry.at) {
+          var m = entry.at.match(/T(\d{2}:\d{2})/);
+          timeLabel = m ? m[1] : '';
+        }
+
+        var tooltip = 'score=' + s.confluence_score.toFixed(2)
+                    + ' thr=' + s.threshold.toFixed(2)
+                    + ' ' + timeLabel;
+
+        bars.push(
+          '<div class="pulse-bar' + sessionClass + '"' +
+          ' style="height:' + heightPx + 'px;background:' + color + '"' +
+          ' data-tooltip="' + tooltip + '">' +
+          '</div>'
+        );
+      }
+
+      container.innerHTML = bars.join('');
+    }
+
     function _renderSignalCards(data) {
       var container = document.getElementById('sniper-signal-cards');
       if (!container) return;
@@ -339,6 +382,9 @@
         }
         html += '</div>';
 
+        // Pulse history bar chart
+        html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
+
         html += '<div class="threshold-row">';
         html += '<span class="threshold-val">' + score.toFixed(2) + '</span>';
         html += '<div class="threshold-bar"><div class="threshold-bar-fill ' + fillCls +
@@ -366,12 +412,17 @@
           html += '</span>';
           html += '</div>';
         }
-        html += '</div>';
-
-        html += '</div>';
-      }
-
       container.innerHTML = html;
+
+      // Populate pulse history bars per symbol (deferred render after innerHTML)
+      var historyData = data.pulse_history || [];
+      for (var k = 0; k < symbols.length; k++) {
+        var s2 = symbols[k];
+        var histEl = document.getElementById('pulse-hist-' + s2.replace(new RegExp(QUOTE + '$', 'i'), ''));
+        if (histEl) {
+          _renderPulseHistory(histEl, historyData, s2);
+        }
+      }
     }
 
     async function checkSniperStatus() {
