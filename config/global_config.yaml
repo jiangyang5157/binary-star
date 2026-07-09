@@ -59,6 +59,9 @@ sniper:
     # WARNING: This is the physical baseline of the engine. It defines what "instantaneous" means
     # for the impulse/divergence probes. Do NOT change arbitrarily.
     pulse_interval_minutes: 2.0
+    # Number of recent pulse snapshots kept in .sniper_pulse_history.json
+    # and rendered as bars in the dashboard SignalCard pulse-history chart.
+    pulse_history_max_entries: 21
 
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
