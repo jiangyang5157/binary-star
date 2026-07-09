@@ -114,20 +114,29 @@ For every `place_oco_order` call site, verify:
 - [ ] Min qty check before placing OCO for remaining?
 - [ ] What if remaining qty < min_order_qty? Should market-close the rest?
 
-### 4.2 SL Migration
+### 4.2 SL Lock qty Source — Race Condition (2026-07-09 fix)
+- [ ] `_try_exit_ladder` passes `live_qty=abs(live_net_qty)` to `_apply_sl_lock`
+- [ ] `_apply_sl_lock` signature: `live_qty: float = None` optional parameter
+- [ ] When `live_qty` is provided, it takes precedence over `exchange_qty`
+- [ ] Divergence guard: if `abs(live_qty - exchange_qty) > net_qty_tolerance` → warning log
+- [ ] When `live_qty > exchange_qty` (overestimate): fall back to `exchange_qty` — safer, avoids OCO rejection
+- [ ] When `live_qty < exchange_qty` (underestimate): keep `live_qty` — next pulse re-aligns
+- [ ] Other callers (`_guardian_case_4_protected` `find_level_and_sync_sl`): use default `None` → exchange qty — correct (no concurrent market close)
+
+### 4.3 SL Migration
 - [ ] LONG: `max(current_sl, price - N*ATR)` — SL only moves up
 - [ ] SHORT: `min(current_sl, price + N*ATR)` — SL only moves down
 - [ ] Rounding direction: toward safety?
 - [ ] No migration when `sl_distance_atr == 0` (correct)
 - [ ] SL source from active orders, not trade_state (source of truth)
 
-### 4.3 Level Memory
+### 4.4 Level Memory
 - [ ] `_symbol_level` in daemon memory (not persisted) — OK since restart rebuilds
 - [ ] Qty change detection resets level
 - [ ] `find_level_and_sync_sl` side effects: API mutations during "find"
 - [ ] Level initialization on first pulse after trade entry
 
-### 4.4 Trailing Distance Selection
+### 4.5 Trailing Distance Selection
 - [ ] `active_idx = new_level - 1` — maps level to config index
 - [ ] L1 fired → active_idx=0 → distance=0.0 → no trailing (correct)
 - [ ] L2 fired → active_idx=1 → distance=1.0 → trailing active

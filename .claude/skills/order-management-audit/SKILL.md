@@ -135,13 +135,19 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - This means SL moves monotonically toward TP without any ATR dependence. Correct.
    - Rounding toward safety: LONG rounds down (tighter), SHORT rounds up (tighter).
 
-3. **SL Lock Per-Level (no longer post-loop only)**
-   - Each level applies its own `sl_lock` immediately when triggered (in-loop, line ~882). No longer deferred to a single post-loop trailing step.
+3. **SL Lock qty Source — Race Condition Fix** (2026-07-09)
+   - **Problem**: after `_try_exit_ladder` executes a partial market close, `_apply_sl_lock` calls `get_symbol_position()` to determine the OCO qty. The exchange margin API can return stale data (pre-close position) for ~400ms after the fill, causing OCO to be placed for the wrong (larger) qty. This caused a production incident where the remaining SHORT 0.0042 was misidentified as LONG 0.0041 after a double-filled OCO.
+   - **Fix**: `_try_exit_ladder` passes `live_qty=abs(live_net_qty)` — the locally-calculated remaining qty — to `_apply_sl_lock` via the `live_qty` optional parameter (default `None`). When provided, `_apply_sl_lock` prefers this caller-tracked qty over the exchange query result.
+   - **Divergence guard**: after computing both `live_qty` and `exchange_qty`, if they diverge beyond `net_qty_tolerance`, a warning is logged. When `live_qty > exchange_qty` (overestimate risk — would cause OCO rejection), the code falls back to `exchange_qty` as the safer (smaller) value. When `live_qty < exchange_qty` (underestimate — slight under-protection), `live_qty` is kept and the next pulse's OCO re-align will correct it.
+   - **Other callers**: `_guardian_case_4_protected` and `find_level_and_sync_sl` call without `live_qty` (default `None`), falling back to exchange qty. Both are safe: neither performs a market close before calling `_apply_sl_lock`, so the exchange position is accurate.
+
+4. **SL Lock Per-Level (no longer post-loop only)**
+   - Each level applies its own `sl_lock` immediately when triggered (in-loop). No longer deferred to a single post-loop trailing step.
    - Multi-level same-pulse: each level's SL lock builds on the previous level's tightened SL, accumulating the tightest lock.
    - Cross-pulse: when no new level triggers, the post-loop (`if tp_update is None`) maintains SL from `levels[new_level - 1]["sl_lock"]`, preserving the last active level's tightness.
    - Previously (pre-refactor): SL lock was applied once after the loop using only the deepest triggered level's sl_lock. Now each level self-contains its TP + SL, making the skip path (`tp_ratio=0`, `sl_lock > 0`) safe — SL locks even when TP is skipped.
 
-4. **Level Memory Across Pulses**
+5. **Level Memory Across Pulses**
    - The daemon tracks `_symbol_level[symbol]` in memory — not persisted.
    - On qty change: level is reset to None, re-initialized via `find_level_and_sync_sl` on next pulse.
    - On daemon restart: level is None, re-initialized same way.
