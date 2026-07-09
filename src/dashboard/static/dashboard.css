@@ -1876,3 +1876,50 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-left: auto;
 }
 
+/* ── Pulse History Bar Chart ── */
+.pulse-history-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 2px;
+  height: 32px;
+  margin-bottom: 6px;
+  position: relative;
+}
+
+.pulse-bar {
+  width: 3px;
+  border-radius: 1.5px;
+  min-height: 1px;
+  transition: height 0.3s ease, background 0.3s ease;
+  position: relative;
+}
+
+.pulse-bar.session-marker::after {
+  content: "▼";
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 8px;
+  color: inherit;
+  line-height: 1;
+}
+
+.pulse-bar:hover::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 18px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card, #1a1f2e);
+  border: 1px solid var(--border-muted, #2a3040);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--text-primary, #e0e0e0);
+}
+
