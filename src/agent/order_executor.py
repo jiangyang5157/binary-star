@@ -882,7 +882,7 @@ class MarginOrderExecutor:
             if level["sl_lock"] > 0:
                 intact, new_sl = self._apply_sl_lock(
                     symbol, direction, current_sl, current_tp, avg_entry,
-                    cfg, level["sl_lock"]
+                    cfg, level["sl_lock"], live_qty=abs(live_net_qty)
                 )
                 if not intact:
                     return False, None
@@ -902,7 +902,8 @@ class MarginOrderExecutor:
 
     def _apply_sl_lock(self, symbol: str, direction: str, current_sl: float,
                              current_tp: float, avg_entry: float,
-                             cfg: dict, sl_lock: float) -> tuple:
+                             cfg: dict, sl_lock: float,
+                             live_qty: float = None) -> tuple:
         """Apply a single level's SL lock — TP-relative profit locking.
 
         LONG:  new_sl = avg_entry + (current_tp - avg_entry) * sl_lock
@@ -953,13 +954,25 @@ class MarginOrderExecutor:
                 logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                 return True, None
             return False, None
+        exchange_qty = round(abs(pos.net_qty), cfg["precision_qty"])
 
         buffer = cfg.get("sl_slippage_buffer", 0.0)
         exit_side = self._exit_side(direction)
         tp_price = current_tp
         sl_price = new_sl
         buffered_sl = self._buffered_sl(sl_price, buffer, direction)
-        qty = round(abs(pos.net_qty), cfg["precision_qty"])
+        qty = live_qty if live_qty is not None else exchange_qty
+        if live_qty is not None:
+            tol = cfg.get("net_qty_tolerance", 1e-8)
+            if abs(live_qty - exchange_qty) > tol:
+                logger.warning(
+                    f"[{symbol}] dynamic SL — qty divergence | "
+                    f"live={live_qty} exchange={exchange_qty} diff={abs(live_qty - exchange_qty):.8f}"
+                )
+                # Use exchange_qty when live_qty overestimates (safer: smaller qty
+                # avoids exchange rejection; missing coverage is caught next pulse).
+                if live_qty > exchange_qty:
+                    qty = exchange_qty
 
         if not self.client.place_oco_order(
             symbol=symbol, side=exit_side, qty=qty,
