@@ -502,9 +502,12 @@
 
     async function loadSessions() {
       const tbody = $('sessions-body');
-      tbody.innerHTML = '<tr><td colspan="12" class="loading">' + t('msg.loading_sessions') + '</td></tr>';
+      const loadingTimer = setTimeout(() => {
+        tbody.innerHTML = '<tr><td colspan="12" class="loading">' + t('msg.loading_sessions') + '</td></tr>';
+      }, 200);
       const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
       const data = await resp.json();
+      clearTimeout(loadingTimer);
       allSessions = data.sessions || [];
       $('session-count').textContent = `${data.total} ${t('fmt.records')}`;
       applyFilters();
