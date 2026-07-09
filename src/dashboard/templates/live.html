@@ -167,8 +167,6 @@
     let sniperProgress = null;
     let _stopInFlight = false;  // guards against poll re-enabling button mid-stop
     let _sniperHadActiveSession = false;  // detect session completion → refresh active table
-    let _lastSniperData = null;  // cached for resize re-render
-    let _resizeTimer = null;     // debounce resize events
 
     function clearSniperErrors() {
       ['sniper-symbol', 'sniper-balance'].forEach(id => {
@@ -411,20 +409,10 @@
       }
     }
 
-    function _onSniperResize() {
-      if (_resizeTimer) clearTimeout(_resizeTimer);
-      _resizeTimer = setTimeout(function () {
-        if (_lastSniperData && _lastSniperData.running) {
-          _renderSignalCards(_lastSniperData);
-        }
-      }, 250);
-    }
-
     async function checkSniperStatus() {
       try {
         const resp = await fetch(apiUrl('/api/sniper/status'));
         const data = await resp.json();
-        _lastSniperData = data;
 
         if (data.running) {
           if (!_stopInFlight) {
@@ -468,7 +456,6 @@
         } else {
           if (sniperPollInterval) {
             clearInterval(sniperPollInterval);
-            window.removeEventListener('resize', _onSniperResize);
             sniperPollInterval = null;
             if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
             document.getElementById('sniper-status-line').innerHTML = '';
@@ -584,7 +571,6 @@
 
         updateSniperUI('running');
         sniperPollInterval = setInterval(checkSniperStatus, 2000);
-        window.addEventListener('resize', _onSniperResize);
         checkSniperStatus();
       } catch (e) {
         container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
@@ -616,7 +602,6 @@
 
           updateSniperUI('running');
           sniperPollInterval = setInterval(checkSniperStatus, 2000);
-          window.addEventListener('resize', _onSniperResize);
           checkSniperStatus();
         }
       } catch (e) { /* ignore */ }
