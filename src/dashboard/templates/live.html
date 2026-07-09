@@ -324,8 +324,10 @@
 
         var timeLabel = '';
         if (entry.at) {
-          var m = entry.at.match(/T(\d{2}:\d{2})/);
-          timeLabel = m ? m[1] : '';
+          var d = new Date(entry.at);
+          if (!isNaN(d.getTime())) {
+            timeLabel = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+          }
         }
 
         var tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
