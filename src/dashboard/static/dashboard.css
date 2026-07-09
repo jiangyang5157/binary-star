@@ -1858,6 +1858,19 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   0%, 100% { filter: brightness(1.0); }
   50%      { filter: brightness(1.4); }
 }
+
+.pulse-bar.session-active::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: inherit;
+}
+
 .pulse-bar:hover::before {
   content: attr(data-tooltip);
   position: absolute;
