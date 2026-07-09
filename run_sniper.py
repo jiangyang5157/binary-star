@@ -62,7 +62,7 @@ class SniperDaemon:
         self._history_max = (
             self.global_cfg.get('sniper', {})
             .get('heartbeat', {})
-            .get('pulse_history_max_entries', 21)
+            .get('pulse_history_max_entries', 30)
         )
 
         # Parse CSV symbol list (e.g., "XAUT,BTC" → ["XAUTUSDT", "BTCUSDT"])

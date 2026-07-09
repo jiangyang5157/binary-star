@@ -300,9 +300,14 @@
         return;
       }
 
+      // Adaptive N: fit as many 5px bars (3px width + 2px gap) as container allows
+      var barStep = 5;  // 3px bar + 2px gap
+      var maxBars = Math.max(1, Math.floor(container.offsetWidth / barStep));
+      var slice = history.length > maxBars ? history.slice(-maxBars) : history;
+
       var bars = [];
-      for (var i = 0; i < history.length; i++) {
-        var entry = history[i];
+      for (var i = 0; i < slice.length; i++) {
+        var entry = slice[i];
         var s = entry.symbols && entry.symbols[symbol];
         if (!s) continue;
 
