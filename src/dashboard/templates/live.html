@@ -319,7 +319,7 @@
         else if (s.direction === 'BEARISH') color = 'var(--accent-red)';
         else                                 color = 'var(--text-muted)';
 
-        var sessionClass = s.session_active ? ' session-active' : '';
+        var wakeClass = ratio >= 1.0 ? ' wake' : '';
 
         var timeLabel = '';
         if (entry.at) {
@@ -330,7 +330,7 @@
         var tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
 
         bars.push(
-          '<div class="pulse-bar' + sessionClass + '"' +
+          '<div class="pulse-bar' + wakeClass + '"' +
           ' style="height:' + heightPx + 'px;background:' + color + '"' +
           ' data-tooltip="' + tooltip + '">' +
           '</div>'
