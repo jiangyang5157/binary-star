@@ -94,7 +94,7 @@ A local signal stack (**9 detectors** + 1 cross-symbol boost) monitors the marke
 
 ## Evolution
 
-An offline sandbox replays historical sessions against proposed config patches, scoring fitness against actual outcomes. Winners produce config patches that feed back into the Sniper's signal weights and Binary Star's debate thresholds.
+An offline sandbox replays audited sessions against evolved config patches, scoring fitness against actual outcomes. Winning patches feed into Binary Star's debate thresholds and the Sniper's signal stack — the loop tightens with every generation.
 
 ---
 
