@@ -291,7 +291,7 @@ class SniperDaemon:
                 # ── 2.8 PULSE: combined guardian + signal state (single atomic write) ──
                 triggered_syms = {sym for sym, _ in triggered}
                 self._write_pulse(guardian_data, symbol_results, triggered_syms)
-                self._write_pulse_history(symbol_results, triggered_syms)
+                self._write_pulse_history(symbol_results)
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
                 for sym, result in triggered:
@@ -734,9 +734,10 @@ class SniperDaemon:
         except Exception as e:
             logger.warning(f"pulse write failed | error={e}")
 
-    def _write_pulse_history(self, symbol_results: dict, triggered_syms: set):
+    def _write_pulse_history(self, symbol_results: dict):
         """Append current pulse snapshot to .sniper_pulse_history.json ring buffer."""
         try:
+            session_active = bool(self._read_state().get("active_session"))
             entry = {
                 "at": datetime.now(timezone.utc).isoformat(),
                 "symbols": {},
@@ -748,7 +749,7 @@ class SniperDaemon:
                     "confluence_score": round(result.confluence_score, 2) if result else 0.0,
                     "threshold": round(trigger.engine.effective_threshold, 2) if trigger and trigger.engine else 0.0,
                     "direction": result.confluence_direction.value if result else "NEUTRAL",
-                    "session_active": bool(self._read_state().get("active_session")),
+                    "session_active": session_active,
                 }
 
             # Read existing, append, trim
