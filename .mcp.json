@@ -3,6 +3,10 @@
     "singularity-sniper": {
       "command": "python",
       "args": ["mcp_servers/singularity_sniper/server.py"]
+    },
+    "singularity-admin": {
+      "command": "python",
+      "args": ["mcp_servers/singularity_admin/server.py"]
     }
   }
 }
