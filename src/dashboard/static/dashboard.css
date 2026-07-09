@@ -1789,7 +1789,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: flex;
   gap: 2px;
   height: 10px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .signal-strip-block {
@@ -1832,7 +1832,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   justify-content: flex-end;
   gap: 2px;
   height: 24px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   position: relative;
 }
 
