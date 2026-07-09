@@ -1784,43 +1784,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   background: rgba(224, 85, 74, 0.15);
   color: var(--accent-red, #e0554a);
 }
-
-/* Threshold bar with score / threshold flanking */
-.threshold-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.threshold-val {
-  font-family: monospace;
-  font-size: 0.72rem;
-  color: var(--text-muted, #8898ac);
-  min-width: 34px;
-}
-
-.threshold-val:first-child { text-align: left; }
-.threshold-val:last-child  { text-align: right; }
-
-.threshold-bar {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--badge-gray-bg);
-  overflow: hidden;
-}
-
-.threshold-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.5s ease;
-}
-
-.threshold-far   { background: var(--badge-gray-text); }
-.threshold-close { background: var(--accent-gold); }
-.threshold-near  { background: var(--accent-green); }
-
 /* Signal detail (always visible, fixed-height list) */
 .signal-detail {
   margin-top: 8px;

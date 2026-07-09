@@ -362,11 +362,6 @@
         if (!s) continue;
 
         var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
-        var score = s.confluence_score || 0;
-        var threshold = s.threshold || 0.35;
-        var pct = threshold > 0 ? Math.min(100, Math.round((score / threshold) * 100)) : 0;
-
-        var fillCls = pct < 50 ? 'threshold-far' : pct < 100 ? 'threshold-close' : 'threshold-near';
 
         var dirBadge = '';
         if (s.direction === 'BULLISH') {
@@ -387,13 +382,6 @@
 
         // Pulse history bar chart
         html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
-
-        html += '<div class="threshold-row">';
-        html += '<span class="threshold-val">' + score.toFixed(2) + '</span>';
-        html += '<div class="threshold-bar"><div class="threshold-bar-fill ' + fillCls +
-          '" style="width:' + pct + '%"></div></div>';
-        html += '<span class="threshold-val">' + threshold.toFixed(2) + '</span>';
-        html += '</div>';
 
         html += '<div class="signal-detail">';
         var allSignals = (s.all_signals || []).filter(function(sig) { return sig.score > 0; });
