@@ -387,9 +387,11 @@
         for (var j = 0; j < allSignals.length; j++) {
           var sig = allSignals[j];
           var dir = sig.is_active ? sig.direction : 'NEUTRAL';
-          var opacity = sig.score > 0 ? 1.0 : 0.25;
+          var hasScore = sig.score > 0;
+          var opacity = hasScore ? 1.0 : 0.25;
+          var liveClass = hasScore ? ' live' : '';
           var tooltip = sig.type;
-          html += '<div class="signal-strip-block"' +
+          html += '<div class="signal-strip-block' + liveClass + '"' +
             ' style="opacity:' + opacity + ';background:' +
             (dir === 'BULLISH' ? 'var(--accent-green)' :
              dir === 'BEARISH' ? 'var(--accent-red)' :

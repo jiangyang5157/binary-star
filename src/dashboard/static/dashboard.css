@@ -1701,9 +1701,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 @keyframes sp-pulse-glow {
   0%, 100% { filter: brightness(1.0); }
-  50%      { filter: brightness(1.6); }
+  50%      { filter: brightness(1.4); }
 }
-
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .sp-bar-fill { transition: none; }
@@ -1711,6 +1710,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .sp-anchor.active { animation: none; }
   .sniper-idle-dot { animation: none; }
   .pulse-bar.session-active { animation: none; }
+  .signal-strip-block.live { animation: none; }
   .sp-log { transition: none; }
   .session-progress { transition: none; }
 }
@@ -1801,6 +1801,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   position: relative;
 }
 
+.signal-strip-block.live {
+  animation: bar-breathe 2s ease-in-out infinite;
+}
+
 .signal-strip-block:hover::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -1852,9 +1856,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 @keyframes bar-breathe {
   0%, 100% { filter: brightness(1.0); }
-  50%      { filter: brightness(1.6); }
+  50%      { filter: brightness(1.4); }
 }
-
 .pulse-bar:hover::before {
   content: attr(data-tooltip);
   position: absolute;
