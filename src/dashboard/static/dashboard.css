@@ -1846,7 +1846,12 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   position: relative;
 }
 
+.pulse-bar.wake {
+  box-shadow: 0 0 2px 1px var(--accent-gold, #f0c040);
+}
+
 .pulse-bar.session-active {
+  box-shadow: 0 0 2px 1px var(--accent-gold, #f0c040);
   animation: bar-breathe 2s ease-in-out infinite;
 }
 
