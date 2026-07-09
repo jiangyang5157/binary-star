@@ -1771,7 +1771,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .signal-strip {
   display: flex;
   gap: 2px;
-  height: 10px;
+  height: 8px;
   margin-top: 8px;
 }
 
