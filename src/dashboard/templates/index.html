@@ -168,10 +168,10 @@
     // ── Helpers ──
     function resultBadge(r) {
       if (!r) return '<span class="text-muted">&mdash;</span>';
-      if (r === 'TP_HIT') return '<span class="badge result-tp">TP HIT</span>';
-      if (r === 'SL_HIT') return '<span class="badge result-sl">SL HIT</span>';
+      if (r === 'TP_HIT') return '<span class="badge result-tp">' + t('status.tp_hit') + '</span>';
+      if (r === 'SL_HIT') return '<span class="badge result-sl">' + t('status.sl_hit') + '</span>';
       if (r === 'NEITHER') {
-        return '<span class="badge result-neither">EXPIRED</span>';
+        return '<span class="badge result-neither">' + t('status.expired') + '</span>';
       }
       return `<span class="text-muted">${r}</span>`;
     }
@@ -313,8 +313,8 @@
                 label: (ctx) => {
                   const d = ctx.raw;
                   const pnlStr = d.pnl != null ? `${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%` : '—';
-                  const lines = [`${d.op}  ·  Conf ${d.y != null ? d.y.toFixed(0) : '—'}%  ·  P&L ${pnlStr}`];
-                  if (d.holding) lines.push(`Holding: ${d.holding}h`);
+                  const lines = [`${d.op}  ·  ${t('chart.conf_tooltip')} ${d.y != null ? d.y.toFixed(0) : '—'}%  ·  ${t('chart.pnl_tooltip')} ${pnlStr}`];
+                  if (d.holding) lines.push(`${t('chart.holding_tooltip')} ${d.holding}h`);
                   if (d.version) lines.push(`v${d.version}`);
                   return lines;
                 }
@@ -408,19 +408,19 @@
             tooltip: {
               displayColors: false,
               callbacks: {
-                title: (items) => `Confidence Threshold ≥ ${items[0].label}%`,
+                title: (items) => `${t('chart.conf_optimizer_title')} ${items[0].label}%`,
                 label: (ctx) => {
                   const pnl = ctx.raw;
                   const count = counts[ctx.dataIndex];
                   const sign = pnl >= 0 ? '+' : '';
                   const color = pnl >= 0 ? '#40a85f' : '#e0554a';
-                  return [`Cumulative P&L: ${sign}${pnl.toFixed(2)}%`, `${count} trade${count !== 1 ? 's' : ''} qualify`];
+                  return [`${t('chart.cumulative_pnl')} ${sign}${pnl.toFixed(2)}%`, `${count} ${t('chart.trade_qualify')}`];
                 }
               }
             }
           },
           scales: {
-            x: { title: { display: true, text: 'Min Confidence Threshold (%)', color: textBright }, ticks: { color: textMuted } },
+            x: { title: { display: true, text: t('chart.axis_title'), color: textBright }, ticks: { color: textMuted } },
             y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
           }
         }
@@ -456,8 +456,8 @@
 
     function renderTable(sessions) {
       const tbody = $('sessions-body');
-      $('session-count').textContent = `${sessions.length} records`;
-      if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">No records match filters</td></tr>'; return; }
+      $('session-count').textContent = `${sessions.length} ${t('fmt.records')}`;
+      if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">' + t('msg.no_records_match') + '</td></tr>'; return; }
       tbody.innerHTML = sessions.map(s => {
         const tp = s.tactical || {}, audit = s.audit;
         const entry = tp.current_price || tp.entry;
@@ -478,7 +478,7 @@
       <td class="mono">${formatPrice(tp.take_profit)}</td>
       <td class="mono">${formatPrice(tp.stop_loss)}</td>
       <td class="mono">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
-      <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">UNFILLED</span>' : resultBadge(audit?.tp_sl_result)}</td>
+      <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">' + t('status.unfilled') + '</span>' : resultBadge(audit?.tp_sl_result)}</td>
       <td>${pnlSpan(audit?.pnl_pct)}</td>
       <td><span class="text-muted">${s.version || '&mdash;'}</span></td>
       <td><a href="/audits/${encodeURIComponent(s.filename)}" class="btn-sm">View</a></td>
@@ -502,11 +502,11 @@
 
     async function loadSessions() {
       const tbody = $('sessions-body');
-      tbody.innerHTML = '<tr><td colspan="12" class="loading">Loading sessions...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="loading">' + t('msg.loading_sessions') + '</td></tr>';
       const resp = await fetch(apiUrl('/api/audits', { limit: '200' }));
       const data = await resp.json();
       allSessions = data.sessions || [];
-      $('session-count').textContent = `${data.total} records`;
+      $('session-count').textContent = `${data.total} ${t('fmt.records')}`;
       applyFilters();
     }
 
@@ -527,7 +527,7 @@
       const btn = $('run-audit-btn');
       const status = $('run-audit-status');
       btn.disabled = true;
-      btn.textContent = '⟳ Auditing...';
+      btn.textContent = t('error.auditing');
       status.style.display = 'none';
 
       try {
@@ -549,12 +549,12 @@
           btn.style.display = '';
         }, 3000);
       } catch (e) {
-        status.textContent = '⚠ Request failed';
+        status.textContent = '⚠ ' + t('error.request_failed');
         status.className = 'audit-status audit-error';
         status.style.display = 'inline';
       } finally {
         btn.disabled = false;
-        btn.textContent = '▶ Audit';
+        btn.textContent = t('btn.audit');
       }
 
       // Refresh table and charts regardless of outcome

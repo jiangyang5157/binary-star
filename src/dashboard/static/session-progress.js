@@ -81,7 +81,7 @@ class SessionProgress {
 
     // Signal banner (sniper only)
     if (this.context === 'sniper' && data._triggered_at) {
-      html += '<div class="sp-signal-banner">⚡ Signal · ' +
+      html += '<div class="sp-signal-banner">' + t('sniper.signal_banner') + ' ' +
         this._esc(data._symbol || '') + ' · ' +
         this._esc(data._triggered_at) + '</div>';
     }
@@ -166,7 +166,7 @@ class SessionProgress {
     var html = '<div class="sp-completed">';
     html += '<span>✓</span>';
     html += '<span class="sp-completed-dir">' + this._esc(dir) + '</span>';
-    html += '<span class="sp-completed-meta">· Confidence ' + conf + '% · ⏱ ' + elapsed + '</span>';
+    html += '<span class="sp-completed-meta">· ' + t('sniper.confidence_label') + ' ' + conf + '% · ⏱ ' + elapsed + '</span>';
     if (debatePath) {
       html += '<span class="sp-completed-debate">· ' + this._esc(debatePath) + '</span>';
     }
@@ -180,7 +180,7 @@ class SessionProgress {
     this.show();
     var stage = data.current_stage || 1;
     var stages = data.stages || [];
-    var errorMsg = data.error || 'Unknown error';
+    var errorMsg = data.error || t('error.unknown');
     var activities = data.activities || [];
     var fillPct = this._barPct(stage, stages);
 

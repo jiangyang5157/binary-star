@@ -260,8 +260,7 @@
       }
 
       var html = '<table class="guardian-table"><thead><tr>';
-      var ordersLabel = TRANSLATIONS['th.orders']?.[getLang()] || 'Orders';
-      html += '<th>Symbol</th><th>Position</th><th>Net Qty</th><th>' + ordersLabel + '</th><th>Status</th>';
+      html += '<th>' + t('guardian.symbol') + '</th><th>' + t('guardian.position') + '</th><th>' + t('guardian.net_qty') + '</th><th>' + t('guardian.orders') + '</th><th>' + t('guardian.status') + '</th>';
       html += '</tr></thead><tbody>';
 
       for (var i = 0; i < symbols.length; i++) {
@@ -269,11 +268,11 @@
         var gs = guardian.symbols[sym] || {};
         var hasPos = gs.net_qty != null && Math.abs(gs.net_qty) > 1e-8;
         var posLabel = hasPos
-          ? (gs.net_qty > 0 ? 'LONG' : 'SHORT')
+          ? (gs.net_qty > 0 ? t('status.long') : t('status.short'))
           : '—';
         var statusLabel = hasPos
-          ? (gs.active_orders > 0 ? 'Protected' : 'Naked')
-          : 'Idle';
+          ? (gs.active_orders > 0 ? t('status.protected') : t('status.naked'))
+          : t('status.idle');
 
         html += '<tr>';
         html += '<td><strong>' + sym.replace(new RegExp(QUOTE + '$', 'i'), '') + '</strong></td>';
@@ -287,7 +286,7 @@
       html += '</tbody></table>';
 
       if (guardian.account_balance != null) {
-        html += '<div class="guardian-summary">Balance: $' +
+        html += '<div class="guardian-summary">' + t('guardian.balance') +
           guardian.account_balance.toLocaleString() + ' USDT</div>';
       }
 
@@ -485,14 +484,14 @@
           if (!resp.ok) {
             const err = await resp.json();
             container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
-              (err.detail || 'stop failed') + '</div>';
+              (err.detail || t('error.stop_failed')) + '</div>';
             btn.disabled = false;
             btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
             _stopInFlight = false;
             return;
           }
         } catch (e) {
-          container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
+          container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' + t('error.request_failed') + '</div>';
           btn.disabled = false;
           btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
           _stopInFlight = false;
@@ -514,14 +513,14 @@
       const parts = raw.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
       if (parts.length === 0) {
-        if (inputGroup) { inputGroup.classList.add('has-error'); inputGroup.setAttribute('data-error', 'Enter at least one symbol (e.g. BTC)'); }
+        if (inputGroup) { inputGroup.classList.add('has-error'); inputGroup.setAttribute('data-error', t('err.enter_symbol')); }
         input.focus();
         updateSniperUI('idle');
         return;
       }
       for (const p of parts) {
         if (p.length < 2 || !/^[A-Z0-9]+$/.test(p)) {
-          if (inputGroup) { inputGroup.classList.add('has-error'); inputGroup.setAttribute('data-error', `"${p}" is not a valid symbol — use letters and numbers only`); }
+          if (inputGroup) { inputGroup.classList.add('has-error'); inputGroup.setAttribute('data-error', '"' + p + '" ' + t('err.invalid_symbol')); }
           input.focus();
           updateSniperUI('idle');
           return;
@@ -537,7 +536,7 @@
         const balInput = document.getElementById('sniper-balance');
         const balGroup = balInput.closest('.input-group');
         balInput.classList.add('bt-field-error');
-        if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', 'Enter a balance to enable trading'); }
+        if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', t('err.balance_required')); }
         document.getElementById('sniper-balance').focus();
         updateSniperUI('idle');
         return;
@@ -546,7 +545,7 @@
         const balInput = document.getElementById('sniper-balance');
         const balGroup = balInput.closest('.input-group');
         balInput.classList.add('bt-field-error');
-        if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', 'Balance must be a positive number'); }
+        if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', t('err.balance_positive')); }
         document.getElementById('sniper-balance').focus();
         updateSniperUI('idle');
         return;
@@ -566,7 +565,7 @@
         if (!resp.ok) {
           const err = await resp.json();
           container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
-            (err.detail || 'request failed') + '</div>';
+            (err.detail || t('error.request_failed')) + '</div>';
           updateSniperUI('idle');
           return;
         }
@@ -575,7 +574,7 @@
         sniperPollInterval = setInterval(checkSniperStatus, 2000);
         checkSniperStatus();
       } catch (e) {
-        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
+        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' + t('error.request_failed') + '</div>';
         updateSniperUI('idle');
       }
     }

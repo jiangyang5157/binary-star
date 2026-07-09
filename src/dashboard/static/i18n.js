@@ -50,6 +50,14 @@ const TRANSLATIONS = {
   "th.orders": { en: "Orders", zh: "订单" },
   "th.status": { en: "Status", zh: "状态" },
 
+  // Guardian table
+  "guardian.symbol": { en: "Symbol", zh: "交易对" },
+  "guardian.position": { en: "Position", zh: "仓位" },
+  "guardian.net_qty": { en: "Net Qty", zh: "净数量" },
+  "guardian.orders": { en: "Orders", zh: "订单" },
+  "guardian.status": { en: "Status", zh: "状态" },
+  "guardian.balance": { en: "Balance: $", zh: "余额: $" },
+
   // 按钮
   "btn.run": { en: "▶ Run", zh: "▶ 运行" },
   "btn.stop": { en: "⏹ Stop", zh: "⏹ 停止" },
@@ -69,6 +77,18 @@ const TRANSLATIONS = {
     en: "Click a bubble to open the session audit report",
     zh: "点击气泡打开审计报告"
   },
+  "chart.conf_tooltip": { en: "Conf", zh: "置信度" },
+  "chart.pnl_tooltip": { en: "P&L", zh: "盈亏" },
+  "chart.holding_tooltip": { en: "Holding:", zh: "持有:" },
+  "chart.equity_tooltip": { en: "Equity", zh: "权益" },
+  "chart.conf_threshold_hint": {
+    en: "Cumulative P&L if only signals >= threshold are traded",
+    zh: "仅交易置信度≥阈值的信号的累计盈亏"
+  },
+  "chart.conf_optimizer_title": { en: "Confidence Threshold ≥", zh: "置信度阈值 ≥" },
+  "chart.cumulative_pnl": { en: "Cumulative P&L:", zh: "累计盈亏:" },
+  "chart.trade_qualify": { en: "trade qualify", zh: "笔合格交易" },
+  "chart.axis_title": { en: "Min Confidence Threshold (%)", zh: "最低置信度阈值 (%)" },
 
   // Backtest
   "bt.single_ts": { en: "Single Timestamp", zh: "单时间戳" },
@@ -88,7 +108,9 @@ const TRANSLATIONS = {
   "msg.loading": { en: "Loading...", zh: "加载中..." },
   "msg.loading_sessions": { en: "Loading sessions...", zh: "加载会话中..." },
   "msg.no_records_active": { en: "No records — all clear", zh: "无记录 — 一切正常" },
+  "msg.no_records_match": { en: "No records match filters", zh: "无匹配记录" },
   "msg.load_failed": { en: "Failed to load records", zh: "加载失败" },
+  "msg.invalid_session": { en: "Invalid session data", zh: "无效会话数据" },
 
   // Sniper
   "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
@@ -97,6 +119,105 @@ const TRANSLATIONS = {
     en: "{time} since last pulse",
     zh: "距上次脉冲 {time}"
   },
+  "sniper.signal_banner": { en: "⚡ Signal ·", zh: "⚡ 信号 ·" },
+  "sniper.confidence_label": { en: "Confidence", zh: "置信度" },
+
+  // 状态徽章
+  "status.filled": { en: "FILLED", zh: "已成交" },
+  "status.unfilled": { en: "UNFILLED", zh: "未成交" },
+  "status.tp_hit": { en: "TP HIT", zh: "止盈触发" },
+  "status.sl_hit": { en: "SL HIT", zh: "止损触发" },
+  "status.expired": { en: "EXPIRED", zh: "已过期" },
+  "status.long": { en: "LONG", zh: "多头" },
+  "status.short": { en: "SHORT", zh: "空头" },
+  "status.protected": { en: "Protected", zh: "受保护" },
+  "status.naked": { en: "Naked", zh: "裸仓" },
+  "status.idle": { en: "Idle", zh: "闲置" },
+
+  // 方向 (opinion badge)
+  "opinion.bullish": { en: "BULLISH", zh: "看涨" },
+  "opinion.bearish": { en: "BEARISH", zh: "看跌" },
+  "opinion.neutral": { en: "NEUTRAL", zh: "中性" },
+  "opinion.unknown": { en: "UNKNOWN", zh: "未知" },
+
+  // Session / Audit 详情页
+  "detail.final_decision": { en: "Final Decision", zh: "最终决策" },
+  "detail.confidence": { en: "Confidence", zh: "置信度" },
+  "detail.current_price": { en: "Current Price", zh: "当前价格" },
+  "detail.entry": { en: "Entry", zh: "入场价" },
+  "detail.take_profit": { en: "Take Profit", zh: "止盈" },
+  "detail.stop_loss": { en: "Stop Loss", zh: "止损" },
+  "detail.rr_ratio": { en: "RR Ratio", zh: "盈亏比" },
+  "detail.waiting_hours": { en: "Waiting Hours", zh: "等待时间" },
+  "detail.holding_hours": { en: "Holding Hours", zh: "持有时间" },
+  "detail.reasoning_chain": { en: "Reasoning Chain", zh: "推理链" },
+  "detail.critic_impact": { en: "Critic Impact", zh: "批判影响" },
+  "detail.debate_rounds": { en: "Debate Rounds", zh: "辩论轮次" },
+  "detail.round": { en: "Round", zh: "第轮" },
+  "detail.critic_review": { en: "Critic Review", zh: "批判审查" },
+  "detail.audit_evidence": { en: "Audit Evidence", zh: "审计证据" },
+  "detail.math_fact_check": { en: "Math Fact Check", zh: "数学验证" },
+  "detail.charts": { en: "Charts", zh: "图表" },
+  "detail.chart_macro": { en: "Macro (1h)", zh: "宏观 (1h)" },
+  "detail.chart_micro": { en: "Micro (15m)", zh: "微观 (15m)" },
+  "detail.chart_unavailable": { en: "Chart image not available via server", zh: "图表不可用" },
+  "detail.metadata": { en: "Metadata", zh: "元数据" },
+  "detail.project_version": { en: "Project Version", zh: "项目版本" },
+  "detail.git_commit": { en: "Git Commit", zh: "Git 提交" },
+  "detail.session_hash": { en: "Session Hash", zh: "会话哈希" },
+  "detail.critic_hash": { en: "Critic Hash", zh: "批判哈希" },
+  "detail.bs_hash": { en: "Binary Star Hash", zh: "双星哈希" },
+  "detail.config_hash": { en: "Config Hash", zh: "配置哈希" },
+
+  // Audit 交易结果
+  "audit.trade": { en: "Trade:", zh: "交易:" },
+  "audit.trade_outcome": { en: "Trade Outcome", zh: "交易结果" },
+  "audit.exit_price": { en: "Exit Price (T1)", zh: "出场价 (T1)" },
+  "audit.mfe": { en: "Max Favorable Excursion", zh: "最大有利偏移" },
+  "audit.mfe_efficiency": { en: "MFE Efficiency", zh: "MFE 效率" },
+  "audit.mae": { en: "Max Adverse Excursion", zh: "最大不利偏移" },
+  "audit.mae_stress": { en: "MAE Stress Level", zh: "MAE 压力等级" },
+  "audit.projected_holding": { en: "Projected Holding", zh: "预期持有" },
+  "audit.actual_holding": { en: "Actual Holding", zh: "实际持有" },
+  "audit.justified_surrender": { en: "Justified Surrender", zh: "合理退出" },
+  "audit.catastrophic_miss": { en: "Catastrophic Miss", zh: "灾难性错过" },
+
+  // Session 页面
+  "session.title_suffix": { en: "Session", zh: "会话" },
+  "session.back_to_live": { en: "← Back to Live", zh: "← 返回实时" },
+  "audit.back_to_sessions": { en: "← Back to Sessions", zh: "← 返回会话列表" },
+
+  // 错误信息
+  "error.heading": { en: "Error", zh: "错误" },
+  "error.request_failed": { en: "Request failed", zh: "请求失败" },
+  "error.stop_failed": { en: "stop failed", zh: "停止失败" },
+  "error.unknown": { en: "Unknown error", zh: "未知错误" },
+  "error.auditing": { en: "⟳ Auditing...", zh: "⟳ 审计中..." },
+
+  // 验证错误
+  "err.enter_symbol": { en: "Enter at least one symbol (e.g. BTC)", zh: "请输入至少一个交易对 (如 BTC)" },
+  "err.invalid_symbol": {
+    en: "is not a valid symbol — use letters and numbers only",
+    zh: "不是有效交易对 — 仅可使用字母和数字"
+  },
+  "err.balance_required": { en: "Enter a balance to enable trading", zh: "启用交易需输入余额" },
+  "err.balance_positive": { en: "Balance must be a positive number", zh: "余额必须为正数" },
+  "err.min_chars": { en: "Enter at least 2 characters (e.g. BTC)", zh: "请输入至少 2 个字符 (如 BTC)" },
+  "err.letters_numbers": { en: "Only letters and numbers", zh: "仅可使用字母和数字" },
+  "err.timestamp_required": { en: "Timestamp is required", zh: "时间戳为必填" },
+  "err.start_required": { en: "Start date is required", zh: "开始日期为必填" },
+  "err.end_required": { en: "End date is required", zh: "结束日期为必填" },
+  "err.samples_required": { en: "Number of samples is required", zh: "采样数为必填" },
+  "err.samples_min": { en: "Must be ≥ 1", zh: "最少为 1" },
+  "err.samples_max": { en: "Max 200 samples", zh: "最多 200 个采样点" },
+
+  // Development 页面
+  "dev.completed": { en: "completed", zh: "已完成" },
+  "dev.failed": { en: "Failed", zh: "失败" },
+  "dev.preview_failed": { en: "preview failed", zh: "预览失败" },
+
+  // 格式/单位
+  "fmt.records": { en: "records", zh: "条记录" },
 };
 
 // ── 引擎函数 ──
@@ -107,6 +228,15 @@ function getLang() {
   const hl = params.get('hl');
   if (hl === 'zh' || hl === 'en') return hl;
   return localStorage.getItem('hl') || 'en';
+}
+
+/** 从 TRANSLATIONS 获取翻译文本，fallback 到英文 key 本身 */
+function t(key, fallback) {
+  const lang = getLang();
+  const entry = TRANSLATIONS[key];
+  if (entry && entry[lang]) return entry[lang];
+  if (entry && entry.en) return entry.en;
+  return fallback || key;
 }
 
 /** 应用指定语言到所有 data-i18n 元素 */

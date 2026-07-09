@@ -79,16 +79,16 @@ function renderAuditOutcome(audit) {
   }
 
   const fillBadge = filled
-    ? '<span class="badge badge-green">FILLED</span>'
-    : '<span class="badge badge-gray">UNFILLED</span>';
+    ? '<span class="badge badge-green">' + t('status.filled') + '</span>'
+    : '<span class="badge badge-gray">' + t('status.unfilled') + '</span>';
 
   let resultBadge = '';
   if (filled && result === 'TP_HIT') {
-    resultBadge = '<span class="badge result-tp">TP HIT</span>';
+    resultBadge = '<span class="badge result-tp">' + t('status.tp_hit') + '</span>';
   } else if (filled && result === 'SL_HIT') {
-    resultBadge = '<span class="badge result-sl">SL HIT</span>';
+    resultBadge = '<span class="badge result-sl">' + t('status.sl_hit') + '</span>';
   } else if (filled) {
-    resultBadge = '<span class="badge result-neither">EXPIRED</span>';
+    resultBadge = '<span class="badge result-neither">' + t('status.expired') + '</span>';
   }
 
   const pnlClass = pnl != null ? (pnl > 0 ? 'pnl-positive' : pnl < 0 ? 'pnl-negative' : '') : '';
@@ -96,7 +96,7 @@ function renderAuditOutcome(audit) {
 
   return `
     <section class="card audit-outcome">
-      <h2>Trade Outcome</h2>
+      <h2>${t('audit.trade_outcome')}</h2>
       <div class="audit-header">
         <div>${fillBadge}</div>
         <div>${resultBadge}</div>
@@ -104,38 +104,38 @@ function renderAuditOutcome(audit) {
       </div>
       <div class="tactical-grid">
         <div class="tactical-item">
-          <span class="tactical-label">Exit Price (T1)</span>
+          <span class="tactical-label">${t('audit.exit_price')}</span>
           <span class="tactical-value mono">${formatPrice(forensics.price_at_t1)}</span>
         </div>
         <div class="tactical-item">
-          <span class="tactical-label">Max Favorable Excursion</span>
+          <span class="tactical-label">${t('audit.mfe')}</span>
           <span class="tactical-value mono profit">${forensics.max_favorable_runup_pct != null ? '+' + forensics.max_favorable_runup_pct.toFixed(2) + '%' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
-          <span class="tactical-label">MFE Efficiency</span>
+          <span class="tactical-label">${t('audit.mfe_efficiency')}</span>
           <span class="tactical-value">${metrics.mfe_efficiency_pct != null ? metrics.mfe_efficiency_pct.toFixed(1) + '%' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
-          <span class="tactical-label">Max Adverse Excursion</span>
+          <span class="tactical-label">${t('audit.mae')}</span>
           <span class="tactical-value mono loss">${forensics.max_adverse_drawdown_pct != null ? forensics.max_adverse_drawdown_pct.toFixed(2) + '%' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
-          <span class="tactical-label">MAE Stress Level</span>
+          <span class="tactical-label">${t('audit.mae_stress')}</span>
           <span class="tactical-value">${metrics.mae_stress_level_pct != null ? metrics.mae_stress_level_pct.toFixed(1) + '%' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
-          <span class="tactical-label">Projected Holding</span>
+          <span class="tactical-label">${t('audit.projected_holding')}</span>
           <span class="tactical-value">${tp.projected_holding_hours != null ? tp.projected_holding_hours.toFixed(1) + 'h' : '&mdash;'}</span>
         </div>
         <div class="tactical-item">
-          <span class="tactical-label">Actual Holding</span>
+          <span class="tactical-label">${t('audit.actual_holding')}</span>
           <span class="tactical-value">${metrics.actual_holding_hours != null ? metrics.actual_holding_hours.toFixed(1) + 'h' : '&mdash;'}</span>
         </div>
       </div>
       ${(verdict.is_justified_surrender || verdict.is_catastrophic_miss) ? `
       <div class="audit-verdicts">
-        ${verdict.is_justified_surrender ? '<span class="badge badge-gray">Justified Surrender</span>' : ''}
-        ${verdict.is_catastrophic_miss ? '<span class="badge badge-red">Catastrophic Miss</span>' : ''}
+        ${verdict.is_justified_surrender ? '<span class="badge badge-gray">' + t('audit.justified_surrender') + '</span>' : ''}
+        ${verdict.is_catastrophic_miss ? '<span class="badge badge-red">' + t('audit.catastrophic_miss') + '</span>' : ''}
       </div>` : ''}
     </section>`;
 }
@@ -153,7 +153,7 @@ async function loadSession() {
 
     main.innerHTML = `
       <div class="session-header">
-        <h2>Trade: ${session.observation?.symbol || 'Unknown'}</h2>
+        <h2>${t('audit.trade')} ${session.observation?.symbol || 'Unknown'}</h2>
         <span class="session-time">${formatLocalTime(session.observation?.observed_at)}</span>
       </div>
       ${renderDecisionCard(session.final_decision || {})}
@@ -163,7 +163,7 @@ async function loadSession() {
       ${renderMetadata(session.metadata)}
     `;
   } catch (err) {
-    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/performance" class="btn-sm" style="margin-top:1rem;display:inline-block">&larr; Back to Sessions</a></div>`;
+    main.innerHTML = `<div class="card error-card"><h2>${t('error.heading')}</h2><p>${err.message}</p><a href="/performance" class="btn-sm" style="margin-top:1rem;display:inline-block">${t('audit.back_to_sessions')}</a></div>`;
   }
 }
 

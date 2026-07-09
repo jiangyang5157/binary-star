@@ -57,11 +57,11 @@ async function loadSession() {
     const resp = await fetch(apiUrl(`/api/sessions/${encodeURIComponent(filename)}`));
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const session = await resp.json();
-    if (!session || session.error) throw new Error(session?.error || 'Invalid session data');
+    if (!session || session.error) throw new Error(session?.error || t('msg.invalid_session'));
 
     main.innerHTML = `
       <div class="session-header">
-        <h2>${session.observation?.symbol || 'Unknown'} Session</h2>
+        <h2>${session.observation?.symbol || 'Unknown'} ${t('session.title_suffix')}</h2>
         <span class="session-time">${formatLocalTime(session.observation?.observed_at)}</span>
       </div>
       ${renderDecisionCard(session.final_decision || {})}
@@ -70,7 +70,7 @@ async function loadSession() {
       ${renderMetadata(session.metadata)}
     `;
   } catch (err) {
-    main.innerHTML = `<div class="card error-card"><h2>Error</h2><p>${err.message}</p><a href="/live" class="btn-sm" style="margin-top:1rem;display:inline-block">&larr; Back to Live</a></div>`;
+    main.innerHTML = `<div class="card error-card"><h2>${t('error.heading')}</h2><p>${err.message}</p><a href="/live" class="btn-sm" style="margin-top:1rem;display:inline-block">${t('session.back_to_live')}</a></div>`;
   }
 }
 

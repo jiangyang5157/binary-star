@@ -193,13 +193,13 @@
         _runStopInFlight = false;
         input.disabled = true;
         btn.disabled = false;
-        btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
+        btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || t('btn.stop');
         btn.classList.add('danger');
       } else {
         _runStopInFlight = false;
         input.disabled = false;
         btn.disabled = false;
-        btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
+        btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || t('btn.run');
         btn.classList.remove('danger');
         runPollInterval = null;
       }
@@ -268,17 +268,17 @@
           if (!resp.ok) {
             const err = await resp.json();
             container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
-              (err.detail || 'stop failed') + '</div>';
+              (err.detail || t('error.stop_failed')) + '</div>';
             btn.disabled = false;
-            btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
+            btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || t('btn.stop');
             btn.classList.add('danger');
             _runStopInFlight = false;
             return;
           }
         } catch (e) {
-          container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
+          container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' + t('error.request_failed') + '</div>';
           btn.disabled = false;
-          btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
+          btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || t('btn.stop');
           btn.classList.add('danger');
           _runStopInFlight = false;
           return;
@@ -303,7 +303,7 @@
 
       if (!prefix || prefix.length < 2) {
         group.classList.add('has-error');
-        group.setAttribute('data-error', 'Enter at least 2 characters (e.g. BTC)');
+        group.setAttribute('data-error', t('err.min_chars'));
         input.focus();
         updateSessionRunUI('idle');
         return;
@@ -312,7 +312,7 @@
       // Quick sanity: only alphanumeric
       if (!/^[A-Za-z0-9]+$/.test(prefix)) {
         group.classList.add('has-error');
-        group.setAttribute('data-error', 'Only letters and numbers');
+        group.setAttribute('data-error', t('err.letters_numbers'));
         input.focus();
         updateSessionRunUI('idle');
         return;
@@ -328,7 +328,7 @@
         if (!resp.ok) {
           const err = await resp.json();
           container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
-            (err.detail || 'request failed') + '</div>';
+            (err.detail || t('error.request_failed')) + '</div>';
           updateSessionRunUI('idle');
           return;
         }
@@ -339,7 +339,7 @@
         runPollInterval = setInterval(checkRunStatus, 2000);
         checkRunStatus();
       } catch (e) {
-        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ Request failed</div>';
+        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' + t('error.request_failed') + '</div>';
         updateSessionRunUI('idle');
       }
     }
@@ -410,7 +410,7 @@
 
       const symbol = $('bt-symbol').value.trim();
       if (!symbol || symbol.length < 2 || !/^[A-Za-z0-9]+$/.test(symbol)) {
-        if (group) { group.classList.add('has-error'); group.setAttribute('data-error', 'Enter at least 2 characters (e.g. BTC)'); }
+        if (group) { group.classList.add('has-error'); group.setAttribute('data-error', t('err.min_chars')); }
         $('bt-symbol').focus();
         return false;
       }
@@ -418,7 +418,7 @@
       if (currentMode === 'timestamp') {
         const ts = $('bt-timestamp').value.trim();
         if (!ts) {
-          showFieldError('bt-timestamp', 'Timestamp is required');
+          showFieldError('bt-timestamp', t('err.timestamp_required'));
           $('bt-timestamp').focus();
           return false;
         }
@@ -427,28 +427,28 @@
         const end = $('bt-end').value.trim();
         const samplesRaw = $('bt-samples').value.trim();
         if (!start) {
-          showFieldError('bt-start', 'Start date is required');
+          showFieldError('bt-start', t('err.start_required'));
           $('bt-start').focus();
           return false;
         }
         if (!end) {
-          showFieldError('bt-end', 'End date is required');
+          showFieldError('bt-end', t('err.end_required'));
           $('bt-end').focus();
           return false;
         }
         if (!samplesRaw) {
-          showFieldError('bt-samples', 'Number of samples is required');
+          showFieldError('bt-samples', t('err.samples_required'));
           $('bt-samples').focus();
           return false;
         }
         const samples = parseInt(samplesRaw, 10);
         if (!Number.isInteger(samples) || samples < 1) {
-          showFieldError('bt-samples', 'Must be ≥ 1');
+          showFieldError('bt-samples', t('err.samples_min'));
           $('bt-samples').focus();
           return false;
         }
         if (samples > 200) {
-          showFieldError('bt-samples', 'Max 200 samples');
+          showFieldError('bt-samples', t('err.samples_max'));
           $('bt-samples').focus();
           return false;
         }
@@ -489,7 +489,7 @@
 
       // Enter preview mode
       setFieldsDisabled(true);
-      btn.textContent = '⏹ Stop';
+      btn.textContent = t('btn.stop');
       btn.classList.add('danger');
 
       const symbol = $('bt-symbol').value.trim().toUpperCase();
@@ -514,10 +514,10 @@
         const data = await resp.json();
         if (!resp.ok) {
           statusEl.style.display = 'inline';
-          statusEl.textContent = '⚠ ' + (data.detail || 'preview failed');
+          statusEl.textContent = '⚠ ' + (data.detail || t('dev.preview_failed'));
           statusEl.className = 'audit-status audit-error';
           setFieldsDisabled(false);
-          btn.textContent = 'Preview Samples';
+          btn.textContent = t('btn.preview');
           btn.classList.remove('danger');
           return;
         }
@@ -531,15 +531,15 @@
           sampleTimestamps = data.timestamps || [];
           renderSampleList(data);
           setFieldsDisabled(false);
-          btn.textContent = 'Preview Samples';
+          btn.textContent = t('btn.preview');
           btn.classList.remove('danger');
         }
       } catch (e) {
         statusEl.style.display = 'inline';
-        statusEl.textContent = '⚠ Request failed';
+        statusEl.textContent = '⚠ ' + t('error.request_failed');
         statusEl.className = 'audit-status audit-error';
         setFieldsDisabled(false);
-        btn.textContent = 'Preview Samples';
+        btn.textContent = t('btn.preview');
         btn.classList.remove('danger');
       }
     }
@@ -559,7 +559,7 @@
         previewPollInterval = null;
         setFieldsDisabled(false);
         btn.disabled = false;
-        btn.textContent = 'Preview Samples';
+        btn.textContent = t('btn.preview');
         btn.classList.remove('danger');
 
         if (data.error) {
@@ -648,7 +648,7 @@
           setFieldsDisabled(false);
           $('bt-preview-btn').disabled = false;
           btn.disabled = false;
-          btn.textContent = '▶ Run';
+          btn.textContent = t('btn.run');
           return;
         }
 
@@ -661,7 +661,7 @@
           setFieldsDisabled(false);
           $('bt-preview-btn').disabled = false;
           btn.disabled = false;
-          btn.textContent = '▶ Run';
+          btn.textContent = t('btn.run');
           return;
         }
 
@@ -672,7 +672,7 @@
         setFieldsDisabled(false);
         $('bt-preview-btn').disabled = false;
         btn.disabled = false;
-        btn.textContent = '▶ Run';
+        btn.textContent = t('btn.run');
       }
     }
 
@@ -684,13 +684,13 @@
         setFieldsDisabled(true);
         previewBtn.disabled = true;
         btn.disabled = false;
-        btn.textContent = '⏹ Stop';
+        btn.textContent = t('btn.stop');
         btn.classList.add('danger');
       } else {
         setFieldsDisabled(false);
         previewBtn.disabled = false;
         btn.disabled = false;
-        btn.textContent = '▶ Run';
+        btn.textContent = t('btn.run');
         btn.classList.remove('danger');
         backtestPollInterval = null;
       }
@@ -765,17 +765,17 @@
               metaEl.textContent = meta;
             }
           } else if (resultEl) {
-            resultEl.textContent = 'completed';
+            resultEl.textContent = t('dev.completed');
           }
           if (errorEl) errorEl.textContent = '';
         } else if (s.status === 'failed') {
           if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
           if (progContainer && window._btProgressInstances[i]) {
-            window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || 'Failed' });
+            window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || t('dev.failed') });
           }
           if (resultEl) resultEl.textContent = '';
           if (metaEl) metaEl.textContent = '';
-          if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || 'Failed';
+          if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || t('dev.failed');
         } else {
           // Unfinished — pending or stopped mid-run
           if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'bt-sample-status-icon pending'; }
@@ -823,7 +823,7 @@
             restoreRawInputs(data);
             setFieldsDisabled(true);
             const btn = $('bt-preview-btn');
-            btn.textContent = '⏹ Stop';
+            btn.textContent = t('btn.stop');
             btn.classList.add('danger');
             previewPollInterval = setInterval(checkPreviewStatus, 2000);
           } else {

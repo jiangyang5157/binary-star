@@ -4,7 +4,12 @@
 
 function opinionBadge(opinion) {
   const cls = opinion === 'BULLISH' ? 'badge-green' : opinion === 'BEARISH' ? 'badge-red' : 'badge-gray';
-  return `<span class="badge ${cls}">${opinion}</span>`;
+  var label;
+  if (opinion === 'BULLISH') label = t('opinion.bullish');
+  else if (opinion === 'BEARISH') label = t('opinion.bearish');
+  else if (opinion === 'NEUTRAL') label = t('opinion.neutral');
+  else label = opinion || t('opinion.unknown');
+  return `<span class="badge ${cls}">${label}</span>`;
 }
 
 function formatPrice(v) {
