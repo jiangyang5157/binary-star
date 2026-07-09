@@ -412,6 +412,10 @@
           html += '</span>';
           html += '</div>';
         }
+        html += '</div>';  // close signal-detail
+
+        html += '</div>';  // close signal-card
+      }
       container.innerHTML = html;
 
       // Populate pulse history bars per symbol (deferred render after innerHTML)
