@@ -21,6 +21,7 @@ from src.dashboard.auth import require_permission
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 STATUS_FILENAME = ".sniper_state.json"
 PULSE_FILENAME = ".sniper_pulse.json"
+HISTORY_FILENAME = ".sniper_pulse_history.json"
 log = logging.getLogger("SniperRunAPI")
 
 
@@ -135,6 +136,7 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
     _data_root_path = Path(data_root)
     try:
         (_data_root_path / PULSE_FILENAME).unlink(missing_ok=True)
+        (_data_root_path / HISTORY_FILENAME).unlink(missing_ok=True)
     except Exception:
         pass
 
@@ -212,6 +214,7 @@ def sniper_status(data_root: str = Query("")):
 
     # Combined pulse file: guardian + signal diagnostics (single read)
     guardian, pulse_signals = _read_pulse(data_root)
+    pulse_history = _read_pulse_history(data_root)
 
     # Active session (AI session triggered by sniper signal)
     active_session = status.get("active_session")
@@ -232,6 +235,7 @@ def sniper_status(data_root: str = Query("")):
         "active_session": active_session,
         "guardian": guardian,
         "pulse_signals": pulse_signals,
+        "pulse_history": pulse_history or [],
     }
 
 
@@ -298,3 +302,14 @@ def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
         log.warning("pulse entry iteration failed | error=%s", e)
 
     return guardian, pulse_signals
+
+
+def _read_pulse_history(data_root: str) -> list | None:
+    """Read .sniper_pulse_history.json, return the array or None if missing."""
+    path = Path(data_root) / HISTORY_FILENAME
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
