@@ -52,12 +52,18 @@ class SniperDaemon:
 
     _STATE_FILE = ".sniper_state.json"
     _PULSE_FILE = ".sniper_pulse.json"
+    _HISTORY_FILE = ".sniper_pulse_history.json"
 
     def __init__(self, args):
         from src.utils.symbol_utils import resolve_symbols
 
         self.args = args
         self.global_cfg = load_global_config()
+        self._history_max = (
+            self.global_cfg.get('sniper', {})
+            .get('heartbeat', {})
+            .get('pulse_history_max_entries', 21)
+        )
 
         # Parse CSV symbol list (e.g., "XAUT,BTC" → ["XAUTUSDT", "BTCUSDT"])
         raw_symbols = getattr(args, 'symbol', '') or ''
@@ -135,6 +141,7 @@ class SniperDaemon:
         os.makedirs(_data_root, exist_ok=True)
         self._state_path = os.path.join(_data_root, self._STATE_FILE)
         self._pulse_path = os.path.join(_data_root, self._PULSE_FILE)
+        self._history_path = os.path.join(_data_root, self._HISTORY_FILE)
 
         self._setup_signals()
 
@@ -157,6 +164,11 @@ class SniperDaemon:
                 self.executor.client.close()
         except Exception as e:
             logger.warning(f"failed to close margin client during shutdown | error={e}")
+        try:
+            if os.path.exists(self._history_path):
+                os.remove(self._history_path)
+        except Exception:
+            pass
         sys.exit(0)
 
     def run_forever(self):
@@ -165,6 +177,15 @@ class SniperDaemon:
             raise ValueError(f"pulse_interval_minutes must be > 0, got {pulse_mins}")
         sym_list = ", ".join(self.symbols)
         logger.info(f"═══ SNIPER MONITORING STARTED | symbols={sym_list} | pulse={pulse_mins}m ═══")
+
+        # Truncate pulse history to clean slate on each sniper run
+        if not getattr(self, '_history_cleared', False):
+            self._history_cleared = True
+            try:
+                with open(self._history_path, 'w') as f:
+                    f.write('[]\n')
+            except Exception as e:
+                logger.warning(f"history file truncate failed | error={e}")
 
         while True:
             try:
@@ -268,6 +289,7 @@ class SniperDaemon:
                 # ── 2.8 PULSE: combined guardian + signal state (single atomic write) ──
                 triggered_syms = {sym for sym, _ in triggered}
                 self._write_pulse(guardian_data, symbol_results, triggered_syms)
+                self._write_pulse_history(symbol_results, triggered_syms)
 
                 # ── 3. AI SESSIONS: serial processing (blocking, ~30-90s each) ──
                 for sym, result in triggered:
@@ -709,6 +731,43 @@ class SniperDaemon:
             os.replace(tmp, self._pulse_path)
         except Exception as e:
             logger.warning(f"pulse write failed | error={e}")
+
+    def _write_pulse_history(self, symbol_results: dict, triggered_syms: set):
+        """Append current pulse snapshot to .sniper_pulse_history.json ring buffer."""
+        try:
+            entry = {
+                "at": datetime.now(timezone.utc).isoformat(),
+                "symbols": {},
+            }
+            for sym in self.symbols:
+                result = symbol_results.get(sym)
+                trigger = self.triggers.get(sym)
+                entry["symbols"][sym] = {
+                    "confluence_score": round(result.confluence_score, 2) if result else 0.0,
+                    "threshold": round(trigger.engine.effective_threshold, 2) if trigger and trigger.engine else 0.0,
+                    "direction": result.confluence_direction.value if result else "NEUTRAL",
+                    "session_active": bool(self._read_state().get("active_session")),
+                }
+
+            # Read existing, append, trim
+            history = []
+            try:
+                with open(self._history_path, 'r') as f:
+                    history = json.loads(f.read() or '[]')
+            except (FileNotFoundError, json.JSONDecodeError):
+                pass
+
+            history.append(entry)
+            if len(history) > self._history_max:
+                history = history[-self._history_max:]
+
+            # Atomic write (tmp + rename)
+            tmp = self._history_path + ".tmp"
+            with open(tmp, 'w') as f:
+                json.dump(history, f, default=str)
+            os.replace(tmp, self._history_path)
+        except Exception as e:
+            logger.warning(f"pulse history write failed | error={e}")
 
 def main():
     parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")
