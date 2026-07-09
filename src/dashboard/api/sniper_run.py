@@ -136,8 +136,7 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
     _data_root_path = Path(data_root)
     try:
         (_data_root_path / PULSE_FILENAME).unlink(missing_ok=True)
-        # TODO: re-enable after testing
-        # (_data_root_path / HISTORY_FILENAME).unlink(missing_ok=True)
+        (_data_root_path / HISTORY_FILENAME).unlink(missing_ok=True)
     except Exception:
         pass
 
