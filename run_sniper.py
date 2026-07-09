@@ -766,7 +766,7 @@ class SniperDaemon:
             # Atomic write (tmp + rename)
             tmp = self._history_path + ".tmp"
             with open(tmp, 'w') as f:
-                json.dump(history, f, default=str)
+                json.dump(history, f, default=str, indent=2)
             os.replace(tmp, self._history_path)
         except Exception as e:
             logger.warning(f"pulse history write failed | error={e}")
