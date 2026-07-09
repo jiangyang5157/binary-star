@@ -1790,8 +1790,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   gap: 2px;
   height: 10px;
   margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-muted);
 }
 
 .signal-strip-block {

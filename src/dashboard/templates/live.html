@@ -388,7 +388,7 @@
           var sig = allSignals[j];
           var dir = sig.is_active ? sig.direction : 'NEUTRAL';
           var opacity = sig.score > 0 ? 1.0 : 0.25;
-          var tooltip = sig.type + ': ' + sig.score.toFixed(2) + ' ' + dir;
+          var tooltip = sig.type;
           html += '<div class="signal-strip-block" data-direction="' + dir + '"' +
             ' style="opacity:' + opacity + ';background:' +
             (dir === 'BULLISH' ? 'var(--accent-green)' :
