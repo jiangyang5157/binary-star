@@ -327,9 +327,7 @@
           timeLabel = m ? m[1] : '';
         }
 
-        var tooltip = 'score=' + s.confluence_score.toFixed(2)
-                    + ' thr=' + s.threshold.toFixed(2)
-                    + ' ' + timeLabel;
+        var tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
 
         bars.push(
           '<div class="pulse-bar' + sessionClass + '"' +
