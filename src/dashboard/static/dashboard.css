@@ -1847,7 +1847,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   justify-content: flex-end;
   gap: 2px;
   height: 24px;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   position: relative;
 }
 
