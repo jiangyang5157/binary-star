@@ -319,7 +319,7 @@
         else if (s.direction === 'BEARISH') color = 'var(--accent-red)';
         else                                 color = 'var(--text-muted)';
 
-        var sessionClass = s.session_active ? ' pulse-bar session-marker' : '';
+        var sessionClass = s.session_active ? ' session-active' : '';
 
         var timeLabel = '';
         if (entry.at) {
