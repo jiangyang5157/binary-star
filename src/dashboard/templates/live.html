@@ -625,8 +625,11 @@
       const tbody = document.getElementById('active-body');
       const countEl = document.getElementById('active-count');
 
-      tbody.innerHTML = '<tr><td colspan="13" class="loading">' +
-        (TRANSLATIONS['msg.loading_sessions']?.[getLang()] || 'Loading sessions...') + '</td></tr>';
+      // Deferred loading indicator: only show if fetch takes >200ms
+      const loadingTimer = setTimeout(() => {
+        tbody.innerHTML = '<tr><td colspan="13" class="loading">' +
+          (TRANSLATIONS['msg.loading_sessions']?.[getLang()] || 'Loading sessions...') + '</td></tr>';
+      }, 200);
 
       try {
         const includeNeutral = document.getElementById('neutral-toggle').checked;
@@ -635,6 +638,7 @@
         const resp = await fetch(url);
         const data = await resp.json();
         const sessions = data.active || [];
+        clearTimeout(loadingTimer);
 
         countEl.textContent = `${sessions.length} record${sessions.length !== 1 ? 's' : ''}`;
 
