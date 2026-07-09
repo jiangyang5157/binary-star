@@ -362,17 +362,9 @@
 
         var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
 
-        var dirBadge = '';
-        if (s.direction === 'BULLISH') {
-          dirBadge = '<span class="signal-card-badge badge-bullish">BULLISH</span>';
-        } else if (s.direction === 'BEARISH') {
-          dirBadge = '<span class="signal-card-badge badge-bearish">BEARISH</span>';
-        }
-
         html += '<div class="signal-card">';
         html += '<div class="signal-card-header">';
         html += '<span class="signal-card-symbol">' + stripped + '</span>';
-        html += dirBadge;
         if (s.cooldown_active && s.cooldown_remaining_seconds > 0) {
           html += '<span class="signal-card-cooldown">&#10052; ' +
             formatElapsed(s.cooldown_remaining_seconds) + '</span>';

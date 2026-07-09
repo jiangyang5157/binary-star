@@ -1767,23 +1767,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   font-size: 0.9rem;
 }
 
-.signal-card-badge {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 8px;
-  text-transform: uppercase;
-}
-
-.badge-bullish {
-  background: rgba(64, 168, 95, 0.15);
-  color: var(--accent-green, #40a85f);
-}
-
-.badge-bearish {
-  background: rgba(224, 85, 74, 0.15);
-  color: var(--accent-red, #e0554a);
-}
 /* ── Signal Compact Strip ── */
 .signal-strip {
   display: flex;
