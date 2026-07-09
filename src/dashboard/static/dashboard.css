@@ -1710,6 +1710,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .sp-bar-fill.sp-stage-3 { animation: none; }
   .sp-anchor.active { animation: none; }
   .sniper-idle-dot { animation: none; }
+  .pulse-bar.session-active { animation: none; }
   .sp-log { transition: none; }
   .session-progress { transition: none; }
 }
@@ -1843,6 +1844,15 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   background-clip: content-box;
   transition: height 0.3s ease, background 0.3s ease;
   position: relative;
+}
+
+.pulse-bar.session-active {
+  animation: bar-breathe 2s ease-in-out infinite;
+}
+
+@keyframes bar-breathe {
+  0%, 100% { filter: brightness(1.0); }
+  50%      { filter: brightness(1.4); }
 }
 
 .pulse-bar:hover::before {
