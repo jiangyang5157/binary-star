@@ -164,11 +164,12 @@ class SniperDaemon:
                 self.executor.client.close()
         except Exception as e:
             logger.warning(f"failed to close margin client during shutdown | error={e}")
-        try:
-            if os.path.exists(self._history_path):
-                os.remove(self._history_path)
-        except Exception:
-            pass
+        # TODO: re-enable after testing
+        # try:
+        #     if os.path.exists(self._history_path):
+        #         os.remove(self._history_path)
+        # except Exception:
+        #     pass
         sys.exit(0)
 
     def run_forever(self):
@@ -179,13 +180,14 @@ class SniperDaemon:
         logger.info(f"═══ SNIPER MONITORING STARTED | symbols={sym_list} | pulse={pulse_mins}m ═══")
 
         # Truncate pulse history to clean slate on each sniper run
-        if not getattr(self, '_history_cleared', False):
-            self._history_cleared = True
-            try:
-                with open(self._history_path, 'w') as f:
-                    f.write('[]\n')
-            except Exception as e:
-                logger.warning(f"history file truncate failed | error={e}")
+        # TODO: re-enable after testing
+        # if not getattr(self, '_history_cleared', False):
+        #     self._history_cleared = True
+        #     try:
+        #         with open(self._history_path, 'w') as f:
+        #             f.write('[]\n')
+        #     except Exception as e:
+        #         logger.warning(f"history file truncate failed | error={e}")
 
         while True:
             try:
