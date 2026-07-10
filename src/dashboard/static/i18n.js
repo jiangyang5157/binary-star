@@ -29,7 +29,7 @@ const TRANSLATIONS = {
   "section.conf_optimizer": { en: "Confidence Threshold Optimizer", zh: "置信度阈值优化" },
   "section.active_sessions": { en: "Active Sessions", zh: "活跃会话" },
   "section.new_session": { en: "New Session", zh: "新建会话" },
-  "section.sniper_control": { en: "Sniper Control", zh: "狙击控制" },
+  "section.sniper": { en: "Sniper", zh: "狙击" },
   "section.backtest": { en: "Backtest", zh: "回测" },
 
   // 表头

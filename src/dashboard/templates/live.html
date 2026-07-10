@@ -31,14 +31,14 @@
 
   <main class="container">
 
-    <!-- ═══════ Sniper Control ═══════ -->
+    <!-- ═══════ Sniper ═══════ -->
     <div class="run-panels">
 
       {% call permission_gated("run_sniper", permissions) %}
-      <!-- Sniper Control -->
+      <!-- Sniper -->
       <section class="card run-panel">
         <div class="section-header">
-          <h2 data-i18n="section.sniper_control"></h2>
+          <h2 data-i18n="section.sniper"></h2>
           <span class="sniper-header-actions">
             <span id="sniper-pulse-badge" class="pulse-badge" style="display:none"></span>
             <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
@@ -312,9 +312,9 @@
         var heightPx = Math.max(1, Math.round(ratio * 22));
 
         var color;
-        if (s.direction === 'BULLISH')      color = 'var(--accent-green)';
+        if (s.direction === 'BULLISH') color = 'var(--accent-green)';
         else if (s.direction === 'BEARISH') color = 'var(--accent-red)';
-        else                                 color = 'var(--text-muted)';
+        else color = 'var(--text-muted)';
 
         var wakeClass = ratio >= 1.0 ? ' wake' : '';
         var sessionClass = s.session_active ? ' session-active' : '';
@@ -386,8 +386,8 @@
           html += '<div class="signal-strip-block' + liveClass + '"' +
             ' style="opacity:' + opacity + ';background:' +
             (dir === 'BULLISH' ? 'var(--accent-green)' :
-             dir === 'BEARISH' ? 'var(--accent-red)' :
-             'var(--badge-gray-bg)') + '"' +
+              dir === 'BEARISH' ? 'var(--accent-red)' :
+                'var(--badge-gray-bg)') + '"' +
             ' data-tooltip="' + tooltip + '">' +
             '</div>';
         }
