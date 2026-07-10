@@ -141,7 +141,7 @@ regime_parameters:
     # Degree of wick skewness required to signal buyer/seller exhaustion.
     wick_skew_exhaustion: 0.6
     # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
-    cvd_intensity_threshold: 0.18
+    cvd_intensity_threshold: 0.22
     # Extreme single-sided imbalance that triggers immediate absorption audit.
     cvd_intensity_extreme: 0.44
     # Absolute funding threshold for Retail Squeeze detection.
@@ -160,8 +160,8 @@ regime_parameters:
   # --- Trade Risk Boundaries ---
   risk:
     # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
-    min_rr_ranging: 1.08
-    min_rr_trending: 1.12
+    min_rr_ranging: 1.1
+    min_rr_trending: 1.25
     # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
     chaos_rr_discount: 0.35
     # Hard safety boundaries for stop-loss placements.
