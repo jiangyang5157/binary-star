@@ -1628,32 +1628,31 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   font-weight: 500;
 }
 
-/* ── Sniper IDLE view ── */
-.sniper-idle {
-  margin-top: 12px;
-  padding: 14px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 0.82rem;
-  display: flex;
+/* ── Sniper pulse badge (in section header) ── */
+.sniper-header-actions {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  margin-left: auto;
+  flex-shrink: 0;
 }
-.sniper-idle-dot {
+.pulse-badge {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  width: 150px;
+  justify-content: flex-start;
+}
+.pulse-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--accent-teal);
   flex-shrink: 0;
   animation: sp-pulse-glow 2s ease-in-out infinite;
-}
-.sniper-idle-info {
-  color: var(--text-secondary);
-}
-.sniper-idle-info strong {
-  color: var(--text-primary);
 }
 /* ── Sniper signal trigger banner ── */
 .sp-signal-banner {
@@ -1708,7 +1707,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .sp-bar-fill { transition: none; }
   .sp-bar-fill.sp-stage-3 { animation: none; }
   .sp-anchor.active { animation: none; }
-  .sniper-idle-dot { animation: none; }
+  .pulse-dot { animation: none; }
   .pulse-bar.wake { animation: none; }
   .signal-strip-block.live { animation: none; }
   .sp-log { transition: none; }

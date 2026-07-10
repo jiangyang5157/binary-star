@@ -39,7 +39,10 @@
       <section class="card run-panel">
         <div class="section-header">
           <h2 data-i18n="section.sniper_control"></h2>
-          <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
+          <span class="sniper-header-actions">
+            <span id="sniper-pulse-badge" class="pulse-badge" style="display:none"></span>
+            <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
+          </span>
         </div>
         <div class="bt-param-row">
           <label class="bt-field bt-field-wide">
@@ -69,7 +72,6 @@
             </label>
           </div>
         </div>
-        <div id="sniper-status-line"></div>
         <div id="sniper-signal-cards" class="signal-cards" style="display:none"></div>
         <div id="sniper-guardian-table-container"></div>
         <div id="sniper-progress-container"></div>
@@ -220,8 +222,8 @@
         btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
         btn.classList.remove('danger');
         sniperPollInterval = null;
-        var statusEl = document.getElementById('sniper-status-line');
-        if (statusEl) statusEl.innerHTML = '';
+        var statusEl = document.getElementById('sniper-pulse-badge');
+        if (statusEl) statusEl.style.display = 'none';
         var guardianEl = document.getElementById('sniper-guardian-table-container');
         if (guardianEl) guardianEl.innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
@@ -231,18 +233,14 @@
 
     // ── Render sniper status line (always visible while sniper runs) ──
     function _renderSniperStatusLine(data) {
-      var el = document.getElementById('sniper-status-line');
+      var el = document.getElementById('sniper-pulse-badge');
       if (!el) return;
 
       var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-
-      var label = (TRANSLATIONS['sniper.pulse_age']?.[getLang()] || '{time} since last pulse')
-        .replace('{time}', formatElapsed(pulseAge));
-      el.innerHTML =
-        '<div class="sniper-idle">' +
-        '<span class="sniper-idle-dot"></span>' +
-        '<span class="sniper-idle-info">' + label + '</span>' +
-        '</div>';
+      var label = formatElapsed(pulseAge);
+      var template = TRANSLATIONS['sniper.pulse_age']?.[getLang()] || 'Last pulse · {time}';
+      el.innerHTML = '<span class="pulse-dot"></span>' + template.replace('{time}', label);
+      el.style.display = '';
     }
 
     function _renderGuardianTable(container, data) {
@@ -459,7 +457,7 @@
             clearInterval(sniperPollInterval);
             sniperPollInterval = null;
             if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
-            document.getElementById('sniper-status-line').innerHTML = '';
+            document.getElementById('sniper-pulse-badge').style.display = 'none';
             document.getElementById('sniper-guardian-table-container').innerHTML = '';
             document.getElementById('sniper-progress-container').innerHTML = '';
             updateSniperUI('idle');
@@ -497,7 +495,7 @@
           _stopInFlight = false;
           return;
         }
-        document.getElementById('sniper-status-line').innerHTML = '';
+        document.getElementById('sniper-pulse-badge').style.display = 'none';
         document.getElementById('sniper-guardian-table-container').innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }

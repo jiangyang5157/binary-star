@@ -116,8 +116,8 @@ const TRANSLATIONS = {
   "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
   "sniper.balance": { en: "Balance", zh: "余额" },
   "sniper.pulse_age": {
-    en: "{time} since last pulse",
-    zh: "距上次脉冲 {time}"
+    en: "Last pulse · {time}",
+    zh: "上次脉冲 · {time}"
   },
   "sniper.signal_banner": { en: "⚡ Signal ·", zh: "⚡ 信号 ·" },
   "sniper.confidence_label": { en: "Confidence", zh: "置信度" },
