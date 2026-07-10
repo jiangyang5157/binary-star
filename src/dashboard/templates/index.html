@@ -34,27 +34,27 @@
 
     <!-- ═══════ KPI Cards ═══════ -->
     <section class="kpi-grid" id="kpi-grid">
-      <div class="kpi-card accent-green">
+      <div class="kpi-card">
         <span class="kpi-label" data-i18n="kpi.net_pnl"></span>
         <span class="kpi-value" id="kpi-pnl">--</span>
       </div>
-      <div class="kpi-card accent-teal">
+      <div class="kpi-card">
         <span class="kpi-label" data-i18n="kpi.executed"></span>
         <span class="kpi-value" id="kpi-executed">--</span>
       </div>
-      <div class="kpi-card accent-blue">
+      <div class="kpi-card">
         <span class="kpi-label" data-i18n="kpi.win_rate"></span>
         <span class="kpi-value" id="kpi-winrate">--</span>
       </div>
-      <div class="kpi-card accent-purple">
+      <div class="kpi-card">
         <span class="kpi-label" data-i18n="kpi.win_loss"></span>
         <span class="kpi-value" id="kpi-winloss">--</span>
       </div>
-      <div class="kpi-card accent-red">
+      <div class="kpi-card">
         <span class="kpi-label" data-i18n="kpi.max_drawdown"></span>
         <span class="kpi-value" id="kpi-mdd">--</span>
       </div>
-      <div class="kpi-card accent-green">
+      <div class="kpi-card">
         <span class="kpi-label" data-i18n="kpi.sharpe"></span>
         <span class="kpi-value" id="kpi-sharpe">--</span>
       </div>
@@ -188,14 +188,27 @@
       allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
     }
 
+    // ── KPI health: set both value colour and card border based on thresholds ──
+    function _setKpiHealth(id, health) {
+      const el = $(id);
+      if (!el) return;
+      el.className = 'kpi-value' + (health ? ' health-' + health : '');
+      const card = el.parentElement;
+      if (card && card.classList.contains('kpi-card')) {
+        card.className = 'kpi-card' + (health ? ' health-' + health : '');
+      }
+    }
+
     function updateAllCharts(threshold) {
       const trades = filteredTrades;
       const filledTrades = trades.filter(t => t.is_filled);
       const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
 
       if (!filledTrades.length) {
-        for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-sharpe', 'kpi-mdd', 'kpi-winloss', 'kpi-executed'])
+        for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-sharpe', 'kpi-mdd', 'kpi-winloss', 'kpi-executed']) {
           $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
+          _setKpiHealth(id, null);
+        }
         $('confVal').textContent = threshold;
         renderTimeline(trades, threshold);
         renderEquity([], 0);
@@ -244,14 +257,29 @@
       const variance = returns.length > 1 ? returns.reduce((s, r) => s + (r - meanReturn) ** 2, 0) / (returns.length - 1) : 0;
       const sharpe = variance > 0 ? meanReturn / Math.sqrt(variance) : 0;
 
+      // ── Set KPI values with semantic health colouring ──
       $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
-      $('kpi-pnl').className = 'kpi-value ' + (netPnL >= 0 ? 'positive' : 'negative');
+      _setKpiHealth('kpi-pnl', netPnL >= 0 ? 'green' : 'red');
+
       $('kpi-winrate').textContent = winRate.toFixed(0) + '%';
-      $('kpi-sharpe').textContent = sharpe.toFixed(2);
-      $('kpi-sharpe').className = 'kpi-value ' + (sharpe >= 0 ? 'positive' : 'negative');
-      $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
-      $('kpi-winloss').textContent = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '--';
+      _setKpiHealth('kpi-winrate', winRate >= 60 ? 'green' : winRate >= 40 ? 'amber' : 'red');
+
+      const execRatio = orderedTrades.length > 0 ? activeTrades.length / orderedTrades.length : 0;
       $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
+      _setKpiHealth('kpi-executed', execRatio >= 0.8 ? 'green' : execRatio >= 0.4 ? 'amber' : 'red');
+
+      const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
+      $('kpi-winloss').textContent = avgLoss > 0 ? wlRatio.toFixed(2) : '--';
+      _setKpiHealth('kpi-winloss', avgLoss > 0
+        ? (wlRatio >= 2.0 ? 'green' : wlRatio >= 1.0 ? 'amber' : 'red')
+        : 'green');
+
+      $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
+      _setKpiHealth('kpi-mdd', mddPct > -10 ? 'green' : mddPct >= -20 ? 'amber' : 'red');
+
+      $('kpi-sharpe').textContent = sharpe.toFixed(2);
+      _setKpiHealth('kpi-sharpe', sharpe >= 1.5 ? 'green' : sharpe >= 0.5 ? 'amber' : 'red');
+
       $('confVal').textContent = threshold;
 
       renderTimeline(trades, threshold);

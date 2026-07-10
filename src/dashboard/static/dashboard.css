@@ -26,6 +26,7 @@
   --accent-green: #40a85f;
   --accent-red: #e0554a;
   --accent-orange: #d98c2e;
+  --accent-amber: #c9953a;
   --accent-purple: #9488d8;
   --accent-blue: #54a0a8;  /* compat alias — maps to teal */
   --badge-green-bg: rgba(64, 168, 95, 0.15);
@@ -903,10 +904,9 @@ tbody tr:hover {
   box-shadow: var(--shadow);
 }
 
-.kpi-card.accent-green  { border-left-color: var(--accent-green); }
-.kpi-card.accent-red    { border-left-color: var(--accent-red); }
-.kpi-card.accent-blue   { border-left-color: var(--accent-teal); }
-.kpi-card.accent-purple { border-left-color: var(--accent-purple); }
+.kpi-card.health-green  { border-left-color: var(--accent-green); }
+.kpi-card.health-amber  { border-left-color: var(--accent-amber); }
+.kpi-card.health-red    { border-left-color: var(--accent-red); }
 .kpi-label {
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -922,8 +922,9 @@ tbody tr:hover {
   font-variant-numeric: tabular-nums;
 }
 
-.kpi-value.positive { color: var(--accent-green); }
-.kpi-value.negative { color: var(--accent-red); }
+.kpi-value.health-green { color: var(--accent-green); }
+.kpi-value.health-amber  { color: var(--accent-amber); }
+.kpi-value.health-red   { color: var(--accent-red); }
 
 /* --- Chart Card --- */
 .chart-header {
