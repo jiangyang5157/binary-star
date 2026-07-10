@@ -86,14 +86,6 @@
       <div class="section-header">
         <h2 data-i18n="section.active_sessions"></h2>
         <div class="section-controls">
-          <div class="filter-bar">
-            <label class="toggle-label" for="neutral-toggle">
-              <span class="toggle-text" data-i18n="filter.show_neutral"></span>
-              <input type="checkbox" id="neutral-toggle" class="toggle-input"
-                onchange="localStorage.setItem('showNeutral', this.checked); loadActive()">
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
           <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" title="Refresh active sessions">⟳
             Refresh</button>
           <span id="refresh-active-status" class="status-inline" style="display:none"></span>
@@ -630,9 +622,7 @@
       }, 200);
 
       try {
-        const includeNeutral = document.getElementById('neutral-toggle').checked;
-        let url = apiUrl('/api/live-sessions');
-        url += (url.includes('?') ? '&' : '?') + `include_neutral=${includeNeutral}`;
+        const url = apiUrl('/api/live-sessions');
         const resp = await fetch(url);
         const data = await resp.json();
         const sessions = data.active || [];
@@ -697,9 +687,6 @@
       btn.textContent = TRANSLATIONS['btn.refresh']?.[getLang()] || '⟳ Refresh';
     }
 
-    // Restore Show Neutral preference then load
-    const showNeutral = localStorage.getItem('showNeutral') === 'true';
-    document.getElementById('neutral-toggle').checked = showNeutral;
     loadActive();
     {% endif %}
   </script>

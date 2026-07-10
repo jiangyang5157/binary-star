@@ -69,7 +69,6 @@ const TRANSLATIONS = {
   // 过滤器
   "filter.symbol": { en: "Symbol", zh: "交易对" },
   "filter.version": { en: "Version", zh: "版本" },
-  "filter.show_neutral": { en: "Show Neutral", zh: "显示中性" },
 
   // 图表
   "chart.min_confidence": { en: "Min Confidence", zh: "最低置信度" },
