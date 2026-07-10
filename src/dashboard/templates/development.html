@@ -57,6 +57,8 @@
     <section class="card backtest-card">
       <div class="section-header">
         <h2 data-i18n="section.backtest">Backtest</h2>
+        <button id="bt-scout-btn" class="btn-sm" onclick="scoutSamples()" data-i18n="btn.scout"></button>
+        <span id="bt-scout-status" class="feedback-inline" style="display:none"></span>
       </div>
 
       <!-- Mode Toggle -->
@@ -117,11 +119,6 @@
         <code>YYYY-MM-DD HH:MM:SS</code>, or ISO&#8209;8601 &nbsp;·&nbsp; Valid window: last 28 days &nbsp;·&nbsp; Start
         must be before End
       </p>
-
-      <!-- Preview button -->
-      <button id="bt-preview-btn" class="btn-sm" onclick="previewSamples()" data-i18n="btn.preview">Preview
-        Samples</button>
-      <span id="bt-preview-status" class="audit-status" style="display:none"></span>
 
       <!-- Sample List -->
       <div id="bt-sample-list" class="bt-sample-list" style="display:none">
@@ -389,7 +386,7 @@
         el.removeAttribute('data-error');
       });
       // Clear transient UI — keep sample list visible
-      $('bt-preview-status').style.display = 'none';
+      $('bt-scout-status').style.display = 'none';
     }
 
     // ── Error tooltip helper ──
@@ -465,9 +462,9 @@
       });
     }
 
-    async function previewSamples() {
-      const statusEl = $('bt-preview-status');
-      const btn = $('bt-preview-btn');
+    async function scoutSamples() {
+      const statusEl = $('bt-scout-status');
+      const btn = $('bt-scout-btn');
 
       // Toggle: if already previewing, STOP
       if (previewPollInterval) {
@@ -515,9 +512,9 @@
         if (!resp.ok) {
           statusEl.style.display = 'inline';
           statusEl.textContent = '⚠ ' + (data.detail || t('dev.preview_failed'));
-          statusEl.className = 'audit-status audit-error';
+          statusEl.className = 'feedback-inline feedback-err';
           setFieldsDisabled(false);
-          btn.textContent = t('btn.preview');
+          btn.textContent = t('btn.scout');
           btn.classList.remove('danger');
           return;
         }
@@ -531,22 +528,22 @@
           sampleTimestamps = data.timestamps || [];
           renderSampleList(data);
           setFieldsDisabled(false);
-          btn.textContent = t('btn.preview');
+          btn.textContent = t('btn.scout');
           btn.classList.remove('danger');
         }
       } catch (e) {
         statusEl.style.display = 'inline';
         statusEl.textContent = '⚠ ' + t('error.request_failed');
-        statusEl.className = 'audit-status audit-error';
+        statusEl.className = 'feedback-inline feedback-err';
         setFieldsDisabled(false);
-        btn.textContent = t('btn.preview');
+        btn.textContent = t('btn.scout');
         btn.classList.remove('danger');
       }
     }
 
     async function checkPreviewStatus() {
-      const statusEl = $('bt-preview-status');
-      const btn = $('bt-preview-btn');
+      const statusEl = $('bt-scout-status');
+      const btn = $('bt-scout-btn');
 
       try {
         const resp = await fetch(apiUrl('/api/backtest/status'));
@@ -559,13 +556,13 @@
         previewPollInterval = null;
         setFieldsDisabled(false);
         btn.disabled = false;
-        btn.textContent = t('btn.preview');
+        btn.textContent = t('btn.scout');
         btn.classList.remove('danger');
 
         if (data.error) {
           statusEl.style.display = 'inline';
           statusEl.textContent = '⚠ ' + data.error;
-          statusEl.className = 'audit-status audit-error';
+          statusEl.className = 'feedback-inline feedback-err';
           return;
         }
 
@@ -633,7 +630,7 @@
       }
 
       setFieldsDisabled(true);
-      $('bt-preview-btn').disabled = true;
+      $('bt-scout-btn').disabled = true;
       btn.disabled = true;
       btn.textContent = '…';
 
@@ -646,7 +643,7 @@
 
         if (!resp.ok) {
           setFieldsDisabled(false);
-          $('bt-preview-btn').disabled = false;
+          $('bt-scout-btn').disabled = false;
           btn.disabled = false;
           btn.textContent = t('btn.run');
           return;
@@ -659,7 +656,7 @@
           renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
           updateSampleStatuses(result.samples, true);
           setFieldsDisabled(false);
-          $('bt-preview-btn').disabled = false;
+          $('bt-scout-btn').disabled = false;
           btn.disabled = false;
           btn.textContent = t('btn.run');
           return;
@@ -670,7 +667,7 @@
         checkBacktestStatus();
       } catch (e) {
         setFieldsDisabled(false);
-        $('bt-preview-btn').disabled = false;
+        $('bt-scout-btn').disabled = false;
         btn.disabled = false;
         btn.textContent = t('btn.run');
       }
@@ -678,17 +675,17 @@
 
     function updateBacktestRunUI(state) {
       const btn = $('bt-run-btn');
-      const previewBtn = $('bt-preview-btn');
+      const scoutBtn = $('bt-scout-btn');
 
       if (state === 'running') {
         setFieldsDisabled(true);
-        previewBtn.disabled = true;
+        scoutBtn.disabled = true;
         btn.disabled = false;
         btn.textContent = t('btn.stop');
         btn.classList.add('danger');
       } else {
         setFieldsDisabled(false);
-        previewBtn.disabled = false;
+        scoutBtn.disabled = false;
         btn.disabled = false;
         btn.textContent = t('btn.run');
         btn.classList.remove('danger');
@@ -822,7 +819,7 @@
             }
             restoreRawInputs(data);
             setFieldsDisabled(true);
-            const btn = $('bt-preview-btn');
+            const btn = $('bt-scout-btn');
             btn.textContent = t('btn.stop');
             btn.classList.add('danger');
             previewPollInterval = setInterval(checkPreviewStatus, 2000);

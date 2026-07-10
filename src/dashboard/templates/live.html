@@ -39,8 +39,8 @@
       <section class="card run-panel">
         <div class="section-header">
           <h2 data-i18n="section.sniper"></h2>
+          <span id="sniper-pulse-badge" class="pulse-badge" style="display:none"></span>
           <span class="sniper-header-actions">
-            <span id="sniper-pulse-badge" class="pulse-badge" style="display:none"></span>
             <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
           </span>
         </div>
@@ -86,10 +86,8 @@
       <div class="section-header">
         <h2 data-i18n="section.active_sessions"></h2>
         <div class="section-controls">
-          <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" title="Refresh active sessions">⟳
-            Refresh</button>
-          <span id="refresh-active-status" class="status-inline" style="display:none"></span>
-          <span id="active-refreshed-at" class="text-muted" style="font-size:0.72rem"></span>
+          <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" data-i18n="btn.reload" data-i18n-title="btn.reload.title"></button>
+          <span id="refresh-active-status" class="feedback-inline" style="display:none"></span>
         </div>
       </div>
       <div class="table-wrapper">
@@ -628,12 +626,12 @@
         const sessions = data.active || [];
         clearTimeout(loadingTimer);
 
-        countEl.textContent = `${sessions.length} record${sessions.length !== 1 ? 's' : ''}`;
+        countEl.textContent = `${sessions.length} ${t('fmt.records')}`;
 
         if (!sessions.length) {
           tbody.innerHTML = '<tr><td colspan="13" class="empty">' +
             (TRANSLATIONS['msg.no_records_active']?.[getLang()] || 'No records — all clear') + '</td></tr>';
-          return;
+          return sessions.length;
         }
 
         tbody.innerHTML = sessions.map(s => {
@@ -656,35 +654,40 @@
         <td><a href="/sessions/${encodeURIComponent(s.filename)}" class="btn-sm">${TRANSLATIONS['btn.view']?.[getLang()] || 'View'}</a></td>
       </tr>`;
         }).join('');
+        return sessions.length;
 
-        // Update last-refreshed timestamp
-        const tsEl = document.getElementById('active-refreshed-at');
-        if (tsEl) tsEl.textContent = new Date().toLocaleTimeString();
       } catch (e) {
+        clearTimeout(loadingTimer);
         tbody.innerHTML = '<tr><td colspan="13" class="error">' +
           (TRANSLATIONS['msg.load_failed']?.[getLang()] || 'Failed to load records') + '</td></tr>';
+        throw e;
       }
     }
 
-    // ── Refresh button ──
+    // ── Reload button (show ✓ briefly, then revert) ──
     async function refreshActive() {
       const btn = document.getElementById('refresh-active-btn');
       const status = document.getElementById('refresh-active-status');
       btn.disabled = true;
-      btn.textContent = TRANSLATIONS['btn.refresh']?.[getLang()] || '⟳ Refresh';
+      btn.textContent = TRANSLATIONS['btn.reloading']?.[getLang()] || '⟳ Reloading...';
+      status.style.display = 'none';
 
       try {
-        await loadActive();
-        status.textContent = '✓';
-        status.className = 'status-inline ok';
+        const count = await loadActive();
+        status.textContent = `✓ ${count}`;
+        status.className = 'feedback-inline feedback-ok';
       } catch {
         status.textContent = '⚠';
-        status.className = 'status-inline err';
+        status.className = 'feedback-inline feedback-err';
       }
       status.style.display = 'inline';
-      setTimeout(() => { status.style.display = 'none'; }, 2500);
-      btn.disabled = false;
-      btn.textContent = TRANSLATIONS['btn.refresh']?.[getLang()] || '⟳ Refresh';
+      btn.style.display = 'none';
+      setTimeout(() => {
+        status.style.display = 'none';
+        btn.style.display = '';
+        btn.disabled = false;
+        btn.textContent = TRANSLATIONS['btn.reload']?.[getLang()] || '⟳ Reload';
+      }, 2000);
     }
 
     loadActive();

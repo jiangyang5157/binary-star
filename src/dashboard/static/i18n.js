@@ -61,10 +61,14 @@ const TRANSLATIONS = {
   // 按钮
   "btn.run": { en: "▶ Run", zh: "▶ 运行" },
   "btn.stop": { en: "⏹ Stop", zh: "⏹ 停止" },
-  "btn.audit": { en: "▶ Audit", zh: "▶ 审计" },
-  "btn.refresh": { en: "⟳ Refresh", zh: "⟳ 刷新" },
+  "btn.reload": { en: "⟳ Reload", zh: "⟳ 重载" },
+  "btn.reloading": { en: "⟳ Reloading...", zh: "⟳ 重载中..." },
+  "btn.auditing": { en: "⟳ Auditing...", zh: "⟳ 审计中..." },
+  "btn.audit": { en: "⟳ Audit", zh: "⟳ 审计" },
+  "btn.reload.title": { en: "Reload active sessions", zh: "重载活跃会话" },
+  "btn.audit.title": { en: "Run forensic audit against all un-audited sessions", zh: "对所有未审计会话执行审计" },
   "btn.view": { en: "View", zh: "查看" },
-  "btn.preview": { en: "Preview Samples", zh: "预览采样点" },
+  "btn.scout": { en: "◎ Scout", zh: "◎ 勘探" },
 
   // 过滤器
   "filter.symbol": { en: "Symbol", zh: "交易对" },
@@ -191,7 +195,6 @@ const TRANSLATIONS = {
   "error.request_failed": { en: "Request failed", zh: "请求失败" },
   "error.stop_failed": { en: "stop failed", zh: "停止失败" },
   "error.unknown": { en: "Unknown error", zh: "未知错误" },
-  "error.auditing": { en: "⟳ Auditing...", zh: "⟳ 审计中..." },
 
   // 验证错误
   "err.enter_symbol": { en: "Enter at least one symbol (e.g. BTC)", zh: "请输入至少一个交易对 (如 BTC)" },
@@ -244,6 +247,12 @@ function applyTranslations(lang) {
     const key = el.dataset.i18n;
     const text = TRANSLATIONS[key]?.[lang];
     if (text) el.textContent = text;
+  });
+  // 同步 data-i18n-title 属性 (tooltips)
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.dataset.i18nTitle;
+    const text = TRANSLATIONS[key]?.[lang];
+    if (text) el.title = text;
   });
   // 同步 toggle 按钮高亮
   document.querySelectorAll('.lang-toggle .lang-en, .lang-toggle .lang-zh')

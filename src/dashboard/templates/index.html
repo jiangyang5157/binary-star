@@ -91,21 +91,21 @@
     <section class="card">
       <div class="section-header">
         <h2 data-i18n="section.trade_ledger"></h2>
-        <div class="section-controls">
-          <div class="filter-bar">
-            <div class="filter-group">
-              <span class="filter-label" data-i18n="filter.symbol"></span>
-              <input type="text" id="symbol-filter" class="filter-input" style="width:80px">
-            </div>
-            <div class="filter-sep"></div>
-            <div class="filter-group">
-              <span class="filter-label" data-i18n="filter.version"></span>
-              <input type="text" id="version-filter" class="filter-input" style="width:80px">
-            </div>
+        <div class="filter-bar">
+          <div class="filter-group">
+            <span class="filter-label" data-i18n="filter.symbol"></span>
+            <input type="text" id="symbol-filter" class="filter-input" style="width:80px">
           </div>
+          <div class="filter-sep"></div>
+          <div class="filter-group">
+            <span class="filter-label" data-i18n="filter.version"></span>
+            <input type="text" id="version-filter" class="filter-input" style="width:80px">
+          </div>
+        </div>
+        <div class="section-controls">
           <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" data-i18n="btn.audit"
-            title="Run forensic audit against all un-audited sessions"></button>
-          <span id="run-audit-status" class="audit-status" style="display:none"></span>
+            data-i18n-title="btn.audit.title"></button>
+          <span id="run-audit-status" class="feedback-inline" style="display:none"></span>
         </div>
       </div>
       <div class="table-wrapper">
@@ -162,7 +162,7 @@
     // ── Chart config ──
     const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
     let timelineChart = null, equityChart = null, optimizerChart = null;
-    let allTrades = [], filteredTrades = [], allSessions = [], sortKey = 'observed_at', sortDir = -1;
+    let allTrades = [], filteredTrades = [], allSessions = [], _totalSessions = 0, sortKey = 'observed_at', sortDir = -1;
     let confThreshold = 0;  // start unfiltered, user adjusts slider to explore
 
     // ── Helpers ──
@@ -186,8 +186,6 @@
       const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
       const data = await resp.json();
       allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
-      filteredTrades = allTrades;
-      updateAllCharts(confThreshold);
     }
 
     function updateAllCharts(threshold) {
@@ -456,7 +454,10 @@
 
     function renderTable(sessions) {
       const tbody = $('sessions-body');
-      $('session-count').textContent = `${sessions.length} ${t('fmt.records')}`;
+      const count = sessions.length === _totalSessions
+        ? `${_totalSessions} ${t('fmt.records')}`
+        : `${sessions.length} / ${_totalSessions} ${t('fmt.records')}`;
+      $('session-count').textContent = count;
       if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">' + t('msg.no_records_match') + '</td></tr>'; return; }
       tbody.innerHTML = sessions.map(s => {
         const tp = s.tactical || {}, audit = s.audit;
@@ -509,7 +510,7 @@
       const data = await resp.json();
       clearTimeout(loadingTimer);
       allSessions = data.sessions || [];
-      $('session-count').textContent = `${data.total} ${t('fmt.records')}`;
+      _totalSessions = data.total || 0;
       applyFilters();
     }
 
@@ -530,7 +531,7 @@
       const btn = $('run-audit-btn');
       const status = $('run-audit-status');
       btn.disabled = true;
-      btn.textContent = t('error.auditing');
+      btn.textContent = t('btn.auditing');
       status.style.display = 'none';
 
       try {
@@ -539,21 +540,21 @@
 
         if (data.error) {
           status.textContent = '⚠ ' + data.error;
-          status.className = 'audit-status audit-error';
+          status.className = 'feedback-inline feedback-err';
         } else {
           const done = (data.audited || 0) + (data.skipped || 0);
           status.textContent = `✓ ${done}/${data.total || 0}`;
-          status.className = 'audit-status audit-ok';
+          status.className = 'feedback-inline feedback-ok';
           btn.style.display = 'none';
         }
         status.style.display = 'inline';
         setTimeout(() => {
           status.style.display = 'none';
           btn.style.display = '';
-        }, 3000);
+        }, 2000);
       } catch (e) {
         status.textContent = '⚠ ' + t('error.request_failed');
-        status.className = 'audit-status audit-error';
+        status.className = 'feedback-inline feedback-err';
         status.style.display = 'inline';
       } finally {
         btn.disabled = false;
@@ -561,7 +562,8 @@
       }
 
       // Refresh table and charts regardless of outcome
-      await Promise.all([loadSessions(), loadTrades()]);
+      await loadTrades();
+      await loadSessions();
     }
 
     // ── Init ──
