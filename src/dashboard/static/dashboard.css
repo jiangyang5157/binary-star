@@ -181,7 +181,6 @@ code, pre, .mono {
 
 .section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
@@ -189,6 +188,7 @@ code, pre, .mono {
 }
 
 .section-header h2 {
+  margin-right: auto;
   margin-bottom: 0;
 }
 
