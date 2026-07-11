@@ -439,19 +439,59 @@ class BinaryStarOrchestrator:
             logger.info(f"[{symbol}] using early-exit plan as final decision")
             final_decision = last_plan
         else:
-            logger.info(f"[{symbol}] finalizing consensus decision")
-            final_decision = self.session_agent.execute_session_cycle(
-                observation=observation,
-                symbol=symbol,
-                temperature=self.critic_config.model_temperature,
-                agent_name="Session_Synthesis",
-                tools=tools,
-                debate_history=self.debate_loop._compress_debate_history(debate_history),
-                visual_text=visual_text,
-                system_instruction=self.shared_instruction,
-            )
+            # Check if Critic's final verdict is TERMINAL — abort to NEUTRAL
+            last_history = debate_history[-1] if debate_history else {}
+            last_critic = last_history.get("critic", {}) if isinstance(last_history, dict) else {}
+            last_veto = (last_critic.get("veto_level") or "").upper()
+            if last_veto == "TERMINAL":
+                # Build veto trajectory from all rounds
+                veto_trail = []
+                for entry in debate_history:
+                    r = entry.get("round", "?")
+                    v = entry.get("critic", {}).get("veto_level", "?")
+                    veto_trail.append(f"R{r} {v}")
+                trail_str = " → ".join(veto_trail)
 
-        # Physical Parameter Sanitization
+                # Extract the last Critic's invalidation tags
+                invalids = last_critic.get("invalidations") or []
+                inval_tags = ", ".join(
+                    inv.split(" - ")[0] if " - " in str(inv) else str(inv)
+                    for inv in invalids
+                )
+
+                logger.warning(
+                    f"[{symbol}] TERMINAL persisted at max_rounds → forcing NEUTRAL | "
+                    f"veto_trail={trail_str} | invalids={inval_tags}"
+                )
+                final_decision = {
+                    "opinion": "NEUTRAL",
+                    "confidence_score": 0,
+                    "tactical_parameters": {},
+                    "reasoning_chain": (
+                        f"**FORCED NEUTRAL** — Critic TERMINAL persisted at max_rounds.\n\n"
+                        f"**Veto trail**: {trail_str}\n"
+                        f"**Root causes**: {inval_tags or 'N/A'}\n\n"
+                        f"Debate aborted. No structurally valid trade could be synthesized."
+                    ),
+                    "critic_impact": "Debate aborted — Critic TERMINAL persisted at max_rounds; forced NEUTRAL before Session_Synthesis could respond.",
+                }
+            else:
+                logger.info(f"[{symbol}] finalizing consensus decision")
+                final_decision = self.session_agent.execute_session_cycle(
+                    observation=observation,
+                    symbol=symbol,
+                    temperature=self.critic_config.model_temperature,
+                    agent_name="Session_Synthesis",
+                    tools=tools,
+                    debate_history=self.debate_loop._compress_debate_history(debate_history),
+                    visual_text=visual_text,
+                    system_instruction=self.shared_instruction,
+                )
+
+        # Physical Parameter Sanitization (skip NEUTRAL — no trade params to verify)
+        if final_decision.get("opinion") == "NEUTRAL":
+            return final_decision
+
         final_math = self.math_checker.verify(final_decision, observation)
         if final_math.get("status") == "VERIFIED":
             tactical = final_decision.get("tactical_parameters", {})
