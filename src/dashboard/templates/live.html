@@ -374,7 +374,7 @@
           var sig = allSignals[j];
           var dir = sig.is_active ? sig.direction : 'NEUTRAL';
           var hasScore = sig.score > 0;
-          var opacity = hasScore ? 1.0 : 0.25;
+          var opacity = Math.min(0.2 + sig.score * 0.8, 1.0);
           var liveClass = hasScore ? ' live' : '';
           var tooltip = sig.type;
           html += '<div class="signal-strip-block' + liveClass + '"' +
