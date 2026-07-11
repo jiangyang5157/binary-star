@@ -761,8 +761,9 @@
         } else if (s.status === 'completed') {
           if (iconEl) { iconEl.textContent = '✓'; iconEl.className = 'bt-sample-status-icon ok'; }
           if (progContainer && window._btProgressInstances[i]) {
-            window._btProgressInstances[i].collapsed = true;
-            window._btProgressInstances[i].update(progress || { status: 'completed', result: {}, elapsed_seconds: 0 });
+            window._btProgressInstances[i].destroy();
+            delete window._btProgressInstances[i];
+            progContainer.innerHTML = '';
           }
           if (progress && progress.result) {
             const r = progress.result;
@@ -779,8 +780,9 @@
         } else if (s.status === 'failed') {
           if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
           if (progContainer && window._btProgressInstances[i]) {
-            window._btProgressInstances[i].collapsed = true;
-            window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || t('dev.failed') });
+            window._btProgressInstances[i].destroy();
+            delete window._btProgressInstances[i];
+            progContainer.innerHTML = '';
           }
           if (resultEl) resultEl.textContent = '';
           if (metaEl) metaEl.textContent = '';
