@@ -214,7 +214,7 @@ const TRANSLATIONS = {
   "err.samples_max": { en: "Max 200 samples", zh: "最多 200 个采样点" },
 
   // Development 页面
-  "dev.completed": { en: "completed", zh: "已完成" },
+  "dev.completed": { en: "Completed", zh: "已完成" },
   "dev.failed": { en: "Failed", zh: "失败" },
   "dev.preview_failed": { en: "preview failed", zh: "预览失败" },
 
