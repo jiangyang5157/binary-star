@@ -45,9 +45,11 @@ sequenceDiagram
 
 Each proposal carries a 0–100 confidence score across three dimensions: topographical armor, regime sync, and temporal physics. Scores below threshold are rejected — the debate produces a decision, but the gate refuses to act on it. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
 
+> **Full protocol**: [docs/binary_star.md](docs/binary_star.md) — Session/Critic prompts, veto system, confidence calculus, repair patterns, deadlock analysis.
+
 ---
 
-## Architecture
+## System Topology
 
 ```mermaid
 graph LR
