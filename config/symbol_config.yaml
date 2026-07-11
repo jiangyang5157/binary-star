@@ -29,22 +29,20 @@ BTCUSDT:
       net_qty_tolerance: 0.00001   # BTC lot 0.001，比 XAUT 精细 10 倍
     regime_parameters:
       trend:
-        # 波动扩张期间提高趋势强度门槛，过滤假突破噪声。
-        trend_intensity_min_expansion: 0.12
+        trend_intensity_min_expansion: 0.12 # 波动扩张期间提高趋势强度门槛，过滤假突破噪声。
       volume:
         vacuum_risk_score: 0.5
       imbalance:
-        long_short_imbalance_ratio: 1.6
+        long_short_imbalance_ratio: 2.0
       structural:
         structural_buffer_atr: 1.0
         breakout_frontrun_atr: 0.18 # 流动性厚的资产放宽前端抢跑距离，避免过早入场。
-        max_entry_distance_atr: 1.2
+        max_entry_distance_atr: 0.8
       micro_sentiment:
+        cvd_intensity_threshold: 0.14   # 0.08-0.12
         cvd_intensity_extreme: 0.16     # 0.14-0.18
-        cvd_intensity_threshold: 0.15   # 0.08-0.12
     sniper:
       signal_stack:
         thresholds:
-          # 高流动性资产 CVD 信号更干净，降低门槛以捕捉更早的背离。
-          cvd_divergence_tick_delta: 0.25
+          cvd_divergence_tick_delta: 0.25 # 高流动性资产 CVD 信号更干净，降低门槛以捕捉更早的背离。
           cvd_extreme_threshold: 0.18

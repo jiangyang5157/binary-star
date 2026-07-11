@@ -56,8 +56,8 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `HAS_VOLUME_SURGE` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
 | **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_FLOW_DOMINANCE` AND NOT `HAS_ABSORPTION_RISK` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
 | **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND `IN_NEUTRAL` | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
-| **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH` | `[RETAIL_LONG_SQUEEZE]` | `TERMINAL` |
-| **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `TERMINAL` |
+| **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH` | `[RETAIL_LONG_SQUEEZE]` | `CONSTRUCTIVE` |
+| **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `CONSTRUCTIVE` |
 | **Absorption Trap** | `HAS_ABSORPTION_RISK` AND `HAS_FLOW_OPPOSITION` | `[CVD_ABSORPTION]` | `WEAK` |
 | **Gravity Exhaustion**| `IS_OVEREXTENDING` | `[GRAVITY_EXHAUSTION]` | `CONSTRUCTIVE` |
 | **Volatility Chop** | `IS_VOLATILITY_CHOP` AND NOT `IN_NEUTRAL` | `[VOLATILITY_CHOP]` | `CONSTRUCTIVE` |
