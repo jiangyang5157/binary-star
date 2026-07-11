@@ -121,9 +121,13 @@ sequenceDiagram
     alt early_exit = true
         Note over O: Use last plan directly
     else max_rounds reached
-        Note over O: Run cold Synthesis
-        O->>S: execute_session_cycle(temperature=0.1, compressed_history)
-        S-->>O: hardened final plan
+        alt last Critic verdict = TERMINAL
+            Note over O: Force NEUTRAL (structurally invalid)
+        else non-TERMINAL
+            Note over O: Run cold Synthesis
+            O->>S: execute_session_cycle(temperature=0.1, compressed_history)
+            S-->>O: hardened final plan
+        end
     end
 
     Note over O: Sanitization
@@ -327,7 +331,7 @@ graph TD
 
 | Constraint | Value | Purpose |
 |-----------|-------|---------|
-| `max_entry_distance_atr` | 1.2 ATR | Hard limit — entry cannot exceed this distance from current price |
+| `max_entry_distance_atr` | 0.8 (BTC) / 1.2 (base) ATR | Hard limit — entry cannot exceed this distance from current price. Per-symbol overridable |
 | `min_rr_ranging` | 1.1 | Minimum RR for ranging regimes |
 | `min_rr_trending` | 1.25 | Minimum RR for trending regimes |
 | `chaos_rr_discount` | 0.35 (35%) | RR threshold reduction during IS_CHAOS |
@@ -487,7 +491,7 @@ graph LR
 | Holding Ratio | 0–10 | ≈0.7-1.5 → 8-10, 0.5-0.7 or 1.5-2.0 → 4-7, >2.0 or <0.3 → 1-3 |
 | Wait/Hold | 0–8 | ≤0.15 → 8, 0.15-0.30 → 5-7, 0.30-0.50 → 2-4, >0.50 → 0-1 |
 | Squeeze/Chaos Compression | 0–5 | Tight → 5, loose → 2-3, ignored → 0 |
-| Sentiment Risk | 0–7 | Balanced → 7, retail extreme aligned → 4-6, retail extreme against → 0-2, funding extreme against → -2 |
+| Sentiment Risk | 0–7 | Balanced → 7, retail extreme aligned → 4-6, retail extreme against → 0-2, funding extreme against → -2. **SQUEEZE HARDENING**: If `[RETAIL_SQUEEZE]` tag in debate history + maintaining direction via hardening → score as 7 |
 
 ### Key Insight: The Confidence Paradox
 
@@ -521,8 +525,8 @@ PASS       ██           Clean — no issues found
 | 4 | Structural Violation | `IS_STRUCTURAL_TRAP` (entry in volume vacuum) | `[STRUCTURAL_TRAP]` | **TERMINAL** |
 | 5 | Anchor/Shield Failure | `HAS_ANCHOR_VIOLATION` | `[ANCHOR_VIOLATION]` | **TERMINAL** |
 | 6 | Logic Loop | `HAS_PROTOCOL_VIOLATION` (State Reversion) | `[PROTOCOL_VIOLATION]` | **TERMINAL** |
-| 7 | Retail Long Squeeze | `HAS_BEAR_SENTIMENT` AND BULLISH | `[RETAIL_LONG_SQUEEZE]` | **TERMINAL** |
-| 8 | Retail Short Squeeze | `HAS_BULL_SENTIMENT` AND BEARISH | `[RETAIL_SHORT_SQUEEZE]` | **TERMINAL** |
+| 7 | Retail Long Squeeze | `HAS_BEAR_SENTIMENT` AND BULLISH | `[RETAIL_LONG_SQUEEZE]` | CONSTRUCTIVE |
+| 8 | Retail Short Squeeze | `HAS_BULL_SENTIMENT` AND BEARISH | `[RETAIL_SHORT_SQUEEZE]` | CONSTRUCTIVE |
 | 9 | Math Violation | NOT `IS_RR_VALID` OR ATR volatility illogical | `[MATH_VIOLATION]` | CONSTRUCTIVE |
 | 10 | Inaction Bias | NEUTRAL + squeeze low + volume surge, OR extreme POC distance | `[INACTION_BIAS]` | CONSTRUCTIVE |
 | 11 | Opportunity Denial | NEUTRAL + flow dominant + no absorption risk | `[OPPORTUNITY_DENIAL]` | CONSTRUCTIVE |
@@ -541,7 +545,7 @@ PASS       ██           Clean — no issues found
 | PASS | Yes | Clean plan, no issues |
 | WEAK | Yes | Passes with noted risk |
 | CONSTRUCTIVE | No — continues to next round | Fixable issues |
-| TERMINAL | No — continues to next round | Must fundamentally restructure |
+| TERMINAL | No — continues to next round | Must fundamentally restructure. If persists at max_rounds → forced NEUTRAL |
 | CONSTRUCTIVE + TERMINAL mix | No — continues | TERMINAL takes priority |
 
 ---
@@ -556,8 +560,8 @@ When the Session receives Critic feedback (in IS_SYNTHESIS mode), it must apply 
 | `[STRUCTURAL_TRAP]` | Relocate entry to nearest HVN, POC, or VAH/VAL. Avoid LVN vacuums. |
 | `[ANCHOR_VIOLATION]` | Move stop_loss distally behind next valid structural anchor. Ensure betweenness. |
 | `[MATH_VIOLATION]` | Recalibrate via MathTools to balance risk/ATR scaling. Adhere to minimum RR. |
-| `[RETAIL_LONG_SQUEEZE]` | Polarity Pivot to BEARISH. Only if price testing/rejecting VAH. Target long liquidation cascade. |
-| `[RETAIL_SHORT_SQUEEZE]` | Polarity Pivot to BULLISH. Only if price testing/rejecting VAL. Target short liquidation cascade. |
+| `[RETAIL_LONG_SQUEEZE]` | Retail crowded long — hardening first: tighten stop, compress TP. Pivot to BEARISH only if testing VAH + `trend_intensity ≤ 0`. Target long liquidation cascade. |
+| `[RETAIL_SHORT_SQUEEZE]` | Retail crowded short — hardening first: tighten stop, compress TP. Pivot to BULLISH only if testing VAL + `trend_intensity ≥ 0`. Target short liquidation cascade. |
 | `[CVD_ABSORPTION]` | Abort Momentum. Move to deep DLE at nearest HVN/POC. |
 | `[GRAVITY_EXHAUSTION]` | If lacks momentum → Mean-Reversion DLE targeting POC. If institutional flow confirmed → Shallow Pullback DLE. If critic repeats this veto after Shallow Pullback at max distance → output NEUTRAL. |
 | `[FLOW_VIOLATION]` | Polarity Pivot to align with CVD or abort to NEUTRAL. Don't "deepen entry" to absorb counter-flow. |
@@ -643,13 +647,13 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph "Deadlock 1: TERMINAL Loop"
+    subgraph "Deadlock 1: TERMINAL → Forced NEUTRAL"
         D1A[Session proposes plan] --> D1B[Critic: TERMINAL veto]
         D1B --> D1C[Session repairs]
         D1C --> D1D[Critic: TERMINAL again]
         D1D --> D1E[Debate exhausts max_rounds]
-        D1E --> D1F[Cold Synthesis with temp=0.1]
-        D1F --> D1G[Outcome: may still be rejected by sniper gate]
+        D1E --> D1F[Orchestrator forces NEUTRAL]
+        D1F --> D1G[RESOLVED — no trade executed]
     end
 
     subgraph "Deadlock 2: CONSTRUCTIVE Spiral"
@@ -819,9 +823,9 @@ flowchart TD
 |-----------|-------|----------|---------|
 | `max_rounds` | 2 | global_config.yaml | Hard debate round limit |
 | `confidence_threshold` | 65 | global_config.yaml | Entry gate — live config value |
-| `trend_intensity_strong` | 0.35 | strategy_config.yaml | Threshold for momentum exemptions |
+| `trend_intensity_strong` | 0.4 | strategy_config.yaml | Threshold for momentum exemptions (XAUT override) |
 | `volatility_extreme_ratio` | 2.2 | strategy_config.yaml | CHAOS classification |
-| `max_entry_distance_atr` | 1.2 | strategy_config.yaml | Phantom order prevention |
+| `max_entry_distance_atr` | 0.8 (BTC) / 1.2 (base) | strategy_config.yaml + symbol_config.yaml | Phantom order prevention — per-symbol overridable |
 | `min_rr_ranging` | 1.1 | strategy_config.yaml | Minimum RR — ranging |
 | `min_rr_trending` | 1.25 | strategy_config.yaml | Minimum RR — trending |
 | `chaos_rr_discount` | 0.35 | strategy_config.yaml | RR reduction during CHAOS |

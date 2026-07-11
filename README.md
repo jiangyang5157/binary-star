@@ -2,7 +2,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-What if two LLMs debated your trade before it hit the market? **Binary Star** pits a Planner against a Critic — one proposes, the other tears it apart. A Math Tools (no LLM, pure computation) anchors both to reality. The debate converges in at most two rounds; if they can't agree, the system forces a decision. Below the confidence threshold, the trade never fires.
+What if two LLMs debated your trade before it hit the market? **Binary Star** pits a Planner against a Critic — one proposes, the other tears it apart. A Math Tools (no LLM, pure computation) anchors both to reality. The debate converges in at most two rounds; if they can't agree and the Critic's last verdict is TERMINAL, the system aborts to NEUTRAL rather than forcing a broken trade.
 
 ---
 
@@ -28,7 +28,7 @@ sequenceDiagram
             C-->>BSO: ✗ weaknesses found
             Note right of BSO: feedback loops back → Session refines
         else TERMINAL
-            C-->>-BSO: ⊗ forced convergence
+            C-->>-BSO: ⊗ forced NEUTRAL
         end
     end
     Note over BSO: confidence gate → dispatch to Order Executor
@@ -41,7 +41,7 @@ sequenceDiagram
 | **PASS** | Plan is sound — early exit, no further rounds |
 | **WEAK** | Minor concern — early exit, plan accepted as-is |
 | **CONSTRUCTIVE** | Fixable flaws — feedback loop, Planner refines |
-| **TERMINAL** | Unfixable — forced convergence, plan accepted as-is |
+| **TERMINAL** | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
 
 Each proposal carries a 0–100 confidence score across three dimensions: topographical armor, regime sync, and temporal physics. Scores below threshold are rejected — the debate produces a decision, but the gate refuses to act on it. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
 

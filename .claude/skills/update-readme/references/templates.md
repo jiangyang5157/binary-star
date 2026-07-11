@@ -50,7 +50,7 @@ debate fires — and the winner (or forced consensus) becomes the order on-chain
 |------|--------|
 | PASS | Plan accepted — early exit |
 | CONSTRUCTIVE | Fixable flaws — Planner refines |
-| TERMINAL | Unfixable — forced convergence |
+| TERMINAL | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
 
 Plans are scored 0-100 across three confidence dimensions (topographical
 armor, regime sync, temporal physics). Scores below threshold are rejected.

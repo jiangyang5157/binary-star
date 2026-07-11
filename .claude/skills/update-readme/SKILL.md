@@ -70,7 +70,7 @@ Based on the selected sections, scan only what's needed.
 Extract the multi-agent architecture:
 - Which agents participate, in what role
 - How debate rounds work (plan → verify → audit → converge or loop)
-- Early exit criteria vs forced convergence
+- Early exit criteria vs max-rounds resolution (TERMINAL → NEUTRAL if unresolved)
 - The critic's veto system — ALL FOUR levels: PASS, WEAK, CONSTRUCTIVE, TERMINAL
 - Confidence scoring dimensions (topographical armor, regime sync, temporal physics)
 - Math Tools is NOT an LLM agent — it's a deterministic Python-side verifier (RR, ATR, structural shielding). Use "Math Tools" not "Math Auditor" to avoid confusion with the Critic role.
@@ -201,7 +201,7 @@ sequenceDiagram
         else CONSTRUCTIVE
             C-->>BSO: refine
         else TERMINAL
-            C-->>BSO: forced convergence
+            C-->>BSO: forced NEUTRAL
         end
     end
 ```
