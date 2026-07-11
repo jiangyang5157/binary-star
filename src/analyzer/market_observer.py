@@ -711,11 +711,14 @@ class MarketObserver:
         observation = self._package_observation(metrics, snapshots, at_time)
 
         if progress_callback:
-            kline_count = len(raw.macro_klines) if hasattr(raw, 'macro_klines') else '?'
-            indicator_count = len(metrics.__dict__) if hasattr(metrics, '__dict__') else 0
+            macro_count = len(raw.macro_klines) if hasattr(raw, 'macro_klines') else 0
+            micro_count = len(raw.micro_klines) if hasattr(raw, 'micro_klines') else 0
+            macro_interval = self.config.macro_context.time_interval
+            micro_interval = self.config.micro_context.time_interval
+            total = macro_count + micro_count
             progress_callback(
                 stage=1,
-                activity=f"Data collection done · {kline_count} klines, {indicator_count} indicators",
+                activity=f"Data collection done · {total} klines ({macro_count} × {macro_interval} + {micro_count} × {micro_interval})",
             )
 
         if persist:

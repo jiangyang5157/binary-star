@@ -299,9 +299,6 @@ class BinaryStarOrchestrator:
         # 1. Inject regime benchmarks (pre-calculated physical constants)
         self._inject_regime_benchmarks(observation)
 
-        if progress_callback:
-            progress_callback(stage=2, activity="Computing market regime…")
-
         visual_parts, visual_text = self._load_visual_assets(observation)
 
         tool_declarations = MathTools.get_tool_declarations()
