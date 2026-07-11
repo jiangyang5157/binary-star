@@ -212,7 +212,7 @@
             if (!runProgress) {
               runProgress = new SessionProgress(
                 document.getElementById('run-progress-container'),
-                { size: 'full', context: 'session' }
+                { context: 'session' }
               );
             }
             const p = data.progress;
@@ -229,7 +229,7 @@
               if (!runProgress) {
                 runProgress = new SessionProgress(
                   document.getElementById('run-progress-container'),
-                  { size: 'full', context: 'session' }
+                  { context: 'session' }
                 );
               }
               runProgress.update(data.progress);
@@ -753,7 +753,7 @@
           if (progress && progContainer) {
             if (!window._btProgressInstances[i]) {
               window._btProgressInstances[i] = new SessionProgress(progContainer, {
-                size: 'compact', context: 'backtest'
+                collapsed: true, context: 'backtest'
               });
             }
             window._btProgressInstances[i].update(progress);
@@ -761,6 +761,7 @@
         } else if (s.status === 'completed') {
           if (iconEl) { iconEl.textContent = '✓'; iconEl.className = 'bt-sample-status-icon ok'; }
           if (progContainer && window._btProgressInstances[i]) {
+            window._btProgressInstances[i].collapsed = true;
             window._btProgressInstances[i].update(progress || { status: 'completed', result: {}, elapsed_seconds: 0 });
           }
           if (progress && progress.result) {
@@ -778,6 +779,7 @@
         } else if (s.status === 'failed') {
           if (iconEl) { iconEl.textContent = '✗'; iconEl.className = 'bt-sample-status-icon err'; }
           if (progContainer && window._btProgressInstances[i]) {
+            window._btProgressInstances[i].collapsed = true;
             window._btProgressInstances[i].update(progress || { status: 'failed', error: s.error || t('dev.failed') });
           }
           if (resultEl) resultEl.textContent = '';

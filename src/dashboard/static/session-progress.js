@@ -1,16 +1,22 @@
 /**
- * SessionProgress — shared progress component for session execution.
+ * SessionProgress — single component reused across New Session, Sniper, and Backtest.
  *
- * Visualizes 0-100% session progress with 5 stages, activity feed, and
- * error display. Reused across New Session, Sniper, and Backtest panels.
+ * Two display modes controlled by `.collapsed`:
+ *   collapsed=false ("expanded"): vertical stage timeline + full activity log
+ *   collapsed=true  ("collapsed"): progress bar + one-line activity / result
  *
  * Usage:
  *   const sp = new SessionProgress(document.getElementById('container'), {
- *     size: 'full',        // 'full' | 'compact'
+ *     collapsed: false,    // default
  *     context: 'session',  // 'session' | 'sniper' | 'backtest'
  *   });
- *   sp.update(progressData);  // called every 2s poll cycle
- *   sp.destroy();             // cleanup
+ *   sp.update(progressData);
+ *
+ *   // Toggle at runtime:
+ *   sp.collapsed = true;
+ *   sp.update(data);
+ *
+ *   sp.destroy();  // cleanup
  */
 
 const ACTIVITY_ACTIVE = 'active';
@@ -21,9 +27,8 @@ class SessionProgress {
   constructor(containerEl, opts) {
     opts = opts || {};
     this.el = containerEl;
-    this.size = opts.size || 'full';
+    this.collapsed = opts.collapsed === true;
     this.context = opts.context || 'session';
-    this.expanded = false;
     this._lastData = null;
     this.el.classList.add('session-progress');
     this.el.style.display = 'none';
@@ -65,16 +70,19 @@ class SessionProgress {
     this.el.classList.remove('sp-hidden');
   }
 
-  // ── Running state ──────────────────────────────────────────────
+  // ── Running ────────────────────────────────────────────────
 
   _renderRunning(data) {
     this.show();
+    if (this.collapsed) { this._renderRunningCollapsed(data); return; }
+    this._renderRunningExpanded(data);
+  }
+
+  _renderRunningCollapsed(data) {
     var stage = data.current_stage || 1;
     var stages = data.stages || [];
-    var label = data.stage_label || (stages[stage - 1] && stages[stage - 1].label) || '';
     var activity = data.activity || '';
     var elapsed = this._fmtElapsed(data.elapsed_seconds || 0);
-    var activities = data.activities || [];
     var fillPct = this._barPct(stage, stages);
 
     var html = '';
@@ -86,7 +94,7 @@ class SessionProgress {
         this._esc(data._triggered_at) + '</div>';
     }
 
-    // Bar row
+    // Progress bar
     html += '<div class="sp-bar-row">';
     html += '<div class="sp-bar">';
     html += '<div class="sp-bar-fill' + (stage === 3 ? ' sp-stage-3' : '') +
@@ -101,69 +109,116 @@ class SessionProgress {
     }
     html += '</div></div>';
 
-    // Label row (full only)
-    if (this.size === 'full') {
-      html += '<div class="sp-labels">';
-      for (var j = 0; j < stages.length; j++) {
-        var stg2 = stages[j];
-        var lblCls = 'sp-label';
-        if (stg2.stage < stage) lblCls += ' done';
-        else if (stg2.stage === stage) lblCls += ' active';
-        var lblText = stg2.label;
-        if (stg2.stage === 3 && label && label !== 'Debate') lblText = label;
-        html += '<span class="' + lblCls + '">' + this._esc(lblText) + '</span>';
-      }
-      html += '</div>';
-    }
-
-    // Activity row
-    var toggleIcon = this.expanded ? '▾' : '▸';
-    html += '<div class="sp-activity">';
-    html += '<span class="sp-activity-toggle">' + toggleIcon + '</span>';
+    // Activity line
+    html += '<div class="sp-activity sp-activity-compact">';
+    html += '<span class="sp-activity-icon">◉</span>';
     html += '<span class="sp-activity-text">' + this._esc(activity) + '</span>';
     html += '<span class="sp-elapsed">⏱ ' + elapsed + '</span>';
     html += '</div>';
 
-    // Activity log (full size, expandable)
-    if (this.size === 'full') {
-      html += this._renderActivityLog(activities, !this.expanded);
-    }
-
     this.el.innerHTML = html;
-
-    // Bind click for expand/collapse
-    if (this.size === 'full') {
-      var self = this;
-      var activityRow = this.el.querySelector('.sp-activity');
-      if (activityRow) {
-        activityRow.onclick = function () {
-          self.expanded = !self.expanded;
-          self._renderRunning(self._lastData);
-        };
-      }
-    }
   }
 
-  // ── Completed state ────────────────────────────────────────────
+  _renderRunningExpanded(data) {
+    var stage = data.current_stage || 1;
+    var stages = data.stages || [];
+    var stageLabel = data.stage_label || '';
+    var elapsed = this._fmtElapsed(data.elapsed_seconds || 0);
+    var activities = data.activities || [];
+
+    var html = '';
+
+    // Signal banner (sniper only)
+    if (this.context === 'sniper' && data._triggered_at) {
+      html += '<div class="sp-signal-banner">' + t('sniper.signal_banner') + ' ' +
+        this._esc(data._symbol || '') + ' · ' +
+        this._esc(data._triggered_at) + '</div>';
+    }
+
+    // Group activities by stage so they nest under the correct stage row
+    var stageGroups = {};
+    var unassigned = [];
+    for (var j = 0; j < activities.length; j++) {
+      var entry = activities[j];
+      var s = entry.stage || 0;
+      if (s === 0) { unassigned.push(entry); }
+      else {
+        if (!stageGroups[s]) stageGroups[s] = [];
+        stageGroups[s].push(entry);
+      }
+    }
+
+    // Vertical stage timeline with nested step lists
+    html += '<div class="sp-timeline">';
+    for (var i = 0; i < stages.length; i++) {
+      var stg = stages[i];
+      var isDone = stg.stage < stage;
+      var isActive = stg.stage === stage;
+      var icon, rowCls;
+      if (isDone) { icon = '✓'; rowCls = 'stage-done'; }
+      else if (isActive) { icon = '◉'; rowCls = 'stage-active'; }
+      else { icon = '○'; rowCls = 'stage-pending'; }
+
+      html += '<div class="sp-stage ' + rowCls + '">';
+      html += '<span class="sp-stage-icon">' + icon + '</span>';
+      html += '<span class="sp-stage-label">' +
+        this._esc(isActive && stageLabel ? stageLabel : stg.label) + '</span>';
+      html += '</div>';
+
+      // Steps belonging to this stage
+      html += this._renderStepList(stageGroups[stg.stage]);
+    }
+    html += '<div class="sp-timeline-elapsed">⏱ ' + elapsed + '</div>';
+    html += '</div>';
+
+    // Unassigned activities (fallback for old data without stage field)
+    html += this._renderStepList(unassigned);
+
+    this.el.innerHTML = html;
+  }
+
+  // ── Completed ──────────────────────────────────────────────
 
   _renderCompleted(data) {
     this.show();
+    if (this.collapsed) { this._renderCompletedCollapsed(data); return; }
+    this._renderCompletedExpanded(data);
+  }
+
+  _renderCompletedCollapsed(data) {
     var result = data.result || {};
     var dir = result.direction || 'NEUTRAL';
     var conf = result.confidence != null ? result.confidence : 0;
     var elapsed = this._fmtElapsed(data.elapsed_seconds || 0);
     var debatePath = result.debate_path || '';
+    var meta = '✓ ' + dir + ' ' + conf + '% · ⏱ ' + elapsed;
+    if (debatePath) meta += ' · ' + debatePath;
+    this.el.innerHTML = '<span class="sp-result">' + this._esc(meta) + '</span>';
+  }
 
-    if (this.size === 'compact') {
-      var meta = '✓ ' + dir + ' ' + conf + '% · ⏱ ' + elapsed;
-      if (debatePath) meta += ' · ' + debatePath;
-      this.el.innerHTML = '<div class="bt-sample-result" style="color:var(--accent-green)">' +
-        this._esc(meta) + '</div>';
-      return;
+  _renderCompletedExpanded(data) {
+    var result = data.result || {};
+    var dir = result.direction || 'NEUTRAL';
+    var conf = result.confidence != null ? result.confidence : 0;
+    var elapsed = this._fmtElapsed(data.elapsed_seconds || 0);
+    var debatePath = result.debate_path || '';
+    var stages = data.stages || [];
+
+    var html = '';
+
+    // Full stage timeline (all done)
+    html += '<div class="sp-timeline">';
+    for (var i = 0; i < stages.length; i++) {
+      var stg = stages[i];
+      html += '<div class="sp-stage stage-done">';
+      html += '<span class="sp-stage-icon">✓</span>';
+      html += '<span class="sp-stage-label">' + this._esc(stg.label) + '</span>';
+      html += '</div>';
     }
+    html += '</div>';
 
-    // Full size
-    var html = '<div class="sp-completed">';
+    // Result summary
+    html += '<div class="sp-completed">';
     html += '<span>✓</span>';
     html += '<span class="sp-completed-dir">' + this._esc(dir) + '</span>';
     html += '<span class="sp-completed-meta">· ' + t('sniper.confidence_label') + ' ' + conf + '% · ⏱ ' + elapsed + '</span>';
@@ -171,86 +226,104 @@ class SessionProgress {
       html += '<span class="sp-completed-debate">· ' + this._esc(debatePath) + '</span>';
     }
     html += '</div>';
+
     this.el.innerHTML = html;
   }
 
-  // ── Failed state ───────────────────────────────────────────────
+  // ── Failed ─────────────────────────────────────────────────
 
   _renderFailed(data) {
     this.show();
+    if (this.collapsed) { this._renderFailedCollapsed(data); return; }
+    this._renderFailedExpanded(data);
+  }
+
+  _renderFailedCollapsed(data) {
+    var errorMsg = data.error || t('error.unknown');
+    this.el.innerHTML = '<span class="sp-result sp-result-error">✗ ' +
+      this._esc(errorMsg) + '</span>';
+  }
+
+  _renderFailedExpanded(data) {
     var stage = data.current_stage || 1;
     var stages = data.stages || [];
+    var stageLabel = data.stage_label || '';
     var errorMsg = data.error || t('error.unknown');
     var activities = data.activities || [];
-    var fillPct = this._barPct(stage, stages);
 
     var html = '';
 
-    // Bar with failed anchor
-    html += '<div class="sp-bar-row">';
-    html += '<div class="sp-bar">';
-    html += '<div class="sp-bar-fill" style="width:' + fillPct + '%"></div>';
+    // Group activities by stage so they nest under the correct stage row
+    var stageGroups = {};
+    var unassigned = [];
+    for (var j = 0; j < activities.length; j++) {
+      var entry = activities[j];
+      var s = entry.stage || 0;
+      if (s === 0) { unassigned.push(entry); }
+      else {
+        if (!stageGroups[s]) stageGroups[s] = [];
+        stageGroups[s].push(entry);
+      }
+    }
+
+    // Vertical stage timeline — current stage marked failed
+    html += '<div class="sp-timeline">';
     for (var i = 0; i < stages.length; i++) {
       var stg = stages[i];
-      var cls = 'sp-anchor s' + stg.stage;
-      if (stg.stage < stage) cls += ' done';
-      else if (stg.stage === stage) cls += ' failed';
-      html += '<div class="' + cls + '" style="left:' +
-        stg.position_pct + '%"></div>';
-    }
-    html += '</div></div>';
+      var isDone = stg.stage < stage;
+      var isActive = stg.stage === stage;
+      var icon, rowCls;
+      if (isActive) { icon = '✗'; rowCls = 'stage-failed'; }
+      else if (isDone) { icon = '✓'; rowCls = 'stage-done'; }
+      else { icon = '○'; rowCls = 'stage-pending'; }
 
-    // Labels (full only)
-    if (this.size === 'full') {
-      html += '<div class="sp-labels">';
-      for (var j = 0; j < stages.length; j++) {
-        var stg2 = stages[j];
-        var lblCls = 'sp-label';
-        if (stg2.stage < stage) lblCls += ' done';
-        else if (stg2.stage === stage) lblCls += ' failed';
-        html += '<span class="' + lblCls + '">' + stg2.label + '</span>';
-      }
+      html += '<div class="sp-stage ' + rowCls + '">';
+      html += '<span class="sp-stage-icon">' + icon + '</span>';
+      html += '<span class="sp-stage-label">' +
+        this._esc(isActive && stageLabel ? stageLabel : stg.label) + '</span>';
       html += '</div>';
+
+      // Steps belonging to this stage
+      html += this._renderStepList(stageGroups[stg.stage]);
     }
+    html += '<div class="sp-timeline-elapsed">⏱ ' + this._fmtElapsed(data.elapsed_seconds || 0) + '</div>';
+    html += '</div>';
 
     // Error message
     html += '<div class="sp-error-msg"><span>⚠</span><span>' +
       this._esc(errorMsg) + '</span></div>';
 
-    // Activity log (auto-expanded for failure)
-    if (this.size === 'full' && activities.length > 0) {
-      html += this._renderActivityLog(activities, false);
-    }
+    // Unassigned activities (fallback for old data without stage field)
+    html += this._renderStepList(unassigned);
 
     this.el.innerHTML = html;
   }
 
-  // ── Activity log (shared by running + failed states) ────────────
+  // ── Shared helpers ─────────────────────────────────────────
 
-  _renderActivityLog(activities, collapsed) {
-    var html = '';
-    var logCls = 'sp-log' + (collapsed ? ' collapsed' : '');
-    html += '<div class="' + logCls + '">';
-    var isLast;
-    for (var k = 0; k < activities.length; k++) {
-      var entry = activities[k];
-      isLast = (k === activities.length - 1);
-      var icon = '◉', entryCls = 'active';
-      if (entry.type === ACTIVITY_COMPLETE || (!isLast && entry.type !== ACTIVITY_ERROR)) {
-        icon = '✓'; entryCls = 'complete';
-      } else if (entry.type === ACTIVITY_ERROR) {
-        icon = '✗'; entryCls = 'error';
+  /** Render a list of activity entries as a .sp-step-list block. */
+  _renderStepList(entries) {
+    if (!entries || entries.length === 0) return '';
+    var html = '<div class="sp-step-list">';
+    for (var j = 0; j < entries.length; j++) {
+      var entry = entries[j];
+      var isLast = (j === entries.length - 1);
+      var stepIcon, stepCls;
+      if (entry.type === ACTIVITY_ERROR) {
+        stepIcon = '✗'; stepCls = 'step-error';
+      } else if (entry.type === ACTIVITY_COMPLETE || !isLast) {
+        stepIcon = '✓'; stepCls = 'step-done';
+      } else {
+        stepIcon = '◉'; stepCls = 'step-active';
       }
-      html += '<div class="sp-log-entry ' + entryCls + '">';
-      html += '<span class="sp-log-icon">' + icon + '</span>';
-      html += '<span class="sp-log-msg">' + this._esc(entry.message || '') + '</span>';
+      html += '<div class="sp-step ' + stepCls + '">';
+      html += '<span class="sp-step-icon">' + stepIcon + '</span>';
+      html += '<span class="sp-step-msg">' + this._esc(entry.message || '') + '</span>';
       html += '</div>';
     }
     html += '</div>';
     return html;
   }
-
-  // ── Helpers ────────────────────────────────────────────────────
 
   _barPct(stage, stages) {
     if (stage <= 0) return 0;

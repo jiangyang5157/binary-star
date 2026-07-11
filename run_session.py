@@ -226,7 +226,7 @@ def write_status_file_callback(data_root: str):
 
         if status == "running":
             activities = list(progress.get("activities", []))
-            add_activity_entry(activities, activity)
+            add_activity_entry(activities, activity, stage=stage)
             progress = {
                 "status": "running",
                 "current_stage": stage if stage is not None else progress.get("current_stage", 1),

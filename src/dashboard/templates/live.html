@@ -431,7 +431,7 @@
             _sniperHadActiveSession = true;
             if (!sniperProgress) {
               sniperProgress = new SessionProgress(progressContainer, {
-                size: 'full', context: 'sniper'
+                context: 'sniper'
               });
             }
             var p = data.active_session.progress;

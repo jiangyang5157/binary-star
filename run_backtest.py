@@ -52,7 +52,7 @@ def _write_status(data_root: str, status: dict) -> None:
     path = _status_path(data_root)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(status, default=str))
+    tmp.write_text(json.dumps(status, default=str, indent=2))
     tmp.replace(path)
 
 
@@ -270,7 +270,7 @@ class BacktestRunner:
                         progress = samples3[_sample_idx].get("progress", {})
                         if status == "running":
                             activities = list(progress.get("activities", []))
-                            add_activity_entry(activities, activity)
+                            add_activity_entry(activities, activity, stage=stage)
                             progress = {
                                 "status": "running",
                                 "current_stage": (

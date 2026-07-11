@@ -1524,23 +1524,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .sp-anchor.s4 { left: 87.5%; }
 .sp-anchor.s5 { left: 100%; }
 
-/* ── Labels row ── */
-.sp-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2px;
-  margin-bottom: 8px;
-  padding: 0 2px;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-.sp-label {
-  text-align: center;
-  white-space: nowrap;
-  transition: color 0.4s;
-}
-.sp-label.failed { color: var(--accent-red); }
-
 /* ── Activity row ── */
 .sp-activity {
   display: flex;
@@ -1550,19 +1533,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   user-select: none;
   padding: 4px 0;
 }
-.sp-activity-toggle {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  width: 12px;
-  flex-shrink: 0;
-}
 .sp-activity-text {
   flex: 1;
   color: var(--text-secondary);
   font-size: 0.78rem;
-}
-.sp-activity-text.sp-error {
-  color: var(--accent-red);
 }
 .sp-elapsed {
   color: var(--text-muted);
@@ -1570,43 +1544,99 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   font-family: "SF Mono", "Fira Code", "Consolas", monospace;
 }
 
-/* ── Activity log (expandable) ── */
-.sp-log {
-  margin-top: 6px;
-  padding: 8px 10px;
-  background: var(--bg-primary);
-  border-radius: var(--radius-sm);
+/* ── Vertical stage timeline (expanded mode) ── */
+.sp-timeline {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 6px;
+}
+.sp-stage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0 3px 8px;
+  font-size: 0.8rem;
+  border-left: 2px solid transparent;
+  transition: border-color 0.3s;
+}
+.sp-stage.stage-done .sp-stage-label {
+  color: var(--text-muted);
+}
+.sp-stage.stage-active {
+  border-left-color: var(--accent-teal);
+}
+.sp-stage.stage-active .sp-stage-label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.sp-stage.stage-failed {
+  border-left-color: var(--accent-red);
+}
+.sp-stage.stage-failed .sp-stage-label {
+  color: var(--accent-red);
+  font-weight: 500;
+}
+.sp-stage.stage-pending .sp-stage-label {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+.sp-stage-icon {
+  width: 18px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 0.72rem;
+}
+.sp-stage.stage-done .sp-stage-icon { color: var(--accent-green); }
+.sp-stage.stage-active .sp-stage-icon { color: var(--accent-teal); animation: sp-pulse-glow 2s ease-in-out infinite; }
+.sp-stage.stage-failed .sp-stage-icon { color: var(--accent-red); }
+.sp-stage.stage-pending .sp-stage-icon { color: var(--text-muted); }
+
+/* ── Elapsed timer (bottom of timeline) ── */
+.sp-timeline-elapsed {
+  padding: 4px 0 0 8px;
   font-size: 0.72rem;
   font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-  max-height: 300px;
-  overflow-y: auto;
-  transition: max-height 0.3s ease-out, padding 0.3s, margin 0.3s;
+  color: var(--text-muted);
 }
-.sp-log.collapsed {
-  max-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-top: 0;
-  overflow: hidden;
+
+/* ── Step list (activity detail under timeline) ── */
+.sp-step-list {
+  padding: 2px 0 6px 28px;
+  border-left: 1px solid var(--border-muted);
+  margin-left: 8px;
 }
-.sp-log-entry {
-  padding: 2px 0;
+.sp-step {
   display: flex;
-  gap: 6px;
   align-items: baseline;
+  gap: 6px;
+  padding: 2px 0;
+  font-size: 0.74rem;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
 }
-.sp-log-entry .sp-log-icon {
+.sp-step-icon {
   width: 14px;
   flex-shrink: 0;
   text-align: center;
 }
-.sp-log-entry .sp-log-msg {
+.sp-step-msg {
   color: var(--text-secondary);
 }
-.sp-log-entry.complete .sp-log-icon { color: var(--accent-green); }
-.sp-log-entry.active .sp-log-icon { color: var(--accent-teal); }
-.sp-log-entry.error .sp-log-icon,
-.sp-log-entry.error .sp-log-msg { color: var(--accent-red); }
+.sp-step.step-done .sp-step-icon { color: var(--accent-green); }
+.sp-step.step-active .sp-step-icon { color: var(--accent-teal); }
+.sp-step.step-error .sp-step-icon,
+.sp-step.step-error .sp-step-msg { color: var(--accent-red); }
+
+/* ── Collapsed activity line ── */
+.sp-activity-compact {
+  cursor: default;
+}
+.sp-activity-compact .sp-activity-icon {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--accent-teal);
+}
 
 /* ── Completed state ── */
 .sp-completed {
@@ -1638,6 +1668,17 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   color: var(--accent-red);
   font-size: 0.82rem;
   font-weight: 500;
+}
+
+/* ── Collapsed result (completed / failed one-liner) ── */
+.sp-result {
+  color: var(--accent-green);
+  font-weight: 500;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.sp-result.sp-result-error {
+  color: var(--accent-red);
 }
 
 /* ── Section header overrides: h2 doesn't push specific content right ── */
@@ -1746,11 +1787,11 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .sp-bar-fill { transition: none; }
   .sp-bar-fill.sp-stage-3 { animation: none; }
   .sp-anchor.active { animation: none; }
+  .sp-stage.stage-active .sp-stage-icon { animation: none; }
   .pulse-bar.wake { animation: none; }
   .signal-strip-block.live { animation: none; }
   .sniper-status-dot.connected,
   .sniper-status-dot.stale { animation: none; }
-  .sp-log { transition: none; }
   .session-progress { transition: none; }
 }
 

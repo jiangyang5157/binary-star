@@ -46,9 +46,12 @@ def enrich_progress(progress: dict | None) -> dict | None:
     return progress
 
 
-def add_activity_entry(activities: list[dict], activity: str | None) -> None:
+def add_activity_entry(activities: list[dict], activity: str | None, stage: int | None = None) -> None:
     """Mutate *activities* in-place: promote previous active → complete,
     then append the new entry.
+
+    *stage* should be the 1-based stage number (1-5) the activity belongs
+    to, so the frontend can group steps under the correct timeline stage.
 
     Callers should pass a copy of the list if they need the original unchanged.
     """
@@ -65,10 +68,13 @@ def add_activity_entry(activities: list[dict], activity: str | None) -> None:
     elif activity and activity.startswith("Debate") and ":" in activity:
         entry_type = COMPLETE
 
-    activities.append({
+    entry = {
         "type": entry_type,
         "message": activity or "",
-    })
+    }
+    if stage is not None:
+        entry["stage"] = stage
+    activities.append(entry)
 
     # Keep only the last N entries
     if len(activities) > _MAX_ACTIVITIES:
