@@ -44,12 +44,11 @@
       <section class="card run-panel">
         <div class="section-header">
           <h2 data-i18n="section.sniper"></h2>
-          <span id="sniper-pulse-badge" class="pulse-badge" style="display:none"></span>
-          <span id="sniper-connection" class="sniper-connection" style="display:none">
-            <span class="conn-dot" id="sniper-conn-dot"></span>
-            <span id="sniper-conn-label">Connected</span>
-          </span>
           <span class="sniper-header-actions">
+            <span id="sniper-status" class="sniper-status" style="display:none">
+              <span class="sniper-status-dot" id="sniper-status-dot"></span>
+              <span id="sniper-status-label"></span>
+            </span>
             <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
           </span>
         </div>
@@ -205,8 +204,8 @@
         btn.disabled = false;
         btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
         btn.classList.add('danger');
-        var connEl = document.getElementById('sniper-connection');
-        if (connEl) connEl.style.display = '';
+        var statusEl = document.getElementById('sniper-status');
+        if (statusEl) statusEl.style.display = '';
         _sniperConnFailures = 0;
       } else {
         _stopInFlight = false;
@@ -218,10 +217,8 @@
         btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
         btn.classList.remove('danger');
         sniperPollInterval = null;
-        var statusEl = document.getElementById('sniper-pulse-badge');
+        var statusEl = document.getElementById('sniper-status');
         if (statusEl) statusEl.style.display = 'none';
-        var connEl = document.getElementById('sniper-connection');
-        if (connEl) connEl.style.display = 'none';
         var guardianEl = document.getElementById('sniper-guardian-table-container');
         if (guardianEl) guardianEl.innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
@@ -229,15 +226,14 @@
       }
     }
 
-    // ── Render sniper status line (always visible while sniper runs) ──
-    function _renderSniperStatusLine(data) {
-      var el = document.getElementById('sniper-pulse-badge');
-      if (!el) return;
-
-      var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-      var label = formatElapsed(pulseAge);
-      var template = TRANSLATIONS['sniper.pulse_age']?.[getLang()] || 'Last pulse · {time}';
-      el.innerHTML = '<span class="pulse-dot"></span>' + template.replace('{time}', label);
+    // ── Render sniper merged status indicator ──
+    function _renderSniperStatus(state, label) {
+      var el = document.getElementById('sniper-status');
+      var dot = document.getElementById('sniper-status-dot');
+      var lbl = document.getElementById('sniper-status-label');
+      if (!el || !dot || !lbl) return;
+      dot.className = 'sniper-status-dot ' + (state || 'connected');
+      lbl.textContent = label || t('status.connected');
       el.style.display = '';
     }
 
@@ -307,7 +303,7 @@
         if (!s) continue;
 
         var ratio = s.threshold > 0 ? Math.min(s.confluence_score / s.threshold, 1.0) : 0;
-        var heightPx = Math.max(1, Math.round(ratio * 22));
+        var heightPx = Math.max(1, Math.round(ratio * 32));
 
         var color;
         if (s.direction === 'BULLISH') color = 'var(--accent-green)';
@@ -406,14 +402,6 @@
       }
     }
 
-    function _updateConnHealth(state, label) {
-      var dot = document.getElementById('sniper-conn-dot');
-      var lbl = document.getElementById('sniper-conn-label');
-      if (!dot || !lbl) return;
-      dot.className = 'conn-dot ' + state;
-      lbl.textContent = label || state;
-    }
-
     async function checkSniperStatus() {
       try {
         const resp = await fetch(apiUrl('/api/sniper/status'));
@@ -427,12 +415,10 @@
           if (!_stopInFlight) {
             updateSniperUI('running');
           }
-          _updateConnHealth('connected', t('status.connected'));
+          var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
+          _renderSniperStatus('connected', t('status.connected') + ' · ' + formatElapsed(pulseAge));
           const progressContainer = document.getElementById('sniper-progress-container');
           const guardianContainer = document.getElementById('sniper-guardian-table-container');
-
-          // Status line — always visible while sniper runs
-          _renderSniperStatusLine(data);
 
           // Guardian table (per-symbol position/order status) when trade enabled
           _renderGuardianTable(guardianContainer, data);
@@ -468,7 +454,7 @@
             clearInterval(sniperPollInterval);
             sniperPollInterval = null;
             if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
-            document.getElementById('sniper-pulse-badge').style.display = 'none';
+            document.getElementById('sniper-status').style.display = 'none';
             document.getElementById('sniper-guardian-table-container').innerHTML = '';
             document.getElementById('sniper-progress-container').innerHTML = '';
             updateSniperUI('idle');
@@ -476,10 +462,14 @@
         }
       } catch (e) {
         _sniperConnFailures++;
+        var ageLabel = '';
+        if (_lastSniperPulseAt > 0) {
+          ageLabel = ' · ' + formatElapsed(Math.round((Date.now() - _lastSniperPulseAt) / 1000));
+        }
         if (_sniperConnFailures >= 3) {
-          _updateConnHealth('disconnected', t('status.disconnected'));
+          _renderSniperStatus('disconnected', t('status.disconnected') + ageLabel);
         } else {
-          _updateConnHealth('stale', t('status.retrying'));
+          _renderSniperStatus('stale', t('status.retrying') + ageLabel);
         }
       }
     }
@@ -513,7 +503,7 @@
           _stopInFlight = false;
           return;
         }
-        document.getElementById('sniper-pulse-badge').style.display = 'none';
+        document.getElementById('sniper-status').style.display = 'none';
         document.getElementById('sniper-guardian-table-container').innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }

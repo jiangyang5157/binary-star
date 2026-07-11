@@ -1646,7 +1646,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-right: 0;
 }
 
-/* ── Sniper pulse badge (in section header) ── */
+/* ── Sniper section header ── */
 .sniper-header-actions {
   display: inline-flex;
   align-items: center;
@@ -1654,22 +1654,45 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-left: auto;
   flex-shrink: 0;
 }
-.pulse-badge {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
+/* ── Sniper merged status indicator ── */
+.sniper-status {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
   white-space: nowrap;
 }
-.pulse-dot {
-  width: 10px;
-  height: 10px;
+.sniper-status-dot {
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--accent-teal);
   flex-shrink: 0;
-  animation: sp-pulse-glow 2s ease-in-out infinite;
+  transition: background 0.5s ease, box-shadow 0.5s ease;
 }
+.sniper-status-dot.connected {
+  background: var(--accent-teal);
+  animation: breathe-teal 2.5s ease-in-out infinite;
+}
+.sniper-status-dot.stale {
+  background: var(--accent-amber);
+  animation: breathe-amber 2.5s ease-in-out infinite;
+}
+.sniper-status-dot.disconnected {
+  background: var(--accent-red);
+  box-shadow: none;
+  animation: none;
+}
+
+@keyframes breathe-teal {
+  0%, 100% { box-shadow: 0 0 2px 1px rgba(84, 160, 168, 0.15); }
+  50% { box-shadow: 0 0 6px 2px rgba(84, 160, 168, 0.3); }
+}
+@keyframes breathe-amber {
+  0%, 100% { box-shadow: 0 0 2px 1px rgba(201, 149, 58, 0.15); }
+  50% { box-shadow: 0 0 6px 2px rgba(201, 149, 58, 0.3); }
+}
+
 /* ── Sniper signal trigger banner ── */
 .sp-signal-banner {
   display: flex;
@@ -1723,9 +1746,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .sp-bar-fill { transition: none; }
   .sp-bar-fill.sp-stage-3 { animation: none; }
   .sp-anchor.active { animation: none; }
-  .pulse-dot { animation: none; }
   .pulse-bar.wake { animation: none; }
   .signal-strip-block.live { animation: none; }
+  .sniper-status-dot.connected,
+  .sniper-status-dot.stale { animation: none; }
   .sp-log { transition: none; }
   .session-progress { transition: none; }
 }
@@ -1833,7 +1857,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   align-items: flex-end;
   justify-content: flex-end;
   gap: 4px;
-  height: 24px;
+  height: 34px;
   margin-bottom: 8px;
   position: relative;
 }
@@ -1861,13 +1885,13 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .pulse-bar.session-active::after {
   content: "";
   position: absolute;
-  top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: inherit;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 2px 2px 0 0;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .pulse-bar:hover::before {
@@ -1970,33 +1994,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .debate-timeline .debate-round {
   position: relative;
   z-index: 1;
-}
-
-/* ── Sniper Connection Status ──────────────────────── */
-.sniper-connection {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-left: 8px;
-  white-space: nowrap;
-}
-.conn-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.conn-dot.connected {
-  background: var(--accent-green);
-  box-shadow: 0 0 6px rgba(64, 168, 95, 0.4);
-}
-.conn-dot.stale {
-  background: var(--accent-amber);
-}
-.conn-dot.disconnected {
-  background: var(--accent-red);
 }
 
 /* ── Table Responsive Column Visibility ────────────── */

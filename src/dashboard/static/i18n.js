@@ -119,10 +119,6 @@ const TRANSLATIONS = {
   // Sniper
   "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
   "sniper.cap_label": { en: "Cap (optional)", zh: "上限（可选）" },
-  "sniper.pulse_age": {
-    en: "Last pulse · {time}",
-    zh: "上次脉冲 · {time}"
-  },
   "sniper.signal_banner": { en: "⚡ Signal ·", zh: "⚡ 信号 ·" },
   "sniper.confidence_label": { en: "Confidence", zh: "置信度" },
 
