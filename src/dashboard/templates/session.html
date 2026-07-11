@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Session Detail - Singularity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="/static/dashboard.css">
 <script src="/static/i18n.js"></script>
 <script src="/static/dashboard-utils.js"></script>
@@ -19,6 +21,9 @@
     <span class="nav-link active" data-i18n="nav.session">Session Detail</span>
   </nav>
   <div class="header-controls">
+    {% if data_root %}
+    <span class="env-badge">{{ data_root }}</span>
+    {% endif %}
     <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
       <span class="lang-en active">EN</span>
       <span class="lang-sep">│</span>
@@ -28,17 +33,15 @@
 </header>
 
 <main class="container" id="app-main">
+  <nav class="breadcrumb">
+    <a href="/live">Live</a>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-current" data-i18n="nav.session">Session Detail</span>
+  </nav>
   <div class="loading-spinner" data-i18n="msg.loading">Loading session...</div>
 </main>
 
 <script>
-const DATA_ROOT = '{{ data_root }}';
-(function () {
-  const tag = document.createElement('span');
-  tag.className = 'data-root-tag';
-  tag.textContent = DATA_ROOT;
-  document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
-})();
 const filename = window.location.pathname.split('/sessions/')[1];
 
 function apiUrl(path, extra = {}) {
@@ -75,6 +78,11 @@ async function loadSession() {
 }
 
 loadSession();
+
+// Re-render on language switch
+document.addEventListener('langchange', function () {
+  loadSession();
+});
 </script>
 </body>
 </html>

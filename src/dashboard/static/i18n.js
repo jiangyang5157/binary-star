@@ -61,11 +61,11 @@ const TRANSLATIONS = {
   // 按钮
   "btn.run": { en: "▶ Run", zh: "▶ 运行" },
   "btn.stop": { en: "⏹ Stop", zh: "⏹ 停止" },
-  "btn.reload": { en: "⟳ Reload", zh: "⟳ 重载" },
-  "btn.reloading": { en: "⟳ Reloading...", zh: "⟳ 重载中..." },
+  "btn.refresh": { en: "⟳ Refresh", zh: "⟳ 刷新" },
+  "btn.refreshing": { en: "⟳ Refreshing...", zh: "⟳ 刷新中..." },
   "btn.auditing": { en: "⟳ Auditing...", zh: "⟳ 审计中..." },
   "btn.audit": { en: "⟳ Audit", zh: "⟳ 审计" },
-  "btn.reload.title": { en: "Reload active sessions", zh: "重载活跃会话" },
+  "btn.refresh.title": { en: "Refresh active sessions", zh: "刷新活跃会话" },
   "btn.audit.title": { en: "Run forensic audit against all un-audited sessions", zh: "对所有未审计会话执行审计" },
   "btn.view": { en: "View", zh: "查看" },
   "btn.scout": { en: "◎ Scout", zh: "◎ 勘探" },
@@ -97,6 +97,7 @@ const TRANSLATIONS = {
   "bt.single_ts": { en: "Single Timestamp", zh: "单时间戳" },
   "bt.date_range": { en: "Date Range", zh: "日期范围" },
   "bt.trading_pair": { en: "Trading Pair", zh: "交易对" },
+  "bt.trading_pairs": { en: "Trading Pairs", zh: "交易对" },
   "bt.timestamp": { en: "Timestamp", zh: "时间戳" },
   "bt.start": { en: "Start", zh: "开始" },
   "bt.end": { en: "End", zh: "结束" },
@@ -117,7 +118,7 @@ const TRANSLATIONS = {
 
   // Sniper
   "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
-  "sniper.balance": { en: "Balance", zh: "余额" },
+  "sniper.cap_label": { en: "Cap (optional)", zh: "上限（可选）" },
   "sniper.pulse_age": {
     en: "Last pulse · {time}",
     zh: "上次脉冲 · {time}"
@@ -136,6 +137,9 @@ const TRANSLATIONS = {
   "status.protected": { en: "Protected", zh: "受保护" },
   "status.naked": { en: "Naked", zh: "裸仓" },
   "status.idle": { en: "Idle", zh: "闲置" },
+  "status.connected": { en: "Connected", zh: "已连接" },
+  "status.disconnected": { en: "Disconnected", zh: "已断开" },
+  "status.retrying": { en: "Retrying...", zh: "重试中..." },
 
   // 方向 (opinion badge)
   "opinion.bullish": { en: "BULLISH", zh: "看涨" },
@@ -202,10 +206,10 @@ const TRANSLATIONS = {
     en: "is not a valid symbol — use letters and numbers only",
     zh: "不是有效交易对 — 仅可使用字母和数字"
   },
-  "err.balance_required": { en: "Enter a balance to enable trading", zh: "启用交易需输入余额" },
-  "err.balance_positive": { en: "Balance must be a positive number", zh: "余额必须为正数" },
+  "err.cap_positive": { en: "Cap must be a positive number", zh: "上限必须为正数" },
   "err.min_chars": { en: "Enter at least 2 characters (e.g. BTC)", zh: "请输入至少 2 个字符 (如 BTC)" },
   "err.letters_numbers": { en: "Only letters and numbers", zh: "仅可使用字母和数字" },
+  "err.single_symbol": { en: "Only one symbol allowed", zh: "仅支持单个交易对" },
   "err.timestamp_required": { en: "Timestamp is required", zh: "时间戳为必填" },
   "err.start_required": { en: "Start date is required", zh: "开始日期为必填" },
   "err.end_required": { en: "End date is required", zh: "结束日期为必填" },
@@ -271,14 +275,17 @@ function applyTranslations(lang) {
   });
 }
 
-/** 设置语言（切换 + 持久化 + 重载页面以刷新动态内容） */
+/** 设置语言 — 客户端切换，不刷新页面 */
 function setLang(lang) {
   localStorage.setItem('hl', lang);
+  // 更新 URL query param without navigation (for bookmark consistency)
   const url = new URL(window.location);
   url.searchParams.set('hl', lang);
-  // Use replaceState then reload so dynamic JS-rendered content (t() calls)
-  // re-evaluates with the new language, not just data-i18n elements.
-  window.location.href = url.toString();
+  history.replaceState(null, '', url.toString());
+  // 更新所有静态 data-i18n 元素
+  applyTranslations(lang);
+  // 通知各页面重新渲染动态内容
+  document.dispatchEvent(new CustomEvent('langchange', { detail: { lang } }));
 }
 
 /** 切换中/英 */

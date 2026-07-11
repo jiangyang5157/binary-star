@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Live — Singularity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/static/dashboard.css">
   <script src="/static/i18n.js"></script>
   <script src="/static/dashboard-utils.js"></script>
@@ -21,6 +23,9 @@
       <a href="/development" class="nav-link" data-i18n="nav.development"></a>
     </nav>
     <div class="header-controls">
+      {% if data_root %}
+      <span class="env-badge">{{ data_root }}</span>
+      {% endif %}
       <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
         <span class="lang-en active">EN</span>
         <span class="lang-sep">│</span>
@@ -40,13 +45,17 @@
         <div class="section-header">
           <h2 data-i18n="section.sniper"></h2>
           <span id="sniper-pulse-badge" class="pulse-badge" style="display:none"></span>
+          <span id="sniper-connection" class="sniper-connection" style="display:none">
+            <span class="conn-dot" id="sniper-conn-dot"></span>
+            <span id="sniper-conn-label">Connected</span>
+          </span>
           <span class="sniper-header-actions">
             <button id="sniper-btn" class="btn-primary" onclick="triggerSniper()" data-i18n="btn.run"></button>
           </span>
         </div>
         <div class="bt-param-row">
           <label class="bt-field bt-field-wide">
-            <span class="bt-label" data-i18n="bt.trading_pair"></span>
+            <span class="bt-label" data-i18n="bt.trading_pairs"></span>
             <span class="input-group" id="sniper-symbol-group">
               <input type="text" id="sniper-symbol" class="input-group-field" placeholder="XAUT, BTC" maxlength="50"
                 autocomplete="off" oninput="clearSniperErrors()">
@@ -56,19 +65,20 @@
         </div>
         <div class="bt-param-row">
           <div class="bt-range-grid">
-            <label class="bt-field" id="sniper-balance-field" style="display:none; max-width:180px">
-              <span class="bt-label" data-i18n="sniper.balance"></span>
+            <label class="toggle-label" for="sniper-trade-toggle" style="white-space:nowrap">
+              <span class="toggle-text" data-i18n="sniper.enable_trading"></span>
+              <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleCapEnabled()">
+              <span class="toggle-slider"></span>
+            </label>
+            <label class="bt-field" id="sniper-cap-field" style="flex:1;min-width:160px">
+              <span class="bt-label" data-i18n="sniper.cap_label"></span>
               <span class="input-group">
-                <input type="number" id="sniper-balance" class="input-group-field" min="0" step="any"
+                <input type="number" id="sniper-cap" class="input-group-field" min="0" step="any" disabled
+                  placeholder="Auto"
                   onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                   oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
                 <span class="input-group-suffix quote-suffix">USDT</span>
               </span>
-            </label>
-            <label class="toggle-label sniper-trade-toggle" for="sniper-trade-toggle">
-              <span class="toggle-text" data-i18n="sniper.enable_trading"></span>
-              <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleBalanceVisibility()">
-              <span class="toggle-slider"></span>
             </label>
           </div>
         </div>
@@ -86,7 +96,7 @@
       <div class="section-header">
         <h2 data-i18n="section.active_sessions"></h2>
         <div class="section-controls">
-          <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" data-i18n="btn.reload" data-i18n-title="btn.reload.title"></button>
+          <button id="refresh-active-btn" class="btn-sm" onclick="refreshActive()" data-i18n="btn.refresh" data-i18n-title="btn.refresh.title"></button>
           <span id="refresh-active-status" class="feedback-inline" style="display:none"></span>
         </div>
       </div>
@@ -123,14 +133,6 @@
   </main>
 
   <script>
-    const DATA_ROOT = '{{ data_root }}';
-    (function () {
-      const tag = document.createElement('span');
-      tag.className = 'data-root-tag';
-      tag.textContent = DATA_ROOT;
-      document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
-    })();
-
     function apiUrl(path, extra = {}) {
       const p = new URLSearchParams();
       const pageParams = new URLSearchParams(window.location.search);
@@ -159,61 +161,67 @@
     let sniperProgress = null;
     let _stopInFlight = false;  // guards against poll re-enabling button mid-stop
     let _sniperHadActiveSession = false;  // detect session completion → refresh active table
+    let _sniperConnFailures = 0;  // consecutive poll failures for connection health
+    let _lastSniperPulseAt = 0;   // timestamp of last successful pulse (ms)
 
     function clearSniperErrors() {
-      ['sniper-symbol', 'sniper-balance'].forEach(id => {
+      ['sniper-symbol', 'sniper-cap'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('bt-field-error');
       });
       const group = document.getElementById('sniper-symbol-group');
       if (group) { group.classList.remove('has-error'); group.removeAttribute('data-error'); }
-      // Clear balance input-group error too
-      const balInput = document.getElementById('sniper-balance');
-      if (balInput) {
-        const balGroup = balInput.closest('.input-group');
-        if (balGroup) { balGroup.classList.remove('has-error'); balGroup.removeAttribute('data-error'); }
+      // Clear cap input-group error too
+      const capInput = document.getElementById('sniper-cap');
+      if (capInput) {
+        const capGroup = capInput.closest('.input-group');
+        if (capGroup) { capGroup.classList.remove('has-error'); capGroup.removeAttribute('data-error'); }
       }
       const container = document.getElementById('sniper-progress-container');
       container.innerHTML = '';
       if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
     }
 
-    function toggleBalanceVisibility() {
+    function toggleCapEnabled() {
       const trade = document.getElementById('sniper-trade-toggle').checked;
-      const field = document.getElementById('sniper-balance-field');
-      const balanceInput = document.getElementById('sniper-balance');
-      field.style.display = trade ? '' : 'none';
+      const capInput = document.getElementById('sniper-cap');
+      capInput.disabled = !trade;
       if (!trade) {
-        balanceInput.value = '';
+        capInput.value = '';
       }
     }
 
     function updateSniperUI(state) {
       const input = document.getElementById('sniper-symbol');
       const tradeToggle = document.getElementById('sniper-trade-toggle');
-      const balanceInput = document.getElementById('sniper-balance');
+      const capInput = document.getElementById('sniper-cap');
       const btn = document.getElementById('sniper-btn');
 
       if (state === 'running') {
         _stopInFlight = false;
         input.disabled = true;
         tradeToggle.disabled = true;
-        balanceInput.disabled = true;
+        capInput.disabled = true;
         btn.disabled = false;
         btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
         btn.classList.add('danger');
+        var connEl = document.getElementById('sniper-connection');
+        if (connEl) connEl.style.display = '';
+        _sniperConnFailures = 0;
       } else {
         _stopInFlight = false;
         input.disabled = false;
         tradeToggle.disabled = false;
-        balanceInput.disabled = false;
-        toggleBalanceVisibility();
+        capInput.disabled = false;
+        toggleCapEnabled();
         btn.disabled = false;
         btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
         btn.classList.remove('danger');
         sniperPollInterval = null;
         var statusEl = document.getElementById('sniper-pulse-badge');
         if (statusEl) statusEl.style.display = 'none';
+        var connEl = document.getElementById('sniper-connection');
+        if (connEl) connEl.style.display = 'none';
         var guardianEl = document.getElementById('sniper-guardian-table-container');
         if (guardianEl) guardianEl.innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
@@ -398,15 +406,28 @@
       }
     }
 
+    function _updateConnHealth(state, label) {
+      var dot = document.getElementById('sniper-conn-dot');
+      var lbl = document.getElementById('sniper-conn-label');
+      if (!dot || !lbl) return;
+      dot.className = 'conn-dot ' + state;
+      lbl.textContent = label || state;
+    }
+
     async function checkSniperStatus() {
       try {
         const resp = await fetch(apiUrl('/api/sniper/status'));
         const data = await resp.json();
 
+        // Connection healthy — reset failure counter
+        _sniperConnFailures = 0;
+        _lastSniperPulseAt = Date.now();
+
         if (data.running) {
           if (!_stopInFlight) {
             updateSniperUI('running');
           }
+          _updateConnHealth('connected', t('status.connected'));
           const progressContainer = document.getElementById('sniper-progress-container');
           const guardianContainer = document.getElementById('sniper-guardian-table-container');
 
@@ -453,7 +474,14 @@
             updateSniperUI('idle');
           }
         }
-      } catch (e) { /* polling failed silently */ }
+      } catch (e) {
+        _sniperConnFailures++;
+        if (_sniperConnFailures >= 3) {
+          _updateConnHealth('disconnected', t('status.disconnected'));
+        } else {
+          _updateConnHealth('stale', t('status.retrying'));
+        }
+      }
     }
 
     async function triggerSniper() {
@@ -517,24 +545,15 @@
       const symbolPrefix = parts.join(',');
 
       const trade = document.getElementById('sniper-trade-toggle').checked;
-      const balanceRaw = document.getElementById('sniper-balance').value.trim();
-      const balance = balanceRaw ? parseFloat(balanceRaw) : null;
+      const capRaw = document.getElementById('sniper-cap').value.trim();
+      const cap = capRaw ? parseFloat(capRaw) : null;
 
-      if (trade && balance === null) {
-        const balInput = document.getElementById('sniper-balance');
-        const balGroup = balInput.closest('.input-group');
-        balInput.classList.add('bt-field-error');
-        if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', t('err.balance_required')); }
-        document.getElementById('sniper-balance').focus();
-        updateSniperUI('idle');
-        return;
-      }
-      if (balance !== null && (isNaN(balance) || balance <= 0)) {
-        const balInput = document.getElementById('sniper-balance');
-        const balGroup = balInput.closest('.input-group');
-        balInput.classList.add('bt-field-error');
-        if (balGroup) { balGroup.classList.add('has-error'); balGroup.setAttribute('data-error', t('err.balance_positive')); }
-        document.getElementById('sniper-balance').focus();
+      if (cap !== null && (isNaN(cap) || cap <= 0)) {
+        const capInput = document.getElementById('sniper-cap');
+        const capGroup = capInput.closest('.input-group');
+        capInput.classList.add('bt-field-error');
+        if (capGroup) { capGroup.classList.add('has-error'); capGroup.setAttribute('data-error', t('err.cap_positive')); }
+        document.getElementById('sniper-cap').focus();
         updateSniperUI('idle');
         return;
       }
@@ -546,7 +565,7 @@
           body: JSON.stringify({
             symbol_prefix: symbolPrefix,
             trade: trade,
-            balance: balance,
+            balance: cap,
           }),
         });
 
@@ -580,14 +599,11 @@
           const tradeToggle = document.getElementById('sniper-trade-toggle');
           tradeToggle.checked = !!data.trade_enabled;
 
-          const balanceInput = document.getElementById('sniper-balance');
-          const balanceField = document.getElementById('sniper-balance-field');
+          const capInput = document.getElementById('sniper-cap');
           if (data.balance != null) {
-            balanceInput.value = data.balance;
+            capInput.value = data.balance;
           }
-          if (data.trade_enabled) {
-            balanceField.style.display = '';
-          }
+          capInput.disabled = !data.trade_enabled;
 
           updateSniperUI('running');
           sniperPollInterval = setInterval(checkSniperStatus, 2000);
@@ -664,12 +680,23 @@
       }
     }
 
+    // ── Filter clear helper ──
+    function clearFilter(id) {
+      var el = document.getElementById(id);
+      if (el) { el.value = ''; el.dispatchEvent(new Event('input')); el.focus(); }
+    }
+
+    // ── Re-render on language switch ──
+    document.addEventListener('langchange', function () {
+      if (typeof loadActive === 'function') loadActive();
+    });
+
     // ── Reload button (show ✓ briefly, then revert) ──
     async function refreshActive() {
       const btn = document.getElementById('refresh-active-btn');
       const status = document.getElementById('refresh-active-status');
       btn.disabled = true;
-      btn.textContent = TRANSLATIONS['btn.reloading']?.[getLang()] || '⟳ Reloading...';
+      btn.textContent = TRANSLATIONS['btn.refreshing']?.[getLang()] || '⟳ Refreshing...';
       status.style.display = 'none';
 
       try {
@@ -686,7 +713,7 @@
         status.style.display = 'none';
         btn.style.display = '';
         btn.disabled = false;
-        btn.textContent = TRANSLATIONS['btn.reload']?.[getLang()] || '⟳ Reload';
+        btn.textContent = TRANSLATIONS['btn.refresh']?.[getLang()] || '⟳ Refresh';
       }, 2000);
     }
 

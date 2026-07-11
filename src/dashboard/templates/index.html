@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Performance — Singularity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/static/dashboard.css">
   <script src="/static/i18n.js"></script>
   <script src="/static/dashboard-utils.js"></script>
@@ -22,6 +24,9 @@
       <a href="/development" class="nav-link" data-i18n="nav.development"></a>
     </nav>
     <div class="header-controls">
+      {% if data_root %}
+      <span class="env-badge">{{ data_root }}</span>
+      {% endif %}
       <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
         <span class="lang-en active">EN</span>
         <span class="lang-sep">│</span>
@@ -34,29 +39,31 @@
 
     <!-- ═══════ KPI Cards ═══════ -->
     <section class="kpi-grid" id="kpi-grid">
-      <div class="kpi-card">
+      <!-- Row 1: Results -->
+      <div class="kpi-card" data-kpi="pnl">
         <span class="kpi-label" data-i18n="kpi.net_pnl"></span>
         <span class="kpi-value" id="kpi-pnl">--</span>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-label" data-i18n="kpi.executed"></span>
-        <span class="kpi-value" id="kpi-executed">--</span>
-      </div>
-      <div class="kpi-card">
+      <div class="kpi-card" data-kpi="winrate">
         <span class="kpi-label" data-i18n="kpi.win_rate"></span>
         <span class="kpi-value" id="kpi-winrate">--</span>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card" data-kpi="winloss">
         <span class="kpi-label" data-i18n="kpi.win_loss"></span>
         <span class="kpi-value" id="kpi-winloss">--</span>
       </div>
-      <div class="kpi-card">
+      <!-- Row 2: Risk & Execution Quality -->
+      <div class="kpi-card" data-kpi="mdd">
         <span class="kpi-label" data-i18n="kpi.max_drawdown"></span>
         <span class="kpi-value" id="kpi-mdd">--</span>
       </div>
-      <div class="kpi-card">
+      <div class="kpi-card" data-kpi="sharpe">
         <span class="kpi-label" data-i18n="kpi.sharpe"></span>
         <span class="kpi-value" id="kpi-sharpe">--</span>
+      </div>
+      <div class="kpi-card" data-kpi="executed">
+        <span class="kpi-label" data-i18n="kpi.executed"></span>
+        <span class="kpi-value" id="kpi-executed">--</span>
       </div>
     </section>
 
@@ -91,18 +98,24 @@
     <section class="card">
       <div class="section-header">
         <h2 data-i18n="section.trade_ledger"></h2>
-        <div class="filter-bar">
-          <div class="filter-group">
-            <span class="filter-label" data-i18n="filter.symbol"></span>
-            <input type="text" id="symbol-filter" class="filter-input" style="width:80px">
-          </div>
-          <div class="filter-sep"></div>
-          <div class="filter-group">
-            <span class="filter-label" data-i18n="filter.version"></span>
-            <input type="text" id="version-filter" class="filter-input" style="width:80px">
-          </div>
-        </div>
         <div class="section-controls">
+          <div class="filter-bar">
+            <div class="filter-group">
+              <span class="filter-label" data-i18n="filter.symbol"></span>
+              <span class="input-clear-wrap">
+                <input type="text" id="symbol-filter" class="filter-input" placeholder=" " style="width:110px">
+                <button class="input-clear-btn" onclick="clearFilter('symbol-filter')" tabindex="-1">&times;</button>
+              </span>
+            </div>
+            <div class="filter-sep"></div>
+            <div class="filter-group">
+              <span class="filter-label" data-i18n="filter.version"></span>
+              <span class="input-clear-wrap">
+                <input type="text" id="version-filter" class="filter-input" placeholder=" " style="width:110px">
+                <button class="input-clear-btn" onclick="clearFilter('version-filter')" tabindex="-1">&times;</button>
+              </span>
+            </div>
+          </div>
           <button id="run-audit-btn" class="btn-sm" onclick="runAudit()" data-i18n="btn.audit"
             data-i18n-title="btn.audit.title"></button>
           <span id="run-audit-status" class="feedback-inline" style="display:none"></span>
@@ -119,10 +132,10 @@
               <th data-i18n="th.entry"></th>
               <th data-i18n="th.tp"></th>
               <th data-i18n="th.sl"></th>
-              <th class="sortable" data-sort="rr_ratio" data-i18n="th.rr"></th>
+              <th class="sortable col-rr" data-sort="rr_ratio" data-i18n="th.rr"></th>
               <th data-i18n="th.result"></th>
               <th data-i18n="th.pnl"></th>
-              <th data-i18n="th.version"></th>
+              <th class="col-version" data-i18n="th.version"></th>
               <th></th>
             </tr>
           </thead>
@@ -139,14 +152,6 @@
   </main>
 
   <script>
-    const DATA_ROOT = '{{ data_root }}';
-    (function () {
-      const tag = document.createElement('span');
-      tag.className = 'data-root-tag';
-      tag.textContent = DATA_ROOT;
-      document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
-    })();
-
     const $ = id => document.getElementById(id);
 
     function apiUrl(path, extra = {}) {
@@ -295,7 +300,11 @@
       const points = trades.map(t => {
         let color = 'rgba(148, 163, 184, 0.08)';
         const above = t.confidence >= threshold;
-        if (t.opinion !== 'NEUTRAL') {
+
+        // NEUTRAL below threshold: hide entirely
+        if (t.opinion === 'NEUTRAL' && !above) {
+          color = 'rgba(0,0,0,0)';
+        } else if (t.opinion !== 'NEUTRAL') {
           if (t.is_filled) {
             if (t.tp_sl_result === 'TP_HIT') color = above ? 'rgba(64, 168, 95, 0.85)' : 'rgba(0,0,0,0)';
             else if (t.tp_sl_result === 'SL_HIT') color = above ? 'rgba(224, 85, 74, 0.85)' : 'rgba(0,0,0,0)';
@@ -318,9 +327,38 @@
         };
       });
 
+      // Threshold reference line
+      var thresholdPlugin = {
+        id: 'thresholdLine',
+        beforeDatasetsDraw: function (chart) {
+          var yScale = chart.scales.y;
+          var area = chart.chartArea;
+          if (!yScale || confThreshold <= 0) return;
+          if (confThreshold < yScale.min || confThreshold > yScale.max) return;
+          var y = yScale.getPixelForValue(confThreshold);
+          if (y < area.top || y > area.bottom) return;
+          var c = chart.ctx;
+          c.save();
+          c.beginPath();
+          c.setLineDash([6, 4]);
+          c.strokeStyle = 'rgba(212, 163, 72, 0.45)';
+          c.lineWidth = 1.5;
+          c.moveTo(area.left, y);
+          c.lineTo(area.right, y);
+          c.stroke();
+          c.setLineDash([]);
+          c.fillStyle = 'rgba(212, 163, 72, 0.7)';
+          c.font = '11px "SF Mono", "Fira Code", Consolas, monospace';
+          c.textAlign = 'right';
+          c.fillText('≥ ' + confThreshold + '%', area.right - 4, y - 6);
+          c.restore();
+        }
+      };
+
       timelineChart = new Chart(ctx, {
         type: 'bubble',
         data: { datasets: [{ data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }] },
+        plugins: [thresholdPlugin],
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
           scales: {
@@ -506,10 +544,10 @@
       <td class="mono">${formatPrice(entry)}</td>
       <td class="mono">${formatPrice(tp.take_profit)}</td>
       <td class="mono">${formatPrice(tp.stop_loss)}</td>
-      <td class="mono">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
+      <td class="mono col-rr">${tp.rr_ratio != null ? tp.rr_ratio.toFixed(2) : '&mdash;'}</td>
       <td>${audit && !audit.is_filled ? '<span class="badge badge-gray">' + t('status.unfilled') + '</span>' : resultBadge(audit?.tp_sl_result)}</td>
       <td>${pnlSpan(audit?.pnl_pct)}</td>
-      <td><span class="text-muted">${s.version || '&mdash;'}</span></td>
+      <td class="col-version"><span class="text-muted">${s.version || '&mdash;'}</span></td>
       <td><a href="/audits/${encodeURIComponent(s.filename)}" class="btn-sm">View</a></td>
     </tr>`;
       }).join('');
@@ -541,6 +579,17 @@
       _totalSessions = data.total || 0;
       applyFilters();
     }
+
+    // ── Filter clear helper ──
+    function clearFilter(id) {
+      const el = $(id);
+      if (el) { el.value = ''; el.dispatchEvent(new Event('input')); el.focus(); }
+    }
+
+    // ── Re-render on language switch ──
+    document.addEventListener('langchange', function () {
+      applyFilters();
+    });
 
     // ── Events ──
     $('symbol-filter').addEventListener('input', function () { localStorage.setItem('symbolFilter', this.value); applyFilters(); });

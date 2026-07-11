@@ -1,3 +1,6 @@
+/* ── Typeface Import ─────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&display=swap');
+
 /* ============================================================
    Singularity Dashboard — Void Theme
    Design tokens aligned with session_html_renderer.py email template
@@ -11,6 +14,23 @@
 }
 
 :root {
+  /* ── Typography ── */
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "Consolas", "Monaco", monospace;
+
+  /* ── Type Scale ── */
+  --text-xs: 0.65rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.85rem;
+  --text-lg: 1.0rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.6rem;
+  --text-3xl: 2.2rem;
+
+  /* ── Colors ── */
   --bg-primary: #0c1119;
   --bg-secondary: #151d28;
   --bg-card: #1d2a39;
@@ -28,7 +48,7 @@
   --accent-orange: #d98c2e;
   --accent-amber: #c9953a;
   --accent-purple: #9488d8;
-  --accent-blue: #54a0a8;  /* compat alias — maps to teal */
+  --accent-blue: #4a8fe0;        /* data viz, info, neutral data indicator */
   --badge-green-bg: rgba(64, 168, 95, 0.15);
   --badge-green-text: #40a85f;
   --badge-green-border: rgba(64, 168, 95, 0.4);
@@ -51,8 +71,7 @@
 }
 
 body.dark {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-body);
   background: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -80,22 +99,26 @@ code, pre, .mono {
 }
 
 .app-header h1 {
+  font-family: var(--font-display);
   font-size: 1.25rem;
-  font-weight: 300;
+  font-weight: 500;
   color: var(--accent-gold);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
-.data-root-tag {
-  display: inline-block;
+/* ── Environment Badge (replaces data-root-tag) ── */
+.env-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 10px;
   border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
+  font-size: 0.72rem;
+  font-weight: 500;
   background: var(--badge-gray-bg);
   color: var(--badge-gray-text);
   border: 1px solid var(--badge-gray-border);
+  white-space: nowrap;
 }
 
 /* ── Permission-Gated Locked Panel ──────────────────────────────── */
@@ -301,6 +324,7 @@ tbody tr:hover {
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
   font-size: 0.85rem;
+  line-height: 1.4;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
@@ -331,6 +355,7 @@ tbody tr:hover {
   color: #ffffff;
   font-size: 0.85rem;
   font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
   transition: background 0.15s, opacity 0.15s;
   white-space: nowrap;
@@ -869,7 +894,7 @@ tbody tr:hover {
   width: 32px;
   height: 32px;
   border: 3px solid var(--border-color);
-  border-top-color: var(--accent-gold);
+  border-top-color: var(--accent-blue);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 16px auto;
@@ -1181,6 +1206,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 0;
   cursor: pointer;
   user-select: none;
   font-size: 0.85rem;
@@ -1242,9 +1268,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-bottom: 0;
 }
 
-.sniper-trade-toggle {
-  margin-left: auto;
-}
 
 /* ── Multi-symbol Guardian Table ─────────────────────────── */
 #sniper-guardian-table-container {
@@ -1763,7 +1786,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .signal-strip {
   display: flex;
   gap: 2px;
-  height: 8px;
+  height: 12px;
   margin-top: 8px;
 }
 
@@ -1863,4 +1886,133 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   pointer-events: none;
   color: var(--text-primary, #e0e0e0);
 }
+
+/* ============================================================
+   New Components (v2.1)
+   ============================================================ */
+
+/* ── Breadcrumb Navigation ─────────────────────────── */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.breadcrumb a:hover {
+  color: var(--accent-gold);
+  text-decoration: none;
+}
+.breadcrumb-sep {
+  color: var(--border-color);
+  font-size: 0.7rem;
+  user-select: none;
+}
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* ── Input with Clear Button ───────────────────────── */
+.input-clear-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.input-clear-wrap .filter-input {
+  padding-right: 24px;
+}
+.input-clear-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: none;
+  border-radius: 2px;
+  transition: color 0.15s;
+}
+.input-clear-btn:hover {
+  color: var(--text-primary);
+}
+.input-clear-wrap .filter-input:not(:placeholder-shown) ~ .input-clear-btn,
+.input-clear-wrap .filter-input:focus ~ .input-clear-btn {
+  display: block;
+}
+
+/* ── Debate Timeline Connector ─────────────────────── */
+.debate-timeline {
+  position: relative;
+}
+.debate-timeline::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: var(--border-color);
+  z-index: 0;
+  pointer-events: none;
+}
+.debate-timeline .debate-round {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Sniper Connection Status ──────────────────────── */
+.sniper-connection {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-left: 8px;
+  white-space: nowrap;
+}
+.conn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.conn-dot.connected {
+  background: var(--accent-green);
+  box-shadow: 0 0 6px rgba(64, 168, 95, 0.4);
+}
+.conn-dot.stale {
+  background: var(--accent-amber);
+}
+.conn-dot.disconnected {
+  background: var(--accent-red);
+}
+
+/* ── Table Responsive Column Visibility ────────────── */
+@media (max-width: 1024px) {
+  th.col-rr, td.col-rr,
+  th.col-version, td.col-version {
+    display: none;
+  }
+}
+@media (max-width: 768px) {
+  th.col-rr, td.col-rr,
+  th.col-version, td.col-version,
+  th.col-waiting, td.col-waiting,
+  th.col-holding, td.col-holding {
+    display: none;
+  }
+}
+
 

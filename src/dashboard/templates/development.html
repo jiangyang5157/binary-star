@@ -5,6 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Development — Singularity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/static/dashboard.css">
   <script src="/static/i18n.js"></script>
   <script src="/static/dashboard-utils.js"></script>
@@ -21,6 +23,9 @@
       <a href="/development" class="nav-link active" data-i18n="nav.development">Development</a>
     </nav>
     <div class="header-controls">
+      {% if data_root %}
+      <span class="env-badge">{{ data_root }}</span>
+      {% endif %}
       <button id="lang-toggle" class="lang-toggle" onclick="toggleLang()">
         <span class="lang-en active">EN</span>
         <span class="lang-sep">│</span>
@@ -134,14 +139,6 @@
   </main>
 
   <script>
-    const DATA_ROOT = '{{ data_root }}';
-    (function () {
-      const tag = document.createElement('span');
-      tag.className = 'data-root-tag';
-      tag.textContent = DATA_ROOT;
-      document.querySelector('.app-header').insertBefore(tag, document.querySelector('.app-header nav'));
-    })();
-
     function apiUrl(path, extra = {}) {
       const p = new URLSearchParams();
       const pageParams = new URLSearchParams(window.location.search);
@@ -294,9 +291,14 @@
         input.value = prefix;
       }
 
-      // Strip commas (single symbol — user may have pasted CSV-like input)
-      prefix = prefix.replace(/,/g, '').trim();
-      if (prefix !== input.value) input.value = prefix;
+      // Single symbol only — reject comma-separated input
+      if (prefix.includes(',')) {
+        group.classList.add('has-error');
+        group.setAttribute('data-error', t('err.single_symbol'));
+        input.focus();
+        updateSessionRunUI('idle');
+        return;
+      }
 
       if (!prefix || prefix.length < 2) {
         group.classList.add('has-error');
@@ -405,7 +407,15 @@
 
       const group = $('bt-symbol-group');
 
-      const symbol = $('bt-symbol').value.trim();
+      // Single symbol only — reject comma-separated input
+      var btSym = $('bt-symbol');
+      var btSymRaw = btSym.value.trim();
+      if (btSymRaw.includes(',')) {
+        if (group) { group.classList.add('has-error'); group.setAttribute('data-error', t('err.single_symbol')); }
+        btSym.focus();
+        return false;
+      }
+      const symbol = btSymRaw;
       if (!symbol || symbol.length < 2 || !/^[A-Za-z0-9]+$/.test(symbol)) {
         if (group) { group.classList.add('has-error'); group.setAttribute('data-error', t('err.min_chars')); }
         $('bt-symbol').focus();
@@ -794,6 +804,19 @@
       if (data.end_value) $('bt-end').value = data.end_value;
       if (data.samples_count != null) $('bt-samples').value = data.samples_count;
     }
+
+    // ── Filter clear helper ──
+    function clearFilter(id) {
+      var el = $(id);
+      if (el) { el.value = ''; el.dispatchEvent(new Event('input')); el.focus(); }
+    }
+
+    // ── Re-render on language switch ──
+    document.addEventListener('langchange', function () {
+      if (sampleTimestamps.length) {
+        renderSampleList({ count: sampleTimestamps.length, timestamps: sampleTimestamps });
+      }
+    });
 
     // ── Init: check if backtest or preview is already running ──
     (async function initBacktestStatus() {

@@ -366,6 +366,13 @@ def run_audits(data_root: str = Query("")):
             symbol = obs.get("symbol", "UNKNOWN")
             obs_ts = obs.get("observed_at")
 
+            # Skip NEUTRAL sessions — no order to audit
+            decision = session.get("final_decision", {})
+            if decision.get("opinion", "").upper() == "NEUTRAL":
+                with counters_lock:
+                    skipped += 1
+                return "skipped"
+
             from src.utils.datetime_utils import format_timestamp_for_filename
             ts_compact = format_timestamp_for_filename(obs_ts)
 
