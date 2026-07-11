@@ -3,7 +3,7 @@
  *
  * Two display modes controlled by `.collapsed`:
  *   collapsed=false ("expanded"): vertical stage timeline + full activity log
- *   collapsed=true  ("collapsed"): progress bar + one-line activity / result
+ *   collapsed=true  ("collapsed"): pulse indicator + one-line activity / result
  *
  * Usage:
  *   const sp = new SessionProgress(document.getElementById('container'), {
@@ -29,14 +29,12 @@ class SessionProgress {
     this.el = containerEl;
     this.collapsed = opts.collapsed === true;
     this.context = opts.context || 'session';
-    this._lastData = null;
     this.el.classList.add('session-progress');
     this.el.style.display = 'none';
   }
 
   update(data) {
     if (!data) { this.hide(); return; }
-    this._lastData = data;
 
     switch (data.status) {
       case 'running':
@@ -79,11 +77,8 @@ class SessionProgress {
   }
 
   _renderRunningCollapsed(data) {
-    var stage = data.current_stage || 1;
-    var stages = data.stages || [];
     var activity = data.activity || '';
     var elapsed = this._fmtElapsed(data.elapsed_seconds || 0);
-    var fillPct = this._barPct(stage, stages);
 
     var html = '';
 
@@ -94,24 +89,9 @@ class SessionProgress {
         this._esc(data._triggered_at) + '</div>';
     }
 
-    // Progress bar
-    html += '<div class="sp-bar-row">';
-    html += '<div class="sp-bar">';
-    html += '<div class="sp-bar-fill' + (stage === 3 ? ' sp-stage-3' : '') +
-      '" style="width:' + fillPct + '%"></div>';
-    for (var i = 0; i < stages.length; i++) {
-      var stg = stages[i];
-      var cls = 'sp-anchor s' + stg.stage;
-      if (stg.stage < stage) cls += ' done';
-      else if (stg.stage === stage) cls += ' active';
-      html += '<div class="' + cls + '" style="left:' +
-        stg.position_pct + '%"></div>';
-    }
-    html += '</div></div>';
-
-    // Activity line
+    // Activity line with pulse indicator
     html += '<div class="sp-activity sp-activity-compact">';
-    html += '<span class="sp-activity-icon">◉</span>';
+    html += '<span class="sp-activity-icon sp-pulse">◉</span>';
     html += '<span class="sp-activity-text">' + this._esc(activity) + '</span>';
     html += '<span class="sp-elapsed">⏱ ' + elapsed + '</span>';
     html += '</div>';
@@ -323,13 +303,6 @@ class SessionProgress {
     }
     html += '</div>';
     return html;
-  }
-
-  _barPct(stage, stages) {
-    if (stage <= 0) return 0;
-    if (!stages || !stages.length) return 0;
-    if (stage >= stages.length) return 100;
-    return stages[stage - 1].position_pct;
   }
 
   _fmtElapsed(seconds) {

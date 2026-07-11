@@ -238,7 +238,8 @@ class BacktestRunner:
             engine = SessionEngine(symbol=self.symbol, data_root=self.data_root)
 
             for i, ts in enumerate(timestamps):
-                self._update_sample_status(i, "running")
+                self._update_sample_status(i, "running",
+                    started_at=datetime.now(timezone.utc).isoformat())
 
                 try:
                     # ── Progress callback (dashboard only; CLI is no-op) ──
@@ -256,7 +257,7 @@ class BacktestRunner:
                         if _sample_idx >= len(samples3):
                             return
                         now_utc = datetime.now(timezone.utc)
-                        started_str3 = current3.get("started_at", "")
+                        started_str3 = samples3[_sample_idx].get("started_at") or current3.get("started_at", "")
                         elapsed3 = 0
                         if started_str3:
                             try:
@@ -310,12 +311,20 @@ class BacktestRunner:
                         samples3[_sample_idx]["progress"] = progress
                         _write_status(self.data_root, {**current3, "samples": samples3})
 
-                    engine.execute_cycle(
+                    result = engine.execute_cycle(
                         timestamp_str=ts,
                         progress_callback=_bt_progress if self.is_dashboard else None,
                     )
 
-                    self._update_sample_status(i, "completed")
+                    if isinstance(result, dict) and "error" in result:
+                        err_msg = result["error"]
+                        logger.warning(
+                            "sample failed internally | symbol=%s | sample=%d/%d | error=%s",
+                            self.symbol, i + 1, total, err_msg,
+                        )
+                        self._update_sample_status(i, "failed", error=err_msg)
+                    else:
+                        self._update_sample_status(i, "completed")
 
                 except Exception as e:
                     logger.exception(

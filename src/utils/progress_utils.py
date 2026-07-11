@@ -11,11 +11,11 @@ ERROR = "error"
 _MAX_ACTIVITIES = 10
 
 STAGES = [
-    {"stage": 1, "label": "Data Collection", "position_pct": 0},
-    {"stage": 2, "label": "Prep",            "position_pct": 18},
-    {"stage": 3, "label": "Debate",          "position_pct": 62.5},
-    {"stage": 4, "label": "Decision",        "position_pct": 87.5},
-    {"stage": 5, "label": "Archive",         "position_pct": 100},
+    {"stage": 1, "label": "Data Collection"},
+    {"stage": 2, "label": "Prep"},
+    {"stage": 3, "label": "Debate"},
+    {"stage": 4, "label": "Decision"},
+    {"stage": 5, "label": "Archive"},
 ]
 
 

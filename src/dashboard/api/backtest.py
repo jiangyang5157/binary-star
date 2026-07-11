@@ -488,14 +488,13 @@ def get_status(data_root: str = Query("")):
         return {"running": False}
 
     # Inject stage config into each sample's progress for frontend rendering.
-    # Also compute fresh elapsed so the timer ticks smoothly between callbacks,
-    # matching the New Session / Sniper progress UX.
+    # Use per-sample started_at for elapsed (fall back to batch started_at).
     if status.get("samples"):
-        batch_elapsed = elapsed_since_iso(status.get("started_at", ""))
         for sample in status["samples"]:
             progress = sample.get("progress")
             if progress and progress.get("status") == "running":
-                progress["elapsed_seconds"] = batch_elapsed
+                sample_started = sample.get("started_at") or status.get("started_at", "")
+                progress["elapsed_seconds"] = elapsed_since_iso(sample_started)
             enrich_progress(progress)
 
     if status.get("running"):

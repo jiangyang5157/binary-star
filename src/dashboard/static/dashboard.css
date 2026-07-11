@@ -1460,71 +1460,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: none;
 }
 
-/* ── Bar row ── */
-.sp-bar-row {
-  position: relative;
-  height: 32px;
-  display: flex;
-  align-items: center;
-}
-.sp-bar {
-  position: relative;
-  width: 100%;
-  height: 6px;
-  background: var(--border-color);
-  border-radius: 3px;
-  overflow: visible;
-}
-.sp-bar-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  background: var(--accent-green);
-  border-radius: 3px;
-  transition: width 0.6s ease-out;
-  z-index: 1;
-}
-.sp-bar-fill.sp-stage-3 {
-  background: linear-gradient(90deg, var(--accent-teal), #14b8a6);
-  animation: sp-breathe 2s ease-in-out infinite;
-}
-
-/* ── Anchor dots ── */
-.sp-anchor {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--border-color);
-  border: 2px solid var(--bg-card);
-  z-index: 2;
-  transition: background 0.4s, box-shadow 0.4s;
-}
-.sp-anchor.done {
-  background: var(--accent-teal);
-  border-color: var(--accent-teal);
-}
-.sp-anchor.active {
-  background: var(--accent-teal);
-  box-shadow: 0 0 8px 2px rgba(84, 160, 168, 0.5);
+/* ── Activity row ── */
+.sp-pulse {
   animation: sp-pulse-glow 2s ease-in-out infinite;
 }
-.sp-anchor.failed {
-  background: var(--accent-red);
-  box-shadow: 0 0 6px 2px rgba(224, 85, 74, 0.4);
-}
-
-/* Anchor positions — 5 stages (percentage left) */
-.sp-anchor.s1 { left: 0%; }
-.sp-anchor.s2 { left: 18%; }
-.sp-anchor.s3 { left: 62.5%; }
-.sp-anchor.s4 { left: 87.5%; }
-.sp-anchor.s5 { left: 100%; }
-
-/* ── Activity row ── */
 .sp-activity {
   display: flex;
   align-items: center;
@@ -1774,19 +1713,13 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .bt-sample-progress { width: 100%; }
 
 /* ── Animations ── */
-@keyframes sp-breathe {
-  0%, 100% { opacity: 0.7; }
-  50% { opacity: 1; }
-}
 @keyframes sp-pulse-glow {
   0%, 100% { filter: brightness(1.0); }
   50%      { filter: brightness(1.4); }
 }
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
-  .sp-bar-fill { transition: none; }
-  .sp-bar-fill.sp-stage-3 { animation: none; }
-  .sp-anchor.active { animation: none; }
+  .sp-pulse { animation: none; }
   .sp-stage.stage-active .sp-stage-icon { animation: none; }
   .pulse-bar.wake { animation: none; }
   .signal-strip-block.live { animation: none; }
