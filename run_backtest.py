@@ -91,8 +91,8 @@ class BacktestRunner:
 
     # ── Timestamp collection ─────────────────────────────────────────────
 
-    def _collect_timestamps(self) -> list[str]:
-        """Resolve timestamps based on the active mode."""
+    def _collect_timestamps(self) -> list[tuple[int, str]]:
+        """Resolve (original_index, timestamp) pairs for pending samples."""
         from src.utils.datetime_utils import to_iso_zulu
 
         # Mode A: Dashboard — read from status file
@@ -101,15 +101,20 @@ class BacktestRunner:
             if not current:
                 raise SystemExit("BacktestRunner: no status file found — aborting.")
             all_samples = current.get("samples") or []
-            ts_list = [s["timestamp"] for s in all_samples if s.get("status") != "completed"]
-            if not ts_list:
+            self._total_samples = len(all_samples)
+            pending = [
+                (i, s["timestamp"])
+                for i, s in enumerate(all_samples)
+                if s.get("status") != "completed"
+            ]
+            if not pending:
                 logger.info("dashboard mode | all %d samples already completed — exiting.", len(all_samples))
                 raise SystemExit(0)
             logger.info(
                 "dashboard mode | pending=%d/%d | symbol=%s",
-                len(ts_list), len(all_samples), self.symbol,
+                len(pending), len(all_samples), self.symbol,
             )
-            return ts_list
+            return pending
 
         # Mode B: CLI single-point
         if self.args.timestamp:
@@ -117,11 +122,11 @@ class BacktestRunner:
             dt = parse_flexible_date(self.args.timestamp)
             ts = to_iso_zulu(dt)
             logger.info("single point | ts=%s", ts)
-            return [ts]
+            return [(0, ts)]
 
         # Mode C: CLI batch range
         if self.args.start:
-            return self._sample_batch()
+            return list(enumerate(self._sample_batch()))
 
         raise SystemExit("BacktestRunner: no valid mode detected.")
 
@@ -237,8 +242,8 @@ class BacktestRunner:
 
             engine = SessionEngine(symbol=self.symbol, data_root=self.data_root)
 
-            for i, ts in enumerate(timestamps):
-                self._update_sample_status(i, "running",
+            for orig_idx, ts in timestamps:
+                self._update_sample_status(orig_idx, "running",
                     started_at=datetime.now(timezone.utc).isoformat())
 
                 try:
@@ -246,7 +251,7 @@ class BacktestRunner:
                     def _bt_progress(
                         stage=None, activity=None, status="running",
                         stage_label=None, result=None, error=None,
-                        _sample_idx=i,
+                        _sample_idx=orig_idx,
                     ):
                         if not self.is_dashboard:
                             return
@@ -320,20 +325,21 @@ class BacktestRunner:
                         err_msg = result["error"]
                         logger.warning(
                             "sample failed internally | symbol=%s | sample=%d/%d | error=%s",
-                            self.symbol, i + 1, total, err_msg,
+                            self.symbol, orig_idx + 1, total, err_msg,
                         )
-                        self._update_sample_status(i, "failed", error=err_msg)
+                        self._update_sample_status(orig_idx, "failed", error=err_msg)
                     else:
-                        self._update_sample_status(i, "completed")
+                        self._update_sample_status(orig_idx, "completed")
 
                 except Exception as e:
                     logger.exception(
-                        "backtest failed | symbol=%s | sample=%d/%d", self.symbol, i + 1, total,
+                        "backtest failed | symbol=%s | sample=%d/%d", self.symbol, orig_idx + 1, total,
                     )
-                    self._update_sample_status(i, "failed", error=str(e))
+                    self._update_sample_status(orig_idx, "failed", error=str(e))
 
             self._finalize()
-            logger.info("completed %d samples | symbol=%s", total, self.symbol)
+            total_orig = getattr(self, '_total_samples', total)
+            logger.info("completed %d/%d samples | symbol=%s", total, total_orig, self.symbol)
 
         except Exception as e:
             logger.exception("backtest failed | symbol=%s | error=%s", self.symbol, e)
