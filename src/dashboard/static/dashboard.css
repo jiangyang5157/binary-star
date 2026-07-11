@@ -1450,7 +1450,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 /* ── Container ── */
 .session-progress {
   margin-top: 12px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
