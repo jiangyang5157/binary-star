@@ -746,7 +746,6 @@ class SniperDaemon:
                     "confluence_score": round(result.confluence_score, 2) if result else 0.0,
                     "threshold": round(trigger.engine.effective_threshold, 2) if trigger and trigger.engine else 0.0,
                     "direction": result.confluence_direction.value if result else "NEUTRAL",
-                    "session_active": sym in triggered_syms,
                 }
 
             # Read existing, append, trim

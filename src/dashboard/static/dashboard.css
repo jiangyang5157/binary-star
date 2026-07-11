@@ -1721,7 +1721,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 @media (prefers-reduced-motion: reduce) {
   .sp-pulse { animation: none; }
   .sp-stage.stage-active .sp-stage-icon { animation: none; }
-  .pulse-bar.wake { animation: none; }
   .signal-strip-block.live { animation: none; }
   .sniper-status-dot.connected,
   .sniper-status-dot.stale { animation: none; }
@@ -1784,7 +1783,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .signal-strip {
   display: flex;
   gap: 2px;
-  height: 12px;
+  height: 8px;
   margin-top: 8px;
 }
 
@@ -1847,25 +1846,10 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   position: relative;
 }
 
-.pulse-bar.wake {
-  animation: bar-breathe 2s ease-in-out infinite;
-}
 
 @keyframes bar-breathe {
   0%, 100% { filter: brightness(1.0); }
   50%      { filter: brightness(1.4); }
-}
-
-.pulse-bar.session-active::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 2px 2px 0 0;
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
 }
 
 .pulse-bar:hover::before {
