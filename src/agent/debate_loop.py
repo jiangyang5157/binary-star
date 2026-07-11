@@ -51,7 +51,7 @@ class DebateLoop:
             if progress_callback:
                 progress_callback(
                     stage=3,
-                    activity=f"Debate R{current_round} · Session Agent reasoning…",
+                    activity=f"Debate R{current_round} · Session LLM planning…",
                     stage_label=f"Debate · Round {current_round}/{self.max_rounds}",
                 )
 
@@ -93,7 +93,7 @@ class DebateLoop:
             if progress_callback:
                 progress_callback(
                     stage=3,
-                    activity=f"Debate R{current_round} · Critic auditing…",
+                    activity=f"Debate R{current_round} · Critic LLM reviewing…",
                 )
             critic_results = self.critic_agent.evaluate(
                 observation=observation,

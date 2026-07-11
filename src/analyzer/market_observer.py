@@ -699,7 +699,7 @@ class MarketObserver:
 
         # 3. [METRIC DISTILLATION]
         if progress_callback:
-            progress_callback(stage=1, activity="Computing volatility indicators…")
+            progress_callback(stage=1, activity="Computing market indicators…")
         metrics, m_df, n_df = self.refiner.refine(raw)
 
         # 4. [MULTIMODAL ASSET GENERATION]
@@ -709,17 +709,6 @@ class MarketObserver:
 
         # 5. [FORENSIC PACKAGING]
         observation = self._package_observation(metrics, snapshots, at_time)
-
-        if progress_callback:
-            macro_count = len(raw.macro_klines) if hasattr(raw, 'macro_klines') else 0
-            micro_count = len(raw.micro_klines) if hasattr(raw, 'micro_klines') else 0
-            macro_interval = self.config.macro_context.time_interval
-            micro_interval = self.config.micro_context.time_interval
-            total = macro_count + micro_count
-            progress_callback(
-                stage=1,
-                activity=f"Data collection done · {total} klines ({macro_count} × {macro_interval} + {micro_count} × {micro_interval})",
-            )
 
         if persist:
             self._persist_observation(observation, data_root or self.data_root, at_time)

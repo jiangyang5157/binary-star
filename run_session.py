@@ -96,7 +96,17 @@ class SessionEngine:
                 target_dt = parse_iso_to_utc(timestamp_str)
 
             if progress_callback:
-                progress_callback(stage=1, activity="Fetching kline data…")
+                analysis = self.config.get('analysis_window', {})
+                macro = analysis.get('macro_context', {})
+                micro = analysis.get('micro_context', {})
+                m_int = macro.get('time_interval', '?')
+                m_cnt = macro.get('lookback_candles', '?')
+                n_int = micro.get('time_interval', '?')
+                n_cnt = micro.get('lookback_candles', '?')
+                progress_callback(
+                    stage=1,
+                    activity=f"Fetching kline data ({m_cnt} × {m_int} + {n_cnt} × {n_int})…",
+                )
 
             logger.info(f"[{self.symbol}] observer mapping topography")
             observation = self.orchestrator.observer.observe(
@@ -132,7 +142,7 @@ class SessionEngine:
 
             # 4. Notification (always attempt; SessionNotifier gates on .env + confidence)
             if progress_callback:
-                progress_callback(stage=5, activity="Saving session…")
+                progress_callback(stage=5, activity="Persisting session…")
 
             self.notifier.notify_session(
                 self.symbol,
@@ -150,9 +160,6 @@ class SessionEngine:
                 target_dir="sessions"
             )
             logger.info(f"pipeline complete | session archived | file={os.path.basename(output_file)}")
-
-            if progress_callback:
-                progress_callback(stage=5, activity="Sending notification…")
 
             # Progress: completed
             if progress_callback:

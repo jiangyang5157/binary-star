@@ -299,6 +299,9 @@ class BinaryStarOrchestrator:
         # 1. Inject regime benchmarks (pre-calculated physical constants)
         self._inject_regime_benchmarks(observation)
 
+        if progress_callback:
+            progress_callback(stage=2, activity="Preparing LLM context…")
+
         visual_parts, visual_text = self._load_visual_assets(observation)
 
         tool_declarations = MathTools.get_tool_declarations()
@@ -324,8 +327,6 @@ class BinaryStarOrchestrator:
 
         try:
             # Debate Loop
-            if progress_callback:
-                progress_callback(stage=2, activity="Preparing AI context…")
 
             self.debate_loop = DebateLoop(
                 session_agent=self.session_agent,
@@ -343,7 +344,7 @@ class BinaryStarOrchestrator:
 
             # Finalize
             if progress_callback:
-                progress_callback(stage=4, activity="Synthesizing decision…")
+                progress_callback(stage=4, activity="Synthesizing final decision…")
 
             final_decision = self._finalize_and_sanitize(
                 debate_result, observation, symbol,
@@ -501,9 +502,6 @@ class BinaryStarOrchestrator:
                 tactical["rr_ratio"] = rr_v["rr_ratio"]
 
         logger.info(f"[{symbol}] final decision sanitized")
-
-        if progress_callback:
-            progress_callback(stage=4, activity="Parameter validation done")
 
         return final_decision
 
