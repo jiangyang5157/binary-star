@@ -157,7 +157,7 @@ class CriticAgent(BaseAgent):
         )
         critic_states = compute_critic_states(
             observation, last_plan, math_fact_check,
-            regime_states, self.config.regime, self.config.risk,
+            self.config.regime, self.config.risk,
         )
 
         return {

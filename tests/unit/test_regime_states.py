@@ -256,30 +256,11 @@ def _make_risk_config(**overrides):
     return RiskConfig(**defaults)
 
 
-def _make_shared_states(**overrides):
-    defaults = {
-        "IS_EXPANDING": False,
-        "IS_CHAOS": False,
-        "IS_SQUEEZING": False,
-        "IS_TREND": False,
-        "IS_TREND_STRONG": False,
-        "HAS_VOLUME_SURGE": False,
-        "HAS_CVD_MOMENTUM": False,
-        "HAS_BULL_FLOW": False,
-        "HAS_BEAR_FLOW": False,
-        "HAS_RETAIL_LONG_IMBALANCE": False,
-        "HAS_RETAIL_SHORT_IMBALANCE": False,
-        "HAS_ABSORPTION_RISK": False,
-    }
-    defaults.update(overrides)
-    return defaults
-
-
 class TestCriticStates:
     def test_is_bullish(self):
         plan = _make_last_plan(opinion="BULLISH")
         result = compute_critic_states(_make_observation(), plan, _make_math_fact_check(),
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_BULLISH"] is True
         assert result["IS_BEARISH"] is False
 
@@ -288,7 +269,7 @@ class TestCriticStates:
         plan["tactical_parameters"]["entry"] = 90000.0
         plan["tactical_parameters"]["current_price"] = 90500.0
         result = compute_critic_states(_make_observation(), plan, _make_math_fact_check(),
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_ENTRY_SAFE"] is True
 
     def test_is_entry_safe_bullish_invalid(self):
@@ -296,7 +277,7 @@ class TestCriticStates:
         plan["tactical_parameters"]["entry"] = 91000.0
         plan["tactical_parameters"]["current_price"] = 90500.0
         result = compute_critic_states(_make_observation(), plan, _make_math_fact_check(),
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_ENTRY_SAFE"] is False
 
     def test_is_sl_logical_bullish_valid(self):
@@ -304,7 +285,7 @@ class TestCriticStates:
         plan["tactical_parameters"]["entry"] = 90000.0
         plan["tactical_parameters"]["stop_loss"] = 89000.0
         result = compute_critic_states(_make_observation(), plan, _make_math_fact_check(),
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_SL_LOGICAL"] is True
 
     def test_is_sl_logical_bearish_valid(self):
@@ -312,21 +293,21 @@ class TestCriticStates:
         plan["tactical_parameters"]["entry"] = 90000.0
         plan["tactical_parameters"]["stop_loss"] = 91000.0
         result = compute_critic_states(_make_observation(), plan, _make_math_fact_check(),
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_SL_LOGICAL"] is True
 
     def test_is_sl_shielded_from_math_fact_check(self):
         mfc = _make_math_fact_check()
         mfc["compliance_verdict"]["sl_is_shielded"] = True
         result = compute_critic_states(_make_observation(), _make_last_plan(), mfc,
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_SL_SHIELDED"] is True
 
     def test_is_rr_valid_from_math_fact_check(self):
         mfc = _make_math_fact_check()
         mfc["compliance_verdict"]["rr_is_valid"] = False
         result = compute_critic_states(_make_observation(), _make_last_plan(), mfc,
-                                       _make_shared_states(), _make_regime_config(), _make_risk_config())
+                                       _make_regime_config(), _make_risk_config())
         assert result["IS_RR_VALID"] is False
 
     def test_is_overextending_true(self):
@@ -339,7 +320,6 @@ class TestCriticStates:
         })
         plan = _make_last_plan(opinion="BULLISH")
         result = compute_critic_states(obs, plan, _make_math_fact_check(),
-                                       _make_shared_states(),
                                        _make_regime_config(trend_intensity_strong=0.6),
                                        _make_risk_config(poc_gravity_atr_distance=1.5))
         assert result["IS_OVEREXTENDING"] is True
@@ -353,7 +333,6 @@ class TestCriticStates:
         })
         plan = _make_last_plan(opinion="BULLISH")
         result = compute_critic_states(obs, plan, _make_math_fact_check(),
-                                       _make_shared_states(),
                                        _make_regime_config(cvd_intensity_threshold=0.3,
                                                            trend_intensity_strong=0.6),
                                        _make_risk_config())
@@ -367,7 +346,6 @@ class TestCriticStates:
             }
         })
         result = compute_critic_states(obs, _make_last_plan(), _make_math_fact_check(),
-                                       _make_shared_states(IS_EXPANDING=True),
                                        _make_regime_config(volatility_baseline_ratio=1.0,
                                                            squeeze_threshold=0.8,
                                                            trend_intensity_min_expansion=0.2),
@@ -381,7 +359,6 @@ class TestCriticStates:
             }
         })
         result = compute_critic_states(obs, _make_last_plan(), _make_math_fact_check(),
-                                       _make_shared_states(),
                                        _make_regime_config(),
                                        _make_risk_config(structural_buffer_atr=0.3))
         assert result["HAS_LIQUIDITY_VOID"] is True
@@ -392,7 +369,6 @@ class TestCriticStates:
         mfc = _make_math_fact_check()
         mfc["holding_time_verification"]["temporal_weight_factor"] = 1.0
         result = compute_critic_states(_make_observation(), plan, mfc,
-                                       _make_shared_states(),
                                        _make_regime_config(),
                                        _make_risk_config(max_holding_hours=8.0))
         assert result["IS_HOLDING_TOO_LONG"] is True
@@ -407,7 +383,6 @@ class TestCriticStates:
             }
         })
         result = compute_critic_states(obs, _make_last_plan(), _make_math_fact_check(),
-                                       _make_shared_states(),
                                        _make_regime_config(long_short_imbalance_ratio=2.0,
                                                            funding_extreme_threshold=0.01),
                                        _make_risk_config())
@@ -416,7 +391,6 @@ class TestCriticStates:
     def test_returns_all_16_critic_keys(self):
         result = compute_critic_states(_make_observation(), _make_last_plan(),
                                        _make_math_fact_check(),
-                                       _make_shared_states(),
                                        _make_regime_config(), _make_risk_config())
         expected = {
             "IS_BULLISH", "IS_BEARISH", "IN_NEUTRAL",
