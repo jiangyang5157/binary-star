@@ -560,7 +560,7 @@ When the Session receives Critic feedback (in IS_SYNTHESIS mode), it must apply 
 
 | Critic Tag | Repair Protocol |
 |-----------|----------------|
-| `[ORDER_PHYSICS]` | Reset coordinates to comply with ORDER_PHYSICS invariant (binary_star.md §6 ABSOLUTE PHYSICAL LAWS). |
+| `[ORDER_PHYSICS]` | Reset coordinates to comply with ORDER_PHYSICS invariant (system preamble, SHARED_TRUTH_BUS_PROTOCOL). |
 | `[STRUCTURAL_TRAP]` | Relocate entry to nearest HVN, POC, or VAH/VAL. Avoid LVN vacuums. |
 | `[ANCHOR_VIOLATION]` | Move stop_loss distally behind next valid structural anchor. Ensure betweenness. |
 | `[MATH_VIOLATION]` | Recalibrate via MathTools to balance risk/ATR scaling. Adhere to minimum RR. |
