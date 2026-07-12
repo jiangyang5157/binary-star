@@ -177,9 +177,19 @@ def compute_confidence(
                                 is_bullish, volume_prof, atr)
           + _score_sentiment_risk(opinion, sentiment, regime_config, debate_history))
 
-    penalty = _calc_debate_penalty(debate_history, entry)
+    penalty = _calc_debate_penalty(debate_history, entry, atr)
+    score = d1 + d2 + d3 - penalty
 
-    return max(0.0, min(100.0, d1 + d2 + d3 - penalty))
+    # TERMINAL veto cap: final score cannot exceed 80
+    has_terminal = any(
+        (entry.get("critic", {}).get("veto_level") or "").upper() == "TERMINAL"
+        for entry in (debate_history or [])
+        if isinstance(entry, dict)
+    )
+    if has_terminal:
+        score = min(score, 80.0)
+
+    return max(0.0, min(100.0, score))
 
 
 # ── Strategy inference ────────────────────────────────────────
@@ -532,7 +542,8 @@ def _score_sentiment_risk(opinion: str, sentiment: dict,
 # ── Penalty ───────────────────────────────────────────────────
 
 def _calc_debate_penalty(debate_history: list | None,
-                         current_entry: float) -> float:
+                         current_entry: float,
+                         atr: float) -> float:
     """Calculate debate penalty from round history."""
     if not debate_history:
         return 0.0
@@ -557,8 +568,10 @@ def _calc_debate_penalty(debate_history: list | None,
                 has_pass_after_constructive = True
 
     if has_terminal:
-        # Paradigm shift detection: entry moved > 1 ATR or opinion flipped
-        if last_constructive_entry and abs(current_entry - last_constructive_entry) > 1000:  # simplified
+        # Paradigm shift: entry moved > 1 ATR or no last_constructive_entry to compare
+        if last_constructive_entry is None:
+            penalty = _DEBATE_TERMINAL_PARADIGM
+        elif abs(current_entry - last_constructive_entry) > atr:
             penalty = _DEBATE_TERMINAL_PARADIGM
         else:
             penalty = _DEBATE_TERMINAL_COSMETIC

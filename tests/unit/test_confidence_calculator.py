@@ -357,19 +357,19 @@ class TestSentimentRisk:
 
 class TestDebatePenalty:
     def test_planning_zero_penalty(self):
-        result = _calc_debate_penalty(None, 75.0)
+        result = _calc_debate_penalty(None, 90000.0, 1000.0)
         assert result == 0
 
     def test_terminal_paradigm_shift(self):
         history = [{"plan": {"tactical_parameters": {"entry": 85000.0}},
                     "critic": {"veto_level": "TERMINAL"}}]
-        # Current plan entry is 90000 — big shift → paradigm
-        penalty = _calc_debate_penalty(history, 75.0)
-        assert penalty >= 10  # −10 paradigm shift
+        # Current plan entry is 90000 — 5000 diff > 1000 ATR → paradigm
+        penalty = _calc_debate_penalty(history, 90000.0, 1000.0)
+        assert penalty >= 10  # abs(90000-85000)=5000 > 1000 ATR → paradigm
 
     def test_pass_round1_zero_penalty(self):
         history = [{"critic": {"veto_level": "PASS"}}]
-        result = _calc_debate_penalty(history, 75.0)
+        result = _calc_debate_penalty(history, 90000.0, 1000.0)
         assert result == 0
 
 
