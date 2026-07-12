@@ -47,16 +47,23 @@ When delivered as chart images, the format is a **Dual-Panel Layout** providing 
     - **Intensity Spikes**: Tall bars marking volume surges.
     - **Gaps/Silence**: Short bars marking liquidity vacuums.
 
-## 5. SHARED LOGIC_MACROS
-- `IS_EXPANDING`: `volatility_expansion_index` > `{volatility_baseline_ratio}`
-- `IS_CHAOS`: `volatility_expansion_index` > `{volatility_extreme_ratio}`
-- `IS_SQUEEZING`: `squeeze_factor` < `{squeeze_threshold}`
-- `IS_TREND`: abs(`trend_intensity`) >= `{trend_intensity_threshold}`
-- `IS_TREND_STRONG`: abs(`trend_intensity`) > `{trend_intensity_strong}`
-- `HAS_VOLUME_SURGE`: `volume_participation_ratio` > `{min_volume_participation_ratio}`
-- `HAS_CVD_MOMENTUM`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
-- `HAS_BULL_FLOW`: `cvd_intensity_ratio` > `{cvd_intensity_threshold}`
-- `HAS_BEAR_FLOW`: `cvd_intensity_ratio` < -`{cvd_intensity_threshold}`
-- `HAS_RETAIL_LONG_IMBALANCE`: `long_short_ratio_micro` > `{long_short_imbalance_ratio}`
-- `HAS_RETAIL_SHORT_IMBALANCE`: `long_short_ratio_micro` < `{short_heavy_imbalance_ratio}`
-- `HAS_ABSORPTION_RISK`: (`oi_delta_micro` < 0) AND (abs(`cvd_intensity_ratio`) > `{cvd_intensity_extreme}`)
+## 5. PRE-COMPUTED STATES (Physics Engine)
+All market regime states are deterministically computed by the Physics Engine
+from raw telemetry before inference. They are injected into each agent's context
+as {precomputed_regime_states}.
+
+The following 12 states are pre-resolved:
+IS_EXPANDING, IS_CHAOS, IS_SQUEEZING, IS_TREND, IS_TREND_STRONG,
+HAS_VOLUME_SURGE, HAS_CVD_MOMENTUM, HAS_BULL_FLOW, HAS_BEAR_FLOW,
+HAS_RETAIL_LONG_IMBALANCE, HAS_RETAIL_SHORT_IMBALANCE, HAS_ABSORPTION_RISK
+
+Agents MUST use these values directly as boolean constants.
+DO NOT re-derive them from telemetry.
+
+## 6. ABSOLUTE PHYSICAL LAWS
+### ORDER_PHYSICS (Limit Order Directional Invariant)
+You are placing Limit Orders. Violating these constraints causes
+immediate adverse market fill and is a TERMINAL VETO:
+
+- **BULLISH**: entry <= current_price, take_profit > entry, stop_loss < entry
+- **BEARISH**: entry >= current_price, take_profit < entry, stop_loss > entry
