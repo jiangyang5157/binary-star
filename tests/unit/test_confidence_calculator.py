@@ -210,11 +210,11 @@ class TestEntryProximity:
 class TestEntryVacuum:
     def test_on_hvn(self):
         nodes = [{"price": 90000.0, "type": "HVN", "strength": 0.8}]
-        result = _score_entry_vacuum(90000.0, nodes)
+        result = _score_entry_vacuum(90000.0, nodes, 1000.0)
         assert result == 5
 
     def test_pure_vacuum(self):
-        result = _score_entry_vacuum(90000.0, [])
+        result = _score_entry_vacuum(90000.0, [], 1000.0)
         assert result == 0
 
 
@@ -287,8 +287,10 @@ class TestPolarity:
         assert result == 5
 
     def test_major_contradiction(self):
+        # BULLISH trade with bearish trend + bearish CVD = 1/3 consistency
+        # (neutral dle strategy is compatible, but trend/CVD both oppose)
         result = _score_polarity("BULLISH", -0.7, -0.5, "dle_mean_reversion")
-        assert result == 0
+        assert result == 1.0
 
 
 # ── D3 Tests ─────────────────────────────────────────────────

@@ -320,7 +320,7 @@ def _score_entry_proximity(entry: float, current_price: float, atr: float,
 
 
 def _score_entry_vacuum(entry: float, all_nodes: list,
-                        atr: float = 1000.0) -> float:
+                        atr: float) -> float:
     """Score 0–5. Entry quality — on HVN vs LVN vs vacuum."""
     if not all_nodes:
         return 0.0
@@ -414,7 +414,7 @@ def _score_tp_proportional(tp: float, entry: float, is_bullish: bool,
     if is_chaos or is_squeezing:
         # First structural boundary
         boundary = volume_prof.get("vah" if is_bullish else "val", 0)
-        if boundary and abs(tp - entry) <= abs(boundary - entry) * 1.1:
+        if boundary and boundary > 0 and abs(tp - entry) <= abs(boundary - entry) * 1.1:
             return _TP_PROPORTIONAL_FIRST_BOUNDARY
         return (_SQUEEZE_LOOSE_LO + _SQUEEZE_LOOSE_HI) / 2
 
@@ -442,6 +442,8 @@ def _score_polarity(opinion: str, trend: float, cvd: float,
     elif strategy in bearish_strategies:
         if not is_bullish:
             consistent += 1
+    else:
+        consistent += 1  # neutral strategies compatible with any direction
 
     if consistent == 3:
         return _POLARITY_ALL
@@ -496,7 +498,7 @@ def _score_squeeze_comp(is_chaos: bool, is_squeezing: bool, tp: float,
     if not is_chaos and not is_squeezing:
         return 0.0
     boundary = volume_prof.get("vah" if is_bullish else "val", 0)
-    if boundary and abs(tp - entry) <= abs(boundary - entry) * 1.1:
+    if boundary and boundary > 0 and abs(tp - entry) <= abs(boundary - entry) * 1.1:
         return _SQUEEZE_TIGHT
     return (_SQUEEZE_LOOSE_LO + _SQUEEZE_LOOSE_HI) / 2
 
