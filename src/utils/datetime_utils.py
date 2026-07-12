@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
@@ -23,8 +24,18 @@ def format_timestamp_for_filename(timestamp_str: str) -> str:
             dt_obj = dt_obj.replace(tzinfo=timezone.utc)
         return dt_obj.astimezone(timezone.utc).strftime(FILE_TIMESTAMP_FORMAT)
     except (ValueError, TypeError):
-        # Fallback for non-ISO or malformed strings
-        return timestamp_str.replace(' ', '_').replace(':', '').replace('Z', '').replace('.', '_')
+        # Fallback for non-ISO or malformed strings.
+        # Strip all non-alphanumeric chars except underscore to keep
+        # the output consistent with FILE_TIMESTAMP_FORMAT (YYYYMMDD_HHMMSS).
+        cleaned = re.sub(r'[^0-9A-Za-z_]', '', timestamp_str)
+        # If the result looks like YYYYMMDD_HHMMSS already, return as-is
+        if len(cleaned) == 15 and cleaned[8] == '_' and cleaned[:8].isdigit() and cleaned[9:].isdigit():
+            return cleaned
+        # Otherwise try to extract 14 digits + optional underscore
+        digits_only = re.sub(r'[^0-9]', '', timestamp_str)
+        if len(digits_only) >= 14:
+            return f"{digits_only[:8]}_{digits_only[8:14]}"
+        return timestamp_str.replace(' ', '_').replace(':', '').replace('Z', '').replace('.', '_').replace('-', '').replace('T', '_')
 
 def format_datetime(dt_obj: datetime, format_str: str = DEFAULT_DATETIME_FORMAT) -> str:
     """Formats a datetime object into a string using the specified format."""

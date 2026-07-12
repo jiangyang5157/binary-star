@@ -7,6 +7,8 @@ from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, HTTPException, Query
 
+from src.utils.datetime_utils import parse_iso_to_utc
+
 router = APIRouter(prefix="/api")
 
 
@@ -66,7 +68,7 @@ def _parse_session_timestamp(t0_str: str) -> datetime | None:
         if "_" in t0_str and "-" not in t0_str:
             return datetime.strptime(t0_str, "%Y%m%d_%H%M%S").replace(tzinfo=timezone.utc)
         else:
-            return datetime.fromisoformat(t0_str.replace("Z", "+00:00"))
+            return parse_iso_to_utc(t0_str)
     except Exception:
         return None
 

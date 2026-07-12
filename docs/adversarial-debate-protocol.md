@@ -828,7 +828,7 @@ flowchart TD
 | Parameter | Value | Location | Purpose |
 |-----------|-------|----------|---------|
 | `max_rounds` | 2 | global_config.yaml | Hard debate round limit |
-| `confidence_threshold` | 65 | global_config.yaml | Entry gate (Sniper uses its own `confluence_score`, not session confidence) |
+| `confidence_threshold` | 55 | global_config.yaml | Trade execution + email notification gate |
 | `trend_intensity_strong` | 0.4 | strategy_config.yaml | Threshold for momentum exemptions (XAUT override) |
 | `volatility_extreme_ratio` | 2.2 | strategy_config.yaml | CHAOS classification |
 | `max_entry_distance_atr` | 0.8 (BTC) / 1.2 (base) | strategy_config.yaml + symbol_config.yaml | Phantom order prevention — per-symbol overridable |

@@ -394,13 +394,15 @@ class SniperDaemon:
                                 if self.trade_enabled and self.executor and session_result and "error" not in session_result:
                                     self._attempt_trade_execution(sym, session_result)
 
-                                # Outcome-aware cooldown: TRADED vs NEUTRAL
+                                # Outcome-aware cooldown: directional sessions always get
+                                # full cooldown regardless of trade_enabled or confidence
+                                # level.  Only genuinely NEUTRAL sessions skip cooldown.
                                 opinion = (
                                     session_result.get("final_decision", {}).get("opinion", "NEUTRAL")
                                     if session_result else "NEUTRAL"
                                 )
                                 trigger_type = (
-                                    "TRADED" if (opinion in ("BULLISH", "BEARISH") and self.trade_enabled)
+                                    "TRADED" if opinion in ("BULLISH", "BEARISH")
                                     else "NEUTRAL"
                                 )
                             finally:
