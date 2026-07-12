@@ -17,7 +17,7 @@ def _format_states(states: dict[str, bool]) -> str:
     return json.dumps(states, indent=2)
 
 
-# ── Shared 12 macros (binary_star.md PRE-COMPUTED STATES) ────
+# ── Shared 12 macros (config/prompts/binary_star.md PRE-COMPUTED STATES) ────
 
 def compute_shared_regime_states(
     observation: dict[str, Any],
