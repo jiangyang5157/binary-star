@@ -10,18 +10,19 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 - **Current Prompt State**: `{current_prompt_md}` (The prompt for the **Session**, **Critic**, and **Binary Star**).
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
 
-# LOGIC_MACROS
-To ensure Zero-Entropy convergence, evaluate these batch-level boolean states before drafting evolution:
-- `IS_BATCH_SIGNIFICANT`: (number of audit reports where `outcome != "PROFIT"` in `{audit_reports_json}`) >= 2
-- `IS_FAILURE_RATIO_ALARM`: (number of audit reports where `outcome != "PROFIT"` in `{audit_reports_json}` / total audit reports in batch) > 0.2
-- `HAS_SYSTEMIC_PATHOLOGY`: `IS_BATCH_SIGNIFICANT` AND `IS_FAILURE_RATIO_ALARM`
+# PRE-COMPUTED STATES
+The following batch-level states have been deterministically computed
+from `{audit_reports_json}`:
+
+{precomputed_evolver_states}
+
+# LOGIC_MACROS (LLM-Judged)
+The following require semantic judgment — compute them yourself:
 - `IS_OVERFIT_RISK`: Historical fix would invalidate > 5% of "Pristine" success records.
-- `REQUIRES_TIME_RECALIBRATION`: Average MAPE across batches > 20%
-- `IS_LOGIC_COWARDICE`: Session is "NEUTRAL" while Critic invalidates via `[INACTION_BIAS]`, `[TREND_STARVATION]` OR `[OPPORTUNITY_DENIAL]`.
-- `HAS_STRUCTURAL_AMNESTY`: `sl_is_shielded` == TRUE AND `mae_stress_tier` == "STANDARD". (Treat as Statistical Necessity).
-- `IS_PROFIT_EVAPORATION`: Trade outcome is "NEITHER" AND Maximum Favorable Excursion (MFE) was >= 60% of the take_profit target distance.
-- `IS_CATASTROPHIC_MISS`: Trade outcome is "NEUTRAL" or unfilled Limit Order AND the market subsequently moved in the predicted direction beyond the target distance.
-- `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates > 1.0 ATR away from `current_price` to artificially satisfy RR requirements, resulting in missed fills.
+- `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates
+  > 1.0 ATR away from `current_price` to artificially satisfy RR requirements,
+  resulting in missed fills.
+- `REQUIRES_TIME_RECALIBRATION`: Average MAPE across batches > 20%.
 
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
 - **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated noise. A mutation is only ALLOWED if `HAS_SYSTEMIC_PATHOLOGY` is TRUE. This requires the failure to meet BOTH the minimum instance count AND the batch ratio threshold simultaneously. Consistent noise is not a pathology; it is a statistical necessity.

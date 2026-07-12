@@ -7,6 +7,7 @@ from src.infrastructure.ai_client import AbstractAIClient
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
 from src.utils.rate_limiter import CongestionController
+from src.analyzer.regime_states import compute_evolver_states, _format_states
 
 logger = logging.getLogger("EvolverAgent")
 
@@ -105,6 +106,16 @@ class EvolverAgent(BaseAgent):
             reports_json = json.dumps(compressed_reports, indent=2)
             config_json = json.dumps(active_config, indent=2)
 
+            # Pre-computed evolver states
+            from src.config.sub_configs import AuditConfig
+            audit_cfg = AuditConfig(
+                mae_threshold_pinpoint=float(active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_pinpoint', 0.1)),
+                mae_threshold_standard=float(active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_standard', 0.3)),
+                mae_threshold_luck=float(active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_luck', 0.5)),
+                missed_opportunity_atr_threshold=float(active_config.get('audit_review', {}).get('mae', {}).get('missed_opportunity_atr_threshold', 1.0)),
+            )
+            evolver_states = compute_evolver_states(audit_reports, audit_cfg)
+
             # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
             for module, content in current_instructions.items():
@@ -120,6 +131,7 @@ class EvolverAgent(BaseAgent):
                 active_config_yaml=config_json,
                 current_prompt_md=prompts_md,
                 strategy_intent=active_config.get('strategy_intent', "N/A"),
+                precomputed_evolver_states=_format_states(evolver_states),
                 regime_parameters=active_config.get('regime_parameters', {}),
                 trend_intensity_threshold=active_config.get('regime_parameters', {}).get('trend', {}).get('trend_intensity_threshold'),
                 volatility_extreme_ratio=active_config.get('regime_parameters', {}).get('volatility', {}).get('volatility_extreme_ratio'),
