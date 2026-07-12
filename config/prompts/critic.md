@@ -33,13 +33,11 @@ Use them directly — do not re-derive.
 {precomputed_critic_states}
 
 # LLM-JUDGED STATE
-The following requires semantic comparison and is NOT pre-computed.
-You MUST evaluate it yourself:
+The following requires semantic judgment. Evaluate it yourself:
 
-- `HAS_PROTOCOL_VIOLATION`: State Reversion detected in `{debate_history_json}`.
-  Compare the current `{last_plan}` against previously vetoed plans in the debate
-  history. If the Session reverted to a previously invalidated approach without a
-  paradigm shift (radical change in anchor, target, or stance), this is TRUE.
+- `HAS_PROTOCOL_VIOLATION`: State Reversion — Session reverted to a previously
+  vetoed approach without a paradigm shift (anchor, target, or stance).
+  Cross-reference `{last_plan}` against `{debate_history_json}`.
 
 # CRITIC_CODES
 | Category | Condition | Tag | Veto Level |

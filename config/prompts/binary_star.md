@@ -48,17 +48,11 @@ When delivered as chart images, the format is a **Dual-Panel Layout** providing 
     - **Gaps/Silence**: Short bars marking liquidity vacuums.
 
 ## 5. PRE-COMPUTED STATES (Physics Engine)
-All market regime states are deterministically computed by the Physics Engine
-from raw telemetry before inference. They are injected into each agent's context
-as {precomputed_regime_states}.
-
-The following 12 states are pre-resolved:
-IS_EXPANDING, IS_CHAOS, IS_SQUEEZING, IS_TREND, IS_TREND_STRONG,
-HAS_VOLUME_SURGE, HAS_CVD_MOMENTUM, HAS_BULL_FLOW, HAS_BEAR_FLOW,
-HAS_RETAIL_LONG_IMBALANCE, HAS_RETAIL_SHORT_IMBALANCE, HAS_ABSORPTION_RISK
-
-Agents MUST use these values directly as boolean constants.
-DO NOT re-derive them from telemetry.
+Pre-computed by the Physics Engine. Use as boolean constants.
+The 12 pre-resolved states: IS_EXPANDING, IS_CHAOS, IS_SQUEEZING, IS_TREND,
+IS_TREND_STRONG, HAS_VOLUME_SURGE, HAS_CVD_MOMENTUM, HAS_BULL_FLOW,
+HAS_BEAR_FLOW, HAS_RETAIL_LONG_IMBALANCE, HAS_RETAIL_SHORT_IMBALANCE,
+HAS_ABSORPTION_RISK. DO NOT re-derive from telemetry.
 
 ## 6. ABSOLUTE PHYSICAL LAWS
 ### ORDER_PHYSICS (Limit Order Directional Invariant)

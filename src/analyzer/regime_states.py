@@ -9,7 +9,6 @@ All functions return dict[str, bool] — keyed by UPPER_SNAKE_CASE macro names.
 from __future__ import annotations
 
 import json
-import math
 from typing import Any
 
 
@@ -93,13 +92,20 @@ def _parse_opinion(plan: dict[str, Any]) -> str:
 def compute_critic_states(
     observation: dict[str, Any],
     last_plan: dict[str, Any],
-    math_fact_check: dict[str, Any],
+    math_fact_check: dict[str, Any] | None,
+    shared_states: dict[str, bool],
     regime_config,  # RegimeConfig
     risk_config,    # RiskConfig
 ) -> dict[str, bool]:
-    """Compute 16 critic-specific states. Excludes HAS_PROTOCOL_VIOLATION (LLM-judged)."""
+    """Compute 16 critic-specific states. Excludes HAS_PROTOCOL_VIOLATION (LLM-judged).
+
+    shared_states must be the output of compute_shared_regime_states — avoids
+    recomputing IS_TREND_STRONG, IS_EXPANDING, IS_SQUEEZING.
+    """
+    if math_fact_check is None:
+        math_fact_check = {}
+
     metrics = observation.get("quantitative_metrics", {})
-    price_dyn = metrics.get("price_dynamics", {})
     market_reg = metrics.get("market_regime", {})
     sentiment = metrics.get("sentiment_signals", {})
     volume_prof = metrics.get("volume_profile", {})
@@ -120,13 +126,11 @@ def compute_critic_states(
     poc_dist = float(struct_anch.get("poc_dist_atr", 0.0))
     ls_micro = float(sentiment.get("ls_ratio_micro", 1.0))
     funding = float(sentiment.get("funding_rate", 0.0))
-    squeeze = float(market_reg.get("squeeze_factor", 1.0))
-    vol_exp_idx = float(price_dyn.get("volatility_expansion_index", 1.0))
 
-    # Derived shared states (inline, not dependent on compute_shared_regime_states)
-    is_trend_strong = abs(trend) > regime_config.trend_intensity_strong
-    is_expanding = vol_exp_idx > regime_config.volatility_baseline_ratio
-    is_squeezing = squeeze < regime_config.squeeze_threshold
+    # Reuse shared states instead of recomputing
+    is_trend_strong = shared_states.get("IS_TREND_STRONG", False)
+    is_expanding = shared_states.get("IS_EXPANDING", False)
+    is_squeezing = shared_states.get("IS_SQUEEZING", False)
 
     # Basic plan states
     is_bullish = opinion == "BULLISH"
