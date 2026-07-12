@@ -356,6 +356,8 @@ def test_all_prompt_template_vars_reachable():
         "observation_json", "debate_history_json", "last_plan", "math_fact_check",
         "audit_reports_json", "active_config_yaml", "current_prompt_md",
         "regime_parameters", "max_rounds",
+        "precomputed_regime_states", "precomputed_critic_states",
+        "precomputed_session_states", "precomputed_evolver_states",
     }
 
     config_placeholders = placeholders - runtime_vars
