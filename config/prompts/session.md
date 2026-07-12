@@ -93,7 +93,7 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[JUSTIFIED_INACTION]`: Maintain "NEUTRAL" stance. No action required.
 
 # ANALYSIS_WORKFLOW
-- **Contextual Pre-calculation**: Evaluate all **`LOGIC_MACROS`** to determine the current market regime and session state.
+- **Contextual Pre-calculation**: Read the **`PRE-COMPUTED STATES`** JSON blocks above for the current market regime and session state. Use these boolean values directly — do not re-derive from telemetry.
 - **Forensic Audit (If `IS_SYNTHESIS`)**:
   - Trace the evolution in `{debate_history_json}`.
   - Deconstruct `invalidations` tags and `audit_evidence`.
