@@ -7,7 +7,7 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 
 # INPUT_DATUM
 - **Session Records**: `{audit_reports_json}` (Batch from SessionAssembler).
-- **PRE-COMPUTED STATES**: Deterministically computed from `{audit_reports_json}`. Use directly — do not re-derive.
+- **PRE-COMPUTED STATES**: Pre-computed from `{audit_reports_json}`. Use as given.
   - **Evolver States**: `{precomputed_evolver_states}`
 - **Current Prompt State**: `{current_prompt_md}` (The prompt for the **Session**, **Critic**, and **Binary Star**).
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
