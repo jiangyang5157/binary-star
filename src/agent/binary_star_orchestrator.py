@@ -6,6 +6,7 @@ from typing import Dict, Any, List, Optional
 from src.infrastructure.ai_client import VisualPart, VisualMode
 from src.analyzer.market_observer import MarketObserver, MarketObserverConfig
 from src.analyzer.math_fact_checker import MathFactChecker
+from src.analyzer.confidence_calculator import compute_confidence
 from src.agent.debate_loop import DebateLoop
 from src.agent.session_agent import SessionAgent, SessionConfig
 from src.agent.critic_agent import CriticAgent, CriticConfig
@@ -478,6 +479,7 @@ class BinaryStarOrchestrator:
 
         # Physical Parameter Sanitization (skip NEUTRAL — no trade params to verify)
         if final_decision.get("opinion") == "NEUTRAL":
+            final_decision["confidence_score"] = 0
             return final_decision
 
         final_math = self.math_checker.verify(final_decision, observation)
@@ -490,6 +492,14 @@ class BinaryStarOrchestrator:
             rr_v = final_math.get("rr_verification", {})
             if rr_v and "rr_ratio" in rr_v:
                 tactical["rr_ratio"] = rr_v["rr_ratio"]
+
+        # Replace LLM-generated confidence_score with Python-computed value
+        final_decision["confidence_score"] = compute_confidence(
+            final_decision, observation, final_math,
+            debate_history,
+            self.critic_config.regime,
+            self.critic_config.risk,
+        )
 
         logger.info(f"[{symbol}] final decision sanitized")
 
