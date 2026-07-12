@@ -7,7 +7,7 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 
 # INPUT_DATUM
 - **Session Records**: `{audit_reports_json}` (Batch from SessionAssembler).
-- **PRE-COMPUTED STATES**: Pre-computed by the Physics Engine, DO NOT re-derive from telemetry. 
+- **PRE-COMPUTED STATES**: Deterministically computed from `{audit_reports_json}`. Use directly — do not re-derive.
   - **Evolver States**: `{precomputed_evolver_states}`
 - **Current Prompt State**: `{current_prompt_md}` (The prompt for the **Session**, **Critic**, and **Binary Star**).
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
@@ -99,7 +99,7 @@ These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
   - **STRICT PROHIBITION**: NEVER use phrases or reasoning chains from `{audit_reports_json}` as an anchor. You are evolving the **Laws** (Prompt Instructions), not the **Evidence** (Historical Records).
 
 # EVOLUTION_WORKFLOW
-- **Contextual Pre-calculation**: Evaluate all **`LOGIC_MACROS`** to determine the state of the batch.
+- **Contextual Pre-calculation**: Read **`PRE-COMPUTED STATES`** and evaluate remaining **`LOGIC_MACROS`** to determine the state of the batch.
 - **Pathology Diagnosis**: 
   - Scan `{audit_reports_json}` for systemic bias. 
   - Identify the primary `pathology_tag` (e.g., `[REGIME_MISALIGNMENT]`, `[STRUCTURAL_BLINDNESS]`).
