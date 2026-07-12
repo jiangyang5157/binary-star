@@ -20,6 +20,11 @@ from src.config.sub_configs import RegimeConfig, TemporalConfig, RiskConfig, Aud
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 from src.utils.rate_limiter import CongestionController
+from src.analyzer.regime_states import (
+    compute_shared_regime_states,
+    compute_session_states,
+    _format_states,
+)
 
 # Initialize session-specific logger
 logger = setup_logger(__name__, propagate=True)
@@ -153,10 +158,18 @@ class SessionAgent(BaseAgent):
         else:
             raise ValueError("Session: Reasoning attempted without market telemetry.")
 
+        # Pre-computed regime states (Python replaces LOGIC_MACROS)
+        regime_states = compute_shared_regime_states(
+            observation, self.config.regime,
+        )
+        session_states = compute_session_states(debate_history)
+
         context = {
             "observation_json": observation_json,
             "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
             "strategy_intent": self.config.strategy_intent,
+            "precomputed_regime_states": _format_states(regime_states),
+            "precomputed_session_states": _format_states(session_states),
             "min_rr_ranging": self.config.risk.min_rr_ranging,
             "min_rr_trending": self.config.risk.min_rr_trending,
             "structural_buffer_atr": self.config.risk.structural_buffer_atr,
