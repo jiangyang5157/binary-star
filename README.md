@@ -45,7 +45,7 @@ sequenceDiagram
 
 Each proposal carries a 0–100 confidence score deterministically computed in Python across 13 dimensions: topographical armor, regime synchronization, and temporal/sentiment convexity. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
 
-> **Full protocol**: [docs/binary_star.md](docs/binary_star.md) — Session/Critic prompts, veto system, confidence calculus, repair patterns, deadlock analysis.
+> **Full protocol**: [docs/adversarial-debate-protocol.md](docs/adversarial-debate-protocol.md) — Session/Critic prompts, veto system, confidence scoring, repair patterns, deadlock analysis.
 
 ---
 
