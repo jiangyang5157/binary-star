@@ -7,16 +7,12 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 
 # INPUT_DATUM
 - **Session Records**: `{audit_reports_json}` (Batch from SessionAssembler).
+- **PRE-COMPUTED STATES**: Pre-computed by the Physics Engine, DO NOT re-derive from telemetry. 
+  - **Evolver States**: `{precomputed_evolver_states}`
 - **Current Prompt State**: `{current_prompt_md}` (The prompt for the **Session**, **Critic**, and **Binary Star**).
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
 
-# PRE-COMPUTED STATES
-The following batch-level states have been deterministically computed
-from `{audit_reports_json}`:
-
-{precomputed_evolver_states}
-
-# LOGIC_MACROS (LLM-Judged)
+# LOGIC_MACROS
 The following require semantic judgment — compute them yourself:
 - `IS_OVERFIT_RISK`: Historical fix would invalidate > 5% of "Pristine" success records.
 - `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates

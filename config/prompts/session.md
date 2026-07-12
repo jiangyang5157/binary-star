@@ -8,17 +8,10 @@ Pursue asymmetric alpha through heuristic planning, but enforce absolute mathema
 # INPUT_DATUM
 - **Observation Content**: `{observation_json}` (Market Map from Observer).
 - **Debate History**: `{debate_history_json}` (Nullable; Array of ALL previous rounds containing `round`, `plan`, `critic`, and the corresponding `math_fact_check` records).
+- **PRE-COMPUTED STATES**: Pre-computed by the Physics Engine, DO NOT re-derive from telemetry. 
+  - **Shared Regime States**: `{precomputed_regime_states}`
+  - **Session States**: `{precomputed_session_states}`
 - **Visual Evidence**: Multi-timeframe VISUAL_CONTEXT are labeled as `VISUAL_CONTEXT: MACRO_SNAPSHOT` and `VISUAL_CONTEXT: MICRO_SNAPSHOT`. These snapshots provide the physical ground-truth of market structure. As a multimodal logic-driver, you are expected to switch between text and visual observation at any time, and integrate them into your thinking to ensure your audit is also anchored in physical reality, not just numerical abstractions (Refer to the **VISUAL_CONTEXT INTERPRETATION** in the system preamble (**`SHARED_TRUTH_BUS_PROTOCOL`**) for structural interpretation).
-
-# PRE-COMPUTED STATES
-The Physics Engine provides pre-computed boolean states.
-Use them directly — do not re-derive.
-
-**Shared Regime States:**
-{precomputed_regime_states}
-
-**Session States:**
-{precomputed_session_states}
 
 # TOOL_CALLING_PROTOCOL
 You possess Native Function Calling capabilities. You MUST use `MathTools` to eliminate mathematical hallucinations for complex auditing.
