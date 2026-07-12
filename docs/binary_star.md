@@ -2,7 +2,7 @@
 
 > **Full system documentation of the Session ↔ Critic adversarial reasoning pipeline.**
 >
-> Last updated: 2026-07-11
+> Last updated: 2026-07-12
 
 ---
 
@@ -175,9 +175,11 @@ This is the **system instruction** loaded once at session start and shared acros
 | Flow/Momentum | `cvd_intensity_ratio` [-1, 1] | `+` = buying, `-` = selling |
 | Volume Participation | Scalar [0, n] | `1.0` = baseline, `>1.0` = elevated |
 
-### Shared LOGIC_MACROS (evaluated by both agents)
+### Pre-Computed States (Python, not LLM)
 
-These are **boolean states** derived from telemetry + config thresholds:
+All 38 boolean macro states are **deterministically computed in Python** (`regime_states.py`) before inference. Agents receive them as pre-computed JSON — no LLM evaluation of threshold comparisons needed. Only `HAS_PROTOCOL_VIOLATION` (state reversion detection) remains LLM-judged.
+
+The shared 12 regime states:
 
 ```mermaid
 graph LR
@@ -354,7 +356,7 @@ flowchart TD
     CHECK -->|BULLISH or BEARISH| ACTIVE[Active Order Audit]
     CHECK -->|NEUTRAL| NEUTRAL[Neutral Bypass → THE NEUTRALITY PARADOX]
 
-    ACTIVE --> MACROS[Evaluate LOGIC_MACROS<br/>IS_BULLISH, IS_SL_SHIELDED, IS_RR_VALID,<br/>IS_ENTRY_SAFE, IS_SL_LOGICAL, HAS_FLOW_OPPOSITION,<br/>IS_OVEREXTENDING, IS_STRUCTURAL_TRAP, etc.]
+    ACTIVE --> MACROS[Read PRE-COMPUTED STATES +<br/>evaluate HAS_PROTOCOL_VIOLATION<br/>(the only remaining LLM-judged macro)]
 
     MACROS --> TABLE[Run CRITIC_CODES table<br/>as sequential checklist]
 
@@ -390,24 +392,26 @@ IF Amnesty Clause NOT met:
   3. [OPPORTUNITY_DENIAL] — flow dominant + no absorption risk + neutral
 ```
 
-### Critic-Specific LOGIC_MACROS
+### Critic Pre-Computed States
 
-The Critic evaluates **additional** macros beyond the shared ones:
+The Critic receives **16 pre-computed critic states** + 12 shared states via JSON injection (`confidence_calculator.py` + `regime_states.py`). Only one macro remains LLM-judged:
 
-| Macro | Definition |
-|-------|-----------|
-| `IS_ENTRY_SAFE` | BULLISH: entry ≤ current_price; BEARISH: entry ≥ current_price |
-| `IS_SL_LOGICAL` | BULLISH: sl < entry; BEARISH: sl > entry |
-| `IS_SL_SHIELDED` | From `compliance_verdict.sl_is_shielded` |
-| `IS_RR_VALID` | From `compliance_verdict.rr_is_valid` |
-| `IS_OVEREXTENDING` | abs(poc_dist_atr) > gravity_distance AND correct direction AND NOT (strong trend + flow) |
-| `HAS_FLOW_OPPOSITION` | CVD or trend opposes the trade direction |
-| `IS_VOLATILITY_CHOP` | Expanding + low trend + not squeezing |
-| `HAS_LIQUIDITY_VOID` | Nearest LVN within structural buffer |
-| `IS_STRUCTURAL_TRAP` | Entry hits volume vacuum (vacuum_score > threshold) |
-| `HAS_ANCHOR_VIOLATION` | Not shielded OR anchor not between entry+sl OR sl too close to liq cluster |
-| `HAS_PROTOCOL_VIOLATION` | State Reversion detected — Session reverted to previously vetoed plan |
-| `IS_HOLDING_TOO_LONG` | projected_holding_hours > max_holding_hours × temporal_weight_factor |
+| State | Source | Notes |
+|-------|--------|-------|
+| `IS_BULLISH` / `IS_BEARISH` / `IN_NEUTRAL` | Python | From `last_plan.opinion` |
+| `IS_ENTRY_SAFE` | Python | BULLISH: entry ≤ current_price; BEARISH: entry ≥ current_price |
+| `IS_SL_LOGICAL` | Python | BULLISH: sl < entry; BEARISH: sl > entry |
+| `IS_SL_SHIELDED` | Python | From `compliance_verdict.sl_is_shielded` |
+| `IS_RR_VALID` | Python | From `compliance_verdict.rr_is_valid` |
+| `HAS_BEAR_SENTIMENT` / `HAS_BULL_SENTIMENT` | Python | L/S ratio + funding checks |
+| `IS_OVEREXTENDING` | Python | abs(poc_dist) > gravity + direction check + trend/flow guard |
+| `HAS_FLOW_OPPOSITION` | Python | CVD or trend opposes trade direction |
+| `IS_VOLATILITY_CHOP` | Python | Expanding + low trend + not squeezing |
+| `HAS_LIQUIDITY_VOID` | Python | Nearest LVN within structural buffer |
+| `IS_STRUCTURAL_TRAP` | Python | Entry near LVN with high vacuum_score |
+| `HAS_ANCHOR_VIOLATION` | Python | Shield failure OR anchor not between OR liq cluster too close |
+| `IS_HOLDING_TOO_LONG` | Python | proj_holding > max_holding_hours × temporal_weight |
+| `HAS_PROTOCOL_VIOLATION` | **LLM** | State Reversion — Session reverted to previously vetoed plan |
 
 ### Key Design Rule
 
@@ -417,7 +421,7 @@ The Critic evaluates **additional** macros beyond the shared ones:
 
 ## 6. Confidence Calculus
 
-The confidence score (0–100) is computed **from scratch each session** (no cross-session momentum). It represents **survival probability**, not thesis conviction.
+The confidence score (0–100) is **deterministically computed in Python** by `confidence_calculator.py` after the debate concludes. The Session LLM no longer outputs this field — it focuses on pure trading logic. The score represents **survival probability**, not thesis conviction.
 
 ### Scoring Framework
 
@@ -493,14 +497,14 @@ graph LR
 | Squeeze/Chaos Compression | 0–5 | Tight → 5, loose → 2-3, ignored → 0 |
 | Sentiment Risk | 0–7 | Balanced → 7, retail extreme aligned → 4-6, retail extreme against → 0-2, funding extreme against → -2. **SQUEEZE HARDENING**: If `[RETAIL_SQUEEZE]` tag in debate history + maintaining direction via hardening → score as 7 |
 
-### Key Insight: The Confidence Paradox
+### Key Insight: Deterministic Scoring
 
-The scoring rubric is **extremely detailed** — 13 sub-items each with numeric bands. In practice, the LLM must score these from telemetry without additional tool calls. This creates a tension:
+The confidence score is computed by **Python** (`confidence_calculator.py`), not the LLM. 13 sub-dimensions across D1 (Topographical Armor), D2 (Regime & Gravity), and D3 (Temporal & Sentiment) are scored through deterministic decision trees with module-level tunable constants:
 
-- **Richness vs Reliability**: The more detailed the rubric, the more surface area for hallucination
-- **Start-from-zero**: Confidence cannot drift upward across sessions — each session is a fresh calibration
-- **Score rarely exceeds 80 after debate penalties**: The cap at 80 for any debated plan ensures humility
-- **Entry threshold is 65** (configured in `global_config.yaml`)
+- **No LLM variance**: Same inputs always produce the same score
+- **Zero-score guards**: NEUTRAL → 0, rr_is_valid=false → 0, degraded atr → 0
+- **TERMINAL veto cap**: Scores capped at 80 after TERMINAL veto
+- **Sniper threshold**: The Sniper uses its own `confluence_score`, not the session confidence
 
 ---
 
@@ -556,7 +560,7 @@ When the Session receives Critic feedback (in IS_SYNTHESIS mode), it must apply 
 
 | Critic Tag | Repair Protocol |
 |-----------|----------------|
-| `[ORDER_PHYSICS]` | Reset coordinates. BULLISH: entry ≤ current_price, sl < entry, tp > entry. BEARISH inverse. |
+| `[ORDER_PHYSICS]` | Reset coordinates to comply with ORDER_PHYSICS invariant (binary_star.md §6 ABSOLUTE PHYSICAL LAWS). |
 | `[STRUCTURAL_TRAP]` | Relocate entry to nearest HVN, POC, or VAH/VAL. Avoid LVN vacuums. |
 | `[ANCHOR_VIOLATION]` | Move stop_loss distally behind next valid structural anchor. Ensure betweenness. |
 | `[MATH_VIOLATION]` | Recalibrate via MathTools to balance risk/ATR scaling. Adhere to minimum RR. |
@@ -687,8 +691,8 @@ flowchart TD
 | Area | Risk | Severity |
 |------|------|----------|
 | **17 repair patterns** | Session must match all tags to correct repairs. LLMs can mis-map or skip. | Medium |
-| **13 confidence sub-items** | Detailed numeric rubric creates hallucination surface area. Scores may not be reproducible. | Medium |
-| **15+ LOGIC_MACROS** | Boolean states depend on correct telemetry + threshold comparison. If one telemetry field is wrong, cascading misclassification. | Medium |
+| **13 confidence sub-items** | Now deterministically computed in Python (`confidence_calculator.py`) — zero hallucination risk. | ~~Medium~~ Resolved |
+| **38 pre-computed states** | All boolean macros computed in Python (`regime_states.py`) before inference. Only `HAS_PROTOCOL_VIOLATION` remains LLM-judged. Telemetry errors still cascade but LLM no longer does the math. | ~~Medium~~ Low |
 | **CRITIC_CODES table** | 18 rows with overlapping conditions. Multiple simultaneous triggers resolved by severity — but the LLM must evaluate them correctly. | Medium |
 | **Neutrality Paradox** | Complex conditional: amnesty check → confluence audit → three code checks. Easy for the Critic to misapply. | **High** |
 | **GRAVITY_EXHAUSTION double-veto** | The only hardcoded termination path, but depends on the Critic correctly repeating the same tag twice. | Medium |
@@ -721,7 +725,7 @@ Critic receives NEUTRAL plan
 │   ├── squeeze_factor < squeeze_audit_threshold AND HAS_VOLUME_SURGE → [INACTION_BIAS]
 │   ├── abs(poc_dist_atr) > poc_gravity_atr_distance → [INACTION_BIAS]
 │   ├── IS_EXPANDING AND NOT IS_CHAOS AND IS_TREND_STRONG → [TREND_STARVATION]
-│   └── HAS_FLOW_DOMINANCE AND NOT HAS_ABSORPTION_RISK → [OPPORTUNITY_DENIAL]
+│   └── HAS_CVD_MOMENTUM AND NOT HAS_ABSORPTION_RISK → [OPPORTUNITY_DENIAL]
 └── Output: highest severity code found, or PASS if none triggered
 ```
 
@@ -815,6 +819,8 @@ flowchart TD
 | `src/agent/critic_agent.py` | Critic Agent — builds audit context, executes evaluation |
 | `src/agent/base_agent.py` | Base class — tool dispatch, retry logic, JSON parsing |
 | `src/analyzer/math_fact_checker.py` | Deterministic math validation (RR, shielding, holding time) |
+| `src/analyzer/regime_states.py` | Pre-computes 38 boolean macro states (replaces LLM LOGIC_MACROS) |
+| `src/analyzer/confidence_calculator.py` | Deterministic 13-dimension confidence scoring (replaces LLM Confidence Calculus) |
 | `src/analyzer/market_observer.py` | Gathers market telemetry from exchange |
 
 ### Critical Thresholds Summary
@@ -822,7 +828,7 @@ flowchart TD
 | Parameter | Value | Location | Purpose |
 |-----------|-------|----------|---------|
 | `max_rounds` | 2 | global_config.yaml | Hard debate round limit |
-| `confidence_threshold` | 65 | global_config.yaml | Entry gate — live config value |
+| `confidence_threshold` | 65 | global_config.yaml | Entry gate (Sniper uses its own `confluence_score`, not session confidence) |
 | `trend_intensity_strong` | 0.4 | strategy_config.yaml | Threshold for momentum exemptions (XAUT override) |
 | `volatility_extreme_ratio` | 2.2 | strategy_config.yaml | CHAOS classification |
 | `max_entry_distance_atr` | 0.8 (BTC) / 1.2 (base) | strategy_config.yaml + symbol_config.yaml | Phantom order prevention — per-symbol overridable |
@@ -841,13 +847,14 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph "System Instruction (loaded once per session)"
-        BS[binary_star.md<br/>SHARED_TRUTH_BUS_PROTOCOL<br/>+ SHARED LOGIC_MACROS<br/>+ VISUAL_CONTEXT INTERPRETATION]
+        BS[binary_star.md<br/>SHARED_TRUTH_BUS_PROTOCOL<br/>+ PRE-COMPUTED STATES<br/>+ ORDER_PHYSICS<br/>+ VISUAL_CONTEXT INTERPRETATION]
     end
 
     subgraph "User Prompt (per inference cycle)"
         subgraph "Session Agent Context"
             S_OBS[observation_json<br/>Market Map from Observer]
             S_HIST[debate_history_json<br/>Nullable, compressed]
+            S_STATES[precomputed_regime_states<br/>+ precomputed_session_states<br/>Python-computed booleans]
             S_INTENT[strategy_intent]
             S_CONFIG[Risk + Regime params<br/>min_rr, structural_buffer_atr, etc.]
             S_VISUAL[VISUAL_CONTEXT text<br/>if text-only model]
@@ -858,6 +865,7 @@ flowchart TD
             C_PLAN[last_plan<br/>Session's proposal]
             C_MATH[math_fact_check<br/>Deterministic validation]
             C_HIST[debate_history_json]
+            C_STATES[precomputed_regime_states<br/>+ precomputed_critic_states<br/>Python-computed booleans]
             C_CONFIG[Regime + Risk + Temporal params]
             C_VISUAL[VISUAL_CONTEXT text]
         end
@@ -866,6 +874,7 @@ flowchart TD
     BS --> SESSION_INFERENCE[Session LLM Call]
     S_OBS --> SESSION_INFERENCE
     S_HIST --> SESSION_INFERENCE
+    S_STATES --> SESSION_INFERENCE
     S_INTENT --> SESSION_INFERENCE
     S_CONFIG --> SESSION_INFERENCE
     S_VISUAL --> SESSION_INFERENCE
@@ -875,6 +884,7 @@ flowchart TD
     C_PLAN --> CRITIC_INFERENCE
     C_MATH --> CRITIC_INFERENCE
     C_HIST --> CRITIC_INFERENCE
+    C_STATES --> CRITIC_INFERENCE
     C_CONFIG --> CRITIC_INFERENCE
     C_VISUAL --> CRITIC_INFERENCE
 ```
@@ -901,8 +911,8 @@ sequenceDiagram
     BA->>SA: Continue inference with tool results
     SA-->>BA: Final JSON (opinion + coordinates)
     BA->>BA: Parse & validate JSON
-    BA->>BA: Clamp confidence_score [0, 100]
     BA->>BA: Validate opinion enum
+    Note over BA: confidence_score now computed<br/>by Python after debate,<br/>not by LLM during inference
 ```
 
 **Key detail**: `BaseAgent._execute_ai_cycle` runs up to `max_tool_iterations=5` rounds of tool calls. The LLM can call tools, receive results, and call more tools — but the Session Agent is instructed to **batch all tool calls** and wait for results before outputting final JSON.
@@ -921,5 +931,5 @@ sequenceDiagram
 
 ---
 
-> **Document version**: matches code at `cc3f6b4`
-> Generated from: `config/prompts/{binary_star,session,critic,evolver}.md`, `src/agent/{binary_star_orchestrator,debate_loop,session_agent,critic_agent,base_agent}.py`, `src/analyzer/math_fact_checker.py`, `config/{global_config,strategy_config}.yaml`
+> **Document version**: matches code at `cc51a7c`
+> Generated from: `config/prompts/{binary_star,session,critic,evolver}.md`, `src/agent/{binary_star_orchestrator,debate_loop,session_agent,critic_agent,base_agent}.py`, `src/analyzer/{math_fact_checker,regime_states,confidence_calculator}.py`, `config/{global_config,strategy_config}.yaml`
