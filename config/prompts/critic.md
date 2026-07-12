@@ -53,7 +53,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 | **Liquidity Void** | `HAS_LIQUIDITY_VOID` | `[LIQUIDITY_VOID]` | `CONSTRUCTIVE` |
 
 # AUDIT_WORKFLOW
-- **Contextual Pre-calculation**: Read **`PRE-COMPUTED STATES`** to determine the current regime and plan validity.
+- **Contextual Pre-calculation**: Read **`PRE-COMPUTED STATES`** and evaluate remaining **`LOGIC_MACROS`** to determine the current regime and plan validity.
 - **Multimodal Synthesis**: Cross-reference `{observation_json}` metrics with visual snapshots (`VISUAL_CONTEXT`). Identify structural nuances or momentum cues.
 - **Deterministic Veto Audit**: Evaluate the `{last_plan}` strictly against the `CRITIC_CODES` table.
   - For "BULLISH" and "BEARISH": Audit `[ORDER_PHYSICS]`, `[ANCHOR_VIOLATION]`, `[MATH_VIOLATION]`, and Volatility Regime/Flow direction alignment.
