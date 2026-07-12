@@ -176,5 +176,15 @@ class CriticAgent(BaseAgent):
             "temporal_dilation_dead_water": self.config.temporal.temporal_dilation_dead_water,
             "temporal_dilation_highway": self.config.temporal.temporal_dilation_highway,
             "temporal_dilation_climax": self.config.temporal.temporal_dilation_climax,
-            "temporal_dilation_standard": self.config.temporal.temporal_dilation_standard
+            "temporal_dilation_standard": self.config.temporal.temporal_dilation_standard,
+            # Restored context keys — harmless extras preserved for evolver patches
+            "long_short_imbalance_ratio": self.config.regime.long_short_imbalance_ratio,
+            "short_heavy_imbalance_ratio": self.config.regime.short_heavy_imbalance_ratio,
+            "vacuum_risk_score": self.config.regime.vacuum_risk_score,
+            "trend_intensity_strong": self.config.regime.trend_intensity_strong,
+            "trend_intensity_min_expansion": self.config.regime.trend_intensity_min_expansion,
+            "structural_buffer_atr": self.config.risk.structural_buffer_atr,
+            "cvd_intensity_threshold": self.config.regime.cvd_intensity_threshold,
+            "funding_extreme_threshold": self.config.regime.funding_extreme_threshold,
+            "max_holding_hours": self.config.risk.max_holding_hours,
         }
