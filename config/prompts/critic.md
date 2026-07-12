@@ -22,26 +22,24 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
   - **Amnesty Clause**: If the current "NEUTRAL" stance is the result of a `TERMINAL` veto in ANY previous round of the current session (check `{debate_history_json}`) OR if the Session explicitly proves in its reasoning that repairing a previous `CONSTRUCTIVE` veto creates an unsolvable mathematical contradiction (e.g., compressing Time inevitably violates minimum RR), you MUST NOT trigger `[INACTION_BIAS]`, `[TREND_STARVATION]`, or `[OPPORTUNITY_DENIAL]`.
   - **Confluence Audit**: If the **Amnesty Clause** criteria are NOT met, you MUST strictly check the `[INACTION_BIAS]`, `[TREND_STARVATION]`, and `[OPPORTUNITY_DENIAL]` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
 
-# LOGIC_MACROS
-To ensure Zero-Entropy convergence, evaluate these boolean states before the audit (Refer to the **SHARED LOGIC_MACROS** in the system preamble (**`SHARED_TRUTH_BUS_PROTOCOL`**)):
-- `IS_BULLISH`: `last_plan.opinion` == "BULLISH"
-- `IS_BEARISH`: `last_plan.opinion` == "BEARISH"
-- `IN_NEUTRAL`: `last_plan.opinion` == "NEUTRAL"
-- `HAS_BEAR_SENTIMENT`: (`long_short_ratio_micro` > `{long_short_imbalance_ratio}` OR `funding_rate` > `{funding_extreme_threshold}`)
-- `HAS_BULL_SENTIMENT`: (`long_short_ratio_micro` < `{short_heavy_imbalance_ratio}` OR `funding_rate` < -`{funding_extreme_threshold}`)
-- `IS_SL_SHIELDED`: `compliance_verdict.sl_is_shielded` == TRUE
-- `IS_RR_VALID`: `compliance_verdict.rr_is_valid` == TRUE
-- `IS_ENTRY_SAFE`: (`IS_BULLISH` AND `last_plan.tactical_parameters.entry` <= `current_price`) OR (`IS_BEARISH` AND `last_plan.tactical_parameters.entry` >= `current_price`)
-- `IS_SL_LOGICAL`: (`IS_BULLISH` AND `last_plan.tactical_parameters.stop_loss` < `last_plan.tactical_parameters.entry`) OR (`IS_BEARISH` AND `last_plan.tactical_parameters.stop_loss` > `last_plan.tactical_parameters.entry`)
-- `HAS_FLOW_DOMINANCE`: abs(`cvd_intensity_ratio`) > `{cvd_intensity_threshold}`
-- `IS_OVEREXTENDING`: (abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) AND ((`poc_dist_atr` > 0 AND `IS_BULLISH`) OR (`poc_dist_atr` < 0 AND `IS_BEARISH`)) AND NOT (`IS_TREND_STRONG` AND `HAS_FLOW_DOMINANCE`)
-- `IS_HOLDING_TOO_LONG`: `last_plan.tactical_parameters.projected_holding_hours` > (`{max_holding_hours}` * `math_fact_check.holding_time_verification.temporal_weight_factor`)
-- `HAS_FLOW_OPPOSITION`: (`cvd_intensity_ratio` > `{cvd_intensity_threshold}` AND `IS_BEARISH`) OR (`cvd_intensity_ratio` < -`{cvd_intensity_threshold}` AND `IS_BULLISH`) OR (`trend_intensity` > `{trend_intensity_strong}` AND `IS_BEARISH`) OR (`trend_intensity` < -`{trend_intensity_strong}` AND `IS_BULLISH`)
-- `IS_VOLATILITY_CHOP`: `IS_EXPANDING` AND abs(`trend_intensity`) < `{trend_intensity_min_expansion}` AND NOT `IS_SQUEEZING`
-- `HAS_LIQUIDITY_VOID`: `nearest_lvn_dist_atr` < `{structural_buffer_atr}`
-- `IS_STRUCTURAL_TRAP`: `last_plan.tactical_parameters.entry` hits a volume vacuum (`vacuum_score` > `{vacuum_risk_score}`)
-- `HAS_ANCHOR_VIOLATION`: (NOT `IS_TREND_STRONG` AND (NOT `IS_SL_SHIELDED` OR Anchor is NOT BETWEEN `entry` and `stop_loss`)) OR (Near `liquidation_cluster` AND ((`IS_BULLISH` AND `stop_loss` >= cluster) OR (`IS_BEARISH` AND `stop_loss` <= cluster)))
-- `HAS_PROTOCOL_VIOLATION`: State Reversion detected in `{debate_history_json}`
+# PRE-COMPUTED STATES
+The Physics Engine provides pre-computed boolean states.
+Use them directly — do not re-derive.
+
+**Shared Regime States:**
+{precomputed_regime_states}
+
+**Critic States:**
+{precomputed_critic_states}
+
+# LLM-JUDGED STATE
+The following requires semantic comparison and is NOT pre-computed.
+You MUST evaluate it yourself:
+
+- `HAS_PROTOCOL_VIOLATION`: State Reversion detected in `{debate_history_json}`.
+  Compare the current `{last_plan}` against previously vetoed plans in the debate
+  history. If the Session reverted to a previously invalidated approach without a
+  paradigm shift (radical change in anchor, target, or stance), this is TRUE.
 
 # CRITIC_CODES
 | Category | Condition | Tag | Veto Level |
@@ -54,7 +52,7 @@ To ensure Zero-Entropy convergence, evaluate these boolean states before the aud
 | **Logic Loop** | `HAS_PROTOCOL_VIOLATION` | `[PROTOCOL_VIOLATION]` | `TERMINAL` |
 | **Math Violation** | NOT `IS_RR_VALID` OR `compliance_verdict.atr_volatility_is_logical` == FALSE | `[MATH_VIOLATION]` | `CONSTRUCTIVE` |
 | **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `HAS_VOLUME_SURGE` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
-| **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_FLOW_DOMINANCE` AND NOT `HAS_ABSORPTION_RISK` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
+| **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_CVD_MOMENTUM` AND NOT `HAS_ABSORPTION_RISK` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
 | **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND `IN_NEUTRAL` | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
 | **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH` | `[RETAIL_LONG_SQUEEZE]` | `CONSTRUCTIVE` |
 | **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `CONSTRUCTIVE` |

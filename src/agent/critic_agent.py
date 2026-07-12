@@ -9,6 +9,11 @@ from src.config.sub_configs import RegimeConfig, TemporalConfig, RiskConfig, Aud
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 from src.utils.rate_limiter import CongestionController
+from src.analyzer.regime_states import (
+    compute_shared_regime_states,
+    compute_critic_states,
+    _format_states,
+)
 
 # Initialize critic-specific logger
 logger = setup_logger(__name__)
@@ -146,26 +151,28 @@ class CriticAgent(BaseAgent):
         else:
             raise ValueError("Critic: Audit attempted without baseline telemetry.")
 
+        # Pre-computed states (Python replaces LOGIC_MACROS)
+        regime_states = compute_shared_regime_states(
+            observation, self.config.regime,
+        )
+        critic_states = compute_critic_states(
+            observation, last_plan, math_fact_check,
+            self.config.regime, self.config.risk,
+        )
+
         return {
             "observation_json": observation_json,
             "strategy_intent": self.config.strategy_intent,
             "last_plan": json.dumps(last_plan, indent=2, ensure_ascii=False),
             "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
             "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
-            "long_short_imbalance_ratio": self.config.regime.long_short_imbalance_ratio,
-            "short_heavy_imbalance_ratio": self.config.regime.short_heavy_imbalance_ratio,
+            "precomputed_regime_states": _format_states(regime_states),
+            "precomputed_critic_states": _format_states(critic_states),
+            "squeeze_audit_threshold": self.config.regime.squeeze_audit_threshold,
             "poc_gravity_atr_distance": self.config.risk.poc_gravity_atr_distance,
-            "vacuum_risk_score": self.config.regime.vacuum_risk_score,
-            "trend_intensity_strong": self.config.regime.trend_intensity_strong,
-            "trend_intensity_min_expansion": self.config.regime.trend_intensity_min_expansion,
             "min_rr_ranging": self.config.risk.min_rr_ranging,
             "min_rr_trending": self.config.risk.min_rr_trending,
-            "squeeze_audit_threshold": self.config.regime.squeeze_audit_threshold,
-            "structural_buffer_atr": self.config.risk.structural_buffer_atr,
-            "cvd_intensity_threshold": self.config.regime.cvd_intensity_threshold,
             "min_volume_participation_ratio": self.config.regime.min_volume_participation_ratio,
-            "funding_extreme_threshold": self.config.regime.funding_extreme_threshold,
-            "max_holding_hours": self.config.risk.max_holding_hours,
             "temporal_dilation_dead_water": self.config.temporal.temporal_dilation_dead_water,
             "temporal_dilation_highway": self.config.temporal.temporal_dilation_highway,
             "temporal_dilation_climax": self.config.temporal.temporal_dilation_climax,
