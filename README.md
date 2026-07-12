@@ -43,7 +43,7 @@ sequenceDiagram
 | **CONSTRUCTIVE** | Fixable flaws — feedback loop, Planner refines |
 | **TERMINAL** | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
 
-Each proposal carries a 0–100 confidence score deterministically computed in Python across 13 dimensions: topographical armor, regime synchronization, and temporal/sentiment convexity. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
+A deterministic 0–100 survival score is computed in Python after the debate — evaluating 13 dimensions across topographical armor, regime synchronization, and temporal convexity. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
 
 > **Full protocol**: [docs/adversarial-debate-protocol.md](docs/adversarial-debate-protocol.md) — Session/Critic prompts, veto system, confidence scoring, repair patterns, deadlock analysis.
 

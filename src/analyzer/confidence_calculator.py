@@ -1,7 +1,8 @@
 """Confidence calculator — deterministic survival-probability scoring.
 
-Replaces the LLM-evaluated Confidence Calculus in config/prompts/session.md.
 One public entry point, each dimension a private function for easy tuning.
+Computes a 0–100 score across 13 sub-dimensions in three groups:
+D1 Topographical Armor, D2 Regime & Gravity, D3 Temporal & Sentiment.
 """
 
 from __future__ import annotations
