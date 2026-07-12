@@ -236,6 +236,8 @@ def compute_critic_states(
             has_anchor_violation = True
 
         # Liquidation cluster proximity check
+        # A cluster between entry and SL is a real cascade risk —
+        # price sweeping through it can overrun the stop.
         liq_clusters = sentiment.get("liquidation_clusters", {}) or {}
         for cluster_list in liq_clusters.values():
             if not isinstance(cluster_list, list):
@@ -245,10 +247,9 @@ def compute_critic_states(
                 if cluster_price <= 0:
                     continue
                 if (
-                    (is_bullish and sl >= cluster_price)
-                    or (is_bearish and sl <= cluster_price)
+                    (is_bullish and sl <= cluster_price < entry)
+                    or (is_bearish and entry < cluster_price <= sl)
                 ):
-                    # sl is at or beyond a liquidation cluster
                     has_anchor_violation = True
                     break
             if has_anchor_violation:
