@@ -30,15 +30,15 @@ class TestMathTools:
         (100, 95, 110, 2.5, 2.0),
     ])
     def test_atr_metrics_standardization(self, entry, sl, tp, atr, expected_sl_atr):
-        res = MathTools.calculate_atr_metrics(entry, sl, tp, atr)
+        res = MathTools.calculate_atr_metrics(None, entry, sl, tp, atr)
         assert res['entry_to_sl_atr'] == expected_sl_atr
         assert 'error' not in res
 
     def test_atr_metrics_invalid_atr(self):
         # ATR <= 0
-        res = MathTools.calculate_atr_metrics(100, 90, 110, 0)
+        res = MathTools.calculate_atr_metrics(None, 100, 90, 110, 0)
         assert 'error' in res
-        res = MathTools.calculate_atr_metrics(100, 90, 110, -5)
+        res = MathTools.calculate_atr_metrics(None, 100, 90, 110, -5)
         assert 'error' in res
 
     def test_structural_proximity(self):
@@ -146,7 +146,7 @@ class TestMathTools:
         (100, 90, 110, -1),           # negative ATR → error
     ])
     def test_atr_metrics_nan_inf(self, entry, sl, tp, atr):
-        res = MathTools.calculate_atr_metrics(entry, sl, tp, atr)
+        res = MathTools.calculate_atr_metrics(None, entry, sl, tp, atr)
         assert 'error' in res
 
     @pytest.mark.parametrize("entry, tp, velocity, atr, trend, vol_idx", [

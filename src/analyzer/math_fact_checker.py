@@ -66,7 +66,8 @@ class MathFactChecker:
 
             # Verified Metrics Calculation
             rr_results = self.math.calculate_risk_reward(entry, tp, sl)
-            atr_metrics = self.math.calculate_atr_metrics(entry, sl, tp, atr)
+            tactical_cp = float(tactical.get('current_price', 0) or 0)
+            atr_metrics = self.math.calculate_atr_metrics(tactical_cp, entry, sl, tp, atr)
             proximity = self.math.calculate_structural_proximity(sl, atr, poc, vah, val)
 
             from src.utils.math_utils import build_physics_config

@@ -64,45 +64,21 @@ def get_tool_declarations() -> list[dict]:
     """
     return [
         {
-            "name": "calculate_risk_reward",
-            "description": "Calculates the Risk-Reward (RR) ratio for a limit order.",
+            "name": "calculate_trade_geometry",
+            "description": "Calculates RR ratio (profit/risk distance), ATR-standardised distances from entry to SL/TP, entry offset from current_price, and stop-loss distance to structural anchors (POC/VAH/VAL). Input: current_price, entry, take_profit, stop_loss, atr, poc, vah, val. Output: rr_ratio, profit_distance, risk_distance, entry_to_sl_atr, entry_to_tp_atr, entry_to_current_atr, sl_to_poc_atr, sl_to_vah_atr, sl_to_val_atr.",
             "parameters": {
                 "type": "OBJECT",
                 "properties": {
+                    "current_price": {"type": "NUMBER"},
                     "entry": {"type": "NUMBER"},
                     "take_profit": {"type": "NUMBER"},
-                    "stop_loss": {"type": "NUMBER"},
-                },
-                "required": ["entry", "take_profit", "stop_loss"],
-            },
-        },
-        {
-            "name": "calculate_atr_metrics",
-            "description": "Standardizes distances using ATR.",
-            "parameters": {
-                "type": "OBJECT",
-                "properties": {
-                    "entry": {"type": "NUMBER"},
-                    "stop_loss": {"type": "NUMBER"},
-                    "take_profit": {"type": "NUMBER"},
-                    "atr": {"type": "NUMBER"},
-                },
-                "required": ["entry", "stop_loss", "take_profit", "atr"],
-            },
-        },
-        {
-            "name": "calculate_structural_proximity",
-            "description": "Calculates stop-loss distance to structural anchors (POC/VAH/VAL) in ATR units. Positive = SL above anchor; negative = SL below. Use to verify THE SHIELD LAW: for BULLISH, at least one anchor should be negative (SL below it); for BEARISH, at least one anchor should be positive (SL above it).",
-            "parameters": {
-                "type": "OBJECT",
-                "properties": {
                     "stop_loss": {"type": "NUMBER"},
                     "atr": {"type": "NUMBER"},
                     "poc": {"type": "NUMBER"},
                     "vah": {"type": "NUMBER"},
                     "val": {"type": "NUMBER"},
                 },
-                "required": ["stop_loss", "atr"],
+                "required": ["current_price", "entry", "take_profit", "stop_loss", "atr"],
             },
         },
     ]
@@ -152,11 +128,11 @@ def calculate_risk_reward(
         return {"error": str(e)}
 
 def calculate_atr_metrics(
+    current_price: float | None,
     entry: float,
     stop_loss: float,
     take_profit: float,
     atr: float,
-    current_price: Optional[float] = None
 ) -> Dict[str, Any]:
     """Standardize entry/SL/TP distances using ATR (Average True Range).
 
@@ -211,6 +187,46 @@ def calculate_structural_proximity(
     except Exception as e:
         logger.error(f"structural proximity failed | error={e}")
         return {"error": str(e)}
+
+def calculate_trade_geometry(
+    current_price: float,
+    entry: float,
+    take_profit: float,
+    stop_loss: float,
+    atr: float,
+    poc: float | None = None,
+    vah: float | None = None,
+    val: float | None = None,
+) -> dict:
+    """Combined trade geometry verification: RR + ATR metrics + structural proximity.
+
+    Batch-verifies all three dimensions with a single call to reduce
+    LLM tool-call round trips.
+    """
+    rr = calculate_risk_reward(entry, take_profit, stop_loss)
+    atr_met = calculate_atr_metrics(current_price, entry, stop_loss, take_profit, atr)
+    prox = calculate_structural_proximity(stop_loss, atr, poc, vah, val)
+
+    # If any sub-function returned an error, propagate the first one found
+    for sub_result in (rr, atr_met, prox):
+        if "error" in sub_result:
+            return {"error": sub_result["error"]}
+
+    result = {
+        "rr_ratio": rr.get("rr_ratio"),
+        "profit_distance": rr.get("profit_distance"),
+        "risk_distance": rr.get("risk_distance"),
+        "entry_to_sl_atr": atr_met.get("entry_to_sl_atr"),
+        "entry_to_tp_atr": atr_met.get("entry_to_tp_atr"),
+        "sl_to_poc_atr": prox.get("sl_to_poc_atr"),
+        "sl_to_vah_atr": prox.get("sl_to_vah_atr"),
+        "sl_to_val_atr": prox.get("sl_to_val_atr"),
+    }
+    eca = atr_met.get("entry_to_current_atr")
+    if eca is not None:
+        result["entry_to_current_atr"] = eca
+    return result
+
 
 def get_regime_scalars(
     trend_intensity: float,
@@ -431,6 +447,7 @@ _MATH_TOOLS_FUNCTIONS = [
     calculate_risk_reward,
     calculate_atr_metrics,
     calculate_structural_proximity,
+    calculate_trade_geometry,
     get_regime_scalars,
     project_holding_time,
     calculate_opportunity_cost,

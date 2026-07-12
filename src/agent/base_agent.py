@@ -361,12 +361,17 @@ class BaseAgent:
         from src.utils.math_utils import MathTools
         return MathTools.calculate_risk_reward(entry, take_profit, stop_loss)
 
-    def calculate_atr_metrics(self, entry: float, stop_loss: float, take_profit: float, atr: float, current_price: float | None = None) -> dict[str, Any]:
+    def calculate_atr_metrics(self, current_price: float | None, entry: float, stop_loss: float, take_profit: float, atr: float) -> dict[str, Any]:
         """[TOOL] Standardizes trade distances using ATR (Average True Range)."""
         from src.utils.math_utils import MathTools
-        return MathTools.calculate_atr_metrics(entry, stop_loss, take_profit, atr, current_price)
+        return MathTools.calculate_atr_metrics(current_price, entry, stop_loss, take_profit, atr)
 
     def calculate_structural_proximity(self, stop_loss: float, atr: float, poc: float | None = None, vah: float | None = None, val: float | None = None) -> dict[str, Any]:
         """[TOOL] Calculates stop-loss distance to structural anchors (POC/VAH/VAL) in ATR units."""
         from src.utils.math_utils import MathTools
         return MathTools.calculate_structural_proximity(stop_loss, atr, poc, vah, val)
+
+    def calculate_trade_geometry(self, current_price: float, entry: float, take_profit: float, stop_loss: float, atr: float, poc: float | None = None, vah: float | None = None, val: float | None = None) -> dict[str, Any]:
+        """[TOOL] Combined trade geometry — RR, ATR metrics, and structural proximity in one call."""
+        from src.utils.math_utils import MathTools
+        return MathTools.calculate_trade_geometry(current_price, entry, take_profit, stop_loss, atr, poc, vah, val)
