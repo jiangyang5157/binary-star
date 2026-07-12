@@ -444,13 +444,11 @@ class SessionRenderer(BaseEmailTemplate):
 
             # Plan section
             plan_opinion = plan.get("opinion", "?")
-            plan_conf = plan.get("confidence_score")
             plan_tactics = plan.get("tactical_parameters") or {}
             plan_reasoning = plan.get("reasoning_chain") or ""
 
             # Build plan header
             opinion_badge = SessionRenderer._opinion_badge(plan_opinion) if plan_opinion else ""
-            conf_str = f'{plan_conf:.1f}%' if plan_conf is not None else ""
 
             # Plan tactic mini-table
             tactic_rows = ""
@@ -536,7 +534,6 @@ class SessionRenderer(BaseEmailTemplate):
                 <td>
                     <span style="{_s(fontFamily=F['display'], fontSize='14px', fontWeight='400', color=C['text'], letterSpacing='0.01em')}">Round {round_num}</span>
                     <span style="{_s(marginLeft='12px')}">{opinion_badge}</span>
-                    {f'<span style="{_s(marginLeft="8px", fontSize="12px", fontWeight="600", color=C["gold"], fontFamily=F["mono"])}">{conf_str}</span>' if conf_str else ""}
                 </td>
                 <td style="{_s(textAlign='right')}">
                     {veto_badge}

@@ -95,7 +95,6 @@ function renderDebateRounds(debateHistory) {
           <summary>
             <span class="round-label">${t('detail.round')} ${r.round || (i + 1)}</span>
             ${r.plan ? `<span class="round-plan-opinion">${opinionBadge(r.plan.opinion || '?')}</span>` : ''}
-            ${r.plan && r.plan.confidence_score != null ? `<span class="round-confidence">${r.plan.confidence_score.toFixed(1)}%</span>` : ''}
             ${r.critic ? `<span class="round-veto veto-${(r.critic.veto_level || '').toLowerCase()}">${r.critic.veto_level || ''}</span>` : ''}
             ${r.math_fact_check ? `<span class="round-math math-${(r.math_fact_check.status || '').toLowerCase()}">${r.math_fact_check.status || ''}</span>` : ''}
           </summary>
