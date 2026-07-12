@@ -32,8 +32,6 @@ _SENTIMENT_SCORE_ALIGNED_LO = 4.0
 _SENTIMENT_SCORE_ALIGNED_HI = 6.0
 _SENTIMENT_SCORE_AGAINST_LO = 0.0
 _SENTIMENT_SCORE_AGAINST_HI = 2.0
-_BAND_HI = 3
-_BAND_LO = 1
 _FLOW_BOTH_STRONG = 10.0
 _FLOW_ONE_STRONG_LO = 5.0
 _FLOW_ONE_STRONG_HI = 8.0
@@ -160,7 +158,7 @@ def compute_confidence(
                                 sentiment.get("liquidation_clusters"), risk_config)
           + _score_betweenness(entry, sl, is_bullish, all_nodes, atr, is_trend_strong)
           + _score_entry_proximity(entry, current_price, atr, risk_config)
-          + _score_entry_vacuum(entry, all_nodes, risk_config, atr)
+          + _score_entry_vacuum(entry, all_nodes, atr)
           + _score_multi_anchor(entry, sl, is_bullish, all_nodes, atr))
 
     d2 = (_score_flow_alignment(opinion, is_trend_strong, has_cvd_momentum,
@@ -179,7 +177,7 @@ def compute_confidence(
                                 is_bullish, volume_prof, atr)
           + _score_sentiment_risk(opinion, sentiment, regime_config, debate_history))
 
-    penalty = _calc_debate_penalty(debate_history, entry, d1 + d2 + d3)
+    penalty = _calc_debate_penalty(debate_history, entry)
 
     return max(0.0, min(100.0, d1 + d2 + d3 - penalty))
 
@@ -311,7 +309,7 @@ def _score_entry_proximity(entry: float, current_price: float, atr: float,
     return 0.0
 
 
-def _score_entry_vacuum(entry: float, all_nodes: list, risk_config,
+def _score_entry_vacuum(entry: float, all_nodes: list,
                         atr: float = 1000.0) -> float:
     """Score 0–5. Entry quality — on HVN vs LVN vs vacuum."""
     if not all_nodes:
@@ -534,8 +532,7 @@ def _score_sentiment_risk(opinion: str, sentiment: dict,
 # ── Penalty ───────────────────────────────────────────────────
 
 def _calc_debate_penalty(debate_history: list | None,
-                         current_entry: float,
-                         raw_score: float = 0.0) -> float:
+                         current_entry: float) -> float:
     """Calculate debate penalty from round history."""
     if not debate_history:
         return 0.0
