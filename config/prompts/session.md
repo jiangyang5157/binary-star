@@ -96,39 +96,6 @@ When history contains specific veto tags, apply these technical repair protocols
   - Generate `entry`, `take_profit`, `stop_loss`.
   - Apply **THE SHIELD LAW** and **LIMIT ORDER PHYSICS**.
 - **Physical Validation**: Invoke `MathTools` protocols. Recalibrate if tool returns valid but suboptimal results.
-- **Confidence Calculus (MANDATORY)**: Compute `confidence_score` [0–100]. Start from 0. Award points only for VERIFIABLE protections backed by specific telemetry. No citation = no points. Score each item 0 to its stated maximum, not all-or-nothing.
-  **Core Principle**: Confidence = SURVIVAL PROBABILITY, not thesis conviction. When uncertain, score DOWN.
-  **Data**: All scoring inputs come from `observation_json`, `debate_history_json`, your own computed `projected_holding_hours`/`projected_waiting_hours`, and the already-returned `math_fact_check`. No additional tool calls — just read and score.
-  **Zero-Score Overrides**: NEUTRAL → 0. `rr_is_valid: false` → 0.
-
-  - **D1: Topographical Armor (0–40)** — "Will the stop-loss survive?"
-    - 0–15: Anchor quality. Cite name, price, strength.
-      ≥ 0.8 ........ 12–15
-      0.5–0.8 ......  8–11
-      < 0.5 or LVN .  3–7
-      None .........  0
-      Deductions: −3 per liquidation cluster between anchor and stop-loss. −5 if anchor > 2 ATR from stop-loss. Floor sub-item at 0.
-    - 0–10: BETWEENNESS — anchor strictly between entry and stop-loss. Gap ≥ 0.3 ATR both sides → 10 | boundary-adjacent (< 0.3) → 5–8 | DKS-substituted → 3–5 | none → 0.
-    - 0–5: Entry ≤ `{max_entry_distance_atr}` ATR from price. ≤ 0.5 → 5 | 0.5–1.2 → 3–4 | 1.2–max → 1–2 | exceeds → 0.
-    - 0–5: Entry not in vacuum. On HVN/POC → 5 | LVN ≥ `{structural_buffer_atr}` → 3–4 | vacuum + nearby HVN → 1–2 | pure vacuum → 0.
-    - 0–5: Multi-anchor. Second HVN/POC ≥ 0.5 → 5 | weak or > 3 ATR distal → 2–3 | none → 0.
-
-  - **D2: Regime & Gravity Synchronization (0–30)** — "Does the regime support this?"
-    - 0–10: Flow alignment. Both strong + aligned → 10 | one strong → 5–8 | both neutral → 2–4 | contradiction → 0.
-    - 0–10: Regime fit. Canonical → 10 | defensible → 4–7 | mismatch → 0–3. **GRAVITY CAP**: if `poc_dist_atr` > `{poc_gravity_atr_distance}` AND NOT `IS_TREND_STRONG` → cap at **5**.
-    - 0–5: `take_profit` proportional. Squeeze/chaos (first boundary) → 5 | trending/ranging → 3–4 | excessive → 0–2.
-    - 0–5: Polarity. All consistent → 5 | minor contradiction → 2–4 | major → 0.
-
-  - **D3: Temporal & Sentiment Convexity (0–30)** — "Timing + crowd check."
-    - 0–10: Holding ratio = `projected_holding_hours` / (abs(`entry` − `take_profit`) / `atr_macro` × `unit_atr_holding_hours`). ≈ 0.7–1.5 → 8–10 | 0.5–0.7 or 1.5–2.0 → 4–7 | > 2.0 or < 0.3 → 1–3.
-    - 0–8: Wait/Hold ≤ 0.3. ≤ 0.15 → 8 | 0.15–0.30 → 5–7 | 0.30–0.50 → 2–4 | > 0.50 → 0–1.
-    - 0–5: Squeeze/chaos compression. Tight → 5 | loose → 2–3 | ignored → 0.
-    - 0–7: Sentiment risk. Balanced → 7 | retail extreme aligned with direction → 4–6 | retail extreme against direction → 0–2 | funding extreme (abs(funding_rate) > {funding_extreme_threshold}) against → −2. **SQUEEZE HARDENING**: If `[RETAIL_LONG_SQUEEZE]` or `[RETAIL_SHORT_SQUEEZE]` is in debate history and you are maintaining direction via hardening (tighter stop, compressed TP), score this item as **7** — the hardened plan already compensates for the squeeze risk.
-
-  - **Debate Penalty (IS_SYNTHESIS only)** — subtract from D1+D2+D3:
-    TERMINAL veto: −10 (paradigm shift) to −20 (cosmetic). Final score after penalty cannot exceed 80. CONSTRUCTIVE 2+ rounds without PASS: −5 to −10. CONSTRUCTIVE→PASS (genuine repair), PASS/WEAK R1, or IS_PLANNING: 0.
-
-  - **Constraint**: Clamp [0, 100]. 90+ requires max-strength anchor (≥ 0.9), perfect betweenness, canonical regime fit, bilateral strong flow, no retail extreme, clean debate — exceedingly rare.
 - **Finalization**: Output JSON.
 
 # OUTPUT_SCHEMA
@@ -137,7 +104,6 @@ Your final response MUST be RAW JSON only. Do not output JSON until all necessar
 ```json
 {{
     "opinion": "BULLISH | BEARISH | NEUTRAL",
-    "confidence_score": decimal,
     "tactical_parameters": {{
         "current_price": decimal,
         "entry": decimal,
@@ -146,7 +112,7 @@ Your final response MUST be RAW JSON only. Do not output JSON until all necessar
         "projected_holding_hours": decimal,
         "projected_waiting_hours": decimal
     }},
-    "reasoning_chain": "Step-by-step logic summary following # ANALYSIS_WORKFLOW, clearly showing the Confidence Calculus math.",
+    "reasoning_chain": "Step-by-step logic summary — why this direction, entry coordinates, and strategy. Focus on trading thesis, not scoring math.",
     "critic_impact": "Summary of repairs based on {debate_history_json}. If `IS_PLANNING`, MUST be JSON null. Otherwise, summarize how you addressed the historical tags and audit_evidence."
 }}
 ```

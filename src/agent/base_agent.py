@@ -309,16 +309,7 @@ class BaseAgent:
                 agent_name, len(text), text,
             )
             raise MalformedJSONError(raw_text=text, agent_name=agent_name)
-        # Clamp confidence_score to valid range [0, 100] — guard against hallucinated values
-        if "confidence_score" in parsed:
-            try:
-                cs = float(parsed["confidence_score"])
-                if not math.isfinite(cs):
-                    cs = 0.0
-                parsed["confidence_score"] = max(0.0, min(100.0, cs))
-            except (TypeError, ValueError):
-                parsed["confidence_score"] = 0.0
-        # Validate opinion enum — any non-standard value bypasses downstream safety gates
+# Validate opinion enum — any non-standard value bypasses downstream safety gates
         if "opinion" in parsed:
             opinion = str(parsed["opinion"]).strip().upper()
             if opinion not in ("BULLISH", "BEARISH", "NEUTRAL"):
