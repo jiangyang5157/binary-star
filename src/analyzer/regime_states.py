@@ -17,7 +17,7 @@ def _format_states(states: dict[str, bool]) -> str:
     return json.dumps(states, indent=2)
 
 
-# ── Shared 12 macros (config/prompts/binary_star.md PRE-COMPUTED STATES) ────
+# ── Shared 12 regime states ───────────────────────────────────
 
 def compute_shared_regime_states(
     observation: dict[str, Any],
@@ -58,7 +58,7 @@ def compute_shared_regime_states(
     }
 
 
-# ── Session 3 macros ─────────────────────────────────────────
+# ── Session 3 states ─────────────────────────────────────────
 
 def compute_session_states(
     debate_history: list[dict[str, Any]] | None,
@@ -83,7 +83,7 @@ def compute_session_states(
     }
 
 
-# ── Critic 16 macros ─────────────────────────────────────────
+# ── Critic 16 states ─────────────────────────────────────────
 
 def _parse_opinion(plan: dict[str, Any]) -> str:
     return (plan.get("opinion") or "NEUTRAL").upper()
@@ -274,7 +274,7 @@ def compute_critic_states(
     }
 
 
-# ── Evolver 7 macros ─────────────────────────────────────────
+# ── Evolver 7 states ─────────────────────────────────────────
 
 def compute_evolver_states(
     audit_reports: list[dict[str, Any]],
