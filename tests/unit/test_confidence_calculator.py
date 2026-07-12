@@ -167,18 +167,18 @@ class TestAnchorQuality:
     def test_strong_hvn_anchor(self):
         nodes = [{"price": 88500.0, "type": "HVN", "strength": 0.9}]
         result = _score_anchor_quality(90000.0, 89000.0, True, nodes,
-                                       1000.0, {}, _make_risk_config())
+                                       1000.0, {})
         assert result >= 12
 
     def test_no_anchor_returns_zero(self):
         result = _score_anchor_quality(90000.0, 89000.0, True, [],
-                                       1000.0, {}, _make_risk_config())
+                                       1000.0, {})
         assert result == 0
 
     def test_lvn_anchor_scores_lower(self):
         nodes = [{"price": 88500.0, "type": "LVN", "strength": 0.3, "vacuum_score": 0.7}]
         result = _score_anchor_quality(90000.0, 89000.0, True, nodes,
-                                       1000.0, {}, _make_risk_config())
+                                       1000.0, {})
         assert 3 <= result <= 7
 
 
@@ -237,47 +237,44 @@ class TestMultiAnchor:
 
 class TestFlowAlignment:
     def test_both_strong_aligned_bullish(self):
-        result = _score_flow_alignment("BULLISH", True, True, 0.7, 0.5,
-                                       _make_regime_config())
+        result = _score_flow_alignment("BULLISH", True, True, 0.7, 0.5)
         assert result == 10
 
     def test_contradiction(self):
-        result = _score_flow_alignment("BULLISH", True, True, -0.7, -0.5,
-                                       _make_regime_config())
+        result = _score_flow_alignment("BULLISH", True, True, -0.7, -0.5)
         assert result == 0
 
     def test_neutral(self):
-        result = _score_flow_alignment("BULLISH", False, False, 0.1, 0.1,
-                                       _make_regime_config())
+        result = _score_flow_alignment("BULLISH", False, False, 0.1, 0.1)
         assert 2 <= result <= 4
 
 
 class TestRegimeFit:
     def test_momentum_surge_canonical(self):
         result = _score_regime_fit("momentum_surge", True, True, False, False,
-                                   0.5, _make_regime_config(), _make_risk_config())
+                                   0.5, _make_risk_config())
         assert result == 10
 
     def test_momentum_in_ranging_mismatch(self):
         result = _score_regime_fit("momentum_surge", False, False, False, False,
-                                   0.5, _make_regime_config(), _make_risk_config())
+                                   0.5, _make_risk_config())
         assert 0 <= result <= 3
 
     def test_gravity_cap(self):
         result = _score_regime_fit("dle_mean_reversion", False, False, False, False,
-                                   2.0, _make_regime_config(), _make_risk_config())
+                                   2.0, _make_risk_config())
         assert result <= 5  # gravity cap applied
 
 
 class TestTpProportional:
     def test_chaos_tight_tp(self):
         result = _score_tp_proportional(91000.0, 90000.0, True, True, False,
-                                        {"vah": 91500.0}, 1000.0, _make_risk_config())
+                                        {"vah": 91500.0}, 1000.0)
         assert result == 5  # tp within first boundary (VAH at 91500)
 
     def test_normal_proportional(self):
         result = _score_tp_proportional(93000.0, 90000.0, True, False, False,
-                                        {}, 1000.0, _make_risk_config())
+                                        {}, 1000.0)
         assert 3 <= result <= 4  # 3 ATR distance
 
 

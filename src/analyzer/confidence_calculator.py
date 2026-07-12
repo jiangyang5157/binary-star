@@ -155,19 +155,19 @@ def compute_confidence(
                                opinion, trend, all_nodes, sentiment)
 
     d1 = (_score_anchor_quality(entry, sl, is_bullish, all_nodes, atr,
-                                sentiment.get("liquidation_clusters"), risk_config)
+                                sentiment.get("liquidation_clusters"))
           + _score_betweenness(entry, sl, is_bullish, all_nodes, atr, is_trend_strong)
           + _score_entry_proximity(entry, current_price, atr, risk_config)
           + _score_entry_vacuum(entry, all_nodes, atr)
           + _score_multi_anchor(entry, sl, is_bullish, all_nodes, atr))
 
     d2 = (_score_flow_alignment(opinion, is_trend_strong, has_cvd_momentum,
-                                trend, cvd, regime_config)
+                                trend, cvd)
           + _score_regime_fit(strategy, is_trend_strong, has_cvd_momentum,
                               is_chaos, is_squeezing, poc_dist,
-                              regime_config, risk_config)
+                              risk_config)
           + _score_tp_proportional(tp, entry, is_bullish, is_chaos, is_squeezing,
-                                   volume_prof, atr, risk_config)
+                                   volume_prof, atr)
           + _score_polarity(opinion, trend, cvd, strategy))
 
     d3 = (_score_holding_ratio(proj_holding, entry, tp, atr,
@@ -240,8 +240,7 @@ def _infer_strategy(entry: float, current_price: float, atr: float,
 
 def _score_anchor_quality(entry: float, sl: float, is_bullish: bool,
                           all_nodes: list, atr: float,
-                          liq_clusters: dict | None,
-                          risk_config) -> float:
+                          liq_clusters: dict | None) -> float:
     """Score 0–15. Anchor quality behind stop-loss."""
     protected_side_nodes = _nodes_on_protected_side(sl, is_bullish, all_nodes)
     if not protected_side_nodes:
@@ -358,8 +357,7 @@ def _score_multi_anchor(entry: float, sl: float, is_bullish: bool,
 # ── D2: Regime & Gravity ─────────────────────────────────────
 
 def _score_flow_alignment(opinion: str, is_trend_strong: bool,
-                          has_cvd_momentum: bool, trend: float, cvd: float,
-                          regime_config) -> float:
+                          has_cvd_momentum: bool, trend: float, cvd: float) -> float:
     """Score 0–10. Trend and CVD alignment with trade direction."""
     is_bullish = opinion == "BULLISH"
     trend_aligned = (is_bullish and trend > 0) or (not is_bullish and trend < 0)
@@ -377,7 +375,7 @@ def _score_flow_alignment(opinion: str, is_trend_strong: bool,
 def _score_regime_fit(strategy: str, is_trend_strong: bool,
                       has_cvd_momentum: bool, is_chaos: bool,
                       is_squeezing: bool, poc_dist: float,
-                      regime_config, risk_config) -> float:
+                      risk_config) -> float:
     """Score 0–10. Strategy fit to current regime."""
     canonical = ("momentum_surge", "shallow_pullback")
     defensible = ("dle_mean_reversion", "sweep_and_fade", "liquidity_hunt")
@@ -406,8 +404,7 @@ def _score_regime_fit(strategy: str, is_trend_strong: bool,
 
 def _score_tp_proportional(tp: float, entry: float, is_bullish: bool,
                            is_chaos: bool, is_squeezing: bool,
-                           volume_prof: dict, atr: float,
-                           risk_config) -> float:
+                           volume_prof: dict, atr: float) -> float:
     """Score 0–5. Take-profit distance reasonableness."""
     tp_dist_atr = abs(tp - entry) / atr if atr > 0 else 999.0
 
