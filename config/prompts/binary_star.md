@@ -48,9 +48,7 @@ When delivered as chart images, the format is a **Dual-Panel Layout** providing 
     - **Gaps/Silence**: Short bars marking liquidity vacuums.
 
 ## 5. PRE-COMPUTED STATES
-Pre-computed by the Physics Engine, DO NOT re-derive from telemetry. 
-
-There are boolean constants:
+Pre-computed. Use as given:
 - IS_EXPANDING
 - IS_CHAOS
 - IS_SQUEEZING
