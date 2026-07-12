@@ -105,16 +105,6 @@ class BinaryStarConfig:
             raw_instruction,
             max_rounds=bs_cfg["max_rounds"],
             debate_history_json="[Provided in user prompt — cumulative round-by-round record]",
-            volatility_baseline_ratio=critic_config.regime.volatility_baseline_ratio,
-            volatility_extreme_ratio=critic_config.regime.volatility_extreme_ratio,
-            squeeze_threshold=critic_config.regime.squeeze_threshold,
-            trend_intensity_threshold=critic_config.regime.trend_intensity_threshold,
-            trend_intensity_strong=critic_config.regime.trend_intensity_strong,
-            min_volume_participation_ratio=critic_config.regime.min_volume_participation_ratio,
-            cvd_intensity_threshold=critic_config.regime.cvd_intensity_threshold,
-            long_short_imbalance_ratio=critic_config.regime.long_short_imbalance_ratio,
-            short_heavy_imbalance_ratio=critic_config.regime.short_heavy_imbalance_ratio,
-            cvd_intensity_extreme=critic_config.regime.cvd_intensity_extreme,
         )
 
         return cls(
