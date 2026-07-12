@@ -112,7 +112,7 @@ Your final response MUST be RAW JSON only. Do not output JSON until all necessar
         "projected_holding_hours": decimal,
         "projected_waiting_hours": decimal
     }},
-    "reasoning_chain": "Step-by-step logic summary — why this direction, entry coordinates, and strategy. Focus on trading thesis, not scoring math.",
+    "reasoning_chain": "Step-by-step logic summary — why this direction, entry coordinates, and strategy. Focus on trading thesis.",
     "critic_impact": "Summary of repairs based on {debate_history_json}. If `IS_PLANNING`, MUST be JSON null. Otherwise, summarize how you addressed the historical tags and audit_evidence."
 }}
 ```
