@@ -13,7 +13,6 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
 
 # LOGIC_MACROS
-The following require semantic judgment — compute them yourself:
 - `IS_OVERFIT_RISK`: Historical fix would invalidate > 5% of "Pristine" success records.
 - `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates
   > 1.0 ATR away from `current_price` to artificially satisfy RR requirements,

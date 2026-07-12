@@ -25,9 +25,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
   - **Amnesty Clause**: If the current "NEUTRAL" stance is the result of a `TERMINAL` veto in ANY previous round of the current session (check `{debate_history_json}`) OR if the Session explicitly proves in its reasoning that repairing a previous `CONSTRUCTIVE` veto creates an unsolvable mathematical contradiction (e.g., compressing Time inevitably violates minimum RR), you MUST NOT trigger `[INACTION_BIAS]`, `[TREND_STARVATION]`, or `[OPPORTUNITY_DENIAL]`.
   - **Confluence Audit**: If the **Amnesty Clause** criteria are NOT met, you MUST strictly check the `[INACTION_BIAS]`, `[TREND_STARVATION]`, and `[OPPORTUNITY_DENIAL]` conditions in the `CRITIC_CODES` table. Do not invent other definitions of confluence.
 
-# LLM-JUDGED STATE
-The following requires semantic judgment. Evaluate it yourself:
-
+# LOGIC_MACROS
 - `HAS_PROTOCOL_VIOLATION`: State Reversion — Session reverted to a previously
   vetoed approach without a paradigm shift (anchor, target, or stance).
   Cross-reference `{last_plan}` against `{debate_history_json}`.
