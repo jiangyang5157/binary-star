@@ -561,13 +561,26 @@
       $('confVal').textContent = confThreshold;
     })();
 
-    // Restore filter inputs from localStorage
+    // Restore filter inputs from localStorage, defaulting version to project version
     const savedSymbol = localStorage.getItem('symbolFilter');
     if (savedSymbol) $('symbol-filter').value = savedSymbol;
     const savedVersion = localStorage.getItem('versionFilter');
-    if (savedVersion) $('version-filter').value = savedVersion;
+    if (savedVersion) {
+      $('version-filter').value = savedVersion;
+    }
 
     (async function () {
+      if (!localStorage.getItem('versionFilter')) {
+        // First visit — fire version fetch in parallel (don't block data loading)
+        fetch(apiUrl('/api/config'))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (data.project_version) {
+              $('version-filter').value = data.project_version;
+            }
+          })
+          .catch(function() { /* keep empty */ });
+      }
       await loadTrades();
       await loadSessions();
     })();

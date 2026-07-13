@@ -143,23 +143,85 @@
 
     // ── Dynamic config from backend ──
     let QUOTE = 'USDT'; // fallback, overwritten by /api/config
+    let _configReady;  // promise: resolves when initConfig finishes, awaited by initSniperStatus
     (async function initConfig() {
-      try {
-        const resp = await fetch(apiUrl('/api/config'));
-        const data = await resp.json();
-        if (data.quote_currency) {
-          QUOTE = data.quote_currency;
-          document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
-        }
-      } catch (e) { /* keep fallback */ }
-        })();
+      _configReady = (async () => {
+        try {
+          const resp = await fetch(apiUrl('/api/config'));
+          const data = await resp.json();
+          if (data.quote_currency) {
+            QUOTE = data.quote_currency;
+            document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
+          }
+        } catch (e) { /* keep fallback */ }
+      })();
+      await _configReady;
+    })();
+
+    // Restore sniper form values from localStorage (survives hard refresh)
+    // Guarded: sniper panel may not be rendered if user lacks 'run_sniper' permission.
+    (function restoreSniperForm() {
+      var symEl = document.getElementById('sniper-symbol');
+      var capEl = document.getElementById('sniper-cap');
+      var toggleEl = document.getElementById('sniper-trade-toggle');
+      if (!symEl || !capEl || !toggleEl) return;
+
+      var savedSymbol = localStorage.getItem('sniperSymbol');
+      if (savedSymbol !== null) symEl.value = savedSymbol;
+
+      var savedCap = localStorage.getItem('sniperCap');
+      if (savedCap !== null) capEl.value = savedCap;
+
+      var savedTrade = localStorage.getItem('sniperTradeEnabled');
+      if (savedTrade === 'true') {
+        toggleEl.checked = true;
+      }
+      toggleCapEnabled();
+    })();
+
+    // Persist sniper form values on change (guarded: elements may be absent)
+    (function bindSniperPersistence() {
+      var symEl = document.getElementById('sniper-symbol');
+      if (symEl) symEl.addEventListener('input', function () {
+        localStorage.setItem('sniperSymbol', this.value);
+      });
+      var capEl = document.getElementById('sniper-cap');
+      if (capEl) capEl.addEventListener('input', function () {
+        localStorage.setItem('sniperCap', this.value);
+      });
+      var toggleEl = document.getElementById('sniper-trade-toggle');
+      if (toggleEl) toggleEl.addEventListener('change', function () {
+        localStorage.setItem('sniperTradeEnabled', this.checked);
+      });
+    })();
 
     // Auto-detect running daemon on page load (survives hard refresh)
     (async function initSniperStatus() {
       try {
+        // Wait for QUOTE to be resolved before using it in symbol suffix stripping
+        await _configReady;
+
+        var symEl = document.getElementById('sniper-symbol');
+        var toggleEl = document.getElementById('sniper-trade-toggle');
+        var capEl = document.getElementById('sniper-cap');
+        // If elements absent (no permission), skip daemon status polling entirely
+        if (!symEl || !toggleEl || !capEl) return;
+
         const resp = await fetch(apiUrl('/api/sniper/status'));
         const data = await resp.json();
         if (data.running) {
+          // Populate form fields from server state (source of truth when running)
+          var symPrefix = (data.symbols || [])
+            .map(function(s) { return s.replace(new RegExp(QUOTE + '$', 'i'), ''); })
+            .join(', ');
+          symEl.value = symPrefix;
+          symEl.disabled = true;
+          toggleEl.checked = !!data.trade_enabled;
+          toggleEl.disabled = true;
+          if (data.balance != null && data.balance > 0) {
+            capEl.value = data.balance;
+          }
+          capEl.disabled = true;
           updateSniperUI('running');
           sniperPollInterval = setInterval(checkSniperStatus, 2000);
           checkSniperStatus();
@@ -199,6 +261,7 @@
       capInput.disabled = !trade;
       if (!trade) {
         capInput.value = '';
+        localStorage.setItem('sniperCap', '');
       }
     }
 
