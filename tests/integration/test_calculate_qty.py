@@ -1,5 +1,6 @@
 import pytest
 from scripts.calculate_qty import calculate_sized_qty
+from src.utils.math_utils import effective_entry_delta
 
 def test_calculate_sized_qty_standard():
     # Equity=1000, Risk=0.7%, Delta=600
@@ -40,7 +41,62 @@ def test_calculate_sized_qty_rounding():
     # Target 0.01164 -> 0.0116 (if p_qty=4)
     target, final = calculate_sized_qty(11.64, 1.0, 1000, 0, 4) # loss=11.64, delta=1000 -> 0.01164
     assert final == 0.0116
-    
+
     # Target 0.01165 -> 0.0117 (if p_qty=4)
     target, final = calculate_sized_qty(11.65, 1.0, 1000, 0, 4) # loss=11.65, delta=1000 -> 0.01165
     assert final == 0.0117
+
+
+# ── Fee-adjusted sizing ──────────────────────────────────────────────
+
+def test_fee_adjusted_reduces_qty():
+    """With 0.1% taker fee, qty should be smaller than without."""
+    equity, risk, entry, sl, p_qty = 1000, 0.01, 100, 99, 4
+
+    _, final_no_fee = calculate_sized_qty(equity, risk, entry, sl, p_qty, taker_fee_rate=0.0)
+    _, final_with_fee = calculate_sized_qty(equity, risk, entry, sl, p_qty, taker_fee_rate=0.001)
+
+    assert final_no_fee == 10.0
+    assert final_with_fee == 8.3333
+    assert final_with_fee < final_no_fee
+
+
+def test_fee_adjusted_total_loss_matches_budget():
+    """Fee-adjusted qty: total loss (price + fee) at SL must equal max_loss."""
+    equity, risk, entry, sl = 1000, 0.01, 100, 99
+    taker_fee_rate = 0.001
+    max_loss = equity * risk
+
+    _, qty = calculate_sized_qty(equity, risk, entry, sl, 4, taker_fee_rate=taker_fee_rate)
+
+    # When SL hit: effective_delta * qty ≈ max_loss (within rounding tolerance)
+    total_loss = effective_entry_delta(entry, sl, taker_fee_rate) * qty
+    assert abs(total_loss - max_loss) < 0.01
+
+
+def test_fee_zero_equals_old_behavior():
+    """taker_fee_rate=0 must produce identical result to the default."""
+    args = (1000, 0.01, 100, 99, 4)
+    _, final_default = calculate_sized_qty(*args)
+    _, final_explicit = calculate_sized_qty(*args, taker_fee_rate=0.0)
+
+    assert final_default == final_explicit == 10.0
+
+
+def test_fee_adjusted_zero_delta_still_raises():
+    """Zero SL delta raises ValueError regardless of fee rate."""
+    import pytest
+    with pytest.raises(ValueError, match="Stop loss distance is zero"):
+        calculate_sized_qty(1000, 0.01, 100, 100, 4, taker_fee_rate=0.001)
+
+
+def test_fee_adjusted_tight_sl_fee_dominates():
+    """When SL is extremely tight, fee dominates the effective delta."""
+    equity, risk, entry, sl = 1000, 0.01, 100, 99.9  # SL delta = 0.1
+
+    _, qty = calculate_sized_qty(equity, risk, entry, sl, 4, taker_fee_rate=0.001)
+
+    # effective_delta = 0.1 + 0.2 = 0.3
+    # Without fee: qty = 10/0.1 = 100
+    # With fee:    qty = 10/0.3 ≈ 33.33
+    assert qty < 34  # fee more than halves the position size

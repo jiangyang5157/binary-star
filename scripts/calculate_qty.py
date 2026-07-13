@@ -13,17 +13,26 @@ def resolve_project_root():
         search_path = os.path.dirname(search_path)
     return os.getcwd()
 
-def calculate_sized_qty(equity, risk_per_trade, entry, sl, p_qty, min_qty=0.0):
-    """Core calculation logic extracted for testing."""
+def calculate_sized_qty(equity, risk_per_trade, entry, sl, p_qty, min_qty=0.0, taker_fee_rate=0.0):
+    """Core calculation logic extracted for testing.
+
+    Args:
+        taker_fee_rate: Exchange taker fee per side (e.g. 0.001 = 0.1%).
+                        Round-trip = 2x this. Set to 0 to disable fee-adjusted sizing.
+    """
     max_loss = equity * risk_per_trade
     price_delta = abs(entry - sl)
-    
+
     if price_delta < 1e-12:
         raise ValueError("Stop loss distance is zero. Cannot calculate quantity.")
-        
-    target_qty = max_loss / price_delta
+
+    effective_delta = price_delta
+    if taker_fee_rate > 0:
+        effective_delta += taker_fee_rate * 2 * entry
+
+    target_qty = max_loss / effective_delta
     rounded_qty = round(target_qty, p_qty)
-    
+
     # Floor to min_qty if necessary
     final_qty = max(rounded_qty, min_qty)
     return target_qty, final_qty
@@ -69,8 +78,10 @@ def main():
     sys.path.insert(0, resolve_project_root())
     try:
         from src.config.symbol_resolver import get_symbol_trade_params, is_symbol_configured
+        from src.utils.math_utils import effective_entry_delta
 
         risk_per_trade = config["trade_management"]["risk_per_trade"]
+        taker_fee_rate = config["trade_management"].get("taker_fee_rate", 0.0)
 
         if not is_symbol_configured(symbol):
             print(f"Error: Symbol {symbol} not configured in symbol_config.yaml.")
@@ -85,7 +96,7 @@ def main():
         
     # 5. Calculation Logic
     try:
-        target_qty, final_qty = calculate_sized_qty(args.balance, risk_per_trade, entry, sl, p_qty, min_qty)
+        target_qty, final_qty = calculate_sized_qty(args.balance, risk_per_trade, entry, sl, p_qty, min_qty, taker_fee_rate)
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
@@ -93,10 +104,13 @@ def main():
     equity = args.balance
     max_loss = equity * risk_per_trade
     price_delta = abs(entry - sl)
-    
+
+    effective_delta = effective_entry_delta(entry, sl, taker_fee_rate)
+    fee_per_unit = effective_delta - price_delta
+
     total_notional = final_qty * entry
     leverage = total_notional / equity if equity > 0 else 0
-    
+
     # 6. Output Summary
     print("\n" + "="*50)
     print(f" QUANTITY CALCULATION: {symbol}")
@@ -105,7 +119,10 @@ def main():
     print(f" Opinion:      {opinion}")
     print(f" Entry Price:  {entry:,.2f}")
     print(f" Stop Loss:    {sl:,.2f}")
-    print(f" Delta (Pts):  {price_delta:,.2f} ({ (price_delta/entry*100):.2f}%)")
+    print(f" SL Delta (Pts):  {price_delta:,.2f} ({ (price_delta/entry*100):.2f}%)")
+    if taker_fee_rate > 0:
+        print(f" Fee/unit (rt):   {fee_per_unit:,.2f} (taker={taker_fee_rate*100:.2f}% x2)")
+        print(f" Eff. Delta:      {effective_delta:,.2f}")
     print("-" * 50)
     print(f" Equity (USDT): ${equity:,.2f}")
     print(f" Risk per Trade: {risk_per_trade*100:.2f}%")

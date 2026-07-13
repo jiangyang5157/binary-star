@@ -1,6 +1,7 @@
 trade_management:
   quote_currency: "USDT"     # Default quote asset (USDT, USDC, etc.)
   risk_per_trade: 0.005      # Max % loss of total equity allowed per trade
+  taker_fee_rate: 0.001      # Exchange taker fee per side (0.1%). Round-trip = 2x this. Set to 0 to disable fee-adjusted sizing.
   net_qty_tolerance: 0.0001  # Minimal threshold to consider a position FLAT
 
 network:

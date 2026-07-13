@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.infrastructure.exchange.models import MarginOrder
+from src.utils.math_utils import effective_entry_delta
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger("OrderExecutor")
@@ -634,6 +635,7 @@ class MarginOrderExecutor:
 
         tm = full_cfg["trade_management"]
         cfg["risk_per_trade"] = tm["risk_per_trade"]
+        cfg["taker_fee_rate"] = tm.get("taker_fee_rate", 0.0)
         cfg["net_qty_tolerance"] = tm["net_qty_tolerance"]
 
         # Verify the symbol is explicitly configured (not just getting defaults)
@@ -1016,21 +1018,24 @@ class MarginOrderExecutor:
         # 3. Calculate Risk Amount
         max_loss_usdt = total_equity_usdt * risk_pct
 
-        # 4. Calculate Distance
+        # 4. Calculate Effective Delta (SL distance + round-trip fees)
         price_delta = abs(entry_price - sl_price)
         if price_delta < 1e-12:
             logger.error(f"[{symbol}] invalid SL delta=0 | fallback qty={min_qty}")
             return min_qty
 
+        taker_fee_rate = trade_cfg.get("taker_fee_rate", 0.0)
+        effective_delta = effective_entry_delta(entry_price, sl_price, taker_fee_rate)
+
         # 5. Determine Quantity
-        target_qty = max_loss_usdt / price_delta
+        target_qty = max_loss_usdt / effective_delta
         target_qty = round(target_qty, p_qty)
 
         # Ensure it meets minimum
         target_qty = max(target_qty, min_qty)
 
         logger.info(f"[{symbol}] risk check | {equity_label}=${total_equity_usdt:.2f} | risk=%.2f%% | max_loss=${max_loss_usdt:.2f}" % (risk_pct * 100))
-        logger.info(f"[{symbol}] position sizing | entry={entry_price} | sl={sl_price} | delta=${price_delta:.2f} | qty={target_qty}")
+        logger.info(f"[{symbol}] position sizing | entry={entry_price} | sl={sl_price} | delta=${price_delta:.2f} | eff_delta=${effective_delta:.2f} | qty={target_qty}")
         return target_qty
 
     def _place_entry_order(self, symbol: str, direction: str, entry_price: float, sl_price: float) -> Optional[int]:

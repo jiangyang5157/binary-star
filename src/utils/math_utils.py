@@ -127,6 +127,25 @@ def calculate_risk_reward(
         logger.error(f"RR calc failed | error={e}")
         return {"error": str(e)}
 
+
+def effective_entry_delta(entry_price: float, sl_price: float, taker_fee_rate: float = 0.0) -> float:
+    """Per-unit total cost: SL distance + round-trip trading fees.
+
+    Returns the effective loss per unit if stop-loss is hit, accounting for
+    both the adverse price move and the exchange taker fees on entry + exit.
+
+    Args:
+        entry_price: Order entry price.
+        sl_price: Stop-loss price.
+        taker_fee_rate: Exchange taker fee per side (e.g. 0.001 = 0.1%).
+                        Set to 0 to disable fee adjustment (backward compatible).
+    """
+    delta = abs(entry_price - sl_price)
+    if taker_fee_rate > 0:
+        delta += taker_fee_rate * 2 * entry_price
+    return delta
+
+
 def calculate_atr_metrics(
     current_price: float | None,
     entry: float,
