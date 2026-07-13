@@ -41,7 +41,7 @@ class EvolverConfig(AgentConfig):
         )
 
 class EvolverAgent(BaseAgent):
-    """The Meta-Optimizer for the Singularity Engine.
+    """The Meta-Optimizer for the BinaryStar Engine.
 
     Responsible for Darwinian evolution of the strategy and reasoning layers.
     Transforms forensic audit failures into 'Physical Laws' (Configuration

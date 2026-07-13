@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "singularity-sniper": {
+    "binary-star-sniper": {
       "command": "python",
-      "args": ["mcp_servers/singularity_sniper/server.py"]
+      "args": ["mcp_servers/binary_star_sniper/server.py"]
     },
-    "singularity-admin": {
+    "binary-star-admin": {
       "command": "python",
-      "args": ["mcp_servers/singularity_admin/server.py"]
+      "args": ["mcp_servers/binary_star_admin/server.py"]
     }
   }
 }

@@ -1,11 +1,11 @@
 """
-Singularity Admin MCP Server.
+BinaryStar Admin MCP Server.
 
 Read-only config introspection, prompt inspection, and evolution history.
 Imports from existing src/ modules — no new abstractions.
 
 Usage:
-  python mcp_servers/singularity_admin/server.py
+  python mcp_servers/binary_star_admin/server.py
 """
 
 import json
@@ -19,7 +19,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("singularity-admin")
+mcp = FastMCP("binary-star-admin")
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 

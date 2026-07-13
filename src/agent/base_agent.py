@@ -39,7 +39,7 @@ class AgentConfig:
     reasoning_effort: str | None = None
 
 class BaseAgent:
-    """Abstract Base Class for all AI-driven agents in the Singularity pipeline.
+    """Abstract Base Class for all AI-driven agents in the BinaryStar pipeline.
 
     Provides standardized orchestration for multimodal neural inference,
     autonomous tool-call handshaking, and robust error recovery patterns.

@@ -1,5 +1,5 @@
 """
-Singularity Sniper Trigger — Signal Stack Architecture.
+BinaryStar Sniper Trigger — Signal Stack Architecture.
 
 Replaces the old binary-trigger model with a continuous multi-signal confluence
 engine. 10 signal detectors are evaluated per pulse, each scored on

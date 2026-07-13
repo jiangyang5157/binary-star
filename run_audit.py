@@ -81,7 +81,7 @@ def run_task(args_tuple):
     return process_audit_file(f, controller, data_root, force=force)
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Forensic Auditor")
+    parser = argparse.ArgumentParser(description="BinaryStar Forensic Auditor")
     parser.add_argument("--file", "-f", help="Optional: Path to a specific session JSON file")
     parser.add_argument("--symbol", type=str, help="Optional: Filter batch audit by symbol prefix (e.g. BTC)")
     parser.add_argument("--force", action="store_true", help="Bypass deduplication and maturity checks")

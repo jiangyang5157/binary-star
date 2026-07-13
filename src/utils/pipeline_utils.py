@@ -24,7 +24,7 @@ def get_file_hash(file_path: str) -> str:
 
 @lru_cache(maxsize=1)
 def get_project_version() -> str:
-    """Return the installed singularity version from package metadata.
+    """Return the installed binary-star version from package metadata.
 
     Reads from importlib.metadata (pyproject.toml).  Falls back to
     ``"0.0.0.dev"`` when the package is not installed (e.g. raw
@@ -32,7 +32,7 @@ def get_project_version() -> str:
     """
     try:
         from importlib.metadata import version
-        return version("singularity")
+        return version("binary-star")
     except Exception:
         return "0.0.0.dev"
 

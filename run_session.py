@@ -31,7 +31,7 @@ from src.utils.status_file_utils import read_status, write_status
 logger = setup_logger("SessionEngine", console_color=True)
 
 class SessionEngine:
-    """The Singularity Session Engine.
+    """The BinaryStar Session Engine.
 
     Orchestrates real-time and historical market analysis using an 
     adversarial reasoning triad. Supports Live and Backtest modes 
@@ -322,7 +322,7 @@ class SessionController:
 
 def main():
     """Entry point for direct invocation: ``python run_session.py --symbol BTC``."""
-    parser = argparse.ArgumentParser(description="Singularity Session Engine (live)")
+    parser = argparse.ArgumentParser(description="BinaryStar Session Engine (live)")
     parser.add_argument("--symbol", type=str, required=True,
                         help="Trading pair prefix (e.g. BTC)")
     from src.utils.pipeline_utils import add_data_path_argument

@@ -12,7 +12,7 @@ convey the architecture.
 
 **Template**:
 ```markdown
-# Singularity
+# BinaryStar
 
 [badges]
 

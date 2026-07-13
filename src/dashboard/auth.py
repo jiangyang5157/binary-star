@@ -1,4 +1,4 @@
-"""Shared auth utilities for the Singularity dashboard.
+"""Shared auth utilities for the BinaryStar dashboard.
 
 Permission checks for both page templates and API endpoints.
 """

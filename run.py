@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Singularity — unified CLI entry point.
+"""BinaryStar — unified CLI entry point.
 Each run_*.py also has a standalone main() for direct invocation
 (e.g. ``python run_session.py --symbol BTC``).  The argparse definitions
 are intentionally duplicated — the run_*.py scripts are independent
@@ -24,7 +24,7 @@ from src.utils.logger_utils import setup_logger
 from src.utils.datetime_utils import parse_iso_to_utc
 
 load_dotenv()
-logger = setup_logger("Singularity", console_color=True)
+logger = setup_logger("BinaryStar", console_color=True)
 
 
 # ── Date parser (used by backtest-run subcommand) ──
@@ -383,12 +383,12 @@ def _build_version_string() -> str:
     from src.utils.pipeline_utils import get_project_version, get_git_commit
     ver = get_project_version()
     commit = get_git_commit()
-    return f"singularity {ver} (commit {commit})"
+    return f"binary-star {ver} (commit {commit})"
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Singularity — AI-driven crypto quantitative trading engine",
+        description="BinaryStar — AI-driven crypto quantitative trading engine",
     )
     parser.add_argument(
         "--version", action="version",

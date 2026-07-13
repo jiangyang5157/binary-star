@@ -1,4 +1,4 @@
-"""FastAPI dashboard server for Singularity session visualization."""
+"""FastAPI dashboard server for BinaryStar session visualization."""
 import json
 import os
 import sys
@@ -24,7 +24,7 @@ from src.dashboard.api.session_run import router as session_run_router
 from src.dashboard.api.sniper_run import router as sniper_run_router
 from src.dashboard.api.backtest import router as backtest_router
 
-app = FastAPI(title="Singularity Dashboard", version="2.0")
+app = FastAPI(title="BinaryStar Dashboard", version="2.0")
 
 # ── Security Headers Middleware ─────────────────────────────────────────
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -109,7 +109,7 @@ if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Mount only chart image subdirectories (not raw session/audit data)
-_data_root = os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+_data_root = os.environ.get("BINARY_STAR_DATA_ROOT", "data/prod")
 klines_dir = PROJECT_ROOT / _data_root / "klines"
 if klines_dir.exists():
     app.mount("/klines", StaticFiles(directory=str(klines_dir)), name="klines")
@@ -133,7 +133,7 @@ from src.dashboard.auth import get_user_permissions
 
 def _server_data_root() -> str:
     """Return the server's effective data root (from env or default)."""
-    return os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+    return os.environ.get("BINARY_STAR_DATA_ROOT", "data/prod")
 
 
 def render_template(name: str, **kwargs) -> HTMLResponse:
@@ -185,7 +185,7 @@ def main():
     import argparse
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="Singularity Dashboard")
+    parser = argparse.ArgumentParser(description="BinaryStar Dashboard")
     parser.add_argument("-p", "--data-root", required=True,
                         help="Data directory root (e.g. data/prod)")
     parser.add_argument("--port", type=int, default=8080,
@@ -202,7 +202,7 @@ def main():
         sys.exit(1)
 
     # Use env var so uvicorn reload subprocess inherits the value
-    os.environ["SINGULARITY_DATA_ROOT"] = args.data_root
+    os.environ["BINARY_STAR_DATA_ROOT"] = args.data_root
 
     print(f"Dashboard: data_root = {args.data_root}  ({data_root_path.resolve()})")
     print(f"Dashboard: http://{args.host}:{args.port}")

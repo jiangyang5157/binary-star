@@ -1,11 +1,11 @@
 """
-Singularity Sniper State MCP Server.
+BinaryStar Sniper State MCP Server.
 
 Read-only exposure of the sniper daemon's on-disk state files
 (.sniper_state.json, .sniper_pulse.json, .sniper_pulse_history.json).
 
 Usage:
-  python mcp_servers/singularity_sniper/server.py
+  python mcp_servers/binary_star_sniper/server.py
 """
 
 import json
@@ -13,7 +13,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("singularity-sniper")
+mcp = FastMCP("binary-star-sniper")
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 

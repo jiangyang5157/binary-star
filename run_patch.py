@@ -15,7 +15,7 @@ from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Physical Evolution Synchronizer")
+    parser = argparse.ArgumentParser(description="BinaryStar Physical Evolution Synchronizer")
     parser.add_argument("--file", "-f", required=True, help="Path to the validated evolution proposal JSON")
     parser.add_argument("--symbol", type=str, help="Trading symbol for symbol-aware patching")
 

@@ -771,7 +771,7 @@ class SniperDaemon:
             logger.warning(f"pulse history write failed | error={e}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Sniper Daemon")
+    parser = argparse.ArgumentParser(description="BinaryStar Sniper Daemon")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix(es), CSV for multiple (e.g. BTC,XAUT)")
     parser.add_argument("--trade", nargs='?', const=True, default=False, type=float,
                         help="Enable automated margin trading. Optionally specify manual balance (e.g. --trade 1000). "

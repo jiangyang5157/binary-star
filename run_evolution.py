@@ -22,7 +22,7 @@ from src.utils.logger_utils import setup_logger
 logger = None
 
 class EvolutionEngine:
-    """Singularity Meta-Evolution Engine.
+    """BinaryStar Meta-Evolution Engine.
 
     Implements the 'Meta-Optimization' loop: 
     Ingest Audit Data -> Neural Mutation -> Sandbox Validation -> Atomic Config Commit.
@@ -180,7 +180,7 @@ class EvolutionEngine:
         self.logger.info("─── EVOLUTION CYCLE COMPLETE ───")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Meta-Evolution Engine")
+    parser = argparse.ArgumentParser(description="BinaryStar Meta-Evolution Engine")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. BTC)")
     parser.add_argument("--samples", type=int, default=None, help="Number of audit reports to ingest (required)")
     add_data_path_argument(parser, required=True)

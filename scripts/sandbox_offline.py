@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Singularity Offline Sandbox Review
+BinaryStar Offline Sandbox Review
 
 Re-evaluates a sandbox report against the original audit reports using
 the Darwinian Fitness Evaluator. This allows offline quality assessment
@@ -39,7 +39,7 @@ def _observed_at_to_audit_filename(symbol: str, observed_at: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Offline Sandbox Review")
+    parser = argparse.ArgumentParser(description="BinaryStar Offline Sandbox Review")
     parser.add_argument("--file", "-f", required=True, help="Path to the sandbox result JSON file")
     add_data_path_argument(parser, required=True)
 

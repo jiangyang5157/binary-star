@@ -18,7 +18,7 @@ from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Online Shadow Sandbox")
+    parser = argparse.ArgumentParser(description="BinaryStar Online Shadow Sandbox")
     parser.add_argument("--file", "-f", required=True, help="Path to the evolution proposal JSON file")
     add_data_path_argument(parser, required=True)
     

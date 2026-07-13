@@ -651,7 +651,7 @@ class SessionRenderer(BaseEmailTemplate):
         return f"""\
 <div style="{_s(textAlign='center', padding='24px 0', borderTop=f'1px solid {C["border"]}', marginTop='8px')}">
     <p style="{_s(fontFamily=F['display'], fontSize='12px', fontWeight='300', color=C['muted'], margin='0', letterSpacing='0.02em')}">
-        Singularity <span style="{_s(color=C['gold'])}">&middot;</span> Automated Notification
+        BinaryStar <span style="{_s(color=C['gold'])}">&middot;</span> Automated Notification
     </p>
 </div>"""
 

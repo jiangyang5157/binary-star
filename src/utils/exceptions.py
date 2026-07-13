@@ -1,17 +1,17 @@
-"""Domain exception types for the Singularity pipeline.
+"""Domain exception types for the BinaryStar pipeline.
 
 Replaces dict-based error returns in agent inference with typed exceptions
 so callers can handle specific failure modes without inspecting dict keys.
 """
 
 
-class SingularityError(Exception):
-    """Base exception for all Singularity pipeline errors."""
+class BinaryStarError(Exception):
+    """Base exception for all BinaryStar pipeline errors."""
 
 
 # ── Agent inference errors ────────────────────────────────────────────────────
 
-class AgentInferenceError(SingularityError):
+class AgentInferenceError(BinaryStarError):
     """Raised when an AI agent's inference cycle fails."""
 
     def __init__(self, message: str, agent_name: str = "Unknown"):
@@ -53,9 +53,9 @@ class AIProviderError(AgentInferenceError):
 
 # ── Data / configuration errors ───────────────────────────────────────────────
 
-class DataIntegrityError(SingularityError):
+class DataIntegrityError(BinaryStarError):
     """Market data is insufficient or corrupt for analysis."""
 
 
-class ConfigurationError(SingularityError):
+class ConfigurationError(BinaryStarError):
     """Required configuration keys are missing or invalid."""

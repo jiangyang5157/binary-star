@@ -16,7 +16,7 @@ from src.utils.logger_utils import setup_logger
 logger = setup_logger("MarketRecon")
 
 def main():
-    parser = argparse.ArgumentParser(description="Singularity Market Recon Tool")
+    parser = argparse.ArgumentParser(description="BinaryStar Market Recon Tool")
     parser.add_argument("--symbol", type=str, required=True, help="Trading pair prefix (e.g. XAUT)")
     parser.add_argument("--timestamp", "-ts", type=str, help="ISO-8601 timestamp (e.g., 2026-04-05T00:23:34Z)")
     parser.add_argument("--email", action="store_true", help="Dispatch email notification of the market scan.")

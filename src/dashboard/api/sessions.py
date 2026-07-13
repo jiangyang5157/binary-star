@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api")
 
 
 def _resolve_data_root(value: str) -> str:
-    resolved = value or os.environ.get("SINGULARITY_DATA_ROOT", "data/prod")
+    resolved = value or os.environ.get("BINARY_STAR_DATA_ROOT", "data/prod")
     if ".." in resolved:
         raise HTTPException(status_code=400, detail="data_root contains path traversal")
     return resolved
