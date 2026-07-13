@@ -79,7 +79,7 @@ graph LR
 
 ## Sniper
 
-A local signal stack (**9 detectors** + 1 cross-symbol boost) monitors the market every 2 minutes. A regime-adaptive confluence engine weights directional agreement and cancels opposing noise, adjusting its effective threshold per regime (trending 0.29, ranging 0.34, squeeze 0.26, chaos 0.51). Any single signal exceeding 0.80 overrides cooldown and threshold entirely. Its sole job is timing — it does not trade.
+A local signal stack (**9 detectors** + 1 cross-symbol boost) monitors the market every 2 minutes. A regime-adaptive confluence engine weights directional agreement and cancels opposing noise, adjusting its effective threshold per regime (config: `trigger_threshold × regime_modifiers`). Any single signal exceeding the `emergency_threshold` overrides cooldown and threshold entirely. Its sole job is timing — it does not trade.
 
 ---
 

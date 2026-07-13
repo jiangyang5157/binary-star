@@ -825,20 +825,20 @@ flowchart TD
 
 ### Critical Thresholds Summary
 
-| Parameter | Value | Location | Purpose |
-|-----------|-------|----------|---------|
-| `max_rounds` | 2 | global_config.yaml | Hard debate round limit |
-| `confidence_threshold` | 55 | global_config.yaml | Trade execution + email notification gate |
-| `trend_intensity_strong` | 0.4 | strategy_config.yaml | Threshold for momentum exemptions (XAUT override) |
-| `volatility_extreme_ratio` | 2.2 | strategy_config.yaml | CHAOS classification |
-| `max_entry_distance_atr` | 0.8 (BTC) / 1.2 (base) | strategy_config.yaml + symbol_config.yaml | Phantom order prevention — per-symbol overridable |
-| `min_rr_ranging` | 1.1 | strategy_config.yaml | Minimum RR — ranging |
-| `min_rr_trending` | 1.25 | strategy_config.yaml | Minimum RR — trending |
-| `chaos_rr_discount` | 0.35 | strategy_config.yaml | RR reduction during CHAOS |
-| `poc_gravity_atr_distance` | 3.5 | strategy_config.yaml | Distance at which POC gravity weakens |
-| `structural_buffer_atr` | 0.84 | strategy_config.yaml | Protective margin behind anchors |
-| `Session temperature` | 0.5 | global_config.yaml | Creative planning temperature |
-| `Critic temperature` | 0.1 | global_config.yaml | Deterministic audit temperature |
+| Parameter | Location | Purpose |
+|-----------|----------|---------|
+| `max_rounds` | global_config.yaml | Hard debate round limit |
+| `confidence_threshold` | global_config.yaml | Trade execution + email notification gate |
+| `trend_intensity_strong` | strategy_config.yaml | Threshold for momentum exemptions (XAUT override) |
+| `volatility_extreme_ratio` | strategy_config.yaml | CHAOS classification |
+| `max_entry_distance_atr` | strategy_config.yaml + symbol_config.yaml | Phantom order prevention — per-symbol overridable |
+| `min_rr_ranging` | strategy_config.yaml | Minimum RR — ranging |
+| `min_rr_trending` | strategy_config.yaml | Minimum RR — trending |
+| `chaos_rr_discount` | strategy_config.yaml | RR reduction during CHAOS |
+| `poc_gravity_atr_distance` | strategy_config.yaml | Distance at which POC gravity weakens |
+| `structural_buffer_atr` | strategy_config.yaml | Protective margin behind anchors |
+| `Session temperature` | global_config.yaml | Creative planning temperature |
+| `Critic temperature` | global_config.yaml | Deterministic audit temperature |
 
 ---
 
