@@ -389,9 +389,29 @@ class MarginOrderExecutor:
         if current_price and current_price > 0:
             # Load multi-level config
             gc = self._get_guardian_config()
+            breakeven_cfg = gc["breakeven"]
             levels = gc["levels"]
 
-            # Step 2: Multi-level partial TP (sequential, loop-driven)
+            # Phase 1: Breakeven (RR-based — fast path to risk-free)
+            intact, be_update = self._try_breakeven(
+                symbol, direction, net_qty, avg_entry,
+                current_sl, current_tp, current_price, cfg,
+                breakeven_cfg
+            )
+            if not intact:
+                return {}, None
+            if be_update is not None:
+                if not be_update:
+                    return {}, None  # fully closed
+                trade_state["sl_price"] = be_update["sl_price"]
+                current_sl = trade_state["sl_price"]
+                # Re-read exchange qty — breakeven may have partially closed
+                pos = self.client.get_symbol_position(symbol)
+                net_qty = pos.net_qty if pos else 0.0
+                if abs(net_qty) <= 0:
+                    return {}, None
+
+            # Phase 2: Trailing (TP-based — existing logic)
             intact, tp_update = self._try_exit_ladder(
                 symbol, direction, net_qty, avg_entry,
                 current_sl, current_tp, current_price, cfg,
@@ -590,7 +610,7 @@ class MarginOrderExecutor:
         return tp_price, sl_price
 
     def _get_guardian_config(self) -> dict:
-        """Returns exit-ladder levels with config validation.
+        """Returns exit-ladder levels and breakeven config with validation.
 
         Levels use TP-relative progress (target) and TP-relative SL locking
         (sl_lock). All values are range-checked at startup.
@@ -598,6 +618,18 @@ class MarginOrderExecutor:
         gc = self._global_config_raw.get("guardian", {})
         exit_ladder = gc.get("exit_ladder", {})
 
+        # ── Breakeven (Phase 1) ──
+        be_cfg = exit_ladder.get("breakeven", {})
+        breakeven = {}
+        if be_cfg:
+            breakeven["rr_target"] = float(be_cfg.get("rr_target", 1.0))
+            breakeven["tp_ratio"] = float(be_cfg.get("tp_ratio", 0.0))
+            assert 0.0 < breakeven["rr_target"] <= 5.0, \
+                f"exit_ladder breakeven: rr_target={breakeven['rr_target']} must be in (0.0, 5.0]"
+            assert 0.0 <= breakeven["tp_ratio"] <= 1.0, \
+                f"exit_ladder breakeven: tp_ratio={breakeven['tp_ratio']} must be in [0.0, 1.0]"
+
+        # ── Trailing (Phase 2) ──
         levels = []
         for i, lv in enumerate(exit_ladder.get("levels", []), start=1):
             target = float(lv.get("target", 0.35))
@@ -620,7 +652,7 @@ class MarginOrderExecutor:
                 "sl_lock": sl_lock,
             })
 
-        return {"levels": levels}
+        return {"breakeven": breakeven, "levels": levels}
 
     def _get_trade_config(self, symbol: str):
         """Returns strict trade configuration. Raises KeyError if symbol not configured."""
@@ -748,6 +780,152 @@ class MarginOrderExecutor:
                 return 0  # reset level — position gone or needs re-evaluation
 
         return next_level
+
+    def _try_breakeven(self, symbol: str, direction: str, net_qty: float,
+                       avg_entry: float, current_sl: float, current_tp: float,
+                       current_price: float, cfg: dict,
+                       breakeven: dict) -> tuple:
+        """Phase 1 — Breakeven: close partial + SL → entry at RR 1:1.
+
+        Gated by SL position: only fires if SL is on the risk side of entry.
+        Once SL has been moved to/beyond entry, this becomes a no-op —
+        naturally idempotent across sniper restarts.
+
+        Returns (position_intact: bool, state_update: dict|None).
+        """
+        if not breakeven:
+            return True, None
+
+        # Gate: already done if SL at or past entry.
+        # Use epsilon tolerance to match find_level_and_sync_sl — exchange
+        # tick rounding can move SL one tick away from entry after OCO placement.
+        eps = 10 ** (-cfg["precision_price"])
+        sl_on_risk_side = (
+            (direction == "LONG" and current_sl + eps < avg_entry) or
+            (direction == "SHORT" and current_sl - eps > avg_entry)
+        )
+        if not sl_on_risk_side:
+            logger.debug(f"[{symbol}] breakeven skipped — SL already at/beyond entry")
+            return True, None
+
+        # Must be in profit (deviation > 0) for RR calc
+        deviation = self._price_delta(direction, current_price, avg_entry)
+        if deviation <= 0:
+            return True, None
+
+        # RR progress = deviation / sl_distance
+        sl_distance = abs(avg_entry - current_sl)
+        if sl_distance <= 0:
+            return True, None
+
+        rr_progress = deviation / sl_distance
+        if rr_progress < breakeven["rr_target"]:
+            logger.debug(
+                f"[{symbol}] breakeven pending | "
+                f"RR={rr_progress:.2f} < target={breakeven['rr_target']}"
+            )
+            return True, None
+
+        ratio = breakeven["tp_ratio"]
+        if ratio <= 0:
+            # SL-only: move SL to entry, no partial close
+            return self._breakeven_sl_only(
+                symbol, direction, avg_entry, current_tp, cfg
+            )
+
+        # Partial close + SL → entry
+        p_qty = cfg["precision_qty"]
+        tp_qty = abs(net_qty) * ratio
+        tp_qty = max(math.floor(tp_qty * 10**p_qty) / 10**p_qty, cfg["min_order_qty"])
+        tp_qty = min(tp_qty, abs(net_qty))
+
+        remaining_qty = abs(net_qty) - tp_qty
+        if 0 < remaining_qty < cfg.get("min_order_qty", 0):
+            # Would leave dust — skip partial close, just move SL to entry
+            logger.info(
+                f"[{symbol}] breakeven tp skipped (dust) — "
+                f"remaining {remaining_qty} < min {cfg['min_order_qty']}"
+            )
+            return self._breakeven_sl_only(
+                symbol, direction, avg_entry, current_tp, cfg
+            )
+
+        logger.info(
+            f"[{symbol}] breakeven triggered | RR={rr_progress:.2f} | "
+            f"tp_qty={tp_qty} | SL → entry"
+        )
+
+        if not self.client.cancel_all_symbol_orders(symbol):
+            logger.error(f"[{symbol}] breakeven — cancel failed, aborting")
+            return True, None
+
+        close_side = self._exit_side(direction)
+        if not self.client.execute_partial_market_close(
+            symbol=symbol, side=close_side, qty=tp_qty
+        ):
+            logger.critical(f"[{symbol}] breakeven — close failed, emergency closing all")
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] breakeven — emergency close FAILED, position naked")
+            return False, None
+
+        # Fully closed?
+        if remaining_qty < cfg.get("min_order_qty", 0):
+            logger.info(f"[{symbol}] breakeven — position fully closed")
+            return True, {}
+
+        live_qty = max(round(remaining_qty, p_qty), 0)
+        if live_qty <= 0:
+            return True, {}
+
+        # Re-place OCO: TP unchanged, SL → entry
+        exit_side = self._exit_side(direction)
+        buffer = cfg.get("sl_slippage_buffer", 0.0)
+        buffered_sl = self._buffered_sl(avg_entry, buffer, direction)
+
+        if not self.client.place_oco_order(
+            symbol=symbol, side=exit_side, qty=live_qty,
+            price=current_tp, stop_price=avg_entry,
+            stop_limit_price=buffered_sl
+        ):
+            logger.critical(f"[{symbol}] breakeven — OCO re-place failed, emergency closing")
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] breakeven — emergency close FAILED, position naked")
+            return False, None
+
+        logger.info(f"[{symbol}] breakeven complete | remaining={live_qty} | SL at entry")
+        return True, {"sl_price": avg_entry, "tp_price": current_tp}
+
+    def _breakeven_sl_only(self, symbol: str, direction: str,
+                           avg_entry: float, current_tp: float,
+                           cfg: dict) -> tuple:
+        """Breakeven with tp_ratio=0: move SL to entry without closing any qty."""
+        # Cancel → re-place OCO with SL at entry
+        if not self.client.cancel_all_symbol_orders(symbol):
+            logger.error(f"[{symbol}] breakeven SL-only — cancel failed, keeping existing")
+            return True, None
+
+        pos = self.client.get_symbol_position(symbol)
+        if not pos or abs(pos.net_qty) <= 0:
+            logger.info(f"[{symbol}] breakeven SL-only — position already closed")
+            return True, {}
+
+        exchange_qty = round(abs(pos.net_qty), cfg["precision_qty"])
+        exit_side = self._exit_side(direction)
+        buffer = cfg.get("sl_slippage_buffer", 0.0)
+        buffered_sl = self._buffered_sl(avg_entry, buffer, direction)
+
+        if not self.client.place_oco_order(
+            symbol=symbol, side=exit_side, qty=exchange_qty,
+            price=current_tp, stop_price=avg_entry,
+            stop_limit_price=buffered_sl
+        ):
+            logger.critical(f"[{symbol}] breakeven SL-only — OCO place failed, emergency closing")
+            if not self.client.execute_market_close(symbol):
+                logger.critical(f"[{symbol}] breakeven SL-only — emergency close FAILED, position naked")
+            return False, None
+
+        logger.info(f"[{symbol}] breakeven SL-only complete | {exchange_qty} | SL at entry")
+        return True, {"sl_price": avg_entry, "tp_price": current_tp}
 
     def _try_exit_ladder(self, symbol: str, direction: str, net_qty: float,
                          avg_entry: float, current_sl: float,
