@@ -150,7 +150,7 @@ class SessionNotifier:
             
         icons = {"BULLISH": "🟢", "BEARISH": "🔴", "NEUTRAL": "⏸️"}
         indicator = icons.get(opinion.upper(), '⚡')
-        subject = f"{indicator} Signal | {symbol} | {opinion.upper()} ({confidence}%)"
+        subject = f"{indicator} Signal | {symbol} | {opinion.upper()} ({confidence:.1f}%)"
         
         # 2. Dispatch Email
         try:
