@@ -123,12 +123,13 @@ For every `place_oco_order` call site, verify:
 - [ ] When `live_qty < exchange_qty` (underestimate): keep `live_qty` — next pulse re-aligns
 - [ ] Other callers (`_guardian_case_4_protected` `find_level_and_sync_sl`): use default `None` → exchange qty — correct (no concurrent market close)
 
-### 4.3 SL Migration
-- [ ] LONG: `max(current_sl, price - N*ATR)` — SL only moves up
-- [ ] SHORT: `min(current_sl, price + N*ATR)` — SL only moves down
-- [ ] Rounding direction: toward safety?
-- [ ] No migration when `sl_distance_atr == 0` (correct)
-- [ ] SL source from active orders, not trade_state (source of truth)
+### 4.3 SL Lock (TP-Relative Profit Locking)
+- [ ] `_apply_sl_lock()`: `avg_entry + (tp - avg_entry) * sl_lock` — symmetric for LONG/SHORT
+- [ ] SL only moves toward TP (one-way ratchet, never loosens)
+- [ ] Rounding toward safety: LONG rounds down (`floor`), SHORT rounds up (`ceil`)
+- [ ] No migration when new_sl ≤ current_sl (LONG) or new_sl ≥ current_sl (SHORT)
+- [ ] Config `sl_lock=0.0` means SL stays at breakeven (entry) — no profit locking
+- [ ] SL source from `_apply_sl_lock` calculation, not exchange state
 
 ### 4.4 Level Memory
 - [ ] `_symbol_level` in daemon memory (not persisted) — OK since restart rebuilds
@@ -136,12 +137,15 @@ For every `place_oco_order` call site, verify:
 - [ ] `find_level_and_sync_sl` side effects: API mutations during "find"
 - [ ] Level initialization on first pulse after trade entry
 
-### 4.5 Trailing Distance Selection
-- [ ] `active_idx = new_level - 1` — maps level to config index
-- [ ] L1 fired → active_idx=0 → distance=0.0 → no trailing (correct)
-- [ ] L2 fired → active_idx=1 → distance=1.0 → trailing active
-- [ ] L3 fired → active_idx=2 → distance=0.75 → tighter trailing
-- [ ] All levels exhausted → no trailing
+### 4.5 Exit Ladder Level Configuration
+- [ ] Levels defined in `config/global_config.yaml` → `guardian.exit_ladder.levels`
+- [ ] Each level has: `target` (progress% toward TP), `tp_ratio` (fraction of qty to close), `sl_lock` (TP-relative SL position)
+- [ ] `target ∈ [0.0, 1.0)`: progress = `deviation / tp_distance` must reach this to trigger
+- [ ] `tp_ratio ∈ [0.0, 1.0]`: 0 = skip TP (level counter only), >0 = close that fraction
+- [ ] `sl_lock ∈ [0.0, 1.0]`: 0 = SL stays at entry (no lock), >0 = SL = `avg_entry + (tp - avg_entry) * sl_lock`
+- [ ] Levels fire sequentially: break at first unmet target (single pulse can fire multiple if price gapped)
+- [ ] Per-level: TP executes first, then SL lock applied (both independently for triggered level)
+- [ ] Dust avoidance: if remaining after close < min_order_qty, skip close but still apply SL lock
 
 ## D5: Daemon Integration
 
@@ -196,7 +200,7 @@ For every `place_oco_order` call site, verify:
 
 ### 7.2 Level Recovery
 - [ ] Level is None → `find_level_and_sync_sl` called
-- [ ] SL synced to match found level's trailing distance
+- [ ] SL synced to match found level's `sl_lock` value via `_apply_sl_lock`
 - [ ] No partial TP execution during sync (correct — only syncs, doesn't close)
 
 ### 7.3 Gap Analysis

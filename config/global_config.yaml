@@ -214,11 +214,11 @@ guardian:
       tp_ratio: 0.4
     levels:
       - target: 0.7
-        tp_ratio: 0.5
-        sl_lock: 0.3
+        tp_ratio: 0.4
+        sl_lock: 0.0
       - target: 0.9
-        tp_ratio: 0.5
-        sl_lock: 0.5
+        tp_ratio: 0.4
+        sl_lock: 0.0
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring
