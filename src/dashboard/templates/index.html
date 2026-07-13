@@ -81,18 +81,7 @@
       <div class="chart-wrap"><canvas id="timelineChart"></canvas></div>
     </section>
 
-    <!-- ═══════ Charts Row ═══════ -->
-    <div class="chart-row">
-      <section class="card chart-card">
-        <h2 data-i18n="section.equity_curve"></h2>
-        <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
-      </section>
-      <section class="card chart-card">
-        <h2 data-i18n="section.conf_optimizer"></h2>
-        <p class="chart-hint">Cumulative P&amp;L if only signals ≥ threshold are traded</p>
-        <div class="chart-wrap"><canvas id="optimizerChart"></canvas></div>
-      </section>
-    </div>
+
 
     <!-- ═══════ Session Table ═══════ -->
     <section class="card">
@@ -121,7 +110,7 @@
           <span id="run-audit-status" class="feedback-inline" style="display:none"></span>
         </div>
       </div>
-      <div class="table-wrapper">
+      <div class="table-wrapper" id="trade-ledger-wrapper">
         <table id="sessions-table">
           <thead>
             <tr>
@@ -166,7 +155,7 @@
 
     // ── Chart config ──
     const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
-    let timelineChart = null, equityChart = null, optimizerChart = null;
+    let timelineChart = null;
     let allTrades = [], filteredTrades = [], allSessions = [], _totalSessions = 0, sortKey = 'observed_at', sortDir = -1;
     let confThreshold = 0;  // start unfiltered, user adjusts slider to explore
 
@@ -215,9 +204,7 @@
           _setKpiHealth(id, null);
         }
         $('confVal').textContent = threshold;
-        renderTimeline(trades, threshold);
-        renderEquity([], 0);
-        renderOptimizer([], threshold);
+        renderTimeline(trades, threshold, []);
         return;
       }
 
@@ -287,13 +274,11 @@
 
       $('confVal').textContent = threshold;
 
-      renderTimeline(trades, threshold);
-      renderEquity(curve, netPnL);
-      renderOptimizer(filledTrades, threshold);
+      renderTimeline(trades, threshold, curve);
     }
 
     // ── Charts ──
-    function renderTimeline(trades, threshold) {
+    function renderTimeline(trades, threshold, curve) {
       const ctx = $('timelineChart').getContext('2d');
       if (timelineChart) timelineChart.destroy();
 
@@ -355,15 +340,25 @@
         }
       };
 
+      // Mini equity curve
+      var eqData = (curve || []).map(function(p) { return {x: p.x, y: p.y}; });
+      var eqEnd = eqData.length > 0 ? eqData[eqData.length - 1].y : 0;
+      var eqColor = eqEnd >= 0 ? 'rgba(64, 168, 95, 0.32)' : 'rgba(224, 85, 74, 0.32)';
+      var eqFill = eqEnd >= 0 ? 'rgba(64, 168, 95, 0.04)' : 'rgba(224, 85, 74, 0.04)';
+
       timelineChart = new Chart(ctx, {
         type: 'bubble',
-        data: { datasets: [{ data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }] },
+        data: { datasets: [
+          { data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 },
+          { data: eqData, type: 'line', yAxisID: 'y2', borderColor: eqColor, borderWidth: 1, pointRadius: 0, pointHitRadius: 0, fill: true, backgroundColor: eqFill, tension: 0.15 }
+        ] },
         plugins: [thresholdPlugin],
         options: {
           responsive: true, maintainAspectRatio: false, animation: false,
           scales: {
             x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
-            y: { ticks: { color: textBright }, grid: { color: gridColor } }
+            y: { ticks: { color: textBright }, grid: { color: gridColor } },
+            y2: { position: 'right', ticks: { color: textMuted, callback: function(v) { return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; } }, grid: { drawOnChartArea: false } }
           },
           plugins: {
             legend: { display: false },
@@ -401,97 +396,6 @@
       });
     }
 
-    function renderEquity(curve, netPnL) {
-      const ctx = $('equityChart').getContext('2d');
-      if (equityChart) equityChart.destroy();
-
-      const color = netPnL >= 0 ? '#40a85f' : '#e0554a';
-      const fill = netPnL >= 0 ? 'rgba(64, 168, 95, 0.08)' : 'rgba(224, 85, 74, 0.08)';
-
-      // Dots only on sparse data; crosshair handles dense-data tooltips
-      const pointRadius = curve.length <= 5 ? 4 : 0;
-      const pointHoverRadius = curve.length <= 5 ? 6 : 4;
-
-      equityChart = new Chart(ctx, {
-        type: 'line',
-        data: { datasets: [{ data: curve, borderColor: color, borderWidth: 2.5, pointRadius, pointHoverRadius, pointBackgroundColor: color, pointBorderColor: 'rgba(255,255,255,0.2)', fill: true, backgroundColor: fill, tension: 0.15 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          interaction: { mode: 'nearest', axis: 'x', intersect: false },
-          scales: {
-            x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
-            y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
-          },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              displayColors: false,
-              callbacks: {
-                title: (items) => {
-                  const d = items[0].raw;
-                  return `${d.symbol || '—'}  ·  ${d.timeLabel || ''}`;
-                },
-                label: (ctx) => {
-                  const d = ctx.raw;
-                  const pnlStr = d.pnl_pct != null ? `${d.pnl_pct > 0 ? '+' : ''}${d.pnl_pct.toFixed(2)}%` : '—';
-                  const eqStr = `${d.y >= 0 ? '+' : ''}${d.y.toFixed(2)}%`;
-                  const lines = [`${d.opinion || '—'}  ·  Conf ${d.confidence != null ? d.confidence.toFixed(0) : '—'}%  ·  P&L ${pnlStr}`];
-                  lines.push(`Equity ${eqStr}`);
-                  if (d.version) lines.push(`v${d.version}`);
-                  return lines;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    function renderOptimizer(filledTrades, minThreshold) {
-      const ctx = $('optimizerChart').getContext('2d');
-      if (optimizerChart) optimizerChart.destroy();
-
-      // Align step to nearest 5 (e.g. 42 → 40, 43 → 45)
-      const start = Math.round(minThreshold / 5) * 5;
-      const thresholds = [], data = [];
-      // Also count trades passing each threshold for richer tooltip
-      const counts = [];
-      for (let t = start; t <= 100; t += 5) {
-        let sum = 0, cnt = 0;
-        filledTrades.forEach(tr => { if (tr.confidence >= t) { sum += tr.pnl_pct; cnt++; } });
-        thresholds.push(t); data.push(sum); counts.push(cnt);
-      }
-
-      optimizerChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: thresholds, datasets: [{ data, borderColor: '#54a0a8', backgroundColor: 'rgba(84, 160, 168, 0.08)', borderWidth: 2.5, fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#54a0a8' }] },
-        options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              displayColors: false,
-              callbacks: {
-                title: (items) => `${t('chart.conf_optimizer_title')} ${items[0].label}%`,
-                label: (ctx) => {
-                  const pnl = ctx.raw;
-                  const count = counts[ctx.dataIndex];
-                  const sign = pnl >= 0 ? '+' : '';
-                  const color = pnl >= 0 ? '#40a85f' : '#e0554a';
-                  return [`${t('chart.cumulative_pnl')} ${sign}${pnl.toFixed(2)}%`, `${count} ${t('chart.trade_qualify')}`];
-                }
-              }
-            }
-          },
-          scales: {
-            x: { title: { display: true, text: t('chart.axis_title'), color: textBright }, ticks: { color: textMuted } },
-            y: { ticks: { color: textBright, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' }, grid: { color: gridColor } }
-          }
-        }
-      });
-    }
-
-    // ── Session Table ──
     function getSortValue(session, key) {
       const tp = session.tactical || {};
       switch (key) {

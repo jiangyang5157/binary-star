@@ -238,6 +238,11 @@ code, pre, .mono {
   -webkit-overflow-scrolling: touch;
 }
 
+#trade-ledger-wrapper {
+  max-height: 680px;
+  overflow-y: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -1030,17 +1035,7 @@ tbody tr:hover {
   height: 100% !important;
 }
 
-.chart-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
 
-@media (max-width: 900px) {
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* --- Audit Outcome --- */
 .audit-outcome {
@@ -1166,9 +1161,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
     grid-template-columns: 1fr;
   }
 
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
 
   .decision-header {
     flex-direction: column;

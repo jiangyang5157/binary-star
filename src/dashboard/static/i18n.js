@@ -23,13 +23,11 @@ const TRANSLATIONS = {
   "kpi.sharpe": { en: "Sharpe Ratio", zh: "夏普比率" },
 
   // Section 标题
-  "section.trade_ledger": { en: "Trade Ledger", zh: "交易台账" },
-  "section.decision_timeline": { en: "Decision Timeline", zh: "决策时间线" },
-  "section.equity_curve": { en: "Equity Growth Curve", zh: "权益增长曲线" },
-  "section.conf_optimizer": { en: "Confidence Threshold Optimizer", zh: "置信度阈值优化" },
+  "section.trade_ledger": { en: "Trade Log", zh: "交易日志" },
+  "section.decision_timeline": { en: "Trade Timeline", zh: "交易时间线" },
   "section.active_sessions": { en: "Active Sessions", zh: "活跃会话" },
   "section.new_session": { en: "New Session", zh: "新建会话" },
-  "section.sniper": { en: "Sniper", zh: "狙击" },
+  "section.sniper": { en: "Signal Monitor", zh: "信号监控" },
   "section.backtest": { en: "Backtest", zh: "回测" },
 
   // 表头
@@ -80,10 +78,6 @@ const TRANSLATIONS = {
     en: "Cumulative P&L if only signals >= threshold are traded",
     zh: "仅交易置信度≥阈值的信号的累计盈亏"
   },
-  "chart.conf_optimizer_title": { en: "Confidence Threshold ≥", zh: "置信度阈值 ≥" },
-  "chart.cumulative_pnl": { en: "Cumulative P&L:", zh: "累计盈亏:" },
-  "chart.trade_qualify": { en: "trade qualify", zh: "笔合格交易" },
-  "chart.axis_title": { en: "Min Confidence Threshold (%)", zh: "最低置信度阈值 (%)" },
 
   // Backtest
   "bt.single_ts": { en: "Single Timestamp", zh: "单时间戳" },
