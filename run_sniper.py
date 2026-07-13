@@ -579,9 +579,27 @@ class SniperDaemon:
 
             # Return guardian snapshot for heartbeat (harvested during check, no extra API calls)
             try:
+                current_price = self.executor.client.get_ticker_price(symbol)
+            except Exception:
+                current_price = None
+            try:
+                # Use updated_state (reconstructed by guardian_check) when available
+                ts = updated_state if updated_state else trade_state
+                entry_price = ts.get("entry_price") or trade_state.get("entry_price")
+                # Fallback to exchange avg entry for manual/restored positions
+                pos_qty = pos.net_qty if pos else 0.0
+                if entry_price is None and abs(pos_qty) > 1e-8:
+                    try:
+                        entry_price = self.executor.client.get_avg_entry_price(symbol, pos_qty)
+                    except Exception:
+                        pass
                 return {
-                    "net_qty": pos.net_qty if pos else 0.0,
+                    "net_qty": pos_qty,
                     "active_orders": len(self.executor.client.get_active_orders(symbol)),
+                    "entry_price": entry_price,
+                    "tp_price": ts.get("tp_price"),
+                    "sl_price": ts.get("sl_price"),
+                    "current_price": current_price,
                 }
             except Exception as e:
                 logger.warning(f"[{symbol}] heartbeat snapshot failed | error={e}")

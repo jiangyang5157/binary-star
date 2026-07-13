@@ -545,7 +545,7 @@ tbody tr:hover {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .session-time {
@@ -1269,28 +1269,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 
-/* ── Multi-symbol Guardian Table ─────────────────────────── */
-#sniper-guardian-table-container {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.guardian-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-}
-.guardian-table th, .guardian-table td {
-  padding: 4px 10px;
-  text-align: left;
-  border-bottom: 1px solid var(--border-color);
-}
-.guardian-table th {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-/* ── Backtest Section ─────────────────────────── */
 
 /* Mode toggle row */
 .bt-mode-row {
@@ -1718,6 +1696,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .signal-strip-block.live { animation: none; }
   .sniper-status-dot.connected,
   .sniper-status-dot.stale { animation: none; }
+  .pl-dot.current { animation: none; }
   .session-progress { transition: none; }
 }
 
@@ -1766,7 +1745,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
 }
 
 .signal-card-symbol {
@@ -1824,8 +1803,8 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   align-items: flex-end;
   justify-content: flex-end;
   gap: 4px;
-  height: 34px;
-  margin-bottom: 8px;
+  height: 40px;
+  margin-bottom: 6px;
   position: relative;
 }
 
@@ -1834,8 +1813,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   flex-shrink: 0;
   border-radius: 2px;
   min-height: 1px;
-  padding-bottom: 3px;
-  background-clip: content-box;
   transition: height 0.3s ease, background 0.3s ease;
   position: relative;
 }
@@ -1861,6 +1838,117 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   z-index: 10;
   pointer-events: none;
   color: var(--text-primary, #e0e0e0);
+}
+
+/* Status text in header */
+.sc-status {
+  font-size: 0.75rem;
+  color: var(--accent-amber);
+  font-weight: 500;
+}
+.sc-direction {
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Price Lane — compact position viz */
+.price-lane-wrapper {
+  margin-top: 10px;
+  padding-top: 2px;
+}
+.price-lane {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 20px;
+}
+.pl-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  min-width: fit-content;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.pl-track {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+  position: relative;
+  border-radius: 1px;
+  min-width: 40px;
+}
+.pl-dot {
+  position: absolute;
+  top: 50%;
+  border-radius: 50%;
+}
+.pl-dot.entry {
+  width: 8px;
+  height: 8px;
+  background: var(--text-secondary);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+.pl-dot.current {
+  width: 8px;
+  height: 8px;
+  background: var(--dot-color, var(--accent-green));
+  border-radius: 50%;
+  display: block;
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+
+.pl-tip {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+}
+
+.pl-tip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--text-primary);
+}
+.pl-dot.entry:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-muted);
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 0.65rem;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+  color: var(--text-primary);
+}
+
+
+.price-lane.naked .pl-track {
+  background: transparent;
+  border-top: 1px dashed var(--border-color);
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.5); }
 }
 
 /* ============================================================

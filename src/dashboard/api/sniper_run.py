@@ -8,6 +8,8 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
@@ -22,6 +24,17 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 STATUS_FILENAME = ".sniper_state.json"
 PULSE_FILENAME = ".sniper_pulse.json"
 HISTORY_FILENAME = ".sniper_pulse_history.json"
+
+# Load net_qty_tolerance once at module level (tiny config read, no perf concern)
+_NET_QTY_TOLERANCE = 0.0001  # fallback if config missing
+try:
+    _cfg_path = PROJECT_ROOT / "config" / "global_config.yaml"
+    if _cfg_path.exists():
+        with open(_cfg_path) as _f:
+            _NET_QTY_TOLERANCE = yaml.safe_load(_f).get("trade_management", {}).get("net_qty_tolerance", 0.0001)
+except Exception:
+    pass
+
 log = logging.getLogger("SniperRunAPI")
 
 
@@ -212,8 +225,8 @@ def sniper_status(data_root: str = Query("")):
     # Pulse timer: from state file's last_pulse_at (always fresh, zero-API)
     pulse_seconds = _read_pulse_seconds(data_root, fallback_elapsed=round(elapsed))
 
-    # Combined pulse file: guardian + signal diagnostics (single read)
-    guardian, pulse_signals = _read_pulse(data_root)
+    # Combined pulse file: position + signal diagnostics (single read)
+    pulse_signals = _read_pulse(data_root)
     pulse_history = _read_pulse_history(data_root)
 
     # Active session (AI session triggered by sniper signal)
@@ -232,8 +245,8 @@ def sniper_status(data_root: str = Query("")):
         "started_at": started_str,
         "elapsed_seconds": round(elapsed),
         "pulse_seconds": pulse_seconds,
+        "net_qty_tolerance": _NET_QTY_TOLERANCE,
         "active_session": active_session,
-        "guardian": guardian,
         "pulse_signals": pulse_signals,
         "pulse_history": pulse_history or [],
     }
@@ -253,27 +266,24 @@ def _read_pulse_seconds(data_root: str, fallback_elapsed: int = 0) -> int:
     return fallback_elapsed
 
 
-def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
-    """Read .sniper_pulse.json, return (guardian_dict, pulse_signals_dict).
+def _read_pulse(data_root: str) -> dict | None:
+    """Read .sniper_pulse.json, return merged per-symbol dict.
 
-    Splits the combined pulse file into the two shapes the frontend expects.
-    Returns (None, None) if the file is missing or unreadable.
+    Each symbol entry carries position fields (net_qty, active_orders,
+    entry_price, tp_price, sl_price, current_price) and signal fields
+    (confluence_score, threshold, direction, all_signals, etc.).
+
+    Returns None if the file is missing or unreadable.
     """
     path = Path(data_root) / PULSE_FILENAME
     if not path.exists():
-        return None, None
+        return None
     try:
         data = json.loads(path.read_text())
     except (json.JSONDecodeError, OSError):
-        return None, None
+        return None
 
-    # Guardian shape: per-symbol position/order state
-    guardian = {
-        "symbols": {},
-    }
-
-    # Pulse signals shape: per-symbol signal diagnostics for the frontend
-    pulse_signals = {
+    result = {
         "pulse_at": data.get("pulse_at", ""),
         "symbols": {},
     }
@@ -282,12 +292,15 @@ def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
         for sym, entry in data.get("symbols", {}).items():
             if not isinstance(entry, dict):
                 continue
-            guardian["symbols"][sym] = {
+            result["symbols"][sym] = {
+                # Position fields
                 "net_qty": entry.get("net_qty", 0.0),
                 "active_orders": entry.get("active_orders", 0),
-            }
-
-            pulse_signals["symbols"][sym] = {
+                "entry_price": entry.get("entry_price"),
+                "tp_price": entry.get("tp_price"),
+                "sl_price": entry.get("sl_price"),
+                "current_price": entry.get("current_price"),
+                # Signal fields
                 "triggered": entry.get("triggered", False),
                 "confluence_score": entry.get("confluence_score", 0.0),
                 "threshold": entry.get("threshold") or 0.0,
@@ -300,7 +313,7 @@ def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
     except Exception as e:
         log.warning("pulse entry iteration failed | error=%s", e)
 
-    return guardian, pulse_signals
+    return result
 
 
 def _read_pulse_history(data_root: str) -> list | None:

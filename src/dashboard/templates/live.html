@@ -82,7 +82,6 @@
           </div>
         </div>
         <div id="sniper-signal-cards" class="signal-cards" style="display:none"></div>
-        <div id="sniper-guardian-table-container"></div>
         <div id="sniper-progress-container"></div>
       </section>
       {% endcall %}
@@ -153,6 +152,19 @@
           document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
         }
       } catch (e) { /* keep fallback */ }
+        })();
+
+    // Auto-detect running daemon on page load (survives hard refresh)
+    (async function initSniperStatus() {
+      try {
+        const resp = await fetch(apiUrl('/api/sniper/status'));
+        const data = await resp.json();
+        if (data.running) {
+          updateSniperUI('running');
+          sniperPollInterval = setInterval(checkSniperStatus, 2000);
+          checkSniperStatus();
+        }
+      } catch (e) { /* daemon not reachable — stay idle */ }
     })();
 
     // ── Sniper Control ──
@@ -219,8 +231,6 @@
         sniperPollInterval = null;
         var statusEl = document.getElementById('sniper-status');
         if (statusEl) statusEl.style.display = 'none';
-        var guardianEl = document.getElementById('sniper-guardian-table-container');
-        if (guardianEl) guardianEl.innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }
       }
@@ -235,50 +245,6 @@
       dot.className = 'sniper-status-dot ' + (state || 'connected');
       lbl.textContent = label || t('status.connected');
       el.style.display = '';
-    }
-
-    function _renderGuardianTable(container, data) {
-      var guardian = data.guardian;
-      var tradeOn = data.trade_enabled;
-      if (!tradeOn || !guardian || !guardian.symbols) {
-        container.innerHTML = '';
-        return;
-      }
-
-      var symbols = Object.keys(guardian.symbols);
-      if (symbols.length === 0) {
-        container.innerHTML = '';
-        return;
-      }
-
-      var html = '<table class="guardian-table"><thead><tr>';
-      html += '<th>' + t('guardian.symbol') + '</th><th>' + t('guardian.position') + '</th><th>' + t('guardian.net_qty') + '</th><th>' + t('guardian.orders') + '</th><th>' + t('guardian.status') + '</th>';
-      html += '</tr></thead><tbody>';
-
-      for (var i = 0; i < symbols.length; i++) {
-        var sym = symbols[i];
-        var gs = guardian.symbols[sym] || {};
-        var hasPos = gs.net_qty != null && Math.abs(gs.net_qty) > 1e-8;
-        var posLabel = hasPos
-          ? (gs.net_qty > 0 ? t('status.long') : t('status.short'))
-          : '—';
-        var statusLabel = hasPos
-          ? (gs.active_orders > 0 ? t('status.protected') : t('status.naked'))
-          : t('status.idle');
-
-        html += '<tr>';
-        html += '<td><strong>' + sym.replace(new RegExp(QUOTE + '$', 'i'), '') + '</strong></td>';
-        html += '<td>' + posLabel + '</td>';
-        html += '<td>' + ((gs.net_qty != null) ? gs.net_qty : '0.0') + '</td>';
-        html += '<td>' + (gs.active_orders || 0) + '</td>';
-        html += '<td>' + statusLabel + '</td>';
-        html += '</tr>';
-      }
-
-      html += '</tbody></table>';
-
-
-      container.innerHTML = html;
     }
 
     function _renderPulseHistory(container, history, symbol) {
@@ -298,15 +264,24 @@
         var s = entry.symbols && entry.symbols[symbol];
         if (!s) continue;
 
-        var ratio = s.threshold > 0 ? Math.min(s.confluence_score / s.threshold, 1.0) : 0;
-        var heightPx = Math.max(1, Math.round(ratio * 32));
+        var score = s.confluence_score || 0;
+        var thr = s.threshold || 0;
+        var heightPx = Math.max(1, Math.round(Math.min(score, 1.0) * 40));
 
+        var barOpacity = 1.0;
         var color;
-        if (s.direction === 'BULLISH') color = 'var(--accent-green)';
-        else if (s.direction === 'BEARISH') color = 'var(--accent-red)';
-        else color = 'var(--text-muted)';
-
-        var wakeClass = ratio >= 1.0 ? ' wake' : '';
+        if (thr > 0 && score >= thr) {
+          // Wake: full color
+          color = s.direction === 'BULLISH' ? 'var(--accent-green)' :
+                  s.direction === 'BEARISH' ? 'var(--accent-red)' :
+                  'var(--text-muted)';
+        } else {
+          // Below threshold or no signal: dimmed
+          color = s.direction === 'BULLISH' ? 'var(--accent-green)' :
+                  s.direction === 'BEARISH' ? 'var(--accent-red)' :
+                  'var(--text-muted)';
+          barOpacity = 0.5;
+        }
 
         var timeLabel = '';
         if (entry.at) {
@@ -319,14 +294,80 @@
         var tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
 
         bars.push(
-          '<div class="pulse-bar' + wakeClass + '"' +
-          ' style="height:' + heightPx + 'px;background:' + color + '"' +
+          '<div class="pulse-bar"' +
+          ' style="height:' + heightPx + 'px;background:' + color + ';opacity:' + barOpacity + '"' +
           ' data-tooltip="' + tooltip + '">' +
           '</div>'
         );
       }
 
       container.innerHTML = bars.join('');
+    }
+
+    // ── Symbol state helpers ──
+    function _getSymbolState(sd) {
+      var nq = sd.net_qty || 0;
+      var ao = sd.active_orders || 0;
+      if (Math.abs(nq) > 0.0001 && ao > 0) return 'protected';
+      if (Math.abs(nq) > 0.0001) return 'naked';
+      if (ao > 0) return 'pending';
+      return 'searching';
+    }
+
+    function _renderPriceLane(sd, tradeOn) {
+      if (!tradeOn) return '';
+      var nq = sd.net_qty || 0;
+      if (Math.abs(nq) <= 0.0001) return '';
+      var entry = sd.entry_price, tp = sd.tp_price, sl = sd.sl_price, cur = sd.current_price;
+      if (!entry || !cur) return '';
+
+      var hasRange = tp && sl && Math.abs(tp - sl) > 0.0001;
+      var isNaked = (sd.active_orders || 0) === 0;
+
+      // Current dot color
+      var profitable = nq > 0 ? cur > entry : cur < entry;
+      var atEntry = hasRange && Math.abs(cur - entry) / Math.abs(tp - sl) < 0.001;
+      var dotColor = atEntry ? 'var(--accent-red)' : (profitable ? 'var(--accent-green)' : 'var(--accent-red)');
+
+      function fmt(n) { return n == null ? "" : n.toFixed(1); }
+
+      if (hasRange && !isNaked) {
+        var ep, cp, leftLabel, rightLabel;
+        if (nq > 0) {
+          // LONG: SL(0%) \u2014 entry \u2014 current \u2014 TP(100%)
+          var r = tp - sl;
+          ep = (entry - sl) / r * 100;
+          cp = (cur - sl) / r * 100;
+          leftLabel = fmt(sl);
+          rightLabel = fmt(tp);
+        } else {
+          // SHORT: TP(0%) \u2014 current \u2014 entry \u2014 SL(100%)
+          var r = sl - tp;
+          ep = (entry - tp) / r * 100;
+          cp = (cur - tp) / r * 100;
+          leftLabel = fmt(tp);
+          rightLabel = fmt(sl);
+        }
+        ep = Math.max(0, Math.min(100, ep));
+        cp = Math.max(0, Math.min(100, cp));
+        return '<div class="price-lane">' +
+          '<span class="pl-label">' + leftLabel + '</span>' +
+          '<div class="pl-track">' +
+          '<span class="pl-dot entry" style="left:' + ep + '%" data-tooltip="Entry ' + fmt(entry) + '"></span>' +
+          '<span class="pl-tip" style="left:' + cp + '%" data-tooltip="Current ' + fmt(cur) + '"><span class="pl-dot current" style="--dot-color:' + dotColor + '"></span></span>' +
+          '</div>' +
+          '<span class="pl-label">' + rightLabel + '</span>' +
+          '</div>';
+      }
+
+      // Naked: no boundaries, relative dots
+      var nc = profitable ? 'var(--accent-green)' : 'var(--accent-red)';
+      return '<div class="price-lane naked">' +
+        '<div class="pl-track">' +
+        '<span class="pl-dot entry" style="left:30%" data-tooltip="Entry ' + fmt(entry) + '"></span>' +
+        '<span class="pl-tip" style="left:70%" data-tooltip="Current ' + fmt(cur) + '"><span class="pl-dot current" style="--dot-color:' + nc + '"></span></span>' +
+        '</div>' +
+        '</div>';
     }
 
     function _renderSignalCards(data) {
@@ -342,45 +383,65 @@
       var symbols = data.symbols || Object.keys(signals.symbols);
       container.style.display = '';
       var html = '';
+      var tradeOn = data.trade_enabled;
+      var qtyDecimals = Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001));
 
       for (var i = 0; i < symbols.length; i++) {
         var sym = symbols[i];
-        var s = signals.symbols[sym];
-        if (!s) continue;
+        var sd = signals.symbols[sym];
+        if (!sd) continue;
 
         var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
+        var state = _getSymbolState(sd);
 
         html += '<div class="signal-card">';
         html += '<div class="signal-card-header">';
         html += '<span class="signal-card-symbol">' + stripped + '</span>';
-        if (s.cooldown_active && s.cooldown_remaining_seconds > 0) {
-          html += '<span class="signal-card-cooldown">&#10052; ' +
-            formatElapsed(s.cooldown_remaining_seconds) + '</span>';
+
+        // Status text
+        if (tradeOn && state === 'pending') {
+          html += '<span class="sc-status"> \u00b7  PENDING</span>';
+        } else if (tradeOn && (state === 'protected' || state === 'naked')) {
+          var dir = sd.net_qty > 0 ? 'LONG' : 'SHORT';
+          var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
+          html += '<span class="sc-direction"> \u00b7  ' + dir + ' ' + qty + '</span>';
         }
-        html += '</div>';
+
+        // Cooldown (header right)
+        if (sd.cooldown_active && sd.cooldown_remaining_seconds > 0) {
+          html += '<span class="signal-card-cooldown">CD \u2744 ' +
+            formatElapsed(sd.cooldown_remaining_seconds) + '</span>';
+        }
+
+        html += '</div>';  // close header
 
         // Pulse history bar chart
         html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
 
-        // Compact signal strip (10 blocks, order matches _SIGNAL_TYPES)
+        // Compact signal strip (10 blocks)
         html += '<div class="signal-strip">';
-        var allSignals = s.all_signals || [];
+        var allSignals = sd.all_signals || [];
         for (var j = 0; j < allSignals.length; j++) {
           var sig = allSignals[j];
-          var dir = sig.is_active ? sig.direction : 'NEUTRAL';
+          var sdir = sig.is_active ? sig.direction : 'NEUTRAL';
           var hasScore = sig.score > 0;
-          var opacity = Math.min(0.2 + sig.score * 0.8, 1.0);
+          var opacity = Math.min(0.5 + sig.score * 0.5, 1.0);
           var liveClass = hasScore ? ' live' : '';
-          var tooltip = sig.type;
           html += '<div class="signal-strip-block' + liveClass + '"' +
             ' style="opacity:' + opacity + ';background:' +
-            (dir === 'BULLISH' ? 'var(--accent-green)' :
-              dir === 'BEARISH' ? 'var(--accent-red)' :
-                'var(--badge-gray-bg)') + '"' +
-            ' data-tooltip="' + tooltip + '">' +
+            (sdir === 'BULLISH' ? 'var(--accent-green)' :
+             sdir === 'BEARISH' ? 'var(--accent-red)' :
+             'var(--badge-gray-bg)') + '"' +
+            ' data-tooltip="' + sig.type + '">' +
             '</div>';
         }
         html += '</div>';
+
+        // Price lane (only when trade on + position exists)
+        var plHtml = _renderPriceLane(sd, tradeOn);
+        if (plHtml) {
+          html += '<div class="price-lane-wrapper">' + plHtml + '</div>';
+        }
 
         html += '</div>';  // close signal-card
       }
@@ -397,6 +458,7 @@
       }
     }
 
+
     async function checkSniperStatus() {
       try {
         const resp = await fetch(apiUrl('/api/sniper/status'));
@@ -411,12 +473,8 @@
             updateSniperUI('running');
           }
           var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-          _renderSniperStatus('connected', t('status.connected') + ' · ' + formatElapsed(pulseAge));
+          _renderSniperStatus('connected', t('status.connected') + ' \u00b7 ' + formatElapsed(pulseAge));
           const progressContainer = document.getElementById('sniper-progress-container');
-          const guardianContainer = document.getElementById('sniper-guardian-table-container');
-
-          // Guardian table (per-symbol position/order status) when trade enabled
-          _renderGuardianTable(guardianContainer, data);
 
           // Signal cards — per-symbol pulse signal confluence
           _renderSignalCards(data);
@@ -450,7 +508,6 @@
             sniperPollInterval = null;
             if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
             document.getElementById('sniper-status').style.display = 'none';
-            document.getElementById('sniper-guardian-table-container').innerHTML = '';
             document.getElementById('sniper-progress-container').innerHTML = '';
             updateSniperUI('idle');
           }
@@ -459,7 +516,7 @@
         _sniperConnFailures++;
         var ageLabel = '';
         if (_lastSniperPulseAt > 0) {
-          ageLabel = ' · ' + formatElapsed(Math.round((Date.now() - _lastSniperPulseAt) / 1000));
+          ageLabel = ' \u00b7 ' + formatElapsed(Math.round((Date.now() - _lastSniperPulseAt) / 1000));
         }
         if (_sniperConnFailures >= 3) {
           _renderSniperStatus('disconnected', t('status.disconnected') + ageLabel);
@@ -484,7 +541,7 @@
           const resp = await fetch(apiUrl('/api/sniper/stop'), { method: 'POST' });
           if (!resp.ok) {
             const err = await resp.json();
-            container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
+            container.innerHTML = '<div class="run-status-box run-error" style="display:block">\u2717 ' +
               (err.detail || t('error.stop_failed')) + '</div>';
             btn.disabled = false;
             btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
@@ -492,14 +549,13 @@
             return;
           }
         } catch (e) {
-          container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' + t('error.request_failed') + '</div>';
+          container.innerHTML = '<div class="run-status-box run-error" style="display:block">\u2717 ' + t('error.request_failed') + '</div>';
           btn.disabled = false;
           btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
           _stopInFlight = false;
           return;
         }
         document.getElementById('sniper-status').style.display = 'none';
-        document.getElementById('sniper-guardian-table-container').innerHTML = '';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }
         if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
@@ -556,7 +612,7 @@
 
         if (!resp.ok) {
           const err = await resp.json();
-          container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' +
+          container.innerHTML = '<div class="run-status-box run-error" style="display:block">\u2717 ' +
             (err.detail || t('error.request_failed')) + '</div>';
           updateSniperUI('idle');
           return;
@@ -566,36 +622,11 @@
         sniperPollInterval = setInterval(checkSniperStatus, 2000);
         checkSniperStatus();
       } catch (e) {
-        container.innerHTML = '<div class="run-status-box run-error" style="display:block">✗ ' + t('error.request_failed') + '</div>';
+        container.innerHTML = '<div class="run-status-box run-error" style="display:block">\u2717 ' + t('error.request_failed') + '</div>';
         updateSniperUI('idle');
       }
     }
 
-    // On page load, check if sniper is already running
-    (async function initSniperStatus() {
-      try {
-        const resp = await fetch(apiUrl('/api/sniper/status'));
-        const data = await resp.json();
-        if (data.running) {
-          const sniperSymbolInput = document.getElementById('sniper-symbol');
-          const symbols = (data.symbols || []).map(s => s.replace(new RegExp(QUOTE + '$', 'i'), ''));
-          sniperSymbolInput.value = symbols.join(',');
-
-          const tradeToggle = document.getElementById('sniper-trade-toggle');
-          tradeToggle.checked = !!data.trade_enabled;
-
-          const capInput = document.getElementById('sniper-cap');
-          if (data.balance != null) {
-            capInput.value = data.balance;
-          }
-          capInput.disabled = !data.trade_enabled;
-
-          updateSniperUI('running');
-          sniperPollInterval = setInterval(checkSniperStatus, 2000);
-          checkSniperStatus();
-        }
-      } catch (e) { /* ignore */ }
-    })();
 
     function timeRemainingClass(seconds) {
       if (seconds > 43200) return 'time-safe';       // > 12h

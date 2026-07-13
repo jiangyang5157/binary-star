@@ -50,12 +50,6 @@ const TRANSLATIONS = {
   "th.orders": { en: "Orders", zh: "订单" },
   "th.status": { en: "Status", zh: "状态" },
 
-  // Guardian table
-  "guardian.symbol": { en: "Symbol", zh: "交易对" },
-  "guardian.position": { en: "Position", zh: "仓位" },
-  "guardian.net_qty": { en: "Net Qty", zh: "净数量" },
-  "guardian.orders": { en: "Orders", zh: "订单" },
-  "guardian.status": { en: "Status", zh: "状态" },
   // 按钮
   "btn.run": { en: "▶ Run", zh: "▶ 运行" },
   "btn.stop": { en: "⏹ Stop", zh: "⏹ 停止" },
