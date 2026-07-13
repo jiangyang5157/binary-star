@@ -300,14 +300,28 @@
     }
 
     // ── Render sniper merged status indicator ──
-    function _renderSniperStatus(state, label) {
+    function _renderSniperStatus(state, label, pulseAge) {
       var el = document.getElementById('sniper-status');
       var dot = document.getElementById('sniper-status-dot');
       var lbl = document.getElementById('sniper-status-label');
       if (!el || !dot || !lbl) return;
-      dot.className = 'sniper-status-dot ' + (state || 'connected');
+      dot.classList.remove('connected', 'stale', 'disconnected');
+      dot.classList.add(state || 'connected');
       lbl.textContent = label || t('status.connected');
       el.style.display = '';
+
+      // Dot color gradient: teal → amber by pulse age
+      // 0-120s teal, 120-420s transition, 420s+ amber
+      // Colors match CSS: --accent-teal (#54a0a8) and --accent-amber (#c9953a)
+      dot.style.background = '';
+      if (state !== 'disconnected' && pulseAge != null) {
+        var t = Math.max(0, Math.min((pulseAge - 120) / 300, 1.0));
+        var TEAL = [84, 160, 168], AMBER = [201, 149, 58];
+        var r = Math.round(TEAL[0] + (AMBER[0] - TEAL[0]) * t);
+        var g = Math.round(TEAL[1] + (AMBER[1] - TEAL[1]) * t);
+        var b = Math.round(TEAL[2] + (AMBER[2] - TEAL[2]) * t);
+        dot.style.background = 'rgb(' + r + ',' + g + ',' + b + ')';
+      }
     }
 
     function _renderPulseHistory(container, history, symbol) {
@@ -464,18 +478,18 @@
         html += '<div class="signal-card-header">';
         html += '<span class="signal-card-symbol">' + stripped + '</span>';
 
-        // Status text
+        // Status text with colored dot
         if (tradeOn && state === 'pending') {
-          html += '<span class="sc-status"> \u00b7  PENDING</span>';
+          html += '<span class="sc-status"> PENDING</span>';
         } else if (tradeOn && (state === 'protected' || state === 'naked')) {
           var dir = sd.net_qty > 0 ? 'LONG' : 'SHORT';
           var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
-          html += '<span class="sc-direction"> \u00b7  ' + dir + ' ' + qty + '</span>';
+          html += '<span class="sc-direction ' + dir.toLowerCase() + '"> ' + dir + ' ' + qty + '</span>';
         }
 
         // Cooldown (header right)
         if (sd.cooldown_active && sd.cooldown_remaining_seconds > 0) {
-          html += '<span class="signal-card-cooldown">CD \u2744 ' +
+          html += '<span class="signal-card-cooldown">\u2744 ' +
             formatElapsed(sd.cooldown_remaining_seconds) + '</span>';
         }
 
@@ -539,7 +553,7 @@
             updateSniperUI('running');
           }
           var pulseAge = data.pulse_seconds != null ? data.pulse_seconds : (data.elapsed_seconds || 0);
-          _renderSniperStatus('connected', t('status.connected') + ' \u00b7 ' + formatElapsed(pulseAge));
+          _renderSniperStatus('connected', t('status.connected') + ' \u00b7 ' + formatElapsed(pulseAge), pulseAge);
           const progressContainer = document.getElementById('sniper-progress-container');
 
           // Signal cards — per-symbol pulse signal confluence
@@ -580,14 +594,12 @@
         }
       } catch (e) {
         _sniperConnFailures++;
-        var ageLabel = '';
-        if (_lastSniperPulseAt > 0) {
-          ageLabel = ' \u00b7 ' + formatElapsed(Math.round((Date.now() - _lastSniperPulseAt) / 1000));
-        }
+        var pulseAge = _lastSniperPulseAt > 0 ? Math.round((Date.now() - _lastSniperPulseAt) / 1000) : 0;
+        var ageLabel = pulseAge > 0 ? ' \u00b7 ' + formatElapsed(pulseAge) : '';
         if (_sniperConnFailures >= 3) {
           _renderSniperStatus('disconnected', t('status.disconnected') + ageLabel);
         } else {
-          _renderSniperStatus('stale', t('status.retrying') + ageLabel);
+          _renderSniperStatus('stale', t('status.retrying') + ageLabel, pulseAge);
         }
       }
     }

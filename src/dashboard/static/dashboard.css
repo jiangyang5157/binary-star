@@ -1614,12 +1614,12 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   flex-shrink: 0;
   transition: background 0.5s ease, box-shadow 0.5s ease;
 }
+/* Background colors are set dynamically by _renderSniperStatus JS (teal→amber gradient).
+   These CSS classes only control animation/box-shadow for each state. */
 .sniper-status-dot.connected {
-  background: var(--accent-teal);
   animation: breathe-teal 2.5s ease-in-out infinite;
 }
 .sniper-status-dot.stale {
-  background: var(--accent-amber);
   animation: breathe-amber 2.5s ease-in-out infinite;
 }
 .sniper-status-dot.disconnected {
@@ -1736,7 +1736,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .signal-card-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 2px;
 }
 
@@ -1833,15 +1833,49 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 /* Status text in header */
-.sc-status {
-  font-size: 0.75rem;
-  color: var(--accent-amber);
-  font-weight: 500;
-}
+.sc-status,
 .sc-direction {
   font-size: 0.75rem;
-  color: var(--text-primary);
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+}
+.sc-status::before,
+.sc-direction::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* PENDING — amber hollow dot + text */
+.sc-status {
+  color: var(--accent-amber);
+}
+.sc-status::before {
+  background: transparent;
+  border: 1px solid var(--accent-amber);
+}
+
+/* SHORT — red solid dot + text */
+.sc-direction.short {
+  --dir-color: var(--accent-red);
+}
+/* LONG — green dot + text */
+.sc-direction.long {
+  --dir-color: var(--accent-green);
+}
+/* Shared rules for all direction variants */
+.sc-direction.short,
+.sc-direction.long {
+  color: var(--dir-color);
+}
+.sc-direction.short::before,
+.sc-direction.long::before {
+  background: var(--dir-color);
 }
 
 /* Price Lane — compact position viz */
