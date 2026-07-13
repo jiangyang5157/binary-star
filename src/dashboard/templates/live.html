@@ -314,7 +314,7 @@
       return 'searching';
     }
 
-    function _renderPriceLane(sd, tradeOn) {
+    function _renderPriceLane(sd, tradeOn, decimals) {
       if (!tradeOn) return '';
       var nq = sd.net_qty || 0;
       if (Math.abs(nq) <= 0.0001) return '';
@@ -329,31 +329,34 @@
       var atEntry = hasRange && Math.abs(cur - entry) / Math.abs(tp - sl) < 0.001;
       var dotColor = atEntry ? 'var(--accent-red)' : (profitable ? 'var(--accent-green)' : 'var(--accent-red)');
 
-      function fmt(n) { return n == null ? "" : n.toFixed(1); }
+      var pd = decimals != null ? decimals : 1;
+      function fmt(n) { if (n == null || isNaN(n)) return ""; var s = n.toFixed(pd); if (s.indexOf('.') >= 0) { s = s.replace(/\.?0+$/, ''); } return s === "" || s === "-" || s === "-0" ? "0" : s; }
 
       if (hasRange && !isNaked) {
-        var ep, cp, leftLabel, rightLabel;
+        var epRaw, cp, leftLabel, rightLabel;
         if (nq > 0) {
           // LONG: SL(0%) \u2014 entry \u2014 current \u2014 TP(100%)
           var r = tp - sl;
-          ep = (entry - sl) / r * 100;
+          epRaw = (entry - sl) / r * 100;
           cp = (cur - sl) / r * 100;
           leftLabel = fmt(sl);
           rightLabel = fmt(tp);
         } else {
           // SHORT: TP(0%) \u2014 current \u2014 entry \u2014 SL(100%)
           var r = sl - tp;
-          ep = (entry - tp) / r * 100;
+          epRaw = (entry - tp) / r * 100;
           cp = (cur - tp) / r * 100;
           leftLabel = fmt(tp);
           rightLabel = fmt(sl);
         }
-        ep = Math.max(0, Math.min(100, ep));
         cp = Math.max(0, Math.min(100, cp));
+        var entryDot = (epRaw >= 0 && epRaw <= 100)
+          ? '<span class="pl-dot entry" style="left:' + epRaw + '%" data-tooltip="Entry ' + fmt(entry) + '"></span>'
+          : '';
         return '<div class="price-lane">' +
           '<span class="pl-label">' + leftLabel + '</span>' +
           '<div class="pl-track">' +
-          '<span class="pl-dot entry" style="left:' + ep + '%" data-tooltip="Entry ' + fmt(entry) + '"></span>' +
+          entryDot +
           '<span class="pl-tip" style="left:' + cp + '%" data-tooltip="Current ' + fmt(cur) + '"><span class="pl-dot current" style="--dot-color:' + dotColor + '"></span></span>' +
           '</div>' +
           '<span class="pl-label">' + rightLabel + '</span>' +
@@ -384,7 +387,7 @@
       container.style.display = '';
       var html = '';
       var tradeOn = data.trade_enabled;
-      var qtyDecimals = Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001));
+      var qtyDecimals = Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
 
       for (var i = 0; i < symbols.length; i++) {
         var sym = symbols[i];
@@ -438,7 +441,7 @@
         html += '</div>';
 
         // Price lane (only when trade on + position exists)
-        var plHtml = _renderPriceLane(sd, tradeOn);
+        var plHtml = _renderPriceLane(sd, tradeOn, qtyDecimals);
         if (plHtml) {
           html += '<div class="price-lane-wrapper">' + plHtml + '</div>';
         }

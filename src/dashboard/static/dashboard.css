@@ -1852,7 +1852,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 .price-lane {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   height: 20px;
 }
 .pl-label {
