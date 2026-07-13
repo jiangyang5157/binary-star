@@ -88,6 +88,13 @@ class DebateLoop:
             logger.info(f"[{symbol}] debate R{current_round} running critic audit")
             math_fact_check = self.math_checker.verify(last_plan, observation)
 
+            if progress_callback:
+                math_status = math_fact_check.get("status", "UNKNOWN")
+                progress_callback(
+                    stage=3,
+                    activity=f"Debate R{current_round} · Math: {math_status}",
+                )
+
             # Full adversarial review — critic always runs (handles NEUTRAL via
             # its own NEUTRALITY PARADOX protocol, no Python-level bypass needed).
             if progress_callback:
