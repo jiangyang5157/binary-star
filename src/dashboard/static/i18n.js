@@ -56,8 +56,6 @@ const TRANSLATIONS = {
   "guardian.net_qty": { en: "Net Qty", zh: "净数量" },
   "guardian.orders": { en: "Orders", zh: "订单" },
   "guardian.status": { en: "Status", zh: "状态" },
-  "guardian.balance": { en: "Balance: $", zh: "余额: $" },
-
   // 按钮
   "btn.run": { en: "▶ Run", zh: "▶ 运行" },
   "btn.stop": { en: "⏹ Stop", zh: "⏹ 停止" },

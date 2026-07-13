@@ -1290,12 +1290,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   color: var(--text-muted);
   font-weight: 500;
 }
-.guardian-summary {
-  margin-top: 0.5rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
 /* ── Backtest Section ─────────────────────────── */
 
 /* Mode toggle row */

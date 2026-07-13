@@ -35,11 +35,11 @@ def _make_trade_state(direction="LONG", entry_price=70000, tp_price=75000, sl_pr
         "entry_atr": 1000.0,
     }
 
-def _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000):
+def _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=75000, sl=68000, qty=0.5):
     """Create TP (LIMIT) and SL (STOP_LOSS_LIMIT) active orders."""
     return [
-        MarginOrder(symbol, "10", "", tp, 0.5, 0.0, "NEW", "GTC", "LIMIT", exit_side, 0),
-        MarginOrder(symbol, "11", "", 0, 0.5, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", exit_side, 0, stop_price=sl),
+        MarginOrder(symbol, "10", "", tp, qty, 0.0, "NEW", "GTC", "LIMIT", exit_side, 0),
+        MarginOrder(symbol, "11", "", 0, qty, 0.0, "NEW", "GTC", "STOP_LOSS_LIMIT", exit_side, 0, stop_price=sl),
     ]
 
 
@@ -551,7 +551,7 @@ def test_multi_level_same_pulse():
 
 
 def test_trailing_at_l1_with_sl_lock():
-    """L1 active, no further trigger -> trailing SL applied with L1 sl_lock."""
+    """L1 active, no further trigger -> sl_lock=0, no trailing SL applied."""
     executor, client = _make_executor()
     entry = 70000.0
     tp = 75000.0
@@ -572,16 +572,13 @@ def test_trailing_at_l1_with_sl_lock():
                                             current_level=1)
 
     client.execute_partial_market_close.assert_not_called()
-    assert client.cancel_all_symbol_orders.called
-    assert client.place_oco_order.called
-    oco_call = client.place_oco_order.call_args
-    new_sl = oco_call[1]["stop_price"]
-    expected_sl = entry + (tp - entry) * L1_SL
-    assert abs(new_sl - expected_sl) < 10
+    client.cancel_all_symbol_orders.assert_not_called()
+    client.place_oco_order.assert_not_called()
+    assert level == 1
 
 
 def test_trailing_at_l2_with_sl_lock():
-    """L3 active, no further trigger -> trailing SL applied with L3 sl_lock."""
+    """L2 active, no further trigger -> sl_lock=0, no trailing SL applied."""
     executor, client = _make_executor()
     entry = 70000.0
     tp = 75000.0
@@ -591,23 +588,20 @@ def test_trailing_at_l2_with_sl_lock():
         "BTCUSDT", "BTC", "USDT", net_qty=0.32, borrowed=0.0, free=0.32, locked=0.0
     )
     client.get_avg_entry_price.return_value = entry
-    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=tp, sl=entry)
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=tp, sl=entry, qty=0.32)
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=tp, sl_price=entry)
     result, level = executor.guardian_check("BTCUSDT", trade_state,
                                             current_level=2)
 
-    assert client.cancel_all_symbol_orders.called
-    assert client.place_oco_order.called
-    oco_call = client.place_oco_order.call_args
-    new_sl = oco_call[1]["stop_price"]
-    expected_sl = entry + (tp - entry) * L2_SL
-    assert abs(new_sl - expected_sl) < 10
+    client.cancel_all_symbol_orders.assert_not_called()
+    client.place_oco_order.assert_not_called()
+    assert level == 2
 
 
 def test_trailing_at_l2_with_tight_sl_lock():
-    """L2 active, no further trigger -> trailing SL applied with L2 sl_lock."""
+    """L2 active, price past both levels -> sl_lock=0, no trailing SL applied."""
     executor, client = _make_executor()
     entry = 70000.0
     tp = 75000.0
@@ -617,17 +611,16 @@ def test_trailing_at_l2_with_tight_sl_lock():
         "BTCUSDT", "BTC", "USDT", net_qty=0.256, borrowed=0.0, free=0.256, locked=0.0
     )
     client.get_avg_entry_price.return_value = entry
-    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=tp, sl=entry)
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=tp, sl=entry, qty=0.256)
     client.get_active_orders.return_value = orders
 
     trade_state = _make_trade_state("LONG", entry, tp_price=tp, sl_price=entry)
     result, level = executor.guardian_check("BTCUSDT", trade_state,
                                             current_level=2)
 
-    oco_call = client.place_oco_order.call_args
-    new_sl = oco_call[1]["stop_price"]
-    expected_sl = entry + (tp - entry) * L2_SL
-    assert abs(new_sl - expected_sl) < 10
+    client.cancel_all_symbol_orders.assert_not_called()
+    client.place_oco_order.assert_not_called()
+    assert level == 2
 
 
 def test_exit_ladder_l1_triggers_short():

@@ -277,10 +277,6 @@
 
       html += '</tbody></table>';
 
-      if (guardian.account_balance != null) {
-        html += '<div class="guardian-summary">' + t('guardian.balance') +
-          guardian.account_balance.toLocaleString() + ' USDT</div>';
-      }
 
       container.innerHTML = html;
     }

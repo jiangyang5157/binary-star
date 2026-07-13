@@ -267,9 +267,8 @@ def _read_pulse(data_root: str) -> tuple[dict | None, dict | None]:
     except (json.JSONDecodeError, OSError):
         return None, None
 
-    # Guardian shape: account_balance + per-symbol position/order state
+    # Guardian shape: per-symbol position/order state
     guardian = {
-        "account_balance": data.get("account_balance"),
         "symbols": {},
     }
 
