@@ -267,7 +267,7 @@
         : 'green');
 
       $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
-      _setKpiHealth('kpi-mdd', mddPct > -10 ? 'green' : mddPct >= -20 ? 'amber' : 'red');
+      _setKpiHealth('kpi-mdd', mddPct < 10 ? 'green' : mddPct < 25 ? 'amber' : 'red');
 
       $('kpi-sharpe').textContent = sharpe.toFixed(2);
       _setKpiHealth('kpi-sharpe', sharpe >= 1.5 ? 'green' : sharpe >= 0.5 ? 'amber' : 'red');
@@ -341,10 +341,11 @@
       };
 
       // Mini equity curve
-      var eqData = (curve || []).map(function(p) { return {x: p.x, y: p.y}; });
-      var eqEnd = eqData.length > 0 ? eqData[eqData.length - 1].y : 0;
-      var eqColor = eqEnd >= 0 ? 'rgba(64, 168, 95, 0.32)' : 'rgba(224, 85, 74, 0.32)';
-      var eqFill = eqEnd >= 0 ? 'rgba(64, 168, 95, 0.04)' : 'rgba(224, 85, 74, 0.04)';
+      var eqData = curve || [];
+      var showEquity = eqData.length > 0;
+      var eqEnd = showEquity ? eqData[eqData.length - 1].y : 0;
+      var eqColor = eqEnd > 0 ? 'rgba(64, 168, 95, 0.32)' : 'rgba(224, 85, 74, 0.32)';
+      var eqFill = eqEnd > 0 ? 'rgba(64, 168, 95, 0.04)' : 'rgba(224, 85, 74, 0.04)';
 
       timelineChart = new Chart(ctx, {
         type: 'bubble',
@@ -358,7 +359,7 @@
           scales: {
             x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
             y: { ticks: { color: textBright }, grid: { color: gridColor } },
-            y2: { position: 'right', ticks: { color: textMuted, callback: function(v) { return (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; } }, grid: { drawOnChartArea: false } }
+            y2: { display: showEquity, position: 'right', ticks: { color: textMuted, callback: function(v) { return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; } }, grid: { drawOnChartArea: false } }
           },
           plugins: {
             legend: { display: false },
