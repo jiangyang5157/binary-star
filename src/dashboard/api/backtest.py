@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 from src.utils.progress_utils import enrich_progress, elapsed_since_iso
+from src.utils.status_file_utils import read_status, write_status
 from src.dashboard.api._utils import _is_pid_alive
 from pathlib import Path
 
@@ -48,30 +49,6 @@ class BacktestRunRequest(BaseModel):
     samples: int | None = None
     # Pre-computed sample timestamps from preview
     sample_timestamps: list[str]
-
-
-# ── Status helpers ──────────────────────────────────────────────────────
-
-def _status_path(data_root: str) -> Path:
-    return Path(data_root) / STATUS_FILENAME
-
-
-def _read_status(data_root: str) -> dict | None:
-    path = _status_path(data_root)
-    if not path.exists():
-        return None
-    try:
-        return json.loads(path.read_text())
-    except Exception:
-        return None
-
-
-def _write_status(data_root: str, status: dict) -> None:
-    path = _status_path(data_root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(status, default=str, indent=2))
-    tmp.replace(path)
 
 
 # ── Stale-lock timeout ──────────────────────────────────────────────────
@@ -235,10 +212,6 @@ def _compute_samples(
     raise ValueError(f"Unknown mode: '{mode}'")
 
 
-# ── Background runner ───────────────────────────────────────────────────
-
-
-
 # ── Endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/preview")
@@ -289,7 +262,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
             log.exception("Preview failed for %s", req.symbol_prefix)
             raise HTTPException(status_code=500, detail="Preview failed")
         # Persist so page refresh can restore
-        _write_status(data_root, {
+        write_status(data_root, {
             "running": False,
             "mode": req.mode,
             "symbol": symbol,
@@ -299,7 +272,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
                 {"timestamp": ts, "status": "pending"}
                 for ts in ts_list
             ],
-        })
+        }, STATUS_FILENAME)
         return {
             "mode": req.mode,
             "symbol": symbol,
@@ -308,7 +281,7 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
         }
 
     # Date-range mode: spawn subprocess (heavy SniperSampler work, cancellable)
-    status = _read_status(data_root)
+    status = read_status(data_root, STATUS_FILENAME)
     if status and status.get("running"):
         if not _is_stale(status):
             raise HTTPException(
@@ -317,17 +290,18 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
             )
         log.warning("Clearing stale backtest lock for %s", status.get("symbol", "?"))
 
-    _write_status(data_root, {
+    write_status(data_root, {
         "running": True,
         "mode": req.mode,
         "symbol": symbol,
         "preview": True,
         "pid": None,
+        "started_at": datetime.now(timezone.utc).isoformat(),
         "samples": [],
         "start_value": req.start,
         "end_value": req.end,
         "samples_count": req.samples,
-    })
+    }, STATUS_FILENAME)
 
     payload = json.dumps({
         "data_root": data_root,
@@ -351,13 +325,13 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
         proc.stdin.close()
     except BrokenPipeError:
         log.warning("Preview subprocess died before reading stdin — clearing lock")
-        _write_status(data_root, {"running": False, "error": "Subprocess crashed on startup"})
+        write_status(data_root, {"running": False, "error": "Subprocess crashed on startup"}, STATUS_FILENAME)
         raise HTTPException(status_code=500, detail="Preview subprocess failed to start")
 
-    status = _read_status(data_root)
+    status = read_status(data_root, STATUS_FILENAME)
     if status is not None:
         status["pid"] = proc.pid
-        _write_status(data_root, status)
+        write_status(data_root, status, STATUS_FILENAME)
 
     log.info("Preview subprocess started: PID %s for %s", proc.pid, symbol)
     return {
@@ -375,7 +349,7 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     data_root = _resolve_data_root(data_root)
 
     # Check if already running
-    status = _read_status(data_root)
+    status = read_status(data_root, STATUS_FILENAME)
     if status and status.get("running"):
         if not _is_stale(status):
             raise HTTPException(
@@ -432,7 +406,7 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
         for _key in ("timestamp_value", "start_value", "end_value", "samples_count"):
             if status and _key in status:
                 _done_status[_key] = status[_key]
-        _write_status(data_root, _done_status)
+        write_status(data_root, _done_status, STATUS_FILENAME)
         return {
             "all_complete": True,
             "symbol": symbol,
@@ -452,7 +426,7 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     for _key in ("timestamp_value", "start_value", "end_value", "samples_count"):
         if status and _key in status:
             _run_status[_key] = status[_key]
-    _write_status(data_root, _run_status)
+    write_status(data_root, _run_status, STATUS_FILENAME)
 
     cmd = [
         sys.executable, "run.py", "backtest-run",
@@ -465,10 +439,10 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT))
 
     # Patch in the real PID
-    status = _read_status(data_root)
+    status = read_status(data_root, STATUS_FILENAME)
     if status is not None:
         status["pid"] = proc.pid
-        _write_status(data_root, status)
+        write_status(data_root, status, STATUS_FILENAME)
 
     return {
         "accepted": True,
@@ -482,7 +456,7 @@ def get_status(data_root: str = Query("")):
     from src.dashboard.api.sessions import _resolve_data_root
     data_root = _resolve_data_root(data_root)
 
-    status = _read_status(data_root)
+    status = read_status(data_root, STATUS_FILENAME)
     if not status:
         return {"running": False}
 
@@ -502,11 +476,11 @@ def get_status(data_root: str = Query("")):
         if pid and not _is_pid_alive(pid):
             log.warning("Clearing stale backtest lock for dead PID %s (%s)",
                         pid, status.get("symbol", "?"))
-            _write_status(data_root, {
+            write_status(data_root, {
                 **status,
                 "running": False,
                 "error": "Subprocess died unexpectedly",
-            })
+            }, STATUS_FILENAME)
             return {
                 "running": False,
                 "error": "Subprocess died unexpectedly",
@@ -516,11 +490,11 @@ def get_status(data_root: str = Query("")):
             }
         if not pid and _is_stale(status):
             log.warning("Clearing stale backtest lock for %s", status.get("symbol", "?"))
-            _write_status(data_root, {
+            write_status(data_root, {
                 **status,
                 "running": False,
                 "error": "Run timed out — thread likely crashed",
-            })
+            }, STATUS_FILENAME)
             return {
                 "running": False,
                 "error": "Run timed out — thread likely crashed",
@@ -544,7 +518,7 @@ def stop_run(data_root: str = Query(""),
     from src.dashboard.api.sessions import _resolve_data_root
     data_root = _resolve_data_root(data_root)
 
-    status = _read_status(data_root)
+    status = read_status(data_root, STATUS_FILENAME)
     if not status or not status.get("running"):
         raise HTTPException(status_code=404, detail="No backtest is running")
 
@@ -574,9 +548,9 @@ def stop_run(data_root: str = Query(""),
         log.warning("Backtest PID %s was already dead — clearing lock", pid)
 
     # Preserve the last progress snapshot so the frontend can render it
-    current = _read_status(data_root)
-    _write_status(data_root, {
+    current = read_status(data_root, STATUS_FILENAME) or status
+    write_status(data_root, {
         **current,
         "running": False,
-    })
+    }, STATUS_FILENAME)
     return {"stopped": True, "symbol": symbol}

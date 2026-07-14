@@ -28,7 +28,8 @@ def main():
     end_str = args.get("end")
     samples = args.get("samples")
 
-    from src.dashboard.api.backtest import _compute_samples, _read_status, _write_status
+    from src.dashboard.api.backtest import _compute_samples, STATUS_FILENAME
+    from src.utils.status_file_utils import read_status, write_status
     from logging import getLogger
     log = getLogger(__name__)
 
@@ -42,7 +43,7 @@ def main():
             samples=samples,
         )
 
-        status = _read_status(data_root) or {}
+        status = read_status(data_root, STATUS_FILENAME) or {}
         status.update({
             "running": False,
             "mode": mode,
@@ -52,17 +53,17 @@ def main():
                 for ts in ts_list
             ],
         })
-        _write_status(data_root, status)
+        write_status(data_root, status, STATUS_FILENAME)
         log.info("Preview complete: %d samples for %s", len(ts_list), symbol)
 
     except Exception as e:
         log.exception("Preview failed for %s", symbol)
-        status = _read_status(data_root) or {}
+        status = read_status(data_root, STATUS_FILENAME) or {}
         status.update({
             "running": False,
             "error": str(e),
         })
-        _write_status(data_root, status)
+        write_status(data_root, status, STATUS_FILENAME)
         sys.exit(1)
 
 
