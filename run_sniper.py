@@ -593,9 +593,19 @@ class SniperDaemon:
                         entry_price = self.executor.client.get_avg_entry_price(symbol, pos_qty)
                     except Exception:
                         pass
+                orders = self.executor.client.get_active_orders(symbol)
+                if entry_price is None and orders:
+                    # PENDING: no position yet, extract reference price from the
+                    # unfilled LIMIT entry order (OTOCO working order). TP is
+                    # LIMIT_MAKER, SL is STOP_LOSS_LIMIT — only LIMIT is the entry.
+                    for o in orders:
+                        if o.type == "LIMIT" and o.price > 0:
+                            entry_price = o.price
+                            logger.info(f"[{symbol}] entry price from pending LIMIT order | price={entry_price}")
+                            break
                 return {
                     "net_qty": pos_qty,
-                    "active_orders": len(self.executor.client.get_active_orders(symbol)),
+                    "active_orders": len(orders),
                     "entry_price": entry_price,
                     "tp_price": ts.get("tp_price"),
                     "sl_price": ts.get("sl_price"),
