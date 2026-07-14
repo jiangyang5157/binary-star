@@ -15,8 +15,12 @@ function escapeHtml(str) {
 
 function renderDecisionCard(decision) {
   const tp = decision.tactical_parameters || {};
+  const conf = decision.confidence_score;
+  var borderColor = conf != null
+    ? 'rgba(212,163,72,' + Math.min(conf / 100, 1.0) + ')'
+    : '#d4a348';
   return `
-    <section class="card decision-card">
+    <section class="card decision-card" style="border-left-color:${borderColor}">
       <h2>${t('detail.final_decision')}</h2>
       <div class="decision-header">
         <div class="decision-opinion">${opinionBadge(decision.opinion || 'UNKNOWN')}</div>

@@ -131,15 +131,6 @@
   </main>
 
   <script>
-    function apiUrl(path, extra = {}) {
-      const p = new URLSearchParams();
-      const pageParams = new URLSearchParams(window.location.search);
-      const user = pageParams.get('user');
-      if (user) p.set('user', user);
-      for (const [k, v] of Object.entries(extra)) p.set(k, v);
-      const qs = p.toString();
-      return qs ? `${path}?${qs}` : path;
-    }
 
     // ── Dynamic config from backend ──
     let QUOTE = 'USDT'; // fallback, overwritten by /api/config
@@ -774,11 +765,6 @@
       }
     }
 
-    // ── Filter clear helper ──
-    function clearFilter(id) {
-      var el = document.getElementById(id);
-      if (el) { el.value = ''; el.dispatchEvent(new Event('input')); el.focus(); }
-    }
 
     // ── Re-render on language switch ──
     document.addEventListener('langchange', function () {

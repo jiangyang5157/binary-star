@@ -10,6 +10,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 from src.utils.progress_utils import enrich_progress, elapsed_since_iso
+from src.dashboard.api._utils import _is_pid_alive
 from pathlib import Path
 
 from fastapi import APIRouter, Query, HTTPException, Depends
@@ -236,14 +237,6 @@ def _compute_samples(
 
 # ── Background runner ───────────────────────────────────────────────────
 
-def _is_pid_alive(pid: int) -> bool:
-    """Check whether a process is still running."""
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError):
-        return False
-
 
 
 # ── Endpoints ───────────────────────────────────────────────────────────
@@ -353,8 +346,13 @@ def preview(req: BacktestPreviewRequest, data_root: str = Query(""),
         stdin=subprocess.PIPE,
         cwd=str(PROJECT_ROOT),
     )
-    proc.stdin.write(payload.encode())
-    proc.stdin.close()
+    try:
+        proc.stdin.write(payload.encode())
+        proc.stdin.close()
+    except BrokenPipeError:
+        log.warning("Preview subprocess died before reading stdin — clearing lock")
+        _write_status(data_root, {"running": False, "error": "Subprocess crashed on startup"})
+        raise HTTPException(status_code=500, detail="Preview subprocess failed to start")
 
     status = _read_status(data_root)
     if status is not None:
@@ -396,6 +394,7 @@ def trigger_run(req: BacktestRunRequest, data_root: str = Query(""),
     try:
         symbol = _resolve_symbol(raw)
     except Exception as e:
+        log.exception("Symbol resolution failed for prefix=%s", raw)
         raise HTTPException(status_code=400, detail=str(e))
 
     # Validate we have timestamps

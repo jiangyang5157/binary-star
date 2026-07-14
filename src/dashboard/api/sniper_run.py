@@ -3,6 +3,7 @@
 import json
 import os
 import subprocess
+import signal
 import sys
 import logging
 from datetime import datetime, timezone
@@ -14,6 +15,8 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
 from src.utils.progress_utils import enrich_progress, elapsed_since_iso
+
+from src.dashboard.api._utils import _resolve_data_root, _is_pid_alive
 
 router = APIRouter(prefix="/api/sniper")
 
@@ -49,12 +52,6 @@ class SniperStartRequest(BaseModel):
 
 # ── Helpers ─────────────────────────────────────────────────────────────
 
-def _resolve_data_root(value: str) -> str:
-    resolved = value or os.environ.get("BINARY_STAR_DATA_ROOT", "data/prod")
-    if ".." in resolved:
-        raise HTTPException(status_code=400, detail="data_root contains path traversal")
-    return resolved
-
 
 def _read_sniper_status(data_root: str) -> dict | None:
     path = Path(data_root) / STATUS_FILENAME
@@ -81,16 +78,6 @@ def _write_sniper_status(data_root: str, updates: dict) -> None:
     tmp.write_text(json.dumps(current, default=str, indent=2))
     tmp.replace(path)
 
-
-def _is_pid_alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError):
-        return False
-
-
-# ── Endpoints ───────────────────────────────────────────────────────────
 
 @router.post("/start")
 def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
@@ -150,8 +137,8 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
     try:
         (_data_root_path / PULSE_FILENAME).unlink(missing_ok=True)
         (_data_root_path / HISTORY_FILENAME).unlink(missing_ok=True)
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("Failed to clean up stale pulse file: %s", e)
 
     proc = subprocess.Popen(cmd, cwd=str(PROJECT_ROOT))
 
@@ -184,7 +171,7 @@ def sniper_stop(data_root: str = Query(""),
 
     if pid and _is_pid_alive(pid):
         try:
-            os.kill(pid, 15)  # SIGTERM
+            os.kill(pid, signal.SIGTERM)
             log.info("Sent SIGTERM to sniper PID %s (%s)", pid, symbols)
             # Brief grace period for the process to flush state and exit
             import time

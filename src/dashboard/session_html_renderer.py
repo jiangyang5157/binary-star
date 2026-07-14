@@ -400,6 +400,11 @@ class SessionRenderer(BaseEmailTemplate):
         if not reasoning and not critic_impact:
             return ""
 
+        # Border gold intensity follows confidence
+        confidence = decision.get("confidence_score")
+        gold_opacity = min(confidence / 100.0, 1.0) if confidence is not None else 1.0
+        border_accent = f"rgba(212,163,72,{gold_opacity})"
+
         sections = ""
 
         if reasoning:
@@ -417,7 +422,7 @@ class SessionRenderer(BaseEmailTemplate):
 </div>"""
 
         return f"""\
-<div style="{_s(background=C['surface'], border=f'1px solid {C["border"]}', borderRadius='10px', padding='0', marginBottom='24px', overflow='hidden', borderLeft=f'3px solid {C["gold"]}')}">
+<div style="{_s(background=C['surface'], border=f'1px solid {C["border"]}', borderRadius='10px', padding='0', marginBottom='24px', overflow='hidden', borderLeft=f'3px solid {border_accent}')}">
     <div style="{_s(padding='14px 24px', borderBottom=f'1px solid {C["border"]}')}">
         <h2 style="{_s(fontFamily=F['display'], fontSize='15px', fontWeight='300', color=C['text'], margin='0', letterSpacing='0.03em')}">Analysis</h2>
     </div>
@@ -500,7 +505,10 @@ class SessionRenderer(BaseEmailTemplate):
                 critic_section = f"""\
         <div style="{_s(padding='0 20px 16px 20px')}">
             <div style="{_s(padding='12px', background=C['elevated'], borderRadius='6px', border=f'1px solid {C["border"]}')}">
-                <span style="{_s(fontSize='11px', fontWeight='600', color=C['violet'], textTransform='uppercase', letterSpacing='0.05em', display='block', marginBottom='8px', fontFamily=F['body'])}">Critic Review {veto_badge} {math_badge}</span>
+                <table cellpadding="0" cellspacing="0" border="0" width="100%" style="{_s(marginBottom='8px')}"><tr>
+                    <td><span style="{_s(fontSize='11px', fontWeight='600', color=C['violet'], textTransform='uppercase', letterSpacing='0.05em', fontFamily=F['body'])}">Critic Review</span></td>
+                    <td style="{_s(textAlign='right')}">{veto_badge} {math_badge}</td>
+                </tr></table>
                 {critic_body}
             </div>
         </div>"""
@@ -517,16 +525,8 @@ class SessionRenderer(BaseEmailTemplate):
             </div>
         </div>"""
 
-            # Veto verdict stripe
-            veto_stripe_color = {
-                "PASS":         C["verde"],
-                "WEAK":         C["teal"],
-                "CONSTRUCTIVE": C["amber"],
-                "TERMINAL":     C["crimson"],
-            }.get(veto, C["border"])
-
             rounds_html.append(f"""\
-<div style="{_s(background=C['surface'], border=f'1px solid {C["border"]}', borderRadius='10px', marginBottom='14px', overflow='hidden', borderLeft=f'3px solid {veto_stripe_color}')}">
+<div style="{_s(background=C['surface'], border=f'1px solid {C["border"]}', borderRadius='10px', marginBottom='14px', overflow='hidden')}">
     <!-- Round header -->
     <div style="{_s(padding='12px 20px', background=C['elevated'], borderBottom=f'1px solid {C["border"]}')}">
         <table cellpadding="0" cellspacing="0" border="0" width="100%">
@@ -551,7 +551,7 @@ class SessionRenderer(BaseEmailTemplate):
     <div style="{_s(padding='0 0 16px 0')}">
         <h2 style="{_s(fontFamily=F['display'], fontSize='18px', fontWeight='300', color=C['text'], margin='0', letterSpacing='0.03em')}">
             Debate Rounds
-            <span style="{_s(fontFamily=F['mono'], fontSize='13px', fontWeight='400', color=C['muted'], marginLeft='8px')}">{len(history)}</span>
+            <span style="{_s(fontFamily=F['mono'], fontSize='13px', fontWeight='400', color=C['muted'], marginLeft='8px')}">({len(history)})</span>
         </h2>
     </div>
     {"".join(rounds_html)}

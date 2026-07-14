@@ -19,7 +19,9 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from pydantic import BaseModel
 
 from src.utils.progress_utils import enrich_progress, elapsed_since_iso
+from src.utils.symbol_utils import get_quote_currency
 from src.utils.status_file_utils import read_status as _read_status, write_status as _write_status
+from src.dashboard.api._utils import _is_pid_alive
 
 router = APIRouter(prefix="/api/session")
 
@@ -37,14 +39,6 @@ class RunRequest(BaseModel):
 log = logging.getLogger("SessionRunAPI")
 
 
-def _is_pid_alive(pid: int) -> bool:
-    """Check whether a process is still running."""
-    try:
-        os.kill(pid, 0)
-        return True
-    except (OSError, ProcessLookupError):
-        return False
-
 
 # ── Endpoints ───────────────────────────────────────────────────────────
 
@@ -59,7 +53,6 @@ def trigger_run(req: RunRequest, data_root: str = Query(""),
     Only one run is allowed at a time — returns 409 if busy.
     """
     from src.dashboard.api.sessions import _resolve_data_root
-    from src.utils.symbol_utils import get_quote_currency
     data_root = _resolve_data_root(data_root)
 
     # Validate and construct symbol

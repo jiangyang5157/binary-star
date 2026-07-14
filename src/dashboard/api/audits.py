@@ -7,20 +7,9 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 
+from src.dashboard.api._utils import _resolve_data_root, _extract_version
+
 router = APIRouter(prefix="/api")
-
-
-def _resolve_data_root(value: str) -> str:
-    """Resolve data_root: query param > env var > default."""
-    resolved = value or os.environ.get("BINARY_STAR_DATA_ROOT", "data/prod")
-    if ".." in resolved:
-        raise HTTPException(status_code=400, detail="data_root contains path traversal")
-    return resolved
-
-
-def _extract_version(session: dict) -> str:
-    """Safely extract project_version from session metadata."""
-    return (session.get("metadata") or {}).get("version_control", {}).get("project_version", "")
 
 
 def _find_audit_files(data_root: str, symbol: str | None = None) -> list[Path]:

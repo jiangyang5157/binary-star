@@ -57,3 +57,20 @@ function formatElapsed(seconds) {
   const s = seconds % 60;
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
+
+// ── API URL builder ──────────────────────────────
+function apiUrl(path, extra = {}) {
+  const p = new URLSearchParams();
+  const pageParams = new URLSearchParams(window.location.search);
+  const user = pageParams.get('user');
+  if (user) p.set('user', user);
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  const qs = p.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
+// ── Filter clear helper ──────────────────────────
+function clearFilter(id) {
+  var el = document.getElementById(id);
+  if (el) { el.value = ''; el.dispatchEvent(new Event('input')); el.focus(); }
+}

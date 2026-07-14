@@ -19,7 +19,6 @@
  *   sp.destroy();  // cleanup
  */
 
-const ACTIVITY_ACTIVE = 'active';
 const ACTIVITY_COMPLETE = 'complete';
 const ACTIVITY_ERROR = 'error';
 
@@ -31,6 +30,31 @@ class SessionProgress {
     this.context = opts.context || 'session';
     this.el.classList.add('session-progress');
     this.el.style.display = 'none';
+  }
+
+  // ── Shared helpers ─────────────────────────────
+  _groupActivities(activities) {
+    var stageGroups = {};
+    var unassigned = [];
+    for (var j = 0; j < activities.length; j++) {
+      var entry = activities[j];
+      var s = entry.stage || 0;
+      if (s === 0) { unassigned.push(entry); }
+      else {
+        if (!stageGroups[s]) stageGroups[s] = [];
+        stageGroups[s].push(entry);
+      }
+    }
+    return { stageGroups, unassigned };
+  }
+
+  _renderSignalBanner(data) {
+    if (this.context === 'sniper' && data._triggered_at) {
+      return '<div class="sp-signal-banner">' + t('sniper.signal_banner') + ' ' +
+        this._esc(data._symbol || '') + ' · ' +
+        formatLocalTimeShort(data._triggered_at) + '</div>';
+    }
+    return '';
   }
 
   update(data) {
@@ -82,12 +106,7 @@ class SessionProgress {
 
     var html = '';
 
-    // Signal banner (sniper only)
-    if (this.context === 'sniper' && data._triggered_at) {
-      html += '<div class="sp-signal-banner">' + t('sniper.signal_banner') + ' ' +
-        this._esc(data._symbol || '') + ' · ' +
-        this._esc(data._triggered_at) + '</div>';
-    }
+    html += this._renderSignalBanner(data);
 
     // Activity line with pulse indicator
     html += '<div class="sp-activity sp-activity-compact">';
@@ -108,25 +127,10 @@ class SessionProgress {
 
     var html = '';
 
-    // Signal banner (sniper only)
-    if (this.context === 'sniper' && data._triggered_at) {
-      html += '<div class="sp-signal-banner">' + t('sniper.signal_banner') + ' ' +
-        this._esc(data._symbol || '') + ' · ' +
-        this._esc(data._triggered_at) + '</div>';
-    }
+    html += this._renderSignalBanner(data);
 
     // Group activities by stage so they nest under the correct stage row
-    var stageGroups = {};
-    var unassigned = [];
-    for (var j = 0; j < activities.length; j++) {
-      var entry = activities[j];
-      var s = entry.stage || 0;
-      if (s === 0) { unassigned.push(entry); }
-      else {
-        if (!stageGroups[s]) stageGroups[s] = [];
-        stageGroups[s].push(entry);
-      }
-    }
+    var grouped = this._groupActivities(activities);
 
     // Vertical stage timeline with nested step lists
     html += '<div class="sp-timeline">';
@@ -146,13 +150,13 @@ class SessionProgress {
       html += '</div>';
 
       // Steps belonging to this stage
-      html += this._renderStepList(stageGroups[stg.stage]);
+      html += this._renderStepList(grouped.stageGroups[stg.stage]);
     }
     html += '<div class="sp-timeline-elapsed">⏱ ' + elapsed + '</div>';
     html += '</div>';
 
     // Unassigned activities (fallback for old data without stage field)
-    html += this._renderStepList(unassigned);
+    html += this._renderStepList(grouped.unassigned);
 
     this.el.innerHTML = html;
   }
@@ -233,18 +237,7 @@ class SessionProgress {
 
     var html = '';
 
-    // Group activities by stage so they nest under the correct stage row
-    var stageGroups = {};
-    var unassigned = [];
-    for (var j = 0; j < activities.length; j++) {
-      var entry = activities[j];
-      var s = entry.stage || 0;
-      if (s === 0) { unassigned.push(entry); }
-      else {
-        if (!stageGroups[s]) stageGroups[s] = [];
-        stageGroups[s].push(entry);
-      }
-    }
+    var grouped = this._groupActivities(activities);
 
     // Vertical stage timeline — current stage marked failed
     html += '<div class="sp-timeline">';
@@ -264,7 +257,7 @@ class SessionProgress {
       html += '</div>';
 
       // Steps belonging to this stage
-      html += this._renderStepList(stageGroups[stg.stage]);
+      html += this._renderStepList(grouped.stageGroups[stg.stage]);
     }
     html += '<div class="sp-timeline-elapsed">⏱ ' + this._fmtElapsed(data.elapsed_seconds || 0) + '</div>';
     html += '</div>';
@@ -274,7 +267,7 @@ class SessionProgress {
       this._esc(errorMsg) + '</span></div>';
 
     // Unassigned activities (fallback for old data without stage field)
-    html += this._renderStepList(unassigned);
+    html += this._renderStepList(grouped.unassigned);
 
     this.el.innerHTML = html;
   }

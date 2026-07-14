@@ -143,15 +143,6 @@
   <script>
     const $ = id => document.getElementById(id);
 
-    function apiUrl(path, extra = {}) {
-      const p = new URLSearchParams();
-      const pageParams = new URLSearchParams(window.location.search);
-      const user = pageParams.get('user');
-      if (user) p.set('user', user);
-      for (const [k, v] of Object.entries(extra)) p.set(k, v);
-      const qs = p.toString();
-      return qs ? `${path}?${qs}` : path;
-    }
 
     // ── Chart config ──
     const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
@@ -200,7 +191,7 @@
 
       if (!filledTrades.length) {
         for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-sharpe', 'kpi-mdd', 'kpi-winloss', 'kpi-executed']) {
-          $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '--';
+          $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '—';
           _setKpiHealth(id, null);
         }
         $('confVal').textContent = threshold;
@@ -261,7 +252,7 @@
       _setKpiHealth('kpi-executed', execRatio >= 0.8 ? 'green' : execRatio >= 0.4 ? 'amber' : 'red');
 
       const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
-      $('kpi-winloss').textContent = avgLoss > 0 ? wlRatio.toFixed(2) : '--';
+      $('kpi-winloss').textContent = avgLoss > 0 ? wlRatio.toFixed(2) : '—';
       _setKpiHealth('kpi-winloss', avgLoss > 0
         ? (wlRatio >= 2.0 ? 'green' : wlRatio >= 1.0 ? 'amber' : 'red')
         : 'green');
@@ -485,11 +476,6 @@
       applyFilters();
     }
 
-    // ── Filter clear helper ──
-    function clearFilter(id) {
-      const el = $(id);
-      if (el) { el.value = ''; el.dispatchEvent(new Event('input')); el.focus(); }
-    }
 
     // ── Re-render on language switch ──
     document.addEventListener('langchange', function () {
