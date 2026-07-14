@@ -1702,6 +1702,7 @@ th.sortable.sort-desc::after {
   .pl-tip { transition: none; }
   #sessions-body.stagger tr { animation: none; }
   .session-progress { transition: none; }
+  .pulse-bar { animation: none; }
 }
 
 /* ── Language Toggle ── */
@@ -1819,6 +1820,12 @@ th.sortable.sort-desc::after {
   min-height: 1px;
   transition: height 0.3s ease, background 0.3s ease;
   position: relative;
+  transform-origin: bottom;
+  animation: bar-rise 0.35s ease-out;
+}
+
+@keyframes bar-rise {
+  from { transform: scaleY(0.1); opacity: 0; }
 }
 
 

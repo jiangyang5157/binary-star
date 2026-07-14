@@ -318,6 +318,23 @@
     }
 
     function _renderPulseHistory(container, history, symbol) {
+      // Store latest data for ResizeObserver re-render
+      container._lastHistory = history;
+      container._lastSymbol = symbol;
+
+      // Attach ResizeObserver once — responds instantly to window resize
+      if (!container._resizeObserver) {
+        var parent = container.parentElement;
+        if (parent) {
+          container._resizeObserver = new ResizeObserver(function () {
+            if (container._lastHistory && container._lastHistory.length) {
+              _renderPulseHistory(container, container._lastHistory, container._lastSymbol);
+            }
+          });
+          container._resizeObserver.observe(parent);
+        }
+      }
+
       if (!history || !history.length) {
         container.innerHTML = '';
         return;
@@ -334,7 +351,7 @@
         if (entry.symbols && entry.symbols[symbol]) targetCount++;
       }
 
-      // Grow/shrink bar DOM to match
+      // Grow/shrink bar DOM to match — new bars get CSS bar-rise animation
       var existing = container.querySelectorAll('.pulse-bar');
       while (existing.length < targetCount) {
         container.insertAdjacentHTML('beforeend', '<div class="pulse-bar"></div>');
