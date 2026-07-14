@@ -74,7 +74,7 @@
               <span class="input-group">
                 <input type="number" id="sniper-cap" class="input-group-field" min="0" step="any" disabled
                   placeholder="Auto"
-                  onkeydown="return event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+                  onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                   oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
                 <span class="input-group-suffix quote-suffix">USDT</span>
               </span>
