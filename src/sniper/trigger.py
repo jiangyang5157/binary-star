@@ -69,7 +69,6 @@ class TriggerResult:
     signals: List[SignalCard]               # all signals (including decayed survivors)
     active_signals: List[SignalCard]        # fresh signals that contributed to trigger
     gate_result: str                        # "PASS" | "FAIL"
-    gate_reason: str
     situation_brief: Optional[Dict[str, Any]]  # None if not triggered
     cooldown_minutes: float
 
@@ -953,7 +952,7 @@ class SniperTrigger:
             return None
 
         try:
-            gate_result, gate_reason = self._run_pre_ai_gate(
+            gate_result, _ = self._run_pre_ai_gate(
                 metrics, boosted_signals, dominant_direction, regime
             )
         except Exception as e:
@@ -975,7 +974,7 @@ class SniperTrigger:
             active_signals=[s for s in boosted_signals
                            if s.strength >= MIN_STACK_STRENGTH and s.sub_type != 'leader_sync'],
             gate_result=gate_result,
-            gate_reason=gate_reason,
+
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
         )
@@ -1159,16 +1158,14 @@ class SniperTrigger:
 
         # 6. Pre-AI Gate
         gate_result = "PASS"
-        gate_reason = ""
         if should_trigger:
             try:
-                gate_result, gate_reason = self._run_pre_ai_gate(
+                gate_result, _ = self._run_pre_ai_gate(
                     current_metrics, all_signals, dominant_direction, regime
                 )
             except Exception as e:
                 logger.warning(f"pre-AI gate crashed | error={e}")
                 gate_result = "FAIL"
-                gate_reason = f"GATE_CRASH: {e}"
             if gate_result == "FAIL":
                 should_trigger = False
 
@@ -1189,7 +1186,7 @@ class SniperTrigger:
             signals=all_signals,
             active_signals=[s for s in fresh_signals if s.strength >= MIN_STACK_STRENGTH],
             gate_result=gate_result,
-            gate_reason=gate_reason or (cooldown_reason if cooldown_active and not should_trigger else ""),
+
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
         )

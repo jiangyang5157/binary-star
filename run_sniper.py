@@ -646,20 +646,6 @@ class SniperDaemon:
         evaluation results. Single atomic write per pulse.
         """
         try:
-            # Account balance (one API call, shared cross-margin account)
-            account_balance = None
-            if self.trade_enabled and self.executor:
-                try:
-                    from src.utils.symbol_utils import get_quote_currency
-                    quote = get_quote_currency()
-                    account = self.executor.client.get_cross_margin_account()
-                    for a in (account.assets or []):
-                        if a.asset == quote and a.net_asset > 0:
-                            account_balance = round(a.net_asset, 2)
-                            break
-                except Exception as e:
-                    logger.warning(f"account balance fetch skipped | error={e}")
-
             symbols_data = {}
             for sym in self.symbols:
                 # ── Guardian fields ──
@@ -741,7 +727,6 @@ class SniperDaemon:
 
             payload = {
                 "pulse_at": datetime.now(timezone.utc).isoformat(),
-                "account_balance": account_balance,
                 "symbols": symbols_data,
             }
 

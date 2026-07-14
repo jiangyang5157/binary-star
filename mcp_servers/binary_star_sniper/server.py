@@ -83,7 +83,7 @@ async def get_pulse_state(symbol: str) -> dict:
     Args:
         symbol: Full trading pair, e.g. 'BTCUSDT' or 'XAUTUSDT'
 
-    Returns pulse timestamp, account_balance, and per-symbol fields:
+    Returns pulse timestamp, and per-symbol fields:
     net_qty, active_orders, triggered, confluence_score, threshold,
     direction, cooldown status, and all 10 signal cards.
     """
@@ -100,7 +100,6 @@ async def get_pulse_state(symbol: str) -> dict:
 
     return {
         "pulse_at": pulse.get("pulse_at"),
-        "account_balance": pulse.get("account_balance"),
         "symbol": symbol,
         **sym_data,
     }

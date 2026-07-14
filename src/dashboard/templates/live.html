@@ -404,20 +404,30 @@
     // ── Price lane: compute position values (shared by full-render and update) ──
     function _calcPriceLane(sd, decimals) {
       var nq = sd.net_qty || 0;
+      var ao = sd.active_orders || 0;
+      var isPending = Math.abs(nq) <= 0.0001 && ao > 0;
       var entry = sd.entry_price, tp = sd.tp_price, sl = sd.sl_price, cur = sd.current_price;
       if (!entry || !cur) return null;
 
       var hasRange = tp && sl && Math.abs(tp - sl) > 0.0001;
-      var isNaked = (sd.active_orders || 0) === 0;
+      var isNaked = ao === 0;
       var profitable = nq > 0 ? cur > entry : cur < entry;
-      var atEntry = hasRange && Math.abs(cur - entry) / Math.abs(tp - sl) < 0.001;
-      var dotColor = atEntry ? 'var(--accent-red)' : (profitable ? 'var(--accent-green)' : 'var(--accent-red)');
+      var atEntry = !isPending && hasRange && Math.abs(cur - entry) / Math.abs(tp - sl) < 0.001;
+      var dotColor, segColor;
+      if (isPending) {
+        dotColor = 'var(--accent-amber)';
+        segColor = 'var(--accent-amber)';
+      } else {
+        dotColor = atEntry ? 'var(--accent-red)' : (profitable ? 'var(--accent-green)' : 'var(--accent-red)');
+        segColor = profitable ? 'var(--accent-green)' : 'var(--accent-red)';
+      }
       var pd = decimals != null ? decimals : 1;
       function fmt(v) { if (v == null || isNaN(v)) return ""; var s = v.toFixed(pd); if (s.indexOf('.') >= 0) s = s.replace(/\.?0+$/, ''); return s === "" || s === "-" || s === "-0" ? "0" : s; }
 
       if (hasRange && !isNaked) {
         var epRaw, cp, leftLabel, rightLabel;
-        if (nq > 0) {
+        var isBuySide = nq > 0 || (isPending && tp > entry);
+        if (isBuySide) {
           var r = tp - sl;
           epRaw = (entry - sl) / r * 100;
           cp = (cur - sl) / r * 100;
@@ -434,42 +444,47 @@
         var segFrom = Math.max(0, Math.min(100, epRaw || 0));
         return {
           mode: 'protected',
+          isPending: isPending,
           epOnScreen: epRaw >= 0 && epRaw <= 100,
           epRaw: epRaw,
           cp: cp,
           segStart: Math.min(segFrom, cp),
           segEnd: Math.max(segFrom, cp),
-          segColor: profitable ? 'var(--accent-green)' : 'var(--accent-red)',
+          segColor: segColor,
           dotColor: dotColor,
           leftLabel: leftLabel,
           rightLabel: rightLabel,
           fmtEntry: fmt(entry),
           fmtCur: fmt(cur),
           isNaked: false,
+          pendingCls: isPending ? ' pending' : '',
         };
       }
 
       return {
         mode: 'naked',
+        isPending: isPending,
         epOnScreen: true,
         epRaw: 30,
         cp: 70,
         segStart: 30,
         segEnd: 70,
-        segColor: profitable ? 'var(--accent-green)' : 'var(--accent-red)',
-        dotColor: profitable ? 'var(--accent-green)' : 'var(--accent-red)',
+        segColor: segColor,
+        dotColor: dotColor,
         leftLabel: '',
         rightLabel: '',
         fmtEntry: fmt(entry),
         fmtCur: fmt(cur),
         isNaked: true,
+        pendingCls: isPending ? ' pending' : '',
       };
     }
 
     function _renderPriceLane(sd, tradeOn, decimals) {
       if (!tradeOn) return '';
       var nq = sd.net_qty || 0;
-      if (Math.abs(nq) <= 0.0001) return '';
+      var ao = sd.active_orders || 0;
+      if (Math.abs(nq) <= 0.0001 && ao === 0) return '';
       var vals = _calcPriceLane(sd, decimals);
       if (!vals) return '';
 
@@ -480,9 +495,9 @@
         return '<div class="price-lane">'
           + '<span class="pl-label">' + vals.leftLabel + '</span>'
           + '<div class="pl-track">'
-          + '<span class="pl-segment" style="left:' + vals.segStart + '%;width:' + (vals.segEnd - vals.segStart) + '%;background:' + vals.segColor + '"></span>'
+          + '<span class="pl-segment' + vals.pendingCls + '" style="left:' + vals.segStart + '%;width:' + (vals.segEnd - vals.segStart) + '%;background:' + vals.segColor + '"></span>'
           + epHtml
-          + '<span class="pl-tip" style="left:' + vals.cp + '%" data-tooltip="Current ' + vals.fmtCur + '"><span class="pl-dot current" style="--dot-color:' + vals.dotColor + '"></span></span>'
+          + '<span class="pl-tip" style="left:' + vals.cp + '%" data-tooltip="Current ' + vals.fmtCur + '"><span class="pl-dot current' + vals.pendingCls + '" style="--dot-color:' + vals.dotColor + '"></span></span>'
           + '</div>'
           + '<span class="pl-label">' + vals.rightLabel + '</span>'
           + '</div>';
@@ -490,9 +505,9 @@
 
       return '<div class="price-lane naked">'
         + '<div class="pl-track">'
-        + '<span class="pl-segment" style="left:30%;width:40%;background:' + vals.segColor + '"></span>'
+        + '<span class="pl-segment' + vals.pendingCls + '" style="left:30%;width:40%;background:' + vals.segColor + '"></span>'
         + '<span class="pl-dot entry" style="left:30%" data-tooltip="Entry ' + vals.fmtEntry + '"></span>'
-        + '<span class="pl-tip" style="left:70%" data-tooltip="Current ' + vals.fmtCur + '"><span class="pl-dot current" style="--dot-color:' + vals.dotColor + '"></span></span>'
+        + '<span class="pl-tip" style="left:70%" data-tooltip="Current ' + vals.fmtCur + '"><span class="pl-dot current' + vals.pendingCls + '" style="--dot-color:' + vals.dotColor + '"></span></span>'
         + '</div>'
         + '</div>';
     }
@@ -507,7 +522,10 @@
         tip.style.left = vals.cp + '%';
         tip.dataset.tooltip = 'Current ' + vals.fmtCur;
         var cd = tip.querySelector('.pl-dot.current');
-        if (cd) cd.style.setProperty('--dot-color', vals.dotColor);
+        if (cd) {
+          cd.style.setProperty('--dot-color', vals.dotColor);
+          cd.classList.toggle('pending', vals.isPending);
+        }
       }
 
       var seg = lane.querySelector('.pl-segment');
@@ -515,6 +533,7 @@
         seg.style.left = vals.segStart + '%';
         seg.style.width = (vals.segEnd - vals.segStart) + '%';
         seg.style.background = vals.segColor;
+        seg.classList.toggle('pending', vals.isPending);
       }
 
       var entryDot = lane.querySelector('.pl-dot.entry');
@@ -555,6 +574,10 @@
 
       html += '</div>';  // close header
 
+      // Price lane — wrapper always present, visibility toggled
+      var plHtml = _renderPriceLane(sd, tradeOn, qtyDecimals);
+      html += '<div class="price-lane-wrapper" style="display:' + (plHtml ? '' : 'none') + '">' + (plHtml || '') + '</div>';
+
       // Pulse history bar chart
       html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
 
@@ -575,10 +598,6 @@
           '</div>';
       }
       html += '</div>';
-
-      // Price lane — wrapper always present, visibility toggled
-      var plHtml = _renderPriceLane(sd, tradeOn, qtyDecimals);
-      html += '<div class="price-lane-wrapper" style="display:' + (plHtml ? '' : 'none') + '">' + (plHtml || '') + '</div>';
 
       html += '</div>';  // close signal-card
       return html;
@@ -625,7 +644,8 @@
       var plWrapper = card.querySelector('.price-lane-wrapper');
       if (plWrapper) {
         var nq = sd.net_qty || 0;
-        var hasPos = tradeOn && Math.abs(nq) > 0.0001 && sd.entry_price && sd.current_price;
+        var ao = sd.active_orders || 0;
+        var hasPos = tradeOn && (Math.abs(nq) > 0.0001 || ao > 0) && sd.entry_price && sd.current_price;
         if (!hasPos) {
           plWrapper.style.display = 'none';
         } else {

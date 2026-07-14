@@ -51,7 +51,7 @@ class SniperSampler:
 
         logger.info(f"scanning {len(klines)} candidate points for noteworthy events")
 
-        noteworthy_points: List[Tuple[datetime, str, str]] = []
+        noteworthy_points: List[Tuple[datetime, str]] = []
         prev_metrics = None
 
         for kline in klines:
@@ -67,11 +67,10 @@ class SniperSampler:
                 result = self.trigger.evaluate(res.metrics, prev_metrics)
                 is_noteworthy = result.triggered
                 event_type = result.gate_result
-                reason = result.gate_reason
 
                 if is_noteworthy:
-                    logger.info(f"noteworthy event found | dt={dt} | type={event_type} | reason={reason}")
-                    noteworthy_points.append((dt, event_type, reason))
+                    logger.info(f"noteworthy event found | dt={dt} | type={event_type}")
+                    noteworthy_points.append((dt, event_type))
                     # Reset the trigger cooldown state in memory for sampling
                     self.trigger.last_trigger_time = None
 
@@ -86,7 +85,7 @@ class SniperSampler:
             return _spaced_sample(klines, count)
 
         # Proportional Sampling across event types
-        event_df = pd.DataFrame(noteworthy_points, columns=['timestamp', 'type', 'reason'])
+        event_df = pd.DataFrame(noteworthy_points, columns=['timestamp', 'type'])
 
         if len(event_df) <= count:
             return event_df['timestamp'].tolist()

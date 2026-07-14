@@ -295,7 +295,7 @@ def _read_pulse(data_root: str) -> dict | None:
                 "all_signals": entry.get("signals", []),
                 "cooldown_active": entry.get("cooldown_active", False),
                 "cooldown_remaining_seconds": entry.get("cooldown_remaining_seconds", 0),
-                "gate_reason": entry.get("gate_reason") or "",
+
             }
     except Exception as e:
         log.warning("pulse entry iteration failed | error=%s", e)

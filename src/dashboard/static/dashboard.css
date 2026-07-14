@@ -1699,6 +1699,7 @@ th.sortable.sort-desc::after {
   .sniper-status-dot.connected,
   .sniper-status-dot.stale { animation: none; }
   .pl-dot.current { animation: none; transition: none; }
+  .pl-dot.current.pending { animation: none; }
   .pl-tip { transition: none; }
   #sessions-body.stagger tr { animation: none; }
   .session-progress { transition: none; }
@@ -1908,8 +1909,7 @@ th.sortable.sort-desc::after {
 
 /* Price Lane — compact position viz */
 .price-lane-wrapper {
-  margin-top: 10px;
-  padding-top: 2px;
+  margin-top: 4px;
 }
 .price-lane {
   display: flex;
@@ -1954,6 +1954,11 @@ th.sortable.sort-desc::after {
   animation: dot-pulse 2s ease-in-out infinite;
   transition: background 0.5s ease;
 }
+/* Pending order: only override what differs from .current */
+.pl-dot.current.pending {
+  transform: translate(-50%, -50%);
+}
+
 
 /* Colored segment between entry and current — floating P&L line */
 .pl-segment {
@@ -2004,6 +2009,7 @@ th.sortable.sort-desc::after {
   0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
   50%      { opacity: 1;   transform: translate(-50%, -50%) scale(1.5); }
 }
+
 
 /* ============================================================
    New Components (v2.1)
