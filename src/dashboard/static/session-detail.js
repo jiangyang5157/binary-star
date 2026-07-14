@@ -93,7 +93,7 @@ function renderDebateRounds(debateHistory) {
   return `
     <section class="card">
       <h2>${t('detail.debate_rounds')} (${debateHistory.length})</h2>
-      <div class="debate-timeline">
+      <div>
       ${debateHistory.map((r, i) => `
         <details class="debate-round">
           <summary>

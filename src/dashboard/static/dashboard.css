@@ -769,26 +769,6 @@ tbody tr:hover {
   gap: 8px;
 }
 
-/* ── Debate Timeline Connector ─────────────────────── */
-.debate-timeline {
-  position: relative;
-}
-.debate-timeline::before {
-  content: '';
-  position: absolute;
-  left: 20px;
-  top: 12px;
-  bottom: 12px;
-  width: 2px;
-  background: var(--border-color);
-  z-index: 0;
-  pointer-events: none;
-}
-.debate-timeline .debate-round {
-  position: relative;
-  z-index: 1;
-}
-
 /* Charts */
 .chart-grid {
   display: grid;
