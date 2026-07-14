@@ -111,8 +111,22 @@ if static_dir.exists():
 # Mount only chart image subdirectories (not raw session/audit data)
 _data_root = os.environ.get("BINARY_STAR_DATA_ROOT", "data/prod")
 klines_dir = PROJECT_ROOT / _data_root / "klines"
-if klines_dir.exists():
-    app.mount("/klines", StaticFiles(directory=str(klines_dir)), name="klines")
+
+# Dynamic klines route — serves chart images without requiring the directory
+# to exist at server startup (survives delete + recreate while running).
+@app.api_route("/klines/{filepath:path}", methods=["GET", "HEAD"])
+async def serve_klines(filepath: str):
+    klines_file = klines_dir / filepath
+    # Path traversal guard: ensure resolved path is inside klines_dir
+    try:
+        resolved = klines_file.resolve()
+        resolved.relative_to(klines_dir.resolve())
+    except (ValueError, RuntimeError):
+        return Response("Not Found", status_code=404)
+    if resolved.is_file():
+        return FileResponse(str(resolved))
+    return Response("Not Found", status_code=404)
+
 html_dir = PROJECT_ROOT / _data_root / "html"
 if html_dir.exists():
     app.mount("/html", StaticFiles(directory=str(html_dir)), name="html")
@@ -122,6 +136,7 @@ app.include_router(audits_router)
 app.include_router(session_run_router)
 app.include_router(sniper_run_router)
 app.include_router(backtest_router)
+
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 _jinja_env = Environment(loader=FileSystemLoader(str(TEMPLATES_DIR)), autoescape=True)

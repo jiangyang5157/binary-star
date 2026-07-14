@@ -50,7 +50,7 @@ class SessionProgress {
 
   _renderSignalBanner(data) {
     if (this.context === 'sniper' && data._triggered_at) {
-      return '<div class="sp-signal-banner">' + t('sniper.signal_banner') + ' ' +
+      return '<div class="sp-signal-banner">' +
         this._esc(data._symbol || '') + ' · ' +
         formatLocalTimeShort(data._triggered_at) + '</div>';
     }
