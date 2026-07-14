@@ -109,7 +109,7 @@ Capture only: "9 signals in 5 categories, regime-adaptive threshold (base thresh
 → Read config/global_config.yaml — guardian.exit_ladder levels (just count them)
 ```
 
-Capture only: "OTOCO atomic entry, Guardian OCO protection, 3-level partial TP, dynamic trailing SL."
+Capture only: "OTOCO atomic entry, Guardian OCO protection, breakeven + 2-level exit ladder (partial TP + TP-relative trailing), dynamic trailing SL."
 
 #### Evolution (minimal scan)
 

@@ -89,7 +89,7 @@ A local signal stack (**9 detectors** + 1 cross-symbol boost) monitors the marke
 |-------|-----------|
 | Entry | OTOCO — atomic limit entry with nested TP/SL |
 | Protection | Guardian OCO — every position wrapped in TP + SL |
-| Profit-taking | 2-phase exit ladder — breakeven (RR 1:1) → 2-level trailing partial close |
+| Profit-taking | 2-phase exit ladder — breakeven (RR 1:1) → 2-level partial TP + TP-relative trailing |
 | Stop migration | Dynamic trailing SL as ladder levels fire |
 
 ---

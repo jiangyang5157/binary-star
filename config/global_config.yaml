@@ -196,29 +196,32 @@ sniper:
 # ═══════════════════════════════════════════════════════════════════════════
 guardian:
 
-  # --- Exit Ladder (two-phase: breakeven → trailing) ---
-  # Phase 1 — Breakeven: fires at RR 1:1, closes a fraction of position
-  # and moves SL to entry. Gated by SL position (only fires if SL is
-  # still on the risk side of entry), making it naturally idempotent
-  # across sniper restarts. tp_ratio=0 means SL-only (no partial close).
-  # Phase 2 — Trailing: TP-relative partial exits + profit locking.
-  # Each level: target fires when progress% toward TP is reached,
-  # tp_ratio closes that fraction of current qty, sl_lock moves SL
-  # by that fraction of the entry→TP distance.
-  #   target ∈ [0.0, 1.0) — progress toward TP required
-  #   tp_ratio ∈ [0.0, 1.0] — fraction of position to close
-  #   sl_lock ∈ [0.0, 1.0] — SL = entry + (TP-entry) * sl_lock
+# ── Exit Ladder: Breakeven + Partial TP + Profit Lock (2026-07-14) ──
+  #
+  # Phase 1 — Breakeven (RR 1:1):
+  #   Close 30%, move SL to entry. Worst case after BE = +0.30R.
+  #
+  # Phase 2 — L1 (65% progress to TP):
+  #   Close 30% of remainder, SL → entry + 10% of TP distance.
+  #   Early capital recovery + light trail.
+  #
+  # Phase 2 — L2 (85% progress to TP):
+  #   No partial close. SL → entry + 30% of TP distance.
+  #   Catastrophic-reversal defense only. Let the position run.
+  #
+  #   tp_ratio=0 at L2 avoids a third OCO cancel/re-place risk window.
+  
   exit_ladder:
     breakeven:
       rr_target: 1.0
-      tp_ratio: 0.4
+      tp_ratio: 0.3
     levels:
-      - target: 0.7
-        tp_ratio: 0.4
-        sl_lock: 0.0
-      - target: 0.9
-        tp_ratio: 0.4
-        sl_lock: 0.0
+      - target: 0.65
+        tp_ratio: 0.3
+        sl_lock: 0.1
+      - target: 0.85
+        tp_ratio: 0.0
+        sl_lock: 0.3
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring
