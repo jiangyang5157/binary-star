@@ -440,9 +440,17 @@
         var entryDot = (epRaw >= 0 && epRaw <= 100)
           ? '<span class="pl-dot entry" style="left:' + epRaw + '%" data-tooltip="Entry ' + fmt(entry) + '"></span>'
           : '';
+        // Colored segment from entry side to current — if entry is off-screen,
+        // the segment extends from that direction's visible boundary.
+        var segFrom = Math.max(0, Math.min(100, epRaw || 0));
+        var segStart = Math.min(segFrom, cp);
+        var segEnd = Math.max(segFrom, cp);
+        var segColor = profitable ? 'var(--accent-green)' : 'var(--accent-red)';
+        var segHtml = '<span class="pl-segment" style="left:' + segStart + '%;width:' + (segEnd - segStart) + '%;background:' + segColor + '"></span>';
         return '<div class="price-lane">' +
           '<span class="pl-label">' + leftLabel + '</span>' +
           '<div class="pl-track">' +
+          segHtml +
           entryDot +
           '<span class="pl-tip" style="left:' + cp + '%" data-tooltip="Current ' + fmt(cur) + '"><span class="pl-dot current" style="--dot-color:' + dotColor + '"></span></span>' +
           '</div>' +
@@ -450,10 +458,13 @@
           '</div>';
       }
 
-      // Naked: no boundaries, relative dots
+      // Naked: no boundaries, relative dots.
+      // Without a reference range we keep dots at fixed positions;
+      // the segment and dot colours encode floating P&L direction.
       var nc = profitable ? 'var(--accent-green)' : 'var(--accent-red)';
       return '<div class="price-lane naked">' +
         '<div class="pl-track">' +
+        '<span class="pl-segment" style="left:30%;width:40%;background:' + nc + '"></span>' +
         '<span class="pl-dot entry" style="left:30%" data-tooltip="Entry ' + fmt(entry) + '"></span>' +
         '<span class="pl-tip" style="left:70%" data-tooltip="Current ' + fmt(cur) + '"><span class="pl-dot current" style="--dot-color:' + nc + '"></span></span>' +
         '</div>' +
@@ -475,7 +486,7 @@
       html += '<span class="sc-status" style="display:' + (tradeOn && state === 'pending' ? '' : 'none') + '"> PENDING</span>';
       var dir = sd.net_qty > 0 ? 'LONG' : 'SHORT';
       var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
-      html += '<span class="sc-direction ' + dir.toLowerCase() + '" style="display:' + (tradeOn && (state === 'protected' || state === 'naked') ? '' : 'none') + '"> ' + dir + ' ' + qty + '</span>';
+      html += '<span class="sc-direction ' + dir.toLowerCase() + '" style="display:' + (tradeOn && (state === 'protected' || state === 'naked') ? '' : 'none') + '"><span class="sc-dir-label">' + dir + '</span><span class="sc-dir-qty">' + qty + '</span></span>';
 
       // Cooldown
       html += '<span class="signal-card-cooldown" style="display:' + (sd.cooldown_active && sd.cooldown_remaining_seconds > 0 ? '' : 'none') + '">❄ ' + formatElapsed(sd.cooldown_remaining_seconds || 0) + '</span>';
@@ -533,7 +544,7 @@
           var dirLabel = sd.net_qty > 0 ? 'LONG' : 'SHORT';
           var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
           dirEl.className = 'sc-direction ' + dirLabel.toLowerCase();
-          dirEl.textContent = ' ' + dirLabel + ' ' + qty;
+          dirEl.innerHTML = '<span class="sc-dir-label">' + dirLabel + '</span><span class="sc-dir-qty">' + qty + '</span>';
         }
       }
 

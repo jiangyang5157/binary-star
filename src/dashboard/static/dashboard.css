@@ -1893,6 +1893,19 @@ th.sortable.sort-desc::after {
   background: var(--dir-color);
 }
 
+/* Direction label (LONG/SHORT) — semibold */
+.sc-dir-label {
+  font-weight: 600;
+}
+
+/* Direction qty — monospace, slightly subdued */
+.sc-dir-qty {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Price Lane — compact position viz */
 .price-lane-wrapper {
   margin-top: 10px;
@@ -1940,6 +1953,19 @@ th.sortable.sort-desc::after {
   display: block;
   animation: dot-pulse 2s ease-in-out infinite;
   transition: background 0.5s ease;
+}
+
+/* Colored segment between entry and current — floating P&L line */
+.pl-segment {
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  min-width: 2px;
+  transform: translateY(-50%);
+  border-radius: 1px;
+  z-index: 0;
+  pointer-events: none;
+  transition: left 0.5s ease, width 0.5s ease;
 }
 
 .pl-tip {
