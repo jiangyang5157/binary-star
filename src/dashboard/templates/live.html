@@ -227,6 +227,7 @@
     let _sniperHadActiveSession = false;  // detect session completion → refresh active table
     let _sniperConnFailures = 0;  // consecutive poll failures for connection health
     let _lastSniperPulseAt = 0;   // timestamp of last successful pulse (ms)
+    let _renderedSymbols = [];    // symbols with signal cards in DOM
 
     function clearSniperErrors() {
       ['sniper-symbol', 'sniper-cap'].forEach(id => {
@@ -287,6 +288,7 @@
         if (statusEl) statusEl.style.display = 'none';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }
+        _renderedSymbols = [];
       }
     }
 
@@ -321,12 +323,30 @@
         return;
       }
 
-      // Adaptive N: fit as many bars as container allows
-      var barStep = 12;  // 8px bar + 4px gap
-      var maxBars = Math.max(1, Math.floor(container.offsetWidth / barStep));
+      var barStep = 12;
+      var maxBars = Math.max(1, Math.floor((container.parentElement?.offsetWidth || container.offsetWidth) / barStep));
       var slice = history.length > maxBars ? history.slice(-maxBars) : history;
 
-      var bars = [];
+      // Count how many bars we need
+      var targetCount = 0;
+      for (var i = 0; i < slice.length; i++) {
+        var entry = slice[i];
+        if (entry.symbols && entry.symbols[symbol]) targetCount++;
+      }
+
+      // Grow/shrink bar DOM to match
+      var existing = container.querySelectorAll('.pulse-bar');
+      while (existing.length < targetCount) {
+        container.insertAdjacentHTML('beforeend', '<div class="pulse-bar"></div>');
+        existing = container.querySelectorAll('.pulse-bar');
+      }
+      while (existing.length > targetCount) {
+        existing[existing.length - 1].remove();
+        existing = container.querySelectorAll('.pulse-bar');
+      }
+
+      // Update each bar in place — CSS transitions survive
+      var idx = 0;
       for (var i = 0; i < slice.length; i++) {
         var entry = slice[i];
         var s = entry.symbols && entry.symbols[symbol];
@@ -335,21 +355,13 @@
         var score = s.confluence_score || 0;
         var thr = s.threshold || 0;
         var heightPx = Math.max(1, Math.round(Math.min(score, 1.0) * 40));
+        var bar = existing[idx++];
 
-        var barOpacity = 1.0;
-        var color;
-        if (thr > 0 && score >= thr) {
-          // Wake: full color
-          color = s.direction === 'BULLISH' ? 'var(--accent-green)' :
-                  s.direction === 'BEARISH' ? 'var(--accent-red)' :
-                  'var(--text-muted)';
-        } else {
-          // Below threshold or no signal: dimmed
-          color = s.direction === 'BULLISH' ? 'var(--accent-green)' :
-                  s.direction === 'BEARISH' ? 'var(--accent-red)' :
-                  'var(--text-muted)';
-          barOpacity = 0.5;
-        }
+        bar.style.height = heightPx + 'px';
+        bar.style.background = s.direction === 'BULLISH' ? 'var(--accent-green)' :
+                               s.direction === 'BEARISH' ? 'var(--accent-red)' :
+                               'var(--text-muted)';
+        bar.style.opacity = (thr > 0 && score >= thr) ? '1.0' : '0.5';
 
         var timeLabel = '';
         if (entry.at) {
@@ -358,18 +370,8 @@
             timeLabel = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
           }
         }
-
-        var tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
-
-        bars.push(
-          '<div class="pulse-bar"' +
-          ' style="height:' + heightPx + 'px;background:' + color + ';opacity:' + barOpacity + '"' +
-          ' data-tooltip="' + tooltip + '">' +
-          '</div>'
-        );
+        bar.dataset.tooltip = s.confluence_score.toFixed(2) + ' / ' + s.threshold.toFixed(2) + ' at ' + timeLabel;
       }
-
-      container.innerHTML = bars.join('');
     }
 
     // ── Symbol state helpers ──
@@ -441,6 +443,128 @@
         '</div>';
     }
 
+    // ── Signal Card: build full HTML for a symbol (first render / add) ──
+    function _buildSignalCardHtml(sd, stripped, data) {
+      var tradeOn = data.trade_enabled;
+      var qtyDecimals = Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
+      var state = _getSymbolState(sd);
+      var html = '';
+
+      html += '<div class="signal-card" id="signal-card-' + stripped + '">';
+      html += '<div class="signal-card-header">';
+      html += '<span class="signal-card-symbol">' + stripped + '</span>';
+
+      // Status + direction — always present, visibility toggled
+      html += '<span class="sc-status" style="display:' + (tradeOn && state === 'pending' ? '' : 'none') + '"> PENDING</span>';
+      var dir = sd.net_qty > 0 ? 'LONG' : 'SHORT';
+      var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
+      html += '<span class="sc-direction ' + dir.toLowerCase() + '" style="display:' + (tradeOn && (state === 'protected' || state === 'naked') ? '' : 'none') + '"> ' + dir + ' ' + qty + '</span>';
+
+      // Cooldown
+      html += '<span class="signal-card-cooldown" style="display:' + (sd.cooldown_active && sd.cooldown_remaining_seconds > 0 ? '' : 'none') + '">❄ ' + formatElapsed(sd.cooldown_remaining_seconds || 0) + '</span>';
+
+      html += '</div>';  // close header
+
+      // Pulse history bar chart
+      html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
+
+      // Compact signal strip (10 blocks)
+      html += '<div class="signal-strip">';
+      var allSignals = sd.all_signals || [];
+      for (var j = 0; j < allSignals.length; j++) {
+        var sig = allSignals[j];
+        var sdir = sig.is_active ? sig.direction : 'NEUTRAL';
+        var hasScore = sig.score > 0;
+        var opacity = Math.min(0.5 + sig.score * 0.5, 1.0);
+        html += '<div class="signal-strip-block' + (hasScore ? ' live' : '') + '"' +
+          ' style="opacity:' + opacity + ';background:' +
+          (sdir === 'BULLISH' ? 'var(--accent-green)' :
+           sdir === 'BEARISH' ? 'var(--accent-red)' :
+           'var(--badge-gray-bg)') + '"' +
+          ' data-tooltip="' + sig.type + '">' +
+          '</div>';
+      }
+      html += '</div>';
+
+      // Price lane — wrapper always present, visibility toggled
+      var plHtml = _renderPriceLane(sd, tradeOn, qtyDecimals);
+      html += '<div class="price-lane-wrapper" style="display:' + (plHtml ? '' : 'none') + '">' + (plHtml || '') + '</div>';
+
+      html += '</div>';  // close signal-card
+      return html;
+    }
+
+    // ── Signal Card: update values in-place for an existing card ──
+    function _updateSignalCard(data, sd, stripped, sym) {
+      var card = document.getElementById('signal-card-' + stripped);
+      if (!card) return;
+
+      var tradeOn = data.trade_enabled;
+      var qtyDecimals = Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
+      var state = _getSymbolState(sd);
+
+      // Status text
+      var statusEl = card.querySelector('.sc-status');
+      var dirEl = card.querySelector('.sc-direction');
+      if (statusEl) {
+        statusEl.style.display = tradeOn && state === 'pending' ? '' : 'none';
+      }
+      if (dirEl) {
+        var hasPos = tradeOn && (state === 'protected' || state === 'naked');
+        dirEl.style.display = hasPos ? '' : 'none';
+        if (hasPos) {
+          var dirLabel = sd.net_qty > 0 ? 'LONG' : 'SHORT';
+          var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
+          dirEl.className = 'sc-direction ' + dirLabel.toLowerCase();
+          dirEl.textContent = ' ' + dirLabel + ' ' + qty;
+        }
+      }
+
+      // Cooldown
+      var cooldownEl = card.querySelector('.signal-card-cooldown');
+      if (cooldownEl) {
+        if (sd.cooldown_active && sd.cooldown_remaining_seconds > 0) {
+          cooldownEl.style.display = '';
+          cooldownEl.textContent = '❄ ' + formatElapsed(sd.cooldown_remaining_seconds);
+        } else {
+          cooldownEl.style.display = 'none';
+        }
+      }
+
+      // Price lane
+      var plWrapper = card.querySelector('.price-lane-wrapper');
+      if (plWrapper) {
+        var plHtml = _renderPriceLane(sd, tradeOn, qtyDecimals);
+        if (plHtml) {
+          plWrapper.style.display = '';
+          plWrapper.innerHTML = plHtml;
+        } else {
+          plWrapper.style.display = 'none';
+        }
+      }
+
+      // Signal strip blocks
+      var allSignals = sd.all_signals || [];
+      var blocks = card.querySelectorAll('.signal-strip-block');
+      for (var j = 0; j < blocks.length; j++) {
+        var sig = allSignals[j];
+        if (!sig) { blocks[j].style.display = 'none'; continue; }
+        blocks[j].style.display = '';
+        var sdir = sig.is_active ? sig.direction : 'NEUTRAL';
+        var hasScore = sig.score > 0;
+        blocks[j].style.opacity = Math.min(0.5 + sig.score * 0.5, 1.0);
+        blocks[j].style.background = sdir === 'BULLISH' ? 'var(--accent-green)' :
+                                     sdir === 'BEARISH' ? 'var(--accent-red)' :
+                                     'var(--badge-gray-bg)';
+        blocks[j].classList.toggle('live', hasScore);
+        blocks[j].dataset.tooltip = sig.type;
+      }
+
+      // Pulse bars
+      var histEl = card.querySelector('.pulse-history-row');
+      if (histEl) _renderPulseHistory(histEl, data.pulse_history || [], sym || stripped);
+    }
+
     function _renderSignalCards(data) {
       var container = document.getElementById('sniper-signal-cards');
       if (!container) return;
@@ -453,80 +577,67 @@
 
       var symbols = data.symbols || Object.keys(signals.symbols);
       container.style.display = '';
-      var html = '';
-      var tradeOn = data.trade_enabled;
-      var qtyDecimals = Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
 
-      for (var i = 0; i < symbols.length; i++) {
-        var sym = symbols[i];
+      // \u2500\u2500 First time: full HTML build \u2500\u2500
+      if (!_renderedSymbols.length) {
+        var html = '';
+        for (var i = 0; i < symbols.length; i++) {
+          var sym = symbols[i];
+          var sd = signals.symbols[sym];
+          if (!sd) continue;
+          var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
+          html += _buildSignalCardHtml(sd, stripped, data);
+        }
+        container.innerHTML = html;
+
+        var historyData = data.pulse_history || [];
+        for (var k = 0; k < symbols.length; k++) {
+          var s2 = symbols[k];
+          var histEl = document.getElementById('pulse-hist-' + s2.replace(new RegExp(QUOTE + '$', 'i'), ''));
+          if (histEl) _renderPulseHistory(histEl, historyData, s2);
+        }
+        _renderedSymbols = symbols.slice();
+        return;
+      }
+
+      // \u2500\u2500 Subsequent: diff symbols, add / remove cards, incremental update \u2500\u2500
+      var currentSymbols = symbols.slice();
+      var oldSet = {}, newSet = {};
+      for (var i = 0; i < _renderedSymbols.length; i++) oldSet[_renderedSymbols[i]] = true;
+      for (var i = 0; i < currentSymbols.length; i++) newSet[currentSymbols[i]] = true;
+
+      // Remove vanished symbols
+      for (var i = 0; i < _renderedSymbols.length; i++) {
+        if (!newSet[_renderedSymbols[i]]) {
+          var card = document.getElementById('signal-card-' + _renderedSymbols[i].replace(new RegExp(QUOTE + '$', 'i'), ''));
+          if (card) card.remove();
+        }
+      }
+
+      // Add new symbols
+      var historyData = data.pulse_history || [];
+      for (var i = 0; i < currentSymbols.length; i++) {
+        if (!oldSet[currentSymbols[i]]) {
+          var sym = currentSymbols[i];
+          var sd = signals.symbols[sym];
+          if (!sd) continue;
+          var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
+          container.insertAdjacentHTML('beforeend', _buildSignalCardHtml(sd, stripped, data));
+          var histEl = document.getElementById('pulse-hist-' + stripped);
+          if (histEl) _renderPulseHistory(histEl, historyData, sym);
+        }
+      }
+
+      // Incremental update for all symbols
+      for (var i = 0; i < currentSymbols.length; i++) {
+        var sym = currentSymbols[i];
         var sd = signals.symbols[sym];
         if (!sd) continue;
-
         var stripped = sym.replace(new RegExp(QUOTE + '$', 'i'), '');
-        var state = _getSymbolState(sd);
-
-        html += '<div class="signal-card">';
-        html += '<div class="signal-card-header">';
-        html += '<span class="signal-card-symbol">' + stripped + '</span>';
-
-        // Status text with colored dot
-        if (tradeOn && state === 'pending') {
-          html += '<span class="sc-status"> PENDING</span>';
-        } else if (tradeOn && (state === 'protected' || state === 'naked')) {
-          var dir = sd.net_qty > 0 ? 'LONG' : 'SHORT';
-          var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
-          html += '<span class="sc-direction ' + dir.toLowerCase() + '"> ' + dir + ' ' + qty + '</span>';
-        }
-
-        // Cooldown (header right)
-        if (sd.cooldown_active && sd.cooldown_remaining_seconds > 0) {
-          html += '<span class="signal-card-cooldown">\u2744 ' +
-            formatElapsed(sd.cooldown_remaining_seconds) + '</span>';
-        }
-
-        html += '</div>';  // close header
-
-        // Pulse history bar chart
-        html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
-
-        // Compact signal strip (10 blocks)
-        html += '<div class="signal-strip">';
-        var allSignals = sd.all_signals || [];
-        for (var j = 0; j < allSignals.length; j++) {
-          var sig = allSignals[j];
-          var sdir = sig.is_active ? sig.direction : 'NEUTRAL';
-          var hasScore = sig.score > 0;
-          var opacity = Math.min(0.5 + sig.score * 0.5, 1.0);
-          var liveClass = hasScore ? ' live' : '';
-          html += '<div class="signal-strip-block' + liveClass + '"' +
-            ' style="opacity:' + opacity + ';background:' +
-            (sdir === 'BULLISH' ? 'var(--accent-green)' :
-             sdir === 'BEARISH' ? 'var(--accent-red)' :
-             'var(--badge-gray-bg)') + '"' +
-            ' data-tooltip="' + sig.type + '">' +
-            '</div>';
-        }
-        html += '</div>';
-
-        // Price lane (only when trade on + position exists)
-        var plHtml = _renderPriceLane(sd, tradeOn, qtyDecimals);
-        if (plHtml) {
-          html += '<div class="price-lane-wrapper">' + plHtml + '</div>';
-        }
-
-        html += '</div>';  // close signal-card
+        _updateSignalCard(data, sd, stripped, sym);
       }
-      container.innerHTML = html;
 
-      // Populate pulse history bars per symbol (deferred render after innerHTML)
-      var historyData = data.pulse_history || [];
-      for (var k = 0; k < symbols.length; k++) {
-        var s2 = symbols[k];
-        var histEl = document.getElementById('pulse-hist-' + s2.replace(new RegExp(QUOTE + '$', 'i'), ''));
-        if (histEl) {
-          _renderPulseHistory(histEl, historyData, s2);
-        }
-      }
+      _renderedSymbols = currentSymbols;
     }
 
 
