@@ -115,7 +115,7 @@ klines_dir = PROJECT_ROOT / _data_root / "klines"
 # Dynamic klines route — serves chart images without requiring the directory
 # to exist at server startup (survives delete + recreate while running).
 @app.api_route("/klines/{filepath:path}", methods=["GET", "HEAD"])
-async def serve_klines(filepath: str):
+async def serve_klines(filepath: str, request: Request):
     klines_file = klines_dir / filepath
     # Path traversal guard: ensure resolved path is inside klines_dir
     try:
@@ -123,9 +123,23 @@ async def serve_klines(filepath: str):
         resolved.relative_to(klines_dir.resolve())
     except (ValueError, RuntimeError):
         return Response("Not Found", status_code=404)
-    if resolved.is_file():
-        return FileResponse(str(resolved))
-    return Response("Not Found", status_code=404)
+    import anyio
+    if not await anyio.to_thread.run_sync(resolved.is_file):
+        return Response("Not Found", status_code=404)
+
+    # Conditional GET — return 304 if file hasn't changed
+    if_modified_since = request.headers.get("if-modified-since")
+    if if_modified_since:
+        try:
+            from email.utils import parsedate_to_datetime
+            since = parsedate_to_datetime(if_modified_since).timestamp()
+            mtime = await anyio.to_thread.run_sync(lambda: resolved.stat().st_mtime)
+            if mtime <= since:
+                return Response(status_code=304)
+        except Exception:
+            pass
+
+    return FileResponse(str(resolved))
 
 html_dir = PROJECT_ROOT / _data_root / "html"
 if html_dir.exists():

@@ -242,7 +242,7 @@ class SniperDaemon:
                     symbol_results[sym] = result
 
                     if not result.triggered:
-                        status = result.gate_reason or "SLEEPING"
+                        status = "SLEEPING"
                         logger.debug(f"[{sym}] 💤 {status}")
                     else:
                         logger.info(f"🔫 [{sym}] WAKE UP | dir={result.confluence_direction.value} | "
@@ -696,7 +696,7 @@ class SniperDaemon:
                         "signals": all_signals,
                         "cooldown_active": cooldown_active,
                         "cooldown_remaining_seconds": cooldown_remaining,
-                        "gate_reason": result.gate_reason or "",
+
                     })
                 else:
                     # No trigger result for this symbol — fill defaults
@@ -720,7 +720,7 @@ class SniperDaemon:
                                      for t in self._SIGNAL_TYPES],
                         "cooldown_active": cooldown_active,
                         "cooldown_remaining_seconds": cd_remaining,
-                        "gate_reason": "",
+
                     })
 
                 symbols_data[sym] = entry

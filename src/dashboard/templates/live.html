@@ -340,7 +340,9 @@
         return;
       }
 
-      var barStep = 12;
+      var BAR_W = 8;      // px per bar
+      var BAR_GAP = 4;    // gap between bars
+      var barStep = BAR_W + BAR_GAP;
       var maxBars = Math.max(1, Math.floor((container.offsetWidth + 4) / barStep));
       var slice = history.length > maxBars ? history.slice(-maxBars) : history;
 
@@ -352,14 +354,12 @@
       }
 
       // Grow/shrink bar DOM to match — new bars get CSS bar-rise animation
-      var existing = container.querySelectorAll('.pulse-bar');
+      var existing = container.children;
       while (existing.length < targetCount) {
         container.insertAdjacentHTML('beforeend', '<div class="pulse-bar"></div>');
-        existing = container.querySelectorAll('.pulse-bar');
       }
       while (existing.length > targetCount) {
         existing[existing.length - 1].remove();
-        existing = container.querySelectorAll('.pulse-bar');
       }
 
       // Update each bar in place — CSS transitions survive
@@ -391,6 +391,11 @@
       }
     }
 
+    // ── Quantity decimal precision (shared by initial render and update) ──
+    function _calcQtyDecimals(data) {
+      return Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
+    }
+
     // ── Symbol state helpers ──
     function _getSymbolState(sd) {
       var nq = sd.net_qty || 0;
@@ -411,8 +416,12 @@
 
       var hasRange = tp && sl && Math.abs(tp - sl) > 0.0001;
       var isNaked = ao === 0;
-      var profitable = nq > 0 ? cur > entry : cur < entry;
-      var atEntry = !isPending && hasRange && Math.abs(cur - entry) / Math.abs(tp - sl) < 0.001;
+      var profitable = false;
+      var atEntry = false;
+      if (!isPending) {
+        profitable = nq > 0 ? cur > entry : cur < entry;
+        atEntry = hasRange && Math.abs(cur - entry) / Math.abs(tp - sl) < 0.001;
+      }
       var dotColor, segColor;
       if (isPending) {
         dotColor = 'var(--accent-amber)';
@@ -517,6 +526,10 @@
       var vals = _calcPriceLane(sd, decimals);
       if (!vals) return;
 
+      // Mode transition (protected↔naked): DOM structure differs in label presence.
+      var wasNaked = lane.classList.contains('naked');
+      if (wasNaked !== vals.isNaked) return 'mode_changed';
+
       var tip = lane.querySelector('.pl-tip');
       if (tip) {
         tip.style.left = vals.cp + '%';
@@ -555,7 +568,7 @@
     // ── Signal Card: build full HTML for a symbol (first render / add) ──
     function _buildSignalCardHtml(sd, stripped, data) {
       var tradeOn = data.trade_enabled;
-      var qtyDecimals = Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
+      var qtyDecimals = _calcQtyDecimals(data);
       var state = _getSymbolState(sd);
       var html = '';
 
@@ -609,7 +622,7 @@
       if (!card) return;
 
       var tradeOn = data.trade_enabled;
-      var qtyDecimals = Math.min(100, Math.max(0, Math.ceil(-Math.log10(data.net_qty_tolerance || 0.0001))));
+      var qtyDecimals = _calcQtyDecimals(data);
       var state = _getSymbolState(sd);
 
       // Status text
@@ -645,8 +658,8 @@
       if (plWrapper) {
         var nq = sd.net_qty || 0;
         var ao = sd.active_orders || 0;
-        var hasPos = tradeOn && (Math.abs(nq) > 0.0001 || ao > 0) && sd.entry_price && sd.current_price;
-        if (!hasPos) {
+        var hasLane = tradeOn && (Math.abs(nq) > 0.0001 || ao > 0) && sd.entry_price && sd.current_price;
+        if (!hasLane) {
           plWrapper.style.display = 'none';
         } else {
           plWrapper.style.display = '';
@@ -656,7 +669,10 @@
             plWrapper.innerHTML = _renderPriceLane(sd, tradeOn, qtyDecimals);
           } else {
             // Incremental DOM mutation — CSS transitions fire on existing elements
-            _updatePriceLane(lane, sd, qtyDecimals);
+            // Falls back to full re-render on protected↔naked mode transition
+            if (_updatePriceLane(lane, sd, qtyDecimals) === 'mode_changed') {
+              plWrapper.innerHTML = _renderPriceLane(sd, tradeOn, qtyDecimals);
+            }
           }
         }
       }

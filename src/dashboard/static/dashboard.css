@@ -1951,14 +1951,10 @@ th.sortable.sort-desc::after {
   background: var(--dot-color, var(--accent-green));
   border-radius: 50%;
   display: block;
+  transform: translate(-50%, -50%);
   animation: dot-pulse 2s ease-in-out infinite;
   transition: background 0.5s ease;
 }
-/* Pending order: only override what differs from .current */
-.pl-dot.current.pending {
-  transform: translate(-50%, -50%);
-}
-
 
 /* Colored segment between entry and current — floating P&L line */
 .pl-segment {

@@ -974,7 +974,6 @@ class SniperTrigger:
             active_signals=[s for s in boosted_signals
                            if s.strength >= MIN_STACK_STRENGTH and s.sub_type != 'leader_sync'],
             gate_result=gate_result,
-
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
         )
@@ -1186,7 +1185,6 @@ class SniperTrigger:
             signals=all_signals,
             active_signals=[s for s in fresh_signals if s.strength >= MIN_STACK_STRENGTH],
             gate_result=gate_result,
-
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
         )
