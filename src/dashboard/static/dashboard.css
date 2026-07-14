@@ -69,11 +69,6 @@ body.dark {
   min-height: 100vh;
 }
 
-/* ── Cross-document page transition ── */
-@view-transition {
-  navigation: auto;
-}
-
 a { color: var(--accent-teal); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
