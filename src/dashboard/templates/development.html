@@ -131,6 +131,11 @@
           <span id="bt-sample-count"></span>
           <button id="bt-run-btn" class="btn-sm" onclick="triggerBacktest()">▶ Run</button>
         </div>
+        <!-- ── Overall backtest progress bar ── -->
+        <div class="bt-progress-bar" id="bt-progress-bar" style="display:none">
+          <div class="bt-progress-fill" id="bt-progress-fill"></div>
+          <span class="bt-progress-label" id="bt-progress-label"></span>
+        </div>
         <div class="bt-sample-body" id="bt-sample-body"></div>
       </div>
     </section>
@@ -779,7 +784,7 @@
           if (metaEl) metaEl.textContent = '';
           if (errorEl) errorEl.textContent = s.error || (progress && progress.error) || t('dev.failed');
         } else {
-          // Unfinished — pending or stopped mid-run
+          // Unfinished — pending or stopped mid-run: revert to clean pending state
           if (iconEl) { iconEl.textContent = '○'; iconEl.className = 'bt-sample-status-icon pending'; }
           if (progContainer && window._btProgressInstances[i]) {
             window._btProgressInstances[i].destroy();
@@ -791,6 +796,52 @@
           if (errorEl) errorEl.textContent = '';
         }
       });
+
+      // Update overall progress bar
+      _updateBTProgress(samples, stopped);
+    }
+
+    function _updateBTProgress(samples, stopped) {
+      const bar = document.getElementById('bt-progress-bar');
+      const fill = document.getElementById('bt-progress-fill');
+      const label = document.getElementById('bt-progress-label');
+      if (!bar || !fill || !label) return;
+
+      if (!samples || !samples.length) { bar.style.display = 'none'; return; }
+
+      const total = samples.length;
+      const counts = samples.reduce(function(acc, s) {
+        if (s.status === 'completed') acc.succeeded++;
+        else if (s.status === 'failed') acc.failed++;
+        else if (s.status === 'running') acc.running++;
+        return acc;
+      }, { succeeded: 0, failed: 0, running: 0 });
+      const finished = counts.succeeded + counts.failed;
+      const pct = Math.round(finished / total * 100);
+      const allFinished = finished === total;
+
+      if (stopped && !allFinished) { bar.style.display = 'none'; return; }
+
+      let fillCls = 'bt-progress-fill';
+      if (allFinished) {
+        fillCls += counts.failed === 0 ? ' done' : counts.failed === total ? ' done-failed' : ' done-mixed';
+      } else {
+        fillCls += ' running';
+      }
+
+      bar.style.display = '';
+      fill.className = fillCls;
+      fill.style.setProperty('--bt-progress-pct', pct + '%');
+
+      if (allFinished && counts.failed === 0) {
+        label.textContent = '✓ ' + total + '/' + total;
+      } else if (allFinished && counts.failed === total) {
+        label.textContent = '✗ ' + total + '/' + total;
+      } else if (allFinished) {
+        label.textContent = counts.succeeded + '/' + total + ' · ' + counts.failed + ' failed';
+      } else {
+        label.textContent = finished + '/' + total + (counts.running ? ' · ' + counts.running + ' running' : '');
+      }
     }
 
     function restoreRawInputs(data) {

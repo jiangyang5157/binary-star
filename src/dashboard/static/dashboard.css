@@ -69,6 +69,11 @@ body.dark {
   min-height: 100vh;
 }
 
+/* ── Cross-document page transition ── */
+@view-transition {
+  navigation: auto;
+}
+
 a { color: var(--accent-teal); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -1344,6 +1349,55 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   overflow-y: auto;
 }
 
+/* ── Overall backtest progress bar ── */
+.bt-progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-muted);
+  position: relative;
+}
+.bt-progress-fill {
+  flex: 1;
+  height: 6px;
+  background: var(--border-color);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+.bt-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent-teal);
+  border-radius: 3px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+.bt-progress-fill.running::after {
+  width: var(--bt-progress-pct, 0%);
+}
+.bt-progress-fill.done::after {
+  background: var(--accent-green);
+  width: 100%;
+}
+.bt-progress-fill.done-mixed::after {
+  background: var(--accent-orange);
+  width: 100%;
+}
+.bt-progress-fill.done-failed::after {
+  background: var(--accent-red);
+  width: 100%;
+}
+.bt-progress-label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ============================================================
    SessionProgress — shared progress component
    ============================================================ */
@@ -1618,6 +1672,30 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   0%, 100% { filter: brightness(1.0); }
   50%      { filter: brightness(1.4); }
 }
+/* ── Table row staggered fade-in ── */
+@keyframes row-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+#sessions-body.stagger tr {
+  animation: row-fade-in 0.3s ease-out both;
+  animation-delay: calc(var(--row-index, 0) * 25ms);
+}
+/* ── Sort indicator: solid triangles ▼▲ ── */
+th.sortable::after {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.6em;
+  transition: opacity 0.15s, transform 0.15s;
+}
+th.sortable.sort-asc::after {
+  content: '▲';
+  opacity: 1;
+}
+th.sortable.sort-desc::after {
+  content: '▼';
+  opacity: 1;
+}
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .sp-pulse { animation: none; }
@@ -1625,7 +1703,9 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   .signal-strip-block.live { animation: none; }
   .sniper-status-dot.connected,
   .sniper-status-dot.stale { animation: none; }
-  .pl-dot.current { animation: none; }
+  .pl-dot.current { animation: none; transition: none; }
+  .pl-tip { transition: none; }
+  #sessions-body.stagger tr { animation: none; }
   .session-progress { transition: none; }
 }
 
@@ -1857,6 +1937,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   border-radius: 50%;
   display: block;
   animation: dot-pulse 2s ease-in-out infinite;
+  transition: background 0.5s ease;
 }
 
 .pl-tip {
@@ -1864,6 +1945,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 2;
+  transition: left 0.5s ease;
 }
 
 .pl-tip:hover::after,

@@ -143,10 +143,50 @@
   <script>
     const $ = id => document.getElementById(id);
 
+    // ── KPI value animation ──
+    let _prevKpiValues = {};
+    let _kpiAnimDuration = 600; // first load uses longer animation, then 300ms
+
+    function setKpiWithAnimation(elId, endText, duration) {
+      const el = $(elId);
+      if (!el) return;
+
+      const match = endText.match(/^([+-]?)([\d.]+)(.*)$/);
+      if (!match) { el.textContent = endText; _prevKpiValues[elId] = null; return; }
+
+      const forceSign = match[1];
+      const endNum = parseFloat(match[2]);
+      const actualEndNum = forceSign === '-' ? -endNum : endNum;
+      const suffixText = match[3];
+
+      const prevRaw = _prevKpiValues[elId];
+      const startNum = (prevRaw != null && !isNaN(prevRaw)) ? prevRaw : 0;
+      _prevKpiValues[elId] = actualEndNum;
+
+      if (Math.abs(actualEndNum - startNum) < 0.005) { el.textContent = endText; return; }
+
+      const decimalPlaces = (endText.match(/\.(\d+)/) || [])[1]?.length || 0;
+      const startTime = performance.now();
+
+      function tick(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = startNum + (actualEndNum - startNum) * eased;
+
+        const curSign = (forceSign === '+' && current >= 0.005) ? '+' : (current <= -0.005 ? '-' : '');
+        const formatted = Math.abs(current).toFixed(decimalPlaces);
+        el.textContent = curSign + formatted + suffixText;
+
+        if (progress < 1) requestAnimationFrame(tick);
+        else el.textContent = endText;
+      }
+      requestAnimationFrame(tick);
+    }
 
     // ── Chart config ──
     const gridColor = '#1f2d3d', textMuted = '#6e7d91', textBright = '#8898ac';
-    let timelineChart = null;
+    let timelineChart = null, _firstChartRender = true;
+    let _tableStaggerEnabled = true;
     let allTrades = [], filteredTrades = [], allSessions = [], _totalSessions = 0, sortKey = 'observed_at', sortDir = -1;
     let confThreshold = 0;  // start unfiltered, user adjusts slider to explore
 
@@ -193,6 +233,7 @@
         for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-sharpe', 'kpi-mdd', 'kpi-winloss', 'kpi-executed']) {
           $(id).textContent = id === 'kpi-executed' ? `0 / ${orderedTrades.length}` : '—';
           _setKpiHealth(id, null);
+          _prevKpiValues[id] = null;
         }
         $('confVal').textContent = threshold;
         renderTimeline(trades, threshold, []);
@@ -240,28 +281,31 @@
       const variance = returns.length > 1 ? returns.reduce((s, r) => s + (r - meanReturn) ** 2, 0) / (returns.length - 1) : 0;
       const sharpe = variance > 0 ? meanReturn / Math.sqrt(variance) : 0;
 
-      // ── Set KPI values with semantic health colouring ──
-      $('kpi-pnl').textContent = (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%';
-      _setKpiHealth('kpi-pnl', netPnL >= 0 ? 'green' : 'red');
+      // ── Set KPI values with semantic health colouring + animated numbers ──
+      const animMs = _kpiAnimDuration;
+      _kpiAnimDuration = 300; // subsequent updates animate faster
 
-      $('kpi-winrate').textContent = winRate.toFixed(0) + '%';
+      _setKpiHealth('kpi-pnl', netPnL >= 0 ? 'green' : 'red');
+      setKpiWithAnimation('kpi-pnl', (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%', animMs);
+
       _setKpiHealth('kpi-winrate', winRate >= 60 ? 'green' : winRate >= 40 ? 'amber' : 'red');
+      setKpiWithAnimation('kpi-winrate', winRate.toFixed(0) + '%', animMs);
 
       const execRatio = orderedTrades.length > 0 ? activeTrades.length / orderedTrades.length : 0;
-      $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
       _setKpiHealth('kpi-executed', execRatio >= 0.8 ? 'green' : execRatio >= 0.4 ? 'amber' : 'red');
+      $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
 
       const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
-      $('kpi-winloss').textContent = avgLoss > 0 ? wlRatio.toFixed(2) : '—';
       _setKpiHealth('kpi-winloss', avgLoss > 0
         ? (wlRatio >= 2.0 ? 'green' : wlRatio >= 1.0 ? 'amber' : 'red')
         : 'green');
+      setKpiWithAnimation('kpi-winloss', avgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
 
-      $('kpi-mdd').textContent = mddPct.toFixed(2) + '%';
       _setKpiHealth('kpi-mdd', mddPct < 10 ? 'green' : mddPct < 25 ? 'amber' : 'red');
+      setKpiWithAnimation('kpi-mdd', mddPct.toFixed(2) + '%', animMs);
 
-      $('kpi-sharpe').textContent = sharpe.toFixed(2);
       _setKpiHealth('kpi-sharpe', sharpe >= 1.5 ? 'green' : sharpe >= 0.5 ? 'amber' : 'red');
+      setKpiWithAnimation('kpi-sharpe', sharpe.toFixed(2), animMs);
 
       $('confVal').textContent = threshold;
 
@@ -346,7 +390,13 @@
         ] },
         plugins: [thresholdPlugin],
         options: {
-          responsive: true, maintainAspectRatio: false, animation: false,
+          responsive: true, maintainAspectRatio: false,
+          animation: _firstChartRender
+            ? { duration: 800, easing: 'easeOutQuart' }
+            : false,
+          animations: _firstChartRender
+            ? { x: { duration: 0 }, y: { duration: 0 } }
+            : undefined,
           scales: {
             x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
             y: { ticks: { color: textBright }, grid: { color: gridColor } },
@@ -386,6 +436,7 @@
           }
         }
       });
+      if ((curve || []).length > 0) _firstChartRender = false;
     }
 
     function getSortValue(session, key) {
@@ -416,12 +467,19 @@
 
     function renderTable(sessions) {
       const tbody = $('sessions-body');
+      // Stagger fade-in only on initial page load, not on filter/sort/audit refresh
+      if (_tableStaggerEnabled) {
+        tbody.classList.add('stagger');
+        _tableStaggerEnabled = false;
+      } else {
+        tbody.classList.remove('stagger');
+      }
       const count = sessions.length === _totalSessions
         ? `${_totalSessions} ${t('fmt.records')}`
         : `${sessions.length} / ${_totalSessions} ${t('fmt.records')}`;
       $('session-count').textContent = count;
       if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">' + t('msg.no_records_match') + '</td></tr>'; return; }
-      tbody.innerHTML = sessions.map(s => {
+      tbody.innerHTML = sessions.map((s, i) => {
         const tp = s.tactical || {}, audit = s.audit;
         const entry = tp.current_price || tp.entry;
         // Row accent color matches result
@@ -432,7 +490,7 @@
           else if (audit.tp_sl_result === 'SL_HIT') rowCls = 'row-sl';
           else rowCls = 'row-expired';
         }
-        return `<tr class="${rowCls}">
+        return `<tr class="${rowCls}" style="--row-index: ${i}">
       <td><strong>${s.symbol}</strong></td>
       <td>${formatLocalTimeShort(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>
@@ -482,6 +540,16 @@
       applyFilters();
     });
 
+    // ── Sort indicator: show ↕ / ↑ / ↓ on the active column ──
+    function updateSortIndicator() {
+      document.querySelectorAll('th.sortable').forEach(el => {
+        el.classList.remove('sort-asc', 'sort-desc');
+        if (el.dataset.sort === sortKey) {
+          el.classList.add(sortDir === 1 ? 'sort-asc' : 'sort-desc');
+        }
+      });
+    }
+
     // ── Events ──
     $('symbol-filter').addEventListener('input', function () { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
     $('version-filter').addEventListener('input', function () { localStorage.setItem('versionFilter', this.value); applyFilters(); });
@@ -490,6 +558,7 @@
       th.addEventListener('click', function () {
         sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
         sortKey = this.dataset.sort;
+        updateSortIndicator();
         applyFilters();
       });
     });
@@ -532,6 +601,7 @@
       // Refresh table and charts regardless of outcome
       await loadTrades();
       await loadSessions();
+      updateSortIndicator();
     }
 
     // ── Init ──
@@ -569,6 +639,7 @@
       }
       await loadTrades();
       await loadSessions();
+      updateSortIndicator();
     })();
   </script>
 </body>
