@@ -940,6 +940,7 @@
           _stopInFlight = false;
           return;
         }
+        if (sniperPollInterval) { clearInterval(sniperPollInterval); sniperPollInterval = null; }
         document.getElementById('sniper-status').style.display = 'none';
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }
