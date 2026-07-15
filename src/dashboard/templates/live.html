@@ -80,10 +80,10 @@
             <label class="bt-field" id="sniper-cap-field">
               <span class="bt-label" data-i18n="sniper.cap_label"></span>
               <span class="input-group">
-                <input type="text" inputmode="numeric" id="sniper-cap" class="input-group-field" disabled
+                <input type="text" inputmode="decimal" id="sniper-cap" class="input-group-field" disabled
                   placeholder="Auto"
-                  onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9]$/.test(event.key)"
-                  oninput="this.value = this.value.replace(/[^0-9]/g, '');clearSniperErrors()">
+                  onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+                  oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
                 <span class="input-group-suffix quote-suffix">USDT</span>
               </span>
             </label>
