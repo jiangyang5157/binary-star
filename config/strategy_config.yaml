@@ -165,7 +165,7 @@ regime_parameters:
     # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
     chaos_rr_discount: 0.35
     # Hard safety boundaries for stop-loss placements.
-    stop_loss_buffer_min: 1.4
+    stop_loss_buffer_min: 1.5
     max_holding_hours: 72.0
 
 # ═══════════════════════════════════════════════════════════════════════════
