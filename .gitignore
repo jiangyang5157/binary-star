@@ -6,6 +6,7 @@ tmp/
 htmlcov/
 docs/notes/
 docs/superpowers/
+docs/pinescripts/
 
 # Superpowers
 .superpowers/
