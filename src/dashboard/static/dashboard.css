@@ -1167,7 +1167,6 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   padding: 6px 16px;
   border-radius: calc(var(--radius-sm) - 1px);
   font-size: 0.85rem;
-  line-height: 1;
   font-weight: 500;
   color: var(--text-muted);
   transition: background 0.15s, color 0.15s;
