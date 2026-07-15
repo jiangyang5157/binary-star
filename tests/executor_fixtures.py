@@ -24,7 +24,11 @@ def make_executor():
     client.place_oco_order.return_value = True
     client.cancel_order.return_value = True
     client.get_avg_entry_price.return_value = 70000.0
-    client.execute_partial_market_close.return_value = True
+    client.execute_partial_market_close.side_effect = (
+        lambda *args, **kwargs: (
+            kwargs.get('qty') or (args[2] if len(args) > 2 else 0.001)
+        )
+    )
 
     executor = MarginOrderExecutor(client=client)
     return executor, client

@@ -891,17 +891,19 @@ class MarginOrderExecutor:
             return True, None
 
         close_side = self._exit_side(direction)
-        if not self.client.execute_partial_market_close(
+        filled = self.client.execute_partial_market_close(
             symbol=symbol, side=close_side, qty=tp_qty
-        ):
+        )
+        if filled is None:
             logger.critical(f"[{symbol}] breakeven — close failed, emergency closing all")
             if not self.client.execute_market_close(symbol):
                 logger.critical(f"[{symbol}] breakeven — emergency close FAILED, position naked")
             return False, None
 
-        # ── Update trace after successful partial close ──
-        self._update_trace_after_close(symbol, tp_qty)
+        # ── Update trace with actual filled qty ──
+        self._update_trace_after_close(symbol, filled)
 
+        remaining_qty = max(0, abs(net_qty) - filled)
         # Fully closed?
         if remaining_qty < cfg.get("min_order_qty", 0):
             logger.info(f"[{symbol}] breakeven — position fully closed")
@@ -1043,9 +1045,10 @@ class MarginOrderExecutor:
                         return True, state_update if state_update else None
 
                     close_side = self._exit_side(direction)
-                    if not self.client.execute_partial_market_close(
+                    filled = self.client.execute_partial_market_close(
                         symbol=symbol, side=close_side, qty=tp_qty
-                    ):
+                    )
+                    if filled is None:
                         logger.critical(
                             f"[{symbol}] exit ladder L{i+1} — market close failed, emergency closing all"
                         )
@@ -1054,10 +1057,10 @@ class MarginOrderExecutor:
                             return False, None
                         return False, None
 
-                    # ── Update trace after successful partial close ──
-                    self._update_trace_after_close(symbol, tp_qty)
+                    # ── Update trace with actual filled qty ──
+                    self._update_trace_after_close(symbol, filled)
 
-                    remaining_qty = abs(live_net_qty) - tp_qty
+                    remaining_qty = max(0, abs(live_net_qty) - filled)
                     if remaining_qty < cfg.get("min_order_qty", 0):
                         logger.info(f"[{symbol}] exit ladder L{i+1} — position fully closed")
                         return True, {}

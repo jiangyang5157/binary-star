@@ -235,25 +235,30 @@ class BinanceMarginClient:
             logger.error(f"market close failed (server) | symbol={symbol} | status={e.status_code}")
             return False
 
-    def execute_partial_market_close(self, symbol: str, side: str, qty: float) -> bool:
-        """Market-sell a specific quantity on the given side. For partial TP."""
+    def execute_partial_market_close(self, symbol: str, side: str, qty: float) -> float | None:
+        """Market-sell a specific quantity on the given side. For partial TP.
+
+        Returns actual executed qty, or None on failure.
+        """
         p_qty, _, _ = self._get_precisions(symbol)
         try:
-            self.client.new_margin_order(
+            resp = self.client.new_margin_order(
                 symbol=symbol,
                 side=side,
                 type="MARKET",
                 quantity=round(qty, p_qty),
                 sideEffectType="MARGIN_BUY"
             )
-            logger.info(f"partial market close | symbol={symbol} | qty={qty} | side={side}")
-            return True
+            filled = float(resp.get('executedQty', 0))
+            logger.info(f"partial market close | symbol={symbol} | "
+                        f"requested={qty} | filled={filled} | side={side}")
+            return filled
         except ClientError as e:
             logger.error(f"partial market close failed | symbol={symbol} | error={e.error_message}")
-            return False
+            return None
         except ServerError as e:
             logger.error(f"partial market close server error | symbol={symbol} | error={e.message}")
-            return False
+            return None
 
     def place_limit_order(self, symbol: str, side: str, qty: float, price: float) -> Optional[int]:
         """Places a standard LIMIT order on cross-margin. Returns order_id or None on failure."""
