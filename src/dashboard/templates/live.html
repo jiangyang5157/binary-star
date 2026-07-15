@@ -280,7 +280,7 @@
     }
 
     function _clearParamErrors() {
-      for (const id of ['sniper-cap', 'sniper-cap-field', 'sniper-risk', 'sniper-risk-field']) {
+      for (const id of ['sniper-cap', 'sniper-risk']) {
         const el = document.getElementById(id);
         if (!el) continue;
         el.classList.remove('bt-field-error');
