@@ -249,7 +249,13 @@ class BinanceMarginClient:
                 quantity=round(qty, p_qty),
                 sideEffectType="MARGIN_BUY"
             )
-            filled = float(resp.get('executedQty', 0))
+            executed = resp.get('executedQty')
+            if executed is None:
+                logger.warning(f"partial market close: executedQty missing, assuming full fill | "
+                               f"symbol={symbol} | requested={qty}")
+                filled = float(qty)
+            else:
+                filled = float(executed)
             logger.info(f"partial market close | symbol={symbol} | "
                         f"requested={qty} | filled={filled} | side={side}")
             return filled
