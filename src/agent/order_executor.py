@@ -899,6 +899,9 @@ class MarginOrderExecutor:
                 logger.critical(f"[{symbol}] breakeven — emergency close FAILED, position naked")
             return False, None
 
+        # ── Update trace after successful partial close ──
+        self._update_trace_after_close(symbol, tp_qty)
+
         # Fully closed?
         if remaining_qty < cfg.get("min_order_qty", 0):
             logger.info(f"[{symbol}] breakeven — position fully closed")
@@ -1050,6 +1053,9 @@ class MarginOrderExecutor:
                             logger.critical(f"[{symbol}] emergency close FAILED — position naked")
                             return False, None
                         return False, None
+
+                    # ── Update trace after successful partial close ──
+                    self._update_trace_after_close(symbol, tp_qty)
 
                     remaining_qty = abs(live_net_qty) - tp_qty
                     if remaining_qty < cfg.get("min_order_qty", 0):
