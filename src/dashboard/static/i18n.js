@@ -103,11 +103,11 @@ const TRANSLATIONS = {
   "msg.invalid_session": { en: "Invalid session data", zh: "无效会话数据" },
 
   // Sniper
-  "sniper.trade_mode_label": { en: "Trade Mode", zh: "交易模式" },
+  "sniper.trade_mode_label": { en: "Mode", zh: "模式" },
   "sniper.mode_observe": { en: "Observe", zh: "观察" },
   "sniper.mode_trade": { en: "Trade", zh: "交易" },
   "sniper.cap_label": { en: "Cap (optional)", zh: "上限（可选）" },
-  "sniper.risk_label": { en: "Risk / Trade", zh: "单笔风险" },
+  "sniper.risk_label": { en: "Risk", zh: "风险" },
   "sniper.confidence_label": { en: "Confidence", zh: "置信度" },
 
   // 状态徽章
