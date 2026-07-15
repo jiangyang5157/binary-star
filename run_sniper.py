@@ -529,6 +529,9 @@ class SniperDaemon:
         Detects manual qty changes and re-finds level from exchange state.
         """
         try:
+            # Reset pulse-local qty trace for this symbol
+            self.executor.init_trace(symbol)
+
             logger.debug(f"[{symbol}] checking position state")
 
             trade_state = self.trade_states.get(symbol, {})
