@@ -130,6 +130,8 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
         else:
             cmd.append("--trade")
     if req.risk_per_trade is not None:
+        if req.risk_per_trade <= 0 or req.risk_per_trade > 1.0:
+            raise HTTPException(status_code=422, detail="risk_per_trade must be in (0, 1]")
         cmd.extend(["--risk-per-trade", str(req.risk_per_trade)])
 
     log.info("Starting sniper: %s", " ".join(cmd))
