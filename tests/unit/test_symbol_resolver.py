@@ -292,9 +292,9 @@ def test_loaders_work_with_resolved_config():
     a = load_audit_config(cfg)
     v = load_visual_config(cfg)
 
-    # Base values (XAUTUSDT has no overrides)
+    # Base values and overrides (XAUTUSDT overrides stop_loss_buffer_min to 1.6)
     assert r.trend_intensity_min_expansion == 0.08
-    assert k.stop_loss_buffer_min == 1.4
+    assert k.stop_loss_buffer_min == 1.6
     assert t.min_trade_velocity == 0.4
     assert a.mae_threshold_pinpoint == 20.0
     assert v.render_dpi == 120

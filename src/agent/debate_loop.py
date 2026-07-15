@@ -4,6 +4,7 @@ from typing import Any
 
 from src.analyzer.math_fact_checker import MathFactChecker
 from src.utils.exceptions import MalformedJSONError
+from src.utils.json_utils import compact_json
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class DebateLoop:
         self.visual_text = visual_text
 
     def run(self, observation: dict, symbol: str,
-            progress_callback=None) -> dict[str, Any]:
+            progress_callback=None, observation_json: str | None = None) -> dict[str, Any]:
         """Execute the full debate and return final results.
 
         Args:
@@ -43,6 +44,9 @@ class DebateLoop:
         debate_history = []
         math_fact_check = None
         early_exit = False
+
+        if not observation_json:
+            observation_json = compact_json(observation)
 
         while current_round <= self.max_rounds:
             compressed_history = self._compress_debate_history(debate_history)
@@ -65,7 +69,8 @@ class DebateLoop:
                 tools=self.tools,
                 debate_history=compressed_history,
                 visual_text=self.visual_text,
-                system_instruction=self.shared_instruction
+                system_instruction=self.shared_instruction,
+                observation_json=observation_json
             )
 
             # Validate response type before any expensive operations
@@ -110,7 +115,8 @@ class DebateLoop:
                 math_fact_check=math_fact_check,
                 tools=None,
                 visual_text=self.visual_text,
-                system_instruction=self.shared_instruction
+                system_instruction=self.shared_instruction,
+                observation_json=observation_json
             )
 
             # Score Telemetry

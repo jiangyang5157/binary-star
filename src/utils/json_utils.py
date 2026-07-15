@@ -143,3 +143,9 @@ def extract_json_from_text(text: str) -> Optional[Dict[str, Any]]:
 to_json = convert_to_json_string
 save_json = save_to_json_file
 load_json = load_from_json_file
+
+
+def compact_json(obj: Any, ensure_ascii: bool = False) -> str:
+    """Compact JSON serialization for LLM prompt injection (no indent, minimal separators)."""
+    return json.dumps(obj, separators=(',', ':'), ensure_ascii=ensure_ascii, cls=EnhancedJSONEncoder)
+

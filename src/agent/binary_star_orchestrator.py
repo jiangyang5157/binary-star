@@ -20,6 +20,7 @@ from src.utils.pipeline_utils import load_config, get_file_hash, read_prompt_tem
 from src.utils.datetime_utils import parse_iso_to_utc, FILE_TIMESTAMP_FORMAT, get_interval_minutes
 from src.utils.path_utils import resolve_project_root
 from src.utils.logger_utils import setup_logger
+from src.utils.json_utils import compact_json
 
 # Initialize standard hardened logger for orchestrator telemetry
 logger = setup_logger(__name__)
@@ -289,6 +290,7 @@ class BinaryStarOrchestrator:
 
         # 1. Inject regime benchmarks (pre-calculated physical constants)
         self._inject_regime_benchmarks(observation)
+        observation_json = compact_json(observation)
 
         if progress_callback:
             progress_callback(stage=2, activity="Preparing LLM context…")
@@ -331,7 +333,8 @@ class BinaryStarOrchestrator:
                 critic_config=self.critic_config,
             )
             debate_result = self.debate_loop.run(observation, symbol,
-                                                   progress_callback=progress_callback)
+                                                   progress_callback=progress_callback,
+                                                   observation_json=observation_json)
 
             # Finalize
             if progress_callback:
@@ -342,6 +345,7 @@ class BinaryStarOrchestrator:
                 tools=tool_declarations,
                 visual_text=visual_text,
                 progress_callback=progress_callback,
+                observation_json=observation_json,
             )
 
             # Package
@@ -417,7 +421,8 @@ class BinaryStarOrchestrator:
                                symbol: str,
                                tools: list,
                                visual_text: str | None,
-                               progress_callback=None) -> dict:
+                               progress_callback=None,
+                               observation_json: str | None = None) -> dict:
         """Run final synthesis (if needed) and sanitize the decision against math truth."""
         last_plan = debate_result["final_decision"]
         debate_history = debate_result["debate_history"]
@@ -475,6 +480,7 @@ class BinaryStarOrchestrator:
                     debate_history=self.debate_loop._compress_debate_history(debate_history),
                     visual_text=visual_text,
                     system_instruction=self.shared_instruction,
+                    observation_json=observation_json,
                 )
 
         # Physical Parameter Sanitization (skip NEUTRAL — no trade params to verify)
@@ -545,4 +551,7 @@ class BinaryStarOrchestrator:
                 return [], text
 
             case VisualMode.NONE:
+                return [], None
+
+            case _:
                 return [], None

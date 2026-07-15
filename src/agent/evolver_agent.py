@@ -14,10 +14,6 @@ logger = logging.getLogger("EvolverAgent")
 @dataclass(frozen=True)
 class EvolverConfig(AgentConfig):
     """Configuration for the Evolver meta-agent."""
-    model: str
-    model_temperature: float
-    instruction_path: str
-    max_tool_iterations: int
 
     @classmethod
     def from_dict(cls, cfg: Dict[str, Any]) -> "EvolverConfig":

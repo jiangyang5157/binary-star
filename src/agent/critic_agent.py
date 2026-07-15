@@ -1,5 +1,4 @@
 import os
-import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -14,6 +13,7 @@ from src.analyzer.regime_states import (
     compute_critic_states,
     _format_states,
 )
+from src.utils.json_utils import compact_json
 
 # Initialize critic-specific logger
 logger = setup_logger(__name__)
@@ -75,12 +75,12 @@ class CriticAgent(BaseAgent):
     def __init__(
         self,
         config: CriticConfig,
+        ai_client: AbstractAIClient,
         api_timeout: int,
         retry_count: int,
         retry_multiplier: float,
         retry_min: int,
         retry_max: int,
-        ai_client: AbstractAIClient,
         congestion_controller: Optional[CongestionController] = None
     ):
         """Standard constructor with dependency injection."""
@@ -104,7 +104,8 @@ class CriticAgent(BaseAgent):
         math_fact_check: Optional[Dict[str, Any]] = None,
         tools: Optional[List[Any]] = None,
         visual_text: Optional[str] = None,
-        system_instruction: Optional[str] = None
+        system_instruction: Optional[str] = None,
+        observation_json: Optional[str] = None
     ) -> Dict[str, Any]:
         """Evaluates the proposed plan against physical market topography
         and the mandatory CRITIC_CODES table. This is a cold,
@@ -116,6 +117,7 @@ class CriticAgent(BaseAgent):
                 observation, last_plan,
                 debate_history=debate_history,
                 math_fact_check=math_fact_check,
+                observation_json=observation_json,
             )
             prompt = self._prepare_prompt(self.config.instruction_path, **context)
 
@@ -144,12 +146,16 @@ class CriticAgent(BaseAgent):
         last_plan: Dict[str, Any],
         debate_history: Optional[List[Dict[str, Any]]] = None,
         math_fact_check: Optional[Dict[str, Any]] = None,
+        observation_json: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Internal logic for constructing the adversarial audit context."""
-        if observation:
-            observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
-        else:
-            raise ValueError("Critic: Audit attempted without baseline telemetry.")
+        if not observation_json:
+            if observation:
+                observation_json = compact_json(observation)
+            else:
+                raise ValueError("Critic: Audit attempted without baseline telemetry.")
+        elif not observation:
+            raise ValueError("Critic: Audit requires observation dict for regime state calculations.")
 
         # Pre-computed states (Python replaces LOGIC_MACROS)
         regime_states = compute_shared_regime_states(
@@ -163,9 +169,9 @@ class CriticAgent(BaseAgent):
         return {
             "observation_json": observation_json,
             "strategy_intent": self.config.strategy_intent,
-            "last_plan": json.dumps(last_plan, indent=2, ensure_ascii=False),
-            "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
-            "math_fact_check": json.dumps(math_fact_check, indent=2, ensure_ascii=False) if math_fact_check else "{}",
+            "last_plan": compact_json(last_plan),
+            "debate_history_json": compact_json(debate_history) if debate_history else "null",
+            "math_fact_check": compact_json(math_fact_check) if math_fact_check else "{}",
             "precomputed_regime_states": _format_states(regime_states),
             "precomputed_critic_states": _format_states(critic_states),
             "squeeze_audit_threshold": self.config.regime.squeeze_audit_threshold,

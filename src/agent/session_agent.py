@@ -10,7 +10,6 @@ Terminology note: "Session" in this module refers to the LLM agent role
 The Session Agent proposes trade blueprints; the Critic Agent audits them.
 """
 import os
-import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -25,6 +24,7 @@ from src.analyzer.regime_states import (
     compute_session_states,
     _format_states,
 )
+from src.utils.json_utils import compact_json
 
 # Initialize session-specific logger
 logger = setup_logger(__name__, propagate=True)
@@ -119,7 +119,8 @@ class SessionAgent(BaseAgent):
         debate_history: Optional[List[Dict[str, Any]]] = None,
         tools: Optional[List[Any]] = None,
         visual_text: Optional[str] = None,
-        system_instruction: Optional[str] = None
+        system_instruction: Optional[str] = None,
+        observation_json: Optional[str] = None
     ) -> Dict[str, Any]:
         """Core execution logic for a session reasoning step."""
         logger.info(f"[{symbol}] agent {agent_name} starting")
@@ -127,6 +128,7 @@ class SessionAgent(BaseAgent):
             prompt = self._build_prompt(
                 observation=observation,
                 debate_history=debate_history,
+                observation_json=observation_json,
             )
 
             if visual_text:
@@ -151,12 +153,16 @@ class SessionAgent(BaseAgent):
         self,
         observation: Optional[Dict[str, Any]],
         debate_history: Optional[List[Dict[str, Any]]] = None,
+        observation_json: Optional[str] = None,
     ) -> str:
         """Internal logic for constructing the multimodal reasoning context."""
-        if observation:
-            observation_json = json.dumps(observation, indent=2, ensure_ascii=False)
-        else:
-            raise ValueError("Session: Reasoning attempted without market telemetry.")
+        if not observation_json:
+            if observation:
+                observation_json = compact_json(observation)
+            else:
+                raise ValueError("Session: Reasoning attempted without market telemetry.")
+        elif not observation:
+            raise ValueError("Session: Reasoning requires observation dict for regime state calculations.")
 
         # Pre-computed regime states (Python replaces LOGIC_MACROS)
         regime_states = compute_shared_regime_states(
@@ -166,7 +172,7 @@ class SessionAgent(BaseAgent):
 
         context = {
             "observation_json": observation_json,
-            "debate_history_json": json.dumps(debate_history, indent=2, ensure_ascii=False) if debate_history else "null",
+            "debate_history_json": compact_json(debate_history) if debate_history else "null",
             "strategy_intent": self.config.strategy_intent,
             "precomputed_regime_states": _format_states(regime_states),
             "precomputed_session_states": _format_states(session_states),
