@@ -447,7 +447,7 @@ tbody tr:hover {
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   padding: 6px 10px;
   outline: none;
   width: 100%;
@@ -1165,7 +1165,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   display: inline-block;
   padding: 2px 16px;
   border-radius: calc(var(--radius-sm) - 1px);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--text-muted);
   transition: background 0.15s, color 0.15s;
