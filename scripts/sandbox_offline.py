@@ -88,6 +88,9 @@ def main():
     rejected_cases = []
     # Initialize with existing unknown cases from the source report to preserve data
     unknown_cases = list(sandbox_report.get('unknown_cases', []))
+    # Track SL_HIT/NEITHER streaks for sequence penalty (symmetric: old + new strategy)
+    consecutive_failures = 0
+    old_consecutive_failures = 0
 
     for idx, new_case in enumerate(all_new_cases):
         # Extract identifiers from the new case
@@ -118,19 +121,40 @@ def main():
             unknown_cases.append(new_case)
             continue
 
-        # 7. Forensic comparison
+        # 7. Compute scores once (avoids redundant get_fitness_score calls in is_superior)
         old_outcome = old_report.get('market_outcome', {})
         new_outcome = new_case.get('market_outcome', {})
 
-        old_score = evaluator.get_fitness_score(old_outcome)
-        new_score = evaluator.get_fitness_score(new_outcome)
+        old_score = evaluator.get_fitness_score(
+            old_outcome, consecutive_failures=old_consecutive_failures
+        )
+        new_score = evaluator.get_fitness_score(
+            new_outcome, consecutive_failures=consecutive_failures
+        )
 
-        if evaluator.is_superior(old_outcome, new_outcome):
+        if evaluator.is_superior(old_outcome, new_outcome,
+                                  consecutive_failures=consecutive_failures,
+                                  old_consecutive_failures=old_consecutive_failures,
+                                  old_score=old_score, new_score=new_score):
             accepted_cases.append(new_case)
             logger.info(f"ACCEPTED | old_score={old_score} | new_score={new_score}")
         else:
             rejected_cases.append(new_case)
             logger.info(f"REJECTED | old_score={old_score} | new_score={new_score}")
+
+        # Update consecutive failure counters for the next iteration
+        new_res = str(new_outcome.get('tp_sl_result', 'N/A')).upper()
+        if new_res in ("SL_HIT", "NEITHER"):
+            consecutive_failures += 1
+        elif new_res == "TP_HIT":
+            consecutive_failures = 0
+        # NEUTRAL and N/A leave the counter unchanged
+
+        old_res = str(old_outcome.get('tp_sl_result', 'N/A')).upper()
+        if old_res in ("SL_HIT", "NEITHER"):
+            old_consecutive_failures += 1
+        elif old_res == "TP_HIT":
+            old_consecutive_failures = 0
 
     # 8. Calculate acceptance
     total = len(all_new_cases)

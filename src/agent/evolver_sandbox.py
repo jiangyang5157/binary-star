@@ -165,6 +165,8 @@ class EvolverSandbox:
         accepted_cases = []
         rejected_cases = []
         unknown_cases = []
+        consecutive_failures = 0  # Track new-strategy SL_HIT/NEITHER streaks
+        old_consecutive_failures = 0  # Track original-strategy streaks (symmetric)
         total = len(audit_reports)
 
         logger.info(f"batch validation | total={total} cases")
@@ -185,10 +187,27 @@ class EvolverSandbox:
                 old_outcome = report.get('market_outcome', {})
                 new_outcome = new_audit_report.get('market_outcome', {})
 
-                if self.evaluator.is_superior(old_outcome, new_outcome):
+                # Pass consecutive failures for sequence-dependent penalty (symmetric)
+                if self.evaluator.is_superior(old_outcome, new_outcome,
+                                               consecutive_failures=consecutive_failures,
+                                               old_consecutive_failures=old_consecutive_failures):
                     accepted_cases.append(new_audit_report)
                 else:
                     rejected_cases.append(new_audit_report)
+
+                # Update consecutive failure counters for next iteration
+                new_res = str(new_outcome.get('tp_sl_result', 'N/A')).upper()
+                if new_res in ("SL_HIT", "NEITHER"):
+                    consecutive_failures += 1
+                elif new_res == "TP_HIT":
+                    consecutive_failures = 0
+                # NEUTRAL and N/A leave the counter unchanged
+
+                old_res = str(old_outcome.get('tp_sl_result', 'N/A')).upper()
+                if old_res in ("SL_HIT", "NEITHER"):
+                    old_consecutive_failures += 1
+                elif old_res == "TP_HIT":
+                    old_consecutive_failures = 0
 
             except Exception as e:
                 logger.error(f"fatal error validating case | session={session_id} | error={e}", exc_info=True)

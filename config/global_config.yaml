@@ -259,3 +259,22 @@ sandbox:
     smart_surrender_bonus: 15.0
     # Penalty for predicting the right direction but missing the fill
     catastrophic_miss_penalty: -20.0
+
+    # --- MFE Efficiency Bonuses ---
+    # Positive reinforcement for clean, efficient execution
+    mfe_efficiency_bonus_high: 10.0    # MFE efficiency >= 90%
+    mfe_efficiency_bonus_medium: 5.0   # MFE efficiency >= 70%
+    # Bonus for PINPOINT MAE stress tier (execution within 20% ATR)
+    pinpoint_execution_bonus: 5.0
+
+    # --- Proportional Slow Lock ---
+    # Ratio of actual/projected holding hours above which slow_lock_penalty applies
+    slow_lock_ratio: 2.0
+
+    # --- Consecutive Failure Sequence Penalties ---
+    # Base penalty applied when consecutive_failures >= 2
+    consecutive_failure_base: 5.0
+    # Additional penalty per extra consecutive failure beyond the second
+    consecutive_failure_escalation: 5.0
+    # Scepticism penalty on a TP_HIT that breaks a failing streak >= 3
+    recovery_skepticism_penalty: 5.0
