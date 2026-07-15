@@ -424,8 +424,10 @@ def get_config():
     from src.utils.symbol_utils import get_quote_currency
     config = load_combined_config()
     threshold = int(config["binary_star"]["confidence_threshold"])
+    risk_pt = config.get("trade_management", {}).get("risk_per_trade", 0.005)
     return {
         "confidence_threshold": threshold,
         "quote_currency": get_quote_currency(),
         "project_version": get_project_version(),
+        "risk_per_trade": risk_pt,
     }

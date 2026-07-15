@@ -149,15 +149,22 @@
 
     // ── Dynamic config from backend ──
     let QUOTE = 'USDT'; // fallback, overwritten by /api/config
+    let _configData = {}; // holds risk_per_trade, etc.
     let _configReady;  // promise: resolves when initConfig finishes, awaited by initSniperStatus
     (async function initConfig() {
       _configReady = (async () => {
         try {
           const resp = await fetch(apiUrl('/api/config'));
           const data = await resp.json();
+          _configData = data;
           if (data.quote_currency) {
             QUOTE = data.quote_currency;
             document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
+          }
+          // Pre-populate risk_per_trade from config if user hasn't set a custom value
+          var riskEl = document.getElementById('sniper-risk');
+          if (riskEl && !riskEl.value && data.risk_per_trade != null) {
+            riskEl.value = (data.risk_per_trade * 100).toFixed(2);
           }
         } catch (e) { /* keep fallback */ }
       })();
