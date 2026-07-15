@@ -292,7 +292,7 @@
       setKpiWithAnimation('kpi-winrate', winRate.toFixed(0) + '%', animMs);
 
       const execRatio = orderedTrades.length > 0 ? activeTrades.length / orderedTrades.length : 0;
-      _setKpiHealth('kpi-executed', execRatio >= 0.8 ? 'green' : execRatio >= 0.4 ? 'amber' : 'red');
+      _setKpiHealth('kpi-executed', execRatio >= 0.8 ? 'green' : execRatio >= 0.6 ? 'amber' : 'red');
       $('kpi-executed').textContent = `${activeTrades.length} / ${orderedTrades.length}`;
 
       const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
@@ -301,10 +301,10 @@
         : 'green');
       setKpiWithAnimation('kpi-winloss', avgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
 
-      _setKpiHealth('kpi-mdd', mddPct < 10 ? 'green' : mddPct < 25 ? 'amber' : 'red');
+      _setKpiHealth('kpi-mdd', mddPct < 5 ? 'green' : mddPct < 15 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-mdd', mddPct.toFixed(2) + '%', animMs);
 
-      _setKpiHealth('kpi-sharpe', sharpe >= 1.5 ? 'green' : sharpe >= 0.5 ? 'amber' : 'red');
+      _setKpiHealth('kpi-sharpe', sharpe >= 1.0 ? 'green' : sharpe >= 0 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-sharpe', sharpe.toFixed(2), animMs);
 
       $('confVal').textContent = threshold;
