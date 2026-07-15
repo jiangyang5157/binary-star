@@ -194,8 +194,7 @@ class MarginOrderExecutor:
         """
 
         # --- STEP 0: Heartbeat Reporting (Always runs if called) ---
-        pos = self.client.get_symbol_position(symbol)
-        net_qty = pos.net_qty if pos else 0.0
+        net_qty = self._resolve_qty(symbol)
         active_orders = self.client.get_active_orders(symbol)
 
         try:
@@ -440,8 +439,7 @@ class MarginOrderExecutor:
                 trade_state["sl_price"] = be_update["sl_price"]
                 current_sl = trade_state["sl_price"]
                 # Re-read exchange qty — breakeven may have partially closed
-                pos = self.client.get_symbol_position(symbol)
-                net_qty = pos.net_qty if pos else 0.0
+                net_qty = self._resolve_qty(symbol)
                 if abs(net_qty) <= 0:
                     return {}, None
 
@@ -736,8 +734,7 @@ class MarginOrderExecutor:
         if not direction:
             return 0
 
-        pos = self.client.get_symbol_position(symbol)
-        net_qty = pos.net_qty if pos else 0.0
+        net_qty = self._resolve_qty(symbol)
         active_orders = self.client.get_active_orders(symbol)
         avg_entry = self.client.get_avg_entry_price(symbol, net_qty)
 
@@ -938,12 +935,12 @@ class MarginOrderExecutor:
             logger.error(f"[{symbol}] breakeven SL-only — cancel failed, keeping existing")
             return True, None
 
-        pos = self.client.get_symbol_position(symbol)
-        if not pos or abs(pos.net_qty) <= 0:
+        pos_qty = self._resolve_qty(symbol)
+        if abs(pos_qty) <= 0:
             logger.info(f"[{symbol}] breakeven SL-only — position already closed")
             return True, {}
 
-        exchange_qty = round(abs(pos.net_qty), cfg["precision_qty"])
+        exchange_qty = round(abs(pos_qty), cfg["precision_qty"])
         exit_side = self._exit_side(direction)
         buffer = cfg.get("sl_slippage_buffer", 0.0)
         buffered_sl = self._buffered_sl(avg_entry, buffer, direction)
@@ -1161,14 +1158,14 @@ class MarginOrderExecutor:
             logger.error(f"[{symbol}] dynamic SL -- cancel failed, keeping existing")
             return True, None
 
-        pos = self.client.get_symbol_position(symbol)
-        if not pos or abs(pos.net_qty) <= 0:
+        pos_qty = self._resolve_qty(symbol)
+        if abs(pos_qty) <= 0:
             logger.critical(f"[{symbol}] dynamic SL -- position vanished, emergency closing")
             if not self.client.execute_market_close(symbol):
                 logger.critical(f"[{symbol}] emergency close FAILED — keeping trade state for retry next pulse")
                 return True, None
             return False, None
-        exchange_qty = round(abs(pos.net_qty), cfg["precision_qty"])
+        exchange_qty = round(abs(pos_qty), cfg["precision_qty"])
 
         buffer = cfg.get("sl_slippage_buffer", 0.0)
         exit_side = self._exit_side(direction)
