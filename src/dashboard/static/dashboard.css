@@ -1147,7 +1147,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   margin-bottom: 16px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  padding: 3px;
+  padding: 2px;
   width: fit-content;
   border: 1px solid var(--border-muted);
 }
@@ -1163,7 +1163,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 .bt-mode-label {
   display: inline-block;
-  padding: 2px 16px;
+  padding: 4px 16px;
   border-radius: calc(var(--radius-sm) - 1px);
   font-size: 0.8rem;
   font-weight: 500;
