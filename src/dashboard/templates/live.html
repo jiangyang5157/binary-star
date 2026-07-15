@@ -80,7 +80,7 @@
             <label class="bt-field" id="sniper-cap-field">
               <span class="bt-label" data-i18n="sniper.cap_label"></span>
               <span class="input-group">
-                <input type="number" id="sniper-cap" class="input-group-field" min="0" step="any" disabled
+                <input type="text" inputmode="decimal" id="sniper-cap" class="input-group-field" disabled
                   placeholder="Auto"
                   onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                   oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
@@ -90,7 +90,7 @@
             <label class="bt-field" id="sniper-risk-field">
               <span class="bt-label" data-i18n="sniper.risk_label"></span>
               <span class="input-group" style="width:90px">
-                <input type="number" id="sniper-risk" class="input-group-field" min="0" max="1" step="any" disabled
+                <input type="text" inputmode="decimal" id="sniper-risk" class="input-group-field" disabled
                   onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                   oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
                 <span class="input-group-suffix">%</span>
