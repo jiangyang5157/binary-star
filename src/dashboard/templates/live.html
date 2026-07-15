@@ -944,6 +944,7 @@
         var signalCardsEl = document.getElementById('sniper-signal-cards');
         if (signalCardsEl) { signalCardsEl.innerHTML = ''; signalCardsEl.style.display = 'none'; }
         if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
+        updateSniperUI('idle');
         return;
       }
 
