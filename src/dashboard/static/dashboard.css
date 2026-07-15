@@ -1143,11 +1143,13 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 /* Mode toggle row */
 .bt-mode-row {
   display: flex;
+  align-items: center;
   gap: 2px;
   margin-bottom: 16px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  padding: 2px;
+  height: 28px;
+  padding: 0 2px;
   width: fit-content;
   border: 1px solid var(--border-muted);
 }
