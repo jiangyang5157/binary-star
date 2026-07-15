@@ -1215,7 +1215,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 .bt-date-input {
-  width: 220px;
+  width: 200px;
 }
 
 .bt-samples-input {
