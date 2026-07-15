@@ -79,7 +79,7 @@
             </div>
             <label class="bt-field" id="sniper-risk-field">
               <span class="bt-label" data-i18n="sniper.risk_label"></span>
-              <span class="input-group" style="width:90px">
+              <span class="input-group" style="width:100px">
                 <input type="text" inputmode="decimal" id="sniper-risk" class="input-group-field" disabled
                   onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                   oninput="var v = this.value.replace(/[^0-9.]/g, ''); var d = v.indexOf('.'); this.value = d >= 0 ? v.slice(0, d + 1) + v.slice(d + 1).replace(/\./g, '').slice(0, 1) : v; clearSniperErrors()">

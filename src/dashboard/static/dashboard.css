@@ -1219,7 +1219,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 }
 
 .bt-samples-input {
-  width: 90px;
+  width: 100px;
 }
 
 .bt-field-error,
