@@ -1163,7 +1163,7 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
 
 .bt-mode-label {
   display: inline-block;
-  padding: 6px 16px;
+  padding: 5px 16px;
   border-radius: calc(var(--radius-sm) - 1px);
   font-size: 0.82rem;
   font-weight: 500;
