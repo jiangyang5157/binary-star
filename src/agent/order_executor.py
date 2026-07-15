@@ -52,6 +52,7 @@ class MarginOrderExecutor:
             config_path = os.path.join(resolve_project_root(), "config", "global_config.yaml")
             with open(config_path, 'r') as f:
                 self._global_config_raw = yaml.safe_load(f)
+        self._trace_qty: dict[str, float | None] = {}
 
     def _is_symbol_whitelisted(self, symbol: str) -> bool:
         """Checks if the symbol is defined in symbol_config.yaml."""
@@ -139,6 +140,39 @@ class MarginOrderExecutor:
     # ================================================================
     # GUARDIAN LOGIC: Called every Sniper pulse to protect positions
     # ================================================================
+
+    def init_trace(self, symbol: str):
+        """每个 pulse 开始前重置。由 SniperDaemon._guardian_check 调用。"""
+        self._trace_qty[symbol] = None
+
+    def _resolve_qty(self, symbol: str) -> float:
+        """读取仓位，用 trace 做 min double-check。
+
+        首次调用: 初始化 trace baseline。
+        后续调用: min(abs(trace), abs(api)) 保守取小。
+        Market close: 不经过此方法，直接读实时 API。
+        """
+        pos = self.client.get_symbol_position(symbol)
+        api_qty = pos.net_qty if pos else 0.0
+
+        trace = self._trace_qty.get(symbol)
+        if trace is None:
+            self._trace_qty[symbol] = api_qty
+            return api_qty
+
+        abs_resolved = min(abs(trace), abs(api_qty))
+        sign = 1 if trace >= 0 else -1
+        self._trace_qty[symbol] = abs_resolved * sign
+        return self._trace_qty[symbol]
+
+    def _update_trace_after_close(self, symbol: str, close_qty: float):
+        """部分平仓成功后减少 trace。close_qty 始终为正数。"""
+        trace = self._trace_qty.get(symbol)
+        if trace is None:
+            return
+        new_abs = max(0, abs(trace) - close_qty)
+        self._trace_qty[symbol] = new_abs * (1 if trace >= 0 else -1)
+
 
     def guardian_check(self, symbol: str, trade_state: Dict[str, Any],
                         current_level: int = 0) -> tuple:
