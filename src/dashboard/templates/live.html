@@ -164,7 +164,7 @@
           // Pre-populate risk_per_trade from config if user hasn't set a custom value
           var riskEl = document.getElementById('sniper-risk');
           if (riskEl && !riskEl.value && data.risk_per_trade != null) {
-            riskEl.value = (data.risk_per_trade * 100).toFixed(2);
+            riskEl.value = String(+(data.risk_per_trade * 100).toFixed(4));
           }
         } catch (e) { /* keep fallback */ }
       })();
@@ -252,7 +252,7 @@
           }
           capEl.disabled = true;
           if (data.risk_per_trade != null && data.risk_per_trade > 0) {
-            var riskPct = (data.risk_per_trade * 100).toFixed(2);
+            var riskPct = String(+(data.risk_per_trade * 100).toFixed(4));
             if (riskEl) riskEl.value = riskPct;
           }
           if (riskEl) riskEl.disabled = true;
