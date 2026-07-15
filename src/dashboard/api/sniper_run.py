@@ -47,6 +47,7 @@ class SniperStartRequest(BaseModel):
     symbol_prefix: str
     trade: bool = False
     balance: float | None = None
+    risk_per_trade: float | None = None
     llm: bool = False  # enable AI session dispatch (--trade implies --llm)
 
 
@@ -128,6 +129,8 @@ def sniper_start(req: SniperStartRequest, data_root: str = Query(""),
             cmd.extend(["--trade", str(balance)])
         else:
             cmd.append("--trade")
+    if req.risk_per_trade is not None:
+        cmd.extend(["--risk-per-trade", str(req.risk_per_trade)])
 
     log.info("Starting sniper: %s", " ".join(cmd))
 
@@ -229,6 +232,7 @@ def sniper_status(data_root: str = Query("")):
         "symbols": symbols,
         "trade_enabled": status.get("trade_enabled", False),
         "balance": status.get("balance"),
+        "risk_per_trade": status.get("risk_per_trade"),
         "started_at": started_str,
         "elapsed_seconds": round(elapsed),
         "pulse_seconds": pulse_seconds,

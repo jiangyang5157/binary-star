@@ -89,6 +89,9 @@ def _add_sniper_parser(subparsers):
                    help="Enable automated margin trading (implies --llm). "
                         "Optionally specify manual balance (e.g. --trade 1000). "
                         "Without a value, uses real Binance cross-margin balance.")
+    p.add_argument("--risk-per-trade", type=float, default=None,
+                   help="Override risk_per_trade config (decimal, e.g. 0.005 = 0.5%). "
+                        "When omitted, uses global_config.yaml value.")
     add_data_path_argument(p)
     p.set_defaults(func=_cmd_sniper)
 

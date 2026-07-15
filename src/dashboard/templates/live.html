@@ -64,12 +64,18 @@
         </div>
         <div class="bt-param-row">
           <div class="bt-range-grid">
-            <label class="toggle-label" for="sniper-trade-toggle" style="white-space:nowrap">
-              <span class="toggle-text" data-i18n="sniper.enable_trading"></span>
-              <input type="checkbox" id="sniper-trade-toggle" class="toggle-input" onchange="toggleCapEnabled()">
-              <span class="toggle-slider"></span>
-            </label>
-            <label class="bt-field" id="sniper-cap-field" style="flex:1;min-width:160px">
+            <div class="bt-mode-row" id="sniper-trade-mode-group">
+              <span class="bt-mode-prefix" data-i18n="sniper.trade_mode_label"></span>
+              <label class="bt-mode-option">
+                <input type="radio" name="sniper-trade-mode" value="observe" checked onchange="onTradeModeChange()">
+                <span class="bt-mode-label" data-i18n="sniper.mode_observe"></span>
+              </label>
+              <label class="bt-mode-option">
+                <input type="radio" name="sniper-trade-mode" value="trade" onchange="onTradeModeChange()">
+                <span class="bt-mode-label" data-i18n="sniper.mode_trade"></span>
+              </label>
+            </div>
+            <label class="bt-field" id="sniper-cap-field">
               <span class="bt-label" data-i18n="sniper.cap_label"></span>
               <span class="input-group">
                 <input type="number" id="sniper-cap" class="input-group-field" min="0" step="any" disabled
@@ -77,6 +83,15 @@
                   onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
                   oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
                 <span class="input-group-suffix quote-suffix">USDT</span>
+              </span>
+            </label>
+            <label class="bt-field" id="sniper-risk-field">
+              <span class="bt-label" data-i18n="sniper.risk_label"></span>
+              <span class="input-group" style="width:90px">
+                <input type="number" id="sniper-risk" class="input-group-field" min="0" max="1" step="any" disabled
+                  onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+                  oninput="if (!/^\d*\.?\d*$/.test(this.value)) this.value = this.value.replace(/[^0-9.]/g, '');clearSniperErrors()">
+                <span class="input-group-suffix">%</span>
               </span>
             </label>
           </div>
@@ -154,8 +169,8 @@
     (function restoreSniperForm() {
       var symEl = document.getElementById('sniper-symbol');
       var capEl = document.getElementById('sniper-cap');
-      var toggleEl = document.getElementById('sniper-trade-toggle');
-      if (!symEl || !capEl || !toggleEl) return;
+      var riskEl = document.getElementById('sniper-risk');
+      if (!symEl || !capEl) return;
 
       var savedSymbol = localStorage.getItem('sniperSymbol');
       if (savedSymbol !== null) symEl.value = savedSymbol;
@@ -163,11 +178,15 @@
       var savedCap = localStorage.getItem('sniperCap');
       if (savedCap !== null) capEl.value = savedCap;
 
-      var savedTrade = localStorage.getItem('sniperTradeEnabled');
-      if (savedTrade === 'true') {
-        toggleEl.checked = true;
+      var savedRisk = localStorage.getItem('sniperRisk');
+      if (savedRisk !== null && riskEl) riskEl.value = savedRisk;
+
+      var savedMode = localStorage.getItem('sniperTradeMode');
+      if (savedMode === 'trade') {
+        var tradeRadio = document.querySelector('input[name="sniper-trade-mode"][value="trade"]');
+        if (tradeRadio) tradeRadio.checked = true;
       }
-      toggleCapEnabled();
+      _syncParamDisabled();
     })();
 
     // Persist sniper form values on change (guarded: elements may be absent)
@@ -180,10 +199,16 @@
       if (capEl) capEl.addEventListener('input', function () {
         localStorage.setItem('sniperCap', this.value);
       });
-      var toggleEl = document.getElementById('sniper-trade-toggle');
-      if (toggleEl) toggleEl.addEventListener('change', function () {
-        localStorage.setItem('sniperTradeEnabled', this.checked);
+      var riskEl = document.getElementById('sniper-risk');
+      if (riskEl) riskEl.addEventListener('input', function () {
+        localStorage.setItem('sniperRisk', this.value);
       });
+      var modeRadios = document.querySelectorAll('input[name="sniper-trade-mode"]');
+      for (var i = 0; i < modeRadios.length; i++) {
+        modeRadios[i].addEventListener('change', function () {
+          localStorage.setItem('sniperTradeMode', this.value);
+        });
+      }
     })();
 
     // Auto-detect running daemon on page load (survives hard refresh)
@@ -193,10 +218,11 @@
         await _configReady;
 
         var symEl = document.getElementById('sniper-symbol');
-        var toggleEl = document.getElementById('sniper-trade-toggle');
+        var modeGroup = document.getElementById('sniper-trade-mode-group');
         var capEl = document.getElementById('sniper-cap');
+        var riskEl = document.getElementById('sniper-risk');
         // If elements absent (no permission), skip daemon status polling entirely
-        if (!symEl || !toggleEl || !capEl) return;
+        if (!symEl || !modeGroup || !capEl) return;
 
         const resp = await fetch(apiUrl('/api/sniper/status'));
         const data = await resp.json();
@@ -207,18 +233,53 @@
             .join(', ');
           symEl.value = symPrefix;
           symEl.disabled = true;
-          toggleEl.checked = !!data.trade_enabled;
-          toggleEl.disabled = true;
+          // Disable all radio options
+          var radios = modeGroup.querySelectorAll('input[type="radio"]');
+          for (var ri = 0; ri < radios.length; ri++) radios[ri].disabled = true;
+          // Select correct mode
+          var modeVal = data.trade_enabled ? 'trade' : 'observe';
+          var targetRadio = modeGroup.querySelector('input[value="' + modeVal + '"]');
+          if (targetRadio) targetRadio.checked = true;
           if (data.balance != null && data.balance > 0) {
             capEl.value = data.balance;
           }
           capEl.disabled = true;
+          if (data.risk_per_trade != null && data.risk_per_trade > 0) {
+            var riskPct = (data.risk_per_trade * 100).toFixed(2);
+            if (riskEl) riskEl.value = riskPct;
+          }
+          if (riskEl) riskEl.disabled = true;
           updateSniperUI('running');
           sniperPollInterval = setInterval(checkSniperStatus, 2000);
           checkSniperStatus();
         }
       } catch (e) { /* daemon not reachable — stay idle */ }
     })();
+
+    // ── Form state helpers (Cap + Risk share the same enable/disable pattern) ──
+    function _isTradeMode() {
+      const sel = document.querySelector('input[name="sniper-trade-mode"]:checked');
+      return sel && sel.value === 'trade';
+    }
+
+    function _syncParamDisabled() {
+      const trade = _isTradeMode();
+      for (const id of ['sniper-cap', 'sniper-risk']) {
+        const el = document.getElementById(id);
+        if (el) el.disabled = !trade;
+      }
+    }
+
+    function _clearParamErrors() {
+      for (const id of ['sniper-cap', 'sniper-cap-field', 'sniper-risk', 'sniper-risk-field']) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.classList.remove('bt-field-error');
+        const group = el.closest('.input-group') || el;
+        group.classList.remove('has-error');
+        group.removeAttribute('data-error');
+      }
+    }
 
     // ── Sniper Control ──
     let sniperPollInterval = null;
@@ -230,44 +291,47 @@
     let _renderedSymbols = [];    // symbols with signal cards in DOM
 
     function clearSniperErrors() {
-      ['sniper-symbol', 'sniper-cap'].forEach(id => {
+      const group = document.getElementById('sniper-symbol-group');
+      if (group) { group.classList.remove('has-error'); group.removeAttribute('data-error'); }
+      ['sniper-symbol'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.classList.remove('bt-field-error');
       });
-      const group = document.getElementById('sniper-symbol-group');
-      if (group) { group.classList.remove('has-error'); group.removeAttribute('data-error'); }
-      // Clear cap input-group error too
-      const capInput = document.getElementById('sniper-cap');
-      if (capInput) {
-        const capGroup = capInput.closest('.input-group');
-        if (capGroup) { capGroup.classList.remove('has-error'); capGroup.removeAttribute('data-error'); }
-      }
+      _clearParamErrors();
       const container = document.getElementById('sniper-progress-container');
       container.innerHTML = '';
       if (sniperProgress) { sniperProgress.destroy(); sniperProgress = null; }
     }
 
-    function toggleCapEnabled() {
-      const trade = document.getElementById('sniper-trade-toggle').checked;
+    function onTradeModeChange() {
+      const trade = _isTradeMode();
       const capInput = document.getElementById('sniper-cap');
       capInput.disabled = !trade;
       if (!trade) {
         capInput.value = '';
         localStorage.setItem('sniperCap', '');
       }
+      const riskEl = document.getElementById('sniper-risk');
+      if (riskEl) riskEl.disabled = !trade;
+      localStorage.setItem('sniperTradeMode', trade ? 'trade' : 'observe');
     }
 
     function updateSniperUI(state) {
       const input = document.getElementById('sniper-symbol');
-      const tradeToggle = document.getElementById('sniper-trade-toggle');
+      const modeGroup = document.getElementById('sniper-trade-mode-group');
       const capInput = document.getElementById('sniper-cap');
+      const riskInput = document.getElementById('sniper-risk');
       const btn = document.getElementById('sniper-btn');
 
       if (state === 'running') {
         _stopInFlight = false;
         input.disabled = true;
-        tradeToggle.disabled = true;
+        if (modeGroup) {
+          var radios = modeGroup.querySelectorAll('input[type="radio"]');
+          for (var ri = 0; ri < radios.length; ri++) radios[ri].disabled = true;
+        }
         capInput.disabled = true;
+        if (riskInput) riskInput.disabled = true;
         btn.disabled = false;
         btn.textContent = TRANSLATIONS['btn.stop']?.[getLang()] || '⏹ Stop';
         btn.classList.add('danger');
@@ -277,9 +341,13 @@
       } else {
         _stopInFlight = false;
         input.disabled = false;
-        tradeToggle.disabled = false;
+        if (modeGroup) {
+          var radios = modeGroup.querySelectorAll('input[type="radio"]');
+          for (var ri = 0; ri < radios.length; ri++) radios[ri].disabled = false;
+        }
         capInput.disabled = false;
-        toggleCapEnabled();
+        if (riskInput) riskInput.disabled = false;
+        onTradeModeChange();
         btn.disabled = false;
         btn.textContent = TRANSLATIONS['btn.run']?.[getLang()] || '▶ Run';
         btn.classList.remove('danger');
@@ -899,9 +967,13 @@
       }
       const symbolPrefix = parts.join(',');
 
-      const trade = document.getElementById('sniper-trade-toggle').checked;
+      const trade = _isTradeMode();
       const capRaw = document.getElementById('sniper-cap').value.trim();
       const cap = capRaw ? parseFloat(capRaw) : null;
+      const riskRaw = document.getElementById('sniper-risk').value.trim();
+      // risk_per_trade: UI shows as percentage (0.5 = 0.5%), stored as decimal (0.005)
+      const riskPct = riskRaw ? parseFloat(riskRaw) : null;
+      const riskDecimal = riskPct !== null ? riskPct / 100 : null;
 
       if (cap !== null && (isNaN(cap) || cap <= 0)) {
         const capInput = document.getElementById('sniper-cap');
@@ -909,6 +981,15 @@
         capInput.classList.add('bt-field-error');
         if (capGroup) { capGroup.classList.add('has-error'); capGroup.setAttribute('data-error', t('err.cap_positive')); }
         document.getElementById('sniper-cap').focus();
+        updateSniperUI('idle');
+        return;
+      }
+      if (riskPct !== null && (isNaN(riskPct) || riskPct <= 0 || riskPct > 1)) {
+        const riskInput = document.getElementById('sniper-risk');
+        const riskGroup = riskInput.closest('.input-group');
+        riskInput.classList.add('bt-field-error');
+        if (riskGroup) { riskGroup.classList.add('has-error'); riskGroup.setAttribute('data-error', t('err.risk_range')); }
+        document.getElementById('sniper-risk').focus();
         updateSniperUI('idle');
         return;
       }
@@ -921,6 +1002,7 @@
             symbol_prefix: symbolPrefix,
             trade: trade,
             balance: cap,
+            risk_per_trade: riskDecimal,
           }),
         });
 

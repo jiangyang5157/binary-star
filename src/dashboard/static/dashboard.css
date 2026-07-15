@@ -1239,6 +1239,17 @@ tr.row-unfilled { border-left: 3px solid var(--text-muted); }
   color: var(--text-primary);
 }
 
+.bt-mode-prefix {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  padding: 6px 8px 6px 4px;
+  user-select: none;
+  white-space: nowrap;
+}
+
 /* Param rows */
 .bt-param-row {
   margin-bottom: 12px;

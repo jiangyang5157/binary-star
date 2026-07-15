@@ -39,9 +39,10 @@ class MarginOrderExecutor:
     _EMERGENCY_CLOSED_SENTINEL sentinel value — it signals the SniperDaemon
     that the position was force-closed during a failed OCO repair.
     """
-    def __init__(self, client: Optional[BinanceMarginClient] = None, manual_balance_usdt: Optional[float] = None, global_config: Optional[dict] = None):
+    def __init__(self, client: Optional[BinanceMarginClient] = None, manual_balance_usdt: Optional[float] = None, global_config: Optional[dict] = None, risk_per_trade_override: Optional[float] = None):
         self.client = client or BinanceMarginClient()
         self.manual_balance_usdt = manual_balance_usdt
+        self.risk_per_trade_override = risk_per_trade_override
         # Cache global_config to avoid re-reading from disk on every guardian/trade call
         self._last_conflict_key: dict[str, str] = {}  # throttle orientation conflict logs
         if global_config is not None:
@@ -698,7 +699,7 @@ class MarginOrderExecutor:
         cfg["benchmark_symbol"] = "BTC" + get_quote_currency()
 
         tm = full_cfg["trade_management"]
-        cfg["risk_per_trade"] = tm["risk_per_trade"]
+        cfg["risk_per_trade"] = self.risk_per_trade_override if self.risk_per_trade_override is not None else tm["risk_per_trade"]
         cfg["taker_fee_rate"] = tm.get("taker_fee_rate", 0.0)
         cfg["net_qty_tolerance"] = tm["net_qty_tolerance"]
 

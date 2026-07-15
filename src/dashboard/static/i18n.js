@@ -103,8 +103,11 @@ const TRANSLATIONS = {
   "msg.invalid_session": { en: "Invalid session data", zh: "无效会话数据" },
 
   // Sniper
-  "sniper.enable_trading": { en: "Enable Trading", zh: "启用交易" },
+  "sniper.trade_mode_label": { en: "Trade Mode", zh: "交易模式" },
+  "sniper.mode_observe": { en: "Observe", zh: "观察" },
+  "sniper.mode_trade": { en: "Trade", zh: "交易" },
   "sniper.cap_label": { en: "Cap (optional)", zh: "上限（可选）" },
+  "sniper.risk_label": { en: "Risk / Trade", zh: "单笔风险" },
   "sniper.confidence_label": { en: "Confidence", zh: "置信度" },
 
   // 状态徽章
@@ -188,6 +191,7 @@ const TRANSLATIONS = {
     zh: "不是有效交易对 — 仅可使用字母和数字"
   },
   "err.cap_positive": { en: "Cap must be a positive number", zh: "上限必须为正数" },
+  "err.risk_range": { en: "Risk must be between 0% and 1%", zh: "风险必须在 0% 到 1% 之间" },
   "err.min_chars": { en: "Enter at least 2 characters (e.g. BTC)", zh: "请输入至少 2 个字符 (如 BTC)" },
   "err.letters_numbers": { en: "Only letters and numbers", zh: "仅可使用字母和数字" },
   "err.single_symbol": { en: "Only one symbol allowed", zh: "仅支持单个交易对" },

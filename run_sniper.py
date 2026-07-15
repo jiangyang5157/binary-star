@@ -116,15 +116,22 @@ class SniperDaemon:
         self.llm_enabled = bool(getattr(args, 'llm', False))
         self.trade_enabled = bool(args.trade)
         self.manual_balance = args.trade if isinstance(args.trade, float) else None
+        self.risk_per_trade_override = getattr(args, 'risk_per_trade', None)
         self.executor = None
         self.trade_states: dict[str, dict] = {}
         if self.trade_enabled:
             from src.infrastructure.binance.margin_client import BinanceMarginClient
             from src.agent.order_executor import MarginOrderExecutor
             self.margin_client = BinanceMarginClient()
-            self.executor = MarginOrderExecutor(client=self.margin_client, manual_balance_usdt=self.manual_balance)
+            self.executor = MarginOrderExecutor(
+                client=self.margin_client,
+                manual_balance_usdt=self.manual_balance,
+                risk_per_trade_override=self.risk_per_trade_override,
+            )
             if self.manual_balance:
                 logger.info(f"manual balance | ${self.manual_balance:.2f} USDT")
+            if self.risk_per_trade_override is not None:
+                logger.info(f"risk_per_trade override | {self.risk_per_trade_override} ({self.risk_per_trade_override * 100:.2f}%)")
             logger.info(f"trade execution ENABLED | symbols={self.symbols}")
 
         # Per-symbol previous metrics for inter-pulse comparison
@@ -206,6 +213,7 @@ class SniperDaemon:
                             pid=os.getpid(),
                             trade_enabled=self.trade_enabled,
                             balance=self.manual_balance,
+                            risk_per_trade=self.risk_per_trade_override,
                             started_at=datetime.now(timezone.utc).isoformat(),
                         )
 
