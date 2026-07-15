@@ -314,10 +314,6 @@
       const trade = _isTradeMode();
       const capInput = document.getElementById('sniper-cap');
       capInput.disabled = !trade;
-      if (!trade) {
-        capInput.value = '';
-        localStorage.setItem('sniperCap', '');
-      }
       const riskEl = document.getElementById('sniper-risk');
       if (riskEl) riskEl.disabled = !trade;
       localStorage.setItem('sniperTradeMode', trade ? 'trade' : 'observe');
