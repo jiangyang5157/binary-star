@@ -151,14 +151,12 @@
 
     // ── Dynamic config from backend ──
     let QUOTE = 'USDT'; // fallback, overwritten by /api/config
-    let _configData = {}; // holds risk_per_trade, etc.
     let _configReady;  // promise: resolves when initConfig finishes, awaited by initSniperStatus
     (async function initConfig() {
       _configReady = (async () => {
         try {
           const resp = await fetch(apiUrl('/api/config'));
           const data = await resp.json();
-          _configData = data;
           if (data.quote_currency) {
             QUOTE = data.quote_currency;
             document.querySelectorAll('.quote-suffix').forEach(el => { el.textContent = QUOTE; });
