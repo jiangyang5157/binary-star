@@ -77,6 +77,15 @@
                 </label>
               </div>
             </div>
+            <label class="bt-field" id="sniper-risk-field">
+              <span class="bt-label" data-i18n="sniper.risk_label"></span>
+              <span class="input-group" style="width:80px">
+                <input type="text" inputmode="decimal" id="sniper-risk" class="input-group-field" disabled
+                  onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
+                  oninput="var v = this.value.replace(/[^0-9.]/g, ''); var d = v.indexOf('.'); this.value = d >= 0 ? v.slice(0, d + 1) + v.slice(d + 1).replace(/\./g, '').slice(0, 1) : v; clearSniperErrors()">
+                <span class="input-group-suffix">%</span>
+              </span>
+            </label>
             <label class="bt-field" id="sniper-cap-field" style="flex:1;min-width:140px">
               <span class="bt-label" data-i18n="sniper.cap_label"></span>
               <span class="input-group">
@@ -85,15 +94,6 @@
                   onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9]$/.test(event.key)"
                   oninput="this.value = this.value.replace(/[^0-9]/g, '');clearSniperErrors()">
                 <span class="input-group-suffix quote-suffix">USDT</span>
-              </span>
-            </label>
-            <label class="bt-field" id="sniper-risk-field">
-              <span class="bt-label" data-i18n="sniper.risk_label"></span>
-              <span class="input-group" style="width:80px">
-                <input type="text" inputmode="decimal" id="sniper-risk" class="input-group-field" disabled
-                  onkeydown="return event.ctrlKey || event.metaKey || event.key === 'Backspace' || event.key === 'Delete' || event.key === 'Tab' || event.key.startsWith('Arrow') || /^[0-9.]$/.test(event.key)"
-                  oninput="var v = this.value.replace(/[^0-9.]/g, ''); var d = v.indexOf('.'); this.value = d >= 0 ? v.slice(0, d + 1) + v.slice(d + 1).replace(/\./g, '').slice(0, 1) : v; clearSniperErrors()">
-                <span class="input-group-suffix">%</span>
               </span>
             </label>
           </div>
