@@ -64,16 +64,18 @@
         </div>
         <div class="bt-param-row">
           <div class="bt-range-grid">
-            <div class="bt-mode-row" id="sniper-trade-mode-group">
-              <span class="bt-mode-prefix" data-i18n="sniper.trade_mode_label"></span>
-              <label class="bt-mode-option">
-                <input type="radio" name="sniper-trade-mode" value="observe" checked onchange="onTradeModeChange()">
-                <span class="bt-mode-label" data-i18n="sniper.mode_observe"></span>
-              </label>
-              <label class="bt-mode-option">
-                <input type="radio" name="sniper-trade-mode" value="trade" onchange="onTradeModeChange()">
-                <span class="bt-mode-label" data-i18n="sniper.mode_trade"></span>
-              </label>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span class="bt-label" data-i18n="sniper.trade_mode_label"></span>
+              <div class="bt-mode-row" id="sniper-trade-mode-group">
+                <label class="bt-mode-option">
+                  <input type="radio" name="sniper-trade-mode" value="observe" checked onchange="onTradeModeChange()">
+                  <span class="bt-mode-label" data-i18n="sniper.mode_observe"></span>
+                </label>
+                <label class="bt-mode-option">
+                  <input type="radio" name="sniper-trade-mode" value="trade" onchange="onTradeModeChange()">
+                  <span class="bt-mode-label" data-i18n="sniper.mode_trade"></span>
+                </label>
+              </div>
             </div>
             <label class="bt-field" id="sniper-cap-field">
               <span class="bt-label" data-i18n="sniper.cap_label"></span>
