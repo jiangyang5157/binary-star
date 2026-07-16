@@ -5,8 +5,8 @@ tmp/
 .coverage
 htmlcov/
 docs/notes/
+docs/specs/
 docs/superpowers/
-docs/pinescripts/
 
 # Superpowers
 .superpowers/
