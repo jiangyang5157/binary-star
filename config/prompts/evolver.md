@@ -8,16 +8,18 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 # INPUT_DATUM
 - **Session Records**: `{audit_reports_json}` (Batch from SessionAssembler).
 - **PRE-COMPUTED STATES**: Pre-computed from `{audit_reports_json}`. Use as given.
-  - **Evolver States**: `{precomputed_evolver_states}`
+  - **Evolver States**: `{precomputed_evolver_states}` — Boolean flags: `IS_BATCH_SIGNIFICANT`, `IS_FAILURE_RATIO_ALARM`, `HAS_SYSTEMIC_PATHOLOGY`, `IS_LOGIC_COWARDICE`, `HAS_STRUCTURAL_AMNESTY`, `IS_PROFIT_EVAPORATION`, `IS_CATASTROPHIC_NEUTRAL_MISS`, `IS_CATASTROPHIC_UNFILLED_MISS`.
   - **Time Calibration Report**: `{time_calibration_report}` — Per-regime signed time error (positive = trades took longer than projected, negative = faster). Keyed by regime (`temporal_dilation_highway` / `standard` / `dead_water` / `climax`). Each entry: `avg_time_error_pct` (signed mean of `(actual - projected) / projected * 100` across TP_HIT trades) and `samples` (trade count). Only TP_HIT trades are included. SL_HIT and NEITHER are excluded because projected time is calibrated to the TP distance.
+  - **Batch Forensic Stats**: Pre-computed from `{audit_reports_json}`. Use as given.
+    - `fill_rate_pct` (`{fill_rate_pct}`): % of directional sessions where entry was filled.
+    - `near_miss_rate` (`{near_miss_rate}`): Of unfilled sessions, % where entry was within the proximity limit (almost filled).
+    - `mae_stress_distribution` (`{mae_stress_distribution}`): Counts of PINPOINT / STANDARD / LUCK / FAILURE stress tiers across filled trades.
+    - `cowardice_tag_rate` (`{cowardice_tag_rate}`): % of NEUTRAL sessions where the Critic flagged inaction bias, trend starvation, or opportunity denial.
 - **Current Prompt State**: `{current_prompt_md}` (The prompt for the **Session**, **Critic**, and **Binary Star**).
 - **Active Config**: `{active_config_yaml}` (Base parameters for patching).
 
 # LOGIC_MACROS
-- `IS_OVERFIT_RISK`: Historical fix would invalidate > 5% of "Pristine" success records.
-- `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates
-  > 1.0 ATR away from `current_price` to artificially satisfy RR requirements,
-  resulting in missed fills.
+(LOGIC_MACROS are now pre-computed in Python — see PRE-COMPUTED STATES below.)
 
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
 - **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated noise. A mutation is only ALLOWED if `HAS_SYSTEMIC_PATHOLOGY` is TRUE. This requires the failure to meet BOTH the minimum instance count AND the batch ratio threshold simultaneously. Consistent noise is not a pathology; it is a statistical necessity.
@@ -48,18 +50,40 @@ Determine the Mutation Vector based on MAE stress and telemetry forensics:
     - **Goal**: Categorically eliminate high-stress sessions to preserve capital.
 
 - **THE_OPPORTUNITY_COST** (Profit Evaporation & Phantom Orders):
-  - Trigger: `IS_PROFIT_EVAPORATION` OR `IS_PHANTOM_ORDER_BIAS` is TRUE.
-  - Diagnosis: The system is structurally sound but operationally timid. It is either demanding unrealistic entry depths or failing to secure massive floating profits before time expires.
+  - Trigger: `IS_PROFIT_EVAPORATION` is TRUE
+    OR (`fill_rate_pct` < 60 AND `near_miss_rate` < 30)
+  - Diagnosis: The system is either demanding unrealistic entry depths (phantom
+    orders — low fill rate, and even the unfilled ones weren't close) or failing
+    to secure floating profits before time expires.
   - Action: `AGGRESSIVE_REFINEMENT`.
-    - Targets: Decrease `min_rr_ranging`, decrease `breakout_frontrun_atr`, or refine `session.md` to mandate proximity-based entries (Front-running).
-    - Goal: Force the system to actively engage the market and lock in realistic yields rather than holding out for theoretical perfection.
+    - Targets: Decrease `min_rr_ranging`, decrease `breakout_frontrun_atr`, or
+      refine `session.md` to mandate proximity-based entries.
+    - Goal: Force the system to actively engage the market and lock in realistic
+      yields rather than holding out for theoretical perfection.
 
 - **THE_COWARDICE_TRAP** (Logic Hardening):
-  - Trigger: `IS_LOGIC_COWARDICE` OR `IS_CATASTROPHIC_MISS` is TRUE.
-  - Diagnosis: System correctly predicts directional flow but yields to strict Critic vetoes (e.g., demanding deep DLEs in strong trends).
+  - Trigger: `IS_LOGIC_COWARDICE` is TRUE
+    OR `IS_CATASTROPHIC_NEUTRAL_MISS` is TRUE
+    OR `cowardice_tag_rate` > 40
+  - Diagnosis: System correctly identifies directional opportunities but
+    surrenders to NEUTRAL — either through Critic veto pressure or internal
+    timidity. The `cowardice_tag_rate` confirms this is a pattern, not an
+    isolated incident.
   - Action: `SEMANTIC_REFINEMENT`.
-    - Targets: Modify `session.md` or `critic.md` to grant momentum exemptions (e.g., allowing Shallow Pullbacks when `IS_TREND_STRONG` is true).
+    - Targets: Modify `session.md` or `critic.md` to grant momentum exemptions
+      (e.g., allowing Shallow Pullbacks when `IS_TREND_STRONG` is true).
     - Goal: Eliminate instructional bottlenecks that prevent trend participation.
+
+- **THE_PHANTOM_ORDER_FIX** (Entry Proximity Tightening):
+  - Trigger: `IS_CATASTROPHIC_UNFILLED_MISS` is TRUE
+    OR (`fill_rate_pct` < 60 AND `near_miss_rate` >= 30)
+  - Diagnosis: Directional entries are unfilled, but many are near-misses — the
+    entry proximity logic is slightly too conservative. Price is coming close
+    but not quite reaching the limit order.
+  - Action: `AGGRESSIVE_REFINEMENT`.
+    - Targets: Decrease `max_entry_distance_atr` or reduce `breakout_frontrun_atr`
+      to pull entries closer to current price.
+    - Goal: Convert near-misses into fills without sacrificing structural anchoring.
 
 # ACTION_DICTIONARY
 These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
