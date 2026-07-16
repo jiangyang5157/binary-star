@@ -19,11 +19,20 @@ import argparse, json, os, re, sys, glob as globmod
 # ── Filename parsing ──────────────────────────────────────────
 
 SESSION_RE = re.compile(r"(.+)_session_(\d{8}_\d{6})\.json$")
+AUDIT_RE   = re.compile(r"(.+)_audit_(\d{8}_\d{6})\.json$")
 
 
 def parse_session_name(fname: str) -> tuple[str, str] | None:
-    """Return (symbol, timestamp) or None."""
+    """Return (symbol, timestamp) or None from a session filename."""
     m = SESSION_RE.match(fname)
+    if not m:
+        return None
+    return m.group(1), m.group(2)
+
+
+def parse_audit_name(fname: str) -> tuple[str, str] | None:
+    """Return (symbol, timestamp) or None from an audit filename."""
+    m = AUDIT_RE.match(fname)
     if not m:
         return None
     return m.group(1), m.group(2)
@@ -60,6 +69,27 @@ def find_archived_sessions(data_root: str, version: str) -> list[tuple[str, str]
     for fname in os.listdir(sessions_dir):
         if fname.endswith(".json"):
             matches.append((os.path.join(sessions_dir, fname), fname))
+    return matches
+
+
+def find_audits_by_version(data_root: str, version: str) -> list[tuple[str, str]]:
+    """Scan {data_root}/audits/ for JSONs whose metadata.project_version matches.
+    Catches audits whose sessions were already deleted."""
+    audits_dir = os.path.join(data_root, "audits")
+    if not os.path.isdir(audits_dir):
+        return []
+    matches = []
+    for fname in os.listdir(audits_dir):
+        if not fname.endswith(".json"):
+            continue
+        fpath = os.path.join(audits_dir, fname)
+        try:
+            with open(fpath) as fh:
+                pv = json.load(fh).get("metadata", {}).get("project_version")
+        except (json.JSONDecodeError, OSError, KeyError):
+            continue
+        if pv == version:
+            matches.append((fpath, fname))
     return matches
 
 
@@ -113,26 +143,51 @@ def main():
         print(f"ERROR: data root not found: {data_root}")
         sys.exit(1)
 
-    # 1. Find sessions
+    # 1. Find sessions + audits
     active = find_active_sessions(data_root, version)
     archived = find_archived_sessions(data_root, version)
-    all_sessions = active + archived
+    orphan_audits = find_audits_by_version(data_root, version)
 
-    print(f"Active sessions (in {data_root}/sessions/):   {len(active)}")
+    # Separate orphan audits: those without a corresponding session already found
+    session_symbol_ts = set()
+    for _, fname in active + archived:
+        p = parse_session_name(fname)
+        if p:
+            session_symbol_ts.add(p)
+
+    # Keep only audits that don't have a matching session (true orphans)
+    orphan_audits = [
+        (fp, fn) for fp, fn in orphan_audits
+        if parse_audit_name(fn) not in session_symbol_ts
+    ]
+
+    print(f"Active sessions  (in {data_root}/sessions/):   {len(active)}")
     print(f"Archived sessions (in {data_root}/{version}/): {len(archived)}")
-    print(f"Total matching sessions:                       {len(all_sessions)}")
+    print(f"Orphan audits    (sessions already deleted):    {len(orphan_audits)}")
+    print(f"Total sources:                                 {len(active) + len(archived) + len(orphan_audits)}")
 
-    if not all_sessions:
+    if not (active or archived or orphan_audits):
         print("Nothing to clean.")
         return
 
     # 2. Collect all files to delete
     to_delete: list[str] = []
-    for fpath, fname in all_sessions:
+
+    # From sessions
+    for fpath, fname in active + archived:
         to_delete.append(fpath)
         parsed = parse_session_name(fname)
         if parsed:
             symbol, ts = parsed
+            to_delete.extend(find_derived_artifacts(data_root, version, symbol, ts))
+
+    # From orphan audits
+    for fpath, fname in orphan_audits:
+        to_delete.append(fpath)
+        parsed = parse_audit_name(fname)
+        if parsed:
+            symbol, ts = parsed
+            # Also look for orphan klines/htmls with same timestamp
             to_delete.extend(find_derived_artifacts(data_root, version, symbol, ts))
 
     # Dedup
