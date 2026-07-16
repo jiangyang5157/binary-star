@@ -26,7 +26,7 @@ XAUTUSDT:
       risk:
         min_rr_ranging: 1.1
         min_rr_trending: 1.3
-        stop_loss_buffer_min: 1.6
+        stop_loss_buffer_min: 1.5
 
 BTCUSDT:
   precision_qty: 4           # Decimal places for order quantity
