@@ -124,7 +124,12 @@ class AuditAssembler:
             "execution_forensics": {},
             "trade_execution_metrics": None # No entry, no execution.
         }
-        
+
+        # Compute MFE for NEUTRAL sessions (directional sessions overwrite this below).
+        # MFE = max move from T0 price in either direction, in ATR units.
+        neutral_mfe = max(max_price - entry_price, entry_price - min_price)
+        market_forensics["max_favorable_runup_atr"] = round(neutral_mfe / max_atr, 4) if max_atr > 0 else 0
+
         if opinion in ('BULLISH', 'BEARISH'):
             tactical = final_decision.get('tactical_parameters', {})
             planned_entry = float(tactical.get('entry', entry_price))
