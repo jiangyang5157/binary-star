@@ -472,14 +472,14 @@ def compute_evolver_states(
     # IS_CATASTROPHIC_MISS split: NEUTRAL (sat out) vs directional unfilled (couldn't reach entry)
     is_catastrophic_neutral_miss = any(
         (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() == "NEUTRAL"
-        and r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
+        and r.get("market_outcome", {}).get("forensic_verdict", {}).get("is_catastrophic_miss") is True
         for r in audit_reports
     )
 
     is_catastrophic_unfilled_miss = any(
         (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() != "NEUTRAL"
         and not r.get("market_outcome", {}).get("is_filled")
-        and r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
+        and r.get("market_outcome", {}).get("forensic_verdict", {}).get("is_catastrophic_miss") is True
         for r in audit_reports
     )
 

@@ -247,7 +247,7 @@ def list_audits(
             outcome = audit.get("market_outcome", {})
             forensics = outcome.get("market_forensics", {})
             metrics = outcome.get("trade_execution_metrics", {})
-            verdict = audit.get("forensic_verdict", {})
+            verdict = outcome.get("forensic_verdict", {})
 
             opinion = (decision.get("opinion") or "").upper()
             tp_params = decision.get("tactical_parameters", {})

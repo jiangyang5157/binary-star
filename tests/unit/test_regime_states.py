@@ -458,10 +458,10 @@ def _make_audit_report(**overrides):
                 "projected_holding_hours": 4.0,
                 "temporal_dilation_regime": "temporal_dilation_standard",
             },
-        },
-        "forensic_verdict": {
-            "is_justified_surrender": False,
-            "is_catastrophic_miss": False,
+            "forensic_verdict": {
+                "is_justified_surrender": False,
+                "is_catastrophic_miss": False,
+            },
         },
     }
     if overrides:
@@ -687,9 +687,11 @@ class TestEvolverStates:
         reports = [
             _make_audit_report(
                 **{
-                    "forensic_verdict": {
-                        "is_catastrophic_miss": True,
-                        "is_justified_surrender": False,
+                    "market_outcome": {
+                        "forensic_verdict": {
+                            "is_catastrophic_miss": True,
+                            "is_justified_surrender": False,
+                        },
                     },
                 },
             ),
@@ -717,10 +719,10 @@ class TestEvolverStates:
                     },
                     "market_outcome": {
                         "is_filled": False,
-                    },
-                    "forensic_verdict": {
-                        "is_catastrophic_miss": True,
-                        "is_justified_surrender": False,
+                        "forensic_verdict": {
+                            "is_catastrophic_miss": True,
+                            "is_justified_surrender": False,
+                        },
                     },
                 },
             ),
