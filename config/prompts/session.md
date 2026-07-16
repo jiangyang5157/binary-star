@@ -118,7 +118,7 @@ Your final response MUST be RAW JSON only. Do not output JSON until all necessar
         "projected_holding_hours": decimal,
         "projected_waiting_hours": decimal
     }},
-    "reasoning_chain": "Step-by-step logic summary — why this direction, entry coordinates, and strategy. Focus on trading thesis.",
+    "reasoning_chain": "Step-by-step logic summary. Cover: (1) key visual observations from chart snapshots, (2) why this direction, (3) why this entry price over the nearest alternative anchor, (4) anchor selection rationale for stop-loss shield, (5) what specific condition would invalidate this thesis. Focus on trading thesis.",
     "critic_impact": "Summary of repairs based on {debate_history_json}. If `IS_PLANNING`, MUST be JSON null. Otherwise, summarize how you addressed the historical tags and audit_evidence."
 }}
 ```
