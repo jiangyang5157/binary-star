@@ -21,8 +21,8 @@ XAUTUSDT:
       net_qty_tolerance: 0.0001
     regime_parameters:
       micro_sentiment:
-        cvd_intensity_threshold: 0.25
-        cvd_intensity_extreme: 0.5
+        cvd_intensity_threshold: 0.18   # 从 0.25 降下来。XAUT |CVD| P75=0.15, P90=0.18，0.25 已是 P95 太保守。对齐 P85 作为"显著"基准
+        cvd_intensity_extreme: 0.22   # 从 base 0.5 降下来，对齐 sniper cvd_extreme_threshold。XAUT |CVD| max=0.35，0.5 永远触发不了 cvd_absorption。
       risk:
         min_rr_ranging: 1.1
         min_rr_trending: 1.3
@@ -30,6 +30,7 @@ XAUTUSDT:
     sniper:
       signal_stack:
         thresholds:
+          cvd_extreme_threshold: 0.22   # XAUT |CVD| 中位 0.12，全局 0.36 太高（对标 BTC）。0.22 ≈ P93，5.7% pulses 触发。
           large_trade_zscore: 1.5   # XAUT 大单规模分散，Z-score 极少到 2.0。降到 1.5 适配低波动资产的机构活动特征。
 
 BTCUSDT:
@@ -65,3 +66,5 @@ BTCUSDT:
           cvd_divergence_tick_delta: 0.25 # BTC 波动大，稍宽避免误触发
           cvd_extreme_threshold: 0.18 # 适配 BTC 高流动性低噪声
           large_trade_zscore: 2.0 # BTC 实测 Z=3-4，经常触发，够了
+        cooldown:
+          stacked_break_count: 4   # BTC 经常 3 信号同时触发，命中全局 3。提到 4 防止 ranging 40min cooldown 形同虚设。
