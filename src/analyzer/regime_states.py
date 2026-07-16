@@ -346,7 +346,12 @@ def compute_evolver_states(
             "IS_LOGIC_COWARDICE": False,
             "HAS_STRUCTURAL_AMNESTY": False,
             "IS_PROFIT_EVAPORATION": False,
-            "IS_CATASTROPHIC_MISS": False,
+            "IS_CATASTROPHIC_NEUTRAL_MISS": False,
+            "IS_CATASTROPHIC_UNFILLED_MISS": False,
+            "fill_rate_pct": 0,
+            "near_miss_rate": 0,
+            "mae_stress_distribution": {"PINPOINT": 0, "STANDARD": 0, "LUCK": 0, "FAILURE": 0},
+            "cowardice_tag_rate": 0,
             "time_calibration_report": empty_regimes,
         }
 
@@ -420,11 +425,55 @@ def compute_evolver_states(
             is_profit_evaporation = True
             break
 
-    # IS_CATASTROPHIC_MISS: pre-computed by AuditAssembler for NEUTRAL or unfilled
-    # sessions where the market moved beyond the target. Uses ATR-based threshold
-    # rather than re-deriving TP distance from tactical parameters.
-    is_catastrophic_miss = any(
-        r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
+    # ── Batch forensic stats ─────────────────────────────────────
+
+    # fill_rate_pct: directional session fill rate
+    directional = [r for r in audit_reports
+        if (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() != "NEUTRAL"]
+    filled = [r for r in directional
+        if r.get("market_outcome", {}).get("is_filled")]
+    fill_rate_pct = round(len(filled) / len(directional) * 100, 1) if directional else 0
+
+    # near_miss_rate: of unfilled sessions, % where entry was close to filling
+    unfilled = [r for r in directional
+        if not r.get("market_outcome", {}).get("is_filled")]
+    near_miss = [r for r in unfilled
+        if r.get("market_outcome", {}).get("execution_forensics", {}).get("is_near_miss")]
+    near_miss_rate = round(len(near_miss) / len(unfilled) * 100, 1) if unfilled else 0
+
+    # mae_stress_distribution: counts per tier across all filled trades
+    distribution = {"PINPOINT": 0, "STANDARD": 0, "LUCK": 0, "FAILURE": 0}
+    for r in audit_reports:
+        tier = (r.get("market_outcome", {}).get("trade_execution_metrics", {}) or {}).get("mae_stress_tier", "")
+        if tier in distribution:
+            distribution[tier] += 1
+    mae_stress_distribution = distribution
+
+    # cowardice_tag_rate: % of NEUTRAL sessions where Critic flagged inaction
+    neutral_sessions = [r for r in audit_reports
+        if (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() == "NEUTRAL"]
+    cowardice_count = 0
+    for r in neutral_sessions:
+        history = r.get("session", {}).get("debate_history", []) or []
+        for entry in history:
+            critic = entry.get("critic", {}) if isinstance(entry, dict) else {}
+            for inv in (critic.get("invalidations", []) or []):
+                tag = str(inv).split(" - ")[0].strip() if " - " in str(inv) else str(inv)
+                if tag in cowardice_tags:
+                    cowardice_count += 1
+                    break
+    cowardice_tag_rate = round(cowardice_count / len(neutral_sessions) * 100, 1) if neutral_sessions else 0
+
+    # IS_CATASTROPHIC_MISS split: NEUTRAL (sat out) vs directional unfilled (couldn't reach entry)
+    is_catastrophic_neutral_miss = any(
+        (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() == "NEUTRAL"
+        and r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
+        for r in audit_reports
+    )
+
+    is_catastrophic_unfilled_miss = any(
+        (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() != "NEUTRAL"
+        and r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
         for r in audit_reports
     )
 
@@ -438,6 +487,11 @@ def compute_evolver_states(
         "IS_LOGIC_COWARDICE": is_logic_cowardice,
         "HAS_STRUCTURAL_AMNESTY": has_structural_amnesty,
         "IS_PROFIT_EVAPORATION": is_profit_evaporation,
-        "IS_CATASTROPHIC_MISS": is_catastrophic_miss,
+        "IS_CATASTROPHIC_NEUTRAL_MISS": is_catastrophic_neutral_miss,
+        "IS_CATASTROPHIC_UNFILLED_MISS": is_catastrophic_unfilled_miss,
+        "fill_rate_pct": fill_rate_pct,
+        "near_miss_rate": near_miss_rate,
+        "mae_stress_distribution": mae_stress_distribution,
+        "cowardice_tag_rate": cowardice_tag_rate,
         "time_calibration_report": time_cal,
     }

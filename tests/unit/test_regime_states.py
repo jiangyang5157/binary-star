@@ -683,7 +683,7 @@ class TestEvolverStates:
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_PROFIT_EVAPORATION"] is True  # 0.8 >= 0.6 * 1.33
 
-    def test_is_catastrophic_miss_true(self):
+    def test_is_catastrophic_neutral_miss_true(self):
         reports = [
             _make_audit_report(
                 **{
@@ -695,16 +695,255 @@ class TestEvolverStates:
             ),
         ]
         result = compute_evolver_states(reports, _make_audit_config())
-        assert result["IS_CATASTROPHIC_MISS"] is True
+        # Default opinion is NEUTRAL, so this should be a neutral miss
+        assert result["IS_CATASTROPHIC_NEUTRAL_MISS"] is True
+        assert result["IS_CATASTROPHIC_UNFILLED_MISS"] is False
 
-    def test_returns_all_8_evolver_keys(self):
+    def test_is_catastrophic_unfilled_miss_true(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BULLISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 93000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                    "forensic_verdict": {
+                        "is_catastrophic_miss": True,
+                        "is_justified_surrender": False,
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["IS_CATASTROPHIC_NEUTRAL_MISS"] is False
+        assert result["IS_CATASTROPHIC_UNFILLED_MISS"] is True
+
+    def test_fill_rate_pct_all_filled(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BULLISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 93000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["fill_rate_pct"] == 100.0
+
+    def test_fill_rate_pct_half_filled(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BULLISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 93000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                    "market_outcome": {"is_filled": False},
+                },
+            ),
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BEARISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 87000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["fill_rate_pct"] == 50.0
+
+    def test_fill_rate_pct_excludes_neutral(self):
+        """NEUTRAL sessions don't count toward fill rate."""
+        reports = [
+            _make_audit_report(),  # default NEUTRAL
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["fill_rate_pct"] == 0  # no directional sessions
+
+    def test_near_miss_rate(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BULLISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 93000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                    "market_outcome": {
+                        "is_filled": False,
+                        "execution_forensics": {"is_near_miss": True},
+                    },
+                },
+            ),
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BEARISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 87000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                    "market_outcome": {
+                        "is_filled": False,
+                        "execution_forensics": {"is_near_miss": False},
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["near_miss_rate"] == 50.0
+
+    def test_near_miss_rate_no_unfilled(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BULLISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 93000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["near_miss_rate"] == 0  # all filled, no unfilled
+
+    def test_mae_stress_distribution(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "market_outcome": {
+                        "trade_execution_metrics": {"mae_stress_tier": "PINPOINT"},
+                    },
+                },
+            ),
+            _make_audit_report(
+                **{
+                    "market_outcome": {
+                        "trade_execution_metrics": {"mae_stress_tier": "STANDARD"},
+                    },
+                },
+            ),
+            _make_audit_report(
+                **{
+                    "market_outcome": {
+                        "trade_execution_metrics": {"mae_stress_tier": "LUCK"},
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["mae_stress_distribution"] == {
+            "PINPOINT": 1, "STANDARD": 1, "LUCK": 1, "FAILURE": 0,
+        }
+
+    def test_cowardice_tag_rate(self):
+        # 2 NEUTRAL sessions, 1 has cowardice tag
+        reports = [
+            _make_audit_report(),  # default: NEUTRAL + INACTION_BIAS
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {"opinion": "NEUTRAL"},
+                        "debate_history": [
+                            {"critic": {"invalidations": ["[TREND_STARVATION] - ..."]}},
+                        ],
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        # Both default and this one have cowardice tags → 100%
+        # Actually default already has INACTION_BIAS → still 100%
+        assert result["cowardice_tag_rate"] == 100.0
+
+    def test_cowardice_tag_rate_no_neutral(self):
+        reports = [
+            _make_audit_report(
+                **{
+                    "session": {
+                        "final_decision": {
+                            "opinion": "BULLISH",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 93000.0},
+                        },
+                        "debate_history": [],
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                },
+            ),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["cowardice_tag_rate"] == 0  # no NEUTRAL sessions
+
+    def test_returns_all_evolver_keys(self):
         reports = [_make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}})]
         result = compute_evolver_states(reports, _make_audit_config())
         expected = {
             "IS_BATCH_SIGNIFICANT", "IS_FAILURE_RATIO_ALARM",
             "HAS_SYSTEMIC_PATHOLOGY", "IS_LOGIC_COWARDICE",
             "HAS_STRUCTURAL_AMNESTY", "IS_PROFIT_EVAPORATION",
-            "IS_CATASTROPHIC_MISS",
+            "IS_CATASTROPHIC_NEUTRAL_MISS", "IS_CATASTROPHIC_UNFILLED_MISS",
+            "fill_rate_pct", "near_miss_rate",
+            "mae_stress_distribution", "cowardice_tag_rate",
             "time_calibration_report",
         }
         assert set(result.keys()) == expected
