@@ -231,7 +231,6 @@
     function updateAllCharts(threshold) {
       const trades = filteredTrades;
       const filledTrades = trades.filter(t => t.is_filled);
-      const orderedTrades = trades.filter(t => t.opinion !== 'NEUTRAL');
 
       if (!filledTrades.length) {
         for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-mdd', 'kpi-winloss', 'kpi-fillrate', 'kpi-mfeeff', 'kpi-maestress']) {
