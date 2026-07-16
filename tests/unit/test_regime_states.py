@@ -5,6 +5,7 @@ from src.analyzer.regime_states import (
     compute_session_states,
     compute_critic_states,
     compute_evolver_states,
+    compute_time_calibration,
     _format_states,
 )
 from src.config.sub_configs import RegimeConfig, RiskConfig, AuditConfig
@@ -466,6 +467,155 @@ def _make_audit_report(**overrides):
     if overrides:
         _deep_update(base, overrides)
     return base
+
+
+# ── Time calibration ──────────────────────────────────────────
+
+class TestTimeCalibration:
+    def test_empty_reports(self):
+        result = compute_time_calibration([])
+        for regime in result.values():
+            assert regime["samples"] == 0
+            assert regime["avg_time_error_pct"] is None
+
+    def test_skips_sl_hit(self):
+        reports = [
+            {
+                "market_outcome": {
+                    "tp_sl_result": "SL_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 1.0,
+                        "projected_holding_hours": 5.0,
+                        "temporal_dilation_regime": "temporal_dilation_standard",
+                    },
+                },
+            },
+        ]
+        result = compute_time_calibration(reports)
+        assert result["temporal_dilation_standard"]["samples"] == 0
+
+    def test_skips_neither(self):
+        reports = [
+            {
+                "market_outcome": {
+                    "tp_sl_result": "NEITHER",
+                    "is_filled": True,
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 6.0,
+                        "projected_holding_hours": 5.0,
+                        "temporal_dilation_regime": "temporal_dilation_standard",
+                    },
+                },
+            },
+        ]
+        result = compute_time_calibration(reports)
+        assert result["temporal_dilation_standard"]["samples"] == 0
+
+    def test_single_tp_hit_positive_error(self):
+        reports = [
+            {
+                "market_outcome": {
+                    "tp_sl_result": "TP_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 6.0,
+                        "projected_holding_hours": 5.0,
+                        "temporal_dilation_regime": "temporal_dilation_highway",
+                    },
+                },
+            },
+        ]
+        result = compute_time_calibration(reports)
+        assert result["temporal_dilation_highway"]["samples"] == 1
+        assert result["temporal_dilation_highway"]["avg_time_error_pct"] == 20.0
+
+    def test_single_tp_hit_negative_error(self):
+        reports = [
+            {
+                "market_outcome": {
+                    "tp_sl_result": "TP_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 3.0,
+                        "projected_holding_hours": 5.0,
+                        "temporal_dilation_regime": "temporal_dilation_dead_water",
+                    },
+                },
+            },
+        ]
+        result = compute_time_calibration(reports)
+        assert result["temporal_dilation_dead_water"]["samples"] == 1
+        assert result["temporal_dilation_dead_water"]["avg_time_error_pct"] == -40.0
+
+    def test_multi_regime_aggregation(self):
+        reports = [
+            {
+                "market_outcome": {
+                    "tp_sl_result": "TP_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 10.0,
+                        "projected_holding_hours": 8.0,
+                        "temporal_dilation_regime": "temporal_dilation_highway",
+                    },
+                },
+            },
+            {
+                "market_outcome": {
+                    "tp_sl_result": "TP_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 16.0,
+                        "projected_holding_hours": 10.0,
+                        "temporal_dilation_regime": "temporal_dilation_highway",
+                    },
+                },
+            },
+            {
+                "market_outcome": {
+                    "tp_sl_result": "TP_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 5.0,
+                        "projected_holding_hours": 10.0,
+                        "temporal_dilation_regime": "temporal_dilation_standard",
+                    },
+                },
+            },
+        ]
+        result = compute_time_calibration(reports)
+        # highway: (25% + 60%) / 2 = 42.5%
+        assert result["temporal_dilation_highway"]["samples"] == 2
+        assert abs(result["temporal_dilation_highway"]["avg_time_error_pct"] - 42.5) < 0.1
+        # standard: -50%
+        assert result["temporal_dilation_standard"]["samples"] == 1
+        assert result["temporal_dilation_standard"]["avg_time_error_pct"] == -50.0
+        # dead_water: 0
+        assert result["temporal_dilation_dead_water"]["samples"] == 0
+        # climax: 0
+        assert result["temporal_dilation_climax"]["samples"] == 0
+
+    def test_evolver_states_includes_time_calibration(self):
+        reports = [
+            _make_audit_report(**{
+                "market_outcome": {
+                    "tp_sl_result": "TP_HIT",
+                    "trade_execution_metrics": {
+                        "actual_holding_hours": 6.0,
+                        "projected_holding_hours": 5.0,
+                        "temporal_dilation_regime": "temporal_dilation_standard",
+                    },
+                },
+            }),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["REQUIRES_TIME_RECALIBRATION"] is True
+        assert result["time_calibration_report"]["temporal_dilation_standard"]["samples"] == 1
+        assert result["time_calibration_report"]["temporal_dilation_standard"]["avg_time_error_pct"] == 20.0
+
+    def test_evolver_states_no_time_data(self):
+        reports = [
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
+        ]
+        result = compute_evolver_states(reports, _make_audit_config())
+        assert result["REQUIRES_TIME_RECALIBRATION"] is False
+        for regime in result["time_calibration_report"].values():
+            assert regime["samples"] == 0
 
 
 class TestEvolverStates:
