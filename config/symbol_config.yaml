@@ -62,5 +62,6 @@ BTCUSDT:
     sniper:
       signal_stack:
         thresholds:
-          cvd_divergence_tick_delta: 0.25 # 高流动性资产 CVD 信号更干净，降低门槛以捕捉更早的背离。
-          cvd_extreme_threshold: 0.18
+          cvd_divergence_tick_delta: 0.25 # BTC 波动大，稍宽避免误触发
+          cvd_extreme_threshold: 0.18 # 适配 BTC 高流动性低噪声
+          large_trade_zscore: 2.0 # BTC 实测 Z=3-4，经常触发，够了
