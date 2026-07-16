@@ -399,14 +399,18 @@ def compute_evolver_states(
             has_structural_amnesty = True
             break
 
-    # IS_PROFIT_EVAPORATION: outcome=NEITHER AND MFE >= 60% of TP distance
+    # IS_PROFIT_EVAPORATION: outcome=NEITHER AND MFE >= 60% of TP distance.
+    # NEUTRAL sessions excluded — no position was entered, no profit to evaporate.
     is_profit_evaporation = False
     for r in audit_reports:
         outcome = r.get("market_outcome", {})
         if (outcome.get("tp_sl_result") or "").upper() != "NEITHER":
             continue
-        mfe_atr = float(outcome.get("market_forensics", {}).get("max_favorable_runup_atr", 0))
         session = r.get("session", {})
+        opinion = (session.get("final_decision", {}).get("opinion") or "").upper()
+        if opinion == "NEUTRAL":
+            continue
+        mfe_atr = float(outcome.get("market_forensics", {}).get("max_favorable_runup_atr", 0))
         tp_params = session.get("final_decision", {}).get("tactical_parameters", {})
         entry = float(tp_params.get("entry") or 0)
         tp = float(tp_params.get("take_profit") or 0)
@@ -416,23 +420,13 @@ def compute_evolver_states(
             is_profit_evaporation = True
             break
 
-    # IS_CATASTROPHIC_MISS: NEUTRAL or unfilled + market moved beyond target
-    is_catastrophic_miss = False
-    for r in audit_reports:
-        outcome = r.get("market_outcome", {})
-        result = (outcome.get("tp_sl_result") or "").upper()
-        if result not in ("NEUTRAL", "UNFILLED"):
-            continue
-        mfe_atr = float(outcome.get("market_forensics", {}).get("max_favorable_runup_atr", 0))
-        session = r.get("session", {})
-        tp_params = session.get("final_decision", {}).get("tactical_parameters", {})
-        entry = float(tp_params.get("entry") or 0)
-        tp = float(tp_params.get("take_profit") or 0)
-        atr = float(session.get("observation", {}).get("quantitative_metrics", {}).get("price_dynamics", {}).get("atr_macro", 1.0))
-        tp_distance_atr = abs(tp - entry) / atr if atr > 0 else 1.0
-        if mfe_atr > tp_distance_atr:
-            is_catastrophic_miss = True
-            break
+    # IS_CATASTROPHIC_MISS: pre-computed by AuditAssembler for NEUTRAL or unfilled
+    # sessions where the market moved beyond the target. Uses ATR-based threshold
+    # rather than re-deriving TP distance from tactical parameters.
+    is_catastrophic_miss = any(
+        r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
+        for r in audit_reports
+    )
 
     # Time calibration
     time_cal = compute_time_calibration(audit_reports)

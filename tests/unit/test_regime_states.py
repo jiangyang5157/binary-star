@@ -668,6 +668,7 @@ class TestEvolverStates:
                     },
                     "session": {
                         "final_decision": {
+                            "opinion": "BULLISH",
                             "tactical_parameters": {"entry": 90000.0, "take_profit": 90400.0},
                         },
                         "observation": {
@@ -686,20 +687,9 @@ class TestEvolverStates:
         reports = [
             _make_audit_report(
                 **{
-                    "market_outcome": {
-                        "tp_sl_result": "NEUTRAL",
-                        "market_forensics": {"max_favorable_runup_atr": 1.5},
-                    },
-                    "session": {
-                        "final_decision": {
-                            "opinion": "NEUTRAL",
-                            "tactical_parameters": {"entry": 90000.0, "take_profit": 90400.0},
-                        },
-                        "observation": {
-                            "quantitative_metrics": {
-                                "price_dynamics": {"atr_macro": 300.0},
-                            },
-                        },
+                    "forensic_verdict": {
+                        "is_catastrophic_miss": True,
+                        "is_justified_surrender": False,
                     },
                 },
             ),
