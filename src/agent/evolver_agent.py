@@ -137,7 +137,7 @@ class EvolverAgent(BaseAgent):
                 volatility_extreme_ratio=active_config.get('regime_parameters', {}).get('volatility', {}).get('volatility_extreme_ratio'),
                 structural_buffer_atr=active_config.get('regime_parameters', {}).get('structural', {}).get('structural_buffer_atr'),
                 stop_loss_buffer_min=active_config.get('regime_parameters', {}).get('risk', {}).get('stop_loss_buffer_min'),
-                max_holding_hours=active_config.get('regime_parameters', {}).get('risk', {}).get('max_holding_hours', 72.0),
+                max_holding_hours=active_config.get('regime_parameters', {}).get('risk', {}).get('max_holding_hours'),
                 mae_threshold_pinpoint=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_pinpoint'),
                 mae_threshold_standard=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_standard'),
                 mae_threshold_luck=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_luck'),
