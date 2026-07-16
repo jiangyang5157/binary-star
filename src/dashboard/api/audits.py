@@ -197,6 +197,7 @@ def get_trades(
             tp_sl_result = outcome.get("tp_sl_result", "NEITHER")
             forensics = outcome.get("market_forensics") or {}
             exit_price = float(forensics.get("price_at_t1") or entry_price)
+            metrics = outcome.get("trade_execution_metrics") or {}
 
             pnl = _compute_pnl(
                 entry_price=entry_price,
@@ -218,6 +219,8 @@ def get_trades(
                 "projected_holding_hours": tp_params.get("projected_holding_hours") or 0,
                 "session_filename": f.name,
                 "version": _extract_version(session),
+                "mfe_efficiency_pct": metrics.get("mfe_efficiency_pct") if metrics else None,
+                "mae_stress_tier": metrics.get("mae_stress_tier") if metrics else None,
             })
         except Exception:
             continue
