@@ -115,6 +115,12 @@ class EvolverAgent(BaseAgent):
             time_cal = evolver_states.pop("time_calibration_report", {})
             time_cal_json = compact_json(time_cal)
 
+            # Extract batch forensic stats before formatting evolver_states for injection
+            fill_rate_pct = evolver_states.pop("fill_rate_pct", 0)
+            near_miss_rate = evolver_states.pop("near_miss_rate", 0)
+            mae_stress_distribution = evolver_states.pop("mae_stress_distribution", {})
+            cowardice_tag_rate = evolver_states.pop("cowardice_tag_rate", 0)
+
             # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
             for module, content in current_instructions.items():
@@ -132,6 +138,10 @@ class EvolverAgent(BaseAgent):
                 strategy_intent=active_config.get('strategy_intent', "N/A"),
                 precomputed_evolver_states=_format_states(evolver_states),
                 time_calibration_report=time_cal_json,
+                fill_rate_pct=fill_rate_pct,
+                near_miss_rate=near_miss_rate,
+                mae_stress_distribution=mae_stress_distribution,
+                cowardice_tag_rate=cowardice_tag_rate,
                 regime_parameters=active_config.get('regime_parameters', {}),
                 trend_intensity_threshold=active_config.get('regime_parameters', {}).get('trend', {}).get('trend_intensity_threshold'),
                 volatility_extreme_ratio=active_config.get('regime_parameters', {}).get('volatility', {}).get('volatility_extreme_ratio'),
