@@ -604,7 +604,6 @@ class TestTimeCalibration:
             }),
         ]
         result = compute_evolver_states(reports, _make_audit_config())
-        assert result["REQUIRES_TIME_RECALIBRATION"] is True
         assert result["time_calibration_report"]["temporal_dilation_standard"]["samples"] == 1
         assert result["time_calibration_report"]["temporal_dilation_standard"]["avg_time_error_pct"] == 20.0
 
@@ -613,7 +612,6 @@ class TestTimeCalibration:
             _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
         ]
         result = compute_evolver_states(reports, _make_audit_config())
-        assert result["REQUIRES_TIME_RECALIBRATION"] is False
         for regime in result["time_calibration_report"].values():
             assert regime["samples"] == 0
 
@@ -709,14 +707,14 @@ class TestEvolverStates:
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_CATASTROPHIC_MISS"] is True
 
-    def test_returns_all_9_evolver_keys(self):
+    def test_returns_all_8_evolver_keys(self):
         reports = [_make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}})]
         result = compute_evolver_states(reports, _make_audit_config())
         expected = {
             "IS_BATCH_SIGNIFICANT", "IS_FAILURE_RATIO_ALARM",
             "HAS_SYSTEMIC_PATHOLOGY", "IS_LOGIC_COWARDICE",
             "HAS_STRUCTURAL_AMNESTY", "IS_PROFIT_EVAPORATION",
-            "IS_CATASTROPHIC_MISS", "REQUIRES_TIME_RECALIBRATION",
+            "IS_CATASTROPHIC_MISS",
             "time_calibration_report",
         }
         assert set(result.keys()) == expected

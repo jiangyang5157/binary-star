@@ -7,6 +7,7 @@ from src.infrastructure.ai_client import AbstractAIClient
 from src.agent.base_agent import BaseAgent, AgentConfig
 from src.utils.path_utils import resolve_project_root
 from src.utils.rate_limiter import CongestionController
+from src.utils.json_utils import compact_json
 from src.analyzer.regime_states import compute_evolver_states, _format_states
 
 logger = logging.getLogger("EvolverAgent")
@@ -112,7 +113,7 @@ class EvolverAgent(BaseAgent):
             )
             evolver_states = compute_evolver_states(audit_reports, audit_cfg)
             time_cal = evolver_states.pop("time_calibration_report", {})
-            time_cal_json = json.dumps(time_cal, indent=2)
+            time_cal_json = compact_json(time_cal)
 
             # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
@@ -136,6 +137,7 @@ class EvolverAgent(BaseAgent):
                 volatility_extreme_ratio=active_config.get('regime_parameters', {}).get('volatility', {}).get('volatility_extreme_ratio'),
                 structural_buffer_atr=active_config.get('regime_parameters', {}).get('structural', {}).get('structural_buffer_atr'),
                 stop_loss_buffer_min=active_config.get('regime_parameters', {}).get('risk', {}).get('stop_loss_buffer_min'),
+                max_holding_hours=active_config.get('regime_parameters', {}).get('risk', {}).get('max_holding_hours', 72.0),
                 mae_threshold_pinpoint=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_pinpoint'),
                 mae_threshold_standard=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_standard'),
                 mae_threshold_luck=active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_luck'),

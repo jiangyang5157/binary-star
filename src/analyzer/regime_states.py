@@ -347,7 +347,6 @@ def compute_evolver_states(
             "HAS_STRUCTURAL_AMNESTY": False,
             "IS_PROFIT_EVAPORATION": False,
             "IS_CATASTROPHIC_MISS": False,
-            "REQUIRES_TIME_RECALIBRATION": False,
             "time_calibration_report": empty_regimes,
         }
 
@@ -437,8 +436,6 @@ def compute_evolver_states(
 
     # Time calibration
     time_cal = compute_time_calibration(audit_reports)
-    any_samples = any(r["samples"] > 0 for r in time_cal.values())
-    requires_time_recal = any_samples
 
     return {
         "IS_BATCH_SIGNIFICANT": is_batch_significant,
@@ -448,6 +445,5 @@ def compute_evolver_states(
         "HAS_STRUCTURAL_AMNESTY": has_structural_amnesty,
         "IS_PROFIT_EVAPORATION": is_profit_evaporation,
         "IS_CATASTROPHIC_MISS": is_catastrophic_miss,
-        "REQUIRES_TIME_RECALIBRATION": requires_time_recal,
         "time_calibration_report": time_cal,
     }

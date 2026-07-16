@@ -18,7 +18,6 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 - `IS_PHANTOM_ORDER_BIAS`: The Session routinely proposes `entry` coordinates
   > 1.0 ATR away from `current_price` to artificially satisfy RR requirements,
   resulting in missed fills.
-- `REQUIRES_TIME_RECALIBRATION`: At least one regime has ≥1 TP_HIT sample. Analyze `{time_calibration_report}` to identify which regimes need adjustment. Respect sample count — low-n regimes may be noise.
 
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
 - **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated noise. A mutation is only ALLOWED if `HAS_SYSTEMIC_PATHOLOGY` is TRUE. This requires the failure to meet BOTH the minimum instance count AND the batch ratio threshold simultaneously. Consistent noise is not a pathology; it is a statistical necessity.
@@ -82,12 +81,12 @@ These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
   - Logic: If the system is suffering from Opportunity Cost (missing fills or letting huge MFE evaporate), lower the structural barriers to entry and exit.
   - Schema: Use `config_patch` to loosen RR constraints (`min_rr_ranging`) or reduce `breakout_frontrun_atr`.
 - **`RECALIBRATE_TIME`**: Mutation of temporal physics parameters.
-  - **Trigger**: `REQUIRES_TIME_RECALIBRATION` is TRUE.
+  - **Trigger**: At least one regime in `{time_calibration_report}` has ≥1 TP_HIT sample. Respect sample count — low-n regimes may be noise.
   - **Input**: Analyze `{time_calibration_report}` — keyed by regime, each with `avg_time_error_pct` (signed) and `samples`.
   - **Primary Target — Dilation** (`temporal_dilation_*`):
     Controls the safety buffer on projected holding time. Positive `avg_time_error_pct` means trades took longer than projected → increase dilation. Negative means trades finished faster → dilation too generous, decrease it. Rule of thumb: `new ≈ old × (1 + avg_time_error_pct / 100)`. Respect sample count — low-n regimes (n ≤ 2) may be noise; use your judgment from `{audit_reports_json}` to corroborate.
   - **Secondary Target — Weight** (`temporal_weight_*`):
-    Controls the maximum holding window (72h × weight). Do NOT calibrate weight from `avg_time_error_pct` alone — it tells you about speed, not about whether the window is adequate. Only adjust weight if qualitative evidence from `{audit_reports_json}` shows systematic patterns:
+    Controls the maximum holding window (`{max_holding_hours}`h × weight). Do NOT calibrate weight from `avg_time_error_pct` alone — it tells you about speed, not about whether the window is adequate. Only adjust weight if qualitative evidence from `{audit_reports_json}` shows systematic patterns:
     - **Increase weight** when NEITHER trades show strong MFE (price reached near TP but ran out of time) — the window is too tight.
     - **Decrease weight** when SL_HIT trades occur very late with weak MFE — the system was given excessive leash and bled out slowly.
   - **Schema**: Use `config_patch`. `target_path: "temporal_parameters.dilation"` or `target_path: "temporal_parameters.weights"`. One action may patch one or both groups.
