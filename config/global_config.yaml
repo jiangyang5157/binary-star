@@ -13,7 +13,7 @@ llm:
   # --- Central Neural Infrastructure ---
   active_provider: "deepseek" # "gemini", "deepseek"
   api_timeout_seconds: 180
-  max_tool_iterations: 8
+  max_tool_iterations: 5
   retry_count: 3
   retry_strategy:
     multiplier: 2
@@ -46,7 +46,7 @@ llm:
 # ═══════════════════════════════════════════════════════════════════════════
 binary_star:
   system_instruction: "config/prompts/binary_star.md"
-  max_rounds: 3
+  max_rounds: 2
   confidence_threshold: 40
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -243,7 +243,7 @@ sandbox:
     tp_hit: 100.0      # perfect execution — hit take-profit
     neutral: 50.0       # disciplined inaction — avoided a bad trade
     neither: 40.0       # expired unresolved — indecisive
-    sl_hit: 25.0        # stopped out — had a plan, market went against it
+    sl_hit: 30.0        # stopped out — had a plan, market went against it
     na: 0.0             # not applicable — un-audited or no trade outcome
 
   # --- Forensic Modifiers ---
