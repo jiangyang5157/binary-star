@@ -24,8 +24,8 @@ XAUTUSDT:
         cvd_intensity_threshold: 0.25
         cvd_intensity_extreme: 0.5
       risk:
-        min_rr_ranging: 1.15
-        min_rr_trending: 1.25
+        min_rr_ranging: 1.1
+        min_rr_trending: 1.3
         stop_loss_buffer_min: 1.6
 
 BTCUSDT:
@@ -52,8 +52,8 @@ BTCUSDT:
         cvd_intensity_threshold: 0.14   # 0.08-0.12
         cvd_intensity_extreme: 0.16     # 0.14-0.18
       risk:
-        min_rr_ranging: 1.25
-        min_rr_trending: 1.45
+        min_rr_ranging: 1.1
+        min_rr_trending: 1.3
         stop_loss_buffer_min: 1.4
     sniper:
       signal_stack:
