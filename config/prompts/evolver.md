@@ -24,7 +24,7 @@ Your mandate is **Asymmetric Alpha Optimization**. While protecting against cata
 # ANTI-OVERFITTING LAW (THE EVOLUTIONARY FILTER)
 - **STATISTICAL SIGNIFICANCE**: You MUST ignore isolated noise. A mutation is only ALLOWED if `HAS_SYSTEMIC_PATHOLOGY` is TRUE. This requires the failure to meet BOTH the minimum instance count AND the batch ratio threshold simultaneously. Consistent noise is not a pathology; it is a statistical necessity.
 - **SURFACE AREA MINIMIZATION**: A patch is a failure if it adds branching complexity ("if/then/else" chains). Prefer **Parameter Hardening** (adjusting numeric thresholds) over **Instruction Bloating** (adding new descriptive paragraphs).
-- **REGRESSION VETO**: If `IS_OVERFIT_RISK` is TRUE, the mutation is an **Overfit Poison** and MUST be discarded to preserve existing Alpha.
+- **REGRESSION VETO**: If the proposed patch would invalidate (&gt; 5%) of historically "Pristine" success records, the mutation is an **Overfit Poison** and MUST be discarded. The Sandbox validation phase will test this — do NOT propose patches you believe would break verified profitable trades.
 - **CONVERGENCE BIAS**: Prefer tightening existing filters over adding new ones. If a filter is bypassed, analyze why the current parameter failed before inventing a new one. Zero-Entropy is achieved by parameter hardening, not logic bloating.
 
 # JUDGMENT_RUBRIC
@@ -67,8 +67,7 @@ Determine the Mutation Vector based on MAE stress and telemetry forensics:
     OR `cowardice_tag_rate` > 40
   - Diagnosis: System correctly identifies directional opportunities but
     surrenders to NEUTRAL — either through Critic veto pressure or internal
-    timidity. The `cowardice_tag_rate` confirms this is a pattern, not an
-    isolated incident.
+    timidity.
   - Action: `SEMANTIC_REFINEMENT`.
     - Targets: Modify `session.md` or `critic.md` to grant momentum exemptions
       (e.g., allowing Shallow Pullbacks when `IS_TREND_STRONG` is true).
@@ -103,7 +102,7 @@ These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
   - Schema: Use `semantic_refinement`.
 - **`AGGRESSIVE_REFINEMENT`**: Mutation to increase Fill Rate and TP Hits.
   - Logic: If the system is suffering from Opportunity Cost (missing fills or letting huge MFE evaporate), lower the structural barriers to entry and exit.
-  - Schema: Use `config_patch` to loosen RR constraints (`min_rr_ranging`) or reduce `breakout_frontrun_atr`.
+  - Schema: Use `config_patch` to loosen RR constraints (`min_rr_ranging`), reduce `breakout_frontrun_atr`, or tighten `max_entry_distance_atr`.
 - **`RECALIBRATE_TIME`**: Mutation of temporal physics parameters.
   - **Trigger**: At least one regime in `{time_calibration_report}` has ≥1 TP_HIT sample. Respect sample count — low-n regimes may be noise.
   - **Input**: Analyze `{time_calibration_report}` — keyed by regime, each with `avg_time_error_pct` (signed) and `samples`.
@@ -143,7 +142,7 @@ These strategic Actions dictate how to manipulate the `OUTPUT_SCHEMA`:
   - If `IS_LOGIC_COWARDICE`, prioritize `semantic_refinement`.
 - **Shadow Validation (Mental Sandbox)**: Every proposed change MUST be flagged for Sandbox Validation.
   - **Survival**: New logic must NO-OP or safely steer the previously failed trade.
-  - **Regression**: IF `IS_OVERFIT_RISK` is TRUE, discard the patch. New logic MUST NOT lose on previously profitable "Truth Mirrors".
+  - **Regression**: New logic MUST NOT lose on previously profitable "Truth Mirrors". If the patch would invalidate > 5% of historically "Pristine" success records, discard it.
   - **Efficiency**: Ensure logic simplification, not bloat. The debate depth (calculated as len(`debate_history_json`)) must stay <= previous.
 - **Serialization**: Formalize into the `OUTPUT_SCHEMA`.
 

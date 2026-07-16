@@ -441,9 +441,11 @@ def compute_evolver_states(
         if r.get("market_outcome", {}).get("execution_forensics", {}).get("is_near_miss")]
     near_miss_rate = round(len(near_miss) / len(unfilled) * 100, 1) if unfilled else 0
 
-    # mae_stress_distribution: counts per tier across all filled trades
+    # mae_stress_distribution: counts per tier across filled trades only
     distribution = {"PINPOINT": 0, "STANDARD": 0, "LUCK": 0, "FAILURE": 0}
     for r in audit_reports:
+        if not r.get("market_outcome", {}).get("is_filled"):
+            continue
         tier = (r.get("market_outcome", {}).get("trade_execution_metrics", {}) or {}).get("mae_stress_tier", "")
         if tier in distribution:
             distribution[tier] += 1
@@ -462,6 +464,9 @@ def compute_evolver_states(
                 if tag in cowardice_tags:
                     cowardice_count += 1
                     break
+            else:
+                continue
+            break
     cowardice_tag_rate = round(cowardice_count / len(neutral_sessions) * 100, 1) if neutral_sessions else 0
 
     # IS_CATASTROPHIC_MISS split: NEUTRAL (sat out) vs directional unfilled (couldn't reach entry)
@@ -473,6 +478,7 @@ def compute_evolver_states(
 
     is_catastrophic_unfilled_miss = any(
         (r.get("session", {}).get("final_decision", {}).get("opinion") or "").upper() != "NEUTRAL"
+        and not r.get("market_outcome", {}).get("is_filled")
         and r.get("forensic_verdict", {}).get("is_catastrophic_miss") is True
         for r in audit_reports
     )

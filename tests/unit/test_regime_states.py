@@ -715,6 +715,9 @@ class TestEvolverStates:
                             },
                         },
                     },
+                    "market_outcome": {
+                        "is_filled": False,
+                    },
                     "forensic_verdict": {
                         "is_catastrophic_miss": True,
                         "is_justified_surrender": False,
