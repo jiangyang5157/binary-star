@@ -111,6 +111,8 @@ class EvolverAgent(BaseAgent):
                 missed_opportunity_atr_threshold=float(active_config.get('audit_review', {}).get('mae', {}).get('missed_opportunity_atr_threshold', 1.0)),
             )
             evolver_states = compute_evolver_states(audit_reports, audit_cfg)
+            time_cal = evolver_states.pop("time_calibration_report", {})
+            time_cal_json = json.dumps(time_cal, indent=2)
 
             # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""
@@ -128,6 +130,7 @@ class EvolverAgent(BaseAgent):
                 current_prompt_md=prompts_md,
                 strategy_intent=active_config.get('strategy_intent', "N/A"),
                 precomputed_evolver_states=_format_states(evolver_states),
+                time_calibration_report=time_cal_json,
                 regime_parameters=active_config.get('regime_parameters', {}),
                 trend_intensity_threshold=active_config.get('regime_parameters', {}).get('trend', {}).get('trend_intensity_threshold'),
                 volatility_extreme_ratio=active_config.get('regime_parameters', {}).get('volatility', {}).get('volatility_extreme_ratio'),
