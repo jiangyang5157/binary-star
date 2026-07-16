@@ -17,6 +17,55 @@ def _format_states(states: dict[str, bool]) -> str:
     return json.dumps(states, indent=2)
 
 
+def compute_time_calibration(
+    audit_reports: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Per-regime signed time error from TP_HIT trades only.
+
+    For each regime (highway/standard/dead_water/climax), collects the
+    percentage difference between actual and projected holding hours for
+    every TP_HIT trade and reports the mean signed error.
+
+    Positive error → trades took longer than projected (dilation too tight).
+    Negative error → trades finished faster than projected (dilation too loose).
+    """
+    # Short alias for the config key
+    regime_keys = [
+        "temporal_dilation_highway",
+        "temporal_dilation_standard",
+        "temporal_dilation_dead_water",
+        "temporal_dilation_climax",
+    ]
+    errors: dict[str, list[float]] = {k: [] for k in regime_keys}
+
+    for r in audit_reports:
+        outcome = r.get("market_outcome", {})
+        if outcome.get("tp_sl_result") != "TP_HIT":
+            continue
+        metrics = outcome.get("trade_execution_metrics", {})
+        actual = metrics.get("actual_holding_hours")
+        projected = metrics.get("projected_holding_hours")
+        regime = metrics.get("temporal_dilation_regime", "")
+        if (
+            actual is not None
+            and projected is not None
+            and projected > 0
+            and regime in errors
+        ):
+            error_pct = (actual - projected) / projected * 100
+            errors[regime].append(error_pct)
+
+    report: dict[str, dict[str, Any]] = {}
+    for regime in regime_keys:
+        vals = errors[regime]
+        n = len(vals)
+        report[regime] = {
+            "avg_time_error_pct": round(sum(vals) / n, 1) if n > 0 else None,
+            "samples": n,
+        }
+    return report
+
+
 # ── Shared 12 regime states ───────────────────────────────────
 
 def compute_shared_regime_states(
