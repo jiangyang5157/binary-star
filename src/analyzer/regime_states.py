@@ -329,10 +329,16 @@ def compute_critic_states(
 def compute_evolver_states(
     audit_reports: list[dict[str, Any]],
     audit_config,  # AuditConfig
-) -> dict[str, bool]:
-    """Compute 7 batch-level evolver states from audit reports."""
+) -> dict[str, Any]:
+    """Compute batch-level evolver states and time calibration from audit reports."""
     total = len(audit_reports)
     if total == 0:
+        empty_regimes = {
+            "temporal_dilation_highway": {"avg_time_error_pct": None, "samples": 0},
+            "temporal_dilation_standard": {"avg_time_error_pct": None, "samples": 0},
+            "temporal_dilation_dead_water": {"avg_time_error_pct": None, "samples": 0},
+            "temporal_dilation_climax": {"avg_time_error_pct": None, "samples": 0},
+        }
         return {
             "IS_BATCH_SIGNIFICANT": False,
             "IS_FAILURE_RATIO_ALARM": False,
@@ -341,11 +347,13 @@ def compute_evolver_states(
             "HAS_STRUCTURAL_AMNESTY": False,
             "IS_PROFIT_EVAPORATION": False,
             "IS_CATASTROPHIC_MISS": False,
+            "REQUIRES_TIME_RECALIBRATION": False,
+            "time_calibration_report": empty_regimes,
         }
 
     non_profit = sum(
         1 for r in audit_reports
-        if (r.get("outcome") or "").upper() != "PROFIT"
+        if (r.get("market_outcome", {}).get("tp_sl_result") or "").upper() != "TP_HIT"
     )
     is_batch_significant = non_profit >= 2
     is_failure_ratio_alarm = (non_profit / total) > 0.2
@@ -355,10 +363,11 @@ def compute_evolver_states(
     cowardice_tags = {"[INACTION_BIAS]", "[TREND_STARVATION]", "[OPPORTUNITY_DENIAL]"}
     is_logic_cowardice = False
     for r in audit_reports:
-        opinion = (r.get("opinion") or "").upper()
+        session = r.get("session", {})
+        opinion = (session.get("final_decision", {}).get("opinion") or "").upper()
         if opinion != "NEUTRAL":
             continue
-        history = r.get("debate_history", []) or []
+        history = session.get("debate_history", []) or []
         for entry in history:
             critic = entry.get("critic", {}) if isinstance(entry, dict) else {}
             invalids = critic.get("invalidations", []) or []
@@ -372,28 +381,64 @@ def compute_evolver_states(
         if is_logic_cowardice:
             break
 
-    # HAS_STRUCTURAL_AMNESTY: any report with sl_shielded + STANDARD tier
-    has_structural_amnesty = any(
-        r.get("sl_is_shielded") is True
-        and (r.get("mae_stress_tier") or "").upper() == "STANDARD"
-        for r in audit_reports
-    )
+    # HAS_STRUCTURAL_AMNESTY: any filled report where last math_fact_check
+    # confirms sl_shielded AND mae_stress_tier is STANDARD.
+    has_structural_amnesty = False
+    for r in audit_reports:
+        outcome = r.get("market_outcome", {})
+        if not outcome.get("is_filled"):
+            continue
+        session = r.get("session", {})
+        history = session.get("debate_history", []) or []
+        last_mfc = {}
+        if history:
+            last_entry = history[-1] if isinstance(history[-1], dict) else {}
+            last_mfc = last_entry.get("math_fact_check", {}) or {}
+        sl_shielded = last_mfc.get("compliance_verdict", {}).get("sl_is_shielded", False)
+        mae_tier = (outcome.get("trade_execution_metrics", {}).get("mae_stress_tier") or "").upper()
+        if sl_shielded and mae_tier == "STANDARD":
+            has_structural_amnesty = True
+            break
 
     # IS_PROFIT_EVAPORATION: outcome=NEITHER AND MFE >= 60% of TP distance
-    is_profit_evaporation = any(
-        (r.get("outcome") or "").upper() == "NEITHER"
-        and float(r.get("mfe_atr", 0)) >= 0.6 * float(r.get("tp_distance_atr", 1.0))
-        for r in audit_reports
-    )
+    is_profit_evaporation = False
+    for r in audit_reports:
+        outcome = r.get("market_outcome", {})
+        if (outcome.get("tp_sl_result") or "").upper() != "NEITHER":
+            continue
+        mfe_atr = float(outcome.get("market_forensics", {}).get("max_favorable_runup_atr", 0))
+        session = r.get("session", {})
+        tp_params = session.get("final_decision", {}).get("tactical_parameters", {})
+        entry = float(tp_params.get("entry") or 0)
+        tp = float(tp_params.get("take_profit") or 0)
+        atr = float(session.get("observation", {}).get("quantitative_metrics", {}).get("price_dynamics", {}).get("atr_macro", 1.0))
+        tp_distance_atr = abs(tp - entry) / atr if atr > 0 else 1.0
+        if mfe_atr >= 0.6 * tp_distance_atr:
+            is_profit_evaporation = True
+            break
 
     # IS_CATASTROPHIC_MISS: NEUTRAL or unfilled + market moved beyond target
-    is_catastrophic_miss = any(
-        (
-            (r.get("outcome") or "").upper() in ("NEUTRAL", "UNFILLED")
-        )
-        and float(r.get("mfe_atr", 0)) > float(r.get("tp_distance_atr", 1.0))
-        for r in audit_reports
-    )
+    is_catastrophic_miss = False
+    for r in audit_reports:
+        outcome = r.get("market_outcome", {})
+        result = (outcome.get("tp_sl_result") or "").upper()
+        if result not in ("NEUTRAL", "UNFILLED"):
+            continue
+        mfe_atr = float(outcome.get("market_forensics", {}).get("max_favorable_runup_atr", 0))
+        session = r.get("session", {})
+        tp_params = session.get("final_decision", {}).get("tactical_parameters", {})
+        entry = float(tp_params.get("entry") or 0)
+        tp = float(tp_params.get("take_profit") or 0)
+        atr = float(session.get("observation", {}).get("quantitative_metrics", {}).get("price_dynamics", {}).get("atr_macro", 1.0))
+        tp_distance_atr = abs(tp - entry) / atr if atr > 0 else 1.0
+        if mfe_atr > tp_distance_atr:
+            is_catastrophic_miss = True
+            break
+
+    # Time calibration
+    time_cal = compute_time_calibration(audit_reports)
+    any_samples = any(r["samples"] > 0 for r in time_cal.values())
+    requires_time_recal = any_samples
 
     return {
         "IS_BATCH_SIGNIFICANT": is_batch_significant,
@@ -403,4 +448,6 @@ def compute_evolver_states(
         "HAS_STRUCTURAL_AMNESTY": has_structural_amnesty,
         "IS_PROFIT_EVAPORATION": is_profit_evaporation,
         "IS_CATASTROPHIC_MISS": is_catastrophic_miss,
+        "REQUIRES_TIME_RECALIBRATION": requires_time_recal,
+        "time_calibration_report": time_cal,
     }
