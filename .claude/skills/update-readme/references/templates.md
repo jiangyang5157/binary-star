@@ -17,9 +17,10 @@ convey the architecture.
 [badges]
 
 What if two LLMs debated your trade before it hit the market? **Binary Star**
-pits a Planner against a Critic, with a Math Auditor anchoring both to physical
-reality. When signal confluence crosses a regime-adaptive threshold, the
-debate fires — and the winner (or forced consensus) becomes the order on-chain.
+pits a Planner against a Critic, with Math Tools (deterministic computation)
+anchoring both to physical reality. The debate converges in at most two rounds;
+if they can't agree and the Critic's last verdict is TERMINAL, the system
+aborts to NEUTRAL rather than forcing a broken trade.
 ```
 
 **Rules**:
@@ -40,7 +41,7 @@ debate fires — and the winner (or forced consensus) becomes the order on-chain
 ```markdown
 ## Binary Star Protocol
 
-[One sentence: three agents — Planner proposes, Critic audits, Math Auditor verifies.]
+[One sentence: three agents — Planner proposes, Critic audits, Math Tools verifies.]
 
 [Mermaid sequence diagram: Orchestrator → Planner → Math Auditor → Critic, loop 2 rounds, PASS early exit]
 
@@ -48,13 +49,15 @@ debate fires — and the winner (or forced consensus) becomes the order on-chain
 
 | Veto | Effect |
 |------|--------|
-| PASS | Plan accepted — early exit |
-| CONSTRUCTIVE | Fixable flaws — Planner refines |
-| TERMINAL | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
+| **PASS** | Plan is sound — early exit, no further rounds |
+| **WEAK** | Minor concern — early exit, plan accepted as-is |
+| **CONSTRUCTIVE** | Fixable flaws — feedback loop, Planner refines |
+| **TERMINAL** | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
 
-Plans are scored 0-100 across three confidence dimensions (topographical
-armor, regime sync, temporal physics). Scores below threshold are rejected.
-Two LLM adapters (DeepSeek and Gemini) power the agents via a shared config.
+A deterministic 0–100 survival score is computed in Python after the debate —
+evaluating 13 dimensions across topographical armor, regime & gravity, and
+temporal & sentiment. Two LLM backends (DeepSeek, Gemini) power the debate
+via a shared config.
 
 [Note: AI providers and confidence scoring are mentioned inline — no separate
 sections needed.]
@@ -123,8 +126,8 @@ activate Binary Star. Its sole job is timing — it does not trade.
 | Phase | Mechanism |
 |-------|-----------|
 | Entry | OTOCO — atomic limit entry with nested TP/SL |
-| Protection | Guardian OCO — every position wrapped in TP+SL |
-| Profit-taking | 3-level exit ladder (44/64/84% TP progress) |
+| Protection | Guardian OCO — every position wrapped in TP + SL |
+| Profit-taking | 2-phase exit ladder — breakeven (RR 1:1) → 2-level partial TP + TP-relative trailing |
 | Stop migration | Dynamic trailing SL as ladder levels fire |
 ```
 
@@ -184,26 +187,24 @@ cp .env.example .env  # add your provider API key
 
 ```bash
 # ── Sessions ────────────────────────────────────────────
-python run.py session --symbol XAUT -p data/prod
+python run.py session --symbol XAUT
 
 # ── Sniper ──────────────────────────────────────────────
-python run.py sniper --symbol XAUT,BTC -p data/prod --trade 640
+python run.py sniper --symbol XAUT,BTC --llm --trade 500
 
 # ── Backtest ────────────────────────────────────────────
-python run.py backtest-run --symbol XAUTUSDT --start 2026-01-01 --samples 100
+python run.py backtest-run --symbol XAUTUSDT --start 2025-01-01 --samples 100
 
 # ── Audit & Evolution ───────────────────────────────────
-python run.py audit -p data/prod
+python run.py audit --symbol XAUT -p data/prod
 python run.py evolution --symbol XAUT --samples 50 -p data/prod
-
-# ── Dashboard ───────────────────────────────────────────
-python run.py dashboard -p data/prod
+python run.py patch -f proposals/evolution.json --symbol XAUT
 ```
 ```
 
 **Rules**:
-- EXACTLY 5 groups: Sessions, Sniper, Backtest, Audit & Evolution, Dashboard
-- One representative command per group (two for Audit & Evolution)
+- EXACTLY 4 groups: Sessions, Sniper, Backtest, Audit & Evolution
+- One representative command per group (two for Audit & Evolution, including `patch`)
 - One inline comment per command
 - No "Utilities" section, no scripts
 - This section goes LAST

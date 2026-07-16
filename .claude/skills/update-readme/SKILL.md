@@ -114,7 +114,7 @@ Capture only: "OTOCO atomic entry, Guardian OCO protection, breakeven + 2-level 
 #### Evolution (minimal scan)
 
 ```
-→ Read src/agent/evolver.py or equivalent — confirm it runs as a sandbox
+→ Read src/agent/evolver_agent.py — confirm it runs as a sandboxed evolution loop
 → Read config/global_config.yaml — evolution parameters (population, generations)
 ```
 

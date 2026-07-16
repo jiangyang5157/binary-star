@@ -2,7 +2,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-What if two LLMs debated your trade before it hit the market? **Binary Star** pits a Planner against a Critic — one proposes, the other tears it apart. A Math Tools (no LLM, pure computation) anchors both to reality. The debate converges in at most two rounds; if they can't agree and the Critic's last verdict is TERMINAL, the system aborts to NEUTRAL rather than forcing a broken trade.
+What if two LLMs debated your trade before it hit the market? **Binary Star** pits a Planner against a Critic — one proposes, the other tears it apart. Math Tools (no LLM, pure computation) anchors both to reality. The debate converges in at most two rounds; if they can't agree and the Critic's last verdict is TERMINAL, the system aborts to NEUTRAL rather than forcing a broken trade.
 
 ---
 
@@ -43,7 +43,7 @@ sequenceDiagram
 | **CONSTRUCTIVE** | Fixable flaws — feedback loop, Planner refines |
 | **TERMINAL** | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
 
-A deterministic 0–100 survival score is computed in Python after the debate — evaluating 13 dimensions across topographical armor, regime synchronization, and temporal convexity. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
+A deterministic 0–100 survival score is computed in Python after the debate — evaluating 13 dimensions across topographical armor, regime & gravity, and temporal & sentiment. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
 
 > **Full protocol**: [docs/adversarial-debate-protocol.md](docs/adversarial-debate-protocol.md) — Session/Critic prompts, veto system, confidence scoring, repair patterns, deadlock analysis.
 
