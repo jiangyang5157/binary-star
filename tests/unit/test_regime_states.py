@@ -419,101 +419,155 @@ def _make_audit_config(**overrides):
 
 
 def _make_audit_report(**overrides):
+    """Build a minimal audit report matching actual audit JSON structure."""
     base = {
-        "outcome": "LOSS",
-        "mae_stress_tier": "STANDARD",
-        "sl_is_shielded": True,
-        "mfe_atr": 0.3,
-        "tp_distance_atr": 1.0,
-        "opinion": "NEUTRAL",
-        "debate_history": [
-            {"critic": {"invalidations": ["[INACTION_BIAS] - ..."]}}
-        ],
-        "entry_atr_distance": 0.5,
+        "session": {
+            "final_decision": {
+                "opinion": "NEUTRAL",
+                "tactical_parameters": {
+                    "entry": 90000.0,
+                    "take_profit": 93000.0,
+                },
+            },
+            "debate_history": [
+                {
+                    "critic": {"invalidations": ["[INACTION_BIAS] - ..."]},
+                    "math_fact_check": {
+                        "compliance_verdict": {
+                            "sl_is_shielded": True,
+                        },
+                    },
+                },
+            ],
+            "observation": {
+                "quantitative_metrics": {
+                    "price_dynamics": {"atr_macro": 300.0},
+                },
+            },
+        },
+        "market_outcome": {
+            "tp_sl_result": "TP_HIT",
+            "is_filled": True,
+            "market_forensics": {
+                "max_favorable_runup_atr": 0.3,
+            },
+            "trade_execution_metrics": {
+                "mae_stress_tier": "STANDARD",
+                "actual_holding_hours": 5.0,
+                "projected_holding_hours": 4.0,
+                "temporal_dilation_regime": "temporal_dilation_standard",
+            },
+        },
+        "forensic_verdict": {
+            "is_justified_surrender": False,
+            "is_catastrophic_miss": False,
+        },
     }
-    base.update(overrides)
+    if overrides:
+        _deep_update(base, overrides)
     return base
 
 
 class TestEvolverStates:
     def test_is_batch_significant_true(self):
         reports = [
-            _make_audit_report(outcome="LOSS"),
-            _make_audit_report(outcome="LOSS"),
-            _make_audit_report(outcome="PROFIT"),
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
+            _make_audit_report(),  # default TP_HIT
         ]
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_BATCH_SIGNIFICANT"] is True
 
     def test_is_batch_significant_false(self):
-        reports = [_make_audit_report(outcome="LOSS")]
+        reports = [_make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}})]
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_BATCH_SIGNIFICANT"] is False
 
     def test_is_failure_ratio_alarm_true(self):
         reports = [
-            _make_audit_report(outcome="LOSS"),
-            _make_audit_report(outcome="LOSS"),
-            _make_audit_report(outcome="PROFIT"),
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
+            _make_audit_report(),  # TP_HIT
         ]
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_FAILURE_RATIO_ALARM"] is True  # 2/3 > 0.2
 
     def test_has_systemic_pathology_true(self):
         reports = [
-            _make_audit_report(outcome="LOSS"),
-            _make_audit_report(outcome="LOSS"),
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
+            _make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}}),
         ]
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["HAS_SYSTEMIC_PATHOLOGY"] is True
 
     def test_is_logic_cowardice_true(self):
-        reports = [
-            _make_audit_report(
-                opinion="NEUTRAL",
-                debate_history=[{"critic": {"invalidations": ["[INACTION_BIAS] - ..."]}}],
-            ),
-        ]
+        reports = [_make_audit_report()]  # default: NEUTRAL + INACTION_BIAS
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_LOGIC_COWARDICE"] is True
 
     def test_has_structural_amnesty_true(self):
-        reports = [
-            _make_audit_report(sl_is_shielded=True, mae_stress_tier="STANDARD"),
-        ]
+        reports = [_make_audit_report()]  # default: sl_is_shielded=True, STANDARD
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["HAS_STRUCTURAL_AMNESTY"] is True
 
     def test_is_profit_evaporation_true(self):
         reports = [
             _make_audit_report(
-                outcome="NEITHER",
-                mfe_atr=0.8,
-                tp_distance_atr=1.0,
+                **{
+                    "market_outcome": {
+                        "tp_sl_result": "NEITHER",
+                        "market_forensics": {"max_favorable_runup_atr": 0.8},
+                    },
+                    "session": {
+                        "final_decision": {
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 90400.0},
+                        },
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                },
             ),
         ]
         result = compute_evolver_states(reports, _make_audit_config())
-        assert result["IS_PROFIT_EVAPORATION"] is True  # 0.8 >= 0.6 * 1.0
+        assert result["IS_PROFIT_EVAPORATION"] is True  # 0.8 >= 0.6 * 1.33
 
     def test_is_catastrophic_miss_true(self):
         reports = [
             _make_audit_report(
-                outcome="NEUTRAL",
-                mfe_atr=1.5,
-                tp_distance_atr=1.0,
+                **{
+                    "market_outcome": {
+                        "tp_sl_result": "NEUTRAL",
+                        "market_forensics": {"max_favorable_runup_atr": 1.5},
+                    },
+                    "session": {
+                        "final_decision": {
+                            "opinion": "NEUTRAL",
+                            "tactical_parameters": {"entry": 90000.0, "take_profit": 90400.0},
+                        },
+                        "observation": {
+                            "quantitative_metrics": {
+                                "price_dynamics": {"atr_macro": 300.0},
+                            },
+                        },
+                    },
+                },
             ),
         ]
         result = compute_evolver_states(reports, _make_audit_config())
         assert result["IS_CATASTROPHIC_MISS"] is True
 
-    def test_returns_all_7_evolver_keys(self):
-        reports = [_make_audit_report(outcome="LOSS")]
+    def test_returns_all_9_evolver_keys(self):
+        reports = [_make_audit_report(**{"market_outcome": {"tp_sl_result": "SL_HIT"}})]
         result = compute_evolver_states(reports, _make_audit_config())
         expected = {
             "IS_BATCH_SIGNIFICANT", "IS_FAILURE_RATIO_ALARM",
             "HAS_SYSTEMIC_PATHOLOGY", "IS_LOGIC_COWARDICE",
             "HAS_STRUCTURAL_AMNESTY", "IS_PROFIT_EVAPORATION",
-            "IS_CATASTROPHIC_MISS",
+            "IS_CATASTROPHIC_MISS", "REQUIRES_TIME_RECALIBRATION",
+            "time_calibration_report",
         }
         assert set(result.keys()) == expected
 
