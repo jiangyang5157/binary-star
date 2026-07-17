@@ -72,7 +72,6 @@ const TRANSLATIONS = {
     zh: "点击气泡打开审计报告"
   },
   "chart.conf_tooltip": { en: "Conf", zh: "置信度" },
-  "chart.pnl_tooltip": { en: "P&L", zh: "盈亏" },
   "chart.holding_tooltip": { en: "Holding:", zh: "持有:" },
   "chart.equity_tooltip": { en: "Equity", zh: "权益" },
   "chart.conf_threshold_hint": {
