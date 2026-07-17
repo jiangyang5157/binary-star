@@ -675,7 +675,7 @@
         case 'observed_at': return session.observed_at || '';
         case 'opinion': return session.opinion || '';
         case 'confidence': return session.confidence != null ? session.confidence : -1;
-        case 'entry': return tp.current_price || tp.entry || 0;
+        case 'entry': return tp.entry || tp.current_price || 0;
         case 'take_profit': return tp.take_profit || 0;
         case 'stop_loss': return tp.stop_loss || 0;
         case 'rr_ratio': return tp.rr_ratio != null ? tp.rr_ratio : -1;
@@ -710,7 +710,7 @@
       if (!sessions.length) { tbody.innerHTML = '<tr><td colspan="12" class="empty">' + t('msg.no_records_match') + '</td></tr>'; return; }
       tbody.innerHTML = sessions.map((s, i) => {
         const tp = s.tactical || {}, audit = s.audit;
-        const entry = tp.current_price || tp.entry;
+        const entry = tp.entry || tp.current_price;
         // Row accent color matches result
         let rowCls = '';
         if (audit) {
