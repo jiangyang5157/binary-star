@@ -242,15 +242,15 @@
       const data = await resp.json();
       allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
       _allKpiBaselines = {};  // reset sparkline baseline cache
+      _allRefsCache = null;
     }
 
-    // ── KPI health: set both value colour and card border based on thresholds ──
+    // ── KPI health: set card border colour based on thresholds ──
     function _setKpiHealth(id, health) {
       const el = $(id);
       if (!el) return;
-      el.className = 'kpi-value' + (health ? ' health-' + health : '');
-      const card = el.parentElement;
-      if (card && card.classList.contains('kpi-card')) {
+      const card = el.closest('.kpi-card');
+      if (card) {
         card.className = 'kpi-card' + (health ? ' health-' + health : '');
       }
     }
@@ -265,6 +265,8 @@
 
     // Baselines computed once over ALL filled trades (independent of threshold)
     let _allKpiBaselines = {};
+    // Cached all-trades reference text values — invalidated alongside _allKpiBaselines
+    let _allRefsCache = null;
 
     /** Compute cumulative KPI values over sorted filled trades.
      *  Returns array of {x, y} where x = session index, y = cumulative KPI at that point. */
@@ -293,10 +295,11 @@
           let wins = [], losses = [];
           filledTradesSorted.forEach((t, i) => {
             if (t.pnl_pct > 0) wins.push(t.pnl_pct);
-            else losses.push(Math.abs(t.pnl_pct));
+            else if (t.pnl_pct < 0) losses.push(Math.abs(t.pnl_pct));
             const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
             const avgLoss = losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
-            points.push({ x: i + 1, y: avgLoss > 0 ? avgWin / avgLoss : 0 });
+            // Use avgWin as sentinel when no losses — keeps the curve above zero rather than collapsing to 0
+            points.push({ x: i + 1, y: avgLoss > 0 ? avgWin / avgLoss : (avgWin || 0) });
           });
           break;
         }
@@ -345,8 +348,8 @@
       if (!points.length) return '';
       const xMax = points[points.length - 1].x || 1;
       const yVals = points.map(p => p.y);
-      const yMin = Math.min(...yVals, 0);
-      const yMax = Math.max(...yVals, 1);
+      const yMin = yVals.reduce((a, b) => Math.min(a, b), 0);
+      const yMax = yVals.reduce((a, b) => Math.max(a, b), 1);
       const yRange = yMax - yMin || 1;
       const pad = 4; // px padding inside viewBox
       return points.map(p => {
@@ -366,18 +369,16 @@
         }
       }
 
-      // Filter trades by threshold
+      // Pre-filter filled trades by threshold (used by 6 KPIs, fillrate uses allTrades)
       const filtered = filledTradesSorted.filter(t => t.confidence >= threshold);
-      const allFiltered = allTradesSorted.filter(t => t.confidence >= threshold);
 
       for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
         const svgEl = document.getElementById(`kpi-${key}-spark`);
         if (!svgEl) continue;
 
         const allPoints = _allKpiBaselines[key] || [];
-        const filteredPoints = (key === 'fillrate')
-          ? _computeCumulativeKpi(allFiltered, key)
-          : _computeCumulativeKpi(filtered, key);
+        const sourceTrades = (key === 'fillrate') ? allTradesSorted : filledTradesSorted;
+        const filteredPoints = _computeCumulativeKpi(sourceTrades.filter(t => t.confidence >= threshold), key);
         const accent = _kpiSparkAccent[key] || '#8898ac';
 
         // Build SVG content: gray line (all) + colored line (filtered)
@@ -407,24 +408,22 @@
     function updateAllCharts(threshold) {
       const trades = filteredTrades;
       const filledTrades = trades.filter(t => t.is_filled);
-      const filledSorted = [...filledTrades].sort((a, b) => new Date(a.time) - new Date(b.time));
+      filledTrades.sort((a, b) => new Date(a.time) - new Date(b.time));
+      const filledSorted = filledTrades;
 
       if (!filledTrades.length) {
         for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
           const valEl = document.getElementById(`kpi-${key}`);
           const allEl = document.getElementById(`kpi-${key}-all`);
+          const svgEl = document.getElementById(`kpi-${key}-spark`);
           if (valEl) valEl.textContent = key === 'fillrate' ? (trades.filter(t => t.opinion !== 'NEUTRAL').length > 0 ? '0%' : '—') : '—';
           if (allEl) allEl.textContent = '—';
+          if (svgEl) svgEl.innerHTML = '';
           _setKpiHealth(`kpi-${key}`, null);
           _prevKpiValues[`kpi-${key}`] = null;
         }
-        // Clear sparklines
-        for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
-          const svg = document.getElementById(`kpi-${key}-spark`);
-          if (svg) svg.innerHTML = '';
-        }
         $('confVal').textContent = threshold;
-        renderTimeline(trades, threshold, []);
+        renderTimeline(trades, threshold);
         return;
       }
 
@@ -459,43 +458,50 @@
       const protectedCount = stressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
       const maeStress = stressTiers.length > 0 ? protectedCount / stressTiers.length * 100 : null;
 
-      // ── Compute all-trades baselines (for reference values) ──
-      let allEq = 1.0, allPeak = 1.0, allDd = 0;
-      filledTrades.forEach(t => {
-        allEq *= (1 + t.pnl_pct / 100);
-        if (allEq > allPeak) allPeak = allEq;
-        allDd = Math.max(allDd, (allPeak - allEq) / allPeak);
-      });
-      const allNetPnL = (allEq - 1) * 100;
-      const allMdd = allDd * 100;
-      const allReturns = filledTrades.map(t => t.pnl_pct);
-      const allWins = allReturns.filter(r => r > 0);
-      const allLosses = allReturns.filter(r => r < 0);
-      const allWinRate = allReturns.length ? (allWins.length / allReturns.length * 100) : 0;
-      const allAvgWin = allWins.length ? allWins.reduce((a, b) => a + b, 0) / allWins.length : 0;
-      const allAvgLoss = allLosses.length ? Math.abs(allLosses.reduce((a, b) => a + b, 0) / allLosses.length) : 0;
-      const allWlRatio = allAvgLoss > 0 ? allAvgWin / allAvgLoss : 0;
-      const allMfeVals = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
-      const allMfe = allMfeVals.length > 0 ? allMfeVals.reduce((a, b) => a + b, 0) / allMfeVals.length : null;
-      const allStressTiers = filledTrades.map(t => t.mae_stress_tier).filter(Boolean);
-      const allProtected = allStressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
-      const allMae = allStressTiers.length > 0 ? allProtected / allStressTiers.length * 100 : null;
+      // ── Set all-trades reference values (computed once, cached) ──
+      if (!_allRefsCache) {
+        let allEq = 1.0, allPeak = 1.0, allDd = 0;
+        filledTrades.forEach(t => {
+          allEq *= (1 + t.pnl_pct / 100);
+          if (allEq > allPeak) allPeak = allEq;
+          allDd = Math.max(allDd, (allPeak - allEq) / allPeak);
+        });
+        const allMdd = allDd * 100;
+        const allReturns = filledTrades.map(t => t.pnl_pct);
+        const allWins = allReturns.filter(r => r > 0);
+        const allLosses = allReturns.filter(r => r < 0);
+        const allWinRate = allReturns.length ? (allWins.length / allReturns.length * 100) : 0;
+        const allAvgWin = allWins.length ? allWins.reduce((a, b) => a + b, 0) / allWins.length : 0;
+        const allAvgLoss = allLosses.length ? Math.abs(allLosses.reduce((a, b) => a + b, 0) / allLosses.length) : 0;
+        const allWlRatio = allAvgLoss > 0 ? allAvgWin / allAvgLoss : 0;
+        const allMfeVals = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
+        const allMfe = allMfeVals.length > 0 ? allMfeVals.reduce((a, b) => a + b, 0) / allMfeVals.length : null;
+        const allStressTiers = filledTrades.map(t => t.mae_stress_tier).filter(Boolean);
+        const allProtected = allStressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
+        const allMae = allStressTiers.length > 0 ? allProtected / allStressTiers.length * 100 : null;
+        // Fill rate over all trades
+        const frDir = trades.filter(t => t.opinion !== 'NEUTRAL');
+        const frFilled = frDir.filter(t => t.is_filled);
+        const allFillRate = frDir.length > 0 ? (frFilled.length / frDir.length * 100).toFixed(0) + '%' : '—';
 
-      // ── Set all-trades reference values (static, top-right of each card) ──
-      $('kpi-pnl-all').textContent = (allNetPnL >= 0 ? '+' : '') + allNetPnL.toFixed(2) + '%';
-      $('kpi-winrate-all').textContent = allWinRate.toFixed(0) + '%';
-      $('kpi-winloss-all').textContent = allWlRatio > 0 ? allWlRatio.toFixed(2) : '—';
-      $('kpi-fillrate-all').textContent = allFillForRate_text(trades);
-      $('kpi-mfeeff-all').textContent = allMfe != null ? allMfe.toFixed(0) + '%' : '—';
-      $('kpi-maestress-all').textContent = allMae != null ? allMae.toFixed(0) + '%' : '—';
-      $('kpi-mdd-all').textContent = allMdd > 0 ? '−' + allMdd.toFixed(2) + '%' : '0.00%';
-
-      // Helper for all-trades fill rate text
-      function allFillForRate_text(ft) {
-        const d = ft.filter(t => t.opinion !== 'NEUTRAL');
-        const f = d.filter(t => t.is_filled);
-        return d.length > 0 ? (f.length / d.length * 100).toFixed(0) + '%' : '—';
+        _allRefsCache = [
+          (allEq >= 1 ? '+' : '') + ((allEq - 1) * 100).toFixed(2) + '%',
+          allWinRate.toFixed(0) + '%',
+          allWlRatio > 0 ? allWlRatio.toFixed(2) : '—',
+          allFillRate,
+          allMfe != null ? allMfe.toFixed(0) + '%' : '—',
+          allMae != null ? allMae.toFixed(0) + '%' : '—',
+          allMdd > 0 ? '−' + allMdd.toFixed(2) + '%' : '0.00%',
+        ];
       }
+
+      $('kpi-pnl-all').textContent = _allRefsCache[0];
+      $('kpi-winrate-all').textContent = _allRefsCache[1];
+      $('kpi-winloss-all').textContent = _allRefsCache[2];
+      $('kpi-fillrate-all').textContent = _allRefsCache[3];
+      $('kpi-mfeeff-all').textContent = _allRefsCache[4];
+      $('kpi-maestress-all').textContent = _allRefsCache[5];
+      $('kpi-mdd-all').textContent = _allRefsCache[6];
 
       // ── Set filtered KPI values with animation ──
       const animMs = _kpiAnimDuration;
@@ -544,7 +550,7 @@
     }
 
     // ── Charts ──
-    function renderTimeline(trades, threshold, curve) {
+    function renderTimeline(trades, threshold) {
       const ctx = $('timelineChart').getContext('2d');
       if (timelineChart) timelineChart.destroy();
 
@@ -739,6 +745,8 @@
       // Drive KPIs and charts from the same filtered set
       const visibleFiles = new Set(f.map(s => s.filename));
       filteredTrades = (allTrades || []).filter(t => t.session_filename && visibleFiles.has(t.session_filename));
+      _allKpiBaselines = {};  // reset sparkline baselines when filter changes
+      _allRefsCache = null;
       updateAllCharts(confThreshold);
     }
 
@@ -774,7 +782,8 @@
     // ── Events ──
     $('symbol-filter').addEventListener('input', function () { localStorage.setItem('symbolFilter', this.value); applyFilters(); });
     $('version-filter').addEventListener('input', function () { localStorage.setItem('versionFilter', this.value); applyFilters(); });
-    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); confThreshold = v; localStorage.setItem('dashboardConfThreshold', v); updateAllCharts(v); });
+    let _debounceRaf = null;
+    $('confSlider').addEventListener('input', function () { const v = parseInt(this.value); confThreshold = v; localStorage.setItem('dashboardConfThreshold', v); if (_debounceRaf) cancelAnimationFrame(_debounceRaf); _debounceRaf = requestAnimationFrame(() => updateAllCharts(v)); });
     document.querySelectorAll('th.sortable').forEach(th => {
       th.addEventListener('click', function () {
         sortDir = (sortKey === this.dataset.sort) ? sortDir * -1 : 1;
