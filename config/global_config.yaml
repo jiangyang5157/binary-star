@@ -131,7 +131,7 @@ sniper:
       squeeze: 20              # same as vol_surge — compression is persistent
       boundary_test: 10        # anchors drift with new candles
       liquidation_hunt: 10     # clusters dissolve quickly
-      positioning_extreme: 60  # retail sentiment is sticky
+      positioning_extreme: 40  # retail sentiment is sticky，从 60 降到 40：砍掉 60min+ 的僵尸唤醒尾巴
       leader_sync: 8           # cross-symbol correlation fades fast
 
     # —— 自适应冷却 (Adaptive Cooldown) ——
@@ -146,7 +146,7 @@ sniper:
         ranging: 40      # 震荡中延长，减少反复触发
         squeeze: 20      # 对齐 trending
         chaos: 60        # 混沌中几乎禁止
-      neutral_multiplier: 0.2          # NEUTRAL → 短冷却
+      neutral_multiplier: 0.4          # NEUTRAL → 4min 太短造成唤醒簇，提到 0.4（squeeze 8min）
       break_on_strength_ratio: 1.6     # 新信号强度 > 上次 × 1.6 才破例
       stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
 

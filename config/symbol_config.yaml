@@ -31,9 +31,11 @@ XAUTUSDT:
       signal_stack:
         thresholds:
           cvd_extreme_threshold: 0.22   # XAUT |CVD| 中位 0.12，全局 0.36 太高。0.22 ≈ P93，5.7% pulses 触发。
-          large_trade_zscore: 1.5   # XAUT 大单规模分散，Z-score 极少到 2.0。
+          large_trade_zscore: 1.8   # 从 1.5 提到 1.8：抑制单信号 solo-wake。需配合 CVD 才能过门槛。
         weights:
           large_trade: 0.40   # 全局 0.55→0.40，抑制单信号 solo-wake。需配合 CVD 或 boundary_test 才能过门槛。
+        cooldown:
+          stacked_break_count: 4   # 从 3 提到 4：memory 唤醒不应轻易打破冷却。
 
 BTCUSDT:
   precision_qty: 4           # Decimal places for order quantity
