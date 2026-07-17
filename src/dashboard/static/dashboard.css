@@ -857,8 +857,8 @@ tbody tr:hover {
 /* --- KPI Cards --- */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -866,35 +866,63 @@ tbody tr:hover {
   background: var(--bg-card);
   border: 1px solid var(--border-muted);
   border-radius: var(--radius);
-  padding: 18px 20px;
+  padding: 12px 14px 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
   border-left: 3px solid var(--border-muted);
   box-shadow: var(--shadow);
+  min-height: 110px;
 }
 
 .kpi-card.health-green  { border-left-color: var(--accent-green); }
 .kpi-card.health-amber  { border-left-color: var(--accent-amber); }
 .kpi-card.health-red    { border-left-color: var(--accent-red); }
+
+.kpi-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
 .kpi-label {
-  font-size: 0.72rem;
+  font-size: 0.65rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
 }
 
-.kpi-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
+.kpi-all-ref {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
-.kpi-value.health-green { color: var(--accent-green); }
-.kpi-value.health-amber  { color: var(--accent-amber); }
-.kpi-value.health-red   { color: var(--accent-red); }
+.kpi-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  margin: 3px 0 4px 0;
+  line-height: 1.2;
+}
+
+/* KPI value accent colors — one per KPI */
+.kpi-card[data-kpi="pnl"] .kpi-value       { color: var(--accent-green); }
+.kpi-card[data-kpi="winrate"] .kpi-value    { color: var(--accent-gold); }
+.kpi-card[data-kpi="winloss"] .kpi-value    { color: var(--accent-teal); }
+.kpi-card[data-kpi="fillrate"] .kpi-value   { color: var(--accent-purple); }
+.kpi-card[data-kpi="mfeeff"] .kpi-value     { color: var(--accent-blue); }
+.kpi-card[data-kpi="maestress"] .kpi-value  { color: var(--accent-amber); }
+.kpi-card[data-kpi="mdd"] .kpi-value        { color: var(--accent-red); }
+
+.kpi-spark {
+  width: 100%;
+  height: 44px;
+  margin-top: auto;
+  display: block;
+  overflow: visible;
+}
 
 /* --- Chart Card --- */
 .chart-header {
