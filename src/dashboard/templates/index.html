@@ -568,8 +568,8 @@
         return {
           x: t.time ? new Date(t.time) : null,
           y: t.confidence,
-          r: Math.max(6, Math.min(22, Math.abs(t.pnl_pct) * 6 + t.confidence / 10)),
-          pnl: t.pnl_pct, op: t.opinion, symbol: t.symbol || '',
+          r: 8,
+          op: t.opinion, symbol: t.symbol || '',
           holding: t.projected_holding_hours, timeLabel: formatLocalTimeShort(t.time),
           sessionFile: t.session_filename || '',
           version: t.version || '',
@@ -605,18 +605,10 @@
         }
       };
 
-      // Mini equity curve
-      var eqData = curve || [];
-      var showEquity = eqData.length > 0;
-      var eqEnd = showEquity ? eqData[eqData.length - 1].y : 0;
-      var eqColor = eqEnd > 0 ? 'rgba(64, 168, 95, 0.32)' : 'rgba(224, 85, 74, 0.32)';
-      var eqFill = eqEnd > 0 ? 'rgba(64, 168, 95, 0.04)' : 'rgba(224, 85, 74, 0.04)';
-
       timelineChart = new Chart(ctx, {
         type: 'bubble',
         data: { datasets: [
-          { data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 },
-          { data: eqData, type: 'line', yAxisID: 'y2', borderColor: eqColor, borderWidth: 1, pointRadius: 0, pointHitRadius: 0, fill: true, backgroundColor: eqFill, tension: 0.15 }
+          { data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }
         ] },
         plugins: [thresholdPlugin],
         options: {
@@ -629,8 +621,7 @@
             : undefined,
           scales: {
             x: { type: 'time', time: { displayFormats: { hour: 'MMM dd HH:mm', day: 'MMM dd' } }, ticks: { color: textMuted, maxTicksLimit: 12, maxRotation: 45 }, grid: { color: gridColor } },
-            y: { ticks: { color: textBright }, grid: { color: gridColor } },
-            y2: { display: showEquity, position: 'right', ticks: { color: textMuted, callback: function(v) { return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; } }, grid: { drawOnChartArea: false } }
+            y: { ticks: { color: textBright }, grid: { color: gridColor } }
           },
           plugins: {
             legend: { display: false },
@@ -643,8 +634,7 @@
                 },
                 label: (ctx) => {
                   const d = ctx.raw;
-                  const pnlStr = d.pnl != null ? `${d.pnl > 0 ? '+' : ''}${d.pnl.toFixed(2)}%` : '—';
-                  const lines = [`${d.op}  ·  ${t('chart.conf_tooltip')} ${d.y != null ? d.y.toFixed(0) : '—'}%  ·  ${t('chart.pnl_tooltip')} ${pnlStr}`];
+                  const lines = [`${d.op}  ·  ${t('chart.conf_tooltip')} ${d.y != null ? d.y.toFixed(0) : '—'}%`];
                   if (d.holding) lines.push(`${t('chart.holding_tooltip')} ${d.holding}h`);
                   if (d.version) lines.push(`v${d.version}`);
                   return lines;
@@ -666,7 +656,7 @@
           }
         }
       });
-      if ((curve || []).length > 0) _firstChartRender = false;
+      _firstChartRender = false;
     }
 
     function getSortValue(session, key) {
