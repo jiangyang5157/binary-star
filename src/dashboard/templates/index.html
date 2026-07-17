@@ -357,23 +357,27 @@
     }
 
     /** Render all 7 KPI sparklines */
-    function renderAllSparklines(threshold, filledTradesSorted) {
+    function renderAllSparklines(threshold, filledTradesSorted, allTradesSorted) {
       // Compute all-trades baselines once (static)
-      if (!Object.keys(_allKpiBaselines).length && filledTradesSorted.length) {
+      if (!Object.keys(_allKpiBaselines).length && allTradesSorted.length) {
         for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
-          _allKpiBaselines[key] = _computeCumulativeKpi(filledTradesSorted, key);
+          const tradesForKpi = (key === 'fillrate') ? allTradesSorted : filledTradesSorted;
+          _allKpiBaselines[key] = _computeCumulativeKpi(tradesForKpi, key);
         }
       }
 
       // Filter trades by threshold
       const filtered = filledTradesSorted.filter(t => t.confidence >= threshold);
+      const allFiltered = allTradesSorted.filter(t => t.confidence >= threshold);
 
       for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
         const svgEl = document.getElementById(`kpi-${key}-spark`);
         if (!svgEl) continue;
 
         const allPoints = _allKpiBaselines[key] || [];
-        const filteredPoints = _computeCumulativeKpi(filtered, key);
+        const filteredPoints = (key === 'fillrate')
+          ? _computeCumulativeKpi(allFiltered, key)
+          : _computeCumulativeKpi(filtered, key);
         const accent = _kpiSparkAccent[key] || '#8898ac';
 
         // Build SVG content: gray line (all) + colored line (filtered)
