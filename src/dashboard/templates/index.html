@@ -569,7 +569,7 @@
         return {
           x: t.time ? new Date(t.time) : null,
           y: t.confidence,
-          r: 8,
+          r: Math.max(6, Math.min(22, t.confidence / 5)),
           op: t.opinion, symbol: t.symbol || '',
           holding: t.projected_holding_hours, timeLabel: formatLocalTimeShort(t.time),
           sessionFile: t.session_filename || '',
