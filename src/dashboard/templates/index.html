@@ -484,7 +484,7 @@
       $('kpi-pnl-all').textContent = (allNetPnL >= 0 ? '+' : '') + allNetPnL.toFixed(2) + '%';
       $('kpi-winrate-all').textContent = allWinRate.toFixed(0) + '%';
       $('kpi-winloss-all').textContent = allWlRatio > 0 ? allWlRatio.toFixed(2) : '—';
-      $('kpi-fillrate-all').textContent = allFillForRate_text(filledTrades);
+      $('kpi-fillrate-all').textContent = allFillForRate_text(trades);
       $('kpi-mfeeff-all').textContent = allMfe != null ? allMfe.toFixed(0) + '%' : '—';
       $('kpi-maestress-all').textContent = allMae != null ? allMae.toFixed(0) + '%' : '—';
       $('kpi-mdd-all').textContent = allMdd > 0 ? '−' + allMdd.toFixed(2) + '%' : '0.00%';
@@ -506,10 +506,10 @@
       _setKpiHealth('kpi-winrate', winRate >= 60 ? 'green' : winRate >= 40 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-winrate', winRate.toFixed(0) + '%', animMs);
 
-      _setKpiHealth('kpi-winloss', allAvgLoss > 0
+      _setKpiHealth('kpi-winloss', avgLoss > 0
         ? (wlRatio >= 2.0 ? 'green' : wlRatio >= 1.0 ? 'amber' : 'red')
         : 'green');
-      setKpiWithAnimation('kpi-winloss', allAvgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
+      setKpiWithAnimation('kpi-winloss', avgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
 
       _setKpiHealth('kpi-fillrate', fillRate >= 80 ? 'green' : fillRate >= 50 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-fillrate', fillRate.toFixed(0) + '%', animMs);
