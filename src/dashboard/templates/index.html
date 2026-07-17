@@ -233,7 +233,7 @@
     function pnlSpan(p) {
       if (p == null) return '<span class="text-muted">&mdash;</span>';
       const cls = p > 0 ? 'pnl-positive' : p < 0 ? 'pnl-negative' : 'text-muted';
-      return `<span class="mono ${cls}">${p > 0 ? '+' : ''}${p.toFixed(2)}%</span>`;
+      return `<span class="mono ${cls}">${p.toFixed(2)}%</span>`;
     }
 
     // ── Load trades + render charts ──
@@ -481,7 +481,7 @@
         const allFillRate = frDir.length > 0 ? (frFilled.length / frDir.length * 100).toFixed(0) + '%' : '—';
 
         _allRefsCache = [
-          (allEq >= 1 ? '+' : '') + ((allEq - 1) * 100).toFixed(2) + '%',
+          ((allEq - 1) * 100).toFixed(2) + '%',
           allWinRate.toFixed(0) + '%',
           allWlRatio > 0 ? allWlRatio.toFixed(2) : '—',
           allFillRate,
@@ -504,7 +504,7 @@
       _kpiAnimDuration = 300;
 
       _setKpiHealth('kpi-pnl', netPnL >= 0 ? 'green' : 'red');
-      setKpiWithAnimation('kpi-pnl', (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%', animMs);
+      setKpiWithAnimation('kpi-pnl', netPnL.toFixed(2) + '%', animMs);
 
       _setKpiHealth('kpi-winrate', winRate >= 60 ? 'green' : winRate >= 40 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-winrate', winRate.toFixed(0) + '%', animMs);
@@ -641,7 +641,7 @@
                 label: (ctx) => {
                   const d = ctx.raw;
                   const lines = [`${d.op}  ·  ${t('chart.conf_tooltip')} ${d.y != null ? d.y.toFixed(0) : '—'}%`];
-                  if (d.pnlPct != null) lines.push(`PnL ${d.pnlPct >= 0 ? '+' : ''}${d.pnlPct.toFixed(2)}%`);
+                  if (d.pnlPct != null) lines.push(`PnL ${d.pnlPct.toFixed(2)}%`);
                   if (d.holding) lines.push(`${t('chart.holding_tooltip')} ${d.holding}h`);
                   if (d.version) lines.push(`v${d.version}`);
                   return lines;

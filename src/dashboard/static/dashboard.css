@@ -909,6 +909,8 @@ tbody tr:hover {
 
 /* KPI value accent colors — warm (results), cool (execution), warning (risk) */
 .kpi-card[data-kpi="pnl"] .kpi-value       { color: var(--accent-green); }
+.kpi-card[data-kpi="pnl"].health-red .kpi-value   { color: var(--accent-red); }
+.kpi-card[data-kpi="pnl"].health-green .kpi-value { color: var(--accent-green); }
 .kpi-card[data-kpi="winrate"] .kpi-value    { color: var(--accent-gold); }
 .kpi-card[data-kpi="winloss"] .kpi-value    { color: var(--accent-amber); }
 .kpi-card[data-kpi="fillrate"] .kpi-value   { color: var(--accent-blue); }
