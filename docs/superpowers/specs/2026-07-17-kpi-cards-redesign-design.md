@@ -60,7 +60,7 @@ Each card contains, top to bottom:
 | Card padding | 12px 14px 10px 14px |
 | KPI name | 10px, uppercase, `var(--text-muted)` (#6e7d91), weight 600, letter-spacing 0.06em |
 | All-trades reference | 11px, mono, `var(--text-muted)` (#6e7d91), positioned top-right |
-| Filtered value | 22px, weight 700, mono, health-colored |
+| Filtered value | 22px, weight 700, mono, KPI's accent color |
 | Sparkline area | 44px height, SVG, margin-top 6px |
 | Gray line (all trades) | `rgba(136, 152, 172, 0.3)`, stroke-width 1.2 |
 | Colored line (filtered) | KPI's accent color at full opacity, stroke-width 2 |
@@ -76,7 +76,7 @@ Each card contains, top to bottom:
 | WIN / LOSS | `--accent-teal` (#54a0a8) |
 | FILL RATE | `--accent-purple` (#9488d8) |
 | MFE EFFICIENCY | `--accent-blue` (#4a8fe0) |
-| MAE STRESS | `--accent-amber` (#c9953a) |
+| MAE STRESS | `--accent-orange` (#d98c2e) |
 | MAX DRAWDOWN | `--accent-red` (#e0554a) |
 
 Left-border health coloring (green/amber/red) still applies based on the same thresholds used today. The value text uses the KPI's accent color (above), not health color.
