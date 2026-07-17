@@ -536,7 +536,7 @@
       }
 
       _setKpiHealth('kpi-mdd', mddPct < 5 ? 'green' : mddPct < 15 ? 'amber' : 'red');
-      setKpiWithAnimation('kpi-mdd', mddPct.toFixed(2) + '%', animMs);
+      setKpiWithAnimation('kpi-mdd', (mddPct > 0 ? '−' : '') + mddPct.toFixed(2) + '%', animMs);
 
       $('confVal').textContent = threshold;
 
