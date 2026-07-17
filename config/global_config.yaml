@@ -146,7 +146,7 @@ sniper:
         ranging: 40      # 震荡中延长，减少反复触发
         squeeze: 20      # 对齐 trending
         chaos: 60        # 混沌中几乎禁止
-      neutral_multiplier: 0.0          # NEUTRAL → 零冷却，下个 pulse 直接重评
+      neutral_multiplier: 0.2          # NEUTRAL → 短冷却
       break_on_strength_ratio: 1.6     # 新信号强度 > 上次 × 1.6 才破例
       stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
 

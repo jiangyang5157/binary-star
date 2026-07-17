@@ -30,8 +30,10 @@ XAUTUSDT:
     sniper:
       signal_stack:
         thresholds:
-          cvd_extreme_threshold: 0.22   # XAUT |CVD| 中位 0.12，全局 0.36 太高（对标 BTC）。0.22 ≈ P93，5.7% pulses 触发。
-          large_trade_zscore: 1.5   # XAUT 大单规模分散，Z-score 极少到 2.0。降到 1.5 适配低波动资产的机构活动特征。
+          cvd_extreme_threshold: 0.22   # XAUT |CVD| 中位 0.12，全局 0.36 太高。0.22 ≈ P93，5.7% pulses 触发。
+          large_trade_zscore: 1.5   # XAUT 大单规模分散，Z-score 极少到 2.0。
+        weights:
+          large_trade: 0.40   # 全局 0.55→0.40，抑制单信号 solo-wake。需配合 CVD 或 boundary_test 才能过门槛。
 
 BTCUSDT:
   precision_qty: 4           # Decimal places for order quantity
@@ -67,4 +69,4 @@ BTCUSDT:
           cvd_extreme_threshold: 0.18 # 适配 BTC 高流动性低噪声
           large_trade_zscore: 2.0 # BTC 实测 Z=3-4，经常触发，够了
         cooldown:
-          stacked_break_count: 4   # BTC 经常 3 信号同时触发，命中全局 3。提到 4 防止 ranging 40min cooldown 形同虚设。
+          stacked_break_count: 4   # 提到 4 防止 ranging 40min cooldown 形同虚设。
