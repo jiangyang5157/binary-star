@@ -907,12 +907,12 @@ tbody tr:hover {
   line-height: 1.2;
 }
 
-/* KPI value accent colors — one per KPI */
+/* KPI value accent colors — warm (results), cool (execution), warning (risk) */
 .kpi-card[data-kpi="pnl"] .kpi-value       { color: var(--accent-green); }
 .kpi-card[data-kpi="winrate"] .kpi-value    { color: var(--accent-gold); }
-.kpi-card[data-kpi="winloss"] .kpi-value    { color: var(--accent-teal); }
-.kpi-card[data-kpi="fillrate"] .kpi-value   { color: var(--accent-purple); }
-.kpi-card[data-kpi="mfeeff"] .kpi-value     { color: var(--accent-blue); }
+.kpi-card[data-kpi="winloss"] .kpi-value    { color: var(--accent-amber); }
+.kpi-card[data-kpi="fillrate"] .kpi-value   { color: var(--accent-blue); }
+.kpi-card[data-kpi="mfeeff"] .kpi-value     { color: var(--accent-purple); }
 .kpi-card[data-kpi="maestress"] .kpi-value  { color: var(--accent-orange); }
 .kpi-card[data-kpi="mdd"] .kpi-value        { color: var(--accent-red); }
 
