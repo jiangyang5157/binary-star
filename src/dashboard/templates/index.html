@@ -407,58 +407,98 @@
     function updateAllCharts(threshold) {
       const trades = filteredTrades;
       const filledTrades = trades.filter(t => t.is_filled);
+      const filledSorted = [...filledTrades].sort((a, b) => new Date(a.time) - new Date(b.time));
 
       if (!filledTrades.length) {
-        for (const id of ['kpi-pnl', 'kpi-winrate', 'kpi-mdd', 'kpi-winloss', 'kpi-fillrate', 'kpi-mfeeff', 'kpi-maestress']) {
-          if (id === 'kpi-fillrate') {
-            const dirCount = trades.filter(t => t.opinion !== 'NEUTRAL').length;
-            $(id).textContent = dirCount > 0 ? '0%' : '—';
-          } else {
-            $(id).textContent = '—';
-          }
-          _setKpiHealth(id, null);
-          _prevKpiValues[id] = null;
+        for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
+          const valEl = document.getElementById(`kpi-${key}`);
+          const allEl = document.getElementById(`kpi-${key}-all`);
+          if (valEl) valEl.textContent = key === 'fillrate' ? (trades.filter(t => t.opinion !== 'NEUTRAL').length > 0 ? '0%' : '—') : '—';
+          if (allEl) allEl.textContent = '—';
+          _setKpiHealth(`kpi-${key}`, null);
+          _prevKpiValues[`kpi-${key}`] = null;
+        }
+        // Clear sparklines
+        for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
+          const svg = document.getElementById(`kpi-${key}-spark`);
+          if (svg) svg.innerHTML = '';
         }
         $('confVal').textContent = threshold;
         renderTimeline(trades, threshold, []);
         return;
       }
 
-      // Only filled trades contribute to KPIs and equity curve
       const activeTrades = filledTrades.filter(t => t.confidence >= threshold);
 
+      // ── Compute KPI values from activeTrades ──
       let eq = 1.0, peak = 1.0, dd = 0;
-      const curve = [];
       activeTrades.forEach(t => {
         eq *= (1 + t.pnl_pct / 100);
         if (eq > peak) peak = eq;
         dd = Math.max(dd, (peak - eq) / peak);
-        curve.push({ x: new Date(t.time), y: (eq - 1) * 100, symbol: t.symbol, opinion: t.opinion, confidence: t.confidence, pnl_pct: t.pnl_pct, timeLabel: formatLocalTimeShort(t.time), version: t.version || '' });
       });
 
-      // ── Max Drawdown ───────────────────────────────────────────────
-      // Largest peak-to-trough decline in cumulative equity.  Path-dependent
-      // metric capturing worst-case pain — a strategy can have high Sharpe
-      // but still suffer a catastrophic single-trade drawdown.
-      //   < 10%   mild       10–25%  moderate      > 25%  severe
       const netPnL = (eq - 1) * 100, mddPct = dd * 100;
-
       const returns = activeTrades.map(t => t.pnl_pct);
       const wins = returns.filter(r => r > 0);
       const losses = returns.filter(r => r < 0);
       const winRate = returns.length ? (wins.length / returns.length * 100) : 0;
-
-      // ── Win / Loss (profit factor per unit risk) ────────────────────
-      // avgWin% / |avgLoss%| — how much you earn for every 1% you risk.
-      // NOT win rate.  A Win/Loss > 2 means average winner is 2× the
-      // average loser; the strategy profits even with a 40% win rate.
-      //   < 1   losing      1–2   breakeven-ish      > 2   excellent
       const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
       const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
+      const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-      // ── Set KPI values with semantic health colouring + animated numbers ──
+      const allDirectional = trades.filter(t => t.opinion !== 'NEUTRAL');
+      const allFilledForRate = allDirectional.filter(t => t.is_filled);
+      const fillRate = allDirectional.length > 0 ? allFilledForRate.length / allDirectional.length * 100 : 0;
+
+      const mfeValues = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
+      const mfeEfficiency = mfeValues.length > 0 ? mfeValues.reduce((a, b) => a + b, 0) / mfeValues.length : null;
+
+      const stressTiers = filledTrades.map(t => t.mae_stress_tier).filter(Boolean);
+      const protectedCount = stressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
+      const maeStress = stressTiers.length > 0 ? protectedCount / stressTiers.length * 100 : null;
+
+      // ── Compute all-trades baselines (for reference values) ──
+      let allEq = 1.0, allPeak = 1.0, allDd = 0;
+      filledTrades.forEach(t => {
+        allEq *= (1 + t.pnl_pct / 100);
+        if (allEq > allPeak) allPeak = allEq;
+        allDd = Math.max(allDd, (allPeak - allEq) / allPeak);
+      });
+      const allNetPnL = (allEq - 1) * 100;
+      const allMdd = allDd * 100;
+      const allReturns = filledTrades.map(t => t.pnl_pct);
+      const allWins = allReturns.filter(r => r > 0);
+      const allLosses = allReturns.filter(r => r < 0);
+      const allWinRate = allReturns.length ? (allWins.length / allReturns.length * 100) : 0;
+      const allAvgWin = allWins.length ? allWins.reduce((a, b) => a + b, 0) / allWins.length : 0;
+      const allAvgLoss = allLosses.length ? Math.abs(allLosses.reduce((a, b) => a + b, 0) / allLosses.length) : 0;
+      const allWlRatio = allAvgLoss > 0 ? allAvgWin / allAvgLoss : 0;
+      const allMfeVals = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
+      const allMfe = allMfeVals.length > 0 ? allMfeVals.reduce((a, b) => a + b, 0) / allMfeVals.length : null;
+      const allStressTiers = filledTrades.map(t => t.mae_stress_tier).filter(Boolean);
+      const allProtected = allStressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
+      const allMae = allStressTiers.length > 0 ? allProtected / allStressTiers.length * 100 : null;
+
+      // ── Set all-trades reference values (static, top-right of each card) ──
+      $('kpi-pnl-all').textContent = (allNetPnL >= 0 ? '+' : '') + allNetPnL.toFixed(2) + '%';
+      $('kpi-winrate-all').textContent = allWinRate.toFixed(0) + '%';
+      $('kpi-winloss-all').textContent = allWlRatio > 0 ? allWlRatio.toFixed(2) : '—';
+      $('kpi-fillrate-all').textContent = allFillForRate_text(filledTrades);
+      $('kpi-mfeeff-all').textContent = allMfe != null ? allMfe.toFixed(0) + '%' : '—';
+      $('kpi-maestress-all').textContent = allMae != null ? allMae.toFixed(0) + '%' : '—';
+      $('kpi-mdd-all').textContent = allMdd > 0 ? '−' + allMdd.toFixed(2) + '%' : '0.00%';
+
+      // Helper for all-trades fill rate text
+      function allFillForRate_text(ft) {
+        const d = ft.filter(t => t.opinion !== 'NEUTRAL');
+        const f = d.filter(t => t.is_filled);
+        return d.length > 0 ? (f.length / d.length * 100).toFixed(0) + '%' : '—';
+      }
+
+      // ── Set filtered KPI values with animation ──
       const animMs = _kpiAnimDuration;
-      _kpiAnimDuration = 300; // subsequent updates animate faster
+      _kpiAnimDuration = 300;
 
       _setKpiHealth('kpi-pnl', netPnL >= 0 ? 'green' : 'red');
       setKpiWithAnimation('kpi-pnl', (netPnL >= 0 ? '+' : '') + netPnL.toFixed(2) + '%', animMs);
@@ -466,26 +506,13 @@
       _setKpiHealth('kpi-winrate', winRate >= 60 ? 'green' : winRate >= 40 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-winrate', winRate.toFixed(0) + '%', animMs);
 
-      const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
-      _setKpiHealth('kpi-winloss', avgLoss > 0
+      _setKpiHealth('kpi-winloss', allAvgLoss > 0
         ? (wlRatio >= 2.0 ? 'green' : wlRatio >= 1.0 ? 'amber' : 'red')
         : 'green');
-      setKpiWithAnimation('kpi-winloss', avgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
-
-      _setKpiHealth('kpi-mdd', mddPct < 5 ? 'green' : mddPct < 15 ? 'amber' : 'red');
-      setKpiWithAnimation('kpi-mdd', mddPct.toFixed(2) + '%', animMs);
-
-      // ── Fill Rate: filled / directional (all threshold levels) ──────
-      const allDirectional = trades.filter(t => t.opinion !== 'NEUTRAL');
-      const allFilledForRate = allDirectional.filter(t => t.is_filled);
-      const fillRate = allDirectional.length > 0 ? allFilledForRate.length / allDirectional.length * 100 : 0;
+      setKpiWithAnimation('kpi-winloss', allAvgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
 
       _setKpiHealth('kpi-fillrate', fillRate >= 80 ? 'green' : fillRate >= 50 ? 'amber' : 'red');
       setKpiWithAnimation('kpi-fillrate', fillRate.toFixed(0) + '%', animMs);
-
-      // ── MFE Efficiency: avg mfe_efficiency_pct across filled trades ──
-      const mfeValues = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
-      const mfeEfficiency = mfeValues.length > 0 ? mfeValues.reduce((a, b) => a + b, 0) / mfeValues.length : null;
 
       if (mfeEfficiency != null) {
         _setKpiHealth('kpi-mfeeff', mfeEfficiency >= 70 ? 'green' : mfeEfficiency >= 40 ? 'amber' : 'red');
@@ -495,11 +522,6 @@
         $('kpi-mfeeff').textContent = '—';
       }
 
-      // ── MAE Stress: % PINPOINT + STANDARD out of filled ────────────
-      const stressTiers = filledTrades.map(t => t.mae_stress_tier).filter(Boolean);
-      const protectedCount = stressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
-      const maeStress = stressTiers.length > 0 ? protectedCount / stressTiers.length * 100 : null;
-
       if (maeStress != null) {
         _setKpiHealth('kpi-maestress', maeStress >= 70 ? 'green' : maeStress >= 40 ? 'amber' : 'red');
         setKpiWithAnimation('kpi-maestress', maeStress.toFixed(0) + '%', animMs);
@@ -508,9 +530,16 @@
         $('kpi-maestress').textContent = '—';
       }
 
+      _setKpiHealth('kpi-mdd', mddPct < 5 ? 'green' : mddPct < 15 ? 'amber' : 'red');
+      setKpiWithAnimation('kpi-mdd', mddPct.toFixed(2) + '%', animMs);
+
       $('confVal').textContent = threshold;
 
-      renderTimeline(trades, threshold, curve);
+      // ── Render sparklines ──
+      renderAllSparklines(threshold, filledSorted, trades);
+
+      // ── Render bubble timeline (no PnL curve) ──
+      renderTimeline(trades, threshold, []);
     }
 
     // ── Charts ──
