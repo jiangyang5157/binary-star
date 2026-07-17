@@ -217,7 +217,7 @@ def get_trades(
                 "confidence": decision.get("confidence_score", 0),
                 "is_filled": is_filled,
                 "tp_sl_result": tp_sl_result,
-                "pnl_pct": round(pnl, 2),
+                "pnl_pct": round(pnl, 2) if pnl is not None else None,
                 "projected_holding_hours": tp_params.get("projected_holding_hours") or 0,
                 "session_filename": f.name,
                 "version": _extract_version(session),
