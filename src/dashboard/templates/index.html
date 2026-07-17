@@ -573,7 +573,8 @@
         return {
           x: t.time ? new Date(t.time) : null,
           y: t.confidence,
-          r: Math.max(6, Math.min(22, t.confidence / 8)),
+          pnlPct: t.pnl_pct != null ? t.pnl_pct : null,
+          r: Math.max(6, Math.min(24, Math.abs(t.pnl_pct || 0) * 8)),
           op: t.opinion, symbol: t.symbol || '',
           holding: t.projected_holding_hours, timeLabel: formatLocalTimeShort(t.time),
           sessionFile: t.session_filename || '',
@@ -612,9 +613,11 @@
 
       timelineChart = new Chart(ctx, {
         type: 'bubble',
-        data: { datasets: [
-          { data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }
-        ] },
+        data: {
+          datasets: [
+            { data: points, backgroundColor: points.map(p => p.backgroundColor), borderColor: points.map(p => p.borderColor), borderWidth: 1 }
+          ]
+        },
         plugins: [thresholdPlugin],
         options: {
           responsive: true, maintainAspectRatio: false,
@@ -640,6 +643,7 @@
                 label: (ctx) => {
                   const d = ctx.raw;
                   const lines = [`${d.op}  ·  ${t('chart.conf_tooltip')} ${d.y != null ? d.y.toFixed(0) : '—'}%`];
+                  if (d.pnlPct != null) lines.push(`PnL ${d.pnlPct >= 0 ? '+' : ''}${d.pnlPct.toFixed(2)}%`);
                   if (d.holding) lines.push(`${t('chart.holding_tooltip')} ${d.holding}h`);
                   if (d.version) lines.push(`v${d.version}`);
                   return lines;
@@ -857,13 +861,13 @@
       if (!localStorage.getItem('versionFilter')) {
         // First visit — fire version fetch in parallel (don't block data loading)
         fetch(apiUrl('/api/config'))
-          .then(function(r) { return r.json(); })
-          .then(function(data) {
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
             if (data.project_version) {
               $('version-filter').value = data.project_version;
             }
           })
-          .catch(function() { /* keep empty */ });
+          .catch(function () { /* keep empty */ });
       }
       await loadTrades();
       await loadSessions();
