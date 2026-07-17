@@ -287,20 +287,19 @@
         case 'winrate': {
           let wins = 0;
           filledTradesSorted.forEach((t, i) => {
-            if (t.pnl_pct > 0) wins++;
+            if (t.tp_sl_result === 'TP_HIT') wins++;
             points.push({ x: i + 1, y: (wins / (i + 1)) * 100 });
           });
           break;
         }
         case 'winloss': {
-          let wins = [], losses = [];
+          let wPnl = [], lPnl = [];
           filledTradesSorted.forEach((t, i) => {
-            if (t.pnl_pct > 0) wins.push(t.pnl_pct);
-            else if (t.pnl_pct < 0) losses.push(Math.abs(t.pnl_pct));
-            const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
-            const avgLoss = losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
-            // Use avgWin as sentinel when no losses — keeps the curve above zero rather than collapsing to 0
-            points.push({ x: i + 1, y: avgLoss > 0 ? avgWin / avgLoss : (avgWin || 0) });
+            if (t.tp_sl_result === 'TP_HIT') wPnl.push(t.pnl_pct);
+            else if (t.tp_sl_result === 'SL_HIT') lPnl.push(Math.abs(t.pnl_pct));
+            const avgW = wPnl.length ? wPnl.reduce((a, b) => a + b, 0) / wPnl.length : 0;
+            const avgL = lPnl.length ? lPnl.reduce((a, b) => a + b, 0) / lPnl.length : 0;
+            points.push({ x: i + 1, y: avgL > 0 ? avgW / avgL : (wPnl.length > 0 ? avgW : 0) });
           });
           break;
         }
@@ -436,12 +435,11 @@
       });
 
       const netPnL = (eq - 1) * 100, mddPct = dd * 100;
-      const returns = activeTrades.map(t => t.pnl_pct);
-      const wins = returns.filter(r => r > 0);
-      const losses = returns.filter(r => r < 0);
-      const winRate = returns.length ? (wins.length / returns.length * 100) : 0;
-      const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
-      const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
+      const tpWins = activeTrades.filter(t => t.tp_sl_result === 'TP_HIT');
+      const slLosses = activeTrades.filter(t => t.tp_sl_result === 'SL_HIT');
+      const winRate = activeTrades.length ? (tpWins.length / activeTrades.length * 100) : 0;
+      const avgWin = tpWins.length ? tpWins.reduce((a, b) => a + b.pnl_pct, 0) / tpWins.length : 0;
+      const avgLoss = slLosses.length ? Math.abs(slLosses.reduce((a, b) => a + b.pnl_pct, 0) / slLosses.length) : 0;
       const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
 
       // Fill Rate: among confidence-filtered directional sessions, what % filled?
@@ -466,11 +464,11 @@
         });
         const allMdd = allDd * 100;
         const allReturns = filledTrades.map(t => t.pnl_pct);
-        const allWins = allReturns.filter(r => r > 0);
-        const allLosses = allReturns.filter(r => r < 0);
-        const allWinRate = allReturns.length ? (allWins.length / allReturns.length * 100) : 0;
-        const allAvgWin = allWins.length ? allWins.reduce((a, b) => a + b, 0) / allWins.length : 0;
-        const allAvgLoss = allLosses.length ? Math.abs(allLosses.reduce((a, b) => a + b, 0) / allLosses.length) : 0;
+        const allTpWins = filledTrades.filter(t => t.tp_sl_result === 'TP_HIT');
+        const allSlLosses = filledTrades.filter(t => t.tp_sl_result === 'SL_HIT');
+        const allWinRate = allReturns.length ? (allTpWins.length / filledTrades.length * 100) : 0;
+        const allAvgWin = allTpWins.length ? allTpWins.reduce((a, b) => a + b.pnl_pct, 0) / allTpWins.length : 0;
+        const allAvgLoss = allSlLosses.length ? Math.abs(allSlLosses.reduce((a, b) => a + b.pnl_pct, 0) / allSlLosses.length) : 0;
         const allWlRatio = allAvgLoss > 0 ? allAvgWin / allAvgLoss : 0;
         const allMfeVals = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
         const allMfe = allMfeVals.length > 0 ? allMfeVals.reduce((a, b) => a + b, 0) / allMfeVals.length : null;
@@ -513,7 +511,7 @@
 
       _setKpiHealth('kpi-winloss', avgLoss > 0
         ? (wlRatio >= 2.0 ? 'green' : wlRatio >= 1.0 ? 'amber' : 'red')
-        : 'green');
+        : null);
       setKpiWithAnimation('kpi-winloss', avgLoss > 0 ? wlRatio.toFixed(2) : '—', animMs);
 
       _setKpiHealth('kpi-fillrate', fillRate >= 80 ? 'green' : fillRate >= 50 ? 'amber' : 'red');

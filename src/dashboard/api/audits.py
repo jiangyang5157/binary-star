@@ -199,14 +199,16 @@ def get_trades(
             exit_price = float(forensics.get("price_at_t1") or entry_price)
             metrics = outcome.get("trade_execution_metrics") or {}
 
-            pnl = _compute_pnl(
-                entry_price=entry_price,
-                opinion=opinion,
-                tp_sl_result=tp_sl_result,
-                take_profit=float(tp_params.get("take_profit") or 0),
-                stop_loss=float(tp_params.get("stop_loss") or 0),
-                exit_price=exit_price,
-            )
+            pnl = None
+            if is_filled:
+                pnl = _compute_pnl(
+                    entry_price=entry_price,
+                    opinion=opinion,
+                    tp_sl_result=tp_sl_result,
+                    take_profit=float(tp_params.get("take_profit") or 0),
+                    stop_loss=float(tp_params.get("stop_loss") or 0),
+                    exit_price=exit_price,
+                )
 
             trades.append({
                 "time": session.get("observation", {}).get("observed_at", ""),
