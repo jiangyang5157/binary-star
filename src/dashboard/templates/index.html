@@ -369,9 +369,6 @@
         }
       }
 
-      // Pre-filter filled trades by threshold (used by 6 KPIs, fillrate uses allTrades)
-      const filtered = filledTradesSorted.filter(t => t.confidence >= threshold);
-
       for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
         const svgEl = document.getElementById(`kpi-${key}-spark`);
         if (!svgEl) continue;
