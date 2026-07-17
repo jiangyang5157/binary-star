@@ -447,14 +447,15 @@
       const avgLoss = losses.length ? Math.abs(losses.reduce((a, b) => a + b, 0) / losses.length) : 0;
       const wlRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
 
-      const allDirectional = trades.filter(t => t.opinion !== 'NEUTRAL');
-      const allFilledForRate = allDirectional.filter(t => t.is_filled);
-      const fillRate = allDirectional.length > 0 ? allFilledForRate.length / allDirectional.length * 100 : 0;
+      // Fill Rate: among confidence-filtered directional sessions, what % filled?
+      const filteredForRate = trades.filter(t => t.confidence >= threshold && t.opinion !== 'NEUTRAL');
+      const filteredFilled = filteredForRate.filter(t => t.is_filled);
+      const fillRate = filteredForRate.length > 0 ? filteredFilled.length / filteredForRate.length * 100 : 0;
 
-      const mfeValues = filledTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
+      const mfeValues = activeTrades.map(t => t.mfe_efficiency_pct).filter(v => v != null);
       const mfeEfficiency = mfeValues.length > 0 ? mfeValues.reduce((a, b) => a + b, 0) / mfeValues.length : null;
 
-      const stressTiers = filledTrades.map(t => t.mae_stress_tier).filter(Boolean);
+      const stressTiers = activeTrades.map(t => t.mae_stress_tier).filter(Boolean);
       const protectedCount = stressTiers.filter(t => t === 'PINPOINT' || t === 'STANDARD').length;
       const maeStress = stressTiers.length > 0 ? protectedCount / stressTiers.length * 100 : null;
 
