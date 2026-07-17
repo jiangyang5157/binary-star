@@ -241,6 +241,7 @@
       const resp = await fetch(apiUrl('/api/trades', symbol ? { symbol } : {}));
       const data = await resp.json();
       allTrades = (data.trades || []).sort((a, b) => new Date(a.time) - new Date(b.time));
+      _allKpiBaselines = {};  // reset sparkline baseline cache
     }
 
     // ── KPI health: set both value colour and card border based on thresholds ──
@@ -251,6 +252,151 @@
       const card = el.parentElement;
       if (card && card.classList.contains('kpi-card')) {
         card.className = 'kpi-card' + (health ? ' health-' + health : '');
+      }
+    }
+
+    // ── Sparkline helpers ──────────────────────────────────────────
+    // KPI accent colors for sparkline strokes
+    const _kpiSparkAccent = {
+      pnl: '#40a85f', winrate: '#d4a348', winloss: '#54a0a8',
+      fillrate: '#9488d8', mfeeff: '#4a8fe0', maestress: '#d98c2e',
+      mdd: '#e0554a',
+    };
+
+    // Baselines computed once over ALL filled trades (independent of threshold)
+    let _allKpiBaselines = {};
+
+    /** Compute cumulative KPI values over sorted filled trades.
+     *  Returns array of {x, y} where x = session index, y = cumulative KPI at that point. */
+    function _computeCumulativeKpi(filledTradesSorted, kpiKey) {
+      const points = [];
+      if (!filledTradesSorted.length) return points;
+
+      switch (kpiKey) {
+        case 'pnl': {
+          let eq = 1.0;
+          filledTradesSorted.forEach((t, i) => {
+            eq *= (1 + t.pnl_pct / 100);
+            points.push({ x: i + 1, y: (eq - 1) * 100 });
+          });
+          break;
+        }
+        case 'winrate': {
+          let wins = 0;
+          filledTradesSorted.forEach((t, i) => {
+            if (t.pnl_pct > 0) wins++;
+            points.push({ x: i + 1, y: (wins / (i + 1)) * 100 });
+          });
+          break;
+        }
+        case 'winloss': {
+          let wins = [], losses = [];
+          filledTradesSorted.forEach((t, i) => {
+            if (t.pnl_pct > 0) wins.push(t.pnl_pct);
+            else losses.push(Math.abs(t.pnl_pct));
+            const avgWin = wins.length ? wins.reduce((a, b) => a + b, 0) / wins.length : 0;
+            const avgLoss = losses.length ? losses.reduce((a, b) => a + b, 0) / losses.length : 0;
+            points.push({ x: i + 1, y: avgLoss > 0 ? avgWin / avgLoss : 0 });
+          });
+          break;
+        }
+        case 'fillrate': {
+          let filled = 0, total = 0;
+          filledTradesSorted.forEach((t, i) => {
+            if (t.opinion !== 'NEUTRAL') total++;
+            if (t.is_filled) filled++;
+            points.push({ x: i + 1, y: total > 0 ? (filled / total) * 100 : 0 });
+          });
+          break;
+        }
+        case 'mfeeff': {
+          let sum = 0, count = 0;
+          filledTradesSorted.forEach((t, i) => {
+            if (t.mfe_efficiency_pct != null) { sum += t.mfe_efficiency_pct; count++; }
+            points.push({ x: i + 1, y: count > 0 ? sum / count : 0 });
+          });
+          break;
+        }
+        case 'maestress': {
+          let protected_ = 0, count = 0;
+          filledTradesSorted.forEach((t, i) => {
+            if (t.mae_stress_tier) { count++; if (t.mae_stress_tier === 'PINPOINT' || t.mae_stress_tier === 'STANDARD') protected_++; }
+            points.push({ x: i + 1, y: count > 0 ? (protected_ / count) * 100 : 0 });
+          });
+          break;
+        }
+        case 'mdd': {
+          let eq = 1.0, peak = 1.0, dd = 0;
+          filledTradesSorted.forEach((t, i) => {
+            eq *= (1 + t.pnl_pct / 100);
+            if (eq > peak) peak = eq;
+            dd = Math.max(dd, (peak - eq) / peak);
+            points.push({ x: i + 1, y: dd * 100 });
+          });
+          break;
+        }
+      }
+      return points;
+    }
+
+    /** Convert point array to SVG polyline points string.
+     *  Maps data coords into the 200×44 viewBox. */
+    function _pointsToPolyline(points) {
+      if (!points.length) return '';
+      const xMax = points[points.length - 1].x || 1;
+      const yVals = points.map(p => p.y);
+      const yMin = Math.min(...yVals, 0);
+      const yMax = Math.max(...yVals, 1);
+      const yRange = yMax - yMin || 1;
+      const pad = 4; // px padding inside viewBox
+      return points.map(p => {
+        const sx = pad + ((p.x - 1) / Math.max(xMax - 1, 1)) * (200 - 2 * pad);
+        const sy = 44 - pad - ((p.y - yMin) / yRange) * (44 - 2 * pad);
+        return `${sx.toFixed(1)},${sy.toFixed(1)}`;
+      }).join(' ');
+    }
+
+    /** Render all 7 KPI sparklines */
+    function renderAllSparklines(threshold, filledTradesSorted) {
+      // Compute all-trades baselines once (static)
+      if (!Object.keys(_allKpiBaselines).length && filledTradesSorted.length) {
+        for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
+          _allKpiBaselines[key] = _computeCumulativeKpi(filledTradesSorted, key);
+        }
+      }
+
+      // Filter trades by threshold
+      const filtered = filledTradesSorted.filter(t => t.confidence >= threshold);
+
+      for (const key of ['pnl', 'winrate', 'winloss', 'fillrate', 'mfeeff', 'maestress', 'mdd']) {
+        const svgEl = document.getElementById(`kpi-${key}-spark`);
+        if (!svgEl) continue;
+
+        const allPoints = _allKpiBaselines[key] || [];
+        const filteredPoints = _computeCumulativeKpi(filtered, key);
+        const accent = _kpiSparkAccent[key] || '#8898ac';
+
+        // Build SVG content: gray line (all) + colored line (filtered)
+        const allPoly = _pointsToPolyline(allPoints);
+        const filtPoly = _pointsToPolyline(filteredPoints);
+
+        svgEl.innerHTML = '';
+        if (allPoly) {
+          const grayLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+          grayLine.setAttribute('points', allPoly);
+          grayLine.setAttribute('fill', 'none');
+          grayLine.setAttribute('stroke', 'rgba(136,152,172,0.3)');
+          grayLine.setAttribute('stroke-width', '1.2');
+          svgEl.appendChild(grayLine);
+        }
+        if (filtPoly) {
+          const colorLine = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+          colorLine.setAttribute('points', filtPoly);
+          colorLine.setAttribute('fill', 'none');
+          colorLine.setAttribute('stroke', accent);
+          colorLine.setAttribute('stroke-width', '2');
+          svgEl.appendChild(colorLine);
+        }
       }
     }
 
