@@ -723,7 +723,7 @@
       <td><strong>${s.symbol}</strong></td>
       <td>${formatLocalTimeShort(s.observed_at)}</td>
       <td>${opinionBadge(s.opinion)}</td>
-      <td>${s.confidence != null ? s.confidence.toFixed(0) + '%' : '&mdash;'}</td>
+      <td>${s.confidence != null ? s.confidence.toFixed(1) + '%' : '&mdash;'}</td>
       <td class="mono">${formatPrice(entry)}</td>
       <td class="mono">${formatPrice(tp.take_profit)}</td>
       <td class="mono">${formatPrice(tp.stop_loss)}</td>
