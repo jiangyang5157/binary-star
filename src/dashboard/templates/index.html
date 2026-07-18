@@ -572,7 +572,7 @@
           x: t.time ? new Date(t.time) : null,
           y: t.confidence,
           pnlPct: t.pnl_pct != null ? t.pnl_pct : null,
-          r: Math.max(4, Math.min(24, Math.abs(t.pnl_pct || 0) * 8)),
+          r: Math.max(4, Math.min(25, Math.abs(t.pnl_pct || 0) * 6)),
           op: t.opinion, symbol: t.symbol || '',
           holding: t.projected_holding_hours, timeLabel: formatLocalTimeShort(t.time),
           sessionFile: t.session_filename || '',
