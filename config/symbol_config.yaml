@@ -31,7 +31,7 @@ XAUTUSDT:
         stop_loss_buffer_min: 1.5
     sniper:
       signal_stack:
-        trigger_threshold: 0.38   # 从 base 0.34 调高，仅 XAUT。过滤弱合流 (<0.38)，squeeze 等效 0.29。
+        trigger_threshold: 0.42   # 从 base 0.34 调高，仅 XAUT。过滤弱合流 (<0.38)，squeeze 等效 0.29。
         thresholds:
           cvd_divergence_tick_delta: 0.18
           cvd_extreme_threshold: 0.36   # 从 0.22 调高。XAUT |CVD| 低簇顶在 0.36，0.36 正好卡边界。不触发低簇，高簇(0.62+)全捕捉。比 cvd_intensity_extreme(0.40) 松 0.04，medium 区间只触 momentum 不触 absorption。
