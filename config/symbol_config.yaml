@@ -30,6 +30,7 @@ XAUTUSDT:
     sniper:
       signal_stack:
         thresholds:
+          cvd_divergence_tick_delta: 0.18
           cvd_extreme_threshold: 0.22   # XAUT |CVD| 中位 0.12，全局 0.36 太高。0.22 ≈ P93，5.7% pulses 触发。
           large_trade_zscore: 1.8   # 从 1.5 提到 1.8：抑制单信号 solo-wake。需配合 CVD 才能过门槛。
         cooldown:
