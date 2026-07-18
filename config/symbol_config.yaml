@@ -20,6 +20,8 @@ XAUTUSDT:
     trade_management:
       net_qty_tolerance: 0.0001
     regime_parameters:
+      structural:
+        breakout_frontrun_atr: 0.2
       micro_sentiment:
         cvd_intensity_threshold: 0.18   # 从 0.25 降下来。XAUT |CVD| P75=0.15, P90=0.18，0.25 已是 P95 太保守。对齐 P85 作为"显著"基准
         cvd_intensity_extreme: 0.22   # 从 base 0.5 降下来，对齐 sniper cvd_extreme_threshold。XAUT |CVD| max=0.35，0.5 永远触发不了 cvd_absorption。
@@ -54,7 +56,7 @@ BTCUSDT:
         long_short_imbalance_ratio: 2.0
       structural:
         structural_buffer_atr: 1.0
-        breakout_frontrun_atr: 0.18 # 流动性厚的资产放宽前端抢跑距离，避免过早入场。
+        breakout_frontrun_atr: 0.12
         max_entry_distance_atr: 0.8
       micro_sentiment:
         cvd_intensity_threshold: 0.14   # 0.08-0.12
