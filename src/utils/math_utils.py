@@ -65,18 +65,50 @@ def get_tool_declarations() -> list[dict]:
     return [
         {
             "name": "calculate_trade_geometry",
-            "description": "Calculates RR ratio (profit/risk distance), ATR-standardised distances from entry to SL/TP, entry offset from current_price, and stop-loss distance to structural anchors (POC/VAH/VAL). Input: current_price, entry, take_profit, stop_loss, atr, poc, vah, val. Output: rr_ratio, profit_distance, risk_distance, entry_to_sl_atr, entry_to_tp_atr, entry_to_current_atr, sl_to_poc_atr, sl_to_vah_atr, sl_to_val_atr.",
+            "description": "Validates a trade geometry: RR ratio, ATR-standardised distances, entry offset, and SL proximity to structural anchors. Returns errors for invalid inputs (zero/negative prices, NaN, zero ATR).",
             "parameters": {
                 "type": "OBJECT",
                 "properties": {
-                    "current_price": {"type": "NUMBER"},
-                    "entry": {"type": "NUMBER"},
-                    "take_profit": {"type": "NUMBER"},
-                    "stop_loss": {"type": "NUMBER"},
-                    "atr": {"type": "NUMBER"},
-                    "poc": {"type": "NUMBER"},
-                    "vah": {"type": "NUMBER"},
-                    "val": {"type": "NUMBER"},
+                    "current_price": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Current market price. Must be positive."
+                    },
+                    "entry": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Proposed entry price. Must be positive."
+                    },
+                    "take_profit": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Take-profit target. Must be positive."
+                    },
+                    "stop_loss": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Stop-loss price. Must be positive."
+                    },
+                    "atr": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Average True Range — measures market volatility in price terms. Must be positive."
+                    },
+                    "poc": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Point of Control — price level with highest traded volume. Must be positive. Optional."
+                    },
+                    "vah": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Value Area High — upper boundary of the value zone. Must be positive.Optional."
+                    },
+                    "val": {
+                        "type": "NUMBER",
+                        "minimum": 0,
+                        "description": "Value Area Low — lower boundary of the value zone. Must be positive. Optional."
+                    },
                 },
                 "required": ["current_price", "entry", "take_profit", "stop_loss", "atr"],
             },

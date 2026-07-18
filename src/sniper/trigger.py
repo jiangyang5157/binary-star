@@ -264,7 +264,7 @@ class SniperTrigger:
     def __init__(self, strategy_cfg: Optional[dict] = None, global_cfg: Optional[dict] = None, symbol: Optional[str] = None):
         self.last_trigger_time: Optional[datetime] = None
         self.last_trigger_score: Optional[float] = None
-        self._last_trigger_type: Optional[str] = None  # TRADED | NEUTRAL | OBSERVE_ONLY | ACTIVE_POSITION
+        self._last_trigger_type: Optional[str] = None  # TRADED | NEUTRAL | OBSERVE_ONLY | ACTIVE_POSITION | FAILED
         self.cooldown_active: bool = False
         self.symbol: Optional[str] = symbol
 
@@ -390,6 +390,11 @@ class SniperTrigger:
         if self._last_trigger_type in ("NEUTRAL", "OBSERVE_ONLY"):
             neutral_mult = cooldown_cfg.get('neutral_multiplier', 1.0)
             cooldown_mins = cooldown_mins * neutral_mult
+
+        # FAILED: session errored (e.g. MaxIterationsError) — short fixed backoff,
+        # not regime-dependent. The purpose is solely to prevent re-trigger storms.
+        if self._last_trigger_type == "FAILED":
+            cooldown_mins = cooldown_cfg.get('failure_cooldown_minutes', 3)
 
         elapsed = (now - self.last_trigger_time).total_seconds() / 60.0
 

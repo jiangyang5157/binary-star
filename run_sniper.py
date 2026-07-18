@@ -404,15 +404,19 @@ class SniperDaemon:
 
                                 # Outcome-aware cooldown: directional sessions always get
                                 # full cooldown regardless of trade_enabled or confidence
-                                # level.  Only genuinely NEUTRAL sessions skip cooldown.
-                                opinion = (
-                                    session_result.get("final_decision", {}).get("opinion", "NEUTRAL")
-                                    if session_result else "NEUTRAL"
-                                )
-                                trigger_type = (
-                                    "TRADED" if opinion in ("BULLISH", "BEARISH")
-                                    else "NEUTRAL"
-                                )
+                                # level.  FAILED sessions get a short fixed backoff instead
+                                # of being lumped into NEUTRAL (which implies valid analysis).
+                                if "error" in session_result:
+                                    trigger_type = "FAILED"
+                                else:
+                                    opinion = (
+                                        session_result.get("final_decision", {}).get("opinion", "NEUTRAL")
+                                        if session_result else "NEUTRAL"
+                                    )
+                                    trigger_type = (
+                                        "TRADED" if opinion in ("BULLISH", "BEARISH")
+                                        else "NEUTRAL"
+                                    )
                             finally:
                                 # ── Always clear active_session, even if execute_cycle raises ──
                                 self._write_state(active_session=None)
