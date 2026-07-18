@@ -24,7 +24,7 @@ XAUTUSDT:
         breakout_frontrun_atr: 0.2
       micro_sentiment:
         cvd_intensity_threshold: 0.18   # 从 0.25 降下来。XAUT |CVD| P75=0.15, P90=0.18，0.25 已是 P95 太保守。对齐 P85 作为"显著"基准
-        cvd_intensity_extreme: 0.22   # 从 base 0.5 降下来，对齐 sniper cvd_extreme_threshold。XAUT |CVD| max=0.35，0.5 永远触发不了 cvd_absorption。
+        cvd_intensity_extreme: 0.36   # 统一到低簇边界。XAUT |CVD| 双峰：低簇 0.07-0.36 / 高簇 0.62-0.74。0.36 正好卡边界，对齐 sniper cvd_extreme_threshold。
       risk:
         min_rr_ranging: 1.1
         min_rr_trending: 1.3
@@ -33,7 +33,7 @@ XAUTUSDT:
       signal_stack:
         thresholds:
           cvd_divergence_tick_delta: 0.18
-          cvd_extreme_threshold: 0.22   # XAUT |CVD| 中位 0.12，全局 0.36 太高。0.22 ≈ P93，5.7% pulses 触发。
+          cvd_extreme_threshold: 0.36   # 从 0.22 调高。XAUT |CVD| 低簇顶在 0.36，0.36 正好卡边界。不触发低簇，高簇(0.62+)全捕捉。比 cvd_intensity_extreme(0.40) 松 0.04，medium 区间只触 momentum 不触 absorption。
           large_trade_zscore: 1.8   # 从 1.5 提到 1.8：抑制单信号 solo-wake。需配合 CVD 才能过门槛。
         cooldown:
           stacked_break_count: 4   # 从 3 提到 4：memory 唤醒不应轻易打破冷却。
