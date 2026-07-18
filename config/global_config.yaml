@@ -126,7 +126,7 @@ sniper:
       cvd_momentum: 15        # sustained order-flow imbalance
       cvd_divergence: 6        # fleeting tick-level divergence
       cvd_absorption: 15       # sustained absorption pattern
-      large_trade: 15          # institutional footprint
+      large_trade: 10          # 从 15 降到 10：大单是瞬时事件，不应像流信号一样持久
       volatility_surge: 20     # regime shift — slow to build, slow to fade
       squeeze: 20              # same as vol_surge — compression is persistent
       boundary_test: 10        # anchors drift with new candles
