@@ -299,11 +299,21 @@ class BinaryStarOrchestrator:
 
         tool_declarations = MathTools.get_tool_declarations()
 
+        if visual_text:
+            # Split into macro/micro segments for observability
+            segments = visual_text.split('VISUAL_CONTEXT: ')
+            macro_len = len(segments[1]) if len(segments) > 1 else 0
+            micro_len = len(segments[2]) if len(segments) > 2 else 0
+            est_tokens = len(visual_text) // 3  # rough: ~3 chars/token for English
+            text_info = f"macro={macro_len}c micro={micro_len}c ~{est_tokens} tokens"
+        else:
+            text_info = "none"
+
         logger.info(
             "[%s] visual assets loaded | mode=%s | images=%d | text=%s",
             symbol, self._visual_mode.value,
             len(visual_parts),
-            f"{len(visual_text)} chars" if visual_text else "none",
+            text_info,
         )
 
         # Session begin — adapter manages cache internally

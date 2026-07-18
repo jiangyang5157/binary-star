@@ -2,6 +2,9 @@
 
 Receives the identical data inputs as ChartGenerator.generate_chart(), guaranteeing
 pixel-level numerical consistency between the .png chart and the .md summary.
+
+Optimized for LLM readability: no ASCII art, no redundant sections, English-only,
+ATR-unit distances included for all key structural anchors.
 """
 
 from typing import Any, Dict, List, Optional, Union
@@ -14,7 +17,7 @@ logger = setup_logger(__name__)
 
 
 class VisualContextSummarizer:
-    """Produces a 6-section structural panorama markdown from chart source data.
+    """Produces a 5-section structural panorama markdown from chart source data.
 
     All values are extracted directly from the same df/profile_data/liquidations
     that ChartGenerator receives — no OCR, no image parsing, no observation_json
@@ -22,7 +25,6 @@ class VisualContextSummarizer:
     """
 
     CANDLE_LOOKBACK = 6
-    VOLUME_LOOKBACK = 12
     VA_BALANCE_LOW = 40.0
     VA_BALANCE_HIGH = 60.0
     PEAK_SHARPNESS = 2.0
@@ -77,8 +79,6 @@ class VisualContextSummarizer:
                                              anchors_above, anchors_below, raw_histogram),
                 self._section_liquidation(liq_dict, poc, vah, val,
                                           anchors_above, anchors_below, current_price),
-                self._section_key_levels(current_price, poc, vah, val,
-                                         anchors_above, anchors_below, liq_dict),
             ]
             return "\n\n".join(s for s in sections if s)
         except Exception as e:
@@ -110,18 +110,18 @@ class VisualContextSummarizer:
         above_entries = []
 
         if vah and vah > current_price:
-            above_entries.append((vah, "VAH", None, "Value Area High"))
+            above_entries.append((vah, "VAH", None))
 
         for a in anchors_above:
             p = a.get("price", 0)
             if p > current_price and abs(p - poc) > 0.01:
                 s_val = a.get("strength", a.get("volume", 0))
-                above_entries.append((p, f"HVN", s_val, ""))
+                above_entries.append((p, "HVN", s_val))
 
         for i, liq in enumerate(liquidations.get("short_liquidation", [])):
             p = liq.get("price", 0)
             if p > current_price:
-                above_entries.append((p, f"Short Liq #{i+1}", liq.get("intensity", 0), ""))
+                above_entries.append((p, f"Short Liq #{i+1}", liq.get("intensity", 0)))
 
         if poc and poc >= current_price:
             poc_strength = 0.0
@@ -131,16 +131,14 @@ class VisualContextSummarizer:
                     break
             if not poc_strength:
                 poc_strength = 0.94
-            above_entries.append((poc, "POC", poc_strength, "Point of Control"))
+            above_entries.append((poc, "POC", poc_strength))
 
         above_entries.sort(key=lambda x: x[0], reverse=True)
 
-        for price, label, str_val, note in above_entries:
+        for price, label, str_val in above_entries:
             pct = (price - current_price) / current_price * 100
-            bar = self._bar(str_val, is_liq=("Liq" in label))
-            info = self._str_info(str_val, is_liq=("Liq" in label))
-            note_str = f"  {note}" if note else ""
-            lines.append(f"  {price:.1f}  {label:16s}  (+{pct:.2f}%)  {bar}  {info}{note_str}")
+            info = f"strength={float(str_val):.2f}" if str_val is not None else ""
+            lines.append(f"  {price:.1f}  {label:16s}  (+{pct:.2f}%)  {info}")
 
         lines.append("  ────────────────────────────────────────────")
         lines.append(f"  {current_price:.1f}  ● CURRENT PRICE")
@@ -158,34 +156,66 @@ class VisualContextSummarizer:
                     break
             if not poc_strength:
                 poc_strength = 0.94
-            below_entries.append((poc, "POC", poc_strength, "Point of Control"))
+            below_entries.append((poc, "POC", poc_strength))
 
         for a in anchors_below:
             p = a.get("price", 0)
             if p < current_price and abs(p - poc) > 0.01:
                 s_val = a.get("strength", a.get("volume", 0))
-                below_entries.append((p, "HVN", s_val, ""))
+                below_entries.append((p, "HVN", s_val))
 
         if val and val < current_price:
-            below_entries.append((val, "VAL", None, "Value Area Low"))
+            below_entries.append((val, "VAL", None))
 
         for i, liq in enumerate(liquidations.get("long_liquidation", [])):
             p = liq.get("price", 0)
             if p < current_price:
-                below_entries.append((p, f"Long Liq #{i+1}", liq.get("intensity", 0), ""))
+                below_entries.append((p, f"Long Liq #{i+1}", liq.get("intensity", 0)))
 
         below_entries.sort(key=lambda x: x[0], reverse=True)
 
-        for price, label, str_val, note in below_entries:
+        for price, label, str_val in below_entries:
             pct = (price - current_price) / current_price * 100
-            bar = self._bar(str_val, is_liq=("Liq" in label))
-            info = self._str_info(str_val, is_liq=("Liq" in label))
-            note_str = f"  {note}" if note else ""
-            lines.append(f"  {price:.1f}  {label:16s}  ({pct:.2f}%)  {bar}  {info}{note_str}")
+            info = f"strength={float(str_val):.2f}" if str_val is not None else ""
+            lines.append(f"  {price:.1f}  {label:16s}  ({pct:.2f}%)  {info}")
 
         va_pct = va_span / current_price * 100 if current_price > 0 and va_span else 0
         lines.append("")
-        lines.append(f"  ATR_macro = {atr:.1f}  |  VA_span = {va_span:.1f} ({va_pct:.2f}% of price)")
+        lines.append(f"  ATR = {atr:.1f}  |  VA_span = {va_span:.1f} ({va_pct:.2f}% of price)")
+
+        # ── ATR-distance summary ──
+        lines.append("  ─── Key distances (ATR units) ───")
+        if atr > 0:
+            if poc:
+                poc_dist_atr = (current_price - poc) / atr
+                lines.append(f"  POC → price: {poc_dist_atr:+.2f} ATR  ({current_price - poc:+.1f} USD)")
+            if vah:
+                vah_dist_atr = (vah - current_price) / atr
+                lines.append(f"  VAH → price: {vah_dist_atr:+.2f} ATR  ({vah - current_price:+.1f} USD)")
+            if val:
+                val_dist_atr = (val - current_price) / atr
+                lines.append(f"  VAL → price: {val_dist_atr:+.2f} ATR  ({val - current_price:+.1f} USD)")
+
+            # Nearest anchor above
+            above_prices = [a.get('price', 0) for a in anchors_above if a.get('price', 0) > current_price]
+            if vah and vah > current_price:
+                above_prices.append(vah)
+            if above_prices:
+                nearest_above = min(above_prices, key=lambda p: p - current_price)
+                dist_atr = (nearest_above - current_price) / atr
+                lines.append(f"  Nearest anchor above: @ {nearest_above:.1f}  = +{dist_atr:.2f} ATR")
+
+            # Nearest anchor below
+            below_prices = [a.get('price', 0) for a in anchors_below if a.get('price', 0) < current_price]
+            if poc and poc < current_price:
+                below_prices.append(poc)
+            if val and val < current_price:
+                below_prices.append(val)
+            if below_prices:
+                nearest_below = max(below_prices, key=lambda p: p - current_price)
+                dist_atr = (current_price - nearest_below) / atr
+                lines.append(f"  Nearest anchor below: @ {nearest_below:.1f}  = -{dist_atr:.2f} ATR")
+
         return "\n".join(lines)
 
     # ── Section 3: Candlestick Panorama ────────────────────────────────────
@@ -196,7 +226,7 @@ class VisualContextSummarizer:
             return ""
 
         window = df.tail(lookback)
-        lines = [f"## 2. CANDLESTICK PANORAMA (最近 {lookback} bars, {time_interval})", ""]
+        lines = [f"## 2. CANDLESTICK PANORAMA (last {lookback} bars, {time_interval})", ""]
 
         for i in range(lookback):
             row = window.iloc[i]
@@ -209,10 +239,7 @@ class VisualContextSummarizer:
             pct_change = (c - o) / o * 100 if o > 0 else 0
             body_ratio = body / total_range if total_range > 0 else 0
 
-            if c >= o:
-                direction = "BULL"
-            else:
-                direction = "BEAR"
+            direction = "BULL" if c >= o else "BEAR"
 
             if body_ratio > self.MARUBOZU_BODY_RATIO:
                 bar_type = "MARUBOZU"
@@ -228,8 +255,6 @@ class VisualContextSummarizer:
             else:
                 size = "moderate"
 
-            bar_art = self._candle_art(body_ratio, c >= o)
-
             uw_ratio = upper_wick / total_range if total_range > 0 else 0
             lw_ratio = lower_wick / total_range if total_range > 0 else 0
             wick_flags = []
@@ -241,7 +266,7 @@ class VisualContextSummarizer:
             tag = f"T-{offset}" if offset > 0 else "T-0 (forming)"
 
             type_str = f" {bar_type}" if bar_type else ""
-            lines.append(f"  {tag}: {bar_art}  {direction}{type_str:12s}  "
+            lines.append(f"  {tag}: {direction}{type_str:12s}  "
                          f"O={o:.0f}  H={h:.0f}  L={l:.0f}  C={c:.0f}  ({pct_change:+.1f}%)")
             wick_line = f"        body={body:.0f} ({size})  upper_wick={upper_wick:.0f}  lower_wick={lower_wick:.0f}"
             if wick_flags:
@@ -282,15 +307,13 @@ class VisualContextSummarizer:
     # ── Section 4: Volume-at-Time Profile ──────────────────────────────────
 
     def _section_volume_at_time(self, df: pd.DataFrame) -> str:
-        lookback = min(self.VOLUME_LOOKBACK, len(df))
+        lookback = min(12, len(df))
         if lookback == 0:
             return ""
 
         window = df.tail(lookback)
         volumes = window['volume'].values.astype(float)
         vol_ma = float(np.mean(volumes)) if len(volumes) > 0 else 1.0
-
-        lines = [f"## 3. VOLUME-AT-TIME PROFILE (最近 {lookback} bars)", ""]
 
         surge_bars = []
         elevated_bars = []
@@ -300,31 +323,34 @@ class VisualContextSummarizer:
             offset = lookback - i - 1
             vol = float(volumes[i])
             ratio = vol / vol_ma if vol_ma > 0 else 1.0
-            bar_width = min(12, max(1, int(ratio * 5)))
-            bar = "█" * bar_width
-
             tag = f"T-{offset}" if offset > 0 else "T-0"
-            marker = ""
             if ratio > 2.0:
-                marker = "  ← SURGE"
                 surge_bars.append(tag)
             elif ratio > 1.5:
-                marker = "  ← elevated"
                 elevated_bars.append(tag)
             elif ratio < 0.7:
-                marker = "  ← low"
                 low_bars.append(tag)
 
-            lines.append(f"  {tag}: {bar:12s}  {ratio:.1f}× MA{marker}")
+        lines = [f"## 3. VOLUME-AT-TIME PROFILE (last {lookback} bars)", ""]
+
+        detail_parts = []
+        for i in range(lookback):
+            offset = lookback - i - 1
+            vol = float(volumes[i])
+            ratio = vol / vol_ma if vol_ma > 0 else 1.0
+            tag = f"T-{offset}" if offset > 0 else "T-0"
+            detail_parts.append(f"{tag}: {ratio:.1f}×")
+
+        lines.append("  " + "  ".join(detail_parts))
 
         lines.append("")
         lines.append(f"  Volume MA ({lookback}): baseline = 1.0×")
         if surge_bars:
-            lines.append(f"  Surge bars (>2.0× MA): {', '.join(surge_bars)}")
+            lines.append(f"  Surge (>2.0× MA): {', '.join(surge_bars)}")
         if elevated_bars:
-            lines.append(f"  Elevated bars (1.5–2.0×): {', '.join(elevated_bars)}")
+            lines.append(f"  Elevated (1.5–2.0×): {', '.join(elevated_bars)}")
         if low_bars:
-            lines.append(f"  Low bars (<0.7× MA): {', '.join(low_bars)}")
+            lines.append(f"  Low (<0.7× MA): {', '.join(low_bars)}")
         gaps = self._detect_volume_gaps(window, vol_ma)
         lines.append(f"  Gaps / voids detected: {gaps if gaps else 'none in recent ' + str(lookback) + ' bars'}")
 
@@ -355,19 +381,21 @@ class VisualContextSummarizer:
             poc_pos_pct = 50.0
 
         if poc_pos_pct < self.VA_BALANCE_LOW:
-            shape_type = "b-shaped (卖出尾端 — 下方集中)"
+            shape_type = "b-shaped (volume concentrated at lower end)"
         elif poc_pos_pct > self.VA_BALANCE_HIGH:
-            shape_type = "P-shaped (买入尾端 — 上方集中)"
+            shape_type = "P-shaped (volume concentrated at upper end)"
         else:
-            shape_type = "balanced (均衡分布)"
+            shape_type = "balanced"
 
         lines.append(f"  Type: {shape_type}")
         lines.append(f"  POC position in VA: {poc_pos_pct:.0f}% from VAL, {100-poc_pos_pct:.0f}% to VAH")
 
         above_gradient, below_gradient = self._analyze_density_gradient(raw_histogram, poc)
-        lines.append(f"  上方密度: {above_gradient}  |  下方密度: {below_gradient}")
-        poc_rel = "POC 在价格下方 (支撑)" if poc < current_price else "POC 在价格上方 (阻力)"
-        lines.append(f"  POC 与当前价格关系: {poc_rel}")
+        lines.append(f"  Density above POC: {above_gradient}  |  Density below POC: {below_gradient}")
+        if poc < current_price:
+            lines.append("  POC vs price: POC below price (support)")
+        else:
+            lines.append("  POC vs price: POC above price (resistance)")
 
         lines.append("")
         lines.append("  ─── High Volume Nodes (within ±2 ATR of current price) ───")
@@ -448,9 +476,9 @@ class VisualContextSummarizer:
             for i, liq in enumerate(sorted(above_shorts, key=lambda x: x['price'])):
                 p = liq['price']
                 intensity = liq.get('intensity', 0)
-                bar = self._bar(intensity, is_liq=True)
                 pos = self._cluster_position(p, poc, vah, val, anchors_above, anchors_below)
-                lines.append(f"  #{i+1} @ {p:.1f}  {bar}  intensity={intensity:.2f}")
+                pct = (p - current_price) / current_price * 100
+                lines.append(f"  #{i+1} @ {p:.1f} (+{pct:.2f}%)  intensity={float(intensity):.2f}")
                 lines.append(f"     Position: {pos}")
         else:
             lines.append("  ─── SHORT liquidation clusters: none above price ───")
@@ -463,9 +491,9 @@ class VisualContextSummarizer:
             for i, liq in enumerate(sorted(below_longs, key=lambda x: x['price'], reverse=True)):
                 p = liq['price']
                 intensity = liq.get('intensity', 0)
-                bar = self._bar(intensity, is_liq=True)
                 pos = self._cluster_position(p, poc, vah, val, anchors_above, anchors_below)
-                lines.append(f"  #{i+1} @ {p:.1f}  {bar}  intensity={intensity:.2f}")
+                pct = (p - current_price) / current_price * 100
+                lines.append(f"  #{i+1} @ {p:.1f} ({pct:.2f}%)  intensity={float(intensity):.2f}")
                 lines.append(f"     Position: {pos}")
         else:
             lines.append("  ─── LONG liquidation clusters: none below price ───")
@@ -502,115 +530,6 @@ class VisualContextSummarizer:
 
         return "\n".join(lines)
 
-    # ── Section 7: Key Levels Reference ────────────────────────────────────
-
-    @staticmethod
-    def _section_key_levels(
-        current_price: float, poc: float, vah: float, val: float,
-        anchors_above: List[Dict], anchors_below: List[Dict],
-        liquidations: Dict,
-    ) -> str:
-        lines = [
-            "## 6. KEY LEVELS REFERENCE (price-descending)",
-            "",
-            "  PRICE        TYPE            STR/INT   POSITION VS PRICE",
-            "  ───────────  ──────────────  ────────  ──────────────────",
-        ]
-
-        entries = []
-        for a in anchors_above:
-            s = a.get("strength", a.get("volume", 0))
-            entries.append((a['price'], "HVN", s))
-        for a in anchors_below:
-            s = a.get("strength", a.get("volume", 0))
-            entries.append((a['price'], "HVN", s))
-        for liq in liquidations.get("short_liquidation", []):
-            entries.append((liq['price'], "Short Liq", liq.get('intensity', 0)))
-        for liq in liquidations.get("long_liquidation", []):
-            entries.append((liq['price'], "Long Liq", liq.get('intensity', 0)))
-        if vah:
-            entries.append((vah, "VAH", None))
-        if val:
-            entries.append((val, "VAL", None))
-        if poc:
-            entries.append((poc, "POC", None))
-
-        entries.sort(key=lambda x: x[0], reverse=True)
-        current_inserted = False
-
-        for price, label, str_val in entries:
-            if not current_inserted and price < current_price:
-                lines.append("  ─────────────────────────────────────────────────────────")
-                lines.append(f"  {current_price:.1f}      ● CURRENT       —         0.00%")
-                lines.append("  ─────────────────────────────────────────────────────────")
-                current_inserted = True
-
-            pct = (price - current_price) / current_price * 100
-            sign = "+" if pct >= 0 else "−"
-            sv = f"{str_val:.2f}" if str_val is not None else "—"
-            lines.append(f"  {price:.1f}      {label:14s}  {sv:8s}  {sign}{abs(pct):.2f}%")
-
-        if not current_inserted:
-            lines.append("  ─────────────────────────────────────────────────────────")
-            lines.append(f"  {current_price:.1f}      ● CURRENT       —         0.00%")
-            lines.append("  ─────────────────────────────────────────────────────────")
-
-        return "\n".join(lines)
-
-    # ── Formatting helpers ─────────────────────────────────────────────────
-
-    @staticmethod
-    def _bar(value, *, is_liq=False):
-        if value is None:
-            value = 0.0
-        v = float(value)
-        fill = min(4, max(1, int(v * 5 + 0.5)))
-        ch = "▓" if is_liq else "█"
-        return f"[{ch * fill}{' ' * (4 - fill)}]"
-
-    @staticmethod
-    def _str_info(value, *, is_liq=False):
-        if value is None:
-            return ""
-        if is_liq:
-            return f"intensity={float(value):.2f}"
-        return f"strength={float(value):.2f}"
-
-    @staticmethod
-    def _candle_art(body_ratio, is_bull):
-        if is_bull:
-            fill = max(1, int(body_ratio * 4))
-            return f"[{' ' * (4 - fill)}{'█' * fill}]"
-        else:
-            fill = max(1, int(body_ratio * 4))
-            return f"[{'█' * fill}{' ' * (4 - fill)}]"
-
-    @staticmethod
-    def _cluster_position(price, poc, vah, val, anchors_above, anchors_below):
-        refs = []
-        if vah:
-            refs.append((f"VAH ({vah:.1f})", vah))
-        if val:
-            refs.append((f"VAL ({val:.1f})", val))
-        if poc:
-            refs.append((f"POC ({poc:.1f})", poc))
-        for a in anchors_above:
-            refs.append((f"HVN ({a['price']:.1f})", a['price']))
-        for a in anchors_below:
-            refs.append((f"HVN ({a['price']:.1f})", a['price']))
-        refs.sort(key=lambda x: x[1])
-        above = [(n, p) for n, p in refs if p > price]
-        below = [(n, p) for n, p in refs if p < price]
-        nearest_above = min(above, key=lambda x: x[1]) if above else None
-        nearest_below = max(below, key=lambda x: x[1]) if below else None
-        if nearest_above and nearest_below:
-            return f"between {nearest_below[0]} and {nearest_above[0]}"
-        elif nearest_above:
-            return f"below {nearest_above[0]}, no nearby structure below"
-        elif nearest_below:
-            return f"above {nearest_below[0]}, no nearby structure above"
-        return "isolated — no nearby structural anchors"
-
     # ── Analysis helpers ───────────────────────────────────────────────────
 
     @staticmethod
@@ -632,7 +551,7 @@ class VisualContextSummarizer:
         max_vol = max(volumes)
         mean_vol = float(np.mean(volumes))
         ratio = max_vol / mean_vol if mean_vol > 0 else 1.0
-        peak_type = "sharp (单峰集中)" if ratio > VisualContextSummarizer.PEAK_SHARPNESS else "distributed (分散)"
+        peak_type = "sharp (single-peak concentrated)" if ratio > VisualContextSummarizer.PEAK_SHARPNESS else "distributed"
         poc_bin = next((b for b in raw_histogram if abs(b.get('price', 0) - poc) < 0.01), None)
         poc_strength = poc_bin.get('volume', 0) / max_vol if poc_bin and max_vol > 0 else 0.5
         return peak_type, round(poc_strength, 2)
@@ -646,10 +565,10 @@ class VisualContextSummarizer:
         above_mean = float(np.mean(above_vols)) if above_vols else 0.0
         below_mean = float(np.mean(below_vols)) if below_vols else 0.0
         if above_mean < below_mean * 0.7:
-            return "分散 (low density)", "集中 (high density)"
+            return "low", "high"
         elif below_mean < above_mean * 0.7:
-            return "集中 (high density)", "分散 (low density)"
-        return "均匀", "均匀"
+            return "high", "low"
+        return "uniform", "uniform"
 
     @staticmethod
     def _detect_vacuums(raw_histogram, current_price, max_vacuums=3):
@@ -694,3 +613,29 @@ class VisualContextSummarizer:
             else:
                 i += 1
         return ", ".join(gaps) if gaps else ""
+
+    @staticmethod
+    def _cluster_position(price, poc, vah, val, anchors_above, anchors_below):
+        refs = []
+        if vah:
+            refs.append((f"VAH ({vah:.1f})", vah))
+        if val:
+            refs.append((f"VAL ({val:.1f})", val))
+        if poc:
+            refs.append((f"POC ({poc:.1f})", poc))
+        for a in anchors_above:
+            refs.append((f"HVN ({a['price']:.1f})", a['price']))
+        for a in anchors_below:
+            refs.append((f"HVN ({a['price']:.1f})", a['price']))
+        refs.sort(key=lambda x: x[1])
+        above = [(n, p) for n, p in refs if p > price]
+        below = [(n, p) for n, p in refs if p < price]
+        nearest_above = min(above, key=lambda x: x[1]) if above else None
+        nearest_below = max(below, key=lambda x: x[1]) if below else None
+        if nearest_above and nearest_below:
+            return f"between {nearest_below[0]} and {nearest_above[0]}"
+        elif nearest_above:
+            return f"below {nearest_above[0]}, no nearby structure below"
+        elif nearest_below:
+            return f"above {nearest_below[0]}, no nearby structure above"
+        return "isolated — no nearby structural anchors"

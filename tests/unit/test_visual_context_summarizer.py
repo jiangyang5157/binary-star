@@ -2,6 +2,7 @@
 import pandas as pd
 import numpy as np
 import pytest
+import re
 from src.analyzer.visual_context_summarizer import VisualContextSummarizer
 
 
@@ -79,10 +80,13 @@ class TestVisualContextSummarizer:
             time_interval="1h", atr=1240.3,
         )
         assert isinstance(result, str)
+        # 5 sections (KEY LEVELS REFERENCE removed)
         for section in ["PRICE LADDER", "CANDLESTICK PANORAMA",
                         "VOLUME-AT-TIME PROFILE", "VOLUME PROFILE TOPOGRAPHY",
-                        "LIQUIDATION LANDSCAPE", "KEY LEVELS REFERENCE"]:
+                        "LIQUIDATION LANDSCAPE"]:
             assert section in result, f"Missing section: {section}"
+        # KEY LEVELS REFERENCE must NOT be present
+        assert "KEY LEVELS REFERENCE" not in result, "KEY LEVELS REFERENCE should be removed"
 
     def test_price_ladder_contains_all_levels(self):
         df = make_test_df()
@@ -99,7 +103,7 @@ class TestVisualContextSummarizer:
         assert "CURRENT PRICE" in result
 
     def test_distance_percent_correct(self):
-        """POC at 96810.0 with current 97234.5 = −0.44%"""
+        """POC at 96810.0 with current 97234.5 = -0.44%"""
         df = make_test_df(close=97234.5)
         result = self.summarizer.generate(
             symbol="BTCUSDT", df=df,
@@ -107,7 +111,7 @@ class TestVisualContextSummarizer:
             liquidations=make_liquidations(),
             time_interval="1h", atr=1240.3,
         )
-        assert "−0.44%" in result
+        assert "-0.44%" in result
 
     def test_candle_body_calculation(self):
         """body = abs(close - open), verified on last bar."""
@@ -123,7 +127,7 @@ class TestVisualContextSummarizer:
             liquidations=make_liquidations(),
             time_interval="1h", atr=1240.3,
         )
-        # body = abs(97234.5 - 99700.0) = 2465.5 → formatted to "2466" with .0f
+        # body = abs(97234.5 - 99700.0) = 2465.5 -> formatted to "2466" with .0f
         assert "2466" in result
 
     def test_empty_liquidations_handled(self):
@@ -148,7 +152,7 @@ class TestVisualContextSummarizer:
         assert "no data" in result.lower()
 
     def test_profile_shape_b_shaped(self):
-        """POC positioned in lower VA → b-shaped."""
+        """POC positioned in lower VA -> b-shaped."""
         df = make_test_df()
         pd_ = make_profile_data()
         pd_["poc"] = 96500.0  # (96500-96102.3)/(97812-96102.3) = 23.3% from VAL
@@ -159,3 +163,86 @@ class TestVisualContextSummarizer:
             time_interval="1h", atr=1240.3,
         )
         assert "b-shaped" in result.lower()
+
+    # ── New tests ──────────────────────────────────────────────────────
+
+    def test_atr_distance_lines_present(self):
+        """Key distances in ATR units appear in the Price Ladder section."""
+        df = make_test_df()
+        result = self.summarizer.generate(
+            symbol="BTCUSDT", df=df,
+            profile_data=make_profile_data(),
+            liquidations=make_liquidations(),
+            time_interval="1h", atr=1240.3,
+        )
+        assert "Key distances (ATR units)" in result
+        # At least one ATR distance present after the header
+        after_key = result.split("Key distances")[1]
+        assert "ATR" in after_key
+
+    def test_no_key_levels_reference_section(self):
+        """Section 6 KEY LEVELS REFERENCE is removed."""
+        df = make_test_df()
+        result = self.summarizer.generate(
+            symbol="BTCUSDT", df=df,
+            profile_data=make_profile_data(),
+            liquidations=make_liquidations(),
+            time_interval="1h", atr=1240.3,
+        )
+        assert "KEY LEVELS REFERENCE" not in result
+
+    def test_no_chinese_characters(self):
+        """Output must be English-only (no Chinese characters)."""
+        df = make_test_df()
+        result = self.summarizer.generate(
+            symbol="BTCUSDT", df=df,
+            profile_data=make_profile_data(),
+            liquidations=make_liquidations(),
+            time_interval="1h", atr=1240.3,
+        )
+        # Match any CJK Unified Ideographs range
+        cjk = re.findall(r'[一-鿿㐀-䶿]', result)
+        assert len(cjk) == 0, f"Found Chinese characters: {cjk}"
+
+    def test_no_ascii_art_bars(self):
+        """ASCII art bar characters (block, shade) should not appear."""
+        df = make_test_df()
+        result = self.summarizer.generate(
+            symbol="BTCUSDT", df=df,
+            profile_data=make_profile_data(),
+            liquidations=make_liquidations(),
+            time_interval="1h", atr=1240.3,
+        )
+        assert "█" not in result, "ASCII block characters found"
+        assert "▓" not in result, "ASCII shade characters found"
+
+    def test_volume_at_time_compact_format(self):
+        """Volume-at-Time section uses compact ratio format without bar art."""
+        df = make_test_df()
+        result = self.summarizer.generate(
+            symbol="BTCUSDT", df=df,
+            profile_data=make_profile_data(),
+            liquidations=make_liquidations(),
+            time_interval="1h", atr=1240.3,
+        )
+        # Should have the compact ratio line with × symbols
+        assert "×" in result
+        # Should have the volume-at-time section header
+        assert "VOLUME-AT-TIME PROFILE" in result
+        # Should reference the MA baseline
+        assert "baseline = 1.0" in result
+
+    def test_atr_label_is_not_macro(self):
+        """ATR label should just be 'ATR' (not 'ATR_macro') since visual context
+        only provides the primary ATR. atr_micro stays in observation_json."""
+        df = make_test_df()
+        result = self.summarizer.generate(
+            symbol="BTCUSDT", df=df,
+            profile_data=make_profile_data(),
+            liquidations=make_liquidations(),
+            time_interval="1h", atr=1240.3,
+        )
+        assert "ATR = 1240.3" in result
+        # atr_micro should NOT leak into visual context
+        assert "ATR_micro" not in result
+        assert "ATR_macro" not in result
