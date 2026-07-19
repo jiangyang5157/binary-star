@@ -218,8 +218,8 @@ guardian:
       tp_ratio: 0.3
     levels:
       - target: 0.65
-        tp_ratio: 0.3
-        sl_lock: 0.1
+        tp_ratio: 0
+        sl_lock: 0
       - target: 0.85
         tp_ratio: 0.0
         sl_lock: 0.3
