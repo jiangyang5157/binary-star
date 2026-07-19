@@ -41,7 +41,7 @@ All analytical tasks and risk audits must be calibrated to protect the system's 
 | **Logic Loop** | `HAS_PROTOCOL_VIOLATION` | `[PROTOCOL_VIOLATION]` | `TERMINAL` |
 | **Math Violation** | NOT `IS_RR_VALID` OR `compliance_verdict.atr_volatility_is_logical` == FALSE | `[MATH_VIOLATION]` | `CONSTRUCTIVE` |
 | **Inaction Bias**| `IN_NEUTRAL` AND (`squeeze_factor` < `{squeeze_audit_threshold}` AND `HAS_VOLUME_SURGE` OR abs(`poc_dist_atr`) > `{poc_gravity_atr_distance}`) | `[INACTION_BIAS]` | `CONSTRUCTIVE` |
-| **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_CVD_MOMENTUM` AND NOT `HAS_ABSORPTION_RISK` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
+| **Opportunity Denial** | `IN_NEUTRAL` AND `HAS_CVD_MOMENTUM` AND NOT `HAS_ABSORPTION_RISK` AND `IS_TREND` | `[OPPORTUNITY_DENIAL]` | `CONSTRUCTIVE` |
 | **Trend Starvation**| `IS_EXPANDING` AND NOT `IS_CHAOS` AND `IS_TREND_STRONG` AND `IN_NEUTRAL` | `[TREND_STARVATION]` | `CONSTRUCTIVE` |
 | **Retail Long Squeeze** | `HAS_BEAR_SENTIMENT` AND `IS_BULLISH` | `[RETAIL_LONG_SQUEEZE]` | `CONSTRUCTIVE` |
 | **Retail Short Squeeze**| `HAS_BULL_SENTIMENT` AND `IS_BEARISH` | `[RETAIL_SHORT_SQUEEZE]` | `CONSTRUCTIVE` |

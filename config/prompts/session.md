@@ -60,8 +60,18 @@ Use these metrics to synthesize your tactical entry strategy:
 ## Tactical Heuristics (Alpha Generation)
 Use the interpretation palette to formulate a creative entry, bounded by the Shield Law:
 - **Momentum & Flow Riding**: If `IS_TREND_STRONG` AND `HAS_CVD_MOMENTUM` are BOTH TRUE, institutional backing is confirmed. You are ALLOWED to execute Momentum Entries or **Shallow Pullback DLEs** in the direction of the flow. If either condition is FALSE, directional momentum entries are PROHIBITED; you MAY only consider fading entries (Exhaustion DLE or Sweep & Fade) if price-action confirms a clear reversal or exhaustion. Do not force a trend-following trade without dual confirmation. All entries MUST still satisfy SHIELD LAW and **LIMIT ORDER PHYSICS**.**MANDATORY**: Your `entry` MUST be anchored to a valid structural node (HVN/POC). If the nearest valid structure is further than `{max_entry_distance_atr}` ATR, you MUST NOT place a deep entry due to phantom order risk. Instead, either anchor your `entry` at the closest available structural boundary (including liquidation clusters or LVNs) within `{max_entry_distance_atr}` ATR, combined with a Dynamic Kinetic Shield for the stop, or defer to the Exhaustion Fading (DLE) or Sweep & Fade protocols. Under no circumstances should `entry` exceed `{max_entry_distance_atr}` ATR from `current_price`.
-  - **MOMENTUM SURGE EXEMPTION**: If `IS_TREND_STRONG` is TRUE AND `HAS_CVD_MOMENTUM` is TRUE simultaneously, you are EXEMPT from the mandatory structural anchoring requirement. You MAY execute a Momentum Surge Entry with `entry` at `current_price` ± 0.2 × `atr_micro` (BEARISH: +0.2 × ATR above; BULLISH: −0.2 × ATR below), deploy a Dynamic Kinetic Shield for your `stop_loss`, and must satisfy the strict `{min_rr_trending}` mathematical requirement. This captures runaway directional moves that would otherwise be missed by waiting for structural pullbacks.
+
+  - **MOMENTUM SURGE EXEMPTION**:
+  IF `IS_TREND_STRONG` is TRUE AND `HAS_CVD_MOMENTUM` is TRUE simultaneously:
+    → You are EXEMPT from mandatory structural anchoring.
+    → Execute a Momentum Surge Entry with `entry` at `current_price` ± 0.1 × `atr_micro`.
+    → Deploy a Dynamic Kinetic Shield for `stop_loss`.
+    → Must satisfy strict `{min_rr_trending}` for the full geometry.
+
+  Purpose: captures runaway directional moves that structural pullbacks would miss.
+
   - **CHAOS OVERRIDE**: If `IS_CHAOS`, the market is climaxing. Directional momentum execution is STRICTLY PROHIBITED. If fading, you MUST execute a "Hit-and-Run" strategy: anchor your `entry` near proximal liquidation clusters to avoid phantom orders, and compress your `take_profit` aggressively to the VERY FIRST immediate structural node (e.g., the closest VAH/VAL boundary). DO NOT aim for distal liquidity vacuums or full mean-reversion. Secure the survival profit and exit.
+
 - **Exhaustion Fading (DLE)**: If `cvd_intensity_ratio` diverges from price action or `wick_skew_instant` shows rejection near a boundary, execute a Defensive Limit Entry (DLE).
 
   **COUNTER-TREND CONSTRAINT**: You MUST NOT fade against the prevailing trend direction (given by `trend_intensity` sign) if `IS_TREND` is TRUE, UNLESS the macro timeframe (`VISUAL_CONTEXT: MACRO_SNAPSHOT`) shows a confirmed reversal pattern.
@@ -85,10 +95,25 @@ When history contains specific veto tags, apply these technical repair protocols
 - `[RETAIL_LONG_SQUEEZE]`: Retail crowded long — squeeze risk elevated. You MAY maintain BULLISH but MUST harden: tighten `stop_loss` closer to entry (anchor behind nearest HVN), compress `take_profit` to the first structural boundary. ONLY Pivot to "BEARISH" if `current_price` is actively testing/rejecting VAH or distal resistance AND `trend_intensity` ≤ 0 (macro trend is not bullish) — target distal `long_liquidation` cascade. DO NOT pivot from mid-range without structural confirmation.
 - `[RETAIL_SHORT_SQUEEZE]`: Retail crowded short — squeeze risk elevated. You MAY maintain BEARISH but MUST harden: tighten `stop_loss` closer to entry (anchor behind nearest HVN), compress `take_profit` to the first structural boundary. ONLY Pivot to "BULLISH" if `current_price` is actively testing/rejecting VAL or distal support AND `trend_intensity` ≥ 0 (macro trend is not bearish) — target distal `short_liquidation` cascade. DO NOT pivot from mid-range without structural confirmation.
 - `[CVD_ABSORPTION]`: Abort Momentum. Move to deep **DLE** at nearest `HVN/POC`.
-- `[GRAVITY_EXHAUSTION]`: IF lacks momentum, execute Mean-Reversion **DLE** targeting `POC`. IF institutional flow is confirmed (`IS_TREND_STRONG`), execute **Shallow Pullback DLE** aligned with flow; DO NOT force a return to the distal `POC`. **If the critic repeats this veto after your repair**: when `IS_TREND_STRONG` is FALSE, you MUST output "NEUTRAL" — overextension without institutional momentum is structurally doomed. When `IS_TREND_STRONG` is TRUE, you MUST output "NEUTRAL" only if your Shallow Pullback DLE was already at the maximum allowed entry distance (`{max_entry_distance_atr}` ATR).
+
+- `[GRAVITY_EXHAUSTION]`:
+  IF market lacks momentum AND flow opposition is absent:
+    → Execute Mean-Reversion DLE targeting POC.
+  ELSE IF institutional flow is confirmed (`IS_TREND_STRONG`) or flow aligns:
+    → Execute Shallow Pullback DLE; do not force a return to distal POC.
+  ELSE:
+    → Output "NEUTRAL" (counter-trend or no valid entry path).
+
+  If the critic repeats this veto after your repair:
+    When `IS_TREND_STRONG` is FALSE:
+      → Output "NEUTRAL" (overextension without momentum is doomed).
+    When `IS_TREND_STRONG` is TRUE:
+      → IF entry already at `{max_entry_distance_atr}` ATR: output "NEUTRAL".
+      → ELSE: tighten entry toward current price and resubmit.
+
 - `[FLOW_VIOLATION]`: Polarity Pivot to align with `cvd_intensity_ratio` or abort to "NEUTRAL". DO NOT attempt to "deepen the entry" to absorb counter-flow; this is a falling knife trap.
 - `[VOLATILITY_CHOP]`: Treat as high-noise regime. Tighten `take_profit` to first structural boundary. If CVD flow is dominant, maintain directional bias. If flow direction is unclear, abort to "NEUTRAL".
-- `[INACTION_BIAS]`: Re-read telemetry; execute Mean-Reversion DLE or Vacuum Flip.
+- `[INACTION_BIAS]`: Re-read telemetry; if a valid structural anchor (HVN/POC/VAH/VAL) exists within `{max_entry_distance_atr}` ATR of current price, execute Mean-Reversion DLE (if flow opposes) or Vacuum Flip (if flow aligns); otherwise, maintain "NEUTRAL".
 - `[OPPORTUNITY_DENIAL]`: Execute **Momentum Entry** aligned with CVD or shallow **DLE**. **MANDATORY**: `entry` MUST be anchored to valid structure. Do not force a shallow entry in a vacuum just to satisfy proximity.
 - `[TREND_STARVATION]`: Shift to shallow pullback or Momentum Entry. No deep DLEs.
 - `[OVER_EXTENSION]`: Compress `take_profit` closer to `entry` to reduce temporal risk. DO NOT sink `entry` excessively deep, as this causes Phantom Orders.
