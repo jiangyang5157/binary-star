@@ -12,11 +12,12 @@ For each site that cancels then re-places OCO, answer:
 
 Sites to audit:
 1. `_optimize_same_direction()` — in `order_executor.py`
-2. `_try_exit_ladder()` — in `order_executor.py`
-3. `_apply_sl_lock()` — in `order_executor.py`
-4. `_guardian_case_3_protect()` — OCO placement block (extracted from guardian_check)
-5. `_guardian_case_4_protected()` — qty re-align block (extracted from guardian_check)
-6. `find_level_and_sync_sl()` — in `order_executor.py`
+2. `_try_breakeven()` — dynamic close ratio, breakeven_close model, SL not moved
+3. `_try_exit_ladder()` — in `order_executor.py`
+4. `_apply_sl_lock()` — in `order_executor.py`
+5. `_guardian_case_3_protect()` — OCO placement block (extracted from guardian_check)
+6. `_guardian_case_4_protected()` — qty re-align block (extracted from guardian_check)
+7. `find_level_and_sync_sl()` — in `order_executor.py`
 
 ### 1.2 Emergency Close Completeness
 For every `place_oco_order` call site, verify:
@@ -128,7 +129,7 @@ For every `place_oco_order` call site, verify:
 - [ ] SL only moves toward TP (one-way ratchet, never loosens)
 - [ ] Rounding toward safety: LONG rounds down (`floor`), SHORT rounds up (`ceil`)
 - [ ] No migration when new_sl ≤ current_sl (LONG) or new_sl ≥ current_sl (SHORT)
-- [ ] Config `sl_lock=0.0` means SL stays at breakeven (entry) — no profit locking
+- [ ] Config `sl_lock=0.0` means SL unchanged from level's re-place baseline — no profit locking
 - [ ] SL source from `_apply_sl_lock` calculation, not exchange state
 
 ### 4.4 Level Memory

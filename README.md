@@ -2,9 +2,7 @@
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
-What if two LLMs debated your trade before it hit the market? **Binary Star** pits a Planner against a Critic — one proposes, the other tears it apart. Math Tools (no LLM, pure computation) anchors both to reality. The debate converges in at most two rounds; if they can't agree and the Critic's last verdict is TERMINAL, the system aborts to NEUTRAL rather than forcing a broken trade.
-
----
+What if two LLMs debated your trade before it hit the market? **Binary Star** pits a Planner against a Critic — one proposes, the other tears it apart. Math Tools (deterministic, no LLM) anchors both to reality. The debate converges in at most two rounds; if they can't agree and the Critic's last verdict is TERMINAL, the system aborts to NEUTRAL rather than forcing a broken trade.
 
 ## Binary Star Protocol
 
@@ -15,41 +13,39 @@ sequenceDiagram
     participant M as Math Tools
     participant C as Critic
 
-    Note over BSO: harvest market data
+    BSO->>BSO: harvest market data
     loop max 2 rounds
-        BSO->>+S: dispatch
-        S-->>-BSO: trade plan
-        BSO->>+M: verify plan
-        M-->>-BSO: RR · ATR · structural check
-        BSO->>+C: audit (plan + math facts)
-        alt PASS / WEAK
-            C-->>BSO: ✓ early exit
+        BSO->>S: dispatch
+        S-->>BSO: trade plan (entry / TP / SL)
+        BSO->>M: verify geometry
+        M-->>BSO: verified or rejected
+        BSO->>C: audit plan
+        alt PASS or WEAK
+            C-->>BSO: early exit
         else CONSTRUCTIVE
-            C-->>BSO: ✗ weaknesses found
-            Note right of BSO: feedback loops back → Session refines
+            C-->>BSO: refine (next round)
         else TERMINAL
-            C-->>-BSO: ⊗ forced NEUTRAL
+            C-->>BSO: force NEUTRAL
         end
     end
-    Note over BSO: confidence gate → dispatch to Order Executor
 ```
 
-### Veto Levels
+**Session** proposes a trade thesis with entry, TP, SL, and regime analysis. **Math Tools** deterministically verifies the geometry — RR ratio, ATR distance, structural shielding — before the Critic ever sees it. **Critic** audits across four veto levels:
 
-| Veto | Effect |
-|------|--------|
-| **PASS** | Plan is sound — early exit, no further rounds |
-| **WEAK** | Minor concern — early exit, plan accepted as-is |
-| **CONSTRUCTIVE** | Fixable flaws — feedback loop, Planner refines |
-| **TERMINAL** | Fatal — structurally invalid. If unresolved at max rounds, forces NEUTRAL |
+| Veto | Tags | Effect |
+|------|------|--------|
+| **PASS** | `PRISTINE`, `JUSTIFIED_INACTION` | Debate ends — trade approved or NEUTRAL accepted |
+| **WEAK** | `CVD_ABSORPTION` | Debate ends — minor concern, not worth another round |
+| **CONSTRUCTIVE** | `MATH_VIOLATION`, `INACTION_BIAS`, `TREND_STARVATION`, `RETAIL_SQUEEZE`, … | Plan needs revision — another round |
+| **TERMINAL** | `ORDER_PHYSICS`, `STRUCTURAL_TRAP`, `ANCHOR_VIOLATION`, `PROTOCOL_VIOLATION` | Plan is unsafe — force NEUTRAL |
 
-A deterministic 0–100 survival score is computed in Python after the debate — evaluating 13 dimensions across topographical armor, regime & gravity, and temporal & sentiment. Two LLM backends (DeepSeek, Gemini) power the debate via a shared config.
+Confidence scoring is Python-computed (not LLM-generated), factoring in math verification results, debate history, and the final verdict. NEUTRAL always scores 0.
 
-> **Full protocol**: [docs/adversarial-debate-protocol.md](docs/adversarial-debate-protocol.md) — Session/Critic prompts, veto system, confidence scoring, repair patterns, deadlock analysis.
+The system supports DeepSeek and Gemini as AI providers, configured via `global_config.yaml`.
 
----
+## Architecture
 
-## System Topology
+**Runtime pipeline** — Sniper finds the moment, Binary Star debates the trade, Guardian protects it:
 
 ```mermaid
 graph LR
@@ -62,67 +58,85 @@ graph LR
         Critic --> Planner
     end
 
-    Sniper["Sniper<br/>9 detectors · 2-min pulse"] --> Debate
-    Debate --> Executor["Order Executor<br/>OTOCO · OCO · exit ladder"]
+    Sniper["Sniper<br/>10 signals"] --> Debate
+    Debate --> Executor["Order Executor"]
     Executor --> Binance["Binance"]
 ```
+
+**Evolution loop** — offline: sessions are audited, patterns are learned, config is improved:
 
 ```mermaid
 graph LR
     Archives["Session Archives"] --> Audit["Audit"]
     Audit --> Evolver["Evolver Sandbox"]
-    Evolver --> Config["Config Patches"]
-    Config --> BinaryStar["Binary Star Config"]
+    Evolver --> Patches["Config Patches"]
+    Patches --> Config["Binary Star Config"]
 ```
-
----
 
 ## Sniper
 
-A local signal stack (**9 detectors** + 1 cross-symbol boost) monitors the market every 2 minutes. A regime-adaptive confluence engine weights directional agreement and cancels opposing noise, adjusting its effective threshold per regime (config: `trigger_threshold × regime_modifiers`). Any single signal exceeding the `emergency_threshold` overrides cooldown and threshold entirely. Its sole job is timing — it does not trade.
+10 signals across 5 categories (FLOW, SIZE, ENERGY, STRUCTURAL, POSITIONING, CROSS-SYMBOL) combine via a confluence engine: `1 − ∏(1 − s)` per direction, with noise cancellation. Regime-adaptive thresholds (trending 0.29, ranging 0.34, squeeze 0.26, chaos 0.51) gate trigger decisions. Any single signal at ≥ 0.80 bypasses all cooldown. Adaptive cooldown scales with market regime (20–60 min).
 
----
+Sniper's job is entry timing. Binary Star decides the trade.
 
 ## Order Management
 
-| Phase | Mechanism |
-|-------|-----------|
-| Entry | OTOCO — atomic limit entry with nested TP/SL |
-| Protection | Guardian OCO — every position wrapped in TP + SL |
-| Profit-taking | 2-phase exit ladder — breakeven (RR 1:1) → 2-level partial TP + TP-relative trailing |
-| Stop migration | Dynamic trailing SL as ladder levels fire |
+| Phase | Trigger | Action |
+|-------|---------|--------|
+| Entry | Binary Star → LONG/SHORT | OTOCO: limit entry + nested TP/SL (atomic) |
+| Protection | Entry filled, no OCO yet | Guardian places OCO with TP + SL |
+| Breakeven | RR ≥ 1.0 | Dynamic partial close — SL stays at original risk |
+| Exit Ladder | 85% TP progress | Close 20% of remaining, SL → entry + 10% TP |
+| Trailing | Level active, price advances | SL ratchets toward TP (never loosens) |
 
----
+Breakeven dynamically computes the close ratio per trade from `rr_target`, entry price, SL distance, and taker fee — guaranteeing true breakeven after all fees if the remainder hits SL.
 
 ## Evolution
 
-An offline sandbox replays audited sessions against evolved config patches, scoring fitness against actual outcomes. Winning patches feed into Binary Star's debate thresholds and the Sniper's signal stack — the loop tightens with every generation.
-
----
+Sandboxed meta-evolution ingests audit reports, scores fitness (TP_HIT: 100, NEUTRAL: 50, SL_HIT: 30, plus forensic modifiers for logic failures, luck, slow locks), and emits config patches consumed by Binary Star. Each proposal includes a semantic refinement for prompt templates.
 
 ## Installation
 
 ```bash
 pip install -e .
-cp .env.example .env  # add your exchange + LLM API keys
+cp .env.example .env   # add BINANCE_API_KEY, BINANCE_SECRET_KEY, DEEPSEEK_API_KEY
 ```
-
----
 
 ## Commands
 
+### Sessions
+
 ```bash
-# ── Sessions ────────────────────────────────────────────
-python run.py session --symbol XAUT
+python run.py session --symbol BTC -p data/prod
+python run.py session --symbol XAUT --write_status -p data/prod   # with dashboard polling
+```
 
-# ── Sniper ──────────────────────────────────────────────
-python run.py sniper --symbol XAUT,BTC --llm --trade 500
+### Sniper
 
-# ── Backtest ────────────────────────────────────────────
-python run.py backtest-run --symbol XAUTUSDT --start 2025-01-01 --samples 100
+```bash
+python run.py sniper --symbol BTC,XAUT --llm -p data/prod         # monitor + AI
+python run.py sniper --symbol XAUT --trade -p data/prod           # full auto-trading
+python run.py sniper --symbol BTC --trade 1000 --risk-per-trade 0.01 -p data/prod
+```
 
-# ── Audit & Evolution ───────────────────────────────────
-python run.py audit --symbol XAUT -p data/prod
-python run.py evolution --symbol XAUT --samples 50 -p data/prod
-python run.py patch -f proposals/evolution.json --symbol XAUT
+### Backtest
+
+```bash
+python run.py backtest-run --symbol BTCUSDT --timestamp "2025-06-15T14:30:00Z" -p data/prod
+python run.py backtest-run --symbol XAUTUSDT --start T-7d --samples 20 -p data/prod
+```
+
+### Audit & Evolution
+
+```bash
+python run.py audit -p data/prod                                  # batch audit all sessions
+python run.py audit -f sessions/BTCUSDT_20250615.json --force -p data/prod
+python run.py evolution --symbol BTC --samples 20 -p data/prod
+python run.py patch -f proposals/proposal_20250615.json --symbol XAUT
+```
+
+### Dashboard
+
+```bash
+python -m src.dashboard.server -p data/prod --port 8080
 ```
