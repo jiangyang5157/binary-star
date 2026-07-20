@@ -359,17 +359,19 @@ def project_holding_time(
         if effective_velocity <= 1e-12:
             effective_velocity = 1e-12
 
-        # 1. Physical holding time (with execution buffer)
-        # Formula = (pure physical flight time) * temporal dilation factor
-        # projected_holding_hours serves as the hard tracking deadline for audit scripts.
-        dist = abs(take_profit - entry)
-        projected_holding_hours = round((dist / effective_velocity * interval_minutes * scalars["temporal_dilation_factor"]) / 60, 1)
+        dilation_factor = scalars["temporal_dilation_factor"]
 
-        # 2. Waiting time (no buffer, pure physical velocity)
+        # Holding time: TP distance with dilation buffer
+        projected_holding_hours = round(
+            (abs(take_profit - entry) / effective_velocity * interval_minutes * dilation_factor) / 60, 1
+        )
+
+        # Waiting time: entry distance with same dilation buffer
         projected_waiting_hours = 0.0
         if current_price is not None and current_price > 0:
-            wait_dist = abs(entry - current_price)
-            projected_waiting_hours = round((wait_dist / effective_velocity * interval_minutes) / 60, 1)
+            projected_waiting_hours = round(
+                (abs(entry - current_price) / effective_velocity * interval_minutes * dilation_factor) / 60, 1
+            )
 
         return {
             "projected_holding_hours": projected_holding_hours,

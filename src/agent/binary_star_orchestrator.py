@@ -416,8 +416,10 @@ class BinaryStarOrchestrator:
             )
 
             macro_interval_mins = get_interval_minutes(self.macro_interval)
-            unit_atr_holding_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins * scalars["temporal_dilation_factor"]) / 60, 1)
-            unit_atr_waiting_hours = round((1.0 / scalars["effective_velocity_per_atr"] * macro_interval_mins) / 60, 1)
+            velocity_per_atr = scalars["effective_velocity_per_atr"]
+            dilation_factor = scalars["temporal_dilation_factor"]
+            unit_atr_holding_hours = round((1.0 / velocity_per_atr * macro_interval_mins * dilation_factor) / 60, 1)
+            unit_atr_waiting_hours = round((1.0 / velocity_per_atr * macro_interval_mins * dilation_factor) / 60, 1)
 
             regime['temporal_physics'] = {
                 "unit_atr_holding_hours": unit_atr_holding_hours,

@@ -74,7 +74,7 @@ def _make_observation(**overrides):
                 "trend_intensity": 0.5, "squeeze_factor": 1.0,
                 "volume_participation_ratio": 1.0,
                 "temporal_physics": {
-                    "unit_atr_holding_hours": 4.0, "unit_atr_waiting_hours": 2.0,
+                    "unit_atr_holding_hours": 4.0,
                 },
             },
             "sentiment_signals": {

@@ -91,14 +91,14 @@ class TestMathTools:
         assert res["projected_holding_hours"] == 25.0
 
     def test_projected_waiting_time(self):
-        """Wait time: entry=60000, TP=62000, dist=1000, vel=1.0 → 5h."""
+        """Wait time: entry=60000, TP=62000, dist=1000, vel=1.0, dilation=2.0 → 10h."""
         res = MathTools.project_holding_time(
             current_price=59000, entry=60000, take_profit=62000, atr=200,
             trend_intensity=1.0, volatility_intensity_index=2.2,
             normalized_velocity=1.0, interval_minutes=60,
             physics=self._physics,
         )
-        assert res["projected_waiting_hours"] == 5.0
+        assert res["projected_waiting_hours"] == 10.0
 
     def test_mae_stress_tiers(self):
         # 定义测试用的阈值
