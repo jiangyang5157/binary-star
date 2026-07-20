@@ -364,6 +364,20 @@ class MarginOrderExecutor:
             trade_state["entry_filled_at"] = datetime.now(timezone.utc)
         logger.debug(f"[{symbol}] position protected | dir={direction} | net_qty={net_qty}")
 
+        # ── Holding timeout monitor (log-only, no forced exit) ──
+        proj_hold = trade_state.get("projected_holding_hours", 0)
+        if proj_hold and proj_hold > 0:
+            filled_at = trade_state.get("entry_filled_at")
+            if isinstance(filled_at, str):
+                filled_at = datetime.fromisoformat(filled_at)
+            if filled_at:
+                elapsed_h = (datetime.now(timezone.utc) - filled_at).total_seconds() / 3600
+                if elapsed_h > proj_hold:
+                    logger.warning(
+                        f"[{symbol}] holding overdue | elapsed={elapsed_h:.1f}h "
+                        f"> projected={proj_hold:.1f}h"
+                    )
+
         # OCO qty sanity: re-align if position changed since OCO was placed
         oco_sl_qty = sum(
             o.orig_qty for o in active_orders

@@ -292,9 +292,9 @@ def test_loaders_work_with_resolved_config():
     a = load_audit_config(cfg)
     v = load_visual_config(cfg)
 
-    # Base values and overrides (XAUTUSDT overrides stop_loss_buffer_min to 1.6)
+    # Base values and overrides (XAUTUSDT overrides stop_loss_buffer_min to 1.5)
     assert r.trend_intensity_min_expansion == 0.08
-    assert k.stop_loss_buffer_min == 1.6
+    assert k.stop_loss_buffer_min == 1.5
     assert t.min_trade_velocity == 0.4
     assert a.mae_threshold_pinpoint == 20.0
     assert v.render_dpi == 120
@@ -358,6 +358,9 @@ def test_all_prompt_template_vars_reachable():
         "regime_parameters", "max_rounds",
         "precomputed_regime_states", "precomputed_critic_states",
         "precomputed_session_states", "precomputed_evolver_states",
+        # Evolver runtime-injected variables (not from config dataclasses)
+        "time_calibration_report", "fill_rate_pct", "near_miss_rate",
+        "mae_stress_distribution", "cowardice_tag_rate",
     }
 
     config_placeholders = placeholders - runtime_vars

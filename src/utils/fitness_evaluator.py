@@ -43,7 +43,7 @@ class FitnessConfig:
     pinpoint_execution_bonus: float = 5.0
 
     # Proportional Slow Lock
-    slow_lock_ratio: float = 2.0
+    slow_lock_ratio: float = 1.5
 
     # Consecutive Failure Sequence Penalties
     consecutive_failure_base: float = 5.0
@@ -77,7 +77,7 @@ class FitnessConfig:
             mfe_efficiency_bonus_high=float(mods.get('mfe_efficiency_bonus_high', 10.0)),
             mfe_efficiency_bonus_medium=float(mods.get('mfe_efficiency_bonus_medium', 5.0)),
             pinpoint_execution_bonus=float(mods.get('pinpoint_execution_bonus', 5.0)),
-            slow_lock_ratio=float(mods.get('slow_lock_ratio', 2.0)),
+            slow_lock_ratio=float(mods.get('slow_lock_ratio', 1.5)),
             consecutive_failure_base=float(mods.get('consecutive_failure_base', 5.0)),
             consecutive_failure_escalation=float(mods.get('consecutive_failure_escalation', 5.0)),
             recovery_skepticism_penalty=float(mods.get('recovery_skepticism_penalty', 5.0)),

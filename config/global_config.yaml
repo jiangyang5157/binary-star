@@ -261,7 +261,7 @@ sandbox:
 
     # --- Proportional Slow Lock ---
     # Ratio of actual/projected holding hours above which slow_lock_penalty applies
-    slow_lock_ratio: 2.0
+    slow_lock_ratio: 1.5
 
     # --- Consecutive Failure Sequence Penalties ---
     # Base penalty applied when consecutive_failures >= 2
