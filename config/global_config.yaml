@@ -197,32 +197,23 @@ sniper:
 # ═══════════════════════════════════════════════════════════════════════════
 guardian:
 
-# ── Exit Ladder: Breakeven + Partial TP + Profit Lock (2026-07-14) ──
+# ── Exit Ladder: Breakeven + Profit Lock (2026-07-20) ──
   #
   # Phase 1 — Breakeven (RR 1:1):
-  #   Close 30%, move SL to entry. Worst case after BE = +0.30R.
+  #   Dynamically close x% of position so remaining hits SL → true breakeven
+  #   after all fees. SL is NEVER moved — x is calculated per trade.
   #
-  # Phase 2 — L1 (65% progress to TP):
-  #   Close 30% of remainder, SL → entry + 10% of TP distance.
-  #   Early capital recovery + light trail.
-  #
-  # Phase 2 — L2 (85% progress to TP):
-  #   No partial close. SL → entry + 30% of TP distance.
-  #   Catastrophic-reversal defense only. Let the position run.
-  #
-  #   tp_ratio=0 at L2 avoids a third OCO cancel/re-place risk window.
-  
+  # Phase 2 — L1 (85% progress to TP):
+  #   Close 20% of remaining, SL → entry + 10% of TP distance.
+  #   Light profit lock. Let the position run.
+
   exit_ladder:
     breakeven:
       rr_target: 1.0
-      tp_ratio: 0.3
     levels:
-      - target: 0.65
-        tp_ratio: 0
-        sl_lock: 0
       - target: 0.85
-        tp_ratio: 0.0
-        sl_lock: 0.3
+        tp_ratio: 0.2
+        sl_lock: 0.1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # SANDBOX — Evolution Fitness Scoring
