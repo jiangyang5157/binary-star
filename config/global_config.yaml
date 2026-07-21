@@ -213,8 +213,8 @@ guardian:
     breakeven:
       rr_target: 1.0
     levels:
-      - target: 0.85
-        tp_ratio: 0.2
+      - target: 0.87
+        tp_ratio: 0.5
         sl_lock: 0.1
 
 # ═══════════════════════════════════════════════════════════════════════════
