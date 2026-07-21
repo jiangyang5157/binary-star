@@ -148,7 +148,7 @@ class MockDataFactory:
             "analysis_window": {
                 "macro_context": {"time_interval": "1h", "lookback_candles": 100},
                 "micro_context": {"time_interval": "15m", "lookback_candles": 100},
-                "tensors": {
+                "metric_windows": {
                     "funding_rate_macro_lookback_candles": 24,
                     "cvd_micro_lookback_candles": 4,
                     "trend_intensity_macro_lookback_candles": 24,

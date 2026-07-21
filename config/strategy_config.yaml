@@ -23,8 +23,8 @@ analysis_window:
   micro_context:
     time_interval: 15m
     lookback_candles: 192
-  # Tensor Lookbacks
-  tensors:
+  # Metric Windows (lookback candles per computed metric)
+  metric_windows:
     funding_rate_macro_lookback_candles: 24
     trend_intensity_macro_lookback_candles: 24
     volatility_intensity_macro_lookback_candles: 24
