@@ -210,7 +210,6 @@ class MockDataFactory:
                 },
                 "structural": {
                     "structural_buffer_atr": 0.05,
-                    "structural_proximity_threshold": 0.5,
                     "poc_gravity_atr_distance": 3.0,
                     "breakout_frontrun_atr": 0.45,
                     "max_entry_distance_atr": 1.5,

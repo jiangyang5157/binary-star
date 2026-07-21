@@ -44,7 +44,7 @@ def _make_risk_config(**overrides):
         "min_rr_ranging": 1.5, "min_rr_trending": 1.2,
         "structural_buffer_atr": 0.3, "stop_loss_buffer_min": 0.5,
         "poc_gravity_atr_distance": 1.5, "max_entry_distance_atr": 1.2,
-        "chaos_rr_discount": 0.3, "structural_proximity_threshold": 0.5,
+        "chaos_rr_discount": 0.3,
         "max_holding_hours": 8.0,
     }
     defaults.update(overrides)

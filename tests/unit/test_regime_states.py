@@ -250,7 +250,6 @@ def _make_risk_config(**overrides):
         "poc_gravity_atr_distance": 1.5,
         "max_entry_distance_atr": 1.2,
         "chaos_rr_discount": 0.3,
-        "structural_proximity_threshold": 0.5,
         "max_holding_hours": 8.0,
     }
     defaults.update(overrides)

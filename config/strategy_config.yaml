@@ -128,7 +128,6 @@ regime_parameters:
     # Protective margin behind structural levels to filter 'Wick Exhaustion'.
     structural_buffer_atr: 0.84
     # Proximity to VAH/VAL required for high-probability entries.
-    structural_proximity_threshold: 0.5
     # The 'Magnetic Field' range of the POC in ATR units.
     poc_gravity_atr_distance: 3.5
     # Aggressive offset for 'Front-Running' institutional liquidity clusters.

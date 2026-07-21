@@ -75,7 +75,6 @@ def load_risk_config(cfg: dict[str, Any]) -> RiskConfig:
         poc_gravity_atr_distance=_f(structural, "poc_gravity_atr_distance"),
         max_entry_distance_atr=_f(structural, "max_entry_distance_atr"),
         chaos_rr_discount=_f(risk, "chaos_rr_discount"),
-        structural_proximity_threshold=_f(structural, "structural_proximity_threshold"),
         max_holding_hours=_f(risk, "max_holding_hours"),
     )
 

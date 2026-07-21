@@ -49,7 +49,6 @@ class RiskConfig:
     poc_gravity_atr_distance: float
     max_entry_distance_atr: float
     chaos_rr_discount: float
-    structural_proximity_threshold: float
     max_holding_hours: float
 
 
