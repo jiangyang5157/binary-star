@@ -65,17 +65,17 @@ def load_temporal_config(cfg: dict[str, Any]) -> TemporalConfig:
 
 
 def load_risk_config(cfg: dict[str, Any]) -> RiskConfig:
-    risk = cfg["regime_parameters"]["risk"]
+    rm = cfg["risk_management"]
     structural = cfg["regime_parameters"]["structural"]
     return RiskConfig(
-        min_rr_ranging=_f(risk, "min_rr_ranging"),
-        min_rr_trending=_f(risk, "min_rr_trending"),
-        structural_buffer_atr=_f(structural, "structural_buffer_atr"),
-        stop_loss_buffer_min=_f(risk, "stop_loss_buffer_min"),
+        min_rr_ranging=_f(rm, "min_rr_ranging"),
+        min_rr_trending=_f(rm, "min_rr_trending"),
+        structural_buffer_atr=_f(rm, "structural_buffer_atr"),
+        stop_loss_buffer_min=_f(rm, "stop_loss_buffer_min"),
         poc_gravity_atr_distance=_f(structural, "poc_gravity_atr_distance"),
-        max_entry_distance_atr=_f(structural, "max_entry_distance_atr"),
-        chaos_rr_discount=_f(risk, "chaos_rr_discount"),
-        max_holding_hours=_f(risk, "max_holding_hours"),
+        max_entry_distance_atr=_f(rm, "max_entry_distance_atr"),
+        chaos_rr_discount=_f(rm, "chaos_rr_discount"),
+        max_holding_hours=_f(rm, "max_holding_hours"),
     )
 
 

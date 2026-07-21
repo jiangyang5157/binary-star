@@ -209,10 +209,8 @@ class MockDataFactory:
                     "short_heavy_imbalance_ratio": 0.55,
                 },
                 "structural": {
-                    "structural_buffer_atr": 0.05,
                     "poc_gravity_atr_distance": 3.0,
                     "breakout_frontrun_atr": 0.45,
-                    "max_entry_distance_atr": 1.5,
                 },
                 "micro_sentiment": {
                     "wick_skew_exhaustion": 0.6,
@@ -227,13 +225,15 @@ class MockDataFactory:
                     "liq_radar_grid_bins": 500,
                     "liq_radar_grid_padding_atr": 5.0,
                 },
-                "risk": {
-                    "chaos_rr_discount": 0.35,
-                    "min_rr_ranging": 1.0,
-                    "min_rr_trending": 1.2,
-                    "stop_loss_buffer_min": 0.1,
-                    "max_holding_hours": 48.0,
-                },
+            },
+            "risk_management": {
+                "min_rr_ranging": 1.0,
+                "min_rr_trending": 1.2,
+                "chaos_rr_discount": 0.35,
+                "stop_loss_buffer_min": 0.1,
+                "structural_buffer_atr": 0.05,
+                "max_entry_distance_atr": 1.5,
+                "max_holding_hours": 48.0,
             },
             # ── Audit / sandbox / strategy intent ───────────────────
             "audit_review": {

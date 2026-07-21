@@ -123,17 +123,12 @@ regime_parameters:
     # Threshold for extreme retail short concentration (Reciprocal of imbalance ratio).
     short_heavy_imbalance_ratio: 0.6
 
-  # --- Structural Protection ---
+  # --- Structural Anchors ---
   structural:
-    # Protective margin behind structural levels to filter 'Wick Exhaustion'.
-    structural_buffer_atr: 0.84
-    # Proximity to VAH/VAL required for high-probability entries.
     # The 'Magnetic Field' range of the POC in ATR units.
     poc_gravity_atr_distance: 3.5
     # Aggressive offset for 'Front-Running' institutional liquidity clusters.
     breakout_frontrun_atr: 0.2
-    # [HARD LIMIT]: Maximum allowed distance of entry from current price (prevents Phantom Orders).
-    max_entry_distance_atr: 1.2
 
   # --- Micro-Sentiment & Exhaustion ---
   micro_sentiment:
@@ -156,16 +151,23 @@ regime_parameters:
     liq_radar_grid_bins: 500          # Number of price bins for liquidation density calculation.
     liq_radar_grid_padding_atr: 5.0    # Buffer around price extremes in Micro ATR units.
 
-  # --- Trade Risk Boundaries ---
-  risk:
-    # Minimum acceptable Risk-Reward ratio for ranging (Mean Reversion) cycles.
-    min_rr_ranging: 1.2
-    min_rr_trending: 1.4
-    # [CHAOS]: RR tolerance discount during high volatility (0.3 = 30%).
-    chaos_rr_discount: 0.35
-    # Hard safety boundaries for stop-loss placements.
-    stop_loss_buffer_min: 1.5
-    max_holding_hours: 72.0
+# ═══════════════════════════════════════════════════════════════════════════
+# RISK MANAGEMENT
+# ═══════════════════════════════════════════════════════════════════════════
+risk_management:
+
+  # --- Base RR Thresholds ---
+  min_rr_ranging: 1.2          # Minimum Risk-Reward for ranging (Mean Reversion)
+  min_rr_trending: 1.4         # Minimum Risk-Reward for trending
+  chaos_rr_discount: 0.35      # [CHAOS] RR tolerance discount (0.35 = 35% reduction)
+
+  # --- Stop-Loss Protection ---
+  stop_loss_buffer_min: 1.5    # Hard minimum stop-loss distance (ATR)
+  structural_buffer_atr: 0.84  # Protective margin behind structural levels
+  max_entry_distance_atr: 1.2  # [HARD LIMIT] Max entry distance from price (prevents Phantom Orders)
+
+  # --- Time Limits ---
+  max_holding_hours: 72.0      # Maximum holding time before forced exit
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TEMPORAL PHYSICS
