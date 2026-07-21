@@ -477,6 +477,26 @@ class SniperTrigger:
             ):
                 return "FAIL", "CHAOS_SURVIVAL: directional momentum prohibited in chaos regime"
 
+        # 3. Minimal active signal convergence — single-signal noise filter.
+        # Non-trend regimes (ranging, squeeze, chaos) require at least
+        # min_active_non_trend signals in the trigger direction.
+        # Trending is exempt — trend inertia makes single signals more reliable.
+        # Squeeze signals (direction=NEUTRAL) are naturally excluded by the
+        # direction filter — no explicit sub_type exclusion needed.
+        min_active = gate_cfg.get('min_active_non_trend', 0)
+        if min_active > 0 and regime != 'trending':
+            same_dir_active = [
+                s for s in signals
+                if s.direction == direction
+                and s.strength >= MIN_STACK_STRENGTH
+            ]
+            if len(same_dir_active) < min_active:
+                return "FAIL", (
+                    f"MIN_ACTIVE_SIGNALS: regime={regime} requires ≥{min_active} "
+                    f"signals in {direction.value} direction, "
+                    f"got {len(same_dir_active)}"
+                )
+
         return "PASS", ""
 
     # ── Pre-Brief Builder ────────────────────────────────────────────────
