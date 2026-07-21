@@ -160,7 +160,6 @@ def _compute_samples(
 
         warmup = calculate_indicator_warmup(
             iir_periods=[
-                indicators.get("exponential_moving_average_period", 200),
                 indicators.get("average_true_range_period", 14),
             ],
             fir_periods=[fir_period],

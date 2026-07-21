@@ -105,7 +105,7 @@ class RegimeClassifier:
             squeeze_factor=float(squeeze_factor),
             trend_intensity=float(latest['trend_intensity']),
             wick_skew_regime=float(wick_skew_regime),
-            volume_participation_ratio=float(volume_participation_ratio)
+            volume_participation_ratio=float(volume_participation_ratio),
         )
 
 class MarketRegimeAnalyzer:
@@ -129,7 +129,7 @@ class MarketRegimeAnalyzer:
                 volume_ma_window=int(kwargs['volume_ma_window']),
                 trend_intensity_threshold=float(kwargs['trend_intensity_threshold']),
                 trend_lookback_candles=int(kwargs['trend_lookback_candles']),
-                wick_skew_lookback_candles=int(kwargs['wick_skew_lookback_candles'])
+                wick_skew_lookback_candles=int(kwargs['wick_skew_lookback_candles']),
             )
             
         self.engine = IndicatorEngine(self.config)

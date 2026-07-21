@@ -191,6 +191,8 @@ sniper:
       large_trade_zscore: 2.0
       # large_trade: 滚动窗口脉冲数（每个 pulse ≈ 2min）
       large_trade_lookback: 30
+      # volume_participation: Volume Participation Ratio 超过此值确认高成交参与（Energy Buildup 信号）
+      volume_participation_threshold: 1.5
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Exit Ladder + Trailing Stop)

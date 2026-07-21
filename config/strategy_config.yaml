@@ -41,8 +41,6 @@ topography_parameters:
 
   # --- Technical Indicators ---
   indicators:
-    # Period for trend detection (EMA).
-    exponential_moving_average_period: 21
     # Period for smoothing volume and volatility participation.
     volume_moving_average_period: 21
     average_true_range_period: 21
@@ -112,7 +110,6 @@ regime_parameters:
     # Minimum required volume participation ratio (Baseline).
     min_volume_participation_ratio: 1.0
     # Threshold to confirm institutional presence (High Participation).
-    volume_participation_threshold: 1.5
     # Score threshold for 'Volume Vacuums' where liquidity is non-existent.
     vacuum_risk_score: 0.3
 

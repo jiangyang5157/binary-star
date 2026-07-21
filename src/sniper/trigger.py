@@ -677,9 +677,9 @@ class SniperTrigger:
         vii = curr['price_dynamics']['volatility_intensity_index']
         vpr = curr['market_regime']['volume_participation_ratio']
         baseline = self.regime_cfg['volatility']['volatility_baseline_ratio']
-        vol_threshold = self.regime_cfg['volume']['volume_participation_threshold']
+        volume_threshold = self.sniper_cfg['signal_stack']['thresholds']['volume_participation_threshold']
 
-        if not (vii > baseline and vpr > vol_threshold):
+        if not (vii > baseline and vpr > volume_threshold):
             return None
 
         if prev:
@@ -1064,8 +1064,8 @@ class SniperTrigger:
 
         s = fired.get('volatility_surge')
         vol_base = self.regime_cfg['volatility']['volatility_baseline_ratio']
-        vol_thresh = self.regime_cfg['volume']['volume_participation_threshold']
-        parts.append(f"vol_surge={'F:'+str(round(s.strength,2)) if s else f'R:vii<={vol_base}|vpr<={vol_thresh}'}")
+        volume_threshold = self.sniper_cfg['signal_stack']['thresholds']['volume_participation_threshold']
+        parts.append(f"vol_surge={'F:'+str(round(s.strength,2)) if s else f'R:vii<={vol_base}|vpr<={volume_threshold}'}")
 
         sf = metrics['market_regime']['squeeze_factor']
         sq_thresh = (self.regime_cfg['volatility']['squeeze_threshold'] *

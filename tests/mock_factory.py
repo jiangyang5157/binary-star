@@ -160,7 +160,6 @@ class MockDataFactory:
                     "volume_profile_value_area_width": 0.7,
                 },
                 "indicators": {
-                    "exponential_moving_average_period": 21,
                     "volume_moving_average_period": 21,
                     "average_true_range_period": 14,
                     "bollinger_bands_period": 20,

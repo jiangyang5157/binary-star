@@ -848,7 +848,7 @@ class MarketObserver:
             volume_ma_window=cfg.volume_ma_period,
             trend_intensity_threshold=cfg.regime.trend_intensity_threshold,
             trend_lookback_candles=cfg.trend_intensity_macro_lookback_candles,
-            wick_skew_lookback_candles=cfg.wick_skew_lookback_candles
+            wick_skew_lookback_candles=cfg.wick_skew_lookback_candles,
         )
         return MarketRegimeAnalyzer(config=rg_cfg)
 
