@@ -106,20 +106,20 @@ class EvolverAgent(BaseAgent):
             # Pre-computed evolver states
             from src.config.sub_configs import AuditConfig
             audit_cfg = AuditConfig(
-                mae_threshold_pinpoint=float(active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_pinpoint', 0.1)),
-                mae_threshold_standard=float(active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_standard', 0.3)),
-                mae_threshold_luck=float(active_config.get('audit_review', {}).get('mae', {}).get('mae_threshold_luck', 0.5)),
-                missed_opportunity_atr_threshold=float(active_config.get('audit_review', {}).get('mae', {}).get('missed_opportunity_atr_threshold', 1.0)),
+                mae_threshold_pinpoint=float(active_config['audit_review']['mae']['mae_threshold_pinpoint']),
+                mae_threshold_standard=float(active_config['audit_review']['mae']['mae_threshold_standard']),
+                mae_threshold_luck=float(active_config['audit_review']['mae']['mae_threshold_luck']),
+                missed_opportunity_atr_threshold=float(active_config['audit_review']['missed_opportunity_atr_threshold']),
             )
             evolver_states = compute_evolver_states(audit_reports, audit_cfg)
             time_cal = evolver_states.pop("time_calibration_report", {})
             time_cal_json = compact_json(time_cal)
 
             # Extract batch forensic stats before formatting evolver_states for injection
-            fill_rate_pct = evolver_states.pop("fill_rate_pct", 0)
-            near_miss_rate = evolver_states.pop("near_miss_rate", 0)
-            mae_stress_distribution = evolver_states.pop("mae_stress_distribution", {})
-            cowardice_tag_rate = evolver_states.pop("cowardice_tag_rate", 0)
+            fill_rate_pct = evolver_states.pop("fill_rate_pct")
+            near_miss_rate = evolver_states.pop("near_miss_rate")
+            mae_stress_distribution = evolver_states.pop("mae_stress_distribution")
+            cowardice_tag_rate = evolver_states.pop("cowardice_tag_rate")
 
             # Partitioned Markdown aggregation for precise semantic targeting
             prompts_md = ""

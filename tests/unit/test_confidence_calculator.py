@@ -21,34 +21,24 @@ from src.analyzer.confidence_calculator import (
 from src.config.sub_configs import RegimeConfig, RiskConfig
 
 
-# ── Fixtures ─────────────────────────────────────────────────
+# ── Fixtures (load base from live YAML — test overrides stay explicit) ──
+
+from src.utils.pipeline_utils import load_combined_config as _load_cfg
+from src.config.loader import load_regime_config as _load_rg, load_risk_config as _load_rk
+from dataclasses import asdict as _asdict
+_BASE_CFG = _load_cfg()
+
 
 def _make_regime_config(**overrides):
-    defaults = {
-        "trend_intensity_threshold": 0.3, "trend_intensity_strong": 0.6,
-        "trend_intensity_min_expansion": 0.2, "volatility_baseline_ratio": 1.0,
-        "volatility_extreme_ratio": 1.5, "volume_surge_vs_ma_ratio": 1.5,
-        "long_short_imbalance_ratio": 2.0, "short_heavy_imbalance_ratio": 0.5,
-        "squeeze_threshold": 0.8, "squeeze_audit_threshold": 0.7,
-        "ranging_width_atr": 2.0, "min_volume_participation_ratio": 1.5,
-        "vacuum_risk_score": 0.5, "wick_skew_exhaustion": 0.3,
-        "cvd_intensity_threshold": 0.3, "cvd_intensity_extreme": 0.7,
-        "funding_extreme_threshold": 0.01, "breakout_frontrun_atr": 0.2,
-    }
-    defaults.update(overrides)
-    return RegimeConfig(**defaults)
+    base = _asdict(_load_rg(_BASE_CFG))
+    base.update(overrides)
+    return RegimeConfig(**base)
 
 
 def _make_risk_config(**overrides):
-    defaults = {
-        "min_rr_ranging": 1.5, "min_rr_trending": 1.2,
-        "structural_buffer_atr": 0.3, "stop_loss_buffer_min": 0.5,
-        "poc_gravity_atr_distance": 1.5, "max_entry_distance_atr": 1.2,
-        "chaos_rr_discount": 0.3,
-        "max_holding_hours": 8.0,
-    }
-    defaults.update(overrides)
-    return RiskConfig(**defaults)
+    base = _asdict(_load_rk(_BASE_CFG))
+    base.update(overrides)
+    return RiskConfig(**base)
 
 
 def _make_plan(**overrides):
@@ -262,7 +252,7 @@ class TestRegimeFit:
 
     def test_gravity_cap(self):
         result = _score_regime_fit("dle_mean_reversion", False, False, False, False,
-                                   2.0, _make_risk_config())
+                                   2.0, _make_risk_config(poc_gravity_atr_distance=1.5))
         assert result <= 5  # gravity cap applied
 
 
@@ -335,7 +325,9 @@ class TestSentimentRisk:
     def test_balanced(self):
         result = _score_sentiment_risk("BULLISH",
                                        {"ls_ratio_micro": 1.0, "funding_rate": 0.001},
-                                       _make_regime_config(), None)
+                                       _make_regime_config(
+                                           long_short_imbalance_ratio=1.5,
+                                           funding_extreme_threshold=0.01), None)
         assert result == 7
 
     def test_retail_extreme_against(self):

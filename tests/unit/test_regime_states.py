@@ -9,6 +9,10 @@ from src.analyzer.regime_states import (
     _format_states,
 )
 from src.config.sub_configs import RegimeConfig, RiskConfig, AuditConfig
+from src.utils.pipeline_utils import load_combined_config as _BASE_CFG
+from src.config.loader import load_regime_config as _BASE_RG, load_risk_config as _BASE_RK, load_audit_config as _BASE_AC
+from dataclasses import asdict as _ASDICT
+_BASE_CFG = _BASE_CFG()
 
 
 # ── Shared regime states fixtures ──────────────────────────────
@@ -47,28 +51,9 @@ def _deep_update(d, updates):
 
 
 def _make_regime_config(**overrides):
-    defaults = {
-        "trend_intensity_threshold": 0.3,
-        "trend_intensity_strong": 0.6,
-        "trend_intensity_min_expansion": 0.2,
-        "volatility_baseline_ratio": 1.0,
-        "volatility_extreme_ratio": 1.5,
-        "volume_surge_vs_ma_ratio": 1.5,
-        "long_short_imbalance_ratio": 2.0,
-        "short_heavy_imbalance_ratio": 0.5,
-        "squeeze_threshold": 0.8,
-        "squeeze_audit_threshold": 0.7,
-        "ranging_width_atr": 2.0,
-        "min_volume_participation_ratio": 1.5,
-        "vacuum_risk_score": 0.5,
-        "wick_skew_exhaustion": 0.3,
-        "cvd_intensity_threshold": 0.3,
-        "cvd_intensity_extreme": 0.7,
-        "funding_extreme_threshold": 0.01,
-        "breakout_frontrun_atr": 0.2,
-    }
-    defaults.update(overrides)
-    return RegimeConfig(**defaults)
+    base = _ASDICT(_BASE_RG(_BASE_CFG))
+    base.update(overrides)
+    return RegimeConfig(**base)
 
 
 # ── Shared 12 macros ─────────────────────────────────────────
@@ -242,18 +227,9 @@ def _make_math_fact_check(**overrides):
 
 
 def _make_risk_config(**overrides):
-    defaults = {
-        "min_rr_ranging": 1.5,
-        "min_rr_trending": 1.2,
-        "structural_buffer_atr": 0.3,
-        "stop_loss_buffer_min": 0.5,
-        "poc_gravity_atr_distance": 1.5,
-        "max_entry_distance_atr": 1.2,
-        "chaos_rr_discount": 0.3,
-        "max_holding_hours": 8.0,
-    }
-    defaults.update(overrides)
-    return RiskConfig(**defaults)
+    base = _ASDICT(_BASE_RK(_BASE_CFG))
+    base.update(overrides)
+    return RiskConfig(**base)
 
 
 class TestCriticStates:
@@ -408,14 +384,9 @@ class TestCriticStates:
 # ── Evolver states ───────────────────────────────────────────
 
 def _make_audit_config(**overrides):
-    defaults = {
-        "mae_threshold_pinpoint": 0.1,
-        "mae_threshold_standard": 0.3,
-        "mae_threshold_luck": 0.5,
-        "missed_opportunity_atr_threshold": 1.0,
-    }
-    defaults.update(overrides)
-    return AuditConfig(**defaults)
+    base = _ASDICT(_BASE_AC(_BASE_CFG))
+    base.update(overrides)
+    return AuditConfig(**base)
 
 
 def _make_audit_report(**overrides):

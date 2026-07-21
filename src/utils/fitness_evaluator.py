@@ -58,32 +58,32 @@ class FitnessConfig:
     @classmethod
     def from_dict(cls, config_dict: Dict[str, Any]) -> "FitnessConfig":
         """Factory to assemble config from the sandbox block."""
-        sandbox = config_dict.get('sandbox', {})
-        thresholds = sandbox.get('thresholds', {})
-        base = sandbox.get('base_scores', {})
-        mods = sandbox.get('modifiers', {})
+        sandbox = config_dict['sandbox']
+        thresholds = sandbox['thresholds']
+        base = sandbox['base_scores']
+        mods = sandbox['modifiers']
 
         return cls(
-            tp_hit=float(base.get('tp_hit', 100.0)),
-            neutral=float(base.get('neutral', 60.0)),
-            neither=float(base.get('neither', 40.0)),
-            sl_hit=float(base.get('sl_hit', 15.0)),
-            na=float(base.get('na', 0.0)),
-            logic_failure_penalty=float(mods.get('logic_failure_penalty', -40.0)),
-            luck_penalty=float(mods.get('luck_penalty', -20.0)),
-            slow_lock_penalty=float(mods.get('slow_lock_penalty', -15.0)),
-            smart_surrender_bonus=float(mods.get('smart_surrender_bonus', 15.0)),
-            catastrophic_miss_penalty=float(mods.get('catastrophic_miss_penalty', -20.0)),
-            mfe_efficiency_bonus_high=float(mods.get('mfe_efficiency_bonus_high', 10.0)),
-            mfe_efficiency_bonus_medium=float(mods.get('mfe_efficiency_bonus_medium', 5.0)),
-            pinpoint_execution_bonus=float(mods.get('pinpoint_execution_bonus', 5.0)),
-            slow_lock_ratio=float(mods.get('slow_lock_ratio', 1.5)),
-            consecutive_failure_base=float(mods.get('consecutive_failure_base', 5.0)),
-            consecutive_failure_escalation=float(mods.get('consecutive_failure_escalation', 5.0)),
-            recovery_skepticism_penalty=float(mods.get('recovery_skepticism_penalty', 5.0)),
-            mae_significance_threshold=float(thresholds.get('mae_significance_threshold', 15.0)),
-            mae_improvement_threshold=float(thresholds.get('mae_improvement_threshold', 5.0)),
-            time_improvement_threshold=float(thresholds.get('time_improvement_threshold', 4.0))
+            tp_hit=float(base['tp_hit']),
+            neutral=float(base['neutral']),
+            neither=float(base['neither']),
+            sl_hit=float(base['sl_hit']),
+            na=float(base['na']),
+            logic_failure_penalty=float(mods['logic_failure_penalty']),
+            luck_penalty=float(mods['luck_penalty']),
+            slow_lock_penalty=float(mods['slow_lock_penalty']),
+            smart_surrender_bonus=float(mods['smart_surrender_bonus']),
+            catastrophic_miss_penalty=float(mods['catastrophic_miss_penalty']),
+            mfe_efficiency_bonus_high=float(mods['mfe_efficiency_bonus_high']),
+            mfe_efficiency_bonus_medium=float(mods['mfe_efficiency_bonus_medium']),
+            pinpoint_execution_bonus=float(mods['pinpoint_execution_bonus']),
+            slow_lock_ratio=float(mods['slow_lock_ratio']),
+            consecutive_failure_base=float(mods['consecutive_failure_base']),
+            consecutive_failure_escalation=float(mods['consecutive_failure_escalation']),
+            recovery_skepticism_penalty=float(mods['recovery_skepticism_penalty']),
+            mae_significance_threshold=float(thresholds['mae_significance_threshold']),
+            mae_improvement_threshold=float(thresholds['mae_improvement_threshold']),
+            time_improvement_threshold=float(thresholds['time_improvement_threshold']),
         )
 
 

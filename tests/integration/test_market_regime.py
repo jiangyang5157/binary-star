@@ -6,15 +6,18 @@ from src.infrastructure.exchange.models import KlineData
 
 class TestSemanticConsistency(unittest.TestCase):
     def setUp(self):
+        from src.utils.pipeline_utils import load_combined_config as _lc
+        from src.analyzer.market_observer import MarketObserverConfig as _moc
+        _obs = _moc.from_dict(_lc())
         self.regime_cfg = MarketRegimeConfig(
-            bollinger_window=20, 
-            bollinger_std_dev=2.0,
-            keltner_window=20, 
-            keltner_multiplier=1.5,
-            volume_ma_window=20, 
-            trend_intensity_threshold=0.35,
-            trend_lookback_candles=14,
-            wick_skew_lookback_candles=5,
+            bollinger_window=_obs.bb_period,
+            bollinger_std_dev=_obs.bb_std_dev,
+            keltner_window=_obs.kc_period,
+            keltner_multiplier=_obs.kc_multiplier,
+            volume_ma_window=_obs.volume_ma_period,
+            trend_intensity_threshold=_obs.regime.trend_intensity_threshold,
+            trend_lookback_candles=_obs.trend_intensity_macro_lookback_candles,
+            wick_skew_lookback_candles=_obs.wick_skew_lookback_candles,
         )
         self.vp_cfg = VolumeProfileConfig(
             value_area_ratio=0.7, 

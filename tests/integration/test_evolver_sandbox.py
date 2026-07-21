@@ -32,13 +32,12 @@ def test_replay_audit_with_patch_memory_isolation(mock_audit_controller_cls, moc
     # Setup
     api_key = "test_key"
     data_root = "data/test"
-    config = {
-        "sandbox": {
-            "mae_significance_threshold": 15.0,
-            "mae_improvement_threshold": 5.0
-        }
-    }
-    
+    config = MockDataFactory.create_mock_config()
+    config["sandbox"]["thresholds"].update({
+        "mae_significance_threshold": 15.0,
+        "mae_improvement_threshold": 5.0,
+    })
+
     sandbox = EvolverSandbox(api_key, data_root, config)
     
     # Define Patches
@@ -66,10 +65,10 @@ def test_replay_audit_with_patch_memory_isolation(mock_audit_controller_cls, moc
 def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
     config = MockDataFactory.create_mock_config()
-    config["sandbox"].update({
+    config["sandbox"]["thresholds"].update({
         "mae_significance_threshold": 15.0,
         "mae_improvement_threshold": 5.0,
-        "time_improvement_threshold": 1.0
+        "time_improvement_threshold": 1.0,
     })
     sandbox = EvolverSandbox("key", "root", config)
     
@@ -94,10 +93,10 @@ def test_sandbox_improvement_logic(mock_audit_controller_cls, mock_orchestrator_
 def test_sandbox_rejection_logic(mock_audit_controller_cls, mock_orchestrator_cls, mock_audit_report):
     # Setup
     config = MockDataFactory.create_mock_config()
-    config["sandbox"].update({
+    config["sandbox"]["thresholds"].update({
         "mae_significance_threshold": 15.0,
         "mae_improvement_threshold": 5.0,
-        "time_improvement_threshold": 1.0
+        "time_improvement_threshold": 1.0,
     })
     sandbox = EvolverSandbox("key", "root", config)
     
