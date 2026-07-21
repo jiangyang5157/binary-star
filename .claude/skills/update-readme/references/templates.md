@@ -43,7 +43,7 @@ aborts to NEUTRAL rather than forcing a broken trade.
 
 [One sentence: three agents — Planner proposes, Critic audits, Math Tools verifies.]
 
-[Mermaid sequence diagram: Orchestrator → Planner → Math Auditor → Critic, loop 2 rounds, PASS early exit]
+[Mermaid sequence diagram: Orchestrator → Planner → Math Tools → Critic, loop 2 rounds, PASS early exit]
 
 ### Veto Levels
 
@@ -104,7 +104,7 @@ sections needed.]
 ```markdown
 ## Sniper
 
-A local signal stack (9 signals, 5 categories) monitors the market at
+A local signal stack ({signal count from code} signals, 5 categories) monitors the market at
 2-minute pulses. A regime-adaptive confluence engine decides when to
 activate Binary Star. Its sole job is timing — it does not trade.
 ```
@@ -127,7 +127,7 @@ activate Binary Star. Its sole job is timing — it does not trade.
 |-------|-----------|
 | Entry | OTOCO — atomic limit entry with nested TP/SL |
 | Protection | Guardian OCO — every position wrapped in TP + SL |
-| Profit-taking | 2-phase exit ladder — breakeven (RR 1:1) → 2-level partial TP + TP-relative trailing |
+| Profit-taking | 2-phase exit ladder — breakeven (rr_target from config) → trailing partial TP + TP-relative trailing |
 | Stop migration | Dynamic trailing SL as ladder levels fire |
 ```
 

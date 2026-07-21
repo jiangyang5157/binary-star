@@ -27,7 +27,7 @@ The README tells this story, in this order:
 5. **Order Management** (minimal) — one table
 6. **Evolution** (minimal) — one paragraph
 7. **Installation** — two lines: `pip install -e .` + `.env.example`
-8. **Commands** (last) — 5 groups: Sessions, Sniper, Backtest, Audit & Evolution
+8. **Commands** (last) — 4 groups: Sessions, Sniper, Backtest, Audit & Evolution
 
 **DO NOT** include: code layer stacks, file paths, implementation details, backtest descriptions, standalone AI Provider or Config System sections, signal weight tables, prerequisites lists, or "Utilities" command groups. The reader came to see Binary Star, not the build system.
 
@@ -49,7 +49,7 @@ For option 2, also ask which sections to update:
 - Order Management (OTOCO, OCO, exit ladder, trailing SL)
 - Evolution (sandbox + patch generation)
 - Installation
-- Commands (Sessions, Sniper, Backtest, Audit & Evolution, Dashboard)
+- Commands (Sessions, Sniper, Backtest, Audit & Evolution)
 
 Let the user pick one or more, or "all of the above". If they pick "all", treat it as a full rewrite (option 1).
 
@@ -95,11 +95,11 @@ Produce TWO diagrams:
 #### Sniper System (minimal scan)
 
 ```
-→ Read src/sniper/trigger.py — count registered signal detectors (should be 13, NOT 14 — leader_sync is separate cross-symbol propagation)
+→ Read src/sniper/trigger.py — count registered signal detectors (currently 9, grouped into FLOW/SIZE/ENERGY/STRUCTURAL/POSITIONING categories)
 → Read config/global_config.yaml — extract sniper.signal_stack trigger_threshold, regime_modifiers, cooldown
 ```
 
-Capture only: "9 signals in 5 categories, regime-adaptive threshold (base threshold × per-regime modifier from config), emergency override, adaptive cooldown." Always read actual threshold values from `config/global_config.yaml` — do NOT hardcode them. The Sniper's job is to find good entry timing for Binary Star — nothing more.
+Capture only: "{signal count from code} signals in 5 categories, regime-adaptive threshold (base threshold × per-regime modifier from config), emergency override, adaptive cooldown." Always read actual threshold values from `config/global_config.yaml` — do NOT hardcode them. The Sniper's job is to find good entry timing for Binary Star — nothing more.
 
 #### Order Management (minimal scan)
 
@@ -109,7 +109,7 @@ Capture only: "9 signals in 5 categories, regime-adaptive threshold (base thresh
 → Read config/global_config.yaml — guardian.exit_ladder levels (just count them)
 ```
 
-Capture only: "OTOCO atomic entry, Guardian OCO protection, breakeven + 2-level exit ladder (partial TP + TP-relative trailing), dynamic trailing SL."
+Capture only: "OTOCO atomic entry, Guardian OCO protection, breakeven + trailing exit ladder (partial TP + TP-relative trailing), dynamic trailing SL."
 
 #### Evolution (minimal scan)
 
@@ -129,7 +129,7 @@ Capture only: "Sandboxed strategy evolution that outputs config patches consumed
 
 These get a one-line mention inside the Binary Star section. No separate sections.
 
-#### Commands (5 groups only)
+#### Commands (4 groups only)
 
 ```
 → Read run.py — extract subcommands for: session, sniper, backtest-run, audit, evolution, patch
@@ -218,7 +218,7 @@ graph LR
         Critic --> Planner
     end
 
-    Sniper["Sniper<br/>9 signals"] --> Debate
+    Sniper["Sniper<br/>{signal count} signals"] --> Debate
     Debate --> Executor["Order Executor"]
     Executor --> Binance["Binance"]
 ```
@@ -261,7 +261,7 @@ Each section has a preferred format. See `references/templates.md` for full temp
 ## Important Rules
 
 1. **Read from source** — CLI args from argparse, config values from YAML, module names from filesystem. Never guess.
-2. **Verify signal count** — count registered detectors in `trigger.py` (should be 13). `leader_sync` is a separate mechanism, not a detector.
+2. **Verify signal count** — count registered detectors in `trigger.py` (currently 9). `leader_sync` is a separate mechanism, not a detector.
 3. **Veto levels are 4, not 3** — PASS, WEAK, CONSTRUCTIVE, TERMINAL. Check `config/prompts/critic.md` for the full 18-condition code table.
 4. **Math Tools, not Math Auditor** — it's a deterministic Python verifier, not an LLM agent. Using "Auditor" confuses it with the Critic role.
 5. **Architecture is TWO diagrams** — runtime pipeline (Sniper → Binary Star → Executor → Binance) and evolution loop (Archives → Audit → Evolver → Config → Binary Star Config). Do NOT merge them. Only Binary Star gets a subgraph wrapper.

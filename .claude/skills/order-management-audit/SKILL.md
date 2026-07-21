@@ -16,7 +16,7 @@ Run a structured, multi-dimensional audit of the order management and execution 
 
 The user may pass these flags (parse from their message):
 - `--fix`: After presenting findings, apply fixes for confirmed bugs. Each fix is shown as a diff for user approval before applying.
-- `--symbol <XAUT|BTC>`: Focus the audit on a specific symbol's configuration path. Affects which precision/qty/buffer values are checked.
+- `--symbol <SYMBOL>`: Focus the audit on a specific symbol's configuration path (e.g. XAUT, BTC). Affects which precision/qty/buffer values are checked.
 - `--dimension <name>`: Run only one audit dimension (e.g., `oco-lifecycle`, `pivot`, `exit-ladder`). Without this, run all.
 
 If no flags: run all dimensions, report-only.
@@ -89,7 +89,9 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
 
 ### D3: Guardian Pulse Cycle — Protection State Machine
 
-**Source file**: `src/agent/order_executor.py` (`guardian_check`)
+**Source file**: `src/agent/order_executor.py` (`guardian_check`, `_guardian_case_1_no_position`, `_guardian_case_2_direction_mismatch`, `_guardian_case_3_protect`, `_guardian_case_4_protected`)
+
+**Note**: Case 1–4 have been extracted to dedicated methods. The switch logic sits in `guardian_check()` which dispatches to the extracted methods. Audit each extracted method independently — they are self-contained.
 
 1. **Intent Check (STEP 1)**
    - Empty trade_state + no position → early return. Correct.
@@ -97,32 +99,55 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Check: reconstruction only sets direction, tp_price, sl_price. It does NOT set `entry_filled_at`, `projected_holding_hours`, or `entry_atr`. Does downstream code (exit ladder, sl_lock) require these? (Answer: exit ladder uses avg_entry from exchange API, sl_lock uses avg_entry + (tp - avg_entry) * sl_lock — neither needs those fields. OK.)
    - Empty trade_state + position WITHOUT OCO → returns without action (restart gap else-branch). This means an unprotected position after restart is NOT protected until the next AI session! Is this intentional? (It's a trade-off: the daemon doesn't know the AI's intended TP/SL, so it can't place protection. But it means the position runs naked until the next trigger.)
 
-2. **Case 1: No Position — Entry Pending/Expired**
+2. **Case 1: No Position — Entry Pending/Expired** (`_guardian_case_1_no_position`)
    - Entry timeout check (Case 1 entry timeout check): uses `projected_waiting_hours`. What if this field is missing from trade_state? (Defaults to 24.0 — reasonable.)
    - Expired entry: cancel_order → return {}. What if cancel fails? (Order may already be filled — cancel returns True for unknown orders. OK.)
    - Flat with entry_filled_at: cancel_all → return {}. This clears trade state. Good.
 
-3. **Case 2: Direction Sanity Check**
+3. **Case 2: Direction Sanity Check** (`_guardian_case_2_direction_mismatch`)
    - Compares intent direction vs actual net_qty sign (Case 2, direction sanity check).
    - Throttles logging via `_last_conflict_key` to avoid spam. Good.
    - On conflict: cancels all orders via `cancel_all_symbol_orders()`. This removes any wrong-side OCO protection.
    - But: does NOT clear trade_state — returns it unchanged. Since `trade_state["direction"]` still disagrees with the actual position sign, Case 2 will fire again on the next pulse (looping). The position stays naked until external intervention (manual close) or until the trade_state is cleared elsewhere.
    - Audit question: should Case 2 clear trade_state so that Case 3 (unprotected position) can emergency-close on the next pulse? Currently the direction mismatch creates a persistent loop.
 
-4. **Case 3: Position Without OCO — Emergency or Place**
+4. **Case 3: Position Without OCO — Emergency or Place** (`_guardian_case_3_protect`)
    - Missing TP/SL in trade_state → emergency close (Case 3 missing TP/SL check).
    - SL breached check (Case 3 SL breach check): uses current ticker price. What if ticker is stale or zero?
    - Normal case: place OCO. Stale entry order cancelled first. Good.
    - Check: `entry_filled_at` is set to now() even if the position was entered hours ago (Case 3 OCO placement success). This timestamp is used nowhere downstream — harmless but confusing.
 
-5. **Case 4: Protected Position — Exit Ladder + sl_lock**
+5. **Case 4: Protected Position — Breakeven + Exit Ladder + sl_lock** (`_guardian_case_4_protected`)
    - Covered in detail in D4 below.
 
-### D4: Exit Ladder + sl_lock — Sequential Correctness
+### D4: Breakeven + Exit Ladder + sl_lock — Sequential Correctness (2-Phase)
 
-**Source file**: `src/agent/order_executor.py` (`_try_exit_ladder`, `_apply_sl_lock`, `_guardian_case_4_protected`)
+**Source files**: `src/agent/order_executor.py` (`_guardian_case_4_protected`, `_try_breakeven`, `_try_exit_ladder`, `_apply_sl_lock`)
 
-1. **Level Loop Correctness**
+`_guardian_case_4_protected` runs a **2-phase** exit strategy each pulse:
+
+```
+Phase 1: Breakeven (if configured)   → _try_breakeven()
+Phase 2: Trailing exit ladder         → _try_exit_ladder() + _apply_sl_lock()
+```
+
+#### Phase 1: Breakeven (`_try_breakeven`)
+
+1. **Mechanism**: dynamically closes x% of the position when RR ≥ `breakeven.rr_target` to guarantee true breakeven on the remaining qty. SL stays at original risk — breakeven_close is modeled in `trade_state["breakeven_close"]`, not by moving SL.
+   - `breakeven_close.pending_target`: stored as (close_ratio, target_price) tuple; None if not yet calculated.
+   - On first trigger: computes the close ratio required so that remaining qty is at breakeven at the current TP.
+   - On subsequent pulses: checks if TP has moved; if the remaining target is already reached, skips.
+   - `close_ratio == 1.0` → full close (position flat, trade_state cleared, cooldown reset). No Phase 2.
+
+2. **Cancel-Place Gap**: after breakeven partial close, `_guardian_case_4_protected` re-reads exchange qty before proceeding to Phase 2. Smaller gap than exit ladder (breakeven modifies qty but doesn't re-place OCO).
+
+3. **Config**: read `rr_target` from `config/global_config.yaml` → `guardian.exit_ladder.breakeven.rr_target`.
+
+4. **Integration**: breakeven runs BEFORE the trailing ladder. If breakeven fully closes, the trade is done. If partial, the remaining position enters Phase 2 normally.
+
+#### Phase 2: Trailing Exit Ladder (`_try_exit_ladder`, `_apply_sl_lock`)
+
+5. **Level Loop Correctness**
    - `_try_exit_ladder` loops `for i in range(start_level, len(levels))`, stopping at first unmet threshold (break when threshold not met).
    - This is sequential: L1 must fire before L2, etc. Correct and intentional.
    - Each triggered level handles BOTH its TP and SL independently within the loop body:
@@ -130,24 +155,24 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
      - SL: `sl_lock > 0` calls `_apply_sl_lock` immediately for this level (one-way ratchet — only tightens, never loosens).
    - After the loop, if no new levels triggered this pulse (`tp_update is None`), the post-loop applies sl_lock from the current active level (`new_level - 1`) to maintain the trailing SL across pulses.
 
-2. **SL Lock Direction**
+6. **SL Lock Direction**
    - `_apply_sl_lock()`: `avg_entry + (tp - avg_entry) * sl_lock`. Symmetric formula — SL moves from entry toward TP as sl_lock increases (favorable direction for both LONG and SHORT).
    - This means SL moves monotonically toward TP without any ATR dependence. Correct.
    - Rounding toward safety: LONG rounds down (tighter), SHORT rounds up (tighter).
 
-3. **SL Lock qty Source — Race Condition Fix** (2026-07-09)
+7. **SL Lock qty Source — Race Condition Fix** (2026-07-09)
    - **Problem**: after `_try_exit_ladder` executes a partial market close, `_apply_sl_lock` calls `get_symbol_position()` to determine the OCO qty. The exchange margin API can return stale data (pre-close position) for ~400ms after the fill, causing OCO to be placed for the wrong (larger) qty. This caused a production incident where the remaining SHORT 0.0042 was misidentified as LONG 0.0041 after a double-filled OCO.
    - **Fix**: `_try_exit_ladder` passes `live_qty=abs(live_net_qty)` — the locally-calculated remaining qty — to `_apply_sl_lock` via the `live_qty` optional parameter (default `None`). When provided, `_apply_sl_lock` prefers this caller-tracked qty over the exchange query result.
    - **Divergence guard**: after computing both `live_qty` and `exchange_qty`, if they diverge beyond `net_qty_tolerance`, a warning is logged. When `live_qty > exchange_qty` (overestimate risk — would cause OCO rejection), the code falls back to `exchange_qty` as the safer (smaller) value. When `live_qty < exchange_qty` (underestimate — slight under-protection), `live_qty` is kept and the next pulse's OCO re-align will correct it.
    - **Other callers**: `_guardian_case_4_protected` and `find_level_and_sync_sl` call without `live_qty` (default `None`), falling back to exchange qty. Both are safe: neither performs a market close before calling `_apply_sl_lock`, so the exchange position is accurate.
 
-4. **SL Lock Per-Level (no longer post-loop only)**
+8. **SL Lock Per-Level (no longer post-loop only)**
    - Each level applies its own `sl_lock` immediately when triggered (in-loop). No longer deferred to a single post-loop trailing step.
    - Multi-level same-pulse: each level's SL lock builds on the previous level's tightened SL, accumulating the tightest lock.
    - Cross-pulse: when no new level triggers, the post-loop (`if tp_update is None`) maintains SL from `levels[new_level - 1]["sl_lock"]`, preserving the last active level's tightness.
    - Previously (pre-refactor): SL lock was applied once after the loop using only the deepest triggered level's sl_lock. Now each level self-contains its TP + SL, making the skip path (`tp_ratio=0`, `sl_lock > 0`) safe — SL locks even when TP is skipped.
 
-5. **Level Memory Across Pulses**
+9. **Level Memory Across Pulses**
    - The daemon tracks `_symbol_level[symbol]` in memory — not persisted.
    - On qty change: level is reset to None, re-initialized via `find_level_and_sync_sl` on next pulse.
    - On daemon restart: level is None, re-initialized same way.
@@ -168,6 +193,8 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Cleared on `_EMERGENCY_CLOSED_SENTINEL` (emergency close sentinel path in _attempt_trade_execution): pops trade_state. Cooldown is **NOT** reset — emergency closes retain the cooling-off period.
 
 2. **Qty Change Detection**
+   - **`_resolve_qty()`** (`order_executor.py:149`): replaces direct calls to `get_symbol_position()` in the guardian flow. Returns `abs(net_qty)` from exchange — used as the authoritative source for all guardian decisions.
+   - **`_trace_qty()`** (new): pulse-local qty tracking that survives across sequential operations within a single pulse (cancel → close → re-place). The `_trace_qty` dict maintains per-symbol live qty through the pulse, avoiding stale exchange queries after partial fills.
    - `_guardian_check()` compares `net_qty` to `_symbol_last_qty[symbol]` (qty change detection, near top of _guardian_check).
    - If changed: resets `_symbol_level` (qty change detection in _guardian_check). Correct.
    - But: the comparison uses `1e-8` tolerance. A round-trip precision truncation (e.g., 0.1 → 0.1000000001) could trigger a spurious reset. The threshold seems fine for meaningful changes but flag if this causes issues.
@@ -183,6 +210,8 @@ Trace every path where OCO orders are placed, cancelled, or replaced:
    - Guardian runs FIRST (step 0.5, guardian step 0.5), then AI session dispatch (step 3, session dispatch step 3). `has_active` is evaluated AFTER guardian — so if guardian clears trade_state (entry expired or position closed), `has_active` becomes False and AI CAN fire in the same pulse.
    - **Cooldown auto-reset amplifies this**: Guardian clearing trade_state also resets cooldown (`last_trigger_time = None`, cooldown reset in trade cleared path). This means a trigger on the very next pulse has zero barriers — no trade_state, no cooldown. The risk of overtrading (position closed → immediate re-entry) is higher than before.
    - Emergency close (`_EMERGENCY_CLOSED_SENTINEL`) does NOT go through this path — cooldown is preserved, providing a cooling-off period after forced exits.
+   - **Breakeven full close** also clears trade_state and resets cooldown (same path as Case 1 expire) — same overtrading risk.
+   - **Holding timeout** (`018017b`): a new logger tracks holding hours and flags positions exceeding `max_holding_hours`. This is monitoring-only — no forced close on timeout.
    - Audit question: is same-pulse re-entry after a Guardian-cleared position desirable, or should there be a minimum gap?
 
 ### D6: Manual Intervention Scenarios
@@ -256,7 +285,7 @@ The OTOCO (One-Triggers-One-Cancels-Other) is the entry mechanism: a LIMIT entry
 
 1. **OTOCO API Parameter Correctness**
    - `place_otoco_order()` (in `margin_client.py`): constructs params for `POST /sapi/v1/margin/order/otoco`.
-   - `pendingAboveTimeInForce` and `pendingBelowTimeInForce` must ONLY be sent for STOP_LOSS_LIMIT legs — LIMIT_MAKER legs do NOT accept timeInForce. Verified at commit `3f7c0a5`:
+   - `pendingAboveTimeInForce` and `pendingBelowTimeInForce` must ONLY be sent for STOP_LOSS_LIMIT legs — LIMIT_MAKER legs do NOT accept timeInForce. Verified at commit (search `margin_client.py` for the fix):
      - BUY (LONG): `pendingAboveType=LIMIT_MAKER` → no timeInForce. `pendingBelowType=STOP_LOSS_LIMIT` → `pendingBelowTimeInForce=GTC`.
      - SELL (SHORT): `pendingAboveType=STOP_LOSS_LIMIT` → `pendingAboveTimeInForce=GTC`. `pendingBelowType=LIMIT_MAKER` → no timeInForce.
    - Audit: verify no regression — both branches send timeInForce ONLY for the STOP_LOSS_LIMIT leg.
