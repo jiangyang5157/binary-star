@@ -2,12 +2,16 @@ Place an OTOCO (entry + nested TP/SL) order from a session report JSON, independ
 
 Ask the user for:
 - **Session file** (-f, required) — path to a session JSON (e.g., data/prod/sessions/XAUTUSDT_session_20260706_031700.json)
-- **Quantity** (-qty, required) — order quantity in base asset units (e.g., 0.179)
+- **Quantity** (-qty) — explicit order quantity in base asset units (e.g., 0.179). Mutually exclusive with -balance.
+- **Balance** (-b / --balance) — account equity in USDT to auto-calculate quantity from session risk params. Mutually exclusive with -qty.
 - **Dry run** (--dry-run, optional) — run all checks but skip placing the actual order
+
+One of `-qty` or `-balance` must be provided, but not both.
 
 Then run:
 ```
 python scripts/place_otoco.py -f <SESSION_FILE> -qty <QUANTITY> [--dry-run]
+python scripts/place_otoco.py -f <SESSION_FILE> -balance <BALANCE> [--dry-run]
 ```
 
 The script performs these pre-checks before placing the order:

@@ -21,16 +21,21 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _src = os.path.join(_PROJECT_ROOT, "src")
 if _src not in sys.path:
     sys.path.insert(0, _src)
+_scripts = os.path.join(_PROJECT_ROOT, "scripts")
+if _scripts not in sys.path:
+    sys.path.insert(0, _scripts)
 
 from dotenv import load_dotenv
 load_dotenv()
 
 import yaml
+from src.config.symbol_resolver import get_symbol_trade_params, is_symbol_configured
 from src.infrastructure.binance.margin_client import BinanceMarginClient
 from src.utils.logger_utils import setup_logger
 from src.utils.path_utils import resolve_project_root
 
 logger = setup_logger(__name__)
+from calculate_qty import calculate_sized_qty  # noqa: E402 — sibling import
 
 
 # ---------------------------------------------------------------------------
@@ -41,7 +46,6 @@ def _load_symbol_config() -> dict:
     path = os.path.join(resolve_project_root(), "config", "symbol_config.yaml")
     with open(path) as f:
         return yaml.safe_load(f)
-
 
 def _get_sl_buffer(symbol: str) -> float:
     cfg = _load_symbol_config()
@@ -102,14 +106,28 @@ def main():
         help="Path to session report JSON (e.g. data/prod/sessions/XAUTUSDT_session_*.json)",
     )
     parser.add_argument(
-        "-qty", "--quantity", required=True, type=float,
-        help="Order quantity (in base asset units)",
+        "-qty", "--quantity", type=float,
+        help="Order quantity in base asset units (mutually exclusive with -balance)",
+    )
+    parser.add_argument(
+        "-b", "--balance", type=float,
+        help="Account equity in USDT — auto-calculates qty from session risk params",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Run all checks but skip placing the actual order",
     )
     args = parser.parse_args()
+
+    # Resolve quantity: -qty, -balance, or error
+    if args.quantity is not None and args.balance is not None:
+        parser.error("Use either -qty (explicit quantity) or -balance (auto-calculate), not both.")
+    if args.quantity is None and args.balance is None:
+        parser.error("Must provide either -qty (explicit quantity) or -balance (auto-calculate).")
+    if args.quantity is not None and args.quantity <= 0:
+        parser.error("Quantity must be positive.")
+    if args.balance is not None and args.balance <= 0:
+        parser.error("Balance must be positive.")
 
     # ---- 1. Load session JSON ----
     session_path = os.path.abspath(args.session)
@@ -143,7 +161,55 @@ def main():
         symbol, opinion, confidence, entry, take_profit, stop_loss,
     )
 
-    # ---- 2. Get current price ----
+    # ---- 2. Resolve quantity: -qty vs -balance ----
+    if args.balance is not None:
+        root = resolve_project_root()
+        cfg_path = os.path.join(root, "config", "global_config.yaml")
+        with open(cfg_path) as f:
+            gcfg = yaml.safe_load(f)
+
+        try:
+            risk_per_trade = gcfg["trade_management"]["risk_per_trade"]
+            taker_fee_rate = gcfg["trade_management"].get("taker_fee_rate", 0.0)
+        except KeyError as e:
+            logger.error("Missing field in global_config.yaml: %s", e)
+            sys.exit(1)
+
+        if not is_symbol_configured(symbol):
+            logger.error("Symbol %s not configured in symbol_config.yaml", symbol)
+            sys.exit(1)
+        sym_cfg = get_symbol_trade_params(symbol)
+        p_qty = sym_cfg["precision_qty"]
+        min_qty = sym_cfg.get("min_order_qty", 0.0)
+        buffer = sym_cfg.get("sl_slippage_buffer", 0.0)
+
+        # Direction sanity before quantity calc — catch entry==SL early
+        ok, msg = _check_direction_sanity(opinion, entry, stop_loss, take_profit)
+        if not ok:
+            logger.error("Direction sanity: %s", msg)
+            sys.exit(1)
+
+        try:
+            _, qty = calculate_sized_qty(
+                args.balance, risk_per_trade, entry, stop_loss,
+                p_qty, min_qty, taker_fee_rate,
+            )
+        except ValueError as e:
+            logger.error("Quantity calculation: %s", e)
+            sys.exit(1)
+
+        risk_per_unit = abs(entry - stop_loss)
+        max_loss_actual = risk_per_unit * qty
+        logger.info(
+            "Auto-calculated qty from balance=%.2f | risk=%.2f%% | qty=%s | "
+            "max_loss=%.2f",
+            args.balance, risk_per_trade * 100, f"{qty:.{p_qty}f}",
+            max_loss_actual,
+        )
+    else:
+        qty = args.quantity
+
+    # ---- 3. Get current price ----
     client = BinanceMarginClient()
     current_price = client.get_ticker_price(symbol)
     if not current_price or current_price <= 0:
@@ -151,29 +217,31 @@ def main():
         sys.exit(1)
     logger.info("Current price | %s = %.4f", symbol, current_price)
 
-    # ---- 3. Pre-checks ----
-    # 3a. Symbol config
-    try:
-        buffer = _get_sl_buffer(symbol)
-    except KeyError as e:
-        logger.error(f"Symbol config check: {e}")
-        sys.exit(1)
+    # ---- 4. Pre-checks ----
+    # 4a. Symbol config buffer (already loaded on -balance path)
+    if args.balance is None:
+        try:
+            buffer = _get_sl_buffer(symbol)
+        except KeyError as e:
+            logger.error(f"Symbol config check: {e}")
+            sys.exit(1)
 
-    # 3b. Direction sanity
-    ok, msg = _check_direction_sanity(opinion, entry, stop_loss, take_profit)
-    if not ok:
-        logger.error(f"Direction sanity: {msg}")
-        sys.exit(1)
-    logger.info("Direction sanity: %s", msg)
+    # 4b. Direction sanity (already checked on -balance path)
+    if args.balance is None:
+        ok, msg = _check_direction_sanity(opinion, entry, stop_loss, take_profit)
+        if not ok:
+            logger.error(f"Direction sanity: {msg}")
+            sys.exit(1)
+        logger.info("Direction sanity: %s", msg)
 
-    # 3c. Current price within SL↔TP range
+    # 4c. Current price within SL↔TP range
     ok, msg = _check_price_in_range(opinion, current_price, stop_loss, take_profit)
     if not ok:
         logger.error(f"Price range: {msg}")
         sys.exit(1)
     logger.info("Price range: %s", msg)
 
-    # 3d. Active orders (warn only)
+    # 4d. Active orders (warn only)
     active_orders = client.get_active_orders(symbol)
     if active_orders:
         logger.warning("⚠ Existing active orders for %s (%d order(s))", symbol, len(active_orders))
@@ -185,7 +253,7 @@ def main():
     else:
         logger.info("No active orders for %s", symbol)
 
-    # 3e. Entry distance
+    # 4e. Entry distance
     distance = abs(current_price - entry)
     distance_pct = (distance / current_price) * 100
     logger.info(
@@ -193,11 +261,11 @@ def main():
         current_price, entry, distance, distance_pct,
     )
 
-    # ---- 4. Risk/reward summary ----
+    # ---- 5. Risk/reward summary ----
     risk_per_unit = abs(entry - stop_loss)
     reward_per_unit = abs(entry - take_profit)
-    max_loss = risk_per_unit * args.quantity
-    max_gain = reward_per_unit * args.quantity
+    max_loss = risk_per_unit * qty
+    max_gain = reward_per_unit * qty
     rr_ratio = reward_per_unit / risk_per_unit if risk_per_unit > 0 else 0
     logger.info(
         "Risk/Reward | max_loss=$%.2f | max_gain=$%.2f | RR=1:%.2f | "
@@ -205,7 +273,7 @@ def main():
         max_loss, max_gain, rr_ratio, risk_per_unit, reward_per_unit,
     )
 
-    # ---- 5. Place OTOCO ----
+    # ---- 6. Place OTOCO ----
     side = "BUY" if opinion == "BULLISH" else "SELL"
     sl_trigger = stop_loss
     sl_limit = stop_loss + (buffer if side == "SELL" else -buffer)
@@ -213,7 +281,7 @@ def main():
     logger.info(
         "Deploying | symbol=%s | side=%s | qty=%s | entry=%.2f | tp=%.2f | "
         "sl_trigger=%.2f | sl_limit=%.2f (buffer=%.1f)",
-        symbol, side, args.quantity, entry, take_profit, sl_trigger, sl_limit, buffer,
+        symbol, side, qty, entry, take_profit, sl_trigger, sl_limit, buffer,
     )
 
     if args.dry_run:
@@ -224,7 +292,7 @@ def main():
     order_list_id = client.place_otoco_order(
         symbol=symbol,
         side=side,
-        qty=args.quantity,
+        qty=qty,
         entry_price=entry,
         tp_price=take_profit,
         sl_trigger_price=sl_trigger,
