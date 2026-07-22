@@ -478,7 +478,7 @@ class SniperTrigger:
             regime = self._determine_regime(metrics)
 
             if None in (vah, val, poc, price):
-                logger.warning("[%s] _save_fingerprint: incomplete metrics (vah=%s, val=%s, poc=%s, price=%s)",
+                logger.info("[%s] _save_fingerprint: incomplete metrics (vah=%s, val=%s, poc=%s, price=%s)",
                                self.symbol, vah, val, poc, price)
                 return
 
@@ -490,15 +490,16 @@ class SniperTrigger:
         except Exception as e:
             logger.warning("[%s] _save_fingerprint failed | error=%s", self.symbol, e)
 
-    def _fingerprint_is_stale(self, metrics: Dict[str, Any]) -> bool:
+    def _fingerprint_is_stale(self, metrics: Dict[str, Any]) -> Tuple[bool, str]:
         """True if market structure has not changed meaningfully since last trigger.
 
         Return True -> structure stale -> cooldown break should be BLOCKED.
         Return False -> structure changed -> allow break through.
+        Returns (bool, delta_summary) where delta_summary describes per-field ratios.
         """
         fp = self._fingerprint
         if fp is None:
-            return False  # no baseline -> not stale -> allow
+            return False, ""
 
         try:
             # Read thresholds from config
@@ -511,36 +512,54 @@ class SniperTrigger:
             dyn = metrics.get('price_dynamics', {})
             atr = dyn.get('atr_macro', fp.atr_macro or 1)
             if atr <= 0:
-                return False
+                return False, ""
+
+            # None guard — incomplete metrics mean structure is unmeasurable
+            curr_vah = topo.get('vah')
+            curr_val = topo.get('val')
+            curr_poc = topo.get('poc')
+            curr_price = dyn.get('current_price')
+            if None in (curr_vah, curr_val, curr_poc, curr_price):
+                logger.info("[%s] _fingerprint_is_stale: incomplete metrics, allowing break", self.symbol)
+                return False, ""
 
             # ATR shift > ratio -> volatility regime changed
             atr_shift = abs(atr - fp.atr_macro) / max(fp.atr_macro, 1e-9)
             if atr_shift > atr_change_ratio:
-                return False
+                return False, ""
 
             # Structural boundary shift > N ATR
-            if abs(topo.get('vah', fp.vah) - fp.vah) / atr > structure_shift_atr:
-                return False
-            if abs(topo.get('val', fp.val) - fp.val) / atr > structure_shift_atr:
-                return False
-            if abs(topo.get('poc', fp.poc) - fp.poc) / atr > structure_shift_atr:
-                return False
+            vah_delta = abs(topo.get('vah', fp.vah) - fp.vah) / atr
+            if vah_delta > structure_shift_atr:
+                return False, ""
+            val_delta = abs(topo.get('val', fp.val) - fp.val) / atr
+            if val_delta > structure_shift_atr:
+                return False, ""
+            poc_delta = abs(topo.get('poc', fp.poc) - fp.poc) / atr
+            if poc_delta > structure_shift_atr:
+                return False, ""
 
             # Price drift > N ATR
-            if abs(dyn.get('current_price', fp.price) - fp.price) / atr > price_drift_atr:
-                return False
+            price_delta = abs(dyn.get('current_price', fp.price) - fp.price) / atr
+            if price_delta > price_drift_atr:
+                return False, ""
 
             # Regime change -> unlock different execution rules
             current_regime = self._determine_regime(metrics)
             if current_regime != fp.regime:
-                return False
+                return False, ""
 
-            # All checks passed -> structure is the same -> stale
-            return True
+            # Build delta summary for logging
+            deltas = []
+            deltas.append(f"vah={vah_delta:.2f}atr")
+            deltas.append(f"val={val_delta:.2f}atr")
+            deltas.append(f"poc={poc_delta:.2f}atr")
+            deltas.append(f"price={price_delta:.2f}atr")
+            return True, ", ".join(deltas)
 
         except Exception as e:
             logger.warning("[%s] _fingerprint_is_stale failed | error=%s", self.symbol, e)
-            return False  # degrade gracefully -> allow break
+            return False, ""
 
     # ── Pre-AI Gate ──────────────────────────────────────────────────────
 
@@ -1275,12 +1294,14 @@ class SniperTrigger:
             # ★ Structural fingerprint gate: if structure hasn't changed,
             #   don't allow cooldown break — prevents re-triggering on the
             #   same market conditions.
-            if cooldown_break and self._fingerprint_is_stale(current_metrics):
-                logger.info(
-                    "[%s] cooldown NOT broken: structure unchanged",
-                    self.symbol,
-                )
-                cooldown_break = False
+            if cooldown_break:
+                is_stale, delta_summary = self._fingerprint_is_stale(current_metrics)
+                if is_stale:
+                    logger.info(
+                        "[%s] cooldown NOT broken: structure unchanged (%s)",
+                        self.symbol, delta_summary,
+                    )
+                    cooldown_break = False
 
         # 5. Compute confluence
         effective_cooldown = cooldown_active and not cooldown_break
