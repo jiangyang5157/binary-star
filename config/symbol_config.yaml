@@ -37,7 +37,7 @@ XAUTUSDT:
         thresholds:
           cvd_divergence_tick_delta: 0.18
           cvd_extreme_threshold: 0.36   # 从 0.22 调高。XAUT |CVD| 低簇顶在 0.36，0.36 正好卡边界。不触发低簇，高簇(0.62+)全捕捉。比 cvd_intensity_extreme(0.40) 松 0.04，medium 区间只触 momentum 不触 absorption。
-          large_trade_zscore: 1.7   # 从 1.5 提到 1.8：抑制单信号 solo-wake。需配合 CVD 才能过门槛。
+          large_trade_zscore: 1.6   # 从 1.5 提到 1.8：抑制单信号 solo-wake。需配合 CVD 才能过门槛。
         cooldown:
           stacked_break_count: 4   # 从 3 提到 4：memory 唤醒不应轻易打破冷却。
 
