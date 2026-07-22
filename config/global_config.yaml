@@ -146,7 +146,7 @@ sniper:
         ranging: 40      # 震荡中延长，减少反复触发
         squeeze: 20      # 对齐 trending
         chaos: 60        # 混沌中几乎禁止
-      neutral_multiplier: 0.4          # NEUTRAL → 4min 太短造成唤醒簇，提到 0.4（squeeze 8min）
+      neutral_multiplier: 0.8          # NEUTRAL ≈16-48min，避免空转烧 token 又保留 regime 区分
       failure_cooldown_minutes: 3      # FAILED (session error) → fixed short backoff, not regime-dependent
       break_on_strength_ratio: 1.6     # 新信号强度 > 上次 × 1.6 才破例
       stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
