@@ -104,6 +104,23 @@ class SignalMemory:
         return new_signals + [d for d in decayed if d.sub_type not in fresh_keys]
 
 
+@dataclass
+class StructuralFingerprint:
+    """Snapshot of market structure at trigger time.
+
+    Compared on subsequent cooldown break attempts.  If unchanged,
+    the break is rejected to avoid re-triggering on the same market
+    conditions that already produced a NEUTRAL or failed session.
+    """
+    vah: float
+    val: float
+    poc: float
+    price: float
+    atr_macro: float
+    regime: str
+    timestamp: datetime
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Calibration Constants — detector strength saturation curves
 # ═══════════════════════════════════════════════════════════════════════════
@@ -292,6 +309,9 @@ class SniperTrigger:
         large_trade_cfg = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
         self._trade_size_window = deque(maxlen=large_trade_cfg.get('large_trade_lookback', 30))
 
+        # Structural fingerprint for cooldown break noise gate (see spec 2026-07-23)
+        self._fingerprint: Optional[StructuralFingerprint] = None
+
         # Signal weights (convenience accessor)
         self.signal_weights = self.sniper_cfg.get('signal_stack', {}).get('weights', {})
 
@@ -442,6 +462,85 @@ class SniperTrigger:
                     return True
 
         return False
+
+    # ── Structural Fingerprint ────────────────────────────────────────────
+
+    def _save_fingerprint(self, metrics: Dict[str, Any]) -> None:
+        """Record current market structure snapshot for later stale-check."""
+        try:
+            topo = metrics.get('volume_profile', {})
+            dyn = metrics.get('price_dynamics', {})
+            vah = topo.get('vah')
+            val = topo.get('val')
+            poc = topo.get('poc')
+            price = dyn.get('current_price')
+            atr = dyn.get('atr_macro', 0)
+            regime = self._determine_regime(metrics)
+
+            if None in (vah, val, poc, price):
+                logger.warning("[%s] _save_fingerprint: incomplete metrics (vah=%s, val=%s, poc=%s, price=%s)",
+                               self.symbol, vah, val, poc, price)
+                return
+
+            self._fingerprint = StructuralFingerprint(
+                vah=vah, val=val, poc=poc, price=price,
+                atr_macro=atr, regime=regime,
+                timestamp=datetime.now(timezone.utc),
+            )
+        except Exception as e:
+            logger.warning("[%s] _save_fingerprint failed | error=%s", self.symbol, e)
+
+    def _fingerprint_is_stale(self, metrics: Dict[str, Any]) -> bool:
+        """True if market structure has not changed meaningfully since last trigger.
+
+        Return True -> structure stale -> cooldown break should be BLOCKED.
+        Return False -> structure changed -> allow break through.
+        """
+        fp = self._fingerprint
+        if fp is None:
+            return False  # no baseline -> not stale -> allow
+
+        try:
+            # Read thresholds from config
+            fp_cfg = self.sniper_cfg.get('signal_stack', {}).get('cooldown', {}).get('structural_fingerprint', {})
+            structure_shift_atr = fp_cfg.get('structure_shift_atr', 0.5)
+            price_drift_atr = fp_cfg.get('price_drift_atr', 0.7)
+            atr_change_ratio = fp_cfg.get('atr_change_ratio', 0.30)
+
+            topo = metrics.get('volume_profile', {})
+            dyn = metrics.get('price_dynamics', {})
+            atr = dyn.get('atr_macro', fp.atr_macro or 1)
+            if atr <= 0:
+                return False
+
+            # ATR shift > ratio -> volatility regime changed
+            atr_shift = abs(atr - fp.atr_macro) / max(fp.atr_macro, 1e-9)
+            if atr_shift > atr_change_ratio:
+                return False
+
+            # Structural boundary shift > N ATR
+            if abs(topo.get('vah', fp.vah) - fp.vah) / atr > structure_shift_atr:
+                return False
+            if abs(topo.get('val', fp.val) - fp.val) / atr > structure_shift_atr:
+                return False
+            if abs(topo.get('poc', fp.poc) - fp.poc) / atr > structure_shift_atr:
+                return False
+
+            # Price drift > N ATR
+            if abs(dyn.get('current_price', fp.price) - fp.price) / atr > price_drift_atr:
+                return False
+
+            # Regime change -> unlock different execution rules
+            current_regime = self._determine_regime(metrics)
+            if current_regime != fp.regime:
+                return False
+
+            # All checks passed -> structure is the same -> stale
+            return True
+
+        except Exception as e:
+            logger.warning("[%s] _fingerprint_is_stale failed | error=%s", self.symbol, e)
+            return False  # degrade gracefully -> allow break
 
     # ── Pre-AI Gate ──────────────────────────────────────────────────────
 
@@ -1173,6 +1272,16 @@ class SniperTrigger:
         if cooldown_active:
             cooldown_break = self._check_cooldown_break(fresh_signals)
 
+            # ★ Structural fingerprint gate: if structure hasn't changed,
+            #   don't allow cooldown break — prevents re-triggering on the
+            #   same market conditions.
+            if cooldown_break and self._fingerprint_is_stale(current_metrics):
+                logger.info(
+                    "[%s] cooldown NOT broken: structure unchanged",
+                    self.symbol,
+                )
+                cooldown_break = False
+
         # 5. Compute confluence
         effective_cooldown = cooldown_active and not cooldown_break
         self.cooldown_active = effective_cooldown
@@ -1199,6 +1308,8 @@ class SniperTrigger:
             situation_brief = self._build_situation_brief(
                 all_signals, confluence_score, dominant_direction
             )
+            # ★ Snapshot structure at trigger time for cooldown break noise gate
+            self._save_fingerprint(current_metrics)
 
         # 8. Cooldown for this trigger
         cooldown_mins = self._get_regime_cooldown(regime)
