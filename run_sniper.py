@@ -428,7 +428,13 @@ class SniperDaemon:
                             f"[{sym}] active trade ({self.trade_states[sym]['direction']}) | "
                             f"skipping AI session — Guardian manages")
 
-                    self.triggers[sym].set_triggered(result, trigger_type)
+                    # Always record cooldown, even if execute_cycle raised (circuit breaker).
+                    # Without this, _last_trigger_time stays None/stale and cooldown is
+                    # permanently disabled until the next restart.
+                    try:
+                        self.triggers[sym].set_triggered(result, trigger_type)
+                    except Exception as cd_err:
+                        logger.error(f"[{sym}] set_triggered failed | error={cd_err}")
 
                 # ── 4. HOUSEKEEPING ──
                 if metrics:
