@@ -160,7 +160,7 @@ risk_management:
 
   # --- Stop-Loss Protection ---
   stop_loss_buffer_min: 1.5    # Hard minimum stop-loss distance (ATR)
-  structural_buffer_atr: 0.84  # Protective margin behind structural levels
+  structural_buffer_atr: 1.0  # Protective margin behind structural levels
   max_entry_distance_atr: 1.2  # [HARD LIMIT] Max entry distance from price (prevents Phantom Orders)
 
   # --- Time Limits ---

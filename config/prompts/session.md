@@ -65,7 +65,7 @@ Use the interpretation palette to formulate a creative entry, bounded by the Shi
   IF `IS_TREND_STRONG` is TRUE AND `HAS_CVD_MOMENTUM` is TRUE simultaneously:
     → You are EXEMPT from mandatory structural anchoring.
     → Execute a Momentum Surge Entry with `entry` at `current_price` ± 0.1 × `atr_micro`.
-    → Deploy a Dynamic Kinetic Shield for `stop_loss`.
+    → Deploy a Dynamic Kinetic Shield for `stop_loss`. The shield distance MUST be at least 1.0 × `atr_macro` from `entry` to ensure volatility-adaptive survival.
     → Must satisfy strict `{min_rr_trending}` for the full geometry.
 
   Purpose: captures runaway directional moves that structural pullbacks would miss.
