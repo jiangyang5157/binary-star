@@ -151,6 +151,14 @@ sniper:
       break_on_strength_ratio: 1.6     # 新信号强度 > 上次 × 1.6 才破例
       stacked_break_count: 3           # ≥3 个独立 detector 报警 → 破例
 
+      # ★ 结构指纹 — cooldown break 时判断市场结构是否实质性变化
+      # 所有阈值都以 ATR 归一化（atr_macro），与 AI 使用的坐标系一致。
+      # 如果结构没变，即使信号强度超过 break 阈值，也不重触发。
+      structural_fingerprint:
+        structure_shift_atr: 0.5    # VAH/VAL/POC 任一移位 > N ATR → 结构变了
+        price_drift_atr: 0.7        # 价格漂移 > N ATR → 可能突破了旧结构
+        atr_change_ratio: 0.30      # ATR 自身变化 > ±ratio → 波动率工作面变了
+
     # —— 预触发确定性门禁 (Pre-Trigger Gate) ——
     # 在消耗 LLM token 之前，用纯数学过滤不可交易场景。
     gate:
