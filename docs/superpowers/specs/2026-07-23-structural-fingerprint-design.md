@@ -43,19 +43,24 @@ if should_trigger:
     self._save_fingerprint(current_metrics)
 ```
 
-### Staleness Check
+### Staleness Check — `_fingerprint_is_stale(metrics) → bool`
 
-Called in `evaluate()` when `cooldown_active=True` and `cooldown_break` is about to return True:
+Called in `evaluate()` after `_check_cooldown_break()` returns True. If the structure is stale, the break is cancelled:
 
 ```python
 if cooldown_active:
     cooldown_break = self._check_cooldown_break(fresh_signals)
 
-    if cooldown_break and self._fingerprint_is_stale(current_metrics):
+    # ★ If signals say break but structure says unchanged → cancel break
+    if cooldown_break and self._fingerprint_is_stale(metrics):
         cooldown_break = False
 ```
 
-If the check rejects a break, the call is logged with reason (e.g. `"BTCUSDT cooldown NOT broken: structure unchanged (vah=0.0atr, price=0.3atr)"`).
+**Return value semantics:** `True` = current structure matches the saved fingerprint (stale → unchanged → block the break). `False` = structure has diverged (fresh → allow the break through).
+
+If `self._fingerprint` is `None` (first trigger or post-restart), always returns `False` (no comparison possible → allow).
+
+If the check blocks a break, log with per-field deltas, e.g. `"[BTCUSDT] cooldown NOT broken: structure unchanged (vah=0.0atr, price=0.3atr)"`.
 
 ### Thresholds
 
@@ -63,7 +68,7 @@ If the check rejects a break, the call is logged with reason (e.g. `"BTCUSDT coo
 |-------|-----------|-----------|
 | vah / val / poc | > 0.5 ATR | Key structural boundary shifted |
 | price | > 0.7 ATR | Price drift large enough to change the working context |
-| atr_macro | > ±30% change | Volatility regime changed — different risk parameters |
+| atr_macro | `abs(f_ATR - curr_ATR) / f_ATR > 0.30` | Volatility regime changed — different risk parameters |
 | regime | different string | Unlocks different execution rules (e.g. DKE in trending) |
 
 If the snapshot has `atr_macro <= 0` or `volume_profile` is missing fields, the check returns False (not stale) to degrade gracefully.
