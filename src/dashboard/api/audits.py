@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 
 from src.dashboard.api._utils import _resolve_data_root, _extract_version
+from src.utils.pipeline_utils import load_combined_config
 
 router = APIRouter(prefix="/api")
 
@@ -24,27 +25,50 @@ def _find_audit_files(data_root: str, symbol: str | None = None) -> list[Path]:
 
 
 
+def _get_risk_per_trade() -> float:
+    """Load risk_per_trade from the combined config."""
+    return float(
+        load_combined_config()
+        .get('trade_management', {})
+        .get('risk_per_trade')
+        or 0.005
+    )
+
+
 def _compute_pnl(entry_price: float, opinion: str, tp_sl_result: str,
                  take_profit: float, stop_loss: float,
-                 exit_price: float) -> float:
-    """Compute realized P&L percentage from audit outcome data."""
-    if entry_price <= 0:
+                 exit_price: float, risk_per_trade: float = 0.005) -> float:
+    """Simulated account-level P&L percentage via position sizing.
+
+        sl_distance = |entry - stop_loss|
+        directional_move = signed price delta in trade direction
+        account_pnl_pct = risk_per_trade * 100 * directional_move / sl_distance
+
+    Uses TP/SL prices directly for hit results (price_at_t1 is the final
+    close of the audit window, irrelevant if the position was already closed).
+    """
+    if entry_price <= 0 or stop_loss <= 0 or entry_price == stop_loss:
         return 0.0
 
-    if tp_sl_result == "TP_HIT":
-        tp = take_profit or entry_price
-        return abs(tp - entry_price) / entry_price * 100
-    elif tp_sl_result == "SL_HIT":
-        sl = stop_loss or entry_price
-        return -abs(entry_price - sl) / entry_price * 100
+    # Use the exact TP/SL price when the trade closed at one of those
+    if tp_sl_result == "TP_HIT" and take_profit > 0:
+        close_price = take_profit
+    elif tp_sl_result == "SL_HIT" and stop_loss > 0:
+        close_price = stop_loss
     else:
-        # NEITHER: directional delta from entry to exit
-        price_delta = exit_price - entry_price
-        if opinion == "BULLISH":
-            return (price_delta / entry_price) * 100
-        elif opinion == "BEARISH":
-            return (-price_delta / entry_price) * 100
+        close_price = exit_price
+
+    sl_distance = abs(entry_price - stop_loss)
+    price_delta = close_price - entry_price
+
+    if opinion == "BULLISH":
+        directional_move = price_delta
+    elif opinion == "BEARISH":
+        directional_move = -price_delta
+    else:
         return 0.0
+
+    return risk_per_trade * 100.0 * directional_move / sl_distance
 
 
 @router.get("/performance")
@@ -57,6 +81,8 @@ def get_performance(
 
     Returns KPIs and equity curve data for dashboard rendering.
     """
+    risk_per_trade = _get_risk_per_trade()
+
     audit_files = _find_audit_files(data_root, symbol)
 
     records = []
@@ -85,6 +111,7 @@ def get_performance(
                 take_profit=float(tp_params.get("take_profit") or 0),
                 stop_loss=float(tp_params.get("stop_loss") or 0),
                 exit_price=exit_price,
+                risk_per_trade=risk_per_trade,
             )
 
             records.append({
@@ -177,6 +204,8 @@ def get_trades(
     Each record includes time, symbol, opinion, confidence, fill status,
     TP/SL result, P&L, and projected holding hours.
     """
+    risk_per_trade = _get_risk_per_trade()
+
     audit_files = _find_audit_files(data_root, symbol)
     trades = []
 
@@ -208,6 +237,7 @@ def get_trades(
                     take_profit=float(tp_params.get("take_profit") or 0),
                     stop_loss=float(tp_params.get("stop_loss") or 0),
                     exit_price=exit_price,
+                    risk_per_trade=risk_per_trade,
                 )
 
             trades.append({
@@ -239,6 +269,7 @@ def list_audits(
 ):
     """List audit summaries for the dashboard session table."""
     data_root = _resolve_data_root(data_root)
+    risk_per_trade = _get_risk_per_trade()
     files = _find_audit_files(data_root, symbol)
     results = []
     for f in files[:limit]:
@@ -267,6 +298,7 @@ def list_audits(
                     take_profit=float(tp_params.get("take_profit") or 0),
                     stop_loss=float(tp_params.get("stop_loss") or 0),
                     exit_price=exit_price,
+                    risk_per_trade=risk_per_trade,
                 )
 
             results.append({
