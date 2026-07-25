@@ -130,7 +130,7 @@ regime_parameters:
   # --- Micro-Sentiment & Exhaustion ---
   micro_sentiment:
     # Degree of wick skewness required to signal buyer/seller exhaustion.
-    wick_skew_exhaustion: 0.6
+    wick_skew_exhaustion: 0.7
     # Normalized CVD intensity (Net_Taker / Total_Volume) for divergence.
     cvd_intensity_threshold: 0.25
     # Extreme single-sided imbalance that triggers immediate absorption audit.
