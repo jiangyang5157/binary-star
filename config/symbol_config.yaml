@@ -33,15 +33,17 @@ XAUTUSDT:
         cvd_intensity_threshold: 0.18   # 从 0.25 降下来。XAUT |CVD| P75=0.15, P90=0.18，0.25 已是 P95 太保守。对齐 P85 作为"显著"基准
         cvd_intensity_extreme: 0.36   # 统一到低簇边界。XAUT |CVD| 双峰：低簇 0.07-0.36 / 高簇 0.62-0.74。0.36 正好卡边界，对齐 sniper cvd_extreme_threshold。
     sniper:
+      probes:
+        squeeze_trigger_multiplier: 1.3   # 从 base 0.75 调高。XAUT squeeze_factor 天然 1.2-1.5，base 0.75 永远不触发。1.0×1.3=1.3，sf<1.3 时触发。
       signal_stack:
-        regime_modifiers:
-          ranging: 1.2     # 从 base 1.0 调高。XAUT 经常处在 ranging，等效 0.35×1.20=0.42。squeeze/trending 保持 base 不变。
         thresholds:
-          cvd_divergence_tick_delta: 0.18
-          cvd_extreme_threshold: 0.36   # 从 0.22 调高。XAUT |CVD| 低簇顶在 0.36，0.36 正好卡边界。不触发低簇，高簇(0.62+)全捕捉。比 cvd_intensity_extreme(0.40) 松 0.04，medium 区间只触 momentum 不触 absorption。
-          large_trade_zscore: 1.6   # 从 1.5 提到 1.8：抑制单信号 solo-wake。需配合 CVD 才能过门槛。
+          cvd_divergence_tick_delta: 0.12   # 从 0.18 降低。XAUT CVD 变动幅度小(0.02-0.10/脉冲)，0.18 太高导致背离检测器火灾率仅 1%。
+          cvd_extreme_threshold: 0.24   # 从 0.36 降低。0.36 卡在低簇边界，Path B 仅在高簇(0.62+)触发。0.24 让极端路径在 |cvd|>0.24 时即生效，双路径互补。
+          large_trade_zscore: 1.6
         cooldown:
-          stacked_break_count: 4   # 从 3 提到 4：memory 唤醒不应轻易打破冷却。
+          stacked_break_count: 4
+        gate:
+          min_active_non_trend: 2   # 从 base 1 提高。ranging/squeeze/chaos 需 ≥2 个同向信号才放行，过滤单信号噪声(48% of XAUT wakes)，降低 NEUTRAL 率。
 
 BTCUSDT:
   precision_qty: 4           # Decimal places for order quantity
@@ -73,8 +75,10 @@ BTCUSDT:
     sniper:
       signal_stack:
         thresholds:
-          cvd_divergence_tick_delta: 0.25 # BTC 波动大，稍宽避免误触发
+          cvd_divergence_tick_delta: 0.08   # 从 0.25 降低。BTC CVD 在 0.001-0.05 范围微动，0.25 永远达不到。0.08 仍远超正常噪声(~0.02)，只在方向突变时触发。
           cvd_extreme_threshold: 0.18 # 适配 BTC 高流动性低噪声
           large_trade_zscore: 2.0 # BTC 实测 Z=3-4，经常触发，够了
         cooldown:
           stacked_break_count: 4   # 提到 4 防止 ranging 40min cooldown 形同虚设。
+        gate:
+          min_active_non_trend: 2   # 从 base 1 提高。BTC 72% wakes 在 ranging，45% 是单信号，71% 结果 NEUTRAL。≥2 同向信号才放行，大幅降低 LLM 浪费。
