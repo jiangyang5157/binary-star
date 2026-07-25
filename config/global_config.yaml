@@ -36,7 +36,7 @@ llm:
     critic:
       role_prompt: "config/prompts/critic.md"
       temperature: 0.1
-      reasoning_effort: null
+      reasoning_effort: "high"
     evolver:
       role_prompt: "config/prompts/evolver.md"
       temperature: 0.3
