@@ -220,7 +220,7 @@ guardian:
 
   exit_ladder:
     breakeven:
-      rr_target: 1.0
+      rr_target: 1.5
     levels: []
       # - target: 0.87
       #   tp_ratio: 0.5
