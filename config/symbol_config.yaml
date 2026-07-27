@@ -45,7 +45,7 @@ XAUTUSDT:
         cooldown:
           stacked_break_count: 4
         gate:
-          min_active_non_trend: 2   # XAUT 双信号触发频繁，提到 3 减少 session 量。ranging/squeeze/chaos 需 ≥3 个同向信号才放行。
+          min_active_non_trend: 3   # XAUT 双信号触发频繁，提到 3 减少 session 量。ranging/squeeze/chaos 需 ≥3 个同向信号才放行。
 
 BTCUSDT:
   precision_qty: 4           # Decimal places for order quantity
