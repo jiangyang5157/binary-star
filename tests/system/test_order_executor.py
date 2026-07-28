@@ -25,6 +25,19 @@ if _LV:
 else:
     L_TP, L_SL = 0.5, 0.1  # defaults when levels is empty in production config
 
+# Test config with levels for exit-ladder tests (production config uses levels: [])
+_EXIT_LADDER_TEST_CFG = dict(_cfg)
+_EXIT_LADDER_TEST_CFG["guardian"] = dict(_cfg.get("guardian", {}))
+_EXIT_LADDER_TEST_CFG["guardian"]["exit_ladder"] = {
+    "breakeven": {"rr_target": 1.0},
+    "levels": [{"target": 0.87, "tp_ratio": L_TP, "sl_lock": L_SL}],
+}
+
+
+def _make_executor_with_levels():
+    """Executor with test config that includes exit-ladder levels."""
+    return _make_executor(global_config=_EXIT_LADDER_TEST_CFG)
+
 
 def _make_trade_state(direction="LONG", entry_price=70000, tp_price=75000, sl_price=68000):
     return {
@@ -425,7 +438,7 @@ def test_guardian_position_flat_without_entry_filled_at():
 
 def test_exit_ladder_triggers_long():
     """Single level fires when progress >= 0.85, closes tp_ratio of remaining."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     entry = 70000.0
     tp = 75000.0
     current_price = entry + 0.90 * (tp - entry)  # 90% > 85% target
@@ -505,7 +518,7 @@ def test_exit_ladder_all_done_skips():
 
 def test_multi_level_same_pulse():
     """Both levels fire in one pulse — L1 closes, L2 only SL lock."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     entry = 70000.0
     tp = 80000.0
     current_price = entry + 0.90 * (tp - entry)
@@ -537,7 +550,7 @@ def test_multi_level_same_pulse():
 
 def test_trailing_with_sl_lock():
     """After level triggered, sl_lock=0.1, trailing SL applied each pulse."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     entry = 70000.0
     tp = 75000.0
     current_price = entry + 0.60 * (tp - entry)
@@ -566,7 +579,7 @@ def test_trailing_with_sl_lock():
 
 def test_exit_ladder_triggers_short():
     """SHORT: single level fires when progress >= 0.85."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     entry = 70000.0
     tp = 65000.0
     current_price = entry - 0.90 * (entry - tp)  # 90% > 85% target
@@ -637,7 +650,7 @@ def test_exit_ladder_skips_when_short_in_loss():
 
 def test_oco_replace_failure_emergency_closes():
     """When OCO re-place fails after cancel, emergency market close."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     entry = 70000.0
     tp = 75000.0
     current_price = entry + 0.55 * (tp - entry)
@@ -715,7 +728,7 @@ def test_find_level_below_target():
 
 def test_find_level_triggered_syncs_sl():
     """find_level: progress past 0.85 → returns 1, syncs sl_lock."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     atr = 1000.0
     entry = 70000.0
     client.get_symbol_position.return_value = MarginPosition(
@@ -778,7 +791,7 @@ def test_find_level_cancel_fails_returns_next_level():
 
 def test_daemon_qty_change_resets_level():
     """Daemon-level: qty changes -> level reset to None -> find_level re-initialized."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     atr = 1000.0
     entry = 70000.0
 
@@ -830,7 +843,7 @@ def test_daemon_qty_change_resets_level():
 
 def test_daemon_position_closed_clears_level():
     """Daemon-level: guardian returns {} -> level/qty tracking cleared."""
-    executor, client = _make_executor()
+    executor, client = _make_executor_with_levels()
     atr = 1000.0
     entry = 70000.0
 

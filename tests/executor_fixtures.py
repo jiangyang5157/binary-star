@@ -5,9 +5,13 @@ from src.infrastructure.exchange.models import MarginPosition, MarginOrder, Marg
 from src.agent.order_executor import MarginOrderExecutor
 
 
-def make_executor():
+def make_executor(global_config=None):
     """Build a MarginOrderExecutor with all client methods mocked.
-    Constructor loads global_config.yaml from disk (same as production).
+
+    Args:
+        global_config: Optional config dict. If None, loads global_config.yaml
+            from disk (same as production). Exit-ladder tests should pass a
+            config that includes the expected level definitions.
     """
     client = MagicMock()
     client.get_cross_margin_account.return_value = MarginAccountSummary(
@@ -30,5 +34,5 @@ def make_executor():
         )
     )
 
-    executor = MarginOrderExecutor(client=client)
+    executor = MarginOrderExecutor(client=client, global_config=global_config)
     return executor, client
