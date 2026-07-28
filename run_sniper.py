@@ -598,7 +598,9 @@ class SniperDaemon:
             elif updated_state != trade_state:
                 self.trade_states[symbol] = updated_state
 
-            # Return guardian snapshot for heartbeat (harvested during check, no extra API calls)
+            # Return guardian snapshot for heartbeat.
+            # Re-fetches orders post-guardian so the snapshot reflects any
+            # OCO modifications (cancel/re-place) from this pulse.
             try:
                 current_price = self.executor.client.get_ticker_price(symbol)
             except Exception:
@@ -616,35 +618,47 @@ class SniperDaemon:
                         pass
                 orders = self.executor.client.get_active_orders(symbol)
                 if entry_price is None and orders:
-                    # PENDING: no position yet, extract reference price from the
-                    # unfilled LIMIT entry order (OTOCO working order). TP is
-                    # LIMIT_MAKER, SL is STOP_LOSS_LIMIT — only LIMIT is the entry.
+                    # PENDING: no position yet — entry price from unfilled LIMIT order
                     for o in orders:
                         if o.type == "LIMIT" and o.price > 0:
                             entry_price = o.price
                             logger.info(f"[{symbol}] entry price from pending LIMIT order | price={entry_price}")
                             break
-                # ── Live OCO prices from exchange orders (zero extra API calls) ──
+                # ── Live OCO prices from exchange orders ──
                 # trade_state cache can be stale (reconstruction drops keys,
-                # race with session execution). orders is from THIS pulse.
-                live_tp = None
-                live_sl = None
+                # session execution races with guardian). Prefer exchange.
                 direction = ts.get("direction")
+                # Fallback: derive direction from position when trade_state
+                # lost it (e.g. _optimize_same_direction returns {tp, sl} without direction)
+                if not direction:
+                    if pos_qty > 1e-8:
+                        direction = "LONG"
+                    elif pos_qty < -1e-8:
+                        direction = "SHORT"
                 if direction and orders:
-                    exit_side = "BUY" if direction == "SHORT" else "SELL"
-                    for o in orders:
-                        if o.side != exit_side:
-                            continue
-                        if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
-                            live_tp = o.price
-                        elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
-                            live_sl = o.stop_price
+                    exit_side = self.executor._exit_side(direction)
+                    live_tp, live_sl = self.executor._extract_oco_prices(orders, exit_side)
+                else:
+                    live_tp, live_sl = 0.0, 0.0
+
+                cached_tp = ts.get("tp_price")
+                cached_sl = ts.get("sl_price")
+                tp = live_tp if live_tp > 0 else cached_tp
+                sl = live_sl if live_sl > 0 else cached_sl
+                if live_tp > 0 and cached_tp and abs(live_tp - cached_tp) > 1e-6:
+                    logger.warning(
+                        f"[{symbol}] tp mismatch | exchange={live_tp} cache={cached_tp}"
+                    )
+                if live_sl > 0 and cached_sl and abs(live_sl - cached_sl) > 1e-6:
+                    logger.warning(
+                        f"[{symbol}] sl mismatch | exchange={live_sl} cache={cached_sl}"
+                    )
                 return {
                     "net_qty": pos_qty,
                     "active_orders": len(orders),
                     "entry_price": entry_price,
-                    "tp_price": live_tp or ts.get("tp_price"),
-                    "sl_price": live_sl or ts.get("sl_price"),
+                    "tp_price": tp,
+                    "sl_price": sl,
                     "current_price": current_price,
                 }
             except Exception as e:
