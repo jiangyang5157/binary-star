@@ -20,7 +20,10 @@ _config_path = os.path.join(project_root, "config", "global_config.yaml")
 with open(_config_path) as f:
     _cfg = yaml.safe_load(f)
 _LV = _cfg["guardian"]["exit_ladder"]["levels"]
-L_TP, L_SL = _LV[0]["tp_ratio"], _LV[0]["sl_lock"]  # single level: target=0.85
+if _LV:
+    L_TP, L_SL = _LV[0]["tp_ratio"], _LV[0]["sl_lock"]
+else:
+    L_TP, L_SL = 0.5, 0.1  # defaults when levels is empty in production config
 
 
 def _make_trade_state(direction="LONG", entry_price=70000, tp_price=75000, sl_price=68000):

@@ -624,12 +624,27 @@ class SniperDaemon:
                             entry_price = o.price
                             logger.info(f"[{symbol}] entry price from pending LIMIT order | price={entry_price}")
                             break
+                # ── Live OCO prices from exchange orders (zero extra API calls) ──
+                # trade_state cache can be stale (reconstruction drops keys,
+                # race with session execution). orders is from THIS pulse.
+                live_tp = None
+                live_sl = None
+                direction = ts.get("direction")
+                if direction and orders:
+                    exit_side = "BUY" if direction == "SHORT" else "SELL"
+                    for o in orders:
+                        if o.side != exit_side:
+                            continue
+                        if o.type in ("LIMIT", "LIMIT_MAKER") and o.price > 0:
+                            live_tp = o.price
+                        elif o.type in ("STOP_LOSS", "STOP_LOSS_LIMIT") and o.stop_price > 0:
+                            live_sl = o.stop_price
                 return {
                     "net_qty": pos_qty,
                     "active_orders": len(orders),
                     "entry_price": entry_price,
-                    "tp_price": ts.get("tp_price"),
-                    "sl_price": ts.get("sl_price"),
+                    "tp_price": live_tp or ts.get("tp_price"),
+                    "sl_price": live_sl or ts.get("sl_price"),
                     "current_price": current_price,
                 }
             except Exception as e:
