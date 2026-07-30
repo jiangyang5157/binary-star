@@ -643,8 +643,8 @@ class SniperDaemon:
 
                 cached_tp = ts.get("tp_price")
                 cached_sl = ts.get("sl_price")
-                tp = live_tp if live_tp > 0 else cached_tp
-                sl = live_sl if live_sl > 0 else cached_sl
+                tp = live_tp if live_tp > 0 else (cached_tp or 0.0)
+                sl = live_sl if live_sl > 0 else (cached_sl or 0.0)
                 if live_tp > 0 and cached_tp and abs(live_tp - cached_tp) > 1e-6:
                     logger.warning(
                         f"[{symbol}] tp mismatch | exchange={live_tp} cache={cached_tp}"
@@ -843,10 +843,33 @@ def main():
     add_data_path_argument(parser)
 
     args = parser.parse_args()
-    
+
     if not args.path:
         args.path = "data/prod"
-    
+
+    # ── Singleton guard: prevent multiple daemon instances ──
+    from src.utils.path_utils import resolve_project_root
+    _state_path = os.path.join(resolve_project_root(), args.path, ".sniper_state.json")
+    if os.path.exists(_state_path):
+        try:
+            with open(_state_path) as f:
+                state = json.load(f)
+            if state.get("running"):
+                pid = state.get("pid")
+                if pid:
+                    try:
+                        os.kill(pid, 0)  # signal 0 = existence check, no signal sent
+                        logger.error(
+                            "Sniper already running (PID %d, symbols=%s). "
+                            "Stop it first or use the dashboard UI.",
+                            pid, state.get("symbols", []),
+                        )
+                        sys.exit(1)
+                    except OSError:
+                        logger.warning("Clearing stale sniper lock for dead PID %d", pid)
+        except (json.JSONDecodeError, KeyError):
+            pass
+
     daemon = SniperDaemon(args)
     daemon.run_forever()
 
