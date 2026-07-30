@@ -496,6 +496,17 @@ class SniperDaemon:
             # Extract projected holding/waiting time and entry ATR for adaptive guardian
             projected_waiting = tactical.get('projected_waiting_hours', 0)
             projected_holding = tactical.get('projected_holding_hours', 0)
+
+            # ── Confidence guard: don't replace a higher-confidence pending OTOCO ──
+            existing = self.trade_states.get(symbol, {})
+            existing_conf = existing.get("confidence_score", 0)
+            if existing_conf > confidence:
+                logger.info(
+                    f"[{symbol}] keeping existing OTOCO | "
+                    f"existing_confidence={existing_conf}% > new={confidence}%"
+                )
+                return
+
             logger.info(f"[{symbol}] ALL GATES PASSED | executing {direction} | "
                         f"confidence={confidence}% | entry={entry} | tp={tp} | sl={sl} | "
                         f"wait={projected_waiting}h | hold={projected_holding}h")
@@ -527,6 +538,7 @@ class SniperDaemon:
                     "otoco_placed_at": datetime.now(timezone.utc),
                     "projected_waiting_hours": float(projected_waiting),
                     "projected_holding_hours": float(projected_holding),
+                    "confidence_score": confidence,
                 }
                 logger.info(f"[{symbol}] trade state updated | order={result}")
             else:
