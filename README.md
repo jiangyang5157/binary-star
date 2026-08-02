@@ -39,9 +39,9 @@ sequenceDiagram
 | **CONSTRUCTIVE** | `MATH_VIOLATION`, `INACTION_BIAS`, `TREND_STARVATION`, `RETAIL_SQUEEZE`, … | Plan needs revision — another round |
 | **TERMINAL** | `ORDER_PHYSICS`, `STRUCTURAL_TRAP`, `ANCHOR_VIOLATION`, `PROTOCOL_VIOLATION` | Plan is unsafe — force NEUTRAL |
 
-Confidence scoring is Python-computed (not LLM-generated), factoring in math verification results, debate history, and the final verdict. NEUTRAL always scores 0.
+Confidence scoring is Python-computed (not LLM-generated) — a 0–100 survival score across 13 sub-dimensions spanning topographical armor, regime & gravity, and temporal & sentiment, plus a debate-history penalty. NEUTRAL always scores 0.
 
-The system supports DeepSeek and Gemini as AI providers, configured via `global_config.yaml`.
+The debate runs on DeepSeek or Gemini (2 adapters), selected via `global_config.yaml` (currently DeepSeek).
 
 ## Architecture
 
@@ -58,7 +58,7 @@ graph LR
         Critic --> Planner
     end
 
-    Sniper["Sniper<br/>10 signals"] --> Debate
+    Sniper["Sniper<br/>9 signals"] --> Debate
     Debate --> Executor["Order Executor"]
     Executor --> Binance["Binance"]
 ```
@@ -75,31 +75,27 @@ graph LR
 
 ## Sniper
 
-10 signals across 5 categories (FLOW, SIZE, ENERGY, STRUCTURAL, POSITIONING, CROSS-SYMBOL) combine via a confluence engine: `1 − ∏(1 − s)` per direction, with noise cancellation. Regime-adaptive thresholds (trending 0.29, ranging 0.34, squeeze 0.26, chaos 0.51) gate trigger decisions. Any single signal at ≥ 0.80 bypasses all cooldown. Adaptive cooldown scales with market regime (20–60 min).
-
-Sniper's job is entry timing. Binary Star decides the trade.
+9 signals across 5 categories (FLOW, SIZE, ENERGY, STRUCTURAL, POSITIONING) scan on 2-minute pulses. A confluence engine stacks weak signals — `1 − ∏(1 − s)` per direction — toward a regime-adaptive threshold: base 0.34 × per-regime modifier (trending 0.85 → 0.29, ranging 1.0 → 0.34, squeeze 0.75 → 0.26, chaos 1.50 → 0.51). Any single signal at ≥ 0.80 bypasses all cooldown; otherwise an adaptive cooldown (20–60 min) scales with market regime. Sniper's job is entry timing — Binary Star decides the trade.
 
 ## Order Management
 
-| Phase | Trigger | Action |
-|-------|---------|--------|
-| Entry | Binary Star → LONG/SHORT | OTOCO: limit entry + nested TP/SL (atomic) |
-| Protection | Entry filled, no OCO yet | Guardian places OCO with TP + SL |
-| Breakeven | RR ≥ 1.0 | Dynamic partial close — SL stays at original risk |
-| Exit Ladder | 85% TP progress | Close 20% of remaining, SL → entry + 10% TP |
-| Trailing | Level active, price advances | SL ratchets toward TP (never loosens) |
-
-Breakeven dynamically computes the close ratio per trade from `rr_target`, entry price, SL distance, and taker fee — guaranteeing true breakeven after all fees if the remainder hits SL.
+| Phase | Mechanism |
+|-------|-----------|
+| Entry | OTOCO — atomic limit entry with nested TP/SL |
+| Protection | Guardian OCO — every position wrapped in TP + SL |
+| Breakeven | Fee-aware partial close at `rr_target` — SL never moves, remainder exits flat after fees |
+| Exit ladder | TP-relative levels — partial TP close, SL locked to a TP-relative offset |
+| Trailing | Dynamic trailing SL as ladder levels fire (never loosens) |
 
 ## Evolution
 
-Sandboxed meta-evolution ingests audit reports, scores fitness (TP_HIT: 100, NEUTRAL: 50, SL_HIT: 30, plus forensic modifiers for logic failures, luck, slow locks), and emits config patches consumed by Binary Star. Each proposal includes a semantic refinement for prompt templates.
+Sandboxed meta-evolution ingests audit reports and scores fitness (TP_HIT: 100, disciplined NEUTRAL: 50, SL_HIT: 30, plus forensic modifiers for logic failures, luck, slow capital locks). Winners emit config patches plus semantic prompt refinements that feed back into Binary Star.
 
 ## Installation
 
 ```bash
 pip install -e .
-cp .env.example .env   # add BINANCE_API_KEY, BINANCE_SECRET_KEY, DEEPSEEK_API_KEY
+cp .env.example .env   # add BINANCE_API_KEY, BINANCE_API_SECRET, DEEPSEEK_API_KEY
 ```
 
 ## Commands
@@ -133,10 +129,4 @@ python run.py audit -p data/prod                                  # batch audit 
 python run.py audit -f sessions/BTCUSDT_20250615.json --force -p data/prod
 python run.py evolution --symbol BTC --samples 20 -p data/prod
 python run.py patch -f proposals/proposal_20250615.json --symbol XAUT
-```
-
-### Dashboard
-
-```bash
-python -m src.dashboard.server -p data/prod --port 8080
 ```
