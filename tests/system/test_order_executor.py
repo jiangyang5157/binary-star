@@ -349,6 +349,35 @@ def test_guardian_position_already_protected():
     # No ATR → Case 4 skipped, level unchanged (current_level=0 default)
     assert level == 0
 
+def test_breakeven_caps_close_at_50pct_when_x_gt_1():
+    """Tight SL → fee-adjusted breakeven ratio x>1. Close is capped at 50%
+    (not full-close) so a portion keeps riding under the original OCO."""
+    executor, client = _make_executor_with_levels()
+    entry = 70000.0
+    tp = 75000.0
+    sl = 69920.0          # R=80 → x=(80+2*0.001*70000)/(80*2)=1.375>1
+    client.get_symbol_position.return_value = MarginPosition(
+        "BTCUSDT", "BTC", "USDT", net_qty=0.5, borrowed=0.0, free=0.5, locked=0.0
+    )
+    client.get_avg_entry_price.return_value = entry
+    client.get_ticker_price.return_value = entry  # below P_be → plan stays pending
+    orders = _make_oco_orders(symbol="BTCUSDT", exit_side="SELL", tp=tp, sl=sl, qty=0.5)
+    client.get_active_orders.return_value = orders
+
+    trade_state = _make_trade_state("LONG", entry, tp_price=tp, sl_price=sl)
+    result, level = executor.guardian_check("BTCUSDT", trade_state, current_level=0)
+
+    be = result["breakeven_close"]
+    assert be["status"] == "pending"
+    # 50% cap: plan closes 0.25, NOT the full 0.5 that x>1 would imply
+    assert be["qty"] == 0.25
+    # P_be = entry + rr_target*R (=70080, rr_target=1.0 in test config)
+    assert abs(be["tp_price"] - (entry + (entry - sl))) < 0.01
+    # Price below trigger → plan created only, nothing executed yet
+    client.execute_partial_market_close.assert_not_called()
+    client.execute_market_close.assert_not_called()
+
+
 def test_flat_to_short():
     """FLAT → SHORT: places SELL limit entry with SL above entry."""
     executor, client = _make_executor()

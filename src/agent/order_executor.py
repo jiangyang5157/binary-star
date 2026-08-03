@@ -863,6 +863,11 @@ class MarginOrderExecutor:
             total_qty = abs(net_qty)
             close_qty = x * total_qty
 
+            # Cap at 50% — never let breakeven close the whole position.
+            # When x > 0.5 the remainder is no longer fee-breakeven; it keeps
+            # the original SL and rides toward TP instead of being dumped.
+            close_qty = min(close_qty, 0.5 * total_qty)
+
             # Boundary checks: full-close if remainder would be dust
             if total_qty - close_qty < min_qty:
                 close_qty = total_qty
