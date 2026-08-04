@@ -76,6 +76,7 @@ BTCUSDT:
         cvd_intensity_extreme: 0.16     # 0.14-0.18
     sniper:
       signal_stack:
+        trigger_threshold: 0.36   # 从 base 0.34 调高。连续抬高 confluence 门槛压弱信号噪声/降 AI 成本。注：实测 BTC weak wake 多落在 0.38-0.41，0.36 仅提供 0.34-0.36 安全垫，若要切掉 0.38-0.41 那批需 ≥0.42。
         thresholds:
           cvd_divergence_tick_delta: 0.08   # 从 0.25 降低。BTC CVD 在 0.001-0.05 范围微动，0.25 永远达不到。0.08 仍远超正常噪声(~0.02)，只在方向突变时触发。
           cvd_extreme_threshold: 0.18 # 适配 BTC 高流动性低噪声
