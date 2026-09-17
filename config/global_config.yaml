@@ -172,6 +172,12 @@ sniper:
                                      # 注：XAUT/BTC 在 symbol_config.yaml 中覆盖为 3，本值实际不生效
       min_active_trend: 1            # 趋势regime中，dominant方向至少N个活跃信号。趋势惯性使单信号更可靠，故只设最低保险1
                                      # 注：逻辑上等同"无闸门"，仅作防呆下限
+      # —— 方向来源独立要求（实验项，见 docs/sniper_gate_review_and_plan_20260917.md）——
+      # 背景：cvd_momentum / large_trade / volatility_surge 的方向都取 sign(cvd)，
+      # 实测两者同向率 100%（XAUT 91/91、BTC 62/62），所以"同向 3 个信号"经常只是
+      # 同一个 CVD 冲击被数了 3 次。开启本规则 = 同向信号中至少 1 个方向不来自 sign(cvd)。
+      shadow_require_independent_direction: true   # 只记 GATE SHADOW 日志，不改变触发（默认开）
+      require_independent_direction: false         # 真正启用拦截。需影子期达标后才可置 true
 
     # —— 信号置信度权重（可被 Evolution 进化）——
     # 设计原则：结构性/流动性信号 > 情绪/反向信号。

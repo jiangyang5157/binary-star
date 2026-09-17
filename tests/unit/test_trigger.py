@@ -218,8 +218,8 @@ def test_sniper_trigger_initialization_with_symbol_override():
 # Pre-AI Gate — min_active_trend / min_active_non_trend
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _make_trigger(min_active_trend=None, min_active_non_trend=None):
-    gate = {}
+def _make_trigger(min_active_trend=None, min_active_non_trend=None, **gate_extra):
+    gate = dict(gate_extra)
     if min_active_trend is not None:
         gate['min_active_trend'] = min_active_trend
     if min_active_non_trend is not None:
@@ -313,3 +313,61 @@ class TestPreAIGate:
         result, reason = t._run_pre_ai_gate(
             _gate_metrics(), [_gate_card()], Direction.BULLISH, 'ranging')
         assert result == 'PASS'
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Direction-provenance gate (require_independent_direction / shadow mode)
+# See docs/sniper_gate_review_and_plan_20260917.md
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _cvd_stack():
+    """3 same-direction signals whose direction all derives from sign(cvd)."""
+    return [_gate_card('cvd_momentum'), _gate_card('large_trade'),
+            _gate_card('volatility_surge')]
+
+
+class TestDirectionProvenanceGate:
+
+    def test_disabled_by_default_passes_pure_cvd_stack(self):
+        t = _make_trigger(min_active_non_trend=3)
+        result, reason = t._run_pre_ai_gate(
+            _gate_metrics(), _cvd_stack(), Direction.BULLISH, 'ranging')
+        assert result == 'PASS'
+
+    def test_shadow_mode_logs_but_does_not_block(self, caplog):
+        t = _make_trigger(min_active_non_trend=3,
+                          shadow_require_independent_direction=True,
+                          require_independent_direction=False)
+        with caplog.at_level('INFO', logger='src.sniper.trigger'):
+            result, reason = t._run_pre_ai_gate(
+                _gate_metrics(), _cvd_stack(), Direction.BULLISH, 'ranging')
+        assert result == 'PASS'
+        assert any('GATE SHADOW' in r.message for r in caplog.records)
+
+    def test_enabled_blocks_pure_cvd_stack(self):
+        t = _make_trigger(min_active_non_trend=3,
+                          require_independent_direction=True)
+        result, reason = t._run_pre_ai_gate(
+            _gate_metrics(), _cvd_stack(), Direction.BULLISH, 'ranging')
+        assert result == 'FAIL'
+        assert 'MIN_ACTIVE_INDEPENDENT' in reason
+
+    def test_enabled_passes_when_an_independent_source_agrees(self):
+        # cvd_divergence derives direction from price_delta/cvd_delta, not sign(cvd)
+        t = _make_trigger(min_active_non_trend=3,
+                          require_independent_direction=True)
+        sigs = [_gate_card('cvd_momentum'), _gate_card('large_trade'),
+                _gate_card('cvd_divergence')]
+        result, reason = t._run_pre_ai_gate(
+            _gate_metrics(), sigs, Direction.BULLISH, 'ranging')
+        assert result == 'PASS'
+
+    def test_count_gate_still_wins_first(self):
+        # 2 signals < min 3 → the count gate fails before provenance is examined
+        t = _make_trigger(min_active_non_trend=3,
+                          require_independent_direction=True)
+        sigs = [_gate_card('cvd_momentum'), _gate_card('large_trade')]
+        result, reason = t._run_pre_ai_gate(
+            _gate_metrics(), sigs, Direction.BULLISH, 'ranging')
+        assert result == 'FAIL'
+        assert 'MIN_ACTIVE_SIGNALS' in reason

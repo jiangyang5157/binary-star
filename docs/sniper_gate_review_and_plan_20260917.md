@@ -1,5 +1,8 @@
 # 建议 review + 修改计划（BTC / XAUT pre-AI gate）
 
+> 执行状态（2026-09-18）：**M2 / M1 / N1 / S1 已完成并验证；N2 改为更强的等价实现；C1 决定不做。**
+> 详见文末「§8 执行记录」。
+
 本文分两部分：
 **Part A** 逐条 review 我上一轮给出的全部建议（含**撤回**与**降级**）；
 **Part B** 给出可执行的修改计划（精确到文件/行/预期效果/验证/回滚）。
@@ -214,32 +217,33 @@ review 用的新证据来自 `scripts/sniper_gate_policy_experiments.py`
 
 验证：`git diff` 仅注释。
 
-#### N2. 阻止演化循环继续改写这两个 key（需你确认是否接受）
+#### N2. 阻止这个参数被静默改写（**已改为"钉值测试"实现，理由见下**）
 
-现状：`run_patch.py` 读演化提案的 `config_patch`，经
-`src/config/symbol_resolver.patch_config()` 写进 `symbol_config.yaml` 的 overrides。
-git `-L` 追踪显示该值 **7/18 引入为 2 之后被改写 5 次**
-（7/25 2→3、7/27 3→2、7/28 2→3、8/25 3→2、8/26 2→3），
-**每次都没有 A/B 证据**，注释也一直没跟着更新——这才是注释骗人的根因。
+**⚠️ 我先更正上一轮的一个错误论断。** 我原先说"演化循环把它改回去了"，**这没有证据支持**：
 
-建议在 `run_patch.py` 的应用循环里加一条 denylist（约 6 行）：
+* `run_patch.py` 是唯一能写 `symbol_config.yaml` 的入口（经
+  `src/config/symbol_resolver.patch_config()`，见该文件 134-196 行）；
+* 但它只在提案带 `target_path='sniper.signal_stack.gate'` + `target_key='min_active_non_trend'`
+  时才会命中——我把**全部 23 个历史提案的 61 条 `config_patch`** 扫了一遍，
+  **命中 `sniper.*` 的有 0 条**；
+* 那 5 次翻转（7/25、7/27、7/28、8/25、8/26）的提交作者都是本人、时间点零散，是**手改**。
 
-```python
-FROZEN_KEYS = {
-    ("sniper.signal_stack.gate", "min_active_non_trend"),
-    ("sniper.signal_stack.gate", "min_active_trend"),
-}
-...
-    if (t_path, key) in FROZEN_KEYS and not os.environ.get("BS_ALLOW_FROZEN_PATCH"):
-        logger.warning(f"patch SKIPPED (frozen) | key={key} | path={t_path}")
-        continue
-```
+所以"给 run_patch 加 denylist"会变成**守一条从未被走过的路**（并且只覆盖写入方之一），
+与我自己的"改动须附证据"原则冲突。改用**钉值测试**，它覆盖**所有**写入方
+（手改、patch 脚本、将来的自动化），且不改变任何运行时行为：
 
-* 验证：新增单测 `tests/unit/test_run_patch_frozen.py`——喂一个含冻结 key 的 proposal，
-  断言 `symbol_config.yaml` 未被修改、日志出现 SKIPPED；再设 `BS_ALLOW_FROZEN_PATCH=1` 断言可写入。
-* 回滚：删掉该常量与判断。
-* **权衡（需要你拍板）**：这会改变演化管线的行为，好处是参数不再随机漂移，
-  代价是以后想调也必须走人工。若你更希望保持演化自由，可只做 N1 不做 N2。
+新增 `tests/unit/test_symbol_gate_pinned.py`：
+
+* `test_effective_gate_values_are_pinned` —— 通过 `resolve_config(load_global_config(), symbol)`
+  读**生效值**（base + symbol override 合并后），断言 XAUT/BTC 均为 `3 / 1`；
+  失败信息直接给出证据文档路径与"如何有意修改"的说明。
+* `test_independent_direction_rule_stays_in_shadow_mode` —— 断言
+  `require_independent_direction is False` 且 `shadow_require_independent_direction is True`，
+  防止影子期结束前被误开。
+
+* 验证（已做）：正常态 4 passed；**故意把值改成 2 后测试确实失败**并打印
+  `This value is frozen pending A/B evidence — see docs/...`，改回即恢复。
+* 若将来演化真的开始提案 sniper 路径，再补 denylist 也不迟（那时才有据可依）。
 
 ### Phase 2 — 影子模式验证"方向来源独立"规则（2 周，不影响交易）
 
@@ -348,4 +352,54 @@ pytest tests/unit/test_trigger.py tests/unit/test_sniper_daemon.py -q   # 回归
 python3 scripts/analyze_sniper_gate.py --out docs/sniper_gate_evidence_$(date +%Y%m%d).md
 python3 scripts/sniper_gate_policy_experiments.py
 git diff --stat    # 确认改动范围与计划一致
+```
+
+---
+
+## §8 执行记录（2026-09-18）
+
+### 已完成
+
+| 项 | 文件 | 改动 | 验证结果 |
+|---|---|---|---|
+| **M2** 补拦截日志 | `src/sniper/trigger.py`（+19 行） | gate FAIL 保留 reason 并打 INFO；cooldown 压制补 INFO | 进程内实测两行都触发：<br>`PRE-AI GATE FAIL \| MIN_ACTIVE_SIGNALS: regime=ranging requires ≥3 signals in BULLISH direction, got 1 \| conf=0.65 \| dir=BULLISH \| regime=ranging \| fresh=1`<br>`COOLDOWN BLOCK \| COOLDOWN_RANGING (2.0m/40m) \| conf=0.39 >= thr=0.340 \| dir=BULLISH \| regime=ranging` |
+| **M1** 修注释 | `config/symbol_config.yaml` :50/:91、`config/global_config.yaml` | 删除"从 3 降回 2"，换成实测依据 | 取值断言未变（仍 3 / 1） |
+| **N1** FROZEN 标记 | 同上 | 两处 `# FROZEN 2026-09-18` | — |
+| **N2** 改为钉值测试 | `tests/unit/test_symbol_gate_pinned.py`（新增，4 用例） | 见上文更正 | 正常 4 passed；**故意改成 2 会失败并给出证据文档指引** |
+| **S1** 影子开关 | `src/sniper/trigger.py`（+8 行）、`config/global_config.yaml`（+2 key）、`tests/unit/test_trigger.py`（+5 用例） | `shadow_require_independent_direction: true`（默认）、`require_independent_direction: false`（默认）；`CVD_DERIVED_SUBTYPES` 常量 | 用**真实配置**实测：纯 sign(cvd) 三连 → 打 `GATE SHADOW \| ... WOULD BLOCK` 且 gate 仍 `PASS`；叠加 `cvd_divergence` 后不再报。全量单测 **337 passed** |
+
+**M2 的日志量预估**：XAUT 606 次 gate 拦截 + 43 次 cooldown 拦截 / 12.5 天 ≈ **52 行/天**；
+S1 影子再叠加同量级（影子只在这两级都通过后才可能触发，实测 XAUT 17/16、即几乎不发）。
+
+### 明确不做
+
+| 项 | 决定 | 理由 |
+|---|---|---|
+| **C1** `emergency_threshold` 0.80→0.85 | **不做**，交由 S2 一起裁决 | 实测 0.90 只减少 2/16 次 wake（16→14）、超额 −0.207%→−0.106%，**幅度在噪声内**；真正依赖 emergency 绕过 cooldown 的只有 3/16（XAUT）、0/6（BTC）。按本文自己的标准"改动须附 A/B 证据"，现在改就是重复我批评过的 churn。`sniper_gate_policy_experiments.py` 已内置 P3（emerg 0.90）档位，S2 复算时会自动一起评估。 |
+| **C2** 重标定 `cvd_extreme_threshold` | 另开议题 | 这是 emergency 命中率高的**根因**（XAUT 0.24 使 strength 在 \|cvd\|≈0.48 就到 0.8），需要单独的强度标定分析 |
+| **C3** BTC session 层 6/6 NEUTRAL | 另开议题 | 方向判断是对的（BTC −4.4%，6 次里 5 次 BEARISH）却不下单，属 session/prompt 层 |
+
+### 待办（依赖时间或你的决定）
+
+| 项 | 前置条件 | 当前状态 |
+|---|---|---|
+| **S2** 影子期复算 | S1 的影子日志需先上线（**daemon pid 33916 仍跑旧代码，需重启才生效**），再累积 14 天 | 工具已就绪，等数据 |
+| **S3** 打开 `require_independent_direction` | S2 达标（门槛见 Phase 2） | 未开始；`test_independent_direction_rule_stays_in_shadow_mode` 会阻止误开 |
+| **N2 备选** 演化 denylist | 仅当演化开始真的提案 `sniper.*` 路径时 | 已扫描 61 条历史 patch，命中 0 → 暂不需要 |
+
+### 重启后 S2 的复算命令
+
+```bash
+# 1) 影子期只看"同源堆叠"被拦了多少
+grep "GATE SHADOW" data/prod/sniper.log | wc -l
+grep "GATE SHADOW" data/prod/sniper.log | tail -20
+
+# 2) 影子期实际触发的 wake 质量
+python3 scripts/analyze_sniper_gate.py --json /tmp/gate.json --out docs/sniper_gate_evidence_$(date +%Y%m%d).md
+
+# 3) 策略对比（含 P3=emergency 0.90、P4=方向来源独立）
+python3 scripts/sniper_gate_policy_experiments.py
+
+# 4) 回归
+pytest tests/unit -q
 ```

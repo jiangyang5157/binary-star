@@ -155,6 +155,12 @@ OI_SURGE_SATURATION = 0.04
 
 # General
 MIN_STACK_STRENGTH = 0.15
+# Signals whose direction is literally sign(cvd).  They are not independent
+# confirmations of each other — cvd_momentum and large_trade were same-direction
+# in 100% of the pulses where both fired (XAUT 91/91, BTC 62/62, 2026-09-05~17).
+# Used by the optional "independent direction" gate, see
+# docs/sniper_gate_review_and_plan_20260917.md.
+CVD_DERIVED_SUBTYPES = frozenset({'cvd_momentum', 'large_trade', 'volatility_surge'})
 ABSORPTION_PRICE_STALL_ATR = 0.3
 LEADER_SYNC_CAP = 0.10
 LEADER_SYNC_SCALE = 0.25
@@ -623,6 +629,27 @@ class SniperTrigger:
                 f"{gate_tag}: regime={regime} requires ≥{min_active} "
                 f"signals in {direction.value} direction, "
                 f"got {len(same_dir_active)}"
+            )
+
+        # 4. Direction provenance — optional, off by default.  Counting N
+        #    same-direction signals is not N independent confirmations when the
+        #    directions all come from sign(cvd).  Shadow mode only logs the
+        #    extra wakes the rule would remove, so evidence can accumulate
+        #    without changing trigger behaviour.
+        has_independent = any(s.sub_type not in CVD_DERIVED_SUBTYPES
+                              for s in same_dir_active)
+        if gate_cfg.get('shadow_require_independent_direction', False) and not has_independent:
+            logger.info(
+                "[%s] GATE SHADOW | independent-direction rule WOULD BLOCK | "
+                "regime=%s | dir=%s | active=%s",
+                self.symbol, regime, direction.value,
+                [s.sub_type for s in same_dir_active],
+            )
+        if gate_cfg.get('require_independent_direction', False) and not has_independent:
+            return "FAIL", (
+                f"MIN_ACTIVE_INDEPENDENT: regime={regime} has "
+                f"{len(same_dir_active)} signals in {direction.value} but all derive "
+                f"direction from sign(cvd) ({[s.sub_type for s in same_dir_active]})"
             )
 
         return "PASS", ""
