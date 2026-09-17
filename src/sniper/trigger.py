@@ -1324,18 +1324,33 @@ class SniperTrigger:
         confluence_score, dominant_direction, should_trigger = self.engine.evaluate(
             all_signals, regime, is_cooldown_active=effective_cooldown
         )
+        # ★ Cooldown suppression is otherwise invisible: the engine folds it into
+        #   should_trigger, so a would-be wake that never fired leaves no trace.
+        if (effective_cooldown and not should_trigger
+                and confluence_score >= self.engine.effective_threshold):
+            logger.info(
+                "[%s] COOLDOWN BLOCK | %s | conf=%.2f >= thr=%.3f | dir=%s | regime=%s",
+                self.symbol, cooldown_reason, confluence_score,
+                self.engine.effective_threshold, dominant_direction.value, regime,
+            )
 
         # 6. Pre-AI Gate
         gate_result = "PASS"
         if should_trigger:
+            gate_reason = ""
             try:
-                gate_result, _ = self._run_pre_ai_gate(
+                gate_result, gate_reason = self._run_pre_ai_gate(
                     current_metrics, all_signals, dominant_direction, regime
                 )
             except Exception as e:
                 logger.warning(f"pre-AI gate crashed | error={e}")
-                gate_result = "FAIL"
+                gate_result, gate_reason = "FAIL", f"gate_crashed:{type(e).__name__}"
             if gate_result == "FAIL":
+                logger.info(
+                    "[%s] PRE-AI GATE FAIL | %s | conf=%.2f | dir=%s | regime=%s | fresh=%d",
+                    self.symbol, gate_reason, confluence_score,
+                    dominant_direction.value, regime, len(fresh_signals),
+                )
                 should_trigger = False
 
         # 7. Build situation brief
