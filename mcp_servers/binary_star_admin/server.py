@@ -17,9 +17,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from mcp.server.fastmcp import FastMCP
+try:  # mcp >= 2.0 renamed FastMCP -> MCPServer
+    from mcp.server.mcpserver import MCPServer as _MCPServer
+except ImportError:  # mcp 1.x still ships mcp.server.fastmcp
+    from mcp.server.fastmcp import FastMCP as _MCPServer
 
-mcp = FastMCP("binary-star-admin")
+
+mcp = _MCPServer("binary-star-admin")
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 

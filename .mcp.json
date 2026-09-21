@@ -2,7 +2,10 @@
   "mcpServers": {
     "binary-star-sniper": {
       "command": "python",
-      "args": ["mcp_servers/binary_star_sniper/server.py"]
+      "args": ["mcp_servers/binary_star_sniper/server.py"],
+      "env": {
+        "BS_SNIPER_DATA_ROOT": ""
+      }
     },
     "binary-star-admin": {
       "command": "python",

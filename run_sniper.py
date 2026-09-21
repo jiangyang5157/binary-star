@@ -171,11 +171,9 @@ class SniperDaemon:
                 self.executor.client.close()
         except Exception as e:
             logger.warning(f"failed to close margin client during shutdown | error={e}")
-        try:
-            if os.path.exists(self._history_path):
-                os.remove(self._history_path)
-        except Exception:
-            pass
+        # NOTE: keep .sniper_pulse_history.json on exit.  It is already truncated
+        # to a clean slate on the next start, and deleting it here made the MCP /
+        # dashboard unable to answer "what happened?" once the daemon stopped.
         sys.exit(0)
 
     def run_forever(self):
@@ -768,7 +766,9 @@ class SniperDaemon:
                         "signals": all_signals,
                         "cooldown_active": cooldown_active,
                         "cooldown_remaining_seconds": cooldown_remaining,
-
+                        # Why this pulse did (not) wake — "PASS" | "FAIL" | "SKIPPED"
+                        "gate_result": getattr(result, "gate_result", "SKIPPED"),
+                        "gate_reason": getattr(result, "gate_reason", ""),
                     })
                 else:
                     # No trigger result for this symbol — fill defaults

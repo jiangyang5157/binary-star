@@ -371,3 +371,97 @@ class TestDirectionProvenanceGate:
             _gate_metrics(), sigs, Direction.BULLISH, 'ranging')
         assert result == 'FAIL'
         assert 'MIN_ACTIVE_SIGNALS' in reason
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# gate_result / gate_reason — why a pulse did (not) wake
+# Contract consumed by run_sniper._write_pulse -> .sniper_pulse.json -> MCP.
+# ═══════════════════════════════════════════════════════════════════════════
+
+_DECAY = {'cvd_momentum': 15, 'cvd_divergence': 6, 'cvd_absorption': 15, 'large_trade': 10,
+          'volatility_surge': 20, 'squeeze': 20, 'boundary_test': 10, 'liquidation_hunt': 10,
+          'positioning_extreme': 40, 'leader_sync': 8}
+_WEIGHTS = {'cvd_momentum': 0.65, 'cvd_divergence': 0.70, 'cvd_absorption': 0.50,
+            'large_trade': 0.55, 'volatility_surge': 0.55, 'squeeze': 0.75,
+            'boundary_test': 0.50, 'liquidation_hunt': 0.60, 'positioning_extreme': 0.50}
+
+
+def _full_trigger(gate):
+    """A trigger with enough config for the full evaluate() path (all detectors)."""
+    strat = {
+        'regime_parameters': {
+            'trend': {'trend_intensity_strong': 0.6, 'trend_intensity_threshold': 0.25},
+            'volatility': {'squeeze_threshold': 1.0, 'volatility_extreme_ratio': 2.2,
+                           'volatility_baseline_ratio': 1.25},
+            'micro_sentiment': {'cvd_intensity_threshold': 0.20, 'cvd_intensity_extreme': 0.36,
+                                'funding_extreme_threshold': 0.0005},
+            'imbalance': {'long_short_imbalance_ratio': 1.5, 'short_heavy_imbalance_ratio': 0.6},
+            'volume': {'min_volume_participation_ratio': 1.0},
+        },
+        'analysis_window': {'macro_context': {'time_interval': '1h'}},
+    }
+    sniper = {
+        'signal_stack': {
+            'trigger_threshold': 0.34, 'emergency_threshold': 0.80,
+            'regime_modifiers': {'trending': 0.85, 'ranging': 1.0, 'squeeze': 0.75, 'chaos': 1.5},
+            'weights': _WEIGHTS, 'decay': _DECAY,
+            'cooldown': {'regime_base_minutes': {'trending': 20, 'ranging': 40,
+                                                 'squeeze': 20, 'chaos': 60},
+                         'neutral_multiplier': 0.8, 'failure_cooldown_minutes': 3},
+            'thresholds': {'cvd_divergence_tick_delta': 0.12, 'cvd_extreme_threshold': 0.24,
+                           'large_trade_zscore': 1.6, 'volume_participation_threshold': 1.5},
+            'gate': gate,
+        },
+        'probes': {'cvd_growth_significance_ratio': 1.0, 'squeeze_trigger_multiplier': 1.3,
+                   'volatility_growth_significance_ratio': 1.03},
+        'proximity': {'vah_val_atr': 0.7, 'liq_atr': 0.5},
+    }
+    return SniperTrigger(strategy_cfg=strat, global_cfg={'sniper': sniper})
+
+
+def _full_metrics(cvd=0.60, price=4400.0):
+    return {
+        'market_regime': {'trend_intensity': 0.0, 'volume_participation_ratio': 2.0,
+                          'squeeze_factor': 1.5},
+        'sentiment_signals': {'cvd_intensity_ratio': cvd, 'avg_trade_size': 0.05,
+                              'trade_count': 1000, 'ls_ratio_micro': 1.0, 'funding_rate': 0.0,
+                              'oi_delta_micro': 0.0, 'liquidation_clusters': {}},
+        'price_dynamics': {'volatility_intensity_index': 1.0, 'current_price': price,
+                           'atr_macro': 20.0, 'atr_micro': 20.0},
+        'volume_profile': {'vah': price + 100.0, 'val': price - 100.0, 'poc': price},
+    }
+
+
+class TestGateReasonContract:
+
+    GATE = {'min_active_non_trend': 3, 'min_active_trend': 1}
+
+    def test_gate_fail_reason_is_surfaced(self):
+        r = _full_trigger(self.GATE).evaluate(_full_metrics(cvd=0.60), None)
+        assert r.triggered is False
+        assert r.gate_result == 'FAIL'
+        assert 'MIN_ACTIVE_SIGNALS' in r.gate_reason
+
+    def test_below_threshold_is_skipped_not_failed(self):
+        r = _full_trigger(self.GATE).evaluate(_full_metrics(cvd=0.05), None)
+        assert r.gate_result == 'SKIPPED'
+        assert 'BELOW_THRESHOLD' in r.gate_reason
+
+    def test_cooldown_block_reason_is_surfaced(self):
+        t = _full_trigger(self.GATE)
+        t.last_trigger_time = datetime.now(timezone.utc) - timedelta(minutes=2)
+        t._last_trigger_type = 'TRADED'
+        # cvd 0.384 -> strength 0.60 (below the 0.80 emergency bar), conf 0.39 >= 0.34
+        r = t.evaluate(_full_metrics(cvd=0.384), None)
+        assert r.triggered is False
+        assert r.gate_result == 'SKIPPED'
+        assert 'COOLDOWN' in r.gate_reason
+
+    def test_gate_reason_defaults_to_empty(self):
+        # positional/keyword construction in other call sites must keep working
+        from src.sniper.trigger import TriggerResult, Direction
+        r = TriggerResult(triggered=False, confluence_score=0.0,
+                          confluence_direction=Direction.NEUTRAL, signals=[],
+                          active_signals=[], gate_result='PASS', situation_brief=None,
+                          cooldown_minutes=40.0)
+        assert r.gate_reason == ''

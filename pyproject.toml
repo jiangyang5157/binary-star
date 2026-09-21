@@ -42,6 +42,11 @@ dev = [
     "pytest-mock",
     "pytest-cov",
 ]
+# MCP servers in mcp_servers/. Both the 1.x (mcp.server.fastmcp) and 2.x
+# (mcp.server.mcpserver) APIs are supported — see the shim in each server.
+mcp = [
+    "mcp>=1.0",
+]
 
 [project.scripts]
 binary-star = "run:main"

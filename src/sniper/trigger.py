@@ -68,9 +68,10 @@ class TriggerResult:
     confluence_direction: Direction
     signals: List[SignalCard]               # all signals (including decayed survivors)
     active_signals: List[SignalCard]        # fresh signals that contributed to trigger
-    gate_result: str                        # "PASS" | "FAIL"
+    gate_result: str                        # "PASS" | "FAIL" | "SKIPPED"
     situation_brief: Optional[Dict[str, Any]]  # None if not triggered
     cooldown_minutes: float
+    gate_reason: str = ""                   # why PASS/FAIL/SKIPPED — surfaced to state file
 
 
 @dataclass
@@ -1132,7 +1133,7 @@ class SniperTrigger:
             return None
 
         try:
-            gate_result, _ = self._run_pre_ai_gate(
+            gate_result, gate_reason = self._run_pre_ai_gate(
                 metrics, boosted_signals, dominant_direction, regime
             )
         except Exception as e:
@@ -1159,6 +1160,7 @@ class SniperTrigger:
             gate_result=gate_result,
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
+            gate_reason=gate_reason,
         )
 
     def apply_leader_sync(self, own_signals: List[SignalCard],
@@ -1351,20 +1353,27 @@ class SniperTrigger:
         confluence_score, dominant_direction, should_trigger = self.engine.evaluate(
             all_signals, regime, is_cooldown_active=effective_cooldown
         )
+        effective_threshold = self.engine.effective_threshold
+
+        # Why this pulse did (not) reach a session.  Surfaced through TriggerResult
+        # into .sniper_pulse.json so the dashboard/MCP can answer "why didn't it
+        # wake?" without re-parsing the log.
+        gate_result = "SKIPPED"
+        gate_reason = f"BELOW_THRESHOLD (conf={confluence_score:.2f} < thr={effective_threshold:.3f})"
+
         # ★ Cooldown suppression is otherwise invisible: the engine folds it into
         #   should_trigger, so a would-be wake that never fired leaves no trace.
         if (effective_cooldown and not should_trigger
-                and confluence_score >= self.engine.effective_threshold):
+                and confluence_score >= effective_threshold):
             logger.info(
                 "[%s] COOLDOWN BLOCK | %s | conf=%.2f >= thr=%.3f | dir=%s | regime=%s",
                 self.symbol, cooldown_reason, confluence_score,
-                self.engine.effective_threshold, dominant_direction.value, regime,
+                effective_threshold, dominant_direction.value, regime,
             )
+            gate_reason = cooldown_reason
 
         # 6. Pre-AI Gate
-        gate_result = "PASS"
         if should_trigger:
-            gate_reason = ""
             try:
                 gate_result, gate_reason = self._run_pre_ai_gate(
                     current_metrics, all_signals, dominant_direction, regime
@@ -1401,6 +1410,7 @@ class SniperTrigger:
             gate_result=gate_result,
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
+            gate_reason=gate_reason,
         )
 
         if should_trigger:
