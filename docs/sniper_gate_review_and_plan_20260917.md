@@ -7,7 +7,7 @@
 **Part A** 逐条 review 我上一轮给出的全部建议（含**撤回**与**降级**）；
 **Part B** 给出可执行的修改计划（精确到文件/行/预期效果/验证/回滚）。
 
-review 用的新证据来自 `scripts/sniper_gate_policy_experiments.py`
+review 用的新证据来自 `scripts/sniper_gate_policies.py`
 （输出见 `docs/sniper_gate_policy_experiments_20260917.md`）：在同一个已验证的 replay 上，
 把 10 种候选策略跑同一段 12.5 天，比较 **wake 数（LLM 成本）** 与
 **1h ATR 游程质量**（MFE/MAE 中位、先摸 +1ATR / 先摸 −1ATR 比例）
@@ -293,8 +293,8 @@ CVD_DERIVED_SUBTYPES = frozenset({'cvd_momentum', 'large_trade', 'volatility_sur
 #### S2. 验收（14 天后用现有 replay 复算）
 
 ```bash
-python3 scripts/analyze_sniper_gate.py --json /tmp/gate.json --out docs/sniper_gate_evidence_YYYYMMDD.md
-python3 scripts/sniper_gate_policy_experiments.py
+python3 scripts/sniper_gate_core.py --json /tmp/gate.json --out docs/sniper_gate_evidence_YYYYMMDD.md
+python3 scripts/sniper_gate_policies.py
 ```
 
 **上线门槛（全部满足才把 `require_independent_direction` 打开）**：
@@ -349,8 +349,8 @@ python3 scripts/sniper_gate_policy_experiments.py
 
 ```bash
 pytest tests/unit/test_trigger.py tests/unit/test_sniper_daemon.py -q   # 回归
-python3 scripts/analyze_sniper_gate.py --out docs/sniper_gate_evidence_$(date +%Y%m%d).md
-python3 scripts/sniper_gate_policy_experiments.py
+python3 scripts/sniper_gate_core.py --out docs/sniper_gate_evidence_$(date +%Y%m%d).md
+python3 scripts/sniper_gate_policies.py
 git diff --stat    # 确认改动范围与计划一致
 ```
 
@@ -395,10 +395,10 @@ grep "GATE SHADOW" data/prod/sniper.log | wc -l
 grep "GATE SHADOW" data/prod/sniper.log | tail -20
 
 # 2) 影子期实际触发的 wake 质量
-python3 scripts/analyze_sniper_gate.py --json /tmp/gate.json --out docs/sniper_gate_evidence_$(date +%Y%m%d).md
+python3 scripts/sniper_gate_core.py --json /tmp/gate.json --out docs/sniper_gate_evidence_$(date +%Y%m%d).md
 
 # 3) 策略对比（含 P3=emergency 0.90、P4=方向来源独立）
-python3 scripts/sniper_gate_policy_experiments.py
+python3 scripts/sniper_gate_policies.py
 
 # 4) 回归
 pytest tests/unit -q

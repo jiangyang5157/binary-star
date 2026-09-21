@@ -363,12 +363,12 @@ XAUT 有一次（10:21:42，conf 0.54）就因为上一个失败 session 的 coo
 
 ```bash
 # 完整证据表（探测率、wake 明细、反事实、前瞻收益、ATR 游程）
-python3 scripts/analyze_sniper_gate.py \
+python3 scripts/sniper_gate_core.py \
     --json /tmp/gate.json \
     --out docs/sniper_gate_evidence_20260917.md
 ```
 
-* 分析脚本：`scripts/analyze_sniper_gate.py`（重放 `src/sniper/trigger.py` 的确定性链路）
+* 分析脚本：`scripts/sniper_gate_core.py`（重放 `src/sniper/trigger.py` 的确定性链路）
 * 证据明细表：`docs/sniper_gate_evidence_20260917.md`
 * 数据源：`data/prod/sniper.log`
 * 配置核对：`config/symbol_config.yaml`（提交 `c745fef`，2026-09-05）+ `config/global_config.yaml`

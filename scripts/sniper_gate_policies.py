@@ -23,14 +23,12 @@ from typing import Any, Callable, Dict, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from scripts.analyze_sniper_gate import (  # noqa: E402
+from scripts.sniper_gate_core import (  # noqa: E402
     NEUTRAL_MULT,
     _cooldown_minutes,
-    _tsec,
     load_replay_cfg,
-    parse_log,
-    replay,
 )
+from scripts.sniper_gate_replay import enrich, monotonic, parse  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -83,45 +81,53 @@ POLICIES: List[Policy] = [
 
 # ── evaluation ──────────────────────────────────────────────────────────────
 
-def run_policy(rows: List[Dict[str, Any]], wakes: List[Dict[str, Any]],
-               resets: List[Dict[str, Any]], base_threshold: float,
+def run_policy(parsed: Dict[str, Any], sym: str, base_threshold: float,
                modifiers: Dict[str, float], pol: Policy) -> Dict[str, Any]:
-    timeline = [(r["run"], _tsec(r["t"]), 0, r) for r in rows]
-    timeline += [(w["run"], _tsec(w["t"]), 1, w) for w in wakes]
-    timeline += [(r["run"], _tsec(r["t"]), 2, r) for r in resets]
-    timeline.sort(key=lambda x: (x[0], x[1], x[2]))
+    """Ordinal + monotonic replay.  The previous version sorted the timeline by
+    time-of-day (``%H:%M:%S``), which wraps at midnight and scrambled every run
+    that crossed it; see docs/sniper_gate_round2_20260922.md."""
+    plist = parsed["pulses"][sym]
+    mono = parsed["mono"][sym]
+    by_idx: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+    for e in parsed["events"]:
+        if e["sym"] == sym and e["pulse_idx"] >= 0:
+            by_idx[e["pulse_idx"]].append(e)
 
     threshold = base_threshold + pol["threshold_delta"]
     emergency_thr = pol["emergency"]
     gate: Callable[[int, List[str]], bool] = pol["gate"]
-    last_t = last_type = None
-    cur_run = None
+    last_i: Optional[int] = None
+    last_type = None
     fired: List[Dict[str, Any]] = []
     states: List[Dict[str, Any]] = []
-    for run, ts, kind, obj in timeline:
-        if run != cur_run:
-            cur_run = run
-            last_t = last_type = None
-        if kind == 2:
-            last_t = last_type = None
-            continue
-        if kind == 1:
-            last_t, last_type = ts, "NEUTRAL"
-            continue
-        r = obj
-        eff = threshold * modifiers.get(r["regime"], 1.0)
-        emergency = r["max_strength"] >= emergency_thr
-        should = emergency or r["conf"] >= eff
-        cd_base = _cooldown_minutes(r["regime"], last_type) if last_t is not None else 0.0
-        cd_active = last_t is not None and (ts - last_t) / 60.0 < cd_base
+    for i, p in enumerate(plist):
+        for e in by_idx.get(i, []):
+            if e["kind"] == "reset":
+                last_i, last_type = None, None
+        if last_i is not None and plist[last_i].run != p.run:
+            last_i, last_type = None, None
+
+        eff = threshold * modifiers.get(p.regime, 1.0)
+        emergency = p.max_strength >= emergency_thr
+        should = emergency or p.confluence >= eff
+        cd_base = _cooldown_minutes(p.regime, last_type) if last_i is not None else 0.0
+        cd_active = (last_i is not None and (mono[i] - mono[last_i]) / 60.0 < cd_base)
         engine_fire = should and (not cd_active or emergency)
-        passed = engine_fire and gate(r["same_dir"], r["active"])
-        st = {**r, "passed": passed, "engine_fire": engine_fire, "eff_threshold": eff,
+        passed = engine_fire and gate(p.same_dir, sorted(
+            {s["sub_type"] for s in p.signals if s["direction"] == p.direction}))
+        st = {"i": i, "t": p.t, "run": p.run, "dir": p.direction, "conf": p.confluence,
+              "same_dir": p.same_dir, "regime": p.regime, "price": p.diag.get("price"),
+              "atr": p.diag.get("atr"),
+              "active": sorted({s["sub_type"] for s in p.signals if s["direction"] == p.direction}),
+              "passed": passed, "engine_fire": engine_fire, "eff_threshold": eff,
               "emergency_dyn": emergency, "cd_active": cd_active}
         states.append(st)
         if passed:
             fired.append(st)
-            last_t, last_type = ts, "NEUTRAL"
+            last_i, last_type = i, "NEUTRAL"
+        for e in by_idx.get(i, []):
+            if e["kind"] == "wake":
+                last_i, last_type = i, "NEUTRAL"
     return {"fired": fired, "states": states}
 
 
@@ -186,28 +192,34 @@ def drift_adjusted(states: List[Dict[str, Any]], horizon: int = 30) -> Optional[
 
 
 def main() -> None:
-    data = parse_log(ROOT / "data/prod/sniper.log")
+    parsed = parse(ROOT / "data/prod/sniper.log")
     cfg = load_replay_cfg()
-    rows = replay(data, cfg)
+    parsed["_cfg"] = cfg
+    enrich(parsed, cfg)
+
+    # actual daemon running time (not wall-clock span)
+    days = {}
+    for sym, plist in parsed["pulses"].items():
+        mono = parsed["mono"][sym]
+        days[sym] = sum(max(mono[i] for i in range(len(plist)) if plist[i].run == r["idx"])
+                        for r in parsed["runs"] if any(p.run == r["idx"] for p in plist)) / 86400.0
 
     out: Dict[str, Any] = {}
     for sym in ("XAUTUSDT", "BTCUSDT"):
-        wakes = [w for w in data["wakes"] if w["sym"] == sym]
-        resets = [r for r in data.get("resets", []) if r["sym"] == sym]
+        wakes = [w for w in parsed["events"] if w["kind"] == "wake" and w["sym"] == sym]
         base = cfg["base_threshold"][sym]
         mods = {"squeeze": cfg["regime_modifiers"]["squeeze"],
                 "chaos": cfg["regime_modifiers"]["chaos"],
                 "non_squeeze": cfg["regime_modifiers"]["ranging"]}
         res = []
         for pol in POLICIES:
-            r = run_policy(rows[sym], wakes, resets, base, mods, pol)
+            r = run_policy(parsed, sym, base, mods, pol)
             fired = r["fired"]
-            hist = [w for w in wakes
-                    if any(abs(_tsec(f["t"]) - _tsec(w["t"])) <= 3 and f["run"] == w["run"]
-                           for f in fired)]
+            fired_idx = {f["i"] for f in fired}
+            hist = [w for w in wakes if w["pulse_idx"] in fired_idx]
             res.append({
                 "policy": pol["id"], "desc": pol["desc"],
-                "n_wakes": len(fired), "per_day": round(len(fired) / 12.5, 2),
+                "n_wakes": len(fired), "per_day": round(len(fired) / days[sym], 2),
                 "n_bull": sum(1 for f in fired if f["dir"] == "BULLISH"),
                 "n_bear": sum(1 for f in fired if f["dir"] == "BEARISH"),
                 "historical_wakes_kept": len(hist),
@@ -219,7 +231,8 @@ def main() -> None:
 
     for sym, res in out.items():
         print(f"\n===== {sym}  (base threshold {cfg['base_threshold'][sym]}, "
-              f"{len([w for w in data['wakes'] if w['sym'] == sym])} logged wakes) =====")
+              f"{days[sym]:.2f} actual days, "
+              f"{len([w for w in parsed['events'] if w['kind']=='wake' and w['sym']==sym])} logged wakes) =====")
         hdr = (f"{'policy':18s} {'wakes':>6s} {'/day':>6s} {'kept':>7s} "
                f"{'MFE':>6s} {'MAE':>6s} {'ran1':>5s} {'stop1':>6s} {'excess1h':>9s}")
         print(hdr)
