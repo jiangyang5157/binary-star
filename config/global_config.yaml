@@ -64,6 +64,20 @@ sniper:
     # and rendered as bars in the dashboard SignalCard pulse-history chart.
     pulse_history_max_entries: 120
 
+    # —— 心跳守护（宿主机休眠 / 断网后的恢复）——
+    # watchdog：主循环与 AI 会话进度回调都会打心跳；超过 timeout 没心跳就 os._exit(1)。
+    #   僵死进程既不管事又仍声称在运行（dashboard 会显示假的 "Connected"），
+    #   退出是唯一能让故障可见的方式。注意：它只能退出，不能自拉起 ——
+    #   手动在终端启动的话它会一直停着，需要有 supervisor 才会自动恢复。
+    #   会话路径上所有阻塞式网络调用都已设上限（Binance 30s / LLM 180s / SMTP 30s），
+    #   且每次 LLM 调用前后各打一次心跳 → 最长心跳间隔 ~210s，15 分钟有 ~4 倍余量。
+    watchdog_enabled: true
+    watchdog_timeout_minutes: 15
+    # gap_reset：两次脉冲间隔超过此值说明进程被挂起过 —— 信号记忆、cooldown、
+    #   以及"上一个脉冲"这个 delta 基线全部失效（否则会用几小时前的数据算 delta，
+    #   产生虚假 wake）。触发后重置状态，本轮只重建基线、不触发。
+    gap_reset_minutes: 5
+
   # --- Micro-Probes (Detecting violent intra-tick action) ---
   # WARNING: The tick probes below are mathematically coupled to 'pulse_interval_minutes'.
   probes:

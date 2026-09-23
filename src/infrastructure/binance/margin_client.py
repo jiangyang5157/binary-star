@@ -4,6 +4,7 @@ from typing import List, Optional
 from binance.spot import Spot
 from binance.error import ClientError, ServerError
 from src.utils.logger_utils import setup_logger
+from src.infrastructure.binance.net_config import get_api_timeout_seconds
 from src.infrastructure.exchange.models import (
     MarginAccountSummary,
     MarginAsset,
@@ -28,6 +29,10 @@ class BinanceMarginClient:
             raise ValueError("Authenticated access required for Margin operations.")
 
         self.client = Spot(api_key=key, api_secret=secret)
+        # binance.spot hardcodes a class-level REQUEST_TIMEOUT (default 10s); set it
+        # per-instance so the value comes from our config and is visible in the log.
+        self.client.REQUEST_TIMEOUT = get_api_timeout_seconds()
+        logger.info(f"margin client HTTP timeout | {self.client.REQUEST_TIMEOUT}s")
         self._precisions_cache: dict = {}  # symbol → (p_qty, p_price, tolerance)
         self._entry_cache: dict = {}  # symbol → (net_qty, avg_entry)
         logger.info("initialized for Spot Margin access")

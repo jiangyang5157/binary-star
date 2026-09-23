@@ -10,6 +10,9 @@ from dotenv import load_dotenv
 from src.utils.logger_utils import setup_logger
 logger = setup_logger(__name__)
 
+# Bounded so an unreachable SMTP host cannot freeze the session/pulse loop.
+SMTP_TIMEOUT_SECONDS = 30
+
 @dataclass(frozen=True)
 class NotificationConfig:
     """Encapsulates email server and credential settings."""
@@ -175,7 +178,13 @@ class EmailDispatcher:
 
         # Execute SMTP send
         try:
-            with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
+            # ★ smtplib defaults to timeout=None, which blocks forever on
+            #   connect/STARTTLS/login/send. Email is a non-critical
+            #   notification and this runs at the tail of a session, so an
+            #   unreachable SMTP host must fail fast rather than freeze the
+            #   pulse loop (the failure is already handled below).
+            with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port,
+                              timeout=SMTP_TIMEOUT_SECONDS) as server:
                 server.starttls()
                 server.login(self.config.sender_email, self.config.sender_password)
                 server.send_message(msg)

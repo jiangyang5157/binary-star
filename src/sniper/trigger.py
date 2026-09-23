@@ -361,6 +361,21 @@ class SniperTrigger:
 
     # ── Helpers ──────────────────────────────────────────────────────────
 
+    def reset_state(self) -> None:
+        """Drop every piece of cross-pulse state.
+
+        Called after a long gap (host suspend, network outage, manual pause).
+        Decayed signal memory and a stale cooldown are meaningless after hours,
+        and the trigger would otherwise resume as if no time had passed.
+        """
+        self.memory = SignalMemory()
+        self.last_trigger_time = None
+        self.last_trigger_score = None
+        self._last_trigger_type = None
+        self.cooldown_active = False
+        self.state_locks.clear()
+        self._fingerprint = None
+
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
         """Parse a Binance interval string ('15m', '1h', '1d') into float minutes."""
         val = int(interval_str[:-1])

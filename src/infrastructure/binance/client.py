@@ -8,6 +8,7 @@ from binance.error import ClientError
 import yaml
 import tenacity
 from src.utils.logger_utils import setup_logger
+from src.infrastructure.binance.net_config import get_api_timeout_seconds
 from src.utils.path_utils import resolve_project_root
 
 from src.infrastructure.exchange.base_client import AbstractExchangeClient
@@ -48,20 +49,23 @@ class BinanceFuturesClient(AbstractExchangeClient):
         # Load network config BEFORE creating client — fail fast on bad config
         self.network_cfg = self._load_network_config()
         binance_net = self.network_cfg.get('network', {}).get('binance', {})
+        self.timeout = get_api_timeout_seconds()
         try:
-            self.timeout = int(binance_net.get('api_timeout_seconds', 30))
             self.retry_count = int(binance_net.get('retry_count', 3))
         except (ValueError, TypeError) as e:
-            logger.error(f"invalid network config | error={e}")
-            self.timeout = 30
+            logger.error(f"invalid retry_count | error={e}")
             self.retry_count = 3
 
+        # ★ A real timeout is mandatory: binance.um_futures defaults to
+        #   timeout=None ("wait forever"), which let a dead socket freeze the
+        #   whole pulse loop after the host suspended.
         if key and secret:
             logger.info("authenticated")
-            self.client = UMFutures(key=key, secret=secret)
+            self.client = UMFutures(key=key, secret=secret, timeout=self.timeout)
         else:
             logger.warning("initialized in public mode | write endpoints unavailable")
-            self.client = UMFutures()
+            self.client = UMFutures(timeout=self.timeout)
+        logger.info(f"futures client HTTP timeout | {self.timeout}s | retries={self.retry_count}")
 
         self.is_authenticated = bool(key and secret)
 

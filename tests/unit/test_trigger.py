@@ -465,3 +465,47 @@ class TestGateReasonContract:
                           active_signals=[], gate_result='PASS', situation_brief=None,
                           cooldown_minutes=40.0)
         assert r.gate_reason == ''
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# reset_state — invoked by the daemon after a long gap (host suspend / outage)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestResetState:
+
+    def _dirty_trigger(self):
+        t = _make_trigger(min_active_non_trend=3, min_active_trend=1)
+        t.memory.active_signals = {'cvd_momentum': _gate_card('cvd_momentum')}
+        t.last_trigger_time = datetime.now(timezone.utc)
+        t.last_trigger_score = 0.9
+        t._last_trigger_type = 'TRADED'
+        t.cooldown_active = True
+        t.state_locks['BOUNDARY_VAH'] = (datetime.now(timezone.utc), 1.0)
+        t._fingerprint = 'stale'
+        return t
+
+    def test_clears_signal_memory(self):
+        t = self._dirty_trigger()
+        t.reset_state()
+        assert t.memory.active_signals == {}
+
+    def test_clears_cooldown(self):
+        t = self._dirty_trigger()
+        t.reset_state()
+        assert t.cooldown_active is False
+        assert t.last_trigger_time is None
+        assert t.last_trigger_score is None
+        assert t._last_trigger_type is None
+
+    def test_clears_locks_and_fingerprint(self):
+        t = self._dirty_trigger()
+        t.reset_state()
+        assert t.state_locks == {}
+        assert t._fingerprint is None
+
+    def test_leaves_config_untouched(self):
+        t = self._dirty_trigger()
+        weights_before = dict(t.signal_weights)
+        t.reset_state()
+        assert t.signal_weights == weights_before
+        assert t.sniper_cfg['signal_stack']['gate']['min_active_non_trend'] == 3

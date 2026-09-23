@@ -64,6 +64,44 @@ class SniperDaemon:
             .get('heartbeat', {})
             .get('pulse_history_max_entries', 120)
         )
+        # Long gap (host suspend / network outage) => cross-pulse state is void.
+        # Guard the value: gap_reset_minutes <= 0 would reset state and skip the
+        # trigger on *every* pulse, silently disabling the daemon.
+        _gap_minutes = self.global_cfg.get('sniper', {}).get('heartbeat', {}).get('gap_reset_minutes', 5)
+        try:
+            _gap_minutes = float(_gap_minutes)
+        except (TypeError, ValueError):
+            logger.error(f"invalid gap_reset_minutes={_gap_minutes!r} | using 5m")
+            _gap_minutes = 5.0
+        if _gap_minutes <= 0:
+            logger.error(f"non-positive gap_reset_minutes={_gap_minutes} | using 5m")
+            _gap_minutes = 5.0
+        self._gap_reset_seconds = _gap_minutes * 60
+        self._last_loop_end: float | None = None
+
+        # Watchdog: exit if the loop stops making progress.  A hung daemon both
+        # manages nothing and still reports itself running, so exiting is what
+        # makes the failure visible (a supervisor, if any, restarts it).
+        heartbeat_cfg = self.global_cfg.get('sniper', {}).get('heartbeat', {})
+        self._watchdog = None
+        if heartbeat_cfg.get('watchdog_enabled', True):
+            from src.sniper.watchdog import (
+                DEFAULT_TIMEOUT_SECONDS,
+                PulseWatchdog,
+                timeout_seconds_from_minutes,
+            )
+
+            self._watchdog = PulseWatchdog(
+                timeout_seconds=timeout_seconds_from_minutes(
+                    # pass the default explicitly so an *absent* key stays quiet
+                    # and only a genuinely invalid value logs an error
+                    heartbeat_cfg.get('watchdog_timeout_minutes', DEFAULT_TIMEOUT_SECONDS / 60)
+                ),
+                # os._exit bypasses the shutdown handler, so mark the state file
+                # stopped first or the dashboard keeps showing "running".
+                before_exit=lambda: self._write_state(running=False),
+                name=f"sniper-watchdog-{os.getpid()}",
+            )
 
         # Parse CSV symbol list (e.g., "XAUT,BTC" → ["XAUTUSDT", "BTCUSDT"])
         raw_symbols = getattr(args, 'symbol', '') or ''
@@ -156,8 +194,27 @@ class SniperDaemon:
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, self._handle_termination)
 
+    @staticmethod
+    def _elapsed_wall_seconds(since: float | None) -> float | None:
+        """Real elapsed seconds since `since` (None when there is no baseline).
+
+        Deliberately wall clock, not ``time.monotonic()``: this measures how long
+        the *real world* moved on, and a host suspend must count.  Monotonic
+        clocks do not reliably advance while the machine is asleep on every
+        platform.  A backwards clock step simply yields 0 (fail-safe: no reset).
+        """
+        if since is None:
+            return None
+        return max(0.0, time.time() - since)
+
     def _handle_termination(self, signum, frame):
         logger.warning("termination signal received | shutting down")
+        try:
+            if self._watchdog is not None:
+                # Stop beating checks so a slow teardown can't be mistaken for a hang.
+                self._watchdog.stop()
+        except Exception:
+            pass
         try:
             self._write_state(running=False)
         except Exception:
@@ -183,6 +240,9 @@ class SniperDaemon:
         sym_list = ", ".join(self.symbols)
         logger.info(f"═══ SNIPER MONITORING STARTED | symbols={sym_list} | pulse={pulse_mins}m ═══")
 
+        if self._watchdog is not None:
+            self._watchdog.start()
+
         # Truncate pulse history to clean slate on each sniper run
         if not getattr(self, '_history_cleared', False):
             self._history_cleared = True
@@ -199,6 +259,29 @@ class SniperDaemon:
 
                 # ── 0. STATE: pulse timestamp (unconditional, zero API calls) ──
                 self._write_state(last_pulse_at=datetime.now(timezone.utc).isoformat())
+
+                # ── 0.2 GAP CHECK: did the host stop running us? ──
+                # A suspended laptop or a dropped link leaves a long silence.
+                # Everything carried across pulses (signal memory, cooldown, and
+                # the previous pulse used as a delta baseline) is meaningless
+                # after such a gap, so reset it and let this pulse only rebuild
+                # the baseline instead of firing on hours-old data.
+                if self._watchdog is not None:
+                    self._watchdog.beat()
+
+                skip_trigger = False
+                gap_secs = self._elapsed_wall_seconds(self._last_loop_end)
+                if gap_secs is not None:
+                    if gap_secs > self._gap_reset_seconds:
+                        logger.warning(
+                            f"RESUMED AFTER GAP | {gap_secs / 60:.1f}m since last pulse "
+                            f"(threshold {self._gap_reset_seconds / 60:.0f}m) | resetting trigger "
+                            f"state; this pulse only re-establishes the baseline"
+                        )
+                        for sym in self.symbols:
+                            self.triggers[sym].reset_state()
+                        self.prev_metrics = {sym: None for sym in self.symbols}
+                        skip_trigger = True
 
                 # Seed state on first pulse if dashboard didn't pre-populate it
                 # (e.g., sniper started from CLI instead of dashboard API)
@@ -235,7 +318,7 @@ class SniperDaemon:
                 symbol_results: dict[str, 'TriggerResult'] = {}
 
                 for sym in self.symbols:
-                    if sym not in metrics:
+                    if sym not in metrics or skip_trigger:
                         continue
 
                     result = self.triggers[sym].evaluate(
@@ -338,6 +421,8 @@ class SniperDaemon:
                             # ── Progress callback for session execution ──
                             def _sniper_progress(stage=None, activity=None, status="running",
                                                   stage_label=None, result=None, error=None):
+                                if self._watchdog is not None:
+                                    self._watchdog.beat()
                                 current = self._read_state()
                                 active_session = current.get("active_session") if current else None
                                 if not active_session:
@@ -450,6 +535,9 @@ class SniperDaemon:
             else:
                 sleep_secs = 60
             logger.debug(f"waiting {sleep_secs}s for next pulse")
+            # Wall clock on purpose: this stamp is compared after a possible host
+            # suspend, and monotonic clocks do not reliably advance while asleep.
+            self._last_loop_end = time.time()
             time.sleep(sleep_secs)
 
     # ================================================================
@@ -792,7 +880,10 @@ class SniperDaemon:
                                      for t in self._SIGNAL_TYPES],
                         "cooldown_active": cooldown_active,
                         "cooldown_remaining_seconds": cd_remaining,
-
+                        # Keep the payload contract complete even when nothing was
+                        # evaluated (gap reset, or the scout returned no metrics).
+                        "gate_result": "SKIPPED",
+                        "gate_reason": "no evaluation this pulse (gap reset or empty metrics)",
                     })
 
                 symbols_data[sym] = entry
