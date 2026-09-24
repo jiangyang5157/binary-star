@@ -188,3 +188,87 @@ def test_elapsed_wall_seconds_clamps_backwards_clock(monkeypatch):
     stamp = _time.time()
     monkeypatch.setattr(_time, "time", lambda: base - 500)
     assert SniperDaemon._elapsed_wall_seconds(stamp) == 0.0
+
+
+# ── suspend detection: an idle host is not a hung loop ─────────────────────
+#
+# Regression case, macOS 2026-09-23 02:19 → 2026-09-24 06:57.  The laptop never
+# truly woke; it cycled DarkWake/Sleep every ~15 min all night.  time.monotonic()
+# advances during DarkWake but not during deep sleep, so it accumulated 15.3 min
+# while 4 h 38 m of wall time passed — enough to trip the 15-minute timeout.
+# The daemon was NOT hung, and firing forced a pointless manual restart.
+
+REAL_SUSPEND_WALL = 4 * 3600 + 38 * 60      # 4h38m
+REAL_SUSPEND_MONO = int(15.3 * 60)          # 15.3m
+
+
+def _frozen_watchdog(monkeypatch, wall0, mono0, **kw):
+    import src.sniper.watchdog as wd
+
+    monkeypatch.setattr(wd.time, "time", lambda: wall0)
+    monkeypatch.setattr(wd.time, "monotonic", lambda: mono0)
+    fired = []
+    w = wd.PulseWatchdog(15 * 60, check_interval_seconds=10 ** 9,
+                         on_timeout=fired.append, **kw)
+    return wd, w, fired
+
+
+def test_does_not_fire_when_host_was_asleep(monkeypatch):
+    import src.sniper.watchdog as wd
+
+    wall0, mono0 = 1_000_000.0, 500.0
+    _, w, fired = _frozen_watchdog(monkeypatch, wall0, mono0)
+
+    # the overnight gap: wall races ahead, monotonic barely moves
+    monkeypatch.setattr(wd.time, "time", lambda: wall0 + REAL_SUSPEND_WALL)
+    monkeypatch.setattr(wd.time, "monotonic", lambda: mono0 + REAL_SUSPEND_MONO)
+
+    assert w.is_stale() is True, "monotonic clock does say stale"
+    assert w.host_suspended_seconds() > 4 * 3600, "and the host was clearly asleep"
+    assert w.should_fire() is False, "so the watchdog must NOT fire"
+    assert fired == []
+
+
+def test_fires_when_stale_without_suspend(monkeypatch):
+    """A genuine hang: the host is awake, so both clocks advance together."""
+    import src.sniper.watchdog as wd
+
+    wall0, mono0 = 1_000_000.0, 500.0
+    _, w, _ = _frozen_watchdog(monkeypatch, wall0, mono0)
+
+    monkeypatch.setattr(wd.time, "time", lambda: wall0 + 16 * 60)
+    monkeypatch.setattr(wd.time, "monotonic", lambda: mono0 + 16 * 60)
+
+    assert w.is_stale() is True
+    assert abs(w.host_suspended_seconds()) < 1
+    assert w.should_fire() is True
+
+
+def test_small_sleep_within_slack_still_fires(monkeypatch):
+    """A brief sleep must not be used as an excuse to ignore a real hang."""
+    import src.sniper.watchdog as wd
+
+    wall0, mono0 = 1_000_000.0, 500.0
+    _, w, _ = _frozen_watchdog(monkeypatch, wall0, mono0)
+
+    # 20 min of monotonic staleness, only 30 s of which was suspend
+    monkeypatch.setattr(wd.time, "time", lambda: wall0 + 20 * 60 + 30)
+    monkeypatch.setattr(wd.time, "monotonic", lambda: mono0 + 20 * 60)
+
+    assert w.should_fire() is True
+
+
+def test_rebase_clears_staleness_after_suspend(monkeypatch):
+    """After re-basing, the watchdog starts a fresh window (so the daemon gets a
+    full timeout of *awake* time before being judged stuck)."""
+    import src.sniper.watchdog as wd
+
+    wall0, mono0 = 1_000_000.0, 500.0
+    _, w, _ = _frozen_watchdog(monkeypatch, wall0, mono0)
+    monkeypatch.setattr(wd.time, "time", lambda: wall0 + REAL_SUSPEND_WALL)
+    monkeypatch.setattr(wd.time, "monotonic", lambda: mono0 + REAL_SUSPEND_MONO)
+    assert w.should_fire() is False
+
+    w.beat()   # what _run() does on the suspend branch
+    assert w.is_stale() is False
+    assert w.host_suspended_seconds() < 1

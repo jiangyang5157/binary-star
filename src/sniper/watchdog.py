@@ -32,14 +32,26 @@ Sizing (deliberately conservative — a false kill mid-session is worse than a
 few extra minutes of detection latency):
   * measured over ~42 h of production log (2026-09-22 → 09-23), the longest
     legitimate silence inside the loop was **147 s**;
-  * every blocking network call on the session path is now bounded — Binance
-    REST 30 s, LLM 180 s (``llm.api_timeout_seconds``), SMTP 30 s — and the
-    progress callback fires immediately before *and* after each LLM call, so
-    the watched interval is one call, not one whole session;
-so the worst legitimate beat gap is ~210 s and the 15-minute default keeps a
-~4x margin.  Detection latency is deliberately traded for safety: the failure
-this guards against ran for *hours*, so restarting at 15 min instead of 10
-costs nothing, while a false kill mid-session is expensive.
+  * every blocking network call on the session path is bounded — Binance REST
+    30 s, LLM 180 s (``llm.api_timeout_seconds``), SMTP 30 s — and the progress
+    callback fires immediately before *and* after each LLM call, so the watched
+    interval is one call, not one whole session;
+  * a sleeping host is NOT a hung loop (see ``host_suspended_seconds``).
+
+So the worst legitimate beat gap is ~210 s and the 15-minute default keeps a ~4x
+margin while still catching a genuine hang within 15 minutes of the host actually
+running.
+
+Measured clock behaviour (macOS, 2026-09-24 — this is why ``should_fire`` exists)
+---------------------------------------------------------------------------------
+An idle laptop cycling maintenance DarkWake never lets the loop finish a pulse
+(each DarkWake is ~48 s and the network is usually unavailable), yet
+``time.monotonic()`` *does* advance during DarkWake.  Overnight it accumulated
+15.3 minutes of monotonic staleness against 4 h 38 m of wall time, tripping a
+15-minute timeout on a daemon that was never hung.  ``should_fire`` therefore
+requires the host to have actually been running; if wall time ran ahead of
+monotonic time the heartbeat is simply re-based, and the daemon's own wall-clock
+gap check handles the stale state when it wakes.
 """
 from __future__ import annotations
 
@@ -54,6 +66,10 @@ logger = setup_logger(__name__)
 
 DEFAULT_TIMEOUT_SECONDS = 15 * 60
 DEFAULT_CHECK_INTERVAL_SECONDS = 30.0
+# Wall-minus-monotonic seconds above which we call it "the host was suspended"
+# rather than "the loop is stuck".  Two minutes is far below any real suspend
+# (the observed overnight case was 4 h 23 m) and far above scheduler jitter.
+DEFAULT_SUSPEND_SLACK_SECONDS = 120.0
 
 
 def timeout_seconds_from_minutes(value: object,
@@ -101,6 +117,7 @@ class PulseWatchdog:
         check_interval_seconds: Optional[float] = None,
         on_timeout: Optional[Callable[[float], None]] = None,
         before_exit: Optional[Callable[[], None]] = None,
+        suspend_slack_seconds: float = DEFAULT_SUSPEND_SLACK_SECONDS,
         name: str = "pulse-watchdog",
     ):
         if timeout_seconds <= 0:
@@ -113,8 +130,10 @@ class PulseWatchdog:
         )
         self._on_timeout = on_timeout or self._exit_process
         self._before_exit = before_exit
+        self.suspend_slack_seconds = float(suspend_slack_seconds)
         self._name = name
-        self._last_beat = time.monotonic()
+        self._last_beat_mono = time.monotonic()
+        self._last_beat_wall = time.time()
         self._stop = threading.Event()
         self._thread: Optional[threading.Thread] = None
 
@@ -122,13 +141,44 @@ class PulseWatchdog:
 
     def beat(self) -> None:
         """Stamp the heartbeat. Safe to call from any thread."""
-        self._last_beat = time.monotonic()
+        self._last_beat_mono = time.monotonic()
+        self._last_beat_wall = time.time()
 
     def stale_seconds(self) -> float:
-        return time.monotonic() - self._last_beat
+        """Monotonic seconds since the last beat (does not count deep sleep)."""
+        return time.monotonic() - self._last_beat_mono
 
     def is_stale(self) -> bool:
         return self.stale_seconds() > self.timeout_seconds
+
+    def host_suspended_seconds(self) -> float:
+        """Wall time that elapsed while the monotonic clock did NOT advance.
+
+        Measured on macOS 2026-09-24: an idle laptop cycling through maintenance
+        DarkWake accumulates monotonic time at roughly 1 minute per 18 minutes of
+        wall time (only the ~48 s DarkWake windows count).  Over one night that
+        added up to 15.3 minutes of monotonic staleness against 4 h 38 m of wall
+        time, which tripped a 15-minute timeout even though the daemon was never
+        hung — the host simply never stayed awake long enough to finish a pulse.
+
+        A large positive value therefore means "the host was asleep", not "the
+        loop is stuck".
+        """
+        wall_elapsed = time.time() - self._last_beat_wall
+        mono_elapsed = time.monotonic() - self._last_beat_mono
+        return wall_elapsed - mono_elapsed
+
+    def should_fire(self) -> bool:
+        """Stale *and* the host was actually running — i.e. a real hang.
+
+        A suspended host is not a hung loop: the moment it wakes the pulse loop
+        resumes and the daemon's own gap check resets the stale state.  Firing
+        there would turn "resumes by itself when you come back" into "needs a
+        manual restart".
+        """
+        if not self.is_stale():
+            return False
+        return self.host_suspended_seconds() <= self.suspend_slack_seconds
 
     # ── lifecycle ──────────────────────────────────────────────────────────
 
@@ -148,10 +198,19 @@ class PulseWatchdog:
 
     def _run(self) -> None:
         while not self._stop.wait(self.check_interval_seconds):
-            if self.is_stale():
-                stale = self.stale_seconds()
-                self._on_timeout(stale)
+            if self.should_fire():
+                self._on_timeout(self.stale_seconds())
                 return
+            if self.is_stale():
+                # Stale, but wall time ran far ahead of monotonic time: the host
+                # was asleep (see host_suspended_seconds).  Not a hang — re-base
+                # and keep watching, otherwise every idle night would kill the
+                # daemon and force a manual restart.
+                logger.info(
+                    f"watchdog: heartbeat stale {self.stale_seconds() / 60:.1f}m but host was "
+                    f"asleep {self.host_suspended_seconds() / 60:.0f}m — re-basing, not a hang"
+                )
+                self.beat()
 
     # ── default action ─────────────────────────────────────────────────────
 
