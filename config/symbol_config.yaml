@@ -41,7 +41,14 @@ XAUTUSDT:
       signal_stack:
         trigger_threshold: 0.34
         thresholds:
-          cvd_divergence_tick_delta: 0.12   # 从 0.18 降低。XAUT CVD 变动幅度小(0.02-0.10/脉冲)，0.18 太高导致背离检测器火灾率仅 1%。
+          # 2026-10-05 口径修正（详见 global_config.yaml 同名字段）：改为比较"同一相位
+          # 的 15 分钟前"，以消掉 CVD 窗口换手造成的伪跳变（盘中均值 |ΔCVD| 的边界倍
+          # 数 3.7× → 1.11×）。阈值按新量纲重标，对齐旧 0.12 的 fire 量级：
+          #   0.35 → 51 次/7.2d（旧 48 次，7.1/天），fire 落在 K 线开盘 2 分钟内的
+          #   比例为 14%（时间占比 13%，Poisson p=0.24）→ 边界偏置已不可检出。
+          #   接受带（2026-10-06 定）：每个 symbol 6–12 次/天。0.35 → 7.8/天 ✅。
+          #   余量：阈值到 0.299 才越过 12/天（+15%），比 BTC 宽但仍不富裕；改动请复核。
+          cvd_divergence_candle_delta: 0.35
           cvd_extreme_threshold: 0.24   # 从 0.36 降低。0.36 卡在低簇边界，Path B 仅在高簇(0.62+)触发。0.24 让极端路径在 |cvd|>0.24 时即生效，双路径互补。
           large_trade_zscore: 1.6
         cooldown:
@@ -88,7 +95,21 @@ BTCUSDT:
       signal_stack:
         trigger_threshold: 0.36   # 从 base 0.34 调高。连续抬高 confluence 门槛压弱信号噪声/降 AI 成本。注：实测 BTC weak wake 多落在 0.38-0.41，0.36 仅提供 0.34-0.36 安全垫，若要切掉 0.38-0.41 那批需 ≥0.42。
         thresholds:
-          cvd_divergence_tick_delta: 0.08   # 从 0.25 降低。BTC CVD 在 0.001-0.05 范围微动，0.25 永远达不到。0.08 仍远超正常噪声(~0.02)，只在方向突变时触发。
+          # 2026-10-05 口径修正（详见 global_config.yaml 同名字段）。
+          # ⚠ BTC 是这次修正里**没修干净**的那个：均值层面的边界倍数已从 3.8× 降到
+          #   1.15×，但在分布尾部仍有真实的边界偏置 —— 同相位 |ΔCVD| 分布被压缩
+          #   （p50=0.053, p90=0.154, p99=0.284, max=0.449），要对齐旧 0.08 的 fire
+          #   量级就必须取到 ~p91：
+          #     thr=0.09 → 309 次/7.2d（42.9/天），fire@candle_start 16%（期望 13%，p=0.14）✅无偏置
+          #     thr=0.16 →  55 次/7.2d（ 7.6/天），fire@candle_start 29%（期望 13%，p=0.002）⚠偏置 2.2×
+          #   这里选了**保量级**的 0.16（旧 2min 检测器 60 次/8.3 每天），代价是强度最高的
+          #   那批 fire 仍偏向 K 线开盘。若更在意纯度而非量级，改 0.09 即可（代价：量级 ×5.6，
+          #   且会把 fire 率推到 42.9/天，远超下面那条接受带）。
+          #   接受带（2026-10-06 定）：每个 symbol 6–12 次/天。0.16 → 7.6/天 ✅。
+          #   ⚠ 但余量很薄：阈值到 0.147 就越过 12/天，即 |ΔCVD| 尺度只要膨胀 ~2% 就会越线，
+          #   而目前没有任何机制守着这条线。要动这个值请先跑 scripts/sniper_signal_latency.py
+          #   复核 fire/天，并优先考虑换成标度无关阈值（|ΔCVD| > k × median|ΔCVD|）。
+          cvd_divergence_candle_delta: 0.16
           cvd_extreme_threshold: 0.18 # 适配 BTC 高流动性低噪声
           large_trade_zscore: 2.0 # BTC 实测 Z=3-4，经常触发，够了
         cooldown:

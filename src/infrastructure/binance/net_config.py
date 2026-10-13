@@ -10,8 +10,9 @@ wrong for a long-running daemon:
     ``binance/api.py``, which ``requests`` treats as "wait forever".  A stalled
     connection therefore blocks the caller indefinitely — the pulse loop froze
     for good once the host suspended.
-  * ``binance.spot`` (``Spot``) hardcodes a class-level ``REQUEST_TIMEOUT``
-    that our config never touched.
+  * ``binance.spot`` (``Spot``) also defaults to ``timeout=None``; it takes the
+    value as a constructor kwarg (forwarded as the request's ``timeout``).  It
+    has no ``REQUEST_TIMEOUT`` attribute, so setting one does nothing.
 
 Both are now driven by ``network.binance.api_timeout_seconds``.
 """

@@ -207,9 +207,9 @@ def test_sniper_trigger_initialization_with_symbol_override():
     """SniperTrigger initialized with symbol alone should resolve per-symbol overrides."""
     from src.sniper.trigger import SniperTrigger
     trigger_btc = SniperTrigger(symbol="BTCUSDT")
-    # BTC overrides trigger_threshold to 0.36 and cvd_divergence_tick_delta to 0.08
+    # BTC overrides trigger_threshold to 0.36 and cvd_divergence_candle_delta to 0.16
     thresholds = trigger_btc.sniper_cfg.get("signal_stack", {}).get("thresholds", {})
-    assert thresholds.get("cvd_divergence_tick_delta") == 0.08
+    assert thresholds.get("cvd_divergence_candle_delta") == 0.16
     assert trigger_btc.sniper_cfg.get("signal_stack", {}).get("trigger_threshold") == 0.36
 
 
@@ -398,7 +398,8 @@ def _full_trigger(gate):
             'imbalance': {'long_short_imbalance_ratio': 1.5, 'short_heavy_imbalance_ratio': 0.6},
             'volume': {'min_volume_participation_ratio': 1.0},
         },
-        'analysis_window': {'macro_context': {'time_interval': '1h'}},
+        'analysis_window': {'macro_context': {'time_interval': '1h'},
+                            'micro_context': {'time_interval': '15m'}},
     }
     sniper = {
         'signal_stack': {
@@ -408,7 +409,7 @@ def _full_trigger(gate):
             'cooldown': {'regime_base_minutes': {'trending': 20, 'ranging': 40,
                                                  'squeeze': 20, 'chaos': 60},
                          'neutral_multiplier': 0.8, 'failure_cooldown_minutes': 3},
-            'thresholds': {'cvd_divergence_tick_delta': 0.12, 'cvd_extreme_threshold': 0.24,
+            'thresholds': {'cvd_divergence_candle_delta': 0.12, 'cvd_extreme_threshold': 0.24,
                            'large_trade_zscore': 1.6, 'volume_participation_threshold': 1.5},
             'gate': gate,
         },
@@ -482,6 +483,8 @@ class TestResetState:
         t.cooldown_active = True
         t.state_locks['BOUNDARY_VAH'] = (datetime.now(timezone.utc), 1.0)
         t._fingerprint = 'stale'
+        t._cvd_history.append((datetime.now(timezone.utc), 0.42, 4400.0))
+        t._cvd_div_reason = 'F:0.50'
         return t
 
     def test_clears_signal_memory(self):
@@ -503,9 +506,127 @@ class TestResetState:
         assert t.state_locks == {}
         assert t._fingerprint is None
 
+    def test_clears_cvd_history(self):
+        """A candle-lagged comparison across a suspend gap is meaningless, so the
+        buffer must go with the rest of the cross-pulse state."""
+        t = self._dirty_trigger()
+        t.reset_state()
+        assert list(t._cvd_history) == []
+        assert t._cvd_div_reason == "warmup"
+
     def test_leaves_config_untouched(self):
         t = self._dirty_trigger()
         weights_before = dict(t.signal_weights)
         t.reset_state()
         assert t.signal_weights == weights_before
         assert t.sniper_cfg['signal_stack']['gate']['min_active_non_trend'] == 3
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# cvd_divergence — candle-lagged comparison
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Regression: the detector used to difference consecutive pulses (2 min apart),
+# but cvd_intensity_ratio is net taker flow over the last four 15-minute
+# candles, so it steps whenever a candle closes — a full candle leaves the
+# window and an empty one enters, shrinking the denominator. Over
+# 2026-09-18→10-05 that put 70% (XAUT) / 90% (BTC) of its fires in the first
+# two minutes after a candle close, i.e. 13% of the time. Comparing samples one
+# candle apart cancels the rollover (measured boundary bias 3.7x → 1.04x).
+
+class TestCvdDivergenceCandleLag:
+
+    LAG = 15.0
+
+    def _trigger(self):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        t._cvd_lag_minutes = self.LAG
+        t._cvd_history.clear()
+        return t
+
+    def _with_history(self, entries):
+        """entries: list of (minutes_ago, cvd, price)."""
+        t = self._trigger()
+        now = datetime.now(timezone.utc)
+        for mins, cvd, price in entries:
+            t._cvd_history.append((now - timedelta(minutes=mins), cvd, price))
+        return t, now
+
+    # ── reference lookup ───────────────────────────────────────────────────
+
+    def test_warmup_has_no_reference(self):
+        t, now = self._with_history([(2.0, 0.20, 4400.0)])
+        assert t._cvd_reference(now) is None
+
+    def test_picks_the_sample_one_candle_back(self):
+        t, now = self._with_history([(2.0, 0.20, 4400.0), (15.0, 0.35, 4410.0)])
+        ref = t._cvd_reference(now)
+        assert ref is not None
+        assert ref[1] == pytest.approx(0.35)
+        assert ref[2] == pytest.approx(4410.0)
+
+    def test_rejects_a_sample_outside_the_tolerance(self):
+        """~19 min is not "one candle back"; better dark than comparing to noise."""
+        t, now = self._with_history([(19.0, 0.35, 4410.0)])
+        assert t._cvd_reference(now) is None
+
+    def test_prefers_the_closer_of_two_candidates(self):
+        t, now = self._with_history([(13.5, 0.20, 4400.0), (16.0, 0.35, 4410.0)])
+        ref = t._cvd_reference(now)
+        assert ref is not None and ref[1] == pytest.approx(0.35)
+
+    # ── the failure mode this fixes ────────────────────────────────────────
+
+    def test_rollover_jump_between_pulses_does_not_fire(self):
+        """A violent 2-minute CVD swing that is only the window rollover.
+
+        The old detector saw |ΔCVD| = +0.32 against a 0.12 threshold and fired;
+        measured candle-to-candle the change is +0.02, so nothing fires.
+        """
+        t, now = self._with_history([(2.0, 0.10, 4400.0), (15.0, 0.40, 4400.0)])
+        card = t._detect_cvd_divergence(_full_metrics(cvd=0.42, price=4390.0), None, now)
+        assert card is None
+        assert "|dCVD|" in t._cvd_div_reason
+
+    def test_genuine_candle_drift_fires(self):
+        t, now = self._with_history([(15.0, 0.10, 4400.0)])
+        card = t._detect_cvd_divergence(_full_metrics(cvd=0.40, price=4390.0), None, now)
+        assert card is not None
+        assert card.sub_type == 'cvd_divergence'
+        assert card.direction == Direction.BULLISH  # price down, flow up
+        assert card.evidence['ref_age_minutes'] == pytest.approx(15.0, abs=0.1)
+
+    def test_agreement_is_not_a_divergence(self):
+        t, now = self._with_history([(15.0, 0.10, 4400.0)])
+        card = t._detect_cvd_divergence(_full_metrics(cvd=0.40, price=4410.0), None, now)
+        assert card is None
+        assert "no divergence" in t._cvd_div_reason
+
+    def test_stays_dark_without_a_reference(self):
+        t, now = self._with_history([(2.0, 0.10, 4400.0)])
+        card = t._detect_cvd_divergence(_full_metrics(cvd=0.40, price=4390.0), None, now)
+        assert card is None
+        assert t._cvd_div_reason.startswith("warmup")
+
+    # ── pulse buffering ────────────────────────────────────────────────────
+
+    def test_evaluate_records_each_pulse(self):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        t._cvd_history.clear()
+        t.evaluate(_full_metrics(cvd=0.20, price=4400.0), None)
+        assert len(t._cvd_history) == 1
+        assert t._cvd_history[0][1] == pytest.approx(0.20)
+        t.evaluate(_full_metrics(cvd=0.22, price=4403.0), None)
+        assert len(t._cvd_history) == 2
+
+    def test_evaluate_skips_pulses_without_cvd_or_price(self):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        t._cvd_history.clear()
+        metrics = _full_metrics(cvd=0.20, price=4400.0)
+        metrics['price_dynamics']['current_price'] = 0.0
+        t.evaluate(metrics, None)
+        assert len(t._cvd_history) == 0
+
+    def test_lag_is_derived_from_the_micro_candle(self):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        assert t._cvd_lag_minutes == pytest.approx(15.0)

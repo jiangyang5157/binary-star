@@ -13,7 +13,7 @@ import math
 from collections import deque
 from enum import Enum
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Tuple, Optional, List
 
 from src.utils.logger_utils import setup_logger
@@ -326,6 +326,17 @@ class SniperTrigger:
         large_trade_cfg = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
         self._trade_size_window = deque(maxlen=large_trade_cfg.get('large_trade_lookback', 30))
 
+        # Pulse history for cvd_divergence. That detector must compare samples one
+        # *micro candle* apart rather than one pulse apart — see _cvd_reference().
+        micro_interval = (self.strat_cfg.get('analysis_window', {})
+                          .get('micro_context', {}).get('time_interval', '15m'))
+        self._cvd_lag_minutes = self._parse_interval_to_minutes(micro_interval)
+        # Must reach back at least lag + tolerance; sized against the configured
+        # ~2-minute pulse cadence so a longer micro timeframe cannot silently
+        # leave the detector permanently dark.
+        self._cvd_history: deque = deque(maxlen=max(64, int(self._cvd_lag_minutes) * 3))
+        self._cvd_div_reason = "warmup"
+
         # Structural fingerprint for cooldown break noise gate (see spec 2026-07-23)
         self._fingerprint: Optional[StructuralFingerprint] = None
 
@@ -375,6 +386,49 @@ class SniperTrigger:
         self.cooldown_active = False
         self.state_locks.clear()
         self._fingerprint = None
+        self._cvd_history.clear()
+        self._cvd_div_reason = "warmup"
+
+    def _cvd_reference(self, now: datetime) -> Optional[Tuple[datetime, float, float]]:
+        """Buffered (timestamp, cvd, price) from one micro candle ago.
+
+        ``cvd_intensity_ratio`` is net taker flow over the last four 15-minute
+        candles, so it steps discontinuously whenever a candle closes: a full
+        candle leaves the window and an empty one enters, shrinking the
+        denominator and amplifying the ratio.  Comparing consecutive 2-minute
+        pulses therefore mostly measures that rollover — measured over
+        2026-09-18→10-05, ``|ΔCVD|`` in the first 2 min after a candle close is
+        3.7x the mid-candle value, cvd_divergence fired 15x (XAUT) / 57x (BTC)
+        more often there, and 70% / 90% of all its fires landed in those 13% of
+        the time.
+
+        Sampling one candle apart keeps both endpoints at the same point of the
+        rollover cycle, which cancels the mean shift (measured 3.7x → 1.11x for
+        XAUT; 3.8x → 1.15x for BTC) and leaves the genuine "one candle rolled
+        through" delta.  BTC keeps a residual tail bias — see its threshold
+        comment in config/symbol_config.yaml.
+
+        Returns None during warm-up (including just after reset_state()), so the
+        detector is simply dark until it has a same-phase sample to compare to.
+        """
+        tol = timedelta(minutes=self._cvd_lag_minutes / 6.0)
+        target = now - timedelta(minutes=self._cvd_lag_minutes)
+        best: Optional[Tuple[datetime, float, float]] = None
+        for stamp, cvd, price in self._cvd_history:
+            gap = abs(stamp - target)
+            if gap > tol or (best is not None and gap >= abs(best[0] - target)):
+                continue
+            best = (stamp, cvd, price)
+        return best
+
+    def _record_cvd_sample(self, metrics: Dict[str, Any], now: datetime) -> None:
+        """Buffer this pulse's CVD ratio and price for the next candle-lagged comparison."""
+        sentiment = metrics.get('sentiment_signals') or {}
+        price = (metrics.get('price_dynamics') or {}).get('current_price')
+        cvd = sentiment.get('cvd_intensity_ratio')
+        if cvd is None or not price:
+            return
+        self._cvd_history.append((now, float(cvd), float(price)))
 
     def _parse_interval_to_minutes(self, interval_str: str) -> float:
         """Parse a Binance interval string ('15m', '1h', '1d') into float minutes."""
@@ -748,23 +802,35 @@ class SniperTrigger:
     def _detect_cvd_divergence(self, curr: Dict[str, Any],
                                 prev: Optional[Dict[str, Any]],
                                 now: datetime) -> Optional[SignalCard]:
-        if not prev:
+        # `prev` is deliberately unused: comparing against the previous pulse
+        # measures the CVD window rollover rather than order flow. See
+        # _cvd_reference(). The parameter stays for the uniform detector signature.
+        ref = self._cvd_reference(now)
+        if not ref:
+            self._cvd_div_reason = "warmup(no same-phase sample yet)"
             return None
+        ref_stamp, ref_cvd, ref_price = ref
+
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
-        prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
-        cvd_delta = cvd - prev_cvd
-        threshold = self.sniper_cfg['signal_stack']['thresholds']['cvd_divergence_tick_delta']
+        cvd_delta = cvd - ref_cvd
+        # Default mirrors config/global_config.yaml so a missing key behaves the
+        # same as an unconfigured symbol rather than silently picking a
+        # different operating point.
+        threshold = self._signal_cfg('thresholds', 'cvd_divergence_candle_delta', default=0.30)
+        age = (now - ref_stamp).total_seconds() / 60.0
         if abs(cvd_delta) <= threshold:
+            self._cvd_div_reason = f"|dCVD|={abs(cvd_delta):.3f}<={threshold} (ref {age:.0f}m ago)"
             return None
 
-        price_delta = (curr['price_dynamics']['current_price'] -
-                       prev['price_dynamics']['current_price'])
+        price_delta = curr['price_dynamics']['current_price'] - ref_price
         if not ((price_delta > 0 and cvd_delta < 0) or (price_delta < 0 and cvd_delta > 0)):
+            self._cvd_div_reason = f"no divergence (dCVD={cvd_delta:+.3f}, dPrice={price_delta:+.2f})"
             return None
 
         direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
         strength = min(abs(cvd_delta) / (threshold * CVD_SATURATION_FACTOR), 1.0)
         weight = self.signal_weights.get('cvd_divergence')
+        self._cvd_div_reason = f"F:{strength:.2f}"
 
         return SignalCard(
             signal_id=self._make_id('cvd_divergence', now),
@@ -774,7 +840,8 @@ class SniperTrigger:
             weight=weight,
             timestamp=now,
             decay_half_life_minutes=self._decay['cvd_divergence'],
-            evidence={'cvd_delta': cvd_delta, 'price_delta': price_delta, 'threshold': threshold},
+            evidence={'cvd_delta': cvd_delta, 'price_delta': price_delta,
+                      'threshold': threshold, 'ref_age_minutes': round(age, 1)},
         )
 
     # ── FLOW: CVD Absorption (#3) ──────────────────────────────────────
@@ -1232,7 +1299,7 @@ class SniperTrigger:
                 parts.append(f"cvd_momentum=R:no_growth(|cvd|={abs(cvd):.3f}>{cvd_thresh})")
 
         s = fired.get('cvd_divergence')
-        parts.append(f"cvd_divergence={'F:'+str(round(s.strength,2)) if s else 'R:no-prev/div-low'}")
+        parts.append(f"cvd_divergence={'F:'+str(round(s.strength,2)) if s else 'R:'+self._cvd_div_reason}")
         s = fired.get('cvd_absorption')
         parts.append(f"cvd_absorption={'F:'+str(round(s.strength,2)) if s else f'R:|cvd|<=extreme'}")
 
@@ -1323,6 +1390,9 @@ class SniperTrigger:
 
         # 0. Determine regime
         regime = self._determine_regime(current_metrics)
+
+        # 0b. Buffer this pulse so cvd_divergence can compare one candle apart.
+        self._record_cvd_sample(current_metrics, now)
 
         # 1. Cooldown check
         cooldown_active, cooldown_reason = self._check_adaptive_cooldown(now, regime)

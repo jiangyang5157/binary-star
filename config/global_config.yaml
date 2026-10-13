@@ -221,8 +221,19 @@ sniper:
     # —— 各探测器专属硬阈值 ——
     # 覆盖 detector 内部的默认判断阈值，可按 symbol override。
     thresholds:
-      # 脉冲间 CVD 比率变化幅度。超过此值触发 cvd_divergence 检测。
-      cvd_divergence_tick_delta: 0.18
+      # cvd_divergence: CVD 比率在"一根 micro K 线"（15m）上的变化幅度。
+      # ★ 2026-10-05 口径修正：原 `cvd_divergence_tick_delta` 比较的是相邻两个
+      #   pulse（2min），但 CVD 是最近 4 根 15m K 线的净 taker 比，每 15 分钟会
+      #   掉出一根满量 K 线、补进一根空 K 线 → 分母骤降 → 比值跳变。实测
+      #   （2026-09-18~10-05，4979 pulse/symbol）边界 2 分钟内的 |ΔCVD| 是盘中的
+      #   3.7×，阈值触发率是 9~16×，导致该检测器 70%(XAUT)/90%(BTC) 的 fire 挤在
+      #   13% 的时间里 —— 它在测 K 线时钟，不是资金背离。
+      #   改为与"同一相位的 15 分钟前"比较后，盘中均值 |ΔCVD| 的边界倍数回到
+      #   1.11× (XAUT) / 1.15× (BTC)，fire 时间分布也和时钟解耦。
+      #   代价：量纲变了，阈值必须重标。本值仅作未配置 symbol 的兜底；
+      #   XAUT=0.35 / BTC=0.16 在 symbol_config.yaml 中按各自分布覆盖
+      #   （BTC 尾部仍有残余偏置，原因见那里的注释）。
+      cvd_divergence_candle_delta: 0.30
       # CVD 极端阈值（替代原 taker_imbalance）。|cvd| 超过此值直接触发 cvd_momentum
       # 静态路径。base 值适配低流动性资产；高流动性 symbol 可在 overrides 中降低此值。
       cvd_extreme_threshold: 0.36

@@ -28,11 +28,13 @@ class BinanceMarginClient:
             logger.error("API key or secret missing | margin operations require authentication")
             raise ValueError("Authenticated access required for Margin operations.")
 
-        self.client = Spot(api_key=key, api_secret=secret)
-        # binance.spot hardcodes a class-level REQUEST_TIMEOUT (default 10s); set it
-        # per-instance so the value comes from our config and is visible in the log.
-        self.client.REQUEST_TIMEOUT = get_api_timeout_seconds()
-        logger.info(f"margin client HTTP timeout | {self.client.REQUEST_TIMEOUT}s")
+        # binance.spot.Spot takes the HTTP timeout as a constructor kwarg (it is
+        # forwarded as the request's "timeout"); the default is None, i.e. block
+        # forever. There is no REQUEST_TIMEOUT attribute on this client — setting
+        # one silently did nothing (observed as "read timeout=None" in the log).
+        self.timeout = get_api_timeout_seconds()
+        self.client = Spot(api_key=key, api_secret=secret, timeout=self.timeout)
+        logger.info(f"margin client HTTP timeout | {self.timeout}s")
         self._precisions_cache: dict = {}  # symbol → (p_qty, p_price, tolerance)
         self._entry_cache: dict = {}  # symbol → (net_qty, avg_entry)
         logger.info("initialized for Spot Margin access")
