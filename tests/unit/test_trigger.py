@@ -749,6 +749,36 @@ class TestSourceBreadthGate:
                                           Direction.BULLISH, 'ranging')
         assert 'MIN_INDEPENDENT_SOURCES' not in reason
 
+    def test_enforce_replaces_the_count_gate_而不是叠加(self):
+        """Two signals from two independent sources must pass in enforce mode
+        even though the legacy count gate would demand three — otherwise the
+        rule would double-count the same doubt."""
+        t = self._trigger('enforce', min_sources=2)
+        two_sources = [_gate_card(sub_type='cvd_momentum'),
+                       _gate_card(sub_type='boundary_test')]
+        res, _ = t._run_pre_ai_gate(self._metrics(), two_sources,
+                                    Direction.BULLISH, 'ranging')
+        assert res == 'PASS'
+
+    def test_enforce_still_blocks_a_single_source(self):
+        t = self._trigger('enforce', min_sources=2)
+        one_source = [_gate_card(sub_type='cvd_momentum'),
+                      _gate_card(sub_type='large_trade'),
+                      _gate_card(sub_type='cvd_absorption')]
+        res, reason = t._run_pre_ai_gate(self._metrics(), one_source,
+                                         Direction.BULLISH, 'ranging')
+        assert res == 'FAIL'
+        assert 'MIN_INDEPENDENT_SOURCES' in reason
+
+    def test_off_mode_still_uses_the_count_gate(self):
+        t = self._trigger('off')
+        two_sources = [_gate_card(sub_type='cvd_momentum'),
+                       _gate_card(sub_type='boundary_test')]
+        res, reason = t._run_pre_ai_gate(self._metrics(), two_sources,
+                                         Direction.BULLISH, 'ranging')
+        assert res == 'FAIL'
+        assert 'MIN_ACTIVE_SIGNALS' in reason
+
     def test_trending_uses_the_trend_minimum(self):
         t = self._trigger('enforce', min_sources=2)
         # min_sources_trend defaults to 1 in _full_trigger's gate dict?  It is

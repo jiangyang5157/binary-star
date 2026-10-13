@@ -260,28 +260,34 @@ C 才是真正的行为改动，我建议等 A/B 上线积累一段时间后再�
 harness 保真度校验：legacy 模式下 cvd_momentum 26.7%（生产 25.9%）、cvd_absorption
 10.7%/18.6%（生产 9.7%/16.9%）、large_trade 12.5%/6.5%（生产 13.4%/7.3%）。
 
-**闸门策略叠加：**
+**闸门策略叠加**（2026-10-14 self-review 修正 R1 之后重测。**上一版结论是错的** ——
+它建立在把 `cvd_divergence` 错分到 `flow` 之上，低估了来源数）：
 
 | 策略 | XAUT passes / episodes / adj | BTC passes / episodes / adj |
 |---|---|---|
-| **现状** legacy `count≥3` | 47 / 8 / **−0.316** (t=−1.51) | 11 / 2 / **−0.078** |
-| legacy `count≥2` | 606 / 59 / +0.059 | 322 / 46 / −0.023 |
-| legacy `sources≥2` | 52 / 10 / +0.039 | **3** / 1 / +0.601 ← 几乎不可达 |
-| **adaptive `sources≥2`** | **105 / 11 / −0.034** | **128 / 12 / +0.234** |
-| adaptive `count≥2` | 230 / 16 / −0.198 | 241 / 14 / +0.037 |
+| **现状** `count≥3` | 44 / 8 / **−0.327** (t=−1.55) | 11 / 2 / **−0.078** |
+| `count≥2`（legacy） | 605 / 59 / **+0.059** | 322 / 46 / −0.023 |
+| **`sources≥2`（legacy）** | **102 / 18 / −0.056** | **90 / 17 / +0.003** |
+| `sources≥2`（adaptive） | 133 / 15 / −0.090 | 145 / 15 / **+0.115** |
 
-**结论（决定 default 的开关位置）：**
+**修正后的结论（按这一版，不是上一版）：**
 
-1. **adaptive 单独开启**会让 XAUT 的通过量从 47 掉到 27 —— 与"抓波动"的目标相反（它把
-   cvd_momentum 从 26.7% 压到 2.8%，而闸门需要 3 个信号）。**所以 C 不能单独开。**
-2. **adaptive + `sources≥2`** 是唯一在两个标的上**同时**改善通过量与点估计质量的组合
-   （XAUT 47→105 且 −0.316→−0.034；BTC 11→128 且 −0.078→+0.234）。
-   机制清楚：adaptive 让 `positioning` 这个**独立来源**第一次变得可达
-   （BTC 4→79 次），而 legacy 下 `sources≥2` 几乎不可能满足（只有 flow 是活的，BTC 只有 3 次）。
-3. **但都不显著**：episodes 只有 11 / 12，最大 t=1.01。**这不是"证明了更好"，而是
-   "没证明更差，且结构上更合理"。**
-4. 因此 default 保持 `adaptive.enabled: false` + `sources_mode: shadow`。
-   **要开启必须两者一起开**（C+D 同批），并当作一次行为改动来观察。
+1. **`sources≥2` 不需要 adaptive 就能达到**（legacy 102 / 90 次）。上一版说
+   "必须 adaptive 才可达"是 R1 错分造成的假象：`cvd_divergence` 单独成源后，
+   `flow + divergence` 本身就是两个来源。
+2. **没有任何策略在两个 symbol 上同时支配**：XAUT 的点估计偏好 `count≥2`（+0.059），
+   BTC 偏好 `sources≥2`（+0.003 / +0.115）。
+3. **唯一一致的信号是：现状 `count≥3` 在两个 symbol 上点估计都最差**
+   （−0.327 / −0.078）—— 但它的 episode 只有 8 和 2，属于弱证据。
+4. **全部不显著**（最大 t=0.68，episodes 15–59）。所以这不是"证明了更好"，
+   而是"现状看起来最差，但样本不足以换方向"。
+
+**因此 default 维持不动**：`adaptive.enabled: false` + `sources_mode: shadow`。
+shadow 逐轮记录 `would block: n/N independent sources`，等 episode 够了再决定 enforce。
+
+> **实现语义（R7）**：`enforce` 下来源判据**替换**信号计数判据，而不是叠加。
+> 初版是 AND，与 §2.3 的设计意图和上面的测量口径都不符，而且 AND 会把 legacy 的
+> flow-only 三元组一次性清空。已改为替换并有测试固定。
 
 ### D — enforce 的判据（机制已就位，保持在 shadow）
 
@@ -289,9 +295,9 @@ harness 保真度校验：legacy 模式下 cvd_momentum 26.7%（生产 25.9%）�
 
 | 需要看到 | 现状 | 结论 |
 |---|---|---|
-| C（adaptive）同时开启 | 未开启 | enforce 的必要条件 —— 见 §C 测量第 2 点：legacy 下 `sources≥2` 在 BTC 上几乎不可达（3 次） |
-| shadow 日志里 "would block" 的**独立行情数** ≥ 30 | 0（日志尚未产生） | 现在只有 11–12 个 episode，enforce 等于凭 12 个样本改行为 |
-| would-block 的那批在 `sources≥2` 口径下的 adjusted excess 非负 | 未测（无 shadow 数据） | 目前只有离线估计 +0.234(BTC) / −0.034(XAUT) |
+| —（**不再需要**）：R1 修正后 `sources≥2` 在 legacy 下即可达（BTC 90 次 / 17 episodes） | — | 上一版曾把 adaptive 当作 enforce 的必要条件，那是我错分来源造成的 |
+| shadow 日志里 "would block" 的**独立行情数** ≥ 30 | 0（日志尚未产生） | 现在只有 15–18 个 episode，enforce 等于凭不到 20 个样本改行为 |
+| would-block 的那批在 `sources≥2` 口径下的 adjusted excess 非负 | 未测（无 shadow 数据） | 目前只有离线估计：legacy `sources≥2` 为 +0.003(BTC) / −0.056(XAUT) |
 
 **所以 enforce 与 adaptive 必须同批开启**，且开之前先积累 shadow 数据。
 
@@ -331,6 +337,7 @@ harness 保真度校验：legacy 模式下 cvd_momentum 26.7%（生产 25.9%）�
 | **R4** | **我的 bug（日志说谎）** | `cvd_divergence` 的 reason 在 adaptive 下把**原始 dCVD** 与 **z 阈值**印在一起 | 按模式分别印 `\|z\|=` / `\|dCVD\|=` |
 | **R5** | 真 bug（UI） | shadow 徽章只在首次渲染时**条件创建**，之后 in-place update 找不到元素 → 后来才出现的判决永远不显示 | 无条件创建、用 `display` 切换 |
 | **R6** | 真 bug（孤儿常量） | 转换后 `OI_DIVERGENCE_SATURATION` / `OI_SURGE_SATURATION` 成为死常量 | 随 R2 一并恢复使用 |
+| **R7** | **我的 bug（实现与设计不符）** | 来源判据被**叠加**在计数判据之后（AND），而设计 §2.3 的意图是**替换**；AND 语义下 legacy 的 flow-only 三元组会被一次性清空，且与我的测量口径不一致 | 改为替换 + 测试固定语义；并据此**推翻了上一版「必须 adaptive 才可达」的结论** |
 
 **验证 legacy 路径未被触碰（最关键的一条）：**
 

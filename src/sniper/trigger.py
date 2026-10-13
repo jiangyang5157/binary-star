@@ -787,11 +787,30 @@ class SniperTrigger:
         ]
         if regime == 'trending':
             min_active = gate_cfg.get('min_active_trend', 0)
+            min_sources = gate_cfg.get('min_sources_trend', 0)
             gate_tag = 'MIN_ACTIVE_TREND'
         else:
             min_active = gate_cfg.get('min_active_non_trend', 0)
+            min_sources = gate_cfg.get('min_sources_non_trend', 0)
             gate_tag = 'MIN_ACTIVE_SIGNALS'
-        if min_active > 0 and len(same_dir_active) < min_active:
+        sources_mode = gate_cfg.get('sources_mode', 'off')
+        sources = sorted({s.source for s in same_dir_active})
+
+        # Breadth, measured either by signal count (legacy) or by independent
+        # source (enforce).  In enforce mode the source count *replaces* the
+        # signal count rather than adding to it: the whole premise is that
+        # counting detectors overstates breadth when several of them read the
+        # same number, so requiring both would double-count the same doubt.
+        # See docs/sniper_signal_stack_redesign_20261014.md §2.3.
+        if sources_mode == 'enforce' and min_sources > 0:
+            if len(sources) < min_sources:
+                return "FAIL", (
+                    f"MIN_INDEPENDENT_SOURCES: regime={regime} requires "
+                    f"≥{min_sources} independent sources | dir={direction.value} | "
+                    f"got {len(sources)} ({sources}) from "
+                    f"{[s.sub_type for s in same_dir_active]}"
+                )
+        elif min_active > 0 and len(same_dir_active) < min_active:
             return "FAIL", (
                 f"{gate_tag}: regime={regime} requires ≥{min_active} "
                 f"signals in {direction.value} direction, "
@@ -825,24 +844,18 @@ class SniperTrigger:
         #    the verdict above is unchanged, we only record what the rule would
         #    have decided so evidence can accumulate at zero risk.
         #    See docs/sniper_signal_stack_redesign_20261014.md §2.3.
-        sources = sorted({s.source for s in same_dir_active})
-        if regime == 'trending':
-            min_sources = gate_cfg.get('min_sources_trend', 0)
-        else:
-            min_sources = gate_cfg.get('min_sources_non_trend', 0)
-        mode = gate_cfg.get('sources_mode', 'off')
-        if mode != 'off' and min_sources > 0 and len(sources) < min_sources:
-            would = (f"GATE SOURCE {'WOULD BLOCK' if mode == 'shadow' else 'BLOCK'} | "
-                     f"regime={regime} requires ≥{min_sources} independent sources | "
-                     f"dir={direction.value} | got {len(sources)} ({sources}) | "
-                     f"from {[s.sub_type for s in same_dir_active]}")
-            if mode == 'shadow':
-                logger.info("[%s] %s", self.symbol, would)
-                self._gate_shadow = (
-                    f"would block: {len(sources)}/{min_sources} independent sources"
-                )
-            else:
-                return "FAIL", would.replace(f"GATE SOURCE BLOCK | ", "MIN_INDEPENDENT_SOURCES: ")
+        if sources_mode == 'shadow' and min_sources > 0 and len(sources) < min_sources:
+            # Shadow never changes the verdict; it only records what the rule
+            # would have said, so the tightening can be judged on data.
+            logger.info(
+                "[%s] GATE SOURCE WOULD BLOCK | regime=%s requires ≥%d independent "
+                "sources | dir=%s | got %d (%s) | from %s",
+                self.symbol, regime, min_sources, direction.value,
+                len(sources), sources, [s.sub_type for s in same_dir_active],
+            )
+            self._gate_shadow = (
+                f"would block: {len(sources)}/{min_sources} independent sources"
+            )
 
         return "PASS", ""
 
