@@ -318,7 +318,26 @@ shadow 逐轮记录 `would block: n/N independent sources`，等 episode 够了�
 测试覆盖：最新在前、按 lookback 截断、空输入不输出、缺 taker 字段不输出、
 以及**任何输入都不许抛异常**（探针不能弄坏一次 pulse）。
 
-### UI U3 — shadow 判决上界面（已做）；U2 暂缓
+### UI U3 — **撤销**（2026-10-14，经 operator 质疑）
+
+初版把 shadow 判决做成面板徽章。operator 反问"我也没有 switch 吧？"—— **他说得对**：
+
+- `sources_mode` 是 config 里的一行（`off|shadow|enforce`），**面板上没有开关**，所以那个徽章
+  在描述一条 operator 无法开启、且可能永远不会开启的规则；
+- 如果最终决定不 enforce，它就是**永久装饰**；
+- 而它要服务的证据需求，pulse file 的 `gate_shadow` 字段和日志行 **已经完全覆盖**（可 grep、可离线统计）。
+
+**处置**：从面板移除徽章，**保留** `TriggerResult.gate_shadow`、pulse file 字段与日志行。
+测试反向固定：面板里不许再出现 `sc-shadow` / `gate_shadow` / `would block`。
+
+### UI U1 的两处修正（同一次质疑牵出）
+
+| 问题 | 说明 | 处置 |
+|---|---|---|
+| **分组是假的** | strip 的方块顺序来自 daemon 的注册表顺序，而它是 `cvd_momentum(flow) → cvd_divergence(divergence) → cvd_absorption(flow) → …` —— `divergence` 夹在两个 flow 中间。我加的"换源加 4px 间隔"因此在 10 个方块里产生 **5 处小缝**，读起来是随机间距而不是分组 | 新增 `_orderedSignals()`：按 source **稳定排序**（同源内保持原序），render 与 update 两条路径共用；分组间隔这才成立 |
+| **徽章需要解释** | 原来显示 `5 srcs`，operator 得先知道 "src" 是什么、几个算多 | 改为**直接显示来源名字**（`flow+positioning`），`title` 里给出完整列表与解释 |
+
+### UI U2 — 暂缓（原因不变）
 
 `TriggerResult.gate_shadow` 承载 shadow 判决（**与 `gate_reason` 分开**，避免让人误以为它是
 没唤醒的原因），经 pulse file 到 UI，在 signal card 头部显示 `◇ would block: 1/2 independent sources`。

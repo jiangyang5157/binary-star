@@ -953,12 +953,30 @@ class TestSelfReviewRegressions:
             "raw delta must not be printed next to a z threshold"
 
 
-    def test_ui_always_creates_the_shadow_element(self):
-        """The in-place update path can only reveal an element that exists, so a
-        conditionally-created badge would never appear if the verdict arrived
-        after the first render."""
+    def test_ui_does_not_advertise_a_rule_that_is_not_in_force(self):
+        """The shadow verdict belongs in the pulse file and the log, not on the
+        panel: it describes a rule the operator cannot switch on and may never
+        be enabled, so a badge would be permanent ornament."""
         from pathlib import Path as _P
         tpl = _P("src/dashboard/templates/live.html").read_text()
-        assert 'sc-shadow' in tpl
-        # the span must be emitted unconditionally (display toggled), not inside an if
-        assert "html += '<span class=\"sc-shadow\"" in tpl
+        assert 'sc-shadow' not in tpl
+        assert 'gate_shadow' not in tpl
+        assert 'would block' not in tpl
+
+    def test_ui_strip_is_re_sorted_by_source(self):
+        """Block order from the daemon interleaves sources (cvd_divergence sits
+        between two flow detectors), so grouping needs a stable re-sort applied
+        by both the render and the update path."""
+        from pathlib import Path as _P
+        tpl = _P("src/dashboard/templates/live.html").read_text()
+        assert 'function _orderedSignals(' in tpl
+        assert tpl.count('_orderedSignals(sd)') >= 2, \
+            "render and update must use the same ordering"
+
+    def test_ui_badge_names_the_sources_rather_than_counting_them(self):
+        """'3 signals' is what the strip already shows; the misleading part is
+        that they may all be one source, so the badge names it."""
+        from pathlib import Path as _P
+        tpl = _P("src/dashboard/templates/live.html").read_text()
+        assert 'function _activeSources(' in tpl
+        assert "names.join('+')" in tpl

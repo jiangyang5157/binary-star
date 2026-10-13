@@ -653,14 +653,6 @@
       var qty = Math.abs(sd.net_qty).toFixed(qtyDecimals);
       html += '<span class="sc-direction ' + dir.toLowerCase() + '" style="display:' + (tradeOn && (state === 'protected' || state === 'naked') ? '' : 'none') + '"><span class="sc-dir-label">' + dir + '</span><span class="sc-dir-qty">' + qty + '</span></span>';
 
-      // Source-breadth gate (shadow): what the pending rule would have said.
-      // The element is ALWAYS created (empty verdicts just hide it) because the
-      // in-place update path can only reveal an element that already exists —
-      // creating it conditionally meant a verdict appearing later never showed.
-      html += '<span class="sc-shadow" title="source-breadth gate (shadow mode)"' +
-              (sd.gate_shadow ? '' : ' style="display:none"') + '>' +
-              (sd.gate_shadow ? '\u25c7 ' + _esc(sd.gate_shadow) : '') + '</span>';
-
       // Cooldown
       html += '<span class="signal-card-cooldown" style="display:' + (sd.cooldown_active && sd.cooldown_remaining_seconds > 0 ? '' : 'none') + '">❄ ' + formatElapsed(sd.cooldown_remaining_seconds || 0) + '</span>';
 
@@ -679,7 +671,7 @@
       // source and the active source count is shown next to them.
       html += '<div class="signal-strip-row">';
       html += '<div class="signal-strip">';
-      var allSignals = sd.all_signals || [];
+      var allSignals = _orderedSignals(sd);
       var prevSource = null;
       for (var j = 0; j < allSignals.length; j++) {
         var sig = allSignals[j];
@@ -698,8 +690,11 @@
           '</div>';
       }
       html += '</div>';
-      html += '<span class="signal-strip-sources" id="src-count-' + stripped + '">' +
-              _sourceBadge(sd) + '</span>';
+      var srcNames = _activeSources(sd);
+      html += '<span class="signal-strip-sources" id="src-count-' + stripped + '"' +
+              ' title="independent information sources behind this direction: ' +
+              _esc(srcNames.join(', ') || 'none') + ' (' + srcNames.length + ')">' +
+              _esc(_sourceBadge(sd)) + '</span>';
       html += '</div>';
 
       html += '</div>';  // close signal-card
@@ -714,18 +709,6 @@
       var tradeOn = data.trade_enabled;
       var qtyDecimals = _calcQtyDecimals(data);
       var state = _getSymbolState(sd);
-
-      // Source-breadth shadow verdict
-      var shadowEl = card.querySelector('.sc-shadow');
-      if (shadowEl) {
-        if (sd.gate_shadow) {
-          shadowEl.textContent = '\u25c7 ' + sd.gate_shadow;
-          shadowEl.style.display = '';
-        } else {
-          shadowEl.textContent = '';
-          shadowEl.style.display = 'none';
-        }
-      }
 
       // Status text
       var statusEl = card.querySelector('.sc-status');
@@ -780,7 +763,7 @@
       }
 
       // Signal strip blocks
-      var allSignals = sd.all_signals || [];
+      var allSignals = _orderedSignals(sd);
       var blocks = card.querySelectorAll('.signal-strip-block');
       var prevSrc = null;
       for (var j = 0; j < blocks.length; j++) {
@@ -800,7 +783,12 @@
         prevSrc = sig.source || prevSrc;
       }
       var srcEl = card.querySelector('.signal-strip-sources');
-      if (srcEl) srcEl.textContent = _sourceBadge(sd);
+      if (srcEl) {
+        var names = _activeSources(sd);
+        srcEl.textContent = _sourceBadge(sd);
+        srcEl.title = 'independent information sources behind this direction: ' +
+                      (names.join(', ') || 'none') + ' (' + names.length + ')';
+      }
 
       // Pulse bars
       var histEl = card.querySelector('.pulse-history-row');
@@ -810,14 +798,33 @@
     // How many *independent* information sources back this pulse's direction.
     // Falls back to deriving it from the signal list when the backend has not
     // sent the field (older pulse files).
+    // The strip's block order comes from the daemon (registry order), which
+    // interleaves sources — cvd_divergence sits between two flow detectors.
+    // Grouping by source therefore needs a stable re-sort, applied identically
+    // by both the render and the in-place update path.
+    function _orderedSignals(sd) {
+      var list = (sd.all_signals || []).slice();
+      return list
+        .map(function (sig, i) { return { sig: sig, i: i }; })
+        .sort(function (a, b) {
+          var sa = a.sig.source || '~', sb = b.sig.source || '~';
+          if (sa !== sb) return sa < sb ? -1 : 1;
+          return a.i - b.i;                     // stable within a source
+        })
+        .map(function (x) { return x.sig; });
+    }
+
     function _esc(v) {
       return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                       .replace(/"/g, '&quot;');
     }
 
-    function _sourceBadge(sd) {
-      var n = sd.sources_active;
-      if (n === undefined || n === null) {
+    // Name the independent sources rather than counting them: "3 signals" is
+    // what the strip shows, and the whole point is that they may be one source.
+    // Falls back to deriving the set when the backend predates the field.
+    function _activeSources(sd) {
+      var names = sd.sources;
+      if (!names || !names.length) {
         var seen = {};
         var list = sd.all_signals || [];
         for (var i = 0; i < list.length; i++) {
@@ -826,10 +833,15 @@
             seen[g.source] = true;
           }
         }
-        n = Object.keys(seen).length;
+        names = Object.keys(seen).sort();
       }
-      if (!n) return '';
-      return n + (n === 1 ? ' src' : ' srcs');
+      return names || [];
+    }
+
+    function _sourceBadge(sd) {
+      var names = _activeSources(sd);
+      if (!names.length) return '';
+      return names.join('+');
     }
 
     function _renderSignalCards(data) {
