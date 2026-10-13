@@ -210,6 +210,39 @@ SIGNAL_SOURCES: Dict[str, str] = {
 DEFAULT_SIGNAL_SOURCE = 'unknown'
 
 
+def independent_sources(signals, direction) -> List[str]:
+    """Distinct information sources backing ``direction``.
+
+    One definition, shared by the pre-AI gate, the diagnostic line and the
+    pulse file, so the number an operator reads is the number the gate acted on.
+    An earlier version had three separate computations, and the diagnostic
+    counted sources across *both* directions — it reported 2 sources on 18 XAUT
+    pulses where the gate saw 1, flattering the very rule the number exists to
+    evaluate.
+
+    Accepts SignalCards or plain dicts, and a Direction or its string value.
+    """
+    want = getattr(direction, 'value', direction)
+    # NEUTRAL is not a directional view, so nothing can back it.  The diagnostic
+    # line passes NEUTRAL when no dominant direction exists, and squeeze is
+    # itself NEUTRAL — without this it would report "1 source" for a pulse that
+    # has no direction at all.
+    if not want or want == Direction.NEUTRAL.value:
+        return []
+    found = set()
+    for sig in signals:
+        if isinstance(sig, dict):
+            sig_dir, strength, source = (sig.get('direction'), sig.get('strength'),
+                                         sig.get('source'))
+        else:
+            sig_dir = getattr(sig.direction, 'value', sig.direction)
+            strength, source = sig.strength, sig.source
+        if sig_dir != want or strength is None or strength < MIN_STACK_STRENGTH:
+            continue
+        found.add(source or DEFAULT_SIGNAL_SOURCE)
+    return sorted(found)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Confluence Engine
 # ═══════════════════════════════════════════════════════════════════════════
@@ -794,7 +827,8 @@ class SniperTrigger:
             min_sources = gate_cfg.get('min_sources_non_trend', 0)
             gate_tag = 'MIN_ACTIVE_SIGNALS'
         sources_mode = gate_cfg.get('sources_mode', 'off')
-        sources = sorted({s.source for s in same_dir_active})
+        # Shared definition — see independent_sources().
+        sources = independent_sources(same_dir_active, direction)
 
         # Breadth, measured either by signal count (legacy) or by independent
         # source (enforce).  In enforce mode the source count *replaces* the
@@ -1515,7 +1549,9 @@ class SniperTrigger:
     # ═══════════════════════════════════════════════════════════════════════
 
     def _log_signal_diagnostics(self, metrics: Dict[str, Any],
-                                 fresh_signals: List[SignalCard]) -> None:
+                                 fresh_signals: List[SignalCard],
+                                 stack: Optional[List[SignalCard]] = None,
+                                 direction: Optional[Direction] = None) -> None:
         """Log a compact per-pulse summary of key decision metrics for all 9
         signal detectors."""
         fired = {s.sub_type: s for s in fresh_signals}
@@ -1632,12 +1668,15 @@ class SniperTrigger:
             parts.append(f"pos_ext=R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01")
 
         # ── PROVENANCE ──
-        # How many *independent* information sources are behind the dominant
+        # How many *independent* information sources back the dominant
         # direction.  Ten detectors that all read the same order-flow number are
-        # one observation; this makes that visible per pulse.
-        active = [s for s in fresh_signals
-                  if s.direction != Direction.NEUTRAL and s.strength >= MIN_STACK_STRENGTH]
-        src = sorted({s.source for s in active})
+        # one observation; this makes that visible per pulse.  Uses the same
+        # helper, list and direction as the gate so the number can be read as
+        # evidence about the source-breadth rule.
+        src = independent_sources(
+            stack if stack is not None else fresh_signals,
+            direction if direction is not None else Direction.NEUTRAL,
+        )
         parts.append(f"sources={len(src)}[{','.join(src) if src else '-'}]")
 
         logger.info("[%s] SIGNAL DIAG | %s", self.symbol, " | ".join(parts))
@@ -1684,8 +1723,9 @@ class SniperTrigger:
             except Exception as e:
                 logger.warning(f"detector {detector.__name__} failed | error={e}")
 
-        # 2b. Per-pulse signal diagnostics — compact log of all detector key metrics
-        self._log_signal_diagnostics(current_metrics, fresh_signals)
+        # 2b. Per-pulse signal diagnostics are emitted after the confluence
+        #     computation below, so the source count they report uses the same
+        #     list and dominant direction the gate does.
 
         # 3. Merge with decayed signal memory
         all_signals = self.memory.ingest(fresh_signals, now)
@@ -1716,6 +1756,13 @@ class SniperTrigger:
             all_signals, regime, is_cooldown_active=effective_cooldown
         )
         effective_threshold = self.engine.effective_threshold
+
+        # 2b. Per-pulse signal diagnostics — emitted here, after the dominant
+        #     direction is known, so the reported source count matches the one
+        #     the gate will act on (it previously unioned both directions and
+        #     overstated breadth on 18 XAUT / 6 BTC pulses).
+        self._log_signal_diagnostics(current_metrics, fresh_signals,
+                                     all_signals, dominant_direction)
 
         # Why this pulse did (not) reach a session.  Surfaced through TriggerResult
         # into .sniper_pulse.json so the dashboard/MCP can answer "why didn't it

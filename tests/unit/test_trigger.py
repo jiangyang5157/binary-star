@@ -980,3 +980,59 @@ class TestSelfReviewRegressions:
         tpl = _P("src/dashboard/templates/live.html").read_text()
         assert 'function _activeSources(' in tpl
         assert "names.join('+')" in tpl
+
+
+class TestSourceCountIsDefinedOnce:
+    """The gate, the diagnostic line and the pulse file must report the same
+    number — an operator reading the log is entitled to read the gate's number.
+
+    An earlier version computed it three ways, and the diagnostic unioned both
+    directions: on 18 XAUT pulses it said 2 sources where the gate saw 1.
+    """
+
+    def _cards(self):
+        from src.sniper.trigger import SignalCard as SC
+        now = datetime.now(timezone.utc)
+        def mk(sub, direction, strength=0.6):
+            return SC(signal_id=sub, sub_type=sub, direction=direction,
+                      strength=strength, weight=0.5, timestamp=now,
+                      decay_half_life_minutes=10)
+        return mk
+
+    def test_direction_is_respected(self):
+        from src.sniper.trigger import independent_sources
+        mk = self._cards()
+        stack = [mk('cvd_momentum', Direction.BEARISH),
+                 mk('positioning_extreme', Direction.BULLISH)]
+        assert independent_sources(stack, Direction.BEARISH) == ['flow']
+        assert independent_sources(stack, Direction.BULLISH) == ['positioning']
+        # the old union-of-both-directions answer
+        assert len(independent_sources(stack, Direction.BEARISH)) == 1
+
+    def test_weak_signals_do_not_count(self):
+        from src.sniper.trigger import independent_sources
+        mk = self._cards()
+        stack = [mk('cvd_momentum', Direction.BULLISH, strength=0.05),
+                 mk('positioning_extreme', Direction.BULLISH, strength=0.6)]
+        assert independent_sources(stack, Direction.BULLISH) == ['positioning']
+
+    def test_neutral_direction_never_counts(self):
+        from src.sniper.trigger import independent_sources
+        mk = self._cards()
+        stack = [mk('squeeze', Direction.NEUTRAL, strength=0.9)]
+        assert independent_sources(stack, Direction.NEUTRAL) == []
+        assert independent_sources(stack, Direction.BULLISH) == []
+
+    def test_accepts_plain_dicts(self):
+        from src.sniper.trigger import independent_sources
+        stack = [{"direction": "BULLISH", "strength": 0.6, "source": "flow"}]
+        assert independent_sources(stack, "BULLISH") == ['flow']
+        assert independent_sources(stack, Direction.BULLISH) == ['flow']
+
+    def test_same_source_twice_counts_once(self):
+        from src.sniper.trigger import independent_sources
+        mk = self._cards()
+        stack = [mk('cvd_momentum', Direction.BULLISH),
+                 mk('large_trade', Direction.BULLISH),
+                 mk('cvd_absorption', Direction.BULLISH)]
+        assert independent_sources(stack, Direction.BULLISH) == ['flow']

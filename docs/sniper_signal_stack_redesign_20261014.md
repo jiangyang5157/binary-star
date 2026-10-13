@@ -359,7 +359,8 @@ shadow 逐轮记录 `would block: n/N independent sources`，等 episode 够了�
 | **R7** | **我的 bug（实现与设计不符）** | 来源判据被**叠加**在计数判据之后（AND），而设计 §2.3 的意图是**替换**；AND 语义下 legacy 的 flow-only 三元组会被一次性清空，且与我的测量口径不一致 | 改为替换 + 测试固定语义；并据此**推翻了上一版「必须 adaptive 才可达」的结论** |
 
 | **R8** | **我的 bug（同类缺陷复发）** | 我声称"换 z 后条件**按构造可达**"，但**被量化的指标不成立**：funding 只有 `0.0000`/`0.0001` 两个值 → MAD=0 → fail-safe 让 z 恒为 0 → **该路径仍然永久不可达，而且又是静默的** —— 正是这次重构要消灭的那一类 | `RobustWindow.is_degenerate` + 诊断三态 `warmup / degenerate / z=`，让不可达**可见**；实测数据与结论写入 config 注释 |
-**验证 legacy 路径未被触碰（最关键的一条）：**
+
+| **R9** | **我的 bug（同一概念三套算法）** | `sources` 在**闸门 / 诊断行 / pulse file** 三处各算一遍，且诊断与 UI 用 `direction != NEUTRAL` **把两个方向的来源合并计数** —— 实测在 **18 轮 XAUT / 6 轮 BTC** 上报 2 个来源而闸门只看到 1 个。**这是最糟的一类错**：我把这个数字当作判断 shadow 闸门的依据，而它系统性偏高 | 抽出唯一实现 `independent_sources(signals, direction)`，三处共用；诊断行改到 confluence 之后发射（此时才有主导方向）；NEUTRAL 一律返回空（否则 `squeeze` 会给无方向的 pulse 报出"1 个来源"）；离线 replay 的 signal 也补上 `source` 以免工具口径再次分叉 |**验证 legacy 路径未被触碰（最关键的一条）：**
 
 `scripts/sniper_legacy_fingerprint.py` 对每个检测器记录 **fire 数 + strength 总和**
 （只比 fire 数不够 —— 强度变化同样会移动 confluence 和闸门）。

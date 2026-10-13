@@ -21,7 +21,7 @@ from src.infrastructure.binance.client import BinanceFuturesClient
 from src.sniper.scout import SniperScout
 from src.sniper.trigger import (
     SniperTrigger, TriggerResult, Direction, SignalCard,
-    SIGNAL_SOURCES, DEFAULT_SIGNAL_SOURCE,
+    SIGNAL_SOURCES, DEFAULT_SIGNAL_SOURCE, independent_sources,
 )
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
@@ -857,10 +857,10 @@ class SniperDaemon:
                     # direction — 10 detectors reading one order-flow number are
                     # one observation.  Surfaced so the UI can stop implying
                     # that a long signal strip means many independent votes.
-                    _active_src = sorted({
-                        sig["source"] for sig in all_signals
-                        if sig["is_active"] and sig["direction"] != "NEUTRAL"
-                    })
+                    # Uses the same helper, list and direction as the pre-AI
+                    # gate, so the panel cannot disagree with the gate.
+                    _active_src = independent_sources(
+                        result.signals, result.confluence_direction)
 
                     entry.update({
                         "triggered": sym in triggered_syms,

@@ -266,6 +266,10 @@ def parse_log(path: Path) -> Dict[str, Any]:
 
 def build_fresh_signals(p: Pulse, prev_d: Optional[Dict[str, Any]],
                         prev_p: Optional[Pulse]) -> List[Dict[str, Any]]:
+    # `source` is stamped on every card so offline analyses count independent
+    # information sources with the same grouping production uses.  Keep in sync
+    # with src/sniper/trigger.py:SIGNAL_SOURCES.
+    from src.sniper.trigger import SIGNAL_SOURCES, DEFAULT_SIGNAL_SOURCE
     d = p.diag
     det = d["detectors"]
     cvd = d.get("cvd", 0.0)
@@ -310,6 +314,8 @@ def build_fresh_signals(p: Pulse, prev_d: Optional[Dict[str, Any]],
     if det.get("positioning_extreme") is not None:
         out.append({"sub_type": "positioning_extreme", "strength": det["positioning_extreme"],
                     "direction": _pos_ext_direction(d)})
+    for card in out:
+        card["source"] = SIGNAL_SOURCES.get(card["sub_type"], DEFAULT_SIGNAL_SOURCE)
     return out
 
 
