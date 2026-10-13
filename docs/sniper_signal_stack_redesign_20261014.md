@@ -278,6 +278,44 @@ harness 保真度校验：legacy 模式下 cvd_momentum 26.7%（生产 25.9%）�
 4. 因此 default 保持 `adaptive.enabled: false` + `sources_mode: shadow`。
    **要开启必须两者一起开**（C+D 同批），并当作一次行为改动来观察。
 
+### D — enforce 的判据（机制已就位，保持在 shadow）
+
+`min_sources_*` + `sources_mode` 已实现，默认 `shadow`。**不启用 enforce 的判据是明确的：**
+
+| 需要看到 | 现状 | 结论 |
+|---|---|---|
+| C（adaptive）同时开启 | 未开启 | enforce 的必要条件 —— 见 §C 测量第 2 点：legacy 下 `sources≥2` 在 BTC 上几乎不可达（3 次） |
+| shadow 日志里 "would block" 的**独立行情数** ≥ 30 | 0（日志尚未产生） | 现在只有 11–12 个 episode，enforce 等于凭 12 个样本改行为 |
+| would-block 的那批在 `sources≥2` 口径下的 adjusted excess 非负 | 未测（无 shadow 数据） | 目前只有离线估计 +0.234(BTC) / −0.034(XAUT) |
+
+**所以 enforce 与 adaptive 必须同批开启**，且开之前先积累 shadow 数据。
+
+### E — 延迟探针（只采集，不设计）
+
+`src/sniper/scout.py` 新增 `_log_flow_probe()`：每轮记录最近 `cvd_micro_lookback_candles` 根
+15m K 线的 **原始逐根 taker 净流与成交量**（最新在前，第一项是未收盘的那根）：
+
+```
+[XAUTUSDT] FLOW PROBE | flow=[+0.2000,1.0000],[+3.0000,9.0000],[+0.5000,6.0000],[-2.0000,8.0000]
+```
+
+**为什么只写日志、不进 metrics**：`sentiment_signals` 会随 `observation` 进入 session/LLM 的
+输入（§0）。新增字段就是动 prompt 输入，超出本次授权范围。写日志则完全不触达 session，
+同时把设计"更快的指标"所需的数据留下来了 —— 现在这些数据从未落盘，所以任何短周期
+（<60 分钟）指标都**无法回测**，这是 G4 一直无法推进的真正原因。
+
+测试覆盖：最新在前、按 lookback 截断、空输入不输出、缺 taker 字段不输出、
+以及**任何输入都不许抛异常**（探针不能弄坏一次 pulse）。
+
+### UI U3 — shadow 判决上界面（已做）；U2 暂缓
+
+`TriggerResult.gate_shadow` 承载 shadow 判决（**与 `gate_reason` 分开**，避免让人误以为它是
+没唤醒的原因），经 pulse file 到 UI，在 signal card 头部显示 `◇ would block: 1/2 independent sources`。
+只在"would block"时出现，空判决不占位；每轮都重算，测试覆盖**不残留上一轮的值**。
+
+**U2（显示自适应阈值当前值）暂缓**：`adaptive.enabled` 默认 false，此时没有任何"当前 z 值"
+可显示，先做等于上线一段死 UI。等 C+D 开启时一起做。
+
 ### 尚未实施（需 operator 点头）
 
 - **C：自适应条件**（§2.2）—— 会改变触发时机与数量。

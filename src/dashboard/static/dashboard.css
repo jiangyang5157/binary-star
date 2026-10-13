@@ -1788,6 +1788,17 @@ th.sortable.sort-desc::after {
   color: var(--text-primary);
 }
 
+/* Source-breadth gate verdict, shadow mode (what the pending rule would say) */
+.sc-shadow {
+  font-size: 0.65rem;
+  color: var(--text-muted, #8898ac);
+  border: 1px dashed var(--border-muted);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
 /* Cooldown tag in card header */
 .signal-card-cooldown {
   font-size: 0.7rem;

@@ -103,6 +103,24 @@ class SniperScout:
         # Sniper doesn't generate charts, so discard the pre-processed DataFrames.
         metrics, _, _ = self.refiner.refine(raw)
         
+        # ── FLOW PROBE: raw per-candle order flow, log only ───────────────
+        # The detector stack reads cvd_intensity_ratio, which averages the last
+        # four 15-minute candles — a ~60-minute smoothing that is the dominant
+        # source of signal latency (wakes land 41-80 minutes after the swing
+        # started; capture 0.43/0.49).  Designing a faster reading needs the
+        # per-candle flow, which was never recorded, so no back-test of a
+        # shorter horizon is possible today.
+        #
+        # Emitted as a *log line only*: adding a field to sentiment_signals
+        # would change the observation handed to the session/LLM, and that is
+        # out of bounds for this change (see
+        # docs/sniper_signal_stack_redesign_20261014.md §0).
+        #
+        # Format: flow=[delta,volume] per candle, newest first, oldest last;
+        # the newest entry is the *forming* candle, so horizons shorter than
+        # one candle can be reconstructed from consecutive pulses.
+        self._log_flow_probe(raw)
+
         # Slim down the processed metrics to just what the Trigger needs
         distilled = {
             "price_dynamics": metrics.price_dynamics,
@@ -118,6 +136,22 @@ class SniperScout:
             metrics=distilled,
             raw_data=raw
         )
+
+    def _log_flow_probe(self, raw) -> None:
+        """Log raw per-candle taker flow for latency analysis (no metrics change)."""
+        try:
+            klines = list(raw.micro_klines or [])[-self.obs_config.cvd_micro_lookback_candles:]
+            entries = []
+            for k in klines:
+                if k.taker_buy_base is None:
+                    continue
+                delta = k.taker_buy_base - (k.volume - k.taker_buy_base)
+                entries.append(f"[{delta:+.4f},{k.volume:.4f}]")
+            if not entries:
+                return
+            logger.info("[%s] FLOW PROBE | flow=%s", self.symbol, ",".join(reversed(entries)))
+        except Exception as e:  # never let instrumentation break a pulse
+            logger.debug(f"[{self.symbol}] flow probe failed | error={e}")
 
     def close(self):
         self.exchange_client.close()

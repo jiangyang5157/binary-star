@@ -80,6 +80,11 @@ class TriggerResult:
     situation_brief: Optional[Dict[str, Any]]  # None if not triggered
     cooldown_minutes: float
     gate_reason: str = ""                   # why PASS/FAIL/SKIPPED — surfaced to state file
+    # Non-empty when the source-breadth gate is in shadow mode and *would* have
+    # blocked this pulse.  Kept separate from gate_reason so the UI can show
+    # "the new rule would have said no" without pretending it is the reason the
+    # pulse did not wake.
+    gate_shadow: str = ""
 
 
 @dataclass
@@ -369,6 +374,7 @@ class SniperTrigger:
         # leave the detector permanently dark.
         self._cvd_history: deque = deque(maxlen=max(64, int(self._cvd_lag_minutes) * 3))
         self._cvd_div_reason = "warmup"
+        self._gate_shadow = ""
 
         # Scale-free thresholds.  When disabled every detector keeps its legacy
         # absolute rule, so the switch is behaviour-preserving by construction.
@@ -735,6 +741,7 @@ class SniperTrigger:
                          regime: str) -> Tuple[str, str]:
         """Deterministic pre-check before spending AI tokens. Returns (result, reason)."""
         gate_cfg = self.sniper_cfg.get('signal_stack', {}).get('gate', {})
+        self._gate_shadow = ""
 
         # 1. Directional sanity
         if gate_cfg.get('directional_sanity', True):
@@ -827,6 +834,9 @@ class SniperTrigger:
                      f"from {[s.sub_type for s in same_dir_active]}")
             if mode == 'shadow':
                 logger.info("[%s] %s", self.symbol, would)
+                self._gate_shadow = (
+                    f"would block: {len(sources)}/{min_sources} independent sources"
+                )
             else:
                 return "FAIL", would.replace(f"GATE SOURCE BLOCK | ", "MIN_INDEPENDENT_SOURCES: ")
 
@@ -1441,6 +1451,7 @@ class SniperTrigger:
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
             gate_reason=gate_reason,
+            gate_shadow=self._gate_shadow,
         )
 
     def apply_leader_sync(self, own_signals: List[SignalCard],
@@ -1705,6 +1716,7 @@ class SniperTrigger:
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
             gate_reason=gate_reason,
+            gate_shadow=self._gate_shadow,
         )
 
         if should_trigger:

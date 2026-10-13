@@ -717,6 +717,38 @@ class TestSourceBreadthGate:
                                     Direction.BULLISH, 'ranging')
         assert res == 'PASS'
 
+    def test_shadow_verdict_is_recorded_when_the_count_gate_passes(self):
+        """Three same-direction signals, one source: the count gate passes, the
+        source gate would not.  Shadow records that without changing the verdict."""
+        t = self._trigger('shadow')
+        res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                                         Direction.BULLISH, 'ranging')
+        assert res == 'PASS'
+        assert reason == ""
+        assert 'independent sources' in t._gate_shadow
+
+    def test_shadow_verdict_is_empty_when_sources_are_sufficient(self):
+        t = self._trigger('shadow')
+        t._run_pre_ai_gate(self._metrics(), self._mixed_signals(),
+                           Direction.BULLISH, 'ranging')
+        assert t._gate_shadow == ""
+
+    def test_shadow_verdict_cleared_between_pulses(self):
+        """A verdict from the previous pulse must not stick to this one."""
+        t = self._trigger('shadow')
+        t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                           Direction.BULLISH, 'ranging')
+        assert t._gate_shadow != ""
+        t._run_pre_ai_gate(self._metrics(), self._mixed_signals(),
+                           Direction.BULLISH, 'ranging')
+        assert t._gate_shadow == ""
+
+    def test_shadow_never_reaches_the_real_gate_reason(self):
+        t = self._trigger('shadow')
+        _res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                                          Direction.BULLISH, 'ranging')
+        assert 'MIN_INDEPENDENT_SOURCES' not in reason
+
     def test_trending_uses_the_trend_minimum(self):
         t = self._trigger('enforce', min_sources=2)
         # min_sources_trend defaults to 1 in _full_trigger's gate dict?  It is
