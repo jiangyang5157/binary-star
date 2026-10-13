@@ -121,6 +121,21 @@ class RobustWindow:
                else 0.5 * (deviations[mid - 1] + deviations[mid]))
         return MAD_TO_SIGMA * mad
 
+    @property
+    def is_degenerate(self) -> bool:
+        """Ready, but with no dispersion to measure against.
+
+        This happens for metrics quantised to a couple of exchange ticks —
+        funding is only ever 0.0000 or 0.0001, so its MAD is 0 and every
+        z-score is 0.0.  The fail-safe in :meth:`z` (0.0 rather than dividing
+        by zero) then leaves the detector permanently unable to fire.
+
+        That is precisely the "declared but unreachable, and nobody is told"
+        failure this module exists to remove, so callers must surface it rather
+        than let it look like a threshold that merely never triggers.
+        """
+        return self.ready and self.scale() <= 0
+
     def z(self, value: Optional[float]) -> float:
         """Robust z, or 0.0 when not ready / no dispersion.
 
@@ -167,6 +182,22 @@ class RobustWindows:
 
     def ready(self, name: str) -> bool:
         return self.window(name).ready
+
+    def is_degenerate(self, name: str) -> bool:
+        return self.window(name).is_degenerate
+
+    def label(self, name: str, value: Optional[float]) -> str:
+        """Diagnostic state: 'warmup(n/m)' | 'degenerate(...)' | 'z=+1.23'.
+
+        Exists so a log line can distinguish "the threshold was not met" from
+        "this condition can never be met".
+        """
+        win = self.window(name)
+        if not win.ready:
+            return f"warmup({win.count}/{win.min_samples})"
+        if win.is_degenerate:
+            return "degenerate(no-dispersion)"
+        return f"z={win.z(value):+.2f}"
 
     def clear(self) -> None:
         for win in self._windows.values():

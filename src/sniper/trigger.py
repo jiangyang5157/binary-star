@@ -1532,8 +1532,10 @@ class SniperTrigger:
             path = s.evidence.get('trigger_path', '?')
             parts.append(f"cvd_momentum=F:{s.strength:.2f}({path})")
         elif self._adaptive_on:
-            # Report the threshold actually in force, not the legacy constant.
-            parts.append(f"cvd_momentum=R:|z|={abs(z_cvd):.2f}<={self._z_entry}")
+            # Report the threshold actually in force, not the legacy constant,
+            # and distinguish "not met" from "cannot be met" (degenerate window).
+            parts.append(f"cvd_momentum=R:{self._adaptive.label('cvd', cvd)}"
+                         f" (entry {self._z_entry})")
         else:
             if abs(cvd) <= cvd_thresh:
                 parts.append(f"cvd_momentum=R:|cvd|={abs(cvd):.3f}<={cvd_thresh}")
@@ -1558,9 +1560,9 @@ class SniperTrigger:
             # must not be used to describe readiness either.
             win = self._adaptive.window('avg_trade_size')
             z = self._adaptive_z('avg_trade_size', avg_size)
-            mark = (f"R:z={z:.2f}<={self._z_entry}" if win.ready
-                    else f"R:warmup({win.count}/{win.min_samples})")
-            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade={mark}")
+            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade="
+                         f"R:{self._adaptive.label('avg_trade_size', avg_size)}"
+                         f" (entry {self._z_entry})")
         elif len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
             parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=R:warmup({len(self._trade_size_window)}/{MIN_LARGE_TRADE_SAMPLES})")
         else:
@@ -1580,8 +1582,8 @@ class SniperTrigger:
         if s:
             parts.append(f"vol_surge=F:{round(s.strength, 2)}")
         elif self._adaptive_on:
-            parts.append(f"vol_surge=R:z_vii={self._adaptive_z('vii', vii):.2f}|"
-                         f"z_vpr={self._adaptive_z('vpr', vpr):.2f}<={self._z_entry}")
+            parts.append(f"vol_surge=R:vii[{self._adaptive.label('vii', vii)}]"
+                         f"|vpr[{self._adaptive.label('vpr', vpr)}] (entry {self._z_entry})")
         else:
             parts.append(f"vol_surge=R:vii<={vol_base}|vpr<={volume_threshold}")
 
@@ -1622,9 +1624,9 @@ class SniperTrigger:
         if s:
             parts.append(f"pos_ext=F:{round(s.strength, 2)}")
         elif self._adaptive_on:
-            parts.append(f"pos_ext=R:z_ls={self._adaptive_z('ls', ls):.2f}|"
-                         f"z_fund={self._adaptive_z('funding', funding):.2f}|"
-                         f"z_oi={self._adaptive_z('oi_delta', oi_delta):.2f}"
+            parts.append(f"pos_ext=R:ls[{self._adaptive.label('ls', ls)}]"
+                         f"|fund[{self._adaptive.label('funding', funding)}]"
+                         f"|oi[{self._adaptive.label('oi_delta', oi_delta)}]"
                          f" (entry {self._z_entry}/extreme {self._z_extreme})")
         else:
             parts.append(f"pos_ext=R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01")

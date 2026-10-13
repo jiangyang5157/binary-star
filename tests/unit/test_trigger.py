@@ -931,11 +931,13 @@ class TestSelfReviewRegressions:
         with caplog.at_level(logging.INFO, logger='src.sniper.trigger'):
             t.evaluate(_full_metrics(cvd=0.11, price=4400.0), None)
         diag = " ".join(r.getMessage() for r in caplog.records if 'SIGNAL DIAG' in r.getMessage())
-        assert 'cvd_momentum=R:|z|=' in diag, diag
+        assert 'cvd_momentum=R:z=' in diag, diag
         assert '<=0.2' not in diag, "legacy cvd threshold leaked into the diag"
         assert 'large_trade=R:warmup(0/5)' not in diag, \
             "the legacy deque is not fed in adaptive mode; quoting it is a lie"
-        assert 'z_vii=' in diag and 'z_ls=' in diag
+        # warm-up must be reported as warm-up, not disguised as "z=0.00 not met"
+        assert 'vii[' in diag and 'vpr[' in diag and 'ls[' in diag
+        assert 'warmup(' in diag
 
     def test_cvd_divergence_reason_shows_the_z_in_adaptive_mode(self):
         from datetime import timedelta

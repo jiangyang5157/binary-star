@@ -205,3 +205,50 @@ class TestRobustWindows:
         before = ws.window("a").count
         assert ws.z("a", 20.0) > 3.0
         assert ws.window("a").count == before
+
+
+class TestDegenerateWindows:
+    """A quantised metric has no dispersion to measure against.
+
+    funding is only ever 0.0000 or 0.0001 (measured: 7281 pulses, MAD = 0), so
+    every z-score is 0.0 and the detector can never fire.  That is the exact
+    "declared but unreachable and nobody is told" failure this module exists to
+    remove, so it must be *visible* rather than look like a threshold that
+    merely never triggers.
+    """
+
+    def test_two_valued_metric_is_degenerate(self):
+        win = RobustWindow(600, 3)
+        _feed(win, [0.0, 0.0001, 0.0, 0.0001, 0.0])
+        assert win.ready is True
+        assert win.scale() == 0.0
+        assert win.is_degenerate is True
+
+    def test_degenerate_window_never_scores_extreme(self):
+        # The majority value must be the median for MAD to vanish, which is
+        # what the real data looks like (61.5% zeros).
+        win = RobustWindow(600, 3)
+        _feed(win, [0.0, 0.0, 0.0001, 0.0, 0.0])
+        assert win.is_degenerate is True
+        assert win.z(0.0005) == 0.0     # fail-safe, not a division by zero
+
+    def test_normal_window_is_not_degenerate(self):
+        win = RobustWindow(600, 3)
+        _feed(win, [1.0, 2.0, 3.0, 4.0])
+        assert win.is_degenerate is False
+
+    def test_warmup_is_not_reported_as_degenerate(self):
+        """They need different fixes: warm-up resolves itself, degeneracy does not."""
+        win = RobustWindow(600, 10)
+        _feed(win, [0.0, 0.0])
+        assert win.ready is False
+        assert win.is_degenerate is False
+
+    def test_label_distinguishes_all_three_states(self):
+        ws = RobustWindows(600, 3)
+        assert ws.label("a", 1.0).startswith("warmup")
+        _feed(ws.window("a"), [1.0, 2.0, 3.0, 4.0])
+        assert ws.label("a", 3.0).startswith("z=")
+        ws2 = RobustWindows(600, 3)
+        _feed(ws2.window("b"), [0.0, 0.0001, 0.0])
+        assert ws2.label("b", 0.0).startswith("degenerate")
