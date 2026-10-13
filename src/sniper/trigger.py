@@ -196,7 +196,11 @@ SIGNAL_SOURCES: Dict[str, str] = {
     'cvd_absorption': 'flow',
     'large_trade': 'flow',
     'volatility_surge': 'flow',
-    'cvd_divergence': 'flow',
+    # NOT flow: its direction is contrarian *price* (BEARISH if price rose),
+    # not sign(cvd).  Grouping it with the four sign(cvd) detectors understated
+    # the independent-source count and made the shadow gate read as blocking
+    # more often than it should.
+    'cvd_divergence': 'divergence',
     'squeeze': 'volatility',
     'boundary_test': 'structure',
     'liquidation_hunt': 'liquidity',
@@ -959,7 +963,12 @@ class SniperTrigger:
             driver = abs(self._adaptive_z('cvd_delta', cvd_delta))
             threshold = self._z_entry
         if driver <= threshold:
-            self._cvd_div_reason = f"|dCVD|={abs(cvd_delta):.3f}<={threshold} (ref {age:.0f}m ago)"
+            # Report the driver that is actually in force: in adaptive mode that
+            # is the z-score, and printing the raw delta next to a z threshold
+            # would read like a bug in the log.
+            label = (f"|z|={driver:.2f}" if self._adaptive_on
+                     else f"|dCVD|={abs(cvd_delta):.3f}")
+            self._cvd_div_reason = f"{label}<={threshold} (ref {age:.0f}m ago)"
             return None
 
         price_delta = curr['price_dynamics']['current_price'] - ref_price
@@ -1352,12 +1361,16 @@ class SniperTrigger:
             if self._adaptive_on:
                 z_oi = self._adaptive_z('oi_delta', oi_delta)
                 oi_scale, oi_floor = abs(z_oi), self._z_entry
+                oi_strength = min(oi_scale / (oi_floor * 2.0), 1.0)
+                oi_gate = oi_scale > oi_floor
             else:
-                oi_scale, oi_floor = abs(oi_delta), 0.01
-            if abs(oi_delta) > 1e-10 and abs(price_delta) > 1e-10 and oi_scale > oi_floor:
+                # Legacy arithmetic kept verbatim: same gate (0.01, a bare
+                # constant) and same saturation (OI_DIVERGENCE_SATURATION).
+                oi_strength = min(abs(oi_delta) / OI_DIVERGENCE_SATURATION, 1.0)
+                oi_gate = abs(oi_delta) > 0.01
+            if abs(oi_delta) > 1e-10 and abs(price_delta) > 1e-10 and oi_gate:
                 if (oi_delta > 0 and price_delta < 0) or (oi_delta < 0 and price_delta > 0):
                     oi_dir = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
-                    oi_strength = min(oi_scale / (oi_floor * 2.0), 1.0)
                     if oi_strength > best_strength:
                         best_direction = oi_dir
                         best_strength = oi_strength
@@ -1371,12 +1384,15 @@ class SniperTrigger:
                            prev['price_dynamics']['current_price'])
             if self._adaptive_on:
                 oi_scale2, oi_floor2 = abs(self._adaptive_z('oi_delta', oi_delta)), self._z_extreme
+                oi_strength = min((oi_scale2 - oi_floor2) / (oi_floor2 * 2.0), 1.0)
+                oi_gate2 = oi_scale2 > oi_floor2
             else:
-                oi_scale2, oi_floor2 = abs(oi_delta), OI_SURGE_MIN_DELTA
-            if oi_scale2 > oi_floor2:
+                # Legacy arithmetic kept verbatim.
+                oi_strength = min((abs(oi_delta) - OI_SURGE_MIN_DELTA) / OI_SURGE_SATURATION, 1.0)
+                oi_gate2 = abs(oi_delta) > OI_SURGE_MIN_DELTA
+            if oi_gate2:
                 if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
                     oi_dir = Direction.BULLISH if price_delta > 0 else Direction.BEARISH
-                    oi_strength = min((oi_scale2 - oi_floor2) / (oi_floor2 * 2.0), 1.0)
                     if oi_strength > best_strength:
                         best_direction = oi_dir
                         best_strength = oi_strength
@@ -1498,9 +1514,13 @@ class SniperTrigger:
         parts.append(f"cvd={cvd:+.3f}")
 
         s = fired.get('cvd_momentum')
+        z_cvd = self._adaptive_z('cvd', cvd)
         if s:
             path = s.evidence.get('trigger_path', '?')
             parts.append(f"cvd_momentum=F:{s.strength:.2f}({path})")
+        elif self._adaptive_on:
+            # Report the threshold actually in force, not the legacy constant.
+            parts.append(f"cvd_momentum=R:|z|={abs(z_cvd):.2f}<={self._z_entry}")
         else:
             if abs(cvd) <= cvd_thresh:
                 parts.append(f"cvd_momentum=R:|cvd|={abs(cvd):.3f}<={cvd_thresh}")
@@ -1520,6 +1540,14 @@ class SniperTrigger:
         if s:
             z = s.evidence.get('z_score', 0.0)
             parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=F:{s.strength:.2f}(z={z:.1f})")
+        elif self._adaptive_on:
+            # The legacy deque is deliberately not fed in adaptive mode, so it
+            # must not be used to describe readiness either.
+            win = self._adaptive.window('avg_trade_size')
+            z = self._adaptive_z('avg_trade_size', avg_size)
+            mark = (f"R:z={z:.2f}<={self._z_entry}" if win.ready
+                    else f"R:warmup({win.count}/{win.min_samples})")
+            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade={mark}")
         elif len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
             parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=R:warmup({len(self._trade_size_window)}/{MIN_LARGE_TRADE_SAMPLES})")
         else:
@@ -1536,7 +1564,13 @@ class SniperTrigger:
         s = fired.get('volatility_surge')
         vol_base = self.regime_cfg['volatility']['volatility_baseline_ratio']
         volume_threshold = self.sniper_cfg['signal_stack']['thresholds']['volume_participation_threshold']
-        parts.append(f"vol_surge={'F:'+str(round(s.strength,2)) if s else f'R:vii<={vol_base}|vpr<={volume_threshold}'}")
+        if s:
+            parts.append(f"vol_surge=F:{round(s.strength, 2)}")
+        elif self._adaptive_on:
+            parts.append(f"vol_surge=R:z_vii={self._adaptive_z('vii', vii):.2f}|"
+                         f"z_vpr={self._adaptive_z('vpr', vpr):.2f}<={self._z_entry}")
+        else:
+            parts.append(f"vol_surge=R:vii<={vol_base}|vpr<={volume_threshold}")
 
         sf = metrics['market_regime']['squeeze_factor']
         sq_thresh = (self.regime_cfg['volatility']['squeeze_threshold'] *
@@ -1572,7 +1606,15 @@ class SniperTrigger:
         ls_imb = self.regime_cfg['imbalance']['long_short_imbalance_ratio']
         ls_short = self.regime_cfg['imbalance']['short_heavy_imbalance_ratio']
         fund_ext = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
-        parts.append(f"pos_ext={'F:'+str(round(s.strength,2)) if s else f'R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01'}")
+        if s:
+            parts.append(f"pos_ext=F:{round(s.strength, 2)}")
+        elif self._adaptive_on:
+            parts.append(f"pos_ext=R:z_ls={self._adaptive_z('ls', ls):.2f}|"
+                         f"z_fund={self._adaptive_z('funding', funding):.2f}|"
+                         f"z_oi={self._adaptive_z('oi_delta', oi_delta):.2f}"
+                         f" (entry {self._z_entry}/extreme {self._z_extreme})")
+        else:
+            parts.append(f"pos_ext=R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01")
 
         # ── PROVENANCE ──
         # How many *independent* information sources are behind the dominant

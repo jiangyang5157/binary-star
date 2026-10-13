@@ -857,3 +857,76 @@ class TestAdaptiveEnabled:
         t.reset_state()
         assert t._adaptive.window('ls').count == 0
         assert t._last_z == {}
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Self-review regressions
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestSelfReviewRegressions:
+    """Each of these pins a defect found by reviewing this change."""
+
+    def test_cvd_divergence_is_not_grouped_with_flow(self):
+        """Its direction is contrarian *price*, not sign(cvd).  Grouping it with
+        the four sign(cvd) detectors understated the independent-source count and
+        made the shadow gate read as blocking more often than it should."""
+        assert SIGNAL_SOURCES['cvd_divergence'] != 'flow'
+        flow = {s for s, src in SIGNAL_SOURCES.items() if src == 'flow'}
+        assert flow == {'cvd_momentum', 'cvd_absorption', 'large_trade',
+                        'volatility_surge'}
+
+    def test_each_source_group_has_an_explicit_rationale(self):
+        """Sources are defined by where the *direction* comes from; a detector
+        whose direction is derived from something else must not share a group."""
+        # sign(cvd) group — verified against the detectors' own code
+        assert SIGNAL_SOURCES['cvd_momentum'] == 'flow'
+        assert SIGNAL_SOURCES['cvd_absorption'] == 'flow'
+        assert SIGNAL_SOURCES['large_trade'] == 'flow'
+        assert SIGNAL_SOURCES['volatility_surge'] == 'flow'
+        # everything else is a distinct provenance
+        assert SIGNAL_SOURCES['cvd_divergence'] == 'divergence'
+        assert SIGNAL_SOURCES['positioning_extreme'] == 'positioning'
+        assert SIGNAL_SOURCES['liquidation_hunt'] == 'liquidity'
+        assert SIGNAL_SOURCES['boundary_test'] == 'structure'
+
+    def test_diag_reports_the_threshold_actually_in_force(self, caplog):
+        """In adaptive mode the reasons must not quote the legacy constants —
+        that is exactly the 'log says something false' failure this stack was
+        already bitten by."""
+        import logging
+        t = _adaptive_trigger(True, min_samples=3)
+        _feed_adaptive(t, [0.1, 0.12, 0.11, 0.13], name='cvd')
+        # a cvd at the window's centre: not extreme, so the detector must report
+        # *why* it declined, in the units actually in force
+        with caplog.at_level(logging.INFO, logger='src.sniper.trigger'):
+            t.evaluate(_full_metrics(cvd=0.11, price=4400.0), None)
+        diag = " ".join(r.getMessage() for r in caplog.records if 'SIGNAL DIAG' in r.getMessage())
+        assert 'cvd_momentum=R:|z|=' in diag, diag
+        assert '<=0.2' not in diag, "legacy cvd threshold leaked into the diag"
+        assert 'large_trade=R:warmup(0/5)' not in diag, \
+            "the legacy deque is not fed in adaptive mode; quoting it is a lie"
+        assert 'z_vii=' in diag and 'z_ls=' in diag
+
+    def test_cvd_divergence_reason_shows_the_z_in_adaptive_mode(self):
+        from datetime import timedelta
+        t = _adaptive_trigger(True, min_samples=3)
+        t0 = datetime.now(timezone.utc)
+        # a baseline centred on zero, so a zero delta is unremarkable
+        _feed_adaptive(t, [0.0, 0.001, -0.001, 0.0], name='cvd_delta')
+        t._cvd_history.append((t0 - timedelta(minutes=15), 0.10, 4400.0))
+        card = t._detect_cvd_divergence(_full_metrics(cvd=0.10, price=4400.0), None, t0)
+        assert card is None
+        assert '|z|=' in t._cvd_div_reason, t._cvd_div_reason
+        assert '|dCVD|=' not in t._cvd_div_reason, \
+            "raw delta must not be printed next to a z threshold"
+
+
+    def test_ui_always_creates_the_shadow_element(self):
+        """The in-place update path can only reveal an element that exists, so a
+        conditionally-created badge would never appear if the verdict arrived
+        after the first render."""
+        from pathlib import Path as _P
+        tpl = _P("src/dashboard/templates/live.html").read_text()
+        assert 'sc-shadow' in tpl
+        # the span must be emitted unconditionally (display toggled), not inside an if
+        assert "html += '<span class=\"sc-shadow\"" in tpl

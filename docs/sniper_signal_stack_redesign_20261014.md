@@ -70,7 +70,7 @@ UI 侧（`live.html`）渲染 `sd.all_signals[]`，字段 `type / score / streng
 # 一个信息源 = 一批共享同一底层数据与方向的检测器
 SIGNAL_SOURCES = {
     "cvd_momentum":       "flow",         # 方向 = sign(cvd)
-    "cvd_divergence":     "flow",         # 方向 = sign(price_delta)，底层同为 cvd
+    "cvd_divergence":     "divergence",   # 方向 = **-sign(price_delta)**（逆势价格），不是 sign(cvd)
     "cvd_absorption":     "flow",         # 方向 = -sign(cvd)
     "large_trade":        "flow",         # 方向 = sign(cvd)
     "volatility_surge":   "volatility",   # 方向 = sign(cvd) or trend  ← 见下方注
@@ -82,10 +82,15 @@ SIGNAL_SOURCES = {
 }
 ```
 
-> **注**：`volatility_surge` 的方向取自 `sign(cvd)`，所以它**不是**独立的。
+> **注 1**：`volatility_surge` 的方向取自 `sign(cvd)`，所以它**不是**独立的。
 > 按"方向从哪来"分，它应归 `flow`；但按"它测什么"分，它属于 `volatility`。
 > 设计上取**前者**（方向来源）—— 因为广度要求的本质是"独立的信息"，不是"不同的指标"。
 > 即：`volatility_surge → "flow"`。
+>
+> **注 2（2026-10-14 self-review 修正）**：初版把 `cvd_divergence` 也归进 `flow`，这是**错的**。
+> 它的方向是 `BEARISH if price_delta > 0 else BULLISH` —— 取自**价格的逆向**，不是 `sign(cvd)`。
+> 按本设计自己的规则（按方向来源分组），它必须单独成源，否则会**低估**独立来源数、
+> 让 shadow 闸门读起来比实际更容易拦。已改为 `divergence`。
 
 **这一条本身不改变任何行为**，只是让系统（和 UI）第一次能说清"我现在有几份独立信息"。
 
@@ -315,6 +320,37 @@ harness 保真度校验：legacy 模式下 cvd_momentum 26.7%（生产 25.9%）�
 
 **U2（显示自适应阈值当前值）暂缓**：`adaptive.enabled` 默认 false，此时没有任何"当前 z 值"
 可显示，先做等于上线一段死 UI。等 C+D 开启时一起做。
+
+### Self code review（2026-10-14）—— 发现并修掉 6 处，其中 3 处是我自己的 bug
+
+| # | 性质 | 问题 | 处置 |
+|---|---|---|---|
+| **R1** | **我的 bug（正确性）** | `SIGNAL_SOURCES` 把 `cvd_divergence` 归进 `flow`，但它的方向是 `BEARISH if price_delta > 0`，即**逆向价格**，不是 `sign(cvd)` —— 违反本设计自己定的"按方向来源分组"规则，会**低估**独立来源数、让 shadow 闸门读起来比实际更容易拦 | 改为独立来源 `divergence` |
+| **R2** | **我的 bug（行为回归）** | 转换 `pos_ext` P3/P4 时把 legacy 的饱和分母从 `OI_DIVERGENCE_SATURATION`(0.03) / `OI_SURGE_SATURATION`(0.04) 换成了 `oi_floor*2`(0.02)，**legacy 强度被静默改了 1.5×**，进而影响 confluence 与闸门 | 恢复 legacy 算式原样；并留下**指纹工具**作为这类回归的护栏 |
+| **R3** | **我的 bug（可观测性）** | 诊断行不知道 adaptive 模式：`large_trade` 会永远报 `warmup(0/5)`（它的 legacy deque 在 adaptive 下不再喂），`cvd_momentum`/`vol_surge`/`pos_ext` 报的是**已失效的旧阈值** | 四个字段全部按模式分支，报"实际生效的那个" |
+| **R4** | **我的 bug（日志说谎）** | `cvd_divergence` 的 reason 在 adaptive 下把**原始 dCVD** 与 **z 阈值**印在一起 | 按模式分别印 `\|z\|=` / `\|dCVD\|=` |
+| **R5** | 真 bug（UI） | shadow 徽章只在首次渲染时**条件创建**，之后 in-place update 找不到元素 → 后来才出现的判决永远不显示 | 无条件创建、用 `display` 切换 |
+| **R6** | 真 bug（孤儿常量） | 转换后 `OI_DIVERGENCE_SATURATION` / `OI_SURGE_SATURATION` 成为死常量 | 随 R2 一并恢复使用 |
+
+**验证 legacy 路径未被触碰（最关键的一条）：**
+
+`scripts/sniper_legacy_fingerprint.py` 对每个检测器记录 **fire 数 + strength 总和**
+（只比 fire 数不够 —— 强度变化同样会移动 confluence 和闸门）。
+与改动前的 `7e7c6c9` 对比：
+
+```
+diff /tmp/fp_old.json /tmp/fp_new.json   →   无差异
+XAUTUSDT  cvd_momentum 2036 次 / Σ=978.853    cvd_absorption 800 / 173.657
+          large_trade   996 / 684.124         cvd_divergence  72 /  31.397
+          positioning_extreme 52 / 26.928     volatility_surge 16 / 7.416
+BTCUSDT   cvd_momentum 1204 / 383.115         cvd_absorption 1436 / 339.721
+          large_trade   520 / 336.768         cvd_divergence  70 /  29.665
+          positioning_extreme  4 / 1.780      volatility_surge  5 / 0.492
+```
+
+**即：`adaptive.enabled: false` 下行为与改动前逐位一致** —— 包括 R2 修掉之后。
+
+测试：**566 passed**（+5 自审回归用例：来源分组、诊断模式感知、reason 单位、UI 元素生命周期）。
 
 ### 尚未实施（需 operator 点头）
 

@@ -654,12 +654,12 @@
       html += '<span class="sc-direction ' + dir.toLowerCase() + '" style="display:' + (tradeOn && (state === 'protected' || state === 'naked') ? '' : 'none') + '"><span class="sc-dir-label">' + dir + '</span><span class="sc-dir-qty">' + qty + '</span></span>';
 
       // Source-breadth gate (shadow): what the pending rule would have said.
-      // Rendered only when it would have blocked — an empty verdict is the
-      // common case and must not add noise.
-      if (sd.gate_shadow) {
-        html += '<span class="sc-shadow" title="source-breadth gate (shadow mode)">' +
-                '\u25c7 ' + sd.gate_shadow + '</span>';
-      }
+      // The element is ALWAYS created (empty verdicts just hide it) because the
+      // in-place update path can only reveal an element that already exists —
+      // creating it conditionally meant a verdict appearing later never showed.
+      html += '<span class="sc-shadow" title="source-breadth gate (shadow mode)"' +
+              (sd.gate_shadow ? '' : ' style="display:none"') + '>' +
+              (sd.gate_shadow ? '\u25c7 ' + _esc(sd.gate_shadow) : '') + '</span>';
 
       // Cooldown
       html += '<span class="signal-card-cooldown" style="display:' + (sd.cooldown_active && sd.cooldown_remaining_seconds > 0 ? '' : 'none') + '">❄ ' + formatElapsed(sd.cooldown_remaining_seconds || 0) + '</span>';
@@ -718,8 +718,13 @@
       // Source-breadth shadow verdict
       var shadowEl = card.querySelector('.sc-shadow');
       if (shadowEl) {
-        if (sd.gate_shadow) { shadowEl.textContent = '\u25c7 ' + sd.gate_shadow; shadowEl.style.display = ''; }
-        else { shadowEl.style.display = 'none'; }
+        if (sd.gate_shadow) {
+          shadowEl.textContent = '\u25c7 ' + sd.gate_shadow;
+          shadowEl.style.display = '';
+        } else {
+          shadowEl.textContent = '';
+          shadowEl.style.display = 'none';
+        }
       }
 
       // Status text
@@ -805,6 +810,11 @@
     // How many *independent* information sources back this pulse's direction.
     // Falls back to deriving it from the signal list when the backend has not
     // sent the field (older pulse files).
+    function _esc(v) {
+      return String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                      .replace(/"/g, '&quot;');
+    }
+
     function _sourceBadge(sd) {
       var n = sd.sources_active;
       if (n === undefined || n === null) {
