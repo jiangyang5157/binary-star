@@ -189,6 +189,21 @@ sniper:
                                      # 注：XAUT/BTC 在 symbol_config.yaml 中覆盖为 3，本值实际不生效
       min_active_trend: 1            # 趋势regime中，dominant方向至少N个活跃信号。趋势惯性使单信号更可靠，故只设最低保险1
                                      # 注：逻辑上等同"无闸门"，仅作防呆下限
+      # —— 来源广度（provenance）闸门，2026-10-14 新增，默认 shadow ——
+      # 背景：count gate 要求"≥3 个同向信号"，但 cvd_momentum / cvd_absorption /
+      #   large_trade / volatility_surge / cvd_divergence 的方向**全部来自同一份
+      #   订单流读数**（sign(cvd)），所以 3 个信号常常只承载 1 份独立信息。
+      #   实测：62 次 wake 里 cvd_momentum 出现 60 次、large_trade 45 次、
+      #   cvd_absorption 21 次 —— 其余 6 个检测器合计不到 20 次。
+      # 设计：把"广度"改问"有几份独立来源"（SIGNAL_SOURCES 见 src/sniper/trigger.py）。
+      # 模式：off | shadow | enforce。**shadow 不改变任何判决**，只多打一行
+      #   `GATE SOURCE WOULD BLOCK | ...`，让证据在零风险下累积。
+      # ⚠ 注意 min_sources_non_trend=2 对现状是**收紧**（flow-only 三元组只有 1 个来源），
+      #   所以 enforce 必须等 shadow 数据，不要提前打开。
+      # 见 docs/sniper_signal_stack_redesign_20261014.md §2.3
+      min_sources_non_trend: 2       # 非趋势 regime：≥2 个独立来源
+      min_sources_trend: 1           # 趋势 regime：≥1（与 min_active_trend 对齐）
+      sources_mode: shadow           # off | shadow | enforce
       # —— 方向来源独立要求（实验项，见 docs/sniper_gate_review_and_plan_20260917.md）——
       # 背景：cvd_momentum / large_trade / volatility_surge 的方向都取 sign(cvd)，
       # 实测两者同向率 100%（XAUT 91/91、BTC 62/62），所以"同向 3 个信号"经常只是

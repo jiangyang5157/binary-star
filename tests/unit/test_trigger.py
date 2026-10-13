@@ -4,6 +4,7 @@ from datetime import datetime, timezone, timedelta
 import pytest
 from src.sniper.trigger import (
     SignalCard, SignalMemory, ConfluenceEngine, Direction, SniperTrigger,
+    SIGNAL_SOURCES, DEFAULT_SIGNAL_SOURCE,
 )
 
 
@@ -630,3 +631,96 @@ class TestCvdDivergenceCandleLag:
     def test_lag_is_derived_from_the_micro_candle(self):
         t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
         assert t._cvd_lag_minutes == pytest.approx(15.0)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Provenance — signals sharing a source are not independent confirmations
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestSignalSources:
+
+    def test_source_is_derived_from_sub_type(self):
+        c = _gate_card(sub_type='cvd_momentum')
+        assert c.source == 'flow'
+
+    def test_every_registered_detector_declares_a_source(self):
+        """A new detector must not silently fall through to 'unknown' — that
+        would make the source-breadth gate quietly wrong."""
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        missing = [d.__name__ for d in t._signal_detectors
+                   if d.__name__.replace('_detect_', '') not in SIGNAL_SOURCES]
+        assert missing == []
+
+    def test_squeeze_is_not_flow(self):
+        assert SIGNAL_SOURCES['squeeze'] == 'volatility'
+
+    def test_volatility_surge_counts_as_flow(self):
+        """It is a volatility detector but its direction is sign(cvd), and the
+        gate cares about where the *direction* came from."""
+        assert SIGNAL_SOURCES['volatility_surge'] == 'flow'
+
+    def test_unknown_sub_type_falls_back(self):
+        assert _gate_card(sub_type='brand_new_detector').source == DEFAULT_SIGNAL_SOURCE
+
+    def test_flow_cluster_is_one_source(self):
+        """cvd_momentum + large_trade + cvd_absorption look like three signals
+        but carry one piece of information."""
+        cards = [_gate_card(sub_type=s) for s in
+                 ('cvd_momentum', 'large_trade', 'cvd_absorption')]
+        assert len({c.source for c in cards}) == 1
+
+
+class TestSourceBreadthGate:
+
+    def _trigger(self, mode, min_sources=2):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1,
+                           'min_sources_non_trend': min_sources, 'sources_mode': mode})
+        return t
+
+    def _flow_only_signals(self):
+        return [_gate_card(sub_type=s) for s in
+                ('cvd_momentum', 'large_trade', 'cvd_absorption')]
+
+    def _mixed_signals(self):
+        return [_gate_card(sub_type='cvd_momentum'),
+                _gate_card(sub_type='large_trade'),
+                _gate_card(sub_type='boundary_test')]
+
+    def _metrics(self):
+        return _full_metrics(cvd=0.60, price=4400.0)
+
+    def test_off_mode_ignores_the_rule(self):
+        t = self._trigger('off')
+        res, _ = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                                    Direction.BULLISH, 'ranging')
+        assert res == 'PASS'
+
+    def test_shadow_mode_does_not_change_the_verdict(self, caplog):
+        t = self._trigger('shadow')
+        with caplog.at_level('INFO'):
+            res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                                             Direction.BULLISH, 'ranging')
+        assert res == 'PASS', "shadow must never block"
+        assert reason == ""
+        assert any('GATE SOURCE WOULD BLOCK' in r.message for r in caplog.records)
+
+    def test_enforce_mode_blocks_flow_only(self):
+        t = self._trigger('enforce')
+        res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                                         Direction.BULLISH, 'ranging')
+        assert res == 'FAIL'
+        assert 'MIN_INDEPENDENT_SOURCES' in reason
+
+    def test_enforce_mode_passes_mixed_sources(self):
+        t = self._trigger('enforce')
+        res, _ = t._run_pre_ai_gate(self._metrics(), self._mixed_signals(),
+                                    Direction.BULLISH, 'ranging')
+        assert res == 'PASS'
+
+    def test_trending_uses_the_trend_minimum(self):
+        t = self._trigger('enforce', min_sources=2)
+        # min_sources_trend defaults to 1 in _full_trigger's gate dict?  It is
+        # absent there, so the gate falls back to 0 → no enforcement.
+        res, _ = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
+                                    Direction.BULLISH, 'trending')
+        assert res == 'PASS'

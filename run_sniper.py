@@ -19,7 +19,10 @@ load_dotenv()
 
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.sniper.scout import SniperScout
-from src.sniper.trigger import SniperTrigger, TriggerResult, Direction, SignalCard
+from src.sniper.trigger import (
+    SniperTrigger, TriggerResult, Direction, SignalCard,
+    SIGNAL_SOURCES, DEFAULT_SIGNAL_SOURCE,
+)
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
 from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
@@ -829,6 +832,9 @@ class SniperDaemon:
                                 "strength": round(sig.strength, 2),
                                 "direction": sig.direction.value,
                                 "is_active": sig.sub_type in active_types,
+                                # Provenance: signals sharing a source are not
+                                # independent confirmations (see trigger.py).
+                                "source": sig.source,
                             })
                         else:
                             all_signals.append({
@@ -837,6 +843,7 @@ class SniperDaemon:
                                 "strength": 0,
                                 "direction": "NEUTRAL",
                                 "is_active": False,
+                                "source": SIGNAL_SOURCES.get(sub_type, DEFAULT_SIGNAL_SOURCE),
                             })
 
                     cooldown_total_s = int(result.cooldown_minutes * 60)
@@ -846,8 +853,19 @@ class SniperDaemon:
                     else:
                         cooldown_remaining = cooldown_total_s
 
+                    # Independent information sources behind the dominant
+                    # direction — 10 detectors reading one order-flow number are
+                    # one observation.  Surfaced so the UI can stop implying
+                    # that a long signal strip means many independent votes.
+                    _active_src = sorted({
+                        sig["source"] for sig in all_signals
+                        if sig["is_active"] and sig["direction"] != "NEUTRAL"
+                    })
+
                     entry.update({
                         "triggered": sym in triggered_syms,
+                        "sources_active": len(_active_src),
+                        "sources": _active_src,
                         "confluence_score": round(result.confluence_score, 2),
                         "threshold": round(trigger.engine.effective_threshold, 2),
                         "direction": result.confluence_direction.value,
@@ -873,6 +891,8 @@ class SniperDaemon:
                     entry.update({
                         "triggered": False,
                         "confluence_score": 0.0,
+                        "sources_active": 0,
+                        "sources": [],
                         "threshold": round(trigger.engine.effective_threshold, 2),
                         "direction": "NEUTRAL",
                         "signals": [{"type": t, "score": 0, "strength": 0,

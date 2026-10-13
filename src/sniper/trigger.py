@@ -46,6 +46,13 @@ class SignalCard:
     timestamp: datetime
     decay_half_life_minutes: float
     evidence: Dict[str, Any] = field(default_factory=dict)
+    # Information source (see SIGNAL_SOURCES). Left empty by callers; derived
+    # from sub_type so the mapping lives in exactly one place.
+    source: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.source:
+            self.source = SIGNAL_SOURCES.get(self.sub_type, DEFAULT_SIGNAL_SOURCE)
 
     @property
     def weighted_score(self) -> float:
@@ -166,6 +173,31 @@ ABSORPTION_PRICE_STALL_ATR = 0.3
 LEADER_SYNC_CAP = 0.10
 LEADER_SYNC_SCALE = 0.25
 CVD_NEUTRAL_EPSILON = 0.01
+
+# Provenance: which *information source* a detector's direction ultimately comes
+# from.  The count gate asks for breadth ("≥3 same-direction signals"), but
+# signals sharing a source are not independent confirmations — cvd_momentum,
+# cvd_absorption, large_trade and volatility_surge all derive their direction
+# from the same order-flow reading, so four of them still carry one piece of
+# information.  Declaring the source lets the gate ask for breadth in the unit
+# that actually matters.
+#
+# Grouping is by *direction provenance*, not by subject matter: volatility_surge
+# is a volatility detector but takes its direction from sign(cvd), so it belongs
+# to "flow".  See docs/sniper_signal_stack_redesign_20261014.md §2.1.
+SIGNAL_SOURCES: Dict[str, str] = {
+    'cvd_momentum': 'flow',
+    'cvd_absorption': 'flow',
+    'large_trade': 'flow',
+    'volatility_surge': 'flow',
+    'cvd_divergence': 'flow',
+    'squeeze': 'volatility',
+    'boundary_test': 'structure',
+    'liquidation_hunt': 'liquidity',
+    'positioning_extreme': 'positioning',
+    'leader_sync': 'cross_symbol',
+}
+DEFAULT_SIGNAL_SOURCE = 'unknown'
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -721,6 +753,28 @@ class SniperTrigger:
                 f"{len(same_dir_active)} signals in {direction.value} but all derive "
                 f"direction from sign(cvd) ({[s.sub_type for s in same_dir_active]})"
             )
+
+        # 5. Source breadth — ask for breadth in *independent information*, not
+        #    in signal count.  Counting three detectors that all read the same
+        #    order-flow number is one observation, not three.  Shadow by default:
+        #    the verdict above is unchanged, we only record what the rule would
+        #    have decided so evidence can accumulate at zero risk.
+        #    See docs/sniper_signal_stack_redesign_20261014.md §2.3.
+        sources = sorted({s.source for s in same_dir_active})
+        if regime == 'trending':
+            min_sources = gate_cfg.get('min_sources_trend', 0)
+        else:
+            min_sources = gate_cfg.get('min_sources_non_trend', 0)
+        mode = gate_cfg.get('sources_mode', 'off')
+        if mode != 'off' and min_sources > 0 and len(sources) < min_sources:
+            would = (f"GATE SOURCE {'WOULD BLOCK' if mode == 'shadow' else 'BLOCK'} | "
+                     f"regime={regime} requires ≥{min_sources} independent sources | "
+                     f"dir={direction.value} | got {len(sources)} ({sources}) | "
+                     f"from {[s.sub_type for s in same_dir_active]}")
+            if mode == 'shadow':
+                logger.info("[%s] %s", self.symbol, would)
+            else:
+                return "FAIL", would.replace(f"GATE SOURCE BLOCK | ", "MIN_INDEPENDENT_SOURCES: ")
 
         return "PASS", ""
 
@@ -1364,6 +1418,15 @@ class SniperTrigger:
         ls_short = self.regime_cfg['imbalance']['short_heavy_imbalance_ratio']
         fund_ext = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
         parts.append(f"pos_ext={'F:'+str(round(s.strength,2)) if s else f'R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01'}")
+
+        # ── PROVENANCE ──
+        # How many *independent* information sources are behind the dominant
+        # direction.  Ten detectors that all read the same order-flow number are
+        # one observation; this makes that visible per pulse.
+        active = [s for s in fresh_signals
+                  if s.direction != Direction.NEUTRAL and s.strength >= MIN_STACK_STRENGTH]
+        src = sorted({s.source for s in active})
+        parts.append(f"sources={len(src)}[{','.join(src) if src else '-'}]")
 
         logger.info("[%s] SIGNAL DIAG | %s", self.symbol, " | ".join(parts))
 

@@ -665,22 +665,33 @@
       // Pulse history bar chart
       html += '<div class="pulse-history-row" id="pulse-hist-' + stripped + '"></div>';
 
-      // Compact signal strip (10 blocks)
+      // Compact signal strip (10 blocks), grouped by information source.
+      // A long strip does NOT mean many independent votes: five of the ten
+      // detectors read the same order-flow number, so blocks are separated by
+      // source and the active source count is shown next to them.
+      html += '<div class="signal-strip-row">';
       html += '<div class="signal-strip">';
       var allSignals = sd.all_signals || [];
+      var prevSource = null;
       for (var j = 0; j < allSignals.length; j++) {
         var sig = allSignals[j];
         var sdir = sig.is_active ? sig.direction : 'NEUTRAL';
         var hasScore = sig.score > 0;
         var opacity = Math.min(0.5 + sig.score * 0.5, 1.0);
+        var srcGap = (prevSource !== null && sig.source && sig.source !== prevSource)
+                     ? 'margin-left:4px;' : '';
+        prevSource = sig.source || prevSource;
         html += '<div class="signal-strip-block' + (hasScore ? ' live' : '') + '"' +
-          ' style="opacity:' + opacity + ';background:' +
+          ' style="' + srcGap + 'opacity:' + opacity + ';background:' +
           (sdir === 'BULLISH' ? 'var(--accent-green)' :
            sdir === 'BEARISH' ? 'var(--accent-red)' :
            'var(--badge-gray-bg)') + '"' +
-          ' data-tooltip="' + sig.type + '">' +
+          ' data-tooltip="' + sig.type + (sig.source ? ' · ' + sig.source : '') + '">' +
           '</div>';
       }
+      html += '</div>';
+      html += '<span class="signal-strip-sources" id="src-count-' + stripped + '">' +
+              _sourceBadge(sd) + '</span>';
       html += '</div>';
 
       html += '</div>';  // close signal-card
@@ -751,6 +762,7 @@
       // Signal strip blocks
       var allSignals = sd.all_signals || [];
       var blocks = card.querySelectorAll('.signal-strip-block');
+      var prevSrc = null;
       for (var j = 0; j < blocks.length; j++) {
         var sig = allSignals[j];
         if (!sig) { blocks[j].style.display = 'none'; continue; }
@@ -762,12 +774,37 @@
                                      sdir === 'BEARISH' ? 'var(--accent-red)' :
                                      'var(--badge-gray-bg)';
         blocks[j].classList.toggle('live', hasScore);
-        blocks[j].dataset.tooltip = sig.type;
+        blocks[j].dataset.tooltip = sig.type + (sig.source ? ' \u00b7 ' + sig.source : '');
+        blocks[j].style.marginLeft = (prevSrc !== null && sig.source && sig.source !== prevSrc)
+                                     ? '4px' : '';
+        prevSrc = sig.source || prevSrc;
       }
+      var srcEl = card.querySelector('.signal-strip-sources');
+      if (srcEl) srcEl.textContent = _sourceBadge(sd);
 
       // Pulse bars
       var histEl = card.querySelector('.pulse-history-row');
       if (histEl) _renderPulseHistory(histEl, data.pulse_history || [], sym || stripped);
+    }
+
+    // How many *independent* information sources back this pulse's direction.
+    // Falls back to deriving it from the signal list when the backend has not
+    // sent the field (older pulse files).
+    function _sourceBadge(sd) {
+      var n = sd.sources_active;
+      if (n === undefined || n === null) {
+        var seen = {};
+        var list = sd.all_signals || [];
+        for (var i = 0; i < list.length; i++) {
+          var g = list[i];
+          if (g.is_active && g.direction && g.direction !== 'NEUTRAL' && g.source) {
+            seen[g.source] = true;
+          }
+        }
+        n = Object.keys(seen).length;
+      }
+      if (!n) return '';
+      return n + (n === 1 ? ' src' : ' srcs');
     }
 
     function _renderSignalCards(data) {

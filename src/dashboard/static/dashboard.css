@@ -1735,11 +1735,27 @@ th.sortable.sort-desc::after {
 }
 
 /* ── Signal Compact Strip ── */
+.signal-strip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 .signal-strip {
   display: flex;
   gap: 2px;
   height: 8px;
-  margin-top: 8px;
+  flex: 1;
+}
+
+/* Independent-information-source count.  Five of the ten detectors read the
+   same order-flow number, so the strip length overstates the evidence. */
+.signal-strip-sources {
+  font-size: 0.6rem;
+  color: var(--text-muted, #8898ac);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .signal-strip-block {
