@@ -724,3 +724,104 @@ class TestSourceBreadthGate:
         res, _ = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
                                     Direction.BULLISH, 'trending')
         assert res == 'PASS'
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Adaptive (scale-free) thresholds
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _adaptive_trigger(enabled, **over):
+    gate = {'min_active_non_trend': 3, 'min_active_trend': 1}
+    t = _full_trigger(gate)
+    cfg = {'enabled': enabled, 'window_minutes': 240, 'min_samples': 5,
+           'z_entry': 2.5, 'z_extreme': 4.0}
+    cfg.update(over)
+    t.sniper_cfg['signal_stack']['adaptive'] = cfg
+    t._adaptive_on = enabled
+    t._z_entry = cfg['z_entry']
+    t._z_extreme = cfg['z_extreme']
+    from src.sniper.adaptive import RobustWindows
+    t._adaptive = RobustWindows(cfg['window_minutes'], cfg['min_samples'])
+    t._last_z = {}
+    return t
+
+
+def _feed_adaptive(t, values, name='ls', start_offset=0):
+    """Fill one adaptive window with `values`, one per 2 minutes."""
+    from datetime import timedelta
+    t0 = datetime.now(timezone.utc) + timedelta(minutes=start_offset)
+    for i, v in enumerate(values):
+        t._adaptive.update(name, v, t0 + timedelta(minutes=2 * i))
+    return t0 + timedelta(minutes=2 * len(values))
+
+
+class TestAdaptiveDisabled:
+
+    def test_z_is_zero_when_disabled(self):
+        t = _adaptive_trigger(False)
+        _feed_adaptive(t, [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+        assert t._adaptive_z('ls', 99.0) == 0.0
+
+    def test_samples_are_not_recorded_when_disabled(self):
+        t = _adaptive_trigger(False)
+        t._record_adaptive_samples(_full_metrics(), datetime.now(timezone.utc))
+        assert t._adaptive.window('ls').count == 0
+
+    def test_legacy_absolute_path_still_works(self):
+        """ls above the absolute threshold must still trigger when adaptive is off."""
+        t = _adaptive_trigger(False)
+        metrics = _full_metrics()
+        metrics['sentiment_signals']['ls_ratio_micro'] = 3.0   # > 2.0 absolute
+        sig = t._detect_positioning_extreme(metrics, _full_metrics(), datetime.now(timezone.utc))
+        assert sig is not None
+        assert sig.direction == Direction.BEARISH
+        assert sig.evidence['trigger'] == 'ls_long'
+
+
+class TestAdaptiveEnabled:
+
+    def test_warmup_leaves_the_detector_dark(self):
+        """Below min_samples there is no baseline — better dark than wrong."""
+        t = _adaptive_trigger(True)
+        metrics = _full_metrics()
+        metrics['sentiment_signals']['ls_ratio_micro'] = 99.0
+        assert t._adaptive_z('ls', 99.0) == 0.0
+        sig = t._detect_positioning_extreme(metrics, _full_metrics(), datetime.now(timezone.utc))
+        assert sig is None
+
+    def test_reachable_where_the_absolute_rule_was_not(self):
+        """The whole point: a value the old absolute threshold rejected can now
+        be extreme relative to this symbol's own history."""
+        t = _adaptive_trigger(True)
+        _feed_adaptive(t, [1.0, 1.01, 0.99, 1.02, 0.98, 1.0, 1.01, 0.99])
+        ls = 1.07                     # never reached the legacy 1.5 / 2.0 thresholds
+        metrics = _full_metrics()
+        metrics['sentiment_signals']['ls_ratio_micro'] = ls
+        sig = t._detect_positioning_extreme(metrics, _full_metrics(), datetime.now(timezone.utc))
+        assert sig is not None
+        assert sig.direction == Direction.BEARISH
+        assert sig.evidence['trigger'] == 'ls_long_z'
+
+    def test_not_extreme_in_a_wide_distribution(self):
+        """Conversely, 1.07 is unremarkable for a symbol that ranges that wide."""
+        t = _adaptive_trigger(True)
+        _feed_adaptive(t, [0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.2, 0.8])
+        metrics = _full_metrics()
+        metrics['sentiment_signals']['ls_ratio_micro'] = 1.07
+        sig = t._detect_positioning_extreme(metrics, _full_metrics(), datetime.now(timezone.utc))
+        assert sig is None
+
+    def test_windows_are_fed_every_pulse_not_only_on_fire(self):
+        """A baseline estimated from the detector's own triggers would drift."""
+        t = _adaptive_trigger(True)
+        for _ in range(6):
+            t.evaluate(_full_metrics(cvd=0.10, price=4400.0), None)
+        assert t._adaptive.window('cvd').count >= 5
+
+    def test_reset_clears_adaptive_state(self):
+        t = _adaptive_trigger(True)
+        _feed_adaptive(t, [1.0, 2.0, 3.0, 4.0, 5.0])
+        t._last_z['cvd'] = 3.0
+        t.reset_state()
+        assert t._adaptive.window('ls').count == 0
+        assert t._last_z == {}

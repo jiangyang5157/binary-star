@@ -259,6 +259,26 @@ sniper:
       # volume_participation: Volume Participation Ratio 超过此值确认高成交参与（Energy Buildup 信号）
       volume_participation_threshold: 1.5
 
+    # ── 自适应阈值（2026-10-14 新增，默认关闭）───────────────────────────
+    # 把检测器的绝对阈值换成"该 symbol 自身近期分布"的稳健 z-score。
+    # 动因（实测）：
+    #   * `ls` XAUT 从未超过 1.07 而阈值是 1.5；`|funding|` 从未超过 0.0001
+    #     而阈值是 0.0005 → positioning_extreme 有 2 条路**永不可达**，
+    #     几个月无人发现（声明了却不触发，比缺失更容易被误认为覆盖）；
+    #   * BTC 的 `ls` 分布比 XAUT 窄得多，同一个常数含义不同，于是历史上的
+    #     "修法"就是再加一个 per-symbol 数字（0.25→0.08、0.18→0.12…）。
+    # 换成 z 之后：条件**按构造可达**，一个常数服务所有 symbol，且随波动率
+    # regime 自适应。用 median/MAD 而非 mean/std，因为这些指标厚尾，
+    # 一个尖峰不该能抬高自己的门槛。
+    # 详见 src/sniper/adaptive.py 与 docs/sniper_signal_stack_redesign_20261014.md §2.2
+    #
+    # ⚠ enabled=false 时走原有绝对阈值分支，行为与改动前**逐字节一致**。
+    adaptive:
+      enabled: false               # 先离线测量，再决定是否开启；开启会改变触发时机与数量
+      window_minutes: 240          # 基线窗口长度（分钟）。用时间而非 pulse 数，避免与 pulse 周期耦合
+      min_samples: 30              # 窗口未满时检测器变暗（fail-safe），约 1 小时（2min pulse）
+      z_entry: 2.5                 # "进入"阈值：|z| 超过它算异常（正态下约前 0.6%）
+      z_extreme: 4.0               # "极端"阈值：用于原本要求罕见极值的路径（约前 0.003%）
 # ═══════════════════════════════════════════════════════════════════════════
 # GUARDIAN — Position Management (Exit Ladder + Trailing Stop)
 # ═══════════════════════════════════════════════════════════════════════════

@@ -235,6 +235,49 @@ C 才是真正的行为改动，我建议等 A/B 上线积累一段时间后再�
 - **零行为变化**：`sources_mode: shadow` 只多打一行 `GATE SOURCE WOULD BLOCK`，
   闸门判决与改动前逐字节一致（有测试断言 shadow 下 `res == 'PASS'` 且 `reason == ''`）。
 
+### C 的离线测量（2026-10-14，`scripts/sniper_adaptive_ab.py`）
+
+用生产日志把**真实检测器**跑两遍（legacy vs adaptive），再叠闸门策略。
+质量 = 60 分钟前瞻收益（ATR，检测器自己的方向）− 同向无条件漂移，**按独立行情聚类**后给显著性。
+
+**单个检测器：**
+
+| | legacy | adaptive | 判读 |
+|---|---|---|---|
+| XAUT cvd_momentum | 1944 (26.7%) | **205 (2.8%)** | 停止刷屏 |
+| XAUT cvd_absorption | 780 (10.7%) | 76 (1.0%) | 同上 |
+| XAUT large_trade | 910 (12.5%) | 369 (5.1%) | 同上 |
+| XAUT **volatility_surge** | **9 (0.12%)** | **66 (0.91%)** | 死检测器复活 |
+| BTC **volatility_surge** | **1 (0.01%)** | **73 (1.00%)** | 同上（×73）|
+| BTC **positioning_extreme** | **4 (0.05%)** | **79 (1.08%)** | 同上（×20）|
+| BTC cvd_absorption | 1356 (18.6%) | 130 (1.8%) | 停止刷屏 |
+
+harness 保真度校验：legacy 模式下 cvd_momentum 26.7%（生产 25.9%）、cvd_absorption
+10.7%/18.6%（生产 9.7%/16.9%）、large_trade 12.5%/6.5%（生产 13.4%/7.3%）。
+
+**闸门策略叠加：**
+
+| 策略 | XAUT passes / episodes / adj | BTC passes / episodes / adj |
+|---|---|---|
+| **现状** legacy `count≥3` | 47 / 8 / **−0.316** (t=−1.51) | 11 / 2 / **−0.078** |
+| legacy `count≥2` | 606 / 59 / +0.059 | 322 / 46 / −0.023 |
+| legacy `sources≥2` | 52 / 10 / +0.039 | **3** / 1 / +0.601 ← 几乎不可达 |
+| **adaptive `sources≥2`** | **105 / 11 / −0.034** | **128 / 12 / +0.234** |
+| adaptive `count≥2` | 230 / 16 / −0.198 | 241 / 14 / +0.037 |
+
+**结论（决定 default 的开关位置）：**
+
+1. **adaptive 单独开启**会让 XAUT 的通过量从 47 掉到 27 —— 与"抓波动"的目标相反（它把
+   cvd_momentum 从 26.7% 压到 2.8%，而闸门需要 3 个信号）。**所以 C 不能单独开。**
+2. **adaptive + `sources≥2`** 是唯一在两个标的上**同时**改善通过量与点估计质量的组合
+   （XAUT 47→105 且 −0.316→−0.034；BTC 11→128 且 −0.078→+0.234）。
+   机制清楚：adaptive 让 `positioning` 这个**独立来源**第一次变得可达
+   （BTC 4→79 次），而 legacy 下 `sources≥2` 几乎不可能满足（只有 flow 是活的，BTC 只有 3 次）。
+3. **但都不显著**：episodes 只有 11 / 12，最大 t=1.01。**这不是"证明了更好"，而是
+   "没证明更差，且结构上更合理"。**
+4. 因此 default 保持 `adaptive.enabled: false` + `sources_mode: shadow`。
+   **要开启必须两者一起开**（C+D 同批），并当作一次行为改动来观察。
+
 ### 尚未实施（需 operator 点头）
 
 - **C：自适应条件**（§2.2）—— 会改变触发时机与数量。
