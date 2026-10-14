@@ -16,7 +16,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Tuple, Optional, List
 
-from src.sniper.adaptive import RobustWindows
 from src.utils.logger_utils import setup_logger
 
 logger = setup_logger(__name__)
@@ -203,28 +202,6 @@ SIGNAL_SOURCES: Dict[str, str] = {
     'leader_sync': 'cross_symbol',
 }
 DEFAULT_SIGNAL_SOURCE = 'unknown'
-
-
-def _validated_number(raw, default: float, name: str) -> float:
-    """Coerce a config value to a positive number, or fall back and complain.
-
-    Returns `default` for anything missing, non-numeric or <= 0, logging a
-    warning.  All four adaptive values must be strictly positive: the window
-    length and sample floor are range()-style parameters that raise inside
-    RobustWindow, and z_entry==0 divides by zero when a detector computes its
-    strength.
-    """
-    if raw is None:
-        return float(default)
-    try:
-        value = float(raw)
-    except (TypeError, ValueError):
-        logger.warning("config %s=%r is not a number — using default %s", name, raw, default)
-        return float(default)
-    if not value > 0:
-        logger.warning("config %s=%r must be > 0 — using default %s", name, raw, default)
-        return float(default)
-    return value
 
 
 def independent_sources(signals, direction) -> List[str]:
@@ -429,29 +406,6 @@ class SniperTrigger:
         self._cvd_history: deque = deque(maxlen=max(64, int(self._cvd_lag_minutes) * 3))
         self._cvd_div_reason = "warmup"
 
-        # Scale-free thresholds.  When disabled every detector keeps its legacy
-        # absolute rule, so the switch is behaviour-preserving by construction.
-        # See src/sniper/adaptive.py for why the absolute ones had to go.
-        adaptive_cfg = self.sniper_cfg.get('signal_stack', {}).get('adaptive', {}) or {}
-        self._adaptive_on = bool(adaptive_cfg.get('enabled', False))
-        # Validate at read time.  These values are consumed inside the pulse
-        # loop, where a bad one raises on *every* pulse: the daemon keeps
-        # running and simply never produces another signal, which is worse than
-        # refusing to start.  window_minutes<=0 and min_samples<1 raise inside
-        # RobustWindow, and z_entry==0 divides by zero in the cvd divergence
-        # strength.  Same approach as src/infrastructure/binance/net_config.py:
-        # fall back to the documented default and say so.
-        self._z_entry = _validated_number(adaptive_cfg.get('z_entry'), 2.5,
-                                          'adaptive.z_entry')
-        self._z_extreme = _validated_number(adaptive_cfg.get('z_extreme'), 4.0,
-                                            'adaptive.z_extreme')
-        self._adaptive = RobustWindows(
-            window_minutes=_validated_number(adaptive_cfg.get('window_minutes'), 240.0,
-                                             'adaptive.window_minutes'),
-            min_samples=int(_validated_number(adaptive_cfg.get('min_samples'), 30,
-                                              'adaptive.min_samples')),
-        )
-        self._last_z: Dict[str, float] = {}
 
         # Structural fingerprint for cooldown break noise gate (see spec 2026-07-23)
         self._fingerprint: Optional[StructuralFingerprint] = None
@@ -504,8 +458,6 @@ class SniperTrigger:
         self._fingerprint = None
         self._cvd_history.clear()
         self._cvd_div_reason = "warmup"
-        self._adaptive.clear()
-        self._last_z.clear()
 
     def _cvd_reference(self, now: datetime) -> Optional[Tuple[datetime, float, float]]:
         """Buffered (timestamp, cvd, price) from one micro candle ago.
@@ -538,44 +490,6 @@ class SniperTrigger:
                 continue
             best = (stamp, cvd, price)
         return best
-
-    def _record_adaptive_samples(self, metrics: Dict[str, Any], now: datetime) -> None:
-        """Feed every adaptive window, unconditionally.
-
-        This must run for every pulse, not only for pulses where a detector
-        fires — otherwise the baseline would be estimated from the detector's
-        own past triggers and drift with them.
-        """
-        if not self._adaptive_on:
-            return
-        sentiment = metrics.get('sentiment_signals') or {}
-        price_dyn = metrics.get('price_dynamics') or {}
-        regime_dyn = metrics.get('market_regime') or {}
-        cvd = sentiment.get('cvd_intensity_ratio')
-        for name, value in (
-            ('cvd', cvd),
-            ('ls', sentiment.get('ls_ratio_micro')),
-            ('funding', sentiment.get('funding_rate')),
-            ('oi_delta', sentiment.get('oi_delta_micro')),
-            ('avg_trade_size', sentiment.get('avg_trade_size')),
-            ('vii', price_dyn.get('volatility_intensity_index')),
-            ('vpr', regime_dyn.get('volume_participation_ratio')),
-        ):
-            self._adaptive.update(name, value, now)
-        # Derived: how far the order-flow reading moved over one candle.
-        ref = self._cvd_reference(now)
-        if ref is not None and cvd is not None:
-            self._adaptive.update('cvd_delta', cvd - ref[1], now)
-
-    def _adaptive_z(self, name: str, value: Optional[float]) -> float:
-        """Robust z of `value` in its window (0.0 when disabled or warming up).
-
-        Callers use `abs(z) > k`, so 0.0 means "not extreme", which is the
-        fail-safe answer during warm-up.
-        """
-        if not self._adaptive_on:
-            return 0.0
-        return self._adaptive.z(name, value)
 
     def _record_cvd_sample(self, metrics: Dict[str, Any], now: datetime) -> None:
         """Buffer this pulse's CVD ratio and price for the next candle-lagged comparison."""
@@ -948,38 +862,25 @@ class SniperTrigger:
         base_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_threshold']
         extreme_threshold = self._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18)
 
-        z = self._adaptive_z('cvd', cvd)
-        if self._adaptive_on:
-            # Scale-free: |cvd| relative to this symbol's own recent spread.
-            # Path A keeps the "still growing" idea, but expressed against the
-            # previous pulse's z instead of a fixed 1.4x ratio (that ratio was
-            # the reason this detector fired on 29% of XAUT pulses).
-            path_a = abs(z) > self._z_entry and abs(z) >= abs(self._last_z.get('cvd', 0.0))
-            path_b = abs(z) > self._z_extreme
-            strength_a = min(abs(z) / (self._z_entry * CVD_SATURATION_FACTOR), 1.0) if path_a else 0.0
-            strength_b = min(abs(z) / (self._z_extreme * CVD_SATURATION_FACTOR), 1.0) if path_b else 0.0
-        else:
-            # Path A (growth): CVD above base threshold AND still growing
-            path_a = False
-            if abs(cvd) > base_threshold:
-                if prev:
-                    prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
-                    growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
-                    if abs(cvd) >= abs(prev_cvd) * growth_ratio:
-                        path_a = True
-                # else: first pulse — no growth check possible; require extreme path (path_b)
+        # Path A (growth): CVD above base threshold AND still growing
+        path_a = False
+        if abs(cvd) > base_threshold:
+            if prev:
+                prev_cvd = prev['sentiment_signals']['cvd_intensity_ratio']
+                growth_ratio = self.sniper_cfg['probes']['cvd_growth_significance_ratio']
+                if abs(cvd) >= abs(prev_cvd) * growth_ratio:
+                    path_a = True
+            # else: first pulse — no growth check possible; require extreme path (path_b)
 
-            # Path B (extreme static): CVD above the higher extreme threshold
-            path_b = abs(cvd) > extreme_threshold
-            strength_a = min(abs(cvd) / (base_threshold * CVD_SATURATION_FACTOR), 1.0) if path_a else 0.0
-            strength_b = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0) if path_b else 0.0
-
-        self._last_z['cvd'] = abs(z)
+        # Path B (extreme static): CVD above the higher extreme threshold
+        path_b = abs(cvd) > extreme_threshold
 
         if not (path_a or path_b):
             return None
 
         direction = Direction.BULLISH if cvd > 0 else Direction.BEARISH
+        strength_a = min(abs(cvd) / (base_threshold * CVD_SATURATION_FACTOR), 1.0) if path_a else 0.0
+        strength_b = min((abs(cvd) - extreme_threshold) / extreme_threshold, 1.0) if path_b else 0.0
         strength = max(strength_a, strength_b)
         weight = self.signal_weights.get('cvd_momentum')
 
@@ -1017,22 +918,8 @@ class SniperTrigger:
         # different operating point.
         threshold = self._signal_cfg('thresholds', 'cvd_divergence_candle_delta', default=0.30)
         age = (now - ref_stamp).total_seconds() / 60.0
-        driver = abs(cvd_delta)
-        if self._adaptive_on:
-            # Judged against the symbol's own distribution of one-candle flow
-            # changes.  This also removes the BTC problem where a fixed
-            # threshold had to sit in a thin, bounded tail (max |dCVD| 0.449)
-            # and therefore stayed partly clock-driven even after the rollover
-            # fix — a relative threshold has no such edge to sit on.
-            driver = abs(self._adaptive_z('cvd_delta', cvd_delta))
-            threshold = self._z_entry
-        if driver <= threshold:
-            # Report the driver that is actually in force: in adaptive mode that
-            # is the z-score, and printing the raw delta next to a z threshold
-            # would read like a bug in the log.
-            label = (f"|z|={driver:.2f}" if self._adaptive_on
-                     else f"|dCVD|={abs(cvd_delta):.3f}")
-            self._cvd_div_reason = f"{label}<={threshold} (ref {age:.0f}m ago)"
+        if abs(cvd_delta) <= threshold:
+            self._cvd_div_reason = f"|dCVD|={abs(cvd_delta):.3f}<={threshold} (ref {age:.0f}m ago)"
             return None
 
         price_delta = curr['price_dynamics']['current_price'] - ref_price
@@ -1041,7 +928,7 @@ class SniperTrigger:
             return None
 
         direction = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
-        strength = min(driver / (threshold * CVD_SATURATION_FACTOR), 1.0)
+        strength = min(abs(cvd_delta) / (threshold * CVD_SATURATION_FACTOR), 1.0)
         weight = self.signal_weights.get('cvd_divergence')
         self._cvd_div_reason = f"F:{strength:.2f}"
 
@@ -1064,12 +951,7 @@ class SniperTrigger:
                                 now: datetime) -> Optional[SignalCard]:
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
         extreme_threshold = self.regime_cfg['micro_sentiment']['cvd_intensity_extreme']
-        if self._adaptive_on:
-            z = self._adaptive_z('cvd', cvd)
-            if abs(z) <= self._z_extreme:
-                return None
-            extreme_threshold = self._z_extreme
-        elif abs(cvd) <= extreme_threshold:
+        if abs(cvd) <= extreme_threshold:
             return None
         if not prev:
             return None
@@ -1082,12 +964,8 @@ class SniperTrigger:
             return None
 
         direction = Direction.BEARISH if cvd > 0 else Direction.BULLISH
-        # The driver is the z-score in adaptive mode, the raw ratio otherwise;
-        # either way the denominator is derived from the same threshold, so the
-        # strength stays comparable across the two modes.
-        driver = abs(z) if self._adaptive_on else abs(cvd)
         saturation_denom = max(extreme_threshold * CVD_ABSORPTION_SATURATION, CVD_ABSORPTION_MIN_DENOM)
-        strength = min((driver - extreme_threshold) / saturation_denom, 1.0)
+        strength = min((abs(cvd) - extreme_threshold) / saturation_denom, 1.0)
         weight = self.signal_weights.get('cvd_absorption')
 
         return SignalCard(
@@ -1113,25 +991,18 @@ class SniperTrigger:
         thresholds = self.sniper_cfg.get('signal_stack', {}).get('thresholds', {})
         zscore_threshold = thresholds.get('large_trade_zscore', LARGE_TRADE_SATURATION)
 
-        if self._adaptive_on:
-            # Same idea, but median/MAD over a time window instead of mean/stdev
-            # over a pulse count: a single print spike cannot inflate the scale
-            # and mask the next one.
-            z_score = self._adaptive_z('avg_trade_size', avg_size)
-            zscore_threshold = self._z_entry
-        else:
-            # Record current value in rolling window
-            self._trade_size_window.append(avg_size)
-            if len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
-                return None  # need minimum history for meaningful Z-score
+        # Record current value in rolling window
+        self._trade_size_window.append(avg_size)
+        if len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
+            return None  # need minimum history for meaningful Z-score
 
-            mean = sum(self._trade_size_window) / len(self._trade_size_window)
-            variance = sum((x - mean) ** 2 for x in self._trade_size_window) / len(self._trade_size_window)
-            std = variance ** 0.5
-            if std <= 1e-9:
-                return None
+        mean = sum(self._trade_size_window) / len(self._trade_size_window)
+        variance = sum((x - mean) ** 2 for x in self._trade_size_window) / len(self._trade_size_window)
+        std = variance ** 0.5
+        if std <= 1e-9:
+            return None
 
-            z_score = (avg_size - mean) / std
+        z_score = (avg_size - mean) / std
         if z_score <= zscore_threshold:
             return None
 
@@ -1166,35 +1037,14 @@ class SniperTrigger:
         baseline = self.regime_cfg['volatility']['volatility_baseline_ratio']
         volume_threshold = self.sniper_cfg['signal_stack']['thresholds']['volume_participation_threshold']
 
-        if self._adaptive_on:
-            # "Unusually volatile AND unusually well participated", both judged
-            # against this symbol's own recent spread.  The legacy pair of fixed
-            # ratios (vii>1.25, vpr>1.5) is reachable only 2.3-3.8% of the time,
-            # and the additional 1.03x one-pulse growth test then removed 95-99%
-            # of even those — the detector was effectively dead (0.04-0.15%).
-            z_vii = self._adaptive_z('vii', vii)
-            z_vpr = self._adaptive_z('vpr', vpr)
-            prev_z_vii = self._last_z.get('vii')
-            self._last_z['vii'] = z_vii
-            if abs(z_vii) <= self._z_entry or abs(z_vpr) <= self._z_entry:
-                return None
-            # "Surge" still means rising: the z must not have fallen since the
-            # previous pulse.  Expressed against its own baseline, a one-pulse
-            # wiggle can no longer veto an already-elevated reading.
-            if prev_z_vii is not None and z_vii < prev_z_vii:
-                return None
-            baseline = self._z_entry
-            driver = abs(z_vii)
-        else:
-            if not (vii > baseline and vpr > volume_threshold):
-                return None
+        if not (vii > baseline and vpr > volume_threshold):
+            return None
 
-            if prev:
-                prev_vii = prev['price_dynamics']['volatility_intensity_index']
-                growth_ratio = self.sniper_cfg['probes'].get('volatility_growth_significance_ratio', 1.03)
-                if vii <= prev_vii * growth_ratio:
-                    return None
-            driver = vii
+        if prev:
+            prev_vii = prev['price_dynamics']['volatility_intensity_index']
+            growth_ratio = self.sniper_cfg['probes'].get('volatility_growth_significance_ratio', 1.03)
+            if vii <= prev_vii * growth_ratio:
+                return None
 
         cvd = curr['sentiment_signals']['cvd_intensity_ratio']
         if abs(cvd) > 0.05:
@@ -1204,7 +1054,7 @@ class SniperTrigger:
         else:
             direction = Direction.NEUTRAL  # flat — no directional bias
 
-        strength = min((driver - baseline) / (baseline * VOLATILITY_SATURATION), 1.0)
+        strength = min((vii - baseline) / (baseline * VOLATILITY_SATURATION), 1.0)
         weight = self.signal_weights.get('volatility_surge')
 
         return SignalCard(
@@ -1371,21 +1221,7 @@ class SniperTrigger:
         # Path 1: LS extreme (retail positioning)
         ls = curr['sentiment_signals'].get('ls_ratio_micro', 1.0)
         cfg = self.regime_cfg['imbalance']
-        z_ls = self._adaptive_z('ls', ls)
-        if self._adaptive_on:
-            # "Crowded on one side", measured against this symbol's own recent
-            # positioning rather than an absolute ratio.  The absolute version
-            # was unreachable: XAUT's ls never passed 1.07 against a 1.5
-            # threshold, BTC's never passed 1.72 against 2.0.
-            if z_ls > self._z_entry:
-                best_direction = Direction.BEARISH
-                best_strength = min(z_ls / (self._z_entry * 2), 1.0)
-                best_evidence = {'trigger': 'ls_long_z', 'ls_ratio': ls, 'z': round(z_ls, 2)}
-            elif z_ls < -self._z_entry:
-                best_direction = Direction.BULLISH
-                best_strength = min(-z_ls / (self._z_entry * 2), 1.0)
-                best_evidence = {'trigger': 'ls_short_z', 'ls_ratio': ls, 'z': round(z_ls, 2)}
-        elif ls > cfg['long_short_imbalance_ratio']:
+        if ls > cfg['long_short_imbalance_ratio']:
             strength = min((ls - 1.0) / (cfg['long_short_imbalance_ratio'] * 2), 1.0)
             if strength > best_strength:
                 best_direction = Direction.BEARISH
@@ -1401,17 +1237,9 @@ class SniperTrigger:
         # Path 2: Funding extreme
         funding = curr['sentiment_signals'].get('funding_rate', 0.0)
         funding_threshold = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
-        if self._adaptive_on:
-            # Funding is pinned near the exchange's minimum tick for these
-            # symbols (observed max 0.0001 against a 0.0005 threshold), so an
-            # absolute "extreme" is not a thing that exists.  Relative is.
-            f_driver = abs(self._adaptive_z('funding', funding))
-            funding_threshold = self._z_extreme
-        else:
-            f_driver = abs(funding)
-        if f_driver > funding_threshold:
+        if abs(funding) > funding_threshold:
             f_direction = Direction.BEARISH if funding > 0 else Direction.BULLISH
-            f_strength = min(f_driver / (funding_threshold * FUNDING_SATURATION), 1.0)
+            f_strength = min(abs(funding) / (funding_threshold * FUNDING_SATURATION), 1.0)
             if f_strength > best_strength:
                 best_direction = f_direction
                 best_strength = f_strength
@@ -1422,19 +1250,10 @@ class SniperTrigger:
             oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
             price_delta = (curr['price_dynamics']['current_price'] -
                            prev['price_dynamics']['current_price'])
-            if self._adaptive_on:
-                z_oi = self._adaptive_z('oi_delta', oi_delta)
-                oi_scale, oi_floor = abs(z_oi), self._z_entry
-                oi_strength = min(oi_scale / (oi_floor * 2.0), 1.0)
-                oi_gate = oi_scale > oi_floor
-            else:
-                # Legacy arithmetic kept verbatim: same gate (0.01, a bare
-                # constant) and same saturation (OI_DIVERGENCE_SATURATION).
-                oi_strength = min(abs(oi_delta) / OI_DIVERGENCE_SATURATION, 1.0)
-                oi_gate = abs(oi_delta) > 0.01
-            if abs(oi_delta) > 1e-10 and abs(price_delta) > 1e-10 and oi_gate:
+            if abs(oi_delta) > 1e-10 and abs(price_delta) > 1e-10 and abs(oi_delta) > 0.01:
                 if (oi_delta > 0 and price_delta < 0) or (oi_delta < 0 and price_delta > 0):
                     oi_dir = Direction.BEARISH if price_delta > 0 else Direction.BULLISH
+                    oi_strength = min(abs(oi_delta) / OI_DIVERGENCE_SATURATION, 1.0)
                     if oi_strength > best_strength:
                         best_direction = oi_dir
                         best_strength = oi_strength
@@ -1446,17 +1265,10 @@ class SniperTrigger:
             oi_delta = curr['sentiment_signals'].get('oi_delta_micro', 0.0)
             price_delta = (curr['price_dynamics']['current_price'] -
                            prev['price_dynamics']['current_price'])
-            if self._adaptive_on:
-                oi_scale2, oi_floor2 = abs(self._adaptive_z('oi_delta', oi_delta)), self._z_extreme
-                oi_strength = min((oi_scale2 - oi_floor2) / (oi_floor2 * 2.0), 1.0)
-                oi_gate2 = oi_scale2 > oi_floor2
-            else:
-                # Legacy arithmetic kept verbatim.
-                oi_strength = min((abs(oi_delta) - OI_SURGE_MIN_DELTA) / OI_SURGE_SATURATION, 1.0)
-                oi_gate2 = abs(oi_delta) > OI_SURGE_MIN_DELTA
-            if oi_gate2:
+            if abs(oi_delta) > OI_SURGE_MIN_DELTA:
                 if (oi_delta > 0 and price_delta > 0) or (oi_delta < 0 and price_delta < 0):
                     oi_dir = Direction.BULLISH if price_delta > 0 else Direction.BEARISH
+                    oi_strength = min((abs(oi_delta) - OI_SURGE_MIN_DELTA) / OI_SURGE_SATURATION, 1.0)
                     if oi_strength > best_strength:
                         best_direction = oi_dir
                         best_strength = oi_strength
@@ -1579,15 +1391,9 @@ class SniperTrigger:
         parts.append(f"cvd={cvd:+.3f}")
 
         s = fired.get('cvd_momentum')
-        z_cvd = self._adaptive_z('cvd', cvd)
         if s:
             path = s.evidence.get('trigger_path', '?')
             parts.append(f"cvd_momentum=F:{s.strength:.2f}({path})")
-        elif self._adaptive_on:
-            # Report the threshold actually in force, not the legacy constant,
-            # and distinguish "not met" from "cannot be met" (degenerate window).
-            parts.append(f"cvd_momentum=R:{self._adaptive.label('cvd', cvd)}"
-                         f" (entry {self._z_entry})")
         else:
             if abs(cvd) <= cvd_thresh:
                 parts.append(f"cvd_momentum=R:|cvd|={abs(cvd):.3f}<={cvd_thresh}")
@@ -1607,14 +1413,6 @@ class SniperTrigger:
         if s:
             z = s.evidence.get('z_score', 0.0)
             parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=F:{s.strength:.2f}(z={z:.1f})")
-        elif self._adaptive_on:
-            # The legacy deque is deliberately not fed in adaptive mode, so it
-            # must not be used to describe readiness either.
-            win = self._adaptive.window('avg_trade_size')
-            z = self._adaptive_z('avg_trade_size', avg_size)
-            parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade="
-                         f"R:{self._adaptive.label('avg_trade_size', avg_size)}"
-                         f" (entry {self._z_entry})")
         elif len(self._trade_size_window) < MIN_LARGE_TRADE_SAMPLES:
             parts.append(f"trade_sz={avg_size:.4f}/n={trade_n} | large_trade=R:warmup({len(self._trade_size_window)}/{MIN_LARGE_TRADE_SAMPLES})")
         else:
@@ -1633,9 +1431,6 @@ class SniperTrigger:
         volume_threshold = self.sniper_cfg['signal_stack']['thresholds']['volume_participation_threshold']
         if s:
             parts.append(f"vol_surge=F:{round(s.strength, 2)}")
-        elif self._adaptive_on:
-            parts.append(f"vol_surge=R:vii[{self._adaptive.label('vii', vii)}]"
-                         f"|vpr[{self._adaptive.label('vpr', vpr)}] (entry {self._z_entry})")
         else:
             parts.append(f"vol_surge=R:vii<={vol_base}|vpr<={volume_threshold}")
 
@@ -1675,11 +1470,6 @@ class SniperTrigger:
         fund_ext = self.regime_cfg['micro_sentiment']['funding_extreme_threshold']
         if s:
             parts.append(f"pos_ext=F:{round(s.strength, 2)}")
-        elif self._adaptive_on:
-            parts.append(f"pos_ext=R:ls[{self._adaptive.label('ls', ls)}]"
-                         f"|fund[{self._adaptive.label('funding', funding)}]"
-                         f"|oi[{self._adaptive.label('oi_delta', oi_delta)}]"
-                         f" (entry {self._z_entry}/extreme {self._z_extreme})")
         else:
             parts.append(f"pos_ext=R:ls<={ls_imb}&ls>={ls_short}&|fund|<={fund_ext}&oi<0.01")
 
@@ -1722,11 +1512,6 @@ class SniperTrigger:
         regime = self._determine_regime(current_metrics)
 
         # 0b. Buffer this pulse so cvd_divergence can compare one candle apart.
-        #     The adaptive baselines are folded in *after* the detectors run, so
-        #     a pulse is always scored against the window as it stood before that
-        #     pulse — otherwise an outlier sits in its own baseline and partly
-        #     masks itself.  With ~120 samples in a 240-minute window the effect
-        #     is small, but it biases every z toward not firing.
         self._record_cvd_sample(current_metrics, now)
 
         # 1. Cooldown check
@@ -1782,12 +1567,6 @@ class SniperTrigger:
         #     overstated breadth on 18 XAUT / 6 BTC pulses).
         self._log_signal_diagnostics(current_metrics, fresh_signals,
                                      all_signals, dominant_direction)
-
-        # Fold this pulse into the adaptive baselines only now: the detectors
-        # above scored against the window as it stood before this pulse, and the
-        # diagnostic line reported those same scores.  Adding the sample here
-        # keeps the write out of its own reading.
-        self._record_adaptive_samples(current_metrics, now)
 
         # Why this pulse did (not) reach a session.  Surfaced through TriggerResult
         # into .sniper_pulse.json so the dashboard/MCP can answer "why didn't it
