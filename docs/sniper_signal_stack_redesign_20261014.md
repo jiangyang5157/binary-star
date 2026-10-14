@@ -289,7 +289,30 @@ shadow 逐轮记录 `would block: n/N independent sources`，等 episode 够了�
 > 初版是 AND，与 §2.3 的设计意图和上面的测量口径都不符，而且 AND 会把 legacy 的
 > flow-only 三元组一次性清空。已改为替换并有测试固定。
 
-### D — enforce 的判据（机制已就位，保持在 shadow）
+### D 的方式被推翻：`sources_mode` 已删除（2026-10-14，operator 质疑）
+
+operator 问："badge 也删了，那 `sources_mode` 为什么还要？难道未来我还要 rollback？" —— **他是对的，该删。**
+
+推翻了什么：
+
+1. **shadow 是冗余的。** 诊断行每轮已经输出 `sources=N[...]`，用的是与闸门**同一个函数
+   （`independent_sources`）、同一个列表（`all_signals`）、同一个方向（`dominant_direction`）**。
+   因此 `len(sources) < min_sources` **完全可以从日志推出来** —— `GATE SOURCE WOULD BLOCK`
+   只是把同一个判断又记了一遍。我原先"零风险积累证据"的理由，忽略了证据本来就在日志里。
+2. **badge 删掉后，shadow 没有任何消费者。** 没有 UI，没有人读，只剩一行重复的日志。
+3. **三态换一态。** 现在的开关就是一个数字：
+   `min_sources_non_trend: 0`（关闭 = 现状） → `2`（启用 = 替换计数判据）。
+   没有半开状态需要维护，**所以在任何方向上的"回滚"都只是把这一个数字改回去**，
+   不存在"要回滚代码"的情形。
+
+同时删除：`sources_mode`（配置键 + 三态语义）、`TriggerResult.gate_shadow`、
+`self._gate_shadow`、`GATE SOURCE WOULD BLOCK` 日志行、pulse file 的 `gate_shadow` 字段，
+以及 `shadow_require_independent_direction` 之外的 shadow 相关测试。
+
+保留并强调：`SignalCard.source` / `SIGNAL_SOURCES` / 诊断行的 `sources=N[a,b]` ——
+**这才是证据通道**，而且日志和离线工具都能读。
+
+### 原 D 的判据（已被上面取代）
 
 `min_sources_*` + `sources_mode` 已实现，默认 `shadow`。**不启用 enforce 的判据是明确的：**
 
@@ -362,6 +385,10 @@ shadow 逐轮记录 `would block: n/N independent sources`，等 episode 够了�
 
 | **R9** | **我的 bug（同一概念三套算法）** | `sources` 在**闸门 / 诊断行 / pulse file** 三处各算一遍，且诊断与 UI 用 `direction != NEUTRAL` **把两个方向的来源合并计数** —— 实测在 **18 轮 XAUT / 6 轮 BTC** 上报 2 个来源而闸门只看到 1 个。**这是最糟的一类错**：我把这个数字当作判断 shadow 闸门的依据，而它系统性偏高 | 抽出唯一实现 `independent_sources(signals, direction)`，三处共用；诊断行改到 confluence 之后发射（此时才有主导方向）；NEUTRAL 一律返回空（否则 `squeeze` 会给无方向的 pulse 报出"1 个来源"）；离线 replay 的 signal 也补上 `source` 以免工具口径再次分叉 |**验证 legacy 路径未被触碰（最关键的一条）：**
 
+| **R10** | **我的 bug（自我包含）** | `_record_adaptive_samples` 在**检测器之前**执行，所以本轮样本已经进了窗口，检测器再拿它和窗口比 —— 异常值坐在自己的基线里、部分掩盖自己。已删除的 `score()` 恰恰是为避免这件事而设计的，而生产路径绕过了它 | 把 fold-in 移到检测器与诊断行**之后**（≈120 样本的窗口下数值影响很小，但偏差方向是系统性的"偏向不触发"）；用 `test_outlier_does_not_raise_its_own_threshold` 固定 |
+| **R11** | **我的 bug（改到一半）** | 移动 fold-in 时我只**删掉了原调用、忘了在新位置加回**，adaptive 会变成**完全死掉**；是既有测试 `test_windows_are_fed_every_pulse_not_only_on_fire` 抓到的 | 在新位置补回调用，并加 `test_each_pulse_folds_in_exactly_once` |
+| **R12** | **我的 bug（配置无校验）** | 新配置项**完全没有校验**，而它们在 pulse 循环里被使用：`window_minutes≤0`/`min_samples<1` 会让**每一轮**抛 ValueError（daemon 不死，只是再也不出信号 —— 比启动失败更糟），`z_entry=0` 在 cvd_divergence 的 strength 里 **ZeroDivisionError**（已实测确认） | 读配置时校验+告警+回退默认值（沿用 `net_config.py` 的模式）；11 个坏值参数化测试 |
+| **R13** | 死代码（我加的投机 API） | `RobustWindow.score`、`RobustWindows.score/ready/is_degenerate` 在生产里**零调用**，只有测试用 | 全部删除（`score` 的语义已被生产路径取代并有测试固定） |
 `scripts/sniper_legacy_fingerprint.py` 对每个检测器记录 **fire 数 + strength 总和**
 （只比 fire 数不够 —— 强度变化同样会移动 confluence 和闸门）。
 与改动前的 `7e7c6c9` 对比：

@@ -875,10 +875,6 @@ class SniperDaemon:
                         # Why this pulse did (not) wake — "PASS" | "FAIL" | "SKIPPED"
                         "gate_result": getattr(result, "gate_result", "SKIPPED"),
                         "gate_reason": getattr(result, "gate_reason", ""),
-                        # Source-breadth gate in shadow mode: what it *would*
-                        # have decided.  Shown in the UI so the pending rule can
-                        # be evaluated without reading logs.
-                        "gate_shadow": getattr(result, "gate_shadow", ""),
                     })
                 else:
                     # No trigger result for this symbol — fill defaults
@@ -908,7 +904,6 @@ class SniperDaemon:
                         # evaluated (gap reset, or the scout returned no metrics).
                         "gate_result": "SKIPPED",
                         "gate_reason": "no evaluation this pulse (gap reset or empty metrics)",
-                        "gate_shadow": "",
                     })
 
                 symbols_data[sym] = entry

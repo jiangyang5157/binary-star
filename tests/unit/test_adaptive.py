@@ -97,21 +97,33 @@ class TestStatistics:
 
 
 class TestScoringOrder:
+    """A pulse must be scored against the window as it stood *before* that
+    pulse.  `score()` used to provide this; production instead separates the
+    read (`z()`, inside the detectors) from the write (`update()`, after the
+    detector loop), so the ordering contract is now the caller's job and is
+    tested through SniperTrigger.evaluate in test_trigger.py."""
 
-    def test_score_uses_the_prior_window(self):
-        """An extreme must not be able to move its own threshold."""
-        win = RobustWindow(600, 3)
-        _feed(win, [1.0, 2.0, 3.0, 4.0, 5.0])
-        before = win.z(100.0)
-        scored = win.score(100.0, T0 + timedelta(minutes=20))
-        assert scored == pytest.approx(before)
-
-    def test_score_folds_the_value_in(self):
+    def test_z_does_not_ingest(self):
         win = RobustWindow(600, 3)
         _feed(win, [1.0, 2.0, 3.0])
         n = win.count
-        win.score(4.0, T0 + timedelta(minutes=10))
+        win.z(100.0)
+        assert win.count == n, "reading a score must not fold the value in"
+
+    def test_update_is_what_ingests(self):
+        win = RobustWindow(600, 3)
+        _feed(win, [1.0, 2.0, 3.0])
+        n = win.count
+        win.update(4.0, T0 + timedelta(minutes=10))
         assert win.count == n + 1
+
+    def test_an_outlier_cannot_move_its_own_threshold(self):
+        """The property `score()` existed to guarantee."""
+        win = RobustWindow(600, 3)
+        _feed(win, [1.0, 2.0, 3.0, 4.0, 5.0])
+        before = win.z(100.0)          # scored against the prior window
+        win.update(100.0, T0 + timedelta(minutes=20))   # then folded in
+        assert before > 3.0
 
 
 class TestWindowing:
@@ -172,14 +184,14 @@ class TestRobustWindows:
     def test_named_windows_are_independent(self):
         ws = RobustWindows(600, 3, names=["a", "b"])
         _feed(ws.window("a"), [1.0, 2.0, 3.0, 4.0, 5.0])
-        assert ws.ready("a") is True
-        assert ws.ready("b") is False
+        assert ws.window("a").ready is True
+        assert ws.window("b").ready is False
 
     def test_unknown_name_is_created_lazily(self):
         ws = RobustWindows(600, 3)
-        assert ws.ready("brand_new") is False
+        assert ws.window("brand_new").ready is False
         _feed(ws.window("brand_new"), [1.0, 2.0, 3.0])
-        assert ws.ready("brand_new") is True
+        assert ws.window("brand_new").ready is True
 
     def test_clear_clears_all(self):
         ws = RobustWindows(600, 1)
@@ -188,14 +200,6 @@ class TestRobustWindows:
         ws.clear()
         assert ws.window("a").count == 0
         assert ws.window("b").count == 0
-
-    def test_score_updates_the_named_window(self):
-        ws = RobustWindows(600, 3)
-        _feed(ws.window("a"), [1.0, 2.0, 3.0, 4.0, 5.0])
-        before = ws.window("a").count
-        z = ws.score("a", 20.0, T0 + timedelta(minutes=20))
-        assert ws.window("a").count == before + 1
-        assert z > 3.0
 
     def test_z_reports_the_prior_window_without_ingesting(self):
         """z() is a pure read — used where the value is a derived quantity that

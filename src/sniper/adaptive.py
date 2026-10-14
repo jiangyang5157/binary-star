@@ -77,12 +77,6 @@ class RobustWindow:
         self._samples.append((now, value))
         self._prune(now)
 
-    def score(self, value: Optional[float], now: datetime) -> float:
-        """Robust z of ``value`` against the prior window, then fold it in."""
-        z = self.z(value)
-        self.update(value, now)
-        return z
-
     def _prune(self, now: datetime) -> None:
         cutoff = now - timedelta(minutes=self.window_minutes)
         while self._samples and self._samples[0][0] < cutoff:
@@ -179,12 +173,6 @@ class RobustWindows:
 
     def z(self, name: str, value: Optional[float]) -> float:
         return self.window(name).z(value)
-
-    def ready(self, name: str) -> bool:
-        return self.window(name).ready
-
-    def is_degenerate(self, name: str) -> bool:
-        return self.window(name).is_degenerate
 
     def label(self, name: str, value: Optional[float]) -> str:
         """Diagnostic state: 'warmup(n/m)' | 'degenerate(...)' | 'z=+1.23'.

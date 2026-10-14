@@ -189,21 +189,27 @@ sniper:
                                      # 注：XAUT/BTC 在 symbol_config.yaml 中覆盖为 3，本值实际不生效
       min_active_trend: 1            # 趋势regime中，dominant方向至少N个活跃信号。趋势惯性使单信号更可靠，故只设最低保险1
                                      # 注：逻辑上等同"无闸门"，仅作防呆下限
-      # —— 来源广度（provenance）闸门，2026-10-14 新增，默认 shadow ——
+      # —— 来源广度（provenance）闸门，2026-10-14 新增，**默认关闭** ——
       # 背景：count gate 要求"≥3 个同向信号"，但 cvd_momentum / cvd_absorption /
-      #   large_trade / volatility_surge / cvd_divergence 的方向**全部来自同一份
-      #   订单流读数**（sign(cvd)），所以 3 个信号常常只承载 1 份独立信息。
+      #   large_trade / volatility_surge 的方向**全部来自同一份订单流读数**
+      #   （sign(cvd)），所以 3 个信号常常只承载 1 份独立信息。
       #   实测：62 次 wake 里 cvd_momentum 出现 60 次、large_trade 45 次、
       #   cvd_absorption 21 次 —— 其余 6 个检测器合计不到 20 次。
       # 设计：把"广度"改问"有几份独立来源"（SIGNAL_SOURCES 见 src/sniper/trigger.py）。
-      # 模式：off | shadow | enforce。**shadow 不改变任何判决**，只多打一行
-      #   `GATE SOURCE WOULD BLOCK | ...`，让证据在零风险下累积。
-      # ⚠ 注意 min_sources_non_trend=2 对现状是**收紧**（flow-only 三元组只有 1 个来源），
-      #   所以 enforce 必须等 shadow 数据，不要提前打开。
-      # 见 docs/sniper_signal_stack_redesign_20261014.md §2.3
-      min_sources_non_trend: 2       # 非趋势 regime：≥2 个独立来源
-      min_sources_trend: 1           # 趋势 regime：≥1（与 min_active_trend 对齐）
-      sources_mode: shadow           # off | shadow | enforce
+      # 开关：**设为 0 = 关闭**（走上面的 min_active_* 计数闸门，即现状）。
+      #   设为 N>0 = 启用，且**替换**计数判据（不是叠加：数检测器会高估广度，
+      #   两者同时要求等于把同一份怀疑数两遍）。
+      # 建议值 2（"至少再来一个非 flow 的视角同意"，如 positioning / divergence）。
+      # 为什么没有 shadow/只观察模式：诊断行每轮已经输出 `sources=N[...]`，
+      #   用的是与闸门**同一个函数、同一个列表、同一个方向**，所以
+      #   "会不会被拦"完全可以从日志推出来，再记一遍没有增加信息。
+      # 离线回测（scripts/sniper_adaptive_ab.py）显示 sources≥2：
+      #   XAUT 102 轮/18 独立行情/−0.056（现状 count≥3 为 44/8/−0.327）
+      #   BTC   90 轮/17 独立行情/+0.003（现状为 11/2/−0.078）
+      #   —— 两个标的都"通过更多且点估计更好"，但 **不显著**（最大 t=0.68），
+      #   所以不擅自打开。见 docs/sniper_signal_stack_redesign_20261014.md §2.3
+      min_sources_non_trend: 0       # 0=关闭；启用建议置 2
+      min_sources_trend: 0           # 同上；趋势 regime 的 min_active_trend=1 本就近乎防呆
       # —— 方向来源独立要求（实验项，见 docs/sniper_gate_review_and_plan_20260917.md）——
       # 背景：cvd_momentum / large_trade / volatility_surge 的方向都取 sign(cvd)，
       # 实测两者同向率 100%（XAUT 91/91、BTC 62/62），所以"同向 3 个信号"经常只是

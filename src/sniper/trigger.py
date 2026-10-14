@@ -80,11 +80,6 @@ class TriggerResult:
     situation_brief: Optional[Dict[str, Any]]  # None if not triggered
     cooldown_minutes: float
     gate_reason: str = ""                   # why PASS/FAIL/SKIPPED — surfaced to state file
-    # Non-empty when the source-breadth gate is in shadow mode and *would* have
-    # blocked this pulse.  Kept separate from gate_reason so the UI can show
-    # "the new rule would have said no" without pretending it is the reason the
-    # pulse did not wake.
-    gate_shadow: str = ""
 
 
 @dataclass
@@ -208,6 +203,28 @@ SIGNAL_SOURCES: Dict[str, str] = {
     'leader_sync': 'cross_symbol',
 }
 DEFAULT_SIGNAL_SOURCE = 'unknown'
+
+
+def _validated_number(raw, default: float, name: str) -> float:
+    """Coerce a config value to a positive number, or fall back and complain.
+
+    Returns `default` for anything missing, non-numeric or <= 0, logging a
+    warning.  All four adaptive values must be strictly positive: the window
+    length and sample floor are range()-style parameters that raise inside
+    RobustWindow, and z_entry==0 divides by zero when a detector computes its
+    strength.
+    """
+    if raw is None:
+        return float(default)
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        logger.warning("config %s=%r is not a number — using default %s", name, raw, default)
+        return float(default)
+    if not value > 0:
+        logger.warning("config %s=%r must be > 0 — using default %s", name, raw, default)
+        return float(default)
+    return value
 
 
 def independent_sources(signals, direction) -> List[str]:
@@ -411,18 +428,28 @@ class SniperTrigger:
         # leave the detector permanently dark.
         self._cvd_history: deque = deque(maxlen=max(64, int(self._cvd_lag_minutes) * 3))
         self._cvd_div_reason = "warmup"
-        self._gate_shadow = ""
 
         # Scale-free thresholds.  When disabled every detector keeps its legacy
         # absolute rule, so the switch is behaviour-preserving by construction.
         # See src/sniper/adaptive.py for why the absolute ones had to go.
         adaptive_cfg = self.sniper_cfg.get('signal_stack', {}).get('adaptive', {}) or {}
         self._adaptive_on = bool(adaptive_cfg.get('enabled', False))
-        self._z_entry = float(adaptive_cfg.get('z_entry', 2.5))
-        self._z_extreme = float(adaptive_cfg.get('z_extreme', 4.0))
+        # Validate at read time.  These values are consumed inside the pulse
+        # loop, where a bad one raises on *every* pulse: the daemon keeps
+        # running and simply never produces another signal, which is worse than
+        # refusing to start.  window_minutes<=0 and min_samples<1 raise inside
+        # RobustWindow, and z_entry==0 divides by zero in the cvd divergence
+        # strength.  Same approach as src/infrastructure/binance/net_config.py:
+        # fall back to the documented default and say so.
+        self._z_entry = _validated_number(adaptive_cfg.get('z_entry'), 2.5,
+                                          'adaptive.z_entry')
+        self._z_extreme = _validated_number(adaptive_cfg.get('z_extreme'), 4.0,
+                                            'adaptive.z_extreme')
         self._adaptive = RobustWindows(
-            window_minutes=float(adaptive_cfg.get('window_minutes', 240)),
-            min_samples=int(adaptive_cfg.get('min_samples', 30)),
+            window_minutes=_validated_number(adaptive_cfg.get('window_minutes'), 240.0,
+                                             'adaptive.window_minutes'),
+            min_samples=int(_validated_number(adaptive_cfg.get('min_samples'), 30,
+                                              'adaptive.min_samples')),
         )
         self._last_z: Dict[str, float] = {}
 
@@ -778,7 +805,6 @@ class SniperTrigger:
                          regime: str) -> Tuple[str, str]:
         """Deterministic pre-check before spending AI tokens. Returns (result, reason)."""
         gate_cfg = self.sniper_cfg.get('signal_stack', {}).get('gate', {})
-        self._gate_shadow = ""
 
         # 1. Directional sanity
         if gate_cfg.get('directional_sanity', True):
@@ -826,17 +852,21 @@ class SniperTrigger:
             min_active = gate_cfg.get('min_active_non_trend', 0)
             min_sources = gate_cfg.get('min_sources_non_trend', 0)
             gate_tag = 'MIN_ACTIVE_SIGNALS'
-        sources_mode = gate_cfg.get('sources_mode', 'off')
         # Shared definition — see independent_sources().
         sources = independent_sources(same_dir_active, direction)
 
-        # Breadth, measured either by signal count (legacy) or by independent
-        # source (enforce).  In enforce mode the source count *replaces* the
-        # signal count rather than adding to it: the whole premise is that
-        # counting detectors overstates breadth when several of them read the
-        # same number, so requiring both would double-count the same doubt.
+        # Breadth, measured by detector count (default) or by independent
+        # information source.  A non-zero min_sources switches the measure and
+        # *replaces* the count rather than adding to it: the premise is that
+        # counting detectors overstates breadth when several read the same
+        # number, so requiring both would double-count one doubt.
         # See docs/sniper_signal_stack_redesign_20261014.md §2.3.
-        if sources_mode == 'enforce' and min_sources > 0:
+        #
+        # There is deliberately no shadow/observe-only state: the diagnostic
+        # line already reports `sources=N[...]` per pulse using this same helper,
+        # list and direction, so `len(sources) < min_sources` is derivable from
+        # the log.  A second channel recording the same verdict bought nothing.
+        if min_sources > 0:
             if len(sources) < min_sources:
                 return "FAIL", (
                     f"MIN_INDEPENDENT_SOURCES: regime={regime} requires "
@@ -878,19 +908,6 @@ class SniperTrigger:
         #    the verdict above is unchanged, we only record what the rule would
         #    have decided so evidence can accumulate at zero risk.
         #    See docs/sniper_signal_stack_redesign_20261014.md §2.3.
-        if sources_mode == 'shadow' and min_sources > 0 and len(sources) < min_sources:
-            # Shadow never changes the verdict; it only records what the rule
-            # would have said, so the tightening can be judged on data.
-            logger.info(
-                "[%s] GATE SOURCE WOULD BLOCK | regime=%s requires ≥%d independent "
-                "sources | dir=%s | got %d (%s) | from %s",
-                self.symbol, regime, min_sources, direction.value,
-                len(sources), sources, [s.sub_type for s in same_dir_active],
-            )
-            self._gate_shadow = (
-                f"would block: {len(sources)}/{min_sources} independent sources"
-            )
-
         return "PASS", ""
 
     # ── Pre-Brief Builder ────────────────────────────────────────────────
@@ -1514,7 +1531,6 @@ class SniperTrigger:
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
             gate_reason=gate_reason,
-            gate_shadow=self._gate_shadow,
         )
 
     def apply_leader_sync(self, own_signals: List[SignalCard],
@@ -1705,10 +1721,13 @@ class SniperTrigger:
         # 0. Determine regime
         regime = self._determine_regime(current_metrics)
 
-        # 0b. Buffer this pulse so cvd_divergence can compare one candle apart,
-        #     then fold the pulse into the adaptive baselines.
+        # 0b. Buffer this pulse so cvd_divergence can compare one candle apart.
+        #     The adaptive baselines are folded in *after* the detectors run, so
+        #     a pulse is always scored against the window as it stood before that
+        #     pulse — otherwise an outlier sits in its own baseline and partly
+        #     masks itself.  With ~120 samples in a 240-minute window the effect
+        #     is small, but it biases every z toward not firing.
         self._record_cvd_sample(current_metrics, now)
-        self._record_adaptive_samples(current_metrics, now)
 
         # 1. Cooldown check
         cooldown_active, cooldown_reason = self._check_adaptive_cooldown(now, regime)
@@ -1763,6 +1782,12 @@ class SniperTrigger:
         #     overstated breadth on 18 XAUT / 6 BTC pulses).
         self._log_signal_diagnostics(current_metrics, fresh_signals,
                                      all_signals, dominant_direction)
+
+        # Fold this pulse into the adaptive baselines only now: the detectors
+        # above scored against the window as it stood before this pulse, and the
+        # diagnostic line reported those same scores.  Adding the sample here
+        # keeps the write out of its own reading.
+        self._record_adaptive_samples(current_metrics, now)
 
         # Why this pulse did (not) reach a session.  Surfaced through TriggerResult
         # into .sniper_pulse.json so the dashboard/MCP can answer "why didn't it
@@ -1820,7 +1845,6 @@ class SniperTrigger:
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
             gate_reason=gate_reason,
-            gate_shadow=self._gate_shadow,
         )
 
         if should_trigger:

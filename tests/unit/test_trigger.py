@@ -671,11 +671,17 @@ class TestSignalSources:
 
 
 class TestSourceBreadthGate:
+    """Breadth by independent source, switched on by a non-zero min_sources.
 
-    def _trigger(self, mode, min_sources=2):
-        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1,
-                           'min_sources_non_trend': min_sources, 'sources_mode': mode})
-        return t
+    There is no shadow/observe-only state: the diagnostic line reports
+    `sources=N[...]` per pulse with the same helper, list and direction this gate
+    uses, so "would it block?" is derivable from the log rather than needing a
+    second verdict channel.  See the config comment.
+    """
+
+    def _trigger(self, min_sources=2):
+        return _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1,
+                              'min_sources_non_trend': min_sources})
 
     def _flow_only_signals(self):
         return [_gate_card(sub_type=s) for s in
@@ -689,103 +695,42 @@ class TestSourceBreadthGate:
     def _metrics(self):
         return _full_metrics(cvd=0.60, price=4400.0)
 
-    def test_off_mode_ignores_the_rule(self):
-        t = self._trigger('off')
+    def test_disabled_by_default_uses_the_count_gate(self):
+        """min_sources=0 must leave today's behaviour untouched."""
+        t = self._trigger(min_sources=0)
         res, _ = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
                                     Direction.BULLISH, 'ranging')
-        assert res == 'PASS'
+        assert res == 'PASS'          # three same-direction flow signals
 
-    def test_shadow_mode_does_not_change_the_verdict(self, caplog):
-        t = self._trigger('shadow')
-        with caplog.at_level('INFO'):
-            res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
-                                             Direction.BULLISH, 'ranging')
-        assert res == 'PASS', "shadow must never block"
-        assert reason == ""
-        assert any('GATE SOURCE WOULD BLOCK' in r.message for r in caplog.records)
-
-    def test_enforce_mode_blocks_flow_only(self):
-        t = self._trigger('enforce')
+    def test_enabled_blocks_a_single_source(self):
+        t = self._trigger()
         res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
                                          Direction.BULLISH, 'ranging')
         assert res == 'FAIL'
         assert 'MIN_INDEPENDENT_SOURCES' in reason
 
-    def test_enforce_mode_passes_mixed_sources(self):
-        t = self._trigger('enforce')
+    def test_enabled_passes_mixed_sources(self):
+        t = self._trigger()
         res, _ = t._run_pre_ai_gate(self._metrics(), self._mixed_signals(),
                                     Direction.BULLISH, 'ranging')
         assert res == 'PASS'
 
-    def test_shadow_verdict_is_recorded_when_the_count_gate_passes(self):
-        """Three same-direction signals, one source: the count gate passes, the
-        source gate would not.  Shadow records that without changing the verdict."""
-        t = self._trigger('shadow')
-        res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
-                                         Direction.BULLISH, 'ranging')
-        assert res == 'PASS'
-        assert reason == ""
-        assert 'independent sources' in t._gate_shadow
-
-    def test_shadow_verdict_is_empty_when_sources_are_sufficient(self):
-        t = self._trigger('shadow')
-        t._run_pre_ai_gate(self._metrics(), self._mixed_signals(),
-                           Direction.BULLISH, 'ranging')
-        assert t._gate_shadow == ""
-
-    def test_shadow_verdict_cleared_between_pulses(self):
-        """A verdict from the previous pulse must not stick to this one."""
-        t = self._trigger('shadow')
-        t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
-                           Direction.BULLISH, 'ranging')
-        assert t._gate_shadow != ""
-        t._run_pre_ai_gate(self._metrics(), self._mixed_signals(),
-                           Direction.BULLISH, 'ranging')
-        assert t._gate_shadow == ""
-
-    def test_shadow_never_reaches_the_real_gate_reason(self):
-        t = self._trigger('shadow')
-        _res, reason = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
-                                          Direction.BULLISH, 'ranging')
-        assert 'MIN_INDEPENDENT_SOURCES' not in reason
-
-    def test_enforce_replaces_the_count_gate_而不是叠加(self):
-        """Two signals from two independent sources must pass in enforce mode
-        even though the legacy count gate would demand three — otherwise the
-        rule would double-count the same doubt."""
-        t = self._trigger('enforce', min_sources=2)
+    def test_enabled_replaces_the_count_gate_rather_than_stacking(self):
+        """Two signals from two independent sources must pass even though the
+        count gate would demand three — otherwise one doubt is counted twice."""
+        t = self._trigger()
         two_sources = [_gate_card(sub_type='cvd_momentum'),
                        _gate_card(sub_type='boundary_test')]
         res, _ = t._run_pre_ai_gate(self._metrics(), two_sources,
                                     Direction.BULLISH, 'ranging')
         assert res == 'PASS'
 
-    def test_enforce_still_blocks_a_single_source(self):
-        t = self._trigger('enforce', min_sources=2)
-        one_source = [_gate_card(sub_type='cvd_momentum'),
-                      _gate_card(sub_type='large_trade'),
-                      _gate_card(sub_type='cvd_absorption')]
-        res, reason = t._run_pre_ai_gate(self._metrics(), one_source,
-                                         Direction.BULLISH, 'ranging')
-        assert res == 'FAIL'
-        assert 'MIN_INDEPENDENT_SOURCES' in reason
-
-    def test_off_mode_still_uses_the_count_gate(self):
-        t = self._trigger('off')
-        two_sources = [_gate_card(sub_type='cvd_momentum'),
-                       _gate_card(sub_type='boundary_test')]
-        res, reason = t._run_pre_ai_gate(self._metrics(), two_sources,
-                                         Direction.BULLISH, 'ranging')
-        assert res == 'FAIL'
-        assert 'MIN_ACTIVE_SIGNALS' in reason
-
-    def test_trending_uses_the_trend_minimum(self):
-        t = self._trigger('enforce', min_sources=2)
-        # min_sources_trend defaults to 1 in _full_trigger's gate dict?  It is
-        # absent there, so the gate falls back to 0 → no enforcement.
+    def test_trending_uses_its_own_source_minimum(self):
+        t = _full_trigger({'min_active_non_trend': 1, 'min_active_trend': 1,
+                           'min_sources_non_trend': 2, 'min_sources_trend': 0})
         res, _ = t._run_pre_ai_gate(self._metrics(), self._flow_only_signals(),
                                     Direction.BULLISH, 'trending')
-        assert res == 'PASS'
+        assert res == 'PASS'          # trend min is 0 → count gate (>=1)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -953,16 +898,6 @@ class TestSelfReviewRegressions:
             "raw delta must not be printed next to a z threshold"
 
 
-    def test_ui_does_not_advertise_a_rule_that_is_not_in_force(self):
-        """The shadow verdict belongs in the pulse file and the log, not on the
-        panel: it describes a rule the operator cannot switch on and may never
-        be enabled, so a badge would be permanent ornament."""
-        from pathlib import Path as _P
-        tpl = _P("src/dashboard/templates/live.html").read_text()
-        assert 'sc-shadow' not in tpl
-        assert 'gate_shadow' not in tpl
-        assert 'would block' not in tpl
-
     def test_ui_strip_is_re_sorted_by_source(self):
         """Block order from the daemon interleaves sources (cvd_divergence sits
         between two flow detectors), so grouping needs a stable re-sort applied
@@ -1036,3 +971,66 @@ class TestSourceCountIsDefinedOnce:
                  mk('large_trade', Direction.BULLISH),
                  mk('cvd_absorption', Direction.BULLISH)]
         assert independent_sources(stack, Direction.BULLISH) == ['flow']
+
+
+class TestAdaptiveConfigValidation:
+    """Bad adaptive config must not reach the pulse loop.
+
+    These values are read once at construction and used every pulse, where
+    window_minutes<=0 and min_samples<1 raise inside RobustWindow and
+    z_entry==0 divides by zero in the cvd-divergence strength.  A bad value
+    would therefore raise on *every* pulse: the daemon keeps running and never
+    produces another signal, which is worse than refusing to start.
+    """
+
+    @pytest.mark.parametrize("key,bad", [
+        ("window_minutes", 0), ("window_minutes", -5), ("window_minutes", "abc"),
+        ("min_samples", 0), ("min_samples", -1), ("min_samples", "abc"),
+        ("z_entry", 0), ("z_entry", -1), ("z_entry", "abc"),
+        ("z_extreme", 0), ("z_extreme", -1),
+    ])
+    def test_bad_value_falls_back_and_still_evaluates(self, key, bad):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        cfg = dict(t.sniper_cfg['signal_stack'].get('adaptive') or {})
+        cfg.update({'enabled': True, key: bad})
+        t.sniper_cfg['signal_stack']['adaptive'] = cfg
+        # re-read through the same path __init__ uses
+        from src.sniper.trigger import _validated_number
+        defaults = {'window_minutes': 240.0, 'min_samples': 30.0,
+                    'z_entry': 2.5, 'z_extreme': 4.0}
+        assert _validated_number(cfg.get(key), defaults[key], key) == defaults[key]
+        # and the pipeline must not raise
+        t.evaluate(_full_metrics(cvd=0.5, price=4400.0), None)
+
+    def test_good_values_pass_through(self):
+        from src.sniper.trigger import _validated_number
+        assert _validated_number(120, 240.0, 'x') == 120.0
+        assert _validated_number("120", 240.0, 'x') == 120.0
+        assert _validated_number(None, 240.0, 'x') == 240.0
+
+
+class TestAdaptiveScoringOrder:
+    """A pulse is scored against the window as it stood *before* that pulse."""
+
+    def test_reading_does_not_ingest(self):
+        t = _adaptive_trigger(True, min_samples=3)
+        t.evaluate(_full_metrics(cvd=0.10, price=4400.0), None)
+        n = t._adaptive.window('cvd').count
+        t._adaptive_z('cvd', 0.10)          # what a detector does
+        assert t._adaptive.window('cvd').count == n
+
+    def test_each_pulse_folds_in_exactly_once(self):
+        t = _adaptive_trigger(True, min_samples=3)
+        for i in range(5):
+            t.evaluate(_full_metrics(cvd=0.10 + 0.01 * i, price=4400.0), None)
+        assert t._adaptive.window('cvd').count == 5
+
+    def test_outlier_does_not_raise_its_own_threshold(self):
+        """The property the removed score() existed to guarantee."""
+        t = _adaptive_trigger(True, min_samples=3)
+        for v in (0.10, 0.11, 0.09, 0.10):
+            t._adaptive.update('cvd', v, datetime.now(timezone.utc))
+        before = t._adaptive_z('cvd', 5.0)          # scored before folding in
+        t._adaptive.update('cvd', 5.0, datetime.now(timezone.utc))
+        after = t._adaptive_z('cvd', 5.0)           # now it is in its own window
+        assert before >= after, "self-inclusion must not make a value look milder"
