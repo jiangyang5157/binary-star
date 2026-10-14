@@ -300,6 +300,12 @@ def _read_pulse(data_root: str) -> dict | None:
                 "threshold": entry.get("threshold") or 0.0,
                 "direction": entry.get("direction", "NEUTRAL"),
                 "all_signals": entry.get("signals", []),
+                # Independent information sources behind the dominant direction.
+                # Forwarded explicitly so the panel does not have to re-derive
+                # it from all_signals — that fallback had the union-of-both-
+                # directions bug the backend no longer has.
+                "sources": entry.get("sources", []),
+                "sources_active": entry.get("sources_active", 0),
                 "cooldown_active": entry.get("cooldown_active", False),
                 "cooldown_remaining_seconds": entry.get("cooldown_remaining_seconds", 0),
             }

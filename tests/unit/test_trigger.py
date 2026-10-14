@@ -841,3 +841,35 @@ class TestSourceCountIsDefinedOnce:
                  mk('cvd_absorption', Direction.BULLISH)]
         assert independent_sources(stack, Direction.BULLISH) == ['flow']
 
+
+
+class TestUiSourceCountAgreesWithTheGate:
+    """The panel must not re-derive the source count with different rules.
+
+    The backend computes it once (`independent_sources`, dominant direction
+    only).  An earlier UI fallback used `direction !== 'NEUTRAL'`, i.e. it
+    unioned both directions and reported 2 sources where the gate saw 1 — the
+    same defect the backend had, left alive on the display path.
+    """
+
+    def _tpl(self):
+        from pathlib import Path
+        return Path("src/dashboard/templates/live.html").read_text()
+
+    def test_panel_prefers_the_backend_value(self):
+        tpl = self._tpl()
+        assert "var names = sd.sources;" in tpl
+        assert "if (names && names.length) return names;" in tpl
+
+    def test_fallback_filters_on_the_dominant_direction(self):
+        tpl = self._tpl()
+        assert "g.direction === sd.direction" in tpl
+        # the exact predicate, not the prose in the comment above it
+        assert "g.direction !== 'NEUTRAL'" not in tpl, \
+            "the union-of-both-directions fallback is back"
+
+    def test_api_forwards_the_source_fields(self):
+        from pathlib import Path
+        api = Path("src/dashboard/api/sniper_run.py").read_text()
+        assert '"sources": entry.get("sources", [])' in api
+        assert '"sources_active"' in api

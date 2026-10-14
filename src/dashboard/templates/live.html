@@ -821,21 +821,23 @@
 
     // Name the independent sources rather than counting them: "3 signals" is
     // what the strip shows, and the whole point is that they may be one source.
-    // Falls back to deriving the set when the backend predates the field.
+    //
+    // The backend sends `sources` directly.  The fallback must filter on the
+    // SAME direction as the dominant one — an earlier version used
+    // `direction !== 'NEUTRAL'`, which unions both directions and reported 2
+    // sources where the gate saw 1 (measured: 18 XAUT / 6 BTC pulses).
     function _activeSources(sd) {
       var names = sd.sources;
-      if (!names || !names.length) {
-        var seen = {};
-        var list = sd.all_signals || [];
-        for (var i = 0; i < list.length; i++) {
-          var g = list[i];
-          if (g.is_active && g.direction && g.direction !== 'NEUTRAL' && g.source) {
-            seen[g.source] = true;
-          }
+      if (names && names.length) return names;
+      var seen = {};
+      var list = sd.all_signals || [];
+      for (var i = 0; i < list.length; i++) {
+        var g = list[i];
+        if (g.is_active && g.source && g.direction === sd.direction) {
+          seen[g.source] = true;
         }
-        names = Object.keys(seen).sort();
       }
-      return names || [];
+      return Object.keys(seen).sort();
     }
 
     function _sourceBadge(sd) {
