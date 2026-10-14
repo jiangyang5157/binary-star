@@ -838,17 +838,26 @@
     // is the explicit version for when the blocks could be read as that many
     // independent confirmations — which, measured, is 13.4% of XAUT pulses and
     // 11.1% of BTC pulses.  Returns '' when there is nothing to disambiguate.
+    // Shown only when more than ONE block is lit: a single lit block is
+    // unambiguous on its own, so the breakdown would merely repeat it.
+    //
+    // That "more than one" test is a DISPLAY rule, deliberately not tied to any
+    // config value.  In particular it is NOT gate.min_sources_non_trend — the
+    // panel never receives the gate config, and the two numbers mean different
+    // things ("how many lit blocks can be misread" vs "how many independent
+    // sources the gate demands").  They happen to share the value 2 only by
+    // coincidence.
     function _sourceSummary(sd) {
       var names = _activeSources(sd);
       if (!names.length) return '';
       var list = sd.all_signals || [];
-      var n = 0;
+      var activeSignals = 0;
       for (var i = 0; i < list.length; i++) {
         var g = list[i];
-        if (g.is_active && g.direction === sd.direction) n++;
+        if (g.is_active && g.direction === sd.direction) activeSignals++;
       }
-      if (n < 2) return '';
-      return n + ' signals from ' + names.length +
+      if (activeSignals < 2) return '';
+      return activeSignals + ' signals from ' + names.length +
              (names.length === 1 ? ' source (' + names[0] + ')'
                                  : ' sources (' + names.join(', ') + ')');
     }

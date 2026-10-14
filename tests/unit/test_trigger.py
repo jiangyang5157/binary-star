@@ -873,8 +873,11 @@ class TestUiSourceCountAgreesWithTheGate:
         tpl = self._tpl()
         assert "function _sourceSummary(" in tpl
         assert "signals from " in tpl
+        assert "activeSignals + ' signals from '" in tpl
         # only when it can disambiguate: one signal is already unambiguous
-        assert "if (n < 2) return '';" in tpl
+        assert "if (activeSignals < 2) return '';" in tpl
+        # and it must be documented as a display rule, not the gate's config
+        assert "NOT gate.min_sources_non_trend" in tpl
         # both the render and the update path must carry it
         assert tpl.count("_sourceSummary(sd)") >= 2
 
