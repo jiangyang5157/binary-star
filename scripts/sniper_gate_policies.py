@@ -10,6 +10,15 @@ scores alternative entry policies on the same 12.5 days:
     for the market drift that otherwise dominates raw forward returns)
 
 Policies are described declaratively so the plan can point at exact rules.
+
+⚠️ This script rebuilds a pulse's signals from the log's diagnostic string
+(``build_fresh_signals``), i.e. a *mirror* of the detectors rather than the
+detectors themselves.  The mirror cannot represent a pulse with more than one
+independent information source — measured against the real detectors it finds 0
+such pulses where there are 31 (XAUT) and 30 (BTC).  So it CANNOT answer any
+question about the source-breadth gate; use ``scripts/sniper_source_gate_ab.py``,
+which drives the real ``SniperTrigger``, for that.  It remains valid for the
+count/threshold policies it was written for.
 """
 
 from __future__ import annotations
