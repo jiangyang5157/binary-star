@@ -921,3 +921,49 @@ class TestUiSourceCountAgreesWithTheGate:
         api = Path("src/dashboard/api/sniper_run.py").read_text()
         assert '"sources": entry.get("sources", [])' in api
         assert "sources_active" not in api, "redundant with len(sources); no consumer"
+
+
+class TestSignalCfgHonoursFalsyValues:
+    """`return node if node else default` silently replaced a configured 0 with
+    the default, so setting a threshold to 0 — the natural way to switch an
+    optional path off — did nothing and said nothing.  Only a missing key or an
+    explicit null may fall back.
+    """
+
+    def _t(self, thresholds):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        t.sniper_cfg['signal_stack']['thresholds'] = thresholds
+        return t
+
+    def test_zero_is_honoured(self):
+        t = self._t({'cvd_extreme_threshold': 0})
+        assert t._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18) == 0
+
+    def test_zero_float_is_honoured(self):
+        t = self._t({'cvd_divergence_candle_delta': 0.0})
+        assert t._signal_cfg('thresholds', 'cvd_divergence_candle_delta', default=0.30) == 0.0
+
+    def test_missing_key_falls_back(self):
+        t = self._t({})
+        assert t._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18) == 0.18
+
+    def test_missing_intermediate_falls_back(self):
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        t.sniper_cfg['signal_stack'].pop('thresholds', None)
+        assert t._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18) == 0.18
+
+    def test_none_falls_back(self):
+        t = self._t({'cvd_extreme_threshold': None})
+        assert t._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18) == 0.18
+
+    def test_real_config_values_are_unchanged(self):
+        """The fix must not alter any currently configured threshold.
+
+        Asserted against the resolved config rather than a literal, because the
+        value is symbol-specific (XAUT overrides it) and a hardcoded number here
+        would silently encode the wrong symbol.
+        """
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1})
+        configured = t.sniper_cfg['signal_stack']['thresholds']['cvd_extreme_threshold']
+        assert configured, "the shipped config must be non-falsy for this test to mean anything"
+        assert t._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.99) == configured

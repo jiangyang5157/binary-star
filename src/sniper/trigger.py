@@ -524,11 +524,20 @@ class SniperTrigger:
         return True
 
     def _signal_cfg(self, *path, default=None):
-        """Walk sniper_cfg → signal_stack → ... safely. e.g. _signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18)."""
+        """Walk sniper_cfg → signal_stack → ... safely. e.g. _signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.18).
+
+        A configured value wins even when it is falsy: `return node if node
+        else default` silently substituted the default for a configured 0, so a
+        threshold of 0 — the natural way to switch an optional path off — did
+        nothing and said nothing.  Only a missing key or an explicit null falls
+        back.
+        """
         node = self.sniper_cfg.get('signal_stack', {})
         for key in path:
-            node = node.get(key, {}) if isinstance(node, dict) else {}
-        return node if node else default
+            if not isinstance(node, dict) or key not in node:
+                return default
+            node = node[key]
+        return default if node is None else node
 
     # ── Regime Detection ─────────────────────────────────────────────────
 
