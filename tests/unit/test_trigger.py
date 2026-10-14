@@ -868,6 +868,16 @@ class TestUiSourceCountAgreesWithTheGate:
         assert "g.direction !== 'NEUTRAL'" not in tpl, \
             "the union-of-both-directions fallback is back"
 
+    def test_badge_is_hidden_when_a_single_signal_makes_it_redundant(self):
+        """With one active signal the strip already shows one block and the badge
+        can only repeat its source name — measured, that is ~87% of pulses."""
+        tpl = self._tpl()
+        assert "function _shouldShowSourceBadge(" in tpl
+        assert "return n >= 2;" in tpl
+        # both the render and the update path must honour it
+        assert "showBadge ? '' : ' style=\"display:none\"'" in tpl
+        assert "srcEl.style.display = show ? '' : 'none';" in tpl
+
     def test_api_forwards_the_source_fields(self):
         from pathlib import Path
         api = Path("src/dashboard/api/sniper_run.py").read_text()

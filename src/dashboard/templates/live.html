@@ -691,10 +691,12 @@
       }
       html += '</div>';
       var srcNames = _activeSources(sd);
+      var showBadge = _shouldShowSourceBadge(sd);
       html += '<span class="signal-strip-sources" id="src-count-' + stripped + '"' +
+              (showBadge ? '' : ' style="display:none"') +
               ' title="independent information sources behind this direction: ' +
               _esc(srcNames.join(', ') || 'none') + ' (' + srcNames.length + ')">' +
-              _esc(_sourceBadge(sd)) + '</span>';
+              (showBadge ? _esc(_sourceBadge(sd)) : '') + '</span>';
       html += '</div>';
 
       html += '</div>';  // close signal-card
@@ -785,7 +787,9 @@
       var srcEl = card.querySelector('.signal-strip-sources');
       if (srcEl) {
         var names = _activeSources(sd);
-        srcEl.textContent = _sourceBadge(sd);
+        var show = _shouldShowSourceBadge(sd);
+        srcEl.textContent = show ? _sourceBadge(sd) : '';
+        srcEl.style.display = show ? '' : 'none';
         srcEl.title = 'independent information sources behind this direction: ' +
                       (names.join(', ') || 'none') + ' (' + names.length + ')';
       }
@@ -844,6 +848,22 @@
       var names = _activeSources(sd);
       if (!names.length) return '';
       return names.join('+');
+    }
+
+    // The badge exists for one specific misreading: several lit blocks that are
+    // really one voice counted several times.  With a single active signal the
+    // strip already says everything and the badge can only repeat it, so it is
+    // hidden — measured, that is ~87% of pulses (XAUT 13.4% have 2+ same-
+    // direction signals, BTC 11.1%).
+    function _shouldShowSourceBadge(sd) {
+      if (!_activeSources(sd).length) return false;
+      var list = sd.all_signals || [];
+      var n = 0;
+      for (var i = 0; i < list.length; i++) {
+        var g = list[i];
+        if (g.is_active && g.direction === sd.direction) n++;
+      }
+      return n >= 2;
     }
 
     function _renderSignalCards(data) {
