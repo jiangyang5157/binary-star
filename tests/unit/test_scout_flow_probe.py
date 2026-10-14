@@ -3,8 +3,6 @@ must never break a pulse."""
 import logging
 from types import SimpleNamespace
 
-import pytest
-
 import src.sniper.scout as scout_mod
 
 

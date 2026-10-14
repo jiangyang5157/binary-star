@@ -6,6 +6,47 @@ default 改了要报备，overrides 可自行决定。
 
 ---
 
+## ⚠️ as-built 现状（读后面的设计之前先读这里）
+
+本文前半部是**设计提案**，其中若干机制在实施中已被**删除或推翻**。
+代码的实际情况以本节为准；后文保留原样作为决策记录。
+
+### 当前生效的配置
+
+```yaml
+gate:
+  min_active_non_trend: 1      # global default；XAUT/BTC 在 symbol_config 覆盖为 3
+  min_active_trend: 1
+  min_sources_non_trend: 0     # 0 = 关闭（走上面的计数闸门）。启用建议置 2
+  min_sources_trend: 0         # 同上
+# 没有 sources_mode 这个键 —— 已删除，见 "D 的方式被推翻"
+# signal_stack 下没有 adaptive 段 —— 已删除，见 "Phase C 已被删除"
+```
+
+**即：本次重构没有改变任何默认行为。** 触发条件与你重构前完全一致
+（已用 `scripts/sniper_legacy_fingerprint.py` 与 `7e7c6c9` 逐位比对验证）。
+
+### 已删除 / 已推翻的机制（后文仍有描述，勿按后文执行）
+
+| 机制 | 状态 | 原因 |
+|---|---|---|
+| `gate.sources_mode`（`off\|shadow\|enforce`） | **已删除** | shadow 与诊断行的 `sources=` 完全冗余；badge 删除后无消费者 |
+| `TriggerResult.gate_shadow` / pulse file 字段 / `GATE SOURCE WOULD BLOCK` 日志 | **已删除** | 同上 |
+| `signal_stack.adaptive` + `src/sniper/adaptive.py` + 各检测器的 z 分支 | **已删除**（~570 行） | 删除测试：默认关闭、证据不支持、cherry-pick 可恢复 |
+| `TriggerResult` 之外我在设计里提过的"shadow 闸门" | **已删除** | 见上 |
+
+### 保留下来的（这些是真实存在的）
+
+| 保留物 | 作用 |
+|---|---|
+| `src/sniper/trigger.py` → `SIGNAL_SOURCES` / `SignalCard.source` / `independent_sources()` | 声明并**统一**计算"独立信息来源"（闸门/诊断行/pulse file 共用一处） |
+| `gate.min_sources_*` | 来源广度开关：`>0` 时**替换**计数闸门 |
+| 诊断行的 `sources=N[a,b]` | **唯一的证据通道**（source gate 的判决可由它推出） |
+| `src/sniper/scout.py` → `_log_flow_probe()` | 逐根 K 线资金流落盘（唯一**不可恢复**的数据，见"删除测试"） |
+| `scripts/sniper_stack_probe.py` / `sniper_source_gate_ab.py` / `sniper_legacy_fingerprint.py` | 离线分析工具（中立层，不耦合已删特性） |
+
+---
+
 ## 0. 先把边界划清（决定了设计的自由度）
 
 代码里的真实数据流：
@@ -127,10 +168,12 @@ SIGNAL_SOURCES = {
 gate:
   min_active_non_trend: 3      # ← 保留，回归对照
   min_active_trend: 1
-  min_sources_non_trend: 2     # ← 新：≥2 个独立来源（shadow 先跑）
-  min_sources_trend: 1
-  sources_mode: shadow         # off | shadow | enforce
+  min_sources_non_trend: 2     # ← 提案值。**实装为 0（关闭）**，见 as-built 节
+  min_sources_trend: 1         # ← 提案值。**实装为 0**
+  sources_mode: shadow         # ← 提案。**该键最终被删除**
 ```
+
+> ⚠️ 上面是**当时的提案**，不是现状。以文首 as-built 节为准。
 
 `shadow` 模式下：**闸门判决完全按旧逻辑**，只额外记一行 `GATE SOURCE SHADOW | would=… | actual=…`。
 这样可以在**零风险**下积累"来源判据到底会不会更早/更好"的证据，等样本够了再 `enforce`。
@@ -515,9 +558,12 @@ operator 提出一个比"哪里坏了"更锋利的角度：**"这个功能如果
 
 | 键 | 变化 | 说明 |
 |---|---|---|
-| `gate.min_sources_non_trend` | **新增** = 2 | 新增键；因 `sources_mode: shadow`，**当前不生效** |
-| `gate.min_sources_trend` | **新增** = 1 | 同上 |
-| `gate.sources_mode` | **新增** = `shadow` | 同上 |
-| `gate.min_active_*`、`thresholds.*`、`weights`、`decay`、`regime_modifiers` | **未改** | 本阶段不动任何既有 default |
+| `gate.min_sources_non_trend` | **新增** = `0` | 新增键；`0` = **关闭**，走 `min_active_*` 计数闸门 |
+| `gate.min_sources_trend` | **新增** = `0` | 同上 |
+| `gate.min_active_*`、`thresholds.*`、`weights`、`decay`、`regime_modifiers` | **未改** | 全程未动任何既有 default |
 
-overrides 侧：本阶段**未改**任何 `symbol_config.yaml`（自适应条件上线时才需要清理被取代的绝对阈值）。
+**没有 `gate.sources_mode`** —— 该键在实施中新增、随后删除（见 "D 的方式被推翻"）。
+**没有 `signal_stack.adaptive`** —— 该段在实施中新增、随后删除（见 "Phase C 已被删除"）。
+
+overrides 侧：全程**未改**任何 `symbol_config.yaml` 的阈值（`cvd_divergence_candle_delta`
+的改动发生在本次重构之前的 `f79dfe2`，属于另一次修复）。

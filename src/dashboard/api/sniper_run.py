@@ -305,7 +305,6 @@ def _read_pulse(data_root: str) -> dict | None:
                 # it from all_signals — that fallback had the union-of-both-
                 # directions bug the backend no longer has.
                 "sources": entry.get("sources", []),
-                "sources_active": entry.get("sources_active", 0),
                 "cooldown_active": entry.get("cooldown_active", False),
                 "cooldown_remaining_seconds": entry.get("cooldown_remaining_seconds", 0),
             }

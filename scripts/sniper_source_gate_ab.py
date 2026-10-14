@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import statistics
 import sys
-from datetime import timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple
 

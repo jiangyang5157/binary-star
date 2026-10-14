@@ -18,6 +18,12 @@ Run it before and after a change:
 It fingerprints *counts and summed strengths*, not just counts, because a
 strength-only change still moves confluence and therefore the gate.
 
+The output begins with an `_input` block (log path, line count, pulses per
+symbol).  The daemon appends to this log while running, so a comparison made
+across time will show higher counts that look like a behaviour change but are
+just a bigger denominator — always check `_input` first, or freeze the log with
+`--log` and compare two code versions against one snapshot.
+
 Read-only.
 """
 from __future__ import annotations
@@ -31,15 +37,26 @@ from typing import Any, Dict
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from scripts.sniper_gate_replay import DEFAULT_LOG, parse  # noqa: E402
-from scripts.sniper_stack_probe import (BASE, DETECTORS,  # noqa: E402
-                                        iter_symbol, pulse_time,
-                                        metrics_from_diag)
+from scripts.sniper_stack_probe import (DETECTORS, iter_symbol,  # noqa: E402
+                                        pulse_time)
 from src.sniper.trigger import SniperTrigger  # noqa: E402
 
 
-def fingerprint(symbols=("XAUTUSDT", "BTCUSDT")) -> Dict[str, Any]:
-    parsed = parse(DEFAULT_LOG)
-    out: Dict[str, Any] = {}
+def fingerprint(symbols=("XAUTUSDT", "BTCUSDT"),
+                log_path: str = DEFAULT_LOG) -> Dict[str, Any]:
+    log_path = Path(log_path)
+    parsed = parse(log_path)
+    # Record the input, because the daemon appends to this log while it runs.
+    # Without the denominator a comparison across time shows higher counts and
+    # looks exactly like a behaviour change — that false alarm is easy to raise
+    # and, worse, easy to dismiss.  With it, a diff says which it is.
+    out: Dict[str, Any] = {
+        "_input": {
+            "log": str(log_path),
+            "lines": len(log_path.read_text(errors="ignore").splitlines()),
+            "pulses": {sym: len(parsed["pulses"][sym]) for sym in symbols},
+        }
+    }
     for sym in symbols:
         trigger = SniperTrigger(symbol=sym)
         agg = {name: [0, 0.0] for name, _ in DETECTORS}
@@ -58,4 +75,12 @@ def fingerprint(symbols=("XAUTUSDT", "BTCUSDT")) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    print(json.dumps(fingerprint(), indent=1, sort_keys=True))
+    # Pass a frozen copy of the log for a comparison that spans time, e.g.
+    #   cp data/prod/sniper.log /tmp/frozen.log
+    #   python3 scripts/sniper_legacy_fingerprint.py --log /tmp/frozen.log
+    log_path = DEFAULT_LOG
+    if "--log" in sys.argv:
+        log_path = sys.argv[sys.argv.index("--log") + 1]
+    # sort_keys=False so the _input block stays first: it is what tells you
+    # whether a difference is a behaviour change or just a longer log.
+    print(json.dumps(fingerprint(log_path=log_path), indent=1))

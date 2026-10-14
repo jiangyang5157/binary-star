@@ -777,6 +777,34 @@ class TestSelfReviewRegressions:
         assert tpl.count('_orderedSignals(sd)') >= 2, \
             "render and update must use the same ordering"
 
+class TestDiagnosticIsTheEvidenceChannel:
+    """`sources=N[...]` in the SIGNAL DIAG line is the *only* place the
+    source-breadth verdict is recorded: the shadow mode that used to duplicate
+    it was deleted.  Losing this field would silently remove the evidence the
+    gate decision rests on, so it is pinned here rather than left to the
+    parser's tolerance for unknown chunks.
+    """
+
+    def _diag(self, caplog, metrics):
+        import logging
+        t = _full_trigger({'min_active_non_trend': 3, 'min_active_trend': 1,
+                           'min_sources_non_trend': 0})
+        with caplog.at_level(logging.INFO, logger='src.sniper.trigger'):
+            t.evaluate(metrics, None)
+        lines = [r.getMessage() for r in caplog.records if 'SIGNAL DIAG' in r.getMessage()]
+        assert lines, 'no diagnostic line emitted'
+        return lines[-1]
+
+    def test_field_is_present_and_names_the_sources(self, caplog):
+        diag = self._diag(caplog, _full_metrics(cvd=0.60, price=4400.0))
+        assert 'sources=' in diag
+        assert 'sources=1[flow]' in diag, diag
+
+    def test_field_reports_zero_for_a_directionless_pulse(self, caplog):
+        diag = self._diag(caplog, _full_metrics(cvd=0.0, price=4400.0))
+        assert 'sources=0[-]' in diag, diag
+
+
 class TestSourceCountIsDefinedOnce:
     """The gate, the diagnostic line and the pulse file must report the same
     number — an operator reading the log is entitled to read the gate's number.
@@ -892,4 +920,4 @@ class TestUiSourceCountAgreesWithTheGate:
         from pathlib import Path
         api = Path("src/dashboard/api/sniper_run.py").read_text()
         assert '"sources": entry.get("sources", [])' in api
-        assert '"sources_active"' in api
+        assert "sources_active" not in api, "redundant with len(sources); no consumer"

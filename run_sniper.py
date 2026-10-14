@@ -864,7 +864,6 @@ class SniperDaemon:
 
                     entry.update({
                         "triggered": sym in triggered_syms,
-                        "sources_active": len(_active_src),
                         "sources": _active_src,
                         "confluence_score": round(result.confluence_score, 2),
                         "threshold": round(trigger.engine.effective_threshold, 2),
@@ -891,7 +890,6 @@ class SniperDaemon:
                     entry.update({
                         "triggered": False,
                         "confluence_score": 0.0,
-                        "sources_active": 0,
                         "sources": [],
                         "threshold": round(trigger.engine.effective_threshold, 2),
                         "direction": "NEUTRAL",
