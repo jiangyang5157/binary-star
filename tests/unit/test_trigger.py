@@ -777,15 +777,6 @@ class TestSelfReviewRegressions:
         assert tpl.count('_orderedSignals(sd)') >= 2, \
             "render and update must use the same ordering"
 
-    def test_ui_badge_names_the_sources_rather_than_counting_them(self):
-        """'3 signals' is what the strip already shows; the misleading part is
-        that they may all be one source, so the badge names it."""
-        from pathlib import Path as _P
-        tpl = _P("src/dashboard/templates/live.html").read_text()
-        assert 'function _activeSources(' in tpl
-        assert "names.join('+')" in tpl
-
-
 class TestSourceCountIsDefinedOnce:
     """The gate, the diagnostic line and the pulse file must report the same
     number — an operator reading the log is entitled to read the gate's number.
@@ -868,15 +859,31 @@ class TestUiSourceCountAgreesWithTheGate:
         assert "g.direction !== 'NEUTRAL'" not in tpl, \
             "the union-of-both-directions fallback is back"
 
-    def test_badge_is_hidden_when_a_single_signal_makes_it_redundant(self):
-        """With one active signal the strip already shows one block and the badge
-        can only repeat its source name — measured, that is ~87% of pulses."""
+    def test_no_permanent_label_beside_the_strip(self):
+        """The aggregate lives in the hover tooltip instead.  A permanent label
+        was always-on chrome for information the strip already encodes (blocks
+        sorted by source, a gap per source change) and that hover can state
+        explicitly."""
         tpl = self._tpl()
-        assert "function _shouldShowSourceBadge(" in tpl
-        assert "return n >= 2;" in tpl
-        # both the render and the update path must honour it
-        assert "showBadge ? '' : ' style=\"display:none\"'" in tpl
-        assert "srcEl.style.display = show ? '' : 'none';" in tpl
+        assert "signal-strip-sources" not in tpl
+        assert "function _sourceBadge(" not in tpl
+        assert "function _shouldShowSourceBadge(" not in tpl
+
+    def test_tooltip_states_signal_and_source_counts(self):
+        tpl = self._tpl()
+        assert "function _sourceSummary(" in tpl
+        assert "signals from " in tpl
+        # only when it can disambiguate: one signal is already unambiguous
+        assert "if (n < 2) return '';" in tpl
+        # both the render and the update path must carry it
+        assert tpl.count("_sourceSummary(sd)") >= 2
+
+    def test_helper_functions_are_not_duplicated(self):
+        """A bad range edit once duplicated the whole helper block; later
+        definitions win silently, so only a count catches it."""
+        tpl = self._tpl()
+        for fn in ("function _esc(", "function _activeSources(", "function _orderedSignals("):
+            assert tpl.count(fn) == 1, f"{fn} defined {tpl.count(fn)} times"
 
     def test_api_forwards_the_source_fields(self):
         from pathlib import Path

@@ -672,6 +672,7 @@
       html += '<div class="signal-strip-row">';
       html += '<div class="signal-strip">';
       var allSignals = _orderedSignals(sd);
+      var srcSummary = _sourceSummary(sd);
       var prevSource = null;
       for (var j = 0; j < allSignals.length; j++) {
         var sig = allSignals[j];
@@ -686,17 +687,11 @@
           (sdir === 'BULLISH' ? 'var(--accent-green)' :
            sdir === 'BEARISH' ? 'var(--accent-red)' :
            'var(--badge-gray-bg)') + '"' +
-          ' data-tooltip="' + sig.type + (sig.source ? ' · ' + sig.source : '') + '">' +
+          ' data-tooltip="' + sig.type + (sig.source ? ' · ' + sig.source : '') +
+          (srcSummary ? ' — ' + srcSummary : '') + '">' +
           '</div>';
       }
       html += '</div>';
-      var srcNames = _activeSources(sd);
-      var showBadge = _shouldShowSourceBadge(sd);
-      html += '<span class="signal-strip-sources" id="src-count-' + stripped + '"' +
-              (showBadge ? '' : ' style="display:none"') +
-              ' title="independent information sources behind this direction: ' +
-              _esc(srcNames.join(', ') || 'none') + ' (' + srcNames.length + ')">' +
-              (showBadge ? _esc(_sourceBadge(sd)) : '') + '</span>';
       html += '</div>';
 
       html += '</div>';  // close signal-card
@@ -768,6 +763,7 @@
       var allSignals = _orderedSignals(sd);
       var blocks = card.querySelectorAll('.signal-strip-block');
       var prevSrc = null;
+      var srcSummary = _sourceSummary(sd);
       for (var j = 0; j < blocks.length; j++) {
         var sig = allSignals[j];
         if (!sig) { blocks[j].style.display = 'none'; continue; }
@@ -779,21 +775,12 @@
                                      sdir === 'BEARISH' ? 'var(--accent-red)' :
                                      'var(--badge-gray-bg)';
         blocks[j].classList.toggle('live', hasScore);
-        blocks[j].dataset.tooltip = sig.type + (sig.source ? ' \u00b7 ' + sig.source : '');
+        blocks[j].dataset.tooltip = sig.type + (sig.source ? ' \u00b7 ' + sig.source : '') +
+                                    (srcSummary ? ' — ' + srcSummary : '');
         blocks[j].style.marginLeft = (prevSrc !== null && sig.source && sig.source !== prevSrc)
                                      ? '4px' : '';
         prevSrc = sig.source || prevSrc;
       }
-      var srcEl = card.querySelector('.signal-strip-sources');
-      if (srcEl) {
-        var names = _activeSources(sd);
-        var show = _shouldShowSourceBadge(sd);
-        srcEl.textContent = show ? _sourceBadge(sd) : '';
-        srcEl.style.display = show ? '' : 'none';
-        srcEl.title = 'independent information sources behind this direction: ' +
-                      (names.join(', ') || 'none') + ' (' + names.length + ')';
-      }
-
       // Pulse bars
       var histEl = card.querySelector('.pulse-history-row');
       if (histEl) _renderPulseHistory(histEl, data.pulse_history || [], sym || stripped);
@@ -844,26 +831,26 @@
       return Object.keys(seen).sort();
     }
 
-    function _sourceBadge(sd) {
+    // How many same-direction signals are behind the dominant direction, and how
+    // many of them are independent.  Rendered into the per-block tooltip rather
+    // than as a permanent label: the strip already encodes the structure
+    // (blocks are sorted by source and a gap marks each source change), and this
+    // is the explicit version for when the blocks could be read as that many
+    // independent confirmations — which, measured, is 13.4% of XAUT pulses and
+    // 11.1% of BTC pulses.  Returns '' when there is nothing to disambiguate.
+    function _sourceSummary(sd) {
       var names = _activeSources(sd);
       if (!names.length) return '';
-      return names.join('+');
-    }
-
-    // The badge exists for one specific misreading: several lit blocks that are
-    // really one voice counted several times.  With a single active signal the
-    // strip already says everything and the badge can only repeat it, so it is
-    // hidden — measured, that is ~87% of pulses (XAUT 13.4% have 2+ same-
-    // direction signals, BTC 11.1%).
-    function _shouldShowSourceBadge(sd) {
-      if (!_activeSources(sd).length) return false;
       var list = sd.all_signals || [];
       var n = 0;
       for (var i = 0; i < list.length; i++) {
         var g = list[i];
         if (g.is_active && g.direction === sd.direction) n++;
       }
-      return n >= 2;
+      if (n < 2) return '';
+      return n + ' signals from ' + names.length +
+             (names.length === 1 ? ' source (' + names[0] + ')'
+                                 : ' sources (' + names.join(', ') + ')');
     }
 
     function _renderSignalCards(data) {

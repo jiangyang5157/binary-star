@@ -1749,15 +1749,6 @@ th.sortable.sort-desc::after {
   flex: 1;
 }
 
-/* Independent-information-source count.  Five of the ten detectors read the
-   same order-flow number, so the strip length overstates the evidence. */
-.signal-strip-sources {
-  font-size: 0.6rem;
-  color: var(--text-muted, #8898ac);
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
 .signal-strip-block {
   flex: 1;
   min-width: 2px;
