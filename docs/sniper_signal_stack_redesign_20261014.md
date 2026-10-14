@@ -473,6 +473,38 @@ operator 提出一个比"哪里坏了"更锋利的角度：**"这个功能如果
 `scripts/sniper_source_gate_ab.py`；共用的 `_metrics`/`DETECTORS` 抽到中立的
 `scripts/sniper_stack_probe.py`，解开了 `sniper_legacy_fingerprint.py` 对 adaptive 工具链的依赖。
 
+### 线上验证（2026-10-14 13:27，operator 首次启动）
+
+首次在生产验证本次重构。逐项确认：
+
+| 验证项 | 结果 |
+|---|---|
+| FLOW PROBE 在 daemon 内输出 | ✅ 每 pulse 每 symbol 一行 |
+| 诊断行 `sources=` | ✅ `1[flow]` / `0[-]` |
+| pulse file 的 `source` / `sources` / `sources_active` | ✅ |
+| `gate_shadow` 残留 | ✅ 无 |
+| dashboard API 转发 `sources` | ✅ 直接读到（此前会落到有 bug 的 fallback，见 83f3e72 的修复） |
+| 异常 / WARNING | ✅ 0 |
+
+### 新发现：`sources≥2` 的通过几乎全部来自**衰减记忆栈**，不是同一轮的一致
+
+| | 同一轮 fresh | 衰减记忆栈 |
+|---|---|---|
+| XAUT | 1 源 85.9%，2 源 **1.1%**，3 源 **0** | 1 源 96.9%，2 源 2.9%，3 源 0.2% |
+| BTC | 1 源 63.0%，2 源 **1.6%**，3 源 **0** | 1 源 95.4%，2 源 4.6%，3 源 0 |
+
+**同一轮 pulse 内，3 个独立来源从未出现过（3753 轮里 0 次）**，2 个来源只有 1.1–1.6%。
+所以 `min_sources_non_trend: 2` 实质是"**两种证据在衰减窗口内都还站着**"，
+而不是"两种独立证据此刻同时同意" —— **它的强度与 `decay` 半衰期耦合**，
+这是之前没有记录的口径含义，也是"再等数据"的额外理由。
+
+### 工具盲区（同一测量暴露）
+
+`scripts/sniper_gate_policies.py` 用的是**日志镜像**（`build_fresh_signals`），
+而该镜像**看不到多来源 pulse**（同一轮 2 源：镜像 0 次 vs 真实检测器 31/30 次）。
+所以任何源闸门的结论都**必须**用 `sniper_source_gate_ab.py`（驱动真实 `SniperTrigger`），
+不能用镜像口径的脚本。
+
 ### 尚未实施（需 operator 点头）
 
 - **C：自适应条件**（§2.2）—— 会改变触发时机与数量。
