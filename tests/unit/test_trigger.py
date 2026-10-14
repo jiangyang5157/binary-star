@@ -250,7 +250,11 @@ def _make_trigger(min_active_trend=None, min_active_non_trend=None, **gate_extra
     return SniperTrigger(strategy_cfg=strat, global_cfg=glob)
 
 
-def _gate_card(sub_type='large_trade', direction=Direction.BULLISH, strength=0.6):
+def _gate_card(sub_type='large_trade', direction=None, strength=0.6):
+    # squeeze is NEUTRAL by construction; defaulting every card to BULLISH made a
+    # test of the NEUTRAL exclusion pass a BULLISH card and prove nothing.
+    if direction is None:
+        direction = Direction.NEUTRAL if sub_type == 'squeeze' else Direction.BULLISH
     return SignalCard(
         signal_id=f'{sub_type}_1', sub_type=sub_type, direction=direction,
         strength=strength, weight=0.55, timestamp=datetime.now(timezone.utc),
@@ -967,3 +971,46 @@ class TestSignalCfgHonoursFalsyValues:
         configured = t.sniper_cfg['signal_stack']['thresholds']['cvd_extreme_threshold']
         assert configured, "the shipped config must be non-falsy for this test to mean anything"
         assert t._signal_cfg('thresholds', 'cvd_extreme_threshold', default=0.99) == configured
+
+
+class TestActiveSignalsMeansContributing:
+    """`active_signals` is documented as "fresh signals that contributed to
+    trigger", but it accepted NEUTRAL ones.  squeeze is NEUTRAL by construction
+    and `_directional_score` filters on direction, so a NEUTRAL signal
+    contributes exactly 0 — while being reported as active to the MCP tool, which
+    is LLM-facing.  183 of the 281 squeeze fires in the production log had
+    strength >= MIN_STACK_STRENGTH.
+    """
+
+    def test_neutral_signals_are_excluded(self):
+        from src.sniper.trigger import SniperTrigger
+        mk = _gate_card
+        squeeze = mk(sub_type='squeeze')
+        assert squeeze.direction == Direction.NEUTRAL
+        got = SniperTrigger._contributing_signals([squeeze])
+        assert got == []
+
+    def test_directional_signals_are_kept(self):
+        from src.sniper.trigger import SniperTrigger
+        card = _gate_card(sub_type='cvd_momentum')
+        assert SniperTrigger._contributing_signals([card]) == [card]
+
+    def test_leader_sync_stays_excluded(self):
+        """It is a nudge applied on top of the stack, not a detector reading."""
+        from src.sniper.trigger import SniperTrigger
+        card = _gate_card(sub_type='leader_sync')
+        assert card.direction != Direction.NEUTRAL, "precondition"
+        assert SniperTrigger._contributing_signals([card]) == []
+
+    def test_weak_signals_are_excluded(self):
+        from src.sniper.trigger import SniperTrigger
+        weak = _gate_card(sub_type='cvd_momentum', strength=0.01)
+        assert SniperTrigger._contributing_signals([weak]) == []
+
+    def test_the_situation_brief_is_untouched(self):
+        """The LLM boundary is built from `all_signals`, not `active_signals`, so
+        this fix must not change what the session sees.  squeeze is *deliberately*
+        eligible there (an explicit carve-out), and that stays."""
+        from pathlib import Path
+        src = Path("src/sniper/trigger.py").read_text()
+        assert "s.direction != Direction.NEUTRAL or s.sub_type == 'squeeze'" in src

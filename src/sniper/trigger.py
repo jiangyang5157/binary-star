@@ -539,6 +539,30 @@ class SniperTrigger:
             node = node[key]
         return default if node is None else node
 
+    @staticmethod
+    def _contributing_signals(signals: List[SignalCard]) -> List[SignalCard]:
+        """Signals that could actually contribute to a directional decision.
+
+        `active_signals` is documented as "fresh signals that contributed to
+        trigger", but it accepted any signal above MIN_STACK_STRENGTH —
+        including NEUTRAL ones.  squeeze is NEUTRAL by construction and
+        ConfluenceEngine._directional_score filters on direction, so a NEUTRAL
+        signal contributes exactly 0 to the score and to the gate while still
+        being reported as active: 183 of the 281 squeeze fires in the production
+        log had strength >= MIN_STACK_STRENGTH, so the MCP tool answered "what
+        is active?" with a signal that cannot affect anything.  leader_sync stays
+        excluded because it is a nudge applied on top of the stack, not a
+        detector reading.
+
+        Display is unaffected: the strip colours a block by
+        `is_active ? direction : 'NEUTRAL'`, grey either way for squeeze, and its
+        opacity comes from `score`, not from this flag.
+        """
+        return [s for s in signals
+                if s.strength >= MIN_STACK_STRENGTH
+                and s.direction != Direction.NEUTRAL
+                and s.sub_type != 'leader_sync']
+
     # ── Regime Detection ─────────────────────────────────────────────────
 
     def _determine_regime(self, curr: Dict[str, Any]) -> str:
@@ -1346,8 +1370,7 @@ class SniperTrigger:
             confluence_score=confluence_score,
             confluence_direction=dominant_direction,
             signals=boosted_signals,
-            active_signals=[s for s in boosted_signals
-                           if s.strength >= MIN_STACK_STRENGTH and s.sub_type != 'leader_sync'],
+            active_signals=self._contributing_signals(boosted_signals),
             gate_result=gate_result,
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
@@ -1628,7 +1651,7 @@ class SniperTrigger:
             confluence_score=confluence_score,
             confluence_direction=dominant_direction,
             signals=all_signals,
-            active_signals=[s for s in fresh_signals if s.strength >= MIN_STACK_STRENGTH],
+            active_signals=self._contributing_signals(fresh_signals),
             gate_result=gate_result,
             situation_brief=situation_brief,
             cooldown_minutes=cooldown_mins,
