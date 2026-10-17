@@ -20,12 +20,12 @@ load_dotenv()
 from src.infrastructure.binance.client import BinanceFuturesClient
 from src.sniper.scout import SniperScout
 from src.sniper.trigger import (
-    SniperTrigger, TriggerResult, Direction, SignalCard,
+    SniperTrigger, TriggerResult,
     SIGNAL_SOURCES, DEFAULT_SIGNAL_SOURCE, independent_sources,
 )
 from run_session import SessionEngine
 from src.utils.logger_utils import setup_logger
-from src.utils.progress_utils import add_activity_entry, ACTIVE, COMPLETE, ERROR
+from src.utils.progress_utils import add_activity_entry, ERROR
 
 # Sentinel matching MarginOrderExecutor.EMERGENCY_CLOSED_SENTINEL
 _EMERGENCY_CLOSED_SENTINEL = -1
