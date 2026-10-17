@@ -49,20 +49,3 @@ def test_effective_gate_values_are_pinned(symbol):
         "docs/sniper_gate_review_and_plan_20260917.md. If the change is "
         "intentional, update EXPECTED in this test and attach the measurement."
     )
-
-
-@pytest.mark.parametrize('symbol', sorted(EXPECTED))
-def test_independent_direction_rule_stays_in_shadow_mode(symbol):
-    """The provenance rule must stay non-enforcing until the shadow period is
-    evaluated (S2/S3 in the plan).  Flipping it on is a behaviour change and
-    must be a deliberate, separate commit."""
-    gate = _effective_gate(symbol)
-    assert gate.get('require_independent_direction') is False, (
-        f"[{symbol}] require_independent_direction is enabled. Per "
-        "docs/sniper_gate_review_and_plan_20260917.md this may only be turned "
-        "on after the shadow-period acceptance criteria are met."
-    )
-    assert gate.get('shadow_require_independent_direction') is True, (
-        f"[{symbol}] shadow_require_independent_direction is off — the shadow "
-        "evidence for S2 will not accumulate."
-    )

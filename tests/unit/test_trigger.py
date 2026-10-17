@@ -321,8 +321,14 @@ class TestPreAIGate:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Direction-provenance gate (require_independent_direction / shadow mode)
-# See docs/sniper_gate_review_and_plan_20260917.md
+# Direction provenance — the rule was rejected, not left pending
+#
+# `require_independent_direction` (at least one same-direction signal whose
+# direction does not come from sign(cvd)) was measured to remove 76% of BTC's
+# favourable excursion, and the operator rejected it permanently.  The mechanism
+# and its shadow logging are gone; these tests pin the outcome that mattered —
+# a stack of purely CVD-derived signals still passes — and that the rejected
+# config keys cannot quietly reappear.
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _cvd_stack():
@@ -331,53 +337,25 @@ def _cvd_stack():
             _gate_card('volatility_surge')]
 
 
-class TestDirectionProvenanceGate:
+class TestRejectedProvenanceRuleStaysGone:
 
-    def test_disabled_by_default_passes_pure_cvd_stack(self):
+    def test_pure_cvd_stack_passes(self):
         t = _make_trigger(min_active_non_trend=3)
-        result, reason = t._run_pre_ai_gate(
+        result, _reason = t._run_pre_ai_gate(
             _gate_metrics(), _cvd_stack(), Direction.BULLISH, 'ranging')
         assert result == 'PASS'
 
-    def test_shadow_mode_logs_but_does_not_block(self, caplog):
-        t = _make_trigger(min_active_non_trend=3,
-                          shadow_require_independent_direction=True,
-                          require_independent_direction=False)
-        with caplog.at_level('INFO', logger='src.sniper.trigger'):
-            result, reason = t._run_pre_ai_gate(
-                _gate_metrics(), _cvd_stack(), Direction.BULLISH, 'ranging')
-        assert result == 'PASS'
-        assert any('GATE SHADOW' in r.message for r in caplog.records)
+    def test_config_keys_are_absent(self):
+        t = _make_trigger(min_active_non_trend=3)
+        gate = t.sniper_cfg['signal_stack']['gate']
+        assert 'require_independent_direction' not in gate
+        assert 'shadow_require_independent_direction' not in gate
 
-    def test_enabled_blocks_pure_cvd_stack(self):
-        t = _make_trigger(min_active_non_trend=3,
-                          require_independent_direction=True)
-        result, reason = t._run_pre_ai_gate(
-            _gate_metrics(), _cvd_stack(), Direction.BULLISH, 'ranging')
-        assert result == 'FAIL'
-        assert 'MIN_ACTIVE_INDEPENDENT' in reason
-
-    def test_enabled_passes_when_an_independent_source_agrees(self):
-        # cvd_divergence derives direction from price_delta/cvd_delta, not sign(cvd)
-        t = _make_trigger(min_active_non_trend=3,
-                          require_independent_direction=True)
-        sigs = [_gate_card('cvd_momentum'), _gate_card('large_trade'),
-                _gate_card('cvd_divergence')]
-        result, reason = t._run_pre_ai_gate(
-            _gate_metrics(), sigs, Direction.BULLISH, 'ranging')
-        assert result == 'PASS'
-
-    def test_count_gate_still_wins_first(self):
-        # 2 signals < min 3 → the count gate fails before provenance is examined
-        t = _make_trigger(min_active_non_trend=3,
-                          require_independent_direction=True)
-        sigs = [_gate_card('cvd_momentum'), _gate_card('large_trade')]
-        result, reason = t._run_pre_ai_gate(
-            _gate_metrics(), sigs, Direction.BULLISH, 'ranging')
-        assert result == 'FAIL'
-        assert 'MIN_ACTIVE_SIGNALS' in reason
-
-
+    def test_source_is_the_measure_of_independence_now(self):
+        """The concept survives as `SIGNAL_SOURCES` + `min_sources_*`; the old
+        duplicate frozenset is gone."""
+        import src.sniper.trigger as trig
+        assert not hasattr(trig, 'CVD_DERIVED_SUBTYPES')
 # ═══════════════════════════════════════════════════════════════════════════
 # gate_result / gate_reason — why a pulse did (not) wake
 # Contract consumed by run_sniper._write_pulse -> .sniper_pulse.json -> MCP.

@@ -218,13 +218,6 @@ sniper:
       #   这让离线结果更难解释，也是**再等数据**的一个额外理由。
       min_sources_non_trend: 0       # 0=关闭；启用建议置 2
       min_sources_trend: 0           # 同上；趋势 regime 的 min_active_trend=1 本就近乎防呆
-      # —— 方向来源独立要求（实验项，见 docs/sniper_gate_review_and_plan_20260917.md）——
-      # 背景：cvd_momentum / large_trade / volatility_surge 的方向都取 sign(cvd)，
-      # 实测两者同向率 100%（XAUT 91/91、BTC 62/62），所以"同向 3 个信号"经常只是
-      # 同一个 CVD 冲击被数了 3 次。开启本规则 = 同向信号中至少 1 个方向不来自 sign(cvd)。
-      shadow_require_independent_direction: true   # 只记 GATE SHADOW 日志，不改变触发（默认开）
-      require_independent_direction: false         # 真正启用拦截。需影子期达标后才可置 true
-
     # —— 信号置信度权重（可被 Evolution 进化）——
     # 设计原则：结构性/流动性信号 > 情绪/反向信号。
     # squeeze 和 trend_pullback 权重最高——经过回测验证的高胜率 pattern。
